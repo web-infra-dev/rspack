@@ -68,14 +68,15 @@ mod context_module_factory;
 mod define_symbols;
 mod dependencies;
 mod dependency;
-mod dependency_strings;
 mod diagnostic;
 mod error;
 mod exports_info;
+mod file_system_dependency_strings;
 mod filename;
 mod fs_node;
 mod html;
 mod identifier;
+mod js_helpers;
 mod location;
 mod logging;
 mod module;
@@ -108,7 +109,6 @@ mod virtual_modules;
 use std::{
   cell::RefCell,
   mem::ManuallyDrop,
-  rc::Weak,
   sync::{Arc, RwLock},
 };
 
@@ -133,9 +133,10 @@ use crate::{
   compiler::{Compiler, CompilerState, CompilerStateGuard},
   compiler_scoped_tsfn::{CompilerScopedTsFnHandle, CompilerScopedTsFnManager},
   dependency::DependencyWrapper,
-  dependency_strings::{DependencyValuesCache, InternedPathJsStringRefs},
   error::{ErrorCode, RspackResultToNapiResultExt},
+  file_system_dependency_strings::FileSystemDependencyStringPool,
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
+  js_helpers::{JsHelperRefs, JsHelpers},
   logging::{InfrastructureLogDispatcher, JsLog},
   module::ModuleObject,
   module_graph_connection::ModuleGraphConnectionWrapper,
@@ -233,10 +234,8 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 struct JsCompiler {
   // whether to skip drop compiler in finalize
   unsafe_fast_drop: bool,
-  dependency_string_refs: RefCell<InternedPathJsStringRefs>,
-  // Synchronous, module-level helper: never captures a compiler or its data.
-  dependency_array_materializer: RefCell<Option<rspack_napi::OneShotRef>>,
-  dependency_values_to_clear: RefCell<Vec<Weak<RefCell<DependencyValuesCache>>>>,
+  file_system_dependency_string_pool: RefCell<FileSystemDependencyStringPool>,
+  js_helpers: JsHelperRefs,
   infrastructure_log_dispatcher: Arc<InfrastructureLogDispatcher>,
   compiler_scoped_tsfn_manager: CompilerScopedTsFnManager,
   js_hooks_plugin: JsHooksAdapterPlugin,
@@ -254,7 +253,7 @@ impl JsCompiler {
   #[allow(clippy::too_many_arguments)]
   #[napi(
     constructor,
-    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, materializeDependencyArrays: (strings: ReadonlyArray<string>, targets: string[][], commands: Uint32Array) => void"
+    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, jsHelpers: JsHelpers"
   )]
   pub fn new(
     env: Env,
@@ -271,7 +270,7 @@ impl JsCompiler {
     platform: RawCompilerPlatform,
     raw_infrastructure_log_callback: Unknown<'static>,
     cache: Reference<JsCache>,
-    materialize_dependency_arrays: Function<'_>,
+    js_helpers: JsHelpers<'_>,
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
 
@@ -425,12 +424,10 @@ impl JsCompiler {
         compiler_context,
         virtual_file_store,
         unsafe_fast_drop,
-        dependency_string_refs: Default::default(),
-        dependency_array_materializer: RefCell::new(Some(rspack_napi::OneShotRef::new(
-          env.raw(),
-          materialize_dependency_arrays,
-        )?)),
-        dependency_values_to_clear: Default::default(),
+        file_system_dependency_string_pool: RefCell::new(FileSystemDependencyStringPool::new(
+          &env, &mut this,
+        )?),
+        js_helpers: JsHelperRefs::new(&env, &mut this, js_helpers)?,
       })
     })
   }
@@ -450,7 +447,7 @@ impl JsCompiler {
   ) -> Result<(), ErrorCode> {
     unsafe {
       self.run(&env, reference, |compiler, guard| {
-        callbackify_compilation(
+        callbackify(
           f,
           async move {
             let result = compiler.build().await.to_napi_result_with_message(|e| {
@@ -460,7 +457,7 @@ impl JsCompiler {
             tracing::debug!("build ok");
             Ok(())
           },
-          guard,
+          Some(move |env: &Env, result: &mut _| guard.finish(env, result)),
         )
       })
     }
@@ -480,7 +477,7 @@ impl JsCompiler {
   ) -> Result<(), ErrorCode> {
     unsafe {
       self.run(&env, reference, |compiler, guard| {
-        callbackify_compilation(
+        callbackify(
           f,
           async move {
             let result = compiler
@@ -496,7 +493,7 @@ impl JsCompiler {
             tracing::debug!("rebuild ok");
             Ok(())
           },
-          guard,
+          Some(move |env: &Env, result: &mut _| guard.finish(env, result)),
         )
       })
     }
@@ -532,20 +529,18 @@ impl JsCompiler {
     });
     let Ok(mut promise) = spawn_future_result else {
       self.compiler_scoped_tsfn_manager.release();
-      let _ = self.clear_dependency_strings(Some(env), true);
       drop(reference);
       return spawn_future_result;
     };
-    promise.finally(|env| {
+    promise.finally(|_env| {
       // Cached hook taps can retain the compiler after the final rebuild.
       // Release them even when a close hook fails, after in-flight work is idle.
       self
         .js_hooks_plugin
         .clear_cache(self.compiler.compilation.id());
       self.compiler_scoped_tsfn_manager.release();
-      let cleanup = self.clear_dependency_strings(Some(&env), true);
       drop(reference);
-      cleanup
+      Ok(())
     })
   }
 
@@ -568,54 +563,21 @@ struct RunGuard {
   _reference: Reference<JsCompiler>,
 }
 
-// Always deliver a completion envelope, including errors. Sending an outer
-// TSFN Err skips its Rust conversion callback and would skip guard/cache cleanup.
-fn callbackify_compilation<F>(
-  callback: Function<'static>,
-  future: F,
-  guard: RunGuard,
-) -> Result<(), ErrorCode>
-where
-  F: std::future::Future<Output = Result<(), ErrorCode>> + Send + 'static,
-{
-  use futures::FutureExt;
-  use napi::threadsafe_function::ThreadsafeFunctionCallMode;
-  let mut guard = Some(guard);
-  let tsfn = callback
-    .build_threadsafe_function::<Result<(), ErrorCode>>()
-    .callee_handled::<false>()
-    .weak::<false>()
-    .max_queue_size::<1>()
-    .build_callback(move |ctx| {
-      if let Some(guard) = guard.take() {
-        if ctx.value.is_err() {
-          // Preserve the original build error even if releasing a result array fails.
-          let _ = guard
-            ._reference
-            .clear_dependency_strings(Some(&ctx.env), false);
-        }
-        drop(guard);
-      }
-      Ok(match ctx.value {
-        Ok(()) => Either::A(Null),
-        Err(error) => Either::B(napi::JsError::from(error).into_unknown(ctx.env)),
-      })
-    })
-    .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason))?;
-  rspack_napi::runtime::spawn(async move {
-    let result = match std::panic::AssertUnwindSafe(future).catch_unwind().await {
-      Ok(result) => result,
-      Err(payload) => {
-        let error = rspack_napi::runtime::panic_to_napi_error(payload);
-        Err(napi::Error::new(
-          ErrorCode::Napi(error.status),
-          error.reason,
-        ))
-      }
-    };
-    tsfn.call(result, ThreadsafeFunctionCallMode::NonBlocking);
-  });
-  Ok(())
+impl RunGuard {
+  fn finish(self, env: &Env, result: &mut Result<(), ErrorCode>) {
+    if result.is_ok() {
+      *result = self
+        ._reference
+        .prune_file_system_dependency_strings(env)
+        .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason));
+    }
+    if result.is_err() {
+      // Preserve the original error even if clearing the string pool fails.
+      let _ = self._reference.clear_file_system_dependency_strings(env);
+    }
+    // Release the running state and compiler reference before the JS callback.
+    drop(self);
+  }
 }
 
 impl JsCompiler {
@@ -636,20 +598,6 @@ impl JsCompiler {
     }
 
     let compiler_state_guard = self.state.enter();
-    let prepare = self.clear_dependency_values(Some(env)).and_then(|()| {
-      self
-        .dependency_string_refs
-        .borrow_mut()
-        .begin_generation(env)
-    });
-    if let Err(error) = prepare {
-      let _ = self.clear_dependency_strings(Some(env), false);
-      return Err(napi::Error::new(
-        ErrorCode::Napi(error.status),
-        error.reason,
-      ));
-    }
-
     // SAFETY:
     // We ensure the lifetime of JsCompiler by holding a Reference<JsCompiler> until the JS callback function completes.
     // Therefore, we can safely transmute the lifetime of Compiler to 'static here.
@@ -672,7 +620,7 @@ impl JsCompiler {
     let result = within_compiler_context_sync(self.compiler_context.clone(), || f(compiler, guard));
     if result.is_err() {
       // This includes failure to construct the completion TSFN, before a task starts.
-      let _ = self.clear_dependency_strings(Some(env), false);
+      let _ = self.clear_file_system_dependency_strings(env);
     }
     result
   }
@@ -698,7 +646,7 @@ impl ObjectFinalize for JsCompiler {
       references.remove(&compiler_id);
     });
 
-    let _ = self.clear_dependency_strings(None, true);
+    // Pool strings, dependency arrays and JS helpers are owned by JS objects.
     self.cleanup_last_compilation(&self.compiler.compilation);
     ModuleObject::cleanup_by_compiler_id(&compiler_id);
 

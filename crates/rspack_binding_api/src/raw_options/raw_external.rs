@@ -188,7 +188,7 @@ impl RawExternalItemFnCtx {
               )),
             }
           },
-          None::<fn()>,
+          None::<fn(&napi::Env, &mut _)>,
         )
         .map_err(|e| napi::Error::from_reason(e.reason))
       })?;

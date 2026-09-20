@@ -15,7 +15,9 @@ use rspack_loader_runner::LoaderRunnerOptions;
 use rspack_paths::Utf8Path;
 use rspack_util::fx_hash::FxHashMap as HashMap;
 
-use crate::dependency_strings::{CompilerDependencyPaths, DependencyPaths};
+use crate::file_system_dependency_strings::{
+  CompilerScopedFileSystemDependencyPaths, FileSystemDependencyPaths,
+};
 
 #[cacheable]
 struct LoaderCacheEntry {
@@ -32,9 +34,9 @@ pub struct JsLoaderCacheEntry {
   pub content: Either3<Null, String, Uint8Array>,
   pub source_map: Option<Uint8Array>,
   #[napi(ts_type = "JsLoaderDependencies")]
-  pub added_dependencies: CompilerDependencyPaths,
+  pub added_dependencies: CompilerScopedFileSystemDependencyPaths,
   #[napi(ts_type = "JsLoaderDependencies")]
-  pub removed_dependencies: CompilerDependencyPaths,
+  pub removed_dependencies: CompilerScopedFileSystemDependencyPaths,
   pub parse_meta: HashMap<String, String>,
 }
 
@@ -145,7 +147,7 @@ impl JsLoaderCache {
     &self,
     loader_index: u32,
     content: Either<String, Uint8Array>,
-    existing: DependencyPaths,
+    existing: FileSystemDependencyPaths,
   ) -> napi::Result<Option<JsLoaderCacheEntry>> {
     let loader = self.loader(loader_index)?;
     let content = match content {
@@ -193,11 +195,11 @@ impl JsLoaderCache {
         (Some(content), false) => Either3::C(content.clone().into()),
       },
       source_map: entry.source_map.clone().map(Into::into),
-      added_dependencies: CompilerDependencyPaths {
+      added_dependencies: CompilerScopedFileSystemDependencyPaths {
         compiler_id: self.compiler_id,
         paths: (&dependencies).into(),
       },
-      removed_dependencies: CompilerDependencyPaths {
+      removed_dependencies: CompilerScopedFileSystemDependencyPaths {
         compiler_id: self.compiler_id,
         paths: Default::default(),
       },
@@ -280,7 +282,7 @@ impl JsLoaderCache {
     content: Either<String, Uint8Array>,
     #[napi(ts_arg_type = "JsLoaderDependencies")] existing: Object<'_>,
   ) -> napi::Result<PromiseRaw<'env, Option<JsLoaderCacheEntry>>> {
-    let existing = DependencyPaths::from_js(env, self.compiler_id, existing)?;
+    let existing = FileSystemDependencyPaths::from_js(env, self.compiler_id, existing)?;
     let this = self.clone();
     rspack_napi::runtime::promise_from_future(env, async move {
       this.get_async(loader_index, content, existing).await
@@ -298,17 +300,17 @@ impl JsLoaderCache {
       content: output.get_named_property("content")?,
       source_map: output.get_named_property("sourceMap")?,
       parse_meta: output.get_named_property("parseMeta")?,
-      added_dependencies: CompilerDependencyPaths {
+      added_dependencies: CompilerScopedFileSystemDependencyPaths {
         compiler_id: self.compiler_id,
-        paths: DependencyPaths::from_js(
+        paths: FileSystemDependencyPaths::from_js(
           env,
           self.compiler_id,
           output.get_named_property("addedDependencies")?,
         )?,
       },
-      removed_dependencies: CompilerDependencyPaths {
+      removed_dependencies: CompilerScopedFileSystemDependencyPaths {
         compiler_id: self.compiler_id,
-        paths: DependencyPaths::from_js(
+        paths: FileSystemDependencyPaths::from_js(
           env,
           self.compiler_id,
           output.get_named_property("removedDependencies")?,

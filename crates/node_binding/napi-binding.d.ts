@@ -284,7 +284,7 @@ export declare class FileSystemDependencies {
   has(value: string): boolean
   clear(): void
   update(added: Array<string>, deleted: Array<string>): void
-  values(): ReadonlyArray<string>
+  values(this: this): ReadonlyArray<string>
   add(value: string): void
   addAll(values: Array<string>): void
 }
@@ -358,7 +358,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, materializeDependencyArrays: (strings: ReadonlyArray<string>, targets: string[][], commands: Uint32Array) => void)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, jsHelpers: JsHelpers)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -891,6 +891,11 @@ export interface JsExecuteModuleResult {
 
 export interface JsFactoryMeta {
   sideEffectFree?: boolean
+}
+
+export interface JsHelpers {
+  applyIndexedArrayUpdates: <T>(source: ReadonlyArray<T>, targets: T[][], commands: Uint32Array) => void
+  swapRemoveArrayElements: <T>(array: T[], removedIndices: Uint32Array) => void
 }
 
 export interface JsHtmlPluginAssets {

@@ -8,7 +8,7 @@ use std::{cell::RefCell, path::Path, ptr::NonNull};
 
 use chunks::Chunks;
 pub use code_generation_results::*;
-use dependencies::{FileSystemDependencies, FileSystemDependencyKind};
+use dependencies::FileSystemDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
 use napi_derive::napi;
@@ -30,8 +30,10 @@ use crate::{
   chunk_graph::ChunkGraph,
   chunk_group::ChunkGroupWrapper,
   dependencies::EntryDependency,
-  dependency_strings::{CompilerDependencyPaths, DependencyPaths, intern_js_values},
   error::{ErrorCode, JsRspackDiagnostic, RspackError, RspackResultToNapiResultExt},
+  file_system_dependency_strings::{
+    CompilerScopedFileSystemDependencyPaths, FileSystemDependencyPaths, intern_js_values,
+  },
   filename::JsFilename,
   module::{JsAddingRuntimeModule, ModuleObject},
   module_graph::JsModuleGraph,
@@ -471,32 +473,56 @@ impl JsCompilation {
   #[napi(getter)]
   pub fn file_dependencies(&self) -> Result<FileSystemDependencies> {
     Ok(FileSystemDependencies::new(
-      FileSystemDependencyKind::File,
       self.as_ref()?.compiler_id(),
+      |compilation| {
+        (
+          &compilation.build_module_graph_artifact.file_dependencies,
+          &compilation.file_dependencies,
+        )
+      },
+      |compilation| &mut compilation.file_dependencies,
     ))
   }
 
   #[napi(getter)]
   pub fn context_dependencies(&self) -> Result<FileSystemDependencies> {
     Ok(FileSystemDependencies::new(
-      FileSystemDependencyKind::Context,
       self.as_ref()?.compiler_id(),
+      |compilation| {
+        (
+          &compilation.build_module_graph_artifact.context_dependencies,
+          &compilation.context_dependencies,
+        )
+      },
+      |compilation| &mut compilation.context_dependencies,
     ))
   }
 
   #[napi(getter)]
   pub fn missing_dependencies(&self) -> Result<FileSystemDependencies> {
     Ok(FileSystemDependencies::new(
-      FileSystemDependencyKind::Missing,
       self.as_ref()?.compiler_id(),
+      |compilation| {
+        (
+          &compilation.build_module_graph_artifact.missing_dependencies,
+          &compilation.missing_dependencies,
+        )
+      },
+      |compilation| &mut compilation.missing_dependencies,
     ))
   }
 
   #[napi(getter)]
   pub fn build_dependencies(&self) -> Result<FileSystemDependencies> {
     Ok(FileSystemDependencies::new(
-      FileSystemDependencyKind::Build,
       self.as_ref()?.compiler_id(),
+      |compilation| {
+        (
+          &compilation.build_module_graph_artifact.build_dependencies,
+          &compilation.build_dependencies,
+        )
+      },
+      |compilation| &mut compilation.build_dependencies,
     ))
   }
 
@@ -701,7 +727,7 @@ impl JsCompilation {
 
         Ok(modules)
       }),
-      Some(|| drop(reference)),
+      Some(|_: &Env, _: &mut _| drop(reference)),
     )
   }
 
@@ -744,9 +770,9 @@ impl JsCompilation {
 
         let js_result = ExecuteModuleResult {
           cacheable: res.cacheable,
-          dependencies: CompilerDependencyPaths {
+          dependencies: CompilerScopedFileSystemDependencyPaths {
             compiler_id: compilation.compiler_id(),
-            paths: DependencyPaths {
+            paths: FileSystemDependencyPaths {
               file: res.file_dependencies.into_iter().collect(),
               context: res.context_dependencies.into_iter().collect(),
               build: res.build_dependencies.into_iter().collect(),
@@ -763,7 +789,7 @@ impl JsCompilation {
         };
         Ok(js_result)
       }),
-      Some(|| {
+      Some(|_: &Env, _: &mut _| {
         drop(reference);
       }),
     )
@@ -919,7 +945,7 @@ impl JsCompilation {
 
           Ok(JsAddEntryItemCallbackArgs(results))
         }),
-        Some(|| {
+        Some(|_: &Env, _: &mut _| {
           drop(reference);
         }),
       )
@@ -1022,7 +1048,7 @@ impl JsCompilation {
 
           Ok(JsAddEntryItemCallbackArgs(results))
         }),
-        Some(|| {
+        Some(|_: &Env, _: &mut _| {
           drop(reference);
         }),
       )
@@ -1156,7 +1182,7 @@ pub struct JsExecuteModuleResult {
 // Async work carries native paths only. Materialize all four arrays together on
 // the JS thread, keeping the public JsExecuteModuleResult shape unchanged.
 struct ExecuteModuleResult {
-  dependencies: CompilerDependencyPaths,
+  dependencies: CompilerScopedFileSystemDependencyPaths,
   cacheable: bool,
   id: u32,
   errors: Vec<RspackError>,

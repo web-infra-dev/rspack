@@ -43,6 +43,24 @@ export default {
             expect(Array.from(snapshot)).not.toContain(third);
             expect(Array.from(deps)).toEqual(values);
 
+            // Re-adding pending deletions keeps the first addition order,
+            // even when the deletions are cancelled in a different order.
+            const ordered = ['a', 'b', 'c'].map((name) =>
+              path.join(compiler.context, `${kind}-ordered-${name}.txt`),
+            );
+            deps.addAll([ordered[0], ordered[1], ordered[0], ordered[2]]);
+            expect(deps.delete(ordered[0])).toBe(true);
+            expect(deps.delete(ordered[1])).toBe(true);
+            expect(deps.delete(ordered[0])).toBe(false);
+            deps.addAll([ordered[1], ordered[0], ordered[1]]);
+            await Promise.resolve();
+            expect(Array.from(deps)).toEqual([...values, ...ordered]);
+            for (const value of ordered) {
+              expect(deps.delete(value)).toBe(true);
+              expect(deps.delete(value)).toBe(false);
+            }
+            expect(Array.from(deps)).toEqual(values);
+
             // Native overlaps, repeated pending additions and deletion markers
             // must agree between size and every snapshot-producing operation.
             const fourth = path.join(compiler.context, `${kind}-fourth.txt`);

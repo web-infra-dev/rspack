@@ -349,23 +349,23 @@ export class Compilation {
   constructor(compiler: Compiler, inner: JsCompilation) {
     this.#inner = inner;
     // Share the binding's string cache between collection reads and watch deltas.
-    const dependencies = (this.#fileSystemDependencies = {
+    const fileSystemDependencies = (this.#fileSystemDependencies = {
       fileDependencies: inner.fileDependencies,
       contextDependencies: inner.contextDependencies,
       missingDependencies: inner.missingDependencies,
       buildDependencies: inner.buildDependencies,
     });
     this.fileDependencies = createFileSystemDependencies(
-      dependencies.fileDependencies,
+      fileSystemDependencies.fileDependencies,
     );
     this.contextDependencies = createFileSystemDependencies(
-      dependencies.contextDependencies,
+      fileSystemDependencies.contextDependencies,
     );
     this.missingDependencies = createFileSystemDependencies(
-      dependencies.missingDependencies,
+      fileSystemDependencies.missingDependencies,
     );
     this.buildDependencies = createFileSystemDependencies(
-      dependencies.buildDependencies,
+      fileSystemDependencies.buildDependencies,
     );
     this.#shutdown = false;
 

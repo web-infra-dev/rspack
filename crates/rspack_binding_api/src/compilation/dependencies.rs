@@ -1,29 +1,27 @@
-use std::{cell::RefCell, rc::Rc};
-
 use napi::{
   Env, JsString,
-  bindgen_prelude::{Array, FromNapiValue, JsObjectValue, ToNapiValue},
+  bindgen_prelude::{Array, JsObjectValue, This},
 };
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilerId, FileCounter};
-use rspack_napi::OneShotRef;
-use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathMap, InternedPathSet};
+use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathSet};
 
 use crate::{
   COMPILER_REFERENCES,
-  dependency_strings::{
-    DependencyValuesCache, PreparedDependencyArrays, dependency_index, intern_js_values,
-    referenced_array, refreshed_array, with_compiler,
+  file_system_dependency_strings::{
+    FileSystemDependencyArrayCache, intern_js_values, refreshed_array, with_compiler,
   },
+  js_helpers::IndexedArrayUpdateBatch,
 };
 
 /// Native operations on the owning compiler's current dependency collection.
 #[napi]
 pub struct FileSystemDependencies {
-  kind: FileSystemDependencyKind,
+  select_sources: fn(&Compilation) -> (&FileCounter, &InternedPathIndexSet),
+  select_additions: fn(&mut Compilation) -> &mut InternedPathIndexSet,
   compiler_id: CompilerId,
-  deleted_paths: InternedPathSet,
-  values_cache: Option<Rc<RefCell<DependencyValuesCache>>>,
+  excluded_paths: InternedPathSet,
+  array_cache: FileSystemDependencyArrayCache,
 }
 
 // Retained JS dependency wrappers follow rebuilds, just like JsCompilation.
@@ -58,30 +56,18 @@ fn with_current_compilation_mut<R>(
   f(&mut compiler.compiler.compilation)
 }
 
-fn create_array<'env>(env: &'env Env, length: usize) -> napi::Result<Array<'env>> {
-  // SAFETY: The freshly created JS object is an Array in this handle scope.
-  unsafe {
-    Array::from_napi_value(
-      env.raw(),
-      ToNapiValue::to_napi_value(env.raw(), env.create_array_with_length(length)?)?,
-    )
-  }
-}
-
-pub enum FileSystemDependencyKind {
-  File,
-  Context,
-  Missing,
-  Build,
-}
-
 impl FileSystemDependencies {
-  pub fn new(kind: FileSystemDependencyKind, compiler_id: CompilerId) -> Self {
+  pub fn new(
+    compiler_id: CompilerId,
+    select_sources: fn(&Compilation) -> (&FileCounter, &InternedPathIndexSet),
+    select_additions: fn(&mut Compilation) -> &mut InternedPathIndexSet,
+  ) -> Self {
     Self {
-      kind,
+      select_sources,
+      select_additions,
       compiler_id,
-      values_cache: None,
-      deleted_paths: InternedPathSet::default(),
+      array_cache: Default::default(),
+      excluded_paths: InternedPathSet::default(),
     }
   }
 
@@ -92,9 +78,9 @@ impl FileSystemDependencies {
   ) -> napi::Result<()> {
     let paths = intern_js_values(env, self.compiler_id, values)?;
     with_current_compilation_mut(self.compiler_id, |compilation| {
-      let additions = self.additions(compilation);
+      let additions = (self.select_additions)(compilation);
       for path in paths {
-        self.deleted_paths.remove(&path);
+        self.excluded_paths.remove(&path);
         additions.insert(path);
       }
       Ok(())
@@ -110,42 +96,7 @@ impl FileSystemDependencies {
         "Compilation dependencies are not available while a compilation pass is holding the module graph artifact",
       ));
     }
-    let artifact = &compilation.build_module_graph_artifact;
-    let (counter, added) = match self.kind {
-      FileSystemDependencyKind::File => {
-        (&artifact.file_dependencies, &compilation.file_dependencies)
-      }
-      FileSystemDependencyKind::Context => (
-        &artifact.context_dependencies,
-        &compilation.context_dependencies,
-      ),
-      FileSystemDependencyKind::Missing => (
-        &artifact.missing_dependencies,
-        &compilation.missing_dependencies,
-      ),
-      FileSystemDependencyKind::Build => (
-        &artifact.build_dependencies,
-        &compilation.build_dependencies,
-      ),
-    };
-    Ok((counter, added))
-  }
-
-  fn paths<'a>(
-    &self,
-    compilation: &'a Compilation,
-  ) -> napi::Result<impl Iterator<Item = &'a InternedPath>> {
-    let (counter, added) = self.sources(compilation)?;
-    Ok(counter.files().chain(added))
-  }
-
-  fn additions<'a>(&self, compilation: &'a mut Compilation) -> &'a mut InternedPathIndexSet {
-    match self.kind {
-      FileSystemDependencyKind::File => &mut compilation.file_dependencies,
-      FileSystemDependencyKind::Context => &mut compilation.context_dependencies,
-      FileSystemDependencyKind::Missing => &mut compilation.missing_dependencies,
-      FileSystemDependencyKind::Build => &mut compilation.build_dependencies,
-    }
+    Ok((self.select_sources)(compilation))
   }
 }
 
@@ -154,14 +105,14 @@ impl FileSystemDependencies {
   #[napi(getter, ts_return_type = "Array<string>")]
   pub fn added<'env>(&self, env: &'env Env) -> napi::Result<Array<'env>> {
     with_compiler(env, self.compiler_id, |compiler| {
-      let (counter, added) = self.sources(&compiler.compiler.compilation)?;
-      let mut prepared = PreparedDependencyArrays::default();
+      let (counter, plugin_paths) = self.sources(&compiler.compiler.compilation)?;
+      let mut updates = IndexedArrayUpdateBatch::default();
       let array = compiler
-        .dependency_string_refs
+        .file_system_dependency_string_pool
         .borrow_mut()
-        .batch(env)
-        .prepare_values(&mut prepared, counter.added_files().chain(added))?;
-      prepared.materialize(env, compiler)?;
+        .session(env)
+        .prepare_values(&mut updates, counter.added_files().chain(plugin_paths))?;
+      updates.apply(env, &compiler.js_helpers)?;
       refreshed_array(env, array)
     })
   }
@@ -170,13 +121,13 @@ impl FileSystemDependencies {
   pub fn removed<'env>(&self, env: &'env Env) -> napi::Result<Array<'env>> {
     with_compiler(env, self.compiler_id, |compiler| {
       let (counter, _) = self.sources(&compiler.compiler.compilation)?;
-      let mut prepared = PreparedDependencyArrays::default();
+      let mut updates = IndexedArrayUpdateBatch::default();
       let array = compiler
-        .dependency_string_refs
+        .file_system_dependency_string_pool
         .borrow_mut()
-        .batch(env)
-        .prepare_values(&mut prepared, counter.removed_files())?;
-      prepared.materialize(env, compiler)?;
+        .session(env)
+        .prepare_values(&mut updates, counter.removed_files())?;
+      updates.apply(env, &compiler.js_helpers)?;
       refreshed_array(env, array)
     })
   }
@@ -184,24 +135,24 @@ impl FileSystemDependencies {
   #[napi]
   pub fn size(&self) -> napi::Result<u32> {
     with_current_compilation(self.compiler_id, |compilation| {
-      let (counter, added) = self.sources(compilation)?;
-      let native_count = if self.deleted_paths.is_empty() {
+      let (counter, plugin_paths) = self.sources(compilation)?;
+      let native_count = if self.excluded_paths.is_empty() {
         counter.files().count()
       } else {
         counter
           .files()
-          .filter(|path| !self.deleted_paths.contains(*path))
+          .filter(|path| !self.excluded_paths.contains(*path))
           .count()
       };
       // Both sources are already unique. Count only plugin paths absent from
       // the native counter, without allocating a temporary union set.
-      let added_count = added
+      let plugin_count = plugin_paths
         .iter()
         .filter(|path| {
-          !self.deleted_paths.contains(*path) && counter.related_resource_ids(path).is_none()
+          !self.excluded_paths.contains(*path) && counter.related_resource_ids(path).is_none()
         })
         .count();
-      Ok((native_count + added_count) as u32)
+      Ok((native_count + plugin_count) as u32)
     })
   }
 
@@ -209,10 +160,10 @@ impl FileSystemDependencies {
   pub fn has(&self, value: String) -> napi::Result<bool> {
     with_current_compilation(self.compiler_id, |compilation| {
       let path: InternedPath = value.as_str().into();
-      let (counter, added) = self.sources(compilation)?;
+      let (counter, plugin_paths) = self.sources(compilation)?;
       Ok(
-        !self.deleted_paths.contains(&path)
-          && (counter.related_resource_ids(&path).is_some() || added.contains(&path))
+        !self.excluded_paths.contains(&path)
+          && (counter.related_resource_ids(&path).is_some() || plugin_paths.contains(&path))
           && path.to_string_lossy() == value,
       )
     })
@@ -221,10 +172,10 @@ impl FileSystemDependencies {
   #[napi]
   pub fn clear(&mut self) -> napi::Result<()> {
     with_current_compilation(self.compiler_id, |compilation| {
-      let (counter, added) = self.sources(compilation)?;
+      let (counter, plugin_paths) = self.sources(compilation)?;
       self
-        .deleted_paths
-        .extend(counter.files().chain(added).cloned());
+        .excluded_paths
+        .extend(counter.files().chain(plugin_paths).cloned());
       Ok(())
     })
   }
@@ -243,112 +194,89 @@ impl FileSystemDependencies {
       self.add_values(env, added)?;
     }
     self
-      .deleted_paths
+      .excluded_paths
       .extend(deleted.iter().map(|path| path.as_str().into()));
     Ok(())
   }
 
   #[napi(ts_return_type = "ReadonlyArray<string>")]
-  pub fn values<'env>(&mut self, env: &'env Env) -> napi::Result<Array<'env>> {
+  pub fn values<'env>(&mut self, env: &'env Env, mut this: This) -> napi::Result<Array<'env>> {
     with_compiler(env, self.compiler_id, |compiler| {
-      let values_cache = Rc::clone(
-        self
-          .values_cache
-          .get_or_insert_with(|| Rc::new(RefCell::new(DependencyValuesCache::default()))),
-      );
-      DependencyValuesCache::queue(&values_cache, compiler);
       let result = (|| {
-        let (mut array, indices, generation, prepared, direct_updates) = {
-          let (counter, added) = self.sources(&compiler.compiler.compilation)?;
+        let (mut array, length, updates) = {
+          let (counter, plugin_paths) = self.sources(&compiler.compiler.compilation)?;
           // Both sources are unique. Only the overlap with native paths needs
           // filtering; output order stays native paths followed by JS additions.
-          let capacity = counter.files().size_hint().0.saturating_add(added.len());
+          let capacity = counter
+            .files()
+            .size_hint()
+            .0
+            .saturating_add(plugin_paths.len());
           let paths = counter.files().chain(
-            added
+            plugin_paths
               .iter()
               .filter(|path| counter.related_resource_ids(path).is_none()),
           );
-          let mut indices = InternedPathMap::with_capacity_and_hasher(capacity, Default::default());
-          let mut cached = values_cache.borrow_mut();
-          if cached.array.is_none() {
-            cached.array = Some(OneShotRef::new(env.raw(), create_array(env, 0)?)?);
-          }
-          let array = referenced_array(
-            env,
-            cached.array.as_ref().expect("initialized values array"),
-          )?;
-          let empty = cached.indices.is_empty();
-          let mut refs = compiler.dependency_string_refs.borrow_mut();
-          let generation = refs.generation();
-          let registered = cached.registered_generation == Some(generation);
-          let mut batch = refs.batch(env);
-          let mut prepared = PreparedDependencyArrays::default();
-          prepared
+          let cached = &mut self.array_cache;
+          let array = cached.array(env, &mut this)?;
+          let empty = cached.paths.is_empty();
+          let mut pool = compiler.file_system_dependency_string_pool.borrow_mut();
+          let mut session = pool.session(env);
+          let mut updates = IndexedArrayUpdateBatch::default();
+          updates
             .commands
             .reserve(if empty { capacity.saturating_add(3) } else { 3 });
-          prepared
+          updates
             .commands
             .extend_from_slice(&[u32::from(!empty), 0, 0]);
-          let mut direct_updates = Vec::new();
+          let mut length = 0;
           for path in paths {
-            if self.deleted_paths.contains(path) {
+            if self.excluded_paths.contains(path) {
               continue;
             }
-            let index = dependency_index(indices.len())?;
-            indices.insert(path.clone(), index);
-            let previous_index = cached.indices.get(path).copied();
-            if registered && previous_index == Some(index) {
+            let index = length;
+            length += 1;
+            if cached.paths.get(index) == Some(path) {
               continue;
             }
-            let create = || match previous_index {
-              Some(previous) => array
-                .get::<JsString>(previous)?
-                .ok_or_else(|| napi::Error::from_reason("Missing cached dependency string")),
-              None => env.create_string(path.to_string_lossy().as_ref()),
-            };
-            if batch.enabled() {
-              let pool_index = batch.get_or_insert_index_with(path, create)?;
-              if previous_index != Some(index) {
-                if !empty {
-                  prepared.commands.push(index);
-                }
-                prepared.commands.push(pool_index);
-              }
-            } else if previous_index != Some(index) {
-              direct_updates.push((index, create()?));
+            let pool_index = session.get_or_insert_index(path)?;
+            // Reuse the vector and clone only changed paths. Any failure below
+            // clears this provisional state before it can be reused.
+            if let Some(previous) = cached.paths.get_mut(index) {
+              *previous = path.clone();
+            } else {
+              cached.paths.push(path.clone());
             }
+            if !empty {
+              updates.commands.push(index as u32);
+            }
+            updates.commands.push(pool_index);
           }
-          let length = dependency_index(indices.len())?;
-          if batch.enabled() && (prepared.commands.len() != 3 || array.len() != length) {
-            prepared.commands[1] = length;
-            prepared.commands[2] = dependency_index(prepared.commands.len() - 3)?;
-            prepared.targets.push(array);
-            prepared.strings = Some(batch.strings()?);
+          cached.paths.truncate(length);
+          let length = length as u32;
+          if updates.commands.len() != 3 || array.len() != length {
+            updates.commands[1] = length;
+            updates.commands[2] = (updates.commands.len() - 3) as u32;
+            updates.targets.push(array);
+            updates.source = Some(session.strings()?);
           } else {
-            prepared.commands.clear();
+            updates.commands.clear();
           }
-          (array, indices, generation, prepared, direct_updates)
+          (array, length, updates)
         };
-        // No graph or RefCell borrows cross the synchronous JS call. Resolve all
-        // old strings before writes so moving entries cannot overwrite a source.
-        prepared.materialize(env, compiler)?;
-        for (index, value) in direct_updates {
-          array.set(index, value)?;
-        }
+        // No graph or RefCell borrows cross the synchronous JS call. Copy strings
+        // directly from the shared pool, including entries that change position.
+        updates.apply(env, &compiler.js_helpers)?;
         array = refreshed_array(env, array)?;
-        let length = dependency_index(indices.len())?;
         if array.len() != length {
           array.set_named_property("length", length)?;
           array = refreshed_array(env, array)?;
         }
-        let mut cached = values_cache.borrow_mut();
-        cached.indices = indices;
-        cached.registered_generation = Some(generation);
         Ok(array)
       })();
       if result.is_err() {
-        // Never leave a partially filled array paired with committed indices.
-        let _ = values_cache.borrow_mut().invalidate(Some(env));
+        // A failed update must not leave paths describing an incomplete JS array.
+        self.array_cache.paths.clear();
       }
       result
     })

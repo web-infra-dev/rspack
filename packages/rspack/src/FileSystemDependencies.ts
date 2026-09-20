@@ -25,37 +25,34 @@ const wrappers = new WeakMap<
 
 class FileSystemDependenciesWrapper implements FileSystemDependencies {
   #inner: BindingFileSystemDependencies;
-  #pendingAdditions: string[] = [];
-  #pendingDeletions: string[] = [];
-  #scheduled = false;
+  #pendingAdditions = new Set<string>();
+  #pendingDeletions = new Set<string>();
+  #flushScheduled = false;
 
   constructor(inner: BindingFileSystemDependencies) {
     this.#inner = inner;
   }
 
   #scheduleFlush() {
-    if (this.#scheduled) return;
-    this.#scheduled = true;
+    if (this.#flushScheduled) return;
+    this.#flushScheduled = true;
     queueMicrotask(() => {
-      this.#scheduled = false;
+      this.#flushScheduled = false;
       this.#flush();
     });
   }
 
   #flush() {
-    if (
-      this.#pendingAdditions.length === 0 &&
-      this.#pendingDeletions.length === 0
-    )
+    if (this.#pendingAdditions.size === 0 && this.#pendingDeletions.size === 0)
       return;
-    const additions = this.#pendingAdditions;
-    const deletions = this.#pendingDeletions;
-    this.#pendingAdditions = [];
-    this.#pendingDeletions = [];
+    const additions = Array.from(this.#pendingAdditions);
+    const deletions = Array.from(this.#pendingDeletions);
+    this.#pendingAdditions.clear();
+    this.#pendingDeletions.clear();
     this.#inner.update(additions, deletions);
   }
 
-  #getValues() {
+  #snapshotValues() {
     this.#flush();
     // The binding updates one shared array in place. Iterators and callbacks
     // keep an independent snapshot of the values visible at their start.
@@ -76,9 +73,8 @@ class FileSystemDependenciesWrapper implements FileSystemDependencies {
   add(value: string): this {
     // Additions are applied before deletions in each batch. A later add cancels
     // a queued deletion; Rust clears any deletion from an earlier batch.
-    const index = this.#pendingDeletions.indexOf(value);
-    if (index !== -1) this.#pendingDeletions.splice(index, 1);
-    this.#pendingAdditions.push(value);
+    this.#pendingDeletions.delete(value);
+    this.#pendingAdditions.add(value);
     this.#scheduleFlush();
     return this;
   }
@@ -88,12 +84,14 @@ class FileSystemDependenciesWrapper implements FileSystemDependencies {
   }
 
   delete(value: string): boolean {
-    if (typeof value !== 'string' || this.#pendingDeletions.includes(value))
+    if (typeof value !== 'string' || this.#pendingDeletions.has(value))
       return false;
     // Compute the synchronous return value without flushing preceding deletes.
-    if (!this.#pendingAdditions.includes(value) && !this.#inner.has(value))
+    if (!this.#pendingAdditions.has(value) && !this.#inner.has(value))
       return false;
-    this.#pendingDeletions.push(value);
+    // Keep pending additions in their original order if a later add cancels
+    // this deletion before the batch is flushed.
+    this.#pendingDeletions.add(value);
     this.#scheduleFlush();
     return true;
   }
@@ -108,25 +106,25 @@ class FileSystemDependenciesWrapper implements FileSystemDependencies {
   }
 
   values(): IterableIterator<string> {
-    return this.#getValues().values();
+    return this.#snapshotValues().values();
   }
 
   entries(): IterableIterator<[string, string]> {
-    return this.#getValues()
+    return this.#snapshotValues()
       .map((value): [string, string] => [value, value])
       .values();
   }
 
   *[Symbol.iterator](): IterableIterator<string> {
     // Preserve the existing facade's lazy iterator-start boundary.
-    yield* this.#getValues();
+    yield* this.#snapshotValues();
   }
 
   forEach(
     callback: (value: string, key: string, set: FileSystemDependencies) => void,
     thisArg?: unknown,
   ): void {
-    for (const value of this.#getValues()) {
+    for (const value of this.#snapshotValues()) {
       callback.call(thisArg, value, value, this);
     }
   }
@@ -164,11 +162,11 @@ for (const name of [
 }
 
 export function createFileSystemDependencies(
-  adm: BindingFileSystemDependencies,
+  binding: BindingFileSystemDependencies,
 ): FileSystemDependencies {
-  const cached = wrappers.get(adm);
+  const cached = wrappers.get(binding);
   if (cached) return cached;
-  const wrapper = new FileSystemDependenciesWrapper(adm);
-  wrappers.set(adm, wrapper);
+  const wrapper = new FileSystemDependenciesWrapper(binding);
+  wrappers.set(binding, wrapper);
   return wrapper;
 }

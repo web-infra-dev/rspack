@@ -11,8 +11,10 @@ use rustc_hash::FxHashMap as HashMap;
 
 use super::cache::JsLoaderCacheObject;
 use crate::{
-  dependency_strings::{CompilerDependencyPaths, DependencyPaths},
   error::RspackError,
+  file_system_dependency_strings::{
+    CompilerScopedFileSystemDependencyPaths, FileSystemDependencyPaths,
+  },
   module::ModuleObject,
 };
 
@@ -123,7 +125,7 @@ pub struct JsLoaderContext {
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
   #[napi(ts_type = "JsLoaderDependencies")]
-  pub dependencies: CompilerDependencyPaths,
+  pub dependencies: CompilerScopedFileSystemDependencyPaths,
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
@@ -172,7 +174,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
-      dependencies: CompilerDependencyPaths {
+      dependencies: CompilerScopedFileSystemDependencyPaths {
         compiler_id: cx.context.compiler_id,
         paths: cx.dependencies().as_ref().into(),
       },
@@ -217,14 +219,14 @@ impl FromNapiValue for JsLoaderContext {
     let compiler_id = module.compiler_id();
     // All input conversion happens on the JS thread before returning this
     // owned context to the async loader scheduler.
-    let dependencies = DependencyPaths::from_js(
+    let dependencies = FileSystemDependencyPaths::from_js(
       &env,
       compiler_id,
       object.get_named_property("dependencies")?,
     )?;
     Ok(Self {
       module,
-      dependencies: CompilerDependencyPaths {
+      dependencies: CompilerScopedFileSystemDependencyPaths {
         compiler_id,
         paths: dependencies,
       },

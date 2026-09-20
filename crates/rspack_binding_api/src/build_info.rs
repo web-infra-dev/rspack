@@ -12,7 +12,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   define_symbols,
-  dependency_strings::{PreparedDependencyArrays, refreshed_array, with_compiler},
+  file_system_dependency_strings::{refreshed_array, with_compiler},
+  js_helpers::IndexedArrayUpdateBatch,
   module::Module,
 };
 
@@ -82,7 +83,7 @@ impl KnownBuildInfo {
     Self { module_reference }
   }
 
-  fn dependency_values<'env>(
+  fn file_system_dependency_values<'env>(
     &self,
     env: &'env Env,
     select: impl FnOnce(&rspack_core::LoaderDependencies) -> &rspack_paths::InternedPathSet,
@@ -93,18 +94,18 @@ impl KnownBuildInfo {
       )
     })?;
     with_compiler(env, module.compiler_id(), |compiler| {
-      let mut prepared = PreparedDependencyArrays::default();
+      let mut updates = IndexedArrayUpdateBatch::default();
       let array = module.with_ref(|_, module| {
         compiler
-          .dependency_string_refs
+          .file_system_dependency_string_pool
           .borrow_mut()
-          .batch(env)
+          .session(env)
           .prepare_values(
-            &mut prepared,
+            &mut updates,
             select(&module.build_info().dependencies).iter(),
           )
       })?;
-      prepared.materialize(env, compiler)?;
+      updates.apply(env, &compiler.js_helpers)?;
       refreshed_array(env, array)
     })
   }
@@ -199,7 +200,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         .with_name(env, symbol)?
         .with_getter_closure(|env, this| {
           let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          let result = wrapped_value.dependency_values(&env, |dependencies| &dependencies.file);
+          let result =
+            wrapped_value.file_system_dependency_values(&env, |dependencies| &dependencies.file);
           unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
         })
         .with_property_attributes(PropertyAttributes::Configurable),
@@ -215,7 +217,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         .with_name(env, symbol)?
         .with_getter_closure(|env, this| {
           let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          let result = wrapped_value.dependency_values(&env, |dependencies| &dependencies.context);
+          let result =
+            wrapped_value.file_system_dependency_values(&env, |dependencies| &dependencies.context);
           unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
         })
         .with_property_attributes(PropertyAttributes::Configurable),
@@ -231,7 +234,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         .with_name(env, symbol)?
         .with_getter_closure(|env, this| {
           let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          let result = wrapped_value.dependency_values(&env, |dependencies| &dependencies.missing);
+          let result =
+            wrapped_value.file_system_dependency_values(&env, |dependencies| &dependencies.missing);
           unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
         })
         .with_property_attributes(PropertyAttributes::Configurable),
@@ -247,7 +251,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         .with_name(env, symbol)?
         .with_getter_closure(|env, this| {
           let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          let result = wrapped_value.dependency_values(&env, |dependencies| &dependencies.build);
+          let result =
+            wrapped_value.file_system_dependency_values(&env, |dependencies| &dependencies.build);
           unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
         })
         .with_property_attributes(PropertyAttributes::Configurable),
