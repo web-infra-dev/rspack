@@ -1,9 +1,5 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import { ContextModule } from '@rspack/core';
 
-const initialTime = new Date('2000-01-01T00:00:00Z');
-const modifiedTime = new Date('2000-01-02T00:00:00Z');
 let compilerIndex = 0;
 let contextIdentifier;
 
@@ -30,18 +26,6 @@ export default {
       apply(compiler) {
         const built = [];
         const restored = [];
-        compiler.hooks.beforeRun.tapPromise(
-          'ContextModuleTimestampTest',
-          async () => {
-            // Keep timestamps before build start so safe-time checks allow hits.
-            const time = compilerIndex < 2 ? initialTime : modifiedTime;
-            await fs.utimes(
-              path.join(compiler.context, 'context/value.js'),
-              time,
-              time,
-            );
-          },
-        );
         compiler.hooks.compilation.tap(
           'ContextModuleTimestampTest',
           (compilation) => {
