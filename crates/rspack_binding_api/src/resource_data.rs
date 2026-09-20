@@ -1,6 +1,7 @@
 use std::{
   cell::RefCell,
-  sync::{Arc, Weak},
+  path::{Path, PathBuf},
+  sync::{Arc, LazyLock, Mutex, Weak},
 };
 
 use napi::{
@@ -9,12 +10,18 @@ use napi::{
   sys::napi_value,
 };
 use napi_derive::napi;
+use rspack_fs::ReadableFileSystem;
+use rspack_paths::Utf8Path;
+use rustc_hash::FxHashMap;
 
 // Converting the descriptionFileData property to a JSObject may become a performance bottleneck.
 // Additionally, descriptionFileData and descriptionFilePath are rarely used, so they are exposed via getter methods and only converted to JSObject when accessed.
 #[napi]
 pub struct ReadonlyResourceData {
   i: Weak<rspack_core::ResourceData>,
+  /// Input filesystem of the compilation that resolved the resource, used for
+  /// descriptions the resolver did not materialize.
+  input_filesystem: Arc<dyn ReadableFileSystem>,
 }
 
 impl ReadonlyResourceData {
@@ -38,7 +45,7 @@ impl ReadonlyResourceData {
     self.with_ref(|resource_data| {
       resource_data
         .description()
-        .and_then(description_file_json)
+        .and_then(|description| description_json(description, &self.input_filesystem))
         .map(|json| unsafe { ToNapiValue::to_napi_value(env.raw(), json) })
         .transpose()
     })
@@ -59,6 +66,20 @@ impl ReadonlyResourceData {
 
 pub struct ReadonlyResourceDataWrapper {
   i: Arc<rspack_core::ResourceData>,
+  input_filesystem: Arc<dyn ReadableFileSystem>,
+}
+
+impl ReadonlyResourceDataWrapper {
+  /// `input_filesystem` serves descriptions the resolver did not materialize.
+  pub fn new(
+    i: Arc<rspack_core::ResourceData>,
+    input_filesystem: Arc<dyn ReadableFileSystem>,
+  ) -> Self {
+    Self {
+      i,
+      input_filesystem,
+    }
+  }
 }
 
 thread_local! {
@@ -75,6 +96,7 @@ impl ToNapiValue for ReadonlyResourceDataWrapper {
     let resource_data = val.i;
     let template = ReadonlyResourceData {
       i: Arc::downgrade(&resource_data),
+      input_filesystem: val.input_filesystem,
     };
     let instance = template.into_instance(&env_wrapper)?;
     let mut object = instance.as_object(&env_wrapper);
@@ -115,12 +137,6 @@ impl ToNapiValue for ReadonlyResourceDataWrapper {
   }
 }
 
-impl From<Arc<rspack_core::ResourceData>> for ReadonlyResourceDataWrapper {
-  fn from(value: Arc<rspack_core::ResourceData>) -> Self {
-    ReadonlyResourceDataWrapper { i: value }
-  }
-}
-
 #[napi(object)]
 pub struct JsResourceData {
   /// Resource with absolute path, query and fragment
@@ -135,58 +151,130 @@ pub struct JsResourceData {
   pub description_file_path: Option<String>,
 }
 
-/// Cached `(modification time, parsed package.json)` for one description file.
-type CachedDescriptionJson = (Option<std::time::SystemTime>, Option<serde_json::Value>);
+/// One `package.json` that a JS consumer asked for.
+struct CachedDescription {
+  /// Filesystem the description was read with, so a recycled allocation cannot
+  /// alias content another filesystem produced.
+  fs: Weak<dyn ReadableFileSystem>,
 
-/// Process-wide cache of package.json descriptions that JS consumers asked for.
-type DescriptionJsonCache =
-  std::sync::Mutex<rustc_hash::FxHashMap<std::path::PathBuf, CachedDescriptionJson>>;
+  /// Modification time the description was read at, when the filesystem
+  /// reports one.
+  modified: u64,
 
-/// Reads a package.json description for JS consumers. The resolver only
-/// materializes descriptions that the compilation observes, so this falls back
-/// to reading the file when JS asks for one that was not collected.
-pub(crate) fn read_description_file_json(path: &std::path::Path) -> Option<serde_json::Value> {
-  // The same package.json backs many modules, so cache the parsed value;
-  // validate it against the file's modification time so watch mode and
-  // long-lived processes pick up edits.
-  static CACHE: std::sync::LazyLock<DescriptionJsonCache> =
-    std::sync::LazyLock::new(Default::default);
-  let modified = std::fs::metadata(path)
-    .and_then(|meta| meta.modified())
-    .ok();
-  let mut cache = CACHE.lock().unwrap_or_else(|err| err.into_inner());
-  if let Some((cached_modified, value)) = cache.get(path)
-    && *cached_modified == modified
-  {
-    return value.clone();
-  }
-  let value = std::fs::read_to_string(path)
-    .ok()
-    .and_then(|source| serde_json::from_str(&source).ok());
-  cache.insert(path.to_path_buf(), (modified, value.clone()));
-  value
+  value: Arc<serde_json::Value>,
 }
 
-/// Package.json content of a description: the collected mirror when present,
-/// otherwise read from the described file.
-pub(crate) fn description_file_json(
+/// Number of cached descriptions to keep before dropping the entries whose
+/// filesystem is gone.
+const DESCRIPTION_JSON_CACHE_LIMIT: usize = 4096;
+
+/// Descriptions JS consumers asked for, keyed by the filesystem that read them
+/// and the described file. Entries are revalidated against the file's
+/// modification time, so watch mode and long-lived processes pick up edits, and
+/// they are dropped once the filesystem that produced them is gone.
+static DESCRIPTION_JSON_CACHE: LazyLock<Mutex<FxHashMap<(usize, PathBuf), CachedDescription>>> =
+  LazyLock::new(Default::default);
+
+fn description_cache_key(fs: &Arc<dyn ReadableFileSystem>, path: &Path) -> (usize, PathBuf) {
+  (Arc::as_ptr(fs) as *const () as usize, path.to_path_buf())
+}
+
+fn cached_description(
+  fs: &Arc<dyn ReadableFileSystem>,
+  path: &Path,
+  modified: u64,
+) -> Option<Arc<serde_json::Value>> {
+  let cache = DESCRIPTION_JSON_CACHE
+    .lock()
+    .unwrap_or_else(|err| err.into_inner());
+  let entry = cache.get(&description_cache_key(fs, path))?;
+  if entry.modified != modified
+    || !entry
+      .fs
+      .upgrade()
+      .is_some_and(|entry_fs| Arc::ptr_eq(&entry_fs, fs))
+  {
+    return None;
+  }
+  Some(entry.value.clone())
+}
+
+fn cache_description(
+  fs: &Arc<dyn ReadableFileSystem>,
+  path: &Path,
+  modified: u64,
+  value: Arc<serde_json::Value>,
+) {
+  let mut cache = DESCRIPTION_JSON_CACHE
+    .lock()
+    .unwrap_or_else(|err| err.into_inner());
+  if cache.len() >= DESCRIPTION_JSON_CACHE_LIMIT {
+    cache.retain(|_, entry| entry.fs.strong_count() > 0);
+  }
+  cache.insert(
+    description_cache_key(fs, path),
+    CachedDescription {
+      fs: Arc::downgrade(fs),
+      modified,
+      value,
+    },
+  );
+}
+
+/// Reads a `package.json` through the filesystem the compilation resolved it
+/// with, reusing the parsed value while the file is unchanged.
+fn read_description_json(
+  fs: &Arc<dyn ReadableFileSystem>,
+  path: &Path,
+) -> Option<Arc<serde_json::Value>> {
+  let path = Utf8Path::from_path(path)?;
+  let modified = fs.metadata_sync(path).ok().map(|meta| meta.mtime_ms);
+  if let Some(modified) = modified
+    && let Some(json) = cached_description(fs, path.as_std_path(), modified)
+  {
+    return Some(json);
+  }
+  let source = fs.read_to_string_sync(path).ok()?;
+  let json = Arc::new(serde_json::from_str::<serde_json::Value>(&source).ok()?);
+  if let Some(modified) = modified {
+    cache_description(fs, path.as_std_path(), modified, json.clone());
+  }
+  Some(json)
+}
+
+/// `package.json` content of a description for JS consumers: the mirror the
+/// resolver materialized when it kept one, otherwise read from the described
+/// file through the input filesystem of the compilation.
+///
+/// The read is synchronous because JS getters run on the JS thread. Filesystems
+/// that can only be read by calling back into JS therefore keep the mirror
+/// instead (see `JsCompiler::new`), so this never has to call into JS.
+pub(crate) fn description_json(
   description: &rspack_loader_runner::DescriptionData,
+  fs: &Arc<dyn ReadableFileSystem>,
 ) -> Option<serde_json::Value> {
   let json = description.json();
   if !json.is_null() {
     return Some(json.clone());
   }
-  read_description_file_json(description.json_path())
+  read_description_json(fs, description.json_path()).map(|json| json.as_ref().clone())
 }
 
-impl From<&rspack_core::ResourceData> for JsResourceData {
-  fn from(value: &rspack_core::ResourceData) -> Self {
+impl JsResourceData {
+  /// Builds the JS-facing resource data. Descriptions the resolver did not
+  /// materialize are read through the input filesystem of the compilation.
+  pub(crate) fn from_resource_data(
+    value: &rspack_core::ResourceData,
+    fs: &Arc<dyn ReadableFileSystem>,
+  ) -> Self {
     Self {
       resource: value.resource().to_owned(),
       path: value.path().map(|p| p.as_str().to_string()),
       fragment: value.fragment().map(|r| r.to_owned()),
       query: value.query().map(|r| r.to_owned()),
-      description_file_data: value.description().and_then(description_file_json),
+      description_file_data: value
+        .description()
+        .and_then(|description| description_json(description, fs)),
       description_file_path: value
         .description()
         .map(|data| data.path().to_string_lossy().into_owned()),

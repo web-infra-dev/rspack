@@ -100,6 +100,7 @@ use crate::{
     JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
     JsResolveForSchemeOutput,
   },
+  resource_data::JsResourceData,
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
     JsRsdoctorModuleSourcesPatch,
@@ -1759,14 +1760,14 @@ impl NormalModuleFactoryResolve for NormalModuleFactoryResolveTap {
 impl NormalModuleFactoryResolveForScheme for NormalModuleFactoryResolveForSchemeTap {
   async fn run(
     &self,
-    _data: &mut ModuleFactoryCreateData,
+    data: &mut ModuleFactoryCreateData,
     resource_data: &mut ResourceData,
     scheme: &Scheme,
   ) -> rspack_error::Result<Option<bool>> {
     let (bail, new_resource_data) = self
       .function
       .call_with_promise(JsResolveForSchemeArgs {
-        resource_data: (&*resource_data).into(),
+        resource_data: JsResourceData::from_resource_data(&*resource_data, &data.build_context.fs),
         scheme: scheme.to_string(),
       })
       .await?;
@@ -1819,7 +1820,10 @@ impl NormalModuleFactoryCreateModule for NormalModuleFactoryCreateModuleTap {
       .call_with_promise(JsNormalModuleFactoryCreateModuleArgs {
         dependency_type: data.dependencies[0].dependency_type().to_string(),
         raw_request: create_data.raw_request.clone(),
-        resource_resolve_data: create_data.resource_resolve_data.as_ref().into(),
+        resource_resolve_data: JsResourceData::from_resource_data(
+          create_data.resource_resolve_data.as_ref(),
+          &data.build_context.fs,
+        ),
         context: data.context.to_string(),
         match_resource: create_data.match_resource.clone(),
       })

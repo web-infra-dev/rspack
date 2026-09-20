@@ -30,7 +30,7 @@ impl NormalModule {
     env: &napi::Env,
   ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
     let (resource, request, user_request, raw_request, resource_resolve_data, loaders) = self
-      .with_ref(|_, module| {
+      .with_ref(|compilation, module| {
         let resource_resolved_data = module.resource_resolved_data();
         let resource = env.create_string(resource_resolved_data.resource())?;
         let request = env.create_string(module.request())?;
@@ -39,7 +39,10 @@ impl NormalModule {
         let resource_resolve_data = Object::from_raw(env.raw(), unsafe {
           ToNapiValue::to_napi_value(
             env.raw(),
-            ReadonlyResourceDataWrapper::from(resource_resolved_data.clone()),
+            ReadonlyResourceDataWrapper::new(
+              resource_resolved_data.clone(),
+              compilation.input_filesystem.clone(),
+            ),
           )?
         });
         let loaders = Object::from_raw(env.raw(), unsafe {

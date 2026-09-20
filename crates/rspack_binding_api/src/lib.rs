@@ -322,14 +322,16 @@ impl JsCompiler {
       let pnp = options.resolve.pnp.unwrap_or(false);
       let virtual_files = options.__virtual_files.take();
       let use_input_fs = options.experiments.use_input_file_system.take();
-      // Virtual and hybrid input filesystems, and Yarn PnP (which reads from the
-      // ZIP cache), cannot be re-read from disk by JS consumers later, so their
-      // descriptions stay materialized.
-      let has_custom_input_fs = virtual_files.is_some() || use_input_fs.is_some() || pnp;
       let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
       tracing::debug!(name:"normalized_options", options=?&compiler_options);
 
+      // Descriptions JS consumers ask for are read through the input
+      // filesystem whenever the resolver did not materialize them, which also
+      // covers virtual files and the Yarn PnP ZIP cache. A filesystem driven
+      // by JS cannot be read from a JS getter, so builds using one keep the
+      // descriptions instead.
+      let mut js_backed_input_fs = false;
       let mut input_file_system: Arc<dyn ReadableFileSystem> = input_filesystem
         .and_then(|fs| {
           use_input_fs.and_then(|use_input_file_system| {
@@ -341,6 +343,7 @@ impl JsCompiler {
                 if allowlist.is_empty() {
                   return None;
                 }
+                js_backed_input_fs = true;
                 let binding: Arc<dyn ReadableFileSystem> = Arc::new(HybridFileSystem::new(
                   allowlist,
                   node_fs,
@@ -375,7 +378,7 @@ impl JsCompiler {
       // conditions that need keys other than `type`, which is served from the
       // typed field; every other build skips materializing the mirror.
       resolver_factory_reference.set_description_json(
-        has_custom_input_fs
+        js_backed_input_fs
           || compiler_options
             .module
             .rules

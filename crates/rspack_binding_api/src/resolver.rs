@@ -3,6 +3,7 @@ use std::{path::Path, sync::Arc};
 use napi::{Either, bindgen_prelude::Function};
 use napi_derive::napi;
 use rspack_core::Resolver;
+use rspack_fs::ReadableFileSystem;
 use serde::Serialize;
 
 use crate::{error::ErrorCode, utils::callbackify};
@@ -19,8 +20,12 @@ pub struct ResolveRequest {
   pub missing_dependencies: Vec<String>,
 }
 
-impl From<rspack_core::Resource> for ResolveRequest {
-  fn from(value: rspack_core::Resource) -> Self {
+impl ResolveRequest {
+  /// Descriptions the resolver did not materialize are read through `fs`.
+  pub(crate) fn from_resource(
+    value: rspack_core::Resource,
+    fs: &Arc<dyn ReadableFileSystem>,
+  ) -> Self {
     let description_file_path = value
       .description_data
       .as_ref()
@@ -28,7 +33,7 @@ impl From<rspack_core::Resource> for ResolveRequest {
     let description_file_data = value
       .description_data
       .as_ref()
-      .and_then(crate::resource_data::description_file_json);
+      .and_then(|description| crate::resource_data::description_json(description, fs));
     Self {
       path: value.path.to_string(),
       query: value.query,
@@ -84,7 +89,7 @@ impl JsResolver {
           .await;
         match resolve_result {
           Ok(rspack_core::ResolveResult::Resource(resource)) => {
-            let mut resolve_request = ResolveRequest::from(resource);
+            let mut resolve_request = ResolveRequest::from_resource(resource, &resolver.inner_fs());
             resolve_request.file_dependencies = resolve_dependencies
               .file_dependencies
               .drain()
