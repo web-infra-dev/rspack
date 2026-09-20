@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import path from 'node:path';
 
 const context = `\\\\?\\${path.resolve(import.meta.dirname)}`;

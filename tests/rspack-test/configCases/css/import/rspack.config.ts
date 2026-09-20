@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import path from 'node:path';
 import { rspack } from '@rspack/core';
 // Match webpack's built-in CSS rules: CSS imports are resolved as fully

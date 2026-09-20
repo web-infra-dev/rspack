@@ -1,5 +1,4 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-
 import { rspack as webpack } from '@rspack/core';
 
 export default defineConfig({

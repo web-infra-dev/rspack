@@ -1,4 +1,5 @@
 import { rspack } from '@rspack/core';
+
 export default {
   mode: 'development',
   optimization: {

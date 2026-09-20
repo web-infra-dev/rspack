@@ -1,6 +1,6 @@
 import { defineConfig } from '@rspack/cli';
-
 import { CircularCheckRspackPlugin } from '@rspack/core';
+
 export default defineConfig({
   entry: {
     aa: './require-circular/d.js',

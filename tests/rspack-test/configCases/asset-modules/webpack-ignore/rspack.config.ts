@@ -1,5 +1,4 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-
 import path from 'node:path';
 import fs from 'node:fs';
 import { rspack } from '@rspack/core';

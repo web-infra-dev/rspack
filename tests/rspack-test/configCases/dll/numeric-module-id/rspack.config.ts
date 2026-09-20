@@ -1,5 +1,4 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-
 import { rspack } from '@rspack/core';
 import path from 'node:path';
 import { readFileSync } from 'node:fs';

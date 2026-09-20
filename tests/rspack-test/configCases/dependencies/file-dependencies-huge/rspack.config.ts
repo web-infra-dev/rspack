@@ -1,5 +1,4 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-
 import path from 'node:path';
 // Number large enough to exceed engine's max arguments (e.g. ~65536) when
 // spread in push(...data), which would cause "Maximum call stack size exceeded".

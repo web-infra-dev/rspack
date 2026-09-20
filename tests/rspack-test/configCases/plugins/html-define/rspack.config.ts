@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import HtmlRspackPlugin from 'html-rspack-plugin';
 import { rspack } from '@rspack/core';
 

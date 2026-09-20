@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import { resolve } from 'node:path';
 import { container } from '@rspack/core';
 import { fileURLToPath } from 'node:url';

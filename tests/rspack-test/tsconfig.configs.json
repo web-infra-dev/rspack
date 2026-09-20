@@ -9,6 +9,7 @@
     "allowJs": false,
     "checkJs": false,
     "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
     "types": ["node", "./rstest.d.ts"]
   },
   "include": ["**/rspack.config.ts"],

@@ -1,5 +1,4 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-
 import assert from 'node:assert';
 
 export default defineConfig({

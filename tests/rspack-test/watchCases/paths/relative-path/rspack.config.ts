@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import { fileURLToPath } from 'node:url';
 
 /**

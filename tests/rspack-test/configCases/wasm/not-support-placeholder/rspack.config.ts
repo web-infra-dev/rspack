@@ -1,7 +1,7 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-
 import path from 'node:path';
 import fs from 'node:fs';
+
 export default defineConfig((_, { testPath }) => ({
   output: {
     webassemblyModuleFilename: '[name].wasm',

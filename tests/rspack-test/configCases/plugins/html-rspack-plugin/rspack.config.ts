@@ -1,7 +1,7 @@
 import { defineConfig } from '@rspack/cli';
-
 import path from 'node:path';
 import HtmlRspackPlugin from 'html-rspack-plugin';
+
 export default defineConfig([
   {
     plugins: [

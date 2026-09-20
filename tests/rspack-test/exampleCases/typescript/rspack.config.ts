@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import tsCheckerRspackPlugin from 'ts-checker-rspack-plugin';
 
 const { TsCheckerRspackPlugin } = tsCheckerRspackPlugin;

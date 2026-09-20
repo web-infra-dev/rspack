@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import TerserPlugin from 'terser-webpack-plugin';
 
 export default defineConfig({

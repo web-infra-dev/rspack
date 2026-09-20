@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import { container } from '@rspack/core';
 // eslint-disable-next-line node/no-unpublished-require
 const { ModuleFederationPlugin } = container;

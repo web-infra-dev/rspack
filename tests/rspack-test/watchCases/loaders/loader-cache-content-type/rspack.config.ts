@@ -1,7 +1,7 @@
 import { defineConfig } from '@rspack/cli';
-
 import { rspack } from '@rspack/core';
 import { fileURLToPath } from 'node:url';
+
 export default defineConfig(
   [false, true].flatMap((cache) =>
     [false, true].flatMap((parallel) =>

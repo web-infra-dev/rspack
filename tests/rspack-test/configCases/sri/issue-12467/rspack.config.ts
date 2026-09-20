@@ -1,6 +1,6 @@
 import { defineConfig } from '@rspack/cli';
-
 import { SubresourceIntegrityPlugin, container } from '@rspack/core';
+
 export default defineConfig({
   mode: 'production',
   target: ['web', 'es2017'],

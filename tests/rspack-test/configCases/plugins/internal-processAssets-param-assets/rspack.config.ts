@@ -1,5 +1,4 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-
 import { rspack } from '@rspack/core';
 
 const { ConcatSource, RawSource } = rspack.sources;

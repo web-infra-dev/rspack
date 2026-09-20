@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import { rspack as webpack } from '@rspack/core';
 import { readFileSync } from 'node:fs';
 

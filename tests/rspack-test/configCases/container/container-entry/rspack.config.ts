@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import { container } from '@rspack/core';
 
 const { ContainerPlugin } = container;

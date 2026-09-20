@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import { EntryPlugin } from '@rspack/core';
 import path from 'node:path';
 

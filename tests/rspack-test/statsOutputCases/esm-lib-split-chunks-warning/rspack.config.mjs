@@ -1,5 +1,6 @@
 import { rspack } from '@rspack/core';
 import { LogTestPlugin } from '@rspack/test-tools/helper/legacy/LogTestPlugin';
+
 export default {
   incremental: false,
   entry: './index.js',

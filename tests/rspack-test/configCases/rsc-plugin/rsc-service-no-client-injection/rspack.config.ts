@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-
 import { experiments } from '@rspack/core';
 
 const { createPlugins, Layers } = experiments.rsc;

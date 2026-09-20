@@ -1,5 +1,4 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-
 import fs2 from 'node:fs';
 import path2 from 'node:path';
 

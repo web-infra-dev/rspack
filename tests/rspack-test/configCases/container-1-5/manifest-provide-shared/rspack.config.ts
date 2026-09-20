@@ -1,6 +1,6 @@
 import { defineConfig } from '@rspack/cli';
-
 import { DefinePlugin, container, sharing } from '@rspack/core';
+
 export default defineConfig(
   [
     undefined,

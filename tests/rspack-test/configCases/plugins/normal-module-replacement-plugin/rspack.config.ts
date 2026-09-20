@@ -1,7 +1,7 @@
 import { defineConfig } from '@rspack/cli';
-
 import { NormalModuleReplacementPlugin } from '@rspack/core';
 import path from 'node:path';
+
 export default /** @type {import("@rspack/core").Configuration} */ defineConfig(
   {
     plugins: [
