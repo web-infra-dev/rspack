@@ -1,12 +1,12 @@
-use std::{borrow::Cow, cell::RefCell, sync::Arc};
+use std::{borrow::Cow, cell::RefCell, ptr, sync::Arc, thread::LocalKey};
 
 use napi::{
   Env,
-  bindgen_prelude::{Array, FromNapiValue, Function, JsObjectValue, Object},
-  sys::napi_value,
+  bindgen_prelude::{Array, FromNapiValue, Function, JsObjectValue, Object, check_status},
+  sys::{self, napi_env, napi_ref, napi_value},
 };
 use napi_derive::napi;
-use rspack_collections::IdentifierMap;
+use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
   rspack_sources::{RawBufferSource, Source, SourceValue},
@@ -28,11 +28,63 @@ use crate::{
   logging::JsLog,
 };
 
-// These handles are only used during the `to_json` call,
-// so we can store raw `napi_value` here.
+// Converted values shared by every module that points at the same module, for the duration of
+// one `to_json` call. The conversion runs inside short-lived handle scopes (see `ScopedArray`),
+// so the cache keeps references rather than handles; `release_cached_values` drops them.
 thread_local! {
-  static MODULE_DESCRIPTOR_REFS: RefCell<IdentifierMap<napi_value>> = Default::default();
-  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<IdentifierMap<napi_value>> = Default::default();
+  static MODULE_DESCRIPTOR_REFS: RefCell<IdentifierMap<napi_ref>> = Default::default();
+  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<IdentifierMap<napi_ref>> = Default::default();
+}
+
+unsafe fn to_cached_napi_value<T: ToNapiValue>(
+  env: napi_env,
+  cache: &'static LocalKey<RefCell<IdentifierMap<napi_ref>>>,
+  id: Identifier,
+  val: T,
+) -> Result<napi_value> {
+  let mut value = ptr::null_mut();
+  if let Some(reference) = cache.with(|refs| refs.borrow().get(&id).copied()) {
+    check_status!(unsafe { sys::napi_get_reference_value(env, reference, &mut value) })?;
+    return Ok(value);
+  }
+  value = unsafe { ToNapiValue::to_napi_value(env, val)? };
+  let mut reference = ptr::null_mut();
+  check_status!(unsafe { sys::napi_create_reference(env, value, 1, &mut reference) })?;
+  cache.with(|refs| refs.borrow_mut().insert(id, reference));
+  Ok(value)
+}
+
+fn release_cached_values(env: napi_env) -> Result<()> {
+  for cache in [&MODULE_DESCRIPTOR_REFS, &MODULE_COMMON_ATTRIBUTES_REFS] {
+    let references = cache.with(|refs| refs.borrow_mut().drain().collect::<Vec<_>>());
+    for (_, reference) in references {
+      check_status!(unsafe { sys::napi_delete_reference(env, reference) })?;
+    }
+  }
+  Ok(())
+}
+
+/// Converts into a JS array, opening a handle scope per element so the handles created while
+/// converting one element are released before the next one. Without it a whole stats tree is
+/// built in the scope of the `to_json` call: tens of millions of handles stay alive until it
+/// returns, and every scavenge in between walks all of them.
+pub struct ScopedArray<T>(Vec<T>);
+
+impl<T: ToNapiValue> ToNapiValue for ScopedArray<T> {
+  unsafe fn to_napi_value(env: napi_env, val: Self) -> Result<napi_value> {
+    let mut array = ptr::null_mut();
+    check_status!(unsafe { sys::napi_create_array_with_length(env, val.0.len(), &mut array) })?;
+    for (index, item) in val.0.into_iter().enumerate() {
+      let mut scope = ptr::null_mut();
+      check_status!(unsafe { sys::napi_open_handle_scope(env, &mut scope) })?;
+      let result = unsafe { ToNapiValue::to_napi_value(env, item) }.and_then(|value| {
+        check_status!(unsafe { sys::napi_set_element(env, array, index as u32, value) })
+      });
+      check_status!(unsafe { sys::napi_close_handle_scope(env, scope) })?;
+      result?;
+    }
+    Ok(array)
+  }
 }
 
 pub struct CowStrWrapper<'a>(Cow<'a, str>);
@@ -127,19 +179,8 @@ impl<'a> JsModuleDescriptorWrapper<'a> {
 
 impl<'a> ToNapiValue for JsModuleDescriptorWrapper<'a> {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
-    MODULE_DESCRIPTOR_REFS.with(|ref_cell| {
-      let id = val.0.identifier.raw();
-      {
-        if let Some(raw_value) = ref_cell.borrow().get(&id) {
-          return Ok(*raw_value);
-        }
-      }
-      let raw_value = unsafe { ToNapiValue::to_napi_value(env, val.0)? };
-      {
-        ref_cell.borrow_mut().insert(id, raw_value);
-      }
-      Ok(raw_value)
-    })
+    let id = val.0.identifier.raw();
+    unsafe { to_cached_napi_value(env, &MODULE_DESCRIPTOR_REFS, id, val.0) }
   }
 }
 
@@ -433,29 +474,15 @@ impl<'a> From<JsStatsModuleCommonAttributes<'a>> for JsStatsModuleCommonAttribut
 impl<'a> ToNapiValue for JsStatsModuleCommonAttributesWrapper<'a> {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
     unsafe {
-      MODULE_COMMON_ATTRIBUTES_REFS.with(|ref_cell| {
-        match val
-          .0
-          .module_descriptor
-          .as_ref()
-          .map(|d| d.raw().identifier.raw())
-          .as_ref()
-        {
-          Some(id) => {
-            {
-              if let Some(raw_value) = ref_cell.borrow().get(id) {
-                return ToNapiValue::to_napi_value(env, *raw_value);
-              }
-            }
-            let raw_value = ToNapiValue::to_napi_value(env, val.0)?;
-            {
-              ref_cell.borrow_mut().insert(*id, raw_value);
-            }
-            Ok(raw_value)
-          }
-          None => ToNapiValue::to_napi_value(env, val.0),
-        }
-      })
+      match val
+        .0
+        .module_descriptor
+        .as_ref()
+        .map(|d| d.raw().identifier.raw())
+      {
+        Some(id) => to_cached_napi_value(env, &MODULE_COMMON_ATTRIBUTES_REFS, id, val.0),
+        None => ToNapiValue::to_napi_value(env, val.0),
+      }
     }
   }
 }
@@ -470,7 +497,8 @@ pub struct JsStatsModule<'a> {
   pub issuer_path: Option<Vec<JsStatsModuleIssuer<'a>>>,
   #[napi(ts_type = "string | Array<string>")]
   pub used_exports: Option<Either<AtomWrapper, AtomVecWrapper>>,
-  pub modules: Option<Vec<JsStatsModule<'a>>>,
+  #[napi(ts_type = "Array<JsStatsModule>")]
+  pub modules: Option<ScopedArray<JsStatsModule<'a>>>,
 }
 
 impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
@@ -491,13 +519,14 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
       })
       .collect::<Vec<_>>();
     sizes.sort_by(|a, b| a.source_type.cmp(&b.source_type));
-    let modules: Option<Vec<JsStatsModule>> = stats
+    let modules = stats
       .modules
       .map(|modules| -> Result<_> {
         modules
           .into_iter()
           .map(JsStatsModule::try_from)
           .collect::<Result<_>>()
+          .map(ScopedArray)
       })
       .transpose()
       .to_napi_result()?;
@@ -699,7 +728,8 @@ pub struct JsStatsChunk<'a> {
   pub rendered: bool,
   pub sizes: Vec<JsStatsSize>,
   pub origins: Vec<JsOriginRecord<'a>>,
-  pub modules: Option<Vec<JsStatsModule<'a>>>,
+  #[napi(ts_type = "Array<JsStatsModule>")]
+  pub modules: Option<ScopedArray<JsStatsModule<'a>>>,
 }
 
 impl<'a> TryFrom<StatsChunk<'a>> for JsStatsChunk<'a> {
@@ -734,6 +764,7 @@ impl<'a> TryFrom<StatsChunk<'a>> for JsStatsChunk<'a> {
           i.into_iter()
             .map(JsStatsModule::try_from)
             .collect::<Result<_>>()
+            .map(ScopedArray)
         })
         .transpose()?,
       parents: to_js_optional_stats_chunk_ids(stats.parents),
@@ -964,21 +995,9 @@ pub struct JsStatsCompilationWrapper<'a>(JsStatsCompilation<'a>);
 
 impl<'a> ToNapiValue for JsStatsCompilationWrapper<'a> {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
-    unsafe {
-      let napi_value = ToNapiValue::to_napi_value(env, val.0);
-
-      MODULE_DESCRIPTOR_REFS.with(|refs| {
-        let mut refs = refs.borrow_mut();
-        refs.drain();
-      });
-
-      MODULE_COMMON_ATTRIBUTES_REFS.with(|refs| {
-        let mut refs = refs.borrow_mut();
-        refs.drain();
-      });
-
-      napi_value
-    }
+    let napi_value = unsafe { ToNapiValue::to_napi_value(env, val.0) };
+    release_cached_values(env)?;
+    napi_value
   }
 }
 
@@ -1079,7 +1098,7 @@ impl JsStats {
           .into_iter()
           .map(JsStatsModule::try_from)
           .collect::<Result<Vec<_>>>()?;
-        unsafe { ToNapiValue::to_napi_value(env.raw(), val) }
+        unsafe { ToNapiValue::to_napi_value(env.raw(), ScopedArray(val)) }
       })
       .to_napi_result()?
   }
@@ -1092,7 +1111,7 @@ impl JsStats {
           .into_iter()
           .map(JsStatsChunk::try_from)
           .collect::<Result<Vec<_>>>()?;
-        unsafe { ToNapiValue::to_napi_value(env.raw(), val) }
+        unsafe { ToNapiValue::to_napi_value(env.raw(), ScopedArray(val)) }
       })
       .to_napi_result()?
   }
@@ -1212,13 +1231,6 @@ pub fn create_stats_warnings<'a>(
     array.set_element(i as u32, object)?;
   }
 
-  MODULE_DESCRIPTOR_REFS.with(|refs| {
-    let mut refs = refs.borrow_mut();
-    refs.drain();
-  });
-  MODULE_COMMON_ATTRIBUTES_REFS.with(|refs| {
-    let mut refs = refs.borrow_mut();
-    refs.drain();
-  });
+  release_cached_values(raw_env)?;
   Ok(array)
 }
