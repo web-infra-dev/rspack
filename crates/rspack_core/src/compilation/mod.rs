@@ -86,7 +86,6 @@ use crate::{
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
-  cache::SnapshotOptions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
     update_module_graph,
@@ -361,21 +360,17 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    // Incremental make reuses the previous module graph and owns its own
-    // invalidation path. Keep that fast path unchanged.
-    let module_build_cache = (options.experiments.new_cache.module
-      && !is_rebuild
-      && !matches!(&options.cache, CacheOptions::Disabled))
-    .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules")));
-    let snapshot_options = match &options.cache {
-      CacheOptions::Disabled => SnapshotOptions::default(),
-      CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
-      CacheOptions::Persistent(options) => options.snapshot.clone(),
-    };
+    // Rebuilds own their invalidation path, so skip module restoration while
+    // still publishing rebuilt modules for subsequent compilations.
+    let module_build_cache = options
+      .experiments
+      .new_cache
+      .module
+      .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), !is_rebuild));
     let file_system_info = FileSystemInfo::new(
       input_filesystem.clone(),
       CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
-      snapshot_options,
+      options.snapshot.clone(),
       options.output.hash_function,
     );
 
@@ -428,10 +423,7 @@ impl Compilation {
       chunk_render_cache_artifact: StealCell::new(ChunkRenderCacheArtifact::new(
         match &options.cache {
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
-          CacheOptions::Memory {
-            max_generations, ..
-          } => *max_generations,
-          CacheOptions::Persistent(_) => 1,
+          _ => 1,
         },
       )),
       code_generate_cache_artifact: StealCell::new(CodeGenerateCacheArtifact::new(&options)),
@@ -1511,7 +1503,7 @@ impl AssetInfoRelated {
 pub fn assign_depths<'a>(
   assign_map: &mut IdentifierMap<usize>,
   modules: impl Iterator<Item = &'a ModuleIdentifier>,
-  outgoings: &IdentifierMap<Vec<ModuleIdentifier>>,
+  module_graph: &ModuleGraph,
   initial_queue_capacity: usize,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
@@ -1530,9 +1522,14 @@ pub fn assign_depths<'a>(
         vac.insert(depth);
       }
     };
-    if let Some(outgoing_modules) = outgoings.get(&id) {
-      for con in outgoing_modules {
-        q.push_back((*con, depth + 1));
+    // Resolve outgoing connections while walking instead of materializing a
+    // graph-wide map: the walk only ever reads the modules it visits.
+    let Some(module_graph_module) = module_graph.module_graph_module_by_identifier(&id) else {
+      continue;
+    };
+    for connection_id in module_graph_module.outgoing_connections() {
+      if let Some(connection) = module_graph.connection_by_id(connection_id) {
+        q.push_back((*connection.module_identifier(), depth + 1));
       }
     }
   }

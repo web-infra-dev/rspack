@@ -153,6 +153,8 @@ pub enum SourceType {
   Runtime,
 }
 
+pub static NO_SOURCE_TYPE_LIST: &[SourceType; 0] = &[];
+
 impl std::fmt::Display for SourceType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.write_str(self.as_str())
@@ -325,6 +327,10 @@ pub struct ChunkByUkey {
 }
 
 impl ChunkByUkey {
+  pub(crate) fn reserve_capacity(&mut self, total: usize) {
+    self.inner.reserve(total.saturating_sub(self.inner.len()));
+  }
+
   pub fn get(&self, ukey: &ChunkUkey) -> Option<&Chunk> {
     self.inner.get(ukey)
   }
@@ -405,6 +411,10 @@ pub struct ChunkGroupByUkey {
 }
 
 impl ChunkGroupByUkey {
+  pub(crate) fn reserve_capacity(&mut self, total: usize) {
+    self.inner.reserve(total.saturating_sub(self.inner.len()));
+  }
+
   pub fn get(&self, ukey: &ChunkGroupUkey) -> Option<&ChunkGroup> {
     self.inner.get(ukey)
   }

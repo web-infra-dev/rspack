@@ -1,6 +1,7 @@
 import type fs from 'node:fs';
 import type { Compiler, RspackOptions, Stats } from '@rspack/core';
 import { createFsFromVolume, Volume } from 'memfs';
+import { readTestFile } from '../helper/read-test-file';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv, MaybePromise } from '../type';
 
@@ -64,7 +65,7 @@ export function createStatsAPICase(
   if (!addedSerializer) {
     addedSerializer = true;
   }
-  const caseConfig: TStatsAPICaseConfig = require(testConfig);
+  const caseConfig: TStatsAPICaseConfig = readTestFile(testConfig);
   creator.create(name, src, dist, undefined, {
     caseConfig,
     description: () => caseConfig.description,

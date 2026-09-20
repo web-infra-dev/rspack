@@ -64,7 +64,6 @@ import {
   createHtmlPluginHooksRegisters,
   createJavaScriptModulesHooksRegisters,
   createNormalModuleFactoryHooksRegisters,
-  createNormalModuleHooksRegisters,
 } from './taps';
 import { TraceHookPlugin } from './trace/traceHookPlugin';
 import { JavaScriptTracer } from './trace';
@@ -1020,7 +1019,6 @@ class Compiler {
     return {
       ...createCompilerHooksRegisters(getCompiler, createTap, createMapTap),
       ...createCompilationHooksRegisters(getCompiler, createTap, createMapTap),
-      ...createNormalModuleHooksRegisters(getCompiler, createTap, createMapTap),
       ...createNormalModuleFactoryHooksRegisters(
         getCompiler,
         createTap,

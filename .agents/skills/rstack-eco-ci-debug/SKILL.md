@@ -5,7 +5,7 @@ metadata:
   internal: true
 ---
 
-# Rstack Eco CI Debug
+# Rstack eco CI debug
 
 Use this skill to debug Rstack ecosystem CI failures without over-blaming the first upstream commit that appears red in status data.
 
@@ -17,7 +17,7 @@ Choose the ecosystem before investigating. In this skill:
 - `suite` is a downstream project tested against that upstream artifact, for example the `rspress` suite inside `rslib.json`.
 - Never infer the selected ecosystem from the failing suite name.
 
-### Ecosystem Priority
+### Ecosystem priority
 
 Treat `rspack` as the primary ecosystem because it has the broadest downstream matrix and is normally the highest-volume source of eco-ci failures.
 
@@ -43,7 +43,7 @@ git -C <upstream-path> fetch origin main --tags
 - Treat GitHub Actions job logs as the source of truth for failure signatures.
 - Do not modify project files unless the user explicitly asks for a fix or approves temporary reproduction edits. Temporary reproduction edits must be recorded and restored before reporting results unless the user asks to keep them.
 
-## Investigation Model
+## Investigation model
 
 Each ecosystem CI runs a downstream project matrix against a freshly built artifact from the selected upstream. A suite turning red means that a specific combination failed:
 
@@ -61,7 +61,7 @@ Always distinguish:
 - `Actual source`: the PR, version window, or downstream change that actually introduced the failing condition.
 - `Failure signature`: the stable error text, command, assertion diff, stack, or log block used to compare runs.
 
-## Optional Tools
+## Optional tools
 
 Read the linked reference before using any of these tools. Do not ask the user generically "which tool do you want"; instead, suggest the specific tool that matches the situation. Only invoke a tool when its strict trigger conditions are met; do not run it "just in case".
 
@@ -92,11 +92,11 @@ Read the linked reference before using any of these tools. Do not ask the user g
   - The user gives explicit approval to post to GitHub.
     Read [references/pr-report-comment.md](references/pr-report-comment.md) and prepare a draft comment first; do not post without approval.
 
-## Two-Phase Debug Workflow
+## Two-Phase Debug workflow
 
 Eco-ci debugging has two phases. Do not mix them up.
 
-### Local Triage Quick Path
+### Local triage quick path
 
 Use this path for local/manual runs, such as a provided workflow run/job, PR, commit window, or specific suite. For daily automation or latest-status monitoring, read [references/automation-daily-triage.md](references/automation-daily-triage.md) instead.
 
@@ -114,7 +114,7 @@ Use this path for local/manual runs, such as a provided workflow run/job, PR, co
 7. Run Phase 2 only when Phase 1 finds a non-flaky candidate PR or version window in the selected upstream with enough evidence. Do not run Phase 2 for known flaky, pre-existing, or downstream-only failures.
 8. Use PR report comments only when `pr-report-comment.md` guardrails are satisfied and the user explicitly asks to comment. Otherwise report `no PR comment: <reason>`.
 
-### Phase 1: PR Location
+### Phase 1: PR location
 
 Goal: identify the actual source PR, date window, or downstream change that caused the suite to become red.
 
@@ -187,7 +187,7 @@ Notes: <why surface attribution is or is not responsible>
 
 Only move to Phase 2 when there is a specific source PR or version window with enough evidence to inspect deeply.
 
-### Phase 2: Deep Root Cause Debug
+### Phase 2: deep root cause debug
 
 Goal: explain why the identified PR caused the observed behavior.
 
@@ -232,7 +232,7 @@ gh run view --job <job-id> --repo rstackjs/rstack-ecosystem-ci --log \
 
 Fall back to full logs when the filtered output misses the real failure.
 
-## Reproduce Combination Relationships
+## Reproduce combination relationships
 
 Use combination testing in Phase 1 to separate selected-upstream changes from downstream changes.
 
@@ -249,7 +249,7 @@ Keep the downstream command fixed and use the narrowest failing command possible
 
 For finer Rspack windows only, ask whether to use the canary date bisect tool, then follow [references/canary-date-bisect.md](references/canary-date-bisect.md).
 
-### Downstream Interaction Check
+### Downstream interaction check
 
 If the downstream project changed during the same window, test these pairs when practical:
 
@@ -262,7 +262,7 @@ new downstream + fixed upstream
 
 This prevents wrongly attributing a downstream dependency/snapshot update to a later unrelated selected-upstream PR.
 
-## Reporting Requirements
+## Reporting requirements
 
 Keep reports compact and evidence-based:
 

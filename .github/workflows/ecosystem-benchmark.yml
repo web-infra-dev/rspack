@@ -139,6 +139,7 @@ jobs:
           RSPACK_DIR=$(pwd)
           git clone --single-branch --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-benchmark.git
           cd rspack-ecosystem-benchmark
+          git log -1 --format='rspack-ecosystem-benchmark commit: %H'
           pnpm i
           RSPACK_DIR="$RSPACK_DIR" node bin/cli.js bench
 

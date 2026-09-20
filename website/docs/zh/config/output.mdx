@@ -1126,12 +1126,6 @@ export default {
 
 这项配置会启用 Rspack 为 ESM 库单独设计的渲染路径，直接输出 `import` / `export`，并支持库场景下的 tree-shaking、scope hoisting、code splitting 以及 [`output.library.preserveModules`](#outputlibrarypreservemodules)。
 
-入口的命名空间重新导出（`export * as ns from './target.js'` 和 `import * as ns from './target.js'; export { ns };`）会自动优化：在可行时，将目标模块及其同步依赖拆分为独立 chunk，保留原生的命名空间重新导出，让库的使用方可以 tree-shake 未使用的导出。此优化仅适用于公开导出均为本地绑定的目标模块；从其他模块重新导出绑定的目标模块保持原有行为。使用 `preserveModules` 时，会复用已有的模块 chunk。后续的 `optimization.splitChunks` 仍可以移动或合并这些 chunk；如果最终 chunk 的导出无法表示目标模块的命名空间，Rspack 会使用命名空间对象渲染方式。
-
-:::warning
-为命名空间重新导出拆分共享依赖可能改变副作用的执行顺序。使用此优化的库不应依赖该顺序。
-:::
-
 :::tip `module` 和 `modern-module` 的区别
 
 - `module` 仍走常规的 chunk / runtime 渲染流程，属于更接近 webpack 兼容语义的 ESM 输出。

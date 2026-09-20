@@ -5,7 +5,7 @@ use std::{
 };
 
 use rayon::iter::Either;
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, SsoHashSet};
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
@@ -962,7 +962,7 @@ var {} = {{}};
 
   fn validate_single_chunk(
     m: ModuleIdentifier,
-    chunks: &FxHashSet<ChunkUkey>,
+    chunks: &SsoHashSet<ChunkUkey>,
   ) -> rspack_error::Result<ChunkUkey> {
     match chunks.len() {
       0 => Err(rspack_error::error!("module {m} is not in any chunk")),
@@ -3263,6 +3263,7 @@ fn normal_render(
 
 #[cfg(test)]
 mod tests {
+  use rspack_collections::SsoHashSet;
   use rspack_core::{
     ChunkInitFragments, ChunkUkey, ConcatenationNameAllocator, InitFragmentKey, ModuleIdentifier,
   };
@@ -3274,7 +3275,7 @@ mod tests {
   #[test]
   fn get_module_chunk_empty_chunks_returns_error() {
     let m = ModuleIdentifier::from("test_module");
-    let chunks = FxHashSet::default();
+    let chunks = SsoHashSet::default();
     let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
@@ -3287,7 +3288,7 @@ mod tests {
   #[test]
   fn get_module_chunk_multiple_chunks_returns_error() {
     let m = ModuleIdentifier::from("test_module");
-    let mut chunks = FxHashSet::default();
+    let mut chunks = SsoHashSet::default();
     chunks.insert(ChunkUkey::new());
     chunks.insert(ChunkUkey::new());
     let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
@@ -3303,7 +3304,7 @@ mod tests {
   fn get_module_chunk_single_chunk_returns_ok() {
     let m = ModuleIdentifier::from("test_module");
     let expected_chunk = ChunkUkey::new();
-    let mut chunks = FxHashSet::default();
+    let mut chunks = SsoHashSet::default();
     chunks.insert(expected_chunk);
     let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
     assert!(result.is_ok());

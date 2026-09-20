@@ -17,7 +17,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{
-  AdditionalData, Content, LoaderContext, LoaderRunnerOptions, ResourceData, run_loaders,
+  Content, LoaderContext, LoaderRunnerOptions, ResourceData, run_loaders,
 };
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
@@ -36,9 +36,7 @@ use crate::{
   ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
   ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
   RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SnapshotValidationResult, SourceType,
-  cache::SnapshotStrategyOptions,
-  contextify,
+  SnapshotValidationResult, SourceType, contextify, contextify_source_map, contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -82,19 +80,15 @@ impl ModuleIssuer {
 
 define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
 define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
-define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool,tracing=false);
 define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
-define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>),tracing=false);
 
 #[derive(Debug, Default)]
 pub struct NormalModuleHooks {
   pub read_resource: NormalModuleReadResourceHook,
   pub loader: NormalModuleLoaderHook,
-  pub loader_should_yield: NormalModuleLoaderShouldYieldHook,
   pub loader_yield: NormalModuleLoaderStartYieldingHook,
   pub before_loaders: NormalModuleBeforeLoadersHook,
-  pub additional_data: NormalModuleAdditionalDataHook,
 }
 
 #[cacheable]
@@ -346,8 +340,7 @@ impl NormalModule {
           &build_info.dependencies.file,
           &build_info.dependencies.context,
           &build_info.dependencies.missing,
-          // Rspack does not expose webpack's `snapshot.module` strategy yet.
-          SnapshotStrategyOptions::timestamp(),
+          file_system_info.module_strategy(),
         )
         .await?,
     ))
@@ -467,7 +460,7 @@ impl Module for NormalModule {
   )]
   async fn build(
     mut self: Box<Self>,
-    build_context: BuildContext,
+    build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.dependencies_block = Default::default();
@@ -501,7 +494,7 @@ impl Module for NormalModule {
     let compiler_options = build_context.compiler_options.clone();
     let resolver_factory = build_context.resolver_factory.clone();
     let fs = build_context.fs.clone();
-    let (mut loader_result, err) = run_loaders(
+    let (loader_result, err) = run_loaders(
       self.loaders.clone(),
       self.loader_options.clone(),
       self.resource_data.clone(),
@@ -511,18 +504,16 @@ impl Module for NormalModule {
         compilation_id,
         options: compiler_options,
         fs: fs.clone(),
-        loader_cache: build_context.loader_cache,
-        file_system_info: build_context.file_system_info,
+        loader_cache: build_context.loader_cache.clone(),
+        file_system_info: build_context.file_system_info.clone(),
         resolver_factory,
         source_map_kind: self.source_map_kind,
-        loader_context_data: Default::default(),
         module: self,
       },
       fs,
     )
     .instrument(info_span!("NormalModule:run_loaders",))
     .await;
-    drop(loader_result.context.loader_context_data);
     self = loader_result.context.module;
 
     if let Some(err) = err {
@@ -550,12 +541,6 @@ impl Module for NormalModule {
       return Ok(BoxModule::new(self));
     };
 
-    build_context
-      .plugin_driver
-      .normal_module_hooks
-      .additional_data
-      .call(&mut loader_result.additional_data.as_mut())
-      .await?;
     self.add_diagnostics(loader_result.diagnostics);
 
     let is_binary = self
@@ -574,6 +559,7 @@ impl Module for NormalModule {
       Content::String(loader_result.content.into_string_lossy())
     };
     let source = self.create_source(
+      build_context.compiler_options.context.as_str(),
       content,
       loader_result.source_map.map(|source_map| *source_map),
     )?;
@@ -944,6 +930,7 @@ impl Diagnosable for NormalModule {
 impl NormalModule {
   fn create_source(
     &self,
+    context: &str,
     content: Content,
     source_map: Option<SourceMap<'static>>,
   ) -> Result<BoxSource> {
@@ -952,13 +939,14 @@ impl NormalModule {
     }
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled()
-      && let Some(source_map) = source_map
+      && let Some(mut source_map) = source_map
     {
+      contextify_source_map(context, &mut source_map);
       let content = content.into_string_lossy();
       return Ok(
         SourceMapSource::new(WithoutOriginalOptions {
           value: content,
-          name: self.request(),
+          name: contextify_source_url(context, self.request()),
           source_map,
         })
         .boxed(),
@@ -967,7 +955,9 @@ impl NormalModule {
     if source_map_kind.enabled()
       && let Content::String(content) = content
     {
-      return Ok(OriginalSource::new(content, self.request()).boxed());
+      return Ok(
+        OriginalSource::new(content, contextify_source_url(context, self.request())).boxed(),
+      );
     }
     Ok(RawStringSource::from(content.into_string_lossy()).boxed())
   }

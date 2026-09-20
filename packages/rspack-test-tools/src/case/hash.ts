@@ -1,4 +1,5 @@
 import type { RspackOptions } from '@rspack/core';
+import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
 import {
   BasicCaseCreator,
   type IBasicCaseCreatorOptions,
@@ -35,7 +36,7 @@ const creator = new HashCaseCreator({
         configMultiCompiler(
           context,
           name,
-          ['rspack.config.js', 'webpack.config.js'],
+          RSPACK_CONFIG_FILES,
           defaultOptions,
           overrideOptions,
         );
@@ -119,7 +120,7 @@ function check(env: ITestEnv, context: ITestContext, name: string) {
     testConfig.validate(stats);
   } else {
     throw new Error(
-      'HashTestCases should have test.config.js and a validate method',
+      'HashTestCases should have a test.config file and a validate method',
     );
   }
 }

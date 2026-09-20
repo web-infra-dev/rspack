@@ -7,7 +7,8 @@ use rspack_fs::{FileMetadata, ReadableFileSystem};
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap};
 use rustc_hash::FxHasher;
 
-use super::{PackageHelper, SnapshotOptions};
+use super::PackageHelper;
+use crate::SnapshotOptions;
 
 /// Content hash with modification time.
 #[derive(Debug, Clone, Default)]
@@ -231,17 +232,22 @@ mod tests {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_paths::InternedPath;
 
-  use super::{HashHelper, PackageHelper, SnapshotOptions};
-  use crate::cache::PathMatcher;
+  use super::{HashHelper, PackageHelper};
+  use crate::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions};
 
   fn new_helper(fs: Arc<MemoryFileSystem>) -> HashHelper {
     HashHelper::new(
       fs.clone(),
-      Arc::new(SnapshotOptions::new(
-        vec![PathMatcher::String("immutable".into())],
-        vec![],
-        vec![PathMatcher::String("node_modules".into())],
-      )),
+      Arc::new(SnapshotOptions {
+        immutable_paths: vec![PathMatcher::String("immutable".into())],
+        unmanaged_paths: vec![],
+        managed_paths: vec![PathMatcher::String("node_modules".into())],
+        resolve_build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+        build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+        resolve: SnapshotStrategyOptions::hash_and_timestamp(),
+        module: SnapshotStrategyOptions::hash_and_timestamp(),
+        context_module: SnapshotStrategyOptions::timestamp(),
+      }),
       Arc::new(PackageHelper::new(fs)),
     )
   }

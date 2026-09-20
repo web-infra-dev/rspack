@@ -1,8 +1,5 @@
-use napi::{Either, bindgen_prelude::JsValuesTupleIntoVec};
-use rspack_core::{
-  AdditionalData, BUILTIN_LOADER_PREFIX, LoaderContext, NormalModuleLoaderShouldYield,
-  NormalModuleLoaderStartYielding, RunnerContext,
-};
+use napi::bindgen_prelude::{Either3, JsValuesTupleIntoVec};
+use rspack_core::{AdditionalData, LoaderContext, NormalModuleLoaderStartYielding, RunnerContext};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
@@ -18,39 +15,25 @@ impl JsLoaderRspackPlugin {
   }
 }
 
-#[plugin_hook(NormalModuleLoaderShouldYield for JsLoaderRspackPlugin, tracing=false)]
-pub(crate) async fn loader_should_yield(
-  &self,
-  loader_context: &LoaderContext<RunnerContext>,
-) -> Result<Option<bool>> {
-  match loader_context.state() {
-    s @ (LoaderState::Init | LoaderState::ProcessResource | LoaderState::Finished) => {
-      panic!("Unexpected loader runner state: {s:?}")
-    }
-    LoaderState::Pitching => {
-      let current_loader = loader_context.current_loader();
-      if current_loader.request().starts_with(BUILTIN_LOADER_PREFIX) {
-        Ok(Some(false))
-      } else {
-        let loaders_without_pitch = self.loaders_without_pitch.read().await;
-        let should_yield = !loaders_without_pitch.contains(current_loader.path().as_str());
-        Ok(Some(should_yield))
-      }
-    }
-    LoaderState::Normal => Ok(Some(
-      !loader_context
-        .current_loader()
-        .request()
-        .starts_with(BUILTIN_LOADER_PREFIX),
-    )),
-  }
-}
-
 #[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn loader_yield(
   &self,
   loader_context: &mut LoaderContext<RunnerContext>,
 ) -> Result<()> {
+  // Keep pitch capability discovery on the JS side of the runtime boundary.
+  // A loader known not to have a pitch function does not need a JS callback.
+  if loader_context.state() == LoaderState::Pitching
+    && self
+      .loaders_without_pitch
+      .read()
+      .await
+      .contains(loader_context.current_loader().path().as_str())
+  {
+    loader_context.current_loader().set_pitch_executed();
+    loader_context.loader_index += 1;
+    return Ok(());
+  }
+
   let runner = self.runner.lock().expect("should get lock").clone();
   let runner = runner
     .get_or_try_init(|| async {
@@ -84,9 +67,6 @@ pub(crate) fn merge_loader_context(
   to: &mut LoaderContext<RunnerContext>,
   mut from: JsLoaderContext,
 ) -> Result<()> {
-  if let Some(state) = from.loader_context_state.take() {
-    to.context.loader_context_data.insert(state);
-  }
   to.cacheable = from.cacheable;
   to.replace_dependencies(from.dependencies.into());
 
@@ -98,22 +78,9 @@ pub(crate) fn merge_loader_context(
   }
 
   let content = match from.content {
-    Either::A(_) => None,
-    Either::B(c) => {
-      // perf: Ignore UTF-8 check when JavaScript passed in an UTF-8 encoded value
-      let content = if let Some(utf8_hint) = from.utf8_hint
-        && utf8_hint
-      {
-        rspack_core::Content::from(
-          // SAFETY: UTF-8 passed from JavaScript loader runner should ensure it does not pass non-UTF-8 encoded sequence when `utf_hint` is set to `true`. This invariant should be followed on the JavaScript side.
-          unsafe { String::from_utf8_unchecked(c.into()) },
-        )
-      } else {
-        rspack_core::Content::from(Into::<Vec<u8>>::into(c))
-      };
-
-      Some(content)
-    }
+    Either3::A(content) => Some(rspack_core::Content::String(content)),
+    Either3::B(content) => Some(rspack_core::Content::Buffer(content.into())),
+    Either3::C(_) => None,
   };
   let source_map = from
     .source_map
@@ -128,7 +95,6 @@ pub(crate) fn merge_loader_context(
   to.__finish_with((content, source_map, additional_data));
 
   // update loader status
-  let to_state = to.state();
   to.loader_items = to
     .loader_items
     .drain(..)
@@ -141,10 +107,8 @@ pub(crate) fn merge_loader_context(
         to.set_pitch_executed()
       }
       to.set_data(from.data);
-      // The loader hook also merges a snapshot, before any loader has run.
-      if to_state != LoaderState::Init {
-        to.set_finish_called();
-      }
+      // JS loader should always be considered as finished
+      to.set_finish_called();
       to
     })
     .collect();

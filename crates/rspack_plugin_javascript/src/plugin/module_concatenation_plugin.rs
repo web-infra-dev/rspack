@@ -7,7 +7,7 @@ use std::{
 
 use rayon::prelude::*;
 use rspack_collections::{
-  Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
+  Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, SsoHashSet,
 };
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyType,
@@ -25,7 +25,6 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
-use rustc_hash::FxHashSet as HashSet;
 
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {msg}")
@@ -41,7 +40,7 @@ enum Warning {
 enum ConcatenationProblem {
   MissingChunks {
     module: ModuleIdentifier,
-    root_chunks: Arc<HashSet<ChunkUkey>>,
+    root_chunks: Arc<SsoHashSet<ChunkUkey>>,
   },
   ReferencedFromNonModule {
     module: ModuleIdentifier,
@@ -310,7 +309,7 @@ struct ModuleGraphArtifacts<'a> {
 
 struct ConcatenationSearchContext<'a> {
   compilation: &'a Compilation,
-  root_chunks: &'a Arc<HashSet<ChunkUkey>>,
+  root_chunks: &'a Arc<SsoHashSet<ChunkUkey>>,
   runtime: &'a RuntimeSpec,
   possible_modules: &'a IdentifierSet,
   module_cache: &'a IdentifierMap<NoRuntimeModuleCache>,
@@ -1636,7 +1635,7 @@ struct CachedIncomingModule {
 
 #[derive(Debug)]
 struct DifferentChunkModules {
-  root_chunks: Arc<HashSet<ChunkUkey>>,
+  root_chunks: Arc<SsoHashSet<ChunkUkey>>,
   incoming_modules: Arc<[CachedIncomingModule]>,
   modules: OnceLock<Arc<[ModuleIdentifier]>>,
 }
@@ -1702,7 +1701,7 @@ impl CachedIncomingConnection {
 #[derive(Debug)]
 pub struct NoRuntimeModuleCache {
   runtime: RuntimeSpec,
-  chunks: Arc<HashSet<ChunkUkey>>,
+  chunks: Arc<SsoHashSet<ChunkUkey>>,
   provided_names: bool,
   connections: Vec<CachedOutgoingConnection>,
   incomings: IncomingConnections,
@@ -1789,7 +1788,7 @@ async fn create_concatenated_module(
   )));
   let build_result = new_module
     .build(
-      rspack_core::BuildContext {
+      Arc::new(rspack_core::BuildContext {
         compiler_id: compilation.compiler_id(),
         compilation_id: compilation.id(),
         resolver_factory: compilation.resolver_factory.clone(),
@@ -1799,7 +1798,7 @@ async fn create_concatenated_module(
         file_system_info: compilation.file_system_info.clone(),
         fs: compilation.input_filesystem.clone(),
         runtime_template: compilation.runtime_template.create_module_code_template(),
-      },
+      }),
       Some(compilation),
     )
     .await?;
