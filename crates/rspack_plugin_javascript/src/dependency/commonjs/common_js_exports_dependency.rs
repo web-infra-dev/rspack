@@ -8,14 +8,14 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
   ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedName, property_access,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::json_stringify_str;
 
-use crate::{Atom, dependency::commonjs::OBJECT_PROTOTYPE_METHODS};
 use super::common_js_dependency_helpers::is_worker_entry_this;
+use crate::{Atom, dependency::commonjs::OBJECT_PROTOTYPE_METHODS};
 
 #[cacheable]
 #[derive(Debug, Clone, Copy)]

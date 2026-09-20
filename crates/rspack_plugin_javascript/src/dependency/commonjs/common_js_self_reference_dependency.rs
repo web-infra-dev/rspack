@@ -7,11 +7,11 @@ use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedName,
-  property_access_with_optional,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
+  UsedName, property_access_with_optional,
 };
-
 use rspack_hash::{RspackHash, RspackHasher};
+
 use super::{ExportsBase, common_js_dependency_helpers::is_worker_entry_this};
 use crate::Atom;
 
