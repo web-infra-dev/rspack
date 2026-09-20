@@ -1,0 +1,32 @@
+import { defineConfig } from '@rspack/cli';
+
+import { rspack } from '@rspack/core';
+export default defineConfig([
+  {
+    entry: {
+      main: './index.js',
+    },
+    output: {
+      filename: '[name].js',
+    },
+    externalsPresets: {
+      node: true,
+    },
+  },
+  {
+    entry: {
+      main: './module-entry.js',
+      module: './module.js',
+    },
+    output: {
+      module: true,
+      filename: '[name].mjs',
+    },
+    target: 'es2022',
+    externalsPresets: { web: true },
+    optimization: {
+      minimize: true,
+      minimizer: [new rspack.SwcJsMinimizerRspackPlugin()],
+    },
+  },
+]);
