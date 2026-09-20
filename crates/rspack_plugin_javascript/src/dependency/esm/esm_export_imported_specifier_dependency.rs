@@ -1806,7 +1806,6 @@ impl DependencyConditionFn for ESMExportImportedSpecifierDependencyCondition {
     ConnectionState::Active(
       used
         && connection_active_inline_value_for_esm_export_imported_specifier(
-          dependency,
           &mode,
           connection,
           runtime,

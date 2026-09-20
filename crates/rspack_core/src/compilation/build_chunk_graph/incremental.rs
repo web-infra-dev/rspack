@@ -83,6 +83,7 @@ impl CodeSplitter {
       .collect::<FxHashSet<ChunkGroupUkey>>();
 
     chunk_graph.remove_module(module);
+    self.push_removed_module(module);
 
     let mut removed = vec![];
     for chunk_group_ukey in &invalidate_chunk_groups {
@@ -205,7 +206,8 @@ impl CodeSplitter {
             };
 
             if cgm.chunks.remove(chunk_ukey) && cgm.chunks.is_empty() {
-              chunk_graph.remove_module(module_identifier)
+              chunk_graph.remove_module(module_identifier);
+              self.push_removed_module(module_identifier);
             }
           }
         };

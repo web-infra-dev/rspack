@@ -55,7 +55,7 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
   splitter.remove_orphan(compilation)?;
 
   // Orphan cleanup may remove the CGM of a module that remains in the module graph.
-  for module_identifier in all_modules {
+  for module_identifier in splitter.take_removed_modules() {
     compilation
       .build_chunk_graph_artifact
       .chunk_graph

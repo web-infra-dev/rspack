@@ -33,6 +33,15 @@ impl BuildChunkGraphArtifact {
     fast_set(&mut self.code_splitter, code_splitter);
   }
 
+  /// Drops the code splitter cached by a previous build.
+  ///
+  /// The splitter owns the maps built while splitting such as the module ordinals, the prepared
+  /// connections and the per chunk masks. Callers that reset the chunk graph state by hand, for
+  /// example benchmarks reusing a compilation, should drop the splitter at the same time.
+  pub fn reset_code_splitter(&mut self) {
+    self.set_code_splitter(Default::default());
+  }
+
   // we can skip rebuilding chunk graph if none of modules
   // has changed its outgoings
   // we don't need to check if module has changed its incomings

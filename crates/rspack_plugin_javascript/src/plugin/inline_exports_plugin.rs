@@ -1,23 +1,23 @@
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
-  Compilation, CompilationOptimizeDependencies, Dependency, DependencyId, ExportMode,
-  ExportProvided, ExportsInfo, ExportsInfoArtifact, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, Plugin, RuntimeSpec, SideEffectsOptimizeArtifact, UsageState, UsedName,
-  UsedNameItem, build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
+  Compilation, CompilationOptimizeDependencies, ExportMode, ExportProvided, ExportsInfo,
+  ExportsInfoArtifact, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin, RuntimeSpec,
+  SideEffectsOptimizeArtifact, UsageState, UsedName, UsedNameItem,
+  build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_intern::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency};
+use crate::dependency::ESMImportSpecifierDependency;
 
-fn inline_enabled(dependency_id: &DependencyId, mg: &ModuleGraph) -> bool {
-  let module = mg
-    .get_module_by_dependency_id(dependency_id)
-    .expect("should have target module");
-  module.build_info().inline_exports
+fn inline_enabled(module: &ModuleIdentifier, mg: &ModuleGraph) -> bool {
+  mg.module_by_identifier(module)
+    .expect("should have target module")
+    .build_info()
+    .inline_exports
 }
 
 pub fn is_export_inlined(
@@ -59,28 +59,27 @@ pub fn connection_active_inline_value_for_esm_import_specifier(
   if ids.is_empty() {
     return true;
   }
-  if !inline_enabled(dependency.id(), mg) {
+  let module = connection.module_identifier();
+  if !inline_enabled(module, mg) {
     return true;
   }
-  let module = connection.module_identifier();
   !is_export_inlined(exports_info_artifact, module, ids, runtime)
 }
 
 pub fn connection_active_inline_value_for_esm_export_imported_specifier(
-  dependency: &ESMExportImportedSpecifierDependency,
   mode: &ExportMode,
   connection: &ModuleGraphConnection,
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> bool {
-  if !inline_enabled(dependency.id(), mg) {
+  let module = connection.module_identifier();
+  if !inline_enabled(module, mg) {
     return true;
   }
   let ExportMode::NormalReexport(mode) = mode else {
     return true;
   };
-  let module = connection.module_identifier();
   let exports_info = exports_info_artifact.get_exports_info_data(module);
   if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
     return true;
