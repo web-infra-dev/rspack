@@ -64,6 +64,7 @@ struct ParsedNewWorkerImportOptions {
 #[derive(Debug, Clone, Copy)]
 struct WorkerDependencySettings {
   is_worklet: bool,
+  is_node_worker: bool,
   url_mode: Option<JavascriptParserWorkerUrl>,
 }
 
@@ -161,7 +162,8 @@ fn add_dependencies(
   block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
     name,
     runtime: Some(runtime.into()),
-    worker: Some(true),
+    // Node CommonJS workers keep module-factory `this`, unlike browser scripts.
+    worker: Some(!settings.is_node_worker),
     worklet: Some(settings.is_worklet),
     chunk_loading: Some(output_options.worker_chunk_loading.clone()),
     wasm_loading: Some(output_options.worker_wasm_loading.clone()),
@@ -533,6 +535,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
             need_new_url,
             WorkerDependencySettings {
               is_worklet,
+              is_node_worker: false,
               url_mode: self.url_mode,
             },
           );
@@ -578,6 +581,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
               need_new_url,
               WorkerDependencySettings {
                 is_worklet,
+                is_node_worker: matches!(
+                  settings.source.as_str(),
+                  "worker_threads" | "node:worker_threads"
+                ),
                 url_mode: self.url_mode,
               },
             );
@@ -607,6 +614,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
           need_new_url,
           WorkerDependencySettings {
             is_worklet: is_worklet_syntax(for_name),
+            is_node_worker: false,
             url_mode: self.url_mode,
           },
         );
@@ -652,6 +660,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
               need_new_url,
               WorkerDependencySettings {
                 is_worklet: false,
+                is_node_worker: matches!(
+                  settings.source.as_str(),
+                  "worker_threads" | "node:worker_threads"
+                ),
                 url_mode: self.url_mode,
               },
             );
@@ -683,6 +695,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
           need_new_url,
           WorkerDependencySettings {
             is_worklet: false,
+            is_node_worker: false,
             url_mode: self.url_mode,
           },
         );

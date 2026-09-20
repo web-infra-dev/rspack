@@ -2,8 +2,8 @@ use rspack_core::{Compilation, ModuleIdentifier, RuntimeSpec};
 
 /// A classic worker entry reads top-level `this` as its global scope. Only
 /// return true when this module is an entry module and every matching entry
-/// role is a classic worker, so imported modules, normal entries, and module
-/// worklets keep exports semantics.
+/// role is a classic browser worker, so Node workers, imported modules, normal
+/// entries, and module worklets keep exports semantics.
 pub(super) fn is_worker_entry_this(
   compilation: &Compilation,
   module: ModuleIdentifier,
