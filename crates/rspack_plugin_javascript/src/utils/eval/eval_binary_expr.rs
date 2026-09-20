@@ -1,6 +1,6 @@
 use rspack_core::DependencyRange;
-use smallvec::SmallVec;
 use rspack_util::SpanExt;
+use smallvec::SmallVec;
 use swc_next_ecma_ast::{
   BinaryExpression, BinaryOperator, GetSpan, LogicalExpression, LogicalOperator,
 };

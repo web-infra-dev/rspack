@@ -1191,14 +1191,10 @@ impl JavascriptParser<'_> {
     {
       let result = if info.members.is_empty() {
         info.root_info.call_hooks_name(self, |parser, for_name| {
-          parser
-            .plugin_drive()
-            .new_expression(parser, expr, for_name)
+          parser.plugin_drive().new_expression(parser, expr, for_name)
         })
       } else {
-        self
-          .plugin_drive()
-          .new_expression(self, expr, &info.name)
+        self.plugin_drive().new_expression(self, expr, &info.name)
       };
       if result.unwrap_or_default() {
         return;
@@ -1269,11 +1265,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_chain_expression(&mut self, expr: ChainExpression) {
-    if self
-      .plugin_drive()
-      .optional_chaining(self, expr)
-      .is_none()
-    {
+    if self.plugin_drive().optional_chaining(self, expr).is_none() {
       self.enter_optional_chain(
         expr,
         |parser, call| parser.walk_call_expression(call),
@@ -1366,9 +1358,7 @@ impl JavascriptParser<'_> {
     // (await import(...)).a.b
     if let Some((call, members, await_expr)) = await_import_member {
       if self.is_top_level_scope() {
-        self
-          .plugin_drive()
-          .top_level_await_expr(self, await_expr);
+        self.plugin_drive().top_level_await_expr(self, await_expr);
       }
       if self
         .plugin_drive()
@@ -1693,17 +1683,15 @@ impl JavascriptParser<'_> {
           if expr_info
             .root_info
             .call_hooks_name(self, |this, for_name| {
-              this
-                .plugin_drive()
-                .call_member_chain_of_call_member_chain(
-                  this,
-                  expr,
-                  &expr_info.callee_members,
-                  expr_info.call,
-                  &expr_info.members,
-                  &expr_info.member_ranges,
-                  for_name,
-                )
+              this.plugin_drive().call_member_chain_of_call_member_chain(
+                this,
+                expr,
+                &expr_info.callee_members,
+                expr_info.call,
+                &expr_info.members,
+                &expr_info.member_ranges,
+                for_name,
+              )
             })
             .unwrap_or_default() =>
         {
@@ -1725,9 +1713,7 @@ impl JavascriptParser<'_> {
       // (await import(...)).a.b()
       if let Some((call, members, await_expr)) = await_import_member {
         if self.is_top_level_scope() {
-          self
-            .plugin_drive()
-            .top_level_await_expr(self, await_expr);
+          self.plugin_drive().top_level_await_expr(self, await_expr);
         }
         if self
           .plugin_drive()
@@ -1845,11 +1831,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_binary_expression(&mut self, expr: BinaryExpression) {
-    if self
-      .plugin_drive()
-      .binary_expression(self, expr)
-      .is_none()
-    {
+    if self.plugin_drive().binary_expression(self, expr).is_none() {
       let ast = self.ast.ast;
       self.walk_left_right_expression(expr.left(ast), expr.right(ast));
     }
@@ -1857,10 +1839,7 @@ impl JavascriptParser<'_> {
 
   fn walk_logical_expression(&mut self, expr: LogicalExpression) {
     let ast = self.ast.ast;
-    if let Some(keep_right) = self
-      .plugin_drive()
-      .expression_logical_operator(self, expr)
-    {
+    if let Some(keep_right) = self.plugin_drive().expression_logical_operator(self, expr) {
       if keep_right {
         self.walk_expression(expr.right(ast));
       }

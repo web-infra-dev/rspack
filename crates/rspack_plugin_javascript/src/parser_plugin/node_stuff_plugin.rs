@@ -58,7 +58,10 @@ impl NodeStuffPlugin {
     Self { handle_cjs }
   }
 
-  fn get_relative_path(parser: &mut JavascriptParser, property: NodeMetaProperty) -> Option<String> {
+  fn get_relative_path(
+    parser: &mut JavascriptParser,
+    property: NodeMetaProperty,
+  ) -> Option<String> {
     parser.relative_resource_path(matches!(property, NodeMetaProperty::Dirname))
   }
 

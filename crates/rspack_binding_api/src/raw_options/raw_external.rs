@@ -1,6 +1,11 @@
-use std::{fmt::Debug, path::Path, sync::Arc};
-
-use std::sync::{Mutex, atomic::{AtomicU32, Ordering}};
+use std::{
+  fmt::Debug,
+  path::Path,
+  sync::{
+    Arc, Mutex,
+    atomic::{AtomicU32, Ordering},
+  },
+};
 
 use napi::{
   Either, Env,
@@ -73,16 +78,16 @@ impl ExternalsFnCache {
   }
 
   fn record_observed(&self, observed: u32) {
-    self
-      .mask
-      .fetch_or(observed, Ordering::Relaxed);
+    self.mask.fetch_or(observed, Ordering::Relaxed);
   }
 
   /// Cache key for `ctx`, or `None` while the observed fields are unknown or
   /// the function depends on `getResolve`.
   fn key(&self, ctx: &ExternalItemFnCtx) -> Option<String> {
     let mask = self.observed_mask();
-    if mask & (Self::REQUEST | Self::CONTEXT | Self::DEPENDENCY_TYPE | Self::ISSUER | Self::ISSUER_LAYER) == 0
+    if mask
+      & (Self::REQUEST | Self::CONTEXT | Self::DEPENDENCY_TYPE | Self::ISSUER | Self::ISSUER_LAYER)
+      == 0
       || mask & Self::UNCACHEABLE != 0
     {
       return None;
