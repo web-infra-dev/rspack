@@ -10,6 +10,7 @@ use std::{
 
 use camino::Utf8Path;
 use cow_utils::CowUtils;
+use rspack_paths::InternedPath;
 use serde::de::{Deserialize, Deserializer, IgnoredAny, MapAccess, Visitor};
 use simd_json::{
   BorrowedValue, Error as SimdParseError, ObjectHasher,
@@ -134,10 +135,14 @@ impl Default for JSONCell {
 }
 
 /// Deserialized package.json
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct PackageJson {
   /// Path to `package.json`. Contains the `package.json` filename.
-  pub path: PathBuf,
+  ///
+  /// Stored interned: dependency tracking registers the file on every
+  /// resolution that walks through its directory, so a handle turns that into a
+  /// refcount bump instead of a rehash and re-intern.
+  pub path: InternedPath,
 
   /// Realpath to `package.json`. Contains the `package.json` filename.
   pub realpath: PathBuf,
@@ -204,37 +209,39 @@ impl PackageJson {
 
     let json_cell = JSONCell::try_new(json).map_err(ParseError::from)?;
 
-    let mut package_json = Self::default();
-    if let Some(json_object) = json_cell.borrow_dependent().as_object() {
-      package_json.name = json_object
-        .get("name")
-        .and_then(|field| field.as_str())
-        .map(ToString::to_string);
+    let json_object = json_cell.borrow_dependent().as_object();
+    let name = json_object
+      .and_then(|object| object.get("name"))
+      .and_then(|field| field.as_str())
+      .map(ToString::to_string);
+    let r#type = json_object
+      .and_then(|object| object.get("type"))
+      .and_then(|field| field.as_str())
+      .and_then(|field| field.try_into().ok());
+    let side_effects = json_object
+      .and_then(|object| object.get("sideEffects"))
+      .and_then(|field| SideEffects::try_from(field).ok());
+    #[cfg(feature = "package_json_raw_json_api")]
+    let serde_json = json_object.map_or_else(
+      || std::sync::Arc::new(serde_json::Value::Null),
+      Self::serde_json_from,
+    );
 
-      package_json.r#type = json_object
-        .get("type")
-        .and_then(|str| str.as_str())
-        .and_then(|str| str.try_into().ok());
-
-      package_json.side_effects = json_object
-        .get("sideEffects")
-        .and_then(|value| SideEffects::try_from(value).ok());
-
+    Ok(Self {
+      path: InternedPath::new(&path),
+      realpath,
+      name,
+      r#type,
+      side_effects,
+      raw_json: std::sync::Arc::new(json_cell),
       #[cfg(feature = "package_json_raw_json_api")]
-      {
-        package_json.init_serde_json(json_object);
-      }
-    }
-
-    package_json.path = path;
-    package_json.realpath = realpath;
-    package_json.raw_json = std::sync::Arc::new(json_cell);
-
-    Ok(package_json)
+      serde_json,
+    })
   }
 
+  /// Raw `serde_json` mirror of a parsed package.json object.
   #[cfg(feature = "package_json_raw_json_api")]
-  fn init_serde_json(&mut self, value: &JSONMap) {
+  fn serde_json_from(value: &JSONMap) -> std::sync::Arc<serde_json::Value> {
     let mut json_map = serde_json::value::Map::with_capacity(9);
 
     for (key, value) in value {
@@ -242,7 +249,7 @@ impl PackageJson {
         json_map.insert(key.to_string(), v);
       }
     }
-    self.serde_json = std::sync::Arc::new(serde_json::Value::Object(json_map));
+    std::sync::Arc::new(serde_json::Value::Object(json_map))
   }
 
   fn get_value_by_paths<'a>(fields: &'a JSONMap, paths: &[String]) -> Option<&'a JSONValue<'a>> {
