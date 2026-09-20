@@ -353,6 +353,9 @@ fn configure_swc_loader(builder: &mut CompilerBuilder) {
 }
 
 fn reset_chunk_graph_state(compilation: &mut Compilation) {
+  // Drop the splitter of the previous iteration with the rest of the stale chunk graph state, so
+  // its teardown is not measured as part of the next `build_chunk_graph` call.
+  compilation.build_chunk_graph_artifact.reset_code_splitter();
   compilation.build_chunk_graph_artifact.chunk_by_ukey = Default::default();
   compilation.build_chunk_graph_artifact.chunk_graph = Default::default();
   compilation.build_chunk_graph_artifact.chunk_group_by_ukey = Default::default();
