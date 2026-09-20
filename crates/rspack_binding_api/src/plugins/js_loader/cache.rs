@@ -4,8 +4,8 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_cacheable::{cacheable, with::AsMap};
 use rspack_core::{
-  CacheFacade, CacheValue, Content, Etag, FileSystemInfo, LoaderCacheDependencySnapshot,
-  LoaderDependencies, Resolver, loader_cache_dependency_snapshot,
+  CacheFacade, CacheValue, CompilerId, Content, Etag, FileSystemInfo,
+  LoaderCacheDependencySnapshot, LoaderDependencies, Resolver, loader_cache_dependency_snapshot,
   loader_cache_dependency_snapshot_is_valid, loader_cache_etag, loader_cache_item,
   restore_loader_cache_dependencies,
 };
@@ -15,7 +15,7 @@ use rspack_loader_runner::LoaderRunnerOptions;
 use rspack_paths::Utf8Path;
 use rspack_util::fx_hash::FxHashMap as HashMap;
 
-use super::context::JsLoaderDependencies;
+use crate::dependency_strings::{CompilerDependencyPaths, DependencyPaths};
 
 #[cacheable]
 struct LoaderCacheEntry {
@@ -27,18 +27,21 @@ struct LoaderCacheEntry {
   parse_meta: HashMap<String, String>,
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsLoaderCacheEntry {
   pub content: Either3<Null, String, Uint8Array>,
   pub source_map: Option<Uint8Array>,
-  pub added_dependencies: JsLoaderDependencies,
-  pub removed_dependencies: JsLoaderDependencies,
+  #[napi(ts_type = "JsLoaderDependencies")]
+  pub added_dependencies: CompilerDependencyPaths,
+  #[napi(ts_type = "JsLoaderDependencies")]
+  pub removed_dependencies: CompilerDependencyPaths,
   pub parse_meta: HashMap<String, String>,
 }
 
 #[derive(Clone)]
 #[napi]
 pub struct JsLoaderCache {
+  compiler_id: CompilerId,
   cache: CacheFacade,
   file_system_info: FileSystemInfo,
   module_identifier: String,
@@ -56,6 +59,7 @@ impl FromNapiValue for JsLoaderCacheObject {
     let instance =
       unsafe { <ClassInstance<JsLoaderCache> as FromNapiValue>::from_napi_value(env, napi_val)? };
     Ok(Self(JsLoaderCache {
+      compiler_id: instance.compiler_id,
       cache: instance.cache.clone(),
       file_system_info: instance.file_system_info.clone(),
       module_identifier: instance.module_identifier.clone(),
@@ -88,6 +92,7 @@ impl ValidateNapiValue for JsLoaderCacheObject {}
 
 impl JsLoaderCache {
   fn new(
+    compiler_id: CompilerId,
     cache: CacheFacade,
     file_system_info: FileSystemInfo,
     module_identifier: String,
@@ -95,6 +100,7 @@ impl JsLoaderCache {
   ) -> Self {
     let pending_etags = Arc::new(Mutex::new(vec![None; loaders.len()]));
     Self {
+      compiler_id,
       cache,
       file_system_info,
       module_identifier,
@@ -139,7 +145,7 @@ impl JsLoaderCache {
     &self,
     loader_index: u32,
     content: Either<String, Uint8Array>,
-    existing: JsLoaderDependencies,
+    existing: DependencyPaths,
   ) -> napi::Result<Option<JsLoaderCacheEntry>> {
     let loader = self.loader(loader_index)?;
     let content = match content {
@@ -187,8 +193,14 @@ impl JsLoaderCache {
         (Some(content), false) => Either3::C(content.clone().into()),
       },
       source_map: entry.source_map.clone().map(Into::into),
-      added_dependencies: (&dependencies).into(),
-      removed_dependencies: Default::default(),
+      added_dependencies: CompilerDependencyPaths {
+        compiler_id: self.compiler_id,
+        paths: (&dependencies).into(),
+      },
+      removed_dependencies: CompilerDependencyPaths {
+        compiler_id: self.compiler_id,
+        paths: Default::default(),
+      },
       parse_meta: entry.parse_meta.clone(),
     }))
   }
@@ -198,13 +210,13 @@ impl JsLoaderCache {
     let Some(etag) = self.take_pending_etag(loader_index)? else {
       return Ok(());
     };
-    if !output.removed_dependencies.is_empty()
-      || !output.added_dependencies.context_dependencies.is_empty()
-      || !output.added_dependencies.missing_dependencies.is_empty()
+    if !output.removed_dependencies.paths.is_empty()
+      || !output.added_dependencies.paths.context.is_empty()
+      || !output.added_dependencies.paths.missing.is_empty()
     {
       return Ok(());
     }
-    let dependencies: LoaderDependencies = output.added_dependencies.into();
+    let dependencies: LoaderDependencies = output.added_dependencies.paths.into();
     let Some(dependency_snapshot) =
       loader_cache_dependency_snapshot(&self.file_system_info, &dependencies).await
     else {
@@ -230,12 +242,14 @@ impl JsLoaderCache {
 
 impl JsLoaderCacheObject {
   pub(super) fn new(
+    compiler_id: CompilerId,
     cache: CacheFacade,
     file_system_info: FileSystemInfo,
     module_identifier: String,
     loaders: Vec<LoaderRunnerOptions>,
   ) -> Self {
     Self(JsLoaderCache::new(
+      compiler_id,
       cache,
       file_system_info,
       module_identifier,
@@ -264,8 +278,9 @@ impl JsLoaderCache {
     env: &'env Env,
     loader_index: u32,
     content: Either<String, Uint8Array>,
-    existing: JsLoaderDependencies,
+    #[napi(ts_arg_type = "JsLoaderDependencies")] existing: Object<'_>,
   ) -> napi::Result<PromiseRaw<'env, Option<JsLoaderCacheEntry>>> {
+    let existing = DependencyPaths::from_js(env, self.compiler_id, existing)?;
     let this = self.clone();
     rspack_napi::runtime::promise_from_future(env, async move {
       this.get_async(loader_index, content, existing).await
@@ -277,8 +292,29 @@ impl JsLoaderCache {
     &self,
     env: &'env Env,
     loader_index: u32,
-    output: JsLoaderCacheEntry,
+    #[napi(ts_arg_type = "JsLoaderCacheEntry")] output: Object<'_>,
   ) -> napi::Result<PromiseRaw<'env, ()>> {
+    let output = JsLoaderCacheEntry {
+      content: output.get_named_property("content")?,
+      source_map: output.get_named_property("sourceMap")?,
+      parse_meta: output.get_named_property("parseMeta")?,
+      added_dependencies: CompilerDependencyPaths {
+        compiler_id: self.compiler_id,
+        paths: DependencyPaths::from_js(
+          env,
+          self.compiler_id,
+          output.get_named_property("addedDependencies")?,
+        )?,
+      },
+      removed_dependencies: CompilerDependencyPaths {
+        compiler_id: self.compiler_id,
+        paths: DependencyPaths::from_js(
+          env,
+          self.compiler_id,
+          output.get_named_property("removedDependencies")?,
+        )?,
+      },
+    };
     let this = self.clone();
     rspack_napi::runtime::promise_from_future(env, async move {
       this.store_async(loader_index, output).await

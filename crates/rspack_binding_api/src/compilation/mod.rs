@@ -30,6 +30,7 @@ use crate::{
   chunk_graph::ChunkGraph,
   chunk_group::ChunkGroupWrapper,
   dependencies::EntryDependency,
+  dependency_strings::{CompilerDependencyPaths, DependencyPaths, intern_js_values},
   error::{ErrorCode, JsRspackDiagnostic, RspackError, RspackResultToNapiResultExt},
   filename::JsFilename,
   module::{JsAddingRuntimeModule, ModuleObject},
@@ -624,42 +625,38 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn add_file_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation
-      .file_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+  pub fn add_file_dependencies(&mut self, env: Env, deps: Vec<napi::JsString<'_>>) -> Result<()> {
+    let paths = intern_js_values(&env, self.as_ref()?.compiler_id(), deps)?;
+    self.as_mut()?.file_dependencies.extend(paths);
     Ok(())
   }
 
   #[napi]
-  pub fn add_context_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation
-      .context_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+  pub fn add_context_dependencies(
+    &mut self,
+    env: Env,
+    deps: Vec<napi::JsString<'_>>,
+  ) -> Result<()> {
+    let paths = intern_js_values(&env, self.as_ref()?.compiler_id(), deps)?;
+    self.as_mut()?.context_dependencies.extend(paths);
     Ok(())
   }
 
   #[napi]
-  pub fn add_missing_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation
-      .missing_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+  pub fn add_missing_dependencies(
+    &mut self,
+    env: Env,
+    deps: Vec<napi::JsString<'_>>,
+  ) -> Result<()> {
+    let paths = intern_js_values(&env, self.as_ref()?.compiler_id(), deps)?;
+    self.as_mut()?.missing_dependencies.extend(paths);
     Ok(())
   }
 
   #[napi]
-  pub fn add_build_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation
-      .build_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+  pub fn add_build_dependencies(&mut self, env: Env, deps: Vec<napi::JsString<'_>>) -> Result<()> {
+    let paths = intern_js_values(&env, self.as_ref()?.compiler_id(), deps)?;
+    self.as_mut()?.build_dependencies.extend(paths);
     Ok(())
   }
 
@@ -745,28 +742,17 @@ impl JsCompilation {
           )
           .await;
 
-        let js_result = JsExecuteModuleResult {
+        let js_result = ExecuteModuleResult {
           cacheable: res.cacheable,
-          file_dependencies: res
-            .file_dependencies
-            .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
-            .collect(),
-          context_dependencies: res
-            .context_dependencies
-            .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
-            .collect(),
-          build_dependencies: res
-            .build_dependencies
-            .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
-            .collect(),
-          missing_dependencies: res
-            .missing_dependencies
-            .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
-            .collect(),
+          dependencies: CompilerDependencyPaths {
+            compiler_id: compilation.compiler_id(),
+            paths: DependencyPaths {
+              file: res.file_dependencies.into_iter().collect(),
+              context: res.context_dependencies.into_iter().collect(),
+              build: res.build_dependencies.into_iter().collect(),
+              missing: res.missing_dependencies.into_iter().collect(),
+            },
+          },
           id: res.id,
           errors: res
             .errors
@@ -1152,15 +1138,45 @@ impl ToNapiValue for JsCompilationWrapper {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsExecuteModuleResult {
+  #[napi(ts_type = "Array<string>")]
   pub file_dependencies: Vec<String>,
+  #[napi(ts_type = "Array<string>")]
   pub context_dependencies: Vec<String>,
+  #[napi(ts_type = "Array<string>")]
   pub build_dependencies: Vec<String>,
+  #[napi(ts_type = "Array<string>")]
   pub missing_dependencies: Vec<String>,
   pub cacheable: bool,
   pub id: u32,
   pub errors: Vec<RspackError>,
+}
+
+// Async work carries native paths only. Materialize all four arrays together on
+// the JS thread, keeping the public JsExecuteModuleResult shape unchanged.
+struct ExecuteModuleResult {
+  dependencies: CompilerDependencyPaths,
+  cacheable: bool,
+  id: u32,
+  errors: Vec<RspackError>,
+}
+
+impl ToNapiValue for ExecuteModuleResult {
+  unsafe fn to_napi_value(
+    env: napi::sys::napi_env,
+    value: Self,
+  ) -> napi::Result<napi::sys::napi_value> {
+    let env = unsafe { Env::from_raw(env) };
+    let mut result = value
+      .dependencies
+      .paths
+      .to_js(&env, value.dependencies.compiler_id)?;
+    result.set_named_property("cacheable", value.cacheable)?;
+    result.set_named_property("id", value.id)?;
+    result.set_named_property("errors", value.errors)?;
+    unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
+  }
 }
 
 #[napi(object)]

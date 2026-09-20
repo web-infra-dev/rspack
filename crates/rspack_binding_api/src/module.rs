@@ -309,6 +309,10 @@ impl DerivedModule for Module {
 }
 
 impl Module {
+  pub(crate) fn compiler_id(&self) -> CompilerId {
+    self.compiler_id
+  }
+
   pub(crate) fn into_module_instance(self, env: &Env) -> napi::Result<ClassInstance<'_, Self>> {
     let mut instance = self.into_instance(env)?;
     let mut object = instance.as_object(env);
@@ -636,6 +640,10 @@ unsafe impl Send for ModuleObject {}
 unsafe impl Sync for ModuleObject {}
 
 impl ModuleObject {
+  pub(crate) fn compiler_id(&self) -> CompilerId {
+    self.compiler_id
+  }
+
   pub fn with_ref(module: &dyn rspack_core::Module, compiler_id: CompilerId) -> Self {
     Self {
       type_id: module.as_any().type_id(),

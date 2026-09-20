@@ -10,7 +10,11 @@ use rspack_core::WeakBindingCell;
 use rspack_napi::unknown_to_json_value;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{define_symbols, module::Module};
+use crate::{
+  define_symbols,
+  dependency_strings::{PreparedDependencyArrays, refreshed_array, with_compiler},
+  module::Module,
+};
 
 define_symbols! {
   BUILD_INFO_ASSETS_SYMBOL => "rspack.buildInfo.assets",
@@ -76,6 +80,33 @@ pub struct KnownBuildInfo {
 impl KnownBuildInfo {
   pub fn new(module_reference: WeakReference<Module>) -> Self {
     Self { module_reference }
+  }
+
+  fn dependency_values<'env>(
+    &self,
+    env: &'env Env,
+    select: impl FnOnce(&rspack_core::LoaderDependencies) -> &rspack_paths::InternedPathSet,
+  ) -> napi::Result<Array<'env>> {
+    let mut module = self.module_reference.upgrade(*env)?.ok_or_else(|| {
+      napi::Error::from_reason(
+        "Unable to access buildInfo. The Module has been garbage collected by JavaScript.",
+      )
+    })?;
+    with_compiler(env, module.compiler_id(), |compiler| {
+      let mut prepared = PreparedDependencyArrays::default();
+      let array = module.with_ref(|_, module| {
+        compiler
+          .dependency_string_refs
+          .borrow_mut()
+          .batch(env)
+          .prepare_values(
+            &mut prepared,
+            select(&module.build_info().dependencies).iter(),
+          )
+      })?;
+      prepared.materialize(env, compiler)?;
+      refreshed_array(env, array)
+    })
   }
 
   pub fn get_jsobject(self, env: &Env) -> napi::Result<Object<'_>> {
@@ -168,16 +199,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         .with_name(env, symbol)?
         .with_getter_closure(|env, this| {
           let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          let env_ref = &env;
-          let result = wrapped_value.with_ref(|module| {
-            module
-              .build_info()
-              .dependencies
-              .file
-              .iter()
-              .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
-              .collect::<napi::Result<Vec<JsString>>>()
-          });
+          let result = wrapped_value.dependency_values(&env, |dependencies| &dependencies.file);
           unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
         })
         .with_property_attributes(PropertyAttributes::Configurable),
@@ -193,16 +215,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         .with_name(env, symbol)?
         .with_getter_closure(|env, this| {
           let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          let env_ref = &env;
-          let result = wrapped_value.with_ref(|module| {
-            module
-              .build_info()
-              .dependencies
-              .context
-              .iter()
-              .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
-              .collect::<napi::Result<Vec<JsString>>>()
-          });
+          let result = wrapped_value.dependency_values(&env, |dependencies| &dependencies.context);
           unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
         })
         .with_property_attributes(PropertyAttributes::Configurable),
@@ -218,16 +231,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         .with_name(env, symbol)?
         .with_getter_closure(|env, this| {
           let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          let env_ref = &env;
-          let result = wrapped_value.with_ref(|module| {
-            module
-              .build_info()
-              .dependencies
-              .missing
-              .iter()
-              .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
-              .collect::<napi::Result<Vec<JsString>>>()
-          });
+          let result = wrapped_value.dependency_values(&env, |dependencies| &dependencies.missing);
           unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
         })
         .with_property_attributes(PropertyAttributes::Configurable),
@@ -243,16 +247,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         .with_name(env, symbol)?
         .with_getter_closure(|env, this| {
           let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          let env_ref = &env;
-          let result = wrapped_value.with_ref(|module| {
-            module
-              .build_info()
-              .dependencies
-              .build
-              .iter()
-              .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
-              .collect::<napi::Result<Vec<JsString>>>()
-          });
+          let result = wrapped_value.dependency_values(&env, |dependencies| &dependencies.build);
           unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
         })
         .with_property_attributes(PropertyAttributes::Configurable),

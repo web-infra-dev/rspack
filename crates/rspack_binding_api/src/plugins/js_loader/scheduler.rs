@@ -68,7 +68,7 @@ pub(crate) fn merge_loader_context(
   mut from: JsLoaderContext,
 ) -> Result<()> {
   to.cacheable = from.cacheable;
-  to.replace_dependencies(from.dependencies.into());
+  to.replace_dependencies(from.dependencies.paths.into());
 
   if let Some(error) = from.error {
     if let Some(diagnostic) = error.rust_diagnostic.as_ref() {

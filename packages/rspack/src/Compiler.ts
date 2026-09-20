@@ -24,6 +24,7 @@ import type { Chunk } from './Chunk';
 import type { CompilationParams } from './Compilation';
 import { Compilation } from './Compilation';
 import { ContextModuleFactory } from './ContextModuleFactory';
+import { materializeDependencyArrays } from './util/dependencyArrays';
 import type {
   EntryNormalized,
   OutputNormalized,
@@ -840,7 +841,7 @@ class Compiler {
     };
 
     this.hooks.shutdown.callAsync((err) => {
-      if (err) return callback(err);
+      if (err) return instanceCallback(err);
       this.cache.shutdown(instanceCallback);
     });
   }
@@ -994,6 +995,7 @@ class Compiler {
           }
         },
         Cache.__to_binding(this.cache),
+        materializeDependencyArrays,
       );
 
       callback(null, this.#instance);

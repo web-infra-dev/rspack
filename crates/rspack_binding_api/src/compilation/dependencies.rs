@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use napi::{
   Env, JsString,
   bindgen_prelude::{Array, FromNapiValue, JsObjectValue, ToNapiValue},
@@ -7,7 +9,13 @@ use rspack_core::{Compilation, CompilerId, FileCounter};
 use rspack_napi::OneShotRef;
 use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathMap, InternedPathSet};
 
-use crate::COMPILER_REFERENCES;
+use crate::{
+  COMPILER_REFERENCES,
+  dependency_strings::{
+    DependencyValuesCache, PreparedDependencyArrays, dependency_index, intern_js_values,
+    referenced_array, refreshed_array, with_compiler,
+  },
+};
 
 /// Native operations on the owning compiler's current dependency collection.
 #[napi]
@@ -15,14 +23,7 @@ pub struct FileSystemDependencies {
   kind: FileSystemDependencyKind,
   compiler_id: CompilerId,
   deleted_paths: InternedPathSet,
-  // Cached JS values live with this wrapper and are released on GC.
-  dependency_strings: Option<DependencyStrings>,
-}
-
-struct DependencyStrings {
-  // Updated in place: every values() call returns this same array.
-  array: OneShotRef,
-  indices: InternedPathMap<u32>,
+  values_cache: Option<Rc<RefCell<DependencyValuesCache>>>,
 }
 
 // Retained JS dependency wrappers follow rebuilds, just like JsCompilation.
@@ -57,12 +58,6 @@ fn with_current_compilation_mut<R>(
   f(&mut compiler.compiler.compilation)
 }
 
-fn referenced_array<'env>(env: &'env Env, reference: &OneShotRef) -> napi::Result<Array<'env>> {
-  // SAFETY: The reference owns an Array created in this JS environment.
-  // Resolve it inside the current handle scope; never retain a napi_value.
-  unsafe { Array::from_napi_value(env.raw(), ToNapiValue::to_napi_value(env.raw(), reference)?) }
-}
-
 fn create_array<'env>(env: &'env Env, length: usize) -> napi::Result<Array<'env>> {
   // SAFETY: The freshly created JS object is an Array in this handle scope.
   unsafe {
@@ -85,24 +80,8 @@ impl FileSystemDependencies {
     Self {
       kind,
       compiler_id,
-      dependency_strings: None,
+      values_cache: None,
       deleted_paths: InternedPathSet::default(),
-    }
-  }
-
-  fn dependency_strings<'a>(
-    env: &Env,
-    slot: &'a mut Option<DependencyStrings>,
-  ) -> napi::Result<&'a mut DependencyStrings> {
-    match slot {
-      Some(dependency_strings) => Ok(dependency_strings),
-      slot @ None => {
-        let array = create_array(env, 0)?;
-        Ok(slot.insert(DependencyStrings {
-          array: OneShotRef::new(env.raw(), array)?,
-          indices: InternedPathMap::default(),
-        }))
-      }
     }
   }
 
@@ -111,22 +90,12 @@ impl FileSystemDependencies {
     env: &Env,
     values: impl IntoIterator<Item = JsString<'env>>,
   ) -> napi::Result<()> {
+    let paths = intern_js_values(env, self.compiler_id, values)?;
     with_current_compilation_mut(self.compiler_id, |compilation| {
       let additions = self.additions(compilation);
-      let dependency_strings = Self::dependency_strings(env, &mut self.dependency_strings)?;
-      let mut array = referenced_array(env, &dependency_strings.array)?;
-      for value in values {
-        let utf8 = value.into_utf8()?;
-        let path: InternedPath = utf8.as_str()?.into();
+      for path in paths {
         self.deleted_paths.remove(&path);
-        additions.insert(path.clone());
-        if !dependency_strings.indices.contains_key(&path) {
-          let index = array.len();
-          // Retain the original JS string without reading the in-progress
-          // module graph or copying the existing array.
-          array.set(index, value)?;
-          dependency_strings.indices.insert(path, index);
-        }
+        additions.insert(path);
       }
       Ok(())
     })
@@ -183,55 +152,32 @@ impl FileSystemDependencies {
 #[napi]
 impl FileSystemDependencies {
   #[napi(getter, ts_return_type = "Array<string>")]
-  pub fn added<'env>(&mut self, env: &'env Env) -> napi::Result<Array<'env>> {
-    with_current_compilation(self.compiler_id, |compilation| {
-      let (counter, added) = self.sources(compilation)?;
-      // Plugin additions are included in every build's watch delta.
-      let paths = counter.added_files().chain(added);
-      let mut result = create_array(env, paths.size_hint().0)?;
-      let Some(dependency_strings) = self.dependency_strings.as_mut() else {
-        // Watch may read only this delta once. Avoid building a second array
-        // and an index when no collection read or JS addition needs them yet.
-        for (index, path) in paths.enumerate() {
-          result.set(
-            index as u32,
-            env.create_string(path.to_string_lossy().as_ref())?,
-          )?;
-        }
-        return Ok(result);
-      };
-      let mut strings = referenced_array(env, &dependency_strings.array)?;
-      for (index, path) in paths.enumerate() {
-        let value = match dependency_strings.indices.get(path) {
-          Some(&index) => strings
-            .get::<JsString>(index)?
-            .ok_or_else(|| napi::Error::from_reason("Missing cached dependency string"))?,
-          None => {
-            // Native dependencies may have changed since values() was read.
-            // Root new strings in the shared array, without rescanning all paths.
-            let value = env.create_string(path.to_string_lossy().as_ref())?;
-            let index = strings.len();
-            strings.set(index, value)?;
-            dependency_strings.indices.insert(path.clone(), index);
-            value
-          }
-        };
-        result.set(index as u32, value)?;
-      }
-      Ok(result)
+  pub fn added<'env>(&self, env: &'env Env) -> napi::Result<Array<'env>> {
+    with_compiler(env, self.compiler_id, |compiler| {
+      let (counter, added) = self.sources(&compiler.compiler.compilation)?;
+      let mut prepared = PreparedDependencyArrays::default();
+      let array = compiler
+        .dependency_string_refs
+        .borrow_mut()
+        .batch(env)
+        .prepare_values(&mut prepared, counter.added_files().chain(added))?;
+      prepared.materialize(env, compiler)?;
+      refreshed_array(env, array)
     })
   }
 
-  #[napi(getter)]
-  pub fn removed(&self) -> napi::Result<Vec<String>> {
-    with_current_compilation(self.compiler_id, |compilation| {
-      let (counter, _) = self.sources(compilation)?;
-      Ok(
-        counter
-          .removed_files()
-          .map(|path| path.to_string_lossy().into_owned())
-          .collect(),
-      )
+  #[napi(getter, ts_return_type = "Array<string>")]
+  pub fn removed<'env>(&self, env: &'env Env) -> napi::Result<Array<'env>> {
+    with_compiler(env, self.compiler_id, |compiler| {
+      let (counter, _) = self.sources(&compiler.compiler.compilation)?;
+      let mut prepared = PreparedDependencyArrays::default();
+      let array = compiler
+        .dependency_string_refs
+        .borrow_mut()
+        .batch(env)
+        .prepare_values(&mut prepared, counter.removed_files())?;
+      prepared.materialize(env, compiler)?;
+      refreshed_array(env, array)
     })
   }
 
@@ -304,53 +250,107 @@ impl FileSystemDependencies {
 
   #[napi(ts_return_type = "ReadonlyArray<string>")]
   pub fn values<'env>(&mut self, env: &'env Env) -> napi::Result<Array<'env>> {
-    with_current_compilation(self.compiler_id, |compilation| {
-      let paths = self.paths(compilation)?;
-      let capacity = paths.size_hint().0;
-      let mut unique_paths = Vec::with_capacity(capacity);
-      let mut indices = InternedPathMap::with_capacity_and_hasher(capacity, Default::default());
-      let has_deleted_paths = !self.deleted_paths.is_empty();
-      for path in paths {
-        if has_deleted_paths && self.deleted_paths.contains(path) {
-          continue;
-        }
-        // A path can occur in both native dependencies and plugin additions.
-        indices.entry(path.clone()).or_insert_with(|| {
-          let index = unique_paths.len() as u32;
-          unique_paths.push(path);
-          index
-        });
-      }
-      let dependency_strings = Self::dependency_strings(env, &mut self.dependency_strings)?;
-      let mut array = referenced_array(env, &dependency_strings.array)?;
-      let length = unique_paths.len() as u32;
-      let mut updates = Vec::new();
-      for (index, path) in unique_paths.into_iter().enumerate() {
-        let index = index as u32;
-        let previous_index = dependency_strings.indices.get(path).copied();
-        if previous_index == Some(index) {
-          continue;
-        }
-        let value = match previous_index {
-          Some(previous_index) => array
-            .get::<JsString>(previous_index)?
-            .ok_or_else(|| napi::Error::from_reason("Missing cached dependency string"))?,
-          None => env.create_string(path.to_string_lossy().as_ref())?,
+    with_compiler(env, self.compiler_id, |compiler| {
+      let values_cache = Rc::clone(
+        self
+          .values_cache
+          .get_or_insert_with(|| Rc::new(RefCell::new(DependencyValuesCache::default()))),
+      );
+      DependencyValuesCache::queue(&values_cache, compiler);
+      let result = (|| {
+        let (mut array, indices, generation, prepared, direct_updates) = {
+          let (counter, added) = self.sources(&compiler.compiler.compilation)?;
+          // Both sources are unique. Only the overlap with native paths needs
+          // filtering; output order stays native paths followed by JS additions.
+          let capacity = counter.files().size_hint().0.saturating_add(added.len());
+          let paths = counter.files().chain(
+            added
+              .iter()
+              .filter(|path| counter.related_resource_ids(path).is_none()),
+          );
+          let mut indices = InternedPathMap::with_capacity_and_hasher(capacity, Default::default());
+          let mut cached = values_cache.borrow_mut();
+          if cached.array.is_none() {
+            cached.array = Some(OneShotRef::new(env.raw(), create_array(env, 0)?)?);
+          }
+          let array = referenced_array(
+            env,
+            cached.array.as_ref().expect("initialized values array"),
+          )?;
+          let empty = cached.indices.is_empty();
+          let mut refs = compiler.dependency_string_refs.borrow_mut();
+          let generation = refs.generation();
+          let registered = cached.registered_generation == Some(generation);
+          let mut batch = refs.batch(env);
+          let mut prepared = PreparedDependencyArrays::default();
+          prepared
+            .commands
+            .reserve(if empty { capacity.saturating_add(3) } else { 3 });
+          prepared
+            .commands
+            .extend_from_slice(&[u32::from(!empty), 0, 0]);
+          let mut direct_updates = Vec::new();
+          for path in paths {
+            if self.deleted_paths.contains(path) {
+              continue;
+            }
+            let index = dependency_index(indices.len())?;
+            indices.insert(path.clone(), index);
+            let previous_index = cached.indices.get(path).copied();
+            if registered && previous_index == Some(index) {
+              continue;
+            }
+            let create = || match previous_index {
+              Some(previous) => array
+                .get::<JsString>(previous)?
+                .ok_or_else(|| napi::Error::from_reason("Missing cached dependency string")),
+              None => env.create_string(path.to_string_lossy().as_ref()),
+            };
+            if batch.enabled() {
+              let pool_index = batch.get_or_insert_index_with(path, create)?;
+              if previous_index != Some(index) {
+                if !empty {
+                  prepared.commands.push(index);
+                }
+                prepared.commands.push(pool_index);
+              }
+            } else if previous_index != Some(index) {
+              direct_updates.push((index, create()?));
+            }
+          }
+          let length = dependency_index(indices.len())?;
+          if batch.enabled() && (prepared.commands.len() != 3 || array.len() != length) {
+            prepared.commands[1] = length;
+            prepared.commands[2] = dependency_index(prepared.commands.len() - 3)?;
+            prepared.targets.push(array);
+            prepared.strings = Some(batch.strings()?);
+          } else {
+            prepared.commands.clear();
+          }
+          (array, indices, generation, prepared, direct_updates)
         };
-        updates.push((index, value));
+        // No graph or RefCell borrows cross the synchronous JS call. Resolve all
+        // old strings before writes so moving entries cannot overwrite a source.
+        prepared.materialize(env, compiler)?;
+        for (index, value) in direct_updates {
+          array.set(index, value)?;
+        }
+        array = refreshed_array(env, array)?;
+        let length = dependency_index(indices.len())?;
+        if array.len() != length {
+          array.set_named_property("length", length)?;
+          array = refreshed_array(env, array)?;
+        }
+        let mut cached = values_cache.borrow_mut();
+        cached.indices = indices;
+        cached.registered_generation = Some(generation);
+        Ok(array)
+      })();
+      if result.is_err() {
+        // Never leave a partially filled array paired with committed indices.
+        let _ = values_cache.borrow_mut().invalidate(Some(env));
       }
-      // Resolve all reused strings before writing: moves can overwrite slots
-      // that other paths still need. These handles live only in this call.
-      for (index, value) in updates {
-        array.set(index, value)?;
-      }
-      if array.len() > length {
-        // Truncation releases strings belonging to removed paths.
-        array.set_named_property("length", length)?;
-        array = referenced_array(env, &dependency_strings.array)?;
-      }
-      dependency_strings.indices = indices;
-      Ok(array)
+      result
     })
   }
 
