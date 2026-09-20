@@ -1538,14 +1538,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .chunk_group_by_ukey
       .expect_get_mut(&cgi.chunk_group);
 
-    #[allow(clippy::map_entry)]
-    if !chunk_group
-      .module_pre_order_indices
-      .contains_key(&item.module)
-    {
-      chunk_group
-        .module_pre_order_indices
-        .insert(item.module, chunk_group.next_pre_order_index);
+    // One lookup decides both the insertion and whether the counter has to advance.
+    let inserted = {
+      let next_pre_order_index = chunk_group.next_pre_order_index;
+      match chunk_group.module_pre_order_indices.entry(item.module) {
+        hash_map::Entry::Occupied(_) => false,
+        hash_map::Entry::Vacant(entry) => {
+          entry.insert(next_pre_order_index);
+          true
+        }
+      }
+    };
+    if inserted {
       chunk_group.next_pre_order_index += 1;
     }
 

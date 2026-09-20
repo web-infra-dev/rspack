@@ -506,9 +506,21 @@ impl CodeSplitter {
     // Thanks!
     let module_graph = compilation.get_module_graph();
     let ordinal_by_module = &mut self.ordinal_by_module;
-    for m in module_graph.modules_keys() {
-      if !ordinal_by_module.contains_key(m) {
-        ordinal_by_module.insert(*m, ordinal_by_module.len() as u64);
+    // The splitter is not reused today, so the ordinal map starts empty and each module can be
+    // inserted with a single lookup. Reserving up front also avoids rehashing while it grows.
+    let additional = module_graph
+      .modules_len()
+      .saturating_sub(ordinal_by_module.len());
+    ordinal_by_module.reserve(additional);
+    if ordinal_by_module.is_empty() {
+      for (ordinal, m) in module_graph.modules_keys().enumerate() {
+        ordinal_by_module.insert(*m, ordinal as u64);
+      }
+    } else {
+      for m in module_graph.modules_keys() {
+        if !ordinal_by_module.contains_key(m) {
+          ordinal_by_module.insert(*m, ordinal_by_module.len() as u64);
+        }
       }
     }
     for chunk in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
