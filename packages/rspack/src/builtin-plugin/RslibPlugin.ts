@@ -4,7 +4,7 @@ import { create } from './base';
 
 export const RslibPlugin = create(
   BuiltinPluginName.RslibPlugin,
-  (rslib: RawRslibPluginOptions): RawRslibPluginOptions => {
+  (rslib: RawRslibPluginOptions = {}): RawRslibPluginOptions => {
     return rslib;
   },
 );

@@ -1,13 +1,13 @@
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
 const {
   experiments: { RslibPlugin },
 } = rspack;
 
-export default {
-  externalsType: 'modern-module',
+export default defineConfig({
   externals: {
-    externals: 'externals',
+    fs: 'commonjs fs',
   },
   plugins: [new RslibPlugin()],
-};
+});
