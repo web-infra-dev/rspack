@@ -322,9 +322,10 @@ impl JsCompiler {
       let pnp = options.resolve.pnp.unwrap_or(false);
       let virtual_files = options.__virtual_files.take();
       let use_input_fs = options.experiments.use_input_file_system.take();
-      // Virtual and hybrid input filesystems cannot be re-read from disk by JS
-      // consumers later, so their descriptions stay materialized.
-      let has_custom_input_fs = virtual_files.is_some() || use_input_fs.is_some();
+      // Virtual and hybrid input filesystems, and Yarn PnP (which reads from the
+      // ZIP cache), cannot be re-read from disk by JS consumers later, so their
+      // descriptions stay materialized.
+      let has_custom_input_fs = virtual_files.is_some() || use_input_fs.is_some() || pnp;
       let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
       tracing::debug!(name:"normalized_options", options=?&compiler_options);
