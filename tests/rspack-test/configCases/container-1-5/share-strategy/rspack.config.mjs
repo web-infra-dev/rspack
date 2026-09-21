@@ -13,11 +13,10 @@ export default {
       shareStrategy: 'loaded-first',
       shared: {
         react: {
-          version: false,
+          version: '0.1.2',
           requiredVersion: false,
           singleton: true,
           strictVersion: false,
-          version: '0.1.2',
         },
       },
     }),

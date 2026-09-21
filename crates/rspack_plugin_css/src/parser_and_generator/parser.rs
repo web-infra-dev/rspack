@@ -1024,6 +1024,10 @@ impl<'context> CssModuleParser<'context> {
       range.end,
     );
     let request = normalize_url(request);
+    // Fragment-only URLs reference the current document, not another module.
+    if request.starts_with('#') {
+      return Ok(());
+    }
     let dep = CssUrlDependency::new(
       request.into_owned(),
       DependencyRange::new(range.start, range.end),

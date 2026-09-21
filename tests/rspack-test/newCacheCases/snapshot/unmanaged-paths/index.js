@@ -1,4 +1,4 @@
-import value, { changed } from "./test_lib";
+import value, { changed } from "./packages/test_lib";
 
 it("should snapshot unmanaged-paths work", async () => {
 	if (COMPILER_INDEX == 0) {
@@ -18,4 +18,4 @@ it("should snapshot unmanaged-paths work", async () => {
 	}
 });
 
-module.hot.accept("./test_lib");
+module.hot.accept("./packages/test_lib");

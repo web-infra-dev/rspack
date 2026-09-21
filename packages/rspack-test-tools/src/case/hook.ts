@@ -11,6 +11,7 @@ import {
   format as prettyFormat,
 } from 'pretty-format';
 import merge from 'rspack-merge';
+import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
 import { findTestFile, readTestFile } from '../helper/read-test-file';
 import { TestContext, type TTestContextOptions } from '../test/context';
 import { BasicCaseCreator } from '../test/creator';
@@ -35,7 +36,7 @@ const creator = new BasicCaseCreator({
           const options = await config(
             context,
             name,
-            ['rspack.config.mjs', 'rspack.config.js'],
+            RSPACK_CONFIG_FILES,
             defaultOptions(context, caseConfig.options),
           );
           if (!global.printLogger) {

@@ -5,6 +5,7 @@ import {
   HotModuleReplacementPlugin,
   type RspackOptions,
 } from '@rspack/core';
+import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
 import { findTestFile, readTestFile } from '../helper/read-test-file';
 import {
   BasicCaseCreator,
@@ -47,12 +48,7 @@ export function createNormalProcessor(
         },
         mode,
       );
-      options = await config(
-        context,
-        name,
-        ['rspack.config.mjs', 'rspack.config.js'],
-        options,
-      );
+      options = await config(context, name, RSPACK_CONFIG_FILES, options);
       overrideOptions(context, options);
       compiler.setOptions(options);
     },

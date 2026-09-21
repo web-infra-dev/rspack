@@ -53,6 +53,7 @@ use tokio::sync::RwLock;
 
 use crate::{
   Atom,
+  plugin::impl_plugin_for_js_plugin::module_has_js,
   runtime::{render_chunk_modules, render_module, render_runtime_modules, stringify_array},
 };
 
@@ -415,10 +416,7 @@ var {} = {{}};
       if chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph) {
         let mut buf2: Vec<Cow<str>> = Vec::new();
         buf2.push("// Load entry module and return exports".into());
-        let entries = compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+        let entries = get_js_entry_modules_with_chunk_group(chunk_ukey, compilation);
         let module_graph = compilation.get_module_graph();
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation
@@ -755,13 +753,9 @@ var {} = {{}};
       .get_chunk_modules_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph);
     let has_entry_modules =
       chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph);
-    let inlined_modules = if allow_inline_startup && has_entry_modules {
-      Some(
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey),
-      )
+    let js_entry_modules = get_js_entry_modules_with_chunk_group(chunk_ukey, compilation);
+    let inlined_modules = if allow_inline_startup && !js_entry_modules.is_empty() {
+      Some(&js_entry_modules)
     } else {
       None
     };
@@ -986,13 +980,14 @@ var {} = {{}};
         )
         .await?;
       sources.add(render_source.source);
-    } else if let Some(last_entry_module) = compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
-      .keys()
-      .next_back()
-    {
+    } else if let Some(last_entry_module) = js_entry_modules.keys().next_back().or_else(|| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
+        .keys()
+        .next_back()
+    }) {
       let mut render_source = RenderSource {
         source: RawStringSource::from(startup.join("\n") + "\n").boxed(),
       };
@@ -1511,6 +1506,23 @@ var {} = {{}};
 pub struct ExtractedCommentsInfo {
   pub source: BoxSource,
   pub comments_file_name: String,
+}
+
+/// Entry modules that render JavaScript into the chunk. A stylesheet listed in
+/// an entry has no JavaScript factory, so the startup must not call it.
+fn get_js_entry_modules_with_chunk_group(
+  chunk_ukey: &ChunkUkey,
+  compilation: &Compilation,
+) -> IdentifierLinkedMap<ChunkGroupUkey> {
+  let module_graph = compilation.get_module_graph();
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
+    .iter()
+    .filter(|(module_identifier, _)| module_has_js(module_identifier, module_graph))
+    .map(|(module_identifier, chunk_group_ukey)| (*module_identifier, *chunk_group_ukey))
+    .collect()
 }
 
 #[derive(Debug, RspackHash)]

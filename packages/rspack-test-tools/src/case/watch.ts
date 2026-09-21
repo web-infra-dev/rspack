@@ -3,7 +3,7 @@ import type { RspackOptions, StatsCompilation } from '@rspack/core';
 import fs from 'fs-extra';
 import merge from 'rspack-merge';
 import { ECompilerEvent } from '../compiler';
-import { readConfigFile } from '../helper';
+import { readConfigFile, RSPACK_CONFIG_FILES } from '../helper';
 import {
   checkArrayExpectation,
   findExpectationFile,
@@ -53,9 +53,7 @@ export function createWatchInitialProcessor(
       const testConfig = context.getTestConfig();
       const multiCompilerOptions = [];
       const caseOptions: RspackOptions[] = readConfigFile(
-        ['rspack.config.mjs', 'rspack.config.js'].map((i) =>
-          context.getSource(i),
-        ),
+        RSPACK_CONFIG_FILES.map((i) => context.getSource(i)),
         context,
         {},
       );
