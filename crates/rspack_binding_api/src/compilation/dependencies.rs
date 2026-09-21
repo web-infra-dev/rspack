@@ -1,5 +1,3 @@
-use std::time::{Duration, Instant};
-
 use napi::{
   Env, JsString,
   bindgen_prelude::{Array, JsObjectValue, This},
@@ -204,26 +202,11 @@ impl FileSystemDependencies {
 
   #[napi(ts_return_type = "ReadonlyArray<string>")]
   pub fn values<'env>(&mut self, env: &'env Env, mut this: This) -> napi::Result<Array<'env>> {
-    let total_start = Instant::now();
-    let mut resolve_compiler = Duration::ZERO;
-    let mut prepare_sources = Duration::ZERO;
-    let mut prepare_cache = Duration::ZERO;
-    let mut build_updates = Duration::ZERO;
-    let mut prepare_batch = Duration::ZERO;
-    let mut apply_updates = Duration::ZERO;
-    let mut finalize_array = Duration::ZERO;
-
+    let compiler = upgrade_compiler(env, self.compiler_id)?;
     let result = (|| {
-      let phase_start = Instant::now();
-      let compiler_result = upgrade_compiler(env, self.compiler_id);
-      resolve_compiler = phase_start.elapsed();
-      let compiler = compiler_result?;
-
       let (mut array, length, updates) = {
-        let phase_start = Instant::now();
-        let sources_result = self.dependency_sources(&compiler.compiler.compilation);
-        prepare_sources = phase_start.elapsed();
-        let (dependency_counter, dependencies) = sources_result?;
+        let (dependency_counter, dependencies) =
+          self.dependency_sources(&compiler.compiler.compilation)?;
         // Both sources are unique. Filter compilation dependencies already in
         // the module graph counter, preserving counter-first iteration order.
         let capacity = dependency_counter
@@ -236,17 +219,8 @@ impl FileSystemDependencies {
             .iter()
             .filter(|path| dependency_counter.related_resource_ids(path).is_none()),
         );
-
-        let phase_start = Instant::now();
         let cached = &mut self.array_cache;
-        let array_result = cached.array(env, &mut this);
-        let array = match array_result {
-          Ok(array) => array,
-          Err(error) => {
-            prepare_cache = phase_start.elapsed();
-            return Err(error);
-          }
-        };
+        let array = cached.array(env, &mut this)?;
         let empty = cached.paths.is_empty();
         let mut pool = compiler.file_system_dependency_string_pool.borrow_mut();
         let mut session = pool.session(env);
@@ -257,87 +231,55 @@ impl FileSystemDependencies {
         updates
           .commands
           .extend_from_slice(&[u32::from(!empty), 0, 0]);
-        prepare_cache = phase_start.elapsed();
-
-        let phase_start = Instant::now();
-        let mut length = 0usize;
-        let build_result = (|| {
-          for path in paths {
-            if self.excluded_paths.contains(path) {
-              continue;
-            }
-            let index = length;
-            length += 1;
-            if cached.paths.get(index) == Some(path) {
-              continue;
-            }
-            let pool_index = session.get_or_insert_index(path)?;
-            // Reuse the vector and clone only changed paths. Any failure below
-            // clears this provisional state before it can be reused.
-            if let Some(previous) = cached.paths.get_mut(index) {
-              *previous = path.clone();
-            } else {
-              cached.paths.push(path.clone());
-            }
-            if !empty {
-              updates.commands.push(index as u32);
-            }
-            updates.commands.push(pool_index);
+        let mut length = 0;
+        for path in paths {
+          if self.excluded_paths.contains(path) {
+            continue;
           }
-          Ok::<_, napi::Error>(())
-        })();
-        build_updates = phase_start.elapsed();
-        build_result?;
-
-        let phase_start = Instant::now();
-        let prepare_batch_result = (|| {
-          cached.paths.truncate(length);
-          let length = length as u32;
-          if updates.commands.len() != 3 || array.len() != length {
-            updates.commands[1] = length;
-            updates.commands[2] = (updates.commands.len() - 3) as u32;
-            updates.targets.push(array);
-            updates.source = Some(session.strings()?);
+          let index = length;
+          length += 1;
+          if cached.paths.get(index) == Some(path) {
+            continue;
+          }
+          let pool_index = session.get_or_insert_index(path)?;
+          // Reuse the vector and clone only changed paths. Any failure below
+          // clears this provisional state before it can be reused.
+          if let Some(previous) = cached.paths.get_mut(index) {
+            *previous = path.clone();
           } else {
-            updates.commands.clear();
+            cached.paths.push(path.clone());
           }
-          Ok::<_, napi::Error>(length)
-        })();
-        prepare_batch = phase_start.elapsed();
-        let length = prepare_batch_result?;
+          if !empty {
+            updates.commands.push(index as u32);
+          }
+          updates.commands.push(pool_index);
+        }
+        cached.paths.truncate(length);
+        let length = length as u32;
+        if updates.commands.len() != 3 || array.len() != length {
+          updates.commands[1] = length;
+          updates.commands[2] = (updates.commands.len() - 3) as u32;
+          updates.targets.push(array);
+          updates.source = Some(session.strings()?);
+        } else {
+          updates.commands.clear();
+        }
         (array, length, updates)
       };
       // No graph or RefCell borrows cross the synchronous JS call. Copy strings
       // directly from the shared pool, including entries that change position.
-      let phase_start = Instant::now();
-      let apply_result = updates.apply(env, &compiler.js_helpers);
-      apply_updates = phase_start.elapsed();
-      apply_result?;
-
-      let phase_start = Instant::now();
-      let finalize_result = (move || {
+      updates.apply(env, &compiler.js_helpers)?;
+      array = refreshed_array(env, array)?;
+      if array.len() != length {
+        array.set_named_property("length", length)?;
         array = refreshed_array(env, array)?;
-        if array.len() != length {
-          array.set_named_property("length", length)?;
-          array = refreshed_array(env, array)?;
-        }
-        Ok::<_, napi::Error>(array)
-      })();
-      finalize_array = phase_start.elapsed();
-      finalize_result
+      }
+      Ok(array)
     })();
-
-    let cleanup_start = Instant::now();
     if result.is_err() {
       // A failed update must not leave paths describing an incomplete JS array.
       self.array_cache.paths.clear();
     }
-    let error_cleanup = cleanup_start.elapsed();
-    println!(
-      "FileSystemDependencies::values: status={} resolve_compiler={resolve_compiler:.3?} prepare_sources={prepare_sources:.3?} prepare_cache={prepare_cache:.3?} build_updates={build_updates:.3?} prepare_batch={prepare_batch:.3?} apply_updates={apply_updates:.3?} finalize_array={finalize_array:.3?} error_cleanup={error_cleanup:.3?} total={:.3?}",
-      if result.is_ok() { "ok" } else { "error" },
-      total_start.elapsed(),
-    );
     result
   }
 
