@@ -636,11 +636,7 @@ impl RstestParserPlugin {
               Some(attrs),
               ImportPhase::Evaluation,
               parser.in_try,
-              get_swc_next_comments(
-                parser.ast.comments,
-                imported_span.start,
-                imported_span.end,
-              ),
+              get_swc_next_comments(parser.ast.comments, imported_span.start, imported_span.end),
             );
             let dep = BoxDependency::new(RstestImportDependency::new(import_dep, value.clone()));
 

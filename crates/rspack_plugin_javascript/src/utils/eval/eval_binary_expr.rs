@@ -552,7 +552,7 @@ pub fn eval_binary_expression<'parser>(
   let mut evaluated = None;
   while let Some(expr) = stack.pop() {
     let left = evaluated.unwrap_or_else(|| scanner.evaluate_expression(expr.left(ast)));
-    let drive = scanner.plugin_drive.clone();
+    let drive = scanner.plugin_drive();
     evaluated = drive
       .evaluate_binary_expression(scanner, expr, &left)
       .or_else(|| match expr.operator(ast) {

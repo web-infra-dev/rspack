@@ -12,11 +12,11 @@ use rspack_util::{
 use swc_core::common::SyntaxContext;
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{
-  Ast, BindingIdentifier, Class, ClassType, DeclData, ExportDefaultDeclarationKind,
-  ExportDefaultDeclarationKindData, ExportSpecifier, GetSpan, IdentifierName,
-  IdentifierReference, JsxElementName, JsxElementNameData, JsxMemberExpression,
-  JsxMemberExpressionObjectData, LabelIdentifier, Lang, ModuleExportNameData, ObjectProperty,
-  SourceType as SwcSourceType, Stmt, StmtData, Visit, VisitWith,
+  Ast, BindingIdentifier, Class, ClassType, DeclData, ExportDefaultDeclarationKindData,
+  ExportSpecifier, GetSpan, IdentifierName, IdentifierReference, JsxElementName,
+  JsxElementNameData, JsxMemberExpression, JsxMemberExpressionObjectData, LabelIdentifier, Lang,
+  ModuleExportNameData, ObjectProperty, SourceType as SwcSourceType, Stmt, StmtData, Visit,
+  VisitWith,
 };
 use swc_next_ecma_parser::{CommentMode, NoTokenParserConfig, Options as SwcParserOptions, Parser};
 use swc_next_ecma_semantic::name_resolver::{JsNameResolver, SymbolNode, resolver};
@@ -902,7 +902,7 @@ pub fn analyze_module_scope(
         return;
       }
 
-      module_info.idents.push(identifier.clone());
+      module_info.idents.push(identifier);
       let index =
         u32::try_from(module_info.idents.len() - 1).expect("too many identifiers in one module");
       let group = match binding_groups.entry((name.clone(), scope)) {
