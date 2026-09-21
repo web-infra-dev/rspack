@@ -1,11 +1,11 @@
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
 const {
   experiments: { RslibPlugin },
 } = rspack;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   target: 'node',
   experiments: {
     runtimeMode: 'rspack',
@@ -25,4 +25,4 @@ export default {
     },
   },
   plugins: [new RslibPlugin()],
-};
+});

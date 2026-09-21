@@ -1,7 +1,7 @@
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
-/** @type {import("@rspack/core").Configuration} */
-export default [
+export default defineConfig([
   {
     entry: {
       main: './main.js',
@@ -35,4 +35,4 @@ export default [
       filename: 'index.mjs',
     },
   },
-];
+]);

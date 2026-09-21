@@ -1,11 +1,11 @@
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
 const {
   experiments: { RslibPlugin },
 } = rspack;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   target: 'node',
   entry: {
     index: {
@@ -45,4 +45,4 @@ export default {
     minimize: false,
     runtimeChunk: false,
   },
-};
+});

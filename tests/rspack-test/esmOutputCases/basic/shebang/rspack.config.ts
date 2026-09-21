@@ -1,6 +1,7 @@
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
-export default {
+export default defineConfig({
   optimization: {
     splitChunks: {
       cacheGroups: {
@@ -11,4 +12,4 @@ export default {
     },
   },
   plugins: [new rspack.experiments.RslibPlugin()],
-};
+});

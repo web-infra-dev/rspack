@@ -1,11 +1,11 @@
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
 const {
   experiments: { RslibPlugin },
 } = rspack;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   entry: {
     main: './main.js',
   },
@@ -15,7 +15,7 @@ export default {
   },
   output: {
     module: true,
-    filename: '[name].js',
+    filename: '[name].mjs',
     library: {
       type: 'modern-module',
     },
@@ -28,4 +28,4 @@ export default {
   optimization: {
     minimize: false,
   },
-};
+});

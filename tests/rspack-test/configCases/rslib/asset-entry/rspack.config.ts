@@ -1,6 +1,7 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
-export default {
+export default defineConfig({
   entry: './index.png',
   module: {
     rules: [
@@ -12,11 +13,11 @@ export default {
   },
   plugins: [
     new rspack.experiments.RslibPlugin(),
-    (/**@type {import('@rspack/core').Compiler} */ compiler) => {
+    definePlugin((compiler) => {
       compiler.hooks.done.tap('test case', (stats) => {
         const asset = stats.compilation.getAsset('bundle0.js');
         expect(asset).toBeDefined();
       });
-    },
+    }),
   ],
-};
+});
