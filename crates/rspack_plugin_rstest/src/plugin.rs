@@ -1,5 +1,5 @@
 use std::{
-  sync::{Arc, OnceLock},
+  sync::{Arc, LazyLock, OnceLock},
   time::{Duration, Instant},
 };
 
@@ -24,10 +24,11 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_util::placeholder::find_placeholders;
+use rspack_util::placeholder::Placeholder;
 use rustc_hash::FxHashMap as HashMap;
 
-const RSTEST_FLAG_PREFIX: &str = "/* RSTEST:";
+static RSTEST_FLAG_PLACEHOLDER: LazyLock<Placeholder> =
+  LazyLock::new(|| Placeholder::new("/* RSTEST:"));
 
 fn parse_rstest_flag(rest: &str) -> Option<(usize, (&str, &str, &str))> {
   let (flag, rest) = rest.split_once(':')?;
@@ -643,7 +644,7 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
 
       let content = old.source().into_string_lossy();
       for (range, (hoist_id, request, kind)) in
-        find_placeholders(&content, RSTEST_FLAG_PREFIX, parse_rstest_flag)
+        RSTEST_FLAG_PLACEHOLDER.find_all(&content, parse_rstest_flag)
       {
         let entry = pos_map.entry(hoist_id.to_string()).or_default();
         entry.request = request.to_string();

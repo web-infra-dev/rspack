@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
@@ -5,11 +7,12 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ModuleDependency, ModuleIdentifier, TemplateContext,
   TemplateReplaceSource,
 };
-use rspack_util::placeholder::replace_placeholder;
+use rspack_util::placeholder::Placeholder;
 
 use crate::{css_syntax::serialize_url_value, utils::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
-const ASSET_AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
+static ASSET_AUTO_PUBLIC_PATH_MATCHER: LazyLock<Placeholder> =
+  LazyLock::new(|| Placeholder::new("__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__"));
 
 #[cacheable]
 #[derive(Debug)]
@@ -40,20 +43,14 @@ impl CssUrlDependency {
 
     if let Some(url) = code_gen_result.data().get::<CodeGenerationDataUrl>() {
       Some(
-        replace_placeholder(
-          url.inner(),
-          ASSET_AUTO_PUBLIC_PATH_PLACEHOLDER,
-          AUTO_PUBLIC_PATH_PLACEHOLDER,
-        )
-        .into_owned(),
+        ASSET_AUTO_PUBLIC_PATH_MATCHER
+          .replace(url.inner(), AUTO_PUBLIC_PATH_PLACEHOLDER)
+          .into_owned(),
       )
     } else if let Some(data) = code_gen_result.data().get::<CodeGenerationDataFilename>() {
       let filename = data.filename();
-      let public_path = replace_placeholder(
-        data.public_path(),
-        ASSET_AUTO_PUBLIC_PATH_PLACEHOLDER,
-        AUTO_PUBLIC_PATH_PLACEHOLDER,
-      );
+      let public_path =
+        ASSET_AUTO_PUBLIC_PATH_MATCHER.replace(data.public_path(), AUTO_PUBLIC_PATH_PLACEHOLDER);
       Some(format!("{public_path}{filename}"))
     } else {
       None

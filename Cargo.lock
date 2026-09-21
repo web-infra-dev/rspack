@@ -4714,7 +4714,6 @@ dependencies = [
  "async-trait",
  "atomic_refcell",
  "concat-string",
- "cow-utils",
  "css-module-lexer",
  "cssparser",
  "heck",

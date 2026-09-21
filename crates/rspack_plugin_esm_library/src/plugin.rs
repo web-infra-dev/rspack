@@ -1,4 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{
+  path::PathBuf,
+  sync::{Arc, LazyLock},
+};
 
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::{
@@ -37,7 +40,7 @@ use rspack_plugin_rslib::{
 use rspack_plugin_split_chunks::CacheGroup;
 use rspack_util::{
   fx_hash::{FxHashMap, FxHashSet},
-  placeholder::find_placeholders,
+  placeholder::Placeholder,
 };
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
@@ -528,7 +531,8 @@ async fn additional_tree_runtime_requirements(
   Ok(())
 }
 
-const RSPACK_ESM_CHUNK_PREFIX: &str = "__RSPACK_ESM_CHUNK_";
+static RSPACK_ESM_CHUNK_PLACEHOLDER: LazyLock<Placeholder> =
+  LazyLock::new(|| Placeholder::new("__RSPACK_ESM_CHUNK_"));
 
 #[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
@@ -563,7 +567,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       let chunk_ids_to_ukey = self.chunk_ids_to_ukey.borrow();
 
-      for (range, chunk_id) in find_placeholders(&content, RSPACK_ESM_CHUNK_PREFIX, |rest| {
+      for (range, chunk_id) in RSPACK_ESM_CHUNK_PLACEHOLDER.find_all(&content, |rest| {
         let len = rest
           .bytes()
           .take_while(|b| !matches!(b, b'\'' | b'"' | b'\\'))
