@@ -60,15 +60,9 @@ struct PreparedBlockConnectionBuilder {
 fn finalize_prepared_connection_map(
   connections: impl IntoIterator<Item = PreparedBlockConnectionBuilder>,
   capacity: usize,
+  group_index_by_key: &mut HashMap<(DependenciesBlockIdentifier, ModuleIdentifier), usize>,
 ) -> PreparedBlockConnectionMap {
   let mut groups = Vec::<PreparedBlockConnection>::with_capacity(capacity);
-  // `capacity` is an upper bound on the group count for this module, so the index
-  // table can be sized up front instead of rehashing while groups are discovered.
-  let mut group_index_by_key =
-    HashMap::<(DependenciesBlockIdentifier, ModuleIdentifier), usize>::with_capacity_and_hasher(
-      capacity,
-      Default::default(),
-    );
   for connection in connections {
     let key = (connection.block, connection.module);
     match group_index_by_key.entry(key) {
@@ -90,21 +84,44 @@ fn finalize_prepared_connection_map(
   groups
 }
 
+/// Per worker buffers reused across modules: most of the work of a module is building the ordered
+/// dependency list and grouping it, and both can reuse their allocation.
+#[derive(Default)]
+struct PreparedConnectionScratch {
+  ordered_dependencies: Vec<(i32, PreparedBlockConnectionBuilder)>,
+  unordered_dependencies: Vec<PreparedBlockConnectionBuilder>,
+  group_index_by_key: HashMap<(DependenciesBlockIdentifier, ModuleIdentifier), usize>,
+}
+
 fn prepare_module_connection_map(
   module: ModuleIdentifier,
   module_graph: &ModuleGraph,
+  scratch: &mut PreparedConnectionScratch,
 ) -> Option<PreparedBlockConnectionMap> {
-  let all_dependencies = module_graph
-    .module_graph_module_by_identifier(&module)
-    .map(|module| module.all_dependencies())
-    .unwrap_or_default();
+  let module_graph_module = module_graph.module_graph_module_by_identifier(&module)?;
+  // Every group in the prepared map comes from the module's outgoing connections, so a module
+  // without any cannot contribute one. This skips the whole dependency walk for leaf modules.
+  if module_graph_module.outgoing_connections().is_empty() {
+    return None;
+  }
+  let all_dependencies = module_graph_module.all_dependencies();
   let dependency_count = all_dependencies.len();
   if dependency_count == 0 {
     return None;
   }
 
-  let mut ordered_dependencies = Vec::with_capacity(dependency_count);
-  let mut unordered_dependencies = Vec::new();
+  // `capacity` is an upper bound on the group count for this module, so the index
+  // table can be sized up front and then reused instead of reallocated while it grows.
+  let PreparedConnectionScratch {
+    ordered_dependencies,
+    unordered_dependencies,
+    group_index_by_key,
+  } = scratch;
+  ordered_dependencies.clear();
+  unordered_dependencies.clear();
+  group_index_by_key.clear();
+  group_index_by_key.reserve(dependency_count);
+
   let mut ordered_dependencies_sorted = true;
   let mut last_source_order = None;
   for dependency_id in all_dependencies {
@@ -153,10 +170,11 @@ fn prepare_module_connection_map(
 
   Some(finalize_prepared_connection_map(
     ordered_dependencies
-      .into_iter()
+      .drain(..)
       .map(|(_, connection)| connection)
-      .chain(unordered_dependencies),
+      .chain(unordered_dependencies.drain(..)),
     connection_count,
+    group_index_by_key,
   ))
 }
 
@@ -497,7 +515,10 @@ impl CodeSplitter {
     }
 
     let mut current_connections_by_block = DependenciesBlockIdentifierMap::default();
-    for connection in prepare_module_connection_map(module, module_graph).unwrap_or_default() {
+    let mut scratch = PreparedConnectionScratch::default();
+    for connection in
+      prepare_module_connection_map(module, module_graph, &mut scratch).unwrap_or_default()
+    {
       current_connections_by_block
         .entry(connection.block)
         .or_insert_with(Vec::new)
@@ -1523,14 +1544,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .chunk_group_by_ukey
       .expect_get_mut(&cgi.chunk_group);
 
-    #[allow(clippy::map_entry)]
-    if !chunk_group
-      .module_pre_order_indices
-      .contains_key(&item.module)
-    {
-      chunk_group
-        .module_pre_order_indices
-        .insert(item.module, chunk_group.next_pre_order_index);
+    // One lookup decides both the insertion and whether the counter has to advance.
+    let inserted = {
+      let next_pre_order_index = chunk_group.next_pre_order_index;
+      match chunk_group.module_pre_order_indices.entry(item.module) {
+        hash_map::Entry::Occupied(_) => false,
+        hash_map::Entry::Vacant(entry) => {
+          entry.insert(next_pre_order_index);
+          true
+        }
+      }
+    };
+    if inserted {
       chunk_group.next_pre_order_index += 1;
     }
 
@@ -2596,7 +2621,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let mg = compilation.get_module_graph();
     self.prepared_connection_map = all_modules
       .par_iter()
-      .filter_map(|module| prepare_module_connection_map(*module, mg).map(|map| (*module, map)))
+      .map_init(PreparedConnectionScratch::default, |scratch, module| {
+        prepare_module_connection_map(*module, mg, scratch).map(|map| (*module, map))
+      })
+      .filter_map(|entry| entry)
       .collect::<IdentifierMap<_>>();
 
     let mut prepared_blocks_map = DependenciesBlockIdentifierMap::<

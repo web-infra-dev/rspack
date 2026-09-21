@@ -10,10 +10,10 @@ use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::OnceCell;
 use regex::Regex;
 use rspack_core::{
-  ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
-  CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency, FileReplacements,
-  FilenameRenderValue, GeneratorOptions, ImportAttributes, LocalIdentName, Module, ModuleType,
-  NormalModuleCreateData, PathData, PlaceholderKind, ResourceData,
+  ChunkGraph, Compilation, CompiledStringTemplate, CompilerOptions, CssExportType,
+  CssExportsConvention, CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency,
+  FileReplacements, FilenameRenderValue, GeneratorOptions, ImportAttributes, LocalIdentName,
+  Module, ModuleType, NormalModuleCreateData, PathData, PlaceholderKind, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
@@ -166,10 +166,15 @@ pub struct LocalIdentModuleHashOptions<'a> {
 /// rendered for the module.
 #[derive(Debug, Clone)]
 struct LocalIdentRenderCache {
+  /// Static templates are looked up once; function templates are evaluated for each render.
+  compiled_template: Option<Arc<CompiledStringTemplate<'static>>>,
+  has_local_placeholder: bool,
   /// Replacement values for the filename placeholders of the local ident template.
   file_replacements: FileReplacements,
   /// `[contenthash]` of the module source, empty unless the template uses it.
   content_hash: String,
+  /// Prepared module ID placeholder shared by all local ident template renders.
+  module_id: Cow<'static, str>,
   chunk_name: String,
   folder: String,
 }
@@ -211,8 +216,15 @@ impl LocalIdentRenderCache {
     );
 
     Self {
+      compiled_template: options.local_ident_name.template.compiled_template(),
+      has_local_placeholder: options
+        .local_ident_name
+        .template
+        .template()
+        .is_some_and(|template| template.contains("[local]")),
       file_replacements,
       content_hash,
+      module_id: PathData::prepare_id(CSS_MODULE_ID_PLACEHOLDER),
       chunk_name,
       folder,
     }
@@ -354,6 +366,7 @@ impl<'a> LocalIdentOptions<'a> {
       hasher.write(b"|");
       hasher.write(update.content.as_bytes());
     }
+    let local_ident_name = json_stringify_str(local_ident_name);
     for name in module_hash_options.export_dependency_names.iter() {
       let convention_names = export_locals_convention(
         name,
@@ -363,7 +376,6 @@ impl<'a> LocalIdentOptions<'a> {
       );
       let convention_names =
         simd_json::to_string(&convention_names).expect("css export names should be serializable");
-      let local_ident_name = json_stringify_str(local_ident_name);
       hasher.write(b"exportsConvention|");
       hasher.write(convention_names.as_bytes());
       hasher.write(b"|localIdentName|");
@@ -397,24 +409,19 @@ impl<'a> LocalIdentOptions<'a> {
     let cache = self
       .render_cache
       .get_or_init(|| LocalIdentRenderCache::new(self));
-    let id = PathData::prepare_id(CSS_MODULE_ID_PLACEHOLDER);
-    let hash = if self
-      .local_ident_name
-      .template
-      .template()
-      .is_some_and(|template| template.contains("[local]"))
-    {
+    let hash = if cache.has_local_placeholder {
       self.module_hash(module_hash_options)
     } else {
       local_ident_hash.as_str()
     };
     let local_ident = LocalIdentNameRenderOptions {
+      compiled_template: cache.compiled_template.as_deref(),
       path_data: PathData::default()
         .filename(&self.relative_resource)
         .chunk_name(&cache.chunk_name)
         .hash(hash)
         .content_hash(&cache.content_hash)
-        .id(id.as_ref()),
+        .id(cache.module_id.as_ref()),
       file_replacements: &cache.file_replacements,
       local,
       local_ident_hash: &local_ident_hash,
@@ -518,6 +525,7 @@ fn prepare_css_module_id(v: &str) -> Cow<'_, str> {
 }
 
 struct LocalIdentNameRenderOptions<'a> {
+  compiled_template: Option<&'a CompiledStringTemplate<'static>>,
   path_data: PathData<'a>,
   /// Replacements shared by every local ident of the module.
   file_replacements: &'a FileReplacements,
@@ -547,23 +555,33 @@ fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
 
 impl LocalIdentNameRenderOptions<'_> {
   pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
-    let file_replacements = self.file_replacements;
-    local_ident_name
-      .template
-      .render_with_replacements(self.path_data, file_replacements, None, |placeholder| {
-        match placeholder.kind() {
-          PlaceholderKind::FullHash => Some(FilenameRenderValue::Value(Cow::Borrowed(
-            self.local_ident_hash,
-          ))),
-          PlaceholderKind::UniqueName => {
-            Some(FilenameRenderValue::Value(Cow::Borrowed(self.unique_name)))
-          }
-          PlaceholderKind::Local => Some(FilenameRenderValue::Value(Cow::Borrowed(self.local))),
-          PlaceholderKind::Folder => Some(FilenameRenderValue::Value(Cow::Borrowed(self.folder))),
-          _ => None,
+    let dynamic_template;
+    let compiled_template = match self.compiled_template {
+      Some(template) => template,
+      None => {
+        dynamic_template = local_ident_name
+          .template
+          .compiled(self.path_data, None)
+          .await?;
+        dynamic_template.as_ref()
+      }
+    };
+    Ok(compiled_template.render_with_path_data_and_replacements(
+      self.path_data,
+      self.file_replacements,
+      None,
+      |placeholder| match placeholder.kind() {
+        PlaceholderKind::FullHash => Some(FilenameRenderValue::Value(Cow::Borrowed(
+          self.local_ident_hash,
+        ))),
+        PlaceholderKind::UniqueName => {
+          Some(FilenameRenderValue::Value(Cow::Borrowed(self.unique_name)))
         }
-      })
-      .await
+        PlaceholderKind::Local => Some(FilenameRenderValue::Value(Cow::Borrowed(self.local))),
+        PlaceholderKind::Folder => Some(FilenameRenderValue::Value(Cow::Borrowed(self.folder))),
+        _ => None,
+      },
+    ))
   }
 }
 
