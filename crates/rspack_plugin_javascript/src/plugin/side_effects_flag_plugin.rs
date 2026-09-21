@@ -105,7 +105,10 @@ fn side_effects_for_resource(
 fn is_simple_pattern(pattern: &str) -> bool {
   let trimmed = trim_dot_slash(pattern);
   let tail = trimmed.strip_prefix("**/").unwrap_or(trimmed);
-  !tail.contains('/') && !trimmed.starts_with('!')
+  // `fast_glob` only treats a leading `!` as negation, so a `!` that the
+  // stripped prefix would expose must keep the pattern on the slow path,
+  // where the prefix is still part of the pattern.
+  !tail.contains('/') && !tail.starts_with('!') && !trimmed.starts_with('!')
 }
 
 fn match_file_name(pattern: &str, resource_path: &Utf8Path) -> bool {
@@ -136,7 +139,7 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
   // the last segment directly is equivalent and skips that scan, which
   // otherwise walks every separator of the module path.
   let tail = trim_start.strip_prefix("**/").unwrap_or(trim_start);
-  if !tail.contains('/') && !trim_start.starts_with('!') {
+  if !tail.contains('/') && !tail.starts_with('!') && !trim_start.starts_with('!') {
     let last_segment = string.rsplit('/').next().unwrap_or(string);
     return fast_glob::glob_match(tail, last_segment);
   }
