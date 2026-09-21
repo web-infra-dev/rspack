@@ -9,7 +9,7 @@ const checkFragmentDependencies: RspackPluginInstance = {
         for (const module of modules) {
           for (const dependency of module.dependencies) {
             if (dependency.type === 'css url') {
-              expect(dependency.request.startsWith('#')).toBe(false);
+              expect(dependency.request?.startsWith('#')).toBe(false);
             }
           }
         }
