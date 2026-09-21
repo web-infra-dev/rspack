@@ -58,7 +58,7 @@ export function hotLoader(
     pluginData =
       (compilation as Compilation & CssExtractPluginContext)[pluginSymbol] ??
       pluginData;
-    compilation = compilation.compiler.parentCompilation;
+    compilation = compilation.compiler?.parentCompilation;
   }
   // with `runtime: false` there is no hmrC.miniCss handler, so the injected
   // timestamp stays as the only change signal for css-only edits
