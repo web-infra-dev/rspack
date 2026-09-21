@@ -170,6 +170,8 @@ struct LocalIdentRenderCache {
   file_replacements: FileReplacements,
   /// `[contenthash]` of the module source, empty unless the template uses it.
   content_hash: String,
+  /// Prepared module ID placeholder shared by all local ident template renders.
+  module_id: Cow<'static, str>,
   chunk_name: String,
   folder: String,
 }
@@ -213,6 +215,7 @@ impl LocalIdentRenderCache {
     Self {
       file_replacements,
       content_hash,
+      module_id: PathData::prepare_id(CSS_MODULE_ID_PLACEHOLDER),
       chunk_name,
       folder,
     }
@@ -397,7 +400,6 @@ impl<'a> LocalIdentOptions<'a> {
     let cache = self
       .render_cache
       .get_or_init(|| LocalIdentRenderCache::new(self));
-    let id = PathData::prepare_id(CSS_MODULE_ID_PLACEHOLDER);
     let hash = if self
       .local_ident_name
       .template
@@ -414,7 +416,7 @@ impl<'a> LocalIdentOptions<'a> {
         .chunk_name(&cache.chunk_name)
         .hash(hash)
         .content_hash(&cache.content_hash)
-        .id(id.as_ref()),
+        .id(cache.module_id.as_ref()),
       file_replacements: &cache.file_replacements,
       local,
       local_ident_hash: &local_ident_hash,
