@@ -11,13 +11,11 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::placeholder::find_numeric_placeholders;
 
 use crate::{
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
-  dependency::{
-    URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE, WORKER_STATIC_URL_PLACEHOLDER,
-    WORKER_STATIC_URL_PLACEHOLDER_RE, WorkerDependency,
-  },
+  dependency::{URL_STATIC_PLACEHOLDER, WORKER_STATIC_URL_PLACEHOLDER, WorkerDependency},
   parser_and_generator::JavaScriptParserAndGenerator,
 };
 
@@ -70,12 +68,7 @@ pub async fn replace_static_url_placeholders(
   let content = source.source().into_string_lossy().into_owned();
   let mut replace_source = ReplaceSource::new(source);
   let module_graph = compilation.get_module_graph();
-  let replacements = URL_STATIC_PLACEHOLDER_RE
-    .find_iter(&content)
-    .map(|cap| (cap.start(), cap.end()));
-
-  for (start, end) in replacements {
-    let dep_id = &content[start + URL_STATIC_PLACEHOLDER.len()..end];
+  for (range, dep_id) in find_numeric_placeholders(&content, URL_STATIC_PLACEHOLDER) {
     let dep_id: DependencyId = dep_id
       .parse::<u32>()
       .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
@@ -95,19 +88,14 @@ pub async fn replace_static_url_placeholders(
     };
 
     replace_source.replace(
-      start as u32,
-      end as u32,
+      range.start as u32,
+      range.end as u32,
       filename.filename().to_string(),
       None,
     );
   }
 
-  let worker_replacements = WORKER_STATIC_URL_PLACEHOLDER_RE
-    .find_iter(&content)
-    .map(|cap| (cap.start(), cap.end()));
-
-  for (start, end) in worker_replacements {
-    let dep_id = &content[start + WORKER_STATIC_URL_PLACEHOLDER.len()..end];
+  for (range, dep_id) in find_numeric_placeholders(&content, WORKER_STATIC_URL_PLACEHOLDER) {
     let dep_id: DependencyId = dep_id
       .parse::<u32>()
       .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
@@ -151,8 +139,8 @@ pub async fn replace_static_url_placeholders(
     };
 
     replace_source.replace(
-      start as u32,
-      end as u32,
+      range.start as u32,
+      range.end as u32,
       concat_string!(undo_path, public_path, filename),
       None,
     );

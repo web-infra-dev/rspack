@@ -1,11 +1,10 @@
 use std::{
-  sync::{Arc, LazyLock, OnceLock},
+  sync::{Arc, OnceLock},
   time::{Duration, Instant},
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
 use cow_utils::CowUtils;
-use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
@@ -25,12 +24,35 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
+use rspack_util::placeholder::find_placeholders;
 use rustc_hash::FxHashMap as HashMap;
 
-static RSTEST_FLAG_RE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED):([^:]+):(.*?):(HOIST_START|HOIST_END|PLACEHOLDER) \*\/")
-    .expect("should initialize rstest flag regex")
-});
+const RSTEST_FLAG_PREFIX: &str = "/* RSTEST:";
+
+fn parse_rstest_flag(rest: &str) -> Option<(usize, (&str, &str, &str))> {
+  let (flag, rest) = rest.split_once(':')?;
+  if !matches!(flag, "MOCK" | "UNMOCK" | "MOCKREQUIRE" | "HOISTED") {
+    return None;
+  }
+  let (hoist_id, request_and_type) = rest.split_once(':')?;
+  if hoist_id.is_empty() {
+    return None;
+  }
+  for (end, _) in request_and_type.match_indices(" */") {
+    let value = &request_and_type[..end];
+    if value.contains('\n') {
+      break;
+    }
+    let Some((request, kind)) = value.rsplit_once(':') else {
+      continue;
+    };
+    if matches!(kind, "HOIST_START" | "HOIST_END" | "PLACEHOLDER") {
+      let len = flag.len() + 1 + hoist_id.len() + 1 + end + 3;
+      return Some((len, (hoist_id, request, kind)));
+    }
+  }
+  None
+}
 
 use crate::{
   dynamic_import_origin_dependency::RstestDynamicImportOriginDependencyTemplate,
@@ -620,32 +642,26 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
       }
 
       let content = old.source().into_string_lossy();
-      let captures: Vec<_> = RSTEST_FLAG_RE.captures_iter(&content).collect();
+      for (range, (hoist_id, request, kind)) in
+        find_placeholders(&content, RSTEST_FLAG_PREFIX, parse_rstest_flag)
+      {
+        let entry = pos_map.entry(hoist_id.to_string()).or_default();
+        entry.request = request.to_string();
 
-      for c in captures {
-        let [Some(full), Some(hoist_id), Some(request), Some(t)] =
-          [c.get(0), c.get(2), c.get(3), c.get(4)]
-        else {
-          continue;
-        };
-
-        let entry = pos_map.entry(hoist_id.as_str().to_string()).or_default();
-        entry.request = request.as_str().to_string();
-
-        if t.as_str() == "HOIST_START" {
-          entry.content_with_flag_start = Some(full.start());
-          entry.content_start = Some(full.end());
-        } else if t.as_str() == "HOIST_END" {
-          entry.content_with_flag_end = Some(full.end());
-          entry.content_end = Some(full.start());
-        } else if t.as_str() == "PLACEHOLDER" {
-          entry.placeholder_start = Some(full.start());
-          entry.placeholder_end = Some(full.end());
-        } else {
-          panic!(
-            "Unknown rstest mock type: {}",
-            c.get(1).map_or("", |m| m.as_str())
-          );
+        match kind {
+          "HOIST_START" => {
+            entry.content_with_flag_start = Some(range.start);
+            entry.content_start = Some(range.end);
+          }
+          "HOIST_END" => {
+            entry.content_with_flag_end = Some(range.end);
+            entry.content_end = Some(range.start);
+          }
+          "PLACEHOLDER" => {
+            entry.placeholder_start = Some(range.start);
+            entry.placeholder_end = Some(range.end);
+          }
+          _ => unreachable!("unknown rstest flag kind"),
         }
       }
 

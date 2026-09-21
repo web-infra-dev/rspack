@@ -10,6 +10,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::plugin_hook;
 use rspack_plugin_real_content_hash::RealContentHashPluginUpdateHash;
+use rspack_util::placeholder::find_placeholders;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::RwLock;
 
@@ -17,7 +18,7 @@ use crate::{
   IntegrityCallbackData, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
   config::IntegrityHtmlPlugin,
   integrity::{SubresourceIntegrityHashFunction, compute_integrity},
-  util::{PLACEHOLDER_PREFIX, PLACEHOLDER_REGEX, make_placeholder, use_any_hash},
+  util::{PLACEHOLDER_PREFIX, make_placeholder, placeholder_len, use_any_hash},
 };
 
 #[derive(Debug, Clone)]
@@ -173,14 +174,13 @@ fn process_chunk_source(
   }
 
   // replace placeholders with integrity hash
-  for caps in PLACEHOLDER_REGEX.captures_iter(&source_content) {
-    if let Some(m) = caps.get(0) {
-      let replacement = hash_by_placeholders
-        .get(m.as_str())
-        .map_or(m.as_str(), |i| i.as_str())
-        .to_string();
-      new_source.replace(m.start() as u32, m.end() as u32, replacement, None);
-    }
+  for (range, ()) in find_placeholders(&source_content, PLACEHOLDER_PREFIX, placeholder_len) {
+    let placeholder = &source_content[range.clone()];
+    let replacement = hash_by_placeholders
+      .get(placeholder)
+      .map_or(placeholder, |i| i.as_str())
+      .to_string();
+    new_source.replace(range.start as u32, range.end as u32, replacement, None);
   }
 
   // compute self integrity and placeholder
