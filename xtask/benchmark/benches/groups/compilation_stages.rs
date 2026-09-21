@@ -609,7 +609,8 @@ pub(crate) fn runtime_requirements_benchmark(c: &mut Criterion, rt: &Runtime) {
   );
 
   c.bench_function("rust@runtime_requirements", |b| {
-    b.iter_batched(
+    // Keep compiler teardown outside the measured runtime requirements pass.
+    b.iter_batched_ref(
       || {
         let fs = Arc::new(MemoryFileSystem::default());
         let random_table = random_table.clone();
@@ -625,9 +626,9 @@ pub(crate) fn runtime_requirements_benchmark(c: &mut Criterion, rt: &Runtime) {
         });
         compiler
       },
-      |mut compiler| {
+      |compiler| {
         rt.block_on(async {
-          run_runtime_requirements_pass(&mut compiler).await.unwrap();
+          run_runtime_requirements_pass(compiler).await.unwrap();
         });
         black_box((
           compiler.compilation.runtime_modules.len(),
