@@ -1,16 +1,51 @@
 use concat_string::concat_string;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, DependenciesBlock, Dependency, DependencyRef,
-  EntryOptions, GroupOptions, ModuleFactoryCreateData, ParseContext, ParseResult,
+  AsyncDependenciesBlock, BoxDependency, DependenciesBlock, Dependency, DependencyId,
+  DependencyRef, EntryOptions, GroupOptions, ModuleFactoryCreateData, ParseContext, ParseResult,
 };
 use rspack_hash::{HashDigest, RspackHash, RspackHasher};
 use rspack_util::identifier::split_at_query_mark;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::dependency::{URLDependency, is_url_value_module};
 
 pub(super) async fn promote_url_dependencies(
   result: &mut ParseResult,
   context: &mut ParseContext<'_>,
+) {
+  let mut promoted_dependencies = HashSet::default();
+  for dependency in iter_url_dependencies(result) {
+    if should_promote_url_dependency(dependency, context).await {
+      promoted_dependencies.insert(*dependency.id());
+    }
+  }
+  if !promoted_dependencies.is_empty() {
+    apply_url_dependency_promotions(result, context, &promoted_dependencies);
+  }
+}
+
+fn iter_url_dependencies(result: &ParseResult) -> impl Iterator<Item = &URLDependency> {
+  let mut blocks = result.blocks.iter().map(Box::as_ref).collect::<Vec<_>>();
+  let block_dependencies = std::iter::from_fn(move || {
+    let block = blocks.pop()?;
+    blocks.extend(block.get_block_refs().iter().map(AsRef::as_ref));
+    Some(block)
+  })
+  .flat_map(|block| block.get_dependencies())
+  .filter_map(|dependency| dependency.downcast_ref::<URLDependency>());
+
+  block_dependencies.chain(
+    result
+      .dependencies
+      .iter()
+      .filter_map(|dependency| dependency.downcast_ref::<URLDependency>()),
+  )
+}
+
+fn apply_url_dependency_promotions(
+  result: &mut ParseResult,
+  context: &ParseContext<'_>,
+  promoted_dependencies: &HashSet<DependencyId>,
 ) {
   let mut blocks = result
     .blocks
@@ -21,8 +56,8 @@ pub(super) async fn promote_url_dependencies(
     let existing_blocks = block.get_blocks().len();
     let mut entries = Vec::new();
     for dependency in block.get_dependencies() {
-      if let Some(url_dependency) = dependency.downcast_ref::<URLDependency>()
-        && should_promote_url_dependency(url_dependency, context).await
+      if promoted_dependencies.contains(dependency.id())
+        && let Some(url_dependency) = dependency.downcast_ref::<URLDependency>()
       {
         entries.push((
           *dependency.id(),
@@ -41,16 +76,14 @@ pub(super) async fn promote_url_dependencies(
   if !result
     .dependencies
     .iter()
-    .any(|dep| dep.is::<URLDependency>())
+    .any(|dep| promoted_dependencies.contains(dep.id()))
   {
     return;
   }
   let dependencies = std::mem::take(&mut result.dependencies);
   result.dependencies.reserve(dependencies.len());
   for dependency in dependencies {
-    if let Some(url_dependency) = dependency.downcast_ref::<URLDependency>()
-      && should_promote_url_dependency(url_dependency, context).await
-    {
+    if promoted_dependencies.contains(dependency.id()) {
       result.blocks.push(create_url_entry(dependency, context));
     } else {
       result.dependencies.push(dependency);
