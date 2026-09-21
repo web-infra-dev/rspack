@@ -17,7 +17,7 @@ use smol_str::SmolStr;
 
 use super::is_css_module;
 use crate::{
-  css_syntax::{decode_url, normalize_url, unescape_identifier, unescape_url},
+  css_syntax::{normalize_url, unescape_identifier},
   dependency::{
     CssComposeDependency, CssExportDependency, CssIcssSymbolDependency, CssIcssSymbolValue,
     CssImportDependency, CssLocalIdentDependency, CssSelfReferenceLocalIdentDependency,
@@ -1016,7 +1016,6 @@ impl<'context> CssModuleParser<'context> {
       return Ok(());
     }
 
-    let is_module_request = request.starts_with('~');
     let request = replace_module_request_prefix(
       request,
       &mut self.diagnostics,
@@ -1024,20 +1023,13 @@ impl<'context> CssModuleParser<'context> {
       range.start,
       range.end,
     );
-    let request = unescape_url(request);
-    // Check before percent-decoding, preserving the module prefix distinction:
-    // `%23icon.svg` is a file, and `~#internal` is a module request.
-    if request.starts_with('#') && !is_module_request {
+    let request = normalize_url(request);
+    // Fragment-only URLs reference the current document, not another module.
+    if request.starts_with('#') {
       return Ok(());
     }
-    let mut request = decode_url(request).into_owned();
-    if request.starts_with('#') && !is_module_request {
-      // Resolve the encoded hash as a relative filename, not an external URL,
-      // package import, or fragment delimiter.
-      request.insert_str(0, "./\0");
-    }
     let dep = CssUrlDependency::new(
-      request,
+      request.into_owned(),
       DependencyRange::new(range.start, range.end),
       matches!(kind, css_module_lexer::UrlRangeKind::Function),
     );

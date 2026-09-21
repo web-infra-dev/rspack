@@ -635,15 +635,3 @@ div {
 	margin: 50px;
 	filter: url(./filters.svg#myFilter); /* Applying the SVG filter */
 }
-
-.encoded-hash-path {
-	background: url("%23icon.svg");
-	mask: url(%23icon.svg);
-	filter: url("%23icon.svg#myFilter");
-	clip-path: url("\25 23icon.svg");
-}
-
-.escaped-fragment {
-	filter: url("\23 myFilter");
-	clip-path: url(\#myFilter);
-}
