@@ -1,0 +1,4 @@
+Object {
+  one: prefer-relative_module_css-one package_one_css-imported-relative,
+  two: prefer-relative_module_css-two node_modules_package_two_css-imported-relative,
+}

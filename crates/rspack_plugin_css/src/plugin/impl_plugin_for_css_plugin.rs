@@ -330,7 +330,16 @@ async fn normal_module_factory_after_resolve(
     .first()
     .and_then(|dependency| css_dependency_export_type(dependency.as_ref()));
 
-  if let Some(export_type) = css_dependency_export_type.or(css_attribute_export_type) {
+  let configured_export_type = create_data
+    .module_options
+    .parser_options()
+    .and_then(|options| options.get_css_module())
+    .and_then(|options| options.export_type);
+  if let Some(export_type) = css_dependency_export_type.or(css_attribute_export_type)
+    // CSS @imports also have a distinct rendering role. Composition and JS
+    // imports can share an instance when their effective export types agree.
+    && (css_import_dep.is_some() || Some(export_type) != configured_export_type)
+  {
     append_css_export_type_key(create_data, export_type);
   }
 

@@ -64,45 +64,137 @@ const classes = (ns) => {
 };
 
 it(`should export CSS module class names (${EXPORT_TYPE})`, () => {
-	expect(classes(basic)).toMatchSnapshot();
-	expect(classes(styles)).toMatchSnapshot();
-	expect(classes(styles1)).toMatchSnapshot();
-	expect(classes(styles3)).toMatchSnapshot();
-	expect(classes(styles4)).toMatchSnapshot();
-	expect(classes(styles5)).toMatchSnapshot();
-	expect(classes(styles6)).toMatchSnapshot();
-	expect(classes(styles7)).toMatchSnapshot();
-	expect(classes(styles8)).toMatchSnapshot();
-	expect(classes(styles9)).toMatchSnapshot();
-	expect(classes(styles10)).toMatchSnapshot();
-	expect(classes(styles11)).toMatchSnapshot();
-	expect(classes(styles12)).toMatchSnapshot();
-	expect(classes(styles13)).toMatchSnapshot();
-	expect(classes(styles14)).toMatchSnapshot();
-	expect(classes(styles15)).toMatchSnapshot();
-	expect(classes(styles16)).toMatchSnapshot();
-	expect(classes(styles17)).toMatchSnapshot();
-	expect(classes(styles18)).toMatchSnapshot();
-	expect(classes(styles19)).toMatchSnapshot();
-	expect(classes(stylesHash10)).toMatchSnapshot();
-	expect(classes(stylesHash11)).toMatchSnapshot();
-	expect(classes(stylesHash12)).toMatchSnapshot();
-	expect(classes(stylesHash13)).toMatchSnapshot();
-	expect(classes(stylesHash14)).toMatchSnapshot();
-	expect(classes(styles20)).toMatchSnapshot();
-	expect(classes(styles21)).toMatchSnapshot();
-	expect(classes(styles22)).toMatchSnapshot();
-	expect(classes(styles23)).toMatchSnapshot();
-	expect(classes(styles24)).toMatchSnapshot();
-	expect(classes(styles25)).toMatchSnapshot();
-	expect(classes(styles26)).toMatchSnapshot();
-	expect(classes(styles27)).toMatchSnapshot();
-	expect(classes(styles28)).toMatchSnapshot();
-	expect(classes(styles29)).toMatchSnapshot();
-	expect(classes(styles30)).toMatchSnapshot();
-	expect(classes(styles31)).toMatchSnapshot();
-	expect(classes(styles32)).toMatchSnapshot();
-	expect(classes(styles33)).toMatchSnapshot();
+	// Rspack preserves undeclared animation names (covered by issue-14495)
+	// and includes every transitive class in composes-chain's target export.
+	// These intentionally differ from the upstream webpack snapshots.
+	expect(classes(basic)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `basic.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles1)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles1.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles3)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles3.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles4)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles4.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles5)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles5.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles6)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles6.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles7)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles7.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles8)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles8.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles9)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles9.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles10)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles10.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles11)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles11.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles12)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles12.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles13)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles13.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles14)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles14.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles15)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles15.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles16)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles16.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles17)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles17.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles18)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles18.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles19)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles19.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(stylesHash10)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `stylesHash10.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(stylesHash11)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `stylesHash11.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(stylesHash12)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `stylesHash12.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(stylesHash13)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `stylesHash13.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(stylesHash14)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `stylesHash14.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles20)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles20.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles21)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles21.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles22)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles22.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles23)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles23.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles24)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles24.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles25)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles25.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles26)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles26.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles27)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles27.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles28)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles28.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles29)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles29.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles30)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles30.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles31)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles31.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles32)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles32.${EXPORT_TYPE}.txt`)
+	);
+	expect(classes(styles33)).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, `styles33.${EXPORT_TYPE}.txt`)
+	);
+});
+
+it(`should preserve CSS module composition semantics (${EXPORT_TYPE})`, () => {
+	expect(styles5.baz).toBe("nesting_module_css-baz");
+	expect(styles24._test).toBe("_right_value");
+	expect(styles24._test_other).toBe("_right_value");
+	expect(styles33["local-name"]).toBe("composes-circular_module_css-local-name");
+	expect(styles33["other-name"]).toBe(
+		"composes-circular_module_css-other-name composes-circular_module_css-local-name"
+	);
+	expect(styles12.className).toBe("_-1className");
 });
 
 // Note: assertions about `default` use `basic.module.css` because
@@ -111,13 +203,16 @@ it(`should export CSS module class names (${EXPORT_TYPE})`, () => {
 
 if (EXPORT_TYPE === "link") {
 	it("should load extracted CSS chunk via <link> tag (link)", () => {
-		const links = document.getElementsByTagName("link");
+		const links = Array.from(document.getElementsByTagName("link"));
 		const css = [];
 
 		// Skip first because import it by default
 		for (const link of links.slice(1)) {
-			css.push(link.sheet.css);
+			css.push(getLinkSheet(link));
 		}
+		expect(css).toHaveLength(1);
+		expect(css[0].match(/\.classes_module_css-default\s*\{/g)).toHaveLength(1);
+		expect(css[0].match(/\.composes-circular_module_css-local-name\s*\{/g)).toHaveLength(1);
 
 		expect(css).toMatchFileSnapshotSync(
 			path.join(__SNAPSHOT__, "bundle0.css.txt")

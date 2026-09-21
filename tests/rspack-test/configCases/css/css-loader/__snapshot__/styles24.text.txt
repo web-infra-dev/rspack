@@ -1,0 +1,13 @@
+Object {
+  _test: _right_value,
+  _test1: 1,
+  _test2: 'string',
+  _test3: 1px 2px 3px,
+  _test4: 1px 2px 3px, 1px 2px 3px,
+  _test_other: _right_value,
+  _the_same_name: _the_same_name,
+  className: icss_module_css-className,
+  constructor: constructor,
+  reexport: classes_module_css-module,
+  toString: toString,
+}

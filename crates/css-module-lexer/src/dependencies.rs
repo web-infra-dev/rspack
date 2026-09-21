@@ -3109,6 +3109,11 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         content: "",
         range: Range::new(start, replacement_end),
       });
+    // The composition parser consumes the declaration's semicolon itself.
+    // Resume at a block item so a following nested selector is not skipped as
+    // part of the composition value.
+    self.property_kind = PropertyKind::Generic;
+    self.set_scan_context(stream, ScanContext::BlockItem);
     Some(())
   }
 }

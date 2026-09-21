@@ -1,0 +1,5 @@
+Object {
+  simple-bar: composes-duplicate_module_css-simple-bar imported-simple_module_css-imported-simple,
+  simple-baz: composes-duplicate_module_css-simple-baz imported-simple_module_css-imported-simple,
+  simple-foo: composes-duplicate_module_css-simple-foo imported-simple_module_css-imported-simple,
+}

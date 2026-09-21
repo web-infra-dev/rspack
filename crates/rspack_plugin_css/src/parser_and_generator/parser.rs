@@ -1623,6 +1623,8 @@ impl<'context> CssModuleParser<'context> {
       .icss_definitions
       .insert(prop.to_string(), definition.clone());
     for name in convention_names.iter() {
+      // ICSS declarations use the last value, unlike composed class lists.
+      self.css_exports.shift_remove(name.as_str());
       self.update_css_exports_from_icss_definition(name, prop, &definition);
     }
     if let Some(custom_property_name) = prop.strip_prefix("--") {

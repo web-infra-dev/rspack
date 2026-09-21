@@ -728,7 +728,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         _ => Cow::Borrowed(key),
       };
 
-      let content = self.render_concat_export_content(elements, &mut state);
+      let content = self
+        .render_self_referencing_export(key, elements)
+        .unwrap_or_else(|| self.render_concat_export_content(elements, &mut state));
       self.register_concat_export(key, &content, &used_name, &mut state);
     }
 
@@ -764,7 +766,34 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     scope.register_export(key.into(), identifier);
   }
 
-  fn render_css_export_content(&mut self, elements: &FxIndexSet<CssExport>) -> String {
+  fn render_self_referencing_export(
+    &self,
+    name: &str,
+    elements: &FxIndexSet<CssExport>,
+  ) -> Option<String> {
+    let compilation = self.generate_context.compilation;
+    let has_self_reference = elements.iter().any(|export| {
+      export.from.as_deref().is_some_and(|request| {
+        find_static_export_target(compilation, self.module, request, export.id.as_ref())
+          == Some(self.module.identifier())
+      })
+    });
+    if !has_self_reference {
+      return None;
+    }
+
+    // A runtime require would read this module before its exports are assigned.
+    // Resolve the complete class list with the same cycle guard used for CSS
+    // modules that do not emit JavaScript.
+    CssConcatenationState::new(compilation)
+      .resolve_static_export(self.module, name)
+      .map(|resolved| json_stringify_str(&resolved))
+  }
+
+  fn render_css_export_content(&mut self, name: &str, elements: &FxIndexSet<CssExport>) -> String {
+    if let Some(content) = self.render_self_referencing_export(name, elements) {
+      return content;
+    }
     let mut content = String::new();
     for CssExport {
       ident,
@@ -972,7 +1001,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       stringified_exports.push_str("  ");
       stringified_exports.push_str(&json_stringify_str(&used_name));
       stringified_exports.push_str(": ");
-      stringified_exports.push_str(&self.render_css_export_content(elements));
+      stringified_exports.push_str(&self.render_css_export_content(key, elements));
 
       stringified_exports.push_str(",\n");
     }
