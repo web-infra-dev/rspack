@@ -19,11 +19,9 @@ export default defineConfig({
         compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
           compilation.hooks.processAssets.tap('MyPlugin', (assets) => {
             let list = Object.keys(assets);
-            const png = list.find((item) => item.endsWith('png'));
-            assert(png);
+            const png = list.find((item) => item.endsWith('png'))!;
             const asset = compilation.getAsset(png);
-            assert(asset);
-            const buf = asset.source.buffer();
+            const buf = asset?.source.buffer();
             const expected = fs.readFileSync(
               import.meta.dirname + '/' + 'img.png',
             );

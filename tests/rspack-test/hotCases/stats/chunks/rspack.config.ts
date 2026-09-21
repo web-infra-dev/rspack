@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 
 export default defineConfig({
@@ -10,13 +9,10 @@ export default defineConfig({
           all: false,
           chunks: true,
         });
-        assert(chunks);
-        assert(chunks[0].runtime);
-        assert(chunks[0].files);
         // Ensure that HotUpdateChunk is not added to chunks
-        expect(chunks.length).toBe(1);
-        expect(chunks[0].runtime[0]).toBe('main');
-        expect(chunks[0].files[0]).toBe('bundle.js');
+        expect(chunks?.length).toBe(1);
+        expect(chunks?.[0].runtime?.[0]).toBe('main');
+        expect(chunks?.[0].files?.[0]).toBe('bundle.js');
       });
     }),
   ],

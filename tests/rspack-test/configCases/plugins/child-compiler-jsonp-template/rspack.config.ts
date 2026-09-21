@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import path from 'node:path';
 
@@ -47,9 +46,8 @@ export default defineConfig({
               return callback(err);
             }
 
-            assert(childCompilation);
             const assets = childCompilation
-              .getAssets()
+              ?.getAssets()
               .map((asset) => asset.name);
             expect(assets).toContain('child.js');
             expect(assets).toContain('asset.png');

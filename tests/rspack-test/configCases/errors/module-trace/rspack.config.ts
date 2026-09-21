@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 
 export default defineConfig({
@@ -12,16 +11,14 @@ export default defineConfig({
             ids: true,
             moduleTrace: true,
           }).errors;
-          assert(errors);
-          expect(errors.length).toBe(1);
-          const moduleTrace = errors[0].moduleTrace;
-          assert(moduleTrace);
-          expect(moduleTrace[0].moduleName).toBe('./c.js');
-          expect(moduleTrace[0].originName).toBe('./b.js');
-          expect(moduleTrace[1].moduleName).toBe('./b.js');
-          expect(moduleTrace[1].originName).toBe('./a.js');
-          expect(moduleTrace[2].moduleName).toBe('./a.js');
-          expect(moduleTrace[2].originName).toBe('./index.js');
+          expect(errors?.length).toBe(1);
+          const moduleTrace = errors?.[0].moduleTrace;
+          expect(moduleTrace?.[0].moduleName).toBe('./c.js');
+          expect(moduleTrace?.[0].originName).toBe('./b.js');
+          expect(moduleTrace?.[1].moduleName).toBe('./b.js');
+          expect(moduleTrace?.[1].originName).toBe('./a.js');
+          expect(moduleTrace?.[2].moduleName).toBe('./a.js');
+          expect(moduleTrace?.[2].originName).toBe('./index.js');
         });
       },
     }),

@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 
 const PLUGIN_NAME = 'rspack.SourceMapDevToolPlugin';
@@ -24,8 +23,7 @@ export default defineConfig({
             logging: 'verbose',
           });
 
-          assert(s.logging);
-          const logEntries = s.logging[PLUGIN_NAME]?.entries ?? [];
+          const logEntries = s.logging?.[PLUGIN_NAME]?.entries ?? [];
           const cacheLogEntry = logEntries.find(
             (e) =>
               e.type === 'cache' &&
@@ -33,16 +31,14 @@ export default defineConfig({
               e.message.startsWith('source map persistent cache:'),
           );
           expect(cacheLogEntry).toBeTruthy();
-          assert(cacheLogEntry);
 
-          const match = cacheLogEntry.message.match(
+          const match = cacheLogEntry?.message.match(
             /source map persistent cache: [\d.]+% \((\d+)\/(\d+)\)/,
           );
           expect(match).toBeTruthy();
-          assert(match);
 
-          const hits = parseInt(match[1], 10);
-          const total = parseInt(match[2], 10);
+          const hits = parseInt(match![1], 10);
+          const total = parseInt(match![2], 10);
           const misses = total - hits;
 
           if (updateIndex === 0) {

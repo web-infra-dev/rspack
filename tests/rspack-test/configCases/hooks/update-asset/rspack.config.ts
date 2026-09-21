@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 
 export default defineConfig({
@@ -31,8 +30,7 @@ export default defineConfig({
           },
           () => {
             compilation.getAssets().forEach(({ info }) => {
-              assert(info.contenthash);
-              expect(info.contenthash.length).toBeGreaterThan(0);
+              expect(info.contenthash?.length).toBeGreaterThan(0);
             });
           },
         );

@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 
 const entries = ['main', 'secondary', 'third'];
@@ -19,9 +18,8 @@ export default ['function', 'string', 'entry'].map((kind, index) =>
     ),
     output: {
       filename: ({ chunk }) => {
-        assert(chunk);
-        expect(chunk.name).toBeTruthy();
-        return `${index}/${chunk.name}.js`;
+        expect(chunk?.name).toBeTruthy();
+        return `${index}/${chunk?.name}.js`;
       },
       chunkFilename: `${index}/async-[name].js`,
     },
@@ -43,8 +41,7 @@ export default ['function', 'string', 'entry'].map((kind, index) =>
         compiler.hooks.compilation.tap('CheckRuntime', (compilation) => {
           compilation.hooks.processAssets.tap('CheckRuntime', () => {
             for (const name of entries) {
-              const entrypoint = compilation.entrypoints.get(name);
-              assert(entrypoint);
+              const entrypoint = compilation.entrypoints.get(name)!;
               const separate = kind !== 'string' && name === 'main';
               const runtimeName = separate ? 'runtime' : name;
               const runtimeChunk = entrypoint.getRuntimeChunk();

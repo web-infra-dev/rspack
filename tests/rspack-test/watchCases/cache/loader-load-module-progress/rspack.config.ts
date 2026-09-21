@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
@@ -23,20 +22,20 @@ export default defineConfig({
             .getCache('ProgressPlugin')
             .getItemCache('counts', null);
 
-          const data = await cache.getPromise();
-          assert(typeof data === 'object' && data !== null);
-          assert('modulesCount' in data);
-          assert('dependenciesCount' in data);
+          const data = await cache.getPromise<{
+            modulesCount: number;
+            dependenciesCount: number;
+          }>();
 
-          if (data.modulesCount !== 4) {
+          if (data?.modulesCount !== 4) {
             throw new Error(
-              `Wrong cached value of \`ProgressPlugin.modulesCount\` - ${data.modulesCount}, expect 4`,
+              `Wrong cached value of \`ProgressPlugin.modulesCount\` - ${data?.modulesCount}, expect 4`,
             );
           }
 
-          if (data.dependenciesCount !== 4) {
+          if (data?.dependenciesCount !== 4) {
             throw new Error(
-              `Wrong cached value of \`ProgressPlugin.dependenciesCount\` - ${data.dependenciesCount}, expect 4`,
+              `Wrong cached value of \`ProgressPlugin.dependenciesCount\` - ${data?.dependenciesCount}, expect 4`,
             );
           }
         });

@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig } from '@rspack/cli';
 
 export default defineConfig([
@@ -36,9 +35,7 @@ export default defineConfig([
           vendors: {
             test: /node_modules/,
             name: (m) => {
-              const name = m.nameForCondition();
-              assert(name);
-              const match = name.match(/([b-d]+)\.js$/);
+              const match = m.nameForCondition()?.match(/([b-d]+)\.js$/);
               if (match) return 'vendors-' + match[1];
             },
           },

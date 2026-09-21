@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 
 let compilationCount = 0;
@@ -22,10 +21,9 @@ export default defineConfig({
           const { chunks: statsChunks } = compilation
             .getStats()
             .toJson({ all: false, chunks: true });
-          assert(statsChunks);
-          const renderedStates = statsChunks.map((chunk) => chunk.rendered);
-          expect(renderedStates.length).toBeGreaterThan(0);
-          expect(renderedStates).toEqual(renderedStates.map(() => false));
+          const renderedStates = statsChunks?.map((chunk) => chunk.rendered);
+          expect(renderedStates?.length).toBeGreaterThan(0);
+          expect(renderedStates).toEqual(renderedStates?.map(() => false));
         });
       });
     }),

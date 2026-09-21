@@ -24,8 +24,7 @@ export default defineConfig({
         compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
           compilation.hooks.processAssets.tap('MyPlugin', (assets) => {
             let list = Object.keys(assets);
-            const js = list.find((item) => item.endsWith('js'));
-            assert(js);
+            const js = list.find((item) => item.endsWith('js'))!;
             const jsContent = assets[js].source().toString();
             assert(/require\(['"]\.\/(\w*)\.png['"]\)/.test(jsContent));
           });

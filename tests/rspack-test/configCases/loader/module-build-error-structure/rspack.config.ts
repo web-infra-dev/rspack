@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 
 export default defineConfig({
@@ -25,8 +24,7 @@ export default defineConfig({
               name: 'NextFontError',
             },
           });
-          assert(error.error);
-          expect(error.error.message).toContain(
+          expect(error.error?.message).toContain(
             'Cannot be used within pages/_document.js',
           );
         });

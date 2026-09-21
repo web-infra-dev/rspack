@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig } from '@rspack/cli';
 
 export default defineConfig({
@@ -13,8 +12,7 @@ export default defineConfig({
       module: /a.js/,
     },
     (warning) => {
-      assert(warning.module);
-      return warning.module.identifier().includes('b.js');
+      return warning.module?.identifier().includes('b.js') ?? false;
     },
   ],
   module: {

@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
@@ -32,10 +31,8 @@ export default defineConfig({
             const entryA = chunks.find((c) => c.name === 'a');
             const entryB = chunks.find((c) => c.name === 'b');
 
-            assert(entryA);
-            assert(entryB);
-            expect(entryA.dependencies.length).toBe(1);
-            expect(entryB.dependencies.length).toBe(1);
+            expect(entryA?.dependencies.length).toBe(1);
+            expect(entryB?.dependencies.length).toBe(1);
             for (const chunk of chunks) {
               if (!chunk.name) {
                 expect(chunk.imported.length).toBe(1);
@@ -57,10 +54,8 @@ export default defineConfig({
 
               const entrypointA = entrypoints.find((e) => e.name === 'a');
               const entrypointB = entrypoints.find((e) => e.name === 'b');
-              assert(entrypointA);
-              assert(entrypointB);
-              expect(entrypointA.chunks.length).toBe(1);
-              expect(entrypointB.chunks.length).toBe(1);
+              expect(entrypointA?.chunks.length).toBe(1);
+              expect(entrypointB?.chunks.length).toBe(1);
             });
           },
         );

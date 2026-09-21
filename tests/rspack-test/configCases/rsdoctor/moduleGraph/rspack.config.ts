@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import path from 'node:path';
 import { rspack } from '@rspack/core';
@@ -46,11 +45,10 @@ export default defineConfig({
             const entryModule = modules.find(
               (module) => module.isEntry && module.kind === 'concatenated',
             );
-            assert(entryModule);
-            expect(entryModule.chunks.length).toBe(1);
-            expect(entryModule.modules.length).toBe(3);
-            expect(entryModule.dependencies.length).toBe(1);
-            expect(entryModule.path).toBe(
+            expect(entryModule?.chunks.length).toBe(1);
+            expect(entryModule?.modules.length).toBe(3);
+            expect(entryModule?.dependencies.length).toBe(1);
+            expect(entryModule?.path).toBe(
               path.join(import.meta.dirname, './index.js'),
             );
           });

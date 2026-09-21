@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 
 export default defineConfig({
@@ -14,8 +13,7 @@ export default defineConfig({
       apply(compiler) {
         compiler.hooks.thisCompilation.tap('test', (compilation) => {
           compilation.hooks.afterSeal.tap('test', () => {
-            let entrypoint = compilation.entrypoints.get('main');
-            assert(entrypoint);
+            let entrypoint = compilation.entrypoints.get('main')!;
             let entrypointChunk = entrypoint.getEntrypointChunk();
             expect(entrypointChunk.name).toBe('main');
             let chunks = entrypointChunk.getAllReferencedChunks();

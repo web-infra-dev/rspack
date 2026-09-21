@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 
 const pluginName = 'plugin';
@@ -23,9 +22,8 @@ export default defineConfig([
               normalModuleFactory.hooks.afterResolve.tap(
                 pluginName,
                 (resolveData) => {
-                  assert(resolveData.createData);
-                  resolveData.createData.resource =
-                    resolveData.createData.resource.replace('b.js', 'c.js');
+                  resolveData.createData!.resource =
+                    resolveData.createData!.resource.replace('b.js', 'c.js');
                 },
               );
             },
@@ -53,11 +51,10 @@ export default defineConfig([
               normalModuleFactory.hooks.afterResolve.tap(
                 pluginName,
                 (resolveData) => {
-                  assert(resolveData.createData);
-                  resolveData.createData.request =
-                    resolveData.createData.request.replace('b.js', 'c.js');
-                  resolveData.createData.userRequest =
-                    resolveData.createData.userRequest.replace('b.js', 'c.js');
+                  resolveData.createData!.request =
+                    resolveData.createData!.request.replace('b.js', 'c.js');
+                  resolveData.createData!.userRequest =
+                    resolveData.createData!.userRequest.replace('b.js', 'c.js');
                 },
               );
             },
@@ -85,13 +82,12 @@ export default defineConfig([
               normalModuleFactory.hooks.afterResolve.tap(
                 pluginName,
                 (resolveData) => {
-                  assert(resolveData.createData);
-                  resolveData.createData.request =
-                    resolveData.createData.request.replace('b.js', 'c.js');
-                  resolveData.createData.userRequest =
-                    resolveData.createData.userRequest.replace('b.js', 'c.js');
-                  resolveData.createData.resource =
-                    resolveData.createData.resource.replace('b.js', 'c.js');
+                  resolveData.createData!.request =
+                    resolveData.createData!.request.replace('b.js', 'c.js');
+                  resolveData.createData!.userRequest =
+                    resolveData.createData!.userRequest.replace('b.js', 'c.js');
+                  resolveData.createData!.resource =
+                    resolveData.createData!.resource.replace('b.js', 'c.js');
                 },
               );
             },

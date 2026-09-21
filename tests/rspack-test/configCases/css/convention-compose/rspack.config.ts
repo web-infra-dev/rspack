@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -30,9 +29,8 @@ export default defineConfig({
     definePlugin({
       apply(compiler) {
         compiler.hooks.done.tap('Test', () => {
-          assert(compiler.options.output.path);
           const { styles } = require(
-            path.join(compiler.options.output.path, 'main.js'),
+            path.join(compiler.options.output.path!, 'main.js'),
           );
           expect(typeof styles['first-class']).toBe('string');
           expect(styles['first-class'].split(' ').length).toBe(1);

@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
@@ -29,11 +28,10 @@ export default defineConfig({
           // - In loose mode, CssChunkingPlugin should merge global CSS files
           //   within each page into separate chunks
           // - Expected result: 2 CSS assets (one per page)
-          assert(json.assets);
-          const cssAssets = json.assets.filter((asset) =>
+          const cssAssets = json.assets?.filter((asset) =>
             asset.name?.endsWith('.css'),
           );
-          expect(cssAssets.length).toBe(2);
+          expect(cssAssets?.length).toBe(2);
         });
       },
     }),

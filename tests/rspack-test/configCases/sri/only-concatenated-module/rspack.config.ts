@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 import path from 'node:path';
@@ -27,9 +26,8 @@ export default defineConfig({
     definePlugin({
       apply(compiler) {
         compiler.hooks.done.tap('TestPlugin', () => {
-          assert(compiler.options.output.path);
           const mainPath = path.join(
-            compiler.options.output.path,
+            compiler.options.output.path!,
             'bundle0.js',
           );
           const mainContent = fs.readFileSync(mainPath, 'utf-8');

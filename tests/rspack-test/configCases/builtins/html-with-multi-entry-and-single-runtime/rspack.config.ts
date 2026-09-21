@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 import path from 'node:path';
@@ -22,8 +21,7 @@ export default defineConfig({
     definePlugin({
       apply(compiler) {
         compiler.hooks.done.tap('TestAssert', () => {
-          let outputPath = compiler.options.output.path;
-          assert(outputPath);
+          let outputPath = compiler.options.output.path!;
           const htmlContent = fs.readFileSync(
             path.join(outputPath, 'index.html'),
             'utf-8',

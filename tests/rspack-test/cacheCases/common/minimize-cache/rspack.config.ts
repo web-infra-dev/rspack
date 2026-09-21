@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
@@ -29,14 +28,12 @@ export default defineConfig({
             logging: 'verbose',
           });
 
-          assert(s.assets);
-          const jsAssets = s.assets.filter((a) => a.name?.endsWith('.js'));
+          const jsAssets = s.assets!.filter((a) => a.name?.endsWith('.js'));
           for (const asset of jsAssets) {
             expect(asset.info.minimized).toBe(true);
           }
 
-          assert(s.logging);
-          const logEntries = s.logging[PLUGIN_NAME]?.entries ?? [];
+          const logEntries = s.logging?.[PLUGIN_NAME]?.entries ?? [];
           const cacheLogEntry = logEntries.find(
             (e) =>
               e.type === 'cache' &&
@@ -52,16 +49,14 @@ export default defineConfig({
           }
 
           expect(cacheLogEntry).toBeTruthy();
-          assert(cacheLogEntry);
 
-          const match = cacheLogEntry.message.match(
+          const match = cacheLogEntry?.message.match(
             /minimize persistent cache: [\d.]+% \((\d+)\/(\d+)\)/,
           );
           expect(match).toBeTruthy();
-          assert(match);
 
-          const hits = parseInt(match[1], 10);
-          const total = parseInt(match[2], 10);
+          const hits = parseInt(match![1], 10);
+          const total = parseInt(match![2], 10);
           const misses = total - hits;
 
           if (updateIndex === 0) {

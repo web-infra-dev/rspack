@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 
 export default defineConfig({
@@ -22,8 +21,7 @@ export default defineConfig({
           let s = stats.toJson({
             all: true,
           });
-          assert(s.assets);
-          expect(s.assets.some((item) => item.name === 'a.txt')).toBeTruthy();
+          expect(s.assets?.some((item) => item.name === 'a.txt')).toBeTruthy();
         });
       },
     }),

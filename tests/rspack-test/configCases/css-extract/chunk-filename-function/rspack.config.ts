@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig } from '@rspack/cli';
 import { CssExtractRspackPlugin } from '@rspack/core';
 
@@ -24,10 +23,7 @@ export default defineConfig({
   plugins: [
     new CssExtractRspackPlugin({
       filename: '[name].css',
-      chunkFilename: ({ chunk }) => {
-        assert(chunk);
-        return `expected.${chunk.name}.css`;
-      },
+      chunkFilename: ({ chunk }) => `expected.${chunk?.name}.css`,
     }),
   ],
 });

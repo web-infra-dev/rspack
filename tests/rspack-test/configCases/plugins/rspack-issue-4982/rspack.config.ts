@@ -22,8 +22,7 @@ export default defineConfig({
             ],
           );
           childCompiler.compile((_err, result) => {
-            assert(result);
-            const assets = result
+            const assets = result!
               .getAssets()
               .filter((asset) => asset.name === 'child.js');
             assert(assets.length === 1);

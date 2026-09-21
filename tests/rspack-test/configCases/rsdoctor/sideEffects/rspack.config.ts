@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
@@ -67,13 +66,12 @@ export default defineConfig({
                 (m) => m.path && m.path.includes('utils.js'),
               );
               expect(utilsModule).toBeTruthy();
-              assert(utilsModule);
-              expect(utilsModule.sideEffectsLocations.length).toBe(1);
+              expect(utilsModule?.sideEffectsLocations.length).toBe(1);
 
-              const utilsLoc = utilsModule.sideEffectsLocations[0];
-              expect(utilsLoc.nodeType).toBe('Statement');
-              expect(utilsLoc.module).toBe(utilsModule.ukey);
-              expect(utilsLoc.request).toContain('utils.js');
+              const utilsLoc = utilsModule?.sideEffectsLocations[0];
+              expect(utilsLoc?.nodeType).toBe('Statement');
+              expect(utilsLoc?.module).toBe(utilsModule?.ukey);
+              expect(utilsLoc?.request).toContain('utils.js');
 
               // pure.js should NOT have side effects locations
               const pureModule = modules.find(

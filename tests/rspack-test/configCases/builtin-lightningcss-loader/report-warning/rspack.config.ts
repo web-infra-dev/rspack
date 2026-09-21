@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import type { Compiler, LightningcssLoaderOptions } from '@rspack/core';
 import { defineConfig } from '@rspack/cli';
 
@@ -7,8 +6,7 @@ class Plugin {
     compiler.hooks.done.tap('PLUGIN', (stats) => {
       const json = stats.toJson();
       expect(json.warnings).toHaveLength(1);
-      assert(json.warnings);
-      expect(json.warnings[0].message).toMatch(
+      expect(json.warnings?.[0].message).toMatch(
         /LightningCSS parse warning: Unexpected end of input at/,
       );
     });

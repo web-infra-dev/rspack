@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig } from '@rspack/cli';
 import path from 'node:path';
 import { rspack, experiments } from '@rspack/core';
@@ -95,9 +94,8 @@ export default defineConfig([
           const clientManifestExport = mainEntry.clientManifest[clientPath];
           expect(clientManifestExport.id).toBe(clientModuleId);
           expect(clientManifestExport.name).toBe('*');
-          assert(clientManifestExport.cssFiles);
-          expect(clientManifestExport.cssFiles.length).toBe(1);
-          expect(clientManifestExport.cssFiles[0]).toMatch(/\.css$/);
+          expect(clientManifestExport.cssFiles?.length).toBe(1);
+          expect(clientManifestExport.cssFiles?.[0]).toMatch(/\.css$/);
 
           expect(mainEntry.serverConsumerModuleMap[clientModuleId]).toEqual({
             '*': {

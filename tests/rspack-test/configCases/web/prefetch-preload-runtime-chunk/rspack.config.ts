@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -31,8 +30,7 @@ export default defineConfig({
             compiler.options.experiments?.runtimeMode === 'rspack'
               ? 'rspack/runtime'
               : 'webpack/runtime';
-          const output = compiler.options.output.path;
-          assert(output);
+          const output = compiler.options.output.path!;
           const runtime = fs.readFileSync(
             path.join(output, 'runtime~main.js'),
             'utf-8',

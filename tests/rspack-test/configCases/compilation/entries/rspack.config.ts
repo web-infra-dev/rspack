@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import type { Compiler } from '@rspack/core';
 import { defineConfig } from '@rspack/cli';
 
@@ -11,9 +10,8 @@ class Plugin {
         expect(Array.from(compilation.entries.keys())).toEqual(['main', 'foo']);
 
         const entry = compilation.entries.get('foo');
-        assert(entry);
-        expect(entry.dependencies.length).toEqual(1);
-        expect(entry.options.asyncChunks).toEqual(true);
+        expect(entry?.dependencies.length).toEqual(1);
+        expect(entry?.options.asyncChunks).toEqual(true);
 
         compilation.entries.delete('foo');
       });

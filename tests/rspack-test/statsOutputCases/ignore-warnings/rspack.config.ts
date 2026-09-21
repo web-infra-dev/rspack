@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { defineConfig } from '@rspack/cli';
 
 export default defineConfig({
@@ -13,8 +12,7 @@ export default defineConfig({
     },
     /The 'mode' option has not been set/,
     (warning) => {
-      assert(warning.module);
-      return warning.module.identifier().endsWith('?2');
+      return warning.module?.identifier().endsWith('?2') ?? false;
     },
   ],
   stats: {
