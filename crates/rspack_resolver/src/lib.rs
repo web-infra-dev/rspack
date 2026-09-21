@@ -896,7 +896,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     for module_name in &self.options.modules {
       for cached_path in std::iter::successors(Some(cached_path), |p| p.parent()) {
         // Skip if /path/to/node_modules does not exist
-        if !cached_path.is_dir(&self.cache.fs, ctx).await {
+        let is_dir = match cached_path.is_dir_cached() {
+          Some(is_dir) => is_dir,
+          None => cached_path.is_dir(&self.cache.fs, ctx).await,
+        };
+        if !is_dir {
           continue;
         }
 

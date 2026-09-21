@@ -243,6 +243,17 @@ impl CachedPathImpl {
     )
   }
 
+  /// `is_dir` for paths that were already probed, without the async call.
+  ///
+  /// Returns `None` when the metadata is not cached yet, so the caller can fall
+  /// back to `is_dir` (which also registers the missing dependency).
+  pub fn is_dir_cached(&self) -> Option<bool> {
+    self
+      .meta
+      .get()
+      .map(|meta| meta.as_ref().is_some_and(|meta| meta.is_dir))
+  }
+
   pub async fn realpath<Fs: FileSystem + Send + Sync>(&self, fs: &Fs) -> io::Result<Utf8PathBuf> {
     // Cache hit: avoid the heap-allocated `Box::pin` for the cache-miss state machine
     // by returning before delegating to the boxed recursive helper.
@@ -339,7 +350,14 @@ impl CachedPathImpl {
   ) -> Result<Option<Arc<PackageJson>>, ResolveError> {
     let mut cache_value = self;
     // Go up directories when the querying path is not a directory
-    while !cache_value.is_dir(fs, ctx).await {
+    loop {
+      let is_dir = match cache_value.is_dir_cached() {
+        Some(is_dir) => is_dir,
+        None => cache_value.is_dir(fs, ctx).await,
+      };
+      if is_dir {
+        break;
+      }
       if let Some(cv) = &cache_value.parent {
         cache_value = cv.as_ref();
       } else {
