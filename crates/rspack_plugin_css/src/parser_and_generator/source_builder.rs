@@ -1,4 +1,3 @@
-use cow_utils::CowUtils;
 use rspack_core::{
   Context, CssLayer, CssModuleRenderCondition,
   rspack_sources::{
@@ -6,7 +5,9 @@ use rspack_core::{
     SourceExt,
   },
 };
-use rspack_util::{base64::encode_to_string, identifier::make_paths_relative};
+use rspack_util::{
+  base64::encode_to_string, identifier::make_paths_relative, placeholder::replace_placeholder,
+};
 
 const CSS_UTF8_CHARSET: &str = r#"@charset "UTF-8";"#;
 
@@ -114,11 +115,12 @@ impl CssSourceBuilder {
     let include_sources_content = self.include_sources_content;
     let source_map_context = self.source_map_context.clone();
     let source = self.into_source();
-    let mut css_text = source
-      .source()
-      .into_string_lossy()
-      .cow_replace(crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER, "")
-      .into_owned();
+    let mut css_text = replace_placeholder(
+      &source.source().into_string_lossy(),
+      crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
+      "",
+    )
+    .into_owned();
 
     if let Some(mut source_map) = source.map(&ObjectPool::default(), &MapOptions::default()) {
       if !source_map_context.as_str().is_empty() {
