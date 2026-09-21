@@ -13,7 +13,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::plugin_hook;
 use rspack_plugin_real_content_hash::RealContentHashPluginUpdateHash;
-use rspack_util::placeholder::Placeholder;
+use rspack_util::placeholder::PlaceholderFinder;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::RwLock;
 
@@ -24,8 +24,8 @@ use crate::{
   util::{PLACEHOLDER_PREFIX, make_placeholder, placeholder_len, use_any_hash},
 };
 
-static SRI_PLACEHOLDER: LazyLock<Placeholder> =
-  LazyLock::new(|| Placeholder::new(PLACEHOLDER_PREFIX));
+static SRI_PLACEHOLDER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(PLACEHOLDER_PREFIX));
 
 #[derive(Debug, Clone)]
 struct ProcessChunkResult {

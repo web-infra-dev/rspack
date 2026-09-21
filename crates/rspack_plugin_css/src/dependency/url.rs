@@ -7,12 +7,12 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ModuleDependency, ModuleIdentifier, TemplateContext,
   TemplateReplaceSource,
 };
-use rspack_util::placeholder::Placeholder;
+use rspack_util::placeholder::PlaceholderFinder;
 
 use crate::{css_syntax::serialize_url_value, utils::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
-static ASSET_AUTO_PUBLIC_PATH_MATCHER: LazyLock<Placeholder> =
-  LazyLock::new(|| Placeholder::new("__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__"));
+static ASSET_AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new("__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__"));
 
 #[cacheable]
 #[derive(Debug)]

@@ -26,7 +26,7 @@ use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
-use rspack_util::placeholder::Placeholder;
+use rspack_util::placeholder::PlaceholderFinder;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ustr::Ustr;
 
@@ -53,13 +53,14 @@ pub static SINGLE_DOT_PATH_SEGMENT: &str = "__css_extract_single_dot_path_segmen
 pub(crate) const MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL: &str =
   "__rspack_get_mini_css_chunk_filename";
 
-static ABSOLUTE_PUBLIC_PATH_MATCHER: LazyLock<Placeholder> =
-  LazyLock::new(|| Placeholder::new(ABSOLUTE_PUBLIC_PATH));
-static SINGLE_DOT_PATH_SEGMENT_MATCHER: LazyLock<Placeholder> =
-  LazyLock::new(|| Placeholder::new(SINGLE_DOT_PATH_SEGMENT));
-static AUTO_PUBLIC_PATH_MATCHER: LazyLock<Placeholder> =
-  LazyLock::new(|| Placeholder::new(AUTO_PUBLIC_PATH));
-static BASE_URI_MATCHER: LazyLock<Placeholder> = LazyLock::new(|| Placeholder::new(BASE_URI));
+static ABSOLUTE_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(ABSOLUTE_PUBLIC_PATH));
+static SINGLE_DOT_PATH_SEGMENT_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(SINGLE_DOT_PATH_SEGMENT));
+static AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(AUTO_PUBLIC_PATH));
+static BASE_URI_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(BASE_URI));
 
 static STARTS_WITH_AT_IMPORT: &str = "@import url";
 

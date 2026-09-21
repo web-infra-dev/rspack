@@ -12,7 +12,7 @@ use rspack_collections::{Identifier, IdentifierSet};
 use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
 use rspack_intern::Atom;
-use rspack_util::{fx_hash::FxIndexSet, json_stringify, placeholder::Placeholder};
+use rspack_util::{fx_hash::FxIndexSet, json_stringify, placeholder::PlaceholderFinder};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use serde_json::{Value, json};
 
@@ -37,8 +37,8 @@ pub struct RuntimeTemplate {
   dojang: Arc<Dojang>,
 }
 
-static RUNTIME_GLOBALS_PLACEHOLDER: LazyLock<Placeholder> =
-  LazyLock::new(|| Placeholder::new("$$RUNTIME_GLOBAL_"));
+static RUNTIME_GLOBALS_PLACEHOLDER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new("$$RUNTIME_GLOBAL_"));
 
 static WEBPACK_RUNTIME_GLOBALS: LazyLock<Arc<RuntimeGlobalsRenderMap>> = LazyLock::new(|| {
   Arc::new(runtime_globals_to_render_map(
