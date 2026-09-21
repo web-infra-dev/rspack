@@ -19,7 +19,7 @@ class Plugin {
 export default {
   context: import.meta.dirname,
   entry: {
-    main: './index.js!=!./loader',
+    main: './index.js!=!./loader.mjs',
   },
   plugins: [new Plugin()],
 };

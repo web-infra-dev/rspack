@@ -1,4 +1,5 @@
 import type { RspackOptions } from '@rspack/core';
+import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
 import {
   BasicCaseCreator,
   type IBasicCaseCreatorOptions,
@@ -35,7 +36,7 @@ const creator = new HashCaseCreator({
         configMultiCompiler(
           context,
           name,
-          ['rspack.config.mjs', 'rspack.config.js'],
+          RSPACK_CONFIG_FILES,
           defaultOptions,
           overrideOptions,
         );

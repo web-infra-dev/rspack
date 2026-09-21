@@ -28,7 +28,7 @@ export default {
     rules: [
       {
         test: /\.js$/,
-        loader: './loader',
+        loader: './loader.mjs',
         sideEffects: true,
       },
     ],

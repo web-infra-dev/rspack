@@ -3,6 +3,10 @@ import type { Compiler, RspackOptions, Stats } from '@rspack/core';
 import fs from 'fs-extra';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
 import { captureStdio } from '../helper/legacy/captureStdio';
+import {
+  findRspackConfigFile,
+  RSPACK_CONFIG_FILES,
+} from '../helper/read-config-file';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
 import { build, compiler, configMultiCompiler } from './common';
@@ -29,7 +33,7 @@ export function createStatsProcessor(
       configMultiCompiler(
         context,
         name,
-        ['rspack.config.mjs', 'rspack.config.js'],
+        RSPACK_CONFIG_FILES,
         defaultOptions,
         overrideOptions,
       );
@@ -80,10 +84,7 @@ export function createStatsOutputCase(name: string, src: string, dist: string) {
 }
 
 function defaultOptions(index: number, context: ITestContext): RspackOptions {
-  if (
-    fs.existsSync(path.join(context.getSource(), 'rspack.config.mjs')) ||
-    fs.existsSync(path.join(context.getSource(), 'rspack.config.js'))
-  ) {
+  if (findRspackConfigFile(context.getSource())) {
     return {
       output: {
         bundlerInfo: {

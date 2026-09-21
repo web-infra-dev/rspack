@@ -38,7 +38,7 @@ export default {
     rules: [
       {
         test: /\.js/,
-        use: [path.join(import.meta.dirname, 'loader.js')],
+        use: [path.join(import.meta.dirname, 'loader.mjs')],
       },
     ],
   },

@@ -23,7 +23,7 @@ export default {
       entries['main'] = './main.js';
     }
     if (fs.existsSync(_404)) {
-      entries['404'] = './404-page-loader.js!';
+      entries['404'] = './404-page-loader.mjs!';
     }
     return entries;
   },

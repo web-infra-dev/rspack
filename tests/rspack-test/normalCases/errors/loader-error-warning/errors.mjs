@@ -2,11 +2,11 @@ export default [
 	[
 		/abc/,
 		/Emitted value instead of an instance of Error/,
-		/error-loader\.js/
+		/error-loader\.mjs/
 	],
 	[
 		/def/,
 		/Emitted value instead of an instance of Error/,
-		/error-loader\.js/
+		/error-loader\.mjs/
 	]
 ];

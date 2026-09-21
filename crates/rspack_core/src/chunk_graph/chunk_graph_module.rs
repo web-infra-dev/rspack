@@ -98,6 +98,13 @@ impl ChunkGraphModule {
 }
 
 impl ChunkGraph {
+  pub(crate) fn reserve_modules(&mut self, total: usize) {
+    let additional = total.saturating_sub(self.chunk_graph_module_by_module_identifier.len());
+    self
+      .chunk_graph_module_by_module_identifier
+      .reserve(additional);
+  }
+
   pub fn modules(&self) -> IdentifierSet {
     self
       .chunk_graph_module_by_module_identifier
@@ -357,8 +364,21 @@ impl ChunkGraph {
           side_effects_state_artifact,
           &compilation.exports_info_artifact,
         );
-        if active_state.is_false() {
+        let is_commonjs_external = mg
+          .module_by_identifier(module_identifier)
+          .and_then(|module| module.as_external_module())
+          .is_some_and(|external| {
+            crate::CommonJsExternalRequireKind::from_external_type(external.resolve_external_type())
+              .is_some()
+          });
+        if active_state.is_false() && !is_commonjs_external {
           return None;
+        }
+        // Direct CommonJS external templates still read the request/type
+        // after the placement connection is cut out. Such modules may
+        // have no chunk module id, so also hash their semantic identity.
+        if is_commonjs_external {
+          module_identifier.hash(&mut hasher);
         }
         visited_modules.insert(*module_identifier);
         for_each_runtime(

@@ -3157,6 +3157,7 @@ export interface RawSplitChunkSizes {
 }
 
 export interface RawSplitChunksOptions {
+  dedupDepth?: number
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
   name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)
   nameBatch?: ((batch: JsChunkOptionNameBatch) => (string | undefined)[])
@@ -3446,6 +3447,7 @@ export interface ThreadsafeNodeFS {
   readFile: (name: string) => Promise<Buffer | string | void>
   stat: (name: string) => Promise<NodeFsStats | void>
   lstat: (name: string) => Promise<NodeFsStats | void>
+  readlink: (name: string) => Promise<string | void>
   realpath: (name: string) => Promise<string | void>
   open: (name: string, flags: string) => Promise<number | void>
   rename: (from: string, to: string) => Promise<void>

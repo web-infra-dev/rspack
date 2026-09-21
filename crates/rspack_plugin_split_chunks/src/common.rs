@@ -259,6 +259,10 @@ impl ModuleSourceSizes {
     self.0.iter().map(|(ty, size)| (ty, size))
   }
 
+  pub fn values(&self) -> impl Iterator<Item = &f64> {
+    self.0.iter().map(|(_, size)| size)
+  }
+
   pub fn get(&self, ty: &SourceType) -> Option<&f64> {
     self
       .0

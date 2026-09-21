@@ -1503,7 +1503,7 @@ impl AssetInfoRelated {
 pub fn assign_depths<'a>(
   assign_map: &mut IdentifierMap<usize>,
   modules: impl Iterator<Item = &'a ModuleIdentifier>,
-  outgoings: &IdentifierMap<Vec<ModuleIdentifier>>,
+  module_graph: &ModuleGraph,
   initial_queue_capacity: usize,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
@@ -1522,9 +1522,14 @@ pub fn assign_depths<'a>(
         vac.insert(depth);
       }
     };
-    if let Some(outgoing_modules) = outgoings.get(&id) {
-      for con in outgoing_modules {
-        q.push_back((*con, depth + 1));
+    // Resolve outgoing connections while walking instead of materializing a
+    // graph-wide map: the walk only ever reads the modules it visits.
+    let Some(module_graph_module) = module_graph.module_graph_module_by_identifier(&id) else {
+      continue;
+    };
+    for connection_id in module_graph_module.outgoing_connections() {
+      if let Some(connection) = module_graph.connection_by_id(connection_id) {
+        q.push_back((*connection.module_identifier(), depth + 1));
       }
     }
   }
