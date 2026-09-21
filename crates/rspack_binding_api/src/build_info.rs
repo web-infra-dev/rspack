@@ -12,7 +12,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   define_symbols,
-  file_system_dependency_strings::{refreshed_array, with_compiler},
+  file_system_dependency_strings::{refreshed_array, upgrade_compiler},
   js_helpers::IndexedArrayUpdateBatch,
   module::Module,
 };
@@ -86,28 +86,26 @@ impl KnownBuildInfo {
   fn file_system_dependency_values<'env>(
     &self,
     env: &'env Env,
-    select: impl FnOnce(&rspack_core::LoaderDependencies) -> &rspack_paths::InternedPathSet,
+    select: fn(&rspack_core::LoaderDependencies) -> &rspack_paths::InternedPathSet,
   ) -> napi::Result<Array<'env>> {
     let mut module = self.module_reference.upgrade(*env)?.ok_or_else(|| {
       napi::Error::from_reason(
         "Unable to access buildInfo. The Module has been garbage collected by JavaScript.",
       )
     })?;
-    with_compiler(env, module.compiler_id(), |compiler| {
-      let mut updates = IndexedArrayUpdateBatch::default();
-      let array = module.with_ref(|_, module| {
-        compiler
-          .file_system_dependency_string_pool
-          .borrow_mut()
-          .session(env)
-          .queue_dependency_array_update(
-            &mut updates,
-            select(&module.build_info().dependencies).iter(),
-          )
-      })?;
-      updates.apply(env, &compiler.js_helpers)?;
-      refreshed_array(env, array)
-    })
+    let compiler = upgrade_compiler(env, module.compiler_id())?;
+    let mut updates = IndexedArrayUpdateBatch::default();
+    let array = module.with_ref(|_, module| {
+      let build_info = module.build_info();
+      let mut paths = select(&build_info.dependencies).iter();
+      compiler
+        .file_system_dependency_string_pool
+        .borrow_mut()
+        .session(env)
+        .queue_dependency_array_update(&mut updates, &mut paths)
+    })?;
+    updates.apply(env, &compiler.js_helpers)?;
+    refreshed_array(env, array)
   }
 
   pub fn get_jsobject(self, env: &Env) -> napi::Result<Object<'_>> {

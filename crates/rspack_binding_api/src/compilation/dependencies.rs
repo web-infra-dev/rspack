@@ -9,7 +9,7 @@ use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathSet};
 use crate::{
   COMPILER_REFERENCES,
   file_system_dependency_strings::{
-    FileSystemDependencyArrayCache, intern_js_values, refreshed_array, with_compiler,
+    FileSystemDependencyArrayCache, intern_js_values, refreshed_array, upgrade_compiler,
   },
   js_helpers::IndexedArrayUpdateBatch,
 };
@@ -71,11 +71,7 @@ impl FileSystemDependencies {
     }
   }
 
-  fn add_values<'env>(
-    &mut self,
-    env: &Env,
-    values: impl IntoIterator<Item = JsString<'env>>,
-  ) -> napi::Result<()> {
+  fn add_values<'env>(&mut self, env: &Env, values: Vec<JsString<'env>>) -> napi::Result<()> {
     let paths = intern_js_values(env, self.compiler_id, values)?;
     with_current_compilation_mut(self.compiler_id, |compilation| {
       let dependencies = (self.get_dependencies_mut)(compilation);
@@ -104,36 +100,33 @@ impl FileSystemDependencies {
 impl FileSystemDependencies {
   #[napi(getter, ts_return_type = "Array<string>")]
   pub fn added<'env>(&self, env: &'env Env) -> napi::Result<Array<'env>> {
-    with_compiler(env, self.compiler_id, |compiler| {
-      let (dependency_counter, dependencies) =
-        self.dependency_sources(&compiler.compiler.compilation)?;
-      let mut updates = IndexedArrayUpdateBatch::default();
-      let array = compiler
-        .file_system_dependency_string_pool
-        .borrow_mut()
-        .session(env)
-        .queue_dependency_array_update(
-          &mut updates,
-          dependency_counter.added_files().chain(dependencies),
-        )?;
-      updates.apply(env, &compiler.js_helpers)?;
-      refreshed_array(env, array)
-    })
+    let compiler = upgrade_compiler(env, self.compiler_id)?;
+    let (dependency_counter, dependencies) =
+      self.dependency_sources(&compiler.compiler.compilation)?;
+    let mut paths = dependency_counter.added_files().chain(dependencies);
+    let mut updates = IndexedArrayUpdateBatch::default();
+    let array = compiler
+      .file_system_dependency_string_pool
+      .borrow_mut()
+      .session(env)
+      .queue_dependency_array_update(&mut updates, &mut paths)?;
+    updates.apply(env, &compiler.js_helpers)?;
+    refreshed_array(env, array)
   }
 
   #[napi(getter, ts_return_type = "Array<string>")]
   pub fn removed<'env>(&self, env: &'env Env) -> napi::Result<Array<'env>> {
-    with_compiler(env, self.compiler_id, |compiler| {
-      let (dependency_counter, _) = self.dependency_sources(&compiler.compiler.compilation)?;
-      let mut updates = IndexedArrayUpdateBatch::default();
-      let array = compiler
-        .file_system_dependency_string_pool
-        .borrow_mut()
-        .session(env)
-        .queue_dependency_array_update(&mut updates, dependency_counter.removed_files())?;
-      updates.apply(env, &compiler.js_helpers)?;
-      refreshed_array(env, array)
-    })
+    let compiler = upgrade_compiler(env, self.compiler_id)?;
+    let (dependency_counter, _) = self.dependency_sources(&compiler.compiler.compilation)?;
+    let mut paths = dependency_counter.removed_files();
+    let mut updates = IndexedArrayUpdateBatch::default();
+    let array = compiler
+      .file_system_dependency_string_pool
+      .borrow_mut()
+      .session(env)
+      .queue_dependency_array_update(&mut updates, &mut paths)?;
+    updates.apply(env, &compiler.js_helpers)?;
+    refreshed_array(env, array)
   }
 
   #[napi]
@@ -209,91 +202,90 @@ impl FileSystemDependencies {
 
   #[napi(ts_return_type = "ReadonlyArray<string>")]
   pub fn values<'env>(&mut self, env: &'env Env, mut this: This) -> napi::Result<Array<'env>> {
-    with_compiler(env, self.compiler_id, |compiler| {
-      let result = (|| {
-        let (mut array, length, updates) = {
-          let (dependency_counter, dependencies) =
-            self.dependency_sources(&compiler.compiler.compilation)?;
-          // Both sources are unique. Filter compilation dependencies already in
-          // the module graph counter, preserving counter-first iteration order.
-          let capacity = dependency_counter
-            .files()
-            .size_hint()
-            .0
-            .saturating_add(dependencies.len());
-          let paths = dependency_counter.files().chain(
-            dependencies
-              .iter()
-              .filter(|path| dependency_counter.related_resource_ids(path).is_none()),
-          );
-          let cached = &mut self.array_cache;
-          let array = cached.array(env, &mut this)?;
-          let empty = cached.paths.is_empty();
-          let mut pool = compiler.file_system_dependency_string_pool.borrow_mut();
-          let mut session = pool.session(env);
-          let mut updates = IndexedArrayUpdateBatch::default();
-          updates
-            .commands
-            .reserve(if empty { capacity.saturating_add(3) } else { 3 });
-          updates
-            .commands
-            .extend_from_slice(&[u32::from(!empty), 0, 0]);
-          let mut length = 0;
-          for path in paths {
-            if self.excluded_paths.contains(path) {
-              continue;
-            }
-            let index = length;
-            length += 1;
-            if cached.paths.get(index) == Some(path) {
-              continue;
-            }
-            let pool_index = session.get_or_insert_index(path)?;
-            // Reuse the vector and clone only changed paths. Any failure below
-            // clears this provisional state before it can be reused.
-            if let Some(previous) = cached.paths.get_mut(index) {
-              *previous = path.clone();
-            } else {
-              cached.paths.push(path.clone());
-            }
-            if !empty {
-              updates.commands.push(index as u32);
-            }
-            updates.commands.push(pool_index);
+    let compiler = upgrade_compiler(env, self.compiler_id)?;
+    let result = (|| {
+      let (mut array, length, updates) = {
+        let (dependency_counter, dependencies) =
+          self.dependency_sources(&compiler.compiler.compilation)?;
+        // Both sources are unique. Filter compilation dependencies already in
+        // the module graph counter, preserving counter-first iteration order.
+        let capacity = dependency_counter
+          .files()
+          .size_hint()
+          .0
+          .saturating_add(dependencies.len());
+        let paths = dependency_counter.files().chain(
+          dependencies
+            .iter()
+            .filter(|path| dependency_counter.related_resource_ids(path).is_none()),
+        );
+        let cached = &mut self.array_cache;
+        let array = cached.array(env, &mut this)?;
+        let empty = cached.paths.is_empty();
+        let mut pool = compiler.file_system_dependency_string_pool.borrow_mut();
+        let mut session = pool.session(env);
+        let mut updates = IndexedArrayUpdateBatch::default();
+        updates
+          .commands
+          .reserve(if empty { capacity.saturating_add(3) } else { 3 });
+        updates
+          .commands
+          .extend_from_slice(&[u32::from(!empty), 0, 0]);
+        let mut length = 0;
+        for path in paths {
+          if self.excluded_paths.contains(path) {
+            continue;
           }
-          cached.paths.truncate(length);
-          let length = length as u32;
-          if updates.commands.len() != 3 || array.len() != length {
-            updates.commands[1] = length;
-            updates.commands[2] = (updates.commands.len() - 3) as u32;
-            updates.targets.push(array);
-            updates.source = Some(session.strings()?);
+          let index = length;
+          length += 1;
+          if cached.paths.get(index) == Some(path) {
+            continue;
+          }
+          let pool_index = session.get_or_insert_index(path)?;
+          // Reuse the vector and clone only changed paths. Any failure below
+          // clears this provisional state before it can be reused.
+          if let Some(previous) = cached.paths.get_mut(index) {
+            *previous = path.clone();
           } else {
-            updates.commands.clear();
+            cached.paths.push(path.clone());
           }
-          (array, length, updates)
-        };
-        // No graph or RefCell borrows cross the synchronous JS call. Copy strings
-        // directly from the shared pool, including entries that change position.
-        updates.apply(env, &compiler.js_helpers)?;
-        array = refreshed_array(env, array)?;
-        if array.len() != length {
-          array.set_named_property("length", length)?;
-          array = refreshed_array(env, array)?;
+          if !empty {
+            updates.commands.push(index as u32);
+          }
+          updates.commands.push(pool_index);
         }
-        Ok(array)
-      })();
-      if result.is_err() {
-        // A failed update must not leave paths describing an incomplete JS array.
-        self.array_cache.paths.clear();
+        cached.paths.truncate(length);
+        let length = length as u32;
+        if updates.commands.len() != 3 || array.len() != length {
+          updates.commands[1] = length;
+          updates.commands[2] = (updates.commands.len() - 3) as u32;
+          updates.targets.push(array);
+          updates.source = Some(session.strings()?);
+        } else {
+          updates.commands.clear();
+        }
+        (array, length, updates)
+      };
+      // No graph or RefCell borrows cross the synchronous JS call. Copy strings
+      // directly from the shared pool, including entries that change position.
+      updates.apply(env, &compiler.js_helpers)?;
+      array = refreshed_array(env, array)?;
+      if array.len() != length {
+        array.set_named_property("length", length)?;
+        array = refreshed_array(env, array)?;
       }
-      result
-    })
+      Ok(array)
+    })();
+    if result.is_err() {
+      // A failed update must not leave paths describing an incomplete JS array.
+      self.array_cache.paths.clear();
+    }
+    result
   }
 
   #[napi]
   pub fn add(&mut self, env: &Env, value: JsString<'_>) -> napi::Result<()> {
-    self.add_values(env, [value])
+    self.add_values(env, vec![value])
   }
 
   #[napi]
