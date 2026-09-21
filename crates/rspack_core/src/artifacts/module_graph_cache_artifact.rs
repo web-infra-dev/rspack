@@ -148,7 +148,7 @@ impl ModuleGraphCacheArtifactInner {
 
   pub fn cached_module_graph_hash<F: FnOnce() -> u64>(
     &self,
-    key: (ModuleIdentifier, Option<&str>),
+    key: ModuleGraphHashCacheKey,
     f: F,
   ) -> u64 {
     if !self.freezed.load(Ordering::Acquire) {
@@ -167,47 +167,11 @@ impl ModuleGraphCacheArtifactInner {
 }
 
 pub(super) mod module_graph_hash {
-  use std::{
-    borrow::Borrow,
-    hash::{Hash, Hasher},
-  };
-
   use rspack_util::fx_hash::FxDashMap;
 
   use crate::{ModuleIdentifier, RuntimeKey};
 
   pub type ModuleGraphHashCacheKey = (ModuleIdentifier, Option<RuntimeKey>);
-
-  // Allow looking up the composite key without allocating an owned runtime key.
-  trait CacheKey {
-    fn tuple(&self) -> (ModuleIdentifier, Option<&str>);
-  }
-
-  impl<T: AsRef<str>> CacheKey for (ModuleIdentifier, Option<T>) {
-    fn tuple(&self) -> (ModuleIdentifier, Option<&str>) {
-      (self.0, self.1.as_ref().map(AsRef::as_ref))
-    }
-  }
-
-  impl Hash for dyn CacheKey + '_ {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-      self.tuple().hash(state);
-    }
-  }
-
-  impl PartialEq for dyn CacheKey + '_ {
-    fn eq(&self, other: &Self) -> bool {
-      self.tuple() == other.tuple()
-    }
-  }
-
-  impl Eq for dyn CacheKey + '_ {}
-
-  impl<'a> Borrow<dyn CacheKey + 'a> for ModuleGraphHashCacheKey {
-    fn borrow(&self) -> &(dyn CacheKey + 'a) {
-      self
-    }
-  }
 
   #[derive(Debug, Default)]
   pub struct ModuleGraphHashCache {
@@ -219,12 +183,12 @@ pub(super) mod module_graph_hash {
       self.cache.clear();
     }
 
-    pub fn get(&self, key: &(ModuleIdentifier, Option<&str>)) -> Option<u64> {
-      self.cache.get(key as &dyn CacheKey).map(|v| *v.value())
+    pub fn get(&self, key: &ModuleGraphHashCacheKey) -> Option<u64> {
+      self.cache.get(key).map(|v| *v.value())
     }
 
-    pub fn set(&self, key: (ModuleIdentifier, Option<&str>), value: u64) {
-      self.cache.insert((key.0, key.1.map(str::to_owned)), value);
+    pub fn set(&self, key: ModuleGraphHashCacheKey, value: u64) {
+      self.cache.insert(key, value);
     }
   }
 }

@@ -44,7 +44,8 @@ impl From<&CodeGenerationResults> for JsCodegenerationResults {
             rspack_core::RuntimeMode::Empty => {}
             rspack_core::RuntimeMode::SingleEntry => {
               runtime_map.insert(
-                get_runtime_key(runtime_result_map.single_runtime.as_ref().expect("exist")).clone(),
+                get_runtime_key(runtime_result_map.single_runtime.as_ref().expect("exist"))
+                  .to_string(),
                 runtime_result_map
                   .single_value
                   .as_ref()
@@ -55,7 +56,7 @@ impl From<&CodeGenerationResults> for JsCodegenerationResults {
             }
             rspack_core::RuntimeMode::Map => {
               runtime_result_map.map.iter().for_each(|(k, v)| {
-                runtime_map.insert(k.clone(), v.as_ref().into());
+                runtime_map.insert(k.to_string(), v.as_ref().into());
               });
             }
           };
