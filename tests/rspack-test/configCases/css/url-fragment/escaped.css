@@ -1,7 +1,0 @@
-div {
-	clip-path: url("#clip");
-	filter: url( #filter );
-	mask: url('#');
-	fill: url(\#escaped);
-	stroke: url('\23 escaped-hex');
-}
