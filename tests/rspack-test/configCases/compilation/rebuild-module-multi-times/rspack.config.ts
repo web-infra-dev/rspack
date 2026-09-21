@@ -1,19 +1,22 @@
+import { defineConfig } from '@rspack/cli';
+import type { Compiler, Module } from '@rspack/core';
+
 const pluginName = 'plugin';
 
 class Plugin {
-  apply(compiler) {
+  apply(compiler: Compiler) {
     let initial = true;
     compiler.hooks.compilation.tap(pluginName, (compilation) => {
       compilation.hooks.finishModules.tapPromise(
         pluginName,
         async (modules) => {
-          modules = [...modules];
+          const modulesToRebuild = [...modules];
           if (initial) {
             initial = false;
 
             const results = await Promise.all(
-              modules.map((m) => {
-                return new Promise((resolve, reject) => {
+              modulesToRebuild.map((m) => {
+                return new Promise<Module | null>((resolve, reject) => {
                   compilation.rebuildModule(m, (err, module) => {
                     if (err) {
                       reject(err);
@@ -34,8 +37,7 @@ class Plugin {
   }
 }
 
-/**@type {import("@rspack/core").Configuration}*/
-export default {
+export default defineConfig({
   module: {
     rules: [
       {
@@ -49,4 +51,4 @@ export default {
     ],
   },
   plugins: [new Plugin()],
-};
+});

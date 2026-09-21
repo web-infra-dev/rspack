@@ -1,4 +1,6 @@
 import path from 'node:path';
+import { defineConfig, definePlugin } from '@rspack/cli';
+import { NormalModule, type Module } from '@rspack/core';
 
 const TRACKED_MODULES = new Set([
   'a.js',
@@ -14,16 +16,15 @@ const TRACKED_MODULES = new Set([
 const NOT_CACHEABLE_MODULES = ['a.js', 'b.js', 'c.js', 'd.js', 'e.js', 'f.js'];
 
 let compilerIndex = 0;
-let builtModules = [];
+let builtModules: string[] = [];
 
-const recordModule = (modules, module) => {
-  if (!module.resource) return;
+const recordModule = (modules: string[], module: Module) => {
+  if (!(module instanceof NormalModule) || !module.resource) return;
   const name = path.basename(module.resource);
   if (TRACKED_MODULES.has(name)) modules.push(name);
 };
 
-/** @type {import('@rspack/core').Configuration} */
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   experiments: {
     newCache: {
@@ -50,7 +51,7 @@ export default {
     ],
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
         compiler.hooks.compilation.tap(
           'ModuleCacheCacheabilityTest',
@@ -82,6 +83,6 @@ export default {
           compilerIndex++;
         });
       },
-    },
+    }),
   ],
-};
+});
