@@ -247,6 +247,11 @@ pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
 }
 
 pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
+  // Fragments are rare; one memchr scan avoids the pattern-searcher setup that
+  // \`cow_replace\` performs for every call.
+  if memchr::memchr(b'#', s.as_bytes()).is_none() {
+    return Cow::Borrowed(s);
+  }
   s.cow_replace("#", "\u{200b}#")
 }
 

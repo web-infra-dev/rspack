@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt::Debug};
+use std::{borrow::Cow, fmt::Debug, path::Path};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
@@ -69,14 +69,83 @@ fn get_side_effects_from_package_json(side_effects: SideEffects, relative_path: 
   }
 }
 
+/// Whether the package's `sideEffects` field marks `resource_path` as having
+/// side effects.
+///
+/// A pattern that cannot cross a separator is equivalent to `**/` + pattern,
+/// which only ever matches the last path segment, so those packages never need
+/// the (comparatively expensive) package-relative path.
+fn side_effects_for_resource(
+  side_effects: SideEffects,
+  resource_path: &Utf8Path,
+  package_path: &Path,
+) -> bool {
+  match &side_effects {
+    SideEffects::Bool(value) => *value,
+    SideEffects::String(pattern) if is_simple_pattern(pattern) => {
+      match_file_name(pattern, resource_path)
+    }
+    SideEffects::Array(patterns) if patterns.iter().all(|pattern| is_simple_pattern(pattern)) => {
+      patterns
+        .iter()
+        .any(|pattern| match_file_name(pattern, resource_path))
+    }
+    _ => {
+      let relative_path = resource_path
+        .as_std_path()
+        .relative(package_path)
+        .assert_utf8();
+      get_side_effects_from_package_json(side_effects, relative_path.as_path())
+    }
+  }
+}
+
+/// Patterns without a separator (optionally prefixed with `**/`) can only
+/// match the last path segment.
+fn is_simple_pattern(pattern: &str) -> bool {
+  let trimmed = trim_dot_slash(pattern);
+  let tail = trimmed.strip_prefix("**/").unwrap_or(trimmed);
+  !tail.contains('/') && !trimmed.starts_with('!')
+}
+
+fn match_file_name(pattern: &str, resource_path: &Utf8Path) -> bool {
+  let trimmed = trim_dot_slash(pattern);
+  let tail = trimmed.strip_prefix("**/").unwrap_or(trimmed);
+  match resource_path.file_name() {
+    Some(file_name) => fast_glob::glob_match(tail, file_name),
+    // The resource has no file name (e.g. a directory); match the whole path.
+    None => fast_glob::glob_match(tail, resource_path.as_str()),
+  }
+}
+
+/// Strips repeated leading `./` without the pattern-searcher setup of
+/// `trim_start_matches`.
+fn trim_dot_slash(pattern: &str) -> &str {
+  let mut rest = pattern;
+  while let Some(stripped) = rest.strip_prefix("./") {
+    rest = stripped;
+  }
+  rest
+}
+
 fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
-  let trim_start = pattern.trim_start_matches("./");
+  let trim_start = trim_dot_slash(pattern);
+  let string = string.trim_start_matches("./");
+  // A pattern without a separator cannot cross path segments (a single `*`
+  // never matches `/`), so `**/` only adds a leading-segment scan. Matching
+  // the last segment directly is equivalent and skips that scan, which
+  // otherwise walks every separator of the module path.
+  let tail = trim_start.strip_prefix("**/").unwrap_or(trim_start);
+  if !tail.contains('/') && !trim_start.starts_with('!') {
+    let last_segment = string.rsplit('/').next().unwrap_or(string);
+    return fast_glob::glob_match(tail, last_segment);
+  }
   let normalized_glob = if trim_start.contains('/') {
     trim_start.to_string()
   } else {
     String::from("**/") + trim_start
   };
-  fast_glob::glob_match(&normalized_glob, string.trim_start_matches("./"))
+  fast_glob::glob_match(&normalized_glob, string)
 }
 
 pub trait ClassExt<'a> {
@@ -152,11 +221,7 @@ async fn nmf_module(
   let Some(side_effects) = SideEffects::from_description(description.json()) else {
     return Ok(());
   };
-  let relative_path = resource_path
-    .as_std_path()
-    .relative(package_path)
-    .assert_utf8();
-  let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path.as_path());
+  let has_side_effects = side_effects_for_resource(side_effects, resource_path, package_path);
 
   module.set_factory_meta(FactoryMeta {
     side_effect_free: Some(!has_side_effects),
