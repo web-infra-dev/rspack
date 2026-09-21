@@ -5,11 +5,11 @@ use memchr::memmem;
 /// A reusable scanner for a fixed, non-empty placeholder or placeholder prefix.
 /// Store it in a static `LazyLock` to share the precomputed searcher across sources.
 #[derive(Debug)]
-pub struct Placeholder {
+pub struct PlaceholderFinder {
   finder: memmem::Finder<'static>,
 }
 
-impl Placeholder {
+impl PlaceholderFinder {
   pub fn new(marker: &'static str) -> Self {
     assert!(!marker.is_empty(), "placeholder marker must not be empty");
     Self {

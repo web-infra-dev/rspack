@@ -24,11 +24,11 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_util::placeholder::Placeholder;
+use rspack_util::placeholder::PlaceholderFinder;
 use rustc_hash::FxHashMap as HashMap;
 
-static RSTEST_FLAG_PLACEHOLDER: LazyLock<Placeholder> =
-  LazyLock::new(|| Placeholder::new("/* RSTEST:"));
+static RSTEST_FLAG_PLACEHOLDER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new("/* RSTEST:"));
 
 fn parse_rstest_flag(rest: &str) -> Option<(usize, (&str, &str, &str))> {
   let (flag, rest) = rest.split_once(':')?;

@@ -14,7 +14,7 @@ use rspack_core::{
   runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_util::placeholder::Placeholder;
+use rspack_util::placeholder::PlaceholderFinder;
 
 pub use crate::runtime_context::{
   render_hot_update_chunk_runtime_modules as render_rspack_hot_update_chunk_runtime_modules,
@@ -26,8 +26,8 @@ pub use crate::runtime_context::{
 use crate::{JavascriptModulesPluginHooks, RenderSource};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
-pub static AUTO_PUBLIC_PATH_MATCHER: LazyLock<Placeholder> =
-  LazyLock::new(|| Placeholder::new(AUTO_PUBLIC_PATH_PLACEHOLDER));
+pub static AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(AUTO_PUBLIC_PATH_PLACEHOLDER));
 
 pub async fn render_chunk_modules(
   compilation: &Compilation,

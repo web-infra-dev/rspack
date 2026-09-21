@@ -13,7 +13,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::placeholder::Placeholder;
+use rspack_util::placeholder::PlaceholderFinder;
 
 use crate::{
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
@@ -21,10 +21,10 @@ use crate::{
   parser_and_generator::JavaScriptParserAndGenerator,
 };
 
-static URL_STATIC_MATCHER: LazyLock<Placeholder> =
-  LazyLock::new(|| Placeholder::new(URL_STATIC_PLACEHOLDER));
-static WORKER_STATIC_URL_MATCHER: LazyLock<Placeholder> =
-  LazyLock::new(|| Placeholder::new(WORKER_STATIC_URL_PLACEHOLDER));
+static URL_STATIC_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(URL_STATIC_PLACEHOLDER));
+static WORKER_STATIC_URL_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(WORKER_STATIC_URL_PLACEHOLDER));
 
 #[plugin]
 #[derive(Debug, Default)]

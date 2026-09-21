@@ -40,7 +40,7 @@ use rspack_plugin_rslib::{
 use rspack_plugin_split_chunks::CacheGroup;
 use rspack_util::{
   fx_hash::{FxHashMap, FxHashSet},
-  placeholder::Placeholder,
+  placeholder::PlaceholderFinder,
 };
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
@@ -531,8 +531,8 @@ async fn additional_tree_runtime_requirements(
   Ok(())
 }
 
-static RSPACK_ESM_CHUNK_PLACEHOLDER: LazyLock<Placeholder> =
-  LazyLock::new(|| Placeholder::new("__RSPACK_ESM_CHUNK_"));
+static RSPACK_ESM_CHUNK_PLACEHOLDER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new("__RSPACK_ESM_CHUNK_"));
 
 #[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
