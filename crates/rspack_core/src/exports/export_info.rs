@@ -159,6 +159,16 @@ impl ExportInfoData {
       .get_or_insert_with(|| Box::new(HashMap::default()))
   }
 
+  /// Clear the recorded targets without creating the boxed map.
+  ///
+  /// [`Self::reset_provide_info`] runs for every export info of every module, so
+  /// it must not materialize a map for the exports that never recorded a target.
+  pub fn clear_target(&mut self) {
+    if let Some(target) = self.target.as_mut() {
+      target.clear();
+    }
+  }
+
   pub fn provided(&self) -> Option<ExportProvided> {
     self.provided
   }
