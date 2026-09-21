@@ -81,12 +81,12 @@ jobs:
           else
             bench_args+=(--bench benches --bench rspack_sources)
           fi
-          cargo codspeed build -m ${{ inputs.measurement }} --profile codspeed -p rspack_benchmark "${bench_args[@]}"
+          cargo codspeed build -m ${{ inputs.measurement == 'simulation' && 'simulation,memory' || inputs.measurement }} --profile codspeed -p rspack_benchmark "${bench_args[@]}"
 
       - name: Prepare CodSpeed temporary directory
         run: mkdir -p "${RUNNER_TEMP}/codspeed-valgrind-tmp"
 
-      - name: Run benchmark (simulation)
+      - name: Run benchmark (simulation and memory)
         if: ${{ inputs.measurement == 'simulation' }}
         uses: hardfist/action@750625725fb8def914579fc789c6249580c84a95
         timeout-minutes: 30
@@ -103,7 +103,7 @@ jobs:
           # removes the cross-runner variance.
           GLIBC_TUNABLES: glibc.cpu.hwcaps=-AVX512F,-AVX2,-AVX,-AVX_Fast_Unaligned_Load,-ERMS,-Prefer_ERMS,-SSE4_2,-SSSE3
         with:
-          mode: simulation
+          mode: simulation,memory
           run: |
             if [ -n "${{ inputs.bench_target }}" ]; then
               bench_args=(--bench "${{ inputs.bench_target }}")
