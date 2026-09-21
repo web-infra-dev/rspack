@@ -14,13 +14,29 @@ fn utf16_len(s: &str) -> usize {
 }
 
 /// Advances source positions incrementally to compute dependency locations efficiently.
-/// This optimization reduces repeated source scans when processing dependencies
-/// in increasing source order (common for import statements).
+///
+/// Two pieces of state cooperate:
+/// - a lazily built, incrementally extended index of line-start byte offsets.
+///   It resolves the line of any offset with a binary search, so dependencies
+///   that are visited out of source order (or after a jump) never force a
+///   rescan from the beginning of the module;
+/// - the previously computed position, which keeps the column computation of
+///   subsequent dependencies proportional to the gap since the last one
+///   instead of the whole line.
 #[derive(Debug, Default)]
 pub struct DependencyLocationAdvancer {
   last_range: Option<DependencyRange>,
   last_location: Option<DependencyLocation>,
   last_start_pos: Option<SourcePosition>,
+  /// Byte offset of the first character of every line, from the beginning of
+  /// the source up to the byte at index indexed_upto. Always starts with 0.
+  line_starts: Vec<u32>,
+  /// Number of leading source bytes that have been scanned for newlines.
+  indexed_upto: usize,
+  /// Identity of the source the index was built for. 0 means "no source yet"
+  /// (a str pointer is never null).
+  indexed_source_ptr: usize,
+  indexed_source_len: usize,
 }
 
 impl DependencyLocationAdvancer {
@@ -28,8 +44,98 @@ impl DependencyLocationAdvancer {
     Self::default()
   }
 
+  /// Prepare the caches for the source and make sure every line start at or
+  /// before max_off is present in the index.
+  #[inline]
+  fn prepare_source(&mut self, source: &str, max_off: usize) {
+    let ptr = source.as_ptr() as usize;
+    let len = source.len();
+
+    if ptr != self.indexed_source_ptr || len != self.indexed_source_len {
+      // Defensive: the advancer is owned by one parser and therefore one
+      // source, but never let a stale index or stale positions leak into a
+      // different source.
+      self.last_range = None;
+      self.last_location = None;
+      self.last_start_pos = None;
+      self.line_starts.clear();
+      self.line_starts.push(0);
+      self.indexed_upto = 0;
+      self.indexed_source_ptr = ptr;
+      self.indexed_source_len = len;
+      self.line_starts.reserve(len / 32);
+    }
+
+    // Offsets fit in u32 for every realistic module (AST spans are u32);
+    // huge sources simply keep the scanning fallback.
+    if max_off > self.indexed_upto && u32::try_from(len).is_ok() {
+      for newline in memchr::memchr_iter(b'\n', &source.as_bytes()[self.indexed_upto..max_off]) {
+        self
+          .line_starts
+          .push((self.indexed_upto + newline + 1) as u32);
+      }
+      self.indexed_upto = max_off;
+    }
+  }
+
+  /// Whether the newline index currently covers the offset for the source.
+  #[inline]
+  fn index_covers(&self, source: &str, off: usize) -> bool {
+    self.indexed_source_ptr == source.as_ptr() as usize
+      && self.indexed_source_len == source.len()
+      && off <= self.indexed_upto
+  }
+
+  /// Position of an offset resolved through the newline index.
+  ///
+  /// The offset must be covered by the index; the caller guarantees it, and the
+  /// u32 casts are safe because the index is only built for sources no larger
+  /// than u32::MAX.
+  #[inline]
+  fn position_from_index(source: &str, line_starts: &[u32], off: usize) -> SourcePosition {
+    // Line starts begin with 0, so this is at least 1 and maps 1:1 to the
+    // 1-based line number.
+    let line = line_starts.partition_point(|&start| start as usize <= off);
+    let line_start = line_starts[line - 1] as usize;
+    SourcePosition {
+      line: line as u32,
+      column: (utf16_len(&source[line_start..off]) + 1) as u32,
+    }
+  }
+
+  /// Position of an offset, advancing from a known position at base_off.
+  #[inline]
+  fn position(
+    &self,
+    source: &str,
+    off: usize,
+    base_off: usize,
+    base_pos: SourcePosition,
+  ) -> Option<SourcePosition> {
+    if !self.index_covers(source, off) {
+      return Self::advance_pos(source, base_off, base_pos, off);
+    }
+
+    let index_pos = Self::position_from_index(source, &self.line_starts, off);
+    if index_pos.line != base_pos.line {
+      return Some(index_pos);
+    }
+
+    // Same line as the cached position: only the gap needs to be measured.
+    debug_assert!(base_off <= off);
+    Some(SourcePosition {
+      line: base_pos.line,
+      column: base_pos
+        .column
+        .checked_add(u32::try_from(utf16_len(&source[base_off..off])).ok()?)?,
+    })
+  }
+
   /// Advance a source position from one byte offset to another, counting newlines and UTF-16 columns.
-  /// Optimized with ASCII fast-paths and SIMD reverse searching.
+  /// Optimized with ASCII fast-paths and SIMD newline searching.
+  ///
+  /// Only used when the newline index cannot cover the requested offset (i.e.
+  /// sources larger than u32::MAX); the regular path is Self::position.
   fn advance_pos(
     source: &str,
     from_off: usize,
@@ -78,6 +184,13 @@ impl DependencyLocationAdvancer {
       return self.last_location.clone();
     }
 
+    // Mirror advance_pos, which rejects backwards and out-of-bounds offsets.
+    if start > end || end > source.len() {
+      return None;
+    }
+
+    self.prepare_source(source, end);
+
     // Determine the base point for calculation
     let (base_offset, base_pos) = if let (Some(last_range), Some(last_start_pos)) =
       (self.last_range, self.last_start_pos)
@@ -90,10 +203,10 @@ impl DependencyLocationAdvancer {
       (0, SourcePosition { line: 1, column: 1 })
     };
 
-    // Uniformly use advance_pos for both incremental and fallback calculations
+    // Uniformly use the indexed position for both incremental and fallback calculations
     let result = (|| {
-      let start_pos = Self::advance_pos(source, base_offset, base_pos, start)?;
-      let end_pos = Self::advance_pos(source, start, start_pos, end)?;
+      let start_pos = self.position(source, start, base_offset, base_pos)?;
+      let end_pos = self.position(source, end, start, start_pos)?;
 
       // Uniformly construct the Location return value
       if start_pos.line == end_pos.line && start_pos.column == end_pos.column {
@@ -125,6 +238,128 @@ impl DependencyLocationAdvancer {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  /// Independent implementation of the position rules the advancer must
+  /// reproduce: 1-based lines and columns, with columns counted in UTF-16
+  /// code units (V8 compatible).
+  fn reference_pos(source: &str, off: usize) -> (u32, u32) {
+    let mut line = 1u32;
+    let mut line_start = 0usize;
+    for (idx, byte) in source.bytes().enumerate() {
+      if idx >= off {
+        break;
+      }
+      if byte == b'\n' {
+        line += 1;
+        line_start = idx + 1;
+      }
+    }
+    let column = (utf16_len(&source[line_start..off]) + 1) as u32;
+    (line, column)
+  }
+
+  fn assert_locations_match_reference(
+    cache: &mut DependencyLocationAdvancer,
+    source: &str,
+    ranges: &[DependencyRange],
+  ) {
+    for range in ranges {
+      let location = cache
+        .compute_dependency_location(source, *range)
+        .unwrap_or_else(|| panic!("expected a location for {range:?}"));
+      let DependencyLocation::Real(real) = location else {
+        panic!("expected a real location for {range:?}");
+      };
+
+      let expected_start = reference_pos(source, range.start as usize);
+      assert_eq!(
+        (real.start.line, real.start.column),
+        expected_start,
+        "start of {range:?}"
+      );
+
+      let expected_end = reference_pos(source, range.end as usize);
+      if expected_end == expected_start {
+        assert!(real.end.is_none(), "expected no end for {range:?}");
+      } else {
+        let end = real
+          .end
+          .unwrap_or_else(|| panic!("expected an end for {range:?}"));
+        assert_eq!((end.line, end.column), expected_end, "end of {range:?}");
+      }
+    }
+  }
+
+  /// Every possible range between UTF-8 boundaries (spans always are on
+  /// boundaries), so the advancer is exercised at line boundaries, on empty
+  /// ranges, at the end of the file and - depending on the order the ranges are
+  /// passed in - on both forward and backward movements.
+  fn all_ranges(source: &str) -> Vec<DependencyRange> {
+    let points: Vec<u32> = (0..=source.len())
+      .filter(|offset| source.is_char_boundary(*offset))
+      .map(|offset| offset as u32)
+      .collect();
+    let mut ranges = Vec::new();
+    for (index, start) in points.iter().enumerate() {
+      for end in &points[index..] {
+        ranges.push(DependencyRange::new(*start, *end));
+      }
+    }
+    ranges
+  }
+
+  const SOURCE_WITH_UNICODE: &str = "import a from './a';\n\n// 注释 comment 😀\nexport const b = 你好;\r\nimport c from './c';\nimport d from './d';\n";
+
+  #[test]
+  fn test_index_matches_reference_in_source_order() {
+    let mut cache = DependencyLocationAdvancer::new();
+    assert_locations_match_reference(
+      &mut cache,
+      SOURCE_WITH_UNICODE,
+      &all_ranges(SOURCE_WITH_UNICODE),
+    );
+  }
+
+  #[test]
+  fn test_index_matches_reference_in_reverse_order() {
+    let mut cache = DependencyLocationAdvancer::new();
+    let mut ranges = all_ranges(SOURCE_WITH_UNICODE);
+    ranges.reverse();
+    assert_locations_match_reference(&mut cache, SOURCE_WITH_UNICODE, &ranges);
+  }
+
+  #[test]
+  fn test_index_matches_reference_in_shuffled_order() {
+    // Deterministic shuffle (LCG) to mix forward jumps, backward jumps and
+    // repeated ranges.
+    let mut ranges = all_ranges(SOURCE_WITH_UNICODE);
+    let mut state = 0x2545_f491_4f6c_dd1du64;
+    for i in (1..ranges.len()).rev() {
+      state = state
+        .wrapping_mul(0x5851_f42d_4c95_7f2d)
+        .wrapping_add(0x1405_7b7e_f767_814f);
+      ranges.swap(i, (state >> 33) as usize % (i + 1));
+    }
+    let mut cache = DependencyLocationAdvancer::new();
+    assert_locations_match_reference(&mut cache, SOURCE_WITH_UNICODE, &ranges);
+  }
+
+  #[test]
+  fn test_index_matches_reference_on_minified_single_line() {
+    let source = "var a=1;var b=2;var c=3;";
+    let mut cache = DependencyLocationAdvancer::new();
+    assert_locations_match_reference(&mut cache, source, &all_ranges(source));
+  }
+
+  #[test]
+  fn test_index_survives_source_switch() {
+    let mut cache = DependencyLocationAdvancer::new();
+    let first = "import a from './a';\nimport b from './b';\n";
+    let second = "\n\nconst x = 你好;\nconst y = 2;\n";
+    assert_locations_match_reference(&mut cache, first, &all_ranges(first));
+    assert_locations_match_reference(&mut cache, second, &all_ranges(second));
+    assert_locations_match_reference(&mut cache, first, &all_ranges(first));
+  }
 
   #[test]
   fn test_same_range_cache() {
