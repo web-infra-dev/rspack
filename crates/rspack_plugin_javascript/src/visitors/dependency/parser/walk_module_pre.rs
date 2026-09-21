@@ -35,7 +35,7 @@ impl JavascriptParser<'_> {
 
   pub fn module_pre_walk_import_declaration(&mut self, declaration: ImportDeclaration) {
     let ast = self.ast.ast;
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     let source = ast
       .get_wtf8(declaration.source(ast).value(ast))
       .to_string_lossy();
@@ -88,7 +88,7 @@ impl JavascriptParser<'_> {
 
   pub fn module_pre_walk_export_all_declaration(&mut self, declaration: ExportAllDeclaration) {
     let ast = self.ast.ast;
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     let exported_name = declaration.exported_name(ast);
     let exported_name_span = declaration.exported_name_span(ast);
     let statement = ExportImport::All(declaration);
@@ -109,7 +109,7 @@ impl JavascriptParser<'_> {
     let Some(source) = export.source(ast) else {
       return;
     };
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     drive.export_import(self, ExportImport::Named(export), &source);
     for (local, exported, span) in export.named_export_specifiers(ast) {
       drive.export_import_specifier(

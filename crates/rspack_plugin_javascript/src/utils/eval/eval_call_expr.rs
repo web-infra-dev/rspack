@@ -15,7 +15,7 @@ pub fn eval_call_expression<'parser>(
   expression: CallExpression,
 ) -> Option<BasicEvaluatedExpression<'parser>> {
   let ast = parser.ast.ast;
-  let drive = parser.plugin_drive.clone();
+  let drive = parser.plugin_drive();
   let callee = expression.callee(ast);
   if let Some(identifier) = callee.as_identifier_reference(ast) {
     let name = ast.get_utf8(identifier.name(ast));

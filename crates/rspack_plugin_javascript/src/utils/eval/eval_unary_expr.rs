@@ -18,29 +18,25 @@ fn eval_typeof<'parser>(
     ExprData::IdentifierReference(identifier) => {
       parser.call_hooks_name(ast.get_utf8(identifier.name(ast)), |parser, name| {
         parser
-          .plugin_drive
-          .clone()
+          .plugin_drive()
           .evaluate_typeof(parser, expression, name)
       })
     }
     ExprData::MetaProperty(meta) => meta.get_root_name(ast).and_then(|name| {
       parser.call_hooks_name(name, |parser, name| {
         parser
-          .plugin_drive
-          .clone()
+          .plugin_drive()
           .evaluate_typeof(parser, expression, name)
       })
     }),
     ExprData::MemberExpression(member) => member.call_hooks_name(parser, |parser, name| {
       parser
-        .plugin_drive
-        .clone()
+        .plugin_drive()
         .evaluate_typeof(parser, expression, name)
     }),
     ExprData::ChainExpression(chain) => chain.call_hooks_name(parser, |parser, name| {
       parser
-        .plugin_drive
-        .clone()
+        .plugin_drive()
         .evaluate_typeof(parser, expression, name)
     }),
     _ => None,

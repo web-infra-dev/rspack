@@ -36,7 +36,7 @@ impl JavascriptParser<'_> {
       | StmtData::ExportAllDeclaration(_)
       | StmtData::ExportNamedDeclaration(_)
       | StmtData::ExportDefaultDeclaration(_) => {
-        let drive = self.plugin_drive.clone();
+        let drive = self.plugin_drive();
         self.enter_statement(
           statement.span(ast),
           statement,
@@ -60,7 +60,7 @@ impl JavascriptParser<'_> {
   }
 
   pub fn block_pre_walk_statement(&mut self, statement: Statement) {
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     self.enter_statement(
       statement.span(self.ast.ast),
       statement,
@@ -94,7 +94,7 @@ impl JavascriptParser<'_> {
     if export.source(ast).is_some() {
       return;
     }
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     drive.export(self, ExportLocal::Named(export));
     if let Some(declaration) = export.0.declaration(ast) {
       let statement = Statement::from_stmt(ast, Stmt::Declaration(declaration));
@@ -122,7 +122,7 @@ impl JavascriptParser<'_> {
 
   fn block_pre_walk_export_default_declaration(&mut self, export: ExportDefaultDeclaration) {
     let ast = self.ast.ast;
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     drive.export(self, ExportLocal::Default(export));
     let expression = export.expression(ast);
     match expression {

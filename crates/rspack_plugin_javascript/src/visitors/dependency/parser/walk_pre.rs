@@ -114,7 +114,7 @@ impl JavascriptParser<'_> {
   }
 
   pub fn pre_walk_statement(&mut self, statement: Statement) {
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     self.enter_statement(
       statement.span(self.ast.ast),
       statement,
@@ -201,10 +201,7 @@ impl JavascriptParser<'_> {
   fn pre_walk_for_of_statement(&mut self, stmt: ForOfStatement) {
     let ast = self.ast.ast;
     if stmt.r#await(ast) && self.is_top_level_scope() {
-      self
-        .plugin_drive
-        .clone()
-        .top_level_for_of_await_stmt(self, stmt);
+      self.plugin_drive().top_level_for_of_await_stmt(self, stmt);
     }
     self.pre_walk_for_head(stmt.left(ast));
     self.pre_walk_statement(Statement::from_stmt(ast, stmt.body(ast)));
@@ -232,7 +229,7 @@ impl JavascriptParser<'_> {
   }
 
   pub(super) fn _pre_walk_variable_declaration(&mut self, decl: VariableDeclaration) {
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     let ast = self.ast.ast;
     for declarator in decl.declarators(ast) {
       self.pre_walk_variable_declarator(declarator);

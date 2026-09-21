@@ -803,7 +803,7 @@ pub fn is_pure_expression(
   comments: &RspackComments<'_>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
-  if let Some(result) = parser.plugin_drive.clone().is_pure(parser, expression) {
+  if let Some(result) = parser.plugin_drive().is_pure(parser, expression) {
     return result;
   }
 
