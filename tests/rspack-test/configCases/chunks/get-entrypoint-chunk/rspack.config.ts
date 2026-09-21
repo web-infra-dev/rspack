@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import { defineConfig, definePlugin } from '@rspack/cli';
+
+export default defineConfig({
+  entry: './index.js',
+  output: {
+    filename: '[name].js',
+  },
+  optimization: {
+    runtimeChunk: true,
+  },
+  plugins: [
+    definePlugin({
+      apply(compiler) {
+        compiler.hooks.thisCompilation.tap('test', (compilation) => {
+          compilation.hooks.afterSeal.tap('test', () => {
+            let entrypoint = compilation.entrypoints.get('main');
+            assert(entrypoint);
+            let entrypointChunk = entrypoint.getEntrypointChunk();
+            expect(entrypointChunk.name).toBe('main');
+            let chunks = entrypointChunk.getAllReferencedChunks();
+            expect([...chunks].map((c) => c.name)).toEqual([
+              'runtime~main',
+              'main',
+              'async',
+            ]);
+          });
+        });
+      },
+    }),
+  ],
+});
