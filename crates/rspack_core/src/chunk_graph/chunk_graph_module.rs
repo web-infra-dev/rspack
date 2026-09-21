@@ -433,7 +433,7 @@ impl ChunkGraph {
       .cached_module_graph_hash(
         (
           module.identifier(),
-          runtime.map(|r| get_runtime_key(r).clone()),
+          runtime.map(|r| get_runtime_key(r).as_str()),
         ),
         || {
           let mut hasher = FxHasher::default();
