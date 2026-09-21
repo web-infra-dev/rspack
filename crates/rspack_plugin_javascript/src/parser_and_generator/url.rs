@@ -9,22 +9,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::dependency::{URLDependency, is_url_value_module};
 
-pub(super) async fn promote_url_dependencies(
-  result: &mut ParseResult,
-  context: &mut ParseContext<'_>,
-) {
-  let mut promoted_dependencies = HashSet::default();
-  for dependency in iter_url_dependencies(result) {
-    if should_promote_url_dependency(dependency, context).await {
-      promoted_dependencies.insert(*dependency.id());
-    }
-  }
-  if !promoted_dependencies.is_empty() {
-    apply_url_dependency_promotions(result, context, &promoted_dependencies);
-  }
-}
-
-fn iter_url_dependencies(result: &ParseResult) -> impl Iterator<Item = &URLDependency> {
+pub(crate) fn iter_url_dependencies(result: &ParseResult) -> impl Iterator<Item = &URLDependency> {
   let mut blocks = result.blocks.iter().map(Box::as_ref).collect::<Vec<_>>();
   let block_dependencies = std::iter::from_fn(move || {
     let block = blocks.pop()?;
@@ -42,7 +27,7 @@ fn iter_url_dependencies(result: &ParseResult) -> impl Iterator<Item = &URLDepen
   )
 }
 
-fn apply_url_dependency_promotions(
+pub(crate) fn apply_url_dependency_promotions(
   result: &mut ParseResult,
   context: &ParseContext<'_>,
   promoted_dependencies: &HashSet<DependencyId>,
@@ -91,7 +76,7 @@ fn apply_url_dependency_promotions(
   }
 }
 
-async fn should_promote_url_dependency(
+pub(crate) async fn should_promote_url_dependency(
   url_dependency: &URLDependency,
   context: &mut ParseContext<'_>,
 ) -> bool {

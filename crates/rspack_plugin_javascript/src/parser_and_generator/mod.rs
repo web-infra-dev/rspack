@@ -432,7 +432,17 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         ..parse_context
       })?
       .split_into_parts();
-    url::promote_url_dependencies(&mut result, &mut parse_context).await;
+
+    let mut promoted_dependencies = FxHashSet::default();
+    for dependency in url::iter_url_dependencies(&result) {
+      if url::should_promote_url_dependency(dependency, &mut parse_context).await {
+        promoted_dependencies.insert(*dependency.id());
+      }
+    }
+    if !promoted_dependencies.is_empty() {
+      url::apply_url_dependency_promotions(&mut result, &mut parse_context, &promoted_dependencies);
+    }
+
     Ok(result.with_diagnostic(diagnostics))
   }
 
