@@ -20,6 +20,7 @@ use rspack_plugin_javascript::{
 use rspack_util::{
   SpanExt,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
+  placeholder::find_literal_placeholders,
 };
 
 use self::runtime_mode::{RuntimeImportRenderContext, RuntimeRenderContext, renderer_for};
@@ -735,24 +736,20 @@ var {} = {{}};
 
     let final_source = if replace_auto_public_path {
       let mut replace_source = ReplaceSource::new(final_source);
-      let mut replacement = vec![];
-      for (start, matched) in replace_source
-        .source()
-        .into_string_lossy()
-        .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
-      {
-        let start = start as u32;
-        let end = (start as usize + matched.len()) as u32;
+      let replacements: Vec<_> = find_literal_placeholders(
+        &replace_source.source().into_string_lossy(),
+        AUTO_PUBLIC_PATH_PLACEHOLDER,
+      )
+      .collect();
+      if !replacements.is_empty() {
         let relative = get_undo_path(
           &output_path,
           compilation.options.output.path.to_string(),
           true,
         );
-        replacement.push((start, end, relative));
-      }
-
-      for (start, end, relative) in replacement {
-        replace_source.replace(start, end, relative, None);
+        for range in replacements {
+          replace_source.replace(range.start as u32, range.end as u32, relative.clone(), None);
+        }
       }
 
       // concate module does this by render_module()

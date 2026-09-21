@@ -19,7 +19,7 @@ use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
-use rspack_util::fx_hash::FxDashMap;
+use rspack_util::{fx_hash::FxDashMap, placeholder::find_literal_placeholders};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use smol_str::SmolStr;
 
@@ -108,16 +108,13 @@ impl CssPlugin {
       Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules, &hooks).await?;
 
     let content = source.source().into_string_lossy();
-    let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
-    let auto_public_path_matches: Vec<_> = content
-      .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
-      .map(|(index, _)| (index, index + len))
-      .collect();
+    let auto_public_path_matches: Vec<_> =
+      find_literal_placeholders(&content, AUTO_PUBLIC_PATH_PLACEHOLDER).collect();
     let source = if !auto_public_path_matches.is_empty() {
       let mut replace = ReplaceSource::new(source);
-      for (start, end) in auto_public_path_matches {
-        let relative = PublicPath::render_auto_public_path(compilation, output_path);
-        replace.replace(start as u32, end as u32, relative, None);
+      let relative = PublicPath::render_auto_public_path(compilation, output_path);
+      for range in auto_public_path_matches {
+        replace.replace(range.start as u32, range.end as u32, relative.clone(), None);
       }
       replace.boxed()
     } else {

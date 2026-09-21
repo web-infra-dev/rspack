@@ -1,4 +1,3 @@
-use cow_utils::CowUtils;
 use rayon::prelude::*;
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, CodeGenerationDataChunkInitFragments,
@@ -13,6 +12,7 @@ use rspack_core::{
   runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_util::placeholder::{find_literal_placeholders, replace_placeholder};
 
 pub use crate::runtime_context::{
   render_hot_update_chunk_runtime_modules as render_rspack_hot_update_chunk_runtime_modules,
@@ -163,10 +163,12 @@ pub async fn render_module(
       compilation.options.output.path.to_string(),
       true,
     );
-    let request = asset_import
-      .request()
-      .cow_replace(AUTO_PUBLIC_PATH_PLACEHOLDER, &relative)
-      .into_owned();
+    let request = replace_placeholder(
+      asset_import.request(),
+      AUTO_PUBLIC_PATH_PLACEHOLDER,
+      &relative,
+    )
+    .into_owned();
     let position = compilation
       .get_module_graph()
       .get_pre_order_index(&module_identifier)
@@ -190,20 +192,17 @@ pub async fn render_module(
     .is_some()
   {
     let content = origin_source.source().into_string_lossy();
-    let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
-    let auto_public_path_matches: Vec<_> = content
-      .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
-      .map(|(index, _)| (index, index + len))
-      .collect();
+    let auto_public_path_matches: Vec<_> =
+      find_literal_placeholders(&content, AUTO_PUBLIC_PATH_PLACEHOLDER).collect();
     if !auto_public_path_matches.is_empty() {
       let mut replace = ReplaceSource::new(origin_source.clone());
-      for (start, end) in auto_public_path_matches {
-        let relative = get_undo_path(
-          output_path,
-          compilation.options.output.path.to_string(),
-          true,
-        );
-        replace.replace(start as u32, end as u32, relative, None);
+      let relative = get_undo_path(
+        output_path,
+        compilation.options.output.path.to_string(),
+        true,
+      );
+      for range in auto_public_path_matches {
+        replace.replace(range.start as u32, range.end as u32, relative.clone(), None);
       }
       RenderSource {
         source: replace.boxed(),

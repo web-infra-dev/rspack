@@ -5,7 +5,6 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::OnceCell;
 use regex::Regex;
@@ -20,6 +19,7 @@ use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
 use rspack_util::{
   identifier::{make_paths_relative, split_at_query_mark},
   itoa, json_stringify_str,
+  placeholder::{find_literal_placeholders, replace_placeholder},
 };
 use rustc_hash::{FxHashSet, FxHasher};
 
@@ -498,11 +498,14 @@ pub fn replace_css_module_id_placeholder_with_id<'a>(
   local_ident: &'a str,
   module_id: &str,
 ) -> Cow<'a, str> {
-  if !local_ident.contains(CSS_MODULE_ID_PLACEHOLDER) {
+  if find_literal_placeholders(local_ident, CSS_MODULE_ID_PLACEHOLDER)
+    .next()
+    .is_none()
+  {
     return Cow::Borrowed(local_ident);
   }
   let module_id = prepare_css_module_id(module_id);
-  let local_ident = local_ident.cow_replace(CSS_MODULE_ID_PLACEHOLDER, module_id.as_ref());
+  let local_ident = replace_placeholder(local_ident, CSS_MODULE_ID_PLACEHOLDER, module_id.as_ref());
   Cow::Owned(
     LEADING_DIGIT_REGEX
       .replace(&local_ident, "_${1}")

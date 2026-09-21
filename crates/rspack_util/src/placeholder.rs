@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{borrow::Cow, ops::Range};
 
 use memchr::memmem;
 
@@ -41,4 +41,35 @@ pub fn find_numeric_placeholders<'a>(
     let len = rest.bytes().take_while(u8::is_ascii_digit).count();
     (len > 0).then(|| (len, &rest[..len]))
   })
+}
+
+/// Finds complete literal placeholders and returns their byte ranges.
+pub fn find_literal_placeholders<'a>(
+  source: &'a str,
+  placeholder: &'a str,
+) -> impl Iterator<Item = Range<usize>> + 'a {
+  find_placeholders(source, placeholder, |_| Some((0, ()))).map(|(range, ())| range)
+}
+
+/// Replaces complete literal placeholders, borrowing the source when none match.
+/// Replacement text is inserted literally and is not scanned again.
+pub fn replace_placeholder<'a>(
+  source: &'a str,
+  placeholder: &str,
+  replacement: &str,
+) -> Cow<'a, str> {
+  let mut matches = find_literal_placeholders(source, placeholder).peekable();
+  if matches.peek().is_none() {
+    return Cow::Borrowed(source);
+  }
+
+  let mut result = String::with_capacity(source.len());
+  let mut end = 0;
+  for range in matches {
+    result.push_str(&source[end..range.start]);
+    result.push_str(replacement);
+    end = range.end;
+  }
+  result.push_str(&source[end..]);
+  Cow::Owned(result)
 }

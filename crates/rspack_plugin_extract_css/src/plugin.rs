@@ -26,6 +26,7 @@ use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
+use rspack_util::placeholder::replace_placeholder;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ustr::Ustr;
 
@@ -475,10 +476,11 @@ despite it was not able to fulfill desired ordering with these modules:
           self.options.enforce_relative,
         );
 
-        let content = content.cow_replace(ABSOLUTE_PUBLIC_PATH, "");
-        let content = content.cow_replace(SINGLE_DOT_PATH_SEGMENT, ".");
-        let content = content.cow_replace(AUTO_PUBLIC_PATH, &undo_path);
-        let content = content.cow_replace(
+        let content = replace_placeholder(&content, ABSOLUTE_PUBLIC_PATH, "");
+        let content = replace_placeholder(&content, SINGLE_DOT_PATH_SEGMENT, ".");
+        let content = replace_placeholder(&content, AUTO_PUBLIC_PATH, &undo_path);
+        let content = replace_placeholder(
+          &content,
           BASE_URI,
           chunk
             .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
