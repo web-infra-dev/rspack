@@ -100,7 +100,7 @@ impl KnownBuildInfo {
           .file_system_dependency_string_pool
           .borrow_mut()
           .session(env)
-          .prepare_values(
+          .queue_dependency_array_update(
             &mut updates,
             select(&module.build_info().dependencies).iter(),
           )

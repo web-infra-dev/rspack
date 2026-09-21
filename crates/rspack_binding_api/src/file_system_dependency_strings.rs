@@ -170,7 +170,7 @@ impl<'env> FileSystemDependencyStringPoolSession<'_, 'env> {
     self.insert(path.clone(), value)
   }
 
-  pub(crate) fn prepare_values<'path>(
+  pub(crate) fn queue_dependency_array_update<'path>(
     &mut self,
     updates: &mut IndexedArrayUpdateBatch<'env>,
     paths: impl IntoIterator<Item = &'path InternedPath>,
@@ -323,10 +323,10 @@ impl FileSystemDependencyPaths {
         let mut pool = compiler.file_system_dependency_string_pool.borrow_mut();
         let mut session = pool.session(env);
         (
-          session.prepare_values(&mut updates, &self.file)?,
-          session.prepare_values(&mut updates, &self.context)?,
-          session.prepare_values(&mut updates, &self.missing)?,
-          session.prepare_values(&mut updates, &self.build)?,
+          session.queue_dependency_array_update(&mut updates, &self.file)?,
+          session.queue_dependency_array_update(&mut updates, &self.context)?,
+          session.queue_dependency_array_update(&mut updates, &self.missing)?,
+          session.queue_dependency_array_update(&mut updates, &self.build)?,
         )
       };
       updates.apply(env, &compiler.js_helpers)?;

@@ -112,7 +112,7 @@ impl FileSystemDependencies {
         .file_system_dependency_string_pool
         .borrow_mut()
         .session(env)
-        .prepare_values(
+        .queue_dependency_array_update(
           &mut updates,
           dependency_counter.added_files().chain(dependencies),
         )?;
@@ -130,7 +130,7 @@ impl FileSystemDependencies {
         .file_system_dependency_string_pool
         .borrow_mut()
         .session(env)
-        .prepare_values(&mut updates, dependency_counter.removed_files())?;
+        .queue_dependency_array_update(&mut updates, dependency_counter.removed_files())?;
       updates.apply(env, &compiler.js_helpers)?;
       refreshed_array(env, array)
     })
