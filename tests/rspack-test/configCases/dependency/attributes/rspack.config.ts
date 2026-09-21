@@ -1,13 +1,16 @@
+import { defineConfig } from '@rspack/cli';
+import type { Compiler } from '@rspack/core';
+
 class Plugin {
-  apply(compiler) {
+  apply(compiler: Compiler) {
     compiler.hooks.compilation.tap('Test', (compilation) => {
       compilation.hooks.finishModules.tap('Test', () => {
         const entry = compilation.entries.get('main');
-        const entryDependency = entry.dependencies[0];
+        const entryDependency = entry!.dependencies[0];
         const entryModule = compilation.moduleGraph.getModule(entryDependency);
 
-        const getDepsByRequest = (request) =>
-          entryModule.dependencies.filter((dep) => dep.request === request);
+        const getDepsByRequest = (request: string) =>
+          entryModule!.dependencies.filter((dep) => dep.request === request);
 
         const staticDeps = getDepsByRequest('./data.json');
         expect(staticDeps.length).toBeGreaterThan(0);
@@ -24,29 +27,31 @@ class Plugin {
         const plainDep = getDepsByRequest('./plain')[0];
         expect(plainDep.attributes).toBe(undefined);
 
-        const blockDeps = entryModule.blocks.flatMap(
+        const blockDeps = entryModule!.blocks.flatMap(
           (block) => block.dependencies,
         );
         const dynamicDep = blockDeps.find(
           (dep) => dep.request === './async.json',
         );
-        expect(dynamicDep.attributes).toEqual({ type: 'json' });
+        expect(dynamicDep?.attributes).toEqual({ type: 'json' });
 
-        const dynamicConnection =
-          compilation.moduleGraph.getConnection(dynamicDep);
-        expect(dynamicConnection.dependency.attributes).toEqual({
+        const dynamicConnection = compilation.moduleGraph.getConnection(
+          dynamicDep!,
+        );
+        expect(dynamicConnection?.dependency.attributes).toEqual({
           type: 'json',
         });
 
-        const contextDep = entryModule.dependencies.find(
+        const contextDep = entryModule!.dependencies.find(
           (dep) => dep.type === 'import context',
         );
-        expect(contextDep.attributes).toEqual({ type: 'json' });
+        expect(contextDep?.attributes).toEqual({ type: 'json' });
 
-        const contextModule =
-          compilation.moduleGraph.getConnection(contextDep).module;
+        const contextModule = compilation.moduleGraph.getConnection(
+          contextDep!,
+        )!.module;
         const contextElementConnections = compilation.moduleGraph
-          .getOutgoingConnections(contextModule)
+          .getOutgoingConnections(contextModule!)
           .filter((connection) => {
             return connection.dependency?.type === 'import() context element';
           });
@@ -61,8 +66,7 @@ class Plugin {
   }
 }
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   entry: './index.js',
   plugins: [new Plugin()],
-};
+});

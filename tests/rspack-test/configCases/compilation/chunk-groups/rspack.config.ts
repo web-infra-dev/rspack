@@ -1,10 +1,10 @@
+import { defineConfig } from '@rspack/cli';
+import type { Compiler } from '@rspack/core';
+
 const PLUGIN_NAME = 'plugin';
 
 class Plugin {
-  /**
-   * @param {import("@rspack/core").Compiler} compiler
-   */
-  apply(compiler) {
+  apply(compiler: Compiler) {
     compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
       compilation.hooks.afterProcessAssets.tap(PLUGIN_NAME, () => {
         const res = [];
@@ -16,7 +16,7 @@ class Plugin {
             });
           }
         }
-        res.sort((a, b) => a.request.localeCompare(b.request));
+        res.sort((a, b) => a.request!.localeCompare(b.request!));
         expect(res).toMatchInlineSnapshot(`
 					Array [
 					  Object {
@@ -56,7 +56,6 @@ class Plugin {
   }
 }
 
-/**@type {import("@rspack/core").Configuration}*/
-export default {
+export default defineConfig({
   plugins: [new Plugin()],
-};
+});

@@ -1,19 +1,19 @@
+import { defineConfig } from '@rspack/cli';
+import type { Compiler } from '@rspack/core';
+
 const PLUGIN_NAME = 'plugin';
 
 class Plugin {
-  /**
-   * @param {import("@rspack/core").Compiler} compiler
-   */
-  apply(compiler) {
+  apply(compiler: Compiler) {
     const { Source } = compiler.rspack.sources;
 
     compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
       compilation.hooks.afterProcessAssets.tap(PLUGIN_NAME, () => {
         const entry = compilation.entries.get('main');
-        const entryDependency = entry.dependencies[0];
+        const entryDependency = entry!.dependencies[0];
         const entryModule = compilation.moduleGraph.getModule(entryDependency);
         const codeGenerationResult = compilation.codeGenerationResults.get(
-          entryModule,
+          entryModule!,
           'main',
         );
         expect(codeGenerationResult.sources.get('javascript')).toBeInstanceOf(
@@ -24,8 +24,7 @@ class Plugin {
   }
 }
 
-/**@type {import("@rspack/core").Configuration}*/
-export default {
+export default defineConfig({
   entry: './index.js',
   plugins: [new Plugin()],
-};
+});
