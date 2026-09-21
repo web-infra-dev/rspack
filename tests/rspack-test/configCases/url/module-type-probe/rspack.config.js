@@ -6,13 +6,22 @@ module.exports = {
   devtool: false,
   target: 'web',
   output: {
-    filename: 'bundle.js',
+    filename: 'bundle0.js',
     chunkFilename: 'url-[id].js',
     publicPath: '/assets/',
     assetModuleFilename: '[name][ext]',
   },
   module: {
     rules: [
+      { test: /resource\.txt$/, dependency: 'url', type: 'asset/resource' },
+      { test: /inline\.txt$/, dependency: 'url', type: 'asset/inline' },
+      { test: /[/\\]source\.txt$/, dependency: 'url', type: 'asset/source' },
+      {
+        test: /custom\.txt$/,
+        dependency: 'url',
+        type: 'asset/resource',
+        generator: { publicPath: '/custom/', filename: '[name][ext]' },
+      },
       { test: /target\.js$/, dependency: 'url', type: 'javascript/auto' },
       { test: /target\.txt$/, dependency: 'url', type: 'asset/resource' },
     ],
@@ -38,6 +47,18 @@ module.exports = {
             issuer.blocks[0].dependencies[0],
           );
           expect(blockTarget.type).toBe('javascript/auto');
+          const assetIssuer = [...modules].find(
+            (module) => module.rawRequest === './assets.js',
+          );
+          expect(assetIssuer.blocks).toHaveLength(1);
+          expect(
+            assetIssuer.blocks[0].dependencies.filter(
+              (dep) => dep.type === 'new URL()',
+            ),
+          ).toHaveLength(4);
+          expect(
+            assetIssuer.dependencies.filter((dep) => dep.type === 'new URL()'),
+          ).toHaveLength(4);
           for (const target of ['target.js', 'target.txt']) {
             expect(
               builds.filter(
@@ -45,6 +66,12 @@ module.exports = {
               ),
             ).toHaveLength(1);
           }
+        });
+        compilation.hooks.processAssets.tap('CheckUrlAssets', () => {
+          expect(compilation.getAsset('resource.txt')).toBeDefined();
+          expect(compilation.getAsset('custom.txt')).toBeDefined();
+          expect(compilation.getAsset('inline.txt')).toBeUndefined();
+          expect(compilation.getAsset('source.txt')).toBeUndefined();
         });
       });
     },

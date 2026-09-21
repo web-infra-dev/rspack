@@ -1,3 +1,5 @@
+import "./assets.js";
+
 const script = new URL('./replace-target.txt', import.meta.url);
 const asset = new URL('./replace-target.js', import.meta.url);
 

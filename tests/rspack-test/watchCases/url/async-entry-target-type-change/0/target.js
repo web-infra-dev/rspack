@@ -1,1 +1,0 @@
-globalThis.URL_TARGET_TYPE_CHANGE_EXECUTED = true;

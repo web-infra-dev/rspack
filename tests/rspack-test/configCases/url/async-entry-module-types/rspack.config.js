@@ -26,6 +26,41 @@ class CheckUrlEntriesPlugin {
           directUrlDependencies.map((dependency) => dependency.request).sort(),
         ).toEqual(['./target-asset.js', './target.png']);
 
+        const nestedModule = [...compilation.modules].find(
+          (module) => module.rawRequest === './nested.js',
+        );
+        expect(nestedModule).toBeDefined();
+        expect(nestedModule.blocks).toHaveLength(1);
+        expect(
+          nestedModule.dependencies.filter(
+            (dependency) => dependency.type === 'new URL()',
+          ),
+        ).toHaveLength(0);
+        const outer = nestedModule.blocks[0];
+        expect(outer.blocks).toHaveLength(2);
+        expect(
+          outer.dependencies.filter(
+            (dependency) => dependency.type === 'new URL()',
+          ),
+        ).toHaveLength(0);
+        const inner = outer.blocks.find((block) => block.blocks.length === 1);
+        const outerEntry = outer.blocks.find(
+          (block) => block.blocks.length === 0,
+        );
+        expect(inner).toBeDefined();
+        expect(
+          outerEntry.dependencies.map((dependency) => dependency.request),
+        ).toEqual(['./target-a.js']);
+        expect(
+          inner.blocks[0].dependencies.map((dependency) => dependency.request),
+        ).toEqual(['./target-b.js']);
+        expect(
+          inner.dependencies
+            .filter((dependency) => dependency.type === 'new URL()')
+            .map((dependency) => dependency.request)
+            .sort(),
+        ).toEqual(['./target-asset.js', './target.png']);
+
         const assetModule = Array.from(compilation.modules).find(
           (module) => module.rawRequest === './target-asset.js',
         );
@@ -44,10 +79,13 @@ class CheckUrlEntriesPlugin {
             asset.endsWith(`.${this.scriptExtension}`),
           );
           expect(
-            scriptAssets.filter((asset) =>
-              asset.startsWith(`url-${this.name}-`),
+            scriptAssets.filter(
+              (asset) =>
+                asset.startsWith(`url-${this.name}-`) &&
+                !asset.includes('-inner.') &&
+                !asset.includes('-outer.'),
             ),
-          ).toHaveLength(2);
+          ).toHaveLength(4);
           expect(assets).toContain(`target-${this.name}.png`);
           expect(assets).toContain(`target-asset-${this.name}.js`);
         },
