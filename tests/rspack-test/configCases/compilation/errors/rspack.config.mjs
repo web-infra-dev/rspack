@@ -41,7 +41,7 @@ export default {
         test: /\.js$/,
         use: [
           {
-            loader: fileURLToPath(import.meta.resolve('./loader.js')),
+            loader: fileURLToPath(import.meta.resolve('./loader.mjs')),
           },
         ],
       },

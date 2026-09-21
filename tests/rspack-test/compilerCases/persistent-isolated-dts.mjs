@@ -108,7 +108,7 @@ export default [
                   }
                 },
                 {
-                  loader: path.join(workDir, "count-loader.js"),
+                  loader: path.join(workDir, "count-loader.mjs"),
                   cache: true,
                   options: { counterFile }
                 }

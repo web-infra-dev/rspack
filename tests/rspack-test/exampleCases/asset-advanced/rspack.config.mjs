@@ -1,4 +1,5 @@
 import svgToMiniDataURI from 'mini-svg-data-uri';
+
 export default {
   output: {
     assetModuleFilename: 'images/[hash][ext]',

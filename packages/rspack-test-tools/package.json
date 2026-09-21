@@ -32,6 +32,9 @@
       "import": "./dist/helper/setup-wasm.js",
       "require": "./dist/helper/setup-wasm.cjs"
     },
+    "./rstest": {
+      "types": "./rstest.d.ts"
+    },
     "./package.json": "./package.json",
     "./helper/*": {
       "types": "./dist/helper/*.d.ts",

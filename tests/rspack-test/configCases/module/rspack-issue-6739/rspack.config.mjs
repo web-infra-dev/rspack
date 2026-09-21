@@ -5,7 +5,7 @@ export default {
     rules: [
       {
         test: /foo/,
-        loader: './loader',
+        loader: './loader.mjs',
         descriptionData: {
           componentId: (componentIdData) => {
             foo.componentIdData = componentIdData;
@@ -19,7 +19,7 @@ export default {
       },
       {
         test: /bar/,
-        loader: './empty-loader',
+        loader: './empty-loader.mjs',
         descriptionData: {
           _custom_key: (customKey) => {
             bar.customKey = customKey;

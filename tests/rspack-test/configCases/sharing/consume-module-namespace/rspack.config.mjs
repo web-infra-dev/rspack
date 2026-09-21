@@ -1,4 +1,5 @@
 import { sharing } from '@rspack/core';
+
 export default [false, true].flatMap((eager) =>
   [false, true].map((concatenateModules) => ({
     mode: 'production',

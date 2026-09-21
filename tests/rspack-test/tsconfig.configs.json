@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "composite": false,
+    "allowJs": false,
+    "checkJs": false,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node", "./rstest.d.ts"]
+  },
+  "include": ["**/rspack.config.ts"],
+  "exclude": ["node_modules", "**/dist", "js"]
+}

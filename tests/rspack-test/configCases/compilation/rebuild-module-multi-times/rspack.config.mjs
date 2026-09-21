@@ -42,7 +42,7 @@ export default {
         test: /a\.js$/,
         use: [
           {
-            loader: './loader',
+            loader: './loader.mjs',
           },
         ],
       },

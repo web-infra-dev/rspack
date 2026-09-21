@@ -6,7 +6,7 @@ export default {
   options(context) {
     return {
       context: context.getSource(),
-      entry: "./count-loader!./count-loader",
+      entry: "./count-loader.mjs!./count-loader.mjs",
       devtool: false,
       mode: "development",
       output: {
@@ -25,7 +25,7 @@ export default {
             "/directory/main.js",
             "utf-8"
           );
-          expect(result).toContain("module.exports = 0;");
+          expect(result).toContain("const __rspack_default_export = (0);");
           resolve();
         });
       });

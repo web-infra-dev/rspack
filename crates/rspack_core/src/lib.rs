@@ -327,8 +327,8 @@ pub struct ChunkByUkey {
 }
 
 impl ChunkByUkey {
-  pub(crate) fn reserve(&mut self, additional: usize) {
-    self.inner.reserve(additional);
+  pub(crate) fn reserve_capacity(&mut self, total: usize) {
+    self.inner.reserve(total.saturating_sub(self.inner.len()));
   }
 
   pub fn get(&self, ukey: &ChunkUkey) -> Option<&Chunk> {
@@ -411,12 +411,8 @@ pub struct ChunkGroupByUkey {
 }
 
 impl ChunkGroupByUkey {
-  pub(crate) fn reserve(&mut self, additional: usize) {
-    self.inner.reserve(additional);
-  }
-
-  pub(crate) fn len(&self) -> usize {
-    self.inner.len()
+  pub(crate) fn reserve_capacity(&mut self, total: usize) {
+    self.inner.reserve(total.saturating_sub(self.inner.len()));
   }
 
   pub fn get(&self, ukey: &ChunkGroupUkey) -> Option<&ChunkGroup> {

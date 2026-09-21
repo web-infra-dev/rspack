@@ -1,0 +1,35 @@
+import { defineConfig } from '@rspack/cli';
+import { SubresourceIntegrityPlugin, container } from '@rspack/core';
+
+export default defineConfig({
+  target: 'web',
+  optimization: {
+    moduleIds: 'named',
+  },
+  performance: {
+    hints: false,
+  },
+  plugins: [
+    new SubresourceIntegrityPlugin(),
+    new container.ModuleFederationPlugin({
+      name: 'app',
+      filename: 'remoteEntry.js',
+      exposes: {
+        './render': './render.js',
+      },
+      shared: {
+        react: {
+          singleton: true,
+          requiredVersion: '^19.0.0',
+        },
+        'react-dom': {
+          singleton: true,
+          requiredVersion: '^19.0.0',
+        },
+      },
+    }),
+  ],
+  output: {
+    crossOriginLoading: 'anonymous',
+  },
+});

@@ -8,8 +8,8 @@ use rustc_hash::FxHashSet;
 
 use super::alternatives::{TempDependency, TempModule};
 use crate::{
-  AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BoxDependency, Dependency,
-  DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
+  AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BoxDependency, DependenciesBlock,
+  Dependency, DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
   ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, ModuleRef,
   RayonConsumer,
   cache::CacheCodec,
@@ -183,8 +183,13 @@ pub async fn recovery_module_graph(
         need_check_dep.push((con.id, *con.module_identifier()));
         mg.cache_recovery_connection(con);
       }
-      for block in node.blocks {
-        let block = block.into_owned();
+      let mut blocks = node
+        .blocks
+        .into_iter()
+        .map(OwnedOrRef::into_owned)
+        .collect::<Vec<_>>();
+      while let Some(block) = blocks.pop() {
+        blocks.extend(block.get_block_refs().iter().cloned());
         mg.add_block(block);
       }
       if let Some(lazy_info) = node.lazy_info {

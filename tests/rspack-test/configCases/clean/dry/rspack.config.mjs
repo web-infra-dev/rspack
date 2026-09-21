@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import readDir from '../enabled/readdir.mjs';
+import readDir from '../enabled/readdir.ts';
 import { rspack } from '@rspack/core';
 
 const { RawSource } = rspack.sources;

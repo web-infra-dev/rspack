@@ -6,7 +6,7 @@ export default {
     rules: [
       {
         test: /\.css$/,
-        use: [CssExtractRspackPlugin.loader, 'css-loader', './loader.js'],
+        use: [CssExtractRspackPlugin.loader, 'css-loader', './loader.mjs'],
         type: 'javascript/auto',
       },
     ],

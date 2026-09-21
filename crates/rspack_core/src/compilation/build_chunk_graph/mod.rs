@@ -21,16 +21,14 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
   // Each async block can create a chunk/group. This is an upper-bound estimate:
   // inlined/unreachable blocks and shared names can reduce the actual counts.
   let artifact = &mut compilation.build_chunk_graph_artifact;
-  let chunk_graph_modules = &mut artifact.chunk_graph.chunk_graph_module_by_module_identifier;
-  chunk_graph_modules.reserve(all_modules.len().saturating_sub(chunk_graph_modules.len()));
-  let chunk_graph_chunks = &mut artifact.chunk_graph.chunk_graph_chunk_by_chunk_ukey;
-  chunk_graph_chunks.reserve(estimated_chunk_count.saturating_sub(chunk_graph_chunks.len()));
+  artifact.chunk_graph.reserve_modules(all_modules.len());
+  artifact.chunk_graph.reserve_chunks(estimated_chunk_count);
   artifact
     .chunk_by_ukey
-    .reserve(estimated_chunk_count.saturating_sub(artifact.chunk_by_ukey.len()));
+    .reserve_capacity(estimated_chunk_count);
   artifact
     .chunk_group_by_ukey
-    .reserve(estimated_chunk_group_count.saturating_sub(artifact.chunk_group_by_ukey.len()));
+    .reserve_capacity(estimated_chunk_group_count);
   artifact
     .entrypoints
     .reserve(entrypoint_count.saturating_sub(artifact.entrypoints.len()));
