@@ -125,7 +125,7 @@ export declare class Chunk {
   get id(): string | number | undefined
   get ids(): Array<string | number>
   get idNameHints(): Array<string>
-  get filenameTemplate(): string | undefined
+  get filenameTemplate(): JsFilename | undefined
   get cssFilenameTemplate(): string | undefined
   get _files(): Array<string>
   get _runtime(): Array<string>

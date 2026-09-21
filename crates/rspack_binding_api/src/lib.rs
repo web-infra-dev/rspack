@@ -132,6 +132,7 @@ use crate::{
   compiler_scoped_tsfn::{CompilerScopedTsFnHandle, CompilerScopedTsFnManager},
   dependency::DependencyWrapper,
   error::{ErrorCode, RspackResultToNapiResultExt},
+  filename::CompilerScopedFilenameTsFnManager,
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
   logging::{InfrastructureLogDispatcher, JsLog},
   module::ModuleObject,
@@ -232,6 +233,7 @@ struct JsCompiler {
   unsafe_fast_drop: bool,
   infrastructure_log_dispatcher: Arc<InfrastructureLogDispatcher>,
   compiler_scoped_tsfn_manager: CompilerScopedTsFnManager,
+  compiler_scoped_filename_tsfn_manager: CompilerScopedFilenameTsFnManager,
   js_hooks_plugin: JsHooksAdapterPlugin,
   // call drop manually to avoid unnecessary drop overhead in cli build
   compiler: ManuallyDrop<Compiler>,
@@ -268,15 +270,22 @@ impl JsCompiler {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
 
     let compiler_scoped_tsfn_manager = CompilerScopedTsFnManager::new();
-    // Parse constructor inputs inside the manager scope so any nested callback fields in
-    // options, builtin plugins, or hook registrations become compiler-scoped TSFNs.
-    let mut options: RawOptions = compiler_scoped_tsfn_manager
-      .scope(|| unsafe { RawOptions::from_napi_value(env.raw(), raw_options.raw()) })?;
-    let builtin_plugins: Vec<BuiltinPlugin> = compiler_scoped_tsfn_manager.scope(|| unsafe {
-      Vec::<BuiltinPlugin>::from_napi_value(env.raw(), raw_builtin_plugins.raw())
+    let compiler_scoped_filename_tsfn_manager = CompilerScopedFilenameTsFnManager::default();
+    // Parse constructor inputs inside both compiler-owned scopes so nested callbacks become
+    // compiler-scoped TSFNs and filename functions retain their original JavaScript handles.
+    let mut options: RawOptions = compiler_scoped_filename_tsfn_manager.scope(|| {
+      compiler_scoped_tsfn_manager
+        .scope(|| unsafe { RawOptions::from_napi_value(env.raw(), raw_options.raw()) })
     })?;
-    let register_js_taps: RegisterJsTaps = compiler_scoped_tsfn_manager.scope(|| unsafe {
-      RegisterJsTaps::from_napi_value(env.raw(), raw_register_js_taps.raw())
+    let builtin_plugins: Vec<BuiltinPlugin> =
+      compiler_scoped_filename_tsfn_manager.scope(|| {
+        compiler_scoped_tsfn_manager.scope(|| unsafe {
+          Vec::<BuiltinPlugin>::from_napi_value(env.raw(), raw_builtin_plugins.raw())
+        })
+      })?;
+    let register_js_taps: RegisterJsTaps = compiler_scoped_filename_tsfn_manager.scope(|| {
+      compiler_scoped_tsfn_manager
+        .scope(|| unsafe { RegisterJsTaps::from_napi_value(env.raw(), raw_register_js_taps.raw()) })
     })?;
     let infrastructure_log_callback: CompilerScopedTsFnHandle<Vec<JsLog>, ()> =
       compiler_scoped_tsfn_manager.scope(|| unsafe {
@@ -316,7 +325,9 @@ impl JsCompiler {
       plugins.push(js_cleanup_plugin.boxed());
 
       for bp in builtin_plugins {
-        compiler_scoped_tsfn_manager.scope(|| bp.append_to(env, &mut this, &mut plugins))?;
+        compiler_scoped_filename_tsfn_manager.scope(|| {
+          compiler_scoped_tsfn_manager.scope(|| bp.append_to(env, &mut this, &mut plugins))
+        })?;
       }
 
       let pnp = options.resolve.pnp.unwrap_or(false);
@@ -409,6 +420,7 @@ impl JsCompiler {
       Ok(Self {
         infrastructure_log_dispatcher,
         compiler_scoped_tsfn_manager,
+        compiler_scoped_filename_tsfn_manager,
         compiler: ManuallyDrop::new(Compiler::from(rspack)),
         state: CompilerState::init(),
         js_hooks_plugin,
@@ -520,6 +532,7 @@ impl JsCompiler {
     });
     let Ok(mut promise) = spawn_future_result else {
       self.compiler_scoped_tsfn_manager.release();
+      self.compiler_scoped_filename_tsfn_manager.release();
       drop(reference);
       return spawn_future_result;
     };
@@ -530,6 +543,7 @@ impl JsCompiler {
         .js_hooks_plugin
         .clear_cache(self.compiler.compilation.id());
       self.compiler_scoped_tsfn_manager.release();
+      self.compiler_scoped_filename_tsfn_manager.release();
       drop(reference);
       Ok(())
     })
@@ -552,6 +566,13 @@ impl JsCompiler {
 struct RunGuard {
   _compiler_state_guard: CompilerStateGuard,
   _reference: Reference<JsCompiler>,
+  filename_tsfn_manager: CompilerScopedFilenameTsFnManager,
+}
+
+impl Drop for RunGuard {
+  fn drop(&mut self) {
+    self.filename_tsfn_manager.sweep();
+  }
 }
 
 impl JsCompiler {
@@ -588,6 +609,7 @@ impl JsCompiler {
     let guard = RunGuard {
       _compiler_state_guard: compiler_state_guard,
       _reference: reference,
+      filename_tsfn_manager: self.compiler_scoped_filename_tsfn_manager.clone(),
     };
 
     self.cleanup_last_compilation(&compiler.compilation);

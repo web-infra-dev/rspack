@@ -8,17 +8,22 @@ use napi::{
   sys,
 };
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId, chunk_graph_chunk::ChunkId};
+use rspack_core::{Compilation, CompilationId, CompilerId, chunk_graph_chunk::ChunkId};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  chunk_group::ChunkGroupWrapper, compilation::entries::EntryOptionsDTO, with_compilation,
+  COMPILER_REFERENCES,
+  chunk_group::ChunkGroupWrapper,
+  compilation::entries::EntryOptionsDTO,
+  filename::{CompilerScopedFilenameTsFnManager, JsFilenameFunction},
+  with_compilation,
 };
 
 #[napi]
 pub struct Chunk {
   pub(crate) chunk_ukey: rspack_core::ChunkUkey,
+  compiler_id: CompilerId,
   compilation_id: CompilationId,
 }
 
@@ -48,6 +53,49 @@ impl Chunk {
         )))
       }
     })
+  }
+
+  fn with_ref_and_filename_tsfn_manager<R>(
+    &self,
+    f: impl FnOnce(
+      &Compilation,
+      &rspack_core::Chunk,
+      &CompilerScopedFilenameTsFnManager,
+    ) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+      let references = ref_cell.borrow();
+      references.get(&self.compiler_id).cloned()
+    });
+
+    let Some(compiler) = compiler_reference
+      .as_ref()
+      .and_then(|compiler_reference| compiler_reference.get())
+      .filter(|compiler| compiler.compiler.compilation.id() == self.compilation_id)
+    else {
+      return Err(napi::Error::from_reason(format!(
+        "Unable to access compilation with id = {:?} now. The Compilation has been removed on the Rust side or the Compiler has been garbage collected by JavaScript.",
+        self.compilation_id
+      )));
+    };
+
+    let compilation = &compiler.compiler.compilation;
+    let Some(chunk) = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(&self.chunk_ukey)
+    else {
+      return Err(napi::Error::from_reason(format!(
+        "Unable to access chunk with id = {:?} now. The chunk have been removed on the Rust side.",
+        self.chunk_ukey
+      )));
+    };
+
+    f(
+      compilation,
+      chunk,
+      &compiler.compiler_scoped_filename_tsfn_manager,
+    )
   }
 }
 
@@ -103,12 +151,27 @@ impl Chunk {
     })
   }
 
-  #[napi(getter)]
-  pub fn filename_template<'a>(&self, env: &'a Env) -> napi::Result<Either<JsString<'a>, ()>> {
-    self.with_ref(|_, chunk| {
-      Ok(match chunk.filename_template().and_then(|f| f.template()) {
-        Some(tpl) => Either::A(env.create_string(tpl)?),
-        None => Either::B(()),
+  #[napi(getter, ts_return_type = "JsFilename | undefined")]
+  pub fn filename_template<'a>(
+    &self,
+    env: &'a Env,
+  ) -> napi::Result<Either3<JsString<'a>, JsFilenameFunction<'a>, ()>> {
+    self.with_ref_and_filename_tsfn_manager(|_, chunk, manager| {
+      let Some(filename) = chunk.filename_template() else {
+        return Ok(Either3::C(()));
+      };
+      if let Some(template) = filename.template() {
+        return Ok(Either3::A(env.create_string(template)?));
+      }
+      let function = manager.get(filename, env)?;
+      debug_assert!(
+        function.is_some(),
+        "chunk.filenameTemplate for chunk {:?} contains a filename function that is not backed by JavaScript",
+        self.chunk_ukey
+      );
+      Ok(match function {
+        Some(function) => Either3::B(function),
+        None => Either3::C(()),
       })
     })
   }
@@ -318,6 +381,7 @@ thread_local! {
 
 pub struct ChunkWrapper {
   pub chunk_ukey: rspack_core::ChunkUkey,
+  pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
 }
 
@@ -326,6 +390,7 @@ impl FromNapiValue for ChunkWrapper {
     let chunk: &Chunk = unsafe { FromNapiValue::from_napi_value(env, napi_val)? };
     Ok(Self {
       chunk_ukey: chunk.chunk_ukey,
+      compiler_id: chunk.compiler_id,
       compilation_id: chunk.compilation_id,
     })
   }
@@ -335,13 +400,19 @@ impl ChunkWrapper {
   pub fn new(chunk_ukey: rspack_core::ChunkUkey, compilation: &Compilation) -> Self {
     Self {
       chunk_ukey,
+      compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),
     }
   }
 
-  pub fn new_by_id(chunk_ukey: rspack_core::ChunkUkey, compilation_id: CompilationId) -> Self {
+  pub fn new_by_id(
+    chunk_ukey: rspack_core::ChunkUkey,
+    compiler_id: CompilerId,
+    compilation_id: CompilationId,
+  ) -> Self {
     Self {
       chunk_ukey,
+      compiler_id,
       compilation_id,
     }
   }
@@ -398,6 +469,7 @@ impl ToNapiValue for ChunkWrapper {
           std::collections::hash_map::Entry::Vacant(entry) => {
             let js_chunk = Chunk {
               chunk_ukey: val.chunk_ukey,
+              compiler_id: val.compiler_id,
               compilation_id: val.compilation_id,
             };
             let r = entry.insert(OneShotRef::new(env, js_chunk)?);
