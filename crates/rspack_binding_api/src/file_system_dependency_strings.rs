@@ -71,7 +71,7 @@ impl FileSystemDependencyStringPool {
       ));
     }
     let artifact = &compilation.build_module_graph_artifact;
-    let sources = [
+    let dependency_sources = [
       (&artifact.file_dependencies, &compilation.file_dependencies),
       (
         &artifact.context_dependencies,
@@ -95,9 +95,11 @@ impl FileSystemDependencyStringPool {
         .enumerate()
         .rev()
         .filter(|&(_, path)| {
-          !sources.iter().any(|(counter, plugin_paths)| {
-            counter.related_resource_ids(path).is_some() || plugin_paths.contains(path)
-          })
+          !dependency_sources
+            .iter()
+            .any(|(dependency_counter, dependencies)| {
+              dependency_counter.related_resource_ids(path).is_some() || dependencies.contains(path)
+            })
         })
         .map(|(index, _)| index as u32)
         .collect(),

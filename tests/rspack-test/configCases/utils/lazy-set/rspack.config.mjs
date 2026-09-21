@@ -97,6 +97,12 @@ export default {
               if (visited.length === 0) {
                 deps.delete(third);
                 deps.add(fourth);
+                // A nested read replaces the cached snapshot, but this forEach
+                // must finish iterating the snapshot it started with.
+                const changed = Array.from(deps);
+                expect(changed).not.toContain(third);
+                expect(changed).toContain(fourth);
+                expect(Array.from(deps)).toEqual(changed);
               }
               visited.push(value);
             });

@@ -1,5 +1,6 @@
 import util from 'node:util';
 import type { FileSystemDependencies as BindingFileSystemDependencies } from '@rspack/binding';
+import { getArraySnapshot } from './util/arrayHelpers';
 
 export interface FileSystemDependencies {
   readonly size: number;
@@ -54,9 +55,9 @@ class FileSystemDependenciesWrapper implements FileSystemDependencies {
 
   #snapshotValues() {
     this.#flush();
-    // The binding updates one shared array in place. Iterators and callbacks
-    // keep an independent snapshot of the values visible at their start.
-    return this.#inner.values().slice();
+    // Native updates invalidate the cached snapshot. Repeated reads share it;
+    // existing iterators and callbacks retain their snapshot across mutations.
+    return getArraySnapshot(this.#inner.values());
   }
 
   get size() {

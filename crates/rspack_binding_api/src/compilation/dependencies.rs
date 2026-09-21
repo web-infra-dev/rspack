@@ -17,8 +17,8 @@ use crate::{
 /// Native operations on the owning compiler's current dependency collection.
 #[napi]
 pub struct FileSystemDependencies {
-  select_sources: fn(&Compilation) -> (&FileCounter, &InternedPathIndexSet),
-  select_additions: fn(&mut Compilation) -> &mut InternedPathIndexSet,
+  get_dependencies: fn(&Compilation) -> (&FileCounter, &InternedPathIndexSet),
+  get_dependencies_mut: fn(&mut Compilation) -> &mut InternedPathIndexSet,
   compiler_id: CompilerId,
   excluded_paths: InternedPathSet,
   array_cache: FileSystemDependencyArrayCache,
@@ -59,12 +59,12 @@ fn with_current_compilation_mut<R>(
 impl FileSystemDependencies {
   pub fn new(
     compiler_id: CompilerId,
-    select_sources: fn(&Compilation) -> (&FileCounter, &InternedPathIndexSet),
-    select_additions: fn(&mut Compilation) -> &mut InternedPathIndexSet,
+    get_dependencies: fn(&Compilation) -> (&FileCounter, &InternedPathIndexSet),
+    get_dependencies_mut: fn(&mut Compilation) -> &mut InternedPathIndexSet,
   ) -> Self {
     Self {
-      select_sources,
-      select_additions,
+      get_dependencies,
+      get_dependencies_mut,
       compiler_id,
       array_cache: Default::default(),
       excluded_paths: InternedPathSet::default(),
@@ -78,16 +78,16 @@ impl FileSystemDependencies {
   ) -> napi::Result<()> {
     let paths = intern_js_values(env, self.compiler_id, values)?;
     with_current_compilation_mut(self.compiler_id, |compilation| {
-      let additions = (self.select_additions)(compilation);
+      let dependencies = (self.get_dependencies_mut)(compilation);
       for path in paths {
         self.excluded_paths.remove(&path);
-        additions.insert(path);
+        dependencies.insert(path);
       }
       Ok(())
     })
   }
 
-  fn sources<'a>(
+  fn dependency_sources<'a>(
     &self,
     compilation: &'a Compilation,
   ) -> napi::Result<(&'a FileCounter, &'a InternedPathIndexSet)> {
@@ -96,7 +96,7 @@ impl FileSystemDependencies {
         "Compilation dependencies are not available while a compilation pass is holding the module graph artifact",
       ));
     }
-    Ok((self.select_sources)(compilation))
+    Ok((self.get_dependencies)(compilation))
   }
 }
 
@@ -105,13 +105,17 @@ impl FileSystemDependencies {
   #[napi(getter, ts_return_type = "Array<string>")]
   pub fn added<'env>(&self, env: &'env Env) -> napi::Result<Array<'env>> {
     with_compiler(env, self.compiler_id, |compiler| {
-      let (counter, plugin_paths) = self.sources(&compiler.compiler.compilation)?;
+      let (dependency_counter, dependencies) =
+        self.dependency_sources(&compiler.compiler.compilation)?;
       let mut updates = IndexedArrayUpdateBatch::default();
       let array = compiler
         .file_system_dependency_string_pool
         .borrow_mut()
         .session(env)
-        .prepare_values(&mut updates, counter.added_files().chain(plugin_paths))?;
+        .prepare_values(
+          &mut updates,
+          dependency_counter.added_files().chain(dependencies),
+        )?;
       updates.apply(env, &compiler.js_helpers)?;
       refreshed_array(env, array)
     })
@@ -120,13 +124,13 @@ impl FileSystemDependencies {
   #[napi(getter, ts_return_type = "Array<string>")]
   pub fn removed<'env>(&self, env: &'env Env) -> napi::Result<Array<'env>> {
     with_compiler(env, self.compiler_id, |compiler| {
-      let (counter, _) = self.sources(&compiler.compiler.compilation)?;
+      let (dependency_counter, _) = self.dependency_sources(&compiler.compiler.compilation)?;
       let mut updates = IndexedArrayUpdateBatch::default();
       let array = compiler
         .file_system_dependency_string_pool
         .borrow_mut()
         .session(env)
-        .prepare_values(&mut updates, counter.removed_files())?;
+        .prepare_values(&mut updates, dependency_counter.removed_files())?;
       updates.apply(env, &compiler.js_helpers)?;
       refreshed_array(env, array)
     })
@@ -135,24 +139,25 @@ impl FileSystemDependencies {
   #[napi]
   pub fn size(&self) -> napi::Result<u32> {
     with_current_compilation(self.compiler_id, |compilation| {
-      let (counter, plugin_paths) = self.sources(compilation)?;
-      let native_count = if self.excluded_paths.is_empty() {
-        counter.files().count()
+      let (dependency_counter, dependencies) = self.dependency_sources(compilation)?;
+      let tracked_count = if self.excluded_paths.is_empty() {
+        dependency_counter.files().count()
       } else {
-        counter
+        dependency_counter
           .files()
           .filter(|path| !self.excluded_paths.contains(*path))
           .count()
       };
-      // Both sources are already unique. Count only plugin paths absent from
-      // the native counter, without allocating a temporary union set.
-      let plugin_count = plugin_paths
+      // Both sources are already unique. Count only compilation dependencies
+      // absent from the module graph counter, without allocating a union set.
+      let additional_count = dependencies
         .iter()
         .filter(|path| {
-          !self.excluded_paths.contains(*path) && counter.related_resource_ids(path).is_none()
+          !self.excluded_paths.contains(*path)
+            && dependency_counter.related_resource_ids(path).is_none()
         })
         .count();
-      Ok((native_count + plugin_count) as u32)
+      Ok((tracked_count + additional_count) as u32)
     })
   }
 
@@ -160,10 +165,11 @@ impl FileSystemDependencies {
   pub fn has(&self, value: String) -> napi::Result<bool> {
     with_current_compilation(self.compiler_id, |compilation| {
       let path: InternedPath = value.as_str().into();
-      let (counter, plugin_paths) = self.sources(compilation)?;
+      let (dependency_counter, dependencies) = self.dependency_sources(compilation)?;
       Ok(
         !self.excluded_paths.contains(&path)
-          && (counter.related_resource_ids(&path).is_some() || plugin_paths.contains(&path))
+          && (dependency_counter.related_resource_ids(&path).is_some()
+            || dependencies.contains(&path))
           && path.to_string_lossy() == value,
       )
     })
@@ -172,10 +178,10 @@ impl FileSystemDependencies {
   #[napi]
   pub fn clear(&mut self) -> napi::Result<()> {
     with_current_compilation(self.compiler_id, |compilation| {
-      let (counter, plugin_paths) = self.sources(compilation)?;
+      let (dependency_counter, dependencies) = self.dependency_sources(compilation)?;
       self
         .excluded_paths
-        .extend(counter.files().chain(plugin_paths).cloned());
+        .extend(dependency_counter.files().chain(dependencies).cloned());
       Ok(())
     })
   }
@@ -204,18 +210,19 @@ impl FileSystemDependencies {
     with_compiler(env, self.compiler_id, |compiler| {
       let result = (|| {
         let (mut array, length, updates) = {
-          let (counter, plugin_paths) = self.sources(&compiler.compiler.compilation)?;
-          // Both sources are unique. Only the overlap with native paths needs
-          // filtering; output order stays native paths followed by JS additions.
-          let capacity = counter
+          let (dependency_counter, dependencies) =
+            self.dependency_sources(&compiler.compiler.compilation)?;
+          // Both sources are unique. Filter compilation dependencies already in
+          // the module graph counter, preserving counter-first iteration order.
+          let capacity = dependency_counter
             .files()
             .size_hint()
             .0
-            .saturating_add(plugin_paths.len());
-          let paths = counter.files().chain(
-            plugin_paths
+            .saturating_add(dependencies.len());
+          let paths = dependency_counter.files().chain(
+            dependencies
               .iter()
-              .filter(|path| counter.related_resource_ids(path).is_none()),
+              .filter(|path| dependency_counter.related_resource_ids(path).is_none()),
           );
           let cached = &mut self.array_cache;
           let array = cached.array(env, &mut this)?;
