@@ -223,7 +223,14 @@ pub(crate) fn serialize_url_value(input: &str) -> String {
 }
 
 pub(crate) fn normalize_url(input: &str) -> Cow<'_, str> {
-  let result = decode_css_escapes(input, true);
+  decode_url(unescape_url(input))
+}
+
+pub(crate) fn unescape_url(input: &str) -> Cow<'_, str> {
+  decode_css_escapes(input, true)
+}
+
+pub(crate) fn decode_url(result: Cow<'_, str>) -> Cow<'_, str> {
   if result
     .get(..5)
     .is_some_and(|prefix| prefix.eq_ignore_ascii_case("data:"))

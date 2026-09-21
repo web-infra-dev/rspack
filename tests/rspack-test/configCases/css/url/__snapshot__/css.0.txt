@@ -631,5 +631,17 @@ div {
 	background-color: lightblue;
 	margin: 50px;
 	filter: url("filters.4589717b17fc4fcb.svg#myFilter"); /* Applying the SVG filter */
+}
+
+.encoded-hash-path {
+	background: url("encoded-4589717b17fc4fcb.svg");
+	mask: url("encoded-4589717b17fc4fcb.svg");
+	filter: url("encoded-4589717b17fc4fcb.svg#myFilter");
+	clip-path: url("encoded-4589717b17fc4fcb.svg");
+}
+
+.escaped-fragment {
+	filter: url("\23 myFilter");
+	clip-path: url(\#myFilter);
 },
 ]

@@ -6,13 +6,21 @@ const checkFragmentDependencies: RspackPluginInstance = {
   apply(compiler) {
     compiler.hooks.compilation.tap('Test', (compilation) => {
       compilation.hooks.finishModules.tap('Test', (modules) => {
+        let encodedHashDependencies = 0;
         for (const module of modules) {
           for (const dependency of module.dependencies) {
             if (dependency.type === 'css url') {
               expect(dependency.request?.startsWith('#')).toBe(false);
+              if (dependency.request?.includes('#icon.svg')) {
+                encodedHashDependencies++;
+                expect(
+                  compilation.moduleGraph.getModule(dependency)?.type,
+                ).toBe('asset/resource');
+              }
             }
           }
         }
+        expect(encodedHashDependencies).toBe(4);
       });
     });
   },
@@ -29,6 +37,13 @@ export default defineConfig([
         {
           test: /\.css$/,
           type: 'css',
+        },
+        {
+          test: /#icon\.svg$/,
+          type: 'asset/resource',
+          generator: {
+            filename: 'encoded-[contenthash][ext][fragment]',
+          },
         },
       ],
     },
