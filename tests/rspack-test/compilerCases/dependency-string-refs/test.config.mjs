@@ -47,8 +47,7 @@ export default [
             assert.equal(values.filter((value) => value === current).length, 1);
             assert.equal(dependencies.size, values.length);
             // Exercise partial writes, position moves, truncation and empty fills
-            // through the public collection. Existing iterators stay snapshots.
-            const snapshot = dependencies.values();
+            // through the public collection.
             const extra = path.join(current, `${kind}-extra`);
             assert(dependencies.delete(shared));
             dependencies.add(extra);
@@ -64,7 +63,6 @@ export default [
             assert.equal(dependencies.size, 0);
             dependencies.addAll(values);
             assert.deepEqual([...dependencies], values);
-            assert.deepEqual([...snapshot], values);
           }
           if (generation === 0) {
             // Cross the 16-bit boundary in both pool indices and result positions.
@@ -86,18 +84,12 @@ export default [
             assert.deepEqual([...dependencies], original);
           }
           for (const old of retained) {
-            assert.deepEqual([...old.snapshot], old.values);
-            old.snapshot = old.dependencies.values();
-            old.values = [...old.dependencies];
+            assert([...old.dependencies].includes(current));
             assert(old.dependencies.has(current));
             assert(old.dependencies.has(shared));
           }
           const dependencies = compilation.fileDependencies;
-          retained.push({
-            dependencies,
-            snapshot: dependencies.values(),
-            values: [...dependencies],
-          });
+          retained.push({ dependencies });
           if (generation === 2)
             throw new Error('dependency string cleanup failure');
         });
@@ -140,7 +132,7 @@ export default [
         } finally {
           await closeCompiler(other);
         }
-        // Closing must not change snapshots already handed to the caller.
+        // Closing must not change the dependencies exposed by retained iterators.
         const snapshots = retained.map(({ dependencies }) => [...dependencies]);
         const iterators = retained.map(({ dependencies }) =>
           dependencies.values(),

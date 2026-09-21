@@ -1,6 +1,5 @@
 import util from 'node:util';
 import type { FileSystemDependencies as BindingFileSystemDependencies } from '@rspack/binding';
-import { getArraySnapshot } from './util/arrayHelpers';
 
 export interface FileSystemDependencies {
   readonly size: number;
@@ -53,11 +52,10 @@ class FileSystemDependenciesWrapper implements FileSystemDependencies {
     this.#inner.update(additions, deletions);
   }
 
-  #snapshotValues() {
+  #getValues() {
     this.#flush();
-    // Native updates invalidate the cached snapshot. Repeated reads share it;
-    // existing iterators and callbacks retain their snapshot across mutations.
-    return getArraySnapshot(this.#inner.values());
+    // Iterators read the shared array directly and may observe later updates.
+    return this.#inner.values();
   }
 
   get size() {
@@ -107,25 +105,25 @@ class FileSystemDependenciesWrapper implements FileSystemDependencies {
   }
 
   values(): IterableIterator<string> {
-    return this.#snapshotValues().values();
+    return this.#getValues().values();
   }
 
   entries(): IterableIterator<[string, string]> {
-    return this.#snapshotValues()
+    return this.#getValues()
       .map((value): [string, string] => [value, value])
       .values();
   }
 
   *[Symbol.iterator](): IterableIterator<string> {
     // Preserve the existing facade's lazy iterator-start boundary.
-    yield* this.#snapshotValues();
+    yield* this.#getValues();
   }
 
   forEach(
     callback: (value: string, key: string, set: FileSystemDependencies) => void,
     thisArg?: unknown,
   ): void {
-    for (const value of this.#snapshotValues()) {
+    for (const value of this.#getValues()) {
       callback.call(thisArg, value, value, this);
     }
   }
