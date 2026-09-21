@@ -1,6 +1,11 @@
 import path from 'node:path';
 
 class Plugin {
+  constructor(type, layer) {
+    this.type = type;
+    this.layer = layer;
+  }
+
   /**
    * @param {import("@rspack/core").Compiler} compiler
    */
@@ -23,6 +28,14 @@ class Plugin {
       expect(module.userRequest).toBe(
         `${path.join(import.meta.dirname, 'passthrough-loader.mjs')}!${path.join(import.meta.dirname, 'index.js')}`,
       );
+      expect(module.request).toBe(module.userRequest);
+      expect(module.identifier()).toBe(
+        this.layer
+          ? `${this.type}|${module.request}|${this.layer}`
+          : this.type === 'javascript/auto'
+            ? module.request
+            : `${this.type}|${module.request}`,
+      );
       expect(module.rawRequest).toContain('index.js');
       expect(module.resourceResolveData.fragment).toBe('');
       expect(module.resourceResolveData.path).toBe(
@@ -38,7 +51,8 @@ class Plugin {
           path.relative(compiler.context, loader),
         ),
       ).toEqual(['passthrough-loader.mjs']);
-      expect(module.type).toBe('javascript/auto');
+      expect(module.type).toBe(this.type);
+      expect(module.layer).toBe(this.layer);
 
       expect(Object.hasOwn(module, 'type')).toBe(true);
       expect(Object.hasOwn(module, 'resource')).toBe(true);
@@ -57,9 +71,16 @@ class Plugin {
   }
 }
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+/** @type {import("@rspack/core").Configuration[]} */
+export default [
+  ['javascript/auto', undefined],
+  ['javascript/esm', undefined],
+  ['javascript/auto', 'test-layer'],
+].map(([type, layer]) => ({
   devtool: 'source-map',
   entry: './passthrough-loader.mjs!./index.js',
-  plugins: [new Plugin()],
-};
+  module: {
+    rules: [{ test: /index\.js$/, type, layer }],
+  },
+  plugins: [new Plugin(type, layer)],
+}));
