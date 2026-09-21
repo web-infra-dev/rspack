@@ -222,6 +222,12 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
           return Ok(maybe_module.map(|i| i.boxed()));
         }
       }
+      ExternalItem::RequestPredicate(predicate) => {
+        if predicate(dependency.request()) {
+          let maybe_module = self.handle_external(&ExternalItemValue::Bool(true), None, dependency);
+          return Ok(maybe_module.map(|i| i.boxed()));
+        }
+      }
       ExternalItem::Fn(f) => {
         let request = dependency.request();
         let result = f(ExternalItemFnCtx {
