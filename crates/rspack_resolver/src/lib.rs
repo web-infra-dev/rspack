@@ -741,7 +741,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         return Ok(Some(path));
       }
     }
-    if cached_path.is_dir(&self.cache.fs, ctx).await {
+    let is_dir = match cached_path.is_dir_cached() {
+      Some(is_dir) => is_dir,
+      None => cached_path.is_dir(&self.cache.fs, ctx).await,
+    };
+    if is_dir {
       if let Some(path) = self.load_as_directory(cached_path, ctx).await? {
         return Ok(Some(path));
       }
@@ -867,8 +871,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     {
       return Ok(Some(path));
     }
-    if cached_path.is_file(&self.cache.fs, ctx).await && self.check_restrictions(cached_path.path())
-    {
+    let is_file = match cached_path.is_file_cached(ctx) {
+      Some(is_file) => is_file,
+      None => cached_path.is_file(&self.cache.fs, ctx).await,
+    };
+    if is_file && self.check_restrictions(cached_path.path()) {
       return Ok(Some(cached_path.clone()));
     }
     Ok(None)
@@ -937,7 +944,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     if !package_name.is_empty() {
       let package_path = cached_path.path().normalize_with(package_name);
       let pkg_cached = self.cache.value(&package_path);
-      if pkg_cached.is_dir(&self.cache.fs, ctx).await {
+      let pkg_is_dir = match pkg_cached.is_dir_cached() {
+        Some(is_dir) => is_dir,
+        None => pkg_cached.is_dir(&self.cache.fs, ctx).await,
+      };
+      if pkg_is_dir {
         // a. LOAD_PACKAGE_EXPORTS(X, DIR)
         if let Some(path) = self
           .load_package_exports(specifier, subpath, &pkg_cached, ctx)
@@ -954,7 +965,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         // i.e. `@scope` is not a directory for `@scope/package`
         if package_name.starts_with('@') {
           if let Some(path) = pkg_cached.parent() {
-            if !path.is_dir(&self.cache.fs, ctx).await {
+            let path_is_dir = match path.is_dir_cached() {
+              Some(is_dir) => is_dir,
+              None => path.is_dir(&self.cache.fs, ctx).await,
+            };
+            if !path_is_dir {
               return Ok(None);
             }
           }
@@ -1010,7 +1025,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       let cached_path = self
         .cache
         .value(Utf8Path::from_path(dir).expect("path should be UTF-8"));
-      if !cached_path.is_dir(&self.cache.fs, ctx).await {
+      let is_dir = match cached_path.is_dir_cached() {
+        Some(is_dir) => is_dir,
+        None => cached_path.is_dir(&self.cache.fs, ctx).await,
+      };
+      if !is_dir {
         continue;
       }
       if let Some(path) = self
@@ -1294,7 +1313,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         .strip_prefix("./")
         .is_some_and(|s| path.ends_with(s))
       {
-        return if cached_path.is_file(&self.cache.fs, ctx).await {
+        let is_file = match cached_path.is_file_cached(ctx) {
+          Some(is_file) => is_file,
+          None => cached_path.is_file(&self.cache.fs, ctx).await,
+        };
+        return if is_file {
           if self.check_restrictions(cached_path.path()) {
             Ok(Some(cached_path.clone()))
           } else {
@@ -1394,7 +1417,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         let alias_path = Utf8Path::new(alias_value).normalize();
         // Must not append anything to alias_value if it is a file.
         let alias_value_cached_path = self.cache.value(&alias_path);
-        if alias_value_cached_path.is_file(&self.cache.fs, ctx).await {
+        let alias_value_is_file = match alias_value_cached_path.is_file_cached(ctx) {
+          Some(is_file) => is_file,
+          None => alias_value_cached_path.is_file(&self.cache.fs, ctx).await,
+        };
+        if alias_value_is_file {
           return Ok(None);
         }
 
@@ -1460,9 +1487,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       }
     }
     // Bail if path is module directory such as `ipaddr.js`
-    if !cached_path.is_file(&self.cache.fs, ctx).await
-      || !self.check_restrictions(cached_path.path())
-    {
+    let is_file = match cached_path.is_file_cached(ctx) {
+      Some(is_file) => is_file,
+      None => cached_path.is_file(&self.cache.fs, ctx).await,
+    };
+    if !is_file || !self.check_restrictions(cached_path.path()) {
       ctx.with_fully_specified(false);
       return Ok(None);
     }
@@ -1769,7 +1798,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       let cached_path = self
         .cache
         .value(Utf8Path::from_path(dir).expect("path should be UTF-8"));
-      if !cached_path.is_dir(&self.cache.fs, ctx).await {
+      let is_dir = match cached_path.is_dir_cached() {
+        Some(is_dir) => is_dir,
+        None => cached_path.is_dir(&self.cache.fs, ctx).await,
+      };
+      if !is_dir {
         continue;
       }
       if let Some(path) = self
@@ -1793,7 +1826,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   ) -> ResolveResult {
     let package_path = cached_path.path().normalize_with(package_name);
     let cached_path = self.cache.value(&package_path);
-    if !cached_path.is_dir(&self.cache.fs, ctx).await {
+    let is_dir = match cached_path.is_dir_cached() {
+      Some(is_dir) => is_dir,
+      None => cached_path.is_dir(&self.cache.fs, ctx).await,
+    };
+    if !is_dir {
       return Ok(None);
     }
     if let Some(package_json) = cached_path
@@ -1812,9 +1849,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         for main_field in package_json.main_fields(&self.options.main_fields) {
           let path = cached_path.path().normalize_with(main_field);
           let main_cached = self.cache.value(&path);
-          if main_cached.is_file(&self.cache.fs, ctx).await
-            && self.check_restrictions(main_cached.path())
-          {
+          let main_is_file = match main_cached.is_file_cached(ctx) {
+            Some(is_file) => is_file,
+            None => main_cached.is_file(&self.cache.fs, ctx).await,
+          };
+          if main_is_file && self.check_restrictions(main_cached.path()) {
             return Ok(Some(main_cached.clone()));
           }
         }

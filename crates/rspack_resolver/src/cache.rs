@@ -254,6 +254,24 @@ impl CachedPathImpl {
       .map(|meta| meta.as_ref().is_some_and(|meta| meta.is_dir))
   }
 
+  /// `is_file` for paths that were already probed, without the async call.
+  ///
+  /// Registers the same dependencies as `is_file` and returns `None` when the
+  /// metadata is not cached yet, so the caller falls back to the async version.
+  pub fn is_file_cached(&self, ctx: &mut Ctx) -> Option<bool> {
+    let meta = *self.meta.get()?;
+    Some(match meta {
+      Some(meta) => {
+        ctx.add_file_dependency(self);
+        meta.is_file
+      }
+      None => {
+        ctx.add_missing_dependency(self);
+        false
+      }
+    })
+  }
+
   pub async fn realpath<Fs: FileSystem + Send + Sync>(&self, fs: &Fs) -> io::Result<Utf8PathBuf> {
     // Cache hit: avoid the heap-allocated `Box::pin` for the cache-miss state machine
     // by returning before delegating to the boxed recursive helper.
