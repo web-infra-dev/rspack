@@ -86,7 +86,7 @@ jobs:
       - name: Prepare CodSpeed temporary directory
         run: mkdir -p "${RUNNER_TEMP}/codspeed-valgrind-tmp"
 
-      - name: Run benchmark (simulation and memory)
+      - name: Run benchmark (simulation)
         if: ${{ inputs.measurement == 'simulation' }}
         uses: hardfist/action@750625725fb8def914579fc789c6249580c84a95
         timeout-minutes: 30
@@ -103,7 +103,30 @@ jobs:
           # removes the cross-runner variance.
           GLIBC_TUNABLES: glibc.cpu.hwcaps=-AVX512F,-AVX2,-AVX,-AVX_Fast_Unaligned_Load,-ERMS,-Prefer_ERMS,-SSE4_2,-SSSE3
         with:
-          mode: simulation,memory
+          mode: simulation
+          run: |
+            if [ -n "${{ inputs.bench_target }}" ]; then
+              bench_args=(--bench "${{ inputs.bench_target }}")
+              if [ -n "${{ inputs.bench_filter }}" ]; then
+                bench_args+=("${{ inputs.bench_filter }}")
+              fi
+              RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run "${bench_args[@]}"
+            else
+              pnpm run bench:rust
+            fi
+          token: ${{ secrets.CODSPEED_TOKEN }}
+          runner-version: rev:2ca934f5a71e0299e0a3941a84ac3b242b3b63b6
+          skip-hash-check-warning: true
+
+      - name: Run benchmark (memory)
+        if: ${{ inputs.measurement == 'simulation' }}
+        uses: hardfist/action@750625725fb8def914579fc789c6249580c84a95
+        timeout-minutes: 30
+        env:
+          TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
+          MIMALLOC_PURGE_DELAY: '-1'
+        with:
+          mode: memory
           run: |
             if [ -n "${{ inputs.bench_target }}" ]; then
               bench_args=(--bench "${{ inputs.bench_target }}")
