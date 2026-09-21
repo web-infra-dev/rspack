@@ -894,7 +894,7 @@ export interface JsFactoryMeta {
 }
 
 export interface JsHelpers {
-  applyIndexedArrayUpdates: <T>(source: ReadonlyArray<T>, targets: T[][], commands: Uint32Array) => void
+  applyIndexedArrayUpdates: <T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void
   swapRemoveArrayElements: <T>(array: T[], removedIndices: Uint32Array) => void
 }
 

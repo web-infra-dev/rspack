@@ -4,7 +4,7 @@ mod dependencies;
 mod diagnostics;
 pub mod entries;
 
-use std::{cell::RefCell, path::Path, ptr::NonNull};
+use std::{cell::RefCell, ptr::NonNull};
 
 use chunks::Chunks;
 pub use code_generation_results::*;
@@ -31,9 +31,7 @@ use crate::{
   chunk_group::ChunkGroupWrapper,
   dependencies::EntryDependency,
   error::{ErrorCode, JsRspackDiagnostic, RspackError, RspackResultToNapiResultExt},
-  file_system_dependency_strings::{
-    CompilerScopedFileSystemDependencyPaths, FileSystemDependencyPaths, intern_js_values,
-  },
+  file_system_dependency_strings::intern_js_values,
   filename::JsFilename,
   module::{JsAddingRuntimeModule, ModuleObject},
   module_graph::JsModuleGraph,
@@ -768,17 +766,28 @@ impl JsCompilation {
           )
           .await;
 
-        let js_result = ExecuteModuleResult {
+        let js_result = JsExecuteModuleResult {
           cacheable: res.cacheable,
-          dependencies: CompilerScopedFileSystemDependencyPaths {
-            compiler_id: compilation.compiler_id(),
-            paths: FileSystemDependencyPaths {
-              file: res.file_dependencies.into_iter().collect(),
-              context: res.context_dependencies.into_iter().collect(),
-              build: res.build_dependencies.into_iter().collect(),
-              missing: res.missing_dependencies.into_iter().collect(),
-            },
-          },
+          file_dependencies: res
+            .file_dependencies
+            .into_iter()
+            .map(|dependency| dependency.to_string_lossy().into_owned())
+            .collect(),
+          context_dependencies: res
+            .context_dependencies
+            .into_iter()
+            .map(|dependency| dependency.to_string_lossy().into_owned())
+            .collect(),
+          build_dependencies: res
+            .build_dependencies
+            .into_iter()
+            .map(|dependency| dependency.to_string_lossy().into_owned())
+            .collect(),
+          missing_dependencies: res
+            .missing_dependencies
+            .into_iter()
+            .map(|dependency| dependency.to_string_lossy().into_owned())
+            .collect(),
           id: res.id,
           errors: res
             .errors
@@ -1164,45 +1173,15 @@ impl ToNapiValue for JsCompilationWrapper {
   }
 }
 
-#[napi(object, object_from_js = false)]
+#[napi(object)]
 pub struct JsExecuteModuleResult {
-  #[napi(ts_type = "Array<string>")]
   pub file_dependencies: Vec<String>,
-  #[napi(ts_type = "Array<string>")]
   pub context_dependencies: Vec<String>,
-  #[napi(ts_type = "Array<string>")]
   pub build_dependencies: Vec<String>,
-  #[napi(ts_type = "Array<string>")]
   pub missing_dependencies: Vec<String>,
   pub cacheable: bool,
   pub id: u32,
   pub errors: Vec<RspackError>,
-}
-
-// Async work carries native paths only. Materialize all four arrays together on
-// the JS thread, keeping the public JsExecuteModuleResult shape unchanged.
-struct ExecuteModuleResult {
-  dependencies: CompilerScopedFileSystemDependencyPaths,
-  cacheable: bool,
-  id: u32,
-  errors: Vec<RspackError>,
-}
-
-impl ToNapiValue for ExecuteModuleResult {
-  unsafe fn to_napi_value(
-    env: napi::sys::napi_env,
-    value: Self,
-  ) -> napi::Result<napi::sys::napi_value> {
-    let env = unsafe { Env::from_raw(env) };
-    let mut result = value
-      .dependencies
-      .paths
-      .to_js(&env, value.dependencies.compiler_id)?;
-    result.set_named_property("cacheable", value.cacheable)?;
-    result.set_named_property("id", value.id)?;
-    result.set_named_property("errors", value.errors)?;
-    unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
-  }
 }
 
 #[napi(object)]

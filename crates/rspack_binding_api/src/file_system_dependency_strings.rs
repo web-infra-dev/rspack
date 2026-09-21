@@ -3,13 +3,13 @@
 //! The private array and indexed map have identical dense indices. API result
 //! arrays never alias this array, and no raw napi_value survives a handle scope.
 use napi::{Env, JsString, bindgen_prelude::*};
-use rspack_core::{Compilation, CompilerId, LoaderDependencies};
+use rspack_core::{Compilation, CompilerId};
 use rspack_napi::WeakRef;
 use rspack_paths::{InternedPath, InternedPathIndexSet};
 
 use crate::{
   COMPILER_REFERENCES, JsCompiler,
-  js_helpers::{IndexedArrayUpdateBatch, js_owned_ref},
+  js_helpers::{IndexedArrayUpdate, js_owned_ref},
 };
 
 pub(crate) fn upgrade_compiler(
@@ -179,27 +179,25 @@ impl<'env> FileSystemDependencyStringPoolSession<'_, 'env> {
 
   pub(crate) fn queue_dependency_array_update<'path>(
     &mut self,
-    updates: &mut IndexedArrayUpdateBatch<'env>,
+    update: &mut IndexedArrayUpdate<'env>,
     paths: &mut dyn Iterator<Item = &'path InternedPath>,
   ) -> napi::Result<Array<'env>> {
     let array = self.env.create_array(paths.size_hint().0 as u32)?;
-    let start = updates.commands.len();
-    updates
+    update
       .commands
-      .reserve(paths.size_hint().0.saturating_add(3));
-    updates.commands.extend_from_slice(&[0, 0, 0]);
+      .reserve(paths.size_hint().0.saturating_add(2));
+    update.commands.extend_from_slice(&[0, 0]);
     for path in paths {
       let index = self.get_or_insert_index(path)?;
-      updates.commands.push(index);
+      update.commands.push(index);
     }
-    let length = (updates.commands.len() - start - 3) as u32;
+    let length = (update.commands.len() - 2) as u32;
     if length == 0 {
-      updates.commands.truncate(start);
+      update.commands.clear();
     } else {
-      updates.commands[start + 1] = length;
-      updates.commands[start + 2] = length;
-      updates.targets.push(array);
-      updates.source = Some(self.strings()?);
+      update.commands[1] = length;
+      update.target = Some(array);
+      update.source = Some(self.strings()?);
     }
     Ok(array)
   }
@@ -271,111 +269,6 @@ impl JsCompiler {
       .file_system_dependency_string_pool
       .borrow_mut()
       .clear(env)
-  }
-}
-
-#[derive(Default)]
-pub(crate) struct FileSystemDependencyPaths {
-  pub(crate) file: Vec<InternedPath>,
-  pub(crate) context: Vec<InternedPath>,
-  pub(crate) missing: Vec<InternedPath>,
-  pub(crate) build: Vec<InternedPath>,
-}
-
-impl FileSystemDependencyPaths {
-  pub(crate) fn from_js(
-    env: &Env,
-    compiler_id: CompilerId,
-    object: Object<'_>,
-  ) -> napi::Result<Self> {
-    // Read user properties/elements before borrowing the cache: getters may
-    // re-enter binding APIs. JsString handles remain in this handle scope.
-    let file = object.get_named_property::<Vec<JsString>>("fileDependencies")?;
-    let context = object.get_named_property::<Vec<JsString>>("contextDependencies")?;
-    let missing = object.get_named_property::<Vec<JsString>>("missingDependencies")?;
-    let build = object.get_named_property::<Vec<JsString>>("buildDependencies")?;
-    let compiler = upgrade_compiler(env, compiler_id)?;
-    let mut pool = compiler.file_system_dependency_string_pool.borrow_mut();
-    let mut session = pool.session(env);
-    Ok(Self {
-      file: session.intern_js_values(file)?,
-      context: session.intern_js_values(context)?,
-      missing: session.intern_js_values(missing)?,
-      build: session.intern_js_values(build)?,
-    })
-  }
-
-  pub(crate) fn to_js<'env>(
-    &self,
-    env: &'env Env,
-    compiler_id: CompilerId,
-  ) -> napi::Result<Object<'env>> {
-    let compiler = upgrade_compiler(env, compiler_id)?;
-    let mut updates = IndexedArrayUpdateBatch::default();
-    let (file, context, missing, build) = {
-      let mut pool = compiler.file_system_dependency_string_pool.borrow_mut();
-      let mut session = pool.session(env);
-      let mut file_paths = self.file.iter();
-      let file = session.queue_dependency_array_update(&mut updates, &mut file_paths)?;
-      let mut context_paths = self.context.iter();
-      let context = session.queue_dependency_array_update(&mut updates, &mut context_paths)?;
-      let mut missing_paths = self.missing.iter();
-      let missing = session.queue_dependency_array_update(&mut updates, &mut missing_paths)?;
-      let mut build_paths = self.build.iter();
-      let build = session.queue_dependency_array_update(&mut updates, &mut build_paths)?;
-      (file, context, missing, build)
-    };
-    updates.apply(env, &compiler.js_helpers)?;
-    let mut result = Object::new(env)?;
-    result.set_named_property("fileDependencies", file)?;
-    result.set_named_property("contextDependencies", context)?;
-    result.set_named_property("missingDependencies", missing)?;
-    result.set_named_property("buildDependencies", build)?;
-    Ok(result)
-  }
-
-  pub(crate) fn is_empty(&self) -> bool {
-    self.file.is_empty()
-      && self.context.is_empty()
-      && self.missing.is_empty()
-      && self.build.is_empty()
-  }
-}
-
-impl From<&LoaderDependencies> for FileSystemDependencyPaths {
-  fn from(value: &LoaderDependencies) -> Self {
-    Self {
-      file: value.file.iter().cloned().collect(),
-      context: value.context.iter().cloned().collect(),
-      missing: value.missing.iter().cloned().collect(),
-      build: value.build.iter().cloned().collect(),
-    }
-  }
-}
-
-impl From<FileSystemDependencyPaths> for LoaderDependencies {
-  fn from(value: FileSystemDependencyPaths) -> Self {
-    Self {
-      file: value.file.into_iter().collect(),
-      context: value.context.into_iter().collect(),
-      missing: value.missing.into_iter().collect(),
-      build: value.build.into_iter().collect(),
-    }
-  }
-}
-
-pub struct CompilerScopedFileSystemDependencyPaths {
-  pub(crate) compiler_id: CompilerId,
-  pub(crate) paths: FileSystemDependencyPaths,
-}
-
-impl ToNapiValue for CompilerScopedFileSystemDependencyPaths {
-  unsafe fn to_napi_value(
-    env: napi::sys::napi_env,
-    value: Self,
-  ) -> napi::Result<napi::sys::napi_value> {
-    let env = unsafe { Env::from_raw(env) };
-    unsafe { ToNapiValue::to_napi_value(env.raw(), value.paths.to_js(&env, value.compiler_id)?) }
   }
 }
 

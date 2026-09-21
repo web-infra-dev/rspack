@@ -11,7 +11,7 @@ use crate::{
   file_system_dependency_strings::{
     FileSystemDependencyArrayCache, intern_js_values, refreshed_array, upgrade_compiler,
   },
-  js_helpers::IndexedArrayUpdateBatch,
+  js_helpers::IndexedArrayUpdate,
 };
 
 /// Native operations on the owning compiler's current dependency collection.
@@ -104,13 +104,13 @@ impl FileSystemDependencies {
     let (dependency_counter, dependencies) =
       self.dependency_sources(&compiler.compiler.compilation)?;
     let mut paths = dependency_counter.added_files().chain(dependencies);
-    let mut updates = IndexedArrayUpdateBatch::default();
+    let mut update = IndexedArrayUpdate::default();
     let array = compiler
       .file_system_dependency_string_pool
       .borrow_mut()
       .session(env)
-      .queue_dependency_array_update(&mut updates, &mut paths)?;
-    updates.apply(env, &compiler.js_helpers)?;
+      .queue_dependency_array_update(&mut update, &mut paths)?;
+    update.apply(env, &compiler.js_helpers)?;
     refreshed_array(env, array)
   }
 
@@ -119,13 +119,13 @@ impl FileSystemDependencies {
     let compiler = upgrade_compiler(env, self.compiler_id)?;
     let (dependency_counter, _) = self.dependency_sources(&compiler.compiler.compilation)?;
     let mut paths = dependency_counter.removed_files();
-    let mut updates = IndexedArrayUpdateBatch::default();
+    let mut update = IndexedArrayUpdate::default();
     let array = compiler
       .file_system_dependency_string_pool
       .borrow_mut()
       .session(env)
-      .queue_dependency_array_update(&mut updates, &mut paths)?;
-    updates.apply(env, &compiler.js_helpers)?;
+      .queue_dependency_array_update(&mut update, &mut paths)?;
+    update.apply(env, &compiler.js_helpers)?;
     refreshed_array(env, array)
   }
 
@@ -204,7 +204,7 @@ impl FileSystemDependencies {
   pub fn values<'env>(&mut self, env: &'env Env, mut this: This) -> napi::Result<Array<'env>> {
     let compiler = upgrade_compiler(env, self.compiler_id)?;
     let result = (|| {
-      let (mut array, length, updates) = {
+      let (mut array, length, update) = {
         let (dependency_counter, dependencies) =
           self.dependency_sources(&compiler.compiler.compilation)?;
         // Both sources are unique. Filter compilation dependencies already in
@@ -224,13 +224,11 @@ impl FileSystemDependencies {
         let empty = cached.paths.is_empty();
         let mut pool = compiler.file_system_dependency_string_pool.borrow_mut();
         let mut session = pool.session(env);
-        let mut updates = IndexedArrayUpdateBatch::default();
-        updates
+        let mut update = IndexedArrayUpdate::default();
+        update
           .commands
-          .reserve(if empty { capacity.saturating_add(3) } else { 3 });
-        updates
-          .commands
-          .extend_from_slice(&[u32::from(!empty), 0, 0]);
+          .reserve(if empty { capacity.saturating_add(2) } else { 2 });
+        update.commands.extend_from_slice(&[u32::from(!empty), 0]);
         let mut length = 0;
         for path in paths {
           if self.excluded_paths.contains(path) {
@@ -250,25 +248,24 @@ impl FileSystemDependencies {
             cached.paths.push(path.clone());
           }
           if !empty {
-            updates.commands.push(index as u32);
+            update.commands.push(index as u32);
           }
-          updates.commands.push(pool_index);
+          update.commands.push(pool_index);
         }
         cached.paths.truncate(length);
         let length = length as u32;
-        if updates.commands.len() != 3 || array.len() != length {
-          updates.commands[1] = length;
-          updates.commands[2] = (updates.commands.len() - 3) as u32;
-          updates.targets.push(array);
-          updates.source = Some(session.strings()?);
+        if update.commands.len() != 2 || array.len() != length {
+          update.commands[1] = length;
+          update.target = Some(array);
+          update.source = Some(session.strings()?);
         } else {
-          updates.commands.clear();
+          update.commands.clear();
         }
-        (array, length, updates)
+        (array, length, update)
       };
       // No graph or RefCell borrows cross the synchronous JS call. Copy strings
       // directly from the shared pool, including entries that change position.
-      updates.apply(env, &compiler.js_helpers)?;
+      update.apply(env, &compiler.js_helpers)?;
       array = refreshed_array(env, array)?;
       if array.len() != length {
         array.set_named_property("length", length)?;

@@ -1,22 +1,16 @@
 use std::{ptr::NonNull, sync::Arc};
 
-use napi::{JsValue, bindgen_prelude::*};
+use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
-use rspack_core::{Content, LoaderContext, Module, RunnerContext};
+use rspack_core::{Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::ThreadsafeOneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::cache::JsLoaderCacheObject;
-use crate::{
-  error::RspackError,
-  file_system_dependency_strings::{
-    CompilerScopedFileSystemDependencyPaths, FileSystemDependencyPaths,
-  },
-  module::ModuleObject,
-};
+use crate::{error::RspackError, module::ModuleObject};
 
 #[napi(object)]
 #[derive(Hash)]
@@ -108,7 +102,74 @@ pub struct JsLoaderDependencies {
   pub build_dependencies: Vec<String>,
 }
 
-#[napi(object, object_from_js = false)]
+impl JsLoaderDependencies {
+  pub(super) fn is_empty(&self) -> bool {
+    self.file_dependencies.is_empty()
+      && self.context_dependencies.is_empty()
+      && self.missing_dependencies.is_empty()
+      && self.build_dependencies.is_empty()
+  }
+}
+
+impl From<&LoaderDependencies> for JsLoaderDependencies {
+  fn from(value: &LoaderDependencies) -> Self {
+    Self {
+      file_dependencies: value
+        .file
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      context_dependencies: value
+        .context
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      missing_dependencies: value
+        .missing
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      build_dependencies: value
+        .build
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+    }
+  }
+}
+
+impl From<JsLoaderDependencies> for LoaderDependencies {
+  fn from(value: JsLoaderDependencies) -> Self {
+    Self {
+      file: value
+        .file_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+      context: value
+        .context_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+      missing: value
+        .missing_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+      build: value
+        .build_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+    }
+  }
+}
+
+#[napi(object)]
 pub struct JsLoaderContext {
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
@@ -124,8 +185,7 @@ pub struct JsLoaderContext {
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
-  #[napi(ts_type = "JsLoaderDependencies")]
-  pub dependencies: CompilerScopedFileSystemDependencyPaths,
+  pub dependencies: JsLoaderDependencies,
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
@@ -174,10 +234,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
-      dependencies: CompilerScopedFileSystemDependencyPaths {
-        compiler_id: cx.context.compiler_id,
-        paths: cx.dependencies().as_ref().into(),
-      },
+      dependencies: cx.dependencies().as_ref().into(),
 
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
@@ -189,7 +246,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .any(|loader| loader.cache())
         .then(|| {
           JsLoaderCacheObject::new(
-            cx.context.compiler_id,
             cx.context.loader_cache.clone(),
             cx.context.file_system_info.clone(),
             module.identifier().to_string(),
@@ -199,56 +255,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
               .collect(),
           )
         }),
-    })
-  }
-}
-
-impl FromNapiValue for JsLoaderContext {
-  unsafe fn from_napi_value(
-    env: napi::sys::napi_env,
-    value: napi::sys::napi_value,
-  ) -> napi::Result<Self> {
-    let env = unsafe { napi::Env::from_raw(env) };
-    let object = unsafe { Object::from_napi_value(env.raw(), value)? };
-    let module = unsafe {
-      ModuleObject::from_napi_value(
-        env.raw(),
-        object.get_named_property::<napi::Unknown>("_module")?.raw(),
-      )?
-    };
-    let compiler_id = module.compiler_id();
-    // All input conversion happens on the JS thread before returning this
-    // owned context to the async loader scheduler.
-    let dependencies = FileSystemDependencyPaths::from_js(
-      &env,
-      compiler_id,
-      object.get_named_property("dependencies")?,
-    )?;
-    Ok(Self {
-      module,
-      dependencies: CompilerScopedFileSystemDependencyPaths {
-        compiler_id,
-        paths: dependencies,
-      },
-      resource: object.get_named_property("resource")?,
-      hot: object.get_named_property("hot")?,
-      content: object.get_named_property("content")?,
-      additional_data: unsafe {
-        FromNapiValue::from_napi_value(
-          env.raw(),
-          object
-            .get_named_property::<napi::Unknown>("additionalData")?
-            .raw(),
-        )?
-      },
-      parse_meta: object.get_named_property("__internal__parseMeta")?,
-      source_map: object.get_named_property("sourceMap")?,
-      cacheable: object.get_named_property("cacheable")?,
-      loader_items: object.get_named_property("loaderItems")?,
-      loader_index: object.get_named_property("loaderIndex")?,
-      loader_state: object.get_named_property("loaderState")?,
-      error: object.get_named_property("__internal__error")?,
-      loader_cache: object.get_named_property("__internal__loaderCache")?,
     })
   }
 }

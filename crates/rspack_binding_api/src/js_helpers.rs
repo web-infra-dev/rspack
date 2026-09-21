@@ -3,7 +3,7 @@ use rspack_napi::WeakRef;
 
 #[napi(object)]
 pub struct JsHelpers<'env> {
-  #[napi(ts_type = "<T>(source: ReadonlyArray<T>, targets: T[][], commands: Uint32Array) => void")]
+  #[napi(ts_type = "<T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void")]
   pub apply_indexed_array_updates: Function<'env>,
   #[napi(ts_type = "<T>(array: T[], removedIndices: Uint32Array) => void")]
   pub swap_remove_array_elements: Function<'env>,
@@ -73,17 +73,17 @@ pub(crate) fn js_owned_ref(
 }
 
 /// One synchronous update using call-scoped source indices. Callers release
-/// native borrows and pin the JS helper owner before applying the batch.
+/// native borrows and pin the JS helper owner before applying the update.
 #[derive(Default)]
-pub(crate) struct IndexedArrayUpdateBatch<'env> {
+pub(crate) struct IndexedArrayUpdate<'env> {
   pub(crate) source: Option<Array<'env>>,
-  pub(crate) targets: Vec<Array<'env>>,
-  // One [mode, final length, payload length, ...payload] segment per target.
+  pub(crate) target: Option<Array<'env>>,
+  // [mode, final length, ...payload].
   // Fill (0) uses source indices; Patch (1) uses target/source index pairs.
   pub(crate) commands: Vec<u32>,
 }
 
-impl IndexedArrayUpdateBatch<'_> {
+impl IndexedArrayUpdate<'_> {
   pub(crate) fn apply(self, env: &Env, helpers: &JsHelperRefs) -> napi::Result<()> {
     if self.commands.is_empty() {
       return Ok(());
@@ -91,7 +91,7 @@ impl IndexedArrayUpdateBatch<'_> {
     // SAFETY: construction validates this function; the caller pins its JS
     // owner until this synchronous call finishes.
     let function = unsafe {
-      Function::<FnArgs<(Array, Vec<Array>, Uint32ArraySlice)>, ()>::from_napi_value(
+      Function::<FnArgs<(Array, Array, Uint32ArraySlice)>, ()>::from_napi_value(
         env.raw(),
         ToNapiValue::to_napi_value(env.raw(), &helpers.apply_indexed_array_updates)?,
       )?
@@ -102,7 +102,9 @@ impl IndexedArrayUpdateBatch<'_> {
         self
           .source
           .expect("nonempty indexed array update has a source array"),
-        self.targets,
+        self
+          .target
+          .expect("nonempty indexed array update has a target array"),
         commands,
       )
         .into(),
