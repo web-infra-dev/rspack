@@ -1,0 +1,6 @@
+{
+  "name": "css-url-module-prefix",
+  "imports": {
+    "#internal": "./icon.svg"
+  }
+}

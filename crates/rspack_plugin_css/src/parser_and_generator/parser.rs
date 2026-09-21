@@ -1016,6 +1016,7 @@ impl<'context> CssModuleParser<'context> {
       return Ok(());
     }
 
+    let is_module_request = request.starts_with('~');
     let request = replace_module_request_prefix(
       request,
       &mut self.diagnostics,
@@ -1024,12 +1025,13 @@ impl<'context> CssModuleParser<'context> {
       range.end,
     );
     let request = unescape_url(request);
-    // Check before percent-decoding: `%23icon.svg` is a file, not a fragment.
-    if request.starts_with('#') {
+    // Check before percent-decoding, preserving the module prefix distinction:
+    // `%23icon.svg` is a file, and `~#internal` is a module request.
+    if request.starts_with('#') && !is_module_request {
       return Ok(());
     }
     let mut request = decode_url(request).into_owned();
-    if request.starts_with('#') {
+    if request.starts_with('#') && !is_module_request {
       // Resolve the encoded hash as a relative filename, not an external URL,
       // package import, or fragment delimiter.
       request.insert_str(0, "./\0");
