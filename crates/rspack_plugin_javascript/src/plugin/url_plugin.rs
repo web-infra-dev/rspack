@@ -1,5 +1,7 @@
 #![allow(clippy::too_many_arguments)]
 
+use std::sync::LazyLock;
+
 use concat_string::concat_string;
 use rspack_core::{
   ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation, CompilationParams,
@@ -11,13 +13,18 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::placeholder::find_numeric_placeholders;
+use rspack_util::placeholder::Placeholder;
 
 use crate::{
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
   dependency::{URL_STATIC_PLACEHOLDER, WORKER_STATIC_URL_PLACEHOLDER, WorkerDependency},
   parser_and_generator::JavaScriptParserAndGenerator,
 };
+
+static URL_STATIC_MATCHER: LazyLock<Placeholder> =
+  LazyLock::new(|| Placeholder::new(URL_STATIC_PLACEHOLDER));
+static WORKER_STATIC_URL_MATCHER: LazyLock<Placeholder> =
+  LazyLock::new(|| Placeholder::new(WORKER_STATIC_URL_PLACEHOLDER));
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -68,7 +75,7 @@ pub async fn replace_static_url_placeholders(
   let content = source.source().into_string_lossy().into_owned();
   let mut replace_source = ReplaceSource::new(source);
   let module_graph = compilation.get_module_graph();
-  for (range, dep_id) in find_numeric_placeholders(&content, URL_STATIC_PLACEHOLDER) {
+  for (range, dep_id) in URL_STATIC_MATCHER.find_numeric(&content) {
     let dep_id: DependencyId = dep_id
       .parse::<u32>()
       .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
@@ -95,7 +102,7 @@ pub async fn replace_static_url_placeholders(
     );
   }
 
-  for (range, dep_id) in find_numeric_placeholders(&content, WORKER_STATIC_URL_PLACEHOLDER) {
+  for (range, dep_id) in WORKER_STATIC_URL_MATCHER.find_numeric(&content) {
     let dep_id: DependencyId = dep_id
       .parse::<u32>()
       .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))

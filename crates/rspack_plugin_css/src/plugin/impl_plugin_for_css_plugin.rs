@@ -19,7 +19,7 @@ use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
-use rspack_util::{fx_hash::FxDashMap, placeholder::find_literal_placeholders};
+use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use smol_str::SmolStr;
 
@@ -36,7 +36,7 @@ use crate::{
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
   runtime::CssLoadingRuntimeModule,
   utils::{
-    AUTO_PUBLIC_PATH_PLACEHOLDER, append_css_export_type_key, css_attribute_export_type,
+    AUTO_PUBLIC_PATH_MATCHER, append_css_export_type_key, css_attribute_export_type,
     css_dependency_export_type, css_dependency_meta, css_module_has_charset,
     css_module_is_import_dependency, css_module_resource, css_render_conditions_from_module,
   },
@@ -108,8 +108,7 @@ impl CssPlugin {
       Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules, &hooks).await?;
 
     let content = source.source().into_string_lossy();
-    let auto_public_path_matches: Vec<_> =
-      find_literal_placeholders(&content, AUTO_PUBLIC_PATH_PLACEHOLDER).collect();
+    let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_MATCHER.find_iter(&content).collect();
     let source = if !auto_public_path_matches.is_empty() {
       let mut replace = ReplaceSource::new(source);
       let relative = PublicPath::render_auto_public_path(compilation, output_path);
