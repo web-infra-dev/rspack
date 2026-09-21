@@ -7,12 +7,12 @@ use std::{
 use cow_utils::CowUtils;
 use heck::ToSnakeCase;
 use itertools::Itertools;
-use regex::{Captures, Regex};
+use memchr::memmem;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
 use rspack_intern::Atom;
-use rspack_util::{fx_hash::FxIndexSet, json_stringify};
+use rspack_util::{fx_hash::FxIndexSet, json_stringify, placeholder::find_placeholders};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use serde_json::{Value, json};
 
@@ -37,8 +37,7 @@ pub struct RuntimeTemplate {
   dojang: Arc<Dojang>,
 }
 
-static RUNTIME_GLOBALS_PATTERN: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\$\$RUNTIME_GLOBAL_(.*?)\$\$").expect("failed to create regex"));
+const RUNTIME_GLOBALS_PREFIX: &str = "$$RUNTIME_GLOBAL_";
 
 static WEBPACK_RUNTIME_GLOBALS: LazyLock<Arc<RuntimeGlobalsRenderMap>> = LazyLock::new(|| {
   Arc::new(runtime_globals_to_render_map(
@@ -194,10 +193,25 @@ fn replace_runtime_globals<'a>(
   template: &'a str,
   runtime_globals: &RuntimeGlobalsRenderMap,
 ) -> Cow<'a, str> {
-  RUNTIME_GLOBALS_PATTERN.replace_all(template, |caps: &Captures| {
-    let name = caps.get(1).expect("name should be a string").as_str();
-    runtime_globals.render_template_placeholder(name)
+  let mut matches = find_placeholders(template, RUNTIME_GLOBALS_PREFIX, |rest| {
+    let end = memmem::find(rest.as_bytes(), b"$$")?;
+    let name = &rest[..end];
+    (!name.contains('\n')).then_some((end + 2, name))
   })
+  .peekable();
+  if matches.peek().is_none() {
+    return Cow::Borrowed(template);
+  }
+
+  let mut result = String::with_capacity(template.len());
+  let mut end = 0;
+  for (range, name) in matches {
+    result.push_str(&template[end..range.start]);
+    result.push_str(&runtime_globals.render_template_placeholder(name));
+    end = range.end;
+  }
+  result.push_str(&template[end..]);
+  Cow::Owned(result)
 }
 
 impl Debug for RuntimeTemplate {
