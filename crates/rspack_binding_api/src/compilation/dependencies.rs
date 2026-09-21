@@ -164,6 +164,8 @@ impl FileSystemDependencies {
   #[napi]
   pub fn has(&self, value: String) -> napi::Result<bool> {
     with_current_compilation(self.compiler_id, |compilation| {
+      // The JavaScript filesystem dependency API represents paths as UTF-8
+      // strings. Rspack does not support non-UTF-8 paths at this boundary.
       let path: InternedPath = value.as_str().into();
       let (dependency_counter, dependencies) = self.dependency_sources(compilation)?;
       Ok(
