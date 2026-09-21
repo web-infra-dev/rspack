@@ -219,8 +219,12 @@ impl DependencyConditionFn for URLDependencyCondition {
       .expect("should be URLDependency");
     let runtime = if module_graph
       .get_parent_block(&connection.dependency_id)
-      .is_some()
-    {
+      .is_some_and(|block| {
+        matches!(
+          module_graph.block_by_id_expect(block).get_group_options(),
+          Some(GroupOptions::Entrypoint(_))
+        )
+      }) {
       None
     } else {
       runtime

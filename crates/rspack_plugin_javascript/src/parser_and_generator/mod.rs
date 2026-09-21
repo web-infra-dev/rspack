@@ -440,7 +440,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       }
     }
     if !promoted_dependencies.is_empty() {
-      url::apply_url_dependency_promotions(&mut result, &mut parse_context, &promoted_dependencies);
+      url::apply_url_dependency_promotions(&mut result, &parse_context, &promoted_dependencies);
     }
 
     Ok(result.with_diagnostic(diagnostics))

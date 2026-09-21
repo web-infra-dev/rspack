@@ -1,5 +1,5 @@
 use rspack_core::{
-  BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
+  AsyncDependenciesBlock, BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
   UsedByExportsDeferredPureCheck,
 };
 use rspack_util::SpanExt;
@@ -243,6 +243,7 @@ impl InnerGraphParserPlugin {
   pub fn finalize_dependency_usage(
     state: &mut InnerGraphState,
     dependencies: &mut [BoxDependency],
+    blocks: &mut [Option<Box<AsyncDependenciesBlock>>],
   ) {
     if !state.is_enabled() || state.usage_map.is_empty() {
       return;
@@ -298,12 +299,22 @@ impl InnerGraphParserPlugin {
     for (operation, used_by_exports) in
       Self::infer_dependency_usage(state, &deferred_pure_checks_by_symbol)
     {
-      let dep_idx = match operation {
+      let (dep_idx, block_idx) = match operation {
         InnerGraphUsageOperation::PureExpression(dep_idx)
-        | InnerGraphUsageOperation::ESMImportSpecifier(dep_idx)
-        | InnerGraphUsageOperation::URLDependency(dep_idx) => dep_idx,
+        | InnerGraphUsageOperation::ESMImportSpecifier(dep_idx) => (dep_idx, None),
+        InnerGraphUsageOperation::URLDependency {
+          dependency_index,
+          block_index,
+        } => (dependency_index, block_index),
       };
-      let Some(dep) = dependencies.get_mut(dep_idx) else {
+      let dep: Option<&mut dyn Dependency> = match block_idx {
+        Some(block_idx) => blocks
+          .get_mut(block_idx)
+          .and_then(Option::as_mut)
+          .and_then(|block| block.get_dependency_mut(dep_idx)),
+        None => dependencies.get_mut(dep_idx).map(|dep| &mut **dep),
+      };
+      let Some(dep) = dep else {
         continue;
       };
       match operation {
@@ -317,7 +328,7 @@ impl InnerGraphParserPlugin {
             dep.set_used_by_exports(Some(used_by_exports));
           }
         }
-        InnerGraphUsageOperation::URLDependency(_) => {
+        InnerGraphUsageOperation::URLDependency { .. } => {
           if let Some(dep) = dep.downcast_mut::<URLDependency>() {
             dep.set_used_by_exports(Some(used_by_exports));
           }

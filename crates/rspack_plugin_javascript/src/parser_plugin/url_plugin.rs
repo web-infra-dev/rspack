@@ -174,7 +174,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
       dep.loc = parser.to_dependency_location(expr.span.into());
       let dep_idx = parser.next_dependency_idx();
       parser.add_dependency(BoxDependency::new(dep));
-      InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_idx));
+      InnerGraphParserPlugin::on_usage(
+        parser,
+        InnerGraphUsageOperation::URLDependency {
+          dependency_index: dep_idx,
+          block_index: parser.collecting_dependencies_for_block,
+        },
+      );
       return Some(true);
     }
 
