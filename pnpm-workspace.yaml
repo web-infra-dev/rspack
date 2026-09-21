@@ -206,6 +206,7 @@ minimumReleaseAgeExclude:
   - mermaid@11.16.1
 
 patchedDependencies:
+  tinypool@2.1.2: patches/tinypool@2.1.2.patch
   webpack-sources@3.5.1: patches/webpack-sources@3.5.1.patch
 
 # Prevent un-reviewed build scripts
