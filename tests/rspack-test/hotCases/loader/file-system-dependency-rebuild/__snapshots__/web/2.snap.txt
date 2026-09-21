@@ -1,4 +1,4 @@
-# Case compilation-dependencies: Step 1
+# Case file-system-dependency-rebuild: Step 2
 
 ## Changed Files
 - changing.txt
@@ -37,7 +37,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* export default */ const __rspack_default_export = ("b");
+/* export default */ const __rspack_default_export = ("a");
 
 },
 
@@ -50,3 +50,48 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 }
 );
 ```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./changing.txt
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.mjs": [
+    "./changing.txt"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./changing.txt
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./changing.txt
+
+Disposed Callback:
