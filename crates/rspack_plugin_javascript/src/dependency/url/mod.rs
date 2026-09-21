@@ -262,7 +262,7 @@ fn get_dependency_entrypoint<'a>(
         Some(GroupOptions::Entrypoint(_))
       )
     })
-    .map(|block| {
+    .and_then(|block| {
       compilation
         .build_chunk_graph_artifact
         .chunk_graph
@@ -270,7 +270,6 @@ fn get_dependency_entrypoint<'a>(
           block,
           &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         )
-        .expect("URL dependency should have an entrypoint chunk")
     })
 }
 
@@ -279,6 +278,28 @@ pub(crate) fn get_dependency_entry_chunk(
   dependency_id: &DependencyId,
 ) -> Option<ChunkUkey> {
   get_dependency_entrypoint(compilation, dependency_id).map(ChunkGroup::get_entrypoint_chunk)
+}
+
+/// URL entries are loaded through a single URL, including when their modules are split out.
+pub fn is_url_entry_chunk(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
+  let module_graph = compilation.get_module_graph();
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
+    .keys()
+    .any(|module| {
+      module_graph
+        .get_incoming_connections(module)
+        .any(|connection| {
+          module_graph
+            .dependency_by_id(&connection.dependency_id)
+            .downcast_ref::<URLDependency>()
+            .is_some()
+            && get_dependency_entry_chunk(compilation, &connection.dependency_id)
+              == Some(*chunk_ukey)
+        })
+    })
 }
 
 fn get_url_expression(

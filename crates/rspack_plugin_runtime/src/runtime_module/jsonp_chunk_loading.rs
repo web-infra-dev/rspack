@@ -5,7 +5,9 @@ use rspack_core::{
   RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
   RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
-use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
+use rspack_plugin_javascript::{
+  dependency::is_url_entry_chunk, impl_plugin_for_js_plugin::chunk_has_js,
+};
 
 use super::generate_javascript_hmr_runtime;
 use crate::{
@@ -132,7 +134,13 @@ impl JsonpChunkLoadingRuntimeModule {
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
       .map_or_else(
-        || Cow::Borrowed("document.baseURI || self.location.href"),
+        || {
+          Cow::Borrowed(if is_url_entry_chunk(compilation, &chunk.ukey()) {
+            "typeof document === 'undefined' ? self.location.href : document.baseURI || self.location.href"
+          } else {
+            "document.baseURI || self.location.href"
+          })
+        },
         |base_uri| Cow::Owned(rspack_util::json_stringify_str(base_uri)),
       );
     format!(
