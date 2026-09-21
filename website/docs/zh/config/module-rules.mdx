@@ -325,6 +325,8 @@ export default {
 
 ### 通过 URL 引用 JavaScript 模块
 
+<ApiMeta stability={Stability.Experimental} />
+
 你可以使用 `new URL('./module.js', import.meta.url)` 获取 JavaScript 模块打包后的 URL。需要在规则中配置 `dependency: 'url'` 和对应的模块 `type`：
 
 ```js title="rspack.config.mjs"

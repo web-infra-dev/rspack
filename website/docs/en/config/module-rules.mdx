@@ -325,6 +325,8 @@ export default {
 
 ### Referencing JavaScript modules by URL
 
+<ApiMeta stability={Stability.Experimental} />
+
 You can use `new URL('./module.js', import.meta.url)` to get the URL of a bundled JavaScript module. Configure rules with `dependency: 'url'` and the corresponding module `type`:
 
 ```js title="rspack.config.mjs"
