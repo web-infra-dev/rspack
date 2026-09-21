@@ -344,6 +344,8 @@ export const run = async (
       const handleError = (error: any) => {
         mainPort.close();
         mainSyncPort.close();
+        workerPort.close();
+        workerSyncPort.close();
         reject(error);
       };
       const pendingRequests: Map<number, Promise<any>> = new Map();
@@ -449,7 +451,6 @@ export const run = async (
         Atomics.notify(sharedBufferView, 0, Number.POSITIVE_INFINITY);
       }
 
-      checkCloneableProps(task, loaderName);
       pool
         .run(
           {
@@ -470,6 +471,26 @@ export const run = async (
             ],
           },
         )
-        .catch(handleError);
+        .catch((error: unknown) => {
+          // Tinypool propagates the local postMessage exception when input
+          // cannot be cloned. Diagnose only that failure: successful sends
+          // already clone the task, and worker errors use the done channel.
+          if (
+            (error instanceof DOMException &&
+              error.name === 'DataCloneError') ||
+            // Node 20 reports unlisted transferables as a TypeError.
+            (error instanceof TypeError &&
+              'code' in error &&
+              error.code === 'ERR_MISSING_TRANSFERABLE_IN_TRANSFER_LIST')
+          ) {
+            try {
+              checkCloneableProps(task, loaderName);
+            } catch (diagnosticError) {
+              handleError(diagnosticError);
+              return;
+            }
+          }
+          handleError(error);
+        });
     });
   });
