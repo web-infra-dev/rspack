@@ -728,9 +728,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         _ => Cow::Borrowed(key),
       };
 
-      let content = self
-        .render_self_referencing_export(key, elements)
-        .unwrap_or_else(|| self.render_concat_export_content(elements, &mut state));
+      let elements = self.expand_self_referencing_exports(key, elements);
+      let content = self.render_concat_export_content(&elements, &mut state);
       self.register_concat_export(key, &content, &used_name, &mut state);
     }
 
@@ -766,41 +765,58 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     scope.register_export(key.into(), identifier);
   }
 
-  fn render_self_referencing_export(
+  fn expand_self_referencing_exports<'b>(
     &self,
     name: &str,
-    elements: &FxIndexSet<CssExport>,
-  ) -> Option<String> {
+    elements: &'b FxIndexSet<CssExport>,
+  ) -> Cow<'b, FxIndexSet<CssExport>> {
     let compilation = self.generate_context.compilation;
-    let has_self_reference = elements.iter().any(|export| {
+    let is_self_reference = |export: &CssExport| {
       export.from.as_deref().is_some_and(|request| {
         find_static_export_target(compilation, self.module, request, export.id.as_ref())
           == Some(self.module.identifier())
       })
-    });
-    if !has_self_reference {
-      return None;
+    };
+    if !elements.iter().any(is_self_reference) {
+      return Cow::Borrowed(elements);
     }
 
-    // A runtime require would read this module before its exports are assigned.
-    // Resolve the complete class list with the same cycle guard used for CSS
-    // modules that do not emit JavaScript.
-    CssConcatenationState::new(compilation)
-      .resolve_static_export(self.module, name)
-      .map(|resolved| json_stringify_str(&resolved))
+    // Like webpack's CSS reference resolution, track visited exports to break
+    // cycles. Only expand references to this module: external references must
+    // keep their runtime reads and module evaluation side effects.
+    let mut seen = HashSet::from_iter([name]);
+    let mut pending = elements.iter().rev().collect::<Vec<_>>();
+    let mut expanded = FxIndexSet::default();
+    while let Some(export) = pending.pop() {
+      if is_self_reference(export) {
+        if seen.insert(export.ident.as_str())
+          && let Some(elements) = self.css_build_info.exports.get(export.ident.as_str())
+        {
+          pending.extend(elements.iter().rev());
+        }
+      } else {
+        // Retain each leaf's dependency identity for the existing reexport renderer.
+        expanded.insert(export.clone());
+      }
+    }
+    if expanded.is_empty() {
+      // A pure ICSS cycle has no concrete value. Keep its existing runtime
+      // resolution instead of changing an unresolved export to an empty string.
+      Cow::Borrowed(elements)
+    } else {
+      Cow::Owned(expanded)
+    }
   }
 
   fn render_css_export_content(&mut self, name: &str, elements: &FxIndexSet<CssExport>) -> String {
-    if let Some(content) = self.render_self_referencing_export(name, elements) {
-      return content;
-    }
+    let elements = self.expand_self_referencing_exports(name, elements);
     let mut content = String::new();
     for CssExport {
       ident,
       from,
       id,
       orig_name: _,
-    } in elements
+    } in elements.iter()
     {
       let part = match from {
         None => self.render_local_css_export(ident),
@@ -859,7 +875,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
   fn render_concat_export_content<'b>(
     &mut self,
-    elements: &'b FxIndexSet<CssExport>,
+    elements: &FxIndexSet<CssExport>,
     state: &mut CssConcatenationState<'b>,
   ) -> String
   where
@@ -884,9 +900,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
   fn render_concat_reexport<'b>(
     &mut self,
-    ident: &'b str,
+    ident: &str,
     from_name: &str,
-    id: Option<&'b DependencyId>,
+    id: Option<&DependencyId>,
     state: &mut CssConcatenationState<'b>,
   ) -> String
   where
