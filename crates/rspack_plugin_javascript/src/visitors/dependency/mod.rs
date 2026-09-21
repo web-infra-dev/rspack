@@ -61,14 +61,26 @@ pub fn scan_dependencies(
   parse_meta: ParseMeta,
   parser_runtime_requirements: &ParserRuntimeRequirementsData,
 ) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
+  let javascript_options = module_parser_options
+    .and_then(|p| p.get_javascript())
+    .expect("should at least have a global javascript parser options");
+  // The drive is owned here and borrowed by the parser: hooks receive
+  // `&mut parser`, so a parser that owned its drive could not lend it out
+  // without cloning the handle on every hook call.
+  let plugin_drive = JavascriptParser::build_plugin_drive(
+    compiler_options,
+    javascript_options,
+    module_type,
+    import_meta,
+    build_info,
+    parser_plugins,
+  );
   let mut parser = JavascriptParser::new(
     source,
     ast,
     compiler_options,
-    module_parser_options
-      .and_then(|p| p.get_javascript())
-      .expect("should at least have a global javascript parser options"),
-    import_meta,
+    javascript_options,
+    &plugin_drive,
     &module_identifier,
     module_type,
     module_layer,
@@ -77,7 +89,6 @@ pub fn scan_dependencies(
     build_meta,
     build_info,
     semicolons,
-    parser_plugins,
     parse_meta,
     parser_runtime_requirements,
   );

@@ -149,7 +149,7 @@ impl JavascriptParser<'_> {
       | StmtData::ExportAllDeclaration(_)
       | StmtData::TsExportAssignment(_)
       | StmtData::TsNamespaceExportDeclaration(_) => {
-        let drive = self.plugin_drive.clone();
+        let drive = self.plugin_drive();
         self.enter_statement(
           statement.span(ast),
           statement,
@@ -196,8 +196,7 @@ impl JavascriptParser<'_> {
       if only_function_declaration
         && !matches!(stmt, Statement::Fn(_))
         && self
-          .plugin_drive
-          .clone()
+          .plugin_drive()
           .unused_statement(self, stmt)
           .unwrap_or(false)
       {
@@ -211,7 +210,7 @@ impl JavascriptParser<'_> {
   }
 
   pub(crate) fn walk_statement(&mut self, statement: Statement) {
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     self.enter_statement(
       statement.span(self.ast.ast),
       statement,
@@ -388,7 +387,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_if_statement(&mut self, stmt: IfStatement) {
-    if let Some(result) = self.plugin_drive.clone().statement_if(self, stmt) {
+    if let Some(result) = self.plugin_drive().statement_if(self, stmt) {
       if result {
         self.walk_nested_statement(stmt.consequent(self.ast.ast));
       } else if let Some(alt) = stmt.alternate(self.ast.ast) {
@@ -545,7 +544,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_variable_declaration(&mut self, decl: VariableDeclaration) {
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     let ast = self.ast.ast;
     for declarator in decl.declarators(ast) {
       let init = declarator.init(ast);
@@ -899,7 +898,7 @@ impl JavascriptParser<'_> {
   fn walk_unary_expression(&mut self, expr: UnaryExpression) {
     let ast = self.ast.ast;
     let argument = expr.argument(ast);
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     if expr.operator(ast) == UnaryOperator::Typeof
       && let Some(expr_info) =
         self.get_member_expression_info_from_expr(argument, AllowedMemberTypes::Expression)
@@ -924,7 +923,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_this_expression(&mut self, expr: ThisExpression) {
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     self.call_hooks_name("this", |this, for_name| drive.this(this, expr, for_name));
   }
 
@@ -1088,7 +1087,7 @@ impl JavascriptParser<'_> {
       members_optionals,
       member_ranges,
     };
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     if drive
       .member(self, member.into(), &expression_info.name)
       .unwrap_or_default()
@@ -1190,16 +1189,10 @@ impl JavascriptParser<'_> {
     {
       let result = if info.members.is_empty() {
         info.root_info.call_hooks_name(self, |parser, for_name| {
-          parser
-            .plugin_drive
-            .clone()
-            .new_expression(parser, expr, for_name)
+          parser.plugin_drive().new_expression(parser, expr, for_name)
         })
       } else {
-        self
-          .plugin_drive
-          .clone()
-          .new_expression(self, expr, &info.name)
+        self.plugin_drive().new_expression(self, expr, &info.name)
       };
       if result.unwrap_or_default() {
         return;
@@ -1215,8 +1208,7 @@ impl JavascriptParser<'_> {
       unreachable!()
     };
     self
-      .plugin_drive
-      .clone()
+      .plugin_drive()
       .meta_property(self, root_name, expr.span(ast));
   }
 
@@ -1226,8 +1218,7 @@ impl JavascriptParser<'_> {
     let consequent = expr.consequent(ast);
     let alternate = expr.alternate(ast);
     let result = self
-      .plugin_drive
-      .clone()
+      .plugin_drive()
       .expression_conditional_operation(self, expr);
 
     if let Some(result) = result {
@@ -1272,12 +1263,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_chain_expression(&mut self, expr: ChainExpression) {
-    if self
-      .plugin_drive
-      .clone()
-      .optional_chaining(self, expr)
-      .is_none()
-    {
+    if self.plugin_drive().optional_chaining(self, expr).is_none() {
       self.enter_optional_chain(
         expr,
         |parser, call| parser.walk_call_expression(call),
@@ -1288,7 +1274,7 @@ impl JavascriptParser<'_> {
 
   fn walk_member_expression(&mut self, expr: MemberExpression) {
     let ast = self.ast.ast;
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     let (expr_info, await_import_member) = self.get_member_expression_info_and_await_import(expr);
     if let Some(expr_info) = expr_info {
       match expr_info {
@@ -1370,14 +1356,10 @@ impl JavascriptParser<'_> {
     // (await import(...)).a.b
     if let Some((call, members, await_expr)) = await_import_member {
       if self.is_top_level_scope() {
-        self
-          .plugin_drive
-          .clone()
-          .top_level_await_expr(self, await_expr);
+        self.plugin_drive().top_level_await_expr(self, await_expr);
       }
       if self
-        .plugin_drive
-        .clone()
+        .plugin_drive()
         .import_call(self, call, None, Some((&members, false)))
         .unwrap_or_default()
       {
@@ -1404,7 +1386,7 @@ impl JavascriptParser<'_> {
     F: FnOnce(&mut Self) -> Option<bool>,
   {
     let ast = self.ast.ast;
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     let object = expr.object(ast);
     let member = match ast.expr_data(object) {
       ExprData::MemberExpression(member) => Some(member),
@@ -1517,8 +1499,7 @@ impl JavascriptParser<'_> {
 
   fn walk_import_expression(&mut self, expr: ImportExpression) {
     if self
-      .plugin_drive
-      .clone()
+      .plugin_drive()
       .import_call(self, expr, None, None)
       .unwrap_or_default()
     {
@@ -1543,7 +1524,7 @@ impl JavascriptParser<'_> {
   ) {
     fn get_var_name(parser: &mut JavascriptParser, expr: Expr) -> Option<ExportedVariableInfo> {
       if let Some(rename_identifier) = parser.get_rename_identifier(expr)
-        && let drive = parser.plugin_drive.clone()
+        && let drive = parser.plugin_drive()
         && parser
           .call_hooks_name(&rename_identifier, |this, for_name| {
             drive.can_rename(this, for_name)
@@ -1700,18 +1681,15 @@ impl JavascriptParser<'_> {
           if expr_info
             .root_info
             .call_hooks_name(self, |this, for_name| {
-              this
-                .plugin_drive
-                .clone()
-                .call_member_chain_of_call_member_chain(
-                  this,
-                  expr,
-                  &expr_info.callee_members,
-                  expr_info.call,
-                  &expr_info.members,
-                  &expr_info.member_ranges,
-                  for_name,
-                )
+              this.plugin_drive().call_member_chain_of_call_member_chain(
+                this,
+                expr,
+                &expr_info.callee_members,
+                expr_info.call,
+                &expr_info.members,
+                &expr_info.member_ranges,
+                for_name,
+              )
             })
             .unwrap_or_default() =>
         {
@@ -1724,8 +1702,7 @@ impl JavascriptParser<'_> {
       if let Some(import) = member.object(ast).as_import_expression(ast)
         && Self::property_key_name(ast, member.property(ast)) == Some("then")
         && self
-          .plugin_drive
-          .clone()
+          .plugin_drive()
           .import_call(self, import, Some(expr), None)
           .unwrap_or_default()
       {
@@ -1734,14 +1711,10 @@ impl JavascriptParser<'_> {
       // (await import(...)).a.b()
       if let Some((call, members, await_expr)) = await_import_member {
         if self.is_top_level_scope() {
-          self
-            .plugin_drive
-            .clone()
-            .top_level_await_expr(self, await_expr);
+          self.plugin_drive().top_level_await_expr(self, await_expr);
         }
         if self
-          .plugin_drive
-          .clone()
+          .plugin_drive()
           .import_call(self, call, None, Some((&members, true)))
           .unwrap_or_default()
         {
@@ -1763,7 +1736,7 @@ impl JavascriptParser<'_> {
     if evaluated_callee.is_identifier() {
       let (members, members_optionals, member_ranges) =
         evaluated_callee.member_path().unwrap_or((&[], &[], &[]));
-      let drive = self.plugin_drive.clone();
+      let drive = self.plugin_drive();
       if evaluated_callee
         .root_info()
         .call_hooks_name(self, |parser, for_name| {
@@ -1850,12 +1823,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_binary_expression(&mut self, expr: BinaryExpression) {
-    if self
-      .plugin_drive
-      .clone()
-      .binary_expression(self, expr)
-      .is_none()
-    {
+    if self.plugin_drive().binary_expression(self, expr).is_none() {
       let ast = self.ast.ast;
       self.walk_left_right_expression(expr.left(ast), expr.right(ast));
     }
@@ -1863,11 +1831,7 @@ impl JavascriptParser<'_> {
 
   fn walk_logical_expression(&mut self, expr: LogicalExpression) {
     let ast = self.ast.ast;
-    if let Some(keep_right) = self
-      .plugin_drive
-      .clone()
-      .expression_logical_operator(self, expr)
-    {
+    if let Some(keep_right) = self.plugin_drive().expression_logical_operator(self, expr) {
       if keep_right {
         self.walk_expression(expr.right(ast));
       }
@@ -1878,14 +1842,14 @@ impl JavascriptParser<'_> {
 
   fn walk_await_expression(&mut self, expr: AwaitExpression) {
     if self.is_top_level_scope() {
-      self.plugin_drive.clone().top_level_await_expr(self, expr);
+      self.plugin_drive().top_level_await_expr(self, expr);
     }
     self.walk_expression(expr.argument(self.ast.ast));
   }
 
   fn walk_identifier(&mut self, identifier: IdentifierReference) {
     let ast = self.ast.ast;
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     identifier.call_hooks_name(self, |this, for_name| {
       drive.identifier(
         this,
@@ -1898,7 +1862,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_identifier_name(&mut self, name: &str, span: Span) {
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     self.call_hooks_name(name, |this, for_name| {
       drive.identifier(this, &Identifier { span }, for_name)
     });
@@ -1971,7 +1935,7 @@ impl JavascriptParser<'_> {
       }
     };
     if let Some(identifier) = identifier {
-      let drive = self.plugin_drive.clone();
+      let drive = self.plugin_drive();
       if !identifier
         .call_hooks_name(self, |parser, for_name| {
           drive.pattern(parser, identifier, for_name)
@@ -1987,7 +1951,7 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let left = expr.left(ast);
     let right = expr.right(ast);
-    let drive = self.plugin_drive.clone();
+    let drive = self.plugin_drive();
     if let Some(simple) = left.as_simple_assignment_target(ast)
       && let Some(ident) = simple.as_identifier_reference(ast)
     {
@@ -2334,8 +2298,7 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     if let Some(super_class) = classy.super_class(ast)
       && !self
-        .plugin_drive
-        .clone()
+        .plugin_drive()
         .class_extends_expression(self, super_class, class_decl_or_expr)
         .unwrap_or_default()
     {
@@ -2356,8 +2319,7 @@ impl JavascriptParser<'_> {
       this.in_class_scope(true, scope_param.into_iter(), |this| {
         for class_element in ast.nodes(elements) {
           if this
-            .plugin_drive
-            .clone()
+            .plugin_drive()
             .class_body_element(this, class_element, class_decl_or_expr)
             .unwrap_or_default()
           {
@@ -2371,8 +2333,7 @@ impl JavascriptParser<'_> {
                 this.walk_property_key(method.key(ast));
               }
               if this
-                .plugin_drive
-                .clone()
+                .plugin_drive()
                 .class_body_value(this, class_element, method.span(ast), class_decl_or_expr)
                 .unwrap_or_default()
               {
@@ -2396,8 +2357,7 @@ impl JavascriptParser<'_> {
               }
               if let Some(value) = property.value(ast)
                 && !this
-                  .plugin_drive
-                  .clone()
+                  .plugin_drive()
                   .class_body_value(this, class_element, value.span(ast), class_decl_or_expr)
                   .unwrap_or_default()
               {
