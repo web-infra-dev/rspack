@@ -842,7 +842,7 @@ export type ResolveOptions = {
    * A list of resolve restrictions to restrict the paths that a request can be resolved on.
    * @default []
    * */
-  restrictions?: string[];
+  restrictions?: (string | RegExp)[];
 
   /**
    * A list of directories where server-relative URLs (beginning with '/') are resolved.
