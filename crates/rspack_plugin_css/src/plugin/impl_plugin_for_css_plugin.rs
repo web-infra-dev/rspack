@@ -308,11 +308,8 @@ async fn normal_module_factory_after_resolve(
     return Ok(None);
   };
   // Use the same dependency metadata as the module hook when constructing
-  // module identity. An unset export type has link semantics.
+  // module identity.
   let css_dependency_meta = css_dependency_meta(dependency.as_ref());
-  let effective_export_type = css_dependency_meta
-    .export_type
-    .unwrap_or(CssExportType::Link);
 
   if css_dependency_meta.is_css_import_dependency {
     let conditions_key =
@@ -341,11 +338,10 @@ async fn normal_module_factory_after_resolve(
       && module_type == create_data.module_options.cache_key().module_type.as_str()
       && let Some(suffix) = issuer_request.strip_prefix(create_data.request.as_str())
       && (suffix.starts_with("|css-render-conditions|") || suffix.starts_with("|css-export-type|"))
-      && suffix
-        .rsplit_once("|css-export-type|")
-        .map_or("link", |(_, export_type)| export_type)
-        == effective_export_type.to_string()
     {
+      // CssComposeDependency already inherits the issuer's export type during
+      // parsing. For a self-composition it therefore matches by construction.
+      // Keep the suffix opaque: condition values can contain our delimiters.
       create_data.request.push_str(suffix);
       return Ok(None);
     }
