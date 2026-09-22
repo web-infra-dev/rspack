@@ -165,22 +165,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
         }
         return None;
       }
-      let mut dep = URLDependency::new(
+      let dep = URLDependency::new(
         request.into(),
         expr.span.into(),
         (start, end).into(),
         self.mode,
       );
-      dep.loc = parser.to_dependency_location(expr.span.into());
       let dep_idx = parser.next_dependency_idx();
       parser.add_dependency(BoxDependency::new(dep));
-      InnerGraphParserPlugin::on_usage(
-        parser,
-        InnerGraphUsageOperation::URLDependency {
-          dependency_index: dep_idx,
-          block_index: parser.collecting_dependencies_for_block,
-        },
-      );
+      InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_idx));
       return Some(true);
     }
 

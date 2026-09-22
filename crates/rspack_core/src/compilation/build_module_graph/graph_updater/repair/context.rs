@@ -7,7 +7,8 @@ use rustc_hash::FxHashMap as HashMap;
 use super::BuildModuleGraphArtifact;
 use crate::{
   BuildContext, Compilation, CompilerPlatform, DependencyTemplate, DependencyTemplateType,
-  ExportsInfoArtifact, ResolverFactory, RuntimeTemplate, SharedPluginDriver, ValueCacheVersions,
+  DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory, RuntimeTemplate,
+  SharedPluginDriver, ValueCacheVersions,
   compilation::build_module_graph::module_build_cache::ModuleBuildCache, incremental::Incremental,
   module_graph::ModuleGraph, new_cache::CompilerCache,
 };
@@ -20,6 +21,7 @@ pub struct TaskContext {
   pub output_fs: Arc<dyn WritableFileSystem>,
   pub platform: Arc<CompilerPlatform>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
+  pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub(crate) cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
@@ -37,7 +39,6 @@ impl TaskContext {
   ) -> Self {
     Self {
       build_context: Arc::new(BuildContext {
-        dependency_factories: compilation.dependency_factories.clone(),
         compiler_id: compilation.compiler_id(),
         compilation_id: compilation.id(),
         compiler_options: compilation.options.clone(),
@@ -52,6 +53,7 @@ impl TaskContext {
       buildtime_plugin_driver: compilation.buildtime_plugin_driver.clone(),
       platform: compilation.platform.clone(),
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),
+      dependency_factories: compilation.dependency_factories.clone(),
       dependency_templates: compilation.dependency_templates.clone(),
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
@@ -99,7 +101,7 @@ impl TaskContext {
     compilation.module_build_cache = None;
     compilation.runtime_template =
       RuntimeTemplate::for_module_execution(self.build_context.compiler_options.clone());
-    compilation.dependency_factories = self.build_context.dependency_factories.clone();
+    compilation.dependency_factories = self.dependency_factories.clone();
     compilation.dependency_templates = self.dependency_templates.clone();
     std::mem::swap(
       &mut *compilation.build_module_graph_artifact,

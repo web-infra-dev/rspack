@@ -85,7 +85,6 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       let dependency_type = dependency.dependency_type();
       // TODO move module_factory calculate to dependency factories
       let module_factory = context
-        .build_context
         .dependency_factories
         .get(dependency_type)
         .unwrap_or_else(|| {
