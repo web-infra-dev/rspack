@@ -227,7 +227,8 @@ pub trait Logger {
     }
   }
 
-  fn cache_end(&self, count: CacheCount) {
+  fn cache_end(&self, count: impl std::borrow::Borrow<CacheCount>) {
+    let count = count.borrow();
     let total = count.total.load(Ordering::Relaxed);
     if total != 0 {
       self.raw(LogType::Cache {

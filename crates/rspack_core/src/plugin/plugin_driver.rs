@@ -81,7 +81,6 @@ impl PluginDriver {
   }
 
   pub fn clear_cache(&self, id: CompilationId) {
-    self.resolver_factory.clear_cache();
     for plugin in &self.plugins {
       plugin.clear_cache(id);
     }

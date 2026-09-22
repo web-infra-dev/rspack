@@ -6,7 +6,7 @@ use rspack_cacheable::{
 };
 use rspack_collections::Identifier;
 use rspack_core::{
-  BoxLoader, Context, Loader, LoaderExecutionKind, ModuleRuleUseLoader,
+  BoxLoader, Context, Loader, LoaderExecutionKind, ModuleFactoryCreateData, ModuleRuleUseLoader,
   NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
 };
 use rspack_error::Result;
@@ -72,6 +72,7 @@ pub(crate) async fn resolve_loader(
   context: &Context,
   resolver: &Resolver,
   l: &ModuleRuleUseLoader,
+  data: &mut ModuleFactoryCreateData,
 ) -> Result<Option<BoxLoader>> {
   let context = context.as_path();
   let loader_request = &l.loader;
@@ -82,11 +83,16 @@ pub(crate) async fn resolve_loader(
     return Ok(get_builtin_test_loader(loader_request));
   }
 
-  let Some(resolve_result) = resolver
-    .resolve(context.as_std_path(), prev.as_str())
-    .await
-    .ok()
-  else {
+  let (result, dependencies) = resolver
+    .resolve_with_context(context.as_std_path(), prev.as_str())
+    .await;
+  data
+    .file_dependencies
+    .extend(dependencies.file_dependencies);
+  data
+    .missing_dependencies
+    .extend(dependencies.missing_dependencies);
+  let Ok(resolve_result) = result else {
     return Ok(None);
   };
 
