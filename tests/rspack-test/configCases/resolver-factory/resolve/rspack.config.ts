@@ -26,7 +26,7 @@ class Plugin {
               expect(error).toBeNull();
               expect(res).toBe(path.join(import.meta.dirname, '/index.js'));
               // webpack does not have resource field
-              expect(Reflect.get(req!, 'resource')).toBe(undefined);
+              expect(req).not.toHaveProperty('resource');
               expect(req?.path).toBe(
                 path.join(import.meta.dirname, '/index.js'),
               );
