@@ -2,19 +2,17 @@
 use std::{cell::RefCell, sync::Arc};
 
 use criterion::BatchSize;
-use rspack::builder::{Builder as _, CompilerBuilder, ModuleOptionsBuilder};
+use rspack::builder::{Builder as _, CompilerBuilder};
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Cache, Compilation, Compiler, CompilerCache, GroupOptions, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, Optimization, RuleSetCondition,
-  build_chunk_graph,
+  Cache, Compilation, Compiler, CompilerCache, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleRuleUse, ModuleRuleUseLoader, Optimization, RuleSetCondition, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   fast_set,
   incremental::{Incremental, IncrementalOptions},
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-use rspack_plugin_javascript::url_plugin::URLPlugin;
 use rspack_regex::RspackRegex;
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, within_compiler_context_for_testing_sync};
 use serde_json::json;
@@ -244,16 +242,6 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
       .await
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(NUM_MODULES, &random_table, &fs).await;
-
-    let mut entry = String::from("import './dynamic-0.js';\n");
-    for index in (0..NUM_MODULES).step_by(10) {
-      entry.push_str(&format!(
-        "new URL('./leaves/Component-{index}.js', import.meta.url);\n"
-      ));
-    }
-    fs.write("/src/index.js".into(), entry.as_bytes())
-      .await
-      .unwrap();
   });
 
   build_module_graph_case(c, &rt, fs.clone(), "rust@build_module_graph", false);
@@ -309,17 +297,7 @@ fn build_module_graph_case(
         assert_no_compilation_errors(&compiler.compilation, "build_module_graph benchmark pass");
         assert_eq!(
           compiler.compilation.get_module_graph().modules_len(),
-          NUM_MODULES + NUM_MODULES / 10 + 1
-        );
-        assert_eq!(
-          compiler
-            .compilation
-            .get_module_graph()
-            .blocks()
-            .values()
-            .filter(|block| matches!(block.get_group_options(), Some(GroupOptions::Entrypoint(_))))
-            .count(),
-          NUM_MODULES / 10
+          NUM_MODULES + NUM_MODULES / 10
         );
       },
       BatchSize::PerIteration,
@@ -329,40 +307,25 @@ fn build_module_graph_case(
 
 fn create_build_module_graph_compiler(fs: Arc<MemoryFileSystem>, swc_loader: bool) -> Compiler {
   let mut builder = Compiler::builder();
-  let mut module = ModuleOptions::builder();
-  module.rule(ModuleRule {
-    test: Some(RuleSetCondition::Regexp(
-      RspackRegex::new("\\.js$").unwrap(),
-    )),
-    dependency: Some(RuleSetCondition::String("url".into())),
-    effect: ModuleRuleEffect {
-      r#type: Some(ModuleType::JsAuto),
-      ..Default::default()
-    },
-    ..Default::default()
-  });
 
   builder
     .context("/")
-    .entry("main", "/src/index.js")
-    .plugin(Box::new(URLPlugin::default()))
+    .entry("main", "/src/dynamic-0.js")
     .input_filesystem(fs.clone())
     .output_filesystem(fs)
     .optimization(Optimization::builder())
     .incremental(IncrementalOptions::empty_passes());
 
   if swc_loader {
-    configure_swc_loader(&mut builder, module);
-  } else {
-    builder.module(module);
+    configure_swc_loader(&mut builder);
   }
 
   builder.build().unwrap()
 }
 
-fn configure_swc_loader(builder: &mut CompilerBuilder, mut module: ModuleOptionsBuilder) {
+fn configure_swc_loader(builder: &mut CompilerBuilder) {
   builder
-    .module(module.rule(ModuleRule {
+    .module(ModuleOptions::builder().rule(ModuleRule {
       test: Some(RuleSetCondition::Regexp(
         RspackRegex::new("\\.js$").unwrap(),
       )),
