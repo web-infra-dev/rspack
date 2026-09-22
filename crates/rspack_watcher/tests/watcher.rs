@@ -433,3 +433,105 @@ fn collect_time_info_entries_stamps_a_live_event_with_the_observed_time() {
   );
   assert_eq!(accuracy, 0, "a live event is exact");
 }
+
+/// Retime a file or directory. Unix retimes through a read handle; Windows
+/// needs a writable one, and can only open a directory with backup semantics.
+fn set_modified(path: &std::path::Path, when: std::time::SystemTime) -> std::io::Result<()> {
+  let mut options = std::fs::File::options();
+  #[cfg(windows)]
+  {
+    use std::os::windows::fs::OpenOptionsExt;
+    const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
+    options.write(true).custom_flags(FILE_FLAG_BACKUP_SEMANTICS);
+  }
+  #[cfg(not(windows))]
+  options.read(true);
+  options.open(path)?.set_modified(when)
+}
+
+/// A context's safe time starts at the moment its watch became active: files
+/// inside it that changed before that (without bumping the directory mtime)
+/// are not covered by events, so the context must not read as older.
+#[test]
+fn collect_time_info_entries_floors_a_context_at_its_watch_start() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/inner");
+  let parked = std::time::SystemTime::now() - std::time::Duration::from_secs(3600);
+  for name in ["ctx/inner", "ctx"] {
+    let retimed = set_modified(helper.join(name).as_std_path(), parked);
+    assert!(retimed.is_ok(), "retime {name}: {retimed:?}");
+  }
+
+  let watched_at = now_millis();
+  let _rx = helper.watch(e!(), f!("ctx"), e!());
+
+  let ctx = safe_time_of(helper.time_info_entry(&helper.collect_time_info_entries().1, "ctx"));
+  assert!(
+    ctx >= watched_at,
+    "context safeTime {ctx} must not predate the watch start {watched_at}"
+  );
+}
+
+/// A registered context absent on disk reads as `null` in both tables.
+#[test]
+fn collect_time_info_entries_nulls_an_absent_context_in_both_tables() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+
+  let _rx = helper.watch(e!(), f!("nowhere"), e!());
+  let (file_timestamps, directory_timestamps) = helper.collect_time_info_entries();
+
+  assert_eq!(
+    *helper.time_info_entry(&file_timestamps, "nowhere"),
+    TimeInfoEntry::Null
+  );
+  assert_eq!(
+    *helper.time_info_entry(&directory_timestamps, "nowhere"),
+    TimeInfoEntry::Null
+  );
+}
+
+/// Moving a context away is one event for the directory, with no removal per
+/// file inside it; the files registered inside must still read as `null`, and
+/// their stale records must not make the directory read as present.
+#[test]
+fn collect_time_info_entries_nulls_a_moved_away_context_and_its_files() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/inner");
+
+  let rx = helper.watch(f!("ctx/inner"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+
+  helper.tick(|| std::fs::rename(helper.join("ctx"), helper.join("ctx.moved")).unwrap());
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.deleted_files.contains(context.as_str())
+  });
+
+  let (file_timestamps, directory_timestamps) = helper.collect_time_info_entries();
+  assert_eq!(
+    *helper.time_info_entry(&file_timestamps, "ctx/inner"),
+    TimeInfoEntry::Null,
+    "file inside the moved context reads as null"
+  );
+  assert_eq!(
+    *helper.time_info_entry(&file_timestamps, "ctx"),
+    TimeInfoEntry::Null
+  );
+  assert_eq!(
+    *helper.time_info_entry(&directory_timestamps, "ctx"),
+    TimeInfoEntry::Null,
+    "moved context reads as null"
+  );
+}

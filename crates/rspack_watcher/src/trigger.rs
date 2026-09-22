@@ -185,13 +185,18 @@ impl EventProcessor {
       kind
     };
 
-    // Drop a removed file's record so it reads as `null`, like watchpack.
-    if kind == FsEventKind::Remove {
-      self.path_manager.remove_file_time(path);
-    }
-
     let accessor = self.path_manager.access();
     let is_watched_path = accessor.files().0.contains(path) || accessor.missing().0.contains(path);
+
+    // Drop a removed path's record so it reads as `null`, like watchpack. A
+    // directory moved or deleted as a whole is one event with no per-file
+    // removals, so its descendants' records go with it.
+    if kind == FsEventKind::Remove {
+      self.path_manager.remove_file_time(path);
+      if !is_watched_path {
+        self.path_manager.remove_file_times_under(path);
+      }
+    }
 
     // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
     // written before the watcher was created. Stat the file and compare mtime

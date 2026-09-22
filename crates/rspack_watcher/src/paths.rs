@@ -262,8 +262,9 @@ pub(crate) struct PathManager {
   file_times: InternedPathDashMap<FileTime>,
   /// watchpack's per-`DirectoryWatcher` `lastWatchEvent`: when an event last
   /// reached each registered context (its own or a descendant's), in epoch
-  /// millis. An edit inside a directory does not bump its mtime, so this is
-  /// the floor for the context's safe time.
+  /// millis, seeded with the moment its watch became active. An edit inside a
+  /// directory does not bump its mtime, so this is the floor for the
+  /// context's safe time.
   last_watch_events: InternedPathDashMap<u64>,
 }
 
@@ -320,6 +321,14 @@ impl PathManager {
     self.file_times.remove(path);
   }
 
+  /// Drop the records of every path inside the directory `dir` (watchpack's
+  /// `onDirectoryRemoved` marks them all missing).
+  pub fn remove_file_times_under(&self, dir: &InternedPath) {
+    self
+      .file_times
+      .retain(|path, _| !path.starts_with(dir.as_ref() as &Path));
+  }
+
   /// watchpack's `setFileTime(filePath, mtime, initial, ignoreWhenEqual)`:
   /// record `path` as seen with `mtime` — from a scan (`initial`, safe time
   /// derived from the mtime) or from a live event (safe time = now). With
@@ -347,6 +356,16 @@ impl PathManager {
     };
     self.file_times.insert(path.clone(), time);
     true
+  }
+
+  /// The watch over this cycle's newly registered contexts just became
+  /// active: nothing earlier is covered by events, so their `lastWatchEvent`
+  /// starts now (watchpack stamps it during the initial scan).
+  pub fn record_initial_last_watch_events(&self) {
+    let now = current_time();
+    for dir in self.directories.added.iter() {
+      self.last_watch_events.entry(dir.clone()).or_insert(now);
+    }
   }
 
   /// An event reached the registered context `path`: advance its `lastWatchEvent`.
@@ -520,12 +539,13 @@ impl PathManager {
         own_safe_time.map(|own| last_watch_event.map_or(own, |event| own.max(event))),
       );
     }
-    // Raise each registered ancestor directory by its descendant files' safe times.
+    // Raise each registered ancestor directory that exists by its descendant
+    // files' safe times; a record cannot resurrect a directory gone from disk.
     for (file, safe_time) in &file_safe_times {
       let mut cursor = file.parent().map(InternedPath::from);
       while let Some(dir) = cursor {
-        if let Some(slot) = dir_safe_times.get_mut(&dir) {
-          *slot = Some(slot.map_or(*safe_time, |current| current.max(*safe_time)));
+        if let Some(Some(current)) = dir_safe_times.get_mut(&dir) {
+          *current = (*current).max(*safe_time);
         }
         cursor = dir.parent().map(InternedPath::from);
       }
@@ -538,7 +558,10 @@ impl PathManager {
           file_timestamps.push((path.clone(), TimeInfoEntry::ExistenceOnlyTimeEntry));
           directory_timestamps.push((path, TimeInfoEntry::OnlySafeTimeEntry { safe_time }));
         }
-        None => directory_timestamps.push((path, TimeInfoEntry::Null)),
+        None => {
+          file_timestamps.push((path.clone(), TimeInfoEntry::Null));
+          directory_timestamps.push((path, TimeInfoEntry::Null));
+        }
       }
     }
 
