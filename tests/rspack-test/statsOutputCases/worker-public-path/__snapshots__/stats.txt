@@ -1,5 +1,5 @@
-asset main-74dd31c2d0aa96d3.js xx KiB [emitted] [immutable] (name: main)
-asset 860-51401646dd4abc59.js xx bytes [emitted] [immutable]
+asset main-xxx.js xx KiB [emitted] [immutable] (name: main)
+asset 860-xxx.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 4 modules
 cacheable modules xx bytes
   ./index.js xx bytes [built] [code generated]

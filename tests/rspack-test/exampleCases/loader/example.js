@@ -1,5 +1,5 @@
 // use our loader
-console.dir(require("./loader!./file"));
+console.dir(require("./loader.mjs!./file"));
 
 // use built-in css loader
 console.dir(require("./test.css")); // default by extension

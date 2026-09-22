@@ -4,7 +4,8 @@
 
 
 ## Asset Files
-
+- Bundle: main.mjs
+- Bundle: style2_module_css.chunk.mjs
 
 ## Manifest
 

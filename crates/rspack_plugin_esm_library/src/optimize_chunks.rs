@@ -31,7 +31,7 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
 
   // Phase 1: Detect at-risk async chunks.
   // Source: modules with `has_top_level_await`.
-  // We iterate `module.get_blocks()` (blocks attached directly to the module).
+  // We recursively visit async blocks, including imports nested in require.ensure.
   // This is conservative: a function-scoped `import()` also shows up here when
   // the parser attaches its block to the module. We accept that over-inclusion
   // — extraction only actually happens in later phases when there's a real
@@ -44,10 +44,12 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
     if !module.build_meta().has_top_level_await() {
       continue;
     }
-    for block_id in module.get_blocks() {
-      let Some(block) = module_graph.block_by_id(block_id) else {
+    let mut blocks = module.get_blocks().to_vec();
+    while let Some(block_id) = blocks.pop() {
+      let Some(block) = module_graph.block_by_id(&block_id) else {
         continue;
       };
+      blocks.extend_from_slice(block.get_blocks());
       for dep in block.get_dependencies() {
         if dep.dependency_type() != &DependencyType::DynamicImport {
           continue;
@@ -573,51 +575,53 @@ pub(crate) fn analyze_dyn_import_targets(
     if !concatenated_modules.contains(module_id) {
       continue;
     }
-    for dep in module
-      .get_blocks()
-      .iter()
-      .filter_map(|block| module_graph.block_by_id(block))
-      .flat_map(|block| block.get_dependencies())
-    {
-      if dep.dependency_type() != &DependencyType::DynamicImport {
-        continue;
-      }
-      let exports_info_artifact = &compilation.exports_info_artifact;
-
-      let Some(conn) = module_graph.connection_by_dependency_id(dep.id()) else {
+    let mut blocks = module.get_blocks().to_vec();
+    while let Some(block_id) = blocks.pop() {
+      let Some(block) = module_graph.block_by_id(&block_id) else {
         continue;
       };
-      if !conn.is_target_active(
-        module_graph,
-        None,
-        &compilation.module_graph_cache_artifact,
-        &compilation
-          .build_module_graph_artifact
-          .side_effects_state_artifact,
-        exports_info_artifact,
-      ) {
-        continue;
-      }
-      let target = conn.module_identifier();
-      // Skip orphan modules — they are not in any chunk (e.g. tree-shaken or worker entries)
-      if compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_module_chunks(*target)
-        .is_empty()
-      {
-        continue;
-      }
-      all_dyn_targets.insert(*target);
+      blocks.extend_from_slice(block.get_blocks());
+      for dep in block.get_dependencies() {
+        if dep.dependency_type() != &DependencyType::DynamicImport {
+          continue;
+        }
+        let exports_info_artifact = &compilation.exports_info_artifact;
 
-      if !concatenated_modules.contains(target) {
-        continue;
-      }
+        let Some(conn) = module_graph.connection_by_dependency_id(dep.id()) else {
+          continue;
+        };
+        if !conn.is_target_active(
+          module_graph,
+          None,
+          &compilation.module_graph_cache_artifact,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
+          exports_info_artifact,
+        ) {
+          continue;
+        }
+        let target = conn.module_identifier();
+        // Skip orphan modules — they are not in any chunk (e.g. tree-shaken or worker entries)
+        if compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_module_chunks(*target)
+          .is_empty()
+        {
+          continue;
+        }
+        all_dyn_targets.insert(*target);
 
-      let exports_info = exports_info_artifact.get_exports_info_data(target);
+        if !concatenated_modules.contains(target) {
+          continue;
+        }
 
-      if exports_info.other_exports_info().is_used(None) {
-        namespace_targets.insert(*target);
+        let exports_info = exports_info_artifact.get_exports_info_data(target);
+
+        if exports_info.other_exports_info().is_used(None) {
+          namespace_targets.insert(*target);
+        }
       }
     }
   }

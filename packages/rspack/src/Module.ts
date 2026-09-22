@@ -83,7 +83,7 @@ export type ContextModuleFactoryBeforeResolveResult =
 export class ContextModuleFactoryAfterResolveData {
   #inner: binding.JsContextModuleFactoryAfterResolveData;
 
-  declare resource: number;
+  declare resource: string;
   declare context: string;
   declare request: string;
   declare regExp: RegExp | undefined;

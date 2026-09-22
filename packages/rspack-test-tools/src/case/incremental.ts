@@ -20,13 +20,12 @@ function createHotIncrementalProcessor(
   src: string,
   temp: string,
   target: TTarget,
-  webpackCases: boolean,
 ) {
   return createHotProcessor(name, src, temp, target, true);
 }
 
-function getHotCreator(target: TTarget, webpackCases: boolean) {
-  const key = JSON.stringify({ target, webpackCases });
+function getHotCreator(target: TTarget) {
+  const key = JSON.stringify({ target });
   if (!hotCreators.has(key)) {
     hotCreators.set(
       key,
@@ -40,7 +39,6 @@ function getHotCreator(target: TTarget, webpackCases: boolean) {
             src,
             temp || path.resolve(dist, 'temp'),
             target as TTarget,
-            webpackCases,
           ),
         ],
         runner: {
@@ -60,9 +58,8 @@ export function createHotIncrementalCase(
   dist: string,
   temp: string,
   target: RspackOptions['target'],
-  webpackCases: boolean,
 ) {
-  const creator = getHotCreator(target, webpackCases);
+  const creator = getHotCreator(target);
   creator.create(name, src, dist, temp);
 }
 
