@@ -5,10 +5,10 @@ export default defineConfig({
   plugins: [
     definePlugin((compiler) => {
       compiler.hooks.thisCompilation.tap(
-        'FileSystemDependencyCollection',
+        'FileSystemDependencySet',
         (compilation) => {
           compilation.hooks.afterSeal.tapPromise(
-            'FileSystemDependencyCollection',
+            'FileSystemDependencySet',
             async () => {
               const dependencies = compilation.fileDependencies;
               const initial = Array.from(dependencies);
@@ -63,27 +63,22 @@ export default defineConfig({
           );
         },
       );
-      compiler.hooks.done.tap(
-        'FileSystemDependencyCollection',
-        ({ compilation }) => {
-          const items = Array.from(compilation.fileDependencies);
-          const itemSet = new Set(items);
-          expect(new Set(compilation.fileDependencies.keys())).toEqual(itemSet);
-          expect(new Set(compilation.fileDependencies.values())).toEqual(
-            itemSet,
-          );
-          expect(new Set(compilation.fileDependencies.entries())).toEqual(
-            new Set(items.map((item) => [item, item])),
-          );
+      compiler.hooks.done.tap('FileSystemDependencySet', ({ compilation }) => {
+        const items = Array.from(compilation.fileDependencies);
+        const itemSet = new Set(items);
+        expect(new Set(compilation.fileDependencies.keys())).toEqual(itemSet);
+        expect(new Set(compilation.fileDependencies.values())).toEqual(itemSet);
+        expect(new Set(compilation.fileDependencies.entries())).toEqual(
+          new Set(items.map((item) => [item, item])),
+        );
 
-          expect(compilation.fileDependencies.has(items[0])).toBe(true);
-          compilation.fileDependencies.delete(items[0]);
-          expect(compilation.fileDependencies.has(items[0])).toBe(false);
-          compilation.fileDependencies.add(items[0]);
-          compilation.fileDependencies.add(items[0]);
-          expect(compilation.fileDependencies.size).toBe(items.length);
-        },
-      );
+        expect(compilation.fileDependencies.has(items[0])).toBe(true);
+        compilation.fileDependencies.delete(items[0]);
+        expect(compilation.fileDependencies.has(items[0])).toBe(false);
+        compilation.fileDependencies.add(items[0]);
+        compilation.fileDependencies.add(items[0]);
+        expect(compilation.fileDependencies.size).toBe(items.length);
+      });
     }),
   ],
 });
