@@ -254,8 +254,7 @@ impl JavaScriptParserAndGenerator {
     let default_with_diagnostics = |source: Arc<dyn Source>, diagnostics: Vec<Diagnostic>| {
       Ok(
         ParseResult {
-          modules: vec![],
-          module_connections: vec![],
+          parser_created_modules: vec![],
           source,
           dependencies: vec![],
           blocks: vec![],
@@ -389,8 +388,7 @@ impl JavaScriptParserAndGenerator {
 
     Ok(
       ParseResult {
-        modules: vec![],
-        module_connections: vec![],
+        parser_created_modules: vec![],
         source,
         dependencies,
         blocks,
@@ -438,22 +436,20 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       .split_into_parts();
 
     let mut promoted_dependencies = FxHashSet::default();
-    let mut modules = Vec::new();
-    let mut module_connections = Vec::new();
+    let mut parser_created_modules = Vec::new();
     for dependency in url::iter_url_dependencies(&result) {
-      let Some((module, connection)) =
+      let Some(created_module) =
         url::factorize_url_dependency(dependency, &mut parse_context).await
       else {
         continue;
       };
+      let module = &created_module.module;
       if !is_url_value_module(module.as_ref()) && module.module_type().is_js_like() {
         promoted_dependencies.insert(*dependency.id());
       }
-      modules.push(module);
-      module_connections.push(connection);
+      parser_created_modules.push(created_module);
     }
-    result.modules = modules;
-    result.module_connections = module_connections;
+    result.parser_created_modules = parser_created_modules;
     if !promoted_dependencies.is_empty() {
       url::apply_url_dependency_promotions(&mut result, &parse_context, &promoted_dependencies);
     }

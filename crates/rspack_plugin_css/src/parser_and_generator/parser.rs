@@ -326,8 +326,7 @@ impl<'context> CssModuleParser<'context> {
 
     Ok(
       ParseResult {
-        modules: vec![],
-        module_connections: vec![],
+        parser_created_modules: vec![],
         dependencies: self.dependencies,
         blocks: vec![],
         presentational_dependencies: self.presentational_dependencies,

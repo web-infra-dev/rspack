@@ -93,11 +93,10 @@ impl Task<TaskContext> for BuildResultTask {
       plugin_driver,
       mut forwarded_ids,
     } = *self;
-    let (module, modules, module_connections) = match build_result {
+    let (module, parser_created_modules) = match build_result {
       ModuleBuildResult::Built(BuildResult {
         mut module,
-        modules,
-        module_connections,
+        parser_created_modules,
       }) => {
         plugin_driver
           .compilation_hooks
@@ -108,7 +107,7 @@ impl Task<TaskContext> for BuildResultTask {
             &mut module,
           )
           .await?;
-        (ModuleRef::from(module), modules, module_connections)
+        (ModuleRef::from(module), parser_created_modules)
       }
       ModuleBuildResult::Cached(module) => {
         plugin_driver
@@ -120,7 +119,7 @@ impl Task<TaskContext> for BuildResultTask {
             module.as_ref(),
           )
           .await?;
-        (module, vec![], vec![])
+        (module, vec![])
       }
     };
 
@@ -239,11 +238,10 @@ impl Task<TaskContext> for BuildResultTask {
       original_module_identifier: module_identifier,
       from_unlazy: false,
     };
-    if !modules.is_empty() {
+    if !parser_created_modules.is_empty() {
       tasks.extend(prepare_add_tasks_for_parser_created_modules(
         context,
-        modules,
-        module_connections,
+        parser_created_modules,
         &mut process_dependencies,
       ));
     }

@@ -593,8 +593,7 @@ impl Module for NormalModule {
     let factory_meta = self.factory_meta.get();
     let (
       ParseResult {
-        modules,
-        module_connections,
+        parser_created_modules,
         source,
         dependencies,
         blocks,
@@ -669,8 +668,7 @@ impl Module for NormalModule {
         dependencies.into_iter().map(Into::into).collect(),
         blocks.into_iter().map(Into::into).collect(),
       ),
-      modules,
-      module_connections,
+      parser_created_modules,
     })
   }
 

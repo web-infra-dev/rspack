@@ -35,9 +35,9 @@ use crate::{
   DependencyCodeGenerationRef, DependencyId, DependencyRef, DependencyType, ExportProvided,
   ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase,
   ModuleCodeTemplate, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
-  ModuleType, NormalModule, OptimizationBailoutItem, ParserCreatedModuleConnection, RawModule,
-  Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact,
-  Snapshot, SourceType, concatenated_module::ConcatenatedModule,
+  ModuleType, NormalModule, OptimizationBailoutItem, ParserCreatedModule, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot,
+  SourceType, concatenated_module::ConcatenatedModule,
   dependencies_block::dependencies_block_update_hash, get_target,
   value_cache_versions::ValueCacheVersions,
 };
@@ -63,16 +63,14 @@ pub struct BuildContext {
 #[derive(Debug)]
 pub struct BuildResult {
   pub module: BoxModule,
-  pub modules: Vec<BoxModule>,
-  pub module_connections: Vec<ParserCreatedModuleConnection>,
+  pub parser_created_modules: Vec<ParserCreatedModule>,
 }
 
 impl From<BoxModule> for BuildResult {
   fn from(module: BoxModule) -> Self {
     Self {
       module,
-      modules: vec![],
-      module_connections: vec![],
+      parser_created_modules: vec![],
     }
   }
 }

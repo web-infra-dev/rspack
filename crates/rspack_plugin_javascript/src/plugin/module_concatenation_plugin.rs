@@ -1803,7 +1803,7 @@ async fn create_concatenated_module(
       Some(compilation),
     )
     .await?;
-  debug_assert!(build_result.modules.is_empty());
+  debug_assert!(build_result.parser_created_modules.is_empty());
   new_module = build_result.module;
 
   Ok(new_module)
