@@ -24,10 +24,7 @@ import type { Chunk } from './Chunk';
 import type { CompilationParams } from './Compilation';
 import { Compilation } from './Compilation';
 import { ContextModuleFactory } from './ContextModuleFactory';
-import {
-  applyIndexedArrayUpdates,
-  swapRemoveArrayElements,
-} from './util/arrayHelpers';
+import { bindingHelpers } from './util/bindingHelpers';
 import type {
   EntryNormalized,
   OutputNormalized,
@@ -998,10 +995,7 @@ class Compiler {
           }
         },
         Cache.__to_binding(this.cache),
-        {
-          applyIndexedArrayUpdates,
-          swapRemoveArrayElements,
-        },
+        bindingHelpers,
       );
 
       callback(null, this.#instance);

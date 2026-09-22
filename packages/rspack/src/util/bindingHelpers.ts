@@ -1,6 +1,8 @@
+import type { JsHelpers } from '@rspack/binding';
+
 // Internal synchronous binding protocol: fill or patch a target using source
 // indices. Do not retain arguments or invoke callbacks; indices are call-scoped.
-export function applyIndexedArrayUpdates<T>(
+function applyIndexedArrayUpdates<T>(
   source: readonly T[],
   target: T[],
   commands: Uint32Array,
@@ -23,7 +25,7 @@ export function applyIndexedArrayUpdates<T>(
 
 // Remove distinct indices in descending order by moving the last element into
 // each gap. This does not preserve order. Do not retain arguments or invoke callbacks.
-export function swapRemoveArrayElements<T>(
+function swapRemoveArrayElements<T>(
   array: T[],
   removedIndices: Uint32Array,
 ): void {
@@ -34,3 +36,8 @@ export function swapRemoveArrayElements<T>(
   }
   array.length = length;
 }
+
+export const bindingHelpers = {
+  applyIndexedArrayUpdates,
+  swapRemoveArrayElements,
+} satisfies JsHelpers;
