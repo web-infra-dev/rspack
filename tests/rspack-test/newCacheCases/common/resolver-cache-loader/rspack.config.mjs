@@ -5,7 +5,6 @@ let buildIndex = 0;
 /** @type {import('@rspack/core').Configuration} */
 export default {
   mode: 'development',
-  incremental: false,
   experiments: {
     newCache: {
       resolver: true,
@@ -14,12 +13,6 @@ export default {
       devtool: false,
       loader: false,
       minimize: false,
-    },
-  },
-  cache: {
-    type: 'persistent',
-    snapshot: {
-      resolve: { timestamp: false, hash: true },
     },
   },
   resolveLoader: {
