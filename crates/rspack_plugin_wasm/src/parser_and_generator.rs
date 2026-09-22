@@ -79,6 +79,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
       return Ok(
         ParseResult {
+          parser_created_modules: vec![],
           dependencies,
           blocks: vec![],
           presentational_dependencies: vec![],
@@ -138,6 +139,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
     Ok(
       ParseResult {
+        parser_created_modules: vec![],
         dependencies,
         blocks: vec![],
         presentational_dependencies: vec![],

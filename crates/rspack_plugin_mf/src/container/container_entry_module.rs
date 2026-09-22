@@ -5,11 +5,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, ChunkGroupOptions, CodeGenerationDataItem, CodeGenerationResultBuilder,
-  CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock,
-  DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMetaStore, FreezeLock,
-  GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodeTemplate,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationDataItem,
+  CodeGenerationResultBuilder, CodeGenerationRuntimeRequirementsWrite, Compilation, Context,
+  DependenciesBlock, DependenciesBlockData, Dependency, DependencyType, ExportsArgument,
+  FactoryMetaStore, FreezeLock, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
   impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
@@ -184,7 +184,7 @@ impl Module for ContainerEntryModule {
     mut self: Box<Self>,
     _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     let mut blocks = vec![];
     let mut dependencies: Vec<BoxDependency> = vec![];
 
@@ -231,10 +231,14 @@ impl Module for ContainerEntryModule {
     // I need `name` for SharedContainer logic.
     // I will add `name` field to struct.
 
-    Ok(BoxModule::new(self).with_dependencies(
-      dependencies.into_iter().map(Into::into).collect(),
-      blocks.into_iter().map(Into::into).collect(),
-    ))
+    Ok(
+      BoxModule::new(self)
+        .with_dependencies(
+          dependencies.into_iter().map(Into::into).collect(),
+          blocks.into_iter().map(Into::into).collect(),
+        )
+        .into(),
+    )
   }
 
   // #[tracing::instrument("ContainerEntryModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

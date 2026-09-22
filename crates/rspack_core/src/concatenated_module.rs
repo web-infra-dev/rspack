@@ -36,7 +36,7 @@ use swc_experimental_ecma_ast::{ClassExpr, Ident, ObjectPatProp, Program, Prop, 
 use swc_experimental_ecma_semantic::resolver::Semantic;
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, ChunkInitFragments,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, ChunkInitFragments,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResultBuilder,
   CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent,
@@ -803,7 +803,7 @@ impl Module for ConcatenatedModule {
     mut self: Box<Self>,
     _build_context: Arc<BuildContext>,
     compilation: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     let compilation = compilation.expect("should pass compilation");
 
     let module_graph = compilation.get_module_graph();
@@ -884,7 +884,7 @@ impl Module for ConcatenatedModule {
     }
     // Created during seal, after the build module graph phase freezes other modules.
     self.build_info.freeze();
-    Ok(BoxModule::new(self))
+    Ok(BoxModule::new(self).into())
   }
 
   // #[tracing::instrument("ConcatenatedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

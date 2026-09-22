@@ -16,7 +16,7 @@ use rspack_core::{
 use crate::{Atom, connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
 #[cacheable]
-// Cloned for factory-only type probes and to move a nested parser dependency into a URL entry.
+// Cloned for factory creation and to move a nested parser dependency into a URL entry.
 #[derive(Debug, Clone)]
 pub struct URLDependency {
   pub(crate) loc: Option<DependencyLocation>,

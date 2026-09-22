@@ -1,13 +1,14 @@
 use concat_string::concat_string;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, DependenciesBlock, Dependency, DependencyId,
-  DependencyRef, EntryOptions, GroupOptions, ModuleFactoryCreateData, ParseContext, ParseResult,
+  DependencyRef, EntryOptions, FactorizeInfo, GroupOptions, ModuleFactoryCreateData, ParseContext,
+  ParseResult, ParserCreatedModule,
 };
 use rspack_hash::{HashDigest, RspackHash, RspackHasher};
 use rspack_util::identifier::split_at_query_mark;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::dependency::{URLDependency, is_url_value_module};
+use crate::dependency::URLDependency;
 
 pub(crate) fn iter_url_dependencies(result: &ParseResult) -> impl Iterator<Item = &URLDependency> {
   let mut blocks = result.blocks.iter().map(Box::as_ref).collect::<Vec<_>>();
@@ -76,10 +77,10 @@ pub(crate) fn apply_url_dependency_promotions(
   }
 }
 
-pub(crate) async fn should_promote_url_dependency(
+pub(crate) async fn factorize_url_dependency(
   url_dependency: &URLDependency,
   context: &mut ParseContext<'_>,
-) -> bool {
+) -> Option<ParserCreatedModule> {
   let build_context = context.build_context;
   let factory = build_context
     .dependency_factories
@@ -97,32 +98,37 @@ pub(crate) async fn should_promote_url_dependency(
     Some(context.module_identifier),
     context.module_layer.cloned(),
   );
-  // The probe does not build or retain the target module. Its resolution inputs
-  // belong to the issuer too, since its dependency layout depends on the result.
+  // Resolution inputs also belong to the issuer: its dependency layout depends
+  // on the target type even when the issuer is restored from the module cache.
   let factory_result = factory.create(&mut create_data).await;
   context
     .build_info
     .dependencies
     .file
-    .extend(create_data.file_dependencies);
+    .extend(create_data.file_dependencies.iter().cloned());
   context
     .build_info
     .dependencies
     .context
-    .extend(create_data.context_dependencies);
+    .extend(create_data.context_dependencies.iter().cloned());
   context
     .build_info
     .dependencies
     .missing
-    .extend(create_data.missing_dependencies);
+    .extend(create_data.missing_dependencies.iter().cloned());
   // Let normal factorization report failures with its usual diagnostics and
   // bail behavior, instead of turning a failed probe into an issuer build error.
-  factory_result
-    .ok()
-    .and_then(|result| result.module)
-    .is_some_and(|module| {
-      !is_url_value_module(module.as_ref()) && module.module_type().is_js_like()
-    })
+  let module = factory_result.ok().and_then(|result| result.module)?;
+  Some(ParserCreatedModule {
+    module,
+    factorize_info: FactorizeInfo::new(
+      create_data.diagnostics,
+      vec![*url_dependency.id()],
+      create_data.file_dependencies,
+      create_data.context_dependencies,
+      create_data.missing_dependencies,
+    ),
+  })
 }
 
 fn create_url_entry(

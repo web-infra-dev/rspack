@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
 use rspack_error::Result;
+use rspack_util::fx_hash::FxHashSet;
 
 use super::{
   TaskContext,
   build::{BuildResultTask, BuildTask, ModuleBuildResult},
   lazy::process_unlazy_dependencies,
+  process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  BoxModule, BuildContext, DependencyRef, ModuleIdentifier,
+  BoxModule, BuildContext, DependencyRef, ModuleIdentifier, ParserCreatedModule,
   compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -178,4 +180,65 @@ fn set_resolved_module(
     module_graph.add_dependency_ref(dependency);
   }
   Ok(())
+}
+
+/// Prepares AddTasks for parser-created modules and removes their connections
+/// from the dependencies that still need factorization.
+pub(super) fn prepare_add_tasks_for_parser_created_modules(
+  context: &mut TaskContext,
+  parser_created_modules: Vec<ParserCreatedModule>,
+  process_dependencies: &mut ProcessDependenciesTask,
+) -> Vec<Box<dyn Task<TaskContext>>> {
+  let issuer = process_dependencies.original_module_identifier;
+  let dependencies_to_process = process_dependencies
+    .dependencies
+    .iter()
+    .copied()
+    .collect::<FxHashSet<_>>();
+  let mut resolved_dependencies = FxHashSet::default();
+  let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];
+  for ParserCreatedModule {
+    module,
+    factorize_info,
+  } in parser_created_modules
+  {
+    // Lazy dependencies are processed later, without retaining parser-created modules.
+    if !factorize_info
+      .related_dep_ids()
+      .iter()
+      .all(|id| dependencies_to_process.contains(id))
+    {
+      continue;
+    }
+    let dependencies = factorize_info
+      .related_dep_ids()
+      .iter()
+      .map(|id| {
+        resolved_dependencies.insert(*id);
+        context.artifact.affected_dependencies.mark_as_add(id);
+        context
+          .artifact
+          .module_graph
+          .dependency_ref_by_id(id)
+          .clone()
+      })
+      .collect();
+    context.artifact.record_factorization(factorize_info);
+
+    let mut module_graph_module = ModuleGraphModule::new(module.identifier());
+    module_graph_module.set_issuer_if_unset(Some(issuer));
+    // AddTask reuses modules already added by another dependency.
+    tasks.push(Box::new(AddTask {
+      build_context: context.build_context.clone(),
+      original_module_identifier: Some(issuer),
+      module,
+      module_graph_module: Box::new(module_graph_module),
+      dependencies,
+      from_unlazy: false,
+    }));
+  }
+  process_dependencies
+    .dependencies
+    .retain(|id| !resolved_dependencies.contains(id));
+  tasks
 }

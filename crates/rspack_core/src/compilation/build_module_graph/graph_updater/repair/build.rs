@@ -4,11 +4,12 @@ use rspack_util::time::current_time;
 use rustc_hash::FxHashSet;
 
 use super::{
-  TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
+  TaskContext, add::prepare_add_tasks_for_parser_created_modules,
+  lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlockRef, BoxModule, BuildContext, DependenciesBlock, DependencyParents,
-  DependencyRef, ModuleRef, SharedPluginDriver,
+  AsyncDependenciesBlockRef, BoxModule, BuildContext, BuildResult, DependenciesBlock,
+  DependencyParents, DependencyRef, ModuleRef, SharedPluginDriver,
   compilation::build_module_graph::{
     ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
   },
@@ -57,7 +58,7 @@ impl Task<TaskContext> for BuildTask {
     if let (Some(module_build_cache), Some(build_start_time)) =
       (module_build_cache, build_start_time)
     {
-      module_build_cache.mark_pending(result.identifier(), build_start_time);
+      module_build_cache.mark_pending(result.module.identifier(), build_start_time);
     }
 
     Ok(vec![Box::new(BuildResultTask {
@@ -70,7 +71,7 @@ impl Task<TaskContext> for BuildTask {
 
 #[derive(Debug)]
 pub(super) enum ModuleBuildResult {
-  Built(BoxModule),
+  Built(BuildResult),
   Cached(ModuleRef),
 }
 
@@ -92,8 +93,11 @@ impl Task<TaskContext> for BuildResultTask {
       plugin_driver,
       mut forwarded_ids,
     } = *self;
-    let module = match build_result {
-      ModuleBuildResult::Built(mut module) => {
+    let (module, parser_created_modules) = match build_result {
+      ModuleBuildResult::Built(BuildResult {
+        mut module,
+        parser_created_modules,
+      }) => {
         plugin_driver
           .compilation_hooks
           .succeed_module
@@ -103,7 +107,7 @@ impl Task<TaskContext> for BuildResultTask {
             &mut module,
           )
           .await?;
-        ModuleRef::from(module)
+        (ModuleRef::from(module), parser_created_modules)
       }
       ModuleBuildResult::Cached(module) => {
         plugin_driver
@@ -115,7 +119,7 @@ impl Task<TaskContext> for BuildResultTask {
             module.as_ref(),
           )
           .await?;
-        module
+        (module, vec![])
       }
     };
 
@@ -229,11 +233,19 @@ impl Task<TaskContext> for BuildResultTask {
       all_dependencies
     };
 
-    tasks.push(Box::new(ProcessDependenciesTask {
+    let mut process_dependencies = ProcessDependenciesTask {
       dependencies: dependencies_to_process,
       original_module_identifier: module_identifier,
       from_unlazy: false,
-    }));
+    };
+    if !parser_created_modules.is_empty() {
+      tasks.extend(prepare_add_tasks_for_parser_created_modules(
+        context,
+        parser_created_modules,
+        &mut process_dependencies,
+      ));
+    }
+    tasks.push(Box::new(process_dependencies));
 
     Ok(tasks)
   }

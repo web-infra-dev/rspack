@@ -5,11 +5,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  ExportsType, FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
-  runtime_mode::RuntimeMode,
+  BuildResult, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
+  DependenciesBlockData, ExportsType, FactoryMetaStore, FreezeLock, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -185,7 +185,7 @@ impl Module for ConsumeSharedModule {
     mut self: Box<Self>,
     _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
-  ) -> Result<BoxModule> {
+  ) -> Result<BuildResult> {
     let mut blocks = vec![];
     let mut dependencies = vec![];
     if let Some(fallback) = &self.options.import {
@@ -198,10 +198,14 @@ impl Module for ConsumeSharedModule {
       }
     }
 
-    Ok(BoxModule::new(self).with_dependencies(
-      dependencies.into_iter().map(Into::into).collect(),
-      blocks.into_iter().map(Into::into).collect(),
-    ))
+    Ok(
+      BoxModule::new(self)
+        .with_dependencies(
+          dependencies.into_iter().map(Into::into).collect(),
+          blocks.into_iter().map(Into::into).collect(),
+        )
+        .into(),
+    )
   }
 
   // #[tracing::instrument("ConsumeSharedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

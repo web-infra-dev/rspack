@@ -123,6 +123,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       Err(err) => {
         return Ok(
           rspack_core::ParseResult {
+            parser_created_modules: vec![],
             presentational_dependencies: vec![],
             dependencies: vec![],
             blocks: vec![],
@@ -149,6 +150,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
 
     Ok(
       rspack_core::ParseResult {
+        parser_created_modules: vec![],
         presentational_dependencies: vec![],
         dependencies: vec![BoxDependency::new(JsonExportsDependency::new(
           self.exports_depth,

@@ -14,12 +14,12 @@ use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
-  CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
+  AsyncDependenciesBlock, BoxDependency, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  ChunkGraph, CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
   DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange,
-  EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, Resolve, RuntimeSpec,
-  SourceType,
+  EvaluatedInlinableValue, FactorizeInfo, FactoryMeta, GeneratorOptions, Module,
+  ModuleCodeTemplate, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, NormalModule,
+  ParserOptions, Resolve, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -114,8 +114,17 @@ impl SideEffectsBailoutItemWithSpan {
   }
 }
 
+/// An unbuilt parser-created module with its connection and factory dependencies.
+#[derive(Debug)]
+pub struct ParserCreatedModule {
+  pub module: BoxModule,
+  pub factorize_info: FactorizeInfo,
+}
+
 #[derive(Debug)]
 pub struct ParseResult {
+  /// Unbuilt modules and their connections to add through the module graph task pool.
+  pub parser_created_modules: Vec<ParserCreatedModule>,
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub presentational_dependencies: Vec<DependencyCodeGenerationRef>,
