@@ -99,7 +99,17 @@ Target 0: (node) stopped.
 
 ## Memory profiling with allocative
 
-For local ownership analysis, build the binding with allocative enabled. This instrumentation is disabled by default:
+Debug (`build:binding:debug`, using the `release-debug` Cargo profile) and profiling (`build:binding:profiling`) bindings include allocative. Snapshot collection stays disabled until `RSPACK_ALLOCATIVE_DIR` is set.
+
+For an external project, use a version of `@rspack-debug/core` that includes this support, following the override instructions above, or a profiling binding. No custom Rust build is needed. Run the project's usual build command with a fresh, absolute output directory, for example:
+
+```bash
+RSPACK_ALLOCATIVE_DIR=/tmp/rspack-memory-run-1 pnpm exec rsbuild build
+```
+
+Open [Speedscope](https://www.speedscope.app/) and drag in `/tmp/rspack-memory-run-1/0-build.allocative` to inspect the ownership tree. Unset `RSPACK_ALLOCATIVE_DIR` to stop collecting snapshots.
+
+When building a local dev binding, enable allocative explicitly. Dev, CI, and release builds do not include it by default:
 
 ```bash
 ALLOCATIVE=1 pnpm run build:binding:dev
@@ -115,7 +125,7 @@ RSPACK_ALLOCATIVE_DIR=/tmp/rspack-memory-run-1 \
   node /path/to/rspack/packages/rspack-cli/bin/rspack.js build
 ```
 
-Install Inferno (`cargo install inferno --locked`), then render the snapshot from the Rspack checkout:
+From the Rspack checkout, prepare the snapshot and count data for inspection:
 
 ```bash
 pnpm exec zx .agents/skills/rspack-allocative/scripts/render-profile.mjs \
@@ -123,6 +133,6 @@ pnpm exec zx .agents/skills/rspack-allocative/scripts/render-profile.mjs \
   --out-dir /tmp/rspack-memory-run-1/report
 ```
 
-The report contains separate `memory.svg` and `counts.svg` charts, `counts.csv`, and coverage diagnostics. Counts describe current module graph entries, not all process objects. Byte weights include traversed owned heap allocations and container capacity, but exclude inaccessible third-party internals, V8 memory, and some container/allocator metadata. Check the warnings before comparing runs; the total is neither RSS nor peak memory.
+The report contains a copy of the `.allocative` snapshot, `counts.folded`, `counts.csv`, a summary, and coverage diagnostics. Open [Speedscope](https://www.speedscope.app/) and drag in the `.allocative` file to inspect memory or `counts.folded` to inspect counts. Use **Left Heavy** to search and zoom into ownership branches. Folded files do not carry units: snapshot weights are bytes, while count weights are current module graph entries. These snapshots have no timeline and do not count all process objects. Byte weights include traversed owned heap allocations and container capacity, but exclude inaccessible third-party internals, V8 memory, and some container/allocator metadata. Check the warnings before comparing runs; the total is neither RSS nor peak memory.
 
-Unset `ALLOCATIVE` when rebuilding normally. Setting `ALLOCATIVE=0` still enables it because the build script checks whether the environment variable is nonempty.
+Unset `ALLOCATIVE` when rebuilding a normal dev, CI, or release binding. Setting `ALLOCATIVE=0` still enables it because the build script checks whether the environment variable is nonempty. Debug and profiling bindings include it regardless of this build variable; snapshot collection is controlled by `RSPACK_ALLOCATIVE_DIR`.

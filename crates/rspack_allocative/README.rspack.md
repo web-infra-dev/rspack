@@ -1,6 +1,6 @@
 # Rspack allocative adapters
 
-Based on the published `rspack-allocative` 0.3.5 crate (Meta's allocative, MIT OR Apache-2.0). The original source headers and licenses are retained. Local changes add adapters needed by Rspack and correct collection accounting. It is used only by opt-in allocative builds.
+Based on the published `rspack-allocative` 0.3.5 crate (Meta's allocative, MIT OR Apache-2.0). The original source headers and licenses are retained. Local changes add adapters needed by Rspack and correct collection accounting. Debug (`release-debug`) and profiling binding builds include it automatically; other builds must opt in. Snapshot collection requires `RSPACK_ALLOCATIVE_DIR` at runtime.
 
 The upstream test sources are retained for provenance; Cargo's automatic library tests are disabled, as in the other production crates. Rspack regression tests live in the dedicated `rspack_allocative_testing` crate:
 

@@ -103,7 +103,17 @@ Target 0: (node) stopped.
 
 ## 使用 allocative 分析内存 \{#memory-profiling-with-allocative}
 
-要在本地分析对象所有权树，先构建启用了 allocative 的 binding。该功能默认关闭：
+debug（`build:binding:debug`，对应 Cargo 的 `release-debug` profile）和 profiling（`build:binding:profiling`）binding 内置 allocative。只有设置 `RSPACK_ALLOCATIVE_DIR` 后才会采集快照。
+
+外部项目可以按照上文的覆盖依赖说明，使用包含此功能的 `@rspack-debug/core` 版本，或使用 profiling binding，无需自行编译 Rust。设置一个新的绝对路径输出目录，运行项目原有的构建命令，例如：
+
+```bash
+RSPACK_ALLOCATIVE_DIR=/tmp/rspack-memory-run-1 pnpm exec rsbuild build
+```
+
+打开 [Speedscope](https://www.speedscope.app/)，拖入 `/tmp/rspack-memory-run-1/0-build.allocative` 即可查看所有权树。取消设置 `RSPACK_ALLOCATIVE_DIR` 可停止采集快照。
+
+本地构建 dev binding 时，需要显式启用 allocative。dev、CI 和 release 构建默认不包含此功能：
 
 ```bash
 ALLOCATIVE=1 pnpm run build:binding:dev
@@ -119,7 +129,7 @@ RSPACK_ALLOCATIVE_DIR=/tmp/rspack-memory-run-1 \
   node /path/to/rspack/packages/rspack-cli/bin/rspack.js build
 ```
 
-安装 Inferno（`cargo install inferno --locked`），然后在 Rspack 仓库中渲染快照：
+在 Rspack 仓库中整理快照和数量数据：
 
 ```bash
 pnpm exec zx .agents/skills/rspack-allocative/scripts/render-profile.mjs \
@@ -127,6 +137,6 @@ pnpm exec zx .agents/skills/rspack-allocative/scripts/render-profile.mjs \
   --out-dir /tmp/rspack-memory-run-1/report
 ```
 
-报告包含独立的 `memory.svg` 和 `counts.svg` 火焰图、`counts.csv`，以及覆盖范围诊断。数量表示当前模块图中的条目数，并非进程内全部对象的数量。字节权重包含已遍历对象拥有的堆分配和容器容量，但不包含无法访问的第三方内部状态、V8 内存，以及部分容器和分配器元数据。比较结果前请检查警告；总量既不是 RSS，也不是内存峰值。
+报告包含 `.allocative` 快照副本、`counts.folded`、`counts.csv`、摘要，以及覆盖范围诊断。打开 [Speedscope](https://www.speedscope.app/)，拖入 `.allocative` 文件查看内存，或拖入 `counts.folded` 查看数量。使用 **Left Heavy** 视图搜索并放大所有权分支。folded 文件不携带单位：快照权重表示字节，数量权重表示当前模块图中的条目数。这些快照没有时间线，也不统计进程内全部对象的数量。字节权重包含已遍历对象拥有的堆分配和容器容量，但不包含无法访问的第三方内部状态、V8 内存，以及部分容器和分配器元数据。比较结果前请检查警告；总量既不是 RSS，也不是内存峰值。
 
-恢复普通构建时，取消设置 `ALLOCATIVE`。不要设置为 `ALLOCATIVE=0`，因为构建脚本会将非空的环境变量视为启用。
+恢复普通 dev、CI 或 release 构建时，取消设置 `ALLOCATIVE`。不要设置为 `ALLOCATIVE=0`，因为构建脚本会将非空的环境变量视为启用。debug 和 profiling binding 始终内置此功能，不受该构建变量影响；是否采集快照由 `RSPACK_ALLOCATIVE_DIR` 控制。

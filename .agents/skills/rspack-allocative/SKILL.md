@@ -1,11 +1,11 @@
 ---
 name: rspack-allocative
-description: Capture local Rspack allocative snapshots, generate memory flamegraphs, and measure explicit live-object or collection-entry counts with separate count flamegraphs. Use for Rust data-structure memory analysis and snapshot comparisons.
+description: Capture local Rspack allocative snapshots for Speedscope and measure explicit live-object or collection-entry counts. Use for Rust data-structure memory analysis and snapshot comparisons.
 ---
 
 # Rspack allocative
 
-Produce inspectable local artifacts: a raw `.allocative` snapshot, a byte flamegraph, and, when requested, measured population counts with a CSV table and a separate count flamegraph. Explain the capture phase and coverage with every result.
+Produce inspectable local artifacts: a raw `.allocative` snapshot and, when requested, measured population counts with a CSV table and a separate count-weighted folded file. Use Speedscope to view flamegraphs. Explain the capture phase and coverage with every result.
 
 ## Establish coverage
 
@@ -13,7 +13,7 @@ Use the user's selected checkout or current Rspack worktree. When invoked outsid
 
 Check these integration points in the selected revision:
 
-- `crates/node_binding/scripts/build.mjs`: `ALLOCATIVE` enables the Cargo feature and `--cfg=allocative`.
+- `crates/node_binding/scripts/build.mjs`: debug (`release-debug`) and profiling builds enable the Cargo feature and `--cfg=allocative` automatically; `ALLOCATIVE` opts other binding builds in.
 - `crates/rspack_core/src/compiler/mod.rs`: the `snapshot_allocative("build", self)` call defines the capture phase.
 - `crates/rspack_core/src/utils/mod.rs`: `RSPACK_ALLOCATIVE_DIR`, naming, and root traversal.
 - Cargo manifests: the actual allocative package/version and feature propagation.
@@ -32,7 +32,7 @@ ALLOCATIVE=1 pnpm run build:binding:dev
 pnpm run build:js
 ```
 
-For large workloads, `ALLOCATIVE=1 pnpm run build:binding:profiling` is an alternative if appropriate for the installed toolchain. Confirm the build log enables **both** the Cargo feature and cfg. Do not use `ALLOCATIVE=0` to disable it: the existing JavaScript build script checks truthiness. Unset the variable instead.
+For large workloads, `pnpm run build:binding:profiling` is an alternative if appropriate for the installed toolchain. Both `build:binding:debug` (`release-debug`) and `build:binding:profiling` include allocative automatically. Confirm the build log enables **both** the Cargo feature and cfg. Dev, CI, and release binding builds remain opt-in through `ALLOCATIVE`. Do not use `ALLOCATIVE=0` to disable it: the existing JavaScript build script checks truthiness. Unset it for ordinary builds. In all profiles, leave `RSPACK_ALLOCATIVE_DIR` unset to disable snapshot collection.
 
 Run from the target project's working directory with its real configuration. Set `PROFILE_DIR` to an absolute, fresh directory for each process/run:
 
@@ -42,7 +42,7 @@ RSPACK_ALLOCATIVE_DIR="$PROFILE_DIR" \
   build --config "$CONFIG_PATH"
 ```
 
-Verify the workload loads the newly built local binding, including config/plugin imports that resolve their own `@rspack/core`. A published binding without allocative cannot be enabled by a runtime variable.
+Verify the workload loads the newly built local binding, including config/plugin imports that resolve their own `@rspack/core`. For external projects, a debug or profiling binding built with this integration can capture snapshots without recompilation; `@rspack-debug/core` overrides are documented in the repository's debugging guide. Verify the selected package version includes this support. A published binding without allocative cannot be enabled by a runtime variable.
 
 Snapshots typically start at `0-build.allocative` and increment within a process. Separate processes can overwrite those names if they share a directory. Check exit status, nonempty outputs, and capture phase. For watch/rebuild workloads, inspect the rebuild path instead of assuming every rebuild emits a snapshot.
 
@@ -67,9 +67,9 @@ The native snapshot already emits module and dependency **entry counts grouped b
 
 For a full census request, identify missing types and add counters where feasible. Do not silently substitute entries for unique objects. Missing populations mean unmeasured, not zero. Use separate byte and count artifacts.
 
-## Render and inspect
+## Prepare and inspect
 
-The bundled zx helper uses the repository's installed dependencies and Inferno. Locate `inferno-flamegraph` on PATH or install with `cargo install inferno --locked` within environment permissions. An alternate binary can be passed with `--inferno /absolute/path/to/inferno-flamegraph`.
+The bundled zx helper uses the repository's installed dependencies to validate and prepare data for Speedscope. It does not generate SVGs or require a flamegraph renderer.
 
 Resolve `SKILL_DIR` to this installed skill directory. For byte-only data:
 
@@ -88,11 +88,11 @@ pnpm --dir "$RSPACK_ROOT" exec zx "$SKILL_DIR/scripts/render-profile.mjs" \
   --out-dir "$PROFILE_DIR/report-0"
 ```
 
-The helper automatically discovers matching `.counts.json`, `.metadata.json`, and `.warnings.txt` sidecars; `--counts` overrides only the count path. Outputs: `memory.svg`, a copy of the byte snapshot, `summary.json`, and available metadata/warnings. With counts: also `counts.csv`, source JSON, `counts.folded`, and, for nonzero counts, `counts.svg`. All-zero counts are reported without a misleading empty chart. The output directory must be new.
+The helper automatically discovers matching `.counts.json`, `.metadata.json`, and `.warnings.txt` sidecars; `--counts` overrides only the count path. Outputs: a copy of the byte snapshot, `summary.json`, and available metadata/warnings. With counts: also `counts.csv`, source JSON, and `counts.folded`. All-zero counts are reported in the table and summary; the empty folded file has no chart to view. The output directory must be new.
 
-The helper labels charts separately in bytes and objects/entries. It rejects mismatched snapshot IDs, negative counts, duplicate populations, and ancestor/descendant count rows that would double-count totals. Distinct sibling paths can still describe overlapping populations: check their semantics yourself.
+The helper records units separately as bytes and objects/entries. It rejects mismatched snapshot IDs, negative counts, duplicate populations, and ancestor/descendant count rows that would double-count totals. Distinct sibling paths can still describe overlapping populations: check their semantics yourself.
 
-Open SVGs in a browser or return clickable absolute file links. Wider byte frames indicate more represented memory; wider count frames indicate larger measured populations. Count paths group by ownership scope, not allocation call stack. CSV rows retain the counting basis.
+Open [Speedscope](https://www.speedscope.app/) and drag in the `.allocative` snapshot or a nonempty `counts.folded` file. Wider byte frames indicate more represented memory; wider count frames indicate larger measured populations. Folded files do not carry units, so state which metric each file contains. Count paths group by ownership scope, not allocation call stack. CSV rows retain the counting basis.
 
 Treat `Unobserved nested allocations` warnings as missing heap coverage, not zero bytes. Nonblocking locks can also make a snapshot incomplete. External regex engines, callback captures, V8 objects, and private persistence internals are examples of explicit boundaries. Container private metadata and allocator overhead are not fully represented; see metadata limits. An accounting warning about children exceeding a parent is a profiler bug to investigate, not an ordinary coverage limitation.
 
@@ -100,6 +100,8 @@ For comparisons, match input, phase, profile, roots, units, and counting methods
 
 ## Validate and report
 
-Compile changed Rust instrumentation before executing it. Run the requested workload and render its artifacts. Explain unobserved populations and report collection/build failures. Synthetic helper tests are not Rspack measurements.
+Compile changed Rust instrumentation before executing it. Run the requested workload and prepare its artifacts for Speedscope. Explain unobserved populations and report collection/build failures. Synthetic helper tests are not Rspack measurements.
 
-Return raw snapshots, SVGs, the counts table when collected, and findings with units, phase, and coverage. Mention the selected local binding and any instrumentation changes. Preserve artifacts for inspection. Profiling does not imply permission to publish data or update a PR.
+Return raw snapshots, count-weighted folded files and the counts table when collected, and findings with units, phase, and coverage. Mention the selected local binding and any instrumentation changes. Preserve artifacts for inspection. Profiling does not imply permission to publish data or update a PR.
+
+After each run that produces snapshots, include a clickable absolute link to the directory containing the `.allocative` files and identify the snapshot filenames. Tell the user to open [Speedscope](https://www.speedscope.app/) and drag in a `.allocative` file to explore it with search, zoom, and the **Left Heavy** view. Explain that the weights are bytes and the paths represent ownership; the folded file does not carry a unit, and **Time Order** does not represent a timeline for these snapshots. If no snapshot was produced, report that explicitly instead of linking an expected output path.

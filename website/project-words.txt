@@ -209,6 +209,7 @@ sockjs
 sokra
 solidjs
 sooniter
+speedscope
 statoscope
 struct
 svgr

@@ -2,7 +2,7 @@
 
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
-import { $, argv, which } from 'zx';
+import { argv } from 'zx';
 
 async function readBytesSnapshot(filename) {
   if (path.extname(filename) !== '.allocative') {
@@ -96,17 +96,6 @@ async function readCounts(filename, snapshot) {
   return { ...data, total };
 }
 
-async function render(inferno, folded, filename, unit, title) {
-  const result = await $({
-    quiet: true,
-    input: folded,
-    timeout: '120s',
-  })`${inferno} --countname ${unit} --nametype Object: --title ${title} --deterministic`;
-  if (!result.stdout.includes('<svg'))
-    throw new Error('Inferno did not produce an SVG');
-  await fs.writeFile(filename, result.stdout);
-}
-
 function csvRow(values) {
   return (
     values
@@ -125,15 +114,15 @@ async function optionalText(filename) {
 }
 
 async function main() {
-  const values = { inferno: 'inferno-flamegraph', ...argv };
+  const values = argv;
   const positionals = argv._;
-  const known = new Set(['_', 'counts', 'out-dir', 'inferno', 'help', 'h']);
+  const known = new Set(['_', 'counts', 'out-dir', 'help', 'h']);
   for (const key of Object.keys(argv)) {
     if (!known.has(key)) throw new Error(`Unknown option: ${key}`);
   }
   if (values.help || values.h) {
     console.log(
-      'Usage: zx render-profile.mjs SNAPSHOT.allocative --out-dir NEW_DIR [--counts COUNTS.json] [--inferno BINARY]',
+      'Usage: zx render-profile.mjs SNAPSHOT.allocative --out-dir NEW_DIR [--counts COUNTS.json]\nPrepare snapshot data for viewing in https://www.speedscope.app/.',
     );
     return;
   }
@@ -142,7 +131,7 @@ async function main() {
       'Supply one .allocative snapshot and --out-dir NEW_DIR; see --help',
     );
   }
-  for (const key of ['counts', 'out-dir', 'inferno']) {
+  for (const key of ['counts', 'out-dir']) {
     if (values[key] !== undefined && typeof values[key] !== 'string') {
       throw new Error(`--${key} requires a single string value`);
     }
@@ -169,29 +158,18 @@ async function main() {
     );
   }
   const warnings = await optionalText(sidecar + '.warnings.txt');
-  const inferno = await which(values.inferno).catch(() => {
-    throw new Error(
-      'inferno-flamegraph not found; install Inferno or pass --inferno',
-    );
-  });
   const out = path.resolve(values['out-dir']);
   await fs.mkdir(path.dirname(out), { recursive: true });
   await fs.mkdir(out); // Refuse to overwrite a previous report.
   await fs.writeFile(path.join(out, path.basename(source)), bytes.text);
-  await render(
-    inferno,
-    bytes.text,
-    path.join(out, 'memory.svg'),
-    'bytes',
-    `Allocative bytes: ${snapshot}`,
-  );
   const summary = {
     snapshot,
     source,
+    directory: out,
     bytes: {
       visited_bytes: bytes.total,
       folded_rows: bytes.rows,
-      svg: path.join(out, 'memory.svg'),
+      folded: path.join(out, path.basename(source)),
       coverage: 'Only visited allocative roots/fields',
     },
     counts: null,
@@ -222,22 +200,13 @@ async function main() {
         )
         .join('');
     await fs.writeFile(path.join(out, 'counts.csv'), csv);
-    if (counts.total) {
-      await render(
-        inferno,
-        folded,
-        path.join(out, 'counts.svg'),
-        counts.unit,
-        `Scoped ${counts.unit}: ${snapshot}`,
-      );
-    }
     summary.counts = {
       unit: counts.unit,
       scope: counts.scope,
       total: counts.total,
       populations: rows.length,
       table: path.join(out, 'counts.csv'),
-      svg: counts.total ? path.join(out, 'counts.svg') : null,
+      folded: counts.total ? path.join(out, 'counts.folded') : null,
       note: 'Sum of declared nonoverlapping populations; not a process-wide census',
     };
   }
@@ -246,6 +215,9 @@ async function main() {
     JSON.stringify(summary, null, 2) + '\n',
   );
   console.log(JSON.stringify(summary, null, 2));
+  console.error(
+    `Snapshots: ${out}\nOpen https://www.speedscope.app/ and drag in ${path.basename(source)} (bytes)${counts?.total ? ` or counts.folded (${counts.unit})` : ''}. Use Left Heavy to explore ownership; these snapshots have no timeline.`,
+  );
 }
 
 try {

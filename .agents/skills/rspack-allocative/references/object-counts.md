@@ -38,7 +38,7 @@ When collection APIs lack the desired population, add a small cfg-gated counting
 
 ## Sidecar contract
 
-The renderer accepts the following JSON. Numbers here are **illustrative**, not Rspack observations:
+The helper accepts the following JSON. Numbers here are **illustrative**, not Rspack observations:
 
 ```json
 {
@@ -66,4 +66,4 @@ The renderer accepts the following JSON. Numbers here are **illustrative**, not 
 - Each `path` consists of nonempty labels without semicolons or newlines; each leaf is a nonoverlapping population. Do not include both a total and its component buckets.
 - `count` is a nonnegative integer. Omitted populations are unmeasured. An empty array is not a measurement.
 
-Keep raw values and provenance. The helper generates a count-weighted folded file and SVG, never a byte-to-object estimate. Describe totals as scoped population totals, not allocator block counts or retained bytes.
+Keep raw values and provenance. The helper generates a count-weighted folded file for Speedscope, never a byte-to-object estimate. Describe totals as scoped population totals, not allocator block counts or retained bytes.
