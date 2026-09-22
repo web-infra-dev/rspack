@@ -842,7 +842,7 @@ export type ResolveOptions = {
    * A list of resolve restrictions to restrict the paths that a request can be resolved on.
    * @default []
    * */
-  restrictions?: string[];
+  restrictions?: (string | RegExp)[];
 
   /**
    * A list of directories where server-relative URLs (beginning with '/') are resolved.
@@ -2861,6 +2861,14 @@ export type OptimizationSplitChunksCacheGroup = {
 
 /** Tell Rspack how to splitting chunks. */
 export type OptimizationSplitChunksOptions = {
+  /**
+   * Maximum rounds of intersection discovery for additional shared-module groups.
+   * Defaults to `1` (pairwise intersections) in production and `0` otherwise.
+   * Set `0` to disable discovery.
+   * Higher depths allow newly discovered intersections to participate in the next round.
+   */
+  dedupDepth?: number;
+
   /**
    * Options for module cache group
    * */

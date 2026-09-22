@@ -1,0 +1,90 @@
+```mjs title=async.mjs
+
+// ./async.js
+
+
+
+export { value } from "./lib_js.mjs";
+
+```
+
+```mjs title=lib_js.mjs
+// ./lib.js
+const value = () => 42
+export { value };
+
+```
+
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import { value } from "./lib_js.mjs";
+
+__webpack_require__.add({
+"./runtime.cjs"
+/*!*********************!*\
+  !*** ./runtime.cjs ***!
+  \*********************/
+(module) {
+module.exports = 42;
+
+
+},
+});
+// ./index.js
+
+
+// Keep a CommonJS module in the runtime chunk used by require.ensure.
+const runtimeValue = __webpack_require__(/*! ./runtime.cjs */ "./runtime.cjs");
+
+const asyncModule = await new Promise((resolve, reject) => {
+	Promise.resolve(/*! require.ensure */).then((() => {
+		Promise.resolve(/*! require.ensure */).then((() => {
+			import("./async.mjs").then(resolve, reject);
+		}).bind(null, __webpack_require__))['catch'](error => reject(error));
+	}).bind(null, __webpack_require__))['catch'](error => reject(error));
+});
+
+it("should extract shared modules for an awaited nested import", () => {
+	expect(Object.keys(asyncModule)).toEqual(["value"]);
+	expect(value).toBe(asyncModule.value);
+	expect(value()).toBe(runtimeValue);
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+
+export { __webpack_require__ };
+
+```

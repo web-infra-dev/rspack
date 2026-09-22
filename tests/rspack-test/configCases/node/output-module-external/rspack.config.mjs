@@ -1,0 +1,24 @@
+import { DefinePlugin } from '@rspack/core';
+
+/** @type {import('@rspack/core').Configuration} */
+export default {
+  target: 'node',
+  entry: {
+    require: './require.js',
+    import: './import.js',
+  },
+  experiments: {
+    outputModule: true,
+  },
+  output: {
+    module: true,
+    filename: '[name].mjs',
+  },
+  plugins: [
+    new DefinePlugin({
+      NODE_VERSION: JSON.stringify(
+        process.versions.node.split('.').map(Number)[0],
+      ),
+    }),
+  ],
+};

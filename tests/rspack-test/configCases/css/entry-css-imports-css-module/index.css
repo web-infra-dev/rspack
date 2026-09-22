@@ -1,0 +1,5 @@
+@import "./card.module.css";
+
+body {
+	background: red;
+}

@@ -1,7 +1,7 @@
 import { test as base, type PlaywrightOptions } from '@rstest/playwright';
 import { devices } from 'playwright';
 
-export { expect } from './expect';
+export { expect } from '@rstest/playwright';
 
 export const test = base.extend({
   playwright: {

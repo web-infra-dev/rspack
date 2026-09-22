@@ -42,6 +42,16 @@ export function toRawSplitChunksOptions(
     return;
   }
 
+  const { dedupDepth } = sc;
+  if (
+    dedupDepth !== undefined &&
+    (!Number.isInteger(dedupDepth) || dedupDepth < 0 || dedupDepth > 0xffffffff)
+  ) {
+    throw new Error(
+      `Invalid Rspack configuration: "optimization.splitChunks.dedupDepth" must be an integer between 0 and 4294967295, get \`${dedupDepth}\`.`,
+    );
+  }
+
   function getName(name: any) {
     interface Context {
       module: Module;
@@ -184,5 +194,11 @@ export function toRawSplitChunksOptions(
     maxAsyncSize: JsSplitChunkSizes.__to_binding(maxAsyncSize),
     maxInitialSize: JsSplitChunkSizes.__to_binding(maxInitialSize),
     ...passThrough,
+    dedupDepth:
+      dedupDepth ??
+      (compiler.options.mode === 'development' ||
+      compiler.options.mode === 'none'
+        ? 0
+        : 1),
   };
 }

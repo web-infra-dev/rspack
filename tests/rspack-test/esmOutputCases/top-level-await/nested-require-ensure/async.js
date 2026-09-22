@@ -1,0 +1,2 @@
+export { value } from './lib'
+

@@ -6,6 +6,6 @@ it("html code gen entry order", () => {
 	const htmlContent = fs.readFileSync(htmlPath, "utf-8");
 	let polyFillIndex = htmlContent.search("polyfill.js");
 	let mainIndex = htmlContent.search("main.js");
-	// should keep the order as entry in `rspack.config.js`
+	// should keep the order as entry in `rspack.config.mjs`
 	expect(polyFillIndex < mainIndex).toBe(true);
 });

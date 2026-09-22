@@ -312,34 +312,40 @@ module.exports = {
 
 ### Compiler
 
-| Entry File            | `Compiler.test.js`                                                                                         |
+| Entry File            | `Compiler.test.mjs`                                                                                        |
 | --------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Case Directory        | [`tests/compilerCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/compilerCases) |
 | Output Directory      | None                                                                                                       |
 | Default Configuration | [None](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/compiler.ts)  |
 | Run Output            | No                                                                                                         |
 
-This test uses `tests/rspack-test/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
+Compiler cases support both existing single files and self-contained directories. Single-file cases use `tests/rspack-test/fixtures` as their default build context. A directory case uses its own directory and must contain `test.config.mjs`, `test.config.cjs`, or `test.config.js` (in that priority order). Only the config is discovered; sibling inputs, loaders, and helpers are not tests.
 
-```js title="{case.js}"
-interface TCompilerCaseConfig {
-  description: string; // Description of the test case
-  options?: (context: ITestContext) => TCompilerOptions<T>; // Test case build configuration
-  compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // How the compiler is created for the test case
-  build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // Build method for the test case
-  check?: (
-    context: ITestContext,
-    compiler: TCompiler<T>,
-    stats: TCompilerStats<T>,
-  ) => Promise<void>; // Check function for the test case
-}
+The config exports one `TCompilerCaseConfig` or an array. Ordinary cases use `options`, `compiler`, `build`, and `check` to customize the managed compiler. For GC tests or scenarios that manage their own compilers, use `run` instead:
 
-// [!code highlight:4]
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
-  // ...
-};
+```js title="object-lifecycle/test.config.mjs"
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
+export default [
+  {
+    name: 'hooks',
+    description: 'should collect hook closures and captured objects',
+    async run() {
+      const { default: run } = await import('./hooks.mjs');
+      await run();
+    },
+  },
+];
 ```
+
+`run` cannot be combined with `options`, `compiler`, `build`, `check`, `compilerCallback`, or `error`. The framework does not create a compiler or retain Stats for these cases; close owned compilers in `finally`. Both forms support `description`, `skip`, and an optional `name`. Names must be unique within the config and contain lowercase letters, digits, and single separating hyphens. Existing unnamed cases retain their index-based identifiers.
+
+Use the full directory/scenario path to select a named case:
+
+```bash
+pnpm --dir tests/rspack-test run test -t 'compilerCases/object-lifecycle/hooks'
+```
+
+Import GC and compiler helpers from `@rspack/test-tools/helper/lifecycle`. GC scenarios run in the existing test process, which enables `--expose-gc`. For clean libuv measurements and natural-exit checks, use `runNodeCase(moduleURL, args)` from `@rspack/test-tools/helper/node-case`: the module default-exports an async function, receives JSON arguments, and returns a JSON result (or `null` for an empty return). Each child has a 20-second timeout; success requires natural process exit. See `compilerCases/libuv-handles` for examples.
 
 ### Defaults
 

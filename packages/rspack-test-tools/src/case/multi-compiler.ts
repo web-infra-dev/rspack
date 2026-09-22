@@ -9,6 +9,7 @@ import type {
   WatchFileSystem,
 } from '@rspack/core';
 import { createFsFromVolume, Volume } from 'memfs';
+import { readTestFile } from '../helper/read-test-file';
 import { BasicCaseCreator } from '../test/creator';
 import type {
   ITestContext,
@@ -103,8 +104,8 @@ export function createMultiCompilerCase(
   dist: string,
   testConfig: string,
 ) {
-  let caseConfigList:
-    TMultiCompilerCaseConfig | TMultiCompilerCaseConfig[] = require(testConfig);
+  let caseConfigList: TMultiCompilerCaseConfig | TMultiCompilerCaseConfig[] =
+    readTestFile(testConfig);
   if (!Array.isArray(caseConfigList)) {
     caseConfigList = [caseConfigList];
   }

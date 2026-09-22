@@ -11,41 +11,74 @@ const DEPENDENCY_KEYS = [
 
 type DependencyKey = (typeof DEPENDENCY_KEYS)[number];
 
-const createDependencies = (): LoaderDependencies => ({
-  fileDependencies: [],
-  contextDependencies: [],
-  missingDependencies: [],
-  buildDependencies: [],
+type DependencySets = Record<DependencyKey, Set<string>>;
+
+const createSets = (): DependencySets => ({
+  fileDependencies: new Set(),
+  contextDependencies: new Set(),
+  missingDependencies: new Set(),
+  buildDependencies: new Set(),
 });
 
-const clear = (dependencies: string[]) => {
-  dependencies.length = 0;
-};
+const setsFrom = (dependencies: LoaderDependencies): DependencySets => ({
+  fileDependencies: new Set(dependencies.fileDependencies),
+  contextDependencies: new Set(dependencies.contextDependencies),
+  missingDependencies: new Set(dependencies.missingDependencies),
+  buildDependencies: new Set(dependencies.buildDependencies),
+});
+
+const arraysFrom = (sets: DependencySets): LoaderDependencies => ({
+  fileDependencies: Array.from(sets.fileDependencies),
+  contextDependencies: Array.from(sets.contextDependencies),
+  missingDependencies: Array.from(sets.missingDependencies),
+  buildDependencies: Array.from(sets.buildDependencies),
+});
 
 export class LoaderDependenciesState {
   readonly existing: LoaderDependencies;
-  readonly added = createDependencies();
-  readonly removed = createDependencies();
+  readonly #existingSets: DependencySets;
+  readonly #addedSets = createSets();
+  readonly #removedSets = createSets();
 
   constructor(existing: LoaderDependencies) {
     this.existing = existing;
+    this.#existingSets = setsFrom(existing);
+  }
+
+  get added(): LoaderDependencies {
+    return arraysFrom(this.#addedSets);
+  }
+
+  get removed(): LoaderDependencies {
+    return arraysFrom(this.#removedSets);
   }
 
   resetChanges() {
     for (const key of DEPENDENCY_KEYS) {
-      clear(this.added[key]);
-      clear(this.removed[key]);
+      this.#addedSets[key].clear();
+      this.#removedSets[key].clear();
     }
   }
 
   mergeChanges() {
     for (const key of DEPENDENCY_KEYS) {
-      if (this.added[key].length === 0 && this.removed[key].length === 0) {
+      const added = this.#addedSets[key];
+      const removed = this.#removedSets[key];
+      if (added.size === 0 && removed.size === 0) {
         continue;
       }
-      const dependencies = this.get(key);
-      clear(this.existing[key]);
-      this.existing[key].push(...dependencies);
+      const existing = this.#existingSets[key];
+      for (const dependency of removed) {
+        existing.delete(dependency);
+      }
+      for (const dependency of added) {
+        existing.add(dependency);
+      }
+      const target = this.existing[key];
+      target.length = 0;
+      for (const dependency of existing) {
+        target.push(dependency);
+      }
     }
     this.resetChanges();
   }
@@ -93,29 +126,30 @@ export class LoaderDependenciesState {
   }
 
   private add(key: DependencyKey, dependency: string) {
-    const removed = this.removed[key];
-    for (let index = removed.length - 1; index >= 0; index--) {
-      if (removed[index] === dependency) removed.splice(index, 1);
-    }
-    if (!this.added[key].includes(dependency)) {
-      this.added[key].push(dependency);
-    }
+    this.#removedSets[key].delete(dependency);
+    this.#addedSets[key].add(dependency);
   }
 
   private get(key: DependencyKey) {
-    const removed = new Set(this.removed[key]);
-    return Array.from(
-      new Set(
-        this.existing[key]
-          .filter((dependency) => !removed.has(dependency))
-          .concat(this.added[key]),
-      ),
-    );
+    const removed = this.#removedSets[key];
+    const dependencies = new Set<string>();
+    for (const dependency of this.#existingSets[key]) {
+      if (!removed.has(dependency)) {
+        dependencies.add(dependency);
+      }
+    }
+    for (const dependency of this.#addedSets[key]) {
+      dependencies.add(dependency);
+    }
+    return Array.from(dependencies);
   }
 
   private clear(key: DependencyKey) {
-    clear(this.removed[key]);
-    this.removed[key].push(...this.existing[key]);
-    clear(this.added[key]);
+    const removed = this.#removedSets[key];
+    removed.clear();
+    for (const dependency of this.#existingSets[key]) {
+      removed.add(dependency);
+    }
+    this.#addedSets[key].clear();
   }
 }
