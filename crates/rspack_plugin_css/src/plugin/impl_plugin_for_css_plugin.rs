@@ -321,32 +321,6 @@ async fn normal_module_factory_after_resolve(
     }
   }
 
-  if *dependency.dependency_type() == DependencyType::CssCompose
-    && let Some(issuer) = data.issuer_identifier
-  {
-    // Normal CSS module identifiers contain the type, resolved request and
-    // optional layer. Match the full request (including loaders and query) so
-    // only self-composition inherits the issuer's CSS import rendering role.
-    let issuer = match data.issuer_layer.as_deref() {
-      Some(layer) => issuer
-        .as_str()
-        .strip_suffix(layer)
-        .and_then(|issuer| issuer.strip_suffix('|')),
-      None => Some(issuer.as_str()),
-    };
-    if let Some((module_type, issuer_request)) = issuer.and_then(|issuer| issuer.split_once('|'))
-      && module_type == create_data.module_options.cache_key().module_type.as_str()
-      && let Some(suffix) = issuer_request.strip_prefix(create_data.request.as_str())
-      && (suffix.starts_with("|css-render-conditions|") || suffix.starts_with("|css-export-type|"))
-    {
-      // CssComposeDependency already inherits the issuer's export type during
-      // parsing. For a self-composition it therefore matches by construction.
-      // Keep the suffix opaque: condition values can contain our delimiters.
-      create_data.request.push_str(suffix);
-      return Ok(None);
-    }
-  }
-
   let configured_export_type = create_data
     .module_options
     .parser_options()

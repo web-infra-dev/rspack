@@ -1,3 +1,0 @@
-@import "./self/composes-circular.module.css";
-@import "./conditional/composes-circular.module.css" screen;
-@import "./layered/composes-circular.module.css" layer(theme);
