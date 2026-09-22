@@ -139,7 +139,7 @@ catalog:
   'rspack-merge': '1.0.1'
   'rspack-vue-loader': '^17.7.0'
   'rspress-plugin-font-open-sans': '1.0.4'
-  'rstack': '^0.7.6'
+  'rstack': '^0.8.0'
   'sass-loader': '^17.0.1'
   'semver': '^7.8.5'
   'source-map': '^0.8.0'
