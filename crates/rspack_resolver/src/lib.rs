@@ -741,7 +741,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         return Ok(Some(path));
       }
     }
-    let is_dir = match cached_path.is_dir_cached() {
+    let is_dir = match cached_path.is_dir_cached(ctx) {
       Some(is_dir) => is_dir,
       None => cached_path.is_dir(&self.cache.fs, ctx).await,
     };
@@ -903,7 +903,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     for module_name in &self.options.modules {
       for cached_path in std::iter::successors(Some(cached_path), |p| p.parent()) {
         // Skip if /path/to/node_modules does not exist
-        let is_dir = match cached_path.is_dir_cached() {
+        let is_dir = match cached_path.is_dir_cached(ctx) {
           Some(is_dir) => is_dir,
           None => cached_path.is_dir(&self.cache.fs, ctx).await,
         };
@@ -944,7 +944,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     if !package_name.is_empty() {
       let package_path = cached_path.path().normalize_with(package_name);
       let pkg_cached = self.cache.value(&package_path);
-      let pkg_is_dir = match pkg_cached.is_dir_cached() {
+      let pkg_is_dir = match pkg_cached.is_dir_cached(ctx) {
         Some(is_dir) => is_dir,
         None => pkg_cached.is_dir(&self.cache.fs, ctx).await,
       };
@@ -965,7 +965,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         // i.e. `@scope` is not a directory for `@scope/package`
         if package_name.starts_with('@') {
           if let Some(path) = pkg_cached.parent() {
-            let path_is_dir = match path.is_dir_cached() {
+            let path_is_dir = match path.is_dir_cached(ctx) {
               Some(is_dir) => is_dir,
               None => path.is_dir(&self.cache.fs, ctx).await,
             };
@@ -1025,7 +1025,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       let cached_path = self
         .cache
         .value(Utf8Path::from_path(dir).expect("path should be UTF-8"));
-      let is_dir = match cached_path.is_dir_cached() {
+      let is_dir = match cached_path.is_dir_cached(ctx) {
         Some(is_dir) => is_dir,
         None => cached_path.is_dir(&self.cache.fs, ctx).await,
       };
@@ -1798,7 +1798,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       let cached_path = self
         .cache
         .value(Utf8Path::from_path(dir).expect("path should be UTF-8"));
-      let is_dir = match cached_path.is_dir_cached() {
+      let is_dir = match cached_path.is_dir_cached(ctx) {
         Some(is_dir) => is_dir,
         None => cached_path.is_dir(&self.cache.fs, ctx).await,
       };
@@ -1826,7 +1826,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   ) -> ResolveResult {
     let package_path = cached_path.path().normalize_with(package_name);
     let cached_path = self.cache.value(&package_path);
-    let is_dir = match cached_path.is_dir_cached() {
+    let is_dir = match cached_path.is_dir_cached(ctx) {
       Some(is_dir) => is_dir,
       None => cached_path.is_dir(&self.cache.fs, ctx).await,
     };
