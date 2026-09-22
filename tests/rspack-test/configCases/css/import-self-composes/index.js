@@ -15,9 +15,13 @@ it("should emit self-composed CSS imports once with default local identifiers", 
       .map(style => style.textContent)
       .join("\n");
   }
-  for (const name of ["self", "conditional", "layered"]) {
-    expect(css.match(new RegExp(`\\.${name}-global\\s*\\{`, "g"))).toHaveLength(1);
-    expect(css.match(new RegExp(`\\.[^\\s{}]+-${name}\\s*\\{`, "g"))).toHaveLength(1);
+  // Each directory contains webpack's css-loader/composes-circular.module.css.
+  // Keep their requests distinct so an unconditional duplicate cannot hide
+  // behind another entry import when preserving media/layer conditions.
+  for (const name of ["local-name", "other-name"]) {
+    const selectors = css.match(new RegExp(`\\.[^\\s{}]+-${name}\\s*\\{`, "g"));
+    expect(selectors).toHaveLength(3);
+    expect(new Set(selectors).size).toBe(3);
   }
   expect(css).toContain("@media screen");
   expect(css).toContain("@layer theme");
@@ -33,7 +37,7 @@ it("should resolve each same-file composition to its existing CSS import module"
   };
   collect(__STATS__.children[__STATS_I__].modules);
   for (const name of ["self", "conditional", "layered"]) {
-    expect(modules.filter(module => module.name === `./${name}.module.css`
-      || module.name === `./${name}.module.css (in styles)`)).toHaveLength(1);
+    expect(modules.filter(module => module.name === `./${name}/composes-circular.module.css`
+      || module.name === `./${name}/composes-circular.module.css (in styles)`)).toHaveLength(1);
   }
 });

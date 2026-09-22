@@ -1,10 +1,12 @@
 import * as styles from "./styles.module.css";
+// Copied from webpack/test/configCases/css/reexport.
+import * as cyclical from "./cyclical.module.css";
 
 it("should preserve runtime exports while expanding same-file compositions", () => {
   expect(globalThis.__cssSelfComposesEvaluations).toBe(1);
   expect(styles.externalOnly).toBe("externalOnly js-token-1");
-  expect(styles.selfOnly).toBe("selfOnly");
-  expect(styles.emptyCycle).toBeUndefined();
+  expect(cyclical["class-with-composes-nested"]).toBe("class-with-composes-nested");
+  expect(cyclical.value).toBeUndefined();
   expect(styles.selfFirst).toBe("selfFirst js-token-1");
   expect(styles.externalFirst).toBe("externalFirst js-token-1");
   expect(styles.indirect).toBe("indirect selfFirst js-token-1");

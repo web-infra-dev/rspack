@@ -3,10 +3,8 @@
   --color: blue;
   --theme-color: red;
   --theme-color: purple;
-  repeated: first;
 }
 
 :export {
   --theme-color: green;
-  repeated: second;
 }
