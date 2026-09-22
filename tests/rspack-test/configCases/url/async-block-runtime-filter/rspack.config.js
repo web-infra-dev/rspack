@@ -28,8 +28,9 @@ module.exports = [true, false].map((includeUsed, index) => ({
       compiler.hooks.compilation.tap('CheckUrlRuntimeFilter', (compilation) => {
         compilation.hooks.afterSeal.tap('CheckUrlRuntimeFilter', () => {
           const issuer = [...compilation.modules].find((m) =>
-            m.resource?.endsWith('/shared.js'),
+            m.resource?.replaceAll('\\', '/').endsWith('/shared.js'),
           );
+          expect(issuer).toBeDefined();
           const { moduleGraph } = compilation;
           if (includeUsed) {
             expect([...moduleGraph.getUsedExports(issuer, 'used')]).toEqual([

@@ -62,7 +62,8 @@ module.exports = ['jsonp', 'import', 'require', 'async-node'].flatMap(
                     const target = [...compilation.modules].find((m) =>
                       m
                         .nameForCondition()
-                        ?.endsWith('url-entry-target/index.js'),
+                        ?.replaceAll('\\', '/')
+                        .endsWith('url-entry-target/index.js'),
                     );
                     expect(target).toBeDefined();
                     const targetChunks = [
