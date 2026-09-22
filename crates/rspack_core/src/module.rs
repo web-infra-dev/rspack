@@ -292,9 +292,9 @@ pub struct BuildInfo {
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
   pub dependencies: crate::LoaderDependencies,
-  /// Snapshot used by full `need_build` validation. `NormalModule` populates
-  /// this when the module build cache is enabled; other builds leave it empty
-  /// to avoid snapshot creation overhead.
+  /// Snapshot used by full `need_build` validation. Modules populate this when
+  /// the module build cache is enabled; other builds leave it empty to avoid
+  /// snapshot creation overhead.
   pub snapshot: Option<Snapshot>,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
@@ -316,7 +316,7 @@ pub struct BuildInfo {
   pub module: bool,
   pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
-  pub rsc: Option<RscMeta>,
+  pub rsc: Option<Box<RscMeta>>,
   pub import_phase: ImportPhase,
   pub isolated_dts: Option<Box<IsolatedDts>>,
   /// Stores external fields from the JS side (Record<string, any>),

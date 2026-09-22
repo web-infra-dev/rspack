@@ -5,7 +5,7 @@ import {
   type Stats,
   type StatsCompilation,
 } from '@rspack/core';
-import { isJavaScript } from '../helper';
+import { isJavaScript, RSPACK_CONFIG_FILES } from '../helper';
 import { HotUpdatePlugin } from '../helper/hot-update/plugin';
 import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
 import { LazyCompilationTestPlugin } from '../plugin';
@@ -50,12 +50,7 @@ export function createHotProcessor(
     config: async (context: ITestContext) => {
       const compiler = context.getCompiler();
       let options = defaultOptions(context, target);
-      options = await config(
-        context,
-        name,
-        ['rspack.config.js', 'webpack.config.js'],
-        options,
-      );
+      options = await config(context, name, RSPACK_CONFIG_FILES, options);
       overrideOptions(context, options, target, updatePlugin);
       if (incremental) {
         options.incremental ??= 'advance-silent';

@@ -1962,7 +1962,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         if specifier == "#" {
           return Err(ResolveError::InvalidModuleSpecifier(
             specifier.to_string(),
-            package_json.path.clone(),
+            package_json.path.to_path_buf(),
           ));
         }
       }
@@ -1986,7 +1986,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     if has_imports {
       Err(ResolveError::PackageImportNotDefined(
         specifier.to_string(),
-        package_json.path.clone(),
+        package_json.path.to_path_buf(),
       ))
     } else {
       Ok(None)
