@@ -13,7 +13,7 @@ use crate::groups::{
   diagnostics::assert_no_compilation_errors,
 };
 
-#[path = "walltime_groups/mod.rs"]
+#[path = "memory_groups/mod.rs"]
 mod groups;
 
 fn configure_rayon_for_benchmark(_: &mut Criterion) {
@@ -21,17 +21,17 @@ fn configure_rayon_for_benchmark(_: &mut Criterion) {
 }
 
 fn threejs_10x_bundle_benchmark(c: &mut Criterion) {
-  walltime_bundle_benchmark_case(c, "threejs-10x-development");
-  walltime_bundle_benchmark_case(c, "threejs-10x-production-sourcemap");
+  memory_bundle_benchmark_case(c, "threejs-10x-development");
+  memory_bundle_benchmark_case(c, "threejs-10x-production-sourcemap");
 }
 
-fn walltime_bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
+fn memory_bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
   let projects: Vec<(&'static str, CompilerBuilderGenerator)> =
     vec![("threejs-10x", Arc::new(threejs_10x::compiler))];
   let (id, get_compiler) = derive_projects(projects)
     .into_iter()
     .find(|(id, _)| id == target_id)
-    .unwrap_or_else(|| panic!("unknown walltime bundle benchmark case: {target_id}"));
+    .unwrap_or_else(|| panic!("unknown memory bundle benchmark case: {target_id}"));
 
   let rt = rspack_benchmark::build_tokio_rt();
   let mut group = c.benchmark_group("bundle");
@@ -47,15 +47,16 @@ fn walltime_bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
         (compiler_context, compiler, output_path)
       },
       |(compiler_context, mut compiler, output_path)| {
-        // `iter_batched` drops the routine output after stopping the timer, so
-        // returning this guard cleans native output after each measured build.
+        // `iter_batched` drops the routine output after measurement, so return
+        // both the compiler and cleanup guard to exclude teardown from memory
+        // measurements.
         let output_cleanup = NativeOutputCleanup::new(output_path);
-        let context = format!("bundle@{id} walltime benchmark build");
+        let context = format!("bundle@{id} memory benchmark build");
         rt.block_on(within_compiler_context(compiler_context, async {
           compiler.run().await.unwrap();
           assert_no_compilation_errors(&compiler.compilation, &context);
         }));
-        output_cleanup
+        (compiler, output_cleanup)
       },
       criterion::BatchSize::PerIteration,
     );
@@ -80,7 +81,7 @@ impl Drop for NativeOutputCleanup {
       Ok(()) => {}
       Err(error) if error.kind() == ErrorKind::NotFound => {}
       Err(error) => panic!(
-        "failed to clean walltime benchmark output directory {}: {error}",
+        "failed to clean memory benchmark output directory {}: {error}",
         self.output_path.display()
       ),
     }
@@ -88,5 +89,5 @@ impl Drop for NativeOutputCleanup {
 }
 
 criterion_group!(benchmark_setup, configure_rayon_for_benchmark);
-criterion_group!(walltime_benches, threejs_10x_bundle_benchmark);
-criterion_main!(benchmark_setup, walltime_benches);
+criterion_group!(memory_benches, threejs_10x_bundle_benchmark);
+criterion_main!(benchmark_setup, memory_benches);

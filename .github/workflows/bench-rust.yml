@@ -120,7 +120,7 @@ jobs:
 
       - name: Build benchmark (memory)
         if: ${{ inputs.measurement == 'simulation' }}
-        run: cargo codspeed build -m memory --profile codspeed -p rspack_benchmark --bench walltime
+        run: cargo codspeed build -m memory --profile codspeed -p rspack_benchmark --bench memory
 
       - name: Run benchmark (memory)
         if: ${{ inputs.measurement == 'simulation' }}
@@ -132,7 +132,7 @@ jobs:
         with:
           mode: memory
           run: |
-            RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run -m memory --bench walltime
+            RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run -m memory --bench memory
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: rev:2ca934f5a71e0299e0a3941a84ac3b242b3b63b6
           skip-hash-check-warning: true
