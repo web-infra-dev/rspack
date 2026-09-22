@@ -26,6 +26,14 @@ To effectively leverage tree shaking, you need to:
   - When using compilers like SWC or Babel, ensure they don't transform ES modules to CommonJS.
   - For example, in [@babel/preset-env](https://babeljs.io/docs/en/babel-preset-env), set `modules` to `false`.
 
+:::tip Check the code before bundling
+
+If unused exports remain, inspect the JavaScript emitted by your loaders or other compilers, not just the original source. For example, `export const unused = 1` may have become `exports.unused = 1` before Rspack receives it. Preserve ES module syntax at that earlier step before investigating the tree shaking options. Changing the final bundle's output format does not change what the loader passes into Rspack.
+
+For background on why module format affects static analysis, see this [ESM and CommonJS comparison](https://frontendatlas.com/javascript/trivia/js-esm-vs-cjs).
+
+:::
+
 ## Configurations
 
 When [mode](/config/mode) is set to `production`, Rspack enables several tree shaking optimizations:
