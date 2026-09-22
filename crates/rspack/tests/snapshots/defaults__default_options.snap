@@ -1787,6 +1787,7 @@ CompilerOptions {
             devtool: false,
             loader: false,
             minimize: false,
+            resolver: false,
         },
         defer_import: false,
         source_import: false,
