@@ -112,7 +112,7 @@ pub struct NormalModule {
   /// Affiliated parser and generator to the module type
   parser_and_generator: Box<dyn ParserAndGenerator>,
   /// Resource matched with inline match resource, (`!=!` syntax)
-  match_resource: Option<ResourceData>,
+  match_resource: Option<Box<ResourceData>>,
   /// Resource data (path, query, fragment etc.)
   resource_data: Arc<ResourceData>,
   /// Loaders for the module
@@ -217,7 +217,7 @@ impl NormalModule {
       layer,
       parser_and_generator,
       parser_and_generator_options,
-      match_resource,
+      match_resource: match_resource.map(Box::new),
       resource_data,
       resolve_options,
       loaders,
@@ -248,10 +248,10 @@ impl NormalModule {
   }
 
   pub fn match_resource(&self) -> Option<&ResourceData> {
-    self.match_resource.as_ref()
+    self.match_resource.as_deref()
   }
 
-  pub fn match_resource_mut(&mut self) -> &mut Option<ResourceData> {
+  pub fn match_resource_mut(&mut self) -> &mut Option<Box<ResourceData>> {
     &mut self.match_resource
   }
 
@@ -615,7 +615,7 @@ impl Module for NormalModule {
           .user_request
           .as_deref()
           .unwrap_or_else(|| self.resource_data.resource()),
-        module_match_resource: self.match_resource.as_ref(),
+        module_match_resource: self.match_resource.as_deref(),
         module_source_map_kind: self.source_map_kind,
         loaders: &self.loaders,
         resource_data: &self.resource_data,
