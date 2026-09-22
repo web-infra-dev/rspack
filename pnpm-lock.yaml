@@ -62,8 +62,8 @@ catalogs:
       specifier: ^2.2.1
       version: 2.2.1
     '@rspack/lite-tapable':
-      specifier: 1.2.0
-      version: 1.2.0
+      specifier: 1.3.0
+      version: 1.3.0
     '@rspack/plugin-preact-refresh':
       specifier: 2.0.1
       version: 2.0.1
@@ -706,7 +706,7 @@ importers:
         version: 1.4.6(@rsbuild/core@2.2.8)
       '@rspack/lite-tapable':
         specifier: 'catalog:'
-        version: 1.2.0
+        version: 1.3.0
       '@swc/types':
         specifier: 'catalog:'
         version: 0.1.28
@@ -766,7 +766,7 @@ importers:
         version: 1.1.6(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
       '@rspack/lite-tapable':
         specifier: 'catalog:'
-        version: 1.2.0
+        version: 1.3.0
       '@swc/types':
         specifier: 'catalog:'
         version: 0.1.28
@@ -3228,8 +3228,8 @@ packages:
   '@rspack/lite-tapable@1.1.5':
     resolution: {integrity: sha512-uzB782zJbFTM3ta+e2Glikx36dca/6Y+DXyvFN+wb0Tx5ItIW+g03A0t3amP3LGzPHSkb0k81VHCm4jxLQwfag==}
 
-  '@rspack/lite-tapable@1.2.0':
-    resolution: {integrity: sha512-Pab0fdnd2KPt4Nz4e8aLx/73dt4nRVmn/4robI0tdgOQ4ym6WsgFX6dL2L76HRpB/5yOe3CA2Ah6lSxeLRvIug==}
+  '@rspack/lite-tapable@1.3.0':
+    resolution: {integrity: sha512-YQLaGRltBp5wzh9ee7PMmh1pErbx0E3zDlfO4K3iQpsEcJcBcgj3+9gq6/wqB/zbXbluoWoRCvL+odkft/Qt3A==}
 
   '@rspack/plugin-preact-refresh@2.0.1':
     resolution: {integrity: sha512-tQ3WRBVaJ5JVy4jQHaYpYqeQrPStc7WrIJlVMrY/2mJMe5D1Ma4EO6K7J0v4Zx3HZMoJ1xeaqfCI9E8UHFE9yQ==}
@@ -9461,7 +9461,7 @@ snapshots:
 
   '@rspack/lite-tapable@1.1.5': {}
 
-  '@rspack/lite-tapable@1.2.0': {}
+  '@rspack/lite-tapable@1.3.0': {}
 
   '@rspack/plugin-preact-refresh@2.0.1(@prefresh/core@1.5.11)(@prefresh/utils@1.2.1)(@rspack/core@packages+rspack)':
     dependencies:
