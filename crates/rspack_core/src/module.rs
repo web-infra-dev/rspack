@@ -317,7 +317,7 @@ pub struct BuildInfo {
   pub module: bool,
   pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
-  pub rsc: Option<RscMeta>,
+  pub rsc: Option<Box<RscMeta>>,
   pub import_phase: ImportPhase,
   pub isolated_dts: Option<Box<IsolatedDts>>,
   /// Stores external fields from the JS side (Record<string, any>),
