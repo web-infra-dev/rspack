@@ -11,6 +11,8 @@ use rspack_cacheable::{
 };
 use rspack_hash::RspackHasher;
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{json_stringify, ryu_js};
 use rustc_hash::FxHashSet as HashSet;
 
@@ -19,6 +21,7 @@ use crate::{DependencyId, property_access};
 pub static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportInfoTargetValue {
   pub dependency: Option<DependencyId>,
   pub export: Option<Vec<Atom>>,
@@ -39,6 +42,7 @@ pub enum UsedExports {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum EvaluatedInlinableValue {
   Null,
   Undefined,
@@ -110,6 +114,7 @@ impl EvaluatedInlinableValue {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CanInlineUse {
   // Must have this initial state to get the correct dependency condition of inline value
   // at flag_dependency_usage_plugin. If it's just bool and the initial state is true like
@@ -121,6 +126,7 @@ pub enum CanInlineUse {
 }
 
 #[derive(Debug, Clone, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum UsedNameItem {
   Str(Atom),
   Inlined(EvaluatedInlinableValue),
@@ -180,6 +186,7 @@ impl UsedName {
 }
 
 #[derive(Debug, Hash, Clone, Copy)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ExportProvided {
   /// The export can be statically analyzed, and it is provided
   Provided,
@@ -221,6 +228,7 @@ impl UsageKey {
 }
 
 #[derive(Debug, PartialEq, Copy, Clone, Default, Hash, PartialOrd, Ord, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum UsageState {
   Unused = 0,
   OnlyPropertiesUsed = 1,
@@ -256,6 +264,7 @@ impl UsageState {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct UsedByExports {
   condition: UsedByExportsCondition,
   #[cacheable(with=AsVec)]
@@ -305,6 +314,7 @@ impl UsedByExports {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum UsedByExportsCondition {
   Set(#[cacheable(with=AsVec<AsPreset>)] HashSet<Atom>),
   Bool(bool),
@@ -312,6 +322,7 @@ pub enum UsedByExportsCondition {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct UsedByExportsDeferredPureCheck {
   pub dep_id: DependencyId,
   #[cacheable(with=AsPreset)]

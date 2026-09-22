@@ -2,10 +2,13 @@ use rspack_core::{
   Compilation, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeTemplate, SourceType, impl_runtime_module,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 // TODO workaround for get_chunk_update_filename
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct GetChunkUpdateFilenameRuntimeModule {}
 
 impl GetChunkUpdateFilenameRuntimeModule {

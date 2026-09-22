@@ -22,6 +22,8 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
 use rspack_location::DependencyLocation;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::ext::AsAny;
 use triomphe::{Arc as TriompheArc, UniqueArc};
 use unsize::{CoerceUnsize, Coercion};
@@ -67,7 +69,14 @@ impl DependencyDiagnosticsContext {
 
 #[cacheable_dyn]
 pub trait Dependency:
-  AsDependencyCodeGeneration + AsContextDependency + AsModuleDependency + AsAny + Send + Sync + Debug
+  rspack_util::MaybeAllocative
+  + AsDependencyCodeGeneration
+  + AsContextDependency
+  + AsModuleDependency
+  + AsAny
+  + Send
+  + Sync
+  + Debug
 {
   fn id(&self) -> &DependencyId;
 
@@ -306,6 +315,7 @@ pub type BoxDependency = UniqueDependency;
 ///
 /// This newtype also supplies rkyv with the dynamically sized allocation support that
 /// `triomphe::Arc` does not currently expose for trait objects.
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependencyRef(TriompheArc<dyn Dependency>);
 
 impl DependencyRef {

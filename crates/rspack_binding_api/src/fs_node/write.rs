@@ -12,6 +12,7 @@ use tracing::instrument;
 
 use super::node::ThreadsafeNodeFS;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NodeFileSystem(Arc<ThreadsafeNodeFS>);
 
 impl std::fmt::Debug for NodeFileSystem {
@@ -472,3 +473,6 @@ impl WriteStream for NodeWriteStream {
       .to_fs_result()
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

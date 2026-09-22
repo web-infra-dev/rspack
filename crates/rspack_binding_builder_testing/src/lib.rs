@@ -1,3 +1,6 @@
+#[cfg(allocative)]
+use rspack_core::allocative;
+
 #[macro_use]
 extern crate napi_derive;
 extern crate rspack_binding_builder;
@@ -8,6 +11,7 @@ use rspack_napi::{napi, napi::bindgen_prelude::*};
 
 #[derive(Debug)]
 #[allow(unused)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct BindingBuilderTestingPlugin;
 
 impl Plugin for BindingBuilderTestingPlugin {

@@ -1,8 +1,11 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 
 use crate::{ArtifactExt, ChunkUkey, chunk_graph_chunk::ChunkId, incremental::IncrementalPasses};
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkNamedIdArtifact {
   pub chunk_short_names: FxHashMap<ChunkUkey, String>,
   pub chunk_long_names: FxHashMap<ChunkUkey, String>,

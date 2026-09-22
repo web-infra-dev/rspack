@@ -17,6 +17,8 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
 use rspack_intern::{Atom, AtomSet, IndexAtomMap};
 use rspack_sources::BoxSource;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{
   ext::AsAny,
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -77,6 +79,7 @@ impl<'a> NeedBuildContext<'a> {
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RscModuleType {
   /// Represents a server entry module with "use server-entry" directive.
   ///
@@ -93,6 +96,7 @@ pub enum RscModuleType {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RscMeta {
   pub module_type: RscModuleType,
 
@@ -117,6 +121,7 @@ pub struct RscMeta {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CanonicalizedDataUrlOption {
   Source,
   Bytes,
@@ -143,6 +148,7 @@ impl CanonicalizedDataUrlOption {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssExport {
   #[cacheable(with=AsPreset)]
   pub ident: SmolStr,
@@ -158,6 +164,7 @@ pub type CssLocalNames = HashMap<SmolStr, SmolStr>;
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CssLayer {
   Anonymous,
   Named(#[cacheable(with=AsPreset)] SmolStr),
@@ -165,6 +172,7 @@ pub enum CssLayer {
 
 #[cacheable]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssModuleRenderCondition {
   #[cacheable(with=AsOption<AsPreset>)]
   pub media: Option<SmolStr>,
@@ -233,6 +241,7 @@ pub fn push_css_module_identifier_part(identifier: &mut String, value: &str) {
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssBuildInfo {
   pub export_type: Option<CssExportType>,
   pub has_charset: bool,
@@ -269,6 +278,7 @@ impl CssBuildInfo {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct IsolatedDts {
   pub resource_path: String,
   pub code: String,
@@ -277,6 +287,7 @@ pub struct IsolatedDts {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AssetBuildInfo {
   pub data_url: CanonicalizedDataUrlOption,
   pub filename: Option<Filename>,
@@ -284,6 +295,7 @@ pub struct AssetBuildInfo {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
@@ -370,6 +382,7 @@ impl crate::FreezeLock<BuildInfo> {
 #[cacheable]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum BuildMetaExportsType {
   #[default]
   Unset,
@@ -421,6 +434,7 @@ impl BuildMetaExportsType {
 }
 
 #[derive(Debug, Clone, Copy, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ExportsType {
   DefaultOnly,
   Namespace,
@@ -448,6 +462,7 @@ impl ExportsType {
 #[cacheable]
 #[derive(Debug, Default, Clone, Copy, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum BuildMetaDefaultObject {
   #[default]
   False,
@@ -476,6 +491,7 @@ impl BuildMetaDefaultObject {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DeferredPureCheck {
   #[cacheable(with=AsPreset)]
   pub atom: Atom,
@@ -487,6 +503,7 @@ pub struct DeferredPureCheck {
 #[cacheable]
 #[derive(Debug, Default, Clone, Copy, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ModuleArgument {
   #[default]
   Module,
@@ -511,6 +528,7 @@ impl ModuleArgument {
 #[cacheable]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ExportsArgument {
   #[default]
   Exports,
@@ -535,6 +553,7 @@ impl ExportsArgument {
 #[cacheable]
 #[derive(Debug, Default, Clone, Serialize, rspack_hash::RspackHash)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct BuildMeta {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub strict_esm_module: Option<bool>,
@@ -669,6 +688,7 @@ impl RspackHash for ExportsArgument {
 
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FactoryMeta {
   pub side_effect_free: Option<bool>,
 }
@@ -677,6 +697,7 @@ pub struct FactoryMeta {
 /// without holding a lock or copying the metadata.
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FactoryMetaStore(
   #[cacheable(with=As<Option<Arc<FactoryMeta>>>)] arc_swap::ArcSwapOption<FactoryMeta>,
 );
@@ -713,7 +734,8 @@ pub struct ModuleCodeGenerationContext<'a> {
 #[cacheable_dyn]
 #[async_trait]
 pub trait Module:
-  Debug
+  rspack_util::MaybeAllocative
+  + Debug
   + Send
   + Sync
   + Any
@@ -1075,6 +1097,7 @@ pub struct BoxModule(Box<dyn Module>);
 #[cacheable]
 #[derive(Debug, Clone)]
 #[repr(transparent)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleRef(Arc<dyn Module>);
 
 impl From<BoxModule> for ModuleRef {

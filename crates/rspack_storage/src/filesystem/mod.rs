@@ -92,6 +92,7 @@ async fn refresh_metadata(
 
 /// File system-based persistent storage implementation
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FileSystemStorage {
   /// Filesystem for metadata operations
   fs: ScopeFileSystem,

@@ -13,6 +13,8 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_loader_runner::ResourceData;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
 
@@ -28,6 +30,7 @@ static ABSOLUTE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\)").expect("Invalid regex"));
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ProvideOptions {
   pub share_key: String,
   pub share_scope: ShareScope,
@@ -40,6 +43,7 @@ pub struct ProvideOptions {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct VersionedProvideOptions {
   pub share_key: String,
   pub share_scope: ShareScope,
@@ -68,6 +72,7 @@ impl ProvideOptions {
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ProvideVersion {
   Version(String),
   #[default]
@@ -85,6 +90,7 @@ impl fmt::Display for ProvideVersion {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ProvideSharedPlugin {
   provides: Vec<(String, ProvideOptions)>,
   resolved_provide_map: RwLock<FxHashMap<String, VersionedProvideOptions>>,

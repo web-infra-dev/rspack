@@ -4,6 +4,8 @@ use rspack_cacheable::{
 };
 use rspack_core::{BuildMeta, LibraryType, ModuleId};
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap as HashMap;
 use serde::{Serialize, ser::SerializeSeq};
 
@@ -16,6 +18,7 @@ pub type DllManifestContent = HashMap<String, DllManifestContentItem>;
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum DllManifestContentItemExports {
   #[default]
   True,
@@ -43,6 +46,7 @@ impl Serialize for DllManifestContentItemExports {
 #[cacheable]
 #[derive(Debug, Default, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DllManifestContentItem {
   pub build_meta: BuildMeta,
 
@@ -54,6 +58,7 @@ pub struct DllManifestContentItem {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DllManifest {
   pub content: DllManifestContent,
 

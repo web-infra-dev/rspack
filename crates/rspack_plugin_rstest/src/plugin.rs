@@ -25,6 +25,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap as HashMap;
 
 static RSTEST_FLAG_RE: LazyLock<Regex> = LazyLock::new(|| {
@@ -47,6 +49,7 @@ use crate::{
 };
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RstestPluginOptions {
   pub module_path_name: bool,
   pub hoist_mock_module: bool,
@@ -65,6 +68,7 @@ pub fn builtin_plugins() -> Vec<BoxPlugin> {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct RstestRuntimePlugin;
 
 impl RstestRuntimePlugin {
@@ -132,6 +136,7 @@ impl Plugin for RstestRuntimePlugin {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RstestDynamicImportOriginOptions {
   /// Overrides the rewrite callee. When `None`, falls back to
   /// `output.importFunctionName`.
@@ -139,6 +144,7 @@ pub struct RstestDynamicImportOriginOptions {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RstestRequireResolveOriginOptions {
   /// Overrides the rewrite callee. When `None`, defaults to
   /// `__rstest_require_resolve__`.
@@ -154,6 +160,7 @@ pub struct ProgressPluginStateInfo {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RstestPlugin {
   options: RstestPluginOptions,
   /// Resolved at `apply` time. `Some(callee)` enables the rewrite; `None`

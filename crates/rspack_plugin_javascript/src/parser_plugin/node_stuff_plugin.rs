@@ -7,6 +7,8 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use sugar_path::SugarPath;
 use swc_experimental_ecma_ast::{Expr, GetSpan, Ident, UnaryExpr};
 
@@ -47,6 +49,7 @@ impl NodeMetaProperty {
 ///
 /// This mirrors webpack's approach where NodeStuffPlugin is registered once per module type
 /// with boolean flags controlling which features to handle.
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NodeStuffPlugin {
   /// When true, handle __dirname/__filename/global (CJS features)
   handle_cjs: bool,

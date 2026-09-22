@@ -5,11 +5,14 @@ use rspack_core::{
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::import_dependency::module_id_rstest;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MockModuleIdDependency {
   pub id: DependencyId,
   pub request: String,
@@ -129,6 +132,7 @@ impl AsContextDependency for MockModuleIdDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MockModuleIdDependencyTemplate;
 
 impl MockModuleIdDependencyTemplate {

@@ -6,6 +6,7 @@ use rspack_cacheable::cacheable;
 /// Error severity. Defaults to [`Severity::Error`].
 #[cacheable]
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Severity {
   #[default]
   Error,
@@ -15,6 +16,7 @@ pub enum Severity {
 /// Label for source code.
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Label {
   /// Label name.
   pub name: Option<String>,
@@ -29,6 +31,7 @@ pub struct Label {
 /// See the test case for specific usage.
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ErrorData {
   /// Error severity.
   pub severity: Severity,
@@ -67,6 +70,7 @@ pub struct ErrorData {
 /// Wrap ErrorData to avoid result_large_err.
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Error(Box<ErrorData>);
 
 impl std::ops::Deref for Error {

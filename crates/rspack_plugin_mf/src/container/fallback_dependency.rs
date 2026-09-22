@@ -3,9 +3,12 @@ use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency, ResourceIdentifier,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FallbackDependency {
   id: DependencyId,
   resource_identifier: ResourceIdentifier,

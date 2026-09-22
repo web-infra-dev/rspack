@@ -10,6 +10,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRender, JsPlugin, RenderSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 
@@ -22,6 +24,7 @@ struct JsonpLibraryPluginParsed<'a> {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct JsonpLibraryPlugin {
   library_type: LibraryType,
 }

@@ -2,6 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use derive_more::Debug;
 use rspack_error::Diagnostic;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
@@ -11,6 +13,7 @@ use crate::{
 };
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PluginDriver {
   pub(crate) options: Arc<CompilerOptions>,
   pub plugins: Vec<Box<dyn Plugin>>,

@@ -9,6 +9,8 @@ use rspack_plugin_runtime::{
   CreateLinkData, CreateScriptData, LinkPreloadData, RuntimePluginCreateLink,
   RuntimePluginCreateScript, RuntimePluginLinkPreload,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -31,6 +33,7 @@ fn add_attribute(
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct SRIHashVariableRuntimeModule {
   hash_funcs: Vec<SubresourceIntegrityHashFunction>,
 }

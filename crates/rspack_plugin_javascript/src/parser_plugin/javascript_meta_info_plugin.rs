@@ -1,4 +1,6 @@
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_ecma_ast::CallExpr;
 
 use super::{
@@ -7,6 +9,7 @@ use super::{
 };
 use crate::visitors::JavascriptParser;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct JavascriptMetaInfoPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]

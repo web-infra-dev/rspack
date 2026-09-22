@@ -1,11 +1,14 @@
 use std::fmt::Debug;
 
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{Compilation, CompilerShouldEmit, CompilerShouldRecord, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NoEmitOnErrorsPlugin {}
 
 impl Default for NoEmitOnErrorsPlugin {

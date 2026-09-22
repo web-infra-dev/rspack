@@ -5,6 +5,8 @@ use rspack_collections::Identifiable;
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::RspackHashDigest;
 use rspack_sources::BoxSource;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
@@ -16,6 +18,7 @@ use crate::{
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct TempModule {
   id: ModuleIdentifier,
   build_info: FreezeLock<BuildInfo>,

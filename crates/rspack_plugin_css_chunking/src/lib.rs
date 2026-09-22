@@ -3,6 +3,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use rspack_collections::{
   Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationOptimizeChunks, CompilationParams, CompilerCompilation,
   Logger, Module, ModuleIdentifier, Plugin, SourceType,
@@ -32,6 +34,7 @@ pub struct CssChunkingPluginOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssChunkingPlugin {
   once: AtomicBool,
   strict: bool,

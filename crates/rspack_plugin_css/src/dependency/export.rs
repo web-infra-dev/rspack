@@ -4,9 +4,12 @@ use rspack_core::{
   DependencyCategory, DependencyId, DependencyType, ExportNameOrSpec, ExportSpec,
   ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssExportDependency {
   id: DependencyId,
   convention_names: Vec<String>,

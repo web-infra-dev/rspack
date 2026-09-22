@@ -9,6 +9,7 @@ static NEXT_CHUNK_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkUkey(u32, std::marker::PhantomData<Chunk>);
 
 impl Default for ChunkUkey {

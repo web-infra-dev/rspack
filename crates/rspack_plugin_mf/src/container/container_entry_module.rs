@@ -17,6 +17,8 @@ use rspack_core::{
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 
 use super::{
@@ -30,6 +32,7 @@ use crate::{
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ContainerEntryModule {
   dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
@@ -459,6 +462,7 @@ impl_empty_diagnosable_trait!(ContainerEntryModule);
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExposeModuleMap(Vec<(String, String)>);
 
 impl ExposeModuleMap {
@@ -533,6 +537,7 @@ impl ExposeModuleMap {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
   pub module_map_runtime_requirements: RuntimeGlobals,

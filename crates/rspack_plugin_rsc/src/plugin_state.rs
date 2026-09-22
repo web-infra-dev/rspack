@@ -20,6 +20,7 @@ pub type RootCssImports = FxIndexSet<String>;
 /// Structured info about a client module to inject into the client compiler.
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ClientModuleImport {
   pub request: String,
   #[cacheable(with=AsVec<AsPreset>)]
@@ -95,3 +96,6 @@ impl PluginState {
 }
 
 pub static PLUGIN_STATES: Lazy<FxDashMap<CompilerId, PluginState>> = Lazy::new(Default::default);
+
+#[cfg(allocative)]
+use rspack_util::allocative;

@@ -4,11 +4,14 @@ use rspack_core::{
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, TemplateContext,
   TemplateReplaceSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::local_module::LocalModule;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LocalModuleDependency {
   id: DependencyId,
   local_module: LocalModule,
@@ -55,6 +58,7 @@ impl AsContextDependency for LocalModuleDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LocalModuleDependencyTemplate;
 
 impl LocalModuleDependencyTemplate {

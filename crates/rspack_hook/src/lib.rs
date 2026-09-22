@@ -1,10 +1,12 @@
 use async_trait::async_trait;
 use rspack_error::Result;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HookMetadata {
   pub name: &'static str,
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HookCommon {
   metadata: HookMetadata,
   tap_stages: Vec<i32>,
@@ -196,9 +198,18 @@ pub trait Hook {
 
 #[doc(hidden)]
 pub mod __macro_helper {
+  #[cfg(allocative)]
+  pub use allocative;
   pub use async_trait::async_trait;
   pub use rspack_error::Result;
   pub use tracing;
 }
 
 pub use rspack_macros::{define_hook, plugin, plugin_hook};
+
+#[cfg(allocative)]
+impl<H: Hook> allocative::Allocative for dyn Interceptor<H> + Send + Sync {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    visitor.visit_opaque(self);
+  }
+}

@@ -1,6 +1,7 @@
 use rspack_regex::RspackRegex;
 
 #[derive(Debug, Clone, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum AssetCondition {
   String(String),
   Regexp(RspackRegex),
@@ -16,6 +17,7 @@ impl AssetCondition {
 }
 
 #[derive(Debug, Clone, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum AssetConditions {
   Single(AssetCondition),
   Multiple(Vec<AssetCondition>),

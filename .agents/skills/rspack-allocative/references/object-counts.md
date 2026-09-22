@@ -11,11 +11,11 @@ A `Vec<Node>` may hold 10,000 nodes in one allocation; capacity may exceed lengt
 
 ## Extend coverage
 
-Find current roots with `rg 'allocative::root|visit_root|visit_global_roots' crates`. Types reachable only from a local compiler need explicit visitation and valid `Allocative` implementations. Inspect the selected revision; `Compilation` may not implement the trait.
+Find current roots with `rg 'allocative::root|visit_root|visit_global_roots' crates`. Types reachable only from a local compiler need explicit visitation and valid `Allocative` implementations. The current revision derives `Allocative` on `Compiler` and `Compilation`; inspect older revisions before assuming the same coverage.
 
 For a supported local root, pass a borrowed reference into a phase-local collector and call `FlameGraphBuilder::visit_root(&root)`. Derive or implement `Allocative` for necessary types, audit skipped fields/ownership, and use the resolved crate's API. Custom traversal must deduplicate shared pointees. Gate instrumentation with `#[cfg(allocative)]` / `#[cfg_attr(allocative, ...)]`. Do not clone large structures for profiling.
 
-In the inspected `rspack-allocative` 0.3.5, the visitor backend is crate-private and public output contains bytes only. A generic counting visitor is not a drop-in public API. Prefer focused explicit counters over forking the profiler.
+The workspace vendors `rspack-allocative` 0.3.5 in `crates/rspack_allocative`, with Rspack adapters, shared ownership traversal and coverage diagnostics. Its folded output still contains bytes only. Native module/dependency entry counters are separate from the visitor; extend explicit counters for new populations instead of interpreting byte frames as instances.
 
 ## Capture counts beside a snapshot
 

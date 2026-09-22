@@ -4,6 +4,8 @@ use rspack_cacheable::{
 };
 use rspack_paths::Utf8Path;
 use rspack_swc_plugin_import::{ImportOptions, RawImportOptions};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use serde::{Deserialize, Deserializer};
 use serde_json::{Map, Value};
 use swc_config::{file_pattern::FilePattern, types::BoolConfig};
@@ -51,24 +53,28 @@ pub struct RawCollectTypeScriptInfoOptions {
 }
 
 #[derive(Default, Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
   pub(crate) react_server_components: ReactServerComponentsOptions,
 }
 
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct ReactServerComponentsOptions {
   pub(crate) enabled: bool,
   pub(crate) disable_client_api_checks: bool,
 }
 
 #[derive(Default, Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct CollectTypeScriptInfoOptions {
   pub(crate) type_exports: Option<bool>,
   pub(crate) exported_enum: Option<CollectingEnumKind>,
 }
 
 #[derive(Default, Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) enum CollectingEnumKind {
   All,
   #[default]
@@ -150,6 +156,7 @@ impl<'de> Deserialize<'de> for DetectSyntax {
 
 #[derive(Default, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct RawJscConfig {
   #[serde(default)]
   parser: Option<Value>,
@@ -263,11 +270,17 @@ fn resolve_parser_syntax_for_kind(
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct ResourceSpecificJscCache {
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque))]
   js_like: std::sync::OnceLock<JscConfig>,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque))]
   ts: std::sync::OnceLock<JscConfig>,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque))]
   tsx: std::sync::OnceLock<JscConfig>,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque))]
   mts_cts: std::sync::OnceLock<JscConfig>,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque))]
   unknown: std::sync::OnceLock<JscConfig>,
 }
 
@@ -292,6 +305,7 @@ impl ResourceSpecificJscCache {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct ResourceSpecificJscResolver {
   raw_jsc: RawJscConfig,
   cache: ResourceSpecificJscCache,
@@ -383,8 +397,10 @@ pub struct SwcLoaderJsOptions {
 
 #[cacheable(with=AsRefStr)]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct SwcCompilerOptionsWithAdditional {
   raw_options: String,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque))]
   pub(crate) swc_options: Options,
   pub(crate) resource_specific_jsc: Option<ResourceSpecificJscResolver>,
   pub(crate) transform_import: Option<Vec<ImportOptions>>,

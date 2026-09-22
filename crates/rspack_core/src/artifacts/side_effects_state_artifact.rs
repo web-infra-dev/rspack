@@ -4,10 +4,13 @@ use std::{
 };
 
 use rspack_collections::IdentifierMap;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{ConnectionState, Module, ModuleIdentifier, OptimizationBailoutItem};
 
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SideEffectsState {
   pub side_effect_free: bool,
   pub optimization_bailouts_to_add: Vec<OptimizationBailoutItem>,
@@ -15,6 +18,7 @@ pub struct SideEffectsState {
 }
 
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SideEffectsStateArtifact {
   states: IdentifierMap<SideEffectsState>,
   module_evaluation_states: Arc<IdentifierMap<ConnectionState>>,

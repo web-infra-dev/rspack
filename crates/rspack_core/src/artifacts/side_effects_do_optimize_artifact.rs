@@ -2,6 +2,8 @@ use std::ops::{Deref, DerefMut};
 
 use rayon::prelude::{FromParallelIterator, IntoParallelIterator, ParallelIterator};
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -9,6 +11,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SideEffectsDoOptimize {
   pub ids: Vec<Atom>,
   pub target_module: ModuleIdentifier,
@@ -16,12 +19,14 @@ pub struct SideEffectsDoOptimize {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SideEffectsDoOptimizeMoveTarget {
   pub export_info: ExportInfo,
   pub target_export: Option<Vec<Atom>>,
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SideEffectsOptimizeArtifact(FxHashMap<DependencyId, SideEffectsDoOptimize>);
 
 impl Deref for SideEffectsOptimizeArtifact {

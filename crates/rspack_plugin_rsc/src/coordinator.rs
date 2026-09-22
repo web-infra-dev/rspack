@@ -3,6 +3,7 @@ use rspack_error::Result;
 use tokio::sync::{Mutex, Notify};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum State {
   Idle,
   ServerEntriesCompiling,
@@ -23,6 +24,7 @@ enum State {
 ///
 /// The coordinator manages state transitions and synchronization between compilers
 /// to maintain the correct build sequence for React Server Components.
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Coordinator {
   state: Mutex<State>,
   state_notify: Notify,
@@ -211,3 +213,6 @@ impl Coordinator {
     Ok(())
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

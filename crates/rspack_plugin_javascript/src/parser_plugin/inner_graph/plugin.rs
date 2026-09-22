@@ -3,6 +3,8 @@ use rspack_core::{
   UsedByExportsDeferredPureCheck,
 };
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, ClassMember, DefaultDecl, Expr, GetSpan, Ident, MemberExpr, ModuleDecl,
@@ -40,6 +42,7 @@ fn class_member_is_static(member: &ClassMember<'_>) -> bool {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct InnerGraphParserPlugin {
   analyze_pure_annotation: bool,
 }

@@ -12,12 +12,15 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::identifier::split_at_query_mark;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner, cache::loader_cache_version};
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct JsLoader(
   pub Identifier,
   /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,

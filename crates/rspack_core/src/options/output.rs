@@ -19,6 +19,7 @@ use super::CleanOptions;
 use crate::{Chunk, ChunkGroupByUkey, ChunkKind, ChunkUkey, Compilation, Filename};
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum PathInfo {
   Bool(bool),
   String(String),
@@ -28,6 +29,7 @@ pub enum PathInfo {
 // Add more fields to this struct should result in adding new fields to options builder.
 // `impl From<OutputOptions> for OutputOptionsBuilder` should be updated.
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct OutputOptions {
   pub path: Utf8PathBuf,
   pub pathinfo: PathInfo,
@@ -79,6 +81,7 @@ impl From<&OutputOptions> for RspackHasher {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum OnPolicyCreationFailure {
   Continue,
   Stop,
@@ -95,6 +98,7 @@ impl From<String> for OnPolicyCreationFailure {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct TrustedTypes {
   pub policy_name: Option<String>,
   pub on_policy_creation_failure: OnPolicyCreationFailure,
@@ -102,6 +106,7 @@ pub struct TrustedTypes {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ChunkLoading {
   Enable(ChunkLoadingType),
   Disable,
@@ -133,6 +138,7 @@ impl RspackHash for ChunkLoading {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ChunkLoadingType {
   Jsonp,
   ImportScripts,
@@ -182,6 +188,7 @@ impl RspackHash for ChunkLoadingType {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum WasmLoading {
   Enable(WasmLoadingType),
   Disable,
@@ -219,6 +226,7 @@ impl From<&str> for WasmLoading {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum WasmLoadingType {
   Fetch,
   AsyncNode,
@@ -400,6 +408,7 @@ impl<'a> PathData<'a> {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, MergeFrom)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum PublicPath {
   Filename(Filename),
   Auto,
@@ -555,6 +564,7 @@ pub fn get_js_chunk_filename_template(
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LibraryOptions {
   pub name: Option<LibraryName>,
   pub export: Option<LibraryExport>,
@@ -571,6 +581,7 @@ pub type LibraryExport = Vec<String>;
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LibraryAuxiliaryComment {
   pub root: Option<String>,
   pub commonjs: Option<String>,
@@ -580,6 +591,7 @@ pub struct LibraryAuxiliaryComment {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum LibraryName {
   NonUmdObject(LibraryNonUmdObject),
   UmdObject(LibraryCustomUmdObject),
@@ -596,6 +608,7 @@ impl RspackHash for LibraryName {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum LibraryNonUmdObject {
   Array(Vec<String>),
   String(String),
@@ -612,6 +625,7 @@ impl RspackHash for LibraryNonUmdObject {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LibraryCustomUmdObject {
   pub amd: Option<String>,
   pub commonjs: Option<String>,
@@ -619,6 +633,7 @@ pub struct LibraryCustomUmdObject {
 }
 
 #[derive(Debug, Default, Copy, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Environment {
   pub r#const: bool,
   pub computed_property: bool,

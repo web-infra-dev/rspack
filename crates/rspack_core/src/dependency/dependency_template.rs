@@ -3,6 +3,8 @@ use std::{fmt::Debug, sync::Arc};
 use rspack_cacheable::cacheable_dyn;
 use rspack_hash::RspackHasher;
 use rspack_sources::ReplaceSource;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::ext::AsAny;
 
 use crate::{
@@ -39,7 +41,9 @@ pub type TemplateReplaceSource = ReplaceSource;
 
 // Align with https://github.com/webpack/webpack/blob/671ac29d462e75a10c3fdfc785a4c153e41e749e/lib/DependencyCodeGeneration.js
 #[cacheable_dyn]
-pub trait DependencyCodeGeneration: Debug + Sync + Send + AsAny {
+pub trait DependencyCodeGeneration:
+  rspack_util::MaybeAllocative + Debug + Sync + Send + AsAny
+{
   fn update_hash(
     &self,
     _hasher: &mut RspackHasher,
@@ -68,12 +72,13 @@ impl<T: DependencyCodeGeneration> AsDependencyCodeGeneration for T {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum DependencyTemplateType {
   Dependency(DependencyType),
   Custom(&'static str),
 }
 
-pub trait DependencyTemplate: Debug + Sync + Send {
+pub trait DependencyTemplate: rspack_util::MaybeAllocative + Debug + Sync + Send {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,

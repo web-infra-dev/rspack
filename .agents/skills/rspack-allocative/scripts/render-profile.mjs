@@ -115,6 +115,15 @@ function csvRow(values) {
   );
 }
 
+async function optionalText(filename) {
+  try {
+    return await fs.readFile(filename, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
 async function main() {
   const values = { inferno: 'inferno-flamegraph', ...argv };
   const positionals = argv._;
@@ -141,9 +150,25 @@ async function main() {
   const source = path.resolve(positionals[0]);
   const snapshot = path.basename(source, '.allocative');
   const bytes = await readBytesSnapshot(source);
-  const counts = values.counts
-    ? await readCounts(values.counts, snapshot)
-    : null;
+  const sidecar = source.slice(0, -'.allocative'.length);
+  const countsSource =
+    values.counts ||
+    ((await optionalText(sidecar + '.counts.json')) !== null
+      ? sidecar + '.counts.json'
+      : null);
+  const counts = countsSource ? await readCounts(countsSource, snapshot) : null;
+  const metadataText = await optionalText(sidecar + '.metadata.json');
+  const metadata = metadataText === null ? null : JSON.parse(metadataText);
+  if (
+    metadata &&
+    (metadata.snapshot !== snapshot ||
+      metadata.represented_bytes !== bytes.total)
+  ) {
+    throw new Error(
+      'Metadata must match the snapshot identity and represented byte total',
+    );
+  }
+  const warnings = await optionalText(sidecar + '.warnings.txt');
   const inferno = await which(values.inferno).catch(() => {
     throw new Error(
       'inferno-flamegraph not found; install Inferno or pass --inferno',
@@ -170,9 +195,16 @@ async function main() {
       coverage: 'Only visited allocative roots/fields',
     },
     counts: null,
+    metadata,
+    warnings:
+      warnings === null ? null : warnings.split(/\r?\n/).filter(Boolean),
   };
+  if (metadataText !== null)
+    await fs.writeFile(path.join(out, 'metadata.json'), metadataText);
+  if (warnings !== null)
+    await fs.writeFile(path.join(out, 'warnings.txt'), warnings);
   if (counts) {
-    await fs.copyFile(values.counts, path.join(out, 'counts.json'));
+    await fs.copyFile(countsSource, path.join(out, 'counts.json'));
     const rows = [...counts.counts].sort(
       (a, b) =>
         b.count - a.count || a.path.join(';').localeCompare(b.path.join(';')),

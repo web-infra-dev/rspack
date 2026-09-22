@@ -15,6 +15,8 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_intern::Atom;
 use rspack_plugin_javascript::dependency::{ESMImportSpecifierDependency, ImportDependency};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{
@@ -38,12 +40,14 @@ pub struct SharedUsedExportsOptimizerPluginOptions {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct SharedEntryData {
   used_exports: Vec<Atom>,
 }
 
 #[plugin]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SharedUsedExportsOptimizerPlugin {
   shared_map: FxHashMap<String, SharedEntryData>,
   shared_referenced_exports: Arc<RwLock<FxHashMap<String, FxHashSet<String>>>>,

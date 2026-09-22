@@ -5,6 +5,8 @@ use rspack_core::{
   RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
   get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::extract_runtime_module_variables_from_ejs;
 
@@ -14,6 +16,7 @@ static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AutoPublicPathRuntimeModule {}
 
 impl AutoPublicPathRuntimeModule {

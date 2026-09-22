@@ -1,4 +1,6 @@
 use rspack_collections::IdentifierMap;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{AsyncDependenciesBlockIdentifierMap, ChunkGroupUkey, ChunkUkey, ModuleIdentifier};
@@ -9,6 +11,7 @@ pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkIdMap, ChunkSizeOptions, Index
 pub use chunk_graph_module::{ChunkGraphModule, ModuleId, ModuleIdMap};
 
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkGraph {
   /// If a module is imported dynamically, it will be assigned to a unique ChunkGroup
   pub(crate) block_to_chunk_group_ukey: AsyncDependenciesBlockIdentifierMap<ChunkGroupUkey>,

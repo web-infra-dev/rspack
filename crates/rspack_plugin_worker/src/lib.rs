@@ -1,9 +1,12 @@
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{Compilation, CompilationParams, CompilerCompilation, DependencyType};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct WorkerPlugin;
 
 #[plugin_hook(CompilerCompilation for WorkerPlugin)]

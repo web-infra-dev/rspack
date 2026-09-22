@@ -1,3 +1,6 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 mod cached_const_dependency;
 mod const_dependency;
 mod context_dependency;
@@ -120,7 +123,7 @@ impl ExportsSpec {
   }
 }
 
-pub trait DependencyConditionFn: Sync + Send {
+pub trait DependencyConditionFn: rspack_util::MaybeAllocative + Sync + Send {
   fn get_connection_state(
     &self,
     conn: &ModuleGraphConnection,
@@ -154,6 +157,7 @@ pub trait DependencyConditionFn: Sync + Send {
 }
 
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependencyCondition(Arc<dyn DependencyConditionFn>);
 
 impl DependencyCondition {
@@ -208,6 +212,7 @@ impl std::fmt::Debug for DependencyCondition {
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Serialize, Default, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportAttributes(FxHashMap<String, String>);
 
 impl FromIterator<(String, String)> for ImportAttributes {
@@ -232,6 +237,7 @@ impl ImportAttributes {
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ImportPhase {
   #[default]
   Evaluation,
@@ -269,6 +275,7 @@ impl From<swc_core::ecma::ast::ImportPhase> for ImportPhase {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ReferencedSpecifier {
   #[cacheable(with=AsVec<AsPreset>)]
   pub names: Vec<Atom>,

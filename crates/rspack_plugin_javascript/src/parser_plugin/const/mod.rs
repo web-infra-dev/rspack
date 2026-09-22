@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 mod if_stmt;
 mod logic_expr;
 
@@ -13,6 +15,7 @@ use crate::{
   visitors::{JavascriptParser, Statement},
 };
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConstPlugin;
 
 const RESOURCE_FRAGMENT: &str = "__resourceFragment";

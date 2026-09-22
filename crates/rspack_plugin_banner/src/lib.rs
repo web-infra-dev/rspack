@@ -13,9 +13,12 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::asset_condition::{AssetConditions, AssetConditionsObject, match_object};
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct BannerPluginOptions {
   // Specifies the banner.
   pub banner: BannerContent,
@@ -45,9 +48,10 @@ pub struct BannerContentFnCtx<'a> {
 pub type BannerContentFn =
   Box<dyn for<'a> Fn(BannerContentFnCtx<'a>) -> BoxFuture<'a, Result<String>> + Sync + Send>;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum BannerContent {
   String(String),
-  Fn(BannerContentFn),
+  Fn(#[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_box))] BannerContentFn),
 }
 
 impl fmt::Debug for BannerContent {
@@ -84,6 +88,7 @@ fn wrap_comment(str: &str) -> String {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct BannerPlugin {
   config: BannerPluginOptions,
 }

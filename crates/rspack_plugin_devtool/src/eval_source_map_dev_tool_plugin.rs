@@ -35,6 +35,7 @@ const EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME: &str = "rspack.EvalSourceMapDevToolP
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct EvalSourceMapDevToolPlugin {
   columns: bool,
   no_sources: bool,
@@ -340,3 +341,6 @@ impl Plugin for EvalSourceMapDevToolPlugin {
     Ok(())
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

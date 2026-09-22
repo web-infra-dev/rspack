@@ -8,6 +8,7 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{ResolveOptionsWithDependencyType, ResolverFactory};
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ExternalItemValue {
   String(String),
   Array(Vec<String>),
@@ -39,6 +40,7 @@ pub struct ExternalItemFnResult {
 type ExternalItemFn =
   Box<dyn Fn(ExternalItemFnCtx) -> BoxFuture<'static, Result<ExternalItemFnResult>> + Sync + Send>;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ExternalItem {
   Object(ExternalItemObject),
   String(String),

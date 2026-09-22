@@ -36,6 +36,7 @@ const EVAL_DEV_TOOL_MODULE_PLUGIN_NAME: &str = "rspack.EvalDevToolModulePlugin";
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct EvalDevToolModulePlugin {
   namespace: String,
   source_url_comment: String,
@@ -316,3 +317,6 @@ mod test {
     );
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

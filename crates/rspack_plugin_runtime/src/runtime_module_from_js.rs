@@ -7,11 +7,14 @@ use rspack_core::{
   RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, impl_runtime_module,
   runtime_mode::RuntimeMode,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 type GenerateFn = Arc<dyn Fn() -> BoxFuture<'static, rspack_error::Result<String>> + Send + Sync>;
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeModuleFromJs {
   #[debug(skip)]
   #[cacheable(with=Unsupported)]

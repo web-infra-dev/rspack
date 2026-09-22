@@ -14,6 +14,8 @@ use rspack_core::{
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::source_map::SourceMapKind;
 
 use super::{
@@ -28,6 +30,7 @@ use crate::{
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RemoteModule {
   dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,

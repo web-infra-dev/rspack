@@ -10,12 +10,15 @@ use rspack_core::{
   TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::create_resource_identifier_for_contextual_commonjs_dependency;
 use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CommonJsRequireDependency {
   id: DependencyId,
   request: String,
@@ -191,6 +194,7 @@ impl AsContextDependency for CommonJsRequireDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CommonJsRequireDependencyTemplate;
 
 impl CommonJsRequireDependencyTemplate {

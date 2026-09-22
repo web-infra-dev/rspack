@@ -9,6 +9,8 @@ use rspack_error::Severity;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_macros::AstObject;
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_experimental_ecma_ast::{
   CallExpr, ExprOrSpread, GetSpan, Ident, NewExpr, Span, VarDeclarator,
@@ -323,6 +325,7 @@ fn handle_worker<'a>(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct WorkerPluginInner {
   new_syntax: FxHashSet<String>,
   call_syntax: FxHashSet<String>,
@@ -332,6 +335,7 @@ struct WorkerPluginInner {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct WorkerPlugin {
   inner: Arc<WorkerPluginInner>,
   url_mode: Option<JavascriptParserWorkerUrl>,

@@ -2,6 +2,8 @@ use std::{hash::BuildHasherDefault, sync::Arc};
 
 use dashmap::DashMap;
 use rspack_fs::ReadableFileSystem;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHasher;
 
 use super::resolver_impl::Resolver;
@@ -9,6 +11,7 @@ use crate::{DependencyCategory, Resolve};
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 // Actually this should be ResolveOptionsWithDependencyCategory, it's a mistake from webpack, but keep the alignment for easily find the code in webpack
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ResolveOptionsWithDependencyType {
   pub resolve_options: Option<Box<Resolve>>,
   pub resolve_to_context: bool,
@@ -16,6 +19,7 @@ pub struct ResolveOptionsWithDependencyType {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ResolverFactory {
   base_options: Resolve,
   resolver: Resolver,

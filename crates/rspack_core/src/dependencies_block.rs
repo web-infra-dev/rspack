@@ -3,6 +3,8 @@ use std::{fmt::Write as _, hash::BuildHasherDefault, sync::Arc};
 use rspack_cacheable::cacheable;
 use rspack_collections::{Identifier, IdentifierHasher};
 use rspack_hash::{RspackHash, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   BoxDependency, Compilation, Dependency, DependencyId, DependencyLocation, DependencyRef,
@@ -71,6 +73,7 @@ impl ExactSizeIterator for DependencyIds<'_> {}
 /// Cloning copies these containers; the dependency and block objects themselves remain shared.
 #[cacheable]
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependenciesBlockData {
   dependencies: Vec<DependencyRef>,
   #[cacheable(omit_bounds)]
@@ -130,6 +133,7 @@ pub fn dependencies_block_update_hash(
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AsyncDependenciesBlockIdentifier(Identifier);
 
 impl rspack_hash::RspackHash for AsyncDependenciesBlockIdentifier {
@@ -152,6 +156,7 @@ impl From<Identifier> for AsyncDependenciesBlockIdentifier {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,

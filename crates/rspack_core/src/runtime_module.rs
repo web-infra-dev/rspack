@@ -10,6 +10,8 @@ use rspack_collections::Identifier;
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::source_map::SourceMapKind;
 use tokio::sync::OnceCell;
 
@@ -88,6 +90,7 @@ impl BitOrAssign for RuntimeModuleRuntimeRequirements {
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeModuleCommon {
   pub id: Identifier,
   pub chunk: Option<ChunkUkey>,
@@ -270,6 +273,7 @@ pub trait RuntimeModule:
   }
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeModuleVariableProvider {
   pub variables: fn() -> &'static [&'static str],
 }
@@ -300,6 +304,7 @@ pub type BoxRuntimeModule = Box<dyn RuntimeModule>;
 
 #[cacheable]
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RuntimeModuleStage {
   #[default]
   Normal, // Runtime modules without any dependencies to other runtime modules

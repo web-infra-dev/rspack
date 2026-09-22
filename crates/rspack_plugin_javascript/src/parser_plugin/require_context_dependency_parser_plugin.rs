@@ -5,6 +5,8 @@ use rspack_core::{
 use rspack_error::Error;
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan};
 
 use super::JavascriptParserPlugin;
@@ -16,6 +18,7 @@ use crate::{
   },
 };
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RequireContextDependencyParserPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]

@@ -61,6 +61,7 @@ use crate::{
 /// );
 /// ```
 #[derive(Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConcatSource {
   children: Mutex<Vec<BoxSource>>,
   is_optimized: OnceLock<Vec<BoxSource>>,

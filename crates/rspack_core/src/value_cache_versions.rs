@@ -1,6 +1,9 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap as HashMap;
 
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ValueCacheVersions(HashMap<String, String>);
 
 impl ValueCacheVersions {

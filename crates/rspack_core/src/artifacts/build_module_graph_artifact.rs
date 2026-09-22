@@ -2,6 +2,8 @@ use std::hash::BuildHasherDefault;
 
 use rspack_collections::{IdentifierHasher, IdentifierSet};
 use rspack_error::Diagnostic;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashSet;
 
 use crate::{
@@ -15,6 +17,7 @@ use crate::{
 
 /// Make Artifact, including all side effects of the make stage.
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct BuildModuleGraphArtifact {
   // temporary data, used by subsequent steps of BuildModuleGraph, should be reset when rebuild.
   /// BuildModuleGraph stage affected modules.

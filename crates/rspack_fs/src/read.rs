@@ -5,7 +5,7 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use crate::{Error, FileMetadata, FilePermissions, Result};
 
 #[async_trait::async_trait]
-pub trait ReadableFileSystem: Debug + Send + Sync {
+pub trait ReadableFileSystem: rspack_util::MaybeAllocative + Debug + Send + Sync {
   /// See [std::fs::read]
   async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>>;
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>>;

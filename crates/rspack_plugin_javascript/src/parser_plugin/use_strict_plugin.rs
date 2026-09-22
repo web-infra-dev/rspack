@@ -1,10 +1,13 @@
 use rspack_core::ConstDependency;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_allocator::wtf8::Wtf8;
 use swc_experimental_ecma_ast::{GetSpan, Lit, Program};
 
 use super::JavascriptParserPlugin;
 use crate::visitors::JavascriptParser;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct UseStrictPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]

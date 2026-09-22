@@ -38,6 +38,7 @@ pub struct ConcatenationContext<'a> {
 
 /// Allocates unique JavaScript identifiers while retaining per-base suffix cursors.
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConcatenationNameAllocator {
   used_names: AtomSet,
   suffix_counters: FxHashMap<Atom, u32>,

@@ -3,8 +3,12 @@ use std::{
   hash::Hash,
 };
 
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 #[rspack_cacheable::cacheable]
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum DependencyCategory {
   #[default]
   Unknown,

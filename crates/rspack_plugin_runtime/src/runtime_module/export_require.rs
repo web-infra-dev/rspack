@@ -2,6 +2,8 @@ use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
   impl_runtime_module, runtime_mode::RuntimeMode,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 pub static EXPORT_REQUIRE_RUNTIME_MODULE_ID: &str = "export_webpack_require";
 pub static EXPORT_REQUIRE_RSPACK_RUNTIME_MODULE_ID: &str = "export_require";
@@ -13,6 +15,7 @@ const RUNTIME_MODULE_VARIABLES: &[&str] = &[
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportRequireRuntimeModule {}
 
 impl ExportRequireRuntimeModule {

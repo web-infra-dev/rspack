@@ -1,9 +1,12 @@
 use std::fmt;
 
 use rspack_cacheable::cacheable;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Scheme {
   None,
   Data,

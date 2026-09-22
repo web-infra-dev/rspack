@@ -3,11 +3,14 @@ use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency, ResourceIdentifier,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{ExposeOptions, ShareScope};
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ContainerEntryDependency {
   id: DependencyId,
   pub name: String,

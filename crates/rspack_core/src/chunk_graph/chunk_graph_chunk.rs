@@ -8,6 +8,8 @@ use itertools::Itertools;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_collections::{IdentifierHasher, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rspack_hash::RspackHasher;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Serialize, Serializer};
@@ -35,6 +37,7 @@ pub type ChunkIdSet = std::collections::HashSet<ChunkId, BuildHasherDefault<Iden
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkId(#[cacheable(with=AsPreset)] Ustr);
 
 impl From<String> for ChunkId {
@@ -85,6 +88,7 @@ impl rspack_hash::RspackHash for ChunkId {
 }
 
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkGraphChunk {
   /// URI of modules => ChunkGroupUkey
   ///

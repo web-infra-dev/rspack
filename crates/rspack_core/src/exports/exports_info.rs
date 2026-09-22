@@ -2,6 +2,8 @@ use std::{collections::BTreeMap, hash::Hash, sync::atomic::Ordering::Relaxed};
 
 use rspack_cacheable::cacheable;
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
@@ -11,6 +13,7 @@ use crate::{ExportsInfoArtifact, RuntimeSpec};
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportsInfo(u32);
 
 impl ExportsInfo {
@@ -32,6 +35,7 @@ impl ExportsInfo {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportsInfoData {
   exports: BTreeMap<Atom, ExportInfoData>,
 

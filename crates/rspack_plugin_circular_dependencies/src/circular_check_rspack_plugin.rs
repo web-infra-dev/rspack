@@ -3,6 +3,8 @@ use std::sync::Arc;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use itertools::Itertools;
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{
   CircularModulesInfo, Compilation, CompilationOptimizeModules, CompilerId, CompilerMake, Module,
   ModuleIdentifier, Plugin,
@@ -18,16 +20,19 @@ pub type CircularCheckHandlerFn = Arc<
 >;
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CircularCheckRspackPluginOptions {
   pub exclude: Option<RspackRegex>,
   pub include: Option<RspackRegex>,
   pub fail_on_error: bool,
   #[debug(skip)]
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_option_arc))]
   pub on_detected: Option<CircularCheckHandlerFn>,
 }
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CircularCheckRspackPlugin {
   options: CircularCheckRspackPluginOptions,
 }

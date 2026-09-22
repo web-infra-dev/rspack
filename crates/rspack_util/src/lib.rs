@@ -26,6 +26,16 @@ use std::{future::Future, sync::LazyLock};
 
 #[cfg(allocative)]
 pub use allocative;
+
+/// Profiling builds require dynamic objects to expose their owned memory.
+#[cfg(allocative)]
+pub trait MaybeAllocative: allocative::Allocative {}
+#[cfg(allocative)]
+impl<T: allocative::Allocative + ?Sized> MaybeAllocative for T {}
+#[cfg(not(allocative))]
+pub trait MaybeAllocative {}
+#[cfg(not(allocative))]
+impl<T: ?Sized> MaybeAllocative for T {}
 pub use merge::{MergeFrom, merge_from_optional_with};
 use regex::Regex;
 pub use span::SpanExt;

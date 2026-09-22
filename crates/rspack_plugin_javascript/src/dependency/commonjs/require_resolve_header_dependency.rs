@@ -4,9 +4,12 @@ use rspack_core::{
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   TemplateContext, TemplateReplaceSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RequireResolveHeaderDependency {
   id: DependencyId,
   range: DependencyRange,
@@ -50,6 +53,7 @@ impl DependencyCodeGeneration for RequireResolveHeaderDependency {
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RequireResolveHeaderDependencyTemplate;
 
 impl RequireResolveHeaderDependencyTemplate {

@@ -1,10 +1,13 @@
 use derive_more::Debug;
 use rspack_core::Filename;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::{cache_group_test::CacheGroupTest, chunk_name::ChunkNameGetter};
 use crate::common::{ChunkFilter, ModuleLayerFilter, ModuleTypeFilter, SplitChunkSizes};
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CacheGroup {
   /// For `splitChunks.cacheGroups` config
   /// ```js
@@ -22,6 +25,7 @@ pub struct CacheGroup {
   #[debug(skip)]
   pub test: CacheGroupTest,
   #[debug(skip)]
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_arc))]
   pub r#type: ModuleTypeFilter,
   #[debug(skip)]
   pub layer: ModuleLayerFilter,

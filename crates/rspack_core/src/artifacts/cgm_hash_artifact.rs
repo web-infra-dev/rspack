@@ -1,11 +1,14 @@
 use rspack_collections::IdentifierMap;
 use rspack_hash::RspackHashDigest;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   ArtifactExt, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, incremental::IncrementalPasses,
 };
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CgmHashArtifact {
   module_to_hashes: IdentifierMap<RuntimeSpecMap<RspackHashDigest>>,
 }

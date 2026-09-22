@@ -11,7 +11,8 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
-tokio = { workspace = true }
+allocative = { workspace = true, optional = true }
+tokio      = { workspace = true }
 [lints]
 workspace = true
 

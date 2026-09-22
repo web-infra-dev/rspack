@@ -5,11 +5,14 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::runtime_module::{ImportScriptsChunkLoadingRuntimeModule, is_enabled_for_chunk};
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportScriptsChunkLoadingPlugin;
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ImportScriptsChunkLoadingPlugin)]

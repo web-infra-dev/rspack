@@ -1,9 +1,13 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 use crate::{
   CacheOptions, Context, Experiments, Mode, ModuleOptions, NodeOption, Optimization, OutputOptions,
   Resolve, SnapshotOptions, StatsOptions, incremental::IncrementalOptions,
 };
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompilerOptions {
   pub name: Option<String>,
   pub context: Context,

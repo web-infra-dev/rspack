@@ -11,12 +11,15 @@ use rspack_core::{
   ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, SideEffectsStateArtifact,
   TemplateContext, TemplateReplaceSource, UsedName, property_access,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::json_stringify_str;
 
 use crate::{Atom, dependency::commonjs::OBJECT_PROTOTYPE_METHODS};
 
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ExportsBase {
   Exports,
   ModuleExports,
@@ -56,6 +59,7 @@ impl ExportsBase {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CommonJsExportsDependency {
   id: DependencyId,
   range: DependencyRange,
@@ -156,6 +160,7 @@ impl AsContextDependency for CommonJsExportsDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CommonJsExportsDependencyTemplate;
 
 impl CommonJsExportsDependencyTemplate {

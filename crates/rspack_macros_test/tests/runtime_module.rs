@@ -2,12 +2,15 @@ use std::marker::PhantomData;
 
 use rspack_core::{RuntimeModule, RuntimeModuleGenerateContext};
 use rspack_macros::impl_runtime_module;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[allow(dead_code)]
 #[test]
 fn with_generic() {
   #[impl_runtime_module]
   #[derive(Debug)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   struct Foo<T: std::fmt::Debug + Send + Sync + Eq + 'static> {
     marker: PhantomData<T>,
   }

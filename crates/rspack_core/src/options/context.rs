@@ -8,11 +8,14 @@ use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_intern::Atom;
 use rspack_loader_runner::ResourceData;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{contextify, parse_resource};
 
 #[cacheable]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Context {
   #[cacheable(with=AsPreset)]
   inner: Atom,

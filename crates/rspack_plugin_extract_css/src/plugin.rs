@@ -26,6 +26,8 @@ use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ustr::Ustr;
 
@@ -64,6 +66,7 @@ struct CssOrderConflicts {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PluginCssExtract {
   pub(crate) options: Arc<CssExtractOptions>,
 }
@@ -77,6 +80,7 @@ impl PartialEq for PluginCssExtractInner {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssExtractOptions {
   pub filename: Filename,
   pub chunk_filename: Filename,
@@ -114,6 +118,7 @@ pub struct CssExtractOptions {
 
 #[cacheable]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum InsertType {
   Fn(String),
   Selector(String),

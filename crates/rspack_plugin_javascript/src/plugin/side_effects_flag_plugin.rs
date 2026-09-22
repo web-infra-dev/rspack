@@ -17,6 +17,8 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use sugar_path::SugarPath;
 use swc_experimental_ecma_ast::{ClassMember, Key, PropName};
 
@@ -117,6 +119,7 @@ impl<'a> ClassExt<'a> for ClassMember<'a> {
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SideEffectsFlagPlugin {
   analyze_side_effects_free: bool,
 }

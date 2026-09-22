@@ -3,6 +3,8 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::id_helpers::{
   assign_ascending_module_ids, compare_modules_by_pre_order_index_or_identifier,
@@ -11,6 +13,7 @@ use crate::id_helpers::{
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NaturalModuleIdsPlugin;
 
 #[plugin_hook(CompilationModuleIds for NaturalModuleIdsPlugin)]

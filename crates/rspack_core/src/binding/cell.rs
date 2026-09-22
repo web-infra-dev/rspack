@@ -161,6 +161,7 @@ mod napi_binding {
   // The reason HeapVariant does not use the generic type T is that for types requiring the implementation of the Reflectable trait,
   // the implementation of Reflectable needs to use the concrete type T, which prevents the trait from inheriting the Reflectable trait.
   #[derive(Debug)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   enum HeapVariant {
     AssetInfo(Box<AssetInfo>),
     CodeGenerationResults(Box<CodeGenerationResults>),
@@ -170,14 +171,20 @@ mod napi_binding {
   }
 
   #[derive(Debug)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   struct Heap {
     variant: HeapVariant,
     #[debug(skip)]
+    // The JavaScript object belongs to V8; its heap is outside this Rust tree.
+    #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque))]
     jsobject: OnceCell<ThreadsafeOneShotRef>,
   }
 
   #[derive(Debug)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   pub struct BindingCell<T: ?Sized> {
+    // Projection into heap.variant; the owning Arc is visited below.
+    #[cfg_attr(allocative, allocative(skip))]
     ptr: *mut T,
     heap: Arc<Heap>,
   }

@@ -1,5 +1,7 @@
 use derive_more::Debug;
 use futures::future::BoxFuture;
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{
   ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
   NormalModuleFactoryBeforeResolve, Plugin,
@@ -14,9 +16,13 @@ pub struct NormalModuleReplacementPluginOptions {
   pub new_resource: NormalModuleReplacer,
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum NormalModuleReplacer {
   String(String),
-  Fn(NormalModuleReplacerFn),
+  Fn(
+    #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_box))]
+    NormalModuleReplacerFn,
+  ),
 }
 
 pub type NormalModuleReplacerFn = Box<
@@ -30,6 +36,7 @@ pub type NormalModuleReplacerFn = Box<
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NormalModuleReplacementPlugin {
   resource_reg_exp: RspackRegex,
   #[debug(skip)]

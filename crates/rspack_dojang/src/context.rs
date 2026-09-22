@@ -6,10 +6,12 @@ use serde_json::{Map, Number, Value};
 use crate::{eval::*, exec::*, expr::*};
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Context {
   pub context: Value,
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum FunctionContainer {
   F0(Box<dyn Fn() -> Operand + Send + Sync>),
   F1(Box<dyn Fn(Operand) -> Operand + Send + Sync>),

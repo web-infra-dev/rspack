@@ -1,10 +1,13 @@
 use std::sync::Arc;
 
 use rspack_error::Result;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, NormalModuleFactory};
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct IgnoreErrorModuleFactory {
   pub normal_module_factory: Arc<NormalModuleFactory>,
 }

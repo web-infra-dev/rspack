@@ -3,11 +3,14 @@ use std::{
   ops::{Deref, DerefMut},
 };
 
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 
 pub type RollbackAtomMap<K, V> = RollbackAtom<FxHashMap<K, V>>;
 // A simple rollback atom that can checkpoint and recover its state.
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RollbackAtom<T: Debug> {
   current: T,
   backup: Option<T>,

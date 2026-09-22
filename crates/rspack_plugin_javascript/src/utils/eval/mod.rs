@@ -12,6 +12,8 @@ mod eval_unary_expr;
 use bitflags::bitflags;
 use num_bigint::BigInt;
 use rspack_core::{DependencyId, DependencyRange};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{Expr, Span};
 
@@ -61,6 +63,7 @@ struct TemplateStringData<'a> {
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum DependencyData {
   Dependency(DependencyId),
   Or(

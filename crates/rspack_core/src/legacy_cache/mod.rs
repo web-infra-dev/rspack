@@ -1,3 +1,6 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 mod disable;
 mod memory;
 mod mixed;
@@ -26,7 +29,7 @@ use crate::{CacheOptions, Compilation, CompilationLogging, CompilerOptions, MaxM
 ///
 /// We can consider change to Hook when we need to open the API to js side.
 #[async_trait::async_trait]
-pub trait Cache: Debug + Send + Sync {
+pub trait Cache: rspack_util::MaybeAllocative + Debug + Send + Sync {
   /// before compile return is_hot_start
   async fn before_compile(&mut self, _compilation: &mut Compilation) -> bool {
     false
@@ -82,6 +85,7 @@ pub type BuildDepsOptions = Vec<PathBuf>;
 /// Storage options for the legacy persistent cache.
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum StorageOptions {
   FileSystem {
     #[cacheable(with=As<PortablePath>)]
@@ -91,6 +95,7 @@ pub enum StorageOptions {
 
 /// Options for the legacy persistent cache.
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PersistentCacheOptions {
   pub build_dependencies: BuildDepsOptions,
   pub version: String,

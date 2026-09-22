@@ -96,3 +96,33 @@ Process 23110 stopped
    247
 Target 0: (node) stopped.
 ```
+
+## Memory profiling with allocative
+
+For local ownership analysis, build the binding with allocative enabled. This instrumentation is disabled by default:
+
+```bash
+ALLOCATIVE=1 pnpm run build:binding:dev
+pnpm run build:js
+```
+
+Run a project using that local binding with `RSPACK_ALLOCATIVE_DIR` set to an absolute, fresh directory. After build or rebuild cache finalization, Rspack captures the compiler and compilation before compiler destruction. Each snapshot includes byte weights (`.allocative`), coverage warnings, metadata, and module/dependency entry counts grouped by type. Shared allocations are counted once under their first encountered owner.
+
+For example, from the target project's directory:
+
+```bash
+RSPACK_ALLOCATIVE_DIR=/tmp/rspack-memory-run-1 \
+  node /path/to/rspack/packages/rspack-cli/bin/rspack.js build
+```
+
+Install Inferno (`cargo install inferno --locked`), then render the snapshot from the Rspack checkout:
+
+```bash
+pnpm exec zx .agents/skills/rspack-allocative/scripts/render-profile.mjs \
+  /tmp/rspack-memory-run-1/0-build.allocative \
+  --out-dir /tmp/rspack-memory-run-1/report
+```
+
+The report contains separate `memory.svg` and `counts.svg` charts, `counts.csv`, and coverage diagnostics. Counts describe current module graph entries, not all process objects. Byte weights include traversed owned heap allocations and container capacity, but exclude inaccessible third-party internals, V8 memory, and some container/allocator metadata. Check the warnings before comparing runs; the total is neither RSS nor peak memory.
+
+Unset `ALLOCATIVE` when rebuilding normally. Setting `ALLOCATIVE=0` still enables it because the build script checks whether the environment variable is nonempty.

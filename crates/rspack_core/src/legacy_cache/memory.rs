@@ -1,3 +1,6 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 use super::{Cache, persistent::occasion::SourceMapDevToolPluginCache};
 use crate::Compilation;
 
@@ -6,6 +9,7 @@ use crate::Compilation;
 /// Incremental artifacts are owned by `IncrementalArtifacts`; this cache only
 /// retains data that is explicitly controlled by the cache option.
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MemoryCache {
   source_map_dev_tool_plugin_cache: Option<SourceMapDevToolPluginCache>,
 }

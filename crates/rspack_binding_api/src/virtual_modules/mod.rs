@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 use rspack_fs::FileMetadata;
 use rspack_paths::Utf8Path;
 
-pub trait VirtualFileStore: Send + Sync {
+pub trait VirtualFileStore: rspack_util::MaybeAllocative + Send + Sync {
   fn write_file(&mut self, path: &Utf8Path, content: Vec<u8>);
 
   fn get_file_content(&self, path: &Utf8Path) -> Option<&Vec<u8>>;

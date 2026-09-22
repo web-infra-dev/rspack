@@ -3,6 +3,8 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierMap};
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{
   CircularModulesInfo, Compilation, CompilationOptimizeModules, DependencyType, ModuleIdentifier,
   Plugin,
@@ -180,6 +182,7 @@ fn build_module_map(compilation: &Compilation) -> IdentifierMap<GraphModule> {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CircularDependencyIgnoredConnectionEntry {
   String(String),
   Pattern(RspackRegex),
@@ -195,6 +198,7 @@ impl CircularDependencyIgnoredConnectionEntry {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CircularDependencyIgnoredConnection(
   pub CircularDependencyIgnoredConnectionEntry,
   pub CircularDependencyIgnoredConnectionEntry,
@@ -215,6 +219,7 @@ pub type CompilationHookFn = Box<dyn Fn() -> BoxFuture<'static, Result<()>> + Sy
 
 /// Deprecated. Use `CircularCheckRspackPluginOptions` instead.
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CircularDependencyRspackPluginOptions {
   /// When `true`, the plugin will emit Error diagnostics rather than the
   /// default Warn severity.
@@ -241,6 +246,7 @@ pub struct CircularDependencyRspackPluginOptions {
 /// Deprecated. Use `CircularCheckRspackPlugin` instead.
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CircularDependencyRspackPlugin {
   options: CircularDependencyRspackPluginOptions,
 }

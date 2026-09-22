@@ -10,6 +10,8 @@ use rspack_cacheable::{
   Result, cacheable,
   with::{AsConverter, AsMap, AsPreset},
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use ustr::UstrMap;
 
 use crate::SourceType;
@@ -18,6 +20,7 @@ const SOURCE_SIZE_CACHE_SLOTS: usize = 13;
 const SOURCE_SIZE_UNSET: u64 = u64::MAX;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SourceSizeCache {
   // Fixed slots for builtin SourceType variants to avoid hashing/locking overhead.
   builtins: [AtomicU64; SOURCE_SIZE_CACHE_SLOTS],

@@ -12,6 +12,8 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{itoa, json_stringify_str};
 use wasmparser::{Import, Parser, Payload};
 
@@ -19,10 +21,12 @@ use crate::dependency::WasmImportDependency;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AsyncWasmParserAndGenerator;
 
 #[cacheable]
 #[derive(Clone, Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct CodeGenerationDataWasmFilename {
   pub filename: String,
   pub asset_info: AssetInfo,

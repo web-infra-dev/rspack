@@ -1,3 +1,6 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 mod http_cache;
 mod lockfile;
 
@@ -22,6 +25,7 @@ static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HttpUriPlugin {
   options: HttpUriPluginOptions,
   http_cache: HttpCache,
@@ -137,6 +141,7 @@ impl HttpUriPlugin {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HttpUriPluginOptions {
   pub allowed_uris: HttpUriOptionsAllowedUris,
   pub lockfile_location: Option<String>,
@@ -254,6 +259,7 @@ impl Plugin for HttpUriPlugin {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HttpUriOptionsAllowedUris {
   conditions: AssetConditions,
 }

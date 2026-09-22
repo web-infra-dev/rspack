@@ -8,6 +8,8 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierHasher, IdentifierMap};
 use rspack_error::Result;
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -36,12 +38,14 @@ pub type BuildDependency = (
 
 /// https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ModuleGraph.js#L742-L748
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependencyExtraMeta {
   pub ids: Vec<Atom>,
   pub explanation: Option<&'static str>,
 }
 
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependencyParents {
   pub block: Option<AsyncDependenciesBlockIdentifier>,
   pub module: ModuleIdentifier,
@@ -91,6 +95,7 @@ impl<'a> IncomingConnectionsByOriginModule<'a> {
 ///    3.1 only the contained modified in seal phase which can be reverted
 ///    3.2 the item is modified which can only use overlay or clone to recover
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct ModuleGraphData {
   /****** only modified during Make Phase */
   /// Module indexed by `ModuleIdentifier`.
@@ -159,6 +164,7 @@ impl ModuleGraphData {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleGraph {
   pub(super) inner: ModuleGraphData,
 }

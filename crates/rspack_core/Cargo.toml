@@ -7,6 +7,7 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [dependencies]
+allocative                 = { workspace = true, optional = true }
 anymap                     = { workspace = true }
 arc-swap                   = { workspace = true }
 async-recursion            = { workspace = true }
@@ -93,6 +94,7 @@ pretty_assertions = { workspace = true }
 workspace = true
 
 [features]
+allocative = ["dep:allocative", "rspack_napi?/allocative", "rspack_util/allocative", "rspack_sources/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_paths/allocative", "rspack_tasks/allocative", "rspack_hook/allocative", "rspack_resolver/allocative", "rspack_storage/allocative", "rspack_regex/allocative", "rspack_location/allocative", "rspack_error/allocative", "rspack_dojang/allocative"]
 codspeed   = ["rspack_parallel/codspeed"]
 debug_tool = ["rspack_util/debug_tool"]
 default    = []

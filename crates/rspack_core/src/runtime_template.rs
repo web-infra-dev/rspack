@@ -12,6 +12,8 @@ use rspack_collections::{Identifier, IdentifierSet};
 use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{fx_hash::FxIndexSet, json_stringify};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use serde_json::{Value, json};
@@ -31,6 +33,7 @@ use crate::{
   to_comment, to_normal_comment,
 };
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeTemplate {
   compiler_options: Arc<CompilerOptions>,
   render_mode: RuntimeTemplateRenderMode,
@@ -69,6 +72,7 @@ static RSPACK_EXPORT_RUNTIME_GLOBALS: LazyLock<Arc<RuntimeGlobalsRenderMap>> =
 
 /// Controls how a single runtime global is rendered into its final JavaScript identifier.
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RuntimeGlobalsRenderMode {
   /// Renders webpack-compatible identifiers such as `__webpack_require__.d`.
   #[default]
@@ -101,6 +105,7 @@ impl RuntimeGlobalsRenderMode {
 
 /// Selects the runtime-global representation used by each code-template scenario.
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RuntimeTemplateRenderMode {
   /// Uses webpack-compatible runtime globals in every code-template scenario.
   #[default]
@@ -170,6 +175,7 @@ impl RuntimeTemplateRenderMode {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct RuntimeGlobalsRenderMap {
   runtime_values: FxHashMap<RuntimeGlobals, String>,
 }
@@ -828,6 +834,7 @@ pub fn get_outgoing_async_modules(
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleCodeTemplate {
   compiler_options: Arc<CompilerOptions>,
   runtime_globals_render_mode: RuntimeGlobalsRenderMode,

@@ -6,11 +6,14 @@ use rspack_core::{
   ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::{context_dependency_template_as_id, create_resource_identifier_for_context_dependency};
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportMetaResolveContextDependency {
   id: DependencyId,
   options: ContextOptions,
@@ -114,6 +117,7 @@ impl AsModuleDependency for ImportMetaResolveContextDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportMetaResolveContextDependencyTemplate;
 
 impl ImportMetaResolveContextDependencyTemplate {

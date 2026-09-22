@@ -11,6 +11,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DojangOptions {
   pub escape: String,
   pub unescape: String,
@@ -24,6 +25,7 @@ impl Default for DojangOptions {
   }
 }
 /// HTML template rendering engine that should be constructed for once.
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Dojang {
   /// Mapping between the template file name and the renderer along with the file content.
   pub templates: HashMap<String, (Executer, String)>,

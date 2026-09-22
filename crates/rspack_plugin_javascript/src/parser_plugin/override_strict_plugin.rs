@@ -1,10 +1,13 @@
 use rspack_core::OverrideStrict;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_ecma_ast::Program;
 
 use super::JavascriptParserPlugin;
 use crate::visitors::JavascriptParser;
 
 #[derive(Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct OverrideStrictPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]

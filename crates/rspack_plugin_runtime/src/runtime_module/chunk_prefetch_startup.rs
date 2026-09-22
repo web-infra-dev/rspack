@@ -5,6 +5,8 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::extract_runtime_globals_from_ejs;
 
@@ -14,6 +16,7 @@ static CHUNK_PREFETCH_STARTUP_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntim
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkPrefetchStartupRuntimeModule {
   startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>,
 }

@@ -10,6 +10,8 @@ use rspack_core::{
 use rspack_plugin_runtime::{
   extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{
   fx_hash::{FxLinkedHashMap, FxLinkedHashSet},
   json_stringify_str,
@@ -33,6 +35,7 @@ static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ShareRuntimeModule {
   enhanced: bool,
 }
@@ -190,12 +193,14 @@ impl RuntimeModule for ShareRuntimeModule {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CodeGenerationDataShareInit {
   pub items: Vec<ShareInitData>,
 }
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ShareInitData {
   pub share_scope: ShareScope,
   pub init_stage: DataInitStage,
@@ -206,6 +211,7 @@ pub type DataInitStage = i8;
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum DataInitInfo {
   ExternalModuleId(Option<ModuleId>),
   ProvideSharedInfo(ProvideSharedInfo),
@@ -213,6 +219,7 @@ pub enum DataInitInfo {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ProvideSharedInfo {
   pub name: String,
   pub version: ProvideVersion,

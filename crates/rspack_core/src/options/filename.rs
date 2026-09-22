@@ -17,6 +17,8 @@ use rspack_error::ToStringResultToRspackResultExt;
 use rspack_hash::{HashDigest, RspackHasher};
 use rspack_macros::StringEnum;
 use rspack_paths::Utf8PathBuf;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{MergeFrom, base64};
 use ustr::{IdentityHasher, Ustr};
 
@@ -411,6 +413,7 @@ fn get_or_compile(template: Ustr) -> Arc<CompiledStringTemplate<'static>> {
 
 #[cacheable]
 #[derive(PartialEq, Hash, Eq, Clone, PartialOrd, Ord)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum FilenameKind {
   Template(#[cacheable(with=AsPreset)] Ustr),
   Fn(#[cacheable(with=Unsupported)] Arc<dyn FilenameFn>),
@@ -432,6 +435,7 @@ impl Debug for FilenameKind {
 /// Other possible function types are `NoFilenameFn` and `LocalJsFilenameFn`
 #[cacheable]
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Filename(FilenameKind);
 
 impl Filename {
@@ -864,4 +868,11 @@ fn test_data_uri() {
   assert_eq!(data_uri("data:good").ok(), Some("good"));
   assert_eq!(data_uri("data:g;ood").ok(), Some("g"));
   assert_eq!(data_uri("data:;ood").ok(), None);
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for dyn FilenameFn {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    visitor.visit_opaque(self);
+  }
 }

@@ -8,12 +8,15 @@ use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::AssertUtf8;
+#[cfg(allocative)]
+use rspack_util::allocative;
 #[cfg(all(not(target_family = "wasm"), not(feature = "codspeed")))]
 use tokio::task::spawn_blocking;
 use url::Url;
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FileUriPlugin;
 
 #[plugin_hook(NormalModuleFactoryResolveForScheme for FileUriPlugin)]

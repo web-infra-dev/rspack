@@ -137,7 +137,7 @@ wasmparser          = { version = "0.236.1", default-features = false }
 winnow              = { version = "0.7.15", default-features = false, features = ["std", "simd"] }
 xxhash-rust         = { version = "0.8.15", default-features = false }
 
-allocative = { package = "rspack-allocative", version = "0.3.5", default-features = false, features = ["camino", "dashmap", "hashbrown", "indexmap", "tokio", "once_cell", "ustr", "atomic_refcell"] }
+allocative = { package = "rspack-allocative", path = "crates/rspack_allocative", version = "0.3.5", default-features = false, features = ["camino", "dashmap", "hashbrown", "indexmap", "tokio", "once_cell", "ustr", "atomic_refcell"] }
 
 # Pinned
 napi        = { version = "3.10.5", default-features = false }

@@ -39,6 +39,8 @@ use rspack_plugin_rslib::{
   worker_external::{ExternalWorkerDependencyTemplate, cutout_worker_externals},
 };
 use rspack_plugin_split_chunks::CacheGroup;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
@@ -68,6 +70,7 @@ pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct EsmLibraryPlugin {
   pub(crate) preserve_modules: Option<PathBuf>,
   pub(crate) split_chunks: Option<Vec<CacheGroup>>,

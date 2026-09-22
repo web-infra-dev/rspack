@@ -5,6 +5,8 @@ use rspack_core::{
   DependencyTemplate, ExternalModule, TemplateContext, TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::WorkerDependency;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 fn should_cutout_worker_external(
   cutout_all_externals: bool,
@@ -79,6 +81,7 @@ fn render_worker_external_module(
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExternalWorkerDependencyTemplate {
   pub cutout_all_externals: bool,
   pub template: Option<Arc<dyn DependencyTemplate>>,

@@ -1,10 +1,13 @@
 use std::ops::{Deref, DerefMut};
 
 use rspack_collections::IdentifierSet;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{ArtifactExt, incremental::IncrementalPasses};
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AsyncModulesArtifact(IdentifierSet);
 
 impl ArtifactExt for AsyncModulesArtifact {

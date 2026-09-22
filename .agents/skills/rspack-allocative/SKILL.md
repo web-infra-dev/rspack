@@ -14,11 +14,11 @@ Use the user's selected checkout or current Rspack worktree. When invoked outsid
 Check these integration points in the selected revision:
 
 - `crates/node_binding/scripts/build.mjs`: `ALLOCATIVE` enables the Cargo feature and `--cfg=allocative`.
-- `crates/rspack_core/src/compiler/mod.rs`: the `snapshot_allocative("build")` call defines the capture phase.
+- `crates/rspack_core/src/compiler/mod.rs`: the `snapshot_allocative("build", self)` call defines the capture phase.
 - `crates/rspack_core/src/utils/mod.rs`: `RSPACK_ALLOCATIVE_DIR`, naming, and root traversal.
 - Cargo manifests: the actual allocative package/version and feature propagation.
 
-The integration examined when this skill was created visits **registered global roots only**, after compilation/cache finalization and before compiler destruction. It does not automatically visit the entire compiler, module graph, or AST. `Compilation` did not implement `Allocative` in that revision. Recheck these facts: a derive on `CompilationId` is not a derive on `Compilation`.
+The current integration visits **Compiler → Compilation and other owned fields**, registered global roots, and the process-global Ustr string arena, after cache finalization and before compiler destruction. Shared allocations are charged once, below their first encountered owner; later references and cycles do not add their payload again. Hash iteration can change the first-owner path between runs. Read the snapshot metadata and warnings before interpreting a total. Older revisions visited global roots only; inspect the checkout before comparing results.
 
 An object-tree byte profile is not RSS, peak heap usage, cumulative allocations, or a complete process heap census. Skipped fields, missing roots, and missing trait implementations limit coverage. Objects already freed will not appear in a later snapshot.
 
@@ -46,13 +46,24 @@ Verify the workload loads the newly built local binding, including config/plugin
 
 Snapshots typically start at `0-build.allocative` and increment within a process. Separate processes can overwrite those names if they share a directory. Check exit status, nonempty outputs, and capture phase. For watch/rebuild workloads, inspect the rebuild path instead of assuming every rebuild emits a snapshot.
 
-For a standalone Rust benchmark, `ALLOCATIVE=1` alone does nothing: the Node build script consumes it. Inspect Cargo feature propagation, enable required allocative features and cfg for its dependencies, and build the selected benchmark first. Do not copy Node-only feature flags blindly or change workload/concurrency to enable collection.
+For a standalone Rust benchmark, `ALLOCATIVE=1` alone does nothing: the Node build script consumes it. Build with both the feature and cfg, then run one existing case per fresh directory. For the walltime benchmark:
+
+```sh
+cargo bench -p rspack_benchmark --bench walltime --profile codspeed \
+  --features allocative \
+  --config 'target."cfg(all())".rustflags=["--cfg=allocative"]' --no-run
+BENCH_MODE=walltime RSPACK_BENCHCASES_DIR="$BENCHCASES_DIR" \
+  RSPACK_ALLOCATIVE_DIR="$PROFILE_DIR" \
+  "$WALLTIME_BINARY" threejs-10x-development --test
+```
+
+Use the executable path printed by Cargo. Prepare fixtures through the repository's bench preparation command; run `threejs-10x-production-sourcemap` separately when needed. Keep the original workload and concurrency. Profiling builds require the feature and cfg together; ordinary builds remain disabled.
 
 ## Object counts and missing roots
 
 For counts or unobserved structures, read [references/object-counts.md](references/object-counts.md). Add focused, cfg-gated instrumentation in the selected checkout when necessary for the authorized profiling task. Keep it separate from unrelated optimization/CI work.
 
-Capture counts at the **same point** as the byte snapshot. Prefer authoritative collection cardinalities or traversal with stable-identity deduplication. Record each population, counting basis, unit, snapshot identity, and scope. Allocative's folded format stores byte weights, not instance counts: never derive counts by dividing weights by `size_of::<T>()` or counting folded lines.
+The native snapshot already emits module and dependency **entry counts grouped by type**, at the same point as the byte profile. These counts cover the current compilation module graph, not all allocations or retained cache entries. For additional populations, capture counts at the **same point** as the byte snapshot. Prefer authoritative collection cardinalities or traversal with stable-identity deduplication. Record each population, counting basis, unit, snapshot identity, and scope. Allocative's folded format stores byte weights, not instance counts: never derive counts by dividing weights by `size_of::<T>()` or counting folded lines.
 
 For a full census request, identify missing types and add counters where feasible. Do not silently substitute entries for unique objects. Missing populations mean unmeasured, not zero. Use separate byte and count artifacts.
 
@@ -77,11 +88,13 @@ pnpm --dir "$RSPACK_ROOT" exec zx "$SKILL_DIR/scripts/render-profile.mjs" \
   --out-dir "$PROFILE_DIR/report-0"
 ```
 
-Outputs: `memory.svg`, a copy of the byte snapshot, and `summary.json`. With counts: also `counts.csv`, source JSON, `counts.folded`, and, for nonzero counts, `counts.svg`. All-zero counts are reported without a misleading empty chart. The output directory must be new.
+The helper automatically discovers matching `.counts.json`, `.metadata.json`, and `.warnings.txt` sidecars; `--counts` overrides only the count path. Outputs: `memory.svg`, a copy of the byte snapshot, `summary.json`, and available metadata/warnings. With counts: also `counts.csv`, source JSON, `counts.folded`, and, for nonzero counts, `counts.svg`. All-zero counts are reported without a misleading empty chart. The output directory must be new.
 
 The helper labels charts separately in bytes and objects/entries. It rejects mismatched snapshot IDs, negative counts, duplicate populations, and ancestor/descendant count rows that would double-count totals. Distinct sibling paths can still describe overlapping populations: check their semantics yourself.
 
 Open SVGs in a browser or return clickable absolute file links. Wider byte frames indicate more represented memory; wider count frames indicate larger measured populations. Count paths group by ownership scope, not allocation call stack. CSV rows retain the counting basis.
+
+Treat `Unobserved nested allocations` warnings as missing heap coverage, not zero bytes. Nonblocking locks can also make a snapshot incomplete. External regex engines, callback captures, V8 objects, and private persistence internals are examples of explicit boundaries. Container private metadata and allocator overhead are not fully represented; see metadata limits. An accounting warning about children exceeding a parent is a profiler bug to investigate, not an ordinary coverage limitation.
 
 For comparisons, match input, phase, profile, roots, units, and counting methods. Keep separate run directories. Do not sum parent and child inclusive sizes. A stage-end snapshot is not evidence of maximum live size during that stage.
 

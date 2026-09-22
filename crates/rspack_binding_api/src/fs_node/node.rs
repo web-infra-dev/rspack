@@ -15,6 +15,7 @@ type Chmod = ThreadsafeFunction<FnArgs<(String, u32)>, Promise<()>>;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false, js_name = "ThreadsafeNodeFS")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ThreadsafeNodeFS {
   #[napi(ts_type = "(name: string, content: Buffer) => Promise<void>")]
   pub write_file: ThreadsafeFunction<FnArgs<(String, Buffer)>, Promise<()>>,
@@ -85,3 +86,6 @@ impl From<NodeFsStats> for FileMetadata {
     }
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

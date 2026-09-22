@@ -9,6 +9,8 @@ use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rspack_tasks::{CompilerContext, within_compiler_context};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::Semaphore;
@@ -31,6 +33,7 @@ use crate::{
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct Meta {
   pub max_dependency_id: u32,
 }
@@ -54,6 +57,7 @@ define_hook!(CompilerDone: Series(compilation: &Compilation));
 define_hook!(CompilerFailed: Series(compilation: &Compilation));
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompilerHooks {
   pub this_compilation: CompilerThisCompilationHook,
   pub compilation: CompilerCompilationHook,
@@ -74,6 +78,7 @@ static COMPILER_ID: AtomicU32 = AtomicU32::new(0);
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompilerId(u32);
 
 impl CompilerId {
@@ -97,6 +102,7 @@ impl CompilerId {
 const EMIT_ASSETS_CONCURRENCY_LIMIT: usize = 15;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Compiler {
   id: CompilerId,
   pub compiler_path: Arc<str>,
@@ -323,7 +329,7 @@ impl Compiler {
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
     #[cfg(allocative)]
-    crate::utils::snapshot_allocative("build");
+    crate::utils::snapshot_allocative("build", self)?;
 
     Ok(())
   }
