@@ -47,15 +47,16 @@ fn walltime_bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
         (compiler_context, compiler, output_path)
       },
       |(compiler_context, mut compiler, output_path)| {
-        // `iter_batched` drops the routine output after stopping the timer, so
-        // returning this guard cleans native output after each measured build.
+        // `iter_batched` drops the routine output after measurement, so return
+        // both the compiler and cleanup guard to exclude teardown from CPU,
+        // walltime, and memory measurements.
         let output_cleanup = NativeOutputCleanup::new(output_path);
         let context = format!("bundle@{id} walltime benchmark build");
         rt.block_on(within_compiler_context(compiler_context, async {
           compiler.run().await.unwrap();
           assert_no_compilation_errors(&compiler.compilation, &context);
         }));
-        output_cleanup
+        (compiler, output_cleanup)
       },
       criterion::BatchSize::PerIteration,
     );

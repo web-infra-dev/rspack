@@ -81,7 +81,7 @@ jobs:
           else
             bench_args+=(--bench benches --bench rspack_sources)
           fi
-          cargo codspeed build -m ${{ inputs.measurement == 'simulation' && 'simulation,memory' || inputs.measurement }} --profile codspeed -p rspack_benchmark "${bench_args[@]}"
+          cargo codspeed build -m ${{ inputs.measurement }} --profile codspeed -p rspack_benchmark "${bench_args[@]}"
 
       - name: Prepare CodSpeed temporary directory
         run: mkdir -p "${RUNNER_TEMP}/codspeed-valgrind-tmp"
@@ -112,11 +112,15 @@ jobs:
               fi
               RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run "${bench_args[@]}"
             else
-              pnpm run bench:rust
+              RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run --bench benches --bench rspack_sources
             fi
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: rev:2ca934f5a71e0299e0a3941a84ac3b242b3b63b6
           skip-hash-check-warning: true
+
+      - name: Build benchmark (memory)
+        if: ${{ inputs.measurement == 'simulation' }}
+        run: cargo codspeed build -m memory --profile codspeed -p rspack_benchmark --bench walltime
 
       - name: Run benchmark (memory)
         if: ${{ inputs.measurement == 'simulation' }}
@@ -124,19 +128,11 @@ jobs:
         timeout-minutes: 30
         env:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
-          MIMALLOC_PURGE_DELAY: '-1'
+          BENCH_MODE: walltime
         with:
           mode: memory
           run: |
-            if [ -n "${{ inputs.bench_target }}" ]; then
-              bench_args=(--bench "${{ inputs.bench_target }}")
-              if [ -n "${{ inputs.bench_filter }}" ]; then
-                bench_args+=("${{ inputs.bench_filter }}")
-              fi
-              RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run "${bench_args[@]}"
-            else
-              pnpm run bench:rust
-            fi
+            RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run -m memory --bench walltime
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: rev:2ca934f5a71e0299e0a3941a84ac3b242b3b63b6
           skip-hash-check-warning: true
