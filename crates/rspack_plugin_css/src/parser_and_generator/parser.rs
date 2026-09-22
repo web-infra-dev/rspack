@@ -1617,6 +1617,8 @@ impl<'context> CssModuleParser<'context> {
 
   fn handle_icss_export_value(&mut self, prop: &str, value: &str) {
     let convention = self.convention();
+    // ICSS export keys are literal names, including a leading `--`.
+    // Only the configured naming convention may introduce aliases.
     let convention_names = export_locals_convention(prop, convention);
     let definition = self.resolve_icss_definition(value);
     self
@@ -1626,14 +1628,6 @@ impl<'context> CssModuleParser<'context> {
       // ICSS declarations use the last value, unlike composed class lists.
       self.css_exports.shift_remove(name.as_str());
       self.update_css_exports_from_icss_definition(name, prop, &definition);
-    }
-    if let Some(custom_property_name) = prop.strip_prefix("--") {
-      self
-        .icss_definitions
-        .insert(custom_property_name.to_string(), definition.clone());
-      for name in export_locals_convention(custom_property_name, convention).iter() {
-        self.update_css_exports_from_custom_property_definition(name, prop, &definition);
-      }
     }
     self
       .dependencies

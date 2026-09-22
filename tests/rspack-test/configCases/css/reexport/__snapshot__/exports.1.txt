@@ -49,7 +49,7 @@ Object {
   multiple-composes-with-composes: zB2SIO GB2FOr JXn9Xg GB2FOr,
   multiple-composes-with-simple: GUOebj GB2FOr _0VYBFQ,
   my-custom-color: #2ecc71,
-  my-custom-property-1: --zCGg-b --r2UEoW,
+  my-custom-property-1: --r2UEoW,
   my-var-u1: --u5xyqD,
   only-reexport: GZUeRs P1ehFp,
   other-selector: other-selector-value lwweu5,
