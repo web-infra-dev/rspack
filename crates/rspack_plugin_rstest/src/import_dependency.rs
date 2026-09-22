@@ -1,12 +1,97 @@
-use rspack_cacheable::cacheable;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration,
-  DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
-  FakeNamespaceObjectMode, ModuleCodeTemplate, ModuleDependency, ModuleGraph, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource, get_exports_type,
+  AsContextDependency, AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExportsType,
+  FakeNamespaceObjectMode, ImportAttributes, ImportPhase, ModuleCodeTemplate, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 use rspack_util::json_stringify_str;
+
+#[cacheable]
+#[derive(Debug)]
+pub struct RstestImportDependency {
+  pub inner: ImportDependency,
+  pub rstest_request: String,
+}
+
+impl RstestImportDependency {
+  pub fn new(inner: ImportDependency, rstest_request: String) -> Self {
+    Self {
+      inner,
+      rstest_request,
+    }
+  }
+}
+
+#[cacheable_dyn]
+impl Dependency for RstestImportDependency {
+  fn id(&self) -> &DependencyId {
+    self.inner.id()
+  }
+  fn resource_identifier(&self) -> Option<&str> {
+    self.inner.resource_identifier()
+  }
+  fn category(&self) -> &DependencyCategory {
+    self.inner.category()
+  }
+  fn dependency_type(&self) -> &DependencyType {
+    self.inner.dependency_type()
+  }
+  fn get_attributes(&self) -> Option<&ImportAttributes> {
+    self.inner.get_attributes()
+  }
+  fn get_phase(&self) -> ImportPhase {
+    self.inner.get_phase()
+  }
+  fn range(&self) -> Option<DependencyRange> {
+    self.inner.range()
+  }
+  fn get_referenced_exports(
+    &self,
+    module_graph: &rspack_core::ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+    runtime: Option<&rspack_core::RuntimeSpec>,
+  ) -> Vec<ReferencedExport> {
+    self.inner.get_referenced_exports(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      runtime,
+    )
+  }
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    self.inner.could_affect_referencing_module()
+  }
+}
+
+#[cacheable_dyn]
+impl ModuleDependency for RstestImportDependency {
+  fn request(&self) -> &str {
+    self.inner.request()
+  }
+  fn user_request(&self) -> &str {
+    self.inner.user_request()
+  }
+  fn get_optional(&self) -> bool {
+    self.inner.get_optional()
+  }
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    self.inner.get_condition()
+  }
+}
+
+impl AsContextDependency for RstestImportDependency {}
+
+#[cacheable_dyn]
+impl DependencyCodeGeneration for RstestImportDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ImportDependencyTemplate::template_type())
+  }
+}
 
 #[cacheable]
 #[derive(Debug, Default)]
@@ -25,14 +110,18 @@ impl DependencyTemplate for ImportDependencyTemplate {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let dep = dep
-      .as_any()
-      .downcast_ref::<ImportDependency>()
-      .expect("ImportDependencyTemplate can only be applied to ImportDependency");
-    let range = dep.range().expect("ImportDependency should have range");
+    let (inner, rstest_request) =
+      if let Some(dep) = dep.as_any().downcast_ref::<RstestImportDependency>() {
+        (&dep.inner, Some(dep.rstest_request.as_str()))
+      } else if let Some(dep) = dep.as_any().downcast_ref::<ImportDependency>() {
+        (dep, None)
+      } else {
+        panic!("ImportDependencyTemplate can only be applied to ImportDependency");
+      };
+    let range = inner.range().expect("ImportDependency should have range");
     let module_graph = code_generatable_context.compilation.get_module_graph();
-    let block = module_graph.get_parent_block(dep.id());
-    let attributes = &dep.get_attributes();
+    let block = module_graph.get_parent_block(inner.id());
+    let attributes = &inner.get_attributes();
     let is_import_actual = if let Some(attrs) = attributes {
       // loop attrs and check is there a key `rstest` is `importActual`
       if let Some(actual) = attrs.get("rstest") {
@@ -43,18 +132,24 @@ impl DependencyTemplate for ImportDependencyTemplate {
     } else {
       false
     };
+    let is_import_mock = attributes
+      .and_then(|attrs| attrs.get("rstest"))
+      .is_some_and(|value| value == "importMock");
+    let mock_request = rstest_request.unwrap_or(inner.request());
 
     source.replace(
       range.start,
       range.end,
       module_namespace_promise_rstest(
         code_generatable_context,
-        dep.id(),
+        inner.id(),
         block,
-        dep.request(),
-        dep.dependency_type().as_str(),
+        inner.request(),
+        inner.dependency_type().as_str(),
         false,
         is_import_actual,
+        is_import_mock,
+        mock_request,
       ),
       None,
     );
@@ -85,6 +180,7 @@ pub fn module_id_rstest(
 }
 
 // To support use `__rspack_require.import_actual` for `importActual`.
+#[allow(clippy::too_many_arguments)]
 fn module_namespace_promise_rstest(
   code_generatable_context: &mut TemplateContext,
   dep_id: &DependencyId,
@@ -93,6 +189,8 @@ fn module_namespace_promise_rstest(
   message: &str,
   weak: bool,
   is_import_actual: bool,
+  is_import_mock: bool,
+  mock_request: &str,
 ) -> String {
   let TemplateContext {
     runtime_template,
@@ -105,10 +203,15 @@ fn module_namespace_promise_rstest(
     .module_identifier_by_dependency_id(dep_id)
     .is_none()
   {
-    return format!(
-      "{}(\"{request}\")",
-      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-    );
+    let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    return if is_import_mock {
+      format!(
+        "({require}.rstest_import_mock ? {require}.rstest_import_mock(undefined, {}, null) : {require}(\"{request}\"))",
+        json_stringify_str(mock_request)
+      )
+    } else {
+      format!("{require}(\"{request}\")")
+    };
   };
 
   let promise = runtime_template.block_promise(block, compilation, message);
@@ -127,6 +230,11 @@ fn module_namespace_promise_rstest(
       "{}.rstest_import_actual",
       runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
     )
+  } else if is_import_mock {
+    format!(
+      "{}.rstest_import_mock",
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+    )
   } else {
     runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
   };
@@ -139,7 +247,7 @@ fn module_namespace_promise_rstest(
   // `import`/`module` (= Namespace) for rstest's plain-string externals (a
   // `has_rest()` property-access external would resolve to Dynamic and miss it,
   // but rstest never emits those).
-  let use_dynamic_shim = !is_import_actual && {
+  let use_dynamic_shim = !is_import_actual && !is_import_mock && {
     compilation
       .get_module_graph()
       .get_module_by_dependency_id(dep_id)
@@ -159,7 +267,13 @@ fn module_namespace_promise_rstest(
   let mut appending;
   match exports_type {
     ExportsType::Namespace => {
-      if let Some(header) = header {
+      if is_import_mock {
+        let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+        appending = format!(
+          ".then({require}.rstest_import_mock ? {require}.rstest_import_mock.bind({require}.rstest_import_mock, {module_id_expr}, {}, null) : {require}.bind({require}, {module_id_expr}))",
+          json_stringify_str(mock_request)
+        );
+      } else if let Some(header) = header {
         appending = format!(
           ".then(function() {{ {header}\nreturn {}}})",
           runtime_template.module_raw(compilation, dep_id, request, weak)
@@ -197,7 +311,13 @@ fn module_namespace_promise_rstest(
           .module_identifier_by_dependency_id(dep_id)
           .expect("should have module"),
       ) {
-        if let Some(header) = header {
+        if is_import_mock {
+          let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+          appending = format!(
+            ".then({require}.rstest_import_mock ? {require}.rstest_import_mock.bind({require}.rstest_import_mock, {module_id_expr}, {}, null) : {require}.bind({require}, {module_id_expr}))",
+            json_stringify_str(mock_request)
+          );
+        } else if let Some(header) = header {
           appending = format!(
             ".then(function() {{\n {header}\nreturn {}\n}})",
             runtime_template.module_raw(compilation, dep_id, request, weak)
@@ -213,14 +333,22 @@ fn module_namespace_promise_rstest(
           .as_str(),
         );
       } else {
-        fake_type |= FakeNamespaceObjectMode::MODULE_ID;
-        if let Some(header) = header {
+        if is_import_mock {
+          let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+          appending = format!(
+            ".then({require}.rstest_import_mock ? {require}.rstest_import_mock.bind({require}.rstest_import_mock, {module_id_expr}, {}, null) : {require}.bind({require}, {module_id_expr})).then(function(m){{ return {}(m, {fake_type}) }})",
+            json_stringify_str(mock_request),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+          );
+        } else if let Some(header) = header {
+          fake_type |= FakeNamespaceObjectMode::MODULE_ID;
           let expr = format!(
             "{}({module_id_expr}, {fake_type}))",
             runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           );
           appending = format!(".then(function() {{\n {header} return {expr};\n}})");
         } else {
+          fake_type |= FakeNamespaceObjectMode::MODULE_ID;
           appending = format!(
             ".then({}.bind({}, {module_id_expr}, {fake_type}))",
             runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),

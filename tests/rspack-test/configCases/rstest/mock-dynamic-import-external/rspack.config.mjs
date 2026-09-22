@@ -23,6 +23,7 @@ export default [
     },
     externalsType: 'module-import',
     externals: {
+      '@rstest/core': '@rstest/core',
       'node:child_process': 'node:child_process',
       'node:child_process?weird': 'node:child_process',
       'node:os': 'node:os',
@@ -39,6 +40,9 @@ export default [
         hoistMockModule: true,
         importMetaPathName: true,
         manualMockRoot: path.resolve(import.meta.dirname, '__mocks__'),
+        globals: true,
+        updateImportMockAPI: true,
+        updateRequireMockAPI: true,
       }),
     ],
   },

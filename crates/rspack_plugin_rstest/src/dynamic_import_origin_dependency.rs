@@ -16,6 +16,8 @@ pub struct RstestDynamicImportOriginDependency {
   /// at the 3rd argument position the runtime expects.
   has_attributes: bool,
   origin_path: String,
+  import_mock: bool,
+  require_mock: bool,
 }
 
 impl RstestDynamicImportOriginDependency {
@@ -30,6 +32,24 @@ impl RstestDynamicImportOriginDependency {
       args_end,
       has_attributes,
       origin_path,
+      import_mock: false,
+      require_mock: false,
+    }
+  }
+
+  pub fn new_mock(
+    callee_range: DependencyRange,
+    args_end: u32,
+    origin_path: String,
+    is_import: bool,
+  ) -> Self {
+    Self {
+      callee_range,
+      args_end,
+      has_attributes: false,
+      origin_path,
+      import_mock: is_import,
+      require_mock: !is_import,
     }
   }
 }
@@ -71,7 +91,7 @@ impl DependencyTemplate for RstestDynamicImportOriginDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
+    code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
@@ -80,6 +100,32 @@ impl DependencyTemplate for RstestDynamicImportOriginDependencyTemplate {
         "RstestDynamicImportOriginDependencyTemplate can only be applied to \
          RstestDynamicImportOriginDependency",
       );
+
+    if dep.import_mock || dep.require_mock {
+      let require = code_generatable_context
+        .runtime_template
+        .render_runtime_globals(&rspack_core::RuntimeGlobals::REQUIRE);
+      source.replace(
+        dep.callee_range.start,
+        dep.callee_range.end,
+        format!(
+          "{require}.rstest_{}",
+          if dep.import_mock {
+            "import_mock"
+          } else {
+            "require_mock"
+          }
+        ),
+        None,
+      );
+      source.replace(
+        dep.args_end,
+        dep.args_end,
+        format!(", {}", json_stringify_str(&dep.origin_path)),
+        None,
+      );
+      return;
+    }
 
     source.replace(
       dep.callee_range.start,

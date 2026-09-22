@@ -3070,6 +3070,8 @@ export interface RawRstestPluginOptions {
    */
   injectImportMetaRstestOrigin?: boolean
 injectDynamicImportOrigin?: boolean | { functionName?: string }
+updateImportMockAPI?: boolean
+updateRequireMockAPI?: boolean
 injectRequireResolveOrigin?: boolean | { functionName?: string }
 }
 
