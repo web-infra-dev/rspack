@@ -101,7 +101,8 @@ pub struct NormalModule {
   /// Omitted when identical to the interned module identifier.
   request: Option<String>,
   /// Request intended by user (without loaders from config)
-  user_request: String,
+  /// Omitted when identical to the resolved resource.
+  user_request: Option<String>,
   /// Request without resolving
   raw_request: String,
   /// The resolved module type of a module
@@ -201,6 +202,7 @@ impl NormalModule {
       Self::create_id(&module_type, layer.as_ref(), &request, import_phase).as_ref(),
     );
     let request = (request != id.as_str()).then_some(request);
+    let user_request = (user_request != resource_data.resource()).then_some(user_request);
     let build_info = BuildInfo {
       import_phase,
       ..Default::default()
@@ -262,7 +264,10 @@ impl NormalModule {
   }
 
   pub fn user_request(&self) -> &str {
-    &self.user_request
+    self
+      .user_request
+      .as_deref()
+      .unwrap_or_else(|| self.resource_data.resource())
   }
 
   pub fn raw_request(&self) -> &str {
@@ -384,7 +389,7 @@ impl Module for NormalModule {
   }
 
   fn readable_identifier(&self, context: &Context) -> Cow<'_, str> {
-    Cow::Owned(context.shorten(&self.user_request))
+    Cow::Owned(context.shorten(self.user_request()))
   }
 
   fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
@@ -606,7 +611,10 @@ impl Module for NormalModule {
         module_generator_options: self.parser_and_generator_options.generator_options(),
         module_type: &self.module_type,
         module_layer: self.layer.as_ref(),
-        module_user_request: &self.user_request,
+        module_user_request: self
+          .user_request
+          .as_deref()
+          .unwrap_or_else(|| self.resource_data.resource()),
         module_match_resource: self.match_resource.as_ref(),
         module_source_map_kind: self.source_map_kind,
         loaders: &self.loaders,

@@ -1,9 +1,10 @@
 import path from 'node:path';
 
 class Plugin {
-  constructor(type, layer) {
+  constructor(type, layer, inline) {
     this.type = type;
     this.layer = layer;
+    this.inline = inline;
   }
 
   /**
@@ -25,10 +26,9 @@ class Plugin {
       expect(module.constructor.name).toBe('NormalModule');
 
       expect(module.resource).toContain('index.js');
-      expect(module.userRequest).toBe(
-        `${path.join(import.meta.dirname, 'passthrough-loader.mjs')}!${path.join(import.meta.dirname, 'index.js')}`,
-      );
-      expect(module.request).toBe(module.userRequest);
+      const request = `${path.join(import.meta.dirname, 'passthrough-loader.mjs')}!${path.join(import.meta.dirname, 'index.js')}`;
+      expect(module.userRequest).toBe(this.inline ? request : module.resource);
+      expect(module.request).toBe(request);
       expect(module.identifier()).toBe(
         this.layer
           ? `${this.type}|${module.request}|${this.layer}`
@@ -76,11 +76,19 @@ export default [
   ['javascript/auto', undefined],
   ['javascript/esm', undefined],
   ['javascript/auto', 'test-layer'],
-].map(([type, layer]) => ({
+  ['javascript/auto', undefined, false],
+].map(([type, layer, inline = true]) => ({
   devtool: 'source-map',
-  entry: './passthrough-loader.mjs!./index.js',
+  entry: inline ? './passthrough-loader.mjs!./index.js' : './index.js',
   module: {
-    rules: [{ test: /index\.js$/, type, layer }],
+    rules: [
+      {
+        test: /index\.js$/,
+        type,
+        layer,
+        use: inline ? [] : ['./passthrough-loader.mjs'],
+      },
+    ],
   },
-  plugins: [new Plugin(type, layer)],
+  plugins: [new Plugin(type, layer, inline)],
 }));
