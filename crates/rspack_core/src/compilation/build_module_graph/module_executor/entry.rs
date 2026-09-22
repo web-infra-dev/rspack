@@ -56,7 +56,6 @@ impl Task<ExecutorTaskContext> for EntryTask {
         res.extend(overwrite_tasks(vec![Box::new(FactorizeTask {
           build_context: origin_context.build_context.clone(),
           module_factory: origin_context
-            .build_context
             .dependency_factories
             .get(dep.dependency_type())
             .unwrap_or_else(|| {

@@ -182,8 +182,5 @@ impl InnerGraphState {
 pub(crate) enum InnerGraphUsageOperation {
   PureExpression(usize),
   ESMImportSpecifier(usize),
-  URLDependency {
-    dependency_index: usize,
-    block_index: Option<usize>,
-  },
+  URLDependency(usize),
 }
