@@ -13,7 +13,7 @@ impl ExportInfoData {
     self.set_exports_info(None);
     self.set_exports_info_owned(false);
     self.set_target_is_set(false);
-    self.clear_target();
+    self.reset_target();
     self.set_terminal_binding(false);
   }
 
