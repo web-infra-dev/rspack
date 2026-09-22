@@ -1,10 +1,9 @@
+import { defineConfig } from '@rspack/cli';
+import type { Compiler } from '@rspack/core';
 import path from 'node:path';
 
 class Plugin {
-  /**
-   * @param {import("@rspack/core").Compiler} compiler
-   */
-  apply(compiler) {
+  apply(compiler: Compiler) {
     const normalResolver = compiler.resolverFactory.get('normal');
     const newResolver = normalResolver.withOptions({
       extensions: ['.css'],
@@ -18,8 +17,7 @@ class Plugin {
   }
 }
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   entry: './index.js',
   plugins: [new Plugin()],
-};
+});

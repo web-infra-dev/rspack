@@ -1,14 +1,13 @@
+import { defineConfig } from '@rspack/cli';
+import type { Compiler } from '@rspack/core';
 import path from 'node:path';
 
 class Plugin {
-  /**
-   * @param {import("@rspack/core").Compiler} compiler
-   */
-  apply(compiler) {
+  apply(compiler: Compiler) {
     compiler.hooks.compilation.tap('PLUGIN', (compilation) => {
       compilation.hooks.finishModules.tapAsync(
         'PLUGIN',
-        (modules, callback) => {
+        (_modules, callback) => {
           const normalResolver = compiler.resolverFactory.get('normal');
           // With fragment
           normalResolver.resolve(
@@ -30,11 +29,11 @@ class Plugin {
                 path.join(import.meta.dirname, '/index.js#fragment'),
               );
               // webpack does not have resource field
-              expect(req.resource).toBe(undefined);
-              expect(req.path).toBe(
+              expect(req).not.toHaveProperty('resource');
+              expect(req?.path).toBe(
                 path.join(import.meta.dirname, '/index.js'),
               );
-              expect(req.fragment).toBe('#fragment');
+              expect(req?.fragment).toBe('#fragment');
               callback();
             },
           );
@@ -44,8 +43,7 @@ class Plugin {
   }
 }
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   entry: './index.js',
   plugins: [new Plugin()],
-};
+});
