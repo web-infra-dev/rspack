@@ -1,0 +1,8 @@
+.self {
+  composes: self from "./self.module.css";
+  color: red;
+}
+
+:global(.self-global) {
+  color: blue;
+}

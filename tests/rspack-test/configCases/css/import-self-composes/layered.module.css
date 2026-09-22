@@ -1,0 +1,8 @@
+.layered {
+  composes: layered from "./layered.module.css";
+  color: orange;
+}
+
+:global(.layered-global) {
+  color: pink;
+}

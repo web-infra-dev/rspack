@@ -1,0 +1,8 @@
+.conditional {
+  composes: conditional from "./conditional.module.css";
+  color: green;
+}
+
+:global(.conditional-global) {
+  color: purple;
+}
