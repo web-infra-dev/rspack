@@ -98,7 +98,8 @@ pub struct NormalModule {
   /// Context of this module
   context: Box<Context>,
   /// Request with loaders from config
-  request: String,
+  /// Omitted when identical to the interned module identifier.
+  request: Option<String>,
   /// Request intended by user (without loaders from config)
   user_request: String,
   /// Request without resolving
@@ -196,13 +197,16 @@ impl NormalModule {
     import_phase: ImportPhase,
   ) -> Self {
     let module_type = module_type.into();
-    let id = Self::create_id(&module_type, layer.as_ref(), &request, import_phase);
+    let id = ModuleIdentifier::from(
+      Self::create_id(&module_type, layer.as_ref(), &request, import_phase).as_ref(),
+    );
+    let request = (request != id.as_str()).then_some(request);
     let build_info = BuildInfo {
       import_phase,
       ..Default::default()
     };
     Self {
-      id: ModuleIdentifier::from(id.as_ref()),
+      id,
       context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
       request,
       user_request,
@@ -254,7 +258,7 @@ impl NormalModule {
   }
 
   pub fn request(&self) -> &str {
-    &self.request
+    self.request.as_deref().unwrap_or_else(|| self.id.as_str())
   }
 
   pub fn user_request(&self) -> &str {
@@ -472,7 +476,7 @@ impl Module for NormalModule {
     self.parsed = true;
 
     let no_parse = if let Some(no_parse) = build_context.compiler_options.module.no_parse.as_ref() {
-      no_parse.try_match(self.request.as_str()).await?
+      no_parse.try_match(self.request()).await?
     } else {
       false
     };
@@ -687,7 +691,7 @@ impl Module for NormalModule {
     let Some(source) = &self.source else {
       return Err(error!(
         "Failed to generate code because ast or source is not set for module {}",
-        self.request
+        self.request()
       ));
     };
 
