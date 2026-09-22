@@ -4,19 +4,22 @@ use concat_string::concat_string;
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, CodeGenerationPublicPathAutoReplace, ConnectionState, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
-  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, JavascriptParserUrl, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, URLStaticMode, UsedByExports,
+  AsContextDependency, ChunkGroup, ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation,
+  ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
+  DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, GroupOptions, JavascriptParserUrl,
+  Module, ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleType, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  TemplateContext, TemplateReplaceSource, URLStaticMode, UsedByExports,
 };
 
 use crate::{Atom, connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
 #[cacheable]
-#[derive(Debug)]
+// Cloned for factory-only type probes and to move a nested parser dependency into a URL entry.
+#[derive(Debug, Clone)]
 pub struct URLDependency {
+  pub(crate) loc: Option<DependencyLocation>,
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   request: Atom,
@@ -34,6 +37,7 @@ impl URLDependency {
     mode: Option<JavascriptParserUrl>,
   ) -> Self {
     Self {
+      loc: None,
       id: DependencyId::new(),
       request,
       range,
@@ -67,6 +71,10 @@ impl URLDependency {
 impl Dependency for URLDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn loc(&self) -> Option<DependencyLocation> {
+    self.loc.clone()
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -148,14 +156,13 @@ impl DependencyTemplate for URLDependencyTemplate {
 
     match dep.mode {
       Some(JavascriptParserUrl::Relative) => {
+        let (expression, comment) = get_url_expression(dep, compilation, runtime_template);
         source.replace(
           dep.range.start,
           dep.range.end,
           format!(
-            "/* asset import */ new {}({}({}))",
+            "{comment} new {}({expression})",
             runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
-            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
           ),
           None,
         );
@@ -179,13 +186,12 @@ impl DependencyTemplate for URLDependencyTemplate {
         );
       }
       _ => {
+        let (expression, comment) = get_url_expression(dep, compilation, runtime_template);
         source.replace(
           dep.range_url.start,
           dep.range_url.end,
           format!(
-            "/* asset import */{}({}), {}",
-            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
+            "{comment}{expression}, {}",
             runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
           ),
           None,
@@ -211,6 +217,18 @@ impl DependencyConditionFn for URLDependencyCondition {
     let dependency = dependency
       .downcast_ref::<URLDependency>()
       .expect("should be URLDependency");
+    let runtime = if module_graph
+      .get_parent_block(&connection.dependency_id)
+      .is_some_and(|block| {
+        matches!(
+          module_graph.block_by_id_expect(block).get_group_options(),
+          Some(GroupOptions::Entrypoint(_))
+        )
+      }) {
+      None
+    } else {
+      runtime
+    };
     ConnectionState::Active(connection_active_used_by_exports(
       connection,
       runtime,
@@ -218,5 +236,98 @@ impl DependencyConditionFn for URLDependencyCondition {
       exports_info_artifact,
       dependency.used_by_exports.as_ref(),
     ))
+  }
+}
+
+pub(crate) fn is_url_value_module(module: &dyn Module) -> bool {
+  module.module_type().is_asset_like()
+    || matches!(
+      module.module_type(),
+      ModuleType::AssetSource | ModuleType::AssetBytes
+    )
+    || module.as_external_module().is_some()
+    || module.identifier().as_str().starts_with("ignored|")
+}
+
+fn get_dependency_entrypoint<'a>(
+  compilation: &'a Compilation,
+  dependency_id: &DependencyId,
+) -> Option<&'a ChunkGroup> {
+  let module_graph = compilation.get_module_graph();
+  module_graph
+    .get_parent_block(dependency_id)
+    .filter(|block| {
+      matches!(
+        module_graph.block_by_id_expect(block).get_group_options(),
+        Some(GroupOptions::Entrypoint(_))
+      )
+    })
+    .and_then(|block| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_block_chunk_group(
+          block,
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        )
+    })
+}
+
+pub(crate) fn get_dependency_entry_chunk(
+  compilation: &Compilation,
+  dependency_id: &DependencyId,
+) -> Option<ChunkUkey> {
+  get_dependency_entrypoint(compilation, dependency_id).map(ChunkGroup::get_entrypoint_chunk)
+}
+
+/// URL entries are loaded through a single URL, including when their modules are split out.
+pub fn is_url_entry_chunk(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
+  let module_graph = compilation.get_module_graph();
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
+    .keys()
+    .any(|module| {
+      module_graph
+        .get_incoming_connections(module)
+        .any(|connection| {
+          module_graph
+            .dependency_by_id(&connection.dependency_id)
+            .downcast_ref::<URLDependency>()
+            .is_some()
+            && get_dependency_entry_chunk(compilation, &connection.dependency_id)
+              == Some(*chunk_ukey)
+        })
+    })
+}
+
+fn get_url_expression(
+  dep: &URLDependency,
+  compilation: &Compilation,
+  runtime_template: &mut ModuleCodeTemplate,
+) -> (String, &'static str) {
+  if let Some(chunk_ukey) = get_dependency_entry_chunk(compilation, &dep.id) {
+    let chunk_id = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_ukey)
+      .id()
+      .map(rspack_util::json_stringify)
+      .expect("URL entry should have a chunk id");
+    let public_path = runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
+    let chunk_filename =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
+    (
+      concat_string!(public_path, " + ", chunk_filename, "(", chunk_id, ")"),
+      "/* entry url */",
+    )
+  } else {
+    let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let module_id = runtime_template.module_id(compilation, &dep.id, &dep.request, false);
+    (
+      concat_string!(require, "(", module_id, ")"),
+      "/* asset import */",
+    )
   }
 }

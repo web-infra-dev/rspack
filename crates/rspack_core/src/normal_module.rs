@@ -604,6 +604,8 @@ impl Module for NormalModule {
     ) = self
       .parser_and_generator
       .parse(ParseContext {
+        build_context: &build_context,
+        module_resolve_options: self.resolve_options.clone(),
         source: source.clone(),
         module_context: &self.context,
         module_identifier: self.id,

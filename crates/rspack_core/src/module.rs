@@ -32,17 +32,18 @@ use crate::{
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
   CompilationAssets, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependenciesBlockData,
-  DependencyCodeGenerationRef, DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact,
-  ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
-  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
+  DependencyCodeGenerationRef, DependencyId, DependencyRef, DependencyType, ExportProvided,
+  ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase,
+  ModuleCodeTemplate, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
+  ModuleType, NormalModule, OptimizationBailoutItem, RawModule, Resolve, ResolverFactory,
+  RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
 
 #[derive(Debug)]
 pub struct BuildContext {
+  pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,

@@ -236,6 +236,8 @@ export default {
 
 启用 `new URL()` 语法解析。
 
+通过 `new URL()` 引用打包后的 JavaScript 模块是一项实验性功能。使用时需要将 [`module.rules[].dependency`](/config/module-rules#rulesdependency) 配置为 `'url'`，并设置对应的模块 `type`。
+
 - `true`：生成包含根 URL 的绝对 URL（默认行为）。
 - `'relative'`：生成不包含根 URL 的相对 URL。
 - `'new-url-relative'`：相对于公共路径的相对 URL。

@@ -228,6 +228,15 @@ impl AsyncDependenciesBlock {
           .expect("parser dependencies must not be published")
       })
   }
+
+  /// Mutate nested blocks during parsing, before they are published into the module graph.
+  pub fn blocks_mut(&mut self) -> impl Iterator<Item = &mut AsyncDependenciesBlock> {
+    self
+      .dependencies_block
+      .blocks
+      .iter_mut()
+      .map(|block| Arc::get_mut(block).expect("parser blocks must not be published"))
+  }
 }
 
 /// A block and its dependency objects, shared by its owning module and graph indexes.

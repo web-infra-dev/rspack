@@ -1,4 +1,4 @@
-use std::{any::Any, borrow::Cow, ops::Deref};
+use std::{any::Any, borrow::Cow, ops::Deref, sync::Arc};
 
 use derive_more::with_trait::Debug;
 use rspack_cacheable::{
@@ -14,15 +14,19 @@ use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, ChunkGraph,
+  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
   CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
   DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange,
   EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
+  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, Resolve, RuntimeSpec,
+  SourceType,
 };
 
 #[derive(Debug)]
 pub struct ParseContext<'a> {
+  #[debug(skip)]
+  pub build_context: &'a Arc<BuildContext>,
+  pub module_resolve_options: Option<Arc<Resolve>>,
   pub source: BoxSource,
   pub module_context: &'a Context,
   pub module_identifier: ModuleIdentifier,
