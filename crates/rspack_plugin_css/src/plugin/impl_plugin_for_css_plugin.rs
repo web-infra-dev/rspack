@@ -7,11 +7,11 @@ use rspack_collections::IdentifierMap;
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey,
   Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
-  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleRule,
-  ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
-  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssExportType,
+  CssModuleRenderCondition, DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData,
+  ModuleGraph, ModuleRule, ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
+  NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType,
   css_module_render_conditions_identifier, get_css_chunk_filename_template, is_source_equal,
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
@@ -26,9 +26,8 @@ use smol_str::SmolStr;
 use crate::{
   CssPlugin,
   dependency::{
-    CssIcssSymbolDependencyTemplate, CssImportDependency, CssImportDependencyTemplate,
-    CssLocalIdentDependencyTemplate, CssSelfReferenceLocalIdentDependencyTemplate,
-    CssUrlDependencyTemplate,
+    CssIcssSymbolDependencyTemplate, CssImportDependencyTemplate, CssLocalIdentDependencyTemplate,
+    CssSelfReferenceLocalIdentDependencyTemplate, CssUrlDependencyTemplate,
   },
   parser_and_generator::{
     CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator, CssSourceBuilder,
@@ -36,9 +35,9 @@ use crate::{
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
   runtime::CssLoadingRuntimeModule,
   utils::{
-    AUTO_PUBLIC_PATH_PLACEHOLDER, append_css_export_type_key, css_attribute_export_type,
-    css_dependency_export_type, css_dependency_meta, css_module_has_charset,
-    css_module_is_import_dependency, css_module_resource, css_render_conditions_from_module,
+    AUTO_PUBLIC_PATH_PLACEHOLDER, append_css_export_type_key, css_dependency_meta,
+    css_module_has_charset, css_module_is_import_dependency, css_module_resource,
+    css_render_conditions_from_module,
   },
 };
 
@@ -305,19 +304,19 @@ async fn normal_module_factory_after_resolve(
   data: &mut ModuleFactoryCreateData,
   create_data: &mut NormalModuleCreateData,
 ) -> Result<Option<bool>> {
-  let css_attribute_export_type = data
-    .dependencies
-    .iter()
-    .find_map(|dependency| css_attribute_export_type(dependency.get_attributes()));
+  let Some(dependency) = data.dependencies.first() else {
+    return Ok(None);
+  };
+  // Use the same dependency metadata as the module hook when constructing
+  // module identity. An unset export type has link semantics.
+  let css_dependency_meta = css_dependency_meta(dependency.as_ref());
+  let effective_export_type = css_dependency_meta
+    .export_type
+    .unwrap_or(CssExportType::Link);
 
-  let css_import_dep = data
-    .dependencies
-    .first()
-    .and_then(|dependency| dependency.downcast_ref::<CssImportDependency>());
-
-  if let Some(css_import_dep) = css_import_dep {
+  if css_dependency_meta.is_css_import_dependency {
     let conditions_key =
-      css_module_render_conditions_identifier(css_import_dep.render_conditions())
+      css_module_render_conditions_identifier(css_dependency_meta.render_conditions.iter())
         .unwrap_or_default();
     if !conditions_key.is_empty() {
       create_data.request.push_str("|css-render-conditions|");
@@ -325,17 +324,8 @@ async fn normal_module_factory_after_resolve(
     }
   }
 
-  let css_dependency_export_type = data
-    .dependencies
-    .first()
-    .and_then(|dependency| css_dependency_export_type(dependency.as_ref()));
-
-  if data
-    .dependencies
-    .first()
-    .is_some_and(|dependency| *dependency.dependency_type() == DependencyType::CssCompose)
+  if *dependency.dependency_type() == DependencyType::CssCompose
     && let Some(issuer) = data.issuer_identifier
-    && let Some(export_type) = css_dependency_export_type
   {
     // Normal CSS module identifiers contain the type, resolved request and
     // optional layer. Match the full request (including loaders and query) so
@@ -351,7 +341,10 @@ async fn normal_module_factory_after_resolve(
       && module_type == create_data.module_options.cache_key().module_type.as_str()
       && let Some(suffix) = issuer_request.strip_prefix(create_data.request.as_str())
       && (suffix.starts_with("|css-render-conditions|") || suffix.starts_with("|css-export-type|"))
-      && suffix.ends_with(&format!("|css-export-type|{export_type}"))
+      && suffix
+        .rsplit_once("|css-export-type|")
+        .map_or("link", |(_, export_type)| export_type)
+        == effective_export_type.to_string()
     {
       create_data.request.push_str(suffix);
       return Ok(None);
@@ -362,11 +355,12 @@ async fn normal_module_factory_after_resolve(
     .module_options
     .parser_options()
     .and_then(|options| options.get_css_module())
-    .and_then(|options| options.export_type);
-  if let Some(export_type) = css_dependency_export_type.or(css_attribute_export_type)
+    .and_then(|options| options.export_type)
+    .unwrap_or(CssExportType::Link);
+  if let Some(export_type) = css_dependency_meta.export_type
     // CSS @imports also have a distinct rendering role. Composition and JS
     // imports can share an instance when their effective export types agree.
-    && (css_import_dep.is_some() || Some(export_type) != configured_export_type)
+    && (css_dependency_meta.is_css_import_dependency || export_type != configured_export_type)
   {
     append_css_export_type_key(create_data, export_type);
   }

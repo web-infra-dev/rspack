@@ -1,6 +1,6 @@
 import { DefinePlugin } from '@rspack/core';
 
-export default ['link', 'text', 'css-style-sheet', 'style'].flatMap(
+export default [undefined, 'link', 'text', 'css-style-sheet', 'style'].flatMap(
   (exportType) =>
     [false, true].flatMap((concatenateModules) =>
       [undefined, 'styles'].map((layer) => ({
@@ -11,11 +11,13 @@ export default ['link', 'text', 'css-style-sheet', 'style'].flatMap(
         optimization: { concatenateModules },
         module: {
           rules: [{ test: /\.css$/, type: 'css/module', layer }],
-          parser: { css: { exportType } },
+          ...(exportType === undefined
+            ? {}
+            : { parser: { css: { exportType } } }),
         },
         plugins: [
           new DefinePlugin({
-            'process.env.EXPORT_TYPE': JSON.stringify(exportType),
+            'process.env.EXPORT_TYPE': JSON.stringify(exportType ?? 'link'),
           }),
         ],
       })),
