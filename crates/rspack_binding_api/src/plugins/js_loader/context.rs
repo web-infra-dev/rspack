@@ -84,10 +84,10 @@ pub enum JsLoaderState {
 impl From<LoaderState> for JsLoaderState {
   fn from(value: LoaderState) -> Self {
     match value {
-      LoaderState::ProcessResource | LoaderState::Finished => {
+      LoaderState::Init | LoaderState::ProcessResource | LoaderState::Finished => {
         panic!("Unexpected loader runner state: {value:?}")
       }
-      LoaderState::Init | LoaderState::Pitching => JsLoaderState::Pitching,
+      LoaderState::Pitching => JsLoaderState::Pitching,
       LoaderState::Normal => JsLoaderState::Normal,
     }
   }
@@ -171,8 +171,6 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
 
 #[napi(object)]
 pub struct JsLoaderContext {
-  #[napi(ts_type = "object | undefined")]
-  pub loader_context_state: Option<ThreadsafeOneShotRef>,
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
   pub module: ModuleObject,
@@ -208,6 +206,11 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   fn try_from(
     cx: &mut rspack_core::LoaderContext<RunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
+    let content = match cx.take_content() {
+      Some(Content::String(content)) => Either3::A(content),
+      Some(Content::Buffer(content)) => Either3::B(content.into()),
+      None => Either3::C(Null),
+    };
     let additional_data = cx
       .take_additional_data()
       .and_then(|mut data| data.remove::<ThreadsafeOneShotRef>());
@@ -216,21 +219,13 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {
-      loader_context_state: cx
-        .context
-        .loader_context_data
-        .remove::<ThreadsafeOneShotRef>(),
       resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
         NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
         cx.context.compiler_id,
       ),
       hot: cx.hot,
-      content: match cx.content() {
-        Some(Content::String(content)) => Either3::A(content.clone()),
-        Some(Content::Buffer(content)) => Either3::B(content.clone().into()),
-        None => Either3::C(Null),
-      },
+      content,
       // Since js side only set parse meta, and can't read it, so we can use Default here to only bring the
       // set values from js side to rust side.
       parse_meta: Default::default(),

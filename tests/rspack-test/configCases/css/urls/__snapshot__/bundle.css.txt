@@ -25,11 +25,11 @@ div {
 }
 
 div {
-	a18: url("#highlight");
+	a18: url(#highlight);
 }
 
 div {
-	a19: url("#line-marker");
+	a19: url('#line-marker');
 }
 
 div {

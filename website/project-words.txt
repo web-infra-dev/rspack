@@ -38,6 +38,7 @@ cssextractrspackplugin
 dail
 darwin
 deconflict
+dedup
 demangle
 demangled
 devongovett
@@ -70,6 +71,7 @@ gengkun
 Hana
 HerringtonDarkholme
 htmlrspackplugin
+hyfdev
 idents
 Idents
 iife

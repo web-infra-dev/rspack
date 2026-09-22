@@ -1,11 +1,11 @@
-// TODO: Rspack is not support inline loader like `require("./loader-source-root!")`
+// TODO: Rspack is not support inline loader like `require("./loader-source-root.mjs!")`
 it("should run", () => {
-	require("./loader-source-root!");
-	// require("./loader-source-root-slash!");
-	// require("./loader-source-root-source-slash!");
-	// require("./loader-source-root-2-slash!");
-	// require("./loader-no-source-root!");
-	// require("./loader-pre-relative!");
+	require("./loader-source-root.mjs!");
+	// require("./loader-source-root-slash.mjs!");
+	// require("./loader-source-root-source-slash.mjs!");
+	// require("./loader-source-root-2-slash.mjs!");
+	// require("./loader-no-source-root.mjs!");
+	// require("./loader-pre-relative.mjs!");
 });
 
 it("should generate the correct SourceMap", function () {

@@ -2,12 +2,13 @@ use std::{cmp::Ordering, collections::hash_map, fmt::Debug, ops::Deref};
 
 use rspack_cacheable::{
   cacheable,
-  with::{AsRefStr, AsVec},
+  with::{AsPreset, AsRefStr, AsVec},
 };
 use rspack_hash::RspackHasher;
 #[cfg(allocative)]
 use rspack_util::allocative;
 use rustc_hash::FxHashMap;
+use smol_str::{SmolStr, SmolStrBuilder};
 use ustr::{Ustr, UstrSet};
 
 use crate::{EntryOptions, EntryRuntime};
@@ -19,7 +20,9 @@ pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
   #[rspack_hash(skip)]
   inner: UstrSet,
-  key: String,
+  #[cacheable(with=AsPreset)]
+  #[cfg_attr(allocative, allocative(skip))]
+  key: RuntimeKey,
 }
 
 impl std::fmt::Display for RuntimeSpec {
@@ -83,7 +86,7 @@ impl RuntimeSpec {
   pub fn new(inner: UstrSet) -> Self {
     let mut this = Self {
       inner,
-      key: String::new(),
+      key: RuntimeKey::default(),
     };
     this.update_key();
     this
@@ -130,11 +133,10 @@ impl RuntimeSpec {
   fn update_key(&mut self) {
     match self.inner.len() {
       0 => {
-        self.key.clear();
+        self.key = RuntimeKey::default();
       }
       1 => {
-        self.key.clear();
-        self.key.push_str(
+        self.key = SmolStr::new(
           self
             .inner
             .iter()
@@ -147,18 +149,16 @@ impl RuntimeSpec {
         let mut ordered = self.inner.iter().map(|s| s.as_str()).collect::<Vec<_>>();
         ordered.sort_unstable();
 
-        let capacity = ordered.iter().map(|s| s.len()).sum::<usize>() + ordered.len() - 1;
-        self.key.clear();
-        self.key.reserve(capacity);
-
+        let mut key = SmolStrBuilder::new();
         let mut iter = ordered.into_iter();
         if let Some(first) = iter.next() {
-          self.key.push_str(first);
+          key.push_str(first);
         }
         for runtime in iter {
-          self.key.push('_');
-          self.key.push_str(runtime);
+          key.push('_');
+          key.push_str(runtime);
         }
+        self.key = key.finish();
       }
     }
   }
@@ -168,7 +168,7 @@ impl RuntimeSpec {
   }
 }
 
-pub type RuntimeKey = String;
+pub type RuntimeKey = SmolStr;
 
 pub type RuntimeKeyMap<T> = FxHashMap<RuntimeKey, T>;
 

@@ -9,7 +9,7 @@ use std::path::Path;
 
 use asset::{
   collect_assets_for_module, collect_assets_from_chunk, collect_usage_files_for_module,
-  empty_assets_group, module_source_path, normalize_assets_group,
+  empty_assets_group, merge_assets_group, module_source_path, normalize_assets_group,
 };
 use data::{
   BasicStatsMetaData, ManifestExpose, ManifestRemote, ManifestRoot, ManifestShared,
@@ -573,48 +573,56 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     for (expose_file_key, expose) in exposes_map.iter_mut() {
-      let mut assets = None;
-      if let Some(chunk_key) = expose_chunk_keys.get(expose_file_key) {
-        assets = Some(collect_assets_from_chunk(
-          compilation,
-          chunk_key,
-          &entry_files,
-        ));
-      }
-      if assets.is_none()
-        && let Some(chunk_key) = compilation
+      let chunk_keys = expose_chunk_keys
+        .get(expose_file_key)
+        .or_else(|| {
+          compilation
+            .build_chunk_graph_artifact
+            .named_chunks
+            .get(expose_file_key)
+        })
+        .map(|chunk_key| vec![*chunk_key])
+        .or_else(|| {
+          module_ids_by_name
+            .get(expose_file_key)
+            .and_then(|module_id| {
+              let chunks = chunk_graph.get_module_chunks(*module_id);
+              (!chunks.is_empty()).then(|| chunks.iter().copied().collect())
+            })
+        })
+        .or_else(|| {
+          expose_fallback_chunk_keys
+            .get(expose_file_key)
+            .map(|chunk_key| vec![*chunk_key])
+        })
+        .unwrap_or_default();
+
+      let mut assets = empty_assets_group();
+      for chunk_key in chunk_keys {
+        let chunk = compilation
           .build_chunk_graph_artifact
-          .named_chunks
-          .get(expose_file_key)
-      {
-        assets = Some(collect_assets_from_chunk(
-          compilation,
-          chunk_key,
-          &entry_files,
-        ));
+          .chunk_by_ukey
+          .expect_get(&chunk_key);
+        // A provided module can also be imported locally into an expose chunk.
+        // Protect the same chunks used to collect assets, including unnamed ones.
+        for file in chunk.files() {
+          shared_asset_files.remove(file);
+        }
+        merge_assets_group(
+          &mut assets,
+          collect_assets_from_chunk(compilation, &chunk_key, &entry_files),
+        );
       }
-      if assets.is_none()
-        && let Some(module_id) = module_ids_by_name.get(expose_file_key)
-      {
-        assets = collect_assets_for_module(compilation, module_id, &entry_files);
-      }
-      if assets.is_none()
-        && let Some(chunk_key) = expose_fallback_chunk_keys.get(expose_file_key)
-      {
-        assets = Some(collect_assets_from_chunk(
-          compilation,
-          chunk_key,
-          &entry_files,
-        ));
-      }
-      let mut assets = assets.unwrap_or_else(empty_assets_group);
       if let Some(path) = expose_module_paths.get(expose_file_key) {
         expose.file = path.clone();
       }
-      // Remove main entry files from assets
-      filter_assets(&mut assets, &entry_files, &shared_asset_files, true);
-      normalize_assets_group(&mut assets);
       expose.assets = assets;
+    }
+
+    // Finish protecting every expose before filtering assets shared between them.
+    for expose in exposes_map.values_mut() {
+      filter_assets(&mut expose.assets, &entry_files, &shared_asset_files, true);
+      normalize_assets_group(&mut expose.assets);
     }
 
     if let Some(module_id) = container_entry_module

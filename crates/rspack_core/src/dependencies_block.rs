@@ -312,10 +312,6 @@ impl DependenciesBlock for AsyncDependenciesBlock {
   fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
     &mut self.dependencies_block
   }
-
-  fn add_block(&mut self, _block: AsyncDependenciesBlockRef) {
-    unimplemented!("Nested block are not implemented");
-  }
 }
 
 #[derive(Debug)]

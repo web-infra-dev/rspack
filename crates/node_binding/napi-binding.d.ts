@@ -973,7 +973,6 @@ export interface JsLoaderCacheEntry {
 }
 
 export interface JsLoaderContext {
-  loaderContextState?: object | undefined
   resource: string
   _module: Module
   hot: Readonly<boolean>
@@ -3164,6 +3163,7 @@ export interface RawSplitChunkSizes {
 }
 
 export interface RawSplitChunksOptions {
+  dedupDepth?: number
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
   name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)
   nameBatch?: ((batch: JsChunkOptionNameBatch) => (string | undefined)[])
@@ -3335,8 +3335,7 @@ export declare enum RegisterJsTapKind {
   RsdoctorPluginChunkGraph = 50,
   RsdoctorPluginModuleIds = 51,
   RsdoctorPluginModuleSources = 52,
-  RsdoctorPluginAssets = 53,
-  NormalModuleLoader = 54
+  RsdoctorPluginAssets = 53
 }
 
 export interface RegisterJsTaps {
@@ -3368,7 +3367,6 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
-  registerNormalModuleLoaderTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLoaderContext) => JsLoaderContext); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
@@ -3455,6 +3453,7 @@ export interface ThreadsafeNodeFS {
   readFile: (name: string) => Promise<Buffer | string | void>
   stat: (name: string) => Promise<NodeFsStats | void>
   lstat: (name: string) => Promise<NodeFsStats | void>
+  readlink: (name: string) => Promise<string | void>
   realpath: (name: string) => Promise<string | void>
   open: (name: string, flags: string) => Promise<number | void>
   rename: (from: string, to: string) => Promise<void>

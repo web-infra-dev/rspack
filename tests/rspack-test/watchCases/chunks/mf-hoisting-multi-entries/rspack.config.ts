@@ -1,0 +1,59 @@
+import { defineConfig } from '@rspack/cli';
+import { rspack } from '@rspack/core';
+import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
+
+export default defineConfig({
+  entry: {
+    a: './a.js',
+    b: './b.js',
+  },
+  output: {
+    filename: '[name].js',
+  },
+  target: 'web',
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        defaultVendors: {
+          name: 'vendors', // add name for defaultVendors, need a specific name to run it at test.config.mjs findBundle
+          reuseExistingChunk: true,
+          test: /[\\/]node_modules[\\/]/i,
+          priority: -10,
+        },
+      },
+    },
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              detectSyntax: 'auto',
+              jsc: {
+                transform: {
+                  react: {
+                    development: true,
+                    refresh: true,
+                    runtime: 'automatic',
+                  },
+                },
+                target: 'es2022',
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+  plugins: [
+    new rspack.container.ModuleFederationPlugin({
+      name: 'test',
+      shareStrategy: 'loaded-first',
+    }),
+    new ReactRefreshRspackPlugin(), // Need this to trigger hoisting (hoist_container_references_plugin.rs)
+  ],
+});

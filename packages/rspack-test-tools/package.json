@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "2.2.4",
+  "version": "2.2.6",
   "description": "Test tools for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -31,6 +31,9 @@
       "types": "./dist/helper/setup-wasm.d.ts",
       "import": "./dist/helper/setup-wasm.js",
       "require": "./dist/helper/setup-wasm.cjs"
+    },
+    "./rstest": {
+      "types": "./rstest.d.ts"
     },
     "./package.json": "./package.json",
     "./helper/*": {
