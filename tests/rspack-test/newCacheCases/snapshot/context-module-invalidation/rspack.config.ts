@@ -1,10 +1,10 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
 import { ContextModule } from '@rspack/core';
 
 let compilerIndex = 0;
-let contextIdentifiers;
+let contextIdentifiers: string[];
 
-/** @type {import('@rspack/core').Configuration} */
-export default {
+export default defineConfig({
   experiments: {
     newCache: {
       codeGeneration: false,
@@ -22,10 +22,10 @@ export default {
     },
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
-        const built = [];
-        const restored = [];
+        const built: string[] = [];
+        const restored: string[] = [];
         compiler.hooks.compilation.tap(
           'ContextModuleInvalidationTest',
           (compilation) => {
@@ -64,6 +64,6 @@ export default {
           compilerIndex++;
         });
       },
-    },
+    }),
   ],
-};
+});
