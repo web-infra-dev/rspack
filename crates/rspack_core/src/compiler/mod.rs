@@ -281,8 +281,14 @@ impl Compiler {
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
     let plugin_driver_clone = self.plugin_driver.clone();
+    let resolver_factory_clone = self.resolver_factory.clone();
+    let loader_resolver_factory_clone = self.loader_resolver_factory.clone();
     let compilation_id = self.compilation.id();
-    let _guard = scopeguard::guard((), move |_| plugin_driver_clone.clear_cache(compilation_id));
+    let _guard = scopeguard::guard((), move |_| {
+      resolver_factory_clone.clear_cache();
+      loader_resolver_factory_clone.clear_cache();
+      plugin_driver_clone.clear_cache(compilation_id)
+    });
     let compilation_logging = self.compilation.get_logging().clone();
     compilation_logging.clear();
     self.incremental_artifacts.reset();
