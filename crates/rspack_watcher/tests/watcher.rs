@@ -508,8 +508,11 @@ fn collect_time_info_entries_nulls_a_moved_away_context_and_its_files() {
   });
   std::fs::create_dir_all(helper.join("ctx")).unwrap();
   helper.file("ctx/inner");
+  // A sibling keeps the watch rooted above `ctx`: on Windows the watched
+  // directory's own rename is not reported, only its children's.
+  helper.file("sibling");
 
-  let rx = helper.watch(f!("ctx/inner"), f!("ctx"), e!());
+  let rx = helper.watch(f!("ctx/inner", "sibling"), f!("ctx"), e!());
   std::thread::sleep(std::time::Duration::from_millis(300));
   while rx.try_recv().is_ok() {}
 
