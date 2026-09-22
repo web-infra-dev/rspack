@@ -904,11 +904,13 @@ export default {
 ## rules[].use.parallel.maxWorkers
 
 - **类型：** `number`
-- **默认值：** `undefined`
+- **默认值：** `Math.max(os.cpus().length - 1, 1)`
 
 当 `parallel` 配置为对象时，限制共享 loader worker pool 使用的最大 worker 线程数。请使用正整数。
 
-如果省略 `maxWorkers`，Rspack 会自动选择 worker 数量。loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
+默认情况下，Rspack 使用 `os.cpus()` 返回的逻辑 CPU 数量减一，最少为一个 worker。
+
+loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
 
 ```js title="rspack.config.mjs"
 export default {
