@@ -178,21 +178,16 @@ moduleFactories.add({
   !*** ./dep.js ***!
   \****************/
 (__unused_rspack_module, exports) {
-/* import */ var _state_js__rspack_import_2 = rspackRequire(/*! ./state.js */ "./state.js");
-/* import */ var _shared_js__rspack_import_0 = rspackRequire(/*! ./shared.js */ "./shared.js");
-/* deferred import */var _nested_js__rspack_DEFERRED_import_1 = makeOptimizedDeferredNamespaceObject(/*! ./nested.js */ "./nested.js", 8);
+makeNamespaceObject(exports);
+/* import */ var _state_js__rspack_import_0 = rspackRequire(/*! ./state.js */ "./state.js");
 
 
-
-
-_state_js__rspack_import_2/* .events.push */.A.push('dep');
-const value = (/* inlined export .value */42);
-const readNested = () => _nested_js__rspack_DEFERRED_import_1.a/* .value */.U;
+_state_js__rspack_import_0/* .events.push */.A.push('dep');
+const value = 42;
 
 definePropertyGetters(exports, {
 }, {
-  U: value,
-  _: readNested
+  value: value
 });
 
 
@@ -202,127 +197,32 @@ definePropertyGetters(exports, {
   !*** ./index.js ***!
   \******************/
 (__unused_rspack_module, exports) {
-var _namespace_js__rspack_DEFERRED_import_1_deferred_namespace_cache;
+var _dep_js__rspack_DEFERRED_import_0_deferred_namespace_cache;
 makeNamespaceObject(exports);
 /* deferred import */var _dep_js__rspack_DEFERRED_import_0 = makeOptimizedDeferredNamespaceObject(/*! ./dep.js */ "./dep.js", 8);
-/* deferred import */var _namespace_js__rspack_DEFERRED_import_1 = makeOptimizedDeferredNamespaceObject(/*! ./namespace.js */ "./namespace.js", 8);
-/* deferred import */var _mixed_js__rspack_DEFERRED_import_2 = makeOptimizedDeferredNamespaceObject(/*! ./mixed.js */ "./mixed.js", 8);
-/* import */ var _mixed_js__rspack_import_3 = rspackRequire(/*! ./mixed.js */ "./mixed.js");
-/* import */ var _state_js__rspack_import_4 = rspackRequire(/*! ./state.js */ "./state.js");
+/* import */ var _state_js__rspack_import_1 = rspackRequire(/*! ./state.js */ "./state.js");
 
 
 
+const read = () => _dep_js__rspack_DEFERRED_import_0.a.value;
 
-
-
-const read = () => _dep_js__rspack_DEFERRED_import_0.a/* .value */.U;
-const getNamespace = () => /*#__PURE__*/ (_namespace_js__rspack_DEFERRED_import_1_deferred_namespace_cache || (_namespace_js__rspack_DEFERRED_import_1_deferred_namespace_cache = makeDeferredNamespaceObject("./namespace.js", 8)));
-const readNested = () => _dep_js__rspack_DEFERRED_import_0.a/* .readNested */._();
-
-
-const before = _state_js__rspack_import_4/* .events.slice */.A.slice();
 
 it('should preserve deferred evaluation in a modern-module library', async () => {
   const lib = await import(/* webpackIgnore: true */ './main.mjs');
-  expect(before).toEqual(['mixed']);
-  expect(_state_js__rspack_import_4/* .events */.A).toEqual(['mixed']);
-  expect(_mixed_js__rspack_import_3/* .value */.U).toBe(10);
-  expect(_mixed_js__rspack_DEFERRED_import_2.a/* .value */.U).toBe(10);
-
-  const namespace = lib.getNamespace();
-  expect(lib.ns).toBe(namespace);
-  expect(_state_js__rspack_import_4/* .events */.A).toEqual(['mixed']);
+  const namespace = lib.dep;
+  expect(_state_js__rspack_import_1/* .events */.A).toEqual([]);
 
   expect(lib.read()).toBe(42);
   expect(lib.read()).toBe(42);
-  expect(_state_js__rspack_import_4/* .events */.A).toEqual(['mixed', 'shared', 'dep']);
-
-  expect(namespace.value).toBe(43);
-  expect(lib.getNamespace()).toBe(namespace);
-  expect(_state_js__rspack_import_4/* .events */.A).toEqual(['mixed', 'shared', 'dep', 'namespace']);
-
-  expect(lib.readNested()).toBe(44);
-  expect(lib.readNested()).toBe(44);
-  expect(_state_js__rspack_import_4/* .events */.A).toEqual(['mixed', 'shared', 'dep', 'namespace', 'nested']);
+  expect(namespace.value).toBe(42);
+  expect(_state_js__rspack_import_1/* .events */.A).toEqual(['dep']);
 });
 
 definePropertyGetters(exports, {
-  ns: () => (/* reexport deferred namespace object */ _namespace_js__rspack_DEFERRED_import_1_deferred_namespace_cache || (_namespace_js__rspack_DEFERRED_import_1_deferred_namespace_cache = makeDeferredNamespaceObject("./namespace.js", 8)))
+  dep: () => (/* reexport deferred namespace object */ _dep_js__rspack_DEFERRED_import_0_deferred_namespace_cache || (_dep_js__rspack_DEFERRED_import_0_deferred_namespace_cache = makeDeferredNamespaceObject("./dep.js", 8)))
 }, {
-  getNamespace: getNamespace,
-  read: read,
-  readNested: readNested
+  read: read
 });
-
-
-},
-"./mixed.js"
-/*!******************!*\
-  !*** ./mixed.js ***!
-  \******************/
-(__unused_rspack_module, exports) {
-/* import */ var _state_js__rspack_import_0 = rspackRequire(/*! ./state.js */ "./state.js");
-
-
-_state_js__rspack_import_0/* .events.push */.A.push('mixed');
-const value = 10;
-
-definePropertyGetters(exports, {
-}, {
-  U: value
-});
-
-
-},
-"./namespace.js"
-/*!**********************!*\
-  !*** ./namespace.js ***!
-  \**********************/
-(__unused_rspack_module, exports) {
-makeNamespaceObject(exports);
-/* import */ var _state_js__rspack_import_1 = rspackRequire(/*! ./state.js */ "./state.js");
-/* import */ var _shared_js__rspack_import_0 = rspackRequire(/*! ./shared.js */ "./shared.js");
-
-
-
-_state_js__rspack_import_1/* .events.push */.A.push('namespace');
-const value = (/* inlined export .value */42) + 1;
-
-definePropertyGetters(exports, {
-}, {
-  value: value
-});
-
-
-},
-"./nested.js"
-/*!*******************!*\
-  !*** ./nested.js ***!
-  \*******************/
-(__unused_rspack_module, exports) {
-/* import */ var _state_js__rspack_import_0 = rspackRequire(/*! ./state.js */ "./state.js");
-
-
-_state_js__rspack_import_0/* .events.push */.A.push('nested');
-const value = 44;
-
-definePropertyGetters(exports, {
-}, {
-  U: value
-});
-
-
-},
-"./shared.js"
-/*!*******************!*\
-  !*** ./shared.js ***!
-  \*******************/
-() {
-/* import */ var _state_js__rspack_import_0 = rspackRequire(/*! ./state.js */ "./state.js");
-
-
-_state_js__rspack_import_0/* .events.push */.A.push('shared');
-const value = 42;
 
 
 },
@@ -342,11 +242,9 @@ definePropertyGetters(exports, {
 },
 });
 const index = rspackRequire("./index.js");
-var getNamespace = index.getNamespace;
-var ns = index.ns;
+var dep = index.dep;
 var read = index.read;
-var readNested = index.readNested;
 
-export { getNamespace, ns, read, readNested };
+export { dep, read };
 
 ```
