@@ -12,6 +12,12 @@ class CheckUrlEntryBlocksPlugin {
       (compilation) => {
         const currentBuild = buildIndex++;
         const isAsset = currentBuild === 2 || currentBuild === 4;
+        compilation.hooks.optimizeTree.tap(
+          { name: 'CheckUrlEntryBlocksPlugin', stage: -1000 },
+          () => {
+            expect([...compilation.chunks]).toHaveLength(isAsset ? 1 : 2);
+          },
+        );
         compilation.hooks.buildModule.tap(
           'CheckUrlEntryBlocksPlugin',
           (module) => {

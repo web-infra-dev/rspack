@@ -648,10 +648,9 @@ impl Plugin for JsPlugin {
   }
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
-    ctx
-      .compilation_hooks
-      .optimize_chunks
-      .tap(super::url_dependency_chunk::optimize_chunks::new(self));
+    ctx.compilation_hooks.should_create_chunk_group.tap(
+      super::url_dependency_chunk::should_create_chunk_group::new(self),
+    );
     ctx
       .compilation_hooks
       .additional_tree_runtime_requirements

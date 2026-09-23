@@ -10,7 +10,10 @@ module.exports = [true, false].map((includeUsed, index) => ({
     assetModuleFilename: '[name][ext]',
     publicPath: '/path/',
   },
-  module: { parser: { javascript: { importMetaResolve: true } } },
+  module: {
+    parser: { javascript: { importMetaResolve: true } },
+    rules: [{ test: /async\.txt$/, type: 'asset/resource' }],
+  },
   optimization: {
     usedExports: true,
     innerGraph: true,
@@ -23,6 +26,13 @@ module.exports = [true, false].map((includeUsed, index) => ({
       compiler.hooks.compilation.tap(
         'CheckResolveAssetChunks',
         (compilation) => {
+          compilation.hooks.optimizeTree.tap(
+            { name: 'CheckResolveAssetChunks', stage: -1000 },
+            () => {
+              // Assets do not require standalone entry chunks.
+              expect([...compilation.chunks]).toHaveLength(includeUsed ? 4 : 1);
+            },
+          );
           compilation.hooks.afterSeal.tap('CheckResolveAssetChunks', () => {
             const { moduleGraph, chunkGraph } = compilation;
             const shared = [...compilation.modules].find(
@@ -35,19 +45,24 @@ module.exports = [true, false].map((includeUsed, index) => ({
             expect(connection.getActiveState('unused')).toBe(false);
             const asset = moduleGraph.getModule(dependency);
             const chunks = [...chunkGraph.getModuleChunksIterable(asset)];
-            expect(chunks).toHaveLength(includeUsed ? 2 : 0);
+            expect(chunks).toHaveLength(includeUsed ? 1 : 0);
             expect(chunks.some((chunk) => chunk.name === 'unused')).toBe(false);
             expect(Boolean(compilation.getAsset('asset.txt'))).toBe(
               includeUsed,
             );
-            expect([...compilation.chunks]).toHaveLength(includeUsed ? 3 : 1);
+            expect([...compilation.chunks]).toHaveLength(includeUsed ? 4 : 1);
             if (includeUsed) {
-              const lazy = [...compilation.modules].find(
-                (module) => module.rawRequest === './lazy.js',
+              // The lazy chunk can reuse the asset already available in its parent.
+              expect(chunks[0].name).toBe('used');
+              const asyncAsset = [...compilation.modules].find(
+                (module) => module.rawRequest === './async.txt',
               );
-              for (const chunk of chunkGraph.getModuleChunksIterable(lazy)) {
-                expect(chunks).toContain(chunk);
-              }
+              const asyncChunks = [
+                ...chunkGraph.getModuleChunksIterable(asyncAsset),
+              ];
+              expect(asyncChunks).toHaveLength(1);
+              expect(asyncChunks[0].hasRuntime()).toBe(false);
+              expect(asyncChunks[0]).not.toBe(chunks[0]);
             }
           });
         },
