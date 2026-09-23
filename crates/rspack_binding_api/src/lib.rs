@@ -556,6 +556,27 @@ impl JsCompiler {
   pub fn get_compiler_id(&self) -> External<CompilerId> {
     External::new(self.compiler.id())
   }
+
+  /// Release the last compilation's heavy Rust state after Stats have been consumed.
+  ///
+  /// The compiler must be idle. Safe to call after `close()`. Idempotent.
+  #[napi]
+  pub fn release_compilation(&mut self) -> Result<()> {
+    if self.state.running() {
+      return Err(concurrent_compiler_error());
+    }
+
+    self.cleanup_last_compilation(&self.compiler.compilation);
+    self
+      .js_hooks_plugin
+      .clear_cache(self.compiler.compilation.id());
+    ModuleObject::cleanup_by_compiler_id(&self.compiler.id());
+
+    unsafe {
+      ManuallyDrop::get_mut(&mut self.compiler).release_compilation();
+    }
+    Ok(())
+  }
 }
 
 struct RunGuard {

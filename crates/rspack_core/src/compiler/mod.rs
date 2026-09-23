@@ -639,6 +639,48 @@ impl Compiler {
     self.cache.close().await;
     Ok(())
   }
+
+  /// Drop heavy compilation state (module graph, codegen results, assets) while
+  /// keeping the compiler shell alive for embedders that reuse the process.
+  ///
+  /// Call when the compiler is idle, typically after `close()` and after Stats
+  /// have been read. Does not unload the native binding or process runtime.
+  pub fn release_compilation(&mut self) {
+    let compilation_id = self.compilation.id();
+    self.plugin_driver.clear_cache(compilation_id);
+    self.buildtime_plugin_driver.clear_cache(compilation_id);
+
+    let compilation_logging = self.compilation.get_logging().clone();
+    compilation_logging.clear();
+    self.incremental_artifacts.reset();
+    self.emitted_asset_versions.clear();
+    self.last_records = None;
+
+    fast_set(
+      &mut self.compilation,
+      Compilation::new(
+        self.id,
+        self.options.clone(),
+        self.platform.clone(),
+        self.plugin_driver.clone(),
+        self.buildtime_plugin_driver.clone(),
+        self.resolver_factory.clone(),
+        self.loader_resolver_factory.clone(),
+        None,
+        Incremental::new_cold(self.options.incremental),
+        Some(Default::default()),
+        compilation_logging,
+        self.new_cache.clone(),
+        Default::default(),
+        Default::default(),
+        self.input_filesystem.clone(),
+        self.intermediate_filesystem.clone(),
+        self.output_filesystem.clone(),
+        false,
+        self.compiler_context.clone(),
+      ),
+    );
+  }
 }
 
 #[derive(Debug)]
