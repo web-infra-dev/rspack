@@ -1,9 +1,9 @@
+import { defineConfig } from '@rspack/cli';
 import { sharing } from '@rspack/core';
 
 const { SharePlugin } = sharing;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   context: `${import.meta.dirname}/cjs`,
   plugins: [
     new SharePlugin({
@@ -13,4 +13,4 @@ export default {
       },
     }),
   ],
-};
+});
