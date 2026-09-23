@@ -4,10 +4,10 @@ use concat_string::concat_string;
 use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_core::{
-  ArcComputed, BoxDependency, ConstDependency, ContextDependency, ContextMode, ContextOptions,
-  DependencyCategory, DependencyRange, ImportMeta, ImportMetaKnownProperties,
-  ResolvedModuleOptions, RscMeta, RscModuleType, RuntimeGlobals, RuntimeRequirementsDependency,
-  get_context, property_access, to_normal_comment,
+  ArcComputed, AsyncDependenciesBlock, BoxDependency, ChunkLoading, ChunkLoadingType,
+  ConstDependency, DependencyRange, EntryOptions, GroupOptions, ImportMeta,
+  ImportMetaKnownProperties, ResolvedModuleOptions, RscMeta, RscModuleType, RuntimeGlobals,
+  RuntimeRequirementsDependency, property_access, to_normal_comment,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
@@ -29,17 +29,14 @@ use super::{
   },
 };
 use crate::{
-  Atom,
-  dependency::{
-    IMPORT_META_RSC_BINDING, ImportMetaResolveContextDependency, ImportMetaResolveDependency,
-    ImportMetaResolveHeaderDependency, ImportMetaRscDependency,
-  },
-  utils::eval::{self, BasicEvaluatedExpression},
+  Atom, InnerGraphParserPlugin,
+  dependency::{IMPORT_META_RSC_BINDING, ImportMetaResolveDependency, ImportMetaRscDependency},
+  parser_plugin::inner_graph::state::InnerGraphUsageOperation,
+  utils::eval,
   visitors::{
     AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
-    RootName, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
-    get_non_optional_member_chain_from_expr, member_property_to_atom,
-    resolve_call_trailing_comma_range,
+    RootName, create_traceable_error, expr_name, get_non_optional_member_chain_from_expr,
+    member_property_to_atom,
   },
 };
 
@@ -49,32 +46,11 @@ fn single_quoted_string(value: &str) -> String {
   concat_string!("'", escaped, "'")
 }
 
-fn create_import_meta_resolve_context_dependency(
-  parser: &mut JavascriptParser,
-  param: &BasicEvaluatedExpression,
-  range: DependencyRange,
-) -> ImportMetaResolveContextDependency {
-  let start = range.start;
-  let end = range.end;
-  let result = create_context_dependency(param, parser);
-  let request = result.request();
-
-  let options = ContextOptions {
-    mode: ContextMode::Sync,
-    recursive: true,
-    pattern: context_reg_exp(&result.reg, "", None, parser).into(),
-    category: DependencyCategory::Esm,
-    request,
-    context: get_context(parser.resource_data).to_string(),
-    compiler_context: parser.compiler_options.context.clone(),
-    replaces: result.replaces,
-    start,
-    end,
-    ..Default::default()
-  };
-  let dep = ImportMetaResolveContextDependency::new(options, range, parser.in_try);
-  dep.set_critical(result.critical);
-  dep
+fn import_meta_resolve_request(parser: &mut JavascriptParser, call: &CallExpr) -> Option<String> {
+  if call.args.len() != 1 || call.args[0].spread.is_some() {
+    return None;
+  }
+  parser.evaluate_expression(&call.args[0].expr).as_string()
 }
 
 #[derive(Clone, Copy)]
@@ -381,60 +357,52 @@ impl ImportMetaPlugin {
     }
   }
 
-  fn process_import_meta_resolve(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) {
-    if call_expr.args.len() != 1 {
-      return;
-    }
-
-    let argument_expr = &call_expr.args[0].expr;
-    let param = parser.evaluate_expression(argument_expr);
-    let callee_span = call_expr.callee.span();
-    let range = DependencyRange::from(callee_span);
-    let loc = parser.to_dependency_location(range);
-    let import_meta_resolve_header_dependency = BoxDependency::new(
-      ImportMetaResolveHeaderDependency::new(callee_span.into(), loc),
-    );
-
-    if let Some(range) = resolve_call_trailing_comma_range(parser, call_expr) {
-      parser.add_presentational_dependency(Arc::new(ConstDependency::new(range, ")".into())));
-    }
-
-    if param.is_conditional() {
-      for option in param.options() {
-        if !self.process_import_meta_resolve_item(parser, option) {
-          self.process_import_meta_resolve_context(parser, option);
-        }
+  fn process_import_meta_resolve(&self, parser: &mut JavascriptParser, call: &CallExpr) {
+    let Some(request) = import_meta_resolve_request(parser, call) else {
+      // Preserve the native call, but still collect dependencies in its arguments.
+      for arg in &call.args {
+        parser.walk_expression(&arg.expr);
       }
-    } else if !self.process_import_meta_resolve_item(parser, &param) {
-      self.process_import_meta_resolve_context(parser, &param);
-    }
-    parser.add_dependency(import_meta_resolve_header_dependency);
-  }
-
-  fn process_import_meta_resolve_item(
-    &self,
-    parser: &mut JavascriptParser,
-    param: &eval::BasicEvaluatedExpression,
-  ) -> bool {
-    if param.is_string() {
-      parser.add_dependency(BoxDependency::new(ImportMetaResolveDependency::new(
-        param.string().clone(),
-        param.range().into(),
-        parser.in_try,
-      )));
-      return true;
-    }
-
-    false
-  }
-
-  fn process_import_meta_resolve_context(
-    &self,
-    parser: &mut JavascriptParser,
-    param: &BasicEvaluatedExpression,
-  ) {
-    let dep = create_import_meta_resolve_context_dependency(parser, param, param.range().into());
-    parser.add_dependency(BoxDependency::new(dep));
+      return;
+    };
+    let range = DependencyRange::from(call.span);
+    let loc = parser.to_dependency_location(range);
+    let dep = ImportMetaResolveDependency::new(
+      request.clone(),
+      range,
+      parser.javascript_options.url,
+      parser.in_try,
+    );
+    let block_idx = parser.next_block_idx();
+    let mut block = AsyncDependenciesBlock::new(
+      *parser.module_identifier,
+      loc,
+      None,
+      vec![BoxDependency::new(dep)],
+      Some(request),
+    );
+    // Resolution happens in the normal module factory. Assets are moved back to
+    // the importing chunks by optimize_chunks; JavaScript keeps its own runtime.
+    block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
+      runtime: Some(
+        format!(
+          "import-meta-resolve|{}|{}",
+          parser.module_identifier, range.start
+        )
+        .into(),
+      ),
+      chunk_loading: Some(if parser.compiler_options.output.module {
+        ChunkLoading::Enable(ChunkLoadingType::Import)
+      } else {
+        parser.compiler_options.output.chunk_loading.clone()
+      }),
+      ..Default::default()
+    })));
+    parser.add_block(Box::new(block));
+    InnerGraphParserPlugin::on_usage(
+      parser,
+      InnerGraphUsageOperation::ImportMetaResolveDependency(block_idx),
+    );
   }
 
   fn process_rspack_rsc(&self, parser: &mut JavascriptParser, member_expr: &MemberExpr) {
@@ -754,6 +722,24 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       return import_meta_runtime_api_call(parser, call_expr, api);
     }
     None
+  }
+
+  fn is_pure(&self, parser: &mut JavascriptParser<'p>, expr: &Expr) -> Option<bool> {
+    if parser.javascript_options.import_meta_resolve != Some(true)
+      || !self.known_property_enabled(ImportMetaKnownProperties::RESOLVE)
+    {
+      return None;
+    }
+    let call = expr.as_call()?;
+    let member = call.callee.as_expr()?.as_member()?;
+    let chain = parser.extract_member_expression_chain(ExprRef::Member(member));
+    if !matches!(chain.object, ExprRef::MetaProp(meta) if meta.kind == MetaPropKind::ImportMeta)
+      || chain.members.len() != 1
+      || chain.members[0] != "resolve"
+    {
+      return None;
+    }
+    import_meta_resolve_request(parser, call).map(|_| true)
   }
 
   fn assign_member_chain(

@@ -925,7 +925,7 @@ impl NormalModuleFactory {
 
             let raw_module = if matches!(
               dependency_type,
-              DependencyType::CssUrl | DependencyType::NewUrl
+              DependencyType::CssUrl | DependencyType::NewUrl | DependencyType::ImportMetaResolve
             ) {
               // use RawModule instead of RawDataUrlModule
               RawModule::new(

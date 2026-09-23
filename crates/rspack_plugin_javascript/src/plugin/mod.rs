@@ -12,6 +12,7 @@ mod drive;
 mod flag_dependency_exports_plugin;
 mod flag_dependency_usage_plugin;
 pub mod impl_plugin_for_js_plugin;
+mod import_meta_resolve_plugin;
 pub mod infer_async_modules_plugin;
 mod inline_exports_plugin;
 mod mangle_exports_plugin;

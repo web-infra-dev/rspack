@@ -1,5 +1,5 @@
 use rspack_core::{
-  BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
+  AsyncDependenciesBlock, BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
   UsedByExportsDeferredPureCheck,
 };
 use rspack_util::SpanExt;
@@ -15,7 +15,10 @@ use super::state::{
 };
 use crate::{
   Atom,
-  dependency::{ESMImportSpecifierDependency, PureExpressionDependency, URLDependency},
+  dependency::{
+    ESMImportSpecifierDependency, ImportMetaResolveDependency, PureExpressionDependency,
+    URLDependency,
+  },
   parser_plugin::{DEFAULT_STAR_JS_WORD, JavascriptParserPlugin},
   side_effects_parser_plugin::{
     is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
@@ -243,6 +246,7 @@ impl InnerGraphParserPlugin {
   pub fn finalize_dependency_usage(
     state: &mut InnerGraphState,
     dependencies: &mut [BoxDependency],
+    blocks: &mut [Option<Box<AsyncDependenciesBlock>>],
   ) {
     if !state.is_enabled() || state.usage_map.is_empty() {
       return;
@@ -298,15 +302,26 @@ impl InnerGraphParserPlugin {
     for (operation, used_by_exports) in
       Self::infer_dependency_usage(state, &deferred_pure_checks_by_symbol)
     {
-      let dep_idx = match operation {
+      let dep = match operation {
+        InnerGraphUsageOperation::ImportMetaResolveDependency(block_idx) => blocks
+          .get_mut(block_idx)
+          .and_then(Option::as_mut)
+          .and_then(|block| block.get_dependency_mut(0)),
         InnerGraphUsageOperation::PureExpression(dep_idx)
         | InnerGraphUsageOperation::ESMImportSpecifier(dep_idx)
-        | InnerGraphUsageOperation::URLDependency(dep_idx) => dep_idx,
+        | InnerGraphUsageOperation::URLDependency(dep_idx) => {
+          dependencies.get_mut(dep_idx).map(AsMut::as_mut)
+        }
       };
-      let Some(dep) = dependencies.get_mut(dep_idx) else {
+      let Some(dep) = dep else {
         continue;
       };
       match operation {
+        InnerGraphUsageOperation::ImportMetaResolveDependency(_) => {
+          if let Some(dep) = dep.downcast_mut::<ImportMetaResolveDependency>() {
+            dep.set_used_by_exports(used_by_exports);
+          }
+        }
         InnerGraphUsageOperation::PureExpression(_) => {
           if let Some(dep) = dep.downcast_mut::<PureExpressionDependency>() {
             dep.set_used_by_exports(Some(used_by_exports));

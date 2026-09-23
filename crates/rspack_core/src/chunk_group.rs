@@ -185,6 +185,10 @@ impl ChunkGroup {
     self.async_entrypoints.insert(async_entrypoint)
   }
 
+  pub fn remove_async_entrypoint(&mut self, async_entrypoint: &ChunkGroupUkey) -> bool {
+    self.async_entrypoints.remove(async_entrypoint)
+  }
+
   pub fn async_entrypoints_iterable(&self) -> impl Iterator<Item = &ChunkGroupUkey> {
     self.async_entrypoints.iter()
   }

@@ -9,7 +9,7 @@ mod external_module_dependency;
 mod import_dependency;
 mod import_eager_dependency;
 mod import_meta_resolve_dependency;
-mod import_meta_resolve_header_dependency;
+pub(crate) use import_meta_resolve_dependency::is_resolve_entry;
 mod import_meta_rsc_dependency;
 mod import_weak_dependency;
 mod provide_dependency;
@@ -43,9 +43,7 @@ pub use self::{
   import_eager_dependency::{ImportEagerDependency, ImportEagerDependencyTemplate},
   import_meta_resolve_dependency::{
     ImportMetaResolveDependency, ImportMetaResolveDependencyTemplate,
-  },
-  import_meta_resolve_header_dependency::{
-    ImportMetaResolveHeaderDependency, ImportMetaResolveHeaderDependencyTemplate,
+    is_import_meta_resolve_entry_chunk,
   },
   import_meta_rsc_dependency::{
     IMPORT_META_RSC_BINDING, ImportMetaRscDependency, ImportMetaRscDependencyTemplate,
