@@ -208,6 +208,7 @@ impl std::fmt::Debug for DependencyCondition {
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Serialize, Default, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportAttributes(FxHashMap<String, String>);
 
 impl FromIterator<(String, String)> for ImportAttributes {
@@ -350,4 +351,14 @@ pub fn create_referenced_exports_by_referenced_specifiers(
     );
   }
   refs
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for DependencyCondition {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    visitor.enter_self(self).exit();
+  }
 }

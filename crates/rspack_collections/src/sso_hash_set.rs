@@ -14,9 +14,11 @@ const INLINE_CAPACITY: usize = 4;
 /// chunk memberships retained while mutating the chunk graph. Cloning inline
 /// storage does not allocate storage for the set.
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SsoHashSet<T>(Storage<T>);
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum Storage<T> {
   Inline(SmallVec<[T; INLINE_CAPACITY]>),
   Heap(FxHashSet<T>),

@@ -125,3 +125,23 @@ impl Extend<(ExportsInfo, ExportsInfoData)> for ExportsInfoArtifact {
     }
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for ExportsInfoArtifact {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(
+      allocative::Key::new("module_exports_info"),
+      &self.module_exports_info,
+    );
+    visitor.visit_field(
+      allocative::Key::new("exports_info_map"),
+      &self.exports_info_map,
+    );
+
+    visitor.exit();
+  }
+}

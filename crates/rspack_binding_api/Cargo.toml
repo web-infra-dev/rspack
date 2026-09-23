@@ -11,7 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-allocative       = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
+allocative       = ["rspack_core/rspack_allocator", "rspack_plugin_rsc/allocative", "rspack_sources/allocative", "rspack_intern/allocative", "rspack_paths/allocative", "rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
 browser          = []
 debug_tool       = ["rspack_core/debug_tool"]
 perfetto         = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]
@@ -22,6 +22,7 @@ test-loader      = ["dep:rspack_loader_testing"]
 tracy-client     = ["dep:tracy-client", "rspack_allocator/tracy-client"]
 
 [dependencies]
+rspack_sources = { workspace = true, optional = true }
 anyhow                    = { workspace = true }
 atomic_refcell            = { workspace = true }
 rspack_allocator          = { workspace = true }

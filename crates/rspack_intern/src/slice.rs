@@ -212,3 +212,17 @@ pub trait SliceInternable: Sized + Send + Sync + 'static {
 
   fn storage() -> &'static InternSliceStorage<Self>;
 }
+
+#[cfg(allocative)]
+impl<T: SliceInternable> allocative::Allocative for InternedSlice<T>
+where
+  T::Header: allocative::Allocative,
+  T::Item: allocative::Allocative,
+{
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("arc"), &self.arc);
+
+    visitor.exit();
+  }
+}

@@ -142,3 +142,18 @@ mod test {
     assert_eq!(info.removed().len(), 0);
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl<T: allocative::Allocative, S> allocative::Allocative for IncrementalInfo<T, S> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("added"), &self.added);
+    visitor.visit_field(allocative::Key::new("updated"), &self.updated);
+    visitor.visit_field(allocative::Key::new("removed"), &self.removed);
+
+    visitor.exit();
+  }
+}

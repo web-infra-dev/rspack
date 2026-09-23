@@ -185,3 +185,17 @@ mod tests {
     assert_eq!(map.get(&a), Some(&1));
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl<K, V: allocative::Allocative> allocative::Allocative for DenseIdOverlayMap<K, V> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("base"), &self.base);
+    visitor.visit_field(allocative::Key::new("overlay"), &self.overlay);
+
+    visitor.exit();
+  }
+}

@@ -40,6 +40,11 @@ pub type TemplateReplaceSource = ReplaceSource;
 // Align with https://github.com/webpack/webpack/blob/671ac29d462e75a10c3fdfc785a4c153e41e749e/lib/DependencyCodeGeneration.js
 #[cacheable_dyn]
 pub trait DependencyCodeGeneration: Debug + Sync + Send + AsAny {
+  #[cfg(allocative)]
+  fn allocative_codegen_dependency(&self, visitor: &mut allocative::Visitor<'_>) {
+    visitor.enter_self(self).exit();
+  }
+
   fn update_hash(
     &self,
     _hasher: &mut RspackHasher,
@@ -80,4 +85,14 @@ pub trait DependencyTemplate: Debug + Sync + Send {
     source: &mut ReplaceSource,
     code_generatable_context: &mut TemplateContext,
   );
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for dyn DependencyCodeGeneration {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    self.allocative_codegen_dependency(visitor);
+  }
 }

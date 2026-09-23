@@ -273,3 +273,13 @@ pub struct RsdoctorModuleOriginalSource {
   pub source: String,
   pub size: i32,
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for RsdoctorExportUsageDependency {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    visitor.enter_self(self).exit();
+  }
+}

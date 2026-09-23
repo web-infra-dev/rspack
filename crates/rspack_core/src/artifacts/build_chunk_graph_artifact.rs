@@ -202,3 +202,27 @@ impl ArtifactExt for BuildChunkGraphArtifact {
     });
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for BuildChunkGraphArtifact {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("chunk_graph"), &self.chunk_graph);
+    visitor.visit_field(allocative::Key::new("entrypoints"), &self.entrypoints);
+    visitor.visit_field(
+      allocative::Key::new("async_entrypoints"),
+      &self.async_entrypoints,
+    );
+    visitor.visit_field(
+      allocative::Key::new("named_chunk_groups"),
+      &self.named_chunk_groups,
+    );
+    visitor.visit_field(allocative::Key::new("named_chunks"), &self.named_chunks);
+    visitor.visit_field(allocative::Key::new("module_idx"), &self.module_idx);
+
+    visitor.exit();
+  }
+}

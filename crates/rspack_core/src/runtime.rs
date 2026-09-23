@@ -485,3 +485,15 @@ impl RuntimeSpecSet {
     self.len() == 0
   }
 }
+
+#[cfg(allocative)]
+impl<T: allocative::Allocative> allocative::Allocative for RuntimeSpecMap<T> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("map"), &self.map);
+    visitor.visit_field(allocative::Key::new("single_runtime"), &self.single_runtime);
+    visitor.visit_field(allocative::Key::new("single_value"), &self.single_value);
+
+    visitor.exit();
+  }
+}

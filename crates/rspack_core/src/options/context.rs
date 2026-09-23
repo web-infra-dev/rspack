@@ -164,3 +164,13 @@ fn context_prefers_explicit_resource_context() {
     "http://test.rspack.rs/redirected"
   );
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for Context {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    visitor.enter_self(self).exit();
+  }
+}

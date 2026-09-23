@@ -71,6 +71,7 @@ impl ExactSizeIterator for DependencyIds<'_> {}
 /// Cloning copies these containers; the dependency and block objects themselves remain shared.
 #[cacheable]
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependenciesBlockData {
   dependencies: Vec<DependencyRef>,
   #[cacheable(omit_bounds)]
@@ -80,6 +81,15 @@ pub struct DependenciesBlockData {
 
 impl DependenciesBlockData {
   pub fn new(dependencies: Vec<DependencyRef>, blocks: Vec<AsyncDependenciesBlockRef>) -> Self {
+    #[cfg(allocative)]
+    let (dependencies, blocks) = {
+      let (mut dependencies, mut blocks) = (dependencies, blocks);
+      if crate::utils::allocative_compact_vectors() {
+        dependencies.shrink_to_fit();
+        blocks.shrink_to_fit();
+      }
+      (dependencies, blocks)
+    };
     Self {
       block_ids: blocks.iter().map(|block| block.identifier()).collect(),
       dependencies,
@@ -130,6 +140,7 @@ pub fn dependencies_block_update_hash(
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AsyncDependenciesBlockIdentifier(Identifier);
 
 impl rspack_hash::RspackHash for AsyncDependenciesBlockIdentifier {
@@ -329,5 +340,21 @@ impl From<AsyncDependenciesToInitialChunkError> for rspack_error::Error {
     );
     error.code = Some("AsyncDependencyToInitialChunkError".into());
     error
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for AsyncDependenciesBlock {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(
+      allocative::Key::new("dependencies_block"),
+      &self.dependencies_block,
+    );
+
+    visitor.exit();
   }
 }

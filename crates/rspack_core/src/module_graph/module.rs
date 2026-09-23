@@ -7,6 +7,7 @@ use crate::{DependencyId, ModuleGraphConnectionId, ModuleIdentifier, ModuleIssue
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum OptimizationBailoutItem {
   Message(String),
   SideEffects {
@@ -36,6 +37,7 @@ impl fmt::Display for OptimizationBailoutItem {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleGraphModule {
   // edges from module to module
   outgoing_connections: FxHashSet<ModuleGraphConnectionId>,
@@ -122,3 +124,6 @@ impl ModuleGraphModule {
     &mut self.optimization_bailout
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

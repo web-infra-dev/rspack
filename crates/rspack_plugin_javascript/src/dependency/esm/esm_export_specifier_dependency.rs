@@ -49,6 +49,11 @@ impl ESMExportSpecifierDependency {
 
 #[cacheable_dyn]
 impl Dependency for ESMExportSpecifierDependency {
+  #[cfg(allocative)]
+  fn allocative_dependency(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -127,6 +132,11 @@ impl AsModuleDependency for ESMExportSpecifierDependency {}
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ESMExportSpecifierDependency {
+  #[cfg(allocative)]
+  fn allocative_codegen_dependency(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMExportSpecifierDependencyTemplate::template_type())
   }
@@ -224,5 +234,19 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       vec![(used_name, binding)],
       is_circular_module,
     )));
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for ESMExportSpecifierDependency {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("name"), &self.name);
+    visitor.visit_field(allocative::Key::new("id"), &self.id);
+
+    visitor.exit();
   }
 }

@@ -1308,6 +1308,7 @@ pub type CompilationAssets = HashMap<String, CompilationAsset>;
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompilationAsset {
   #[cacheable(with=AsOption<AsPreset>)]
   pub source: Option<BoxSource>,
@@ -1486,6 +1487,7 @@ impl AssetInfo {
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
@@ -1574,5 +1576,133 @@ impl From<String> for ManifestAssetType {
       "wasm" => ManifestAssetType::Wasm,
       _ => ManifestAssetType::Custom(value.into()),
     }
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for AssetInfo {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("full_hash"), &self.full_hash);
+    visitor.visit_field(allocative::Key::new("chunk_hash"), &self.chunk_hash);
+    visitor.visit_field(allocative::Key::new("content_hash"), &self.content_hash);
+    visitor.visit_field(
+      allocative::Key::new("source_filename"),
+      &self.source_filename,
+    );
+    visitor.visit_field(allocative::Key::new("related"), &self.related);
+    visitor.visit_field(allocative::Key::new("version"), &self.version);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for Compilation {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(
+      allocative::Key::new("build_module_graph_artifact"),
+      &self.build_module_graph_artifact,
+    );
+    visitor.visit_field(
+      allocative::Key::new("exports_info_artifact"),
+      &self.exports_info_artifact,
+    );
+    visitor.visit_field(
+      allocative::Key::new("code_generation_results"),
+      &self.code_generation_results,
+    );
+    visitor.visit_field(allocative::Key::new("assets"), &self.assets);
+    visitor.visit_field(
+      allocative::Key::new("build_chunk_graph_artifact"),
+      &self.build_chunk_graph_artifact,
+    );
+    visitor.visit_field(
+      allocative::Key::new("module_static_cache"),
+      &self.module_static_cache,
+    );
+    visitor.visit_field(allocative::Key::new("import_var_map"), &self.import_var_map);
+    visitor.visit_field(
+      allocative::Key::new("file_dependencies"),
+      &self.file_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("context_dependencies"),
+      &self.context_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("missing_dependencies"),
+      &self.missing_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("build_dependencies"),
+      &self.build_dependencies,
+    );
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl Compilation {
+  pub(crate) fn snapshot_allocative_phase(&self, phase: &str) {
+    use std::{
+      fs::OpenOptions,
+      io::Write,
+      time::{SystemTime, UNIX_EPOCH},
+    };
+    let Some(dir) = std::env::var_os("RSPACK_ALLOCATIVE_DIR") else {
+      return;
+    };
+    let dir = std::path::PathBuf::from(dir);
+    std::fs::create_dir_all(&dir).expect("create allocative output directory");
+    let timestamp = || {
+      SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system time")
+        .as_secs_f64()
+    };
+    let rss = || {
+      std::fs::read_to_string("/proc/self/status")
+        .unwrap_or_default()
+        .lines()
+        .find_map(|line| {
+          line
+            .strip_prefix("VmRSS:")
+            .and_then(|v| v.split_whitespace().next())
+            .and_then(|v| v.parse::<u64>().ok())
+        })
+        .unwrap_or_default()
+        * 1024
+    };
+    let mut log = OpenOptions::new()
+      .create(true)
+      .append(true)
+      .open(dir.join("phases.jsonl"))
+      .expect("open allocative phase log");
+    writeln!(log, "{}", serde_json::json!({"event":"phase", "phase":phase,"time":timestamp(),"rss":rss(),"rust_requested":rspack_allocator::requested_bytes()})).expect("write phase");
+    let selection = std::env::var("RSPACK_ALLOCATIVE_PHASE").unwrap_or_else(|_| "none".into());
+    if selection != "all" && !selection.split(',').any(|v| v == phase) {
+      return;
+    }
+    writeln!(log,"{}",serde_json::json!({"event":"snapshot_start","phase":phase,"time":timestamp(),"rss":rss(),"rust_requested":rspack_allocator::requested_bytes()})).expect("write snapshot marker");
+    allocative::reset_type_counts();
+    let mut builder = allocative::FlameGraphBuilder::default();
+    builder.visit_root(self);
+    let output = builder.finish();
+    std::fs::write(
+      dir.join(format!("{phase}.counts.json")),
+      serde_json::to_vec(&allocative::type_counts()).expect("serialize type counts"),
+    )
+    .expect("write counts");
+    std::fs::write(
+      dir.join(format!("{phase}.folded")),
+      output.flamegraph().write(),
+    )
+    .expect("write allocative profile");
+    std::fs::write(dir.join(format!("{phase}.warnings.txt")), output.warnings())
+      .expect("write allocative warnings");
+    writeln!(log,"{}",serde_json::json!({"event":"snapshot_end","phase":phase,"time":timestamp(),"rss":rss(),"rust_requested":rspack_allocator::requested_bytes(),"accounted_bytes":output.flamegraph().total_size()})).expect("write snapshot marker");
   }
 }

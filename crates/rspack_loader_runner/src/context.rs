@@ -35,6 +35,7 @@ impl State {
 
 #[cacheable]
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LoaderDependencies {
   pub file: InternedPathSet,
   pub context: InternedPathSet,
@@ -531,3 +532,6 @@ where
     }
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

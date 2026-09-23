@@ -3880,8 +3880,6 @@ dependencies = [
 [[package]]
 name = "rspack-allocative"
 version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "942dd788eb5b967d155baa21e4699e4a164e2b217a236ded02f22d86564730a4"
 dependencies = [
  "atomic_refcell",
  "camino",
@@ -3891,7 +3889,10 @@ dependencies = [
  "indexmap",
  "once_cell",
  "rspack-allocative_derive",
+ "serde_json",
+ "smallvec",
  "tokio",
+ "triomphe",
  "ustr-fxhash",
 ]
 
@@ -4063,6 +4064,7 @@ dependencies = [
  "rspack_plugin_worker",
  "rspack_regex",
  "rspack_resolver",
+ "rspack_sources",
  "rspack_tasks",
  "rspack_tracing",
  "rspack_tracing_perfetto",
@@ -4237,6 +4239,7 @@ dependencies = [
  "regex",
  "rkyv 0.8.18",
  "rspack-turbo-persistence",
+ "rspack_allocator",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_dojang",
@@ -4386,6 +4389,7 @@ dependencies = [
  "hstr",
  "indexmap",
  "ref-cast",
+ "rspack-allocative",
  "rustc-hash",
  "serde",
  "swc_core",
@@ -4617,6 +4621,7 @@ dependencies = [
  "camino",
  "dashmap",
  "indexmap",
+ "rspack-allocative",
  "rspack_cacheable",
  "rspack_intern",
  "rustc-hash",
@@ -5579,6 +5584,7 @@ dependencies = [
  "memchr",
  "regex",
  "rkyv 0.8.18",
+ "rspack-allocative",
  "rustc-hash",
  "serde",
  "simd-json",

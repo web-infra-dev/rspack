@@ -134,6 +134,7 @@ fn subtract_non_defer_access(a: NonDeferAccess, b: NonDeferAccess) -> NonDeferAc
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConcatenatedInnerModule {
   pub id: ModuleIdentifier,
   pub size: f64,
@@ -722,6 +723,11 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ConcatenatedModule {
+  #[cfg(allocative)]
+  fn allocative_module(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn module_type(&self) -> &ModuleType {
     // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L688
     &ModuleType::JsEsm
@@ -3049,4 +3055,55 @@ pub fn collect_ident<'a>(
   };
   root.visit_with(&mut collector);
   collector.ids
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for ConcatenatedModule {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(
+      allocative::Key::new("root_module_ctxt"),
+      &self.root_module_ctxt,
+    );
+    visitor.visit_field(allocative::Key::new("modules"), &self.modules);
+    visitor.visit_field(allocative::Key::new("runtime"), &self.runtime);
+    visitor.visit_field(
+      allocative::Key::new("dependencies_block"),
+      &self.dependencies_block,
+    );
+    visitor.visit_field(allocative::Key::new("build_info"), &self.build_info);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for RootModuleContext {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(
+      allocative::Key::new("readable_identifier"),
+      &self.readable_identifier,
+    );
+    visitor.visit_field(
+      allocative::Key::new("name_for_condition"),
+      &self.name_for_condition,
+    );
+    visitor.visit_field(allocative::Key::new("lib_indent"), &self.lib_indent);
+    visitor.visit_field(
+      allocative::Key::new("code_generation_dependencies"),
+      &self.code_generation_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("presentational_dependencies"),
+      &self.presentational_dependencies,
+    );
+    visitor.visit_field(allocative::Key::new("context"), &self.context);
+    visitor.visit_field(allocative::Key::new("build_meta"), &self.build_meta);
+
+    visitor.exit();
+  }
 }

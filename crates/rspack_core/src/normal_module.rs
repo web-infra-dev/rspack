@@ -46,6 +46,7 @@ use crate::{
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ModuleIssuer {
   Unset,
   None,
@@ -367,6 +368,11 @@ impl DependenciesBlock for NormalModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for NormalModule {
+  #[cfg(allocative)]
+  fn allocative_module(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn module_type(&self) -> &ModuleType {
     &self.module_type
   }
@@ -642,6 +648,12 @@ impl Module for NormalModule {
     self.source = Some(source);
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
+    #[cfg(allocative)]
+    if crate::utils::allocative_compact_vectors()
+      && let Some(dependencies) = &mut self.presentational_dependencies
+    {
+      dependencies.shrink_to_fit();
+    }
 
     self.build_info.get_mut().hash = Some(self.init_build_hash(
       &build_context.compiler_options.output,
@@ -960,5 +972,43 @@ impl NormalModule {
       );
     }
     Ok(RawStringSource::from(content.into_string_lossy()).boxed())
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for NormalModule {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("request"), &self.request);
+    visitor.visit_field(allocative::Key::new("user_request"), &self.user_request);
+    visitor.visit_field(allocative::Key::new("raw_request"), &self.raw_request);
+    visitor.visit_field(allocative::Key::new("context"), &self.context);
+    visitor.visit_field(allocative::Key::new("source"), &self.source);
+    visitor.visit_field(
+      allocative::Key::new("dependencies_block"),
+      &self.dependencies_block,
+    );
+    visitor.visit_field(allocative::Key::new("build_info"), &self.build_info);
+    visitor.visit_field(allocative::Key::new("build_meta"), &self.build_meta);
+    visitor.visit_field(
+      allocative::Key::new("code_generation_dependencies"),
+      &self.code_generation_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("presentational_dependencies"),
+      &self.presentational_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("parser_and_generator"),
+      &self.parser_and_generator,
+    );
+    visitor.visit_field(allocative::Key::new("resource_data"), &self.resource_data);
+    visitor.visit_field(allocative::Key::new("match_resource"), &self.match_resource);
+    visitor.visit_field(allocative::Key::new("loader_options"), &self.loader_options);
+
+    visitor.exit();
   }
 }

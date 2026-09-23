@@ -10,6 +10,23 @@
 
 #[cfg(feature = "napi")]
 mod napi_binding {
+  #[cfg(allocative)]
+  use rspack_util::allocative;
+  #[cfg(allocative)]
+  impl<T: ?Sized> allocative::Allocative for BindingCell<T> {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+      let mut visitor = visitor.enter_self(self);
+      visitor.visit_field(allocative::Key::new("heap"), &self.heap);
+    }
+  }
+  #[cfg(allocative)]
+  impl allocative::Allocative for Heap {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+      let mut visitor = visitor.enter_self(self);
+      visitor.visit_field(allocative::Key::new("variant"), &self.variant);
+    }
+  }
+
   use std::{
     any::{Any, TypeId},
     hash::{Hash, Hasher},
@@ -161,6 +178,7 @@ mod napi_binding {
   // The reason HeapVariant does not use the generic type T is that for types requiring the implementation of the Reflectable trait,
   // the implementation of Reflectable needs to use the concrete type T, which prevents the trait from inheriting the Reflectable trait.
   #[derive(Debug)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   enum HeapVariant {
     AssetInfo(Box<AssetInfo>),
     CodeGenerationResults(Box<CodeGenerationResults>),

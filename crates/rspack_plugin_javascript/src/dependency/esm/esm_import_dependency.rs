@@ -538,6 +538,11 @@ fn find_type_exports_from_outgoings(
 
 #[cacheable_dyn]
 impl Dependency for ESMImportSideEffectDependency {
+  #[cfg(allocative)]
+  fn allocative_dependency(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -690,6 +695,11 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ESMImportSideEffectDependency {
+  #[cfg(allocative)]
+  fn allocative_codegen_dependency(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMImportSideEffectDependencyTemplate::template_type())
   }
@@ -747,3 +757,21 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
     esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
   }
 }
+
+#[cfg(allocative)]
+impl allocative::Allocative for ESMImportSideEffectDependency {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("request"), &self.request);
+    visitor.visit_field(
+      allocative::Key::new("resource_identifier"),
+      &self.resource_identifier,
+    );
+    visitor.visit_field(allocative::Key::new("attributes"), &self.attributes);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;

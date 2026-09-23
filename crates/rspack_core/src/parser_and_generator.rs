@@ -135,6 +135,11 @@ pub struct GenerateContext<'a> {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
+  #[cfg(allocative)]
+  fn allocative_parser(&self, visitor: &mut allocative::Visitor<'_>) {
+    visitor.enter_self(self).exit();
+  }
+
   /// The source types that the generator can generate (the source types you can make requests for)
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType];
   /// Parse the source and return the dependencies and the ast or source
@@ -187,5 +192,15 @@ impl dyn ParserAndGenerator + '_ {
 
   pub fn is<D: Any>(&self) -> bool {
     self.downcast_ref::<D>().is_some()
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for dyn ParserAndGenerator {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    self.allocative_parser(visitor);
   }
 }

@@ -285,3 +285,56 @@ impl ArtifactExt for BuildModuleGraphArtifact {
     }
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for BuildModuleGraphArtifact {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("module_graph"), &self.module_graph);
+    visitor.visit_field(
+      allocative::Key::new("affected_modules"),
+      &self.affected_modules,
+    );
+    visitor.visit_field(
+      allocative::Key::new("affected_dependencies"),
+      &self.affected_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("factorization_artifact"),
+      &self.factorization_artifact,
+    );
+    visitor.visit_field(
+      allocative::Key::new("make_failed_module"),
+      &self.make_failed_module,
+    );
+    visitor.visit_field(
+      allocative::Key::new("make_failed_dependencies"),
+      &self.make_failed_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("entry_dependencies"),
+      &self.entry_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("file_dependencies"),
+      &self.file_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("context_dependencies"),
+      &self.context_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("missing_dependencies"),
+      &self.missing_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("build_dependencies"),
+      &self.build_dependencies,
+    );
+
+    visitor.exit();
+  }
+}

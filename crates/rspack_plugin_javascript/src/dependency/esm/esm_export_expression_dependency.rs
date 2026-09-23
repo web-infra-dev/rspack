@@ -14,6 +14,7 @@ use crate::{Atom, ConstValue, parser_plugin::JS_DEFAULT_KEYWORD};
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum DeclarationId {
   Id(String),
   Func(DeclarationInfo),
@@ -21,6 +22,7 @@ pub enum DeclarationId {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DeclarationInfo {
   range: DependencyRange,
   prefix: String,
@@ -72,6 +74,11 @@ impl ESMExportExpressionDependency {
 
 #[cacheable_dyn]
 impl Dependency for ESMExportExpressionDependency {
+  #[cfg(allocative)]
+  fn allocative_dependency(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::EsmExportExpression
   }
@@ -134,6 +141,11 @@ impl AsContextDependency for ESMExportExpressionDependency {}
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ESMExportExpressionDependency {
+  #[cfg(allocative)]
+  fn allocative_codegen_dependency(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMExportExpressionDependencyTemplate::template_type())
   }
@@ -293,5 +305,20 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         ReplacementEnforce::Post,
       );
     }
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for ESMExportExpressionDependency {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("range"), &self.range);
+    visitor.visit_field(allocative::Key::new("prefix"), &self.prefix);
+    visitor.visit_field(allocative::Key::new("declaration"), &self.declaration);
+
+    visitor.exit();
   }
 }

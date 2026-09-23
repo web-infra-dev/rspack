@@ -199,3 +199,31 @@ where
     Ok(<Self as Deserialize<Arc<T>, D>>::deserialize(self, deserializer)?.into())
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl<T: allocative::Allocative> allocative::Allocative for FreezeLock<T> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+
+    if let Some(value) = self.frozen.get() {
+      visitor.visit_field(allocative::Key::new("frozen"), value);
+    } else {
+      let value = self.read();
+      if let Some(mut shared) = visitor.enter_shared(
+        allocative::Key::new("building"),
+        std::mem::size_of::<usize>(),
+        &*value as *const T as *const (),
+      ) {
+        shared.visit_simple(
+          allocative::Key::new("refcount"),
+          std::mem::size_of::<usize>(),
+        );
+        allocative::Allocative::visit(&*value, &mut shared);
+      }
+    }
+    visitor.exit();
+  }
+}

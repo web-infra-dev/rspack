@@ -276,6 +276,9 @@ pub fn compare_chunks_with_graph(
 
 #[cfg(allocative)]
 pub fn snapshot_allocative(name: &str) {
+  if std::env::var_os("RSPACK_ALLOCATIVE_GLOBALS").is_none() {
+    return;
+  }
   use std::{
     path::PathBuf,
     sync::{
@@ -304,4 +307,11 @@ pub fn snapshot_allocative(name: &str) {
     let path = dir.join(format!("{}-{}.allocative", count, name));
     std::fs::write(path, buf).expect("allocative write failed");
   }
+}
+
+#[cfg(allocative)]
+pub(crate) fn allocative_compact_vectors() -> bool {
+  static ENABLED: std::sync::LazyLock<bool> =
+    std::sync::LazyLock::new(|| std::env::var_os("RSPACK_ALLOCATIVE_TRIM_VECTORS").is_some());
+  *ENABLED
 }

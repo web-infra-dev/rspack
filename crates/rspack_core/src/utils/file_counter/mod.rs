@@ -278,3 +278,31 @@ mod test {
     assert_eq!(ids.dependencies().len(), 1);
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for PathResourceIds {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("modules"), &self.modules);
+    visitor.visit_field(allocative::Key::new("dependencies"), &self.dependencies);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for FileCounter {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("inner"), &self.inner);
+    visitor.visit_field(
+      allocative::Key::new("incremental_info"),
+      &self.incremental_info,
+    );
+
+    visitor.exit();
+  }
+}

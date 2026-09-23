@@ -301,3 +301,23 @@ impl ExportsInfoData {
     }
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for ExportInfoData {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("belongs_to"), &self.belongs_to);
+    visitor.visit_field(allocative::Key::new("name"), &self.name);
+    visitor.visit_field(allocative::Key::new("used_name"), &self.used_name);
+    visitor.visit_field(allocative::Key::new("target"), &self.target);
+    visitor.visit_field(
+      allocative::Key::new("used_in_runtime"),
+      &self.used_in_runtime,
+    );
+
+    visitor.exit();
+  }
+}

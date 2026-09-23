@@ -50,6 +50,11 @@ impl PureExpressionDependency {
 
 #[cacheable_dyn]
 impl Dependency for PureExpressionDependency {
+  #[cfg(allocative)]
+  fn allocative_dependency(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
   }
@@ -78,6 +83,11 @@ impl AsModuleDependency for PureExpressionDependency {}
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for PureExpressionDependency {
+  #[cfg(allocative)]
+  fn allocative_codegen_dependency(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(PureExpressionDependencyTemplate::template_type())
   }
@@ -153,5 +163,21 @@ impl DependencyTemplate for PureExpressionDependencyTemplate {
       );
       source.insert_static(dep.range.end, "))", None);
     }
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for PureExpressionDependency {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(
+      allocative::Key::new("used_by_exports"),
+      &self.used_by_exports,
+    );
+
+    visitor.exit();
   }
 }

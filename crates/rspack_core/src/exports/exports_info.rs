@@ -11,6 +11,7 @@ use crate::{ExportsInfoArtifact, RuntimeSpec};
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportsInfo(u32);
 
 impl ExportsInfo {
@@ -32,6 +33,7 @@ impl ExportsInfo {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportsInfoData {
   exports: BTreeMap<Atom, ExportInfoData>,
 
@@ -190,3 +192,6 @@ impl ExportsInfoData {
     );
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

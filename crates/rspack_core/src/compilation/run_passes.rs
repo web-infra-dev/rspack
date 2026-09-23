@@ -80,12 +80,16 @@ impl Compilation {
     ];
     self.module_static_cache.enable_new_cache();
 
+    #[cfg(allocative)]
+    self.snapshot_allocative_phase("before-passes");
     for pass in &passes {
       if let Some(incremental_artifacts) = incremental_artifacts.as_deref_mut() {
         run_with_incremental_artifacts(&**pass, self, incremental_artifacts, cache).await?;
       } else {
         pass.run(self, cache).await?;
       }
+      #[cfg(allocative)]
+      self.snapshot_allocative_phase(pass.name());
     }
 
     self.module_static_cache.disable_cache();

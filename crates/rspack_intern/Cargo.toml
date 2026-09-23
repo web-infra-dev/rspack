@@ -11,6 +11,7 @@ atom = ["dep:hstr", "dep:indexmap", "dep:ref-cast", "dep:serde"]
 swc  = ["atom", "dep:swc_core", "dep:swc_experimental_allocator"]
 
 [dependencies]
+allocative = { workspace = true, optional = true }
 dashmap                    = { workspace = true, features = ["raw-api"] }
 hstr                       = { workspace = true, optional = true }
 indexmap                   = { workspace = true, optional = true }

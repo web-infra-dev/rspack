@@ -315,6 +315,7 @@ impl ResourceData {
 /// package.json.sideEffects in tree shaking.
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DescriptionData {
   /// Path to package.json
   #[cacheable(with=As<PortablePath>)]
@@ -375,3 +376,34 @@ impl ParseMetaValue for String {
 }
 
 pub type ParseMeta = FxHashMap<String, Box<dyn ParseMetaValue>>;
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for ResourceData {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("resource"), &self.resource);
+    visitor.visit_field(allocative::Key::new("resource_path"), &self.resource_path);
+    visitor.visit_field(allocative::Key::new("resource_query"), &self.resource_query);
+    visitor.visit_field(
+      allocative::Key::new("resource_fragment"),
+      &self.resource_fragment,
+    );
+    visitor.visit_field(
+      allocative::Key::new("resource_description"),
+      &self.resource_description,
+    );
+    visitor.visit_field(allocative::Key::new("mimetype"), &self.mimetype);
+    visitor.visit_field(allocative::Key::new("parameters"), &self.parameters);
+    visitor.visit_field(allocative::Key::new("encoding"), &self.encoding);
+    visitor.visit_field(
+      allocative::Key::new("encoded_content"),
+      &self.encoded_content,
+    );
+    visitor.visit_field(allocative::Key::new("context"), &self.context);
+
+    visitor.exit();
+  }
+}

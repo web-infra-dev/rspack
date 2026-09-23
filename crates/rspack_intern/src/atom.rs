@@ -719,3 +719,50 @@ impl<'de> Deserialize<'de> for Atom {
     deserializer.deserialize_str(AtomVisitor)
   }
 }
+
+#[cfg(allocative)]
+impl allocative::Allocative for Atom {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    visitor.enter_self(self).exit();
+  }
+}
+
+#[cfg(allocative)]
+impl<V: allocative::Allocative> allocative::Allocative for AtomMap<V> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("inner"), &self.inner);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for AtomSet {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("inner"), &self.inner);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl<V: allocative::Allocative> allocative::Allocative for IndexAtomMap<V> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("inner"), &self.inner);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for IndexAtomSet {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("inner"), &self.inner);
+
+    visitor.exit();
+  }
+}

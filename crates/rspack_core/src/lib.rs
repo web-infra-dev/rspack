@@ -133,6 +133,7 @@ pub mod debug_info;
   Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, rspack_macros::StringEnum,
 )]
 #[string_enum(rename_all = "kebab-case")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum SourceType {
   #[string_enum(rename = "javascript")]
   JavaScript,
@@ -453,3 +454,6 @@ impl ChunkGroupByUkey {
     self.inner.iter()
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

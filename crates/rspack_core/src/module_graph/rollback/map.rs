@@ -11,6 +11,7 @@ use rayon::iter::{
 use rustc_hash::FxBuildHasher;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Action<K, V> {
   Inserted { key: K, previous: Option<V> },
   Removed { key: K, value: V },
@@ -198,5 +199,22 @@ mod tests {
     assert_eq!(snapshot_map.get(&"a".to_string()), Some(&1));
     assert_eq!(snapshot_map.get(&"b".to_string()), Some(&2));
     assert_eq!(snapshot_map.get(&"c".to_string()), None);
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl<K: allocative::Allocative, V: allocative::Allocative, S> allocative::Allocative
+  for RollbackMap<K, V, S>
+{
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("map"), &self.map);
+    visitor.visit_field(allocative::Key::new("undo_stack"), &self.undo_stack);
+    visitor.visit_field(allocative::Key::new("checkpoint"), &self.checkpoint);
+
+    visitor.exit();
   }
 }

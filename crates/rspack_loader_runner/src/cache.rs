@@ -2,6 +2,7 @@ use rspack_cacheable::cacheable;
 
 #[cacheable]
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LoaderRunnerOptions {
   pub cache: bool,
   /// Loader name used as part of the cache key.
@@ -11,3 +12,6 @@ pub struct LoaderRunnerOptions {
   /// Loader implementation version or file hash used as part of the etag.
   pub loader_version: String,
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

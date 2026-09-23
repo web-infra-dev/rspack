@@ -214,3 +214,16 @@ mod tests {
     assert!(<StealCell<AlwaysRecoverArtifact> as ArtifactExt>::should_recover(&incremental));
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl<T: allocative::Allocative> allocative::Allocative for StealCell<T> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("0"), &self.0);
+
+    visitor.exit();
+  }
+}

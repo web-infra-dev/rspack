@@ -7,6 +7,7 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [dependencies]
+rspack_allocator = { workspace = true, optional = true }
 anymap                     = { workspace = true }
 arc-swap                   = { workspace = true }
 async-recursion            = { workspace = true }

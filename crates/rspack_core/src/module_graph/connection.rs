@@ -10,6 +10,7 @@ use crate::{
 /// Multiple connections may share a dependency while retaining distinct IDs.
 #[cacheable(hashable)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleGraphConnectionId(u32);
 
 impl From<u32> for ModuleGraphConnectionId {
@@ -30,6 +31,7 @@ impl std::ops::Deref for ModuleGraphConnectionId {
 /// references to a new root, preserving the dependency while changing the origin.
 #[cacheable]
 #[derive(Debug, Clone, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleGraphConnection {
   pub id: ModuleGraphConnectionId,
   pub dependency_id: DependencyId,
@@ -215,3 +217,6 @@ impl std::ops::Add for ConnectionState {
     self
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

@@ -55,6 +55,7 @@ pub(super) mod readable_identifier {
   pub type ReadableIdentifierCacheKey = (ModuleIdentifier, Option<String>);
 
   #[derive(Debug, Default)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   pub struct ReadableIdentifierCache {
     cache: RwLock<HashMap<ReadableIdentifierCacheKey, String>>,
   }
@@ -76,5 +77,21 @@ pub(super) mod readable_identifier {
         .expect("should get lock")
         .insert(key, value);
     }
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for ModuleStaticCacheInner {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(
+      allocative::Key::new("readable_identifier_cache"),
+      &self.readable_identifier_cache,
+    );
+
+    visitor.exit();
   }
 }

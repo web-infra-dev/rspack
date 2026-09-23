@@ -269,6 +269,7 @@ impl CssBuildInfo {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct IsolatedDts {
   pub resource_path: String,
   pub code: String,
@@ -723,6 +724,11 @@ pub trait Module:
   + Diagnosable
   + ModuleSourceMapConfig
 {
+  #[cfg(allocative)]
+  fn allocative_module(&self, visitor: &mut allocative::Visitor<'_>) {
+    visitor.enter_self(self).exit();
+  }
+
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
 
@@ -1439,5 +1445,73 @@ mod test {
     let b = b.as_ref();
     assert!(a.downcast_ref::<ExternalModule>().is_some());
     assert!(b.downcast_ref::<RawModule>().is_some());
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for dyn Module {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    self.allocative_module(visitor);
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for ModuleRef {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("0"), &self.0);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for BuildInfo {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("dependencies"), &self.dependencies);
+    visitor.visit_field(
+      allocative::Key::new("value_dependencies"),
+      &self.value_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("esm_named_exports"),
+      &self.esm_named_exports,
+    );
+    visitor.visit_field(
+      allocative::Key::new("all_star_exports"),
+      &self.all_star_exports,
+    );
+    visitor.visit_field(
+      allocative::Key::new("side_effects_free"),
+      &self.side_effects_free,
+    );
+    visitor.visit_field(
+      allocative::Key::new("top_level_declarations"),
+      &self.top_level_declarations,
+    );
+    visitor.visit_field(
+      allocative::Key::new("optimization_bailouts"),
+      &self.optimization_bailouts,
+    );
+    visitor.visit_field(
+      allocative::Key::new("module_concatenation_bailout"),
+      &self.module_concatenation_bailout,
+    );
+    visitor.visit_field(allocative::Key::new("assets"), &self.assets);
+    visitor.visit_field(allocative::Key::new("isolated_dts"), &self.isolated_dts);
+    visitor.visit_field(allocative::Key::new("extras"), &self.extras);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for BuildMeta {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    visitor.enter_self(self).exit();
   }
 }

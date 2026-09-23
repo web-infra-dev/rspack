@@ -27,6 +27,7 @@ use crate::{
 /// assert_eq!(s.size(), 16);
 /// ```
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RawStringSource(Cow<'static, str>);
 
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
@@ -49,6 +50,16 @@ impl RawStringSource {
 
 impl From<String> for RawStringSource {
   fn from(value: String) -> Self {
+    #[cfg(allocative)]
+    let value = {
+      static ENABLED: std::sync::LazyLock<bool> =
+        std::sync::LazyLock::new(|| std::env::var_os("RSPACK_ALLOCATIVE_TRIM_SOURCES").is_some());
+      let mut value = value;
+      if *ENABLED {
+        value.shrink_to_fit();
+      }
+      value
+    };
     Self(Cow::Owned(value))
   }
 }
@@ -60,6 +71,11 @@ impl From<&str> for RawStringSource {
 }
 
 impl Source for RawStringSource {
+  #[cfg(allocative)]
+  fn allocative_source(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.0))
   }
@@ -153,6 +169,7 @@ impl StreamChunks for RawStringSource {
 /// assert_eq!(s.map(&ObjectPool::default(), &MapOptions::default()), None);
 /// assert_eq!(s.size(), 16);
 /// ```
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RawBufferSource {
   value: Vec<u8>,
   value_as_string: OnceLock<Option<String>>,
@@ -208,6 +225,11 @@ impl From<&[u8]> for RawBufferSource {
 }
 
 impl Source for RawBufferSource {
+  #[cfg(allocative)]
+  fn allocative_source(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn source(&self) -> SourceValue<'_> {
     SourceValue::Buffer(Cow::Borrowed(&self.value))
   }

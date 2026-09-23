@@ -93,3 +93,17 @@ mod tests {
     assert_eq!(atom.as_str(), "a");
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl<T: allocative::Allocative + std::fmt::Debug> allocative::Allocative for RollbackAtom<T> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("current"), &self.current);
+    visitor.visit_field(allocative::Key::new("backup"), &self.backup);
+
+    visitor.exit();
+  }
+}

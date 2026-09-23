@@ -4,6 +4,7 @@ use serde::Serialize;
 
 #[cacheable(hashable)]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependencyId(u32);
 
 impl DependencyId {
@@ -36,3 +37,6 @@ impl From<u32> for DependencyId {
     Self(id)
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

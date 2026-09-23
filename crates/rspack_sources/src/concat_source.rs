@@ -61,6 +61,7 @@ use crate::{
 /// );
 /// ```
 #[derive(Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConcatSource {
   children: Mutex<Vec<BoxSource>>,
   is_optimized: OnceLock<Vec<BoxSource>>,
@@ -173,6 +174,11 @@ impl ConcatSource {
 }
 
 impl Source for ConcatSource {
+  #[cfg(allocative)]
+  fn allocative_source(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn source(&self) -> SourceValue<'_> {
     let children = self.optimized_children();
     if children.len() == 1 {

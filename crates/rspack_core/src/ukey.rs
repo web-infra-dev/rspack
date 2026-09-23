@@ -66,3 +66,10 @@ impl From<u32> for ChunkGroupUkey {
     Self(value, std::marker::PhantomData)
   }
 }
+
+#[cfg(allocative)]
+impl allocative::Allocative for ChunkUkey {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    visitor.enter_self(self).exit();
+  }
+}

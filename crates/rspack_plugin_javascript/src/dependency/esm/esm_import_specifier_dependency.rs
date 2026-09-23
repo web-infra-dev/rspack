@@ -179,6 +179,11 @@ impl ESMImportSpecifierDependency {
 
 #[cacheable_dyn]
 impl Dependency for ESMImportSpecifierDependency {
+  #[cfg(allocative)]
+  fn allocative_dependency(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -382,6 +387,11 @@ impl AsContextDependency for ESMImportSpecifierDependency {}
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ESMImportSpecifierDependency {
+  #[cfg(allocative)]
+  fn allocative_codegen_dependency(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn update_hash(
     &self,
     hasher: &mut RspackHasher,
@@ -842,5 +852,29 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
       _side_effects_state_artifact,
       exports_info_artifact,
     ))
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for ESMImportSpecifierDependency {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("request"), &self.request);
+    visitor.visit_field(allocative::Key::new("name"), &self.name);
+    visitor.visit_field(allocative::Key::new("ids"), &self.ids);
+    visitor.visit_field(
+      allocative::Key::new("used_by_exports"),
+      &self.used_by_exports,
+    );
+    visitor.visit_field(
+      allocative::Key::new("resource_identifier"),
+      &self.resource_identifier,
+    );
+    visitor.visit_field(allocative::Key::new("attributes"), &self.attributes);
+
+    visitor.exit();
   }
 }

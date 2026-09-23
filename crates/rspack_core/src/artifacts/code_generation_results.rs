@@ -132,6 +132,16 @@ impl CodeGenerationDataTopLevelDeclarations {
 
 #[cacheable_dyn]
 pub trait CodeGenerationDataItem: Debug + AsAny + IntoAny + Send + Sync {
+  #[cfg(allocative)]
+  fn allocative_codegen_data(&self, visitor: &mut allocative::Visitor<'_>) {
+    visitor
+      .enter(
+        allocative::Key::for_type_name::<Self>(),
+        std::mem::size_of_val(self),
+      )
+      .exit();
+  }
+
   fn update_hash(&self, _hasher: &mut RspackHasher) {}
 }
 
@@ -164,7 +174,12 @@ impl RspackHash for CodeGenerationDataChunkInitFragments {
 }
 
 #[cacheable_dyn]
-impl CodeGenerationDataItem for CodeGenerationDataUrl {}
+impl CodeGenerationDataItem for CodeGenerationDataUrl {
+  #[cfg(allocative)]
+  fn allocative_codegen_data(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+}
 
 #[cacheable_dyn]
 impl CodeGenerationDataItem for CodeGenerationPublicPathAutoReplace {}
@@ -173,20 +188,40 @@ impl CodeGenerationDataItem for CodeGenerationPublicPathAutoReplace {}
 impl CodeGenerationDataItem for URLStaticMode {}
 
 #[cacheable_dyn]
-impl CodeGenerationDataItem for CodeGenerationDataFilename {}
+impl CodeGenerationDataItem for CodeGenerationDataFilename {
+  #[cfg(allocative)]
+  fn allocative_codegen_data(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+}
 
 #[cacheable_dyn]
-impl CodeGenerationDataItem for CodeGenerationDataAssetInfo {}
+impl CodeGenerationDataItem for CodeGenerationDataAssetInfo {
+  #[cfg(allocative)]
+  fn allocative_codegen_data(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+}
 
 #[cacheable_dyn]
 impl CodeGenerationDataItem for CodeGenerationDataPreservedAssetImport {
+  #[cfg(allocative)]
+  fn allocative_codegen_data(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn update_hash(&self, hasher: &mut RspackHasher) {
     RspackHash::hash(self, hasher);
   }
 }
 
 #[cacheable_dyn]
-impl CodeGenerationDataItem for CodeGenerationDataTopLevelDeclarations {}
+impl CodeGenerationDataItem for CodeGenerationDataTopLevelDeclarations {
+  #[cfg(allocative)]
+  fn allocative_codegen_data(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+}
 
 #[cacheable_dyn]
 impl CodeGenerationDataItem for CodeGenerationDataChunkInitFragments {
@@ -200,6 +235,7 @@ impl CodeGenerationDataItem for CodeGenerationDataConcatenationScopeOutput {}
 
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CodeGenerationData {
   inner: Vec<Box<dyn CodeGenerationDataItem>>,
 }
@@ -521,4 +557,97 @@ pub struct CodeGenerationJob {
   pub runtime: RuntimeSpec,
   pub runtimes: Vec<RuntimeSpec>,
   pub scope: Option<ConcatenationScope>,
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for CodeGenerationResults {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("map"), &self.map);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for CodeGenerationResult {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("value"), &self.value);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for CodeGenerationResultInner {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("sources"), &self.sources);
+    visitor.visit_field(allocative::Key::new("data"), &self.data);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for dyn CodeGenerationDataItem {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    self.allocative_codegen_data(visitor);
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for CodeGenerationDataTopLevelDeclarations {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("inner"), &self.inner);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for CodeGenerationDataUrl {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("inner"), &self.inner);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for CodeGenerationDataFilename {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("filename"), &self.filename);
+    visitor.visit_field(allocative::Key::new("public_path"), &self.public_path);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for CodeGenerationDataAssetInfo {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("inner"), &self.inner);
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for CodeGenerationDataPreservedAssetImport {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("request"), &self.request);
+    visitor.visit_field(allocative::Key::new("binding"), &self.binding);
+
+    visitor.exit();
+  }
 }

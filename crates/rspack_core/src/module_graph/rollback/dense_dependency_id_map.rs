@@ -91,3 +91,16 @@ mod tests {
     assert_eq!(map.remove(&id), None);
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl<V: allocative::Allocative> allocative::Allocative for DenseDependencyIdMap<V> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("values"), &self.values);
+
+    visitor.exit();
+  }
+}

@@ -318,3 +318,12 @@ pub type InternedPathDashSet = DashSet<InternedPath, BuildHasherDefault<Identity
 /// A standard `IndexSet` using `InternedPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
 pub type InternedPathIndexSet = IndexSet<InternedPath, BuildHasherDefault<IdentityHasher>>;
+
+#[cfg(allocative)]
+impl allocative::Allocative for InternedPath {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("inner"), &self.0);
+    visitor.exit();
+  }
+}

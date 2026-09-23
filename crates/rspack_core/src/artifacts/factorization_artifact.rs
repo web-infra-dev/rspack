@@ -116,3 +116,45 @@ impl FactorizationArtifact {
     self.infos.iter().map(|(dep_id, info)| (*dep_id, info))
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for FactorizeInfo {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(
+      allocative::Key::new("related_dep_ids"),
+      &self.related_dep_ids,
+    );
+    visitor.visit_field(
+      allocative::Key::new("file_dependencies"),
+      &self.file_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("context_dependencies"),
+      &self.context_dependencies,
+    );
+    visitor.visit_field(
+      allocative::Key::new("missing_dependencies"),
+      &self.missing_dependencies,
+    );
+
+    visitor.exit();
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for FactorizationArtifact {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("infos"), &self.infos);
+    visitor.visit_field(
+      allocative::Key::new("dependency_owners"),
+      &self.dependency_owners,
+    );
+
+    visitor.exit();
+  }
+}

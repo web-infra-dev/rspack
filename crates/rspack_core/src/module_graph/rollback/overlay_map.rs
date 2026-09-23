@@ -7,6 +7,7 @@ use std::{
 use rustc_hash::FxBuildHasher;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum OverlayValue<V> {
   Value(V),
   Tombstone,
@@ -258,5 +259,21 @@ mod tests {
     map.reset();
 
     assert_eq!(map.get(&"a".to_string()), Some(&1));
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl<K: allocative::Allocative, V: allocative::Allocative, S> allocative::Allocative
+  for OverlayMap<K, V, S>
+{
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("base"), &self.base);
+    visitor.visit_field(allocative::Key::new("overlay"), &self.overlay);
+
+    visitor.exit();
   }
 }

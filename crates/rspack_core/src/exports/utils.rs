@@ -19,6 +19,7 @@ use crate::{DependencyId, property_access};
 pub static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportInfoTargetValue {
   pub dependency: Option<DependencyId>,
   pub export: Option<Vec<Atom>>,
@@ -121,6 +122,7 @@ pub enum CanInlineUse {
 }
 
 #[derive(Debug, Clone, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum UsedNameItem {
   Str(Atom),
   Inlined(EvaluatedInlinableValue),
@@ -221,6 +223,7 @@ impl UsageKey {
 }
 
 #[derive(Debug, PartialEq, Copy, Clone, Default, Hash, PartialOrd, Ord, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum UsageState {
   Unused = 0,
   OnlyPropertiesUsed = 1,
@@ -256,6 +259,7 @@ impl UsageState {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct UsedByExports {
   condition: UsedByExportsCondition,
   #[cacheable(with=AsVec)]
@@ -305,6 +309,7 @@ impl UsedByExports {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum UsedByExportsCondition {
   Set(#[cacheable(with=AsVec<AsPreset>)] HashSet<Atom>),
   Bool(bool),
@@ -312,8 +317,19 @@ pub enum UsedByExportsCondition {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct UsedByExportsDeferredPureCheck {
   pub dep_id: DependencyId,
   #[cacheable(with=AsPreset)]
   pub atom: Atom,
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for EvaluatedInlinableValue {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    visitor.enter_self(self).exit();
+  }
 }

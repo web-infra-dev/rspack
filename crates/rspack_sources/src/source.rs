@@ -108,6 +108,11 @@ impl<'a> SourceValue<'a> {
 
 /// [Source] abstraction, [webpack-sources docs](https://github.com/webpack/webpack-sources/#source).
 pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send {
+  #[cfg(allocative)]
+  fn allocative_source(&self, visitor: &mut allocative::Visitor<'_>) {
+    visitor.enter_self(self).exit();
+  }
+
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
 
@@ -295,6 +300,7 @@ fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
 
 /// The source map created by [Source::map].
 #[derive(Serialize)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct SourceMapFields<'a> {
   pub(crate) version: u8,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -382,12 +388,14 @@ impl Hash for SourceMapFields<'_> {
 }
 
 #[allow(dead_code)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum SourceMapOwner {
   Bytes(Vec<u8>),
   Source(BoxSource),
 }
 
 /// The source map created by [Source::map].
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SourceMap<'a> {
   // Kept to retain data borrowed by `fields`; it is intentionally not read.
   #[allow(dead_code)]
@@ -995,5 +1003,12 @@ mod tests {
       String::from_utf8(writer.into_inner().unwrap()).unwrap(),
       "ab"
     );
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for dyn Source {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    self.allocative_source(visitor);
   }
 }

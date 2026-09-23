@@ -69,6 +69,11 @@ impl DependencyDiagnosticsContext {
 pub trait Dependency:
   AsDependencyCodeGeneration + AsContextDependency + AsModuleDependency + AsAny + Send + Sync + Debug
 {
+  #[cfg(allocative)]
+  fn allocative_dependency(&self, visitor: &mut allocative::Visitor<'_>) {
+    visitor.enter_self(self).exit();
+  }
+
   fn id(&self) -> &DependencyId;
 
   fn category(&self) -> &DependencyCategory {
@@ -423,5 +428,25 @@ where
     let arc = unsafe { TriompheArc::from_raw(raw) };
     let _ = TriompheArc::into_raw(arc.clone());
     Ok(DependencyRef(arc))
+  }
+}
+
+#[cfg(allocative)]
+use rspack_util::allocative;
+
+#[cfg(allocative)]
+impl allocative::Allocative for dyn Dependency {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    self.allocative_dependency(visitor);
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for DependencyRef {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("0"), &self.0);
+
+    visitor.exit();
   }
 }

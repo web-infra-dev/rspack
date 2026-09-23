@@ -15,6 +15,7 @@ cacheable = ["dep:rspack_cacheable"]
 default   = ["cacheable"]
 
 [dependencies]
+allocative = { workspace = true, optional = true }
 camino           = { workspace = true }
 dashmap          = { workspace = true }
 indexmap         = { workspace = true }

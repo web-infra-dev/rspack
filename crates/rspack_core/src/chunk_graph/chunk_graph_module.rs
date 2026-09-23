@@ -81,6 +81,7 @@ impl rspack_hash::RspackHash for ModuleId {
 }
 
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkGraphModule {
   pub(super) entry_in_chunks: FxHashSet<ChunkUkey>,
   pub chunks: SsoHashSet<ChunkUkey>,
@@ -434,3 +435,6 @@ impl ChunkGraph {
       )
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;
