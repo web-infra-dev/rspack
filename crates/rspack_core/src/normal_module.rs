@@ -98,9 +98,11 @@ pub struct NormalModule {
   /// Context of this module
   context: Box<Context>,
   /// Request with loaders from config
-  request: String,
+  /// Omitted when identical to the interned module identifier.
+  request: Option<String>,
   /// Request intended by user (without loaders from config)
-  user_request: String,
+  /// Omitted when identical to the resolved resource.
+  user_request: Option<String>,
   /// Request without resolving
   raw_request: String,
   /// The resolved module type of a module
@@ -110,7 +112,7 @@ pub struct NormalModule {
   /// Affiliated parser and generator to the module type
   parser_and_generator: Box<dyn ParserAndGenerator>,
   /// Resource matched with inline match resource, (`!=!` syntax)
-  match_resource: Option<ResourceData>,
+  match_resource: Option<Box<ResourceData>>,
   /// Resource data (path, query, fragment etc.)
   resource_data: Arc<ResourceData>,
   /// Loaders for the module
@@ -196,13 +198,17 @@ impl NormalModule {
     import_phase: ImportPhase,
   ) -> Self {
     let module_type = module_type.into();
-    let id = Self::create_id(&module_type, layer.as_ref(), &request, import_phase);
+    let id = ModuleIdentifier::from(
+      Self::create_id(&module_type, layer.as_ref(), &request, import_phase).as_ref(),
+    );
+    let request = (request != id.as_str()).then_some(request);
+    let user_request = (user_request != resource_data.resource()).then_some(user_request);
     let build_info = BuildInfo {
       import_phase,
       ..Default::default()
     };
     Self {
-      id: ModuleIdentifier::from(id.as_ref()),
+      id,
       context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
       request,
       user_request,
@@ -211,7 +217,7 @@ impl NormalModule {
       layer,
       parser_and_generator,
       parser_and_generator_options,
-      match_resource,
+      match_resource: match_resource.map(Box::new),
       resource_data,
       resolve_options,
       loaders,
@@ -242,10 +248,10 @@ impl NormalModule {
   }
 
   pub fn match_resource(&self) -> Option<&ResourceData> {
-    self.match_resource.as_ref()
+    self.match_resource.as_deref()
   }
 
-  pub fn match_resource_mut(&mut self) -> &mut Option<ResourceData> {
+  pub fn match_resource_mut(&mut self) -> &mut Option<Box<ResourceData>> {
     &mut self.match_resource
   }
 
@@ -254,11 +260,14 @@ impl NormalModule {
   }
 
   pub fn request(&self) -> &str {
-    &self.request
+    self.request.as_deref().unwrap_or_else(|| self.id.as_str())
   }
 
   pub fn user_request(&self) -> &str {
-    &self.user_request
+    self
+      .user_request
+      .as_deref()
+      .unwrap_or_else(|| self.resource_data.resource())
   }
 
   pub fn raw_request(&self) -> &str {
@@ -380,7 +389,7 @@ impl Module for NormalModule {
   }
 
   fn readable_identifier(&self, context: &Context) -> Cow<'_, str> {
-    Cow::Owned(context.shorten(&self.user_request))
+    Cow::Owned(context.shorten(self.user_request()))
   }
 
   fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
@@ -472,7 +481,7 @@ impl Module for NormalModule {
     self.parsed = true;
 
     let no_parse = if let Some(no_parse) = build_context.compiler_options.module.no_parse.as_ref() {
-      no_parse.try_match(self.request.as_str()).await?
+      no_parse.try_match(self.request()).await?
     } else {
       false
     };
@@ -602,8 +611,11 @@ impl Module for NormalModule {
         module_generator_options: self.parser_and_generator_options.generator_options(),
         module_type: &self.module_type,
         module_layer: self.layer.as_ref(),
-        module_user_request: &self.user_request,
-        module_match_resource: self.match_resource.as_ref(),
+        module_user_request: self
+          .user_request
+          .as_deref()
+          .unwrap_or_else(|| self.resource_data.resource()),
+        module_match_resource: self.match_resource.as_deref(),
         module_source_map_kind: self.source_map_kind,
         loaders: &self.loaders,
         resource_data: &self.resource_data,
@@ -687,7 +699,7 @@ impl Module for NormalModule {
     let Some(source) = &self.source else {
       return Err(error!(
         "Failed to generate code because ast or source is not set for module {}",
-        self.request
+        self.request()
       ));
     };
 

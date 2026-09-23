@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { MessageChannel } from 'node:worker_threads';
 import type { Tinypool } from 'tinypool' with { 'resolution-mode': 'import' };
 
 const require = createRequire(import.meta.url);
@@ -334,8 +335,7 @@ export const run = async (
   },
   workerOptions?: { maxWorkers?: number },
 ) =>
-  ensureLoaderWorkerPool(workerOptions).then(async (pool) => {
-    const { MessageChannel } = await import('node:worker_threads');
+  ensureLoaderWorkerPool(workerOptions).then((pool) => {
     const { port1: mainPort, port2: workerPort } = new MessageChannel();
     // Synchronous requests share the regular request channel to preserve message
     // ordering. This channel only carries their responses back to workers.
