@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 use concat_string::concat_string;
 use regex::Regex;
@@ -22,7 +22,7 @@ pub struct URLDependency {
   request: Atom,
   range: DependencyRange,
   range_url: DependencyRange,
-  used_by_exports: Option<UsedByExports>,
+  used_by_exports: Option<Arc<UsedByExports>>,
   mode: Option<JavascriptParserUrl>,
 }
 
@@ -43,12 +43,12 @@ impl URLDependency {
     }
   }
 
-  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<Arc<UsedByExports>>) {
     self.used_by_exports = used_by_exports;
   }
 
   pub fn used_by_exports(&self) -> Option<&UsedByExports> {
-    self.used_by_exports.as_ref()
+    self.used_by_exports.as_deref()
   }
 
   /// Replace the arguments of `new URL(request, import.meta.url)` with the given
@@ -216,7 +216,7 @@ impl DependencyConditionFn for URLDependencyCondition {
       runtime,
       module_graph,
       exports_info_artifact,
-      dependency.used_by_exports.as_ref(),
+      dependency.used_by_exports.as_deref(),
     ))
   }
 }
