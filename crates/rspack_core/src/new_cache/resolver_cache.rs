@@ -6,8 +6,9 @@ use std::{
 };
 
 use rspack_cacheable::cacheable;
-use rspack_util::time::current_time;
+use rspack_util::{fx_hash::FxDashMap, time::current_time};
 use rustc_hash::FxHasher;
+use tokio::sync::Mutex;
 
 use super::{CacheFacade, CacheValue, FileSystemInfo, Snapshot, SnapshotValidationResult};
 use crate::{
@@ -22,13 +23,14 @@ struct CachedResolution {
   snapshot: Snapshot,
 }
 
-/// Cloning shares cache, filesystem-info and statistics handles within one compilation.
+/// Cloning shares cache, filesystem-info, request locks and statistics within one compilation.
 #[derive(Debug, Clone)]
 pub struct ResolverCache {
   cache: CacheFacade,
   file_system_info: FileSystemInfo,
   strategy: SnapshotStrategyOptions,
   counter: Arc<CacheCount>,
+  locks: Arc<FxDashMap<u64, Arc<Mutex<()>>>>,
 }
 
 impl ResolverCache {
@@ -43,6 +45,7 @@ impl ResolverCache {
       file_system_info,
       strategy,
       counter: Arc::new(logger.cache("resolver cache")),
+      locks: Default::default(),
     }
   }
 
@@ -52,6 +55,7 @@ impl ResolverCache {
       file_system_info: self.file_system_info.clone(),
       strategy: self.strategy,
       counter: Arc::clone(&self.counter),
+      locks: Default::default(),
     }
   }
 
@@ -76,9 +80,12 @@ impl ResolverCache {
   {
     let mut hasher = FxHasher::default();
     (options_key, path, request).hash(&mut hasher);
-    let item = self
-      .cache
-      .get_item_cache(&format!("{:016x}", hasher.finish()), None);
+    let key = hasher.finish();
+    // Keep the lock until the result is stored, so waiting requests can hit the cache.
+    // Retain locks for this compilation so queued and new requests share the same lock.
+    let lock = Arc::clone(self.locks.entry(key).or_default().value());
+    let _guard = lock.lock().await;
+    let item = self.cache.get_item_cache(&format!("{key:016x}"), None);
     if let Some(cached) = item.get::<CachedResolution>()
       && matches!(
         self

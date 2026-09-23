@@ -9,7 +9,7 @@
       "total": 85
     },
     "resolver cache": {
-      "hits": 70,
+      "hits": 88,
       "total": 255
     }
   }
