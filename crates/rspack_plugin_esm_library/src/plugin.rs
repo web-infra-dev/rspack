@@ -160,6 +160,27 @@ impl EsmLibraryPlugin {
         should_scope_hoisting = false;
       }
 
+      // Keep deferred imports in module factories so the normal ESM dependency
+      // templates can emit deferred namespace objects. The hoisted linker would
+      // otherwise turn these references into eager bindings or requires.
+      // The wrapped-module propagation below also preserves the factories of
+      // their dependencies, including transitively deferred modules.
+      if should_scope_hoisting
+        && module.get_dependency_ids().any(|id| {
+          let dep = module_graph.dependency_by_id(id);
+          dep.get_phase().is_defer()
+            && matches!(
+              dep.dependency_type(),
+              DependencyType::EsmImport | DependencyType::EsmExportImport
+            )
+        })
+      {
+        logger.debug(format!(
+          "module {module_identifier} contains a deferred esm dependency"
+        ));
+        should_scope_hoisting = false;
+      }
+
       // if we reach here, check exports info
       if should_scope_hoisting {
         let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
