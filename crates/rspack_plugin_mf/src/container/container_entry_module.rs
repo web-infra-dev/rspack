@@ -63,6 +63,9 @@ impl ContainerEntryModule {
       identifier: ModuleIdentifier::from(format!(
         "container entry {} {}",
         share_scope.identifier_fragment(),
+        // Same `[[key, options]]` payload as webpack's ContainerEntryModule,
+        // which external manifest readers parse; `ExposeOptions::layer` is
+        // serialized only when present.
         json_stringify(&exposes),
       )),
       lib_ident,
@@ -230,9 +233,10 @@ impl Module for ContainerEntryModule {
             .import
             .iter()
             .map(|request| {
-              BoxDependency::new(ContainerExposedDependency::new(
+              BoxDependency::new(ContainerExposedDependency::new_with_layer(
                 name.clone(),
                 request.clone(),
+                options.layer.clone(),
               ))
             })
             .collect(),
