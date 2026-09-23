@@ -1,5 +1,6 @@
-/** @type {import("@rspack/core").Configuration} */
-export default {
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
   externals: [
     'path',
     'foo',
@@ -29,4 +30,4 @@ export default {
   externalsPresets: {
     node: false,
   },
-};
+});
