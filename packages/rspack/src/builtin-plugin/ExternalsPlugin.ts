@@ -70,7 +70,6 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 
     if (typeof item === 'function') {
       const processResolveResult = this.#processResolveResult;
-      const processRequest = this.#processRequest;
 
       return async (ctx: RawExternalItemFnCtx) => {
         return new Promise((resolve, reject) => {
@@ -88,47 +87,39 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
                 const rawResolve = options ? getRawResolve(options) : undefined;
                 const resolve = ctx.getResolve(rawResolve);
 
-                function resolveFunction(
-                  context: string,
-                  request: string,
-                  callback: ResolveCallback,
-                ): void;
-                function resolveFunction(
-                  context: string,
-                  request: string,
-                ): Promise<string | undefined>;
-                function resolveFunction(
+                return (
                   context: string,
                   request: string,
                   callback?: ResolveCallback,
-                ): void | Promise<string | undefined> {
+                ) => {
                   if (callback) {
                     resolve(context, request, (error, text) => {
                       if (error) {
                         callback(error);
                       } else {
                         const req = processResolveResult(text);
-                        callback(null, req ? processRequest(req) : false, req);
+                        callback(
+                          null,
+                          req ? this.#processRequest(req) : false,
+                          req,
+                        );
                       }
                     });
                   } else {
-                    return new Promise<string | undefined>(
-                      (promiseResolve, promiseReject) => {
-                        resolve(context, request, (error, text) => {
-                          if (error) {
-                            promiseReject(error);
-                          } else {
-                            const req = processResolveResult(text);
-                            promiseResolve(
-                              req ? processRequest(req) : undefined,
-                            );
-                          }
-                        });
-                      },
-                    );
+                    return new Promise((promiseResolve, promiseReject) => {
+                      resolve(context, request, (error, text) => {
+                        if (error) {
+                          promiseReject(error);
+                        } else {
+                          const req = processResolveResult(text);
+                          promiseResolve(
+                            req ? this.#processRequest(req) : undefined,
+                          );
+                        }
+                      });
+                    });
                   }
-                }
-                return resolveFunction;
+                };
               },
             },
             (err, result, type) => {

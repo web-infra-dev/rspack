@@ -33,8 +33,7 @@ export interface ResolveRequest {
   path: string;
   query: string;
   fragment: string;
-  /** Parsed contents of the package description file, when available. */
-  descriptionFileData?: JsonObjectTypes | null;
+  descriptionFileData?: string;
   descriptionFilePath?: string;
   fileDependencies?: string[];
   missingDependencies?: string[];
