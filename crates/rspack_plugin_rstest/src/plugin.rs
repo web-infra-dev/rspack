@@ -192,6 +192,11 @@ impl RstestPlugin {
       || data
         .dependencies
         .first()
+        .and_then(|dep| dep.downcast_ref::<MockModuleIdDependency>())
+        .is_some_and(MockModuleIdDependency::has_missing_module_fallback)
+      || data
+        .dependencies
+        .first()
         .and_then(|dep| dep.downcast_ref::<RstestImportDependency>())
         .and_then(|dep| dep.get_attributes())
         .and_then(|attrs| attrs.get("rstest"))
@@ -248,16 +253,18 @@ impl RstestPlugin {
     };
     let resolver = data.build_context.resolver_factory.get(dep);
 
-    // `importMock` already carries the absolute manual mock target as its
-    // dependency request. Resolve that path directly so a missing manual mock
-    // can fall through to the runtime registry without manufacturing another
+    let is_direct_manual_mock_target = data.dependencies.first().is_some_and(|dep| {
+      dep.downcast_ref::<RstestImportDependency>().is_some()
+        || dep
+          .downcast_ref::<MockModuleIdDependency>()
+          .is_some_and(MockModuleIdDependency::has_missing_module_fallback)
+    }) && !data.request.starts_with(MOCK_TARGET_REQUEST_PREFIX);
+
+    // These dependencies already carry their manual mock target as the
+    // dependency request. Resolve it directly so a missing manual mock can
+    // fall through to the runtime registry without manufacturing another
     // `__mocks__` path from the original request.
-    if data
-      .dependencies
-      .first()
-      .and_then(|dep| dep.downcast_ref::<RstestImportDependency>())
-      .is_some()
-    {
+    if is_direct_manual_mock_target {
       let (result, dependencies) = resolver
         .resolve_with_context(data.context.as_ref(), &data.request)
         .await;

@@ -617,6 +617,35 @@ impl RstestParserPlugin {
             return Some(true);
           } else {
             let first_arg_range = first_arg.span().into();
+            if self.options.update_require_mock_api {
+              let resource_path = parser.resource_data.path()?;
+              let request = lit.value.to_string_lossy().to_string();
+              let suffix = format!(
+                ", {}, {}",
+                json_stringify_str(&request),
+                json_stringify_str(resource_path.as_str()),
+              );
+              let dep = MockModuleIdDependency::new(
+                mocked_target.to_string(),
+                first_arg_range,
+                false,
+                true,
+                rspack_core::DependencyCategory::CommonJS,
+                Some(suffix),
+              )
+              .with_missing_module_fallback("null".to_string());
+              parser.add_dependency(BoxDependency::new(dep));
+              parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+                call_expr.callee.span().into(),
+                format!(
+                  "{}.rstest_require_mock",
+                  parser.parser_runtime_requirements.require
+                )
+                .into(),
+              )));
+              return Some(true);
+            }
+
             let loc = parser.to_dependency_location(first_arg_range);
             let dep: CommonJsRequireDependency = CommonJsRequireDependency::new(
               mocked_target.to_string(),
