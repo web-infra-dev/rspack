@@ -12,7 +12,6 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray};
 use rspack_plugin_javascript::{RawMagicComment, try_extract_magic_comment_from_comments};
-use rspack_util::fx_hash::FxIndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 
@@ -20,8 +19,9 @@ use super::is_css_module;
 use crate::{
   css_syntax::{normalize_url, unescape_identifier},
   dependency::{
-    CssComposeDependency, CssExportDependency, CssImportDependency, CssLocalIdentDependency,
-    CssSelfReferenceLocalIdentDependency, CssSelfReferenceLocalIdentReplacement, CssUrlDependency,
+    CssComposeDependency, CssExportDependency, CssIcssSymbolDependency, CssImportDependency,
+    CssLocalIdentDependency, CssSelfReferenceLocalIdentDependency,
+    CssSelfReferenceLocalIdentReplacement, CssUrlDependency,
   },
   parser_and_generator::generator::update_css_exports,
   utils::{
@@ -45,7 +45,6 @@ pub(super) struct CssModuleParser<'context> {
   code_generation_dependencies: Vec<DependencyId>,
   css_exports: CssExports,
   css_local_names: CssLocalNames,
-  icss_symbols: FxIndexMap<CssExport, Vec<DependencyRange>>,
   icss_definitions: FxHashMap<String, IcssDefinition>,
   current_icss_import_from: Option<String>,
   composes_order: ComposesOrderState,
@@ -280,7 +279,6 @@ impl<'context> CssModuleParser<'context> {
       code_generation_dependencies: vec![],
       css_exports: Default::default(),
       css_local_names: Default::default(),
-      icss_symbols: Default::default(),
       icss_definitions: Default::default(),
       current_icss_import_from: None,
       composes_order: Default::default(),
@@ -325,7 +323,6 @@ impl<'context> CssModuleParser<'context> {
     let css_build_info = self.parse_context.build_info.css.get_or_insert_default();
     css_build_info.exports = self.css_exports;
     css_build_info.local_names = self.css_local_names;
-    css_build_info.icss_symbols = self.icss_symbols;
     css_build_info.has_charset = self.has_charset;
 
     Ok(
@@ -1678,12 +1675,12 @@ impl<'context> CssModuleParser<'context> {
     let Some(definition) = self.icss_definitions.get(name).cloned() else {
       return;
     };
-    let value = Self::css_export_from_icss_definition("", &definition);
     self
-      .icss_symbols
-      .entry(value)
-      .or_default()
-      .push((range.start, range.end).into());
+      .dependencies
+      .push(BoxDependency::new(CssIcssSymbolDependency::new(
+        Self::css_export_from_icss_definition(name, &definition),
+        (range.start, range.end).into(),
+      )));
   }
 
   fn resolve_icss_definition(&self, value: &str) -> IcssDefinition {

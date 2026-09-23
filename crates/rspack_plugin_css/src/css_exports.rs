@@ -14,7 +14,7 @@ use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 
-use crate::utils::replace_css_module_id_placeholder;
+use crate::{dependency::CssIcssSymbolDependency, utils::replace_css_module_id_placeholder};
 
 #[cacheable]
 #[derive(Debug, Default)]
@@ -33,13 +33,11 @@ pub(crate) fn hash_icss_imports(
   module: &dyn Module,
   hasher: &mut RspackHasher,
 ) {
-  let build_info = module.build_info();
-  let Some(css) = build_info.css.as_deref() else {
-    return;
-  };
-  let mut pending = css
-    .icss_symbols
-    .keys()
+  let mut pending = module
+    .get_dependencies()
+    .iter()
+    .filter_map(|dependency| dependency.downcast_ref::<CssIcssSymbolDependency>())
+    .map(CssIcssSymbolDependency::value)
     .filter_map(|value| {
       find_css_export_target(
         compilation,

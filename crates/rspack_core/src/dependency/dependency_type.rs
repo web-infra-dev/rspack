@@ -67,6 +67,8 @@ pub enum DependencyType {
   CssCompose,
   // css :export
   CssExport,
+  // css icss symbol
+  CssIcssSymbol,
   // css modules local ident
   CssLocalIdent,
   // css modules self reference
@@ -182,6 +184,7 @@ impl DependencyType {
       DependencyType::CssImport => "css import",
       DependencyType::CssCompose => "css compose",
       DependencyType::CssExport => "css export",
+      DependencyType::CssIcssSymbol => "css icss symbol",
       DependencyType::CssLocalIdent => "css local ident",
       DependencyType::CssSelfReferenceLocalIdent => "css self reference local ident",
       DependencyType::ContextElement(type_prefix) => match type_prefix {

@@ -304,31 +304,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
     self.generate_context.concatenation_scope = context.concatenation_scope.take();
 
-    // Parsing groups occurrences by value. Resolve each group once and reuse
-    // that value at every source location.
-    for (value, ranges) in &self.css_build_info.icss_symbols {
-      let resolved = match &value.from {
-        Some(request) => {
-          find_css_export_target(compilation, self.module, request, value.id.as_ref()).and_then(
-            |target| {
-              resolve_css_export(
-                compilation,
-                target,
-                &value.ident,
-                self.generate_context.data,
-              )
-            },
-          )
-        }
-        None => Some(value.ident.to_string()),
-      };
-      if let Some(resolved) = resolved {
-        for range in ranges {
-          source.replace(range.start, range.end, resolved.clone(), None);
-        }
-      }
-    }
-
     source.boxed()
   }
 

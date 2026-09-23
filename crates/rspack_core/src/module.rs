@@ -32,9 +32,9 @@ use crate::{
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
   CompilationAssets, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependenciesBlockData,
-  DependencyCodeGenerationRef, DependencyId, DependencyRange, DependencyRef, ExportProvided,
-  ExportsInfoArtifact, ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase,
-  ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
+  DependencyCodeGenerationRef, DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact,
+  ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
   OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
   SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
@@ -239,10 +239,6 @@ pub struct CssBuildInfo {
   pub css_import_dependency: bool,
   #[cacheable(with=AsMap<AsPreset, AsVec>)]
   pub exports: CssExports,
-  /// ICSS values and all their source occurrences, grouped during parsing so
-  /// code generation resolves each value once before applying replacements.
-  #[cacheable(with=AsMap)]
-  pub icss_symbols: FxIndexMap<CssExport, Vec<DependencyRange>>,
   #[cacheable(with=AsMap<AsPreset, AsPreset>)]
   pub local_names: CssLocalNames,
   /// Conditions inherited from parent CSS modules.
