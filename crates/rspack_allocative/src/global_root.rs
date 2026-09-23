@@ -30,25 +30,3 @@ pub(crate) fn roots() -> Vec<&'static (dyn Allocative + Sync + 'static)> {
     .expect("global root registration lock must not be poisoned")
     .clone()
 }
-
-#[cfg(test)]
-mod tests {
-  use crate as allocative;
-  use crate::{Allocative, FlameGraphBuilder};
-
-  #[derive(Allocative)]
-  struct TestGlobalRoot {
-    x: u32,
-  }
-
-  #[allocative::root]
-  static TEST_GLOBAL_ROOT: TestGlobalRoot = TestGlobalRoot { x: 17 };
-
-  #[test]
-  fn test_derive() {
-    let mut fg = FlameGraphBuilder::default();
-    fg.visit_global_roots();
-    let fg = fg.finish_and_write_flame_graph();
-    assert!(fg.contains("TestGlobalRoot;x;u32 4"), "{}", fg);
-  }
-}

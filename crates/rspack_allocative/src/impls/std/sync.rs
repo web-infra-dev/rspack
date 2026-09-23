@@ -223,25 +223,3 @@ impl<T: Allocative + ?Sized> Allocative for Mutex<T> {
     visitor.exit();
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use std::sync::Arc;
-
-  use crate as allocative;
-  use crate::{Allocative, golden::golden_test};
-
-  #[derive(Allocative)]
-  #[repr(align(64))]
-  struct CacheLine(u8);
-
-  #[test]
-  fn test_arc_align() {
-    assert_eq!(std::mem::size_of::<CacheLine>(), 64);
-
-    // ArcInner has two usizes, and then a 64-byte-aligned CacheLine
-    // in repr(C) order. So it should have a self size of 64 including
-    // padding.
-    golden_test!(&Arc::new(CacheLine(0)));
-  }
-}

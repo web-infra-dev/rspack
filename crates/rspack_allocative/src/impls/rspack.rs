@@ -156,17 +156,17 @@ impl<T: Allocative, S> Allocative for hashlink::LinkedHashSet<T, S> {
     visitor.exit();
   }
 }
-impl Allocative for swc_common::SyntaxContext {
+impl Allocative for swc_core::common::SyntaxContext {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     visitor.enter_self(self).exit();
   }
 }
-impl Allocative for swc_common::Span {
+impl Allocative for swc_core::common::Span {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     visitor.enter_self(self).exit();
   }
 }
-impl Allocative for swc_ecma_ast::Ident {
+impl Allocative for swc_core::ecma::ast::Ident {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);
     visitor.visit_field(Key::new("span"), &self.span);
@@ -197,12 +197,12 @@ fn visit_atom_bytes<T>(value: &T, text: &[u8], visitor: &mut Visitor<'_>) {
   }
   visitor.exit();
 }
-impl Allocative for swc_atoms::Atom {
+impl Allocative for swc_core::atoms::Atom {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     visit_atom_bytes(self, self.as_bytes(), visitor);
   }
 }
-impl Allocative for swc_atoms::Wtf8Atom {
+impl Allocative for swc_core::atoms::Wtf8Atom {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     visit_atom_bytes(self, self.as_bytes(), visitor);
   }

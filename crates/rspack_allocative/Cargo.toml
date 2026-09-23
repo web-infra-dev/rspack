@@ -1,183 +1,50 @@
 [package]
-authors       = ["Meta"]
-autobenches   = false
-autobins      = false
-autoexamples  = false
-autolib       = false
-autotests     = false
-build         = "build.rs"
-description   = "Inspect rust object tree and output it as flamegraph"
-documentation = "https://docs.rs/allocative"
-edition       = "2024"
-license       = "MIT OR Apache-2.0"
-name          = "rspack-allocative"
-readme        = false
-repository    = "https://github.com/facebookexperimental/allocative"
-resolver      = "2"
-version       = "0.3.5"
+authors           = ["Meta"]
+description       = "Inspect Rspack object ownership and memory usage"
+edition.workspace = true
+license           = "MIT OR Apache-2.0"
+name              = "rspack-allocative"
+publish           = false
+repository        = "https://github.com/facebookexperimental/allocative"
+version           = "0.3.5"
 
 [lib]
 # Workspace regression cases live in rspack_allocative_testing.
 doctest = false
-name    = "rspack_allocative"
-path    = "src/lib.rs"
 test    = false
-
-[dependencies.allocative_derive]
-package = "rspack-allocative_derive"
-version = "=0.3.3"
-
-[dependencies.anyhow]
-optional = true
-version  = "1.0.65"
-
-[dependencies.atomic_refcell]
-optional = true
-version  = "0.1"
-
-[dependencies.bumpalo]
-optional = true
-version  = "3.11.1"
-
-[dependencies.camino]
-optional = true
-version  = "1"
-
-[dependencies.compact_str]
-optional = true
-version  = "0.8"
-
-[dependencies.ctor]
-version = "0.1.26"
-
-[dependencies.dashmap]
-optional = true
-version  = "6"
-
-[dependencies.either]
-optional = true
-version  = "1.8"
-
-[dependencies.futures]
-optional = true
-version  = "0.3.24"
-
-[dependencies.hashbrown]
-features = ["raw"]
-optional = true
-version  = "0.14.5"
-
-[dependencies.indexmap]
-optional = true
-version  = "2.2.6"
-
-[dependencies.num-bigint]
-optional = true
-version  = "0.4.3"
-
-[dependencies.once_cell]
-optional = true
-version  = "1.15.0"
-
-[dependencies.parking_lot]
-optional = true
-version  = "0.12.5"
-
-[dependencies.prost-types]
-optional = true
-version  = "0.13.4"
-
-[dependencies.relative-path]
-optional = true
-version  = "1.7.0"
 
 [features]
 serde_json = []
 
-[dependencies.serde_json]
-version = "1.0.48"
+[dependencies]
+allocative_derive = { package = "rspack-allocative_derive", version = "=0.3.3" }
+arc-swap          = { workspace = true }
+atomic_refcell    = { workspace = true, optional = true }
+camino            = { workspace = true, optional = true }
+ctor              = "0.1.26"
+dashmap           = { workspace = true, optional = true }
+either            = { workspace = true, optional = true }
+fixedbitset       = { workspace = true }
+halfbrown         = { version = "0.4.0", default-features = false }
+hashlink          = { workspace = true }
+hstr              = { workspace = true }
+indexmap          = { workspace = true, optional = true, features = ["std"] }
+json              = { workspace = true }
+napi              = { workspace = true, optional = true, features = ["napi4"] }
+once_cell         = { workspace = true, optional = true, features = ["std"] }
+parking_lot       = { workspace = true, optional = true }
+pnp               = { workspace = true, optional = true }
+rustc-hash        = { workspace = true, features = ["std"] }
+serde_json        = { workspace = true }
+simd-json         = { workspace = true }
+smallvec          = { workspace = true, optional = true }
+smol_str          = { workspace = true }
+swc_config        = { workspace = true }
+swc_core          = { workspace = true, features = ["__common", "ecma_ast"] }
+swc_ecma_minifier = { workspace = true }
+tokio             = { workspace = true, optional = true, features = ["sync"] }
+triomphe          = { workspace = true, optional = true }
+ustr              = { workspace = true, optional = true }
 
-[dependencies.slab]
-optional = true
-version  = "0.4.7"
-
-[dependencies.smallvec]
-optional = true
-version  = "1.10.0"
-
-[dependencies.sorted_vector_map]
-optional = true
-version  = "0.2"
-
-[dependencies.tokio]
-features = ["sync"]
-optional = true
-version  = "1.5"
-
-[dependencies.triomphe]
-optional = true
-version  = "0.1.8"
-
-[dependencies.ustr]
-optional = true
-package  = "ustr-fxhash"
-version  = "1"
-
-[dev-dependencies.inferno]
-default-features = false
-version          = "0.11.11"
-
-[lints.rust.unexpected_cfgs]
-check-cfg = ["cfg(rust_nightly)"]
-level     = "warn"
-priority  = 0
-
-[dependencies.smol_str]
-version = "0.3.6"
-
-[dependencies.hstr]
-version = "4.0.1"
-
-[dependencies.fixedbitset]
-version = "0.5.7"
-
-[dependencies.hashlink]
-version = "0.11.0"
-
-[dependencies.arc-swap]
-version = "1.9.1"
-
-[dependencies.json]
-version = "0.12.4"
-
-[dependencies.simd-json]
-default-features = false
-version          = "0.17.3"
-
-[dependencies.halfbrown]
-default-features = false
-version          = "0.4.0"
-
-[dependencies.swc_atoms]
-version = "10.0.0"
-
-[dependencies.swc_common]
-version = "26.0.0"
-
-[dependencies.swc_ecma_ast]
-version = "29.0.1"
-
-[dependencies.swc_config]
-version = "6.0.0"
-
-[dependencies.swc_ecma_minifier]
-default-features = false
-version          = "=61.0.7"
-
-[dependencies.napi]
-optional  = true
-workspace = true
-
-[dependencies.pnp]
-optional  = true
+[lints]
 workspace = true

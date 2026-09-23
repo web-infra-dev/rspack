@@ -14,10 +14,7 @@
 //! object traversal and size introspection.
 //!
 //! An object implementing [`Allocative`] trait is introspectable, and this crate
-//! provides two utilities to work with such objects:
-//! * [`FlameGraphBuilder`] to build a flame graph of object tree
-//! * [`size_of_unique_allocated_data`] provides estimation
-//!   of how much allocated memory the value holds
+//! provides [`FlameGraphBuilder`] to build a flame graph of the object tree.
 //!
 //! ## Allocative overhead
 //!
@@ -36,26 +33,20 @@
 //! * Allocative flamegraph shows object by object tree, not by call stack
 //! * Allocative shows gaps in allocated memory,
 //!   e.g. spare capacity of collections or too large padding in structs or enums
-//! * Allocative allows profiling non-malloc allocations (for example, allocations within [bumpalo])
 //! * Allocative allows profiling of memory for subset of the process data
 //!   (for example, measure the size of RPC response before serialization)
-//!
-//! [bumpalo]: https://github.com/fitzgen/bumpalo
 
 #![cfg_attr(rust_nightly, feature(const_type_name))]
 #![cfg_attr(rust_nightly, feature(never_type))]
+#![cfg_attr(rust_unstable_lazy_get, feature(lazy_get))]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![allow(clippy::empty_enums)]
 
 mod allocative_trait;
 mod flamegraph;
 mod global_root;
-pub(crate) mod golden;
 mod impls;
 mod key;
-mod rc_str;
-mod size_of;
-mod test_derive;
 mod visitor;
 
 pub use allocative_derive::{Allocative, root};
@@ -65,7 +56,6 @@ pub use crate::{
   flamegraph::{FlameGraph, FlameGraphBuilder},
   global_root::register_root,
   key::Key,
-  size_of::{size_of_unique, size_of_unique_allocated_data},
   visitor::Visitor,
 };
 
@@ -104,11 +94,6 @@ macro_rules! ident_key {
     const KEY: $crate::Key = $crate::Key::new(stringify!($name));
     KEY
   }};
-}
-
-#[test]
-fn ident_key() {
-  assert_eq!(ident_key!(foo), Key::new("foo"));
 }
 
 /// Explicit adapter for external state whose owned fields cannot be inspected.

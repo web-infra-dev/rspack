@@ -9,11 +9,13 @@
  */
 
 use std::{
-  collections::{HashMap, HashSet, hash_map},
+  collections::hash_map,
   fmt::Write as _,
   mem,
   ops::{Index, IndexMut},
 };
+
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   Allocative,
@@ -27,7 +29,7 @@ use crate::{
 /// Can be written to flamegraph format with [`write`](FlameGraph::write).
 #[derive(Debug, Default, Clone)]
 pub struct FlameGraph {
-  children: HashMap<Key, FlameGraph>,
+  children: FxHashMap<Key, FlameGraph>,
   /// Total size of all children, cached.
   children_size: usize,
   /// Node size excluding children.
@@ -75,7 +77,7 @@ impl FlameGraph {
       }
     }
     let mut stack = stack.to_vec();
-    let mut children = Vec::from_iter(self.children.iter());
+    let mut children = self.children.iter().collect::<Vec<_>>();
     children.sort_by_key(|(key, _)| *key);
     for (key, child) in children {
       stack.push(key);
@@ -124,7 +126,7 @@ struct TreeData {
   /// Whether this node is `Box` something.
   unique: bool,
   /// Child nodes.
-  children: HashMap<Key, TreeId>,
+  children: FxHashMap<Key, TreeId>,
 }
 
 impl TreeData {
@@ -310,7 +312,7 @@ pub struct FlameGraphBuilder {
   shared_under_first_owner: bool,
   opaque: std::collections::BTreeSet<&'static str>,
   /// Visited shared pointers.
-  visited_shared: HashSet<VisitedSharedPointer>,
+  visited_shared: FxHashSet<VisitedSharedPointer>,
   /// Tree data storage.
   trees: Trees,
   /// Current node we are processing in `Visitor`.
@@ -334,7 +336,7 @@ impl Default for FlameGraphBuilder {
     let root = trees.new_tree();
     FlameGraphBuilder {
       trees,
-      visited_shared: HashSet::new(),
+      visited_shared: FxHashSet::default(),
       current: TreeStack {
         stack: Vec::new(),
         tree: root,
@@ -518,147 +520,5 @@ impl VisitorImpl for FlameGraphBuilder {
 
   fn exit_root_impl(&mut self) {
     self.exit_impl();
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use crate::{
-    FlameGraph,
-    flamegraph::{FlameGraphBuilder, Tree, Trees},
-    key::Key,
-  };
-
-  #[test]
-  fn test_empty() {
-    let mut fg = FlameGraphBuilder::default();
-    fg.root_visitor().exit();
-    let tree = fg.finish_impl();
-
-    let mut expected_trees = Trees::default();
-    let expected_id = expected_trees.new_tree();
-    let expected = Tree {
-      trees: expected_trees,
-      tree_id: expected_id,
-    };
-
-    assert_eq!(expected, tree);
-    assert_eq!("", tree.to_flame_graph().0.write());
-  }
-
-  #[test]
-  fn test_simple() {
-    let mut fg = FlameGraphBuilder::default();
-    fg.root_visitor().visit_simple(Key::new("a"), 10);
-    let tree = fg.finish_impl();
-
-    let mut expected = Trees::default();
-    let expected_root = expected.new_tree();
-    let expected_child = expected.new_tree();
-    expected[expected_root].size = 0;
-    expected[expected_root].rem_size = -10;
-    expected[expected_root]
-      .children
-      .insert(Key::new("a"), expected_child);
-    expected[expected_child].size = 10;
-    expected[expected_child].rem_size = 10;
-    let expected = Tree {
-      trees: expected,
-      tree_id: expected_root,
-    };
-    assert_eq!(expected, tree);
-    assert_eq!("a 10\n", tree.to_flame_graph().0.write());
-  }
-
-  #[test]
-  fn test_unique() {
-    let mut fg = FlameGraphBuilder::default();
-    let mut visitor = fg.root_visitor();
-    let mut s = visitor.enter(Key::new("Struct"), 10);
-    s.visit_simple(Key::new("a"), 3);
-    let mut un = s.enter_unique(Key::new("p"), 6);
-    un.visit_simple(Key::new("x"), 13);
-    un.exit();
-    s.exit();
-    visitor.exit();
-
-    let tree = fg.finish_impl();
-
-    assert_eq!(
-      "\
-                Struct 1\n\
-                Struct;a 3\n\
-                Struct;p 6\n\
-                Struct;p;x 13\n\
-            ",
-      tree.to_flame_graph().0.write(),
-      "{tree:#?}",
-    );
-  }
-
-  #[test]
-  fn test_shared() {
-    let p = 10;
-
-    let mut fg = FlameGraphBuilder::default();
-    let mut visitor = fg.root_visitor();
-
-    for _ in 0..2 {
-      let mut s = visitor.enter(Key::new("Struct"), 10);
-      s.visit_simple(Key::new("a"), 3);
-      {
-        let sh = s.enter_shared(Key::new("p"), 6, &p as *const i32 as *const ());
-        if let Some(mut sh) = sh {
-          sh.visit_simple(Key::new("Shared"), 13);
-          sh.exit();
-        }
-      }
-      s.exit();
-    }
-
-    visitor.exit();
-
-    let tree = fg.finish_impl();
-
-    assert_eq!(
-      "\
-            Shared 13\n\
-            Struct 2\n\
-            Struct;a 6\n\
-            Struct;p 12\n\
-        ",
-      tree.to_flame_graph().0.write(),
-      "{tree:#?}",
-    );
-  }
-
-  #[test]
-  fn test_inline_children_too_large() {
-    let mut fg = FlameGraphBuilder::default();
-    let mut visitor = fg.root_visitor();
-    let mut child_visitor = visitor.enter(Key::new("a"), 10);
-    child_visitor.visit_simple(Key::new("b"), 13);
-    child_visitor.exit();
-    visitor.exit();
-    let output = fg.finish();
-    assert_eq!("a;b 13\n", output.flamegraph().write());
-    assert_eq!(
-      "Incorrect size declaration for node `a`, size of self: 10, size of inline children: 13\n",
-      output.warnings()
-    );
-  }
-
-  #[test]
-  fn test_flamegraph_add() {
-    let mut a = FlameGraph::default();
-
-    let mut b_1 = FlameGraph::default();
-    b_1.add_self(10);
-
-    let mut b = FlameGraph::default();
-    b.add_child(Key::new("x"), b_1);
-
-    a.add(b);
-    assert_eq!(10, a.total_size());
   }
 }

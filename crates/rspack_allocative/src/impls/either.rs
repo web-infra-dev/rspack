@@ -23,15 +23,3 @@ impl<A: Allocative, B: Allocative> Allocative for Either<A, B> {
     }
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use either::Either;
-
-  use crate::golden::golden_test;
-
-  #[test]
-  fn test_golden() {
-    golden_test!(&Either::<u32, String>::Left(1));
-  }
-}

@@ -101,32 +101,6 @@ impl<T: Allocative + ?Sized> Allocative for Arc<T> {
   }
 }
 
-#[cfg(test)]
-mod tests {
-  use triomphe::Arc;
-
-  use crate::golden::golden_test;
-
-  #[test]
-  fn test_simple() {
-    let arc = Arc::new("abc".to_owned());
-    golden_test!(&arc);
-  }
-
-  #[test]
-  fn test_shared() {
-    let arc = Arc::new("a".repeat(100));
-    let vec = vec![arc.clone(), arc.clone(), arc];
-    golden_test!(&vec);
-  }
-
-  #[test]
-  fn test_align() {
-    let arc = Arc::new(0u8);
-    golden_test!(&arc);
-  }
-}
-
 impl<T: Allocative> Allocative for triomphe::UniqueArc<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);

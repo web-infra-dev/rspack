@@ -159,7 +159,7 @@ impl<'a> Visitor<'a> {
   /// instead.
   ///
   /// Useful if the field type does not implement [`Allocative`].
-  pub fn visit_field_with<'b, 'f, F: for<'c, 'd> FnOnce(&'d mut Visitor<'c>)>(
+  pub fn visit_field_with<'b, F: for<'c, 'd> FnOnce(&'d mut Visitor<'c>)>(
     &'b mut self,
     name: Key,
     field_size: usize,

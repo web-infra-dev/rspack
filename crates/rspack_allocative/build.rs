@@ -9,6 +9,8 @@
  */
 
 fn main() {
+  println!("cargo:rustc-check-cfg=cfg(rust_nightly)");
+  println!("cargo:rustc-check-cfg=cfg(rust_unstable_lazy_get)");
   rust_nightly();
 }
 
@@ -33,5 +35,16 @@ fn rust_nightly() {
   let nightly = stdout.contains("nightly") || stdout.contains("dev");
   if nightly {
     println!("cargo:rustc-cfg=rust_nightly");
+    // Dylint uses an older nightly where LazyLock::get still needs this gate.
+    // Do not enable the gate on newer Rust: stable_features is denied in CI.
+    let minor = stdout
+      .split_whitespace()
+      .nth(1)
+      .and_then(|version| version.split('.').nth(1))
+      .and_then(|minor| minor.parse::<u32>().ok())
+      .expect("rustc version contains a minor version");
+    if minor < 94 {
+      println!("cargo:rustc-cfg=rust_unstable_lazy_get");
+    }
   }
 }

@@ -52,12 +52,12 @@ impl Deref for Key {
 impl Key {
   /// Must be identical to `allocative_derive::hash`.
   const fn hash(s: &str) -> u64 {
-    let mut hash = 0xcbf29ce484222325;
+    let mut hash = 0xcbf2_9ce4_8422_2325;
     let mut i = 0;
     while i < s.len() {
       let b = s.as_bytes()[i];
       hash ^= b as u64;
-      hash = hash.wrapping_mul(0x100000001b3);
+      hash = hash.wrapping_mul(0x0100_0000_01b3);
       i += 1;
     }
     hash

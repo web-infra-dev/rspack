@@ -62,29 +62,3 @@ where
     visitor.exit();
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use std::cell::{OnceCell, RefCell};
-
-  use crate::golden::golden_test;
-
-  #[test]
-  fn test_default() {
-    golden_test!(&RefCell::new("abc".to_owned()))
-  }
-
-  #[test]
-  fn test_borrowed() {
-    let cell = RefCell::new("abc".to_owned());
-    let _lock = cell.borrow_mut();
-    golden_test!(&cell)
-  }
-
-  #[test]
-  fn test_once_cell() {
-    let cell = OnceCell::new();
-    cell.set("abc".to_owned()).unwrap();
-    golden_test!(&cell)
-  }
-}
