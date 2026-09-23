@@ -206,13 +206,14 @@ impl std::fmt::Debug for DependencyCondition {
   }
 }
 
+/// Boxed to keep optional import attributes small in dependency structs.
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Serialize, Default, PartialEq, Eq)]
-pub struct ImportAttributes(FxHashMap<String, String>);
+pub struct ImportAttributes(Box<FxHashMap<String, String>>);
 
 impl FromIterator<(String, String)> for ImportAttributes {
   fn from_iter<T: IntoIterator<Item = (String, String)>>(iter: T) -> Self {
-    Self(FxHashMap::from_iter(iter))
+    Self(Box::new(FxHashMap::from_iter(iter)))
   }
 }
 
