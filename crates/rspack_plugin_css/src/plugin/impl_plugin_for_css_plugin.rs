@@ -26,7 +26,7 @@ use smol_str::SmolStr;
 use crate::{
   CssPlugin,
   dependency::{
-    CssIcssSymbolDependencyTemplate, CssImportDependencyTemplate, CssLocalIdentDependencyTemplate,
+    CssImportDependencyTemplate, CssLocalIdentDependencyTemplate,
     CssSelfReferenceLocalIdentDependencyTemplate, CssUrlDependencyTemplate,
   },
   parser_and_generator::{
@@ -395,10 +395,6 @@ async fn compilation(
   compilation.set_dependency_template(
     CssLocalIdentDependencyTemplate::template_type(),
     Arc::new(CssLocalIdentDependencyTemplate::default()),
-  );
-  compilation.set_dependency_template(
-    CssIcssSymbolDependencyTemplate::template_type(),
-    Arc::new(CssIcssSymbolDependencyTemplate),
   );
   compilation.set_dependency_template(
     CssSelfReferenceLocalIdentDependencyTemplate::template_type(),

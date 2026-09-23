@@ -365,6 +365,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     self.es_module.hash(&mut hasher);
     self.exports_only.hash(&mut hasher);
     self.effective_export_type(module).hash(&mut hasher);
+    crate::css_exports::hash_icss_imports(compilation, module, &mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 

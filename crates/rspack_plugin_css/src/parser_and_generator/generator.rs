@@ -1,10 +1,10 @@
-use std::{borrow::Cow, collections::VecDeque};
+use std::borrow::Cow;
 
 use concat_string::concat_string;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
-  CssModuleRenderCondition, Dependency, DependencyCodeGeneration, DependencyId, DependencyType,
+  CssModuleRenderCondition, DependencyCodeGeneration, DependencyId, DependencyType,
   GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
   RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
   css_module_render_conditions_identifier,
@@ -23,6 +23,9 @@ use rustc_hash::FxHashSet as HashSet;
 use smol_str::SmolStr;
 
 use crate::{
+  css_exports::{
+    dependency_request, expand_self_referencing_exports, find_css_export_target, resolve_css_export,
+  },
   css_syntax::unescape_identifier,
   dependency::CssImportDependency,
   parser_and_generator::{
@@ -43,13 +46,6 @@ pub fn update_css_exports(exports: &mut CssExports, name: &str, css_export: CssE
       .insert(name.into(), FxIndexSet::from_iter([css_export]))
       .is_none()
   }
-}
-
-fn dependency_request(dependency: &dyn Dependency) -> Option<&str> {
-  dependency
-    .as_module_dependency()
-    .map(|dep| dep.request())
-    .or_else(|| dependency.as_context_dependency().map(|dep| dep.request()))
 }
 
 fn render_dependency_template(
@@ -307,6 +303,31 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     };
 
     self.generate_context.concatenation_scope = context.concatenation_scope.take();
+
+    // Parsing groups occurrences by value. Resolve each group once and reuse
+    // that value at every source location.
+    for (value, ranges) in &self.css_build_info.icss_symbols {
+      let resolved = match &value.from {
+        Some(request) => {
+          find_css_export_target(compilation, self.module, request, value.id.as_ref()).and_then(
+            |target| {
+              resolve_css_export(
+                compilation,
+                target,
+                &value.ident,
+                self.generate_context.data,
+              )
+            },
+          )
+        }
+        None => Some(value.ident.to_string()),
+      };
+      if let Some(resolved) = resolved {
+        for range in ranges {
+          source.replace(range.start, range.end, resolved.clone(), None);
+        }
+      }
+    }
 
     source.boxed()
   }
@@ -711,12 +732,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let exports_info = compilation
       .exports_info_artifact
       .get_exports_info_data(&module.identifier());
-    let mut state = CssConcatenationState::new(compilation);
+    let mut used_identifiers = HashSet::default();
 
     if let Some(default_expr) = default_expr {
       let export_info = exports_info.get_read_only_export_info(&Atom::from("default"));
       if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) {
-        self.register_concat_export("default", &default_expr, &used_name, &mut state);
+        self.register_concat_export("default", &default_expr, &used_name, &mut used_identifiers);
       }
     }
 
@@ -728,9 +749,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         _ => Cow::Borrowed(key),
       };
 
-      let elements = self.expand_self_referencing_exports(key, elements);
-      let content = self.render_concat_export_content(elements, &mut state);
-      self.register_concat_export(key, &content, &used_name, &mut state);
+      let elements = expand_self_referencing_exports(compilation, module, key, elements);
+      let content = self.render_concat_export_content(elements);
+      self.register_concat_export(key, &content, &used_name, &mut used_identifiers);
     }
 
     Ok(())
@@ -741,7 +762,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     key: &str,
     content: &str,
     used_name: &str,
-    state: &mut CssConcatenationState<'_>,
+    used_identifiers: &mut HashSet<SmolStr>,
   ) {
     let mut identifier = to_identifier(used_name).into_owned();
     if RESERVED_IDENTIFIER.contains(identifier.as_str()) {
@@ -749,7 +770,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     }
     let base_identifier = identifier.clone();
     let mut i = 0;
-    while state.used_identifiers.contains(&identifier) {
+    while used_identifiers.contains(identifier.as_str()) {
       let mut i_buffer = itoa::Buffer::new();
       let i_str = i_buffer.format(i);
       identifier = concat_string!(base_identifier, i_str);
@@ -758,75 +779,25 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
     let export_source = concat_string!("var ", identifier, " = ", content, ";\n");
     self.concat_source.add(RawStringSource::from(export_source));
-    state.used_identifiers.insert(identifier.clone());
+    used_identifiers.insert(SmolStr::new(&identifier));
     let Some(ref mut scope) = self.generate_context.concatenation_scope else {
       unreachable!();
     };
     scope.register_export(key.into(), identifier);
   }
 
-  fn expand_self_referencing_exports<'b>(
-    &self,
-    name: &str,
-    elements: &'b FxIndexSet<CssExport>,
-  ) -> impl Iterator<Item = &'b CssExport> + use<'b>
-  where
-    'a: 'b,
-  {
-    let compilation = self.generate_context.compilation;
-    let is_self_reference = |export: &CssExport| {
-      export.from.as_deref().is_some_and(|request| {
-        find_static_export_target(compilation, self.module, request, export.id.as_ref())
-          == Some(self.module.identifier())
-      })
-    };
-    let expanded = if elements.iter().any(is_self_reference) {
-      // Only the active path cuts cycles: separate composition branches can
-      // reach the same export and must each retain its class names.
-      let mut active = HashSet::from_iter([name]);
-      let mut pending = vec![(name, elements.iter())];
-      let mut expanded = Vec::new();
-      while let Some((name, exports)) = pending.last_mut() {
-        let Some(export) = exports.next() else {
-          active.remove(*name);
-          pending.pop();
-          continue;
-        };
-        if is_self_reference(export) {
-          if let Some(elements) = self.css_build_info.exports.get(export.ident.as_str())
-            && active.insert(export.ident.as_str())
-          {
-            pending.push((export.ident.as_str(), elements.iter()));
-          }
-        } else {
-          // Keep leaf multiplicity and dependency identity, including external
-          // runtime reads and their module evaluation side effects.
-          expanded.push(export);
-        }
-      }
-      // A pure ICSS cycle has no concrete value. Keep its existing runtime
-      // resolution instead of changing an unresolved export to an empty string.
-      (!expanded.is_empty()).then_some(expanded)
-    } else {
-      None
-    };
-    let use_original = expanded.is_none();
-    expanded
-      .into_iter()
-      .flatten()
-      .chain(elements.iter().filter(move |_| use_original))
-  }
-
   fn render_css_export_content(&mut self, name: &str, elements: &FxIndexSet<CssExport>) -> String {
-    let elements = self.expand_self_referencing_exports(name, elements);
+    let elements = expand_self_referencing_exports(
+      self.generate_context.compilation,
+      self.module,
+      name,
+      elements,
+    );
     let mut content = String::new();
-    for CssExport {
-      ident,
-      from,
-      id,
-      orig_name: _,
-    } in elements
-    {
+    for element in elements {
+      let CssExport {
+        ident, from, id, ..
+      } = element.as_ref();
       let part = match from {
         None => self.render_local_css_export(ident),
         Some(from_name) => self.render_standard_css_reexport(ident, from_name, id.as_ref()),
@@ -849,22 +820,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     id: Option<&DependencyId>,
   ) -> String {
     let compilation = self.generate_context.compilation;
-    let module_graph = compilation.get_module_graph();
-    let find_target_module =
-      |dep_id: &DependencyId| module_graph.get_module_by_dependency_id(dep_id);
-    let from = id
-      .and_then(find_target_module)
-      .or_else(|| {
-        self.module.get_dependencies().iter().find_map(|dependency| {
-          let request = dependency_request(dependency.as_ref());
-          if let Some(request) = request
-            && request == from_name
-          {
-            return find_target_module(dependency.id());
-          }
-          None
-        })
-      })
+    let from = find_css_export_target(compilation, self.module, from_name, id)
       .unwrap_or_else(|| {
         let dependency_requests = self
           .module
@@ -882,41 +838,30 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     self.render_require_property_access(from_identifier, &from_used_name)
   }
 
-  fn render_concat_export_content<'b, 'c>(
+  fn render_concat_export_content<'b>(
     &mut self,
-    elements: impl IntoIterator<Item = &'c CssExport>,
-    state: &mut CssConcatenationState<'b>,
-  ) -> String
-  where
-    'g: 'b,
-  {
+    elements: impl IntoIterator<Item = Cow<'b, CssExport>>,
+  ) -> String {
     let mut content = String::new();
-    for CssExport {
-      ident,
-      from,
-      id,
-      orig_name: _,
-    } in elements
-    {
+    for element in elements {
+      let CssExport {
+        ident, from, id, ..
+      } = element.as_ref();
       let part = match from {
         None => self.render_local_css_export(ident),
-        Some(from_name) => self.render_concat_reexport(ident, from_name, id.as_ref(), state),
+        Some(from_name) => self.render_concat_reexport(ident, from_name, id.as_ref()),
       };
       push_joined(&mut content, &part, " + \" \" + ");
     }
     content
   }
 
-  fn render_concat_reexport<'b>(
+  fn render_concat_reexport(
     &mut self,
     ident: &str,
     from_name: &str,
     id: Option<&DependencyId>,
-    state: &mut CssConcatenationState<'b>,
-  ) -> String
-  where
-    'g: 'b,
-  {
+  ) -> String {
     let compilation = self.generate_context.compilation;
     let module = self.module;
     let module_graph = compilation.get_module_graph();
@@ -992,9 +937,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .source_types(module_graph)
       .contains(&SourceType::JavaScript)
     {
-      let resolved = state
-        .resolve_static_export(from.as_ref(), ident)
-        .expect("should resolve static css export");
+      let resolved = resolve_css_export(
+        compilation,
+        from.as_ref(),
+        ident,
+        self.generate_context.data,
+      )
+      .expect("should resolve static css export");
       json_stringify_str(&resolved)
     } else {
       let from_used_name = self.stringified_used_export_name(from.identifier(), ident, false);
@@ -1067,165 +1016,9 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
   }
 }
 
-struct CssConcatenationState<'a> {
-  compilation: &'a rspack_core::Compilation,
-  used_identifiers: HashSet<String>,
-  seen_static_exports: HashSet<(rspack_core::ModuleIdentifier, SmolStr)>,
-  static_export_queue: VecDeque<StaticCssExportFrame<'a>>,
-}
-
-struct StaticCssExportFrame<'a> {
-  module: &'a dyn Module,
-  css_build_info: rspack_core::FreezeReadGuard<'a, CssBuildInfo>,
-  export_name: SmolStr,
-  next_index: usize,
-  resolved: String,
-}
-
-impl<'a> CssConcatenationState<'a> {
-  fn new(compilation: &'a rspack_core::Compilation) -> Self {
-    Self {
-      compilation,
-      used_identifiers: Default::default(),
-      seen_static_exports: Default::default(),
-      static_export_queue: Default::default(),
-    }
-  }
-
-  fn resolve_static_export(&mut self, module: &'a dyn Module, export_name: &str) -> Option<String> {
-    self.seen_static_exports.clear();
-    self.static_export_queue.clear();
-
-    self.push_static_export_frame(module, export_name)?;
-
-    let module_graph = self.compilation.get_module_graph();
-    while let Some(step) = self.next_static_export_step() {
-      match step {
-        StaticCssExportStep::Complete(resolved) => {
-          if let Some(parent) = self.static_export_queue.back_mut() {
-            if !resolved.is_empty() {
-              push_joined(&mut parent.resolved, &resolved, " ");
-            }
-          } else {
-            return (!resolved.is_empty()).then_some(resolved);
-          }
-        }
-        StaticCssExportStep::Resolve { module, css_export } => match css_export.from.as_deref() {
-          None => {
-            let value =
-              replace_css_module_id_placeholder(&css_export.ident, self.compilation, module);
-            if let Some(frame) = self.static_export_queue.back_mut() {
-              push_joined(&mut frame.resolved, value.as_ref(), " ");
-            }
-          }
-          Some(from_request) => {
-            let Some(target_identifier) = find_static_export_target(
-              self.compilation,
-              module,
-              from_request,
-              css_export.id.as_ref(),
-            ) else {
-              continue;
-            };
-            let Some(target_module) = module_graph.module_by_identifier(&target_identifier) else {
-              continue;
-            };
-            let _ = self.push_static_export_frame(target_module.as_ref(), &css_export.ident);
-          }
-        },
-      }
-    }
-
-    None
-  }
-
-  fn push_static_export_frame(&mut self, module: &'a dyn Module, export_name: &str) -> Option<()> {
-    let css_build_info = module.build_info().map(|info| {
-      info
-        .css
-        .as_deref()
-        .expect("CssParserAndGenerator should populate BuildInfo.css during parse")
-    });
-    css_build_info.exports.get(export_name)?;
-    let module_identifier = module.identifier();
-    if !self
-      .seen_static_exports
-      .insert((module_identifier, export_name.into()))
-    {
-      return None;
-    }
-    self.static_export_queue.push_back(StaticCssExportFrame {
-      module,
-      css_build_info,
-      export_name: export_name.into(),
-      next_index: 0,
-      resolved: String::new(),
-    });
-    Some(())
-  }
-
-  fn next_static_export_step(&mut self) -> Option<StaticCssExportStep<'a>> {
-    let frame = self.static_export_queue.back_mut()?;
-    if let Some(css_export) = frame
-      .css_build_info
-      .exports
-      .get(frame.export_name.as_str())
-      .and_then(|elements| elements.get_index(frame.next_index))
-    {
-      frame.next_index += 1;
-      Some(StaticCssExportStep::Resolve {
-        module: frame.module,
-        // The frame retains the metadata guard while the next step mutates
-        // the queue. Retain just this export's small strings for that step.
-        css_export: css_export.clone(),
-      })
-    } else {
-      Some(StaticCssExportStep::Complete(
-        self
-          .static_export_queue
-          .pop_back()
-          .expect("queue should have current frame")
-          .resolved,
-      ))
-    }
-  }
-}
-
-enum StaticCssExportStep<'a> {
-  Resolve {
-    module: &'a dyn Module,
-    css_export: CssExport,
-  },
-  Complete(String),
-}
-
 fn push_joined(target: &mut String, value: &str, separator: &str) {
   if !target.is_empty() {
     target.push_str(separator);
   }
   target.push_str(value);
-}
-
-fn find_static_export_target(
-  compilation: &rspack_core::Compilation,
-  module: &dyn Module,
-  from_request: &str,
-  id: Option<&DependencyId>,
-) -> Option<rspack_core::ModuleIdentifier> {
-  let module_graph = compilation.get_module_graph();
-  id.and_then(|id| {
-    module_graph
-      .get_module_by_dependency_id(id)
-      .map(|module| module.identifier())
-  })
-  .or_else(|| {
-    module.get_dependencies().iter().find_map(|dependency| {
-      let request = dependency_request(dependency.as_ref());
-      (request == Some(from_request)).then(|| {
-        module_graph
-          .get_module_by_dependency_id(dependency.id())
-          .map(|module| module.identifier())
-      })?
-    })
-  })
 }
