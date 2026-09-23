@@ -1,1 +1,0 @@
-globalThis.URL_ENTRY_TARGET_B_EXECUTED = true;
