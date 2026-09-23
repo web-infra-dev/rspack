@@ -210,12 +210,13 @@ impl EventProcessor {
       return;
     }
 
+    if kind != FsEventKind::Remove {
+      self.path_manager.set_context_entry(path);
+    }
+    self.path_manager.set_last_watch_events(path);
+
     let finder = self.finder();
     let associated_event = finder.find_associated_event(path, kind);
-    // watchpack's `lastWatchEvent`: every registered context the event reached.
-    for (path, _) in &associated_event {
-      self.path_manager.set_last_watch_event(path);
-    }
     self.trigger_events(associated_event);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.

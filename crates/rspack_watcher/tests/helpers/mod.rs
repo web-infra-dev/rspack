@@ -196,6 +196,15 @@ impl TestHelper {
     f();
   }
 
+  pub fn pause(&self) {
+    TOKIO_RUNTIME.block_on(async { self.watcher.read().await.pause().unwrap() });
+  }
+
+  /// watchpack's `aggregatedChanges` / `aggregatedRemovals`, drained.
+  pub fn take_aggregated(&self) -> (FxHashSet<String>, FxHashSet<String>) {
+    TOKIO_RUNTIME.block_on(async { self.watcher.read().await.take_aggregated() })
+  }
+
   /// watchpack's `collectTimeInfoEntries`, as `(fileTimestamps, directoryTimestamps)`.
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
     TOKIO_RUNTIME.block_on(async { self.watcher.read().await.collect_time_info_entries() })

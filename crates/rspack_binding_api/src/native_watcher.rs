@@ -191,6 +191,17 @@ impl NativeWatcher {
     })
   }
 
+  /// watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
+  /// arrived since the last aggregated batch (while paused), drained.
+  #[napi]
+  pub fn take_aggregated(&self) -> NativeWatchResult {
+    let (changed_files, removed_files) = self.watcher.take_aggregated();
+    NativeWatchResult {
+      changed_files: changed_files.into_iter().collect(),
+      removed_files: removed_files.into_iter().collect(),
+    }
+  }
+
   /// watchpack's `collectTimeInfoEntries`, over every registered path.
   #[napi]
   pub fn collect_time_info_entries(&self) -> NativeTimeInfoEntries {

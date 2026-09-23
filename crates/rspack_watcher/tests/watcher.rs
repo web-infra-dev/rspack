@@ -203,6 +203,23 @@ fn wait_for_aggregated(
   assert!(load!(seen) > 0, "no matching aggregated event");
 }
 
+/// [`wait_for_aggregated`] over a borrowed receiver, for tests that wait on
+/// more than one batch.
+fn wait_for_aggregated_ref(
+  rx: &std::sync::mpsc::Receiver<helpers::Event>,
+  matches: impl Fn(&helpers::AggregatedEvent) -> bool,
+) {
+  let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+  loop {
+    let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+    match rx.recv_timeout(remaining) {
+      Ok(helpers::Event::Aggregated(batch)) if matches(&batch) => return,
+      Ok(_) => {}
+      Err(_) => panic!("no matching aggregated event"),
+    }
+  }
+}
+
 /// The safe time of a file's `Entry` or a directory's `OnlySafeTimeEntry`.
 fn safe_time_of(entry: &TimeInfoEntry) -> u64 {
   match entry {
@@ -536,5 +553,150 @@ fn collect_time_info_entries_nulls_a_moved_away_context_and_its_files() {
     *helper.time_info_entry(&directory_timestamps, "ctx"),
     TimeInfoEntry::Null,
     "moved context reads as null"
+  );
+}
+
+/// Events that arrive while the watcher is paused are pending, like
+/// watchpack's `aggregatedChanges`: `take_aggregated` hands them over once and
+/// leaves nothing behind for the next batch.
+#[test]
+fn take_aggregated_drains_the_events_that_arrived_while_paused() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  helper.file("a");
+
+  let rx = watch!(helper, "a");
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+  helper.pause();
+
+  helper.tick(|| helper.file("a"));
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  // Individual `change` events still flow while paused; only aggregation stops.
+  while let Ok(event) = rx.try_recv() {
+    assert!(
+      !matches!(event, helpers::Event::Aggregated(_)),
+      "a paused watcher delivers no aggregated batch"
+    );
+  }
+
+  let (changed, deleted) = helper.take_aggregated();
+  assert!(
+    changed.contains(helper.join("a").as_str()),
+    "the paused-period edit is pending: {changed:?}"
+  );
+  assert!(deleted.is_empty());
+  let (changed, deleted) = helper.take_aggregated();
+  assert!(changed.is_empty() && deleted.is_empty(), "drained");
+}
+
+fn has_time_info_entry(
+  helper: &helpers::TestHelper,
+  entries: &rspack_watcher::TimeInfoEntries,
+  name: &str,
+) -> bool {
+  let path = helper.join(name);
+  entries
+    .iter()
+    .any(|(entry_path, _)| entry_path == path.as_str())
+}
+
+/// Like watchpack's `DirectoryWatcher`, a registered context reports every
+/// file and subdirectory its scan found below it — recursively, minus what the
+/// `ignored` option excludes — and the context's safe time covers them.
+#[test]
+fn collect_time_info_entries_includes_what_a_context_scan_found() {
+  let mut helper = h!(
+    FsWatcherOptions {
+      aggregate_timeout: Some(100),
+      ..Default::default()
+    },
+    rspack_watcher::FsWatcherIgnored::Paths(vec!["**/node_modules/**".to_string()])
+  );
+  std::fs::create_dir_all(helper.join("ctx/sub")).unwrap();
+  std::fs::create_dir_all(helper.join("ctx/node_modules")).unwrap();
+  helper.file("ctx/top");
+  helper.file("ctx/sub/deep");
+  helper.file("ctx/node_modules/dep");
+
+  let _rx = helper.watch(e!(), f!("ctx"), e!());
+  let (file_timestamps, directory_timestamps) = helper.collect_time_info_entries();
+
+  for name in ["ctx/top", "ctx/sub/deep"] {
+    let entry = helper.time_info_entry(&file_timestamps, name);
+    assert!(
+      matches!(entry, TimeInfoEntry::Entry { .. }),
+      "{name} found by the scan is an Entry: {entry:?}"
+    );
+  }
+  assert_eq!(
+    *helper.time_info_entry(&file_timestamps, "ctx/sub"),
+    TimeInfoEntry::ExistenceOnlyTimeEntry,
+    "a subdirectory is existence-only in fileTimestamps"
+  );
+  let sub = helper.time_info_entry(&directory_timestamps, "ctx/sub");
+  assert!(
+    matches!(sub, TimeInfoEntry::OnlySafeTimeEntry { .. }),
+    "a subdirectory has a safe time in directoryTimestamps: {sub:?}"
+  );
+  assert!(
+    !has_time_info_entry(&helper, &file_timestamps, "ctx/node_modules/dep"),
+    "ignored paths are not scanned"
+  );
+  let ctx = safe_time_of(helper.time_info_entry(&directory_timestamps, "ctx"));
+  let deep = safe_time_of(helper.time_info_entry(&file_timestamps, "ctx/sub/deep"));
+  assert!(ctx >= deep, "context safeTime covers the files below it");
+}
+
+/// A file created below a context after the scan is reported from then on,
+/// with the live observation's safe time, and drops out again once removed.
+#[test]
+fn collect_time_info_entries_follows_a_file_created_and_removed_under_a_context() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+
+  let rx = helper.watch(e!(), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+  assert!(!has_time_info_entry(
+    &helper,
+    &helper.collect_time_info_entries().0,
+    "ctx/later"
+  ));
+
+  let created_at = now_millis();
+  helper.tick(|| helper.file("ctx/later"));
+  let context = helper.join("ctx");
+  let matches_context =
+    |batch: &helpers::AggregatedEvent| batch.changed_files.contains(context.as_str());
+  wait_for_aggregated_ref(&rx, matches_context);
+
+  let entry = helper
+    .time_info_entry(&helper.collect_time_info_entries().0, "ctx/later")
+    .clone();
+  let TimeInfoEntry::Entry {
+    safe_time,
+    accuracy,
+    ..
+  } = entry
+  else {
+    panic!("created file is an Entry: {entry:?}");
+  };
+  assert!(
+    safe_time >= created_at,
+    "live observation: {safe_time} >= {created_at}"
+  );
+  assert_eq!(accuracy, 0);
+
+  helper.tick(|| std::fs::remove_file(helper.join("ctx/later")).unwrap());
+  wait_for_aggregated_ref(&rx, matches_context);
+  assert!(
+    !has_time_info_entry(&helper, &helper.collect_time_info_entries().0, "ctx/later"),
+    "a removed file below a context is no longer reported"
   );
 }

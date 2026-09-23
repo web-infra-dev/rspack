@@ -100,10 +100,11 @@ impl Scanner {
           .into_iter()
           .filter(|p| changed_since(p, start_time))
           .collect::<Vec<_>>();
-        // This backfill bypasses `Trigger`, so record the file time here.
+        // This backfill bypasses `Trigger`, so record the file time here —
+        // unless the live watch already observed the same creation.
         for path in &created {
           if let Some(mtime) = disk_mtime(path) {
-            path_manager.set_file_time(path, mtime, true, false);
+            path_manager.set_file_time(path, mtime, true, true);
           }
         }
         _ = send_events(created, FsEventKind::Create, &tx);

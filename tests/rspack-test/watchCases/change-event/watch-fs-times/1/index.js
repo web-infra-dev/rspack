@@ -21,6 +21,12 @@ it('populates compiler file/context timestamps from the watch callback', () => {
   expect(context).toBeTruthy();
   expect(typeof context[1].safeTime).toBe('number');
   expect(context[1].safeTime).toBeGreaterThan(0);
+
+  // Like watchpack: a file found below the context, though never registered
+  // as a file dependency, is in the table too.
+  const scanned = fileTimestamps.find(([p]) => endsWith('/ctx/keep.js')(p));
+  expect(scanned).toBeTruthy();
+  expect(typeof scanned[1].safeTime).toBe('number');
 });
 
 it('reports the same paths through getTimes / getTimeInfoEntries', () => {

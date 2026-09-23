@@ -282,14 +282,25 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       },
 
       getInfo: () => {
-        // Aggregated changes/removals are consumed by the `watch` callback and
-        // are not retained, so this query path reports only the time tables —
-        // what `compiler.fileTimestamps`/`contextTimestamps` need.
+        // Like watchpack after it emitted `aggregated`: what is pending here
+        // is only what arrived since, i.e. while paused.
+        const { changedFiles, removedFiles } = nativeWatcher.takeAggregated();
+        const changes = new Set(changedFiles);
+        const removals = new Set(removedFiles);
+        if (this.#inputFileSystem?.purge) {
+          const fs = this.#inputFileSystem;
+          for (const item of removals) {
+            fs.purge?.(item);
+          }
+          for (const item of changes) {
+            fs.purge?.(item);
+          }
+        }
         const { fileTimeInfoEntries, contextTimeInfoEntries } =
           this.#fetchTimeInfo(nativeWatcher);
         return {
-          changes: new Set<string>(),
-          removals: new Set<string>(),
+          changes,
+          removals,
           fileTimeInfoEntries,
           contextTimeInfoEntries,
         };

@@ -480,6 +480,11 @@ export declare class NativeWatcher {
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   close(): Promise<void>
+  /**
+   * watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
+   * arrived since the last aggregated batch (while paused), drained.
+   */
+  takeAggregated(): NativeWatchResult
   /** watchpack's `collectTimeInfoEntries`, over every registered path. */
   collectTimeInfoEntries(): NativeTimeInfoEntries
   pause(): void
