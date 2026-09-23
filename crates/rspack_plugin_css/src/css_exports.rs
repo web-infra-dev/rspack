@@ -21,6 +21,8 @@ use crate::{dependency::CssIcssSymbolDependency, utils::replace_css_module_id_pl
 struct CodeGenerationDataCssExports {
   #[cacheable(with=AsMap)]
   modules: IdentifierMap<CssModuleExports>,
+  #[cacheable(with=AsMap)]
+  targets: IdentifierMap<CssExportTargets>,
   #[cacheable(with=AsMap<AsCacheable, AsMap<AsPreset>>)]
   values: IdentifierMap<FxHashMap<SmolStr, Option<String>>>,
 }
@@ -32,6 +34,70 @@ struct CssModuleExports {
   self_references: FxHashMap<SmolStr, Arc<[CssExport]>>,
   #[cacheable(with=AsMap)]
   symbols: FxHashMap<DependencyId, Option<String>>,
+  concat_targets: Option<CssExportTargets>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct CssExportTarget {
+  pub module: ModuleIdentifier,
+  pub supports_javascript: bool,
+}
+
+#[cacheable]
+#[derive(Debug, Default)]
+struct CssExportTargets {
+  #[cacheable(with=AsMap)]
+  by_dependency: FxHashMap<DependencyId, CssExportTarget>,
+  #[cacheable(with=AsMap<AsPreset>)]
+  by_request: FxHashMap<SmolStr, CssExportTarget>,
+}
+
+impl CssExportTargets {
+  fn new(compilation: &Compilation, module: &dyn Module) -> Self {
+    let module_graph = compilation.get_module_graph();
+    let mut targets = Self::default();
+    for dependency in module.get_dependencies() {
+      let Some(target) = module_graph.get_module_by_dependency_id(dependency.id()) else {
+        continue;
+      };
+      let target = CssExportTarget {
+        module: target.identifier(),
+        supports_javascript: target
+          .source_types(module_graph)
+          .contains(&SourceType::JavaScript),
+      };
+      targets.by_dependency.insert(*dependency.id(), target);
+      if let Some(request) = dependency_request(dependency.as_ref()) {
+        // The ordinary request fallback uses the first connected dependency.
+        targets.by_request.entry(request.into()).or_insert(target);
+      }
+    }
+    targets
+  }
+
+  fn get(&self, request: &str, id: Option<&DependencyId>) -> Option<CssExportTarget> {
+    id.and_then(|id| self.by_dependency.get(id))
+      .or_else(|| self.by_request.get(request))
+      .copied()
+  }
+}
+
+fn cached_css_export_target<'a>(
+  compilation: &'a Compilation,
+  targets: &mut IdentifierMap<CssExportTargets>,
+  module: &dyn Module,
+  request: &str,
+  id: Option<&DependencyId>,
+) -> Option<&'a dyn Module> {
+  let target = targets
+    .entry(module.identifier())
+    .or_insert_with(|| CssExportTargets::new(compilation, module))
+    .get(request, id)?;
+  compilation
+    .get_module_graph()
+    .module_by_identifier(&target.module)
+    .map(|module| module.as_ref())
 }
 
 #[cacheable_dyn]
@@ -81,14 +147,14 @@ pub(crate) fn hash_icss_imports(
   }
 }
 
-pub(crate) fn dependency_request(dependency: &dyn Dependency) -> Option<&str> {
+fn dependency_request(dependency: &dyn Dependency) -> Option<&str> {
   dependency
     .as_module_dependency()
     .map(|dep| dep.request())
     .or_else(|| dependency.as_context_dependency().map(|dep| dep.request()))
 }
 
-pub(crate) fn find_css_export_target<'a>(
+fn find_css_export_target<'a>(
   compilation: &'a Compilation,
   module: &dyn Module,
   request: &str,
@@ -132,6 +198,7 @@ impl<'a, T> CssExportFrame<'a, T> {
 
 fn resolve_css_exports<'a, T: Clone>(
   compilation: &'a Compilation,
+  targets: &mut IdentifierMap<CssExportTargets>,
   roots: impl IntoIterator<Item = (&'a dyn Module, SmolStr)>,
   should_follow: impl Fn(ModuleIdentifier) -> bool,
   leaf: impl Fn(&dyn Module, &CssExport) -> Option<T>,
@@ -173,7 +240,13 @@ fn resolve_css_exports<'a, T: Clone>(
       };
       frame.next_index += 1;
       let target = export.from.as_deref().and_then(|request| {
-        find_css_export_target(compilation, frame.module, request, export.id.as_ref())
+        cached_css_export_target(
+          compilation,
+          targets,
+          frame.module,
+          request,
+          export.id.as_ref(),
+        )
       });
       if let Some(target) = target.filter(|target| should_follow(target.identifier())) {
         let key = (target.identifier(), export.ident.clone());
@@ -218,17 +291,17 @@ pub(crate) fn prepare_css_exports(
       let mut has_self_reference = false;
       for export in exports {
         let Some(target) = export.from.as_deref().and_then(|request| {
-          find_css_export_target(compilation, module, request, export.id.as_ref())
+          cached_css_export_target(
+            compilation,
+            &mut data.targets,
+            module,
+            request,
+            export.id.as_ref(),
+          )
         }) else {
           continue;
         };
         has_self_reference |= target.identifier() == identifier;
-        if !target
-          .source_types(compilation.get_module_graph())
-          .contains(&SourceType::JavaScript)
-        {
-          static_roots.push((target, export.ident.clone()));
-        }
       }
       if has_self_reference {
         self_references.push((module, name.clone()));
@@ -242,7 +315,13 @@ pub(crate) fn prepare_css_exports(
     .map(|dependency| {
       let value = dependency.value();
       let target = value.from.as_deref().and_then(|request| {
-        find_css_export_target(compilation, module, request, value.id.as_ref())
+        cached_css_export_target(
+          compilation,
+          &mut data.targets,
+          module,
+          request,
+          value.id.as_ref(),
+        )
       });
       if let Some(target) = target {
         static_roots.push((target, value.ident.clone()));
@@ -253,6 +332,7 @@ pub(crate) fn prepare_css_exports(
 
   let self_references = resolve_css_exports(
     compilation,
+    &mut data.targets,
     self_references,
     |target| target == identifier,
     |_, export| Some(export.clone()),
@@ -265,29 +345,7 @@ pub(crate) fn prepare_css_exports(
   .map(|(name, exports)| (name, Arc::from(exports)))
   .collect();
 
-  let values = resolve_css_exports(
-    compilation,
-    static_roots.into_iter().filter(|(module, name)| {
-      !data
-        .values
-        .get(&module.identifier())
-        .is_some_and(|exports| exports.contains_key(name))
-    }),
-    |_| true,
-    |module, export| {
-      export
-        .from
-        .is_none()
-        .then(|| replace_css_module_id_placeholder(&export.ident, compilation, module).into_owned())
-    },
-  );
-  for (identifier, exports) in values {
-    data.values.entry(identifier).or_default().extend(
-      exports
-        .into_iter()
-        .map(|(name, values)| (name, (!values.is_empty()).then(|| values.join(" ")))),
-    );
-  }
+  prepare_static_css_exports(compilation, data, static_roots);
   let symbols = symbols
     .into_iter()
     .map(|(dependency, target)| {
@@ -311,8 +369,198 @@ pub(crate) fn prepare_css_exports(
     CssModuleExports {
       self_references,
       symbols,
+      concat_targets: None,
     },
   );
+}
+
+fn prepare_static_css_exports<'a>(
+  compilation: &'a Compilation,
+  data: &mut CodeGenerationDataCssExports,
+  roots: impl IntoIterator<Item = (&'a dyn Module, SmolStr)>,
+) {
+  let values = resolve_css_exports(
+    compilation,
+    &mut data.targets,
+    roots.into_iter().filter(|(module, name)| {
+      !data
+        .values
+        .get(&module.identifier())
+        .is_some_and(|exports| exports.contains_key(name))
+    }),
+    |_| true,
+    |module, export| {
+      export
+        .from
+        .is_none()
+        .then(|| replace_css_module_id_placeholder(&export.ident, compilation, module).into_owned())
+    },
+  );
+  for (identifier, exports) in values {
+    data.values.entry(identifier).or_default().extend(
+      exports
+        .into_iter()
+        .map(|(name, values)| (name, (!values.is_empty()).then(|| values.join(" ")))),
+    );
+  }
+}
+
+pub(crate) fn prepare_css_concat_exports(
+  compilation: &Compilation,
+  module: &dyn Module,
+  data: &mut CodeGenerationData,
+) {
+  let data = data
+    .get_mut::<CodeGenerationDataCssExports>()
+    .expect("CSS export resolutions should be initialized");
+  let exports = data
+    .modules
+    .get(&module.identifier())
+    .expect("CSS module exports should be prepared");
+  if exports.concat_targets.is_some() {
+    return;
+  }
+  let targets = data
+    .targets
+    .entry(module.identifier())
+    .or_insert_with(|| CssExportTargets::new(compilation, module));
+  let targets = prepare_concat_targets(compilation, module, targets);
+  let mut roots = Vec::new();
+  if let Some(css) = module.build_info().css.as_deref() {
+    for export in css.exports.values().flatten() {
+      if let Some(request) = &export.from
+        && let Some(target) = targets.get(request, export.id.as_ref())
+        && !target.supports_javascript
+        && let Some(module) = compilation
+          .get_module_graph()
+          .module_by_identifier(&target.module)
+      {
+        roots.push((module.as_ref(), export.ident.clone()));
+      }
+    }
+  }
+  prepare_static_css_exports(compilation, data, roots);
+  data
+    .modules
+    .get_mut(&module.identifier())
+    .expect("CSS module exports should be prepared")
+    .concat_targets = Some(targets);
+}
+
+fn prepare_concat_targets(
+  compilation: &Compilation,
+  module: &dyn Module,
+  direct_targets: &CssExportTargets,
+) -> CssExportTargets {
+  let module_graph = compilation.get_module_graph();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let identifier = module.identifier();
+  let current_chunks = (chunk_graph.get_number_of_module_chunks(identifier) > 0)
+    .then(|| chunk_graph.get_module_chunks(identifier));
+  let priority = |target: CssExportTarget| {
+    let shares_chunk = current_chunks.is_some_and(|current| {
+      chunk_graph.get_number_of_module_chunks(target.module) > 0
+        && chunk_graph
+          .get_module_chunks(target.module)
+          .iter()
+          .any(|chunk| current.contains(chunk))
+    });
+    (
+      target.supports_javascript,
+      shares_chunk,
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, target.module).is_some(),
+    )
+  };
+  let mut targets = CssExportTargets::default();
+  let mut requests = FxHashSet::default();
+  if let Some(css) = module.build_info().css.as_deref() {
+    for export in css.exports.values().flatten() {
+      let Some(request) = &export.from else {
+        continue;
+      };
+      if let Some(id) = export.id
+        && let Some(target) = direct_targets.by_dependency.get(&id)
+      {
+        targets.by_dependency.insert(id, *target);
+      } else {
+        requests.insert(request.clone());
+      }
+    }
+  }
+  // Concatenation picks the highest-priority original dependency before
+  // selecting an alternative JS module. Preserve the last dependency on ties.
+  for dependency in module.get_dependencies() {
+    if let Some(request) = dependency_request(dependency.as_ref())
+      && requests.contains(request)
+      && let Some(target) = direct_targets.by_dependency.get(dependency.id())
+    {
+      let current = targets.by_request.entry(request.into()).or_insert(*target);
+      if priority(*target) >= priority(*current) {
+        *current = *target;
+      }
+    }
+  }
+  let mut alternatives = None;
+  let mut replacements = IdentifierMap::default();
+  for target in targets
+    .by_dependency
+    .values_mut()
+    .chain(targets.by_request.values_mut())
+  {
+    if target.supports_javascript {
+      continue;
+    }
+    *target = *replacements.entry(target.module).or_insert_with(|| {
+      // Build the candidate index at most once for this issuer, and only when
+      // a CSS-only target needs an alternative. Exports then reuse the result.
+      let alternatives = alternatives.get_or_insert_with(|| {
+        let mut candidates = FxHashMap::<Option<Box<str>>, CssExportTarget>::default();
+        for (_, module) in module_graph.modules() {
+          if !module
+            .source_types(module_graph)
+            .contains(&SourceType::JavaScript)
+          {
+            continue;
+          }
+          let candidate = CssExportTarget {
+            module: module.identifier(),
+            supports_javascript: true,
+          };
+          let current = candidates
+            .entry(module.name_for_condition())
+            .or_insert(candidate);
+          if priority(candidate) >= priority(*current) {
+            *current = candidate;
+          }
+        }
+        candidates
+      });
+      let module = module_graph
+        .module_by_identifier(&target.module)
+        .expect("CSS export target should exist");
+      alternatives
+        .get(&module.name_for_condition())
+        .copied()
+        .unwrap_or(*target)
+    });
+  }
+  targets
+}
+
+pub(crate) fn get_css_export_target(
+  data: &CodeGenerationData,
+  module: ModuleIdentifier,
+  request: &str,
+  id: Option<&DependencyId>,
+  concatenated: bool,
+) -> Option<CssExportTarget> {
+  let data = data.get::<CodeGenerationDataCssExports>()?;
+  let targets = if concatenated {
+    data.modules.get(&module)?.concat_targets.as_ref()?
+  } else {
+    data.targets.get(&module)?
+  };
+  targets.get(request, id)
 }
 
 pub(crate) struct CssExportElements<'a> {

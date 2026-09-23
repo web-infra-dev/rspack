@@ -6,7 +6,7 @@ use rspack_core::{
   ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
   CssModuleRenderCondition, DependencyCodeGeneration, DependencyId, DependencyType,
   GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
-  RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
+  RESERVED_IDENTIFIER, RuntimeGlobals, TemplateContext, UsageState, UsedNameItem,
   css_module_render_conditions_identifier,
   rspack_sources::{
     BoxSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt,
@@ -24,7 +24,7 @@ use smol_str::SmolStr;
 
 use crate::{
   css_exports::{
-    dependency_request, find_css_export_target, get_css_export, get_css_exports,
+    get_css_export, get_css_export_target, get_css_exports, prepare_css_concat_exports,
     prepare_css_exports,
   },
   css_syntax::unescape_identifier,
@@ -97,6 +97,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     es_module: bool,
   ) -> Self {
     prepare_css_exports(generate_context.compilation, module, generate_context.data);
+    if generate_context.concatenation_scope.is_some() {
+      prepare_css_concat_exports(generate_context.compilation, module, generate_context.data);
+    }
     let generator_options = css_generator_options(generate_context.module_generator_options);
 
     Self {
@@ -801,21 +804,15 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     from_name: &str,
     id: Option<&DependencyId>,
   ) -> String {
-    let compilation = self.generate_context.compilation;
-    let from = find_css_export_target(compilation, self.module, from_name, id)
-      .unwrap_or_else(|| {
-        let dependency_requests = self
-          .module
-          .get_dependencies()
-          .iter()
-          .filter_map(|dependency| dependency_request(dependency.as_ref()))
-          .collect::<Vec<_>>();
-        panic!(
-          "should have css from module: ident={ident}, from={from_name}, id={id:?}, dependency_requests={dependency_requests:?}"
-        );
-      });
-
-    let from_identifier = from.identifier();
+    let target = get_css_export_target(
+      self.generate_context.data,
+      self.module.identifier(),
+      from_name,
+      id,
+      false,
+    )
+    .expect("CSS reexport target should be prepared");
+    let from_identifier = target.module;
     let from_used_name = self.stringified_used_export_name(from_identifier, ident, true);
     self.render_require_property_access(from_identifier, &from_used_name)
   }
@@ -844,87 +841,21 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     from_name: &str,
     id: Option<&DependencyId>,
   ) -> String {
-    let compilation = self.generate_context.compilation;
-    let module = self.module;
-    let module_graph = compilation.get_module_graph();
-    let current_module_identifier = module.identifier();
-    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-    let current_module_chunks =
-      if chunk_graph.get_number_of_module_chunks(current_module_identifier) > 0 {
-        Some(chunk_graph.get_module_chunks(current_module_identifier))
-      } else {
-        None
-      };
-    let candidate_priority = |target: &dyn Module| {
-      let target_identifier = target.identifier();
-      let supports_javascript = target
-        .source_types(module_graph)
-        .contains(&SourceType::JavaScript);
-      let shares_chunk = current_module_chunks.is_some_and(|current_chunks| {
-        chunk_graph.get_number_of_module_chunks(target_identifier) > 0
-          && chunk_graph
-            .get_module_chunks(target_identifier)
-            .iter()
-            .any(|chunk| current_chunks.contains(chunk))
-      });
-      (
-        supports_javascript,
-        shares_chunk,
-        ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_identifier).is_some(),
-      )
-    };
-    let find_target_module = |dep_id: &DependencyId| {
-      module_graph
-        .get_module_by_dependency_id(dep_id)
-        .map(|target| {
-          let priority = candidate_priority(target.as_ref());
-          (target, priority)
-        })
-    };
-    let from = id
-      .and_then(find_target_module)
-      .or_else(|| {
-        module
-          .get_dependencies()
-          .iter()
-          .filter(|dependency| dependency_request(dependency.as_ref()) == Some(from_name))
-          .filter_map(|dependency| find_target_module(dependency.id()))
-          .max_by_key(|(_, priority)| *priority)
-      })
-      .map(|(target, _)| target)
-      .and_then(|target| {
-        if target
-          .source_types(module_graph)
-          .contains(&SourceType::JavaScript)
-        {
-          Some(target)
-        } else {
-          let target_name_for_condition = target.name_for_condition();
-          module_graph
-            .modules()
-            .filter_map(|(_, candidate)| {
-              (candidate.name_for_condition() == target_name_for_condition
-                && candidate
-                  .source_types(module_graph)
-                  .contains(&SourceType::JavaScript))
-              .then_some(candidate)
-            })
-            .max_by_key(|candidate| candidate_priority(candidate.as_ref()))
-            .or(Some(target))
-        }
-      })
-      .expect("should have css from module");
-
-    if !from
-      .source_types(module_graph)
-      .contains(&SourceType::JavaScript)
-    {
-      let resolved = get_css_export(self.generate_context.data, from.identifier(), ident)
+    let target = get_css_export_target(
+      self.generate_context.data,
+      self.module.identifier(),
+      from_name,
+      id,
+      true,
+    )
+    .expect("Concatenated CSS reexport target should be prepared");
+    if target.supports_javascript {
+      let from_used_name = self.stringified_used_export_name(target.module, ident, false);
+      self.render_require_property_access(target.module, &from_used_name)
+    } else {
+      let resolved = get_css_export(self.generate_context.data, target.module, ident)
         .expect("should resolve static css export");
       json_stringify_str(resolved)
-    } else {
-      let from_used_name = self.stringified_used_export_name(from.identifier(), ident, false);
-      self.render_require_property_access(from.identifier(), &from_used_name)
     }
   }
 
