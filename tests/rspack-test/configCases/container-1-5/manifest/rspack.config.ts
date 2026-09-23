@@ -34,7 +34,9 @@ export default defineConfig({
         'dynamic-remote': 'dynamic_remote@http://localhost:8001/remoteEntry.js',
       },
       shared: {
-        xreact: {},
+        xreact: {
+          version: false,
+        },
         '@scope-sc/dep1': {
           singleton: true,
           requiredVersion: '^1.0.0',

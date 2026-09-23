@@ -1,6 +1,7 @@
 import rspack, { type RspackOptions } from '@rspack/core';
 import '@rspack/core/module';
 import { defineConfig, definePlugin, type Configuration } from '@rspack/cli';
+import './module-federation';
 
 const plugin = definePlugin({
   apply(compiler) {
