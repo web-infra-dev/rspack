@@ -3,7 +3,7 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
 };
 
 use crate::import_dependency::module_id_rstest;
@@ -19,6 +19,7 @@ pub struct MockModuleIdDependency {
   category: DependencyCategory,
   pub suffix: Option<String>,
   missing_module_fallback: Option<String>,
+  all_exports_referenced: bool,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -40,6 +41,7 @@ impl MockModuleIdDependency {
       category,
       suffix,
       missing_module_fallback: None,
+      all_exports_referenced: false,
     }
   }
 
@@ -53,11 +55,17 @@ impl MockModuleIdDependency {
       category: self.category,
       suffix: self.suffix.clone(),
       missing_module_fallback: self.missing_module_fallback.clone(),
+      all_exports_referenced: self.all_exports_referenced,
     }
   }
 
   pub fn with_missing_module_fallback(mut self, fallback: String) -> Self {
     self.missing_module_fallback = Some(fallback);
+    self
+  }
+
+  pub fn with_all_exports_referenced(mut self) -> Self {
+    self.all_exports_referenced = true;
     self
   }
 
@@ -91,7 +99,11 @@ impl Dependency for MockModuleIdDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
-    vec![]
+    if self.all_exports_referenced {
+      create_exports_object_referenced()
+    } else {
+      vec![]
+    }
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
