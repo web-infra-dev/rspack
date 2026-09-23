@@ -11,6 +11,9 @@ export default {
   plugins: [
     new ModuleFederationPlugin({
       shareStrategy: 'loaded-first',
+      remotes: {
+        lazy: `promise (globalThis.__loadedFirstRemoteLoads = (globalThis.__loadedFirstRemoteLoads || 0) + 1, Promise.resolve({ init() {}, get() { return () => 'remote'; } }))`,
+      },
       shared: {
         react: {
           version: '0.1.2',
