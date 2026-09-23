@@ -276,6 +276,19 @@ export declare class ExternalModule {
   _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
+/** Native operations on the owning compiler's current dependency collection. */
+export declare class FileSystemDependencies {
+  get added(): Array<string>
+  get removed(): Array<string>
+  size(): number
+  has(value: string): boolean
+  clear(): void
+  update(added: Array<string>, deleted: Array<string>): void
+  values(this: this): ReadonlyArray<string>
+  add(value: string): void
+  addAll(values: Array<string>): void
+}
+
 /** One shared cache, initialized from the first compiler that uses it. */
 export declare class JsCache {
   constructor()
@@ -307,7 +320,10 @@ export declare class JsCompilation {
   get entrypoints(): ChunkGroup[]
   get chunkGroups(): ChunkGroup[]
   get hash(): string | null
-  dependencies(): JsDependencies
+  get fileDependencies(): FileSystemDependencies
+  get contextDependencies(): FileSystemDependencies
+  get missingDependencies(): FileSystemDependencies
+  get buildDependencies(): FileSystemDependencies
   pushDiagnostic(diagnostic: JsRspackDiagnostic): void
   pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
@@ -342,7 +358,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, jsHelpers: JsHelpers)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -380,21 +396,6 @@ export declare class JsContextModuleFactoryBeforeResolveData {
 
 export declare class JsCoordinator {
   constructor()
-}
-
-export declare class JsDependencies {
-  get fileDependencies(): Array<string>
-  get addedFileDependencies(): Array<string>
-  get removedFileDependencies(): Array<string>
-  get contextDependencies(): Array<string>
-  get addedContextDependencies(): Array<string>
-  get removedContextDependencies(): Array<string>
-  get missingDependencies(): Array<string>
-  get addedMissingDependencies(): Array<string>
-  get removedMissingDependencies(): Array<string>
-  get buildDependencies(): Array<string>
-  get addedBuildDependencies(): Array<string>
-  get removedBuildDependencies(): Array<string>
 }
 
 export declare class JsEntries {
@@ -892,6 +893,11 @@ export interface JsExecuteModuleResult {
 
 export interface JsFactoryMeta {
   sideEffectFree?: boolean
+}
+
+export interface JsHelpers {
+  applyIndexedArrayUpdates: <T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void
+  swapRemoveArrayElements: <T>(array: T[], removedIndices: Uint32Array) => void
 }
 
 export interface JsHtmlPluginAssets {

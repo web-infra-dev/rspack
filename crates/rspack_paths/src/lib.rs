@@ -13,7 +13,7 @@ use std::{
 
 pub use camino::{Utf8Component, Utf8Components, Utf8Path, Utf8PathBuf, Utf8Prefix};
 use dashmap::{DashMap, DashSet};
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 #[cfg(feature = "cacheable")]
 use rspack_cacheable::{
   ContextGuard, Error as CacheableError, cacheable,
@@ -314,6 +314,9 @@ pub type InternedPathDashMap<V> = DashMap<InternedPath, V, BuildHasherDefault<Id
 /// A standard `DashSet` using `InternedPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
 pub type InternedPathDashSet = DashSet<InternedPath, BuildHasherDefault<IdentityHasher>>;
+
+/// An indexed map using the path's precomputed hash.
+pub type InternedPathIndexMap<V> = IndexMap<InternedPath, V, BuildHasherDefault<IdentityHasher>>;
 
 /// A standard `IndexSet` using `InternedPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.

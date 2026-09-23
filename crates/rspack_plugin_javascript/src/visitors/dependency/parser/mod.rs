@@ -488,9 +488,14 @@ impl<'parser> JavascriptParser<'parser> {
   ) -> Self {
     let warning_diagnostics: Vec<Diagnostic> = Vec::new();
     let errors = Vec::new();
-    let dependencies = Vec::with_capacity(64);
-    let blocks = Vec::with_capacity(64);
-    let presentational_dependencies = Vec::with_capacity(64);
+    // These three vectors are moved into the scan result and stay alive for the
+    // whole build, so their capacity is a per-module constant cost. Most modules
+    // have a handful of dependencies and no async blocks, while presentational
+    // dependencies average around seven in a large app, so start small without
+    // going all the way down to one element and let the rare large module grow.
+    let dependencies = Vec::with_capacity(16);
+    let blocks = Vec::with_capacity(4);
+    let presentational_dependencies = Vec::with_capacity(8);
     let parser_exports_state: Option<bool> = None;
 
     let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32 + parser_plugins.len());
