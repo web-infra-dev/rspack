@@ -1,7 +1,13 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
+import type {
+  FileSystemCacheOptions,
+  PersistentCacheOptions,
+} from '@rspack/core';
+
+const loaderOptions = { count: 0 };
 let index = 0;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   cache: {
     type: 'persistent',
@@ -12,33 +18,34 @@ export default {
         test: /file\.js$/,
         use: {
           loader: './loader.mjs',
-          options: { count: 0 },
+          options: loaderOptions,
         },
       },
     ],
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
+        const cache = compiler.options.cache as
+          PersistentCacheOptions | FileSystemCacheOptions;
         let shouldRebuildFile = true;
         if (index == 0) {
-          compiler.options.cache.readonly = false;
+          cache.readonly = false;
           shouldRebuildFile = true;
         } else if (index == 1) {
-          compiler.options.cache.readonly = true;
+          cache.readonly = true;
           shouldRebuildFile = true;
         } else if (index == 2) {
-          compiler.options.cache.readonly = true;
+          cache.readonly = true;
           shouldRebuildFile = false;
         } else if (index == 3) {
-          compiler.options.cache.readonly = false;
+          cache.readonly = false;
           shouldRebuildFile = true;
         } else if (index == 4) {
-          compiler.options.cache.readonly = true;
+          cache.readonly = true;
           shouldRebuildFile = false;
         }
 
-        const loaderOptions = compiler.options.module.rules[0].use.options;
         compiler.hooks.done.tap('PLUGIN', function () {
           if (shouldRebuildFile) {
             expect(loaderOptions.count).toBe(1);
@@ -50,6 +57,6 @@ export default {
           index++;
         });
       },
-    },
+    }),
   ],
-};
+});

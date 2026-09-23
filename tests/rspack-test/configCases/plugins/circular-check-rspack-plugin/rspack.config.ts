@@ -1,27 +1,37 @@
-import { CircularCheckRspackPlugin } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import {
+  CircularCheckRspackPlugin,
+  type Compiler,
+  type Configuration,
+  type Stats,
+} from '@rspack/core';
 
 const PLUGIN_NAME = 'CircularCheckRspackPluginConfigCase';
 
-function normalizeMessage(message) {
+function normalizeMessage(message: string) {
   return message.replaceAll('\\', '/');
 }
 
-function getMessages(stats, type) {
+function getMessages(stats: Stats, type: 'errors' | 'warnings') {
   return stats
     .toJson({
       all: false,
       errors: true,
       warnings: true,
     })
-    [type].map((item) => normalizeMessage(item.message));
+    [type]!.map((item) => normalizeMessage(item.message));
 }
 
-function expectNoDiagnostics(stats) {
+function expectNoDiagnostics(stats: Stats) {
   expect(getMessages(stats, 'warnings')).toHaveLength(0);
   expect(getMessages(stats, 'errors')).toHaveLength(0);
 }
 
-function expectCircularDiagnostic(stats, type, expectedPath) {
+function expectCircularDiagnostic(
+  stats: Stats,
+  type: 'errors' | 'warnings',
+  expectedPath: string,
+) {
   const messages = getMessages(stats, type);
   const otherType = type === 'warnings' ? 'errors' : 'warnings';
   expect(messages).toHaveLength(1);
@@ -31,16 +41,24 @@ function expectCircularDiagnostic(stats, type, expectedPath) {
 }
 
 class AssertStatsPlugin {
-  constructor(assert) {
+  assert: (stats: Stats) => void;
+
+  constructor(assert: (stats: Stats) => void) {
     this.assert = assert;
   }
 
-  apply(compiler) {
+  apply(compiler: Compiler) {
     compiler.hooks.done.tap(PLUGIN_NAME, this.assert);
   }
 }
 
-function createCase(name, entry, plugins, assert, extra = {}) {
+function createCase(
+  name: string,
+  entry: Configuration['entry'],
+  plugins: NonNullable<Configuration['plugins']>,
+  assert: (stats: Stats) => void,
+  extra: Configuration = {},
+): Configuration {
   return {
     name,
     mode: 'development',
@@ -52,7 +70,7 @@ function createCase(name, entry, plugins, assert, extra = {}) {
 
 const efgCycle = './deps/e.js -> ./deps/f.js -> ./deps/g.js -> ./deps/e.js';
 
-export default [
+export default defineConfig([
   createCase(
     'detects-basic-cycle',
     './deps/a.js',
@@ -114,7 +132,7 @@ export default [
     expectNoDiagnostics,
   ),
   (() => {
-    let detectedPaths;
+    let detectedPaths: string[] | undefined;
     return createCase(
       'on-detected-overrides-default-report',
       './deps/d.js',
@@ -225,4 +243,4 @@ export default [
       },
     },
   ),
-];
+]);

@@ -1,15 +1,15 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
+import { NormalModule, rspack } from '@rspack/core';
 import path from 'node:path';
-import { rspack } from '@rspack/core';
 
 const { RawSource } = rspack.sources;
 
 let compilerIndex = 0;
-const loaderOptions = {
+const loaderOptions: { builtModules: string[] } = {
   builtModules: [],
 };
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   experiments: {
     newCache: {
@@ -46,11 +46,12 @@ export default {
     ],
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
         compiler.hooks.compilation.tap('ModuleCacheTest', (compilation) => {
           compilation.hooks.succeedModule.tap('ModuleCacheTest', (module) => {
             if (
+              module instanceof NormalModule &&
               module.resource &&
               path.basename(module.resource) === 'stable.js'
             ) {
@@ -69,10 +70,10 @@ export default {
             orphanModules: true,
             optimizationBailout: true,
           });
-          const sideEffectsBailouts = (name) =>
+          const sideEffectsBailouts = (name: string) =>
             modules
-              .find((module) => module.name === `./${name}`)
-              .optimizationBailout.filter((reason) =>
+              ?.find((module) => module.name === `./${name}`)
+              ?.optimizationBailout?.filter((reason) =>
                 reason.includes('with side_effects in source code'),
               );
           expect(sideEffectsBailouts('stable.js')).toEqual([
@@ -86,7 +87,7 @@ export default {
           expect(
             stats.compilation
               .getAsset('from-succeed-module.txt')
-              .source.source(),
+              ?.source.source(),
           ).toBe('from succeedModule');
           const builtModules = loaderOptions.builtModules
             .map((resource) => path.basename(resource))
@@ -105,6 +106,6 @@ export default {
           compilerIndex++;
         });
       },
-    },
+    }),
   ],
-};
+});

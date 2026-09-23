@@ -1,14 +1,15 @@
-/** @type {import("@rspack/core").Configuration} */
-export default {
+import { defineConfig, definePlugin } from '@rspack/cli';
+
+const options: { files: string[] } = { files: [] };
+
+export default defineConfig({
   context: import.meta.dirname,
   module: {
     rules: [
       {
         test: /file\.js$/,
         loader: './loader.mjs',
-        options: {
-          files: [],
-        },
+        options,
       },
     ],
   },
@@ -16,11 +17,10 @@ export default {
     type: 'persistent',
   },
   plugins: [
-    {
+    definePlugin({
       updateIndex: 0,
       apply(compiler) {
         compiler.hooks.done.tap('Test', () => {
-          const options = compiler.options.module.rules[0].options;
           if (this.updateIndex == 0) {
             expect(options.files.length).toBe(1);
           }
@@ -40,6 +40,6 @@ export default {
           this.updateIndex++;
         });
       },
-    },
+    }),
   ],
-};
+});

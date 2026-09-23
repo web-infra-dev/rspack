@@ -1,10 +1,10 @@
-/**
- * @return {
-    externals: {
-      fs: "node-commonjs fs",
-    },import("@rspack/core").Configuration}
- */
-function config(index, { concatenateModules } = {}) {
+import { defineConfig, definePlugin } from '@rspack/cli';
+import type { Configuration } from '@rspack/core';
+
+function config(
+  index: number,
+  { concatenateModules }: { concatenateModules?: boolean } = {},
+): Configuration {
   return {
     entry: './index.js',
     output: {
@@ -36,11 +36,11 @@ function config(index, { concatenateModules } = {}) {
       ],
     },
     plugins: [
-      function (compiler) {
+      definePlugin(function (compiler) {
         new compiler.rspack.DefinePlugin({
           CONCATENATED: JSON.stringify(concatenateModules),
         }).apply(compiler);
-      },
+      }),
     ],
     optimization: {
       concatenateModules,
@@ -50,8 +50,7 @@ function config(index, { concatenateModules } = {}) {
   };
 }
 
-/** @type {import("@rspack/core").Configuration[]} */
-export default [
+export default defineConfig([
   config(0, { concatenateModules: true }),
   config(1, { concatenateModules: false }),
-];
+]);
