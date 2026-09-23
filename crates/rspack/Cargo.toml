@@ -9,6 +9,7 @@ version.workspace = true
 [features]
 codspeed = ["rspack_core/codspeed", "rspack_plugin_schemes/codspeed"]
 full     = ["loaders"]
+goexec   = ["rspack_tasks/goexec", "rspack_fs/goexec", "rspack_plugin_schemes/goexec"]
 
 loader_lightningcss   = ["rspack_loader_lightningcss"]
 loader_preact_refresh = ["rspack_loader_preact_refresh"]

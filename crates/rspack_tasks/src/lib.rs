@@ -9,10 +9,10 @@ use std::{
   },
 };
 
-use tokio::{
-  task::{JoinHandle, futures::TaskLocalFuture},
-  task_local,
-};
+use tokio::{task::futures::TaskLocalFuture, task_local};
+
+pub mod runtime;
+pub use runtime::{JoinError, JoinHandle};
 
 // don't overuse this and put everything here, it's mostly used for store isolated id generator
 #[derive(Debug)]
@@ -113,10 +113,10 @@ where
 {
   let compiler_context = CURRENT_COMPILER_CONTEXT.get();
 
-  tokio::spawn(CURRENT_COMPILER_CONTEXT.scope(compiler_context, future))
+  runtime::spawn(CURRENT_COMPILER_CONTEXT.scope(compiler_context, future))
 }
 
-/// Like [`spawn_in_compiler_context`], but falls back to a plain [`tokio::spawn`]
+/// Like [`spawn_in_compiler_context`], but falls back to a plain [`runtime::spawn`]
 /// when there is no active compiler context (e.g. in unit tests or utility code
 /// that is not driven by a compiler).
 pub fn spawn_in_context<F>(future: F) -> JoinHandle<F::Output>
@@ -125,7 +125,9 @@ where
   F::Output: Send + 'static,
 {
   match CURRENT_COMPILER_CONTEXT.try_get() {
-    Ok(compiler_context) => tokio::spawn(CURRENT_COMPILER_CONTEXT.scope(compiler_context, future)),
-    Err(_) => tokio::spawn(future),
+    Ok(compiler_context) => {
+      runtime::spawn(CURRENT_COMPILER_CONTEXT.scope(compiler_context, future))
+    }
+    Err(_) => runtime::spawn(future),
   }
 }

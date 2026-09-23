@@ -27,10 +27,10 @@ where
       let tx = Arc::new(tx);
       self.for_each(|fut| {
         let tx = tx.clone();
-        spawn_in_context(async move {
+        drop(spawn_in_context(async move {
           let data = fut.await;
           tx.send(data).expect("should send success");
-        });
+        }));
       });
       rx
     };
