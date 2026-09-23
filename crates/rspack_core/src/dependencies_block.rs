@@ -79,7 +79,13 @@ pub struct DependenciesBlockData {
 }
 
 impl DependenciesBlockData {
-  pub fn new(dependencies: Vec<DependencyRef>, blocks: Vec<AsyncDependenciesBlockRef>) -> Self {
+  pub fn new(
+    mut dependencies: Vec<DependencyRef>,
+    mut blocks: Vec<AsyncDependenciesBlockRef>,
+  ) -> Self {
+    // Parser spare capacity would otherwise be retained for the module's lifetime.
+    dependencies.shrink_to_fit();
+    blocks.shrink_to_fit();
     Self {
       block_ids: blocks.iter().map(|block| block.identifier()).collect(),
       dependencies,
