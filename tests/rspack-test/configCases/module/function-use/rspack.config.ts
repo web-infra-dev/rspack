@@ -1,7 +1,7 @@
+import { defineConfig } from '@rspack/cli';
 import { fileURLToPath } from 'node:url';
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   externals: {
     fs: 'node-commonjs fs',
     path: 'node-commonjs path',
@@ -12,11 +12,11 @@ export default {
     rules: [
       {
         test: /\.less$/,
-        use: ({ resource, realResource, resourceQuery, issuer, compiler }) => {
+        use: ({ resource, realResource, resourceQuery, issuer }) => {
           if (
-            !resource.includes('index.less') ||
+            !resource?.includes('index.less') ||
             !issuer.includes('index.js') ||
-            !realResource.includes('index.less')
+            !realResource?.includes('index.less')
           )
             return [];
           if (resourceQuery === '?test')
@@ -33,4 +33,4 @@ export default {
       },
     ],
   },
-};
+});

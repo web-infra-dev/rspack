@@ -1,16 +1,19 @@
-import { rspack } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import { type Compiler, rspack } from '@rspack/core';
 
 const { RawSource } = rspack.sources;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   plugins: [
     new (class {
-      constructor(banner) {
+      banner: string;
+      name: string;
+
+      constructor(banner: string) {
         this.banner = banner;
         this.name = 'BannerPlugin';
       }
-      apply(compiler) {
+      apply(compiler: Compiler) {
         const banner = this.banner;
         compiler.hooks.compilation.tap('BannerPlugin', (compilation) => {
           compilation.hooks.processAssets.tap(
@@ -32,4 +35,4 @@ export default {
       }
     })('/** MMMMM */'),
   ],
-};
+});

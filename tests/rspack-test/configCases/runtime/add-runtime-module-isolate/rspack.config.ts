@@ -1,7 +1,7 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
 import { RuntimeModule } from '@rspack/core';
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   entry: './index.js',
   mode: 'development',
   devtool: false,
@@ -14,11 +14,11 @@ export default {
     providedExports: false,
   },
   plugins: [
-    (compiler) => {
+    definePlugin((compiler) => {
       const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
 
       class IsolateRuntimeModule extends RuntimeModule {
-        constructor(chunk) {
+        constructor() {
           super('mock-isolate');
         }
 
@@ -32,7 +32,7 @@ export default {
       }
 
       class NonIsolateRuntimeModule extends RuntimeModule {
-        constructor(chunk) {
+        constructor() {
           super('mock-non-isolate');
         }
 
@@ -49,12 +49,12 @@ export default {
       compiler.hooks.thisCompilation.tap('MockRuntimePlugin', (compilation) => {
         compilation.hooks.additionalTreeRuntimeRequirements.tap(
           'MockRuntimePlugin',
-          (chunk, set) => {
+          (chunk) => {
             compilation.addRuntimeModule(chunk, new NonIsolateRuntimeModule());
             compilation.addRuntimeModule(chunk, new IsolateRuntimeModule());
           },
         );
       });
-    },
+    }),
   ],
-};
+});

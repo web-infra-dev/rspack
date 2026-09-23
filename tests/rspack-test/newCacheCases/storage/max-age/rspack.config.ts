@@ -1,14 +1,19 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
+import type {
+  FileSystemCacheOptions,
+  PersistentCacheOptions,
+} from '@rspack/core';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const cacheDir = path.join(import.meta.dirname, 'node_modules/.cache/max-age');
 const cacheVersions = ['v1', 'v2', 'v3'];
 let buildIndex = 0;
-let compilerCacheDirectory;
+let compilerCacheDirectory: string | undefined;
 
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const getCacheEntries = (directory) => {
+const getCacheEntries = (directory: string) => {
   if (!fs.existsSync(directory)) {
     return [];
   }
@@ -39,8 +44,7 @@ const waitForInitialCacheWrite = async () => {
   throw new Error('Timed out waiting for the initial compiler cache');
 };
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   cache: {
     type: 'persistent',
@@ -51,14 +55,16 @@ export default {
     },
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
+        const cache = compiler.options.cache as
+          PersistentCacheOptions | FileSystemCacheOptions;
         compiler.hooks.beforeCompile.tap('Test Plugin', () => {
           if (buildIndex > 0) {
             const currentDirectories = getCompilerCacheDirectories();
             expect(currentDirectories).toEqual([compilerCacheDirectory]);
           }
-          compiler.options.cache.version = cacheVersions[buildIndex];
+          cache.version = cacheVersions[buildIndex];
         });
         compiler.hooks.done.tapPromise('Test Plugin', async () => {
           if (buildIndex === 0) {
@@ -70,6 +76,6 @@ export default {
           buildIndex++;
         });
       },
-    },
+    }),
   ],
-};
+});

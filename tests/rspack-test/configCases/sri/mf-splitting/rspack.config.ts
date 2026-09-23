@@ -1,8 +1,12 @@
-import { rspack } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import { type Configuration, rspack } from '@rspack/core';
 
 const { SubresourceIntegrityPlugin } = rspack;
 
-const createConfig = (runtimeChunk, mfPlugin) => ({
+const createConfig = (
+  runtimeChunk: 'single' | 'multiple',
+  mfPlugin: boolean,
+): Configuration => ({
   mode: 'production',
   devtool: false,
   target: 'web',
@@ -52,9 +56,9 @@ const createConfig = (runtimeChunk, mfPlugin) => ({
   },
 });
 
-export default [
+export default defineConfig([
   createConfig('single', true),
   createConfig('single', false),
   createConfig('multiple', true),
   createConfig('multiple', false),
-];
+]);

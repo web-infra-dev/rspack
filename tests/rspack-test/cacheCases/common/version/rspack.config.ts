@@ -1,10 +1,14 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
+import type {
+  FileSystemCacheOptions,
+  PersistentCacheOptions,
+} from '@rspack/core';
 import path from 'node:path';
 
 const versions = ['v1', 'v2', 'v1'];
 let buildIndex = 0;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   cache: {
     type: 'persistent',
@@ -13,15 +17,17 @@ export default {
     },
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
+        const cache = compiler.options.cache as
+          PersistentCacheOptions | FileSystemCacheOptions;
         compiler.hooks.beforeCompile.tap('Test Plugin', function () {
           const version = versions[buildIndex++];
           if (version) {
-            compiler.options.cache.version = version;
+            cache.version = version;
           }
         });
       },
-    },
+    }),
   ],
-};
+});

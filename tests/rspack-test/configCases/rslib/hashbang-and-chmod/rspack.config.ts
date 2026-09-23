@@ -1,13 +1,11 @@
-import { rspack as rspack2 } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import { type Configuration, rspack } from '@rspack/core';
 
 const {
-  rspack,
-  experiments: { RslibPlugin, EsmLibraryPlugin },
-  experiments,
-} = rspack2;
+  experiments: { RslibPlugin },
+} = rspack;
 
-/** @type {import("@rspack/core").Configuration} */
-const baseConfig = (i, mjs = false) => ({
+const baseConfig = (i: number, mjs = false): Configuration => ({
   entry: {
     index: {
       import: './index.js',
@@ -15,23 +13,13 @@ const baseConfig = (i, mjs = false) => ({
     },
   },
   target: 'node',
-  node: mjs
-    ? {}
-    : {
-        __filename: false,
-        __dirname: false,
-      },
-  optimization: {
-    minimize: true,
-    minimizer: [
-      new rspack.SwcJsMinimizerRspackPlugin({
-        extractComments: true,
-      }),
-    ],
+  node: {
+    __filename: false,
+    __dirname: false,
   },
 });
 
-export default [
+export default defineConfig([
   // CJS output
   {
     ...baseConfig(0),
@@ -60,8 +48,9 @@ export default [
   {
     entry: './test.js',
     target: 'node',
-    output: {
-      module: true,
+    node: {
+      __filename: false,
+      __dirname: false,
     },
   },
-];
+]);

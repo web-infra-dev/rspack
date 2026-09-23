@@ -1,11 +1,11 @@
-import { rspack } from '@rspack/core';
+import { defineConfig, definePlugin } from '@rspack/cli';
+import { NormalModule } from '@rspack/core';
 import path from 'node:path';
 
 let index = 0;
-let builtErrorModules = [];
+let builtErrorModules: string[] = [];
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   experiments: {
     newCache: {
@@ -23,7 +23,7 @@ export default {
     type: 'persistent',
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
         compiler.hooks.compilation.tap(
           'ModuleCacheErrorTest',
@@ -32,6 +32,7 @@ export default {
               'ModuleCacheErrorTest',
               (module) => {
                 if (
+                  module instanceof NormalModule &&
                   module.resource &&
                   path.basename(module.resource) === 'file.js'
                 ) {
@@ -45,11 +46,11 @@ export default {
           const { errors } = stats.toJson({ errors: true });
           expect(builtErrorModules).toEqual(['file.js']);
           expect(errors).toHaveLength(1);
-          expect(errors[0].message).toMatch('LoaderError');
+          expect(errors?.[0].message).toMatch('LoaderError');
           builtErrorModules = [];
           index++;
         });
       },
-    },
+    }),
   ],
-};
+});
