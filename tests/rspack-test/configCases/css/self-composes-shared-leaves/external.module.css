@@ -1,0 +1,4 @@
+.top {
+  composes: primaryButton from "./primary-button.css";
+  composes: secondaryButton from "./secondary-button.css";
+}

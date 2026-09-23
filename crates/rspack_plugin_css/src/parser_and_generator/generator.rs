@@ -729,7 +729,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       };
 
       let elements = self.expand_self_referencing_exports(key, elements);
-      let content = self.render_concat_export_content(&elements, &mut state);
+      let content = self.render_concat_export_content(elements, &mut state);
       self.register_concat_export(key, &content, &used_name, &mut state);
     }
 
@@ -769,7 +769,10 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     &self,
     name: &str,
     elements: &'b FxIndexSet<CssExport>,
-  ) -> Cow<'b, FxIndexSet<CssExport>> {
+  ) -> impl Iterator<Item = &'b CssExport> + use<'b>
+  where
+    'a: 'b,
+  {
     let compilation = self.generate_context.compilation;
     let is_self_reference = |export: &CssExport| {
       export.from.as_deref().is_some_and(|request| {
@@ -777,35 +780,41 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
           == Some(self.module.identifier())
       })
     };
-    if !elements.iter().any(is_self_reference) {
-      return Cow::Borrowed(elements);
-    }
-
-    // Like webpack's CSS reference resolution, track visited exports to break
-    // cycles. Only expand references to this module: external references must
-    // keep their runtime reads and module evaluation side effects.
-    let mut seen = HashSet::from_iter([name]);
-    let mut pending = elements.iter().rev().collect::<Vec<_>>();
-    let mut expanded = FxIndexSet::default();
-    while let Some(export) = pending.pop() {
-      if is_self_reference(export) {
-        if seen.insert(export.ident.as_str())
-          && let Some(elements) = self.css_build_info.exports.get(export.ident.as_str())
-        {
-          pending.extend(elements.iter().rev());
+    let expanded = if elements.iter().any(is_self_reference) {
+      // Only the active path cuts cycles: separate composition branches can
+      // reach the same export and must each retain its class names.
+      let mut active = HashSet::from_iter([name]);
+      let mut pending = vec![(name, elements.iter())];
+      let mut expanded = Vec::new();
+      while let Some((name, exports)) = pending.last_mut() {
+        let Some(export) = exports.next() else {
+          active.remove(*name);
+          pending.pop();
+          continue;
+        };
+        if is_self_reference(export) {
+          if let Some(elements) = self.css_build_info.exports.get(export.ident.as_str())
+            && active.insert(export.ident.as_str())
+          {
+            pending.push((export.ident.as_str(), elements.iter()));
+          }
+        } else {
+          // Keep leaf multiplicity and dependency identity, including external
+          // runtime reads and their module evaluation side effects.
+          expanded.push(export);
         }
-      } else {
-        // Retain each leaf's dependency identity for the existing reexport renderer.
-        expanded.insert(export.clone());
       }
-    }
-    if expanded.is_empty() {
       // A pure ICSS cycle has no concrete value. Keep its existing runtime
       // resolution instead of changing an unresolved export to an empty string.
-      Cow::Borrowed(elements)
+      (!expanded.is_empty()).then_some(expanded)
     } else {
-      Cow::Owned(expanded)
-    }
+      None
+    };
+    let use_original = expanded.is_none();
+    expanded
+      .into_iter()
+      .flatten()
+      .chain(elements.iter().filter(move |_| use_original))
   }
 
   fn render_css_export_content(&mut self, name: &str, elements: &FxIndexSet<CssExport>) -> String {
@@ -816,7 +825,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       from,
       id,
       orig_name: _,
-    } in elements.iter()
+    } in elements
     {
       let part = match from {
         None => self.render_local_css_export(ident),
@@ -873,9 +882,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     self.render_require_property_access(from_identifier, &from_used_name)
   }
 
-  fn render_concat_export_content<'b>(
+  fn render_concat_export_content<'b, 'c>(
     &mut self,
-    elements: &FxIndexSet<CssExport>,
+    elements: impl IntoIterator<Item = &'c CssExport>,
     state: &mut CssConcatenationState<'b>,
   ) -> String
   where
