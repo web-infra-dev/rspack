@@ -64,6 +64,7 @@ pub struct RstestParserPluginOptions {
   /// disabled" and "callee resolved to default `import`".
   pub inject_dynamic_import_origin: bool,
   pub update_import_mock_api: bool,
+  /// Whether to emit `rstest_require_mock` calls for runtimes that provide the helper.
   pub update_require_mock_api: bool,
   /// Whether to rewrite `require.resolve()` calls with origin info.
   pub inject_require_resolve_origin: bool,
@@ -633,6 +634,7 @@ impl RstestParserPlugin {
                 rspack_core::DependencyCategory::CommonJS,
                 Some(suffix),
               )
+              .with_all_exports_referenced()
               .with_missing_module_fallback("null".to_string());
               parser.add_dependency(BoxDependency::new(dep));
               parser.add_presentational_dependency(Arc::new(ConstDependency::new(

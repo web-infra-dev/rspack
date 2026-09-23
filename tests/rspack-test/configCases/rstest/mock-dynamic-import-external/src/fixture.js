@@ -43,6 +43,12 @@ export async function importMockedVariableWithImportedRs() {
   return rs.importMock(request);
 }
 
+// A missing manual mock requires the runtime registry helper; it cannot fall
+// back to requiring the unresolved __mocks__ source path as a module id.
+export function importMockWithoutManualMock() {
+  return rs.importMock('node:assert');
+}
+
 export async function importCjsManualMock() {
   return rs.importMock('node:os');
 }

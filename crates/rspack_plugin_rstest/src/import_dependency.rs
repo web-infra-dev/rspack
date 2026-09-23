@@ -205,9 +205,13 @@ fn module_namespace_promise_rstest(
   {
     let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
     return if is_import_mock {
+      let fallback_error = format!(
+        "[Rstest] importMock({mock_request}) requires an Rstest runtime with rstest_import_mock when no manual mock is bundled"
+      );
       format!(
-        "({require}.rstest_import_mock ? {require}.rstest_import_mock(undefined, {}, null) : {require}(\"{request}\"))",
-        json_stringify_str(mock_request)
+        "({require}.rstest_import_mock ? {require}.rstest_import_mock(undefined, {}, null) : Promise.reject(new Error({})))",
+        json_stringify_str(mock_request),
+        json_stringify_str(&fallback_error),
       )
     } else {
       format!("{require}(\"{request}\")")
