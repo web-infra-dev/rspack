@@ -1,9 +1,9 @@
+import { defineConfig } from '@rspack/cli';
 import { sharing } from '@rspack/core';
-// eslint-disable-next-line node/no-unpublished-require
+
 const { SharePlugin } = sharing;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   output: {
     uniqueName: 'b',
   },
@@ -12,4 +12,4 @@ export default {
       shared: ['package'],
     }),
   ],
-};
+});
