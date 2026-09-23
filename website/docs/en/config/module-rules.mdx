@@ -906,11 +906,13 @@ When multiple loaders within the same rule have `parallel` enabled, Rspack execu
 ## rules[].use.parallel.maxWorkers
 
 - **Type:** `number`
-- **Default:** `undefined`
+- **Default:** `Math.max(os.cpus().length - 1, 1)`
 
 Limits the maximum number of worker threads used by the shared loader worker pool when `parallel` is configured as an object. Use a positive integer.
 
-When `maxWorkers` is omitted, Rspack automatically chooses the worker count. The loader worker pool is shared within the current process, so use a consistent `maxWorkers` value if multiple loaders configure `parallel`.
+By default, Rspack uses the number of logical CPUs reported by `os.cpus()` minus one, with a minimum of one worker.
+
+The loader worker pool is shared within the current process, so use a consistent `maxWorkers` value if multiple loaders configure `parallel`.
 
 ```js title="rspack.config.mjs"
 export default {

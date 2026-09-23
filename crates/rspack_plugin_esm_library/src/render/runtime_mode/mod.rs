@@ -281,6 +281,17 @@ var {} = {{}};
     )));
   }
 
+  if context
+    .runtime_requirements
+    .contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT)
+  {
+    // The deferred namespace and require runtimes share the exports object
+    // before the module factory executes, just as in the normal JS bootstrap.
+    source.add(RawStringSource::from_static(
+      "// The deferred module cache\nvar __rspack_deferred_exports = {};\n",
+    ));
+  }
+
   if use_require {
     let require = context
       .runtime_template

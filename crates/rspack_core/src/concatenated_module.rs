@@ -231,10 +231,118 @@ pub struct ConcatenatedModuleInfo {
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub all_used_names: HashSet<Atom>,
-  pub binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
+  /// Bindings of this module and the references of each binding, see
+  /// [`BindingRefs`].
+  pub binding_to_ref: BindingRefs,
 
   pub public_path_auto_replacement: Option<bool>,
   pub static_url_replacement: bool,
+}
+
+/// The bindings of one concatenated module together with their references.
+///
+/// One flat list of bindings plus one shared list of references, instead of a
+/// map of vectors: a binding stores the range of its references inside
+/// [`Self::refs`], and a reference is an index into
+/// [`ConcatenatedModuleInfo::idents`], which already holds every identifier of
+/// the module. That costs 24 bytes per binding and 4 bytes per reference
+/// instead of a map slot, a vector header and another copy of the identifier.
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
+pub struct BindingRefs {
+  pub(crate) bindings: Vec<BindingRef>,
+  pub(crate) refs: Vec<u32>,
+}
+
+/// One binding: its name and the range of its references inside
+/// [`BindingRefs::refs`].
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
+pub(crate) struct BindingRef {
+  pub(crate) name: Atom,
+  pub(crate) ctxt: SyntaxContext,
+  pub(crate) start: u32,
+  pub(crate) len: u32,
+}
+
+impl BindingRefs {
+  /// Number of bindings.
+  pub fn len(&self) -> usize {
+    self.bindings.len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.bindings.is_empty()
+  }
+
+  /// Drop every binding.
+  pub(crate) fn clear(&mut self) {
+    self.bindings.clear();
+    self.refs.clear();
+  }
+
+  /// Bindings in first-use order: the name, the syntax context and the
+  /// references of that binding, as indices into
+  /// [`ConcatenatedModuleInfo::idents`].
+  pub fn iter(&self) -> impl Iterator<Item = (&Atom, SyntaxContext, &[u32])> {
+    self.bindings.iter().map(|binding| {
+      debug_assert!(binding.start + binding.len <= self.refs.len() as u32);
+      (
+        &binding.name,
+        binding.ctxt,
+        &self.refs[binding.start as usize..(binding.start + binding.len) as usize],
+      )
+    })
+  }
+
+  /// Names and syntax contexts of the bindings, in first-use order.
+  pub fn names(&self) -> impl Iterator<Item = (&Atom, SyntaxContext)> {
+    self
+      .bindings
+      .iter()
+      .map(|binding| (&binding.name, binding.ctxt))
+  }
+
+  /// Append a binding and return its index.
+  pub(crate) fn push_binding(&mut self, name: Atom, ctxt: SyntaxContext) -> u32 {
+    let index = u32::try_from(self.bindings.len()).expect("too many bindings in one module");
+    self.bindings.push(BindingRef {
+      name,
+      ctxt,
+      start: 0,
+      len: 0,
+    });
+    index
+  }
+
+  /// Lay the `(binding, ident index)` references out per binding, keeping the
+  /// order in which they were seen in the module. Call it once per collected
+  /// batch: the per-binding lengths are reset here.
+  pub(crate) fn finish(&mut self, refs: Vec<(u32, u32)>) {
+    for binding in self.bindings.iter_mut() {
+      binding.len = 0;
+    }
+    for (binding, _) in &refs {
+      self.bindings[*binding as usize].len += 1;
+    }
+    let mut cursor = 0u32;
+    for binding in self.bindings.iter_mut() {
+      binding.start = cursor;
+      cursor += binding.len;
+    }
+    self.refs.clear();
+    self.refs.resize(cursor as usize, 0);
+    let mut write_at = self
+      .bindings
+      .iter()
+      .map(|binding| binding.start)
+      .collect::<Vec<u32>>();
+    for (binding, index) in refs {
+      let slot = &mut write_at[binding as usize];
+      self.refs[*slot as usize] = index;
+      *slot += 1;
+    }
+  }
 }
 
 impl ConcatenatedModuleInfo {
@@ -1034,8 +1142,8 @@ impl Module for ConcatenatedModule {
         ModuleInfo::Concatenated(info) => {
           name_allocator.assign_module_binding_names(info, &concatenation_context);
 
-          for ((name, ctxt), refs) in &info.binding_to_ref {
-            if ctxt != &info.module_ctxt {
+          for (name, ctxt, refs) in info.binding_to_ref.iter() {
+            if ctxt != info.module_ctxt {
               continue;
             }
             let new_name = info
@@ -1048,7 +1156,7 @@ impl Module for ConcatenatedModule {
             }
 
             let source = info.source.as_mut().expect("should have source");
-            for identifier in refs {
+            for identifier in refs.iter().map(|index| &info.idents[*index as usize]) {
               let span = identifier.id.span();
               let low = span.real_lo();
               let high = span.real_hi();

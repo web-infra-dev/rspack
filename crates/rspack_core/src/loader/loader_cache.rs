@@ -171,7 +171,7 @@ struct LoaderCacheEntry {
   #[cacheable(with=AsMap)]
   parse_meta: ParseMeta,
   isolated_dts: Option<Box<IsolatedDts>>,
-  rsc: Option<RscMeta>,
+  rsc: Option<Box<RscMeta>>,
 }
 
 pub(crate) struct LoaderCacheMissState {

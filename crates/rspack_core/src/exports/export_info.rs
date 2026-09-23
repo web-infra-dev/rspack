@@ -50,20 +50,25 @@ pub struct ExportInfoData {
   name: Option<Atom>,
   /// this is mangled name, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
   used_name: Option<UsedNameItem>,
-  target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
+  // Boxed and created on demand: an inline hash map costs ~40 bytes in every
+  // export info (two live in every exports info, plus one per named export),
+  // while most exports never record a target.
+  target: Option<Box<HashMap<Option<DependencyId>, ExportInfoTargetValue>>>,
   /// This is rspack only variable, it is used to flag if the target has been initialized
   target_is_set: bool,
   provided: Option<ExportProvided>,
   can_mangle_provide: Option<bool>,
   can_mangle_use: Option<bool>,
-  can_inline_provide: Option<EvaluatedInlinableValue>,
+  can_inline_provide: Option<Box<EvaluatedInlinableValue>>,
   can_inline_use: Option<CanInlineUse>,
   terminal_binding: bool,
   exports_info: Option<ExportsInfo>,
   exports_info_owned: bool,
   has_use_in_runtime_info: bool,
   global_used: Option<UsageState>,
-  used_in_runtime: Option<ustr::UstrMap<UsageState>>,
+  // Boxed for the same reason as the target map: the inline map costs ~40
+  // bytes and is only populated for exports that were used at runtime.
+  used_in_runtime: Option<Box<ustr::UstrMap<UsageState>>>,
   ns_access: bool,
 }
 
@@ -85,37 +90,33 @@ impl ExportInfoData {
     let can_mangle_provide = init_from.and_then(|init_from| init_from.can_mangle_provide);
     let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
 
-    let target = init_from
-      .and_then(|item| {
-        if item.target_is_set {
-          Some(
-            item
-              .target
-              .iter()
-              .map(|(k, v)| {
-                (
-                  *k,
-                  ExportInfoTargetValue {
-                    dependency: v.dependency,
-                    export: match v.export.clone() {
-                      Some(vec) => Some(vec),
-                      None => Some(vec![
-                        name
-                          .clone()
-                          .expect("name should not be empty if target is set"),
-                      ]),
-                    },
-                    priority: v.priority,
-                  },
-                )
-              })
-              .collect::<HashMap<Option<DependencyId>, ExportInfoTargetValue>>(),
-          )
-        } else {
-          None
+    let target = init_from.and_then(|item| {
+      if item.target_is_set {
+        let mut target = HashMap::default();
+        if let Some(current) = &item.target {
+          for (k, v) in current.iter() {
+            target.insert(
+              *k,
+              ExportInfoTargetValue {
+                dependency: v.dependency,
+                export: match v.export.clone() {
+                  Some(vec) => Some(vec),
+                  None => Some(vec![
+                    name
+                      .clone()
+                      .expect("name should not be empty if target is set"),
+                  ]),
+                },
+                priority: v.priority,
+              },
+            );
+          }
         }
-      })
-      .unwrap_or_default();
+        Some(Box::new(target))
+      } else {
+        None
+      }
+    });
     Self {
       belongs_to,
       name,
@@ -148,7 +149,9 @@ impl ExportInfoData {
   }
 
   pub fn target(&self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
-    &self.target
+    static EMPTY: std::sync::LazyLock<HashMap<Option<DependencyId>, ExportInfoTargetValue>> =
+      std::sync::LazyLock::new(HashMap::default);
+    self.target.as_deref().unwrap_or(&EMPTY)
   }
 
   pub fn target_is_set(&self) -> bool {
@@ -156,7 +159,20 @@ impl ExportInfoData {
   }
 
   pub fn target_mut(&mut self) -> &mut HashMap<Option<DependencyId>, ExportInfoTargetValue> {
-    &mut self.target
+    self
+      .target
+      .get_or_insert_with(|| Box::new(HashMap::default()))
+  }
+
+  /// Drop the recorded targets and return the boxed map's memory.
+  ///
+  /// [`Self::reset_provide_info`] runs for every export info of every module, so
+  /// it must neither create a map for the exports that never recorded a target
+  /// nor keep the allocation of one that did. [`Self::target`] keeps reporting
+  /// an empty map and [`Self::target_is_set`] is false, so this is
+  /// indistinguishable from clearing in place.
+  pub fn reset_target(&mut self) {
+    self.target = None;
   }
 
   pub fn provided(&self) -> Option<ExportProvided> {
@@ -172,7 +188,7 @@ impl ExportInfoData {
   }
 
   pub fn can_inline_provide(&self) -> Option<&EvaluatedInlinableValue> {
-    self.can_inline_provide.as_ref()
+    self.can_inline_provide.as_deref()
   }
 
   pub fn can_inline_use(&self) -> Option<CanInlineUse> {
@@ -215,11 +231,13 @@ impl ExportInfoData {
   }
 
   pub fn used_in_runtime(&self) -> Option<&ustr::UstrMap<UsageState>> {
-    self.used_in_runtime.as_ref()
+    self.used_in_runtime.as_deref()
   }
 
   pub fn used_in_runtime_mut(&mut self) -> &mut ustr::UstrMap<UsageState> {
-    self.used_in_runtime.get_or_insert_default()
+    self
+      .used_in_runtime
+      .get_or_insert_with(|| Box::new(ustr::UstrMap::default()))
   }
 
   pub fn ns_access(&self) -> bool {
@@ -239,7 +257,7 @@ impl ExportInfoData {
   }
 
   pub fn set_can_inline_provide(&mut self, value: Option<EvaluatedInlinableValue>) {
-    self.can_inline_provide = value;
+    self.can_inline_provide = value.map(Box::new);
   }
 
   pub fn set_can_inline_use(&mut self, value: Option<CanInlineUse>) {
@@ -271,7 +289,7 @@ impl ExportInfoData {
   }
 
   pub fn set_used_in_runtime(&mut self, value: Option<ustr::UstrMap<UsageState>>) {
-    self.used_in_runtime = value;
+    self.used_in_runtime = value.map(Box::new);
   }
 
   pub fn set_has_use_in_runtime_info(&mut self, value: bool) {

@@ -485,14 +485,14 @@ fn mark_import_meta_rsc_used(parser: &mut JavascriptParser) {
       rsc.import_meta_rsc = true;
     }
     None => {
-      parser.build_info.rsc = Some(RscMeta {
+      parser.build_info.rsc = Some(Box::new(RscMeta {
         module_type: RscModuleType::Server,
         server_refs: Default::default(),
         client_refs: Default::default(),
         import_meta_rsc: true,
         is_cjs: false,
         action_ids: Default::default(),
-      });
+      }));
     }
   }
 }
