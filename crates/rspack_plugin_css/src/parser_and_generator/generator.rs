@@ -24,7 +24,8 @@ use smol_str::SmolStr;
 
 use crate::{
   css_exports::{
-    dependency_request, expand_self_referencing_exports, find_css_export_target, resolve_css_export,
+    dependency_request, find_css_export_target, get_css_export, get_css_exports,
+    prepare_css_exports,
   },
   css_syntax::unescape_identifier,
   dependency::CssImportDependency,
@@ -95,6 +96,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     with_hmr: bool,
     es_module: bool,
   ) -> Self {
+    prepare_css_exports(generate_context.compilation, module, generate_context.data);
     let generator_options = css_generator_options(generate_context.module_generator_options);
 
     Self {
@@ -724,8 +726,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         _ => Cow::Borrowed(key),
       };
 
-      let elements = expand_self_referencing_exports(compilation, module, key, elements);
-      let content = self.render_concat_export_content(elements);
+      let elements = get_css_exports(
+        self.generate_context.data,
+        module.identifier(),
+        key,
+        elements,
+      );
+      let content = self.render_concat_export_content(elements.iter());
       self.register_concat_export(key, &content, &used_name, &mut used_identifiers);
     }
 
@@ -762,17 +769,17 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn render_css_export_content(&mut self, name: &str, elements: &FxIndexSet<CssExport>) -> String {
-    let elements = expand_self_referencing_exports(
-      self.generate_context.compilation,
-      self.module,
+    let elements = get_css_exports(
+      self.generate_context.data,
+      self.module.identifier(),
       name,
       elements,
     );
     let mut content = String::new();
-    for element in elements {
+    for element in elements.iter() {
       let CssExport {
         ident, from, id, ..
-      } = element.as_ref();
+      } = element;
       let part = match from {
         None => self.render_local_css_export(ident),
         Some(from_name) => self.render_standard_css_reexport(ident, from_name, id.as_ref()),
@@ -815,13 +822,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
   fn render_concat_export_content<'b>(
     &mut self,
-    elements: impl IntoIterator<Item = Cow<'b, CssExport>>,
+    elements: impl IntoIterator<Item = &'b CssExport>,
   ) -> String {
     let mut content = String::new();
     for element in elements {
       let CssExport {
         ident, from, id, ..
-      } = element.as_ref();
+      } = element;
       let part = match from {
         None => self.render_local_css_export(ident),
         Some(from_name) => self.render_concat_reexport(ident, from_name, id.as_ref()),
@@ -912,14 +919,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .source_types(module_graph)
       .contains(&SourceType::JavaScript)
     {
-      let resolved = resolve_css_export(
-        compilation,
-        from.as_ref(),
-        ident,
-        self.generate_context.data,
-      )
-      .expect("should resolve static css export");
-      json_stringify_str(&resolved)
+      let resolved = get_css_export(self.generate_context.data, from.identifier(), ident)
+        .expect("should resolve static css export");
+      json_stringify_str(resolved)
     } else {
       let from_used_name = self.stringified_used_export_name(from.identifier(), ident, false);
       self.render_require_property_access(from.identifier(), &from_used_name)

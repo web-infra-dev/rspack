@@ -5,7 +5,7 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, TemplateContext, TemplateReplaceSource,
 };
 
-use crate::css_exports::{find_css_export_target, resolve_css_export};
+use crate::css_exports::get_icss_symbol;
 
 #[cacheable]
 #[derive(Debug)]
@@ -84,26 +84,14 @@ impl DependencyTemplate for CssIcssSymbolDependencyTemplate {
       .downcast_ref::<CssIcssSymbolDependency>()
       .expect("CssIcssSymbolDependencyTemplate should be used for CssIcssSymbolDependency");
 
-    let value = match &dep.value.from {
-      None => Some(dep.value.ident.to_string()),
-      Some(request) => find_css_export_target(
-        code_generatable_context.compilation,
-        code_generatable_context.module,
-        request,
-        dep.value.id.as_ref(),
-      )
-      .and_then(|target| {
-        resolve_css_export(
-          code_generatable_context.compilation,
-          target,
-          &dep.value.ident,
-          code_generatable_context.data,
-        )
-      }),
-    };
+    let value = get_icss_symbol(
+      code_generatable_context.data,
+      code_generatable_context.module.identifier(),
+      &dep.id,
+    );
 
     if let Some(value) = value {
-      source.replace(dep.range.start, dep.range.end, value, None);
+      source.replace(dep.range.start, dep.range.end, value.to_owned(), None);
     }
   }
 }
