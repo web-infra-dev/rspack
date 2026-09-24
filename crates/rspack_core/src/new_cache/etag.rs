@@ -1,10 +1,13 @@
 use std::{fmt, ops::Deref, sync::Arc};
 
 use rspack_cacheable::cacheable;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 /// Immutable validation token associated with a cached value.
 #[cacheable]
 #[derive(Clone, Eq, PartialEq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Etag(Arc<str>);
 
 impl Etag {

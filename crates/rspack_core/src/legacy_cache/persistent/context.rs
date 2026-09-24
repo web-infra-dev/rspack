@@ -1,6 +1,8 @@
 use std::{fmt::Write as _, time::Duration};
 
 use rspack_paths::{InternedPath, InternedPathSet};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::{
   occasion::Occasion,
@@ -19,6 +21,7 @@ const PATH_LOG_LIMIT: usize = 3;
 /// Call [`CacheContext::reset`] at the end of each build to prepare the
 /// context for the next one.
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CacheContext {
   /// Set when cache compatibility validation fails, meaning the cached data
   /// is structurally stale. Unlike `load_failed`, this flag persists across

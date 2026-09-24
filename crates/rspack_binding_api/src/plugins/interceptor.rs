@@ -155,6 +155,7 @@ pub struct JsTap<'f> {
 }
 
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ThreadsafeJsTap {
   pub function: DynThreadsafeFunction,
   pub stage: i32,
@@ -233,6 +234,7 @@ type RegisterFunctionOutput = Vec<ThreadsafeJsTap>;
 // released by `clear_cache()`.
 type RegisterFunction = CompilerScopedTsFnHandle<Vec<i32>, RegisterFunctionOutput>;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct RegisterJsTapsInner {
   register: RegisterFunction,
   cache: RegisterJsTapsCache,
@@ -249,6 +251,7 @@ impl Clone for RegisterJsTapsInner {
   }
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum RegisterJsTapsCache {
   NoCache,
   Cache(Arc<RwLock<Option<RegisterFunctionOutput>>>),
@@ -355,6 +358,7 @@ macro_rules! define_register {
   };
   (@BASE $name:ident, $tap_name:ident<$arg:ty, $ret:ty>, $cache:literal) => {
     #[derive(Clone)]
+    #[cfg_attr(allocative, derive(allocative::Allocative))]
     pub struct $name {
       inner: RegisterJsTapsInner,
     }
@@ -382,6 +386,7 @@ macro_rules! define_register {
   };
   (@BASE_PROMISE $name:ident, $tap_name:ident<$arg:ty, $ret:ty>, $cache:literal) => {
     #[derive(Clone)]
+    #[cfg_attr(allocative, derive(allocative::Allocative))]
     pub struct $name {
       inner: RegisterJsTapsInner,
     }
@@ -439,6 +444,7 @@ macro_rules! define_register {
 
 #[napi]
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RegisterJsTapKind {
   CompilerThisCompilation,
   CompilerCompilation,
@@ -497,6 +503,7 @@ pub enum RegisterJsTapKind {
 }
 
 #[derive(Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NonSkippableRegisters(Arc<RwLock<Vec<RegisterJsTapKind>>>);
 
 impl NonSkippableRegisters {
@@ -2200,3 +2207,6 @@ impl RsdoctorPluginAssets for RsdoctorPluginAssetsTap {
     self.stage
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

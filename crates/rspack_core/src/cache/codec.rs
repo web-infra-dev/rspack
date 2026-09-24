@@ -6,9 +6,12 @@ use rspack_cacheable::{
 };
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 /// Internal cacheable context for serialization
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct Context {
   portable_project_root: Option<Utf8PathBuf>,
 }
@@ -36,6 +39,7 @@ impl rspack_cacheable::CacheableContext for Context {
 /// let my_data: MyType = codec.decode(&bytes)?;
 /// ```
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CacheCodec {
   context: Context,
 }

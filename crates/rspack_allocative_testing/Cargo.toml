@@ -1,0 +1,23 @@
+[package]
+edition.workspace = true
+license.workspace = true
+name              = "rspack_allocative_testing"
+publish           = false
+version.workspace = true
+
+[features]
+allocative = ["dep:allocative", "dep:rspack_sources", "rspack_sources/allocative", "dep:smol_str"]
+default    = []
+
+[dependencies]
+allocative     = { workspace = true, optional = true }
+rspack_sources = { workspace = true, optional = true }
+smol_str       = { workspace = true, optional = true }
+
+[[test]]
+name              = "ownership"
+path              = "tests/ownership.rs"
+required-features = ["allocative"]
+
+[lints]
+workspace = true

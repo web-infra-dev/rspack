@@ -177,6 +177,22 @@ impl DefineHookInput {
         interceptors: Vec<Box<dyn ::rspack_hook::Interceptor<Self> + Send + Sync>>,
       }
 
+
+      #[cfg(allocative)]
+      impl ::rspack_hook::__macro_helper::allocative::Allocative for dyn #trait_name + Send + Sync {
+        fn visit<'a, 'b: 'a>(&self, visitor: &'a mut ::rspack_hook::__macro_helper::allocative::Visitor<'b>) { visitor.visit_opaque(self); }
+      }
+      #[cfg(allocative)]
+      impl ::rspack_hook::__macro_helper::allocative::Allocative for #hook_name {
+        fn visit<'a, 'b: 'a>(&self, visitor: &'a mut ::rspack_hook::__macro_helper::allocative::Visitor<'b>) {
+          use ::rspack_hook::__macro_helper::allocative::Key;
+          let mut visitor = visitor.enter_self(self);
+          visitor.visit_field(Key::new("common"), &self.common);
+          visitor.visit_field(Key::new("taps"), &self.taps);
+          visitor.visit_field(Key::new("interceptors"), &self.interceptors);
+          visitor.exit();
+        }
+      }
       impl ::rspack_hook::Hook for #hook_name {
         type Tap = Box<dyn #trait_name + Send + Sync>;
 

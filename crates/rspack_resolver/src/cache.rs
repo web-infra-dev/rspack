@@ -23,6 +23,7 @@ use crate::{
 };
 
 #[derive(Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Cache<Fs> {
   pub(crate) fs: Fs,
   paths: DashSet<CachedPath, BuildHasherDefault<IdentityHasher>>,
@@ -112,6 +113,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
 }
 
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CachedPath(Arc<CachedPathImpl>);
 
 impl Hash for CachedPath {
@@ -161,6 +163,7 @@ impl CacheKey for CachedPath {
   }
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CachedPathImpl {
   hash: u64,
   path: Box<Utf8Path>,
@@ -498,6 +501,7 @@ impl<'a> Borrow<dyn CacheKey + 'a> for (u64, &'a Utf8Path) {
 /// Since the cache key is memoized, use an identity hasher
 /// to avoid double cache.
 #[derive(Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct IdentityHasher(u64);
 
 impl Hasher for IdentityHasher {

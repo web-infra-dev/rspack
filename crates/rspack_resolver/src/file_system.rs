@@ -69,6 +69,7 @@ pub trait FileSystem {
 
 /// Metadata information about a file
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FileMetadata {
   pub is_file: bool,
   pub is_dir: bool,

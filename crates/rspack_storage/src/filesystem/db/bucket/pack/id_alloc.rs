@@ -10,6 +10,7 @@ use crate::{Error, Result};
 /// - Last ID is the next sequential ID to allocate
 /// - Pack IDs start at 1, with 0 reserved for the hot pack
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PackIdAlloc {
   next: PackId,
   reuse_pool: Vec<PackId>,

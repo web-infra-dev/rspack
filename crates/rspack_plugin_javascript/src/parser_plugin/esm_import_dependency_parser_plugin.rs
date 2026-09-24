@@ -5,6 +5,8 @@ use rspack_core::{
   ImportAttributes, ImportPhase,
 };
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_ecma_ast::{
   BinExpr, BinaryOp, CallExpr, Callee, Expr, GetSpan, Ident, ImportDecl, MemberExpr, Span,
 };
@@ -29,6 +31,7 @@ use crate::{
   },
 };
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ESMImportDependencyParserPlugin;
 
 pub const ESM_SPECIFIER_TAG: &str = "_identifier__esm_specifier_tag__";

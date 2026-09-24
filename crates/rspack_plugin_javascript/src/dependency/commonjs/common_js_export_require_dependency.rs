@@ -12,6 +12,8 @@ use rspack_core::{
   collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
   property_access, to_normal_comment,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashSet;
 
 use super::ExportsBase;
@@ -20,6 +22,7 @@ use crate::{Atom, dependency::commonjs::OBJECT_PROTOTYPE_METHODS};
 #[cacheable]
 #[allow(unused)]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CommonJsExportRequireDependency {
   id: DependencyId,
   request: String,
@@ -407,6 +410,7 @@ impl DependencyCodeGeneration for CommonJsExportRequireDependency {
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CommonJsExportRequireDependencyTemplate;
 
 impl CommonJsExportRequireDependencyTemplate {

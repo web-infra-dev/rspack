@@ -8,9 +8,12 @@ use rspack_core::{
   ReferencedExport, ResourceIdentifier, RuntimeSpec, create_exports_object_referenced,
 };
 use rspack_intern::IndexAtomSet;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ClientReferenceDependency {
   id: DependencyId,
   request: String,

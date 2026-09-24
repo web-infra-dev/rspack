@@ -6,6 +6,8 @@ use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_macros::impl_source_map_config;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
@@ -38,6 +40,7 @@ define_hook!(ExternalModuleChunkCondition: SeriesBail(
 #[cacheable]
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ExternalRequest {
   Single(ExternalRequestValue),
   Map(HashMap<String, ExternalRequestValue>),
@@ -45,6 +48,7 @@ pub enum ExternalRequest {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExternalRequestValue {
   pub primary: String,
   rest: Option<Vec<String>>,
@@ -58,6 +62,7 @@ impl ExternalRequestValue {
 
 /// The CommonJS require form used to render an external request.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CommonJsExternalRequireKind {
   CommonJs,
   NodeCommonJs,
@@ -518,6 +523,7 @@ fn resolve_external_type<'a>(
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExternalModule {
   dependencies_block: DependenciesBlockData,
   pub id: Identifier,
@@ -534,6 +540,7 @@ pub struct ExternalModule {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ExternalTypeEnum {
   Import,
   Module,
@@ -544,6 +551,7 @@ pub type MetaExternalType = Option<ExternalTypeEnum>;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependencyMeta {
   pub external_type: MetaExternalType,
   pub attributes: Option<ImportAttributes>,

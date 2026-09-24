@@ -1,3 +1,6 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 mod hot_module_replacement;
 
 use std::{
@@ -39,6 +42,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 /// chunks, so `collected_css_hashes` uses a `Mutex` instead.
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HotModuleReplacementPlugin {
   // per-chunk css digests captured by the content_hash tap: the unsalted
   // css-related entries the css plugins feed into the chunk content hash,
@@ -62,6 +66,7 @@ impl Default for HotModuleReplacementPlugin {
 /// each feeds its own HMR runtime. `None` means the chunk has no css of that
 /// kind.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct ChunkCssHashes {
   css: Option<RspackHashDigest>,
   mini_css: Option<RspackHashDigest>,

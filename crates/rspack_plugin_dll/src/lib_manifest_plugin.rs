@@ -5,6 +5,8 @@ use rspack_core::{
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::Utf8Path;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -12,6 +14,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LibManifestPluginOptions {
   pub context: Option<Context>,
 
@@ -28,6 +31,7 @@ pub struct LibManifestPluginOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LibManifestPlugin {
   options: LibManifestPluginOptions,
 }

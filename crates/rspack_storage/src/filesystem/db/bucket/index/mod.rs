@@ -7,6 +7,7 @@ use crate::{Error, Result};
 /// Index metadata for a pack file.
 /// Contains a bloom filter for fast key existence checks and a content hash for integrity verification.
 #[derive(Debug, Default, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PackIndex {
   content_hash: u64,
   bloom_filter: BloomFilter,

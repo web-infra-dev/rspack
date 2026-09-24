@@ -8,9 +8,12 @@ use rspack_plugin_javascript::dependency::{
   ESMImportSideEffectDependency, ESMImportSideEffectDependencyTemplate,
   ESMImportSpecifierDependency, ESMImportSpecifierDependencyTemplate,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RstestESMImportSideEffectDependencyTemplate;
 
 impl RstestESMImportSideEffectDependencyTemplate {
@@ -45,6 +48,7 @@ impl DependencyTemplate for RstestESMImportSideEffectDependencyTemplate {
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RstestESMImportSpecifierDependencyTemplate;
 
 impl RstestESMImportSpecifierDependencyTemplate {

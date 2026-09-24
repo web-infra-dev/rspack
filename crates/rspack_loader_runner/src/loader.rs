@@ -219,7 +219,7 @@ impl<Context: Send> Display for LoaderItemList<'_, Context> {
 
 #[cacheable_dyn]
 #[async_trait]
-pub trait Loader<Context = ()>: Send + Sync
+pub trait Loader<Context = ()>: rspack_util::MaybeAllocative + Send + Sync
 where
   Context: Send,
 {

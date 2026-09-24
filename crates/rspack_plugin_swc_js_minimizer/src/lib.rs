@@ -26,6 +26,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash, JsPlugin};
 use rspack_regex::RspackRegex;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{
   asset_condition::AssetConditions,
   fx_hash::{FxHashMap, FxHasher},
@@ -47,6 +49,7 @@ static JAVASCRIPT_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.[cm]?js(\?.*)?$").expect("Invalid RegExp"));
 
 #[derive(Debug, Hash, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PluginOptions {
   pub test: Option<AssetConditions>,
   pub include: Option<AssetConditions>,
@@ -56,6 +59,7 @@ pub struct PluginOptions {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MinimizerOptions {
   pub ecma: TerserEcmaVersion,
   pub minify: Option<bool>,
@@ -129,6 +133,7 @@ impl std::hash::Hash for MinimizerOptions {
 }
 
 #[derive(Debug, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum OptionWrapper<T: std::fmt::Debug + std::hash::Hash> {
   Default,
   Disabled,
@@ -157,6 +162,7 @@ impl<T: std::fmt::Debug + std::hash::Hash + rspack_hash::RspackHash> rspack_hash
 }
 
 #[derive(Debug, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExtractComments {
   pub condition: String,
   pub condition_flags: String,
@@ -180,6 +186,7 @@ struct NormalizedExtractComments {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SwcJsMinimizerRspackPlugin {
   options: PluginOptions,
   options_hash: u64,

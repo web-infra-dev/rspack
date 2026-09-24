@@ -24,6 +24,8 @@ use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{
   asset_condition::{AssetConditions, AssetConditionsObject, match_object},
   base64,
@@ -151,6 +153,7 @@ static URL_FORMATTING_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
 const PLUGIN_NAME: &str = "rspack.SourceMapDevToolPlugin";
 
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ModuleFilenameTemplate {
   String(String),
   Fn(ModuleFilenameTemplateFn),
@@ -208,9 +211,10 @@ impl SourceMapDevToolPluginOptions {
   }
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum SourceMappingUrlComment {
   String(String),
-  Fn(AppendFn),
+  Fn(#[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_box))] AppendFn),
 }
 
 enum SourceMappingUrlCommentRef<'a> {
@@ -296,6 +300,7 @@ pub(crate) struct MappedAsset {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SourceMapDevToolPlugin {
   source_map_filename: Option<Filename>,
   ignore_list: Option<AssetConditions>,
@@ -310,7 +315,7 @@ pub struct SourceMapDevToolPlugin {
   columns: bool,
   no_sources: bool,
   public_path: Option<String>,
-  #[expect(dead_code)]
+  #[cfg_attr(not(allocative), expect(dead_code))]
   module: bool,
   source_root: Option<Arc<str>>,
   test: Option<AssetConditions>,

@@ -10,6 +10,8 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{ChunkUkey, Compilation, Module, ModuleIdentifier, SourceType};
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 
@@ -17,8 +19,9 @@ pub type ChunkFilterFunc =
   Arc<dyn Fn(&ChunkUkey, &Compilation) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
 
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ChunkFilter {
-  Func(ChunkFilterFunc),
+  Func(#[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_arc))] ChunkFilterFunc),
   All,
   Regex(RspackRegex),
   Async,
@@ -118,6 +121,7 @@ pub fn create_regex_chunk_filter_from_str(re: RspackRegex) -> ChunkFilter {
 }
 
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SplitChunkSizes(pub(crate) FxHashMap<SourceType, f64>);
 
 impl SplitChunkSizes {
@@ -239,6 +243,7 @@ pub fn get_module_sizes<T: ParallelIterator<Item = ModuleIdentifier>>(
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FallbackCacheGroup {
   #[debug(skip)]
   pub chunks_filter: ChunkFilter,

@@ -4,10 +4,13 @@ use rspack_core::{
   ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, NormalModuleFactory,
 };
 use rspack_error::Result;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::dependency::LazyCompilationDependency;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct LazyCompilationDependencyFactory {
   normal_module_factory: Arc<NormalModuleFactory>,
 }

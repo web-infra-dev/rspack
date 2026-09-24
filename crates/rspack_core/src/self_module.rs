@@ -7,6 +7,8 @@ use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::RspackHashDigest;
 use rspack_macros::impl_source_map_config;
 use rspack_sources::BoxSource;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
@@ -19,6 +21,7 @@ use crate::{
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SelfModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,

@@ -7,6 +7,8 @@ use std::{
 };
 
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_ecma_ast::{Expr, Ident, MemberExpr, UnaryExpr};
 
 use super::{VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
@@ -17,6 +19,7 @@ use crate::{
   visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo},
 };
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DefineParserPlugin {
   recurse: AtomicBool,
   recurse_typeof: AtomicBool,

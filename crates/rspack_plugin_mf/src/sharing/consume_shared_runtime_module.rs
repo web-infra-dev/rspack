@@ -9,6 +9,8 @@ use rspack_core::{
 use rspack_plugin_runtime::{
   extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::json_stringify_str;
 
 use super::consume_shared_plugin::ConsumeVersion;
@@ -36,6 +38,7 @@ static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| 
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConsumeSharedRuntimeModule {
   enhanced: bool,
 }
@@ -260,6 +263,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CodeGenerationDataConsumeShared {
   pub share_scope: ShareScope,
   pub share_key: String,

@@ -1,6 +1,8 @@
 use futures::Future;
 use rspack_collections::Identifier;
 use rspack_error::Result;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   ArtifactExt, CacheOptions, ChunkGraph, Compilation, CompilerOptions, MemoryGCStorage,
@@ -9,6 +11,7 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ProcessRuntimeRequirementsCacheArtifact {
   storage: Option<MemoryGCStorage<RuntimeGlobals>>,
 }

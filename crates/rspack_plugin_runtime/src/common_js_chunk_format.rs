@@ -11,6 +11,8 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
   runtime::render_chunk_runtime_modules,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::json_stringify_str;
 
 use crate::{
@@ -22,6 +24,7 @@ const PLUGIN_NAME: &str = "rspack.CommonJsChunkFormatPlugin";
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CommonJsChunkFormatPlugin;
 
 #[plugin_hook(CompilerCompilation for CommonJsChunkFormatPlugin)]

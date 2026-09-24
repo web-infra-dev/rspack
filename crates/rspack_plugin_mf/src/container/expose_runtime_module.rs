@@ -2,12 +2,15 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
   RuntimeTemplate, SourceType, impl_runtime_module,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::container_entry_module::CodeGenerationDataExpose;
 use crate::utils::{json_stringify, module_require_scope_name, runtime_require_scope_requirement};
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExposeRuntimeModule {}
 
 impl ExposeRuntimeModule {

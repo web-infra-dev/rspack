@@ -97,6 +97,7 @@ impl From<RawImportOptions> for ImportOptions {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum StyleConfig {
   StyleLibraryDirectory(String),
   #[serde(skip)]
@@ -107,6 +108,7 @@ pub enum StyleConfig {
 }
 
 #[derive(Deserialize)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CustomTransform {
   #[serde(skip)]
   Fn(Box<dyn Sync + Send + Fn(String) -> Option<String>>),
@@ -132,6 +134,7 @@ impl Debug for CustomTransform {
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportOptions {
   pub library_name: String,
   pub library_directory: Option<String>, // default to `lib`

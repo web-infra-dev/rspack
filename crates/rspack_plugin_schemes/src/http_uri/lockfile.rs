@@ -7,11 +7,14 @@ use std::{
 use async_trait::async_trait;
 use rspack_fs::{FsResultToIoResultExt, WritableFileSystem};
 use rspack_paths::Utf8Path;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LockfileEntry {
   pub resolved: String,
   pub integrity: String,
@@ -31,12 +34,14 @@ impl LockfileEntry {
 /// Cloning snapshots the locked metadata before asynchronous resource reads, releasing the lock.
 #[derive(Debug, Serialize, Clone)]
 #[serde(untagged)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum LockfileValue {
   Content(LockfileEntry),
   Tag(String),
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Lockfile {
   version: u8,
   entries: FxHashMap<String, LockfileValue>,
@@ -182,6 +187,7 @@ impl LockfileAsync for Lockfile {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LockfileCache {
   lockfile: Mutex<Lockfile>,
   lockfile_path: Option<PathBuf>,

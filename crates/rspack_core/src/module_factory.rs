@@ -114,6 +114,6 @@ impl ModuleFactoryResult {
 }
 
 #[async_trait::async_trait]
-pub trait ModuleFactory: Debug + Sync + Send {
+pub trait ModuleFactory: rspack_util::MaybeAllocative + Debug + Sync + Send {
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult>;
 }

@@ -146,6 +146,8 @@ fn format_js_function(env: sys::napi_env, napi_val: sys::napi_value) -> String {
 
 // Call sites only keep this handle. It owns a TSFN slot whose lifetime is tied to the
 // owning compiler and is cleared when that compiler is closed or dropped.
+#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, allocative(bound = "T: 'static + JsValuesTupleIntoVec, R"))]
 pub struct CompilerScopedTsFnHandle<T: 'static + JsValuesTupleIntoVec, R> {
   active_tsfn: SharedThreadsafeFunction<T, R>,
 }
@@ -238,3 +240,6 @@ impl<T: 'static + JsValuesTupleIntoVec, R> TypeName for CompilerScopedTsFnHandle
     ValueType::Function
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

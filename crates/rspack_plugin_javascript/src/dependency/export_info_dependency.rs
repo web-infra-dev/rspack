@@ -7,11 +7,14 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
   TemplateContext, TemplateReplaceSource, UsageState, UsedExports, UsedName,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::Atom;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportInfoDependency {
   start: u32,
   end: u32,
@@ -127,6 +130,7 @@ impl ExportInfoDependency {
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportInfoDependencyTemplate;
 
 impl ExportInfoDependencyTemplate {

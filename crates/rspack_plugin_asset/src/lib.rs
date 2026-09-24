@@ -18,6 +18,8 @@ use rspack_core::{
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, error};
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{base64, fx_hash::FxHashSet, identifier::make_paths_relative};
 
 mod asset_exports_dependency;
@@ -28,6 +30,7 @@ pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLI
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AssetPlugin;
 
 static JS_AND_ASSET_URL_TYPES: &[SourceType; 2] = &[SourceType::JavaScript, SourceType::AssetUrl];
@@ -59,6 +62,7 @@ fn asset_import_binding(module: &dyn Module, compilation: &Compilation) -> Strin
 }
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum DataUrlOptions {
   Inline(bool),
   Source,
@@ -68,6 +72,7 @@ enum DataUrlOptions {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AssetParserAndGenerator {
   emit: bool,
   data_url: DataUrlOptions,

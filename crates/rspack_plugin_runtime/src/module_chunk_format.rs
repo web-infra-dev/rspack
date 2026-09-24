@@ -12,6 +12,8 @@ use rspack_plugin_javascript::{
   JsPlugin, RenderSource, impl_plugin_for_js_plugin::chunk_has_js,
   runtime::render_chunk_runtime_modules,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -25,6 +27,7 @@ const PLUGIN_NAME: &str = "rspack.ModuleChunkFormatPlugin";
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleChunkFormatPlugin;
 
 #[plugin_hook(CompilerCompilation for ModuleChunkFormatPlugin)]

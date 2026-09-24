@@ -130,6 +130,7 @@ pub struct ResolveContext {
 pub type Resolver = ResolverGeneric<FileSystemOs>;
 
 /// Generic implementation of the resolver, can be configured by the [FileSystem] trait
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ResolverGeneric<Fs> {
   options: ResolveOptions,
   cache: Arc<Cache<Fs>>,

@@ -16,8 +16,11 @@ use tokio::{
 
 // don't overuse this and put everything here, it's mostly used for store isolated id generator
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompilerContext {
   dependenc_id_generator: AtomicU32,
+  // Non-owning link; Compilation owns and visits the exports-info artifact.
+  #[cfg_attr(allocative, allocative(skip))]
   exports_info_artifact_ptr: AtomicPtr<c_void>,
 }
 

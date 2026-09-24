@@ -63,12 +63,14 @@ static COMPILATION_HOOKS_MAP: LazyLock<
 > = LazyLock::new(Default::default);
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct WithHash<T> {
   hash: Option<RspackHashDigest>,
   value: T,
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct RenameModuleCache {
   inlined_modules_to_info: IdentifierDashMap<Arc<WithHash<InlinedModuleInfo>>>,
   non_inlined_modules_through_idents:
@@ -95,6 +97,7 @@ impl RenameModuleCache {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct InlinedModuleInfo {
   source: Arc<dyn Source>,
   module_scope_idents: Vec<Arc<ConcatenatedModuleIdent>>,
@@ -110,6 +113,7 @@ struct RenameInfoPatch {
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct JsPlugin {
   rename_module_cache: RenameModuleCache,
 }

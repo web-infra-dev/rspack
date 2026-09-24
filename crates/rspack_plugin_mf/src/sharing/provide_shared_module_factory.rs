@@ -5,12 +5,15 @@ use rspack_core::{
   ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
 };
 use rspack_error::{Diagnosable, Diagnostic, Result};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::{
   provide_shared_dependency::ProvideSharedDependency, provide_shared_module::ProvideSharedModule,
 };
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ProvideSharedModuleFactory {
   diagnostics: Vec<Diagnostic>,
 }

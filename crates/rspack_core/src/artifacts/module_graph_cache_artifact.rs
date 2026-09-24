@@ -11,6 +11,8 @@ use get_mode::*;
 use get_side_effects_connection_state::*;
 use module_graph_hash::*;
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -22,6 +24,7 @@ pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
 /// This is a rust port of `ModuleGraph.cached` and `ModuleGraph.dependencyCacheProvide` in webpack.
 /// We use this to cache the result of functions with high computational overhead.
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleGraphCacheArtifactInner {
   /// Webpack enables module graph caches by creating new cache maps and disable them by setting them to undefined.
   /// But in rust I think it's better to use a bool flag to avoid memory reallocation.
@@ -174,6 +177,7 @@ pub(super) mod module_graph_hash {
   pub type ModuleGraphHashCacheKey = (ModuleIdentifier, Option<RuntimeKey>);
 
   #[derive(Debug, Default)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   pub struct ModuleGraphHashCache {
     cache: FxDashMap<ModuleGraphHashCacheKey, u64>,
   }
@@ -201,6 +205,7 @@ pub(super) mod concatenated_module_entries {
   pub type ConcatenatedModuleEntriesCacheKey = (ModuleIdentifier, Option<RuntimeKey>);
 
   #[derive(Debug, Default)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   pub struct ConcatenatedModuleEntriesCache {
     cache: FxDashMap<ConcatenatedModuleEntriesCacheKey, Vec<ConcatenationEntry>>,
   }
@@ -226,6 +231,7 @@ pub(super) mod get_side_effects_connection_state {
   use crate::{ConnectionState, ModuleIdentifier};
 
   #[derive(Debug, Default)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   pub struct GetSideEffectsConnectionStateCache {
     cache: IdentifierDashMap<ConnectionState>,
   }
@@ -253,6 +259,7 @@ pub(super) mod get_exports_type {
   pub type GetExportsTypeCacheKey = (ModuleIdentifier, bool);
 
   #[derive(Debug, Default)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   pub struct GetExportsTypeCache {
     strict_cache: IdentifierDashMap<ExportsType>,
     dynamic_cache: IdentifierDashMap<ExportsType>,
@@ -290,6 +297,7 @@ pub(super) mod get_mode {
   pub type GetModeCacheKey = (DependencyId, Option<RuntimeKey>);
 
   #[derive(Debug, Default)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   pub struct GetModeCache {
     cache: RwLock<HashMap<GetModeCacheKey, ExportMode>>,
   }
@@ -323,6 +331,7 @@ pub(super) mod determine_export_assignments {
   ///
   /// However, we can simplify the cache key since dependencies under the same parent module share `allStarExports` and copy their own `otherStarExports`.
   #[derive(Debug, PartialEq, Eq, Hash)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   pub enum DetermineExportAssignmentsKey {
     All(ModuleIdentifier),
     Other(DependencyId),
@@ -330,6 +339,7 @@ pub(super) mod determine_export_assignments {
   pub type DetermineExportAssignmentsValue = (Vec<Atom>, Vec<usize>);
 
   #[derive(Debug, Default)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   pub struct DetermineExportAssignmentsCache {
     cache: RwLock<HashMap<DetermineExportAssignmentsKey, DetermineExportAssignmentsValue>>,
   }
@@ -358,6 +368,7 @@ pub(super) mod determine_export_assignments {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NormalReexportItem {
   pub name: Atom,
   pub ids: Vec<Atom>,
@@ -367,6 +378,7 @@ pub struct NormalReexportItem {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ExportMode {
   Missing,
   LazyMake,
@@ -382,33 +394,39 @@ pub enum ExportMode {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportModeUnused {
   pub name: Atom,
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportModeEmptyStar {
   pub hidden: Option<HashSet<Atom>>,
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportModeReexportDynamicDefault {
   pub name: Atom,
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportModeReexportNamedDefault {
   pub name: Atom,
   pub partial_namespace_export_info: ExportInfo,
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportModeReexportNamespaceObject {
   pub name: Atom,
   pub partial_namespace_export_info: ExportInfo,
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportModeFakeNamespaceObject {
   pub name: Atom,
   pub fake_type: u8,
@@ -416,16 +434,19 @@ pub struct ExportModeFakeNamespaceObject {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportModeReexportUndefined {
   pub name: Atom,
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportModeNormalReexport {
   pub items: Vec<NormalReexportItem>,
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportModeDynamicReexport {
   pub ignored: HashSet<Atom>,
   pub hidden: Option<HashSet<Atom>>,

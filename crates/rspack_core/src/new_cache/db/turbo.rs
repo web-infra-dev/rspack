@@ -184,7 +184,10 @@ impl StoreKey for CacheKey {
   }
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct TurboDatabase {
+  // The database backend does not expose its retained allocations.
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque))]
   inner: Inner,
   base_path: Utf8PathBuf,
   path: Utf8PathBuf,

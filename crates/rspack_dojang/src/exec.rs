@@ -12,6 +12,7 @@ type JumpTables = (JumpTable, JumpTable);
 
 // The executer that renders the template.
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Executer {
   insts: Vec<Action<Eval>>,
 

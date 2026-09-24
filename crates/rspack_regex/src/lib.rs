@@ -16,6 +16,7 @@ use self::algo::Algo;
 /// Using wrapper type required by [TryFrom] trait
 #[cacheable(with=AsString)]
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RspackRegex {
   algo: Box<Algo>,
   pub flags: String,

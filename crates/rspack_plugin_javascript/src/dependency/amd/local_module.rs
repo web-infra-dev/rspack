@@ -1,8 +1,11 @@
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LocalModule {
   #[cacheable(with=AsPreset)]
   name: Atom,

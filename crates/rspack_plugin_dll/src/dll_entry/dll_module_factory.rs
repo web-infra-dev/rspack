@@ -1,10 +1,13 @@
 use async_trait::async_trait;
 use rspack_core::{ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
 use rspack_error::Result;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::{dll_entry_dependency::DllEntryDependency, dll_module::DllModule};
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct DllModuleFactory;
 
 #[async_trait]

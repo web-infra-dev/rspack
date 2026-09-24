@@ -1,4 +1,8 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompilerPlatform {
   pub web: Option<bool>,
   pub browser: Option<bool>,

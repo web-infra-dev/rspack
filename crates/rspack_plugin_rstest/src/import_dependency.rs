@@ -8,6 +8,8 @@ use rspack_core::{
   TemplateReplaceSource, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::json_stringify_str;
 
 #[cacheable]
@@ -95,6 +97,7 @@ impl DependencyCodeGeneration for RstestImportDependency {
 
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportDependencyTemplate;
 
 impl ImportDependencyTemplate {

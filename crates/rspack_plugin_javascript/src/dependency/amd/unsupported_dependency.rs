@@ -5,9 +5,12 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, TemplateContext, TemplateReplaceSource,
 };
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct UnsupportedDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -61,6 +64,7 @@ impl AsContextDependency for UnsupportedDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct UnsupportedDependencyTemplate;
 
 impl UnsupportedDependencyTemplate {

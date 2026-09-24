@@ -5,9 +5,12 @@ use rspack_core::{
   ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AMDRequireItemDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -76,6 +79,7 @@ impl DependencyCodeGeneration for AMDRequireItemDependency {
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AMDRequireItemDependencyTemplate;
 
 impl AMDRequireItemDependencyTemplate {

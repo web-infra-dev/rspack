@@ -1,6 +1,8 @@
 use std::fmt::{Debug, Display};
 
 use rspack_cacheable::cacheable;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::ContextTypePrefix;
 
@@ -8,6 +10,7 @@ use crate::ContextTypePrefix;
 // Note: This is almost the same with the old `ResolveKind`
 #[cacheable]
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum DependencyType {
   #[default]
   Unknown,

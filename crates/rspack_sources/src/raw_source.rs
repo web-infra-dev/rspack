@@ -27,6 +27,7 @@ use crate::{
 /// assert_eq!(s.size(), 16);
 /// ```
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RawStringSource(Cow<'static, str>);
 
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
@@ -153,6 +154,7 @@ impl StreamChunks for RawStringSource {
 /// assert_eq!(s.map(&ObjectPool::default(), &MapOptions::default()), None);
 /// assert_eq!(s.size(), 16);
 /// ```
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RawBufferSource {
   value: Vec<u8>,
   value_as_string: OnceLock<Option<String>>,

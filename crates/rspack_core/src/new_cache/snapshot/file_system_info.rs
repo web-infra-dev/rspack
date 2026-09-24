@@ -9,6 +9,8 @@ use rspack_hash::{HashDigest, HashFunction, RspackHashDigest, RspackHasher};
 use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap, InternedPathSet, Utf8Path};
 use rspack_regex::RspackRegex;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{node_path::NodePath, time::mtime_accuracy};
 use simd_json::prelude::{ValueAsScalar, ValueObjectAccess};
 
@@ -23,6 +25,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) enum FileSystemInfoLogger {
   Compilation(CompilationLogger),
   Infrastructure(InfrastructureLogger),
@@ -91,6 +94,7 @@ impl From<SnapshotStrategyOptions> for SnapshotMode {
 /// The path categories checked by webpack's `createSnapshot` -> `checkManaged`.
 /// Cloning a cached classification only copies the interned managed-path handle.
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum PathClassification {
   Unmanaged,
   Immutable,
@@ -114,10 +118,12 @@ struct ContextValue {
 /// See webpack's `FileSystemInfo` implementation:
 /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L1282-L1450
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FileSystemInfo {
   inner: Arc<FileSystemInfoInner>,
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct FileSystemInfoInner {
   fs: Arc<dyn ReadableFileSystem>,
   logger: FileSystemInfoLogger,

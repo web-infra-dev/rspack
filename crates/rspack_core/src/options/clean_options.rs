@@ -4,10 +4,13 @@ use futures::future::BoxFuture;
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 pub type KeepFunc = Arc<dyn Fn(String) -> BoxFuture<'static, Result<bool>> + Send + Sync>;
 
 /// rust representation of the clean options
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CleanOptions {
   // if true, clean all files
   CleanAll(bool),

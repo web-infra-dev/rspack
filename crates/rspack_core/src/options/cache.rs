@@ -1,10 +1,13 @@
 use std::{path::PathBuf, time::Duration};
 
 use rspack_paths::Utf8PathBuf;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 pub use crate::legacy_cache::{BuildDepsOptions, PersistentCacheOptions, StorageOptions};
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CacheOptions {
   Disabled,
   Memory {
@@ -20,6 +23,7 @@ pub enum CacheOptions {
 
 /// Filesystem cache configuration, cloned with the compiler's cache options.
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FileSystemCacheOptions {
   pub build_dependencies: Vec<PathBuf>,
   pub cache_directory: Utf8PathBuf,
@@ -33,6 +37,7 @@ pub struct FileSystemCacheOptions {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum MaxMemoryGenerations {
   Disabled,
   Infinity,

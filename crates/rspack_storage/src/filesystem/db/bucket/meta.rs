@@ -17,6 +17,7 @@ use crate::{Error, Result};
 /// 2 content_hash bloom_filter  (cold pack 2)
 /// ```
 #[derive(Debug, Default, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Meta {
   pack_id_alloc: PackIdAlloc,
   hot_pack_index: PackIndex,

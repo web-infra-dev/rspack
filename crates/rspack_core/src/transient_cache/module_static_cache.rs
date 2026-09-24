@@ -4,12 +4,15 @@ use std::sync::{
 };
 
 use readable_identifier::*;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap as HashMap;
 
 pub type ModuleStaticCache = Arc<ModuleStaticCacheInner>;
 
 /// This cache is used to cache the information of modules that are not changed after `make`.
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleStaticCacheInner {
   /// this is a fast-path check to avoid hash check
   cache_enabled: AtomicBool,
@@ -55,6 +58,7 @@ pub(super) mod readable_identifier {
   pub type ReadableIdentifierCacheKey = (ModuleIdentifier, Option<String>);
 
   #[derive(Debug, Default)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   pub struct ReadableIdentifierCache {
     cache: RwLock<HashMap<ReadableIdentifierCacheKey, String>>,
   }

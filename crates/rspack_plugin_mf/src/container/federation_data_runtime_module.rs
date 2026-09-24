@@ -17,6 +17,7 @@ use crate::utils::{runtime_require_scope_name, runtime_require_scope_requirement
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FederationDataRuntimeModule {}
 
 impl FederationDataRuntimeModule {
@@ -132,3 +133,6 @@ if(!{federation_global}){{
 "#
   )
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

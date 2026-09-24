@@ -8,6 +8,8 @@ use std::{
 };
 
 use rspack_paths::{InternedPathSet, Utf8PathBuf};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use tokio::{
   sync::mpsc,
   time::{Instant, sleep_until},
@@ -25,6 +27,7 @@ const DEFAULT_IDLE_TIMEOUT_AFTER_LARGE_CHANGES: Duration = Duration::from_secs(1
 const MAX_IDLE_COMPACTION_PASSES: usize = 10;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum Command {
   BeginIdle { epoch: u64, build_time: Duration },
   EndIdle,
@@ -147,6 +150,7 @@ impl BackgroundJob {
 
 /// Runs filesystem cache operations in one persistent background job.
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct IdleFileCache {
   strategy: Arc<FileCacheStrategy>,
   logger: Arc<InfrastructureLogger>,

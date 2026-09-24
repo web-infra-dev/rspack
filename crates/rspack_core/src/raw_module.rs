@@ -9,6 +9,8 @@ use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
@@ -22,6 +24,7 @@ use crate::{
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RawModule {
   dependencies_block: DependenciesBlockData,
   source_str: String,

@@ -11,6 +11,8 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
   runtime::{render_chunk_runtime_modules, render_runtime_modules},
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::{generate_entry_startup, update_hash_for_entry_startup};
 
@@ -18,6 +20,7 @@ const PLUGIN_NAME: &str = "rspack.ArrayPushCallbackChunkFormatPlugin";
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ArrayPushCallbackChunkFormatPlugin;
 
 #[plugin_hook(CompilerCompilation for ArrayPushCallbackChunkFormatPlugin)]

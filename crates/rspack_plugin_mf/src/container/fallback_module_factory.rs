@@ -1,10 +1,13 @@
 use async_trait::async_trait;
 use rspack_core::{ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
 use rspack_error::Result;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::{fallback_dependency::FallbackDependency, fallback_module::FallbackModule};
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FallbackModuleFactory;
 
 #[async_trait]

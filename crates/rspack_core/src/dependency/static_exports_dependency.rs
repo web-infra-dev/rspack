@@ -3,6 +3,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::AffectType;
 use crate::{
@@ -13,6 +15,7 @@ use crate::{
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum StaticExportsSpec {
   True,
   Array(#[cacheable(with=AsVec<AsPreset>)] Vec<Atom>),
@@ -20,6 +23,7 @@ pub enum StaticExportsSpec {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct StaticExportsDependency {
   id: DependencyId,
   exports: StaticExportsSpec,

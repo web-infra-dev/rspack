@@ -1,3 +1,6 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 mod bitmap;
 mod chunk;
 mod intersections;
@@ -45,9 +48,11 @@ pub struct PluginOptions {
 }
 
 #[plugin]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SplitChunksPlugin {
   dedup_depth: u32,
   cache_groups: Box<[CacheGroup]>,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_option_arc_slice))]
   name_batch_getters: Option<Box<[Option<SplitChunksNameBatchFn>]>>,
   fallback_cache_group: FallbackCacheGroup,
   hide_path_info: bool,

@@ -7,6 +7,7 @@ use rspack_util::SpanExt;
 /// It stores the start and end positions (as offsets) of the range, typically using base-0 indexing.
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependencyRange {
   pub start: u32,
   pub end: u32,

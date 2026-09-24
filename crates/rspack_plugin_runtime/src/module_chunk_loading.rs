@@ -5,6 +5,8 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   runtime_module::{
@@ -27,6 +29,7 @@ fn is_modern_module_library_chunk(chunk_ukey: &ChunkUkey, compilation: &Compilat
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleChunkLoadingPlugin;
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ModuleChunkLoadingPlugin)]

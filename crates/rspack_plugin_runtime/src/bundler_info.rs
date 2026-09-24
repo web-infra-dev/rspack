@@ -4,11 +4,14 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashSet;
 
 use crate::runtime_module::{RspackUniqueIdRuntimeModule, RspackVersionRuntimeModule};
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum BundlerInfoForceMode {
   Auto,
   All,
@@ -17,6 +20,7 @@ pub enum BundlerInfoForceMode {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct BundlerInfoPlugin {
   version: String,
   bundler_name: String,

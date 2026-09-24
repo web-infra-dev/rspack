@@ -9,6 +9,8 @@ use md4::Digest;
 use rspack_cacheable::{cacheable, with::AsPreset};
 pub use rspack_macros::RspackHash;
 use rspack_util::MergeFrom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use smol_str::SmolStr;
 use xxhash_rust::xxh64::Xxh64;
 
@@ -16,6 +18,7 @@ mod hashable;
 
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum HashFunction {
   Xxhash64,
   MD4,
@@ -41,6 +44,7 @@ impl MergeFrom for HashFunction {
 
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum HashDigest {
   Hex,
   Base64,
@@ -82,6 +86,7 @@ impl MergeFrom for HashDigest {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum HashSalt {
   #[default]
   None,
@@ -311,6 +316,7 @@ impl Hasher for RspackHasher {
 
 #[cacheable]
 #[derive(Debug, Clone, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RspackHashDigest {
   #[cacheable(with=AsPreset)]
   encoded: SmolStr,

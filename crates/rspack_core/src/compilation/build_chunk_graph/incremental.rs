@@ -3,6 +3,8 @@ use std::sync::Arc;
 use fixedbitset::FixedBitSet;
 use rspack_collections::{IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_error::Result;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashSet;
 use tracing::instrument;
 
@@ -863,6 +865,7 @@ impl CodeSplitter {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct CacheResult {
   pub modules: Vec<ModuleIdentifier>,
   pub pre_order_indices: IdentifierMap<u32>,
@@ -872,6 +875,7 @@ struct CacheResult {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkCreateData {
   // input
   available_modules: Arc<FixedBitSet>,

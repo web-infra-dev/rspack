@@ -1,6 +1,8 @@
 use std::borrow::Cow;
 
 use rspack_cacheable::with::AsVecConverter;
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{
   BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
   CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsInfoData,
@@ -23,6 +25,7 @@ use rustc_hash::FxHashSet;
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleInfoHeaderPlugin {
   verbose: bool,
 }

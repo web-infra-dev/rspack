@@ -5,14 +5,18 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::size::format_size;
 use rustc_hash::FxHashMap as HashMap;
 
 pub type AssetFilterFn = Box<dyn for<'a> Fn(&'a str) -> BoxFuture<'a, Result<bool>> + Sync + Send>;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SizeLimitsPluginOptions {
   #[debug(skip)]
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_option_box))]
   pub asset_filter: Option<AssetFilterFn>,
   pub hints: Option<String>,
   pub max_asset_size: Option<f64>,
@@ -21,6 +25,7 @@ pub struct SizeLimitsPluginOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SizeLimitsPlugin {
   options: SizeLimitsPluginOptions,
 }

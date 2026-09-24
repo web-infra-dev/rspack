@@ -9,6 +9,8 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Error, Result, error};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
   itoa,
@@ -45,6 +47,7 @@ type BlockConnectionMap = DependenciesBlockIdentifierMap<Arc<BlockModules>>;
 static EMPTY_BLOCK_MODULES: LazyLock<Arc<BlockModules>> = LazyLock::new(|| Arc::new(Vec::new()));
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct PreparedBlockConnection {
   block: DependenciesBlockIdentifier,
   module: ModuleIdentifier,
@@ -179,6 +182,7 @@ fn prepare_module_connection_map(
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkGroupInfo {
   pub initialized: bool,
   pub ukey: CgiUkey,
@@ -263,6 +267,7 @@ impl ChunkGroupInfo {
 static NEXT_CGI_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CgiUkey(u32, std::marker::PhantomData<ChunkGroupInfo>);
 
 impl Default for CgiUkey {
@@ -347,6 +352,7 @@ pub(crate) type BlockModulesRuntimeMap = HashMap<Option<Arc<RuntimeSpec>>, Block
 // }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct CodeSplitter {
   pub(crate) chunk_group_info_map: HashMap<ChunkGroupUkey, CgiUkey>,
   pub(crate) chunk_group_infos: HashMap<CgiUkey, ChunkGroupInfo>,
@@ -2667,6 +2673,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) enum QueueAction {
   AddAndEnterEntryModule(AddAndEnterEntryModule),
   AddAndEnterModule(AddAndEnterModule),
@@ -2677,6 +2684,7 @@ pub(crate) enum QueueAction {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct AddAndEnterEntryModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,
@@ -2684,6 +2692,7 @@ pub(crate) struct AddAndEnterEntryModule {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct AddAndEnterModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,
@@ -2691,6 +2700,7 @@ pub(crate) struct AddAndEnterModule {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct EnterModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,
@@ -2698,6 +2708,7 @@ pub(crate) struct EnterModule {
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct ProcessBlock {
   pub(crate) module: ModuleIdentifier,
   pub(crate) block: DependenciesBlockIdentifier,
@@ -2706,6 +2717,7 @@ pub(crate) struct ProcessBlock {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct ProcessEntryBlock {
   module: ModuleIdentifier,
   block: AsyncDependenciesBlockIdentifier,
@@ -2714,6 +2726,7 @@ pub(crate) struct ProcessEntryBlock {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) enum DependenciesBlockIdentifier {
   Module(ModuleIdentifier),
   AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
@@ -2752,6 +2765,7 @@ impl From<AsyncDependenciesBlockIdentifier> for DependenciesBlockIdentifier {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct LeaveModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,

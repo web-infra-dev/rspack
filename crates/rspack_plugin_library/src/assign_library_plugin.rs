@@ -19,12 +19,15 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesEmbedInRuntimeBailout, JavascriptModulesRender,
   JavascriptModulesRenderStartup, JavascriptModulesStrictRuntimeBailout, JsPlugin, RenderSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 
 const PLUGIN_NAME: &str = "rspack.AssignLibraryPlugin";
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Unnamed {
   Error,
   Static,
@@ -33,12 +36,14 @@ pub enum Unnamed {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Named {
   Copy,
   Assign,
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Prefix {
   Global,
   Array(Vec<String>),
@@ -65,6 +70,7 @@ impl Prefix {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AssignLibraryPluginOptions {
   pub library_type: String,
   pub prefix: Prefix,
@@ -81,6 +87,7 @@ struct AssignLibraryPluginParsed<'a> {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AssignLibraryPlugin {
   options: AssignLibraryPluginOptions,
 }

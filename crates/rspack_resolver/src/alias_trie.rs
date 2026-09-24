@@ -25,6 +25,7 @@ pub struct AliasMatch {
 type TerminalList = Vec<Terminal>;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct Terminal {
   alias_index: usize,
   key_len: usize,
@@ -32,6 +33,7 @@ struct Terminal {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct Node {
   /// Sparse children indexed by edge byte. Low fanout in practice, linear
   /// scan beats a `[Option<...>; 256]` for memory and cache locality.
@@ -60,6 +62,7 @@ impl Node {
   }
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AliasTrie {
   root: Node,
 }

@@ -10,6 +10,8 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxHashMap;
 
 pub struct EntryDynamicResult {
@@ -27,6 +29,7 @@ pub struct DynamicEntryPluginOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DynamicEntryPlugin {
   context: Context,
   #[debug(skip)]

@@ -7,6 +7,8 @@ use std::{cell::RefCell, iter::FromIterator, sync::Arc};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{RscMeta, RscModuleType};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use swc_core::{
@@ -37,6 +39,7 @@ pub enum Config {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Options {
   pub is_react_server_layer: bool,
   pub enable_server_entry: bool,

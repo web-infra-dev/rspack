@@ -4,6 +4,8 @@ use futures::Future;
 use rspack_collections::Identifier;
 use rspack_error::{Diagnostic, Result};
 use rspack_sources::BoxSource;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   ArtifactExt, Chunk, Compilation, MemoryGCStorage, SourceType,
@@ -11,12 +13,14 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct ChunkRenderCacheEntry {
   filename: Arc<str>,
   source: BoxSource,
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkRenderCacheArtifact {
   storage: Option<MemoryGCStorage<ChunkRenderCacheEntry>>,
 }

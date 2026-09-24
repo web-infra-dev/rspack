@@ -2,10 +2,13 @@ use std::ops::{Deref, DerefMut};
 
 use rspack_collections::IdentifierMap;
 use rspack_error::Diagnostic;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{ArtifactExt, incremental::IncrementalPasses};
 
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependenciesDiagnosticsArtifact(IdentifierMap<Vec<Diagnostic>>);
 
 impl ArtifactExt for DependenciesDiagnosticsArtifact {

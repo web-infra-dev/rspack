@@ -17,6 +17,8 @@ use rspack_macros::impl_source_map_config;
 use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{
   fx_hash::FxIndexMap,
   identifier::make_paths_relative,
@@ -46,6 +48,7 @@ static CHUNK_NAME_REQUEST_PLACEHOLDER: &str = "[request]";
 
 #[cacheable]
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ContextMode {
   Sync,
   Eager,
@@ -95,6 +98,7 @@ pub fn try_convert_str_to_context_mode(s: &str) -> Option<ContextMode> {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ContextNameSpaceObject {
   Bool(bool),
   Strict,
@@ -110,6 +114,7 @@ impl ContextNameSpaceObject {
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ContextTypePrefix {
   Import,
   Normal,
@@ -117,6 +122,7 @@ pub enum ContextTypePrefix {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ContextModulePattern {
   None,
   RegExp(RspackRegex),
@@ -166,6 +172,7 @@ impl From<Option<RspackRegex>> for ContextModulePattern {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
@@ -238,6 +245,7 @@ pub fn context_identifier(compiler_context: &str, context: &str) -> Option<Strin
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ContextModuleOptions {
   pub addon: String,
   #[cacheable(with=AsPreset)]
@@ -271,6 +279,7 @@ pub type ResolveContextModuleDependencies = Arc<
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ContextModule {
   dependencies_block: DependenciesBlockData,
   identifier: Identifier,

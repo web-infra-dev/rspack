@@ -1,4 +1,8 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum SideEffectOption {
   #[default]
   False,
@@ -31,6 +35,7 @@ impl SideEffectOption {
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum UsedExportsOption {
   #[default]
   False,
@@ -63,6 +68,7 @@ impl UsedExportsOption {
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum MangleExportsOption {
   #[default]
   False,
@@ -92,6 +98,7 @@ impl From<&str> for MangleExportsOption {
 // Add more fields to this struct should result in adding new fields to options builder.
 // `impl From<Optimization> for OptimizationBuilder` should be updated.
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Optimization {
   pub side_effects: SideEffectOption,
   pub provided_exports: bool,

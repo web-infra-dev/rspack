@@ -4,10 +4,13 @@ use rspack_core::{
   DependencyTemplate, DependencyTemplateType, DependencyType, TemplateContext,
   TemplateReplaceSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::json_stringify_str;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RstestDynamicImportOriginDependency {
   callee_range: DependencyRange,
   args_end: u32,
@@ -66,6 +69,7 @@ impl AsContextDependency for RstestDynamicImportOriginDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RstestDynamicImportOriginDependencyTemplate {
   /// Resolved callee for the rewrite — rstest's own `functionName` override
   /// or the `output.importFunctionName` fallback. Resolved once at `apply`

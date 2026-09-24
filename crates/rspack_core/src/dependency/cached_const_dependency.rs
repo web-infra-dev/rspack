@@ -1,5 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_hash::{RspackHash, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::DependencyRange;
 use crate::{
@@ -10,6 +12,7 @@ use crate::{
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Default, Hash, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CachedConstDependencyPlace {
   #[default]
   Module = 10,
@@ -30,6 +33,7 @@ impl RspackHash for CachedConstDependencyPlace {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CachedConstDependency {
   pub place: CachedConstDependencyPlace,
   pub identifier: Box<str>,
@@ -105,6 +109,7 @@ impl DependencyCodeGeneration for CachedConstDependency {
 
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CachedConstDependencyTemplate;
 
 impl CachedConstDependencyTemplate {

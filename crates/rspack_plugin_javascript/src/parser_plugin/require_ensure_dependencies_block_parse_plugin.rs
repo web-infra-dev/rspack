@@ -6,6 +6,8 @@ use rspack_core::{
   GroupOptions,
 };
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_ecma_ast::{
   ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, FnExpr, GetSpan, UnaryExpr,
 };
@@ -17,6 +19,7 @@ use crate::{
   visitors::{JavascriptParser, Statement},
 };
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RequireEnsureDependenciesBlockParserPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]

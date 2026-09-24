@@ -7,6 +7,8 @@ use rspack_core::{
   create_exports_object_referenced,
 };
 use rspack_hash::{RspackHash, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::json_stringify_str;
 
 use crate::Atom;
@@ -15,6 +17,7 @@ pub const IMPORT_META_RSC_BINDING: &str = "__rspack_import_meta_rsc__";
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportMetaRscDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -115,6 +118,7 @@ impl AsContextDependency for ImportMetaRscDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportMetaRscDependencyTemplate;
 
 impl ImportMetaRscDependencyTemplate {

@@ -4,9 +4,12 @@ use rspack_core::{
   ExportNameOrSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
   ModuleGraphCacheArtifact,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AssetExportsDependency {
   id: DependencyId,
 }

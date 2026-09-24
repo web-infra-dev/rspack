@@ -1,4 +1,8 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 #[derive(Clone, Copy, Debug, PartialEq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Mode {
   Development,
   Production,

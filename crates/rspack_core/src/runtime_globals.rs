@@ -3,10 +3,13 @@ use std::sync::LazyLock;
 use bitflags::bitflags;
 use heck::ToLowerCamelCase;
 use rspack_hash::{RspackHash, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeGlobals(u128);
 
 macro_rules! define_runtime_globals {

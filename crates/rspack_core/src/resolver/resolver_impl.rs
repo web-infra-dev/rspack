@@ -8,6 +8,8 @@ use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::{AssertUtf8, InternedPathSet};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::location::byte_line_column_to_offset;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
@@ -87,6 +89,7 @@ impl ResolveInnerOptions<'_> {
 ///
 /// Internal caches are shared.
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Resolver {
   inner_fs: Arc<dyn ReadableFileSystem>,
   resolver: rspack_resolver::ResolverGeneric<BoxFS>,

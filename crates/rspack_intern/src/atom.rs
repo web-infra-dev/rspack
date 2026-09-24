@@ -30,6 +30,7 @@ type FxIndexSet<K> = IndexSet<K, BuildHasherDefault<FxHasher>>;
 /// hashing reuses hstr's cached hash.
 #[derive(Clone, Default)]
 #[repr(transparent)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Atom(hstr::Atom);
 
 impl Atom {
@@ -417,6 +418,7 @@ macro_rules! impl_atom_set {
 }
 
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AtomMap<V> {
   inner: FxHashMap<Atom, V>,
 }
@@ -430,6 +432,7 @@ impl_atom_map!(
 );
 
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AtomSet {
   inner: FxHashSet<Atom>,
 }
@@ -444,6 +447,7 @@ impl_atom_set!(
 /// An insertion-ordered map keyed by [`Atom`] with zero-allocation borrowed
 /// lookups. Query hashing is selected internally without changing map order.
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct IndexAtomMap<V> {
   inner: FxIndexMap<Atom, V>,
 }
@@ -459,6 +463,7 @@ impl_atom_map!(
 /// An insertion-ordered set of [`Atom`] values with zero-allocation borrowed
 /// lookups. Query hashing is selected internally without changing set order.
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct IndexAtomSet {
   inner: FxIndexSet<Atom>,
 }

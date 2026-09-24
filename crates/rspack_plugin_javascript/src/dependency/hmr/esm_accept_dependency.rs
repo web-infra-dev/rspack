@@ -3,11 +3,14 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, ImportPhase, RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::dependency::import_emitted_runtime;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ESMAcceptDependency {
   range: DependencyRange,
   has_callback: bool,
@@ -40,6 +43,7 @@ impl DependencyCodeGeneration for ESMAcceptDependency {
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ESMAcceptDependencyTemplate;
 
 impl ESMAcceptDependencyTemplate {

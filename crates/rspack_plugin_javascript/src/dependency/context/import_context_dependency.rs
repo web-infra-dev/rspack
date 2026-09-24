@@ -8,6 +8,8 @@ use rspack_core::{
   TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::json_stringify;
 
 use super::{
@@ -25,6 +27,7 @@ fn create_resource_identifier(options: &ContextOptions) -> Identifier {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportContextDependency {
   id: DependencyId,
   options: ContextOptions,
@@ -157,6 +160,7 @@ impl AsModuleDependency for ImportContextDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportContextDependencyTemplate;
 
 impl ImportContextDependencyTemplate {

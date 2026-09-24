@@ -6,6 +6,8 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result, error};
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::number_hash::{get_number_hash_combined_from_state, get_number_hash_state};
 use rustc_hash::FxHashSet;
 
@@ -28,9 +30,11 @@ pub struct DeterministicModuleIdsPluginOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DeterministicModuleIdsPlugin {
   context: Option<String>,
   #[debug(skip)]
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_option_arc))]
   test: Option<ModuleFilterFn>,
   max_length: usize,
   salt: usize,

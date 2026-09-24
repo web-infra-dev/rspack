@@ -14,6 +14,7 @@ use crate::path::PathUtil;
 ///
 /// See [webpack resolve](https://webpack.js.org/configuration/resolve/) for information and examples
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ResolveOptions {
   /// Path to TypeScript configuration file.
   ///
@@ -412,6 +413,7 @@ impl ResolveOptions {
 
 /// Value for [ResolveOptions::enforce_extension]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum EnforceExtension {
   Auto,
   Enabled,
@@ -437,6 +439,7 @@ pub type Alias = Vec<(String, Vec<AliasValue>)>;
 
 /// Alias Value for [ResolveOptions::alias] and [ResolveOptions::fallback]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum AliasValue {
   /// The path value
   Path(String),
@@ -456,9 +459,13 @@ where
 
 /// Value for [ResolveOptions::restrictions]
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Restriction {
   Path(PathBuf),
-  Fn(Arc<dyn Fn(&Path) -> bool + Sync + Send>),
+  Fn(
+    #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_arc))]
+    Arc<dyn Fn(&Path) -> bool + Sync + Send>,
+  ),
 }
 
 impl std::fmt::Debug for Restriction {
@@ -474,6 +481,7 @@ impl std::fmt::Debug for Restriction {
 ///
 /// Derived from [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#options)
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct TsconfigOptions {
   /// Allows you to specify where to find the TypeScript configuration file.
   /// You may provide
@@ -487,6 +495,7 @@ pub struct TsconfigOptions {
 
 /// Configuration for [TsconfigOptions::references]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum TsconfigReferences {
   Disabled,
   /// Use the `references` field from tsconfig of `config_file`.

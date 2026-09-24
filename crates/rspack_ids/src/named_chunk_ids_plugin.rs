@@ -7,6 +7,8 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{fx_hash::FxIndexSet, itoa};
 use rustc_hash::FxHashSet;
 
@@ -225,6 +227,7 @@ fn assign_named_chunk_ids(
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NamedChunkIdsPlugin {
   pub delimiter: String,
   pub context: Option<String>,

@@ -6,10 +6,13 @@ use rspack_core::{
   ExportsSpec, ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 use rspack_hash::{RspackHash, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::itoa;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct JsonExportsDependency {
   id: DependencyId,
   exports_depth: u32,

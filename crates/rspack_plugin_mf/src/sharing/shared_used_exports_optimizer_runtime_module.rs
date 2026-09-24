@@ -6,12 +6,15 @@ use rspack_core::{
   impl_runtime_module,
 };
 use rspack_error::{Result, error};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::utils::{runtime_require_scope_name, runtime_require_scope_requirement};
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SharedUsedExportsOptimizerRuntimeModule {
   // Keep type consistent with plugin: FxHashMap<String, FxHashSet<String>>
   shared_used_exports: Arc<FxHashMap<String, FxHashSet<String>>>,

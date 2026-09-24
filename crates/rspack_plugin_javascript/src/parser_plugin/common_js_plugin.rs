@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_ecma_ast::{MemberExpr, UnaryExpr};
 
 use super::JavascriptParserPlugin;
@@ -9,6 +11,7 @@ use crate::{
   visitors::{JavascriptParser, expr_name},
 };
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CommonJsPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]

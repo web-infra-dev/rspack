@@ -14,6 +14,8 @@ use rspack_core::{
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{
   json_stringify,
   source_map::{ModuleSourceMapConfig, SourceMapKind},
@@ -46,6 +48,7 @@ fn has_closure_library(output: &OutputOptions) -> bool {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct LazyCompilationProxyModule {
   build_info: FreezeLock<BuildInfo>,
   build_meta: FreezeLock<BuildMeta>,

@@ -1,9 +1,12 @@
 use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_regex::RspackRegex;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 /// Use string or regex to match path
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum PathMatcher {
   String(#[cacheable(with=As<PortablePath>)] String),
   Regexp(RspackRegex),
@@ -21,6 +24,7 @@ impl PathMatcher {
 /// Snapshot options
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SnapshotOptions {
   /// immutable paths, snapshot will ignore them
   pub immutable_paths: Vec<PathMatcher>,
@@ -38,6 +42,7 @@ pub struct SnapshotOptions {
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SnapshotStrategyOptions {
   pub hash: bool,
   pub timestamp: bool,

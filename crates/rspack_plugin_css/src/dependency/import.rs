@@ -6,11 +6,14 @@ use rspack_core::{
   TemplateReplaceSource, css_module_render_conditions_identifier,
   iter_css_module_render_conditions, push_css_module_identifier_part,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::utils::source_order_to_i32;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssImportDependency {
   id: DependencyId,
   request: String,
@@ -141,6 +144,7 @@ fn create_resource_identifier(
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssImportDependencyTemplate;
 impl CssImportDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {

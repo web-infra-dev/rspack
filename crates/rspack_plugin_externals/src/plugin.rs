@@ -4,6 +4,8 @@ use std::{
 };
 
 use regex::Regex;
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{
   BoxModule, ContextInfo, DependencyMeta, DependencyType, ExternalItem, ExternalItemFnCtx,
   ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType,
@@ -20,6 +22,7 @@ static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: LazyLock<Regex> =
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExternalsPlugin {
   externals: Vec<ExternalItem>,
   r#type: ExternalType,

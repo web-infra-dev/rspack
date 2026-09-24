@@ -6,6 +6,8 @@ use rspack_core::{
   RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeTemplate,
   chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs};
 
@@ -17,6 +19,7 @@ static CHUNK_PRELOAD_TRIGGER_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntime
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkPreloadTriggerRuntimeModule {
   #[cacheable(with=AsMap)]
   chunk_map: IndexChunkIdMap<Vec<ChunkId>>,

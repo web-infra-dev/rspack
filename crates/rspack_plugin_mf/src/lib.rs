@@ -3,10 +3,13 @@ mod manifest;
 mod sharing;
 
 use rspack_hash::{RspackHash, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(untagged)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ShareScope {
   Single(String),
   Multiple(Vec<String>),

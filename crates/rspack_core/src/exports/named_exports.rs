@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 
 use either::Either;
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use smallvec::SmallVec;
 
 use super::ExportInfoData;
@@ -17,6 +19,7 @@ use super::ExportInfoData;
 /// so once a module outgrows [`INLINE_EXPORTS`] the entries move back into a
 /// BTreeMap. Both variants iterate in key order.
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum NamedExports {
   Inline(SmallVec<[(Atom, ExportInfoData); 1]>),
   Spilled(BTreeMap<Atom, ExportInfoData>),

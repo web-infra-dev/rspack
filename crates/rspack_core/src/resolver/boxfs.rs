@@ -8,6 +8,7 @@ use rspack_paths::AssertUtf8;
 use rspack_resolver::{FileMetadata, FileSystem as ResolverFileSystem};
 
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct BoxFS(Arc<dyn ReadableFileSystem>);
 
 impl BoxFS {

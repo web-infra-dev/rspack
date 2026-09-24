@@ -20,6 +20,8 @@ use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_intern::{Atom, IndexAtomSet};
 use rspack_plugin_javascript::dependency::ImportEagerDependency;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{fx_hash::FxIndexSet, source_map::SourceMapKind};
 
 use crate::{
@@ -31,6 +33,7 @@ use crate::{
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RscEntryModule {
   dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,

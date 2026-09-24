@@ -1,0 +1,50 @@
+[package]
+authors           = ["Meta"]
+description       = "Inspect Rspack object ownership and memory usage"
+edition.workspace = true
+license           = "MIT OR Apache-2.0"
+name              = "rspack-allocative"
+publish           = false
+repository        = "https://github.com/facebookexperimental/allocative"
+version           = "0.3.5"
+
+[lib]
+# Workspace regression cases live in rspack_allocative_testing.
+doctest = false
+test    = false
+
+[features]
+serde_json = []
+
+[dependencies]
+allocative_derive = { package = "rspack-allocative_derive", version = "=0.3.3" }
+arc-swap          = { workspace = true }
+atomic_refcell    = { workspace = true, optional = true }
+camino            = { workspace = true, optional = true }
+ctor              = "0.1.26"
+dashmap           = { workspace = true, optional = true }
+either            = { workspace = true, optional = true }
+fixedbitset       = { workspace = true }
+halfbrown         = { version = "0.4.0", default-features = false }
+hashlink          = { workspace = true }
+hstr              = { workspace = true }
+indexmap          = { workspace = true, optional = true, features = ["std"] }
+json              = { workspace = true }
+napi              = { workspace = true, optional = true, features = ["napi4"] }
+once_cell         = { workspace = true, optional = true, features = ["std"] }
+parking_lot       = { workspace = true, optional = true }
+pnp               = { workspace = true, optional = true }
+rustc-hash        = { workspace = true, features = ["std"] }
+serde_json        = { workspace = true }
+simd-json         = { workspace = true }
+smallvec          = { workspace = true, optional = true }
+smol_str          = { workspace = true }
+swc_config        = { workspace = true }
+swc_core          = { workspace = true, features = ["__common", "ecma_ast"] }
+swc_ecma_minifier = { workspace = true }
+tokio             = { workspace = true, optional = true, features = ["sync"] }
+triomphe          = { workspace = true, optional = true }
+ustr              = { workspace = true, optional = true }
+
+[lints]
+workspace = true

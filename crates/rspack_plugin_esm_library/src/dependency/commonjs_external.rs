@@ -11,6 +11,8 @@ use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, CommonJsExportRequireDependencyTemplate,
   CommonJsFullRequireDependency, CommonJsRequireDependency, RequireHeaderDependency,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{
   fx_hash::{FxHashMap, FxHashSet},
   json_stringify_str,
@@ -22,6 +24,7 @@ pub type DirectCommonJsExternalDependencies = Arc<AtomicRefCell<FxHashSet<Depend
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct DirectExternalRequireHeaders(
   // Only shared between dependency templates during codegen. Cached sources
   // already contain the rendered callee and never consume these ranges again.
@@ -168,6 +171,7 @@ fn get_direct_external_require(
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DirectCommonJsDependencyTemplate {
   pub direct_dependencies: DirectCommonJsExternalDependencies,
   pub template: Option<Arc<dyn DependencyTemplate>>,
@@ -246,6 +250,7 @@ impl DependencyTemplate for DirectCommonJsDependencyTemplate {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DirectRequireHeaderDependencyTemplate {
   pub template: Option<Arc<dyn DependencyTemplate>>,
 }

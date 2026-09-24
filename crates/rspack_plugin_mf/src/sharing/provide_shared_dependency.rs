@@ -3,12 +3,15 @@ use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency, ResourceIdentifier,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::provide_shared_plugin::ProvideVersion;
 use crate::{ConsumeVersion, ShareScope};
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ProvideSharedDependency {
   id: DependencyId,
   request: String,
