@@ -1,118 +1,91 @@
 ---
-description: '允许你指定外部依赖项，这些依赖项将不打包到输出文件中。这对于已经在全局范围内可用或通过其他方式另外管理的库非常有用。'
+description: '使用 ExternalsPlugin 将指定依赖排除在 bundle 之外，并控制运行时如何访问这些依赖。'
 ---
 
 # ExternalsPlugin
 
-允许你指定外部依赖项，这些依赖项将不打包到输出文件中。这对于已经在全局范围内可用或通过其他方式另外管理的库非常有用。
-[`externalsType`](/config/externals#externalstype) 和 [`externals`](/config/externals#externals) 配置内部使用了该插件实现，你可以直接通过配置项来使用相应的功能，而无需单独使用插件。
+`ExternalsPlugin` 将指定依赖排除在 bundle 之外，并生成在运行时访问这些依赖的代码。例如，外部依赖可以通过 ES 模块 `import` 引用，也可以来自其他脚本提供的浏览器全局变量。
 
-## 示例
+对于大多数项目，直接配置 [`externals`](/config/externals) 和 [`externalsType`](/config/externals#externalstype) 即可，Rspack 会在内部应用 `ExternalsPlugin`。如果需要在其他插件中添加外部依赖规则，或通过多个插件实例分别设置 `externalsType`，可以直接使用该插件。
 
-将 React 作为 CommonJS 依赖排除在打包产物之外：
+## 示例 \{#examples}
+
+### ESM 导入 \{#esm-imports}
+
+启用 [`output.module`](/config/output#outputmodule)，并将 `externalsType` 设为 `'module'`，可以将 `react` 排除在 bundle 之外，同时在产物中生成对它的 ES 模块导入：
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
 export default {
-  plugins: [new rspack.ExternalsPlugin('commonjs', ['react'])],
+  output: {
+    module: true,
+  },
+  plugins: [new rspack.ExternalsPlugin('module', ['react'])],
 };
 ```
 
-## 选项
+产物的使用方需要能够解析 `react` 导入。例如，后续的打包工具可以解析它，浏览器也可以通过 import map 将它映射到 URL。字符串规则只会精确匹配 `react`，不会匹配 `react/jsx-runtime` 等子路径。
 
-### type
+对于这个例子，对应的配置项写法是：
 
-**类型：**
-
-```ts
-type ExternalsType =
-  | 'var'
-  | 'module'
-  | 'assign'
-  | 'this'
-  | 'window'
-  | 'self'
-  | 'global'
-  | 'commonjs'
-  | 'commonjs2'
-  | 'commonjs-module'
-  | 'commonjs-static'
-  | 'amd'
-  | 'amd-require'
-  | 'umd'
-  | 'umd2'
-  | 'jsonp'
-  | 'system'
-  | 'promise'
-  | 'import'
-  | 'module-import'
-  | 'modern-module'
-  | 'commonjs-import'
-  | 'script'
-  | 'node-commonjs';
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    module: true,
+  },
+  externalsType: 'module',
+  externals: ['react'],
+};
 ```
 
-指定 `externals` 的默认类型。
+### 浏览器全局变量 \{#browser-globals}
 
-详细信息请参阅 [externalsType](/config/externals#externalstype)。
+如果页面已经通过脚本加载 Lodash，并提供了 `window._`，可以将 `lodash` 请求映射到这个全局变量：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.ExternalsPlugin('window', { lodash: '_' })],
+};
+```
+
+应用代码仍然可以使用 `import _ from 'lodash'`。bundle 会读取 `window._`，而不包含 Lodash，因此应先加载提供该变量的脚本，再执行 bundle。
+
+## 选项 \{#options}
+
+第一个参数指定 `externalsType`，第二个参数 `externals` 指定匹配规则：
+
+```js
+new rspack.ExternalsPlugin(externalsType, externals);
+```
+
+### externalsType
+
+- **类型：** `ExternalsType`
+- **是否必填：** 是
+
+决定运行时如何访问匹配的依赖。
+
+应根据产物格式和运行环境选择 `externalsType`。完整的可选值及其使用条件见 [`externalsType`](/config/externals#externalstype)。
+
+单条规则可以在结果中添加类型前缀，以覆盖 `externalsType`：
+
+```js
+new rspack.ExternalsPlugin('module', {
+  react: 'react',
+  lodash: 'window _',
+});
+```
+
+在启用 `output.module` 时，`react` 通过 ES 模块导入，而 `lodash` 从 `window._` 读取。
 
 ### externals
 
-**类型：**
+- **类型：** `Externals`
+- **是否必填：** 是
 
-```ts
-type Externals = ExternalItem[] | ExternalItem;
+指定哪些模块请求应作为外部依赖，以及如何引用它们。规则匹配的是源码中的模块请求，此时请求尚未被解析为文件路径。
 
-type ExternalItem =
-  | string
-  | RegExp
-  | ExternalItemObjectUnknown
-  | ((
-      data: ExternalItemFunctionData,
-      callback: (
-        err?: Error | null,
-        result?: ExternalItemValue,
-        type?: ExternalsType,
-      ) => void,
-    ) => ExternalItemValue | void | Promise<ExternalItemValue | void>);
-
-type ExternalItemObjectUnknown = {
-  [request: string]: ExternalItemValue;
-};
-
-type ExternalItemValue =
-  | string[]
-  | boolean
-  | string
-  | {
-      [k: string]: any;
-    };
-
-type ExternalItemFunctionData = {
-  context?: string;
-  contextInfo?: ModuleFactoryCreateDataContextInfo;
-  getResolve?: (
-    options?: ResolveOptions,
-  ) => ((context: string, request: string, callback: ResolveCallback) => void) &
-    ((context: string, request: string) => Promise<string | undefined>);
-  request?: string;
-};
-
-type ResolveCallback = (
-  err: (Error & { details?: string }) | null,
-  result?: string | false,
-  resolveData?: ResolveRequest,
-) => void;
-
-type ModuleFactoryCreateDataContextInfo = {
-  issuer: string;
-  compiler: string;
-};
-```
-
-`getResolve()` 返回的解析函数同时支持 `resolve(context, request, callback)` 和 `await resolve(context, request)`。对于被忽略的请求，回调收到的解析结果为 `false`，Promise 的结果为 `undefined`。回调的第三个参数还可提供解析详情，其中 `descriptionFileData` 是解析后的包描述文件内容。
-
-**阻止**将某些 import 的包（package）打包到 bundle 中，而是在运行时（runtime）再去从外部获取这些*扩展依赖*（external dependencies）。
-
-详细信息请参阅 [externals](/config/externals#externals)。
+支持的规则形式和值格式见 [`externals` 配置参考](/config/externals)。如需自定义匹配逻辑或解析请求，见[函数形式](/config/externals#function)。
