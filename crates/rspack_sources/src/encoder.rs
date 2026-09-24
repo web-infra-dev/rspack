@@ -3,6 +3,23 @@ use crate::Mapping;
 const B64_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 // Covers common short mappings while keeping empty/no-map encoders cheap.
 const INITIAL_MAPPINGS_CAPACITY: usize = 512;
+// Source map mappings are appended to a `Vec<u8>`, so the buffer grows geometrically and a
+// finished map can keep up to half of its allocation unused. Maps are retained for the rest of the
+// compilation (cached sources, `CachedData`, `SourceMapSource`), so once encoding is complete the
+// spare capacity is handed back, but only when enough bytes are at stake to justify the copy.
+const MIN_MAPPINGS_SPARE_CAPACITY_TO_SHRINK: usize = 2 * 1024;
+
+#[allow(unsafe_code)]
+#[inline]
+fn finish_mappings(mut mappings: Vec<u8>) -> String {
+  if mappings.capacity() - mappings.len() >= MIN_MAPPINGS_SPARE_CAPACITY_TO_SHRINK {
+    mappings.shrink_to_fit();
+  }
+  unsafe {
+    // SAFETY: The `mappings` field in the source map consists solely of ASCII characters.
+    String::from_utf8_unchecked(mappings)
+  }
+}
 
 #[inline(always)]
 pub fn encode_vlq(out: &mut Vec<u8>, a: u32, b: u32) {
@@ -184,10 +201,7 @@ impl FullMappingsEncoder {
   #[allow(unsafe_code)]
   #[inline]
   fn drain(&mut self) -> String {
-    unsafe {
-      // SAFETY: The `mappings` field in the source map consists solely of ASCII characters.
-      String::from_utf8_unchecked(std::mem::take(&mut self.mappings))
-    }
+    finish_mappings(std::mem::take(&mut self.mappings))
   }
 }
 
@@ -266,9 +280,6 @@ impl LinesOnlyMappingsEncoder {
   #[allow(unsafe_code)]
   #[inline]
   fn drain(&mut self) -> String {
-    unsafe {
-      // SAFETY: The `mappings` field in the source map consists solely of ASCII characters.
-      String::from_utf8_unchecked(std::mem::take(&mut self.mappings))
-    }
+    finish_mappings(std::mem::take(&mut self.mappings))
   }
 }
