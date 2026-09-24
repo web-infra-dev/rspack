@@ -53,7 +53,9 @@ A HookMap that is called after generating the specified stats item.
 
 A HookMap that is called when generating the printed string of the specified stats item.
 
-- **Type:** `HookMap<SyncBailHook<[{}, StatsPrinterContext], string>>`
+Return a string to override the printed output. Return `undefined`, or omit the return value, to let subsequent taps, less specific hooks, or the default printing logic handle the item. An empty string suppresses the output and stops further processing by this bail hook.
+
+- **Type:** `HookMap<SyncBailHook<[{}, StatsPrinterContext], string | void>>`
 - **Arguments:**
   - `object`: stats item object
   - `StatsPrinterContext`: printing context

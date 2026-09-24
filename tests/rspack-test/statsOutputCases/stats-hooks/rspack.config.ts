@@ -1,16 +1,18 @@
-class StatsPrinterTestPlugin {
+import { defineConfig, definePlugin } from '@rspack/cli';
+
+const StatsPrinterTestPlugin = definePlugin({
   apply(compiler) {
     compiler.hooks.compilation.tap('StatsPrinterTestPlugin', (compilation) => {
       compilation.hooks.statsPrinter.tap('StatsPrinterTestPlugin', (stats) => {
         stats.hooks.print
           .for('asset.emitted')
           .tap('StatsPrinterTestPlugin', (emitted, { red, formatFlag }) =>
-            emitted ? red(formatFlag('emitted111')) : undefined,
+            emitted ? red!(formatFlag!('emitted111')) : undefined,
           );
         stats.hooks.print
           .for('asset.testA')
           .tap('StatsPrinterTestPlugin', (data, { red, formatFlag }) =>
-            data ? red(formatFlag(`testA: ${data}`)) : undefined,
+            data ? red!(formatFlag!(`testA: ${data}`)) : undefined,
           );
       });
       compilation.hooks.statsFactory.tap(
@@ -18,8 +20,8 @@ class StatsPrinterTestPlugin {
         (statsFactory) => {
           statsFactory.hooks.extract
             .for('asset')
-            .tap('StatsFactoryTestPlugin', (object, asset) => {
-              object.testA = 'aaaaaa';
+            .tap('StatsFactoryTestPlugin', (object) => {
+              Object.assign(object, { testA: 'aaaaaa' });
             });
 
           statsFactory.hooks.sortResults
@@ -30,11 +32,10 @@ class StatsPrinterTestPlugin {
         },
       );
     });
-  }
-}
+  },
+});
 
-/** @type {import('@rspack/core').Configuration} */
-export default {
+export default defineConfig({
   entry: './index',
   stats: {
     assets: true,
@@ -43,5 +44,5 @@ export default {
     timings: false,
     version: false,
   },
-  plugins: [new StatsPrinterTestPlugin()],
-};
+  plugins: [StatsPrinterTestPlugin],
+});

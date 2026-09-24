@@ -1268,65 +1268,64 @@ export class DefaultStatsPrinterPlugin {
           'DefaultStatsPrinterPlugin',
           (stats, options) => {
             // Put colors into context
-            stats.hooks.print.for('compilation').tap(
-              'DefaultStatsPrinterPlugin',
-              // @ts-expect-error
-              (compilation: StatsCompilation, context) => {
-                const colorNames = Object.keys(
-                  AVAILABLE_COLORS,
-                ) as (keyof typeof AVAILABLE_COLORS)[];
+            stats.hooks.print
+              .for('compilation')
+              .tap(
+                'DefaultStatsPrinterPlugin',
+                (compilation: StatsCompilation, context) => {
+                  const colorNames = Object.keys(
+                    AVAILABLE_COLORS,
+                  ) as (keyof typeof AVAILABLE_COLORS)[];
 
-                for (const color of colorNames) {
-                  let start: string | undefined;
+                  for (const color of colorNames) {
+                    let start: string | undefined;
 
-                  if (options.colors) {
-                    if (
-                      typeof options.colors === 'object' &&
-                      typeof options.colors[color] === 'string'
-                    ) {
-                      start = options.colors[color];
+                    if (options.colors) {
+                      if (
+                        typeof options.colors === 'object' &&
+                        typeof options.colors[color] === 'string'
+                      ) {
+                        start = options.colors[color];
+                      } else {
+                        start = AVAILABLE_COLORS[color];
+                      }
+                    }
+
+                    if (start) {
+                      context[color] = (str: string) =>
+                        `${start}${
+                          typeof str === 'string'
+                            ? str.replace(
+                                /((\u001b\[39m|\u001b\[22m|\u001b\[0m)+)/g,
+                                `$1${start}`,
+                              )
+                            : str
+                        }\u001b[39m\u001b[22m`;
                     } else {
-                      start = AVAILABLE_COLORS[color];
+                      context[color] = (str: string) => str;
                     }
                   }
 
-                  if (start) {
-                    context[color] = (str: string) =>
-                      `${start}${
-                        typeof str === 'string'
-                          ? str.replace(
-                              /((\u001b\[39m|\u001b\[22m|\u001b\[0m)+)/g,
-                              `$1${start}`,
-                            )
-                          : str
-                      }\u001b[39m\u001b[22m`;
-                  } else {
-                    context[color] = (str: string) => str;
-                  }
-                }
-
-                for (const format of Object.keys(AVAILABLE_FORMATS)) {
-                  // @ts-expect-error
-                  context[format] = (content, ...args) =>
+                  for (const format of Object.keys(AVAILABLE_FORMATS)) {
                     // @ts-expect-error
-                    AVAILABLE_FORMATS[format](content, context, ...args);
-                }
+                    context[format] = (content, ...args) =>
+                      // @ts-expect-error
+                      AVAILABLE_FORMATS[format](content, context, ...args);
+                  }
 
-                context.timeReference = compilation.time;
-              },
-            );
+                  context.timeReference = compilation.time;
+                },
+              );
 
             for (const key of Object.keys(SIMPLE_PRINTERS)) {
               stats.hooks.print
                 .for(key)
-                .tap(
-                  'DefaultStatsPrinterPlugin',
-                  (obj, ctx) =>
-                    SIMPLE_PRINTERS[key](
-                      obj,
-                      ctx as Required<StatsPrinterContext>,
-                      stats,
-                    ) as string,
+                .tap('DefaultStatsPrinterPlugin', (obj, ctx) =>
+                  SIMPLE_PRINTERS[key](
+                    obj,
+                    ctx as Required<StatsPrinterContext>,
+                    stats,
+                  ),
                 );
             }
 
@@ -1353,7 +1352,6 @@ export class DefaultStatsPrinterPlugin {
               const joiner = SIMPLE_ITEMS_JOINER[key];
               stats.hooks.printItems
                 .for(key)
-                // @ts-expect-error
                 .tap('DefaultStatsPrinterPlugin', joiner);
             }
 
