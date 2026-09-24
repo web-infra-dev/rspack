@@ -59,7 +59,7 @@ export default {
 
 定义当前构建中暴露给其他应用的唯一名称。此名称将作为远程应用的全局变量存在。
 
-暴露模块时必须提供 `name`。不暴露模块时可以省略 `name`，此时 Module Federation 运行时使用 [`output.uniqueName`](/config/output#outputuniquename)。
+暴露模块或启用 `shared.treeShaking` 时，必须提供非空字符串作为 `name`。其他情况下可以省略 `name`，此时 Module Federation 运行时使用 [`output.uniqueName`](/config/output#outputuniquename)。
 
 ### filename
 

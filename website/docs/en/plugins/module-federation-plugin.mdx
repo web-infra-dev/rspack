@@ -59,7 +59,7 @@ Provide the plugins required to run Module Federation 1.5, which can extend its 
 
 Define the unique name exposed to other containers in the current build. This name will exist as a global variable for the remote container.
 
-The `name` option is required when exposing modules. If no modules are exposed, you can omit `name`; the Module Federation runtime uses [`output.uniqueName`](/config/output#outputuniquename) instead.
+The `name` option must be a non-empty string when exposing modules or enabling `shared.treeShaking`. Otherwise, you can omit `name`; the Module Federation runtime uses [`output.uniqueName`](/config/output#outputuniquename) instead.
 
 ### filename
 
