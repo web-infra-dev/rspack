@@ -15,17 +15,26 @@ use crate::{Error, Result};
 
 type PackEntries = Vec<(Vec<u8>, Vec<u8>)>;
 
+/// File prefix so a pack is never mistaken for the previous uncompressed layout.
+const PACK_MAGIC: &[u8] = b"RPK1";
+const FLAG_RAW: u8 = 0;
+const FLAG_LZ4: u8 = 1;
+/// Packs smaller than this stay raw. Decompressing them costs more than the
+/// bytes saved, and restore loads every pack even when the payload is a few
+/// hundred bytes of metadata.
+const MIN_COMPRESS_LEN: usize = 8 * 1024;
+
 /// A pack file containing a collection of key-value pairs.
 ///
-/// The on-disk bytes are one lz4 block with a prepended uncompressed length.
-/// The decompressed payload is:
-/// - Each item has a header line: "key_len value_len"
-/// - Followed by raw key bytes and value bytes
+/// On-disk layout is `RPK1`, one flag byte, then the payload:
+/// - flag 0: raw records
+/// - flag 1: one lz4 block (prepended uncompressed length) of those records
 ///
-/// Items are stored in key order so repeated paths and sources sit next to each
-/// other. lz4_flex is pure Rust, so the same bytes build for the native and
-/// wasm bindings. The content hash covers the uncompressed keys and values in
-/// that same order.
+/// Each record is a header line `key_len value_len`, then raw key and value
+/// bytes. Items are stored in key order so repeated paths sit together in the
+/// lz4 window. The fast lz4 decoder is used on purpose: the safe decoder's
+/// per-byte checks dominate persistent-cache restore. The content hash still
+/// covers the uncompressed keys and values in that same order.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Pack {
   data: PackEntries,
@@ -89,15 +98,46 @@ fn encode_compressed(data: &[(Vec<u8>, Vec<u8>)]) -> Result<(Vec<u8>, PackIndex)
     index_gen.add_key(key);
     index_gen.add_value(value);
   }
-  let compressed = lz4_flex::compress_prepend_size(&plain);
-  Ok((compressed, index_gen.finish()))
+  let index = index_gen.finish();
+  let mut encoded = Vec::with_capacity(PACK_MAGIC.len() + 1 + plain.len());
+  encoded.extend_from_slice(PACK_MAGIC);
+  if plain.len() >= MIN_COMPRESS_LEN {
+    encoded.push(FLAG_LZ4);
+    encoded.extend(lz4_flex::block::compress_prepend_size(&plain));
+  } else {
+    encoded.push(FLAG_RAW);
+    encoded.extend_from_slice(&plain);
+  }
+  Ok((encoded, index))
 }
 
 fn decode_compressed(pack_name: &str, compressed: &[u8]) -> Result<(PackEntries, u64)> {
-  let plain = lz4_flex::decompress_size_prepended(compressed).map_err(|error| {
-    Error::InvalidFormat(format!("Failed to decompress pack '{pack_name}': {error}"))
-  })?;
-  parse_entries(pack_name, &plain)
+  let payload = pack_payload(pack_name, compressed)?;
+  let plain;
+  let bytes = if compressed[PACK_MAGIC.len()] == FLAG_LZ4 {
+    plain = lz4_flex::block::decompress_size_prepended(payload).map_err(|error| {
+      Error::InvalidFormat(format!("Failed to decompress pack '{pack_name}': {error}"))
+    })?;
+    plain.as_slice()
+  } else {
+    payload
+  };
+  parse_entries(pack_name, bytes)
+}
+
+fn pack_payload<'a>(pack_name: &str, compressed: &'a [u8]) -> Result<&'a [u8]> {
+  let header_len = PACK_MAGIC.len() + 1;
+  if compressed.len() < header_len || !compressed.starts_with(PACK_MAGIC) {
+    return Err(Error::InvalidFormat(format!(
+      "Invalid pack '{pack_name}': missing pack header"
+    )));
+  }
+  match compressed[PACK_MAGIC.len()] {
+    FLAG_RAW | FLAG_LZ4 => Ok(&compressed[header_len..]),
+    flag => Err(Error::InvalidFormat(format!(
+      "Invalid pack '{pack_name}': unknown encoding {flag}"
+    ))),
+  }
 }
 
 fn parse_entries(pack_name: &str, bytes: &[u8]) -> Result<(PackEntries, u64)> {
@@ -191,6 +231,18 @@ mod test {
     // key2 has been removed
     assert!(!index.contains_key("key2".as_bytes()));
     assert!(index.contains_key("key3".as_bytes()));
+
+    // A large value crosses the compression threshold. Keys stay sorted so the
+    // in-memory pack matches the key order load returns.
+    let compressed_id = PackId::new(11);
+    let compressed = Pack::new(vec![
+      ("key1".into(), vec![b'a'; 16 * 1024]),
+      ("key3".into(), b"value3".to_vec()),
+    ]);
+    let index = compressed.save(&fs, compressed_id).await?;
+    let (loaded, content_hash) = Pack::load(&fs, compressed_id).await?;
+    assert!(index.check_content_hash(content_hash));
+    assert_eq!(compressed, loaded);
     Ok(())
   }
 }
