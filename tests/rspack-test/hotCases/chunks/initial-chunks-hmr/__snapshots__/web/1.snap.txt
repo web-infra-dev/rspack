@@ -10,7 +10,7 @@
 - Bundle: main.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: main.LAST_HASH.hot-update.js, size: 25524
+- Update: main.LAST_HASH.hot-update.js, size: 25543
 
 ## Manifest
 
@@ -127,7 +127,7 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
 })();
 // webpack/runtime/css_loading
 (() => {
-var cssInstalledChunks = {};
+var cssInstalledChunks = {"lib": 0,"main": 0,};
 var cssLoadingUniqueName = "";
 function handleCssComposes(exports, composes) {
 	for (var i = 0; i < composes.length; i += 3) {
