@@ -1,17 +1,6 @@
 use memchr;
 use rspack_core::{DependencyLocation, DependencyRange, RealDependencyLocation, SourcePosition};
-
-/// For pure-ASCII slices (the common case, e.g. minified vendor sources) the
-/// UTF-16 code-unit count equals the byte length, and `is_ascii` is a
-/// SIMD-accelerated byte scan — much cheaper than decoding every char.
-#[inline]
-fn utf16_len(s: &str) -> usize {
-  if s.is_ascii() {
-    s.len()
-  } else {
-    s.encode_utf16().count()
-  }
-}
+use simd_utf16_len::utf16_len;
 
 /// Advances source positions incrementally to compute dependency locations efficiently.
 /// This optimization reduces repeated source scans when processing dependencies
@@ -29,7 +18,7 @@ impl DependencyLocationAdvancer {
   }
 
   /// Advance a source position from one byte offset to another, counting newlines and UTF-16 columns.
-  /// Optimized with ASCII fast-paths and SIMD reverse searching.
+  /// Uses SIMD-accelerated UTF-16 length calculation and newline searching.
   fn advance_pos(
     source: &str,
     from_off: usize,
