@@ -16,7 +16,10 @@ export interface ModuleFederationPluginV1Options {
   exposes?: Exposes;
   filename?: string;
   library?: LibraryOptions;
-  name: string;
+  /**
+   * The container name. Required when exposing modules; optional otherwise.
+   */
+  name?: string;
   remoteType?: ExternalsType;
   remotes?: Remotes;
   runtime?: EntryRuntime;
@@ -52,7 +55,7 @@ export class ModuleFederationPluginV1 {
           : Object.keys(options.exposes).length > 0)
       ) {
         new ContainerPlugin({
-          name: options.name,
+          name: options.name!,
           library,
           filename: options.filename,
           runtime: options.runtime,

@@ -1,16 +1,12 @@
+import { defineConfig } from '@rspack/cli';
 import { container } from '@rspack/core';
 
-const { ModuleFederationPlugin } = container;
+const { ModuleFederationPluginV1: ModuleFederationPlugin } = container;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   optimization: {
     chunkIds: 'named',
     moduleIds: 'named',
-    concatenateModules: false,
-  },
-  output: {
-    uniqueName: '2-transitive-overriding',
   },
   plugins: [
     new ModuleFederationPlugin({
@@ -27,4 +23,4 @@ export default {
       },
     }),
   ],
-};
+});
