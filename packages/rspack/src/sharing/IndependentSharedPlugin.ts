@@ -42,7 +42,7 @@ const filterPlugin = (plugin: Plugins[0], excludedPlugins: string[] = []) => {
 };
 
 export interface IndependentSharePluginOptions {
-  name: string;
+  name?: string;
   shared: Shared;
   library?: LibraryOptions;
   outputDir?: string;
@@ -129,7 +129,7 @@ const getShareRequests = (
   );
 
 export class IndependentSharedPlugin {
-  mfName: string;
+  mfName: string | undefined;
   shared: Shared;
   library?: LibraryOptions;
   sharedOptions: [string, SharedConfig][];

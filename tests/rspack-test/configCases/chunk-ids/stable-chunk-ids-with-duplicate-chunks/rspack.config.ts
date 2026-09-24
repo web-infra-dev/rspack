@@ -1,9 +1,9 @@
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
 const { ModuleFederationPluginV1: ModuleFederationPlugin } = rspack.container;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   externals: {
     fs: 'node-commonjs fs',
     path: 'node-commonjs path',
@@ -30,4 +30,4 @@ export default {
       },
     }),
   ],
-};
+});

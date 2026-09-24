@@ -1,11 +1,11 @@
-import packageJson from './package.json' with { type: 'json' };
+import { defineConfig } from '@rspack/cli';
 import { container } from '@rspack/core';
+import packageJson from './package.json' with { type: 'json' };
 
 const { dependencies } = packageJson;
 const { ModuleFederationPlugin } = container;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   optimization: {
     chunkIds: 'named',
     moduleIds: 'named',
@@ -25,4 +25,4 @@ export default {
       },
     }),
   ],
-};
+});

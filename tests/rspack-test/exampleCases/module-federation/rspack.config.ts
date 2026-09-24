@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { container } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import { type Configuration, container } from '@rspack/core';
 
 const { ModuleFederationPlugin } = container;
 const rules = [
@@ -14,7 +15,7 @@ const rules = [
     },
   },
 ];
-const optimization = {
+const optimization: Configuration['optimization'] = {
   chunkIds: 'named', // for this example only: readable filenames in production too
   nodeEnv: 'production', // for this example only: always production version of react
 };
@@ -24,7 +25,8 @@ const stats = {
   chunkModules: true,
   chunkOrigins: true,
 };
-export default [
+
+export default defineConfig([
   // For this example we have 3 configs in a single file
   // In practice you probably would have separate config
   // maybe even separate repos for each build.
@@ -149,4 +151,4 @@ export default [
     ],
     stats,
   },
-];
+]);

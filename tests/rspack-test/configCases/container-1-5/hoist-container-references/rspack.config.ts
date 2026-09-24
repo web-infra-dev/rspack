@@ -1,9 +1,9 @@
+import { defineConfig } from '@rspack/cli';
 import { container } from '@rspack/core';
 
 const { ModuleFederationPlugin } = container;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   optimization: {
     splitChunks: {
       chunks: 'all',
@@ -11,4 +11,4 @@ export default {
     moduleIds: 'named',
   },
   plugins: [new ModuleFederationPlugin({})],
-};
+});

@@ -1,9 +1,9 @@
+import { defineConfig } from '@rspack/cli';
 import { container } from '@rspack/core';
 
 const { ModuleFederationPlugin } = container;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   optimization: {
     // concatenateModules: false,
     moduleIds: 'named',
@@ -18,4 +18,4 @@ export default {
       runtimePlugins: ['./plugin.js'],
     }),
   ],
-};
+});

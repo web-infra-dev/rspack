@@ -1,16 +1,16 @@
+import { defineConfig } from '@rspack/cli';
 import { container } from '@rspack/core';
-// eslint-disable-next-line node/no-unpublished-require
-const { ModuleFederationPlugin } = container;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+const { ModuleFederationPluginV1: ModuleFederationPlugin } = container;
+
+export default defineConfig({
   plugins: [
     new ModuleFederationPlugin({
       remoteType: 'commonjs-module',
       remotes: {
         containerB: '../1-container-full/container.js',
       },
-      shared: ['@rspack/mocked-react'],
+      shared: ['react'],
     }),
   ],
-};
+});

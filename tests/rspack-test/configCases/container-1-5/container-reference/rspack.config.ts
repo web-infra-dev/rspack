@@ -1,21 +1,16 @@
+import { defineConfig } from '@rspack/cli';
 import { container } from '@rspack/core';
 
 const { ModuleFederationPlugin } = container;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   plugins: [
     new ModuleFederationPlugin({
       remoteType: 'var',
       remotes: {
         abc: 'ABC',
-      },
-      shared: {
-        './new-test': {
-          shareKey: 'test',
-          version: false,
-        },
+        def: 'DEF',
       },
     }),
   ],
-};
+});

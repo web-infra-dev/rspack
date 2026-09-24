@@ -1,8 +1,8 @@
+import { defineConfig } from '@rspack/cli';
 import { container } from '@rspack/core';
 
 const { ModuleFederationPluginV1: ModuleFederationPlugin } = container;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   plugins: [new ModuleFederationPlugin({})],
-};
+});
