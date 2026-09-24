@@ -3939,9 +3939,8 @@ dependencies = [
 name = "rspack_allocator"
 version = "0.102.7"
 dependencies = [
+ "libmimalloc-sys",
  "mimalloc",
- "sftrace-setup",
- "tracy-client",
 ]
 
 [[package]]
@@ -3950,9 +3949,9 @@ version = "0.102.7"
 dependencies = [
  "async-trait",
  "codspeed-criterion-compat",
- "mimalloc",
  "rayon",
  "rspack",
+ "rspack_allocator",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",

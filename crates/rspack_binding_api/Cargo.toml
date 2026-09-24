@@ -16,10 +16,10 @@ browser          = []
 debug_tool       = ["rspack_core/debug_tool"]
 perfetto         = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]
 plugin           = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
-sftrace-setup    = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
-system-allocator = ["rspack_allocator/system-allocator"]
+sftrace-setup    = ["dep:sftrace-setup"]
+system-allocator = []
 test-loader      = ["dep:rspack_loader_testing"]
-tracy-client     = ["dep:tracy-client", "rspack_allocator/tracy-client"]
+tracy-client     = ["dep:tracy-client"]
 
 [dependencies]
 anyhow                    = { workspace = true }

@@ -47,7 +47,6 @@
 
 #[macro_use]
 extern crate napi_derive;
-extern crate rspack_allocator;
 
 mod allocator;
 mod asset;
@@ -74,6 +73,8 @@ mod exports_info;
 mod file_system_dependency_strings;
 mod filename;
 mod fs_node;
+#[cfg(not(any(miri, target_family = "wasm")))]
+mod global_allocator;
 mod html;
 mod identifier;
 mod js_helpers;
