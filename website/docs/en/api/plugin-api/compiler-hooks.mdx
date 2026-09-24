@@ -516,9 +516,9 @@ so a plugin can still fail the build here without leaving stale files behind.
 
 ## `shouldEmit`
 
-Called before emitting assets. Should return a boolean telling whether to emit.
+Called before emitting assets. Return `false` to skip emitting assets, or `true` to emit them. Either value stops subsequent taps from running. Return `undefined` or omit the return value to continue to the next tap. If no tap returns a boolean, Rspack emits the assets.
 
-- **Type:** `SyncBailHook<[Compilation], boolean>`
+- **Type:** `SyncBailHook<[Compilation], boolean | void>`
 - **Arguments:**
   - `Compilation`: current [compilation](/api/javascript-api/compilation) object
 
@@ -536,8 +536,10 @@ Called before emitting assets. Should return a boolean telling whether to emit.
 
 ```js
 compiler.hooks.shouldEmit.tap('MyPlugin', (compilation) => {
-  // return true to emit the output, otherwise false
-  return true;
+  // Skip emitting assets if the compilation has errors.
+  if (compilation.errors.length > 0) {
+    return false;
+  }
 });
 ```
 
