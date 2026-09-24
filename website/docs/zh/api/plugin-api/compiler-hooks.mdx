@@ -504,9 +504,9 @@ class ExamplePlugin {
 
 ## `shouldEmit`
 
-返回值为一个布尔值，用于决定是否将资源写入到磁盘中。
+在输出资源之前调用。返回 `false` 表示跳过资源输出，返回 `true` 表示输出资源；这两种返回值都会停止执行后续 tap。返回 `undefined` 或不返回值则继续执行下一个 tap。如果没有 tap 返回布尔值，Rspack 会输出资源。
 
-- **类型：** `SyncBailHook<[Compilation], boolean>`
+- **类型：** `SyncBailHook<[Compilation], boolean | void>`
 - **参数：**
   - `Compilation`: 当前 [Compilation](/api/javascript-api/compilation) 对象
 
@@ -524,8 +524,10 @@ class ExamplePlugin {
 
 ```js
 compiler.hooks.shouldEmit.tap('MyPlugin', (compilation) => {
-  // 返回 true 以输出 output 结果，否则返回 false
-  return true;
+  // 如果编译存在错误，则跳过资源输出。
+  if (compilation.errors.length > 0) {
+    return false;
+  }
 });
 ```
 
