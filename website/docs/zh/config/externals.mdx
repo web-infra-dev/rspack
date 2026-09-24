@@ -160,6 +160,19 @@ export default {
 
 ### 函数 \{#function}
 
+**类型：**
+
+```ts
+type ExternalFunction = (
+  data: ExternalItemFunctionData,
+  callback: (
+    error?: Error | null,
+    result?: ExternalItemValue,
+    externalsType?: ExternalsType,
+  ) => void,
+) => ExternalItemValue | void | Promise<ExternalItemValue | void>;
+```
+
 如果需要根据模块请求或其他模块信息决定是否将依赖外部化，可以使用函数。函数可以直接返回结果、返回 Promise，或调用回调。
 
 例如，下面的配置将 `react` 及其子路径保留为 ES 模块导入：

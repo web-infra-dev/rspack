@@ -160,6 +160,19 @@ This syntax is used to describe all the possible ways that an external library c
 
 ### Function
 
+**Type:**
+
+```ts
+type ExternalFunction = (
+  data: ExternalItemFunctionData,
+  callback: (
+    error?: Error | null,
+    result?: ExternalItemValue,
+    externalsType?: ExternalsType,
+  ) => void,
+) => ExternalItemValue | void | Promise<ExternalItemValue | void>;
+```
+
 Use a function when the decision to externalize a dependency depends on its request or other module information. The function can return a result directly, return a Promise, or call a callback.
 
 For example, this configuration keeps `react` and its subpaths as ES module imports:
