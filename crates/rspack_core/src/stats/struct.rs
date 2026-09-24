@@ -16,6 +16,7 @@ pub struct ExtendedStatsOptions {
   pub assets: bool,
   pub cached_modules: bool,
   pub chunks: bool,
+  pub chunk_origins: bool,
   pub chunk_group_auxiliary: bool,
   pub chunk_group_children: bool,
   pub chunk_groups: bool,
@@ -48,6 +49,7 @@ impl Default for ExtendedStatsOptions {
       hash: true,
 
       cached_modules: false,
+      chunk_origins: true,
       chunk_group_auxiliary: false,
       chunk_group_children: false,
       chunk_groups: false,

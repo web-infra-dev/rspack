@@ -9,7 +9,7 @@
  */
 import type binding from '@rspack/binding';
 
-import type { Compilation } from './Compilation';
+import type { Compilation, NormalizedStatsOptions } from './Compilation';
 import type { StatsOptions, StatsValue } from './config';
 import type { StatsCompilation } from './stats/statsFactoryUtils';
 
@@ -40,6 +40,19 @@ export class Stats {
     const inner = compilation.__internal_getInner().getStats();
     this.#innerMap.set(compilation, inner);
     return inner;
+  }
+
+  #getInnerStatsOptions(options: NormalizedStatsOptions) {
+    const taps = this.compilation.hooks.statsFactory.taps;
+    const hasOnlyDefaultStatsFactoryTap =
+      taps.length === 1 && taps[0].name === 'DefaultStatsFactoryPlugin';
+
+    if (options.chunkOrigins !== false || hasOnlyDefaultStatsFactoryTap) {
+      return options;
+    }
+    // Keep raw origins available to custom statsFactory taps; the outer factory
+    // still uses the original options when building the default output.
+    return { ...options, chunkOrigins: true };
   }
 
   get compilation() {
@@ -117,7 +130,9 @@ export class Stats {
         }
         const innerStats = this.#getInnerByCompilation(compilation);
         options.warnings = false;
-        const innerStatsCompilation = innerStats.toJson(options);
+        const innerStatsCompilation = innerStats.toJson(
+          this.#getInnerStatsOptions(options),
+        );
         statsCompilationMap.set(compilation, innerStatsCompilation);
         return innerStatsCompilation;
       },
@@ -163,7 +178,9 @@ export class Stats {
           };
         }
         const innerStats = this.#getInnerByCompilation(compilation);
-        const innerStatsCompilation = innerStats.toJson(options);
+        const innerStatsCompilation = innerStats.toJson(
+          this.#getInnerStatsOptions(options),
+        );
         statsCompilationMap.set(compilation, innerStatsCompilation);
         return innerStatsCompilation;
       },

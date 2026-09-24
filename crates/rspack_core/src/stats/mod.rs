@@ -686,44 +686,47 @@ impl Stats<'_> {
           }
         }
 
-        let origins = c
-          .groups()
-          .iter()
-          .sorted()
-          .flat_map(|ukey| {
-            let chunk_group = chunk_group_by_ukey.expect_get(ukey);
-            chunk_group.origins().iter().map(|origin| {
-              let module_identifier = origin.module;
+        let origins = if options.chunk_origins {
+          c.groups()
+            .iter()
+            .sorted()
+            .flat_map(|ukey| {
+              let chunk_group = chunk_group_by_ukey.expect_get(ukey);
+              chunk_group.origins().iter().map(|origin| {
+                let module_identifier = origin.module;
 
-              let module_name = origin
-                .module
-                .map(|identifier| {
-                  module_graph
-                    .module_by_identifier(&identifier)
-                    .map(|module| module.readable_identifier(context))
-                    .unwrap_or_default()
-                })
-                .unwrap_or_default();
+                let module_name = origin
+                  .module
+                  .map(|identifier| {
+                    module_graph
+                      .module_by_identifier(&identifier)
+                      .map(|module| module.readable_identifier(context))
+                      .unwrap_or_default()
+                  })
+                  .unwrap_or_default();
 
-              let module_id = origin.module.and_then(|identifier| {
-                ChunkGraph::get_module_id(module_ids_artifact, identifier).cloned()
-              });
+                let module_id = origin.module.and_then(|identifier| {
+                  ChunkGraph::get_module_id(module_ids_artifact, identifier).cloned()
+                });
 
-              StatsOriginRecord {
-                module: module_identifier,
-                module_id,
-                module_identifier,
-                module_name,
-                loc: origin
-                  .loc
-                  .as_ref()
-                  .map(|loc| loc.to_string())
-                  .unwrap_or_default(),
-                request: origin.request.as_deref().unwrap_or_default(),
-              }
+                StatsOriginRecord {
+                  module: module_identifier,
+                  module_id,
+                  module_identifier,
+                  module_name,
+                  loc: origin
+                    .loc
+                    .as_ref()
+                    .map(|loc| loc.to_string())
+                    .unwrap_or_default(),
+                  request: origin.request.as_deref().unwrap_or_default(),
+                }
+              })
             })
-          })
-          .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+        } else {
+          Vec::new()
+        };
 
         let mut id_hints = c.id_name_hints().iter().map(|s| s.as_str()).collect_vec();
         id_hints.sort_unstable();
