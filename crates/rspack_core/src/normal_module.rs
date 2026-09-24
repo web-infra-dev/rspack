@@ -597,7 +597,7 @@ impl Module for NormalModule {
         source,
         dependencies,
         blocks,
-        presentational_dependencies,
+        mut presentational_dependencies,
         code_generation_dependencies,
         side_effects_bailout,
       },
@@ -654,6 +654,7 @@ impl Module for NormalModule {
     // Other side effects should be set outside use_cache
     self.source = Some(source);
     self.code_generation_dependencies = Some(code_generation_dependencies);
+    presentational_dependencies.shrink_to_fit();
     self.presentational_dependencies = Some(presentational_dependencies);
 
     self.build_info.get_mut().hash = Some(self.init_build_hash(
