@@ -1,0 +1,79 @@
+name: Experiment Container Build
+
+# TEMPORARY experiment: does building the linux binding inside ci-linux actually
+# save time, and does sccache still work in there? Mirrors the
+# x86_64-unknown-linux-gnu path of reusable-build-build.yml with the steps the
+# image makes redundant removed. Compare against "Build Linux" in the same run.
+on:
+  # Self-limited paths: only runs when this experiment file itself changes.
+  pull_request:
+    paths:
+      - '.github/workflows/experiment-container-build.yml'
+  workflow_dispatch:
+    inputs:
+      image:
+        description: 'ci-linux image ref (tag or @sha256:...)'
+        required: true
+        default: 'ghcr.io/web-infra-dev/rspack/ci-linux:20260817-28d0f5c'
+
+env:
+  CARGO_INCREMENTAL: 0
+  MEASURE_CARGO_FRESH: '1'
+
+jobs:
+  build-in-container:
+    name: Build x86_64-unknown-linux-gnu in container
+    runs-on: rspack-custom-container
+    timeout-minutes: 60
+    container:
+      image: ${{ inputs.image || 'ghcr.io/web-infra-dev/rspack/ci-linux:20260817-28d0f5c' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash # container jobs default to `sh`
+    steps:
+      - name: Environment facts
+        run: |
+          echo "runner.environment = ${{ runner.environment }}"
+          echo "runner.os          = ${{ runner.os }}"
+          nproc
+          free -g || true
+          which node pnpm cargo rustc || true
+          command -v sccache || echo 'sccache: not in image (cargo cache step installs it)'
+          rustc -vV
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # No Pnpm Setup: node and pnpm come from the image.
+      - name: Install Binding Dependencies
+        run: pnpm --filter @rspack/binding install --frozen-lockfile
+
+      # No rustup install / toolchain restore / target add: all in the image.
+      # Only the crate cache layer is kept, which is what actually matters.
+      - name: Cargo cache
+        uses: ./.github/actions/rustup/cargo
+        with:
+          key: x86_64-unknown-linux-gnu-ci
+          save-if: false
+
+      - name: Run Cargo codegen
+        run: cargo codegen
+
+      - name: Trim paths
+        run: |
+          echo $'\n' >> .cargo/config.toml
+          echo 'trim-paths = true' >> .cargo/config.toml
+
+      - name: Enable checksum-freshness
+        run: echo 'checksum-freshness = true' >> .cargo/config.toml
+
+      - name: Build x86_64-unknown-linux-gnu
+        run: RUST_TARGET=x86_64-unknown-linux-gnu USE_NAPI_CROSS=1 pnpm build:binding:ci
+        env:
+          TARGET_CC: clang
+
+      - name: sccache stats
+        if: always()
+        run: "${SCCACHE_PATH:-sccache} --show-stats || echo 'sccache unavailable'"
