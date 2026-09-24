@@ -1,7 +1,4 @@
-use std::sync::LazyLock;
-
 use concat_string::concat_string;
-use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, CodeGenerationPublicPathAutoReplace, ConnectionState, Dependency,
@@ -119,9 +116,6 @@ impl AsContextDependency for URLDependency {}
 pub struct URLDependencyTemplate;
 
 pub static URL_STATIC_PLACEHOLDER: &str = "RSPACK_AUTO_URL_STATIC_PLACEHOLDER_";
-pub static URL_STATIC_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(&format!(r#"{URL_STATIC_PLACEHOLDER}(?<dep>\d+)"#)).expect("should be valid regex")
-});
 
 impl URLDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
