@@ -99,12 +99,12 @@ pub struct NormalModule {
   context: Box<Context>,
   /// Request with loaders from config
   /// Omitted when identical to the interned module identifier.
-  request: Option<String>,
+  request: Option<Box<str>>,
   /// Request intended by user (without loaders from config)
   /// Omitted when identical to the resolved resource.
-  user_request: Option<String>,
+  user_request: Option<Box<str>>,
   /// Request without resolving
-  raw_request: String,
+  raw_request: Box<str>,
   /// The resolved module type of a module
   module_type: ModuleType,
   /// Layer of the module
@@ -201,8 +201,9 @@ impl NormalModule {
     let id = ModuleIdentifier::from(
       Self::create_id(&module_type, layer.as_ref(), &request, import_phase).as_ref(),
     );
-    let request = (request != id.as_str()).then_some(request);
-    let user_request = (user_request != resource_data.resource()).then_some(user_request);
+    let request = (request != id.as_str()).then(|| request.into_boxed_str());
+    let user_request =
+      (user_request != resource_data.resource()).then(|| user_request.into_boxed_str());
     let build_info = BuildInfo {
       import_phase,
       ..Default::default()
@@ -212,7 +213,7 @@ impl NormalModule {
       context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
       request,
       user_request,
-      raw_request,
+      raw_request: raw_request.into_boxed_str(),
       module_type,
       layer,
       parser_and_generator,
