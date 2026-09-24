@@ -5,6 +5,8 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, TemplateContext, TemplateReplaceSource,
 };
 
+use crate::css_exports::{find_css_export_target, resolve_css_export};
+
 #[cacheable]
 #[derive(Debug)]
 pub struct CssIcssSymbolDependency {
@@ -60,35 +62,51 @@ impl DependencyCodeGeneration for CssIcssSymbolDependency {
 impl AsContextDependency for CssIcssSymbolDependency {}
 impl AsModuleDependency for CssIcssSymbolDependency {}
 
-/// Borrows the precomputed value from the CSS generator for one template call.
-#[derive(Debug)]
-pub struct CssIcssSymbolDependencyTemplate<'a> {
-  value: Option<&'a str>,
-}
+#[cacheable]
+#[derive(Debug, Default)]
+pub struct CssIcssSymbolDependencyTemplate;
 
-impl<'a> CssIcssSymbolDependencyTemplate<'a> {
-  pub(crate) fn new(value: Option<&'a str>) -> Self {
-    Self { value }
-  }
-
+impl CssIcssSymbolDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
     DependencyTemplateType::Dependency(DependencyType::CssIcssSymbol)
   }
 }
 
-impl DependencyTemplate for CssIcssSymbolDependencyTemplate<'_> {
+impl DependencyTemplate for CssIcssSymbolDependencyTemplate {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    _context: &mut TemplateContext,
+    context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
       .downcast_ref::<CssIcssSymbolDependency>()
       .expect("CssIcssSymbolDependencyTemplate should be used for CssIcssSymbolDependency");
-    if let Some(value) = self.value {
-      source.replace(dep.range.start, dep.range.end, value.to_owned(), None);
+    let value = dep
+      .value
+      .parts
+      .iter()
+      .try_fold(String::new(), |mut value, part| {
+        if let Some(request) = &part.from {
+          let target = find_css_export_target(
+            context.compilation,
+            context.module,
+            request,
+            part.id.as_ref(),
+          )?;
+          value.push_str(&resolve_css_export(
+            context.compilation,
+            target,
+            &part.ident,
+          )?);
+        } else {
+          value.push_str(&part.ident);
+        }
+        Some(value)
+      });
+    if let Some(value) = value {
+      source.replace(dep.range.start, dep.range.end, value, None);
     }
   }
 }

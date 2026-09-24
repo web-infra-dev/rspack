@@ -4,9 +4,9 @@ use concat_string::concat_string;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkGraph, Context, CssBuildInfo, CssExport, CssExportPart, CssExportType, CssExports,
-  CssModuleRenderCondition, Dependency, DependencyCodeGeneration, DependencyId, DependencyTemplate,
-  DependencyType, GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
-  RESERVED_IDENTIFIER, RuntimeGlobals, TemplateContext, UsageState, UsedNameItem,
+  CssModuleRenderCondition, Dependency, DependencyCodeGeneration, DependencyId, DependencyType,
+  GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
+  RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
   css_module_render_conditions_identifier,
   rspack_sources::{
     BoxSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt,
@@ -23,12 +23,9 @@ use rustc_hash::FxHashSet as HashSet;
 use smol_str::SmolStr;
 
 use crate::{
-  css_exports::{
-    CssCodeGenerationState, get_css_export, get_css_export_target, get_css_exports,
-    get_icss_symbol, prepare_css_concat_exports, prepare_css_exports, prepare_icss_symbols,
-  },
+  css_exports::{find_css_export_target, resolve_css_export, resolve_css_export_parts},
   css_syntax::unescape_identifier,
-  dependency::{CssIcssSymbolDependency, CssIcssSymbolDependencyTemplate, CssImportDependency},
+  dependency::CssImportDependency,
   parser_and_generator::{
     CssExportsRef, CssSourceBuilder, get_unused_local_ident, get_used_exports,
   },
@@ -53,19 +50,12 @@ fn render_dependency_template(
   dependency: &dyn DependencyCodeGeneration,
   source: &mut ReplaceSource,
   context: &mut TemplateContext,
-  state: &CssCodeGenerationState,
 ) {
   if let Some(template) = dependency
     .dependency_template()
     .and_then(|template_type| context.compilation.get_dependency_template(template_type))
   {
     template.render(dependency, source, context)
-  } else if let Some(symbol) = dependency
-    .as_any()
-    .downcast_ref::<CssIcssSymbolDependency>()
-  {
-    let value = get_icss_symbol(state, context.module.identifier(), symbol.id());
-    CssIcssSymbolDependencyTemplate::new(value).render(dependency, source, context);
   } else {
     panic!(
       "Can not find dependency template of {:?}",
@@ -84,7 +74,6 @@ pub(crate) struct CssModuleGenerator<'a, 'g> {
   module: &'a dyn Module,
   css_build_info: &'a CssBuildInfo,
   generate_context: &'a mut GenerateContext<'g>,
-  state: &'a mut CssCodeGenerationState,
   with_hmr: bool,
   export_type: Option<CssExportType>,
   exports_only: bool,
@@ -101,7 +90,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     module: &'a dyn Module,
     css_build_info: &'a CssBuildInfo,
     generate_context: &'a mut GenerateContext<'g>,
-    state: &'a mut CssCodeGenerationState,
     with_hmr: bool,
     es_module: bool,
   ) -> Self {
@@ -112,7 +100,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       module,
       css_build_info,
       generate_context,
-      state,
       with_hmr,
       export_type: css_module_export_type(module),
       exports_only: generator_options
@@ -189,10 +176,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   pub fn generate_javascript_source(mut self) -> Result<BoxSource> {
-    prepare_css_exports(self.generate_context.compilation, self.module, self.state);
-    if self.generate_context.concatenation_scope.is_some() {
-      prepare_css_concat_exports(self.generate_context.compilation, self.module, self.state);
-    }
     match self.export_type {
       Some(CssExportType::Text) => {
         let css = self.css_text_expr_with_imports();
@@ -286,14 +269,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       module,
       css_build_info,
       self.generate_context,
-      self.state,
       self.with_hmr,
       self.es_module,
     )
   }
 
   pub(crate) fn render_css_module_source(&mut self) -> BoxSource {
-    prepare_icss_symbols(self.generate_context.compilation, self.module, self.state);
     let mut source = ReplaceSource::new(self.source.clone());
     let compilation = self.generate_context.compilation;
     let mut init_fragments = ModuleInitFragments::default();
@@ -309,13 +290,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
     self.module.get_dependencies().iter().for_each(|dep| {
       if let Some(dependency) = dep.as_dependency_code_generation() {
-        render_dependency_template(dependency, &mut source, &mut context, self.state);
+        render_dependency_template(dependency, &mut source, &mut context);
       }
     });
 
     if let Some(dependencies) = self.module.get_presentational_dependencies() {
       dependencies.iter().for_each(|dependency| {
-        render_dependency_template(dependency.as_ref(), &mut source, &mut context, self.state);
+        render_dependency_template(dependency.as_ref(), &mut source, &mut context);
       });
     };
 
@@ -741,7 +722,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         _ => Cow::Borrowed(key),
       };
 
-      let elements = get_css_exports(self.state, module.identifier(), key);
+      let elements = resolve_css_export_parts(compilation, module, key);
       let content = self.render_concat_export_content(elements.iter());
       self.register_concat_export(key, &content, &used_name, &mut used_identifiers);
     }
@@ -779,7 +760,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn render_css_export_content(&mut self, name: &str) -> String {
-    let elements = get_css_exports(self.state, self.module.identifier(), name);
+    let elements = resolve_css_export_parts(self.generate_context.compilation, self.module, name);
     let mut content = String::new();
     for element in elements.iter() {
       let CssExportPart { ident, from, id } = element;
@@ -804,14 +785,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     from_name: &str,
     id: Option<&DependencyId>,
   ) -> String {
-    let target = get_css_export_target(self.state, self.module.identifier(), from_name, id, false)
-      .unwrap_or_else(|| {
-        panic!(
-          "CSS reexport target should be prepared: {ident} from {from_name} in {}",
-          self.module.identifier()
-        )
-      });
-    let from_identifier = target.module;
+    let target = find_css_export_target(
+      self.generate_context.compilation,
+      self.module,
+      from_name,
+      id,
+    )
+    .expect("should have css from module");
+    let from_identifier = target.identifier();
     let from_used_name = self.stringified_used_export_name(from_identifier, ident, true);
     self.render_require_property_access(from_identifier, &from_used_name)
   }
@@ -838,15 +819,87 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     from_name: &str,
     id: Option<&DependencyId>,
   ) -> String {
-    let target = get_css_export_target(self.state, self.module.identifier(), from_name, id, true)
-      .expect("Concatenated CSS reexport target should be prepared");
-    if target.supports_javascript {
-      let from_used_name = self.stringified_used_export_name(target.module, ident, false);
-      self.render_require_property_access(target.module, &from_used_name)
+    let compilation = self.generate_context.compilation;
+    let module = self.module;
+    let module_graph = compilation.get_module_graph();
+    let current_module_identifier = module.identifier();
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+    let current_module_chunks =
+      if chunk_graph.get_number_of_module_chunks(current_module_identifier) > 0 {
+        Some(chunk_graph.get_module_chunks(current_module_identifier))
+      } else {
+        None
+      };
+    let candidate_priority = |target: &dyn Module| {
+      let target_identifier = target.identifier();
+      let supports_javascript = target
+        .source_types(module_graph)
+        .contains(&SourceType::JavaScript);
+      let shares_chunk = current_module_chunks.is_some_and(|current_chunks| {
+        chunk_graph.get_number_of_module_chunks(target_identifier) > 0
+          && chunk_graph
+            .get_module_chunks(target_identifier)
+            .iter()
+            .any(|chunk| current_chunks.contains(chunk))
+      });
+      (
+        supports_javascript,
+        shares_chunk,
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_identifier).is_some(),
+      )
+    };
+    let find_target_module = |dep_id: &DependencyId| {
+      module_graph
+        .get_module_by_dependency_id(dep_id)
+        .map(|target| {
+          let priority = candidate_priority(target.as_ref());
+          (target, priority)
+        })
+    };
+    let from = id
+      .and_then(find_target_module)
+      .or_else(|| {
+        module
+          .get_dependencies()
+          .iter()
+          .filter(|dependency| dependency_request(dependency.as_ref()) == Some(from_name))
+          .filter_map(|dependency| find_target_module(dependency.id()))
+          .max_by_key(|(_, priority)| *priority)
+      })
+      .map(|(target, _)| target)
+      .and_then(|target| {
+        if target
+          .source_types(module_graph)
+          .contains(&SourceType::JavaScript)
+        {
+          Some(target)
+        } else {
+          let target_name_for_condition = target.name_for_condition();
+          module_graph
+            .modules()
+            .filter_map(|(_, candidate)| {
+              (candidate.name_for_condition() == target_name_for_condition
+                && candidate
+                  .source_types(module_graph)
+                  .contains(&SourceType::JavaScript))
+              .then_some(candidate)
+            })
+            .max_by_key(|candidate| candidate_priority(candidate.as_ref()))
+            .or(Some(target))
+        }
+      })
+      .expect("should have css from module");
+
+    if !from
+      .source_types(module_graph)
+      .contains(&SourceType::JavaScript)
+    {
+      let resolved = resolve_css_export(compilation, from.as_ref(), ident)
+        .expect("should resolve static css export");
+      json_stringify_str(&resolved)
     } else {
-      let resolved =
-        get_css_export(self.state, target.module, ident).expect("should resolve static css export");
-      json_stringify_str(resolved)
+      let from_used_name = self.stringified_used_export_name(from.identifier(), ident, false);
+      self.render_require_property_access(from.identifier(), &from_used_name)
     }
   }
 
@@ -920,4 +973,11 @@ fn push_joined(target: &mut String, value: &str, separator: &str) {
     target.push_str(separator);
   }
   target.push_str(value);
+}
+
+fn dependency_request(dependency: &dyn Dependency) -> Option<&str> {
+  dependency
+    .as_module_dependency()
+    .map(|dep| dep.request())
+    .or_else(|| dependency.as_context_dependency().map(|dep| dep.request()))
 }
