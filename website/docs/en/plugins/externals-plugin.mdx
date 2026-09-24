@@ -94,21 +94,24 @@ type ExternalItemFunctionData = {
   contextInfo?: ModuleFactoryCreateDataContextInfo;
   getResolve?: (
     options?: ResolveOptions,
-  ) =>
-    | ((
-        context: string,
-        request: string,
-        callback: (err?: Error, result?: string) => void,
-      ) => void)
-    | ((context: string, request: string) => Promise<string>);
+  ) => ((context: string, request: string, callback: ResolveCallback) => void) &
+    ((context: string, request: string) => Promise<string | undefined>);
   request?: string;
 };
+
+type ResolveCallback = (
+  err: (Error & { details?: string }) | null,
+  result?: string | false,
+  resolveData?: ResolveRequest,
+) => void;
 
 type ModuleFactoryCreateDataContextInfo = {
   issuer: string;
   compiler: string;
 };
 ```
+
+The resolver returned by `getResolve()` supports both `resolve(context, request, callback)` and `await resolve(context, request)`. For ignored requests, the callback receives `false`, while the Promise resolves to `undefined`. The callback can also receive resolution details as its third argument, including the parsed package description file in `descriptionFileData`.
 
 **Prevent bundling** of certain `import`ed packages and instead retrieve these _external dependencies_ at runtime.
 
