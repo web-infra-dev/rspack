@@ -31,7 +31,7 @@ use crate::{
   define_symbols,
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
-  source::{JsSourceFromJs, JsSourceToJs},
+  source::{JsSourceFromJs, JsSourceLazy, JsSourceToJs},
 };
 
 define_symbols! {
@@ -406,7 +406,7 @@ impl Module {
 
   #[napi(
     js_name = "_originalSource",
-    ts_return_type = "JsSource | undefined",
+    ts_return_type = "JsSourceLazy | undefined",
     enumerable = false
   )]
   pub fn original_source<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Unknown<'a>, ()>> {
@@ -452,7 +452,7 @@ impl Module {
       return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
     }
 
-    let binding = JsSourceToJs::try_from(original_source)?;
+    let binding = JsSourceLazy::new(original_source.clone());
     let mut one_shot_ref = OneShotRef::new(env.raw(), binding)?;
     let result = ToNapiValue::into_unknown(&mut one_shot_ref, env)?;
     self.original_source_ref = Some(OriginalSourceNapiRef {
