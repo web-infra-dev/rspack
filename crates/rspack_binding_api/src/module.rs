@@ -31,7 +31,7 @@ use crate::{
   define_symbols,
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
-  source::{JsSourceFromJs, JsSourceToJs},
+  source::{JsSourceFromJs, JsSourceLazy, JsSourceToJs},
 };
 
 define_symbols! {
@@ -283,10 +283,9 @@ pub(crate) fn define_module_properties(
 // Raw pointer stored in napi module becomes None
 // Throw an Error to the JavaScript side
 struct OriginalSourceNapiRef {
-  // Only retain a weak pointer for identity comparison. Holding another BoxSource here would
-  // increment its Arc strong count and keep the native source alive after the Module replaces it.
-  // The Weak pointer lets the Source and its owned buffers drop with the Module while also keeping
-  // the old Arc allocation unavailable for pointer reuse, so identity comparisons remain reliable.
+  // Only retain a weak pointer for identity comparison. The lazy JavaScript source owns the
+  // BoxSource so it remains readable after the Module replaces its source. This Weak pointer
+  // also prevents allocation reuse while the cached identity is retained.
   related_source: Weak<dyn Source>,
   // Keep the converted JavaScript object alive and return that exact object on cache hits. The
   // reference is replaced on the next call after `module.source()` points to a different Source.
@@ -406,7 +405,7 @@ impl Module {
 
   #[napi(
     js_name = "_originalSource",
-    ts_return_type = "JsSource | undefined",
+    ts_return_type = "JsSourceLazy | undefined",
     enumerable = false
   )]
   pub fn original_source<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Unknown<'a>, ()>> {
@@ -452,7 +451,7 @@ impl Module {
       return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
     }
 
-    let binding = JsSourceToJs::try_from(original_source)?;
+    let binding = JsSourceLazy::new(original_source.clone());
     let mut one_shot_ref = OneShotRef::new(env.raw(), binding)?;
     let result = ToNapiValue::into_unknown(&mut one_shot_ref, env)?;
     self.original_source_ref = Some(OriginalSourceNapiRef {

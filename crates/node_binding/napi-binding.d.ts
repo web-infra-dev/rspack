@@ -191,7 +191,7 @@ export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
   readableIdentifier(): string
-  _originalSource(): JsSource | undefined
+  _originalSource(): JsSourceLazy | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -202,7 +202,7 @@ export declare class ConcatenatedModule {
 
 export declare class ContextModule {
   readableIdentifier(): string
-  _originalSource(): JsSource | undefined
+  _originalSource(): JsSourceLazy | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -267,7 +267,7 @@ export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
   readableIdentifier(): string
-  _originalSource(): JsSource | undefined
+  _originalSource(): JsSourceLazy | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -447,6 +447,21 @@ export declare class JsResolverFactory {
   get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
 }
 
+/**
+ * Lazily materialized view over a binding source.
+ *
+ * Reading `source` or `map` performs the same conversion `JsSourceToJs` does eagerly. Module
+ * `originalSource` is usually only asked for its text (`module.originalSource().source()`), while
+ * the source map JSON can be large; keeping both conversions lazy avoids materializing, and
+ * therefore retaining, the raw map JSON string per module in the JS heap.
+ */
+export declare class JsSourceLazy {
+  /** Marker so the JavaScript adapter can tell this object apart from the eager `JsSource`. */
+  get lazy(): boolean
+  get source(): string | Buffer
+  get map(): string | undefined
+}
+
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
   getLogging(acceptedTypes: number): Array<JsLog>
@@ -458,7 +473,7 @@ export declare class KnownBuildInfo {
 
 export declare class Module {
   readableIdentifier(): string
-  _originalSource(): JsSource | undefined
+  _originalSource(): JsSourceLazy | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]

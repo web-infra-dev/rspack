@@ -100,3 +100,49 @@ impl From<JsSourceToJs> for BoxSource {
     }
   }
 }
+
+/// Lazily materialized view over a binding source.
+///
+/// Reading `source` or `map` performs the same conversion `JsSourceToJs` does eagerly. Module
+/// `originalSource` is usually only asked for its text (`module.originalSource().source()`), while
+/// the source map JSON can be large; keeping both conversions lazy avoids materializing, and
+/// therefore retaining, the raw map JSON string per module in the JS heap.
+#[napi]
+pub struct JsSourceLazy {
+  source: BoxSource,
+}
+
+impl JsSourceLazy {
+  pub fn new(source: BoxSource) -> Self {
+    Self { source }
+  }
+}
+
+#[napi]
+impl JsSourceLazy {
+  /// Marker so the JavaScript adapter can tell this object apart from the eager `JsSource`.
+  #[napi(getter)]
+  pub fn lazy(&self) -> bool {
+    true
+  }
+
+  #[napi(getter, ts_return_type = "string | Buffer")]
+  pub fn source(&self) -> Either<String, Buffer> {
+    match self.source.source() {
+      SourceValue::String(string) => Either::A(string.into_owned()),
+      SourceValue::Buffer(bytes) => Either::B(Buffer::from(bytes.to_vec())),
+    }
+  }
+
+  #[napi(getter, ts_return_type = "string | undefined")]
+  pub fn map(&self) -> Either<String, ()> {
+    match self
+      .source
+      .map(&ObjectPool::default(), &MapOptions::default())
+    {
+      Some(map) => Either::A(map.to_json()),
+      // `Option::None` becomes `null`, but the adapter expects an absent map to be `undefined`.
+      None => Either::B(()),
+    }
+  }
+}
