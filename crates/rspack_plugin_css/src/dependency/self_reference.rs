@@ -1,4 +1,7 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
@@ -11,7 +14,9 @@ use crate::{css_syntax::escape_identifier, utils::replace_css_module_id_placehol
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct CssSelfReferenceLocalIdentReplacement {
-  pub local_ident: String,
+  /// Interned hashed ident. The same class is replaced at every use site.
+  #[cacheable(with=AsPreset)]
+  pub local_ident: Atom,
   pub range: DependencyRange,
 }
 
@@ -19,7 +24,9 @@ pub struct CssSelfReferenceLocalIdentReplacement {
 #[derive(Debug)]
 pub struct CssSelfReferenceLocalIdentDependency {
   id: DependencyId,
-  names: Vec<String>,
+  /// Interned export names. Archived as the same string list as the previous `Vec<String>`.
+  #[cacheable(with=AsVec<AsPreset>)]
+  names: Vec<Atom>,
   replaces: Vec<CssSelfReferenceLocalIdentReplacement>,
 }
 
@@ -27,7 +34,7 @@ impl CssSelfReferenceLocalIdentDependency {
   pub fn new(names: Vec<String>, replaces: Vec<CssSelfReferenceLocalIdentReplacement>) -> Self {
     Self {
       id: DependencyId::new(),
-      names,
+      names: names.into_iter().map(Atom::from).collect(),
       replaces,
     }
   }
@@ -65,7 +72,8 @@ impl Dependency for CssSelfReferenceLocalIdentDependency {
     self
       .names
       .iter()
-      .map(|n| ReferencedExport::from(Atom::from(n.as_str())))
+      .cloned()
+      .map(ReferencedExport::from)
       .collect()
   }
 }
