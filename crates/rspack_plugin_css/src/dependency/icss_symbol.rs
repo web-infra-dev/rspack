@@ -1,7 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, CssExport, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyType, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, CssExport, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -23,13 +24,6 @@ impl CssIcssSymbolDependency {
 
   pub(crate) fn value(&self) -> &CssExport {
     &self.value
-  }
-
-  // The CSS generator owns the precomputed value and passes it directly.
-  pub(crate) fn render(&self, source: &mut TemplateReplaceSource, value: Option<&str>) {
-    if let Some(value) = value {
-      source.replace(self.range.start, self.range.end, value.to_owned(), None);
-    }
   }
 }
 
@@ -56,6 +50,45 @@ impl Dependency for CssIcssSymbolDependency {
   }
 }
 
-impl AsDependencyCodeGeneration for CssIcssSymbolDependency {}
+#[cacheable_dyn]
+impl DependencyCodeGeneration for CssIcssSymbolDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(CssIcssSymbolDependencyTemplate::template_type())
+  }
+}
+
 impl AsContextDependency for CssIcssSymbolDependency {}
 impl AsModuleDependency for CssIcssSymbolDependency {}
+
+/// Borrows the precomputed value from the CSS generator for one template call.
+#[derive(Debug)]
+pub struct CssIcssSymbolDependencyTemplate<'a> {
+  value: Option<&'a str>,
+}
+
+impl<'a> CssIcssSymbolDependencyTemplate<'a> {
+  pub(crate) fn new(value: Option<&'a str>) -> Self {
+    Self { value }
+  }
+
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CssIcssSymbol)
+  }
+}
+
+impl DependencyTemplate for CssIcssSymbolDependencyTemplate<'_> {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    _context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<CssIcssSymbolDependency>()
+      .expect("CssIcssSymbolDependencyTemplate should be used for CssIcssSymbolDependency");
+    if let Some(value) = self.value {
+      source.replace(dep.range.start, dep.range.end, value.to_owned(), None);
+    }
+  }
+}

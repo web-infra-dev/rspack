@@ -4,8 +4,8 @@ use concat_string::concat_string;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkGraph, Context, CssBuildInfo, CssExport, CssExportPart, CssExportType, CssExports,
-  CssModuleRenderCondition, DependencyCodeGeneration, DependencyId, DependencyType,
-  GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
+  CssModuleRenderCondition, Dependency, DependencyCodeGeneration, DependencyId, DependencyTemplate,
+  DependencyType, GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
   RESERVED_IDENTIFIER, RuntimeGlobals, TemplateContext, UsageState, UsedNameItem,
   css_module_render_conditions_identifier,
   rspack_sources::{
@@ -28,7 +28,7 @@ use crate::{
     get_icss_symbol, prepare_css_concat_exports, prepare_css_exports, prepare_icss_symbols,
   },
   css_syntax::unescape_identifier,
-  dependency::{CssIcssSymbolDependency, CssImportDependency},
+  dependency::{CssIcssSymbolDependency, CssIcssSymbolDependencyTemplate, CssImportDependency},
   parser_and_generator::{
     CssExportsRef, CssSourceBuilder, get_unused_local_ident, get_used_exports,
   },
@@ -53,12 +53,19 @@ fn render_dependency_template(
   dependency: &dyn DependencyCodeGeneration,
   source: &mut ReplaceSource,
   context: &mut TemplateContext,
+  state: &CssCodeGenerationState,
 ) {
   if let Some(template) = dependency
     .dependency_template()
     .and_then(|template_type| context.compilation.get_dependency_template(template_type))
   {
     template.render(dependency, source, context)
+  } else if let Some(symbol) = dependency
+    .as_any()
+    .downcast_ref::<CssIcssSymbolDependency>()
+  {
+    let value = get_icss_symbol(state, context.module.identifier(), symbol.id());
+    CssIcssSymbolDependencyTemplate::new(value).render(dependency, source, context);
   } else {
     panic!(
       "Can not find dependency template of {:?}",
@@ -301,19 +308,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     };
 
     self.module.get_dependencies().iter().for_each(|dep| {
-      if let Some(symbol) = dep.downcast_ref::<CssIcssSymbolDependency>() {
-        symbol.render(
-          &mut source,
-          get_icss_symbol(self.state, self.module.identifier(), dep.id()),
-        );
-      } else if let Some(dependency) = dep.as_dependency_code_generation() {
-        render_dependency_template(dependency, &mut source, &mut context);
+      if let Some(dependency) = dep.as_dependency_code_generation() {
+        render_dependency_template(dependency, &mut source, &mut context, self.state);
       }
     });
 
     if let Some(dependencies) = self.module.get_presentational_dependencies() {
       dependencies.iter().for_each(|dependency| {
-        render_dependency_template(dependency.as_ref(), &mut source, &mut context);
+        render_dependency_template(dependency.as_ref(), &mut source, &mut context, self.state);
       });
     };
 
