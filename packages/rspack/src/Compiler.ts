@@ -846,6 +846,47 @@ class Compiler {
     });
   }
 
+  /**
+   * Release heavy compilation state (module graph, codegen results, assets) after
+   * Stats have been read. Call when idle, typically after `close()`. Does not
+   * unload the native binding. The compiler cannot run again after `close()`;
+   * create a new compiler for the next build.
+   */
+  releaseCompilation(callback: (error?: Error | null) => void) {
+    if (this.watching) {
+      callback(
+        new Error(
+          'Cannot release compilation while the compiler is in watch mode.',
+        ),
+      );
+      return;
+    }
+    if (this.running) {
+      callback(
+        new Error(
+          'Cannot release compilation while the compiler is running.',
+        ),
+      );
+      return;
+    }
+
+    try {
+      const instance = this.#instance;
+      if (!instance) {
+        callback();
+        return;
+      }
+      instance.releaseCompilation();
+      if (this.#compilation) {
+        this.#compilation.__internal__shutdown = true;
+      }
+      this.#compilation = undefined;
+      callback();
+    } catch (error) {
+      callback(error as Error);
+    }
+  }
+
   #build(callback: (error: Error | null) => void) {
     this.#getInstance((error, instance) => {
       if (error) {
