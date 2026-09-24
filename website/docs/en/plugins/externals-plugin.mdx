@@ -1,118 +1,91 @@
 ---
-description: 'This plugin allows you to specify external dependencies that should not be bundled into the output files'
+description: 'Keep selected dependencies out of the bundle and control how they are loaded at runtime with ExternalsPlugin.'
 ---
 
 # ExternalsPlugin
 
-This plugin allows you to specify external dependencies that should not be bundled into the output files. This is particularly useful for libraries that are already available globally or managed by other scripts.
-The [`externalsType`](/config/externals#externalstype) and [`externals`](/config/externals#externals) configurations leverage the plugin internally. Therefore, you can utilize the respective functionality directly through these configuration options without needing to use the plugin separately.
+`ExternalsPlugin` keeps selected dependencies out of the bundle and generates code to access them at runtime. For example, an external dependency can be referenced through an ES module `import` or read from a browser global supplied by another script.
+
+For most projects, configure [`externals`](/config/externals) and [`externalsType`](/config/externals#externalstype) directly. Rspack applies `ExternalsPlugin` internally for these options. Use the plugin directly when adding external rules from another plugin or configuring separate plugin instances with different `externalsType` values.
 
 ## Examples
 
-Externalize React as a CommonJS dependency:
+### ESM imports
+
+Enable [`output.module`](/config/output#outputmodule) and set `externalsType` to `'module'` to leave `react` out of the bundle while generating an ES module import for it:
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
 export default {
-  plugins: [new rspack.ExternalsPlugin('commonjs', ['react'])],
+  output: {
+    module: true,
+  },
+  plugins: [new rspack.ExternalsPlugin('module', ['react'])],
 };
 ```
+
+The consumer of the output must be able to resolve the `react` import. For example, another bundler can resolve it, or a browser can map it to a URL through an import map. The string rule matches `react` exactly; it does not match subpaths such as `react/jsx-runtime`.
+
+For this example, the corresponding configuration options are:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    module: true,
+  },
+  externalsType: 'module',
+  externals: ['react'],
+};
+```
+
+### Browser globals
+
+If the page already loads Lodash through a script that exposes `window._`, map the `lodash` request to that global:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.ExternalsPlugin('window', { lodash: '_' })],
+};
+```
+
+Application code can continue to use `import _ from 'lodash'`. The bundle reads `window._` instead of including Lodash, so load the script that provides it before running the bundle.
 
 ## Options
 
-### type
+Pass `externalsType` as the first argument and the matching rules, `externals`, as the second:
 
-**Type:**
-
-```ts
-type ExternalsType =
-  | 'var'
-  | 'module'
-  | 'assign'
-  | 'this'
-  | 'window'
-  | 'self'
-  | 'global'
-  | 'commonjs'
-  | 'commonjs2'
-  | 'commonjs-module'
-  | 'commonjs-static'
-  | 'amd'
-  | 'amd-require'
-  | 'umd'
-  | 'umd2'
-  | 'jsonp'
-  | 'system'
-  | 'promise'
-  | 'import'
-  | 'module-import'
-  | 'modern-module'
-  | 'commonjs-import'
-  | 'script'
-  | 'node-commonjs';
+```js
+new rspack.ExternalsPlugin(externalsType, externals);
 ```
 
-Specifies the default type for the `externals`.
+### externalsType
 
-For more details, refer to [externalsType](/config/externals#externalstype).
+- **Type:** `ExternalsType`
+- **Required:** Yes
+
+Determines how matching dependencies are accessed at runtime.
+
+Choose an `externalsType` that works with your output format and runtime environment. For all supported values and their requirements, see [`externalsType`](/config/externals#externalstype).
+
+A rule can override `externalsType` by adding a type prefix to its result:
+
+```js
+new rspack.ExternalsPlugin('module', {
+  react: 'react',
+  lodash: 'window _',
+});
+```
+
+With `output.module` enabled, `react` is imported as an ES module, while `lodash` is read from `window._`.
 
 ### externals
 
-**Type:**
+- **Type:** `Externals`
+- **Required:** Yes
 
-```ts
-type Externals = ExternalItem[] | ExternalItem;
+Specifies which module requests to externalize and how to reference them. Rules match the request written in the source code, before it is resolved to a file path.
 
-type ExternalItem =
-  | string
-  | RegExp
-  | ExternalItemObjectUnknown
-  | ((
-      data: ExternalItemFunctionData,
-      callback: (
-        err?: Error | null,
-        result?: ExternalItemValue,
-        type?: ExternalsType,
-      ) => void,
-    ) => ExternalItemValue | void | Promise<ExternalItemValue | void>);
-
-type ExternalItemObjectUnknown = {
-  [request: string]: ExternalItemValue;
-};
-
-type ExternalItemValue =
-  | string[]
-  | boolean
-  | string
-  | {
-      [k: string]: any;
-    };
-
-type ExternalItemFunctionData = {
-  context?: string;
-  contextInfo?: ModuleFactoryCreateDataContextInfo;
-  getResolve?: (
-    options?: ResolveOptions,
-  ) => ((context: string, request: string, callback: ResolveCallback) => void) &
-    ((context: string, request: string) => Promise<string | undefined>);
-  request?: string;
-};
-
-type ResolveCallback = (
-  err: (Error & { details?: string }) | null,
-  result?: string | false,
-  resolveData?: ResolveRequest,
-) => void;
-
-type ModuleFactoryCreateDataContextInfo = {
-  issuer: string;
-  compiler: string;
-};
-```
-
-The resolver returned by `getResolve()` supports both `resolve(context, request, callback)` and `await resolve(context, request)`. For ignored requests, the callback receives `false`, while the Promise resolves to `undefined`. The callback can also receive resolution details as its third argument, including the parsed package description file in `descriptionFileData`.
-
-**Prevent bundling** of certain `import`ed packages and instead retrieve these _external dependencies_ at runtime.
-
-For more details, refer to [externals](/config/externals#externals).
+For supported rule forms and value formats, see the [`externals` configuration reference](/config/externals). For custom matching and request resolution, see [function externals](/config/externals#function).
