@@ -791,10 +791,7 @@ impl RstestParserPlugin {
           true,
           test_api_import_source_order,
         );
-        // Walk the factory here and stop the walk, so `call_member_chain`
-        // does not process this call again.
-        parser.walk_expr_or_spread(&call_expr.args);
-        Some(true)
+        Some(false)
       }
       // rs.doMockRequire
       ("rs" | "rstest", "doMockRequire") => {
@@ -807,10 +804,7 @@ impl RstestParserPlugin {
           true,
           test_api_import_source_order,
         );
-        // Walk the factory here and stop the walk, so `call_member_chain`
-        // does not process this call again.
-        parser.walk_expr_or_spread(&call_expr.args);
-        Some(true)
+        Some(false)
       }
       // rs.importActual and rs.requireActual are handled by call_member_chain hook
       // rs.importMock
@@ -886,6 +880,13 @@ impl RstestParserPlugin {
   }
 }
 
+fn is_non_hoisted_mock_api(name: &str) -> bool {
+  matches!(
+    name,
+    "doMock" | "doMockRequire" | "doUnmock" | "doUnmockRequire" | "resetModules"
+  )
+}
+
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
   fn import_specifier(
@@ -928,6 +929,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
           && let Some(member_expr) = callee_expr.as_member()
           && let Some(obj_ident) = member_expr.obj.as_ident()
           && let Some(prop_ident) = member_expr.prop.as_ident()
+          // Non-hoisted mock APIs are handled by `call_member_chain`.
+          && !is_non_hoisted_mock_api(prop_ident.sym.as_str())
         {
           return self.handle_rstest_method_call(
             parser,
@@ -1102,8 +1105,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
           }
           // Non-hoisted mock APIs run in place, so they also work outside
           // statement position, e.g. `afterAll(() => rs.doUnmock('./foo'))`.
-          "doMock" | "doMockRequire" | "doUnmock" | "doUnmockRequire" | "resetModules"
-            if self.options.hoist_mock_module =>
+          // Statement-level calls are already handled by the `statement` hook.
+          prop
+            if self.options.hoist_mock_module
+              && is_non_hoisted_mock_api(prop)
+              && !parser.is_statement_level_expression(call_expr.span) =>
           {
             let prop_ident = member_expr.prop.as_ident()?;
             return self.handle_rstest_method_call(parser, call_expr, ident, prop_ident, None);
