@@ -1,4 +1,5 @@
 import { defineConfig } from '@rspack/cli';
+import { HtmlRspackPlugin } from '@rspack/core';
 
 export default defineConfig(
   ['single', 'multiple', 'single-preloaded', 'multiple-preloaded'].map(
@@ -8,7 +9,9 @@ export default defineConfig(
       target: 'web',
       devtool: false,
       entry: {
-        main: './index.js',
+        main: name.endsWith('-preloaded')
+          ? ['./feature.css', './index.js']
+          : './index.js',
         other: './feature.js',
       },
       output: {
@@ -28,6 +31,13 @@ export default defineConfig(
         ],
       },
       experiments: { css: true },
+      plugins: [
+        new HtmlRspackPlugin({
+          template: './template.html',
+          filename: `main.${name}.html`,
+          chunks: ['main'],
+        }),
+      ],
       optimization: {
         runtimeChunk: name.startsWith('single') ? 'single' : 'multiple',
         chunkIds: 'named',

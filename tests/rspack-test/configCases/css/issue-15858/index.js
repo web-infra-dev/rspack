@@ -1,6 +1,8 @@
 it(`should load another entry's initial CSS with ${runtimeChunkMode} runtime`, async () => {
 	const initialLinks = Array.from(document.getElementsByTagName("link"));
 	expect(initialLinks.length).toBe(preloadedCss ? 1 : 0);
+	expect(getCssRequests()).toHaveLength(preloadedCss ? 1 : 0);
+	if (preloadedCss) expect(initialLinks[0].sheet).toBeTruthy();
 
 	const appendChild = document.head.appendChild;
 	const stylesheets = [];
@@ -52,4 +54,10 @@ it(`should load another entry's initial CSS with ${runtimeChunkMode} runtime`, a
 	if (preloadedCss) {
 		expect(document.getElementsByTagName("link")[0]).toBe(initialLinks[0]);
 	}
+
+	await import("./feature.js");
+	expect(getCssRequests()).toEqual([
+		`https://test.cases/path/shared-css.${runtimeChunkMode}.css`
+	]);
+	expect(document.getElementsByTagName("link").length).toBe(1);
 });
