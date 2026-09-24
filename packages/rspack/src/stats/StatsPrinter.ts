@@ -209,7 +209,7 @@ export class StatsPrinter {
     object: {
       [key: string]: any;
     },
-    baseContext: Object | undefined,
+    baseContext: StatsPrinterContext | undefined,
   ): string {
     const context = {
       ...baseContext,
