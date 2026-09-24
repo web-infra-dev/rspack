@@ -9,7 +9,7 @@ use rspack_core::{
   ModuleRuleUse, ModuleRuleUseLoader, Optimization, RuleSetCondition, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   fast_set,
-  incremental::{Incremental, IncrementalOptions, IncrementalPasses},
+  incremental::{Incremental, IncrementalOptions},
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
@@ -199,42 +199,28 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   assert_no_compilation_errors(&compiler.compilation, "build_chunk_graph benchmark setup");
   let compiler = RefCell::new(compiler);
 
-  // Initial builds with incremental chunk graph reuse enabled also prepare state
-  // for the next compilation. Cover that allocation work separately.
-  for (benchmark_id, passes) in [
-    ("rust@build_chunk_graph", IncrementalPasses::empty()),
-    (
-      "rust@build_chunk_graph_incremental",
-      IncrementalPasses::BUILD_CHUNK_GRAPH,
-    ),
-  ] {
-    compiler.borrow_mut().compilation.incremental = Incremental::new_cold(IncrementalOptions {
-      silent: true,
-      passes,
-    });
-    c.bench_function(benchmark_id, |b| {
-      b.iter_batched_ref(
-        || {
-          let mut compiler = compiler.borrow_mut();
-          reset_chunk_graph_state(&mut compiler.compilation);
-        },
-        |_| {
-          let mut compiler = compiler.borrow_mut();
-          build_chunk_graph::build_chunk_graph(&mut compiler.compilation).unwrap();
-          assert_no_compilation_errors(&compiler.compilation, "build_chunk_graph benchmark pass");
-          assert_eq!(
-            compiler
-              .compilation
-              .build_chunk_graph_artifact
-              .chunk_by_ukey
-              .len(),
-            NUM_MODULES / 10
-          );
-        },
-        BatchSize::PerIteration,
-      );
-    });
-  }
+  c.bench_function("rust@build_chunk_graph", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        reset_chunk_graph_state(&mut compiler.compilation);
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        build_chunk_graph::build_chunk_graph(&mut compiler.compilation).unwrap();
+        assert_no_compilation_errors(&compiler.compilation, "build_chunk_graph benchmark pass");
+        assert_eq!(
+          compiler
+            .compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .len(),
+          NUM_MODULES / 10
+        );
+      },
+      BatchSize::PerIteration,
+    );
+  });
 }
 
 pub fn build_module_graph_benchmark(c: &mut Criterion) {
