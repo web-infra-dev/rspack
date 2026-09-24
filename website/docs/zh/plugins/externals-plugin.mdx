@@ -94,21 +94,24 @@ type ExternalItemFunctionData = {
   contextInfo?: ModuleFactoryCreateDataContextInfo;
   getResolve?: (
     options?: ResolveOptions,
-  ) =>
-    | ((
-        context: string,
-        request: string,
-        callback: (err?: Error, result?: string) => void,
-      ) => void)
-    | ((context: string, request: string) => Promise<string>);
+  ) => ((context: string, request: string, callback: ResolveCallback) => void) &
+    ((context: string, request: string) => Promise<string | undefined>);
   request?: string;
 };
+
+type ResolveCallback = (
+  err: (Error & { details?: string }) | null,
+  result?: string | false,
+  resolveData?: ResolveRequest,
+) => void;
 
 type ModuleFactoryCreateDataContextInfo = {
   issuer: string;
   compiler: string;
 };
 ```
+
+`getResolve()` 返回的解析函数同时支持 `resolve(context, request, callback)` 和 `await resolve(context, request)`。对于被忽略的请求，回调收到的解析结果为 `false`，Promise 的结果为 `undefined`。回调的第三个参数还可提供解析详情，其中 `descriptionFileData` 是解析后的包描述文件内容。
 
 **阻止**将某些 import 的包（package）打包到 bundle 中，而是在运行时（runtime）再去从外部获取这些*扩展依赖*（external dependencies）。
 
