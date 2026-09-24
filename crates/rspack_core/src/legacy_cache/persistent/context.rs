@@ -74,7 +74,7 @@ impl CacheContext {
     let report = validation.validate(&*self.storage).await;
     match report.result {
       CacheValidationResult::Valid { tracked_files } => {
-        self.logger().info(format!(
+        self.logger().log(format!(
           "build dependencies are valid ({tracked_files} tracked)"
         ));
         self.log_duration(
@@ -86,7 +86,7 @@ impl CacheContext {
 
         self
           .logger()
-          .info("meta persistent cache recovery succeeded");
+          .log("meta persistent cache recovery succeeded");
         self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
       }
       CacheValidationResult::InvalidVersion { message } => {
@@ -233,9 +233,9 @@ impl CacheContext {
           if modified_paths.is_empty() && removed_paths.is_empty() {
             self
               .logger()
-              .info("snapshot restored with no changed dependencies");
+              .log("snapshot restored with no changed dependencies");
           } else {
-            self.logger().info(format!(
+            self.logger().log(format!(
               "snapshot restored with detected changed dependencies:\n{}",
               format_path_changes(&modified_paths, &removed_paths)
             ));
@@ -306,7 +306,7 @@ impl CacheContext {
         .time(read_occasion_timing_label(occasion.name()));
       match occasion.recovery(&*self.storage).await {
         Ok(cache_item) => {
-          self.logger().info(format!(
+          self.logger().log(format!(
             "{} persistent cache recovery succeeded",
             occasion.name()
           ));
