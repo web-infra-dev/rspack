@@ -1,13 +1,9 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsCacheable, AsMap, AsPreset, AsVec},
-};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ChunkGraph, CodeGenerationData, CodeGenerationDataItem, Compilation, CssExport, CssExportPart,
-  Dependency, DependencyId, FreezeReadGuard, Module, ModuleIdentifier, SourceType,
+  ChunkGraph, Compilation, CssExport, CssExportPart, Dependency, DependencyId, FreezeReadGuard,
+  Module, ModuleIdentifier, SourceType,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::fx_hash::FxIndexSet;
@@ -16,40 +12,29 @@ use smol_str::SmolStr;
 
 use crate::{dependency::CssIcssSymbolDependency, utils::replace_css_module_id_placeholder};
 
-#[cacheable]
 #[derive(Debug, Default)]
-struct CodeGenerationDataCssExports {
-  #[cacheable(with=AsMap)]
+pub(crate) struct CssCodeGenerationState {
   modules: IdentifierMap<CssModuleExports>,
-  #[cacheable(with=AsMap)]
   targets: IdentifierMap<CssExportTargets>,
-  #[cacheable(with=AsMap<AsCacheable, AsMap<AsPreset>>)]
-  values: IdentifierMap<FxHashMap<SmolStr, Option<String>>>,
+  values: IdentifierMap<FxHashMap<SmolStr, Option<SmolStr>>>,
 }
 
-#[cacheable]
 #[derive(Debug, Default)]
 struct CssModuleExports {
-  #[cacheable(with=AsMap<AsPreset, AsVec>)]
-  javascript: FxHashMap<SmolStr, Arc<[CssExportPart]>>,
-  #[cacheable(with=AsMap)]
-  symbols: FxHashMap<DependencyId, Option<String>>,
+  javascript: Option<FxHashMap<SmolStr, Arc<[CssExportPart]>>>,
+  symbols: Option<FxHashMap<DependencyId, Option<SmolStr>>>,
   concat_targets: Option<CssExportTargets>,
 }
 
-#[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct CssExportTarget {
   pub module: ModuleIdentifier,
   pub supports_javascript: bool,
 }
 
-#[cacheable]
 #[derive(Debug, Default)]
 struct CssExportTargets {
-  #[cacheable(with=AsMap)]
   by_dependency: FxHashMap<DependencyId, CssExportTarget>,
-  #[cacheable(with=AsMap<AsPreset>)]
   by_request: FxHashMap<SmolStr, CssExportTarget>,
 }
 
@@ -99,9 +84,6 @@ fn cached_css_export_target<'a>(
     .module_by_identifier(&target.module)
     .map(|module| module.as_ref())
 }
-
-#[cacheable_dyn]
-impl CodeGenerationDataItem for CodeGenerationDataCssExports {}
 
 pub(crate) fn hash_icss_imports(
   compilation: &Compilation,
@@ -304,16 +286,14 @@ fn resolve_css_exports<'a, T: Clone>(
 pub(crate) fn prepare_css_exports(
   compilation: &Compilation,
   module: &dyn Module,
-  data: &mut CodeGenerationData,
+  data: &mut CssCodeGenerationState,
 ) {
-  if !data.contains::<CodeGenerationDataCssExports>() {
-    data.insert(CodeGenerationDataCssExports::default());
-  }
-  let data = data
-    .get_mut::<CodeGenerationDataCssExports>()
-    .expect("CSS export resolutions should be initialized");
   let identifier = module.identifier();
-  if data.modules.contains_key(&identifier) {
+  if data
+    .modules
+    .get(&identifier)
+    .is_some_and(|module| module.javascript.is_some())
+  {
     return;
   }
 
@@ -356,6 +336,28 @@ pub(crate) fn prepare_css_exports(
     }
   }
 
+  data.modules.entry(identifier).or_default().javascript = Some(
+    javascript
+      .into_iter()
+      .map(|(name, parts)| (name, Arc::from(parts)))
+      .collect(),
+  );
+}
+
+pub(crate) fn prepare_icss_symbols(
+  compilation: &Compilation,
+  module: &dyn Module,
+  data: &mut CssCodeGenerationState,
+) {
+  let identifier = module.identifier();
+  if data
+    .modules
+    .get(&identifier)
+    .is_some_and(|module| module.symbols.is_some())
+  {
+    return;
+  }
+
   let symbols = module
     .get_dependencies()
     .iter()
@@ -381,45 +383,33 @@ pub(crate) fn prepare_css_exports(
   let symbols = symbols
     .into_iter()
     .map(|dependency| {
-      let resolved = dependency
-        .value()
-        .parts
-        .iter()
-        .map(|part| {
-          if let Some(request) = &part.from {
-            let target = data
-              .targets
-              .get(&identifier)?
-              .get(request, part.id.as_ref())?;
-            data
-              .values
-              .get(&target.module)?
-              .get(&part.ident)?
-              .as_deref()
-          } else {
-            Some(part.ident.as_str())
-          }
-        })
-        .collect::<Option<String>>();
+      let mut parts = dependency.value().parts.iter().map(|part| {
+        if let Some(request) = &part.from {
+          let target = data
+            .targets
+            .get(&identifier)?
+            .get(request, part.id.as_ref())?;
+          data.values.get(&target.module)?.get(&part.ident)?.as_ref()
+        } else {
+          Some(&part.ident)
+        }
+      });
+      let resolved = if dependency.value().parts.len() == 1 {
+        parts.next().flatten().cloned()
+      } else {
+        parts
+          .map(|part| part.map(SmolStr::as_str))
+          .collect::<Option<SmolStr>>()
+      };
       (*dependency.id(), resolved)
     })
     .collect();
-  data.modules.insert(
-    identifier,
-    CssModuleExports {
-      javascript: javascript
-        .into_iter()
-        .map(|(name, parts)| (name, Arc::from(parts)))
-        .collect(),
-      symbols,
-      concat_targets: None,
-    },
-  );
+  data.modules.entry(identifier).or_default().symbols = Some(symbols);
 }
 
 fn prepare_static_css_exports<'a>(
   compilation: &'a Compilation,
-  data: &mut CodeGenerationDataCssExports,
+  data: &mut CssCodeGenerationState,
   roots: impl IntoIterator<Item = (&'a dyn Module, SmolStr)>,
 ) {
   let values = resolve_css_exports(
@@ -433,29 +423,35 @@ fn prepare_static_css_exports<'a>(
     }),
     |_| true,
     |module, export| {
-      export
-        .from
-        .is_none()
-        .then(|| replace_css_module_id_placeholder(&export.ident, compilation, module).into_owned())
+      export.from.is_none().then(|| {
+        match replace_css_module_id_placeholder(&export.ident, compilation, module) {
+          Cow::Borrowed(_) => export.ident.clone(),
+          Cow::Owned(value) => SmolStr::from(value),
+        }
+      })
     },
   );
   for (identifier, exports) in values {
-    data.values.entry(identifier).or_default().extend(
-      exports
-        .into_iter()
-        .map(|(name, values)| (name, (!values.is_empty()).then(|| values.concat()))),
-    );
+    data
+      .values
+      .entry(identifier)
+      .or_default()
+      .extend(exports.into_iter().map(|(name, values)| {
+        let value = match values.as_slice() {
+          [] => None,
+          [value] => Some(value.clone()),
+          values => Some(values.iter().map(SmolStr::as_str).collect()),
+        };
+        (name, value)
+      }));
   }
 }
 
 pub(crate) fn prepare_css_concat_exports(
   compilation: &Compilation,
   module: &dyn Module,
-  data: &mut CodeGenerationData,
+  data: &mut CssCodeGenerationState,
 ) {
-  let data = data
-    .get_mut::<CodeGenerationDataCssExports>()
-    .expect("CSS export resolutions should be initialized");
   let exports = data
     .modules
     .get(&module.identifier())
@@ -601,13 +597,12 @@ fn prepare_concat_targets(
 }
 
 pub(crate) fn get_css_export_target(
-  data: &CodeGenerationData,
+  data: &CssCodeGenerationState,
   module: ModuleIdentifier,
   request: &str,
   id: Option<&DependencyId>,
   concatenated: bool,
 ) -> Option<CssExportTarget> {
-  let data = data.get::<CodeGenerationDataCssExports>()?;
   let targets = if concatenated {
     data.modules.get(&module)?.concat_targets.as_ref()?
   } else {
@@ -617,42 +612,38 @@ pub(crate) fn get_css_export_target(
 }
 
 pub(crate) fn get_css_exports(
-  data: &CodeGenerationData,
+  data: &CssCodeGenerationState,
   module: ModuleIdentifier,
   name: &str,
 ) -> Arc<[CssExportPart]> {
   Arc::clone(
     data
-      .get::<CodeGenerationDataCssExports>()
-      .and_then(|data| data.modules.get(&module))
-      .and_then(|module| module.javascript.get(name))
+      .modules
+      .get(&module)
+      .and_then(|module| module.javascript.as_ref())
+      .and_then(|exports| exports.get(name))
       .expect("CSS exports should be prepared"),
   )
 }
 
 pub(crate) fn get_css_export<'a>(
-  data: &'a CodeGenerationData,
+  data: &'a CssCodeGenerationState,
   module: ModuleIdentifier,
   name: &str,
 ) -> Option<&'a str> {
-  data
-    .get::<CodeGenerationDataCssExports>()?
-    .values
-    .get(&module)?
-    .get(name)?
-    .as_deref()
+  data.values.get(&module)?.get(name)?.as_deref()
 }
 
 pub(crate) fn get_icss_symbol<'a>(
-  data: &'a CodeGenerationData,
+  data: &'a CssCodeGenerationState,
   module: ModuleIdentifier,
   dependency: &DependencyId,
 ) -> Option<&'a str> {
   data
-    .get::<CodeGenerationDataCssExports>()?
     .modules
     .get(&module)?
     .symbols
+    .as_ref()?
     .get(dependency)?
     .as_deref()
 }

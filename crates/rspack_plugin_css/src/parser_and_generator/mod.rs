@@ -30,6 +30,7 @@ use smol_str::SmolStr;
 pub(crate) use source_builder::CssSourceBuilder;
 
 use crate::{
+  css_exports::CssCodeGenerationState,
   parser_and_generator::{generator::CssModuleGenerator, parser::CssModuleParser},
   utils::css_generator_options,
 };
@@ -302,6 +303,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       .css
       .as_deref()
       .expect("CSS module should have build info");
+    let mut state = CssCodeGenerationState::default();
     match generate_context.requested_source_type {
       SourceType::Css => Ok(
         CssModuleGenerator::new(
@@ -309,6 +311,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           module,
           css_build_info,
           generate_context,
+          &mut state,
           self.hot,
           self.es_module,
         )
@@ -319,6 +322,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         module,
         css_build_info,
         generate_context,
+        &mut state,
         self.hot,
         self.es_module,
       )

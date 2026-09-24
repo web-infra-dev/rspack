@@ -24,11 +24,11 @@ use smol_str::SmolStr;
 
 use crate::{
   css_exports::{
-    get_css_export, get_css_export_target, get_css_exports, prepare_css_concat_exports,
-    prepare_css_exports,
+    CssCodeGenerationState, get_css_export, get_css_export_target, get_css_exports,
+    get_icss_symbol, prepare_css_concat_exports, prepare_css_exports, prepare_icss_symbols,
   },
   css_syntax::unescape_identifier,
-  dependency::CssImportDependency,
+  dependency::{CssIcssSymbolDependency, CssImportDependency},
   parser_and_generator::{
     CssExportsRef, CssSourceBuilder, get_unused_local_ident, get_used_exports,
   },
@@ -77,6 +77,7 @@ pub(crate) struct CssModuleGenerator<'a, 'g> {
   module: &'a dyn Module,
   css_build_info: &'a CssBuildInfo,
   generate_context: &'a mut GenerateContext<'g>,
+  state: &'a mut CssCodeGenerationState,
   with_hmr: bool,
   export_type: Option<CssExportType>,
   exports_only: bool,
@@ -93,13 +94,10 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     module: &'a dyn Module,
     css_build_info: &'a CssBuildInfo,
     generate_context: &'a mut GenerateContext<'g>,
+    state: &'a mut CssCodeGenerationState,
     with_hmr: bool,
     es_module: bool,
   ) -> Self {
-    prepare_css_exports(generate_context.compilation, module, generate_context.data);
-    if generate_context.concatenation_scope.is_some() {
-      prepare_css_concat_exports(generate_context.compilation, module, generate_context.data);
-    }
     let generator_options = css_generator_options(generate_context.module_generator_options);
 
     Self {
@@ -107,6 +105,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       module,
       css_build_info,
       generate_context,
+      state,
       with_hmr,
       export_type: css_module_export_type(module),
       exports_only: generator_options
@@ -183,6 +182,10 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   pub fn generate_javascript_source(mut self) -> Result<BoxSource> {
+    prepare_css_exports(self.generate_context.compilation, self.module, self.state);
+    if self.generate_context.concatenation_scope.is_some() {
+      prepare_css_concat_exports(self.generate_context.compilation, self.module, self.state);
+    }
     match self.export_type {
       Some(CssExportType::Text) => {
         let css = self.css_text_expr_with_imports();
@@ -276,12 +279,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       module,
       css_build_info,
       self.generate_context,
+      self.state,
       self.with_hmr,
       self.es_module,
     )
   }
 
   pub(crate) fn render_css_module_source(&mut self) -> BoxSource {
+    prepare_icss_symbols(self.generate_context.compilation, self.module, self.state);
     let mut source = ReplaceSource::new(self.source.clone());
     let compilation = self.generate_context.compilation;
     let mut init_fragments = ModuleInitFragments::default();
@@ -296,7 +301,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     };
 
     self.module.get_dependencies().iter().for_each(|dep| {
-      if let Some(dependency) = dep.as_dependency_code_generation() {
+      if let Some(symbol) = dep.downcast_ref::<CssIcssSymbolDependency>() {
+        symbol.render(
+          &mut source,
+          get_icss_symbol(self.state, self.module.identifier(), dep.id()),
+        );
+      } else if let Some(dependency) = dep.as_dependency_code_generation() {
         render_dependency_template(dependency, &mut source, &mut context);
       }
     });
@@ -729,7 +739,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         _ => Cow::Borrowed(key),
       };
 
-      let elements = get_css_exports(self.generate_context.data, module.identifier(), key);
+      let elements = get_css_exports(self.state, module.identifier(), key);
       let content = self.render_concat_export_content(elements.iter());
       self.register_concat_export(key, &content, &used_name, &mut used_identifiers);
     }
@@ -767,7 +777,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn render_css_export_content(&mut self, name: &str) -> String {
-    let elements = get_css_exports(self.generate_context.data, self.module.identifier(), name);
+    let elements = get_css_exports(self.state, self.module.identifier(), name);
     let mut content = String::new();
     for element in elements.iter() {
       let CssExportPart { ident, from, id } = element;
@@ -792,19 +802,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     from_name: &str,
     id: Option<&DependencyId>,
   ) -> String {
-    let target = get_css_export_target(
-      self.generate_context.data,
-      self.module.identifier(),
-      from_name,
-      id,
-      false,
-    )
-    .unwrap_or_else(|| {
-      panic!(
-        "CSS reexport target should be prepared: {ident} from {from_name} in {}",
-        self.module.identifier()
-      )
-    });
+    let target = get_css_export_target(self.state, self.module.identifier(), from_name, id, false)
+      .unwrap_or_else(|| {
+        panic!(
+          "CSS reexport target should be prepared: {ident} from {from_name} in {}",
+          self.module.identifier()
+        )
+      });
     let from_identifier = target.module;
     let from_used_name = self.stringified_used_export_name(from_identifier, ident, true);
     self.render_require_property_access(from_identifier, &from_used_name)
@@ -832,20 +836,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     from_name: &str,
     id: Option<&DependencyId>,
   ) -> String {
-    let target = get_css_export_target(
-      self.generate_context.data,
-      self.module.identifier(),
-      from_name,
-      id,
-      true,
-    )
-    .expect("Concatenated CSS reexport target should be prepared");
+    let target = get_css_export_target(self.state, self.module.identifier(), from_name, id, true)
+      .expect("Concatenated CSS reexport target should be prepared");
     if target.supports_javascript {
       let from_used_name = self.stringified_used_export_name(target.module, ident, false);
       self.render_require_property_access(target.module, &from_used_name)
     } else {
-      let resolved = get_css_export(self.generate_context.data, target.module, ident)
-        .expect("should resolve static css export");
+      let resolved =
+        get_css_export(self.state, target.module, ident).expect("should resolve static css export");
       json_stringify_str(resolved)
     }
   }

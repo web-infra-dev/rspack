@@ -1,11 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, CssExport, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, CssExport, Dependency,
+  DependencyCategory, DependencyId, DependencyRange, DependencyType, TemplateReplaceSource,
 };
-
-use crate::css_exports::get_icss_symbol;
 
 #[cacheable]
 #[derive(Debug)]
@@ -26,6 +23,13 @@ impl CssIcssSymbolDependency {
 
   pub(crate) fn value(&self) -> &CssExport {
     &self.value
+  }
+
+  // The CSS generator owns the precomputed value and passes it directly.
+  pub(crate) fn render(&self, source: &mut TemplateReplaceSource, value: Option<&str>) {
+    if let Some(value) = value {
+      source.replace(self.range.start, self.range.end, value.to_owned(), None);
+    }
   }
 }
 
@@ -52,46 +56,6 @@ impl Dependency for CssIcssSymbolDependency {
   }
 }
 
-#[cacheable_dyn]
-impl DependencyCodeGeneration for CssIcssSymbolDependency {
-  fn dependency_template(&self) -> Option<DependencyTemplateType> {
-    Some(CssIcssSymbolDependencyTemplate::template_type())
-  }
-}
-
+impl AsDependencyCodeGeneration for CssIcssSymbolDependency {}
 impl AsContextDependency for CssIcssSymbolDependency {}
 impl AsModuleDependency for CssIcssSymbolDependency {}
-
-#[cacheable]
-#[derive(Debug, Clone, Default)]
-pub struct CssIcssSymbolDependencyTemplate;
-
-impl CssIcssSymbolDependencyTemplate {
-  pub fn template_type() -> DependencyTemplateType {
-    DependencyTemplateType::Dependency(DependencyType::CssIcssSymbol)
-  }
-}
-
-impl DependencyTemplate for CssIcssSymbolDependencyTemplate {
-  fn render(
-    &self,
-    dep: &dyn DependencyCodeGeneration,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let dep = dep
-      .as_any()
-      .downcast_ref::<CssIcssSymbolDependency>()
-      .expect("CssIcssSymbolDependencyTemplate should be used for CssIcssSymbolDependency");
-
-    let value = get_icss_symbol(
-      code_generatable_context.data,
-      code_generatable_context.module.identifier(),
-      &dep.id,
-    );
-
-    if let Some(value) = value {
-      source.replace(dep.range.start, dep.range.end, value.to_owned(), None);
-    }
-  }
-}
