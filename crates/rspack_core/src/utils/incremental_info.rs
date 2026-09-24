@@ -50,11 +50,13 @@ where
 {
   /// Mark a data as added.
   pub fn mark_as_add(&mut self, data: &T) {
-    if self.removed.remove(data) {
+    // A fresh build never removes anything, so both sets stay empty and the
+    // lookups below would hash for nothing. Guard them instead.
+    if !self.removed.is_empty() && self.removed.remove(data) {
       self.updated.insert(data.clone());
       return;
     }
-    if self.updated.contains(data) {
+    if !self.updated.is_empty() && self.updated.contains(data) {
       return;
     }
     self.added.insert(data.clone());
@@ -62,10 +64,12 @@ where
 
   /// Mark a data as removed.
   pub fn mark_as_remove(&mut self, data: &T) {
-    if self.added.remove(data) {
+    if !self.added.is_empty() && self.added.remove(data) {
       return;
     }
-    self.updated.remove(data);
+    if !self.updated.is_empty() {
+      self.updated.remove(data);
+    }
     self.removed.insert(data.clone());
   }
 

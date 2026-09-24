@@ -110,10 +110,13 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
   };
   let mut by_dependency = by_dependency;
 
+  // Every entry below needs the same key list, so collect it once instead of
+  // re-cloning the keys (and re-allocating the vector) for each entry.
+  let by_values_key: Vec<DependencyCategoryStr> = by_dependency.0.keys().cloned().collect();
+
   macro_rules! update_by_value {
     ($ident: ident, $should_insert_by_value_key: expr) => {
       let mut $ident = FxLinkedHashMap::default();
-      let by_values_key: Vec<_> = by_dependency.0.keys().cloned().collect();
       for by_value_key in &by_values_key {
         let obj = by_dependency.0.get_mut(by_value_key).expect("");
         let should_insert_by_value_key = $should_insert_by_value_key(obj.$ident.as_ref());

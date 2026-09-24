@@ -84,7 +84,7 @@ pub(crate) async fn complete_isolated_dts_outputs(
   let resolver = compilation
     .resolver_factory
     .get(ResolveOptionsWithDependencyType {
-      resolve_options: Some(Box::new(type_resolve_options(tsconfig))),
+      resolve_options: Some(Arc::new(type_resolve_options(tsconfig))),
       resolve_to_context: false,
       dependency_category: DependencyCategory::Esm,
     });
