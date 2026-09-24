@@ -36,7 +36,9 @@ export type StatsFactoryContext = KnownStatsFactoryContext &
   Record<string, any>;
 
 type Hooks = Readonly<{
-  extract: HookMap<SyncBailHook<[Object, any, StatsFactoryContext], undefined>>;
+  extract: HookMap<
+    SyncBailHook<[Record<string, any>, any, StatsFactoryContext], undefined>
+  >;
   filter: HookMap<
     SyncBailHook<[any, StatsFactoryContext, number, number], undefined>
   >;
@@ -91,11 +93,10 @@ export class StatsFactory {
     this.hooks = Object.freeze({
       extract: new HookMap(
         () =>
-          new SyncBailHook<[Object, any, StatsFactoryContext], undefined>([
-            'object',
-            'data',
-            'context',
-          ]),
+          new SyncBailHook<
+            [Record<string, any>, any, StatsFactoryContext],
+            undefined
+          >(['object', 'data', 'context']),
       ),
       filter: new HookMap(
         () =>

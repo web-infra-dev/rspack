@@ -21,7 +21,7 @@ const StatsPrinterTestPlugin = definePlugin({
           statsFactory.hooks.extract
             .for('asset')
             .tap('StatsFactoryTestPlugin', (object) => {
-              Object.assign(object, { testA: 'aaaaaa' });
+              object.testA = 'aaaaaa';
             });
 
           statsFactory.hooks.sortResults
