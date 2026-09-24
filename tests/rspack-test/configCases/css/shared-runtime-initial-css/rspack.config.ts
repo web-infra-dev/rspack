@@ -1,6 +1,7 @@
 import { defineConfig } from '@rspack/cli';
 
 export default defineConfig({
+  target: 'web',
   entry: {
     main: './main.js',
     other: './feature.js',
