@@ -56,12 +56,17 @@ pub enum ReplacementEnforce {
 }
 
 /// A single text replacement in a [ReplaceSource].
+///
+/// Module sources keep every replacement they recorded alive until the
+/// compilation is finished, so the size of this type is part of the peak memory
+/// of a build. The name is boxed because few replacements carry one: a thin
+/// pointer keeps `Replacement` at 48 bytes instead of 64.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Replacement {
   start: u32,
   end: u32,
   content: Cow<'static, str>,
-  name: Option<Cow<'static, str>>,
+  name: Option<Box<Cow<'static, str>>>,
   enforce: ReplacementEnforce,
   insertion_order: u32,
 }
@@ -84,7 +89,7 @@ impl Replacement {
 
   /// Get the replacement name.
   pub fn name(&self) -> Option<&str> {
-    self.name.as_deref()
+    self.name.as_deref().map(|name| &**name)
   }
 
   /// Get the replacement enforce order.
@@ -244,7 +249,7 @@ impl ReplaceSource {
       start,
       end,
       content: content.into(),
-      name: name.map(Into::into),
+      name: name.map(|name| Box::new(Cow::Owned(name))),
       enforce,
       insertion_order: self.replacements.len() as u32,
     });
@@ -281,7 +286,7 @@ impl ReplaceSource {
       start,
       end,
       content: Cow::Borrowed(content),
-      name: name.map(Cow::Borrowed),
+      name: name.map(|name| Box::new(Cow::Borrowed(name))),
       enforce,
       insertion_order: self.replacements.len() as u32,
     });
@@ -413,8 +418,7 @@ impl Source for ReplaceSource {
     // Handle remaining replacements one by one
     while replacement_idx < self.replacements.len() {
       let replacement = unsafe { self.replacements.get_unchecked(replacement_idx) };
-      let content = &replacement.content;
-      on_chunk(content);
+      on_chunk(&replacement.content);
       replacement_idx += 1;
     }
   }
@@ -788,9 +792,9 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
             .as_ref()
             .and_then(|original| original.name_index);
           if mapping.original.is_some() {
-            if let Some(name) = repl.name.as_ref() {
+            if let Some(name) = repl.name() {
               let mut name_mapping = name_mapping.borrow_mut();
-              let mut global_index = name_mapping.get(name.as_ref()).copied();
+              let mut global_index = name_mapping.get(name).copied();
               if global_index.is_none() {
                 let len = name_mapping.len() as u32;
                 name_mapping.insert(Cow::Borrowed(name), len);
