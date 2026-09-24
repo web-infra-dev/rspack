@@ -11,6 +11,7 @@ it("should re-apply the stylesheet when the css import order changes", async () 
 	if (typeof document !== "undefined") {
 		const links = stylesheets();
 		expect(links.length).toBe(1);
+		links[0].setAttribute("data-rspack", "css-owned:mini-css-chunk-main");
 		expect((links[0].getAttribute("href") || "").indexOf("?")).toBe(-1);
 	}
 	await NEXT_HMR();

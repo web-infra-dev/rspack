@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 53
-- Update: main.hot-update.js, size: 6038
+- Update: main.hot-update.js, size: 6385
 
 ## Manifest
 
@@ -41,7 +41,7 @@ __webpack_require__.r(__webpack_exports__);
     if(true) {
       (function() {
         var localsJsonString = undefined;
-        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
+        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {"uniqueName":""});
         // only invalidate when locals change
         if (
           module.hot.data &&
@@ -86,8 +86,10 @@ function normalizeUrl(url) {
 }
 let srcByModuleId = Object.create(null), noDocument = "u" < typeof document, { forEach: forEach } = Array.prototype;
 function noop() {}
-function updateCss(el, url) {
+function updateCss(el, uniqueName, url) {
+    var _el_getAttribute;
     let normalizedUrl;
+    if ('stylesheet' !== el.rel || !(null == (_el_getAttribute = el.getAttribute('data-rspack')) ? void 0 : _el_getAttribute.startsWith(`${uniqueName}:mini-css-chunk-`))) return;
     if (url) normalizedUrl = url;
     else {
         let href = el.getAttribute('href');
@@ -103,12 +105,12 @@ function updateCss(el, url) {
         !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
     }), newEl.href = `${normalizedUrl}?${Date.now()}`;
     let parent = el.parentNode;
-    parent && (el.nextSibling ? parent.insertBefore(newEl, el.nextSibling) : parent.appendChild(newEl));
+    if (parent) return el.nextSibling ? parent.insertBefore(newEl, el.nextSibling) : parent.appendChild(newEl), !0;
 }
-function reloadAll() {
+function reloadAll(uniqueName) {
     let elements = document.querySelectorAll('link');
     forEach.call(elements, (el)=>{
-        !0 !== el.visited && updateCss(el);
+        !0 !== el.visited && updateCss(el, uniqueName);
     });
 }
 function isUrlRequest(url) {
@@ -140,7 +142,7 @@ function cssReload(moduleId, options) {
         };
     }(moduleId);
     return fn = function() {
-        let src = getScriptSrc(options.filename), reloaded = function(src) {
+        let src = getScriptSrc(options.filename), reloaded = function(src, uniqueName) {
             if (!src) return !1;
             let elements = document.querySelectorAll('link'), loaded = !1;
             return forEach.call(elements, (el)=>{
@@ -150,14 +152,14 @@ function cssReload(moduleId, options) {
                 let url = (href = el.href, ret = '', normalizedHref = normalizeUrl(href), src.some((url)=>{
                     normalizedHref.indexOf(src) > -1 && (ret = url);
                 }), ret);
-                !isUrlRequest(url) || !0 !== el.visited && url && (updateCss(el, url), loaded = !0);
+                !isUrlRequest(url) || !0 !== el.visited && url && updateCss(el, uniqueName, url) && (loaded = !0);
             }), loaded;
-        }(src);
+        }(src, options.uniqueName);
         if (options.locals) {
-            console.log('[HMR] Detected local CSS Modules. Reload all CSS'), reloadAll();
+            console.log('[HMR] Detected local CSS Modules. Reload all CSS'), reloadAll(options.uniqueName);
             return;
         }
-        reloaded ? console.log('[HMR] CSS reload %s', src && src.join(' ')) : (console.log('[HMR] Reload all CSS'), reloadAll());
+        reloaded ? console.log('[HMR] CSS reload %s', src && src.join(' ')) : (console.log('[HMR] Reload all CSS'), reloadAll(options.uniqueName));
     }, timeout = 0, function(...args) {
         let self = this;
         clearTimeout(timeout), timeout = setTimeout(function() {

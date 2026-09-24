@@ -325,6 +325,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let raw = runtime_template.render(
       &self.template_id(TemplateId::Raw),
       Some(serde_json::json!({
+        "_unique_name": rspack_util::json_stringify(&compilation.options.output.unique_name),
         "_create_link": &create_link.code,
         "_insert": match &self.insert {
           InsertType::Fn(f) => format!("({f})(linkTag);"),

@@ -9,13 +9,13 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
-  AssetInfo, Compilation, CompilationAsset, Filename, PathData,
+  AssetInfo, Compilation, CompilationAsset, Filename, ManifestAssetType, PathData,
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
 };
 use rspack_error::{AnyhowResultToRspackResultExt, Result};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::Utf8PathBuf;
-use rspack_util::fx_hash::FxHashMap;
+use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use sugar_path::SugarPath;
 
@@ -37,15 +37,16 @@ pub struct HtmlPluginAssets {
 }
 
 impl HtmlPluginAssets {
-  pub async fn create_assets<'a>(
+  pub async fn create_assets(
     config: &HtmlRspackPluginOptions,
-    compilation: &'a Compilation,
+    compilation: &Compilation,
     public_path: &str,
     output_path: &Utf8PathBuf,
     html_file_name: &Filename,
-  ) -> Result<(HtmlPluginAssets, FxHashMap<String, &'a CompilationAsset>)> {
+  ) -> Result<(HtmlPluginAssets, FxHashMap<String, String>)> {
     let mut assets: HtmlPluginAssets = HtmlPluginAssets::default();
-    let mut asset_map = FxHashMap::default();
+    let mut asset_paths = FxHashSet::default();
+    let mut css_loading_keys = FxHashMap::default();
     assets.public_path = public_path.to_string();
 
     let sorted_entry_names: Vec<&String> =
@@ -82,27 +83,39 @@ impl HtmlPluginAssets {
     let included_assets = sorted_entry_names
       .iter()
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
-      .flat_map(|entry| entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey))
-      .filter_map(|asset_name| {
+      .flat_map(|entry| &entry.chunks)
+      .map(|chunk_ukey| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(chunk_ukey)
+      })
+      .flat_map(|chunk| {
+        chunk
+          .files()
+          .iter()
+          .map(move |asset_name| (chunk, asset_name))
+      })
+      .filter_map(|(chunk, asset_name)| {
         let asset = compilation
           .assets()
-          .get(&asset_name)
+          .get(asset_name)
           .expect("should have asset for entrypoint file");
         if asset.info.hot_module_replacement.unwrap_or(false)
           || asset.info.development.unwrap_or(false)
         {
           None
         } else {
-          Some((asset_name.clone(), asset))
+          Some((asset_name, asset, chunk))
         }
       })
       .collect::<Vec<_>>();
 
-    for (asset_name, asset) in included_assets {
+    for (asset_name, asset, chunk) in included_assets {
       if let Some(extension) =
         Path::new(asset_name.split("?").next().unwrap_or_default()).extension()
       {
-        let mut asset_uri = format!("{}{}", assets.public_path, url_encode_path(&asset_name));
+        let mut asset_uri = format!("{}{}", assets.public_path, url_encode_path(asset_name));
         if config.hash.unwrap_or_default()
           && let Some(hash) = compilation.get_hash()
         {
@@ -110,13 +123,30 @@ impl HtmlPluginAssets {
         }
         let final_path = generate_posix_path(&asset_uri);
         if extension.eq_ignore_ascii_case("css") {
-          if asset_map.insert(final_path.to_string(), asset).is_none() {
+          if asset_paths.insert(final_path.to_string()) {
             assets.css.push(final_path.to_string());
+            let prefix = match asset.info.asset_type {
+              ManifestAssetType::Css => Some("chunk-"),
+              ManifestAssetType::Custom(name) if name.as_str() == "extract-css" => {
+                Some("mini-css-chunk-")
+              }
+              _ => None,
+            };
+            if let Some(prefix) = prefix {
+              css_loading_keys.insert(
+                final_path.to_string(),
+                format!(
+                  "{}:{prefix}{}",
+                  compilation.options.output.unique_name,
+                  chunk.expect_id()
+                ),
+              );
+            }
           }
         } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
           // keep the `if` to make the code more readable
           #[allow(clippy::collapsible_if)]
-          if asset_map.insert(final_path.to_string(), asset).is_none() {
+          if asset_paths.insert(final_path.to_string()) {
             assets.js.push(final_path.to_string());
           }
         }
@@ -169,7 +199,7 @@ impl HtmlPluginAssets {
       None
     };
 
-    Ok((assets, asset_map))
+    Ok((assets, css_loading_keys))
   }
 }
 

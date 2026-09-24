@@ -105,7 +105,19 @@ function getCurrentScriptUrl(moduleId: string) {
   };
 }
 
-function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
+function updateCss(
+  el: HTMLLinkElement & Record<string, any>,
+  uniqueName: string,
+  url?: string,
+) {
+  // Framework-owned stylesheets must be updated by their owner.
+  if (
+    el.rel !== 'stylesheet' ||
+    !el.getAttribute('data-rspack')?.startsWith(`${uniqueName}:mini-css-chunk-`)
+  ) {
+    return;
+  }
+
   let normalizedUrl: string;
   if (!url) {
     const href = el.getAttribute('href');
@@ -173,6 +185,8 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
   } else {
     parent.appendChild(newEl);
   }
+
+  return true;
 }
 
 function getReloadUrl(href: string, src: string[]): string {
@@ -189,7 +203,7 @@ function getReloadUrl(href: string, src: string[]): string {
   return ret;
 }
 
-function reloadStyle(src: Option<string[]>): boolean {
+function reloadStyle(src: Option<string[]>, uniqueName: string): boolean {
   if (!src) {
     return false;
   }
@@ -212,9 +226,7 @@ function reloadStyle(src: Option<string[]>): boolean {
       return;
     }
 
-    if (url) {
-      updateCss(el, url);
-
+    if (url && updateCss(el, uniqueName, url)) {
       loaded = true;
     }
   });
@@ -222,7 +234,7 @@ function reloadStyle(src: Option<string[]>): boolean {
   return loaded;
 }
 
-function reloadAll() {
+function reloadAll(uniqueName: string) {
   const elements = document.querySelectorAll('link');
 
   forEach.call(elements, (el) => {
@@ -230,7 +242,7 @@ function reloadAll() {
       return;
     }
 
-    updateCss(el);
+    updateCss(el, uniqueName);
   });
 }
 
@@ -256,12 +268,12 @@ function cssReload(moduleId: string, options: Record<string, any>) {
 
   function update() {
     const src = getScriptSrc(options.filename);
-    const reloaded = reloadStyle(src);
+    const reloaded = reloadStyle(src, options.uniqueName);
 
     if (options.locals) {
       console.log('[HMR] Detected local CSS Modules. Reload all CSS');
 
-      reloadAll();
+      reloadAll(options.uniqueName);
 
       return;
     }
@@ -271,7 +283,7 @@ function cssReload(moduleId: string, options: Record<string, any>) {
     } else {
       console.log('[HMR] Reload all CSS');
 
-      reloadAll();
+      reloadAll(options.uniqueName);
     }
   }
 
