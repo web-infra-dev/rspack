@@ -404,7 +404,6 @@ fn should_ignore_dependency_type(ty: DependencyType) -> bool {
     // Resolve/id-only references. They need a target module for resolution or
     // ID generation, but do not evaluate the target module.
     | DependencyType::ImportMetaResolve
-    | DependencyType::ImportMetaResolveContext
     | DependencyType::RequireResolve
     | DependencyType::RequireResolveContext
     | DependencyType::IsIncluded

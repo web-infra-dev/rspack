@@ -29,8 +29,7 @@ use crate::{
     ExportInfoDependencyTemplate, ExternalModuleDependencyTemplate,
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
     ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
-    ImportMetaHotDeclineDependencyTemplate, ImportMetaResolveContextDependencyTemplate,
-    ImportMetaResolveDependencyTemplate, ImportMetaResolveHeaderDependencyTemplate,
+    ImportMetaHotDeclineDependencyTemplate, ImportMetaResolveDependencyTemplate,
     ImportMetaRscDependencyTemplate, ImportWeakDependencyTemplate, IsIncludedDependencyTemplate,
     ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
     ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
@@ -143,10 +142,6 @@ async fn compilation(
   );
   compilation.set_dependency_factory(
     DependencyType::ImportMetaGlob,
-    params.context_module_factory.clone(),
-  );
-  compilation.set_dependency_factory(
-    DependencyType::ImportMetaResolveContext,
     params.context_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -342,16 +337,8 @@ async fn compilation(
     Arc::new(ImportMetaContextDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
-    ImportMetaResolveContextDependencyTemplate::template_type(),
-    Arc::new(ImportMetaResolveContextDependencyTemplate::default()),
-  );
-  compilation.set_dependency_template(
     ImportMetaResolveDependencyTemplate::template_type(),
     Arc::new(ImportMetaResolveDependencyTemplate::default()),
-  );
-  compilation.set_dependency_template(
-    ImportMetaResolveHeaderDependencyTemplate::template_type(),
-    Arc::new(ImportMetaResolveHeaderDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     RequireContextDependencyTemplate::template_type(),
@@ -661,6 +648,9 @@ impl Plugin for JsPlugin {
   }
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
+    ctx.compilation_hooks.should_create_chunk_group.tap(
+      super::url_dependency_chunk::should_create_chunk_group::new(self),
+    );
     ctx
       .compilation_hooks
       .additional_tree_runtime_requirements

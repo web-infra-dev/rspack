@@ -1196,7 +1196,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       || !self.queue_delayed.is_empty()
       || !self.chunk_groups_for_combining.is_empty()
     {
-      self.process_queue(compilation);
+      self.process_queue(compilation)?;
 
       if !self.chunk_groups_for_combining.is_empty() {
         self.process_chunk_groups_for_combining(compilation);
@@ -1206,7 +1206,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         self.process_connect_queue(compilation);
 
         if !self.chunk_groups_for_merging.is_empty() {
-          self.process_chunk_groups_for_merging(compilation);
+          self.process_chunk_groups_for_merging(compilation)?;
         }
       }
 
@@ -1424,27 +1424,30 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     ctx.1 += 1;
   }
 
-  pub(crate) fn process_queue(&mut self, compilation: &mut Compilation) {
+  pub(crate) fn process_queue(&mut self, compilation: &mut Compilation) -> Result<()> {
     tracing::trace!("process_queue");
     while let Some(action) = self.queue.pop() {
       self.stat_processed_queue_items += 1;
 
       match action {
-        QueueAction::AddAndEnterEntryModule(i) => self.add_and_enter_entry_module(&i, compilation),
-        QueueAction::AddAndEnterModule(i) => self.add_and_enter_module(&i, compilation),
-        QueueAction::_EnterModule(i) => self.enter_module(&i, compilation),
-        QueueAction::ProcessBlock(i) => self.process_block(&i, compilation),
-        QueueAction::ProcessEntryBlock(i) => self.process_entry_block(&i, compilation),
+        QueueAction::AddAndEnterEntryModule(i) => {
+          self.add_and_enter_entry_module(&i, compilation)?
+        }
+        QueueAction::AddAndEnterModule(i) => self.add_and_enter_module(&i, compilation)?,
+        QueueAction::_EnterModule(i) => self.enter_module(&i, compilation)?,
+        QueueAction::ProcessBlock(i) => self.process_block(&i, compilation)?,
+        QueueAction::ProcessEntryBlock(i) => self.process_entry_block(&i, compilation)?,
         QueueAction::LeaveModule(i) => self.leave_module(&i, compilation),
       }
     }
+    Ok(())
   }
 
   fn add_and_enter_entry_module(
     &mut self,
     item: &AddAndEnterEntryModule,
     compilation: &mut Compilation,
-  ) {
+  ) -> Result<()> {
     tracing::trace!("add_and_enter_entry_module {:?}", item);
     let module_ordinal = *self.ordinal_by_module.get(&item.module).unwrap_or_else(|| {
       panic!(
@@ -1460,14 +1463,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .expect("chunk must in mask_by_chunk")
       .contains(module_ordinal as usize)
     {
-      return;
+      return Ok(());
     }
 
     let cgi = self.chunk_group_info_mut(&item.chunk_group_info);
 
     if cgi.min_available_modules.contains(module_ordinal as usize) {
       cgi.skipped_items.insert(item.module);
-      return;
+      return Ok(());
     }
 
     compilation
@@ -1490,14 +1493,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     )
   }
 
-  fn add_and_enter_module(&mut self, item: &AddAndEnterModule, compilation: &mut Compilation) {
+  fn add_and_enter_module(
+    &mut self,
+    item: &AddAndEnterModule,
+    compilation: &mut Compilation,
+  ) -> Result<()> {
     tracing::trace!("add_and_enter_module {:?}", item);
     if compilation
       .build_chunk_graph_artifact
       .chunk_graph
       .is_module_in_chunk(&item.module, item.chunk)
     {
-      return;
+      return Ok(());
     }
 
     // if this module in parent chunks
@@ -1511,7 +1518,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     if cgi.min_available_modules.contains(module_ordinal as usize) {
       cgi.skipped_items.insert(item.module);
-      return;
+      return Ok(());
     }
 
     compilation
@@ -1535,7 +1542,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     )
   }
 
-  fn enter_module(&mut self, item: &EnterModule, compilation: &mut Compilation) {
+  fn enter_module(&mut self, item: &EnterModule, compilation: &mut Compilation) -> Result<()> {
     tracing::trace!("enter_module {:?}", item);
     let cgi = self.chunk_group_info(&item.chunk_group_info);
 
@@ -1613,7 +1620,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
-  fn process_entry_block(&mut self, item: &ProcessEntryBlock, compilation: &mut Compilation) {
+  fn process_entry_block(
+    &mut self,
+    item: &ProcessEntryBlock,
+    compilation: &mut Compilation,
+  ) -> Result<()> {
     tracing::trace!("process_entry_block {:?}", item);
 
     self.stat_processed_blocks += 1;
@@ -1684,11 +1695,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         item.chunk_group_info,
         item.chunk,
         compilation,
-      );
+      )?;
     }
+    Ok(())
   }
 
-  fn process_block(&mut self, item: &ProcessBlock, compilation: &mut Compilation) {
+  fn process_block(&mut self, item: &ProcessBlock, compilation: &mut Compilation) -> Result<()> {
     tracing::trace!("process_block {:?}", item);
 
     self.stat_processed_blocks += 1;
@@ -1765,8 +1777,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         item.chunk_group_info,
         item.chunk,
         compilation,
-      );
+      )?;
     }
+    Ok(())
   }
 
   pub(crate) fn make_chunk_group(
@@ -1776,12 +1789,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     item_chunk_group_info_ukey: CgiUkey,
     item_chunk_ukey: ChunkUkey,
     compilation: &mut Compilation,
-  ) {
+  ) -> Result<()> {
     self.edges.insert(block_id, module_id);
 
     let Some(item_chunk_group_info) = self.chunk_group_infos.get_mut(&item_chunk_group_info_ukey)
     else {
-      return;
+      return Ok(());
     };
 
     self
@@ -1791,6 +1804,23 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .insert(item_chunk_group_info_ukey);
 
     item_chunk_group_info.outgoing_blocks.insert(block_id);
+
+    let block = compilation.get_module_graph().block_by_id_expect(&block_id);
+    let mut create = true;
+    compilation
+      .plugin_driver
+      .compilation_hooks
+      .should_create_chunk_group
+      .call(compilation, block, &mut create)?;
+    if !create {
+      self.queue.push(QueueAction::ProcessBlock(ProcessBlock {
+        block: block_id.into(),
+        module: module_id,
+        chunk_group_info: item_chunk_group_info_ukey,
+        chunk: item_chunk_ukey,
+      }));
+      return Ok(());
+    }
 
     let (item_chunk_group, item_runtime, item_chunk_loading, item_async_chunks) = {
       let item_chunk_group_info = self.chunk_group_info(&item_chunk_group_info_ukey);
@@ -1840,7 +1870,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         chunk_group_info: item_chunk_group_info_ukey,
         chunk: item_chunk_ukey,
       }));
-      return;
+      return Ok(());
     } else {
       let chunk_ukey = if let Some(chunk_name) = compilation
         .get_module_graph()
@@ -2105,6 +2135,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         DependenciesBlockIdentifier::AsyncDependenciesBlock(block_id),
       );
     }
+    Ok(())
   }
 
   #[allow(clippy::rc_buffer)]
@@ -2490,7 +2521,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.chunk_groups_for_combining.clear();
   }
 
-  fn process_chunk_groups_for_merging(&mut self, compilation: &mut Compilation) {
+  fn process_chunk_groups_for_merging(&mut self, compilation: &mut Compilation) -> Result<()> {
     self.stat_processed_chunk_groups_for_merging += self.chunk_groups_for_merging.len() as u32;
     let chunk_groups_for_merging = std::mem::take(&mut self.chunk_groups_for_merging);
     let mut chunk_groups_merging_batches: Vec<Vec<(CgiUkey, Option<ProcessBlock>)>> = vec![vec![]];
@@ -2600,7 +2631,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           self.chunk_group_info_mut(&info_ukey).initialized = true;
 
           // check if we can use cache to initialize it
-          if !initialized && self.recover_from_cache(info_ukey, compilation) {
+          if !initialized && self.recover_from_cache(info_ukey, compilation)? {
             self.stat_use_cache += 1;
             continue;
           }
@@ -2611,6 +2642,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }
       }
     }
+    Ok(())
   }
 
   pub fn prepare(

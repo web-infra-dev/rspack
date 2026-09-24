@@ -18,6 +18,7 @@ mod mangle_exports_plugin;
 pub mod module_concatenation_plugin;
 mod runtime_context;
 mod side_effects_flag_plugin;
+mod url_dependency_chunk;
 pub mod url_plugin;
 
 pub use drive::*;

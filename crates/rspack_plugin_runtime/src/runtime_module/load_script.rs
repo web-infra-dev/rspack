@@ -4,6 +4,7 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeModuleRuntimeRequirements, RuntimeTemplate, impl_runtime_module,
 };
+use rspack_plugin_javascript::dependency::is_import_meta_resolve_entry_chunk;
 
 use crate::{
   CreateScriptData, RuntimeModuleChunkWrapper, RuntimePlugin, extract_runtime_globals_from_ejs,
@@ -144,6 +145,8 @@ impl RuntimeModule for LoadScriptRuntimeModule {
         "_create_script": res.code,
         "_chunk_load_timeout": compilation.options.output.chunk_load_timeout.to_string(),
         "_fetch_priority": if with_fetch_priority { ", fetchPriority" } else { "" },
+        "_with_import_scripts": is_import_meta_resolve_entry_chunk(compilation, &self.chunk_ukey),
+        "_with_create_script_url": self.with_create_script_url,
       })),
     )?;
 

@@ -5,6 +5,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::dependency::is_import_meta_resolve_entry_chunk;
 
 use crate::runtime_module::{JsonpChunkLoadingRuntimeModule, is_enabled_for_chunk};
 
@@ -32,6 +33,10 @@ async fn additional_tree_runtime_requirements(
       )
   {
     runtime_requirements.insert(RuntimeGlobals::ASYNC_STARTUP);
+    if is_import_meta_resolve_entry_chunk(compilation, chunk_ukey) {
+      // Unlike configured entries, a URL entry has no HTML loading its sibling chunks.
+      runtime_requirements.insert(RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES);
+    }
   }
   Ok(())
 }

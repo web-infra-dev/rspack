@@ -1,6 +1,7 @@
 // @ts-nocheck
 
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import * as workerThreads from 'node:worker_threads';
 
 export const createFakeWorker = (env, { outputDirectory }) =>
@@ -95,7 +96,7 @@ self.postMessage = data => {
 	parentPort.postMessage(data);
 };
 if (${options.type === 'module'}) {
-	import(${JSON.stringify(file)}).then(() => {
+	import(${JSON.stringify(isFileURL ? resource.toString() : pathToFileURL(file).href)}).then(() => {
 		parentPort.on("message", data => {
 			if(self.onmessage) self.onmessage({
 				data
