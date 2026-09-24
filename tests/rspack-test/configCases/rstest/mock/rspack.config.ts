@@ -315,4 +315,10 @@ export default defineConfig([
       'rstack/test': 'commonjs rstack/test',
     },
   },
+  {
+    ...rstestEntry('./doMockExpression.js'),
+    externals: {
+      '@rstest/core': 'global @rstest/core',
+    },
+  },
 ]);

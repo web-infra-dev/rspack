@@ -560,7 +560,7 @@ impl RstestParserPlugin {
           )
           .into(),
         );
-        Some(false)
+        Some(true)
       }
     }
   }
@@ -791,7 +791,10 @@ impl RstestParserPlugin {
           true,
           test_api_import_source_order,
         );
-        Some(false)
+        // Walk the factory here and stop the walk, so `call_member_chain`
+        // does not process this call again.
+        parser.walk_expr_or_spread(&call_expr.args);
+        Some(true)
       }
       // rs.doMockRequire
       ("rs" | "rstest", "doMockRequire") => {
@@ -804,7 +807,10 @@ impl RstestParserPlugin {
           true,
           test_api_import_source_order,
         );
-        Some(false)
+        // Walk the factory here and stop the walk, so `call_member_chain`
+        // does not process this call again.
+        parser.walk_expr_or_spread(&call_expr.args);
+        Some(true)
       }
       // rs.importActual and rs.requireActual are handled by call_member_chain hook
       // rs.importMock
@@ -1093,6 +1099,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
           }
           "requireMock" => {
             return self.load_mock(parser, call_expr, false);
+          }
+          // Non-hoisted mock APIs run in place, so they also work outside
+          // statement position, e.g. `afterAll(() => rs.doUnmock('./foo'))`.
+          "doMock" | "doMockRequire" | "doUnmock" | "doUnmockRequire" | "resetModules"
+            if self.options.hoist_mock_module =>
+          {
+            let prop_ident = member_expr.prop.as_ident()?;
+            return self.handle_rstest_method_call(parser, call_expr, ident, prop_ident, None);
           }
           _ => {}
         }
