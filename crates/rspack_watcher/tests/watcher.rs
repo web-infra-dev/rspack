@@ -700,3 +700,68 @@ fn collect_time_info_entries_follows_a_file_created_and_removed_under_a_context(
     "a removed file below a context is no longer reported"
   );
 }
+
+/// A file dependency dropped from the build but still below a registered
+/// context stays reported: the context covers it (watchpack's
+/// `DirectoryWatcher.files` does not forget it either).
+#[test]
+fn collect_time_info_entries_keeps_an_unregistered_file_a_context_still_covers() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/inner");
+
+  let _rx = helper.watch(f!("ctx/inner"), f!("ctx"), e!());
+  let _rx = helper.watch(
+    (
+      std::iter::empty(),
+      vec![InternedPath::from("ctx/inner")].into_iter(),
+    ),
+    e!(),
+    e!(),
+  );
+
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+  let entry = helper.time_info_entry(&file_timestamps, "ctx/inner");
+  assert!(
+    matches!(entry, TimeInfoEntry::Entry { .. }),
+    "still reported through its context: {entry:?}"
+  );
+}
+
+/// A directory moved into a context arrives as one event; what it already
+/// contains is reported too, as watchpack's nested `DirectoryWatcher` scan
+/// would.
+#[test]
+fn collect_time_info_entries_scans_a_directory_moved_into_a_context() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  std::fs::create_dir_all(helper.join("outside/nested")).unwrap();
+  helper.file("outside/nested/deep");
+  helper.file("sibling");
+
+  let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+
+  helper.tick(|| std::fs::rename(helper.join("outside"), helper.join("ctx/moved")).unwrap());
+  let context = helper.join("ctx");
+  wait_for_aggregated_ref(&rx, |batch| batch.changed_files.contains(context.as_str()));
+
+  let (file_timestamps, directory_timestamps) = helper.collect_time_info_entries();
+  let deep = helper.time_info_entry(&file_timestamps, "ctx/moved/nested/deep");
+  assert!(
+    matches!(deep, TimeInfoEntry::Entry { .. }),
+    "a file inside the moved-in directory is reported: {deep:?}"
+  );
+  let nested = helper.time_info_entry(&directory_timestamps, "ctx/moved/nested");
+  assert!(
+    matches!(nested, TimeInfoEntry::OnlySafeTimeEntry { .. }),
+    "its subdirectory is reported: {nested:?}"
+  );
+}

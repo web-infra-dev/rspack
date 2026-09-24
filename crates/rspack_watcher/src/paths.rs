@@ -329,7 +329,9 @@ impl PathManager {
   pub fn remove_file_time(&self, path: &InternedPath) {
     self.file_times.remove(path);
     self.context_files.remove(path);
-    self.context_directories.remove(path);
+    if self.context_directories.remove(path).is_some() {
+      self.last_watch_events.remove(path);
+    }
   }
 
   /// Drop the records of every path inside the directory `dir` (watchpack's
@@ -339,6 +341,9 @@ impl PathManager {
     self.file_times.retain(|path, _| !under(path));
     self.context_files.retain(|path| !under(path));
     self.context_directories.retain(|path| !under(path));
+    self
+      .last_watch_events
+      .retain(|path, _| !under(path) || self.directories.all.contains(path));
   }
 
   /// watchpack's initial scan of a `DirectoryWatcher`, for this cycle's newly
@@ -347,8 +352,14 @@ impl PathManager {
   /// live watch already observed keeps its record.
   pub async fn scan_contexts(&self) {
     let contexts: Vec<InternedPath> = self.directories.added.iter().map(|p| p.clone()).collect();
+    self.scan_below(contexts).await;
+  }
+
+  /// Index every file and subdirectory below `roots`, minus what `ignored`
+  /// excludes (watchpack's `DirectoryWatcher` initial scan).
+  async fn scan_below(&self, roots: Vec<InternedPath>) {
     let now = current_time();
-    let mut pending = contexts;
+    let mut pending = roots;
     while let Some(dir) = pending.pop() {
       let Ok(entries) = std::fs::read_dir(&dir) else {
         continue;
@@ -379,8 +390,10 @@ impl PathManager {
   /// An event named `path` below a registered context: index it the way the
   /// scan would have (watchpack's `DirectoryWatcher.setFileTime` /
   /// `setDirectory` on a watch event). A file's record is the live
-  /// observation unless one already carries this mtime.
-  pub fn set_context_entry(&self, path: &InternedPath) {
+  /// observation unless one already carries this mtime. A directory is
+  /// scanned, since one moved in arrives as a single event with no events
+  /// for what it already contains.
+  pub async fn set_context_entry(&self, path: &InternedPath) {
     if !self.is_below_context(path) {
       return;
     }
@@ -390,6 +403,7 @@ impl PathManager {
         .last_watch_events
         .entry(path.clone())
         .or_insert_with(current_time);
+      self.scan_below(vec![path.clone()]).await;
     } else if let Some(mtime) = disk_mtime(path) {
       self.context_files.insert(path.clone());
       self.set_file_time(path, mtime, false, true);
@@ -508,16 +522,19 @@ impl PathManager {
     // we see here is only this cycle's removals. A missing path that this
     // cycle re-registers as a file keeps its baseline: re-seeding it from a
     // fresh stat would reopen the rewatch-gap race `set_file_time_if_absent`
-    // guards against.
+    // guards against. A path still below a registered context keeps its
+    // record: the context reports it.
     let removed_files: Vec<InternedPath> = self.files.removed.iter().map(|p| p.clone()).collect();
     for path in &removed_files {
-      self.remove_file_time(path);
+      if !self.is_below_context(path) {
+        self.file_times.remove(path);
+      }
     }
     let removed_missing: Vec<InternedPath> =
       self.missing.removed.iter().map(|p| p.clone()).collect();
     for path in &removed_missing {
-      if !self.files.all.contains(path) {
-        self.remove_file_time(path);
+      if !self.files.all.contains(path) && !self.is_below_context(path) {
+        self.file_times.remove(path);
       }
     }
     let removed_dirs: Vec<InternedPath> =

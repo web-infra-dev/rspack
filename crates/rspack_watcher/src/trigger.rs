@@ -211,7 +211,7 @@ impl EventProcessor {
     }
 
     if kind != FsEventKind::Remove {
-      self.path_manager.set_context_entry(path);
+      self.path_manager.set_context_entry(path).await;
     }
     self.path_manager.set_last_watch_events(path);
 
