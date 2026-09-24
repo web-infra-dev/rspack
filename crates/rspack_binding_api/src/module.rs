@@ -283,10 +283,9 @@ pub(crate) fn define_module_properties(
 // Raw pointer stored in napi module becomes None
 // Throw an Error to the JavaScript side
 struct OriginalSourceNapiRef {
-  // Only retain a weak pointer for identity comparison. Holding another BoxSource here would
-  // increment its Arc strong count and keep the native source alive after the Module replaces it.
-  // The Weak pointer lets the Source and its owned buffers drop with the Module while also keeping
-  // the old Arc allocation unavailable for pointer reuse, so identity comparisons remain reliable.
+  // Only retain a weak pointer for identity comparison. The lazy JavaScript source owns the
+  // BoxSource so it remains readable after the Module replaces its source. This Weak pointer
+  // also prevents allocation reuse while the cached identity is retained.
   related_source: Weak<dyn Source>,
   // Keep the converted JavaScript object alive and return that exact object on cache hits. The
   // reference is replaced on the next call after `module.source()` points to a different Source.

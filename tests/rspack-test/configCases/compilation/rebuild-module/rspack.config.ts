@@ -20,6 +20,7 @@ class Plugin {
           if (initial) {
             initial = false;
 
+            const oldSource = oldModule.originalSource();
             expect(oldModule.originalSource()?.source().includes('a = 1')).toBe(
               true,
             );
@@ -37,6 +38,8 @@ class Plugin {
             expect(newModule.originalSource()?.source().includes('a = 2')).toBe(
               true,
             );
+            // The retained source is still lazy when the module replaces its native source.
+            expect(oldSource?.source().includes('a = 1')).toBe(true);
           }
         },
       );

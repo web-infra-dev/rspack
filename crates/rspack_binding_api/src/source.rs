@@ -135,10 +135,14 @@ impl JsSourceLazy {
   }
 
   #[napi(getter, ts_return_type = "string | undefined")]
-  pub fn map(&self) -> Option<String> {
-    self
+  pub fn map(&self) -> Either<String, ()> {
+    match self
       .source
       .map(&ObjectPool::default(), &MapOptions::default())
-      .map(|map| map.to_json())
+    {
+      Some(map) => Either::A(map.to_json()),
+      // `Option::None` becomes `null`, but the adapter expects an absent map to be `undefined`.
+      None => Either::B(()),
+    }
   }
 }
