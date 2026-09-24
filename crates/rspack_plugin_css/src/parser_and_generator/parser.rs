@@ -2,10 +2,10 @@ use std::{path::Path, sync::Arc};
 
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  BoxDependency, ConstDependency, CssAutoOrModuleParserOptions, CssExport, CssExportType,
-  CssExports, CssExportsConvention, CssLayer, CssLocalNames, CssModuleGeneratorOptions,
-  CssModuleRenderCondition, CssParserImport, CssParserImportContext, Dependency,
-  DependencyCodeGenerationRef, DependencyId, DependencyRange, ModuleType, ParseContext,
+  BoxDependency, ConstDependency, CssAutoOrModuleParserOptions, CssExport, CssExportPart,
+  CssExportType, CssExports, CssExportsConvention, CssLayer, CssLocalNames,
+  CssModuleGeneratorOptions, CssModuleRenderCondition, CssParserImport, CssParserImportContext,
+  Dependency, DependencyCodeGenerationRef, DependencyId, DependencyRange, ModuleType, ParseContext,
   ParseResult, ResourceData, StaticExportsDependency, StaticExportsSpec,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
   topological_sort,
@@ -46,6 +46,7 @@ pub(super) struct CssModuleParser<'context> {
   css_exports: CssExports,
   css_local_names: CssLocalNames,
   icss_definitions: FxHashMap<String, IcssDefinition>,
+  icss_value_symbols: FxHashSet<SmolStr>,
   current_icss_import_from: Option<String>,
   composes_order: ComposesOrderState,
   local_ident_options: OnceCell<LocalIdentOptions<'context>>,
@@ -54,6 +55,7 @@ pub(super) struct CssModuleParser<'context> {
 #[derive(Debug, Clone)]
 enum IcssDefinition {
   Value(String),
+  Compound(Vec<CssExportPart>),
   Import {
     import_name: String,
     request: String,
@@ -280,6 +282,7 @@ impl<'context> CssModuleParser<'context> {
       css_exports: Default::default(),
       css_local_names: Default::default(),
       icss_definitions: Default::default(),
+      icss_value_symbols: Default::default(),
       current_icss_import_from: None,
       composes_order: Default::default(),
       local_ident_options: OnceCell::new(),
@@ -844,8 +847,18 @@ impl<'context> CssModuleParser<'context> {
         );
         Ok(())
       }
-      css_module_lexer::Dependency::ICSSExportValue { prop, value } => {
-        self.handle_icss_export_value(prop, value.as_ref());
+      css_module_lexer::Dependency::ICSSExportValue {
+        prop,
+        value,
+        is_at_value,
+        identifiers,
+      } => {
+        self.handle_icss_export_value(
+          prop,
+          value.as_ref(),
+          *is_at_value,
+          dependency_context.value_at_rule_identifiers(*identifiers),
+        );
         Ok(())
       }
       css_module_lexer::Dependency::ICSSImportFrom { path } => {
@@ -1449,10 +1462,12 @@ impl<'context> CssModuleParser<'context> {
         &mut self.css_exports,
         convention_name,
         CssExport {
-          ident: local_ident.as_str().into(),
+          parts: vec![CssExportPart {
+            ident: local_ident.as_str().into(),
+            from: None,
+            id: None,
+          }],
           orig_name: name.into(),
-          from: None,
-          id: None,
         },
       );
     }
@@ -1482,10 +1497,12 @@ impl<'context> CssModuleParser<'context> {
         &mut self.css_exports,
         convention_name,
         CssExport {
-          ident: local_ident.as_str().into(),
+          parts: vec![CssExportPart {
+            ident: local_ident.as_str().into(),
+            from: None,
+            id: None,
+          }],
           orig_name: name.into(),
-          from: None,
-          id: None,
         },
       );
     }
@@ -1494,13 +1511,17 @@ impl<'context> CssModuleParser<'context> {
 
   fn has_custom_property_export(&self, name: &str) -> bool {
     self.css_exports.get(name).is_some_and(|exports| {
-      exports.iter().any(|export| {
-        export.ident.starts_with("--")
-          || export
-            .ident
-            .strip_prefix("_--")
-            .is_some_and(is_custom_property_name)
-      })
+      exports
+        .iter()
+        .filter(|export| export.parts.len() == 1)
+        .flat_map(|export| &export.parts)
+        .any(|export| {
+          export.ident.starts_with("--")
+            || export
+              .ident
+              .strip_prefix("_--")
+              .is_some_and(is_custom_property_name)
+        })
     })
   }
 
@@ -1580,10 +1601,12 @@ impl<'context> CssModuleParser<'context> {
             .get_mut(local_class.as_str())
             .expect("composes local class must already added to exports")
             .insert(CssExport {
-              ident: convention_name.as_str().into(),
+              parts: vec![CssExportPart {
+                ident: convention_name.as_str().into(),
+                from: resolved_from.as_deref().map(Into::into),
+                id: dep_id,
+              }],
               orig_name: name.as_str().into(),
-              from: resolved_from.as_deref().map(Into::into),
-              id: dep_id,
             });
         }
       }
@@ -1616,12 +1639,21 @@ impl<'context> CssModuleParser<'context> {
     }
   }
 
-  fn handle_icss_export_value(&mut self, prop: &str, value: &str) {
+  fn handle_icss_export_value(
+    &mut self,
+    prop: &str,
+    value: &str,
+    is_at_value: bool,
+    identifiers: &[css_module_lexer::Range],
+  ) {
     let convention = self.convention();
     // ICSS export keys are literal names, including a leading `--`.
     // Only the configured naming convention may introduce aliases.
     let convention_names = export_locals_convention(prop, convention);
-    let definition = self.resolve_icss_definition(value);
+    let definition = self.resolve_icss_definition(value, identifiers);
+    if is_at_value {
+      self.icss_value_symbols.insert(prop.into());
+    }
     self
       .icss_definitions
       .insert(prop.to_string(), definition.clone());
@@ -1668,6 +1700,7 @@ impl<'context> CssModuleParser<'context> {
         self.update_css_exports_from_custom_property_definition(name, prop, &definition);
       }
     }
+    self.icss_value_symbols.insert(prop.into());
     self.dependencies.push(BoxDependency::new(dependency));
   }
 
@@ -1683,12 +1716,62 @@ impl<'context> CssModuleParser<'context> {
       )));
   }
 
-  fn resolve_icss_definition(&self, value: &str) -> IcssDefinition {
-    self
-      .icss_definitions
-      .get(value)
-      .cloned()
-      .unwrap_or_else(|| IcssDefinition::Value(value.to_string()))
+  fn resolve_icss_definition(
+    &self,
+    value: &str,
+    identifiers: &[css_module_lexer::Range],
+  ) -> IcssDefinition {
+    if let Some(definition) = self.icss_definitions.get(value) {
+      return definition.clone();
+    }
+    if identifiers.is_empty() {
+      return IcssDefinition::Value(value.to_owned());
+    }
+    // Identifier ranges come from the original @value scan; functions,
+    // strings and comments are already excluded by the lexer.
+    let mut parts = Vec::new();
+    let mut literal = String::new();
+    let mut end = 0;
+    for range in identifiers {
+      let start = range.start as usize;
+      let name = &value[start..range.end as usize];
+      if !self.icss_value_symbols.contains(name) {
+        continue;
+      }
+      let Some(definition) = self.icss_definitions.get(name) else {
+        continue;
+      };
+      literal.push_str(&value[end..start]);
+      for part in Self::css_export_from_icss_definition(name, definition).parts {
+        if part.from.is_none() {
+          literal.push_str(&part.ident);
+        } else {
+          if !literal.is_empty() {
+            parts.push(CssExportPart {
+              ident: literal.as_str().into(),
+              from: None,
+              id: None,
+            });
+            literal.clear();
+          }
+          parts.push(part);
+        }
+      }
+      end = range.end as usize;
+    }
+    literal.push_str(&value[end..]);
+    if parts.is_empty() {
+      IcssDefinition::Value(literal)
+    } else {
+      if !literal.is_empty() {
+        parts.push(CssExportPart {
+          ident: literal.into(),
+          from: None,
+          id: None,
+        });
+      }
+      IcssDefinition::Compound(parts)
+    }
   }
 
   fn resolve_icss_import_request(&self, path: &str) -> String {
@@ -1748,9 +1831,7 @@ impl<'context> CssModuleParser<'context> {
           &mut self.css_exports,
           name,
           CssExport {
-            ident: export.ident.clone(),
-            from: export.from.clone(),
-            id: export.id,
+            parts: export.parts.clone(),
             orig_name: prop.into(),
           },
         );
@@ -1762,22 +1843,25 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn css_export_from_icss_definition(prop: &str, definition: &IcssDefinition) -> CssExport {
-    let (ident, from, id) = match definition {
-      IcssDefinition::Value(value) => (value.as_str(), None, None),
+    let parts = match definition {
+      IcssDefinition::Value(value) => vec![CssExportPart {
+        ident: value.as_str().into(),
+        from: None,
+        id: None,
+      }],
+      IcssDefinition::Compound(parts) => parts.clone(),
       IcssDefinition::Import {
         import_name,
         request,
         dependency_id,
-      } => (
-        import_name.as_str(),
-        Some(request.as_str()),
-        Some(*dependency_id),
-      ),
+      } => vec![CssExportPart {
+        ident: import_name.as_str().into(),
+        from: Some(request.as_str().into()),
+        id: Some(*dependency_id),
+      }],
     };
     CssExport {
-      ident: ident.into(),
-      from: from.map(Into::into),
-      id,
+      parts,
       orig_name: prop.into(),
     }
   }
@@ -1791,15 +1875,19 @@ impl<'context> CssModuleParser<'context> {
         .map(|exports| exports.iter().cloned().collect())
         .or_else(|| {
           Some(vec![CssExport {
-            ident: value.as_str().into(),
+            parts: vec![CssExportPart {
+              ident: value.as_str().into(),
+              from: None,
+              id: None,
+            }],
             orig_name: name.into(),
-            from: None,
-            id: None,
           }])
         }),
-      IcssDefinition::Import { .. } => Some(vec![Self::css_export_from_icss_definition(
-        name, definition,
-      )]),
+      IcssDefinition::Import { .. } | IcssDefinition::Compound(_) => {
+        Some(vec![Self::css_export_from_icss_definition(
+          name, definition,
+        )])
+      }
     }
   }
 

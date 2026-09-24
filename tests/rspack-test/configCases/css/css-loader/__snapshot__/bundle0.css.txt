@@ -2360,7 +2360,7 @@ a[href="#b.c"].basic_module_css-x.basic_module_css-y {
 
 
 .at-value-extra_module_css-uses-composed-shadow {
-	box-shadow: 0 0 imported-color, 0 0 imported-color;
+	box-shadow: 0 0 tomato, 0 0 tomato;
 }
 
 
@@ -2376,8 +2376,8 @@ a[href="#b.c"].basic_module_css-x.basic_module_css-y {
 
 
 .at-value-extra_module_css-spacing {
-	margin: v-large 0;
-	padding: calc(v-base * 2);
+	margin: calc(10px * 2) 0;
+	padding: calc(10px * 2);
 }
 
 

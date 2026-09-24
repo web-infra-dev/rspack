@@ -8,11 +8,11 @@ use crate::{
   css_syntax::{
     MAX_CSS_KEYWORD_LEN, dashed_ident_name, dashed_ident_name_start, decode_css_keyword,
     is_css_modules_magic_comment, is_css_modules_pure_magic_comment, is_css_space_byte,
-    is_css_white_space_char, lowercase_ascii_keyword, strip_vendor_prefix, trim_css_whitespace,
+    is_css_white_space_char, lowercase_ascii_keyword, strip_vendor_prefix,
   },
   dependency_types::{
-    Dependency, DependencyContext, Mode, Range, UrlRangeKind, ValueAtRuleImportItem, Warning,
-    WarningKind,
+    Dependency, DependencyContext, DependencyListRange, Mode, Range, UrlRangeKind,
+    ValueAtRuleImportItem, Warning, WarningKind,
   },
   lexer::{LexerVisitor, Token, TokenFlags, TokenKind, TokenStream},
 };
@@ -577,6 +577,9 @@ impl<'s> ValueAtRuleStream<'s> {
       .saturating_sub(u32::from(is_close_token(token.kind)));
     let at_top = self.depth == 0;
     let is_ident = token.kind == TokenKind::Ident;
+    if is_ident && self.significant_count > 1 {
+      context.push_value_at_rule_identifier(token.range);
+    }
     let text = if is_ident {
       self
         .input
@@ -2233,11 +2236,19 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     let checkpoint = self
       .dependency_context
       .value_at_rule_import_items_checkpoint();
+    let identifiers_checkpoint = self
+      .dependency_context
+      .value_at_rule_identifiers_checkpoint();
     let mut parser = ValueAtRuleStream::new(input);
     loop {
       let token = stream.next_parser_token().token;
       match token.kind {
-        TokenKind::Eof => return None,
+        TokenKind::Eof => {
+          self
+            .dependency_context
+            .truncate_value_at_rule_identifiers(identifiers_checkpoint);
+          return None;
+        }
         _ => {
           if token.kind == TokenKind::Semicolon && parser.depth == 0 {
             parser.params_end = token.range.start;
@@ -2267,6 +2278,9 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           .is_some_and(trivia_only)
     });
     if import {
+      self
+        .dependency_context
+        .truncate_value_at_rule_identifiers(identifiers_checkpoint);
       let (_, last) = parser
         .last_two()
         .expect("an import value must end with at least two tokens");
@@ -2301,6 +2315,8 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             .push_dependency(Dependency::ICSSExportValue {
               prop: item.local_name(),
               value: item.local_name(),
+              is_at_value: true,
+              identifiers: DependencyListRange::from_bounds(0, 0),
             });
         }
       }
@@ -2309,34 +2325,40 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         .dependency_context
         .truncate_value_at_rule_import_items(checkpoint);
       let local_name;
-      let value;
+      let raw_start;
+      let trim_value;
       let has_colon;
       if let Some(colon) = parser.first_colon {
         local_name = &parser.input[parser
           .first_significant
           .unwrap_or((colon.split, colon.split))
           .0 as usize..colon.prev_end as usize];
-        let raw = &parser.input[colon.end as usize..parser.params_end as usize];
-        value = if parser.first_colon_tokens_after > 0 {
-          trim_css_whitespace(raw)
-        } else {
-          raw
-        };
+        raw_start = colon.end;
+        trim_value = parser.first_colon_tokens_after > 0;
         has_colon = true;
       } else if let Some((first_start, first_end)) = parser.first_significant {
         local_name = &parser.input[first_start as usize..first_end as usize];
-        let raw = &parser.input[first_end as usize..parser.params_end as usize];
-        value = if parser.significant_count > 1 {
-          trim_css_whitespace(raw)
-        } else {
-          raw
-        };
+        raw_start = first_end;
+        trim_value = parser.significant_count > 1;
         has_colon = false;
       } else {
         local_name = "";
-        value = "";
+        raw_start = parser.params_end;
+        trim_value = false;
         has_colon = false;
       }
+      let raw = &parser.input[raw_start as usize..parser.params_end as usize];
+      let value = if trim_value {
+        raw.trim_start_matches(is_css_white_space_char)
+      } else {
+        raw
+      };
+      let value_start = raw_start + (raw.len() - value.len()) as Pos;
+      let value = if trim_value {
+        value.trim_end_matches(is_css_white_space_char)
+      } else {
+        value
+      };
       if local_name.is_empty() || (!has_colon && value.is_empty()) {
         self.handle_warning.handle_warning(Warning {
           range: Range::new(start, at_rule_end),
@@ -2346,13 +2368,22 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         });
       }
       if !local_name.is_empty() {
+        let identifiers = self
+          .dependency_context
+          .finish_value_at_rule_identifiers(identifiers_checkpoint, value_start);
         self
           .dependency_context
           .push_dependency(Dependency::ICSSExportValue {
             prop: local_name,
             value,
+            is_at_value: true,
+            identifiers,
           });
         self.insert_icss_symbol(local_name);
+      } else {
+        self
+          .dependency_context
+          .truncate_value_at_rule_identifiers(identifiers_checkpoint);
       }
     }
     self
@@ -2413,6 +2444,8 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             .slice(prop_start, prop_end)?
             .trim_end_matches(is_css_white_space_char),
           value,
+          is_at_value: false,
+          identifiers: DependencyListRange::from_bounds(0, 0),
         });
       self.insert_icss_symbol(
         stream

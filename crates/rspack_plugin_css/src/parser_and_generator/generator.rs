@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use concat_string::concat_string;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
+  ChunkGraph, Context, CssBuildInfo, CssExport, CssExportPart, CssExportType, CssExports,
   CssModuleRenderCondition, DependencyCodeGeneration, DependencyId, DependencyType,
   GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
   RESERVED_IDENTIFIER, RuntimeGlobals, TemplateContext, UsageState, UsedNameItem,
@@ -721,7 +721,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       }
     }
 
-    for (key, elements) in exports {
+    for (key, _) in exports {
       let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
       let used_name = export_info.get_used_name(None, runtime);
       let used_name: Cow<'_, str> = match used_name {
@@ -729,12 +729,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         _ => Cow::Borrowed(key),
       };
 
-      let elements = get_css_exports(
-        self.generate_context.data,
-        module.identifier(),
-        key,
-        elements,
-      );
+      let elements = get_css_exports(self.generate_context.data, module.identifier(), key);
       let content = self.render_concat_export_content(elements.iter());
       self.register_concat_export(key, &content, &used_name, &mut used_identifiers);
     }
@@ -771,23 +766,16 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     scope.register_export(key.into(), identifier);
   }
 
-  fn render_css_export_content(&mut self, name: &str, elements: &FxIndexSet<CssExport>) -> String {
-    let elements = get_css_exports(
-      self.generate_context.data,
-      self.module.identifier(),
-      name,
-      elements,
-    );
+  fn render_css_export_content(&mut self, name: &str) -> String {
+    let elements = get_css_exports(self.generate_context.data, self.module.identifier(), name);
     let mut content = String::new();
     for element in elements.iter() {
-      let CssExport {
-        ident, from, id, ..
-      } = element;
+      let CssExportPart { ident, from, id } = element;
       let part = match from {
         None => self.render_local_css_export(ident),
         Some(from_name) => self.render_standard_css_reexport(ident, from_name, id.as_ref()),
       };
-      push_joined(&mut content, &part, " + \" \" + ");
+      push_joined(&mut content, &part, " + ");
     }
     content
   }
@@ -811,7 +799,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       id,
       false,
     )
-    .expect("CSS reexport target should be prepared");
+    .unwrap_or_else(|| {
+      panic!(
+        "CSS reexport target should be prepared: {ident} from {from_name} in {}",
+        self.module.identifier()
+      )
+    });
     let from_identifier = target.module;
     let from_used_name = self.stringified_used_export_name(from_identifier, ident, true);
     self.render_require_property_access(from_identifier, &from_used_name)
@@ -819,18 +812,16 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
   fn render_concat_export_content<'b>(
     &mut self,
-    elements: impl IntoIterator<Item = &'b CssExport>,
+    elements: impl IntoIterator<Item = &'b CssExportPart>,
   ) -> String {
     let mut content = String::new();
     for element in elements {
-      let CssExport {
-        ident, from, id, ..
-      } = element;
+      let CssExportPart { ident, from, id } = element;
       let part = match from {
         None => self.render_local_css_export(ident),
         Some(from_name) => self.render_concat_reexport(ident, from_name, id.as_ref()),
       };
-      push_joined(&mut content, &part, " + \" \" + ");
+      push_joined(&mut content, &part, " + ");
     }
     content
   }
@@ -866,7 +857,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let module = self.module;
     let mut stringified_exports = String::new();
 
-    for (key, elements) in exports {
+    for (key, _) in exports {
       let used_name: Cow<'_, str> = {
         let exports_info = self
           .generate_context
@@ -883,7 +874,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       stringified_exports.push_str("  ");
       stringified_exports.push_str(&json_stringify_str(&used_name));
       stringified_exports.push_str(": ");
-      stringified_exports.push_str(&self.render_css_export_content(key, elements));
+      stringified_exports.push_str(&self.render_css_export_content(key));
 
       stringified_exports.push_str(",\n");
     }

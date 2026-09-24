@@ -6,7 +6,7 @@ Object {
   chain-2: green,
   chain-3: green,
   chained: at-value-extra_module_css-chained,
-  composed-shadow: 0 0 imported-color, 0 0 imported-color,
+  composed-shadow: 0 0 tomato, 0 0 tomato,
   def: red,
   foo: #000,
   foo1: at-value-extra_module_css-foo1,
@@ -23,7 +23,7 @@ Object {
   uses-composed-shadow: at-value-extra_module_css-uses-composed-shadow,
   v-base: 10px,
   v-color: red,
-  v-large: calc(v-base * 2),
-  v-margin: v-large 0,
+  v-large: calc(10px * 2),
+  v-margin: calc(10px * 2) 0,
   v-shadow-color: rgba(0, 0, 0, 0.5),
 }

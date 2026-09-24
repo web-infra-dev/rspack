@@ -197,6 +197,12 @@ it(`should preserve CSS module composition semantics (${EXPORT_TYPE})`, () => {
 	expect(styles12.className).toBe("_-1className");
 });
 
+it(`should expand compound ICSS values (${EXPORT_TYPE})`, () => {
+	expect(styles32["composed-shadow"]).toBe("0 0 tomato, 0 0 tomato");
+	expect(styles32["v-large"]).toBe("calc(10px * 2)");
+	expect(styles32["v-margin"]).toBe("calc(10px * 2) 0");
+});
+
 // Note: assertions about `default` use `basic.module.css` because
 // `classes.module.css` defines a class literally named `default`, which
 // collides with the module's actual default export.

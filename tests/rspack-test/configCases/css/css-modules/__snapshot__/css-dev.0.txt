@@ -79,7 +79,7 @@
 .my-app-at-rule-value_module_css-class-a { color: red; }
 
 
-.my-app-at-rule-value_module_css-class-a { margin: calc(base * 2); }
+.my-app-at-rule-value_module_css-class-a { margin: calc(10px * 2); }
 
 
 .my-app-at-rule-value_module_css-class-a { content: "test-a" "test-b"; }
