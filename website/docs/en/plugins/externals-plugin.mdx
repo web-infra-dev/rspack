@@ -65,15 +65,21 @@ For more details, refer to [externalsType](/config/externals#externalstype).
 type Externals = ExternalItem[] | ExternalItem;
 
 type ExternalItem =
-  | RegExp
   | string
-  | (
-      | ((
-          data: ExternalItemFunctionData,
-          callback: (err?: Error | null, result?: ExternalItemValue) => void,
-        ) => void)
-      | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>)
-    );
+  | RegExp
+  | ExternalItemObjectUnknown
+  | ((
+      data: ExternalItemFunctionData,
+      callback: (
+        err?: Error | null,
+        result?: ExternalItemValue,
+        type?: ExternalsType,
+      ) => void,
+    ) => ExternalItemValue | void | Promise<ExternalItemValue | void>);
+
+type ExternalItemObjectUnknown = {
+  [request: string]: ExternalItemValue;
+};
 
 type ExternalItemValue =
   | string[]
