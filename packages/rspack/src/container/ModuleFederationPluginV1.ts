@@ -17,7 +17,8 @@ export interface ModuleFederationPluginV1Options {
   filename?: string;
   library?: LibraryOptions;
   /**
-   * The container name. Required when exposing modules; optional otherwise.
+   * The container name. A non-empty string is required when exposing modules
+   * or enabling shared dependency tree shaking.
    */
   name?: string;
   remoteType?: ExternalsType;
