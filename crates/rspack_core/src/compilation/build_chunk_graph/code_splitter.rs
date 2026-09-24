@@ -1385,7 +1385,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         "{} cache missed by incorrect available modules",
         self.stat_cache_miss_by_available_modules,
       ));
-      self.update_cache(compilation);
+      // Whole-graph reuse checks use the prepared block and connection maps,
+      // not the per-block chunk caches needed by heuristic incremental updates.
+      if super::ENABLE_HEURISTIC_INCREMENTAL {
+        self.update_cache(compilation);
+      }
     }
 
     Ok(())
