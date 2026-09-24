@@ -271,7 +271,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let initial_chunks =
         chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
-      let mut initial_chunk_ids = ChunkIdSet::default();
+      let mut css_installed_chunk_ids = ChunkIdSet::default();
       let mut all_initial_chunk_ids = ChunkIdSet::default();
 
       for chunk_ukey in initial_chunks.iter() {
@@ -282,7 +282,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           .expect_id()
           .clone();
         if !chunk_has_css(chunk_ukey, compilation) {
-          initial_chunk_ids.insert(id.clone());
+          css_installed_chunk_ids.insert(id.clone());
         }
         all_initial_chunk_ids.insert(id);
       }
@@ -326,7 +326,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         // checks for an existing link when a CSS chunk is requested.
         source.push_str(&format!(
           "var cssInstalledChunks = {};\n",
-          &stringify_chunks(&initial_chunk_ids, 0)
+          &stringify_chunks(&css_installed_chunk_ids, 0)
         ));
 
         let create_link_raw = context.runtime_template.render(
