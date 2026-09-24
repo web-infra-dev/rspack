@@ -281,7 +281,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           .expect_get(chunk_ukey)
           .expect_id()
           .clone();
-        if chunk_has_css(chunk_ukey, compilation) {
+        if !chunk_has_css(chunk_ukey, compilation) {
           initial_chunk_ids.insert(id.clone());
         }
         all_initial_chunk_ids.insert(id);
@@ -321,8 +321,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         // undefined = chunk not loaded, null = chunk preloaded/prefetched
         // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
 
-        // One entry initial chunk maybe is other entry dynamic chunk, so here
-        // only render chunk without css. See packages/rspack/tests/runtimeCases/runtime/split-css-chunk test.
+        // An initial CSS chunk for one entry can be async for another entry sharing
+        // this runtime. Only mark chunks without CSS as loaded; cssLoadStylesheet
+        // checks for an existing link when a CSS chunk is requested.
         source.push_str(&format!(
           "var cssInstalledChunks = {};\n",
           &stringify_chunks(&initial_chunk_ids, 0)
