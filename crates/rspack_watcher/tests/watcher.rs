@@ -365,7 +365,6 @@ fn collect_time_info_entries_advances_a_context_for_an_edit_inside_it() {
   }
 
   let rx = helper.watch(e!(), f!("ctx"), e!());
-  let before = safe_time_of(helper.time_info_entry(&helper.collect_time_info_entries().1, "ctx"));
 
   // Let the start-up scan and any stale FSEvents for the pre-watch write of
   // `ctx/inner` settle and drain them, so the batch waited on below is the
@@ -381,13 +380,12 @@ fn collect_time_info_entries_advances_a_context_for_an_edit_inside_it() {
   });
 
   let after = safe_time_of(helper.time_info_entry(&helper.collect_time_info_entries().1, "ctx"));
+  // Only a floor: the scan's accuracy-padded record for `ctx/inner` can sit
+  // ahead of the live observation that replaces it, so the context's safe
+  // time need not grow (watchpack's `setFileTime` behaves the same).
   assert!(
     after >= edited_at,
     "context safeTime {after} must reach the edit observed at {edited_at}"
-  );
-  assert!(
-    after > before,
-    "context safeTime must advance past {before}"
   );
 }
 
