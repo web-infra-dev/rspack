@@ -3,13 +3,13 @@ use std::{fs, io, path::Path};
 use crate::{InternedPath, ResolveOptions, Resolver};
 
 #[derive(Debug, Clone, Copy)]
-enum FileType {
+pub(super) enum FileType {
   File,
   Dir,
 }
 
 #[allow(unused_variables)]
-fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(
+pub(super) fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(
   original: P,
   link: Q,
   file_type: FileType,
