@@ -443,6 +443,7 @@ catalogs:
       version: 7.0.2
 
 patchedDependencies:
+  tinypool@2.1.2: 2fbb85c01cc27286e0cc0413bab79f453e398277997061c95fbab7df7ca6419b
   webpack-sources@3.5.1: edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561
 
 importers:
@@ -742,7 +743,7 @@ importers:
         version: 0.8.0(@microsoft/api-extractor@7.59.1)(@module-federation/runtime-tools@2.9.0)(@rspress/core@2.0.22)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.0)(typescript@6.0.3)
       tinypool:
         specifier: 'catalog:'
-        version: 2.1.2
+        version: 2.1.2(patch_hash=2fbb85c01cc27286e0cc0413bab79f453e398277997061c95fbab7df7ca6419b)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -13833,7 +13834,7 @@ snapshots:
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
 
-  tinypool@2.1.2: {}
+  tinypool@2.1.2(patch_hash=2fbb85c01cc27286e0cc0413bab79f453e398277997061c95fbab7df7ca6419b): {}
 
   tinypool@2.2.0: {}
 
