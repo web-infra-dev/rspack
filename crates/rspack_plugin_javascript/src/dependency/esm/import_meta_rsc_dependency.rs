@@ -185,12 +185,7 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
     ));
 
     if let Some(range) = dependency.range {
-      source.replace(
-        range.start,
-        range.end,
-        IMPORT_META_RSC_BINDING.to_string(),
-        None,
-      );
+      source.replace_static(range.start, range.end, IMPORT_META_RSC_BINDING, None);
     }
   }
 }
