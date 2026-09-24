@@ -1,10 +1,10 @@
 use std::sync::LazyLock;
 
 use rspack_core::{
-  BooleanMatcher, ChunkGroupOrderKey, Compilation, CrossOriginLoading, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
-  RuntimeModuleStage, RuntimeTemplate, chunk_graph_chunk::ChunkIdSet, compile_boolean_matcher,
-  impl_runtime_module,
+  BooleanMatcher, Chunk, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
+  Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeTemplate,
+  chunk_graph_chunk::ChunkIdSet, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimePlugin, chunk_has_css,
@@ -12,6 +12,7 @@ use rspack_plugin_runtime::{
   get_chunk_runtime_requirements, render_chunk_loading_hmr_state_expression, stringify_chunks,
 };
 use rspack_util::json_stringify;
+use rustc_hash::FxHashSet;
 
 static CSS_LOADING_TEMPLATE: &str = include_str!("./css_loading.ejs");
 static CSS_LOADING_CREATE_LINK_TEMPLATE: &str = include_str!("./css_loading_create_link.ejs");
@@ -269,23 +270,24 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         && !matches!(has_css_matcher, BooleanMatcher::Condition(false));
       let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
-      let initial_chunks =
-        chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
-      let mut initial_chunk_ids = ChunkIdSet::default();
+      let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+      let initial_chunks = chunk.get_all_initial_chunks(chunk_group_by_ukey);
       let mut all_initial_chunk_ids = ChunkIdSet::default();
 
-      for chunk_ukey in initial_chunks.iter() {
+      for initial_chunk_ukey in initial_chunks.iter() {
         let id = compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey
-          .expect_get(chunk_ukey)
+          .expect_get(initial_chunk_ukey)
           .expect_id()
           .clone();
-        if chunk_has_css(chunk_ukey, compilation) {
-          initial_chunk_ids.insert(id.clone());
-        }
         all_initial_chunk_ids.insert(id);
       }
+      // A shared runtime is one copy for every entry. Only stylesheets that each
+      // of those entries loads up front can be treated as already installed. A
+      // chunk that is initial for a different entry must still be requested here.
+      // See configCases/css/shared-runtime-initial-css.
+      let initial_chunk_ids = css_chunk_ids_initial_for_every_entrypoint(chunk, compilation);
 
       let environment = &compilation.options.output.environment;
       let is_neutral_platform = compilation.platform.is_neutral();
@@ -320,9 +322,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         // object to store loaded and loading chunks
         // undefined = chunk not loaded, null = chunk preloaded/prefetched
         // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
-
-        // One entry initial chunk maybe is other entry dynamic chunk, so here
-        // only render chunk without css. See packages/rspack/tests/runtimeCases/runtime/split-css-chunk test.
         source.push_str(&format!(
           "var cssInstalledChunks = {};\n",
           &stringify_chunks(&initial_chunk_ids, 0)
@@ -506,6 +505,90 @@ impl RuntimeModule for CssLoadingRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
+}
+
+/// CSS chunks that are initial for every entrypoint using this runtime chunk.
+fn css_chunk_ids_initial_for_every_entrypoint(
+  chunk: &Chunk,
+  compilation: &Compilation,
+) -> ChunkIdSet {
+  let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+  let initial_groups: Vec<ChunkGroupUkey> = chunk
+    .get_sorted_groups_iter(chunk_group_by_ukey)
+    .copied()
+    .filter(|group_ukey| chunk_group_by_ukey.expect_get(group_ukey).is_initial())
+    .collect();
+  let Some(first_group) = initial_groups.first().copied() else {
+    return ChunkIdSet::default();
+  };
+
+  let mut shared = initial_css_chunk_ukeys(first_group, chunk_group_by_ukey, compilation);
+  for group_ukey in initial_groups.into_iter().skip(1) {
+    if shared.is_empty() {
+      break;
+    }
+    let group_chunks = initial_css_chunk_ukeys(group_ukey, chunk_group_by_ukey, compilation);
+    shared.retain(|chunk_ukey| group_chunks.contains(chunk_ukey));
+  }
+
+  let mut ids = ChunkIdSet::default();
+  for chunk_ukey in shared {
+    let id = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_ukey)
+      .expect_id()
+      .clone();
+    ids.insert(id);
+  }
+  ids
+}
+
+fn initial_css_chunk_ukeys(
+  group_ukey: ChunkGroupUkey,
+  chunk_group_by_ukey: &ChunkGroupByUkey,
+  compilation: &Compilation,
+) -> FxHashSet<ChunkUkey> {
+  let mut chunks = FxHashSet::default();
+  let mut visited = FxHashSet::default();
+
+  fn add(
+    group_ukey: ChunkGroupUkey,
+    chunks: &mut FxHashSet<ChunkUkey>,
+    visited: &mut FxHashSet<ChunkGroupUkey>,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+    compilation: &Compilation,
+  ) {
+    let group = chunk_group_by_ukey.expect_get(&group_ukey);
+    if !group.is_initial() {
+      return;
+    }
+    for chunk_ukey in &group.chunks {
+      if chunk_has_css(chunk_ukey, compilation) {
+        chunks.insert(*chunk_ukey);
+      }
+    }
+    for child_group_ukey in &group.children {
+      if visited.insert(*child_group_ukey) {
+        add(
+          *child_group_ukey,
+          chunks,
+          visited,
+          chunk_group_by_ukey,
+          compilation,
+        );
+      }
+    }
+  }
+
+  add(
+    group_ukey,
+    &mut chunks,
+    &mut visited,
+    chunk_group_by_ukey,
+    compilation,
+  );
+  chunks
 }
 
 pub mod css_loading {
