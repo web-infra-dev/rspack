@@ -53,7 +53,9 @@ compilation.hooks.statsFactory.tap('MyPlugin', (statsFactory, options) => {
 
 `StatsPrinter.hooks.print` 是一个 HookMap，在生成指定的 stats 项目的打印字符串时触发。
 
-- **类型：** `HookMap<SyncBailHook<[{}, StatsPrinterContext], string>>`
+返回字符串可以覆盖打印内容；返回 `undefined` 或不返回值，则由后续回调、匹配范围更广的 hook 或默认打印逻辑处理该项目。返回空字符串可以隐藏该项目的输出，并停止此 bail hook 的后续处理。
+
+- **类型：** `HookMap<SyncBailHook<[{}, StatsPrinterContext], string | void>>`
 - **参数：**
   - `object`：该 stats 项目
   - `StatsPrinterContext`：打印上下文

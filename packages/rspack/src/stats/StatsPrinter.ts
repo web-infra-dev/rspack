@@ -62,12 +62,16 @@ export class StatsPrinter {
       SyncBailHook<[string[], StatsPrinterContext], true | void>
     >;
     printElements: HookMap<
-      SyncBailHook<[PrintedElement[], StatsPrinterContext], string>
+      SyncBailHook<[PrintedElement[], StatsPrinterContext], string | void>
     >;
-    sortItems: HookMap<SyncBailHook<[any[], StatsPrinterContext], true>>;
-    getItemName: HookMap<SyncBailHook<[any, StatsPrinterContext], string>>;
-    printItems: HookMap<SyncBailHook<[string[], StatsPrinterContext], string>>;
-    print: HookMap<SyncBailHook<[{}, StatsPrinterContext], string>>;
+    sortItems: HookMap<SyncBailHook<[any[], StatsPrinterContext], true | void>>;
+    getItemName: HookMap<
+      SyncBailHook<[any, StatsPrinterContext], string | void>
+    >;
+    printItems: HookMap<
+      SyncBailHook<[string[], StatsPrinterContext], string | void>
+    >;
+    print: HookMap<SyncBailHook<[{}, StatsPrinterContext], string | void>>;
     result: HookMap<SyncWaterfallHook<[string, StatsPrinterContext]>>;
   }>;
 
@@ -82,35 +86,35 @@ export class StatsPrinter {
       ),
       printElements: new HookMap(
         () =>
-          new SyncBailHook<[PrintedElement[], StatsPrinterContext], string>([
-            'printedElements',
-            'context',
-          ]),
+          new SyncBailHook<
+            [PrintedElement[], StatsPrinterContext],
+            string | void
+          >(['printedElements', 'context']),
       ),
       sortItems: new HookMap(
         () =>
-          new SyncBailHook<[any[], StatsPrinterContext], true>([
+          new SyncBailHook<[any[], StatsPrinterContext], true | void>([
             'items',
             'context',
           ]),
       ),
       getItemName: new HookMap(
         () =>
-          new SyncBailHook<[any, StatsPrinterContext], string>([
+          new SyncBailHook<[any, StatsPrinterContext], string | void>([
             'item',
             'context',
           ]),
       ),
       printItems: new HookMap(
         () =>
-          new SyncBailHook<[string[], StatsPrinterContext], string>([
+          new SyncBailHook<[string[], StatsPrinterContext], string | void>([
             'printedItems',
             'context',
           ]),
       ),
       print: new HookMap(
         () =>
-          new SyncBailHook<[{}, StatsPrinterContext], string>([
+          new SyncBailHook<[{}, StatsPrinterContext], string | void>([
             'object',
             'context',
           ]),
@@ -158,9 +162,9 @@ export class StatsPrinter {
   }
 
   private _forEachLevel<T, R>(
-    hookMap: HookMap<SyncBailHook<T, R>>,
+    hookMap: HookMap<SyncBailHook<T, R | void>>,
     type: string,
-    fn: (hook: SyncBailHook<T, R>) => R,
+    fn: (hook: SyncBailHook<T, R | void>) => R | void,
   ): R | undefined {
     for (const hook of this._getAllLevelHooks(hookMap, type)) {
       const result = fn(hook);
