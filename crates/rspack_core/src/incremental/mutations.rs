@@ -31,19 +31,50 @@ impl fmt::Display for Mutations {
 
 #[derive(Debug)]
 pub enum Mutation {
-  ModuleAdd { module: ModuleIdentifier },
-  ModuleUpdate { module: ModuleIdentifier },
-  ModuleRemove { module: ModuleIdentifier },
-  DependencyUpdate { dependency: DependencyId },
-  ModuleSetAsync { module: ModuleIdentifier },
-  ModuleSetId { module: ModuleIdentifier },
-  ModuleSetHashes { module: ModuleIdentifier },
-  ChunkSetId { chunk: ChunkUkey },
-  ChunkAdd { chunk: ChunkUkey },
-  ChunkSplit { from: ChunkUkey, to: ChunkUkey },
-  ChunksIntegrate { to: ChunkUkey },
-  ChunkRemove { chunk: ChunkUkey },
-  ChunkSetHashes { chunk: ChunkUkey },
+  ModuleAdd {
+    module: ModuleIdentifier,
+  },
+  ModuleUpdate {
+    module: ModuleIdentifier,
+  },
+  ModuleRemove {
+    module: ModuleIdentifier,
+  },
+  DependencyUpdate {
+    dependency: DependencyId,
+  },
+  ModuleSetAsync {
+    module: ModuleIdentifier,
+  },
+  ModuleSetId {
+    module: ModuleIdentifier,
+  },
+  ModuleSetHashes {
+    module: ModuleIdentifier,
+  },
+  ChunkSetId {
+    chunk: ChunkUkey,
+  },
+  ChunkSetModules {
+    chunk: ChunkUkey,
+    origins: Vec<ModuleIdentifier>,
+  },
+  ChunkAdd {
+    chunk: ChunkUkey,
+  },
+  ChunkSplit {
+    from: ChunkUkey,
+    to: ChunkUkey,
+  },
+  ChunksIntegrate {
+    to: ChunkUkey,
+  },
+  ChunkRemove {
+    chunk: ChunkUkey,
+  },
+  ChunkSetHashes {
+    chunk: ChunkUkey,
+  },
 }
 
 impl fmt::Display for Mutation {
@@ -59,6 +90,7 @@ impl fmt::Display for Mutation {
       Mutation::ModuleSetId { module } => write!(f, "set id module {module}"),
       Mutation::ModuleSetHashes { module } => write!(f, "set hashes module {module}"),
       Mutation::ChunkSetId { chunk } => write!(f, "set id chunk {}", chunk.as_u32()),
+      Mutation::ChunkSetModules { chunk, .. } => write!(f, "set modules chunk {}", chunk.as_u32()),
       Mutation::ChunkAdd { chunk } => write!(f, "add chunk {}", chunk.as_u32()),
       Mutation::ChunkSplit { from, to } => {
         write!(f, "split chunk {} to {}", from.as_u32(), to.as_u32())
@@ -171,6 +203,12 @@ impl Mutations {
             Mutation::ChunkRemove { chunk } => {
               chunks.remove(chunk);
             }
+            Mutation::ChunkSetModules { chunk, origins } => {
+              chunks.insert(chunk);
+              // Capture origins when the mutation is created: a subsequent
+              // optimizer may remove the now-empty chunk before code generation.
+              modules.extend(origins.iter().copied());
+            }
             Mutation::ChunkSetId { chunk } => {
               let chunk = compilation
                 .build_chunk_graph_artifact
@@ -234,7 +272,7 @@ impl Mutations {
             Mutation::ChunkRemove { chunk } => {
               acc.remove(chunk);
             }
-            Mutation::ChunkSetId { chunk } => {
+            Mutation::ChunkSetId { chunk } | Mutation::ChunkSetModules { chunk, .. } => {
               acc.insert(*chunk);
             }
             _ => {}

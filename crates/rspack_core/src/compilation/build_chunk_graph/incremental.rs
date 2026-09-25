@@ -467,6 +467,8 @@ impl CodeSplitter {
       mask.insert(ordinal as usize);
     }
 
+    self.invalidate_chunk_modules(chunk);
+
     let group = compilation
       .build_chunk_graph_artifact
       .chunk_group_by_ukey
