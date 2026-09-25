@@ -5,15 +5,17 @@ const B64_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0
 const INITIAL_MAPPINGS_CAPACITY: usize = 512;
 // Source map mappings are appended to a `Vec<u8>`, so the buffer grows geometrically and a
 // finished map can keep up to half of its allocation unused. Maps are retained for the rest of the
-// compilation (cached sources, `CachedData`, `SourceMapSource`), so once encoding is complete the
-// spare capacity is handed back, but only when enough bytes are at stake to justify the copy.
+// compilation (cached sources, `CachedData`, `SourceMapSource`), so compact sufficiently
+// overallocated buffers once encoding is complete to avoid retaining the growable allocation.
 const MIN_MAPPINGS_SPARE_CAPACITY_TO_SHRINK: usize = 2 * 1024;
 
 #[allow(unsafe_code)]
 #[inline]
 fn finish_mappings(mut mappings: Vec<u8>) -> String {
   if mappings.capacity() - mappings.len() >= MIN_MAPPINGS_SPARE_CAPACITY_TO_SHRINK {
-    mappings.shrink_to_fit();
+    // `shrink_to_fit` can keep the same allocation with mimalloc. Allocate and copy explicitly
+    // so the original block is freed, even when the buffer is more than half full.
+    mappings = mappings.as_slice().to_vec();
   }
   unsafe {
     // SAFETY: The `mappings` field in the source map consists solely of ASCII characters.
