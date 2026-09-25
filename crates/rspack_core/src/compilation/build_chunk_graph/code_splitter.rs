@@ -204,8 +204,6 @@ pub struct ChunkGroupInfo {
   // set of modules available including modules from this chunk group
   // A derived attribute, therefore utilizing interior mutability to manage updates
   resulting_available_modules: Option<Arc<FixedBitSet>>,
-  propagated_available_modules: Option<Arc<FixedBitSet>>,
-  propagated_runtime: Option<Arc<RuntimeSpec>>,
 
   pub outgoing_blocks: AsyncDependenciesBlockIdentifierSet,
 }
@@ -234,8 +232,6 @@ impl ChunkGroupInfo {
       available_sources: Default::default(),
       available_children: Default::default(),
       resulting_available_modules: Default::default(),
-      propagated_available_modules: Default::default(),
-      propagated_runtime: Default::default(),
       outgoing_blocks: Default::default(),
     }
   }
@@ -381,8 +377,6 @@ pub(crate) struct CodeSplitter {
   pub(crate) ordinal_by_module: IdentifierMap<u64>,
   pub(crate) mask_by_chunk: HashMap<ChunkUkey, FixedBitSet>,
   changed_module_chunks: HashSet<ChunkUkey>,
-  pending_chunk_module_updates: HashSet<ChunkUkey>,
-  chunk_groups_for_adding: FxIndexSet<CgiUkey>,
 
   stat_processed_queue_items: u32,
   stat_processed_blocks: u32,
@@ -1206,11 +1200,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       || !self.queue_delayed.is_empty()
       || !self.chunk_groups_for_combining.is_empty()
       || !self.outdated_chunk_group_info.is_empty()
-      || !self.pending_chunk_module_updates.is_empty()
-      || !self.chunk_groups_for_adding.is_empty()
     {
       self.process_queue(compilation);
-      self.process_chunk_module_updates(compilation);
 
       if !self.chunk_groups_for_combining.is_empty() {
         self.process_chunk_groups_for_combining(compilation);
@@ -1222,10 +1213,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         if !self.chunk_groups_for_merging.is_empty() {
           self.process_chunk_groups_for_merging(compilation);
         }
-      }
-
-      if !self.chunk_groups_for_adding.is_empty() {
-        self.process_available_modules_to_be_added(compilation);
       }
 
       if !self.outdated_chunk_group_info.is_empty() {
@@ -1515,7 +1502,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .get_mut(&item.chunk)
       .expect("chunk must in mask_by_chunk");
     chunk_mask.insert(module_ordinal as usize);
-    self.invalidate_chunk_modules(item.chunk);
+    self.invalidate_chunk_modules(item.chunk, compilation);
 
     self.add_and_enter_module(
       &AddAndEnterModule {
@@ -1561,7 +1548,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .get_mut(&item.chunk)
       .expect("chunk must in mask_by_chunk");
     chunk_mask.insert(module_ordinal as usize);
-    self.invalidate_chunk_modules(item.chunk);
+    self.invalidate_chunk_modules(item.chunk, compilation);
 
     self.enter_module(
       &EnterModule {
@@ -1573,37 +1560,30 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     )
   }
 
-  pub(super) fn invalidate_chunk_modules(&mut self, chunk: ChunkUkey) {
-    // Module additions are batched before any Out is read. Most chunks have not
-    // published an Out yet, and need neither invalidation nor an outdated visit.
-    self.pending_chunk_module_updates.insert(chunk);
-  }
-
-  fn process_chunk_module_updates(&mut self, compilation: &Compilation) {
-    for chunk in std::mem::take(&mut self.pending_chunk_module_updates) {
-      for group in compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .expect_get(&chunk)
-        .groups()
+  pub(super) fn invalidate_chunk_modules(&mut self, chunk: ChunkUkey, compilation: &Compilation) {
+    // Reuse the existing outdated queue when a physical chunk gains modules.
+    // Consumers without a cached Out will calculate it on their first connection.
+    for group in compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk)
+      .groups()
+    {
+      let cgi = self.chunk_group_info_map[group];
+      if self
+        .chunk_group_info_mut(&cgi)
+        .resulting_available_modules
+        .take()
+        .is_some()
       {
-        let Some(cgi) = self.chunk_group_info_map.get(group) else {
-          continue;
-        };
-        let info = self
-          .chunk_group_infos
-          .get_mut(cgi)
-          .expect("chunk group info should exist");
-        if info.resulting_available_modules.take().is_some() {
-          self.outdated_chunk_group_info.insert(*cgi);
-          self.changed_module_chunks.insert(chunk);
-        }
+        self.outdated_chunk_group_info.insert(cgi);
+        self.changed_module_chunks.insert(chunk);
       }
     }
   }
 
-  // Removing Own is safe only when every consumer inherits the factory. Keep a
-  // skipped item for every consumer so any later In shrink restores the module.
+  // Re-add affected modules through the existing availability/skipped-item path.
+  // A physical copy can be removed only when every consumer inherits it.
   fn remove_available_modules(
     &mut self,
     cgi: CgiUkey,
@@ -1664,9 +1644,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .set(self.ordinal_by_module[&module] as usize, false);
         for consumer in &consumers {
           self
-            .chunk_group_info_mut(consumer)
-            .skipped_items
-            .insert(module);
+            .queue
+            .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+              module,
+              chunk_group_info: *consumer,
+              chunk,
+            }));
           self.outdated_order_index_chunk_groups.insert(*consumer);
         }
       }
@@ -2294,50 +2277,22 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     // to get new available modules for these children
 
     let queue_connect = std::mem::take(&mut self.queue_connect);
-    for (chunk_group_info_ukey, mut targets) in queue_connect {
+    for (chunk_group_info_ukey, targets) in queue_connect {
       let (chunk_group_ukey, resulting_available_modules, runtime) = {
         let chunk_group_info = self
           .chunk_group_infos
           .get_mut(&chunk_group_info_ukey)
           .unwrap_or_else(|| panic!("ChunkGroupInfo({chunk_group_info_ukey:?}) not found"));
         let chunk_group_ukey = chunk_group_info.chunk_group;
-        let chunk_group = compilation
-          .build_chunk_graph_artifact
-          .chunk_group_by_ukey
-          .expect_get(&chunk_group_ukey);
-        chunk_group_info.calculate_resulting_available_modules(chunk_group, &self.mask_by_chunk);
-
-        // A newly discovered edge already sends the latest Out. If that Out
-        // changed, send it to existing children in this same batch too; then
-        // outdated must not send the identical snapshot a second time.
-        let out_changed = chunk_group_info.propagated_available_modules
-          != chunk_group_info.resulting_available_modules;
-        let changed = out_changed
-          || chunk_group_info.propagated_runtime.as_ref() != Some(&chunk_group_info.runtime);
-        if out_changed {
-          self
-            .chunk_groups_for_combining
-            .extend(chunk_group_info.available_children.iter().copied());
-        }
-        if changed && !chunk_group_info.children.is_empty() {
-          let connected = targets
-            .iter()
-            .map(|(target, _)| *target)
-            .collect::<HashSet<_>>();
-          targets.extend(
-            chunk_group_info
-              .children
-              .iter()
-              .filter(|child| !connected.contains(child))
-              .map(|child| (*child, None)),
-          );
-        }
         chunk_group_info
           .children
           .extend(targets.iter().map(|(target, _)| *target));
-        chunk_group_info.propagated_available_modules =
-          chunk_group_info.resulting_available_modules.clone();
-        chunk_group_info.propagated_runtime = Some(chunk_group_info.runtime.clone());
+
+        let chunk_group = compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get_mut(&chunk_group_ukey);
+        chunk_group_info.calculate_resulting_available_modules(chunk_group, &self.mask_by_chunk);
 
         (
           chunk_group_ukey,
@@ -2374,7 +2329,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             target_cgi
               .available_modules_to_be_added
               .push(resulting_available_modules.clone());
-            self.chunk_groups_for_adding.insert(target_ukey);
           }
 
           // get mutable reference to runtime
@@ -2409,72 +2363,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
-  fn process_available_modules_to_be_added(&mut self, compilation: &mut Compilation) {
-    // Merging may take CGIs out for parallel work. Validate candidates only after
-    // every CGI is back, against the current parents rather than old snapshots.
-    for cgi in std::mem::take(&mut self.chunk_groups_for_adding) {
-      let info = self.chunk_group_info_mut(&cgi);
-      let candidates = std::mem::take(&mut info.available_modules_to_be_added);
-      let group = compilation
-        .build_chunk_graph_artifact
-        .chunk_group_by_ukey
-        .expect_get(&info.chunk_group);
-      if !info.min_available_modules_init || group.is_initial() {
-        continue;
-      }
-      let mut added = FixedBitSet::with_capacity(self.ordinal_by_module.len());
-      for candidate in candidates {
-        added.union_with(&candidate);
-      }
-      added.difference_with(&self.chunk_group_info(&cgi).min_available_modules);
-      if added.is_clear() {
-        continue;
-      }
-      let parents = group
-        .parents_iterable()
-        .map(|p| self.chunk_group_info_map[p])
-        .collect::<Vec<_>>();
-      if parents.is_empty() {
-        continue;
-      }
-      for parent in parents {
-        let parent = self
-          .chunk_group_infos
-          .get_mut(&parent)
-          .expect("parent should exist");
-        if !parent.min_available_modules_init {
-          added.clear();
-          break;
-        }
-        parent.calculate_resulting_available_modules(
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_group_by_ukey
-            .expect_get(&parent.chunk_group),
-          &self.mask_by_chunk,
-        );
-        added.intersect_with(
-          parent
-            .resulting_available_modules
-            .as_ref()
-            .expect("parent Out should exist"),
-        );
-        if added.is_clear() {
-          break;
-        }
-      }
-      if added.is_clear() {
-        continue;
-      }
-      let info = self.chunk_group_info_mut(&cgi);
-      Arc::make_mut(&mut info.min_available_modules).union_with(&added);
-      info.invalidate_resulting_available_modules();
-      self.outdated_chunk_group_info.insert(cgi);
-      self.remove_available_modules(cgi, &added, compilation);
-    }
-  }
-
-  fn process_outdated_chunk_group_info(&mut self, compilation: &mut Compilation) {
+  fn process_outdated_chunk_group_info(&mut self, compilation: &Compilation) {
     self.stat_chunk_group_info_updated += self.outdated_chunk_group_info.len() as u32;
 
     // Revisit skipped elements
@@ -2584,39 +2473,35 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }
       }
 
-      let cgi = self
-        .chunk_group_infos
-        .get_mut(&chunk_group_info_ukey)
-        .expect("chunk group info should exist");
-      // An unobserved group does not need a materialized Out just because its
-      // initial In was established. Its first connection calculates Out normally.
-      if !cgi.children.is_empty() || !cgi.available_children.is_empty() {
-        cgi.calculate_resulting_available_modules(
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_group_by_ukey
-            .expect_get(&cgi.chunk_group),
-          &self.mask_by_chunk,
-        );
-        let out_changed = cgi.propagated_available_modules != cgi.resulting_available_modules;
-        let runtime_changed = cgi.propagated_runtime.as_ref() != Some(&cgi.runtime);
-        cgi.propagated_available_modules = cgi.resulting_available_modules.clone();
-        cgi.propagated_runtime = Some(cgi.runtime.clone());
-        if out_changed || runtime_changed {
-          self.stat_child_chunk_groups_reconnected += cgi.children.len() as u32;
-          if !cgi.children.is_empty() {
-            self
-              .queue_connect
-              .entry(chunk_group_info_ukey)
-              .or_default()
-              .extend(cgi.children.iter().map(|child| (*child, None)));
-          }
-        }
-        if out_changed {
-          self
-            .chunk_groups_for_combining
-            .extend(cgi.available_children.iter().copied());
-        }
+      let (children, available_children) = {
+        let cgi = self
+          .chunk_group_infos
+          .get(&chunk_group_info_ukey)
+          .unwrap_or_else(|| panic!("ChunkGroupInfo({chunk_group_info_ukey:?}) not found"));
+        let children = if cgi.children.is_empty() {
+          Vec::new()
+        } else {
+          cgi.children.iter().copied().collect_vec()
+        };
+        let available_children = if cgi.available_children.is_empty() {
+          Vec::new()
+        } else {
+          cgi.available_children.iter().copied().collect_vec()
+        };
+        (children, available_children)
+      };
+
+      // 3. Reconsider children chunk groups
+      if !children.is_empty() {
+        self.stat_child_chunk_groups_reconnected += children.len() as u32;
+
+        let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
+        connect_list.extend(children.into_iter().map(|child| (child, None)));
+      }
+
+      // 4. Reconsider chunk groups for combining
+      for cgi in available_children {
+        self.chunk_groups_for_combining.insert(cgi);
       }
 
       {
@@ -2736,6 +2621,54 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn process_chunk_groups_for_merging(&mut self, compilation: &mut Compilation) {
     self.stat_processed_chunk_groups_for_merging += self.chunk_groups_for_merging.len() as u32;
     let chunk_groups_for_merging = std::mem::take(&mut self.chunk_groups_for_merging);
+
+    // A growth candidate must still satisfy every incoming edge. Refresh the
+    // existing merge inputs before taking CGIs out for parallel processing.
+    let growing_groups = chunk_groups_for_merging
+      .iter()
+      .map(|(info_ukey, _)| *info_ukey)
+      .filter(|info_ukey| {
+        let info = self.chunk_group_info(info_ukey);
+        info
+          .available_modules_to_be_added
+          .iter()
+          .any(|modules| !modules.is_subset(&info.min_available_modules))
+      })
+      .collect::<HashSet<_>>();
+    for info_ukey in growing_groups {
+      let group = self.chunk_group_info(&info_ukey).chunk_group;
+      let parents = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(&group)
+        .parents_iterable()
+        .map(|parent| self.chunk_group_info_map[parent])
+        .collect::<Vec<_>>();
+      let mut inputs = Vec::with_capacity(parents.len());
+      for parent in parents {
+        let info = self
+          .chunk_group_infos
+          .get_mut(&parent)
+          .expect("parent should exist");
+        info.calculate_resulting_available_modules(
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_group_by_ukey
+            .expect_get(&info.chunk_group),
+          &self.mask_by_chunk,
+        );
+        inputs.push(
+          info
+            .resulting_available_modules
+            .clone()
+            .expect("parent Out should exist"),
+        );
+      }
+      self
+        .chunk_group_info_mut(&info_ukey)
+        .available_modules_to_be_merged = inputs;
+    }
+
     let mut chunk_groups_merging_batches: Vec<Vec<(CgiUkey, Option<ProcessBlock>)>> = vec![vec![]];
 
     // take chunk group infos and process parallelly
@@ -2763,8 +2696,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
       let merge_chunk_group =
         |(info_ukey, process_block, mut cgi): (CgiUkey, Option<ProcessBlock>, ChunkGroupInfo)| {
+          let previous_available = cgi.min_available_modules.clone();
+          let was_initialized = cgi.min_available_modules_init;
           let mut changed = false;
           let available_modules_length = cgi.available_modules_to_be_merged.len() as u32;
+
+          for modules in std::mem::take(&mut cgi.available_modules_to_be_added) {
+            Arc::make_mut(&mut cgi.min_available_modules).union_with(&modules);
+          }
 
           if !cgi.available_modules_to_be_merged.is_empty() {
             let available_modules_to_be_merged =
@@ -2787,6 +2726,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             }
           }
 
+          // Compare the final intersection: a candidate rejected by another
+          // parent must not keep a cycle in the outdated queue.
+          changed = changed && !was_initialized || cgi.min_available_modules != previous_available;
+          let added = if changed && was_initialized {
+            let mut added = cgi.min_available_modules.as_ref().clone();
+            added.difference_with(&previous_available);
+            (!added.is_clear()).then_some(added)
+          } else {
+            None
+          };
           if changed {
             cgi.invalidate_resulting_available_modules();
           }
@@ -2797,6 +2746,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             process_block,
             changed,
             available_modules_length,
+            added,
           )
         };
       let mut chunk_group_merging_results = if chunk_groups_merging_tasks.len() == 1 {
@@ -2811,14 +2761,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .collect::<Vec<_>>()
       };
 
-      for (info_ukey, cgi, _, _, _) in &mut chunk_group_merging_results {
+      for (info_ukey, cgi, _, _, _, _) in &mut chunk_group_merging_results {
         *self.chunk_group_info_mut(info_ukey) = cgi.take().expect("should have chunk group info");
       }
 
-      for (info_ukey, _, process_block, changed, available_modules_length) in
+      for (info_ukey, _, process_block, changed, available_modules_length, added) in
         chunk_group_merging_results
       {
         self.stat_merged_available_module_sets += available_modules_length;
+
+        if let Some(added) = added {
+          self.remove_available_modules(info_ukey, &added, compilation);
+        }
 
         if changed {
           self.outdated_chunk_group_info.insert(info_ukey);
