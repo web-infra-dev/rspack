@@ -156,7 +156,7 @@ catalog:
   'vue': '^3.5.43'
   'wast-loader': '^1.14.1'
   'watchpack': '2.5.2'
-  'webpack-sources': '3.5.1'
+  'webpack-sources': '3.5.3'
   'worker-rspack-loader': '^3.1.5'
   'ws': '^8.21.3'
   'xxhashjs': '^0.2.2'
