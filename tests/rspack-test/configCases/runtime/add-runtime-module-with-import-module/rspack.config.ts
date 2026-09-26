@@ -1,7 +1,7 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
 import { RuntimeModule } from '@rspack/core';
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   entry: './index.js',
   mode: 'development',
   devtool: false,
@@ -17,15 +17,15 @@ export default {
     providedExports: false,
   },
   plugins: [
-    (compiler) => {
+    definePlugin((compiler) => {
       const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
       class MockRuntimeModule extends RuntimeModule {
         constructor() {
           super('mock');
         }
 
-        generate(compilation) {
-          const chunkIdToName = this.chunk.getChunkMaps(false).name;
+        generate() {
+          const chunkIdToName = this.chunk!.getChunkMaps(false).name;
           const chunkNameToId = Object.fromEntries(
             Object.entries(chunkIdToName).map(([chunkId, chunkName]) => [
               chunkName,
@@ -47,9 +47,9 @@ export default {
           .tap('MockRuntimePlugin', (chunk, set) => {
             set.add(RuntimeGlobals.publicPath);
             set.add(RuntimeGlobals.getChunkScriptFilename);
-            compilation.addRuntimeModule(chunk, new MockRuntimeModule(chunk));
+            compilation.addRuntimeModule(chunk, new MockRuntimeModule());
           });
       });
-    },
+    }),
   ],
-};
+});

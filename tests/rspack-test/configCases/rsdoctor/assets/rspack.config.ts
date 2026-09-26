@@ -1,12 +1,11 @@
-import fs from 'node:fs';
-import { rspack } from '@rspack/core';
+import { defineConfig, definePlugin } from '@rspack/cli';
+import { rspack, type RsdoctorPluginData } from '@rspack/core';
 
 const {
   experiments: { RsdoctorPlugin },
 } = rspack;
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   entry: {
     a: './a.js',
     b: './b.js',
@@ -23,7 +22,7 @@ export default {
       moduleGraphFeatures: false,
       chunkGraphFeatures: ['graph', 'assets'],
     }),
-    {
+    definePlugin({
       apply(compiler) {
         compiler.hooks.compilation.tap('TestPlugin::Assets', (compilation) => {
           const hooks = RsdoctorPlugin.getCompilationHooks(compilation);
@@ -69,14 +68,14 @@ export default {
           });
         });
       },
-    },
-    {
+    }),
+    definePlugin({
       apply(compiler) {
         compiler.hooks.compilation.tap(
           'TestPlugin::ChunkAssets',
           (compilation) => {
             const hooks = RsdoctorPlugin.getCompilationHooks(compilation);
-            let chunks = [];
+            let chunks: RsdoctorPluginData.RsdoctorChunk[] = [];
             hooks.chunkGraph.tap('TestPlugin::ChunkAssets', (data) => {
               chunks = data.chunks;
             });
@@ -84,29 +83,7 @@ export default {
               const { chunkAssets } = data;
               for (const chunk of chunks) {
                 expect(
-                  chunkAssets.find((a) => a.chunk === chunk.ukey).assets.length,
-                ).toBe(1);
-              }
-            });
-          },
-        );
-      },
-    },
-    {
-      apply(compiler) {
-        compiler.hooks.compilation.tap(
-          'TestPlugin::EntrypointAssets',
-          (compilation) => {
-            const hooks = RsdoctorPlugin.getCompilationHooks(compilation);
-            let entrypoints = [];
-            hooks.chunkGraph.tap('TestPlugin::EntrypointAssets', (data) => {
-              entrypoints = data.entrypoints;
-            });
-            hooks.assets.tap('TestPlugin::Assets', (data) => {
-              const { entrypointAssets } = data;
-              for (const ep of entrypointAssets) {
-                expect(
-                  entrypointAssets.find((a) => a.chunk === ep.ukey).assets
+                  chunkAssets.find((a) => a.chunk === chunk.ukey)?.assets
                     .length,
                 ).toBe(1);
               }
@@ -114,6 +91,29 @@ export default {
           },
         );
       },
-    },
+    }),
+    definePlugin({
+      apply(compiler) {
+        compiler.hooks.compilation.tap(
+          'TestPlugin::EntrypointAssets',
+          (compilation) => {
+            const hooks = RsdoctorPlugin.getCompilationHooks(compilation);
+            let entrypoints: RsdoctorPluginData.RsdoctorEntrypoint[] = [];
+            hooks.chunkGraph.tap('TestPlugin::EntrypointAssets', (data) => {
+              entrypoints = data.entrypoints;
+            });
+            hooks.assets.tap('TestPlugin::Assets', (data) => {
+              const { entrypointAssets } = data;
+              for (const ep of entrypoints) {
+                expect(
+                  entrypointAssets.find((a) => a.entrypoint === ep.ukey)?.assets
+                    .length,
+                ).toBe(1);
+              }
+            });
+          },
+        );
+      },
+    }),
   ],
-};
+});
