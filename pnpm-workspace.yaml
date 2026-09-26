@@ -206,7 +206,7 @@ minimumReleaseAgeExclude:
   - mermaid@11.16.1
 
 patchedDependencies:
-  webpack-sources@3.5.1: patches/webpack-sources@3.5.1.patch
+  webpack-sources@3.5.3: patches/webpack-sources@3.5.3.patch
 
 # Prevent un-reviewed build scripts
 strictDepBuilds: true
