@@ -170,6 +170,7 @@ pub fn ensure_shared_entry<'a>(
       assets: super::data::StatsAssetsGroup::default(),
       usedIn: Vec::new(),
       usedExports: Vec::new(),
+      providers: Vec::new(),
     })
 }
 
