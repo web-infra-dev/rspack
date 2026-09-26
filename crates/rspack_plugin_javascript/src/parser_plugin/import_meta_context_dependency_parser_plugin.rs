@@ -391,6 +391,22 @@ fn create_import_meta_glob_dependency(
     true,
     glob_case_sensitive,
   );
+  // A bare glob prefix is resolved like a module request (for example, through
+  // resolve.alias). The compiled filesystem base has a leading `./` because
+  // glob matching normally treats bare paths as relative to the importer.
+  let bare_glob = glob_patterns
+    .iter()
+    .filter(|pattern| !pattern.starts_with('!'))
+    .all(|pattern| !pattern.starts_with('.') && !pattern.starts_with('/'));
+  let request = if bare_glob {
+    compiled
+      .request
+      .strip_prefix("./")
+      .filter(|request| !request.is_empty())
+      .unwrap_or(&compiled.request)
+  } else {
+    &compiled.request
+  };
 
   let referenced_specifiers = options
     .import
@@ -408,7 +424,7 @@ fn create_import_meta_glob_dependency(
     pattern: ContextModulePattern::Glob(glob_patterns),
     recursive: compiled.recursive,
     category: DependencyCategory::Esm,
-    request: compiled.request,
+    request: request.to_string(),
     context,
     compiler_context: parser.compiler_options.context.clone(),
     namespace_object,
