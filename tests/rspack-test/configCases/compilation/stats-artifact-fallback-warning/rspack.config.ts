@@ -1,15 +1,15 @@
 import { captureStdio } from '@rspack/test-tools/helper/legacy/captureStdio';
 import { fileURLToPath } from 'node:url';
+import { defineConfig, definePlugin } from '@rspack/cli';
 
 const INCOMPLETE_STATS_WARNING =
   'Stats output may be incomplete because some compilation artifacts were unavailable (exportsInfo). For complete stats data, call `stats.toJson()` inside `compiler.hooks.done`.';
 
 let warningChecked = false;
 
-/** @type {import('@rspack/core').Configuration} */
-export default {
+export default defineConfig({
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
         compiler.hooks.compilation.tap('PLUGIN', (compilation) => {
           compilation.hooks.finishModules.tap('PLUGIN', () => {
@@ -19,7 +19,7 @@ export default {
             warningChecked = true;
 
             const oldWarn = console.warn;
-            const warningLogs = [];
+            const warningLogs: string[] = [];
             console.warn = (...args) => {
               warningLogs.push(args.map((item) => String(item)).join(' '));
             };
@@ -44,7 +44,7 @@ Actual: ${warningLogs.join('\n')}\nStderr: ${warningOutput}`,
           });
         });
       },
-    },
+    }),
   ],
   module: {
     rules: [
@@ -54,4 +54,4 @@ Actual: ${warningLogs.join('\n')}\nStderr: ${warningOutput}`,
       },
     ],
   },
-};
+});

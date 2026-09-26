@@ -1,6 +1,10 @@
 // @ts-nocheck
 import { stripVTControlCharacters as stripAnsi } from 'node:util';
 
+/**
+ * @param {NodeJS.WriteStream} stdio
+ * @param {boolean} [tty]
+ */
 export function captureStdio(stdio, tty) {
   let logs = [];
 
