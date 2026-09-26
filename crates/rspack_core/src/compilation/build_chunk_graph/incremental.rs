@@ -460,8 +460,6 @@ impl CodeSplitter {
       chunk_graph.connect_chunk_and_module(chunk, *module);
     }
 
-    self.invalidate_chunk_modules(chunk, compilation);
-
     let group = compilation
       .build_chunk_graph_artifact
       .chunk_group_by_ukey

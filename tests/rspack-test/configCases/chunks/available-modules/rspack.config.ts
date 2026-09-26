@@ -15,6 +15,8 @@ const scenarios = [
   'shared-physical-chunk',
   'two-growing-parents',
   'inherited-growth',
+  'late-addition-with-restore',
+  'late-shared-physical-chunk',
 ];
 export default scenarios.map((scenario, index) => {
   const retains = [
@@ -25,7 +27,7 @@ export default scenarios.map((scenario, index) => {
   ].includes(scenario);
   const modules = {
     'index.js': `
-      export const direct = () => import(/* webpackChunkName: 'parent' */ './parent-a');
+      ${scenario === 'late-addition-with-restore' ? "export const direct = async () => (await import(/* webpackChunkName: 'root' */ './root')).load();" : "export const direct = () => import(/* webpackChunkName: 'parent' */ './parent-a');"}
       export const indirect = () => import(/* webpackChunkName: 'q' */ './q');
       ${scenario === 'early-addition' ? "export const early = () => import(/* webpackChunkName: 'parent' */ './parent-b');" : ''}
       ${scenario === 'multiple-parents' ? "export const child = () => import(/* webpackChunkName: 'child' */ './child');" : ''}
@@ -45,10 +47,15 @@ export default scenarios.map((scenario, index) => {
     'parent-a.js':
       scenario === 'preserve-mask'
         ? "export { value } from './m';"
-        : "export const load = () => import(/* webpackChunkName: 'child' */ './child');",
+        : `${scenario === 'late-addition-with-restore' ? "export { value } from './x';" : ''}
+          export const load = () => import(/* webpackChunkName: 'child' */ './child');`,
+    'root.js': `export { value } from './x';
+      export const load = () => import(/* webpackChunkName: 'parent' */ './parent-a');`,
+    'x.js': 'export const value = 43;',
     'q.js':
       "export const load = () => import(/* webpackChunkName: 'r' */ './r');",
     'r.js': `export const load = () => import(/* webpackChunkName: 'parent' */ './parent-b');
+      ${scenario === 'late-shared-physical-chunk' ? "export const worker = () => new Worker(/* webpackChunkName: 'parent' */ new URL('./worker', import.meta.url));" : ''}
       ${scenario === 'grow-then-shrink' || scenario === 'two-growing-parents' ? "export const later = () => import(/* webpackChunkName: 's' */ './s');" : ''}`,
     's.js':
       scenario === 'two-growing-parents'
@@ -63,19 +70,25 @@ export default scenarios.map((scenario, index) => {
     'parent-b.js':
       scenario === 'preserve-mask'
         ? "export const load = () => import(/* webpackChunkName: 'child' */ './child');"
-        : `export { value } from './m'; ${scenario === 'late-and-new-child' ? "export const next = () => import(/* webpackChunkName: 'next-child' */ './next-child');" : ''}`,
+        : scenario === 'late-shared-physical-chunk'
+          ? 'export const value = 42;'
+          : `export { value } from './m'; ${scenario === 'late-and-new-child' ? "export const next = () => import(/* webpackChunkName: 'next-child' */ './next-child');" : ''}`,
     'next-child.js': "export { value } from './m';",
     'child.js':
       scenario === 'inherited-growth'
         ? "export const load = () => import(/* webpackChunkName: 'grandchild' */ './grandchild');"
-        : `export { value } from './m'; ${scenario === 'cycle' ? "export const back = () => import(/* webpackChunkName: 'parent' */ './parent-a');" : ''}`,
+        : `export { value } from './m';
+          ${scenario === 'late-addition-with-restore' ? "export { value as restored } from './x';" : ''}
+          ${scenario === 'cycle' ? "export const back = () => import(/* webpackChunkName: 'parent' */ './parent-a');" : ''}`,
     'm.js': 'export const value = 42;',
     'extra.js':
       "export const load = () => import(/* webpackChunkName: 'child' */ './child');",
     'worker.js':
       scenario === 'shared-physical-chunk'
         ? 'export const value = 1;'
-        : "export const load = () => import(/* webpackChunkName: 'child' */ './child');",
+        : scenario === 'late-shared-physical-chunk'
+          ? "export { value } from './m';"
+          : "export const load = () => import(/* webpackChunkName: 'child' */ './child');",
   };
   return defineConfig({
     mode: 'production',
@@ -146,11 +159,38 @@ export default scenarios.map((scenario, index) => {
                       ),
                     );
                   }
-                  if (scenario === 'shared-physical-chunk') {
+                  if (
+                    scenario === 'shared-physical-chunk' ||
+                    scenario === 'late-shared-physical-chunk'
+                  ) {
                     assert.equal(
                       [...compilation.namedChunks.get('parent')!.groupsIterable]
                         .length,
                       2,
+                    );
+                  }
+                  if (scenario === 'late-addition-with-restore') {
+                    const parent = compilation.namedChunks.get('parent')!;
+                    assert.ok(
+                      [
+                        ...compilation.chunkGraph.getChunkModulesIterable(
+                          parent,
+                        ),
+                      ].some((module) =>
+                        /[\\/]x\.js$/.test(module.identifier()),
+                      ),
+                      'restore the module lost from the inherited intersection',
+                    );
+                    assert.ok(
+                      child.chunks.every((chunk) =>
+                        [
+                          ...compilation.chunkGraph.getChunkModulesIterable(
+                            chunk,
+                          ),
+                        ].every(
+                          (module) => !/[\\/]x\.js$/.test(module.identifier()),
+                        ),
+                      ),
                     );
                   }
                 },

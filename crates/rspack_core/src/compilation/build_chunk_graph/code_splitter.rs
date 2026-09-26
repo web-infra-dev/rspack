@@ -1506,8 +1506,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .chunk_graph
       .connect_chunk_and_module(item.chunk, item.module);
 
-    self.invalidate_chunk_modules(item.chunk, compilation);
-
     self.enter_module(
       &EnterModule {
         module: item.module,
@@ -1516,28 +1514,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       },
       compilation,
     )
-  }
-
-  pub(super) fn invalidate_chunk_modules(&mut self, chunk: ChunkUkey, compilation: &Compilation) {
-    // Out includes this chunk's own modules. Late additions to a reused chunk
-    // invalidate each consumer's cached Out and use the existing outdated queue.
-    // Consumers without a cached Out will calculate it on their first connection.
-    for group in compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .expect_get(&chunk)
-      .groups()
-    {
-      let cgi = self.chunk_group_info_map[group];
-      if self
-        .chunk_group_info_mut(&cgi)
-        .resulting_available_modules
-        .take()
-        .is_some()
-      {
-        self.outdated_chunk_group_info.insert(cgi);
-      }
-    }
   }
 
   // Re-add affected modules through the existing availability/skipped-item path.
@@ -1691,6 +1667,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     tracing::trace!("process_entry_block {:?}", item);
 
     self.stat_processed_blocks += 1;
+
+    // Async entrypoints have no incoming availability intersection, but a new
+    // entry block can extend a physical chunk used by an existing group.
+    self.outdated_chunk_group_info.insert(item.chunk_group_info);
 
     let module_graph = compilation.get_module_graph();
     for dep in &compilation.global_entry.dependencies {
@@ -2317,9 +2297,47 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn process_outdated_chunk_group_info(&mut self, compilation: &Compilation) {
     self.stat_chunk_group_info_updated += self.outdated_chunk_group_info.len() as u32;
 
+    let pending_chunks = self
+      .queue_delayed
+      .iter()
+      .filter_map(|action| match action {
+        QueueAction::ProcessBlock(block) => Some(block.chunk),
+        QueueAction::ProcessEntryBlock(block) => Some(block.chunk),
+        _ => None,
+      })
+      .collect::<HashSet<_>>();
+
     // Revisit skipped elements
-    let outdated_chunk_group_info = std::mem::take(&mut self.outdated_chunk_group_info);
+    let mut outdated_chunk_group_info = std::mem::take(&mut self.outdated_chunk_group_info);
+    let artifact = &compilation.build_chunk_graph_artifact;
+    let mut index = 0;
+    while let Some(&cgi) = outdated_chunk_group_info.get_index(index) {
+      let group = self.chunk_group_info(&cgi).chunk_group;
+      for chunk in &artifact.chunk_group_by_ukey.expect_get(&group).chunks {
+        for group in artifact.chunk_by_ukey.expect_get(chunk).groups() {
+          let consumer = self.chunk_group_info_map[group];
+          if self
+            .chunk_group_info(&consumer)
+            .resulting_available_modules
+            .is_some()
+          {
+            outdated_chunk_group_info.insert(consumer);
+          }
+        }
+      }
+      index += 1;
+    }
+
     for chunk_group_info_ukey in outdated_chunk_group_info {
+      let info = self.chunk_group_info(&chunk_group_info_ukey);
+      let pending_blocks = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(&info.chunk_group)
+        .chunks
+        .iter()
+        .any(|chunk| pending_chunks.contains(chunk));
+
       let (
         cgi_ukey,
         chunk_group_ukey,
@@ -2331,6 +2349,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .chunk_group_infos
           .get_mut(&chunk_group_info_ukey)
           .unwrap_or_else(|| panic!("ChunkGroupInfo({chunk_group_info_ukey:?}) not found"));
+        cgi.invalidate_resulting_available_modules();
         (
           cgi.ukey,
           cgi.chunk_group,
@@ -2442,17 +2461,23 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         (children, available_children)
       };
 
-      // 3. Reconsider children chunk groups
-      if !children.is_empty() {
-        self.stat_child_chunk_groups_reconnected += children.len() as u32;
+      if pending_blocks && (!children.is_empty() || !available_children.is_empty()) {
+        // Preserve skipped-item processing and the delayed walk order. Notify
+        // children after the pending blocks have contributed their modules.
+        self.outdated_chunk_group_info.insert(chunk_group_info_ukey);
+      } else {
+        // 3. Reconsider children chunk groups
+        if !children.is_empty() {
+          self.stat_child_chunk_groups_reconnected += children.len() as u32;
 
-        let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
-        connect_list.extend(children.into_iter().map(|child| (child, None)));
-      }
+          let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
+          connect_list.extend(children.into_iter().map(|child| (child, None)));
+        }
 
-      // 4. Reconsider chunk groups for combining
-      for cgi in available_children {
-        self.chunk_groups_for_combining.insert(cgi);
+        // 4. Reconsider chunk groups for combining
+        for cgi in available_children {
+          self.chunk_groups_for_combining.insert(cgi);
+        }
       }
 
       {
@@ -2690,10 +2715,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           } else {
             None
           };
-          if changed {
-            cgi.invalidate_resulting_available_modules();
-          }
-
           (
             info_ukey,
             Some(cgi),
@@ -2728,7 +2749,21 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           self.remove_available_modules(info_ukey, &added, compilation);
         }
 
-        if changed {
+        let (initialized, cgi_ukey) = {
+          let cgi = self.chunk_group_info(&info_ukey);
+          (cgi.initialized, cgi.ukey)
+        };
+        let new_block = process_block.as_ref().is_some_and(|block| {
+          self
+            .incoming_blocks_by_cgi
+            .entry(cgi_ukey)
+            .or_default()
+            .insert(block.block)
+        });
+
+        // Both inherited availability and newly merged blocks can change the
+        // modules available to children. Reuse the existing outdated traversal.
+        if changed || new_block {
           self.outdated_chunk_group_info.insert(info_ukey);
         }
 
@@ -2736,18 +2771,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           continue;
         };
 
-        let (initialized, cgi_ukey) = {
-          let cgi = self.chunk_group_info(&info_ukey);
-          (cgi.initialized, cgi.ukey)
-        };
-        let mut needs_walk = !initialized || changed;
-
-        let blocks = self.incoming_blocks_by_cgi.entry(cgi_ukey).or_default();
-        if blocks.insert(process_block.block) {
-          needs_walk = true;
-        }
-
-        if needs_walk {
+        if !initialized || changed || new_block {
           self.chunk_group_info_mut(&info_ukey).initialized = true;
 
           // check if we can use cache to initialize it
