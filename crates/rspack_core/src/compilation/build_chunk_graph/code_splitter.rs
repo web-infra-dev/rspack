@@ -1419,6 +1419,22 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   pub(crate) fn process_queue(&mut self, compilation: &mut Compilation) {
     tracing::trace!("process_queue");
+    // Synchronous dependencies stay in their root's chunk. Check each chunk
+    // once after the walk, before combining/connect can read its cached Out.
+    let chunks = self
+      .queue
+      .iter()
+      .rev()
+      .filter_map(|action| match action {
+        QueueAction::AddAndEnterEntryModule(item) => Some(item.chunk),
+        QueueAction::AddAndEnterModule(item) => Some(item.chunk),
+        QueueAction::_EnterModule(item) => Some(item.chunk),
+        QueueAction::ProcessBlock(item) => Some(item.chunk),
+        QueueAction::ProcessEntryBlock(item) => Some(item.chunk),
+        QueueAction::LeaveModule(_) => None,
+      })
+      .collect::<FxIndexSet<_>>();
+
     while let Some(action) = self.queue.pop() {
       self.stat_processed_queue_items += 1;
 
@@ -1429,6 +1445,31 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         QueueAction::ProcessBlock(i) => self.process_block(&i, compilation),
         QueueAction::ProcessEntryBlock(i) => self.process_entry_block(&i, compilation),
         QueueAction::LeaveModule(i) => self.leave_module(&i, compilation),
+      }
+    }
+
+    let artifact = &compilation.build_chunk_graph_artifact;
+    let groups = chunks
+      .iter()
+      .flat_map(|chunk| artifact.chunk_by_ukey.expect_get(chunk).groups())
+      .copied()
+      .collect::<FxIndexSet<_>>();
+    for group in groups {
+      let cgi = self
+        .chunk_group_infos
+        .get_mut(&self.chunk_group_info_map[&group])
+        .expect("chunk group info should exist");
+      let Some(previous) = cgi.resulting_available_modules.take() else {
+        // First publication, or already invalidated by an availability change.
+        continue;
+      };
+      cgi.calculate_resulting_available_modules(
+        artifact.chunk_group_by_ukey.expect_get(&group),
+        &artifact.chunk_graph,
+        &self.ordinal_by_module,
+      );
+      if cgi.resulting_available_modules.as_ref() != Some(&previous) {
+        self.outdated_chunk_group_info.insert(cgi.ukey);
       }
     }
   }
@@ -1667,10 +1708,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     tracing::trace!("process_entry_block {:?}", item);
 
     self.stat_processed_blocks += 1;
-
-    // Async entrypoints have no incoming availability intersection, but a new
-    // entry block can extend a physical chunk used by an existing group.
-    self.outdated_chunk_group_info.insert(item.chunk_group_info);
 
     let module_graph = compilation.get_module_graph();
     for dep in &compilation.global_entry.dependencies {
@@ -2297,31 +2334,32 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn process_outdated_chunk_group_info(&mut self, compilation: &Compilation) {
     self.stat_chunk_group_info_updated += self.outdated_chunk_group_info.len() as u32;
 
-    let pending_chunks = self
-      .queue_delayed
-      .iter()
-      .filter_map(|action| match action {
-        QueueAction::ProcessBlock(block) => Some(block.chunk),
-        QueueAction::ProcessEntryBlock(block) => Some(block.chunk),
-        _ => None,
-      })
-      .collect::<HashSet<_>>();
-
     // Revisit skipped elements
     let mut outdated_chunk_group_info = std::mem::take(&mut self.outdated_chunk_group_info);
     let artifact = &compilation.build_chunk_graph_artifact;
     let mut index = 0;
     while let Some(&cgi) = outdated_chunk_group_info.get_index(index) {
-      let group = self.chunk_group_info(&cgi).chunk_group;
-      for chunk in &artifact.chunk_group_by_ukey.expect_get(&group).chunks {
-        for group in artifact.chunk_by_ukey.expect_get(chunk).groups() {
-          let consumer = self.chunk_group_info_map[group];
-          if self
-            .chunk_group_info(&consumer)
-            .resulting_available_modules
-            .is_some()
-          {
-            outdated_chunk_group_info.insert(consumer);
+      let info = self.chunk_group_info(&cgi);
+      // Input changes and cache recovery can still restore shared modules.
+      // Completed walks already checked every consumer and refreshed its Out.
+      if info.resulting_available_modules.is_none() {
+        for chunk in &artifact
+          .chunk_group_by_ukey
+          .expect_get(&info.chunk_group)
+          .chunks
+        {
+          for group in artifact.chunk_by_ukey.expect_get(chunk).groups() {
+            let consumer = self.chunk_group_info_map[group];
+            if self
+              .chunk_group_info(&consumer)
+              .resulting_available_modules
+              .is_some()
+              && outdated_chunk_group_info.insert(consumer)
+            {
+              self
+                .chunk_group_info_mut(&consumer)
+                .invalidate_resulting_available_modules();
+            }
           }
         }
       }
@@ -2329,15 +2367,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     for chunk_group_info_ukey in outdated_chunk_group_info {
-      let info = self.chunk_group_info(&chunk_group_info_ukey);
-      let pending_blocks = compilation
-        .build_chunk_graph_artifact
-        .chunk_group_by_ukey
-        .expect_get(&info.chunk_group)
-        .chunks
-        .iter()
-        .any(|chunk| pending_chunks.contains(chunk));
-
       let (
         cgi_ukey,
         chunk_group_ukey,
@@ -2349,7 +2378,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .chunk_group_infos
           .get_mut(&chunk_group_info_ukey)
           .unwrap_or_else(|| panic!("ChunkGroupInfo({chunk_group_info_ukey:?}) not found"));
-        cgi.invalidate_resulting_available_modules();
         (
           cgi.ukey,
           cgi.chunk_group,
@@ -2461,23 +2489,17 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         (children, available_children)
       };
 
-      if pending_blocks && (!children.is_empty() || !available_children.is_empty()) {
-        // Preserve skipped-item processing and the delayed walk order. Notify
-        // children after the pending blocks have contributed their modules.
-        self.outdated_chunk_group_info.insert(chunk_group_info_ukey);
-      } else {
-        // 3. Reconsider children chunk groups
-        if !children.is_empty() {
-          self.stat_child_chunk_groups_reconnected += children.len() as u32;
+      // 3. Reconsider children chunk groups
+      if !children.is_empty() {
+        self.stat_child_chunk_groups_reconnected += children.len() as u32;
 
-          let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
-          connect_list.extend(children.into_iter().map(|child| (child, None)));
-        }
+        let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
+        connect_list.extend(children.into_iter().map(|child| (child, None)));
+      }
 
-        // 4. Reconsider chunk groups for combining
-        for cgi in available_children {
-          self.chunk_groups_for_combining.insert(cgi);
-        }
+      // 4. Reconsider chunk groups for combining
+      for cgi in available_children {
+        self.chunk_groups_for_combining.insert(cgi);
       }
 
       {
@@ -2708,6 +2730,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           // Compare the final intersection: a candidate rejected by another
           // parent must not keep a cycle in the outdated queue.
           changed = changed && !was_initialized || cgi.min_available_modules != previous_available;
+          if changed {
+            cgi.invalidate_resulting_available_modules();
+          }
           let added = if changed && was_initialized {
             let mut added = cgi.min_available_modules.as_ref().clone();
             added.difference_with(&previous_available);
@@ -2761,9 +2786,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .insert(block.block)
         });
 
-        // Both inherited availability and newly merged blocks can change the
-        // modules available to children. Reuse the existing outdated traversal.
-        if changed || new_block {
+        if changed {
           self.outdated_chunk_group_info.insert(info_ukey);
         }
 

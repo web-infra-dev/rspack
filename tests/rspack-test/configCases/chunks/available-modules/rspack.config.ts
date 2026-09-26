@@ -17,6 +17,7 @@ const scenarios = [
   'inherited-growth',
   'late-addition-with-restore',
   'late-shared-physical-chunk',
+  'late-worker-addition',
 ];
 export default scenarios.map((scenario, index) => {
   const retains = [
@@ -32,6 +33,7 @@ export default scenarios.map((scenario, index) => {
       ${scenario === 'early-addition' ? "export const early = () => import(/* webpackChunkName: 'parent' */ './parent-b');" : ''}
       ${scenario === 'multiple-parents' ? "export const child = () => import(/* webpackChunkName: 'child' */ './child');" : ''}
       ${scenario === 'worker-boundary' || scenario === 'shared-physical-chunk' ? `export const worker = () => new Worker(/* webpackChunkName: '${scenario === 'shared-physical-chunk' ? 'parent' : 'worker'}' */ new URL('./worker', import.meta.url));` : ''}
+      ${scenario === 'late-worker-addition' ? "export const worker = () => new Worker(/* webpackChunkName: 'worker' */ new URL('./worker-a', import.meta.url));" : ''}
       ${scenario === 'two-growing-parents' ? "export const second = () => import(/* webpackChunkName: 'parent2' */ './parent2-a');" : ''}
       it('maintains available modules: ${scenario}', async () => {
         // First load the direct path, before executing the late named import.
@@ -56,6 +58,7 @@ export default scenarios.map((scenario, index) => {
       "export const load = () => import(/* webpackChunkName: 'r' */ './r');",
     'r.js': `export const load = () => import(/* webpackChunkName: 'parent' */ './parent-b');
       ${scenario === 'late-shared-physical-chunk' ? "export const worker = () => new Worker(/* webpackChunkName: 'parent' */ new URL('./worker', import.meta.url));" : ''}
+      ${scenario === 'late-worker-addition' ? "export const worker = () => new Worker(/* webpackChunkName: 'worker' */ new URL('./worker-b', import.meta.url));" : ''}
       ${scenario === 'grow-then-shrink' || scenario === 'two-growing-parents' ? "export const later = () => import(/* webpackChunkName: 's' */ './s');" : ''}`,
     's.js':
       scenario === 'two-growing-parents'
@@ -89,6 +92,12 @@ export default scenarios.map((scenario, index) => {
         : scenario === 'late-shared-physical-chunk'
           ? "export { value } from './m';"
           : "export const load = () => import(/* webpackChunkName: 'child' */ './child');",
+    'worker-a.js':
+      "export const load = () => import(/* webpackChunkName: 'worker-child' */ './worker-child');",
+    'worker-b.js': `export { value } from './m';
+      export const load = () => import(/* webpackChunkName: 'worker-next' */ './worker-next');`,
+    'worker-child.js': "export { value } from './m';",
+    'worker-next.js': "export { value } from './m';",
   };
   return defineConfig({
     mode: 'production',
@@ -192,6 +201,34 @@ export default scenarios.map((scenario, index) => {
                         ),
                       ),
                     );
+                  }
+                  if (scenario === 'late-worker-addition') {
+                    const worker = compilation.namedChunks.get('worker')!;
+                    assert.ok(
+                      [
+                        ...compilation.chunkGraph.getChunkModulesIterable(
+                          worker,
+                        ),
+                      ].some((module) =>
+                        /[\\/]m\.js$/.test(module.identifier()),
+                      ),
+                    );
+                    for (const name of ['worker-child', 'worker-next']) {
+                      const group = compilation.namedChunkGroups.get(name)!;
+                      assert.ok(
+                        group.chunks.every((chunk) =>
+                          [
+                            ...compilation.chunkGraph.getChunkModulesIterable(
+                              chunk,
+                            ),
+                          ].every(
+                            (module) =>
+                              !/[\\/]m\.js$/.test(module.identifier()),
+                          ),
+                        ),
+                        `${name} inherits the late worker module`,
+                      );
+                    }
                   }
                 },
               );
