@@ -1,7 +1,7 @@
 <%- var("deferred") %> = [];
 <%- define(ON_CHUNKS_LOADED) %> = <%- basicFunction("result, chunkIds, fn, priority") %> {
 	if (chunkIds) {
-		priority = priority || 0;
+		<%- _priority_assignment %>;
 		for (var i = deferred.length; i > 0 && deferred[i - 1][2] > priority; i--)
 			deferred[i] = deferred[i - 1];
 		deferred[i] = [chunkIds, fn, priority];
@@ -13,7 +13,7 @@
 		var fulfilled = true;
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
-				(priority & (1 === 0) || notFulfilled >= priority) &&
+				((priority & 1) === 0 || notFulfilled >= priority) &&
 				Object.keys(<%- ON_CHUNKS_LOADED %>).every(<%- returningFunction("$$RUNTIME_GLOBAL_ON_CHUNKS_LOADED$$[key](chunkIds[j])", "key") %>)
 			) {
 				chunkIds.splice(j--, 1);
