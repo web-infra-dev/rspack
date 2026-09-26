@@ -1446,13 +1446,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       )
     });
 
-    // A reused physical chunk may already contain this module without having
-    // registered it as an entry (for example, an async entrypoint).
     if compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .get_chunk_entry_modules_with_chunk_group_iterable(&item.chunk)
-      .contains_key(&item.module)
+      .get_chunk_modules_identifier(&item.chunk)
+      .contains(&item.module)
     {
       return;
     }
