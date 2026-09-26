@@ -1,4 +1,28 @@
-export default [
+interface IntegrityCase {
+  name: string;
+  mode?: 'development' | 'production';
+  frozen?: boolean;
+  fresh?: boolean;
+  locked?: false | 'ignore' | 'no-cache';
+  lockAt?: string;
+  invalidLockfile?: boolean;
+  cache?: false;
+  cached?: string | false;
+  crlf?: boolean;
+  resolved?: string;
+  redirect?: string | string[];
+  redirectNoCache?: boolean;
+  upgrade?: boolean;
+  status?: number;
+  contentType?: string;
+  noCache?: boolean;
+  remote?: string;
+  expected?: string;
+  error?: string;
+  requests?: [request: string, etag: string | undefined][];
+}
+
+const cases: IntegrityCase[] = [
   {
     name: 'frozen-cache',
   },
@@ -335,3 +359,5 @@ export default [
     error: 'EOF while parsing',
   },
 ];
+
+export default cases;

@@ -1,17 +1,19 @@
-import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { DefinePlugin } from '@rspack/core';
-import cases from './cases.mjs';
+import { defineConfig, definePlugin } from '@rspack/cli';
+import { DefinePlugin, type HttpUriOptions } from '@rspack/core';
+import cases from './cases.ts';
+
+type HttpClient = NonNullable<HttpUriOptions['httpClient']>;
 
 const url = 'http://integrity.example/module.js';
-const source = (value) => `export default ${JSON.stringify(value)};\n`;
-const integrity = (content) =>
+const source = (value: string) => `export default ${JSON.stringify(value)};\n`;
+const integrity = (content: string) =>
   `sha512-${createHash('sha512').update(content).digest('base64')}`;
 
 // These fixtures use the existing Rspack lockfile format and cache filenames.
-const cachePath = (directory, resolved) =>
+const cachePath = (directory: string, resolved: string) =>
   path.join(
     directory,
     'http___integrity.example',
@@ -63,9 +65,9 @@ export default cases.map((test) => {
     fs.writeFileSync(contentPath, beforeCache);
   }
   // Resolution and resource reading may request the same URL more than once.
-  const requests = new Map();
+  const requests = new Map<string, Set<string | undefined>>();
   const frozen = test.frozen ?? test.mode !== 'development';
-  return {
+  return defineConfig({
     name: test.name,
     mode: test.mode || 'production',
     target: 'web',
@@ -76,8 +78,9 @@ export default cases.map((test) => {
         cacheLocation: test.cache === false ? false : cacheLocation,
         ...(test.frozen === undefined ? {} : { frozen: test.frozen }),
         upgrade: test.upgrade || false,
-        httpClient: async (request, headers) => {
-          const validators = requests.get(request) || new Set();
+        httpClient: async (request, headers): ReturnType<HttpClient> => {
+          const validators =
+            requests.get(request) || new Set<string | undefined>();
           validators.add(headers['if-none-match']);
           requests.set(request, validators);
           const redirectIndex = redirects.indexOf(request);
@@ -111,9 +114,9 @@ export default cases.map((test) => {
       new DefinePlugin({
         EXPECTED_VALUE: JSON.stringify(test.expected || 'trusted'),
       }),
-      (compiler) => {
+      definePlugin((compiler) => {
         compiler.hooks.done.tap('CheckHttpIntegrity', (stats) => {
-          assert.equal(stats.hasErrors(), Boolean(test.error), test.name);
+          expect(stats.hasErrors(), test.name).toBe(Boolean(test.error));
           const afterLock = fs.existsSync(lockfileLocation)
             ? fs.readFileSync(lockfileLocation, 'utf8')
             : undefined;
@@ -121,64 +124,60 @@ export default cases.map((test) => {
             ? fs.readFileSync(contentPath, 'utf8')
             : undefined;
           if (frozen || test.error) {
-            assert.equal(
+            expect(
               afterLock,
-              beforeLock,
               `${test.name}: lockfile must remain unchanged`,
-            );
-            assert.equal(
+            ).toBe(beforeLock);
+            expect(
               afterCache,
-              beforeCache,
               `${test.name}: cache must remain unchanged`,
-            );
+            ).toBe(beforeCache);
           } else {
-            const updated = JSON.parse(afterLock).entries[url];
+            const updated = JSON.parse(afterLock!).entries[url];
             if (test.noCache) {
-              assert.equal(updated, 'no-cache');
+              expect(updated).toBe('no-cache');
             } else {
-              assert.equal(
-                updated.integrity,
+              expect(updated.integrity).toBe(
                 integrity(source(test.expected || 'trusted')),
               );
-              assert.equal(updated.resolved, redirects.at(-1) || resolved);
-              assert.equal(
+              expect(updated.resolved).toBe(redirects.at(-1) || resolved);
+              expect(
                 fs.readFileSync(
                   cachePath(cacheLocation, updated.resolved),
                   'utf8',
                 ),
-                source(test.expected || 'trusted'),
-              );
+              ).toBe(source(test.expected || 'trusted'));
             }
           }
           if (
             (beforeCache !== undefined && !test.upgrade && !test.lockAt) ||
             test.invalidLockfile
           ) {
-            assert.equal(
+            expect(
               requests.size,
-              0,
               `${test.name}: unexpected network request`,
-            );
+            ).toBe(0);
           } else {
-            assert.ok(
-              requests.size > 0,
+            expect(
+              requests.size,
               `${test.name}: expected a network request`,
-            );
+            ).toBeGreaterThan(0);
           }
           if (test.requests) {
-            assert.deepEqual(
+            expect(
               requests,
+              `${test.name}: unexpected request URLs or validators`,
+            ).toEqual(
               new Map(
                 test.requests.map(([request, etag]) => [
                   new URL(request, url).href,
                   new Set([etag]),
                 ]),
               ),
-              `${test.name}: unexpected request URLs or validators`,
             );
           }
         });
-      },
+      }),
     ],
-  };
+  });
 });
