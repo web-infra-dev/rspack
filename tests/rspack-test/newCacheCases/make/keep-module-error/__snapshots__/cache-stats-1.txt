@@ -3,6 +3,10 @@
     "module build cache": {
       "hits": 2,
       "total": 3
+    },
+    "resolver cache": {
+      "hits": 7,
+      "total": 7
     }
   }
 ]

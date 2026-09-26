@@ -12,6 +12,10 @@
       "hits": 0,
       "total": 2
     },
+    "resolver cache": {
+      "hits": 2,
+      "total": 6
+    },
     "source map persistent cache": {
       "hits": 0,
       "total": 2

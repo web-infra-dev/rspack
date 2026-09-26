@@ -251,15 +251,21 @@ impl ContextModuleFactory {
         let mut loader_result = Vec::with_capacity(loaders.len());
         let loader_resolver = self.get_loader_resolver();
         for loader_request in loaders {
-          let resolve_result = loader_resolver
-            .resolve(data.context.as_ref(), loader_request)
-            .await
-            .to_rspack_result_with_message(|e| {
-              format!(
-                "Failed to resolve loader: {loader_request} in {} {e}",
-                data.context
-              )
-            })?;
+          let (result, dependencies) = loader_resolver
+            .resolve_with_context(data.context.as_ref(), loader_request)
+            .await;
+          data
+            .file_dependencies
+            .extend(dependencies.file_dependencies);
+          data
+            .missing_dependencies
+            .extend(dependencies.missing_dependencies);
+          let resolve_result = result.to_rspack_result_with_message(|e| {
+            format!(
+              "Failed to resolve loader: {loader_request} in {} {e}",
+              data.context
+            )
+          })?;
           match resolve_result {
             ResolveResult::Resource(resource) => {
               let resource = resource.full_path();
