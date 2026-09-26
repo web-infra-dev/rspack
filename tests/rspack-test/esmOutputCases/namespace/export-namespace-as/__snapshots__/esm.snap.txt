@@ -1,16 +1,14 @@
-```mjs title=main.mjs
-import { __webpack_require__ } from "./runtime.mjs";
-// NAMESPACE OBJECT: ./dep.js
-var dep_namespaceObject = {};
-__webpack_require__.r(dep_namespaceObject);
-__webpack_require__.d(dep_namespaceObject, { 
-  bar: () => (bar),
-  foo: () => (foo) });
-
-
+```mjs title=dep_js.mjs
 // ./dep.js
 const foo = "foo1";
 const bar = "bar1";
+
+export { bar, foo };
+
+```
+
+```mjs title=main.mjs
+export * as dep from "./dep_js.mjs";
 
 // ./index.js
 
@@ -22,43 +20,5 @@ it("should export a local namespace with direct export-star-as syntax", async ()
   expect(mod.dep.bar).toBe("bar1");
 });
 
-export { dep_namespaceObject as dep };
-
-```
-
-```mjs title=runtime.mjs
-// The require scope
-var __webpack_require__ = {};
-
-// webpack/runtime/define_property_getters
-(() => {
-__webpack_require__.d = (exports, getters, values) => {
-	var define = (defs, kind) => {
-		for(var key in defs) {
-			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
-				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
-			}
-		}
-	};
-	define(getters, "get");
-	define(values, "value");
-};
-})();
-// webpack/runtime/has_own_property
-(() => {
-__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
-})();
-// webpack/runtime/make_namespace_object
-(() => {
-// define __esModule on exports
-__webpack_require__.r = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
-};
-})();
-
-export { __webpack_require__ };
 
 ```

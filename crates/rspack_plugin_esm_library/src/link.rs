@@ -610,6 +610,16 @@ impl EsmLibraryPlugin {
       );
     }
 
+    // Decide eligibility before linking mutates exports or interop state.
+    self
+      .entry_namespace_exports
+      .borrow_mut()
+      .retain_valid_targets(
+        compilation,
+        &concate_modules_map,
+        &self.all_dyn_targets.borrow(),
+      );
+
     let mut binding_resolver = ConcatenationBindingResolver {
       context: &concatenation_context,
       module_to_info_map: &mut concate_modules_map,
@@ -630,19 +640,18 @@ impl EsmLibraryPlugin {
 
     // link imported specifier with exported symbol
     let mut needed_namespace_objects_by_ukey = FxHashMap::default();
-    diagnostics.extend(self.link_imports_and_exports(
+    let (link_diagnostics, mut exports) = self.link_imports_and_exports(
       compilation,
       &mut binding_resolver,
       &mut link,
       &runtime_chunks_exporting_require_via_runtime_module,
       &mut needed_namespace_objects_by_ukey,
-    ));
+    );
+    diagnostics.extend(link_diagnostics);
 
     let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
     let mut namespace_re_export_star_cache = IdentifierMap::default();
-    for (ukey, mut needed_namespace_objects) in needed_namespace_objects_by_ukey {
-      let chunk_link = link.get_mut_unwrap(&ukey);
-
+    for (_, mut needed_namespace_objects) in needed_namespace_objects_by_ukey {
       // webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
       // at the same time, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1514
       // Process the insertion-ordered set as a worklist. Newly discovered namespace objects are
@@ -660,6 +669,12 @@ impl EsmLibraryPlugin {
             .copied()
             .expect("index is within the current worklist");
           let module_info_id = &module_info_id;
+          if namespace_object_sources.contains_key(module_info_id) {
+            continue;
+          }
+          // Namespace objects are emitted in their owner's chunk, not the importing chunk.
+          let namespace_chunk = Self::get_module_chunk(*module_info_id, compilation)?;
+          let chunk_link = link.get_mut_unwrap(&namespace_chunk);
 
           let module_info = binding_resolver.module_to_info_map[module_info_id].as_concatenated();
           let mut runtime_template = compilation.runtime_template.create_module_code_template();
@@ -720,6 +735,36 @@ impl EsmLibraryPlugin {
                   .get(&symbol_binding.module);
                 if matches!(target_info, Some(ModuleInfo::External(_))) {
                   chunk_link.imports.entry(symbol_binding.module).or_default();
+                } else if module_graph
+                  .module_by_identifier(&symbol_binding.module)
+                  .is_some_and(|module| module.as_external_module().is_none())
+                  && let target_chunk = Self::get_module_chunk(symbol_binding.module, compilation)?
+                  && target_chunk != namespace_chunk
+                {
+                  // Getter bindings are resolved after ordinary references have been linked.
+                  // Add their cross-chunk transport too, reusing existing exports and imports.
+                  let exported = Self::add_chunk_export(
+                    target_chunk,
+                    symbol_binding.symbol.clone(),
+                    symbol_binding.symbol.clone(),
+                    &mut exports,
+                    false,
+                  )
+                  .expect("non-strict export can be renamed");
+                  let local = chunk_link
+                    .imports
+                    .entry(symbol_binding.module)
+                    .or_default()
+                    .entry(exported)
+                    .or_insert_with(|| {
+                      chunk_link.name_allocator.find_new_name(
+                        &symbol_binding.symbol,
+                        binding_resolver
+                          .context
+                          .module_identifier(&symbol_binding.module),
+                      )
+                    });
+                  symbol_binding.symbol = local.clone();
                 } else if symbol_binding.ids.is_empty()
                   && matches!(target_info, Some(ModuleInfo::Concatenated(_)))
                 {
@@ -932,6 +977,12 @@ var {} = {{}};
       let chunk = Self::get_module_chunk(module, compilation)?;
       let chunk_link = link.get_mut_unwrap(&chunk);
       chunk_link.namespace_object_sources.insert(module, source);
+    }
+
+    for (chunk, exports) in exports {
+      let chunk_link = link.get_mut_unwrap(&chunk);
+      *chunk_link.exports_mut() = exports.exports;
+      *chunk_link.re_exports_mut() = exports.re_exports;
     }
 
     let mut links = self.links.borrow_mut();
@@ -1877,6 +1928,37 @@ var {} = {{}};
           continue;
         }
 
+        let namespace_target = self
+          .entry_namespace_exports
+          .borrow()
+          .exports
+          .get(&(entry_module, name.clone()))
+          .copied();
+        if let Some(namespace_target) = namespace_target {
+          let target_chunk = Self::get_module_chunk(namespace_target, compilation)
+            .expect("validated namespace target");
+
+          if target_chunk != entry_chunk {
+            let exports_context = exports.get_mut_unwrap(&entry_chunk);
+            if !exports_context.exported_symbols.insert(name.clone()) {
+              errors.push(
+                rspack_error::error!(
+                  "Entry {entry_module} has conflict exports: {name} has already been exported"
+                )
+                .into(),
+              );
+              continue;
+            }
+            link
+              .get_mut_unwrap(&entry_chunk)
+              .namespace_re_exports
+              .entry(target_chunk)
+              .or_default()
+              .insert(name);
+            continue;
+          }
+        }
+
         let chunk_link = link.get_mut_unwrap(&current_chunk);
         let Some(binding) = self.get_binding(
           None,
@@ -2115,7 +2197,7 @@ var {} = {{}};
     link: &mut FxHashMap<ChunkUkey, ChunkLinkContext>,
     runtime_chunks_exporting_require_via_runtime_module: &FxHashSet<ChunkUkey>,
     needed_namespace_objects_by_ukey: &mut FxHashMap<ChunkUkey, IdentifierIndexSet>,
-  ) -> Vec<Diagnostic> {
+  ) -> (Vec<Diagnostic>, FxHashMap<ChunkUkey, ExportsContext>) {
     let mut errors = vec![];
     let module_graph = binding_resolver.context.module_graph;
 
@@ -2143,6 +2225,42 @@ var {} = {{}};
 
     // const symbol = __rspack_require(module);
     let mut required = FxHashMap::<ChunkUkey, IdentifierIndexMap<ExternalInterop>>::default();
+
+    // A native namespace re-export exposes the target chunk's ESM namespace. Link the
+    // target roots first so their canonical public export names are established before
+    // an entry's additional named re-exports are linked through the same chunk.
+    let namespace_targets = {
+      let state = self.entry_namespace_exports.borrow();
+      let mut targets = state.targets.iter().copied().collect::<Vec<_>>();
+      targets.sort_unstable();
+      targets
+    };
+    for namespace_target in namespace_targets {
+      let target_chunk =
+        Self::get_module_chunk(namespace_target, compilation).expect("validated namespace target");
+      let needed_namespace = needed_namespace_objects_by_ukey
+        .entry(target_chunk)
+        .or_default();
+      let target_imports = imports.entry(target_chunk).or_default();
+      target_imports.entry(namespace_target).or_default();
+      let required = required.entry(target_chunk).or_default();
+
+      errors.extend(self.link_entry_module_exports(
+        namespace_target,
+        target_chunk,
+        target_chunk,
+        compilation,
+        binding_resolver,
+        required,
+        link,
+        needed_namespace,
+        target_imports,
+        &mut exports,
+        false,
+        false,
+        &mut re_export_star_cache,
+      ));
+    }
 
     // link entry direct exports
     for (entry_name, entrypoint_ukey) in compilation.build_chunk_graph_artifact.entrypoints.iter() {
@@ -2290,7 +2408,7 @@ var {} = {{}};
     }
 
     if let Some(root) = &self.preserve_modules {
-      let preserve_entry_modules = compilation
+      let mut preserve_entry_modules = compilation
         .entries
         .values()
         .flat_map(|entry| entry.all_dependencies())
@@ -2298,6 +2416,14 @@ var {} = {{}};
         .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
         .copied()
         .collect::<FxHashSet<_>>();
+      preserve_entry_modules.extend(
+        self
+          .entry_namespace_exports
+          .borrow()
+          .targets
+          .iter()
+          .copied(),
+      );
 
       let mut preserve_modules = module_graph.modules_keys().copied().collect::<Vec<_>>();
       preserve_modules.sort_unstable();
@@ -2889,11 +3015,6 @@ var {} = {{}};
     }
 
     // put result into chunk_link context
-    for (chunk, exports) in exports {
-      let link = link.get_mut(&chunk).expect("should have chunk");
-      *link.exports_mut() = exports.exports;
-      *link.re_exports_mut() = exports.re_exports;
-    }
     for (chunk, imports) in imports {
       link.get_mut(&chunk).expect("should have chunk").imports = imports;
     }
@@ -2901,7 +3022,7 @@ var {} = {{}};
       link.get_mut(&chunk).expect("should have chunk").required = required;
     }
 
-    errors
+    (errors, exports)
   }
 
   // the final name is the exact symbol in ref chunk
