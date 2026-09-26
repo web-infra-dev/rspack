@@ -10,8 +10,8 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use swc_core::common::util::take::Take;
 use tracing::instrument;
 
-use self::glob::ContextModuleGlobMatcher;
 pub use self::glob::{CompiledContextModuleGlobRequest, compile_context_module_glob_request};
+use self::glob::{ContextModuleGlobMatcher, resolve_context_module_glob_alias};
 use crate::{
   CompilationId, ContextElementDependency, ContextMode, ContextModule, ContextModuleOptions,
   ContextModulePattern, DependencyCategory, DependencyId, DependencyRef, DependencyType, ModuleExt,
@@ -312,6 +312,19 @@ impl ContextModuleFactory {
         dependency_options.pattern = before_resolve_data.pattern.clone();
         if !is_glob {
           dependency_options.context = context.clone();
+        } else if !specifier.starts_with('.')
+          && !specifier.starts_with('/')
+          && let Some(request) = parse_resource(&specifier)
+          && let ContextModulePattern::Glob(patterns) = &dependency_options.pattern
+        {
+          dependency_options.pattern =
+            ContextModulePattern::Glob(resolve_context_module_glob_alias(
+              patterns,
+              request.path.as_str(),
+              resource.path.as_str(),
+              dependency_options.context.as_str(),
+              dependency_options.compiler_context.as_str(),
+            ));
         }
 
         let options = ContextModuleOptions {
