@@ -18,7 +18,7 @@ use std::{
 
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
-use executor::Executor;
+use executor::{Aggregated, Executor};
 pub use ignored::{FsWatcherIgnored, IgnoredFn};
 use paths::PathManager;
 use rspack_error::Result;
@@ -46,6 +46,27 @@ pub(crate) struct FsEvent {
   pub path: InternedPath,
   pub kind: FsEventKind,
 }
+
+/// One value of watchpack's `TimeInfoEntries` map (`types/index.d.ts`):
+/// `Entry | OnlySafeTimeEntry | ExistenceOnlyTimeEntry | null`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TimeInfoEntry {
+  Entry {
+    safe_time: u64,
+    timestamp: u64,
+    accuracy: u64,
+  },
+  OnlySafeTimeEntry {
+    safe_time: u64,
+  },
+  /// Known to exist, with no time info (`{}`).
+  ExistenceOnlyTimeEntry,
+  /// A watched path absent on disk.
+  Null,
+}
+
+/// watchpack's `TimeInfoEntries`, as `(path, entry)` rows.
+pub type TimeInfoEntries = Vec<(String, TimeInfoEntry)>;
 
 pub(crate) type EventBatch = Vec<FsEvent>;
 
@@ -114,6 +135,11 @@ pub struct FsWatcher {
   paused: Arc<AtomicBool>,
   trigger: Arc<Mutex<Option<Arc<Trigger>>>>,
   op_tx: mpsc::UnboundedSender<WatcherOp>,
+  /// Shared with the owner thread's [`FsWatcherInner`], so the synchronous
+  /// napi getter can read time info without awaiting the op channel.
+  path_manager: Arc<PathManager>,
+  /// Shared with the executor for the same reason: `getInfo()` drains it.
+  aggregated: Aggregated,
 }
 
 struct FsWatcherInner {
@@ -139,11 +165,12 @@ impl FsWatcher {
     );
     let paused = Arc::new(AtomicBool::new(false));
     let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
+    let aggregated = executor.aggregated();
     let scanner = Scanner::new(tx, Arc::clone(&path_manager));
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
     let inner = FsWatcherInner {
-      path_manager,
+      path_manager: Arc::clone(&path_manager),
       disk_watcher,
       executor,
       scanner,
@@ -155,7 +182,23 @@ impl FsWatcher {
       paused,
       trigger,
       op_tx: spawn_owner_thread(inner),
+      path_manager,
+      aggregated,
     }
+  }
+
+  /// watchpack's `aggregatedChanges` / `aggregatedRemovals`, drained: the
+  /// events that arrived since the last aggregated batch, typically while
+  /// paused. Taken, not read, so a rebuild that folds them in through
+  /// `getInfo()` does not see them again as a batch of their own on resume.
+  pub fn take_aggregated(&self) -> (HashSet<String>, HashSet<String>) {
+    let files = std::mem::take(&mut *self.aggregated.lock().expect("aggregated sets poisoned"));
+    (files.changed, files.deleted)
+  }
+
+  /// watchpack's `collectTimeInfoEntries`, as `(fileTimestamps, directoryTimestamps)`.
+  pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
+    self.path_manager.collect_time_info_entries()
   }
 
   /// Starts the file system watcher.
@@ -372,6 +415,8 @@ impl FsWatcherInner {
 
     let watch_patterns = self.analyzer.analyze(self.path_manager.access());
     self.disk_watcher.watch(watch_patterns.into_iter())?;
+    self.path_manager.record_initial_last_watch_events();
+    self.path_manager.scan_contexts().await;
 
     // Scan AFTER the disk watcher is registered, not before. notify's `watch()`
     // registers the underlying inotify/FSEvents watch synchronously, so once it
@@ -399,7 +444,7 @@ impl FsWatcherInner {
         .metadata()
         .and_then(|m| m.modified().or_else(|_| m.created()))
       {
-        self.path_manager.set_file_mtime_if_absent(path, mtime);
+        self.path_manager.set_file_time_if_absent(path, mtime);
       }
     }
   }

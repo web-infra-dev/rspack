@@ -480,6 +480,13 @@ export declare class NativeWatcher {
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   close(): Promise<void>
+  /**
+   * watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
+   * arrived since the last aggregated batch (while paused), drained.
+   */
+  takeAggregated(): NativeWatchResult
+  /** watchpack's `collectTimeInfoEntries`, over every registered path. */
+  collectTimeInfoEntries(): NativeTimeInfoEntries
   pause(): void
 }
 
@@ -1820,6 +1827,25 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean
+}
+
+export interface NativeTimeInfoEntries {
+  fileTimestamps: Array<NativeTimeInfoEntry>
+  directoryTimestamps: Array<NativeTimeInfoEntry>
+}
+
+/**
+ * One row of watchpack's `TimeInfoEntries`, flattened for napi: a file's
+ * `Entry` carries all three times, a directory's `OnlySafeTimeEntry` only
+ * `safe_time`, an `ExistenceOnlyTimeEntry` sets `existence_only`, and `null`
+ * (a watched path absent on disk) carries nothing.
+ */
+export interface NativeTimeInfoEntry {
+  path: string
+  safeTime?: number
+  timestamp?: number
+  accuracy?: number
+  existenceOnly: boolean
 }
 
 export interface NativeWatcherOptions {

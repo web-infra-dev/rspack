@@ -10,7 +10,10 @@ use napi_derive::*;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_paths::InternedPath;
 use rspack_regex::RspackRegex;
-use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions, IgnoredFn};
+use rspack_watcher::{
+  FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions, IgnoredFn, TimeInfoEntries,
+  TimeInfoEntry,
+};
 
 type JsWatcherIgnored = Either4<String, Vec<String>, RspackRegex, ThreadsafeFunction<String, bool>>;
 
@@ -61,6 +64,25 @@ pub struct NativeWatcherOptions {
 pub struct NativeWatchResult {
   pub changed_files: Vec<String>,
   pub removed_files: Vec<String>,
+}
+
+/// One row of watchpack's `TimeInfoEntries`, flattened for napi: a file's
+/// `Entry` carries all three times, a directory's `OnlySafeTimeEntry` only
+/// `safe_time`, an `ExistenceOnlyTimeEntry` sets `existence_only`, and `null`
+/// (a watched path absent on disk) carries nothing.
+#[napi(object)]
+pub struct NativeTimeInfoEntry {
+  pub path: String,
+  pub safe_time: Option<f64>,
+  pub timestamp: Option<f64>,
+  pub accuracy: Option<f64>,
+  pub existence_only: bool,
+}
+
+#[napi(object)]
+pub struct NativeTimeInfoEntries {
+  pub file_timestamps: Vec<NativeTimeInfoEntry>,
+  pub directory_timestamps: Vec<NativeTimeInfoEntry>,
 }
 
 /// A single, undelayed file system event delivered to the `callbackUndelayed`
@@ -167,6 +189,58 @@ impl NativeWatcher {
         .await
         .map_err(|e| napi::Error::from_reason(e.to_string()))
     })
+  }
+
+  /// watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
+  /// arrived since the last aggregated batch (while paused), drained.
+  #[napi]
+  pub fn take_aggregated(&self) -> NativeWatchResult {
+    let (changed_files, removed_files) = self.watcher.take_aggregated();
+    NativeWatchResult {
+      changed_files: changed_files.into_iter().collect(),
+      removed_files: removed_files.into_iter().collect(),
+    }
+  }
+
+  /// watchpack's `collectTimeInfoEntries`, over every registered path.
+  #[napi]
+  pub fn collect_time_info_entries(&self) -> NativeTimeInfoEntries {
+    let (file_timestamps, directory_timestamps) = self.watcher.collect_time_info_entries();
+    let to_js = |entries: TimeInfoEntries| {
+      entries
+        .into_iter()
+        .map(|(path, entry)| {
+          let mut row = NativeTimeInfoEntry {
+            path,
+            safe_time: None,
+            timestamp: None,
+            accuracy: None,
+            existence_only: false,
+          };
+          match entry {
+            TimeInfoEntry::Entry {
+              safe_time,
+              timestamp,
+              accuracy,
+            } => {
+              row.safe_time = Some(safe_time as f64);
+              row.timestamp = Some(timestamp as f64);
+              row.accuracy = Some(accuracy as f64);
+            }
+            TimeInfoEntry::OnlySafeTimeEntry { safe_time } => {
+              row.safe_time = Some(safe_time as f64);
+            }
+            TimeInfoEntry::ExistenceOnlyTimeEntry => row.existence_only = true,
+            TimeInfoEntry::Null => {}
+          }
+          row
+        })
+        .collect::<Vec<_>>()
+    };
+    NativeTimeInfoEntries {
+      file_timestamps: to_js(file_timestamps),
+      directory_timestamps: to_js(directory_timestamps),
+    }
   }
 
   #[napi]
