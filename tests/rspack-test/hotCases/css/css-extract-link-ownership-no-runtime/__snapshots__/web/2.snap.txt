@@ -1,12 +1,13 @@
-# Case css-extract-remove-css: Step 1
+# Case css-extract-link-ownership-no-runtime: Step 2
 
 ## Changed Files
 - app.js
+- style.css
 
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 130
-- Update: main.LAST_HASH.hot-update.js, size: 472
+- Update: main.LAST_HASH.hot-update.js, size: 476
 
 ## Manifest
 
@@ -31,13 +32,13 @@
 #### Changed Content
 ```js
 "use strict";
-self["rspackHotUpdatecss_owned"]("main", {
+self["rspackHotUpdatecss_ownership"]("main", {
 "./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* export default */ const __rspack_default_export = (1);
+/* export default */ const __rspack_default_export = (3);
 
 
 },
@@ -51,3 +52,51 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 }
 );
 ```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./app.js
+- ./style.css
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./app.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./app.js
+- ./style.css
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./app.js
+
+Disposed Callback:
+- ./style.css

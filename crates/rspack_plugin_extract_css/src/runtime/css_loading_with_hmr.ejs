@@ -38,8 +38,8 @@
 	cssRemovedChunkIds.forEach(function (chunkId) {
 		var href = <%- _get_chunk_css_filename %>(chunkId);
 		if (!href) return;
-		var oldTag = extractCssFindStylesheet(href, <%- PUBLIC_PATH %> + href);
-		if (oldTag) extractCssOldTags.push(oldTag);
+		var oldTag = extractCssFindStylesheet(href, <%- PUBLIC_PATH %> + href, chunkId);
+		if (oldTag && oldTag.getAttribute("data-rspack") === extractCssLoadingUniqueName + ":mini-css-chunk-" + chunkId) extractCssOldTags.push(oldTag);
 	});
 	cssChunkIds.forEach(function (chunkId) {
 		var href = <%- _get_chunk_css_filename %>(chunkId);
@@ -47,7 +47,9 @@
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (seen[fullhref]) return;
 		seen[fullhref] = true;
-		var oldTag = extractCssFindStylesheet(href, fullhref);
+		var oldTag = extractCssFindStylesheet(href, fullhref, chunkId);
+		// Framework-owned stylesheets must be updated by their owner.
+		if (oldTag && oldTag.getAttribute("data-rspack") !== extractCssLoadingUniqueName + ":mini-css-chunk-" + chunkId) return;
 		// The manifest is computed from the compilation and also lists chunks this
 		// page never loaded. A missing tag is legitimate only for a chunk that is
 		// actually on the page: an initial chunk gaining its first stylesheet, or

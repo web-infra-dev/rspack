@@ -10,6 +10,7 @@ it("should remove the stylesheet when the chunk loses its css", async () => {
 	expect(value).toBe(1);
 	if (typeof document !== "undefined") {
 		expect(stylesheets().length).toBe(1);
+		stylesheets()[0].setAttribute("data-rspack", "css-owned:mini-css-chunk-main");
 	}
 	await NEXT_HMR();
 	if (typeof document !== "undefined") {

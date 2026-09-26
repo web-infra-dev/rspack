@@ -7,8 +7,8 @@
 - Bundle: bundle.js
 - Bundle: lazy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 60
-- Update: lazy.LAST_HASH.hot-update.js, size: 1223
-- Update: main.LAST_HASH.hot-update.js, size: 6485
+- Update: lazy.LAST_HASH.hot-update.js, size: 1238
+- Update: main.LAST_HASH.hot-update.js, size: 7152
 
 ## Manifest
 
@@ -53,7 +53,7 @@ __webpack_require__.r(__webpack_exports__);
     if(true) {
       (function() {
         var localsJsonString = undefined;
-        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
+        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {"uniqueName":""});
         // only invalidate when locals change
         if (
           module.hot.data &&
@@ -98,11 +98,13 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 // webpack/runtime/css loading
 (() => {
 if (typeof document === "undefined") return;
+var extractCssLoadingUniqueName = "";
 var extractCssCreateStylesheet = function (
 	chunkId, fullhref, oldTag, resolve, reject, fetchPriority
 ) {
 	var linkTag = document.createElement("link");
 
+linkTag.setAttribute("data-rspack", extractCssLoadingUniqueName + ":mini-css-chunk-" + chunkId);
 linkTag.rel = "stylesheet";
 
 linkTag.type = "text/css";
@@ -138,16 +140,20 @@ linkTag.href = fullhref;
           }
 	return linkTag;
 }
-var extractCssFindStylesheet = function (href, fullhref) {
+var extractCssFindStylesheet = function (href, fullhref, chunkId) {
 	var existingLinkTags = document.getElementsByTagName("link");
+	var matchingTag;
 	for (var i = 0; i < existingLinkTags.length; i++) {
 		var tag = existingLinkTags[i];
+		if (tag.rel !== "stylesheet") continue;
+		if (tag.getAttribute("data-rspack") === extractCssLoadingUniqueName + ":mini-css-chunk-" + chunkId) return tag;
 		var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");
 		if (dataHref) {
 			dataHref = dataHref.split('?')[0]
 		}
-		if (tag.rel === "stylesheet" && (dataHref === href || dataHref === fullhref)) return tag;
+		if (!matchingTag && (dataHref === href || dataHref === fullhref)) matchingTag = tag;
 	}
+	if (matchingTag) return matchingTag;
 
 	var existingStyleTags = document.getElementsByTagName("style");
 	for (var i = 0; i < existingStyleTags.length; i++) {
@@ -161,7 +167,7 @@ var extractCssLoadStylesheet = function (chunkId, fetchPriority) {
 	return new Promise(function (resolve, reject) {
 		var href = __webpack_require__.miniCssF(chunkId);
 		var fullhref = __webpack_require__.p + href;
-		if (extractCssFindStylesheet(href, fullhref)) return resolve();
+		if (extractCssFindStylesheet(href, fullhref, chunkId)) return resolve();
 		extractCssCreateStylesheet(chunkId, fullhref, null, resolve, reject, fetchPriority);
 	})
 }
@@ -232,8 +238,8 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 	cssRemovedChunkIds.forEach(function (chunkId) {
 		var href = __webpack_require__.miniCssF(chunkId);
 		if (!href) return;
-		var oldTag = extractCssFindStylesheet(href, __webpack_require__.p + href);
-		if (oldTag) extractCssOldTags.push(oldTag);
+		var oldTag = extractCssFindStylesheet(href, __webpack_require__.p + href, chunkId);
+		if (oldTag && oldTag.getAttribute("data-rspack") === extractCssLoadingUniqueName + ":mini-css-chunk-" + chunkId) extractCssOldTags.push(oldTag);
 	});
 	cssChunkIds.forEach(function (chunkId) {
 		var href = __webpack_require__.miniCssF(chunkId);
@@ -241,7 +247,9 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 		var fullhref = __webpack_require__.p + href;
 		if (seen[fullhref]) return;
 		seen[fullhref] = true;
-		var oldTag = extractCssFindStylesheet(href, fullhref);
+		var oldTag = extractCssFindStylesheet(href, fullhref, chunkId);
+		// Framework-owned stylesheets must be updated by their owner.
+		if (oldTag && oldTag.getAttribute("data-rspack") !== extractCssLoadingUniqueName + ":mini-css-chunk-" + chunkId) return;
 		// The manifest is computed from the compilation and also lists chunks this
 		// page never loaded. A missing tag is legitimate only for a chunk that is
 		// actually on the page: an initial chunk gaining its first stylesheet, or
