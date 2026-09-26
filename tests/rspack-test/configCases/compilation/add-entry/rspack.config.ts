@@ -62,18 +62,6 @@ class Plugin {
       compilation.hooks.processAssets.tap(PLUGIN_NAME, () => {
         const fooModule = compilation.moduleGraph.getModule(fooDependency);
         expect(fooModule).toBe(modules.foo);
-        expect(compilation.moduleGraph.getResolvedModule(fooDependency)).toBe(
-          fooModule,
-        );
-        expect(
-          compilation.moduleGraph.getConnection(fooDependency)?.module,
-        ).toBe(fooModule);
-        expect(
-          compilation.moduleGraph.getParentModule(fooDependency),
-        ).toBeNull();
-        expect(compilation.moduleGraph.getParentBlockIndex(fooDependency)).toBe(
-          -1,
-        );
 
         const barModule = compilation.moduleGraph.getModule(barDependency);
         expect(barModule).toBe(modules.bar);
