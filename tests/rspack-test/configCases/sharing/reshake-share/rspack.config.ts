@@ -1,16 +1,19 @@
 import path from 'node:path';
-import { sharing } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import { sharing, type Compiler, type SharedObject } from '@rspack/core';
 
 const { ProvideSharedPlugin, TreeShakingSharedPlugin } = sharing;
 
 // Mimic @module-federation/rspack, whose explicit plugin name differs from its
 // constructor name. The plugin must not be inherited by shared child compilers.
 const RspackModuleFederationPlugin = class ModuleFederationPlugin {
+  declare name: string;
+
   constructor() {
     this.name = 'RspackModuleFederationPlugin';
   }
 
-  apply(compiler) {
+  apply(compiler: Compiler) {
     if (compiler.options.name === 'mf-shared-compiler') {
       throw new Error(
         'RspackModuleFederationPlugin should not be applied to shared child compilers',
@@ -19,7 +22,7 @@ const RspackModuleFederationPlugin = class ModuleFederationPlugin {
   }
 };
 
-const shared = {
+const shared: SharedObject = {
   'ui-lib': {
     version: '1.0.0',
     treeShaking: {
@@ -38,13 +41,11 @@ const shared = {
   },
 };
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   externals: {
     fs: 'node-commonjs fs',
     path: 'node-commonjs path',
   },
-  // entry:'./index.js',
   optimization: {
     minimize: true,
     chunkIds: 'named',
@@ -87,4 +88,4 @@ export default {
       },
     }),
   ],
-};
+});

@@ -1,7 +1,7 @@
 import path from 'node:path';
+import { defineConfig, definePlugin } from '@rspack/cli';
 
-/**@type {import('@rspack/core').Configuration} */
-const config = {
+export default defineConfig({
   context: import.meta.dirname,
   mode: 'development',
   output: {
@@ -16,7 +16,7 @@ const config = {
   },
   externalsType: 'module',
   externals: function ({ request }) {
-    if (request.includes('value')) {
+    if (request?.includes('value')) {
       // make '../modern-module-reexport-star/value' and './value'
       // the same request
       return path.resolve(import.meta.dirname, './value.js');
@@ -28,13 +28,13 @@ const config = {
     minimize: false,
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
         compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
           compilation.hooks.processAssets.tap('MyPlugin', (assets) => {
-            let list = Object.keys(assets);
+            const list = Object.keys(assets);
             const js = list.find((item) => item.includes('foo.js'));
-            const jsContent = assets[js].source().toString();
+            const jsContent = assets[js!].source().toString();
             expect(
               // should make sure no default property access for default ExportsType
               jsContent,
@@ -42,8 +42,6 @@ const config = {
           });
         });
       },
-    },
+    }),
   ],
-};
-
-export default config;
+});
