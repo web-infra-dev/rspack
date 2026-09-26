@@ -1,12 +1,11 @@
 import path from 'node:path';
+import { defineConfig } from '@rspack/cli';
+import type { Compiler, Module } from '@rspack/core';
 
 const PLUGIN_NAME = 'Plugin';
 
 class Plugin {
-  /**
-   * @param {import("@rspack/core").Compiler} compiler
-   */
-  apply(compiler) {
+  apply(compiler: Compiler) {
     const { EntryPlugin } = compiler.rspack;
 
     const fooDependency = EntryPlugin.createDependency(
@@ -16,12 +15,12 @@ class Plugin {
       path.resolve(import.meta.dirname, 'bar.js'),
     );
 
-    const modules = {};
+    const modules: Record<string, Module | undefined> = {};
 
-    compiler.hooks.make.tapPromise(PLUGIN_NAME, (compilation) => {
+    compiler.hooks.make.tapPromise(PLUGIN_NAME, async (compilation) => {
       const tasks = [];
       tasks.push(
-        new Promise((resolve, reject) => {
+        new Promise<void>((resolve, reject) => {
           compilation.addEntry(
             compiler.context,
             fooDependency,
@@ -38,7 +37,7 @@ class Plugin {
         }),
       );
       tasks.push(
-        new Promise((resolve, reject) => {
+        new Promise<void>((resolve, reject) => {
           compilation.addEntry(
             compiler.context,
             barDependency,
@@ -56,13 +55,25 @@ class Plugin {
           );
         }),
       );
-      return Promise.all(tasks);
+      await Promise.all(tasks);
     });
 
     compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
       compilation.hooks.processAssets.tap(PLUGIN_NAME, () => {
         const fooModule = compilation.moduleGraph.getModule(fooDependency);
         expect(fooModule).toBe(modules.foo);
+        expect(compilation.moduleGraph.getResolvedModule(fooDependency)).toBe(
+          fooModule,
+        );
+        expect(
+          compilation.moduleGraph.getConnection(fooDependency)?.module,
+        ).toBe(fooModule);
+        expect(
+          compilation.moduleGraph.getParentModule(fooDependency),
+        ).toBeNull();
+        expect(compilation.moduleGraph.getParentBlockIndex(fooDependency)).toBe(
+          -1,
+        );
 
         const barModule = compilation.moduleGraph.getModule(barDependency);
         expect(barModule).toBe(modules.bar);
@@ -71,10 +82,9 @@ class Plugin {
   }
 }
 
-/**@type {import("@rspack/core").Configuration}*/
-export default {
+export default defineConfig({
   output: {
     filename: '[name].js',
   },
   plugins: [new Plugin()],
-};
+});

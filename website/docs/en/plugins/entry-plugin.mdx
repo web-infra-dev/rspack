@@ -20,6 +20,8 @@ export default {
 };
 ```
 
+For plugins that add modules with `compilation.addEntry` or `compilation.addInclude`, `EntryPlugin.createDependency(request)` creates an `EntryDependency`. You can pass this dependency to `compilation.moduleGraph.getModule(dependency)` to look up the module during a later compilation stage, such as `processAssets`. The `getResolvedModule`, `getConnection`, `getParentModule`, and `getParentBlockIndex` methods also accept `EntryDependency` alongside regular `Dependency` objects.
+
 ## Options
 
 ### context

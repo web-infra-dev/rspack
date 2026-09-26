@@ -1,16 +1,15 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import { defineConfig } from '@rspack/cli';
+import type { Compiler, Module, NormalModule } from '@rspack/core';
 
 const PLUGIN_NAME = 'plugin';
 
 class Plugin {
-  /**
-   * @param {import("@rspack/core").Compiler} compiler
-   */
-  apply(compiler) {
+  apply(compiler: Compiler) {
     const { EntryPlugin, EntryDependency } = compiler.rspack;
 
-    const modules = {};
+    const modules: Record<string, Module> = {};
 
     const fooDependency = EntryPlugin.createDependency(
       path.resolve(import.meta.dirname, 'foo.js'),
@@ -21,7 +20,7 @@ class Plugin {
 
     expect(fooDependency instanceof EntryDependency).toBeTruthy();
 
-    compiler.hooks.finishMake.tapPromise(PLUGIN_NAME, (compilation) => {
+    compiler.hooks.finishMake.tapPromise(PLUGIN_NAME, async (compilation) => {
       const tasks = [];
       tasks.push(
         new Promise((resolve, reject) => {
@@ -34,10 +33,11 @@ class Plugin {
                 reject(err);
                 return;
               }
-              const exportsInfo =
-                compilation.moduleGraph.getExportsInfo(module);
+              const exportsInfo = compilation.moduleGraph.getExportsInfo(
+                module!,
+              );
               exportsInfo.setUsedInUnknownWay('main');
-              modules['foo'] = module;
+              modules['foo'] = module!;
               resolve(module);
             },
           );
@@ -54,10 +54,11 @@ class Plugin {
                 reject(err);
                 return;
               }
-              const exportsInfo =
-                compilation.moduleGraph.getExportsInfo(module);
+              const exportsInfo = compilation.moduleGraph.getExportsInfo(
+                module!,
+              );
               exportsInfo.setUsedInUnknownWay('main');
-              modules['bar'] = module;
+              modules['bar'] = module!;
               resolve(module);
             },
           );
@@ -72,16 +73,16 @@ class Plugin {
             ),
             {},
             (err, module) => {
-              expect(err.message).toMatch(/Can't resolve/);
+              expect(err?.message).toMatch(/Can't resolve/);
               resolve(module);
             },
           );
         }),
       );
-      return Promise.all(tasks);
+      await Promise.all(tasks);
     });
 
-    const manifest = {};
+    const manifest: Record<string, string | number | null> = {};
     compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
       compilation.hooks.processAssets.tap(PLUGIN_NAME, () => {
         for (const [key, module] of Object.entries(modules)) {
@@ -98,12 +99,12 @@ class Plugin {
         );
 
         const fooModule = compilation.moduleGraph.getModule(fooDependency);
-        expect(path.normalize(fooModule.request)).toBe(
+        expect(path.normalize((fooModule as NormalModule).request)).toBe(
           path.resolve(import.meta.dirname, './foo.js'),
         );
 
         const barModule = compilation.moduleGraph.getModule(barDependency);
-        expect(path.normalize(barModule.request)).toBe(
+        expect(path.normalize((barModule as NormalModule).request)).toBe(
           path.resolve(import.meta.dirname, './bar.js'),
         );
       });
@@ -111,8 +112,7 @@ class Plugin {
   }
 }
 
-/**@type {import("@rspack/core").Configuration}*/
-export default {
+export default defineConfig({
   entry: './index.js',
   plugins: [new Plugin()],
-};
+});
