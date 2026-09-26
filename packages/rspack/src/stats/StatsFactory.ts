@@ -82,12 +82,19 @@ type CacheKey = keyof Hooks;
 
 type Cache = Record<CacheKey, CacheHookMap>;
 
+type ItemTypes = {
+  itemType: string;
+  innerTypeByItemName: Map<string, string>;
+};
+
 export class StatsFactory {
   hooks: Hooks;
 
   private _caches: Cache;
 
   private _inCreate: boolean;
+
+  private _itemTypes: Map<string, ItemTypes>;
 
   constructor() {
     this.hooks = Object.freeze({
@@ -179,6 +186,19 @@ export class StatsFactory {
 
     this._caches = caches;
     this._inCreate = false;
+    this._itemTypes = new Map();
+  }
+
+  // The item types of an array are built once per array type rather than once per item:
+  // every item's type is looked up in several hook caches, and a freshly built string has
+  // to be hashed again for each lookup.
+  private _getItemTypes(type: string) {
+    let itemTypes = this._itemTypes.get(type);
+    if (itemTypes === undefined) {
+      itemTypes = { itemType: `${type}[]`, innerTypeByItemName: new Map() };
+      this._itemTypes.set(type, itemTypes);
+    }
+    return itemTypes;
   }
 
   _getAllLevelHooks(hookMap: HookMap<any>, cache: CacheHookMap, type: string) {
@@ -305,6 +325,7 @@ export class StatsFactory {
       );
 
       // for each item
+      const itemTypes = this._getItemTypes(type);
       let resultItems = items2.map((item, i) => {
         const itemContext: {
           [key: string]: any;
@@ -319,11 +340,19 @@ export class StatsFactory {
         const itemName = this._forEachLevel(
           this.hooks.getItemName,
           this._caches.getItemName,
-          `${type}[]`,
+          itemTypes.itemType,
           (h) => h.call(item, itemContext),
         );
-        if (itemName) itemContext[itemName] = item;
-        const innerType = itemName ? `${type}[].${itemName}` : `${type}[]`;
+        let innerType = itemTypes.itemType;
+        if (itemName) {
+          itemContext[itemName] = item;
+          let namedType = itemTypes.innerTypeByItemName.get(itemName);
+          if (namedType === undefined) {
+            namedType = `${itemTypes.itemType}.${itemName}`;
+            itemTypes.innerTypeByItemName.set(itemName, namedType);
+          }
+          innerType = namedType;
+        }
 
         // run getItemFactory
         const itemFactory =
