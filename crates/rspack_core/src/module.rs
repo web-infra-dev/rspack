@@ -144,13 +144,21 @@ impl CanonicalizedDataUrlOption {
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CssExport {
+  /// Parts concatenate verbatim within a value; composed values are space-separated.
+  pub parts: Vec<CssExportPart>,
+  #[cacheable(with=AsPreset)]
+  pub orig_name: SmolStr,
+}
+
+/// Aliases and compositions copy parts while retaining the original dependency identity.
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CssExportPart {
   #[cacheable(with=AsPreset)]
   pub ident: SmolStr,
   #[cacheable(with=AsOption<AsPreset>)]
   pub from: Option<SmolStr>,
   pub id: Option<DependencyId>,
-  #[cacheable(with=AsPreset)]
-  pub orig_name: SmolStr,
 }
 
 pub type CssExports = FxIndexMap<SmolStr, FxIndexSet<CssExport>>;

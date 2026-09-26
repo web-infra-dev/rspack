@@ -1,0 +1,32 @@
+.externalOnly {
+  composes: token from "./tokens.js";
+}
+
+.selfFirst {
+  composes: selfFirst from "./styles.module.css";
+  composes: token from "./tokens.js";
+}
+
+.externalFirst {
+  composes: token from "./tokens.js";
+  composes: externalFirst from "./styles.module.css";
+}
+
+.indirect {
+  composes: selfFirst from "./styles.module.css";
+}
+
+.cycleA {
+  composes: cycleB from "./styles.module.css";
+  composes: token from "./tokens.js";
+}
+
+.cycleB {
+  composes: cycleA from "./styles.module.css";
+  composes: other from "./tokens.js";
+}
+
+.withCss {
+  composes: withCss from "./styles.module.css";
+  composes: externalCss from "./external.module.css";
+}

@@ -70,7 +70,8 @@ impl Dependency for CssComposeDependency {
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
-    rspack_core::AffectType::True
+    // ICSS values can be inlined through multiple reexports into a consumer's CSS.
+    rspack_core::AffectType::Transitive
   }
 
   fn get_referenced_exports(

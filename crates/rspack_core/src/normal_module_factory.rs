@@ -652,6 +652,11 @@ mod tests {
       match_resource: None,
       side_effects: None,
       context: None,
+      module_options: Arc::new(ResolvedModuleOptions::new(
+        ResolvedModuleOptionsCacheKey::new(&[], ModuleType::JsAuto),
+        None,
+        None,
+      )),
     };
 
     let resource_data = create_data.resource_resolve_data.take_shared();
@@ -1165,6 +1170,7 @@ module.exports = "data:,";
           .map(|d| d.resource().to_owned()),
         side_effects: resolved_side_effects,
         context: resource_data.context().map(|c| c.to_owned()),
+        module_options: resolved_options.clone(),
         resource_resolve_data: NormalModuleCreateDataResource::Owned(resource_data),
       };
       if let Some(plugin_result) = self
@@ -1429,6 +1435,7 @@ async fn resolve_each_with_options(
 
 #[derive(Debug)]
 pub struct NormalModuleCreateData {
+  pub module_options: Arc<ResolvedModuleOptions>,
   pub raw_request: String,
   pub request: String,
   pub user_request: String,

@@ -49,7 +49,7 @@ Object {
   multiple-composes-with-composes: styles_module_css-multiple-composes-with-composes classes_module_css-localName classes_module_css-bar classes_module_css-localName,
   multiple-composes-with-simple: styles_module_css-multiple-composes-with-simple classes_module_css-localName classes_module_css-localNameOther,
   my-custom-color: #2ecc71,
-  my-custom-property-1: --styles_module_css-color --styles_module_css-my-custom-property-1,
+  my-custom-property-1: --styles_module_css-my-custom-property-1,
   my-var-u1: --styles_module_css-my-var-u1,
   only-reexport: styles_module_css-only-reexport classes-deep_module_css-deep-nested-c,
   other-selector: other-selector-value styles_module_css-other-selector,
