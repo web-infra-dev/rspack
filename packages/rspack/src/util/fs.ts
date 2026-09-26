@@ -541,7 +541,7 @@ export type Read<TBuffer extends ArrayBufferView = Buffer> = (
 export type WriteAsyncOptions<TBuffer extends ArrayBufferView = Buffer> = {
   offset?: number;
   length?: number;
-  position?: null | number | bigint;
+  position?: null | number;
   buffer?: TBuffer;
 };
 
