@@ -10,8 +10,12 @@ name                    = "rspack_tasks"
 repository.workspace    = true
 version.workspace       = true
 
+[features]
+goexec = ["dep:goexec"]
+
 [dependencies]
-tokio = { workspace = true }
+goexec = { workspace = true, optional = true }
+tokio  = { workspace = true }
 [lints]
 workspace = true
 
