@@ -20,8 +20,6 @@ export default {
 };
 ```
 
-对于通过 `compilation.addEntry` 或 `compilation.addInclude` 添加模块的插件，可以使用 `EntryPlugin.createDependency(request)` 创建 `EntryDependency`。在 `processAssets` 等后续编译阶段，将该依赖传给 `compilation.moduleGraph.getModule(dependency)` 即可查询对应模块。`getResolvedModule`、`getConnection`、`getParentModule` 和 `getParentBlockIndex` 方法也同时接受 `EntryDependency` 和普通的 `Dependency` 对象。
-
 ## 选项
 
 ### context
