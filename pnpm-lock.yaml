@@ -416,8 +416,8 @@ catalogs:
       specifier: 2.5.2
       version: 2.5.2
     webpack-sources:
-      specifier: 3.5.1
-      version: 3.5.1
+      specifier: 3.5.3
+      version: 3.5.3
     worker-rspack-loader:
       specifier: ^3.1.5
       version: 3.1.5
@@ -443,7 +443,7 @@ catalogs:
       version: 7.0.2
 
 patchedDependencies:
-  webpack-sources@3.5.1: edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561
+  webpack-sources@3.5.3: edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561
 
 importers:
 
@@ -751,7 +751,7 @@ importers:
         version: 2.5.2
       webpack-sources:
         specifier: 'catalog:'
-        version: 3.5.1(patch_hash=edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561)
+        version: 3.5.3(patch_hash=edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561)
 
   packages/rspack-browser:
     dependencies:
@@ -775,7 +775,7 @@ importers:
         version: 4.79.0
       webpack-sources:
         specifier: 'catalog:'
-        version: 3.5.1(patch_hash=edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561)
+        version: 3.5.3(patch_hash=edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561)
 
   packages/rspack-cli:
     devDependencies:
@@ -1208,7 +1208,7 @@ importers:
         version: 1.14.1
       webpack-sources:
         specifier: 'catalog:'
-        version: 3.5.1(patch_hash=edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561)
+        version: 3.5.3(patch_hash=edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561)
       worker-rspack-loader:
         specifier: 'catalog:'
         version: 3.1.5(@rspack/core@packages+rspack)
@@ -7539,8 +7539,8 @@ packages:
     resolution: {integrity: sha512-hXXvrjtx2PLYx4qruKl+kyRSLc52V+cCvMxRjmKwoA+CBbbF5GfIBtR6kCvl0fYGqTUPKB+1ktVmTHqMOzgCBg==}
     engines: {node: '>=18.0.0'}
 
-  webpack-sources@3.5.1:
-    resolution: {integrity: sha512-jyuiGJdtvY434z5bUZrjz67v76/ePNvFZTp9Mdz29IlH4+GPsgyGjiv0fKI+M7BdkU6ADjulUcKAd3tUK3WlEw==}
+  webpack-sources@3.5.3:
+    resolution: {integrity: sha512-F/zS5rEcCKxS6hrhxkLjOzblTsuv89rkuDyP+vToquds6KfPJ3fDqg9UNzbtJcA2AgXZOLMYLQqZpuyE5zDfxg==}
     engines: {node: '>=10.13.0'}
 
   whatwg-mimetype@5.0.0:
@@ -14142,7 +14142,7 @@ snapshots:
       flat: 5.0.2
       wildcard: 2.0.1
 
-  webpack-sources@3.5.1(patch_hash=edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561): {}
+  webpack-sources@3.5.3(patch_hash=edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561): {}
 
   whatwg-mimetype@5.0.0: {}
 
