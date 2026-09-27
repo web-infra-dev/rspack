@@ -422,18 +422,18 @@ export declare class JsLoaderCache {
 }
 
 export declare class JsModuleGraph {
-  getModule(dependency: Dependency): Module | null
-  getResolvedModule(dependency: Dependency): Module | null
+  getModule(dependency: Dependency | EntryDependency): Module | null
+  getResolvedModule(dependency: Dependency | EntryDependency): Module | null
   getUsedExports(module: Module, runtime: string | string[]): boolean | Array<string> | null
   getProvidedExports(module: Module): true | string[] | null
   getIssuer(module: Module): Module | null
   getExportsInfo(module: Module): JsExportsInfo
-  getConnection(dependency: Dependency): ModuleGraphConnection | null
+  getConnection(dependency: Dependency | EntryDependency): ModuleGraphConnection | null
   getOutgoingConnections(module: Module): ModuleGraphConnection[]
   getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[]
   getIncomingConnections(module: Module): ModuleGraphConnection[]
-  getParentModule(dependency: Dependency): Module | null
-  getParentBlockIndex(dependency: Dependency): number
+  getParentModule(dependency: Dependency | EntryDependency): Module | null
+  getParentBlockIndex(dependency: Dependency | EntryDependency): number
   isAsync(module: Module): boolean
 }
 

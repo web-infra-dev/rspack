@@ -1,4 +1,8 @@
-import type { Dependency, JsModuleGraph } from '@rspack/binding';
+import type {
+  Dependency,
+  EntryDependency,
+  JsModuleGraph,
+} from '@rspack/binding';
 import { ExportsInfo } from './ExportsInfo';
 import type { ModuleGraphConnection } from './ModuleGraphConnection';
 import type { Module } from './Module';
@@ -14,11 +18,11 @@ export default class ModuleGraph {
     this.#inner = binding;
   }
 
-  getModule(dependency: Dependency): Module | null {
+  getModule(dependency: Dependency | EntryDependency): Module | null {
     return this.#inner.getModule(dependency);
   }
 
-  getResolvedModule(dependency: Dependency): Module | null {
+  getResolvedModule(dependency: Dependency | EntryDependency): Module | null {
     return this.#inner.getResolvedModule(dependency);
   }
 
@@ -33,7 +37,7 @@ export default class ModuleGraph {
     return this.#inner.getProvidedExports(module);
   }
 
-  getParentModule(dependency: Dependency): Module | null {
+  getParentModule(dependency: Dependency | EntryDependency): Module | null {
     return this.#inner.getParentModule(dependency);
   }
 
@@ -45,7 +49,9 @@ export default class ModuleGraph {
     return ExportsInfo.__from_binding(this.#inner.getExportsInfo(module));
   }
 
-  getConnection(dependency: Dependency): ModuleGraphConnection | null {
+  getConnection(
+    dependency: Dependency | EntryDependency,
+  ): ModuleGraphConnection | null {
     return this.#inner.getConnection(dependency);
   }
 
@@ -57,7 +63,7 @@ export default class ModuleGraph {
     return this.#inner.getIncomingConnections(module);
   }
 
-  getParentBlockIndex(dependency: Dependency): number {
+  getParentBlockIndex(dependency: Dependency | EntryDependency): number {
     return this.#inner.getParentBlockIndex(dependency);
   }
 

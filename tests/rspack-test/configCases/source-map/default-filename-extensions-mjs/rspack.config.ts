@@ -1,12 +1,10 @@
-/** @type {import("@rspack/core").Configuration} */
-export default {
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
   mode: 'development',
   output: {
     filename: 'bundle0.mjs',
     module: true,
   },
-  experiments: {
-    module: true,
-  },
   devtool: 'source-map',
-};
+});

@@ -1,5 +1,6 @@
-/** @type {import("@rspack/core").Configuration} */
-export default {
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
   entry: './index.js',
   module: {
     rules: [
@@ -10,7 +11,4 @@ export default {
       },
     ],
   },
-  experiments: {
-    parallelLoader: true,
-  },
-};
+});

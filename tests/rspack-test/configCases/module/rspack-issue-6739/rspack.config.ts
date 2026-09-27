@@ -1,6 +1,9 @@
-let foo = {},
-  bar = {};
-export default {
+import { defineConfig, definePlugin } from '@rspack/cli';
+
+const foo: { componentIdData?: unknown; scopeData?: unknown } = {};
+const bar: { customKey?: unknown } = {};
+
+export default defineConfig({
   module: {
     rules: [
       {
@@ -32,7 +35,7 @@ export default {
     ],
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
         compiler.hooks.done.tap('_', () => {
           expect(foo.componentIdData).toMatchObject({
@@ -44,6 +47,6 @@ export default {
           expect(bar.customKey).toBe(true);
         });
       },
-    },
+    }),
   ],
-};
+});
