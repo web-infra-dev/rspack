@@ -1751,8 +1751,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let min_available_modules = chunk_group_info.min_available_modules.clone();
 
     if chunk_group_info.resulting_available_modules.is_some() || item.block.as_async().is_some() {
-      // A block can extend a reused physical chunk without adding a parent edge.
-      // Connect runs after this synchronous walk, including all of its dependencies.
+      // Ordinary named imports reuse one group. Defensively cover name collisions
+      // with async entrypoints: their separate group map can reuse the same chunk.
+      // Connect refreshes Out after this walk, including synchronous dependencies.
       for group in compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
