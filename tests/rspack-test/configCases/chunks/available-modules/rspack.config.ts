@@ -18,6 +18,8 @@ const scenarios = [
   'late-addition-with-restore',
   'late-shared-physical-chunk',
   'late-worker-addition',
+  'late-block-same-parent',
+  'late-existing-module',
 ];
 export default scenarios.map((scenario, index) => {
   const retains = [
@@ -50,13 +52,21 @@ export default scenarios.map((scenario, index) => {
       scenario === 'preserve-mask'
         ? "export { value } from './m';"
         : `${scenario === 'late-addition-with-restore' ? "export { value } from './x';" : ''}
+          ${scenario === 'late-existing-module' ? "export { value } from './m';" : ''}
           export const load = () => import(/* webpackChunkName: 'child' */ './child');`,
     'root.js': `export { value } from './x';
       export const load = () => import(/* webpackChunkName: 'parent' */ './parent-a');`,
     'x.js': 'export const value = 43;',
-    'q.js':
-      "export const load = () => import(/* webpackChunkName: 'r' */ './r');",
-    'r.js': `export const load = () => import(/* webpackChunkName: 'parent' */ './parent-b');
+    'q.js': `export const load = () => import(/* webpackChunkName: 'r' */ './r');
+      ${scenario === 'late-block-same-parent' ? "export const parent = () => import(/* webpackChunkName: 'parent' */ './parent-a');" : ''}`,
+    'q-b.js':
+      "export const load = () => import(/* webpackChunkName: 'parent' */ './parent-b');",
+    'r.js': `${
+      scenario === 'late-block-same-parent'
+        ? "export const load = async () => (await import(/* webpackChunkName: 'q' */ './q-b')).load();"
+        : `export const load = () => import(/* webpackChunkName: 'parent' */ './${scenario === 'late-existing-module' ? 'parent-a' : 'parent-b'}');`
+    }
+
       ${scenario === 'late-shared-physical-chunk' ? "export const worker = () => new Worker(/* webpackChunkName: 'parent' */ new URL('./worker', import.meta.url));" : ''}
       ${scenario === 'late-worker-addition' ? "export const worker = () => new Worker(/* webpackChunkName: 'worker' */ new URL('./worker-b', import.meta.url));" : ''}
       ${scenario === 'grow-then-shrink' || scenario === 'two-growing-parents' ? "export const later = () => import(/* webpackChunkName: 's' */ './s');" : ''}`,
