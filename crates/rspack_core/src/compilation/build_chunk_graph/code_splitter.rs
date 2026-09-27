@@ -1669,24 +1669,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     self.stat_processed_blocks += 1;
 
-    // A block can extend a reused physical chunk without adding a parent edge.
-    // Connect runs after this synchronous walk, including all of its dependencies.
-    for group in compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .expect_get(&item.chunk)
-      .groups()
-    {
-      let cgi = self.chunk_group_info_map[group];
-      if self
-        .chunk_group_info(&cgi)
-        .resulting_available_modules
-        .is_some()
-      {
-        self.queue_connect.entry(cgi).or_default();
-      }
-    }
-
     let module_graph = compilation.get_module_graph();
     for dep in &compilation.global_entry.dependencies {
       if let Some(module) = module_graph.module_identifier_by_dependency_id(dep) {
