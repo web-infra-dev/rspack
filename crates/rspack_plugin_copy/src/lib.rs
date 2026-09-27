@@ -393,14 +393,19 @@ impl CopyRspackPlugin {
 
   async fn run_pattern(
     compilation: &Compilation,
-    pattern: &CopyPattern,
-    index: usize,
-    file_dependencies: &FxDashSet<PathBuf>,
-    context_dependencies: &FxDashSet<PathBuf>,
-    missing_dependencies: &FxDashSet<PathBuf>,
-    diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
+    pending: &PendingPattern<'_>,
     logger: &CompilationLogger,
   ) -> Result<Option<Vec<RunPatternResult>>> {
+    let PendingPattern {
+      index,
+      pattern,
+      file_dependencies,
+      context_dependencies,
+      missing_dependencies,
+      diagnostics,
+      ..
+    } = pending;
+    let index = *index;
     let orig_from = &pattern.from;
     let normalized_orig_from = Utf8PathBuf::from(orig_from);
 
@@ -781,18 +786,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   logger.cache_end(cache_counter);
   let pending_results = pending_patterns
     .iter()
-    .map(|pending| {
-      CopyRspackPlugin::run_pattern(
-        compilation,
-        pending.pattern,
-        pending.index,
-        &pending.file_dependencies,
-        &pending.context_dependencies,
-        &pending.missing_dependencies,
-        pending.diagnostics.clone(),
-        &logger,
-      )
-    })
+    .map(|pending| CopyRspackPlugin::run_pattern(compilation, pending, &logger))
     .collect::<FuturesOrdered<_>>()
     .collect::<Vec<_>>()
     .await;
