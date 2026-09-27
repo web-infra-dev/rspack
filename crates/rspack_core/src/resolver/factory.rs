@@ -29,6 +29,10 @@ impl ResolverFactory {
     self.resolver.clear_cache();
   }
 
+  pub fn inner_fs(&self) -> Arc<dyn ReadableFileSystem> {
+    self.resolver.inner_fs()
+  }
+
   pub fn new(options: Resolve, fs: Arc<dyn ReadableFileSystem>) -> Self {
     Self {
       base_options: options.clone(),
