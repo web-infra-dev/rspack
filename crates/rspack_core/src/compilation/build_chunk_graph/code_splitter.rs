@@ -237,15 +237,11 @@ impl ChunkGroupInfo {
   }
 
   fn calculate_resulting_available_modules(
-    &mut self,
+    &self,
     chunk_group: &ChunkGroup,
     chunk_graph: &ChunkGraph,
     ordinal_by_module: &IdentifierMap<u64>,
-  ) {
-    if self.resulting_available_modules.is_some() {
-      return;
-    }
-
+  ) -> Arc<FixedBitSet> {
     let mut new_resulting_available_modules = self.min_available_modules.as_ref().clone();
 
     // Read ownership from the chunk graph instead of maintaining a second set.
@@ -256,7 +252,7 @@ impl ChunkGroupInfo {
       }
     }
 
-    self.resulting_available_modules = Some(Arc::new(new_resulting_available_modules));
+    Arc::new(new_resulting_available_modules)
   }
 
   fn invalidate_resulting_available_modules(&mut self) {
@@ -2237,25 +2233,24 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .build_chunk_graph_artifact
           .chunk_group_by_ukey
           .expect_get_mut(&chunk_group_ukey);
-        let previous = chunk_group_info.resulting_available_modules.take();
-        chunk_group_info.calculate_resulting_available_modules(
+        let resulting_available_modules = chunk_group_info.calculate_resulting_available_modules(
           chunk_group,
           &compilation.build_chunk_graph_artifact.chunk_graph,
           &self.ordinal_by_module,
         );
 
-        if previous.is_some_and(|previous| {
-          chunk_group_info.resulting_available_modules.as_ref() != Some(&previous)
-        }) {
+        if chunk_group_info
+          .resulting_available_modules
+          .as_ref()
+          .is_some_and(|previous| previous != &resulting_available_modules)
+        {
           self.outdated_chunk_group_info.insert(chunk_group_info_ukey);
         }
+        chunk_group_info.resulting_available_modules = Some(resulting_available_modules.clone());
 
         (
           chunk_group_ukey,
-          chunk_group_info
-            .resulting_available_modules
-            .clone()
-            .expect("should have resulting available modules"),
+          resulting_available_modules,
           chunk_group_info.runtime.clone(),
         )
       };
@@ -2556,11 +2551,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .get_mut(source_ukey)
           .unwrap_or_else(|| panic!("ChunkGroupInfo({source_ukey:?}) not found"));
         let source_chunk_group = source.chunk_group;
-        source.calculate_resulting_available_modules(
-          chunk_group_by_ukey.expect_get(&source_chunk_group),
-          &compilation.build_chunk_graph_artifact.chunk_graph,
-          &self.ordinal_by_module,
-        );
+        if source.resulting_available_modules.is_none() {
+          source.resulting_available_modules = Some(source.calculate_resulting_available_modules(
+            chunk_group_by_ukey.expect_get(&source_chunk_group),
+            &compilation.build_chunk_graph_artifact.chunk_graph,
+            &self.ordinal_by_module,
+          ));
+        }
         source
           .resulting_available_modules
           .clone()
@@ -2575,11 +2572,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .get_mut(&source_ukey)
             .unwrap_or_else(|| panic!("ChunkGroupInfo({source_ukey:?}) not found"));
           let source_chunk_group = source.chunk_group;
-          source.calculate_resulting_available_modules(
-            chunk_group_by_ukey.expect_get(&source_chunk_group),
-            &compilation.build_chunk_graph_artifact.chunk_graph,
-            &self.ordinal_by_module,
-          );
+          if source.resulting_available_modules.is_none() {
+            source.resulting_available_modules =
+              Some(source.calculate_resulting_available_modules(
+                chunk_group_by_ukey.expect_get(&source_chunk_group),
+                &compilation.build_chunk_graph_artifact.chunk_graph,
+                &self.ordinal_by_module,
+              ));
+          }
           let resulting_available_modules = source
             .resulting_available_modules
             .as_ref()
@@ -2647,14 +2647,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .chunk_group_infos
           .get_mut(&parent)
           .expect("parent should exist");
-        info.calculate_resulting_available_modules(
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_group_by_ukey
-            .expect_get(&info.chunk_group),
-          &compilation.build_chunk_graph_artifact.chunk_graph,
-          &self.ordinal_by_module,
-        );
+        if info.resulting_available_modules.is_none() {
+          info.resulting_available_modules = Some(
+            info.calculate_resulting_available_modules(
+              compilation
+                .build_chunk_graph_artifact
+                .chunk_group_by_ukey
+                .expect_get(&info.chunk_group),
+              &compilation.build_chunk_graph_artifact.chunk_graph,
+              &self.ordinal_by_module,
+            ),
+          );
+        }
         inputs.push(
           info
             .resulting_available_modules
