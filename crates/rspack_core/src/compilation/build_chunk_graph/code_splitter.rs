@@ -2327,37 +2327,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.stat_chunk_group_info_updated += self.outdated_chunk_group_info.len() as u32;
 
     // Revisit skipped elements
-    let mut outdated_chunk_group_info = std::mem::take(&mut self.outdated_chunk_group_info);
-    let artifact = &compilation.build_chunk_graph_artifact;
-    let mut index = 0;
-    while let Some(&cgi) = outdated_chunk_group_info.get_index(index) {
-      let info = self.chunk_group_info(&cgi);
-      // Input changes and cache recovery can still restore shared modules.
-      // Connect has already refreshed the consumers of completed block walks.
-      if info.resulting_available_modules.is_none() {
-        for chunk in &artifact
-          .chunk_group_by_ukey
-          .expect_get(&info.chunk_group)
-          .chunks
-        {
-          for group in artifact.chunk_by_ukey.expect_get(chunk).groups() {
-            let consumer = self.chunk_group_info_map[group];
-            if self
-              .chunk_group_info(&consumer)
-              .resulting_available_modules
-              .is_some()
-              && outdated_chunk_group_info.insert(consumer)
-            {
-              self
-                .chunk_group_info_mut(&consumer)
-                .invalidate_resulting_available_modules();
-            }
-          }
-        }
-      }
-      index += 1;
-    }
-
+    let outdated_chunk_group_info = std::mem::take(&mut self.outdated_chunk_group_info);
     for chunk_group_info_ukey in outdated_chunk_group_info {
       let (
         cgi_ukey,
