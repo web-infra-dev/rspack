@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Rspack Memory Optimize'
+  short_description: 'Measure and reduce retained Rspack memory'
+  default_prompt: 'Use $rspack-memory-optimize to investigate and reduce Rspack memory with measured iterations.'
+
+policy:
+  allow_implicit_invocation: true

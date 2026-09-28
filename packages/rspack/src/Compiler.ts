@@ -9,6 +9,10 @@
  */
 
 import { createRequire } from 'node:module';
+import {
+  reportCompilationMemory,
+  startCompilationRssSampler,
+} from './util/memoryReporter';
 import type binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type Watchpack from 'watchpack';
@@ -141,6 +145,8 @@ export const GET_COMPILER_ID = Symbol('getCompilerId');
 class Compiler {
   #instance?: binding.JsCompiler;
   #initial: boolean;
+  #memoryCompilationCount = 0;
+  #memoryPeakRssSampler?: () => number;
 
   #compilation?: Compilation;
   #bindingCompilationMap = new WeakMap<binding.JsCompilation, Compilation>();
@@ -287,6 +293,41 @@ class Compiler {
         return value;
       },
     });
+
+    const memoryReportDir =
+      typeof process !== 'undefined' && process.versions?.node
+        ? process.env.RSPACK_MEMORY_REPORT_DIR
+        : undefined;
+    if (memoryReportDir) {
+      this.hooks.compile.tap('RspackMemoryReporter', () => {
+        this.#memoryPeakRssSampler ??= startCompilationRssSampler();
+      });
+      this.hooks.done.tap(
+        { name: 'RspackMemoryReporter', stage: Number.MAX_SAFE_INTEGER },
+        (stats) => {
+          if (stats.compilation.needAdditionalPass) return;
+          const phase =
+            this.#memoryCompilationCount++ === 0 ? 'build' : 'rebuild';
+          const compilationPeakRssBytes =
+            this.#memoryPeakRssSampler?.() ?? null;
+          this.#memoryPeakRssSampler = undefined;
+          reportCompilationMemory(
+            memoryReportDir,
+            stats,
+            this.#instance?.getRustHeapAllocatorName() === 'jemalloc'
+              ? 'jemalloc'
+              : 'default',
+            this.#instance?.getRustHeapAllocatedBytes() ?? null,
+            phase,
+            compilationPeakRssBytes,
+          );
+        },
+      );
+      this.hooks.failed.tap('RspackMemoryReporter', () => {
+        this.#memoryPeakRssSampler?.();
+        this.#memoryPeakRssSampler = undefined;
+      });
+    }
 
     const compilerRuntimeGlobals = createCompilerRuntimeGlobals(options);
     const compilerFn = function (...params: Parameters<typeof rspackFn>) {
