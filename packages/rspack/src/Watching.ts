@@ -18,7 +18,11 @@ import type {
   TimeInfoEntries,
   Watcher,
 } from './util/fs';
-import { markInternalCallback } from './util/watchTimeInfo';
+import {
+  type ConsumableWatcher,
+  consumeWatcherInfo,
+  markInternalCallback,
+} from './util/watchTimeInfo';
 
 type PendingWatchDelta = { added: Set<string>; removed: Set<string> };
 
@@ -311,8 +315,9 @@ export class Watching {
       this.compiler.fileTimestamps = fileTimeInfoEntries;
       this.compiler.contextTimestamps = contextTimeInfoEntries;
     } else if (this.pausedWatcher) {
+      const watcher: ConsumableWatcher = this.pausedWatcher;
       const { changes, removals, fileTimeInfoEntries, contextTimeInfoEntries } =
-        this.pausedWatcher.getInfo();
+        watcher[consumeWatcherInfo]?.() ?? watcher.getInfo();
       this.#mergeWithCollected(changes, removals);
       this.compiler.fileTimestamps = fileTimeInfoEntries;
       this.compiler.contextTimestamps = contextTimeInfoEntries;

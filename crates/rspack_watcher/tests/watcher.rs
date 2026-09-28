@@ -555,10 +555,10 @@ fn collect_time_info_entries_nulls_a_moved_away_context_and_its_files() {
 }
 
 /// Events that arrive while the watcher is paused are pending, like
-/// watchpack's `aggregatedChanges`: `take_aggregated` hands them over once and
-/// leaves nothing behind for the next batch.
+/// watchpack's `aggregatedChanges`: `aggregated` reports them without
+/// consuming them, so resuming still delivers them as a batch.
 #[test]
-fn take_aggregated_drains_the_events_that_arrived_while_paused() {
+fn aggregated_reports_the_paused_events_without_consuming_them() {
   let mut helper = h!(FsWatcherOptions {
     aggregate_timeout: Some(100),
     ..Default::default()
@@ -580,14 +580,20 @@ fn take_aggregated_drains_the_events_that_arrived_while_paused() {
     );
   }
 
-  let (changed, deleted) = helper.take_aggregated();
-  assert!(
-    changed.contains(helper.join("a").as_str()),
-    "the paused-period edit is pending: {changed:?}"
-  );
-  assert!(deleted.is_empty());
-  let (changed, deleted) = helper.take_aggregated();
-  assert!(changed.is_empty() && deleted.is_empty(), "drained");
+  let edited = helper.join("a");
+  for _ in 0..2 {
+    let (changed, deleted) = helper.aggregated();
+    assert!(
+      changed.contains(edited.as_str()),
+      "the paused-period edit is pending: {changed:?}"
+    );
+    assert!(deleted.is_empty());
+  }
+
+  let rx = helper.watch(e!(), e!(), e!());
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(edited.as_str())
+  });
 }
 
 fn has_time_info_entry(
@@ -762,4 +768,432 @@ fn collect_time_info_entries_scans_a_directory_moved_into_a_context() {
     matches!(nested, TimeInfoEntry::OnlySafeTimeEntry { .. }),
     "its subdirectory is reported: {nested:?}"
   );
+}
+
+/// A file below a context reported changed while its mtime has not moved (a
+/// second write inside one timestamp tick) is still a change: only registered
+/// files are deduplicated by mtime, so the context is notified.
+#[test]
+fn a_context_file_changed_with_the_same_mtime_still_notifies_its_context() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/inner");
+  helper.file("sibling");
+
+  let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+
+  helper.trigger_event("ctx/inner", rspack_watcher::FsEventKind::Change);
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(context.as_str())
+  });
+}
+
+/// A registered context moved away and moved back is scanned again: what it
+/// contains is reported even though none of it produced its own event.
+#[test]
+fn collect_time_info_entries_rescans_a_context_that_reappears() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/inner");
+  helper.file("sibling");
+
+  let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+  let context = helper.join("ctx");
+
+  helper.tick(|| std::fs::rename(helper.join("ctx"), helper.join("ctx.away")).unwrap());
+  wait_for_aggregated_ref(&rx, |batch| batch.deleted_files.contains(context.as_str()));
+  helper.tick(|| std::fs::rename(helper.join("ctx.away"), helper.join("ctx")).unwrap());
+  wait_for_aggregated_ref(&rx, |batch| batch.changed_files.contains(context.as_str()));
+
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+  let inner = helper.time_info_entry(&file_timestamps, "ctx/inner");
+  assert!(
+    matches!(inner, TimeInfoEntry::Entry { .. }),
+    "a file in the reappeared context is reported: {inner:?}"
+  );
+}
+
+/// A second change to a file below a context, with its mtime unchanged,
+/// moves the file's safe time to the later observation (watchpack's
+/// `setFileTime(..., initial = false, ignoreWhenEqual = false)`), so a build
+/// that ran between the two changes does not look fresh.
+#[test]
+fn collect_time_info_entries_restamps_a_context_file_changed_again_with_the_same_mtime() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/inner");
+  helper.file("sibling");
+
+  let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+  let context = helper.join("ctx");
+
+  helper.trigger_event("ctx/inner", rspack_watcher::FsEventKind::Change);
+  wait_for_aggregated_ref(&rx, |batch| batch.changed_files.contains(context.as_str()));
+  std::thread::sleep(std::time::Duration::from_millis(50));
+
+  let second_at = now_millis();
+  helper.trigger_event("ctx/inner", rspack_watcher::FsEventKind::Change);
+  wait_for_aggregated_ref(&rx, |batch| batch.changed_files.contains(context.as_str()));
+
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+  let inner = safe_time_of(helper.time_info_entry(&file_timestamps, "ctx/inner"));
+  assert!(
+    inner >= second_at,
+    "safeTime {inner} must reach the second change at {second_at}"
+  );
+}
+
+/// A missing dependency already on disk when the watch starts, with an mtime
+/// older than the start (copied or renamed in, keeping its time), reads as
+/// present: the initial scan records it even though it does not notify.
+#[test]
+fn collect_time_info_entries_records_a_missing_dependency_found_by_the_scan() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  helper.file("later");
+  set_modified(
+    helper.join("later").as_std_path(),
+    std::time::SystemTime::now() - std::time::Duration::from_secs(3600),
+  )
+  .unwrap();
+
+  let _rx = helper.watch(e!(), e!(), f!("later"));
+  std::thread::sleep(std::time::Duration::from_millis(300));
+
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+  let later = helper.time_info_entry(&file_timestamps, "later");
+  assert!(
+    matches!(later, TimeInfoEntry::Entry { .. }),
+    "present on disk, so not null: {later:?}"
+  );
+}
+
+/// A directory above a registered file removed as a whole takes that file's
+/// record along, though neither the directory nor its parent is registered.
+#[test]
+fn collect_time_info_entries_nulls_a_registered_file_whose_directory_is_removed() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("dir")).unwrap();
+  helper.file("dir/a");
+  helper.file("sibling");
+
+  let _rx = helper.watch(f!("dir/a", "sibling"), e!(), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+
+  std::fs::rename(helper.join("dir"), helper.join("dir.moved")).unwrap();
+  helper.trigger_event("dir", rspack_watcher::FsEventKind::Remove);
+  std::thread::sleep(std::time::Duration::from_millis(300));
+
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+  assert_eq!(
+    *helper.time_info_entry(&file_timestamps, "dir/a"),
+    TimeInfoEntry::Null
+  );
+}
+
+/// A directory created in a context together with a file registered as a
+/// missing dependency: when the directory's event is processed first, its
+/// scan must not seed the file's record, or the file's own creation event is
+/// deduplicated away and the missing dependency never reports appearing.
+#[test]
+fn a_missing_dependency_created_in_a_new_context_directory_still_reports() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("sibling");
+
+  let rx = helper.watch(f!("sibling"), f!("ctx"), f!("ctx/sub/dep"));
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+
+  std::fs::create_dir_all(helper.join("ctx/sub")).unwrap();
+  helper.file("ctx/sub/dep");
+  helper.trigger_event("ctx/sub", rspack_watcher::FsEventKind::Create);
+  helper.trigger_event("ctx/sub/dep", rspack_watcher::FsEventKind::Create);
+
+  let dep = helper.join("ctx/sub/dep");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(dep.as_str())
+  });
+}
+
+/// With `followSymlinks`, a context's scan descends into a symlinked
+/// directory like watchpack does, and a link back up the tree does not loop.
+#[cfg(unix)]
+#[test]
+fn collect_time_info_entries_follows_symlinked_directories_in_a_context() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    follow_symlinks: true,
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  std::fs::create_dir_all(helper.join("outside")).unwrap();
+  helper.file("outside/deep");
+  std::os::unix::fs::symlink(helper.join("outside"), helper.join("ctx/linked")).unwrap();
+  std::os::unix::fs::symlink(helper.join("ctx"), helper.join("ctx/loop")).unwrap();
+
+  let _rx = helper.watch(e!(), f!("ctx"), e!());
+  let (file_timestamps, directory_timestamps) = helper.collect_time_info_entries();
+
+  let deep = helper.time_info_entry(&file_timestamps, "ctx/linked/deep");
+  assert!(
+    matches!(deep, TimeInfoEntry::Entry { .. }),
+    "a file behind the directory link is reported: {deep:?}"
+  );
+  let linked = helper.time_info_entry(&directory_timestamps, "ctx/linked");
+  assert!(
+    matches!(linked, TimeInfoEntry::OnlySafeTimeEntry { .. }),
+    "the linked directory is a context: {linked:?}"
+  );
+}
+
+/// With `followSymlinks`, two links in a context to one directory are two
+/// aliases, not a loop: the files behind both are reported.
+#[cfg(unix)]
+#[test]
+fn collect_time_info_entries_reports_every_alias_of_a_symlinked_directory() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    follow_symlinks: true,
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  std::fs::create_dir_all(helper.join("outside")).unwrap();
+  helper.file("outside/deep");
+  std::os::unix::fs::symlink(helper.join("outside"), helper.join("ctx/a")).unwrap();
+  std::os::unix::fs::symlink(helper.join("outside"), helper.join("ctx/b")).unwrap();
+
+  let _rx = helper.watch(e!(), f!("ctx"), e!());
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+
+  for name in ["ctx/a/deep", "ctx/b/deep"] {
+    let entry = helper.time_info_entry(&file_timestamps, name);
+    assert!(
+      matches!(entry, TimeInfoEntry::Entry { .. }),
+      "{name} is reported: {entry:?}"
+    );
+  }
+}
+
+/// Without `followSymlinks`, a directory link created in a context after the
+/// watch started is recorded as the link itself, like one found by the
+/// initial scan; its target is not scanned.
+#[cfg(unix)]
+#[test]
+fn collect_time_info_entries_does_not_follow_a_new_link_without_follow_symlinks() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  std::fs::create_dir_all(helper.join("outside")).unwrap();
+  helper.file("outside/deep");
+  helper.file("sibling");
+
+  let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+
+  std::os::unix::fs::symlink(helper.join("outside"), helper.join("ctx/link")).unwrap();
+  helper.trigger_event("ctx/link", rspack_watcher::FsEventKind::Create);
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(context.as_str())
+  });
+
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+  assert!(
+    !has_time_info_entry(&helper, &file_timestamps, "ctx/link/deep"),
+    "the link's target is not scanned"
+  );
+  let link = helper.time_info_entry(&file_timestamps, "ctx/link");
+  assert!(
+    matches!(link, TimeInfoEntry::Entry { .. }),
+    "the link itself is a file entry: {link:?}"
+  );
+}
+
+/// A missing dependency found on disk by the scan with an mtime older than the
+/// watch start is not notified by the scan; its own creation event, arriving
+/// after, must still go through rather than be deduplicated by the scan's
+/// record.
+#[test]
+fn a_missing_dependency_found_by_the_scan_still_reports_its_own_event() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  helper.file("later");
+  set_modified(
+    helper.join("later").as_std_path(),
+    std::time::SystemTime::now() - std::time::Duration::from_secs(3600),
+  )
+  .unwrap();
+
+  let rx = helper.watch(e!(), e!(), f!("later"));
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+
+  helper.trigger_event("later", rspack_watcher::FsEventKind::Create);
+  let later = helper.join("later");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(later.as_str())
+  });
+}
+
+fn park_and_watch_nested_contexts(helper: &mut helpers::TestHelper) -> u64 {
+  std::fs::create_dir_all(helper.join("ctx/sub")).expect("create ctx/sub");
+  set_modified(
+    helper.join("ctx/sub").as_std_path(),
+    std::time::SystemTime::now() - std::time::Duration::from_secs(3600),
+  )
+  .expect("park ctx/sub");
+  let watched_at = now_millis();
+  let _rx = helper.watch(e!(), f!("ctx", "ctx/sub"), e!());
+  watched_at
+}
+
+/// With `ctx` and `ctx/sub` both registered, unregistering `ctx` keeps
+/// `ctx/sub`'s watch-start floor: it is still registered itself.
+#[test]
+fn unregistering_an_outer_context_keeps_a_registered_inner_ones_safe_time() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  let watched_at = park_and_watch_nested_contexts(&mut helper);
+  let _rx = helper.watch(
+    e!(),
+    (
+      std::iter::empty(),
+      vec![InternedPath::from("ctx")].into_iter(),
+    ),
+    e!(),
+  );
+
+  let (_, directory_timestamps) = helper.collect_time_info_entries();
+  let sub = safe_time_of(helper.time_info_entry(&directory_timestamps, "ctx/sub"));
+  assert!(
+    sub >= watched_at,
+    "safeTime {sub} fell below the watch start {watched_at}"
+  );
+}
+
+/// With `ctx` and `ctx/sub` both registered, unregistering `ctx/sub` keeps its
+/// watch-start floor: `ctx` still covers it.
+#[test]
+fn unregistering_an_inner_context_keeps_its_safe_time_while_covered() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  let watched_at = park_and_watch_nested_contexts(&mut helper);
+  let _rx = helper.watch(
+    e!(),
+    (
+      std::iter::empty(),
+      vec![InternedPath::from("ctx/sub")].into_iter(),
+    ),
+    e!(),
+  );
+
+  let (_, directory_timestamps) = helper.collect_time_info_entries();
+  let sub = safe_time_of(helper.time_info_entry(&directory_timestamps, "ctx/sub"));
+  assert!(
+    sub >= watched_at,
+    "safeTime {sub} fell below the watch start {watched_at}"
+  );
+}
+
+/// The build that folds the paused-period events in takes them: resuming does
+/// not deliver them again as a batch of their own.
+#[test]
+fn take_aggregated_hands_the_paused_events_over_once() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  helper.file("a");
+
+  let rx = watch!(helper, "a");
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+  helper.pause();
+
+  helper.tick(|| helper.file("a"));
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  let edited = helper.join("a");
+  let (changed, _) = helper.take_aggregated();
+  assert!(changed.contains(edited.as_str()), "taken: {changed:?}");
+  let (changed, deleted) = helper.take_aggregated();
+  assert!(changed.is_empty() && deleted.is_empty(), "handed over once");
+
+  let rx = helper.watch(e!(), e!(), e!());
+  std::thread::sleep(std::time::Duration::from_millis(500));
+  while let Ok(event) = rx.try_recv() {
+    if let helpers::Event::Aggregated(batch) = event {
+      assert!(
+        !batch.changed_files.contains(edited.as_str()),
+        "a taken event is not delivered again: {batch:?}"
+      );
+    }
+  }
+}
+
+/// Without `followSymlinks`, a registered file that is a link below a context
+/// is deduplicated by its target's mtime; indexing it for the context must not
+/// overwrite that baseline with the link's own, or every repeated event reads
+/// as a change.
+#[cfg(unix)]
+#[test]
+fn a_registered_link_below_a_context_still_deduplicates_repeated_events() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/target");
+  let an_hour_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(3600);
+  set_modified(helper.join("ctx/target").as_std_path(), an_hour_ago).unwrap();
+  std::os::unix::fs::symlink(helper.join("ctx/target"), helper.join("ctx/link")).unwrap();
+
+  let rx = helper.watch(f!("ctx/link"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  let half_an_hour_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(1800);
+  set_modified(helper.join("ctx/target").as_std_path(), half_an_hour_ago).unwrap();
+  helper.trigger_event("ctx/link", rspack_watcher::FsEventKind::Change);
+  std::thread::sleep(std::time::Duration::from_millis(500));
+  while rx.try_recv().is_ok() {}
+
+  helper.trigger_event("ctx/link", rspack_watcher::FsEventKind::Change);
+  let deadline = std::time::Instant::now() + std::time::Duration::from_millis(1000);
+  while let Some(remaining) = deadline.checked_duration_since(std::time::Instant::now()) {
+    if let Ok(helpers::Event::Aggregated(batch)) = rx.recv_timeout(remaining) {
+      panic!("a repeated event with nothing changed was reported: {batch:?}");
+    }
+  }
 }

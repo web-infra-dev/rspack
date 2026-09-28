@@ -1,4 +1,4 @@
-import type { WatchFileSystem } from './fs';
+import type { Watcher, WatchFileSystem, WatcherInfo } from './fs';
 
 type WatchCallback = Parameters<WatchFileSystem['watch']>[5];
 type WatchCallbackArgs = Parameters<WatchCallback>;
@@ -20,6 +20,15 @@ export function markInternalCallback(
   internalCallbacks.add(callback);
   return callback;
 }
+
+// `Watching` reads a paused watcher's pending events to fold them into the
+// build it starts. A watcher that would deliver them again on resume exposes
+// this to hand them over instead; the public `getInfo()` only reads them.
+export const consumeWatcherInfo = Symbol('consumeWatcherInfo');
+
+export type ConsumableWatcher = Watcher & {
+  [consumeWatcherInfo]?: () => WatcherInfo;
+};
 
 export function isInternalCallback(
   callback: WatchCallback,

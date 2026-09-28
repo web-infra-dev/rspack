@@ -192,7 +192,17 @@ impl NativeWatcher {
   }
 
   /// watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
-  /// arrived since the last aggregated batch (while paused), drained.
+  /// arrived since the last aggregated batch (while paused), read.
+  #[napi]
+  pub fn get_aggregated(&self) -> NativeWatchResult {
+    let (changed_files, removed_files) = self.watcher.aggregated();
+    NativeWatchResult {
+      changed_files: changed_files.into_iter().collect(),
+      removed_files: removed_files.into_iter().collect(),
+    }
+  }
+
+  /// `getAggregated`, drained: for the build that folds these events in.
   #[napi]
   pub fn take_aggregated(&self) -> NativeWatchResult {
     let (changed_files, removed_files) = self.watcher.take_aggregated();

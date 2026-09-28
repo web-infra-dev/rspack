@@ -196,11 +196,22 @@ impl TestHelper {
     f();
   }
 
+  /// Deliver `kind` for `name` as if the OS had reported it.
+  pub fn trigger_event(&self, name: &str, kind: rspack_watcher::FsEventKind) {
+    let path = InternedPath::from(self.canonicalized_temp_dir.join(name));
+    TOKIO_RUNTIME.block_on(async { self.watcher.read().await.trigger_event(&path, kind) });
+  }
+
   pub fn pause(&self) {
     TOKIO_RUNTIME.block_on(async { self.watcher.read().await.pause().unwrap() });
   }
 
-  /// watchpack's `aggregatedChanges` / `aggregatedRemovals`, drained.
+  /// watchpack's `aggregatedChanges` / `aggregatedRemovals`.
+  pub fn aggregated(&self) -> (FxHashSet<String>, FxHashSet<String>) {
+    TOKIO_RUNTIME.block_on(async { self.watcher.read().await.aggregated() })
+  }
+
+  /// [`Self::aggregated`], drained.
   pub fn take_aggregated(&self) -> (FxHashSet<String>, FxHashSet<String>) {
     TOKIO_RUNTIME.block_on(async { self.watcher.read().await.take_aggregated() })
   }

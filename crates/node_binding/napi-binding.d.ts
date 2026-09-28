@@ -482,8 +482,10 @@ export declare class NativeWatcher {
   close(): Promise<void>
   /**
    * watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
-   * arrived since the last aggregated batch (while paused), drained.
+   * arrived since the last aggregated batch (while paused), read.
    */
+  getAggregated(): NativeWatchResult
+  /** `getAggregated`, drained: for the build that folds these events in. */
   takeAggregated(): NativeWatchResult
   /** watchpack's `collectTimeInfoEntries`, over every registered path. */
   collectTimeInfoEntries(): NativeTimeInfoEntries

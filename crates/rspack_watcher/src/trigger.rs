@@ -190,10 +190,12 @@ impl EventProcessor {
 
     // Drop a removed path's record so it reads as `null`, like watchpack. A
     // directory moved or deleted as a whole is one event with no per-file
-    // removals, so its descendants' records go with it.
+    // removals, so its descendants' records go with it. Only a path that can
+    // hold records is swept, so deleting many unrelated files stays cheap.
     if kind == FsEventKind::Remove {
+      let may_contain_records = self.path_manager.may_contain_records(path);
       self.path_manager.remove_file_time(path);
-      if !is_watched_path {
+      if may_contain_records {
         self.path_manager.remove_file_times_under(path);
       }
     }

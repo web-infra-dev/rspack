@@ -7,9 +7,14 @@ import type {
   InputFileSystem,
   TimeInfoEntries,
   Watcher,
+  WatcherInfo,
   WatchFileSystem,
 } from './util/fs';
-import { isInternalCallback } from './util/watchTimeInfo';
+import {
+  type ConsumableWatcher,
+  consumeWatcherInfo,
+  isInternalCallback,
+} from './util/watchTimeInfo';
 
 /**
  * The following code is modified based on
@@ -263,7 +268,36 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
     this.#isFirstWatch = false;
 
-    return {
+    // Like watchpack after it emitted `aggregated`: what is pending here is
+    // only what arrived since, i.e. while paused. A query reads it, so the
+    // batch it belongs to is still delivered; the build that folds it in takes
+    // it, so it is not delivered again once the watch resumes.
+    const info = ({
+      changedFiles,
+      removedFiles,
+    }: binding.NativeWatchResult): WatcherInfo => {
+      const changes = new Set(changedFiles);
+      const removals = new Set(removedFiles);
+      if (this.#inputFileSystem?.purge) {
+        const fs = this.#inputFileSystem;
+        for (const item of removals) {
+          fs.purge?.(item);
+        }
+        for (const item of changes) {
+          fs.purge?.(item);
+        }
+      }
+      const { fileTimeInfoEntries, contextTimeInfoEntries } =
+        this.#fetchTimeInfo(nativeWatcher);
+      return {
+        changes,
+        removals,
+        fileTimeInfoEntries,
+        contextTimeInfoEntries,
+      };
+    };
+
+    const handle: ConsumableWatcher = {
       close: () => {
         // Detach immediately: a closed native watcher rejects further watch()
         // calls, so a later compiler.watch() must get a fresh instance with a
@@ -281,31 +315,10 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         nativeWatcher.pause();
       },
 
-      getInfo: () => {
-        // Like watchpack after it emitted `aggregated`: what is pending here
-        // is only what arrived since, i.e. while paused.
-        const { changedFiles, removedFiles } = nativeWatcher.takeAggregated();
-        const changes = new Set(changedFiles);
-        const removals = new Set(removedFiles);
-        if (this.#inputFileSystem?.purge) {
-          const fs = this.#inputFileSystem;
-          for (const item of removals) {
-            fs.purge?.(item);
-          }
-          for (const item of changes) {
-            fs.purge?.(item);
-          }
-        }
-        const { fileTimeInfoEntries, contextTimeInfoEntries } =
-          this.#fetchTimeInfo(nativeWatcher);
-        return {
-          changes,
-          removals,
-          fileTimeInfoEntries,
-          contextTimeInfoEntries,
-        };
-      },
+      getInfo: () => info(nativeWatcher.getAggregated()),
+      [consumeWatcherInfo]: () => info(nativeWatcher.takeAggregated()),
     };
+    return handle;
   }
 
   #fetchTimeInfo(nativeWatcher: binding.NativeWatcher): {

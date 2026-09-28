@@ -96,15 +96,20 @@ impl Scanner {
         .collect::<Vec<_>>();
       let path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
-        let created = missing_added
-          .into_iter()
-          .filter(|p| changed_since(p, start_time))
-          .collect::<Vec<_>>();
-        // This backfill bypasses `Trigger`, so record the file time here —
-        // unless the live watch already observed the same creation.
-        for path in &created {
-          if let Some(mtime) = disk_mtime(path) {
-            path_manager.set_file_time(path, mtime, true, true);
+        // This backfill bypasses `Trigger`, so record the file time of every
+        // one found on disk and, like watchpack's initial scan, notify only
+        // those changed since `start_time`. A record for one not notified is
+        // time info only: it must not deduplicate that path's own event.
+        let mut created = Vec::new();
+        for path in missing_added {
+          let Some(mtime) = disk_mtime(&path) else {
+            continue;
+          };
+          if changed_since(&path, start_time) {
+            path_manager.set_file_time(&path, mtime, true, true);
+            created.push(path);
+          } else {
+            path_manager.set_unreported_file_time(&path, mtime);
           }
         }
         _ = send_events(created, FsEventKind::Create, &tx);

@@ -156,7 +156,8 @@ impl FsWatcher {
   pub fn new(options: FsWatcherOptions, ignored: FsWatcherIgnored) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
-    let path_manager = Arc::new(PathManager::new(ignored));
+    let path_manager =
+      Arc::new(PathManager::new(ignored).with_follow_symlinks(options.follow_symlinks));
     let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx.clone()));
     let disk_watcher = DiskWatcher::new(
       options.follow_symlinks,
@@ -187,10 +188,18 @@ impl FsWatcher {
     }
   }
 
-  /// watchpack's `aggregatedChanges` / `aggregatedRemovals`, drained: the
-  /// events that arrived since the last aggregated batch, typically while
-  /// paused. Taken, not read, so a rebuild that folds them in through
-  /// `getInfo()` does not see them again as a batch of their own on resume.
+  /// watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
+  /// arrived since the last aggregated batch, typically while paused. Read,
+  /// not drained, so a caller peeking at them cannot swallow the batch they
+  /// are about to be delivered in.
+  pub fn aggregated(&self) -> (HashSet<String>, HashSet<String>) {
+    let files = self.aggregated.lock().expect("aggregated sets poisoned");
+    (files.changed.clone(), files.deleted.clone())
+  }
+
+  /// [`Self::aggregated`], drained: for the build that folds these events in,
+  /// so they are not delivered again as a batch of their own on resume.
+  /// Events arriving afterwards are kept.
   pub fn take_aggregated(&self) -> (HashSet<String>, HashSet<String>) {
     let files = std::mem::take(&mut *self.aggregated.lock().expect("aggregated sets poisoned"));
     (files.changed, files.deleted)

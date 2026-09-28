@@ -219,6 +219,10 @@ pub(crate) struct FileTime {
   mtime: SystemTime,
   safe_time: u64,
   accuracy: u64,
+  /// Whether the build already knows this mtime — through a delivered event,
+  /// or because the path was on disk when it was registered. Only such a
+  /// record deduplicates a later event carrying the same mtime.
+  reported: bool,
 }
 
 impl FileTime {
@@ -231,6 +235,7 @@ impl FileTime {
       mtime,
       safe_time: mtime_safe_time(mtime_ms),
       accuracy: mtime_accuracy(mtime_ms),
+      reported: true,
     }
   }
 
@@ -243,6 +248,7 @@ impl FileTime {
       mtime,
       safe_time: current_time(),
       accuracy: 0,
+      reported: true,
     }
   }
 }
@@ -273,6 +279,13 @@ pub(crate) struct PathManager {
   /// watchpack's nested `DirectoryWatcher.directories`: every subdirectory
   /// found below a registered context.
   context_directories: InternedPathDashSet,
+  /// Every directory above a registered file or missing path, ever: a removal
+  /// of one of them may have taken registered records with it. Only grows; a
+  /// stale entry just costs an unneeded sweep.
+  registered_ancestors: InternedPathDashSet,
+  /// The `followSymlinks` watch option: the context scan descends into
+  /// symlinked directories, as watchpack does.
+  follow_symlinks: bool,
 }
 
 impl PathManager {
@@ -287,7 +300,14 @@ impl PathManager {
       last_watch_events: InternedPathDashMap::default(),
       context_files: InternedPathDashSet::default(),
       context_directories: InternedPathDashSet::default(),
+      registered_ancestors: InternedPathDashSet::default(),
+      follow_symlinks: false,
     }
+  }
+
+  pub fn with_follow_symlinks(mut self, follow_symlinks: bool) -> Self {
+    self.follow_symlinks = follow_symlinks;
+    self
   }
 
   /// Reset the per-`watch()`-call diff state (added / removed sets) without
@@ -322,6 +342,19 @@ impl PathManager {
       .file_times
       .entry(path)
       .or_insert_with(|| FileTime::initial(mtime));
+  }
+
+  /// Record `path` as found on disk by a scan that did not report it: time
+  /// info only, never a deduplication baseline, so the path's own event still
+  /// goes through. A record already there is kept.
+  pub fn set_unreported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
+    self
+      .file_times
+      .entry(path.clone())
+      .or_insert_with(|| FileTime {
+        reported: false,
+        ..FileTime::initial(mtime)
+      });
   }
 
   /// Drop the record for a path that is no longer being watched (or no longer
@@ -359,8 +392,21 @@ impl PathManager {
   /// excludes (watchpack's `DirectoryWatcher` initial scan).
   async fn scan_below(&self, roots: Vec<InternedPath>) {
     let now = current_time();
-    let mut pending = roots;
-    while let Some(dir) = pending.pop() {
+    // Each directory carries the real paths of the directories above it: with
+    // `followSymlinks`, a link back into its own ancestry is a loop, while two
+    // links to one directory are two aliases, each scanned.
+    let mut pending: Vec<(InternedPath, Vec<PathBuf>)> =
+      roots.into_iter().map(|root| (root, Vec::new())).collect();
+    while let Some((dir, mut ancestry)) = pending.pop() {
+      if self.follow_symlinks {
+        let Ok(real) = std::fs::canonicalize(&dir) else {
+          continue;
+        };
+        if ancestry.contains(&real) {
+          continue;
+        }
+        ancestry.push(real);
+      }
       let Ok(entries) = std::fs::read_dir(&dir) else {
         continue;
       };
@@ -369,15 +415,21 @@ impl PathManager {
         if self.is_ignored_path(path.as_ref()).await {
           continue;
         }
-        let Ok(metadata) = entry.metadata() else {
+        let Ok(metadata) = self.entry_metadata(&path) else {
           continue;
         };
         if metadata.is_dir() {
           self.context_directories.insert(path.clone());
           self.last_watch_events.entry(path.clone()).or_insert(now);
-          pending.push(path);
+          pending.push((path, ancestry.clone()));
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
           self.context_files.insert(path.clone());
+          // A registered file or missing path's record is the event
+          // deduplication baseline, kept by `Trigger` and the scanner; seeding
+          // it here would make its own creation event look stale.
+          if self.files.all.contains(&path) || self.missing.all.contains(&path) {
+            continue;
+          }
           self
             .file_times
             .entry(path)
@@ -389,25 +441,62 @@ impl PathManager {
 
   /// An event named `path` below a registered context: index it the way the
   /// scan would have (watchpack's `DirectoryWatcher.setFileTime` /
-  /// `setDirectory` on a watch event). A file's record is the live
-  /// observation unless one already carries this mtime. A directory is
+  /// `setDirectory` on a watch event). A file's record is always the live
+  /// observation, even with an unchanged mtime: a second write inside one
+  /// timestamp tick still happened now. A directory is
   /// scanned, since one moved in arrives as a single event with no events
-  /// for what it already contains.
+  /// for what it already contains; that includes a registered context
+  /// reappearing at its own path.
   pub async fn set_context_entry(&self, path: &InternedPath) {
-    if !self.is_below_context(path) {
+    let is_context = self.directories.all.contains(path);
+    if !is_context && !self.is_below_context(path) {
       return;
     }
-    if path.is_dir() {
-      self.context_directories.insert(path.clone());
+    let Ok(metadata) = self.entry_metadata(path) else {
+      return;
+    };
+    if metadata.is_dir() {
+      if !is_context {
+        self.context_directories.insert(path.clone());
+      }
       self
         .last_watch_events
         .entry(path.clone())
         .or_insert_with(current_time);
       self.scan_below(vec![path.clone()]).await;
-    } else if let Some(mtime) = disk_mtime(path) {
-      self.context_files.insert(path.clone());
-      self.set_file_time(path, mtime, false, true);
+      return;
     }
+    if is_context {
+      return;
+    }
+    self.context_files.insert(path.clone());
+    // Like the scan: a registered path's record is its dedup baseline, kept by
+    // `has_mtime_changed`.
+    if self.files.all.contains(path) || self.missing.all.contains(path) {
+      return;
+    }
+    if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
+      self.set_file_time(path, mtime, false, false);
+    }
+  }
+
+  /// A path's metadata as the context scan sees it: through a symlink only
+  /// with `followSymlinks`, otherwise the link itself (watchpack's `lstat`).
+  fn entry_metadata(&self, path: &InternedPath) -> std::io::Result<std::fs::Metadata> {
+    if self.follow_symlinks {
+      std::fs::metadata(path)
+    } else {
+      std::fs::symlink_metadata(path)
+    }
+  }
+
+  /// Whether removing `path` can take recorded paths below it along: it is a
+  /// registered or discovered context, or a directory above a registered
+  /// file or missing path.
+  pub fn may_contain_records(&self, path: &InternedPath) -> bool {
+    self.directories.all.contains(path)
+      || self.context_directories.contains(path)
+      || self.registered_ancestors.contains(path)
   }
 
   fn is_below_context(&self, path: &InternedPath) -> bool {
@@ -433,7 +522,7 @@ impl PathManager {
       && self
         .file_times
         .get(path)
-        .is_some_and(|current| current.mtime == mtime)
+        .is_some_and(|current| current.reported && current.mtime == mtime)
     {
       return false;
     }
@@ -470,16 +559,14 @@ impl PathManager {
   }
 
   /// Check whether a watched path's mtime differs from its stored baseline,
-  /// advancing the baseline when it does. Covers registered files,
-  /// registered-missing paths (on disk by the time an event names them) and
-  /// files found below a context; other paths pass through unfiltered.
+  /// advancing the baseline when it does. Covers registered files and
+  /// registered-missing paths (on disk by the time an event names them);
+  /// other paths, files found below a context included, pass through
+  /// unfiltered.
   /// Returns `true` if the event should pass through (mtime changed or no baseline).
   /// Returns `false` if the event should be suppressed (mtime unchanged = stale).
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
-    if !self.files.all.contains(path)
-      && !self.missing.all.contains(path)
-      && !self.context_files.contains(path)
-    {
+    if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       return true;
     }
 
@@ -516,6 +603,24 @@ impl PathManager {
       .update(&self.missing, &self.ignored)
       .await?;
 
+    let added: Vec<InternedPath> = self
+      .files
+      .added
+      .iter()
+      .chain(self.missing.added.iter())
+      .map(|p| p.clone())
+      .collect();
+    for path in &added {
+      for ancestor in path.ancestors().skip(1) {
+        if !self
+          .registered_ancestors
+          .insert(InternedPath::from(ancestor))
+        {
+          break;
+        }
+      }
+    }
+
     // Prune per-path state for paths no longer being watched so the maps do
     // not grow unboundedly across `watch()` cycles. `reset()` has already
     // cleared the `removed` sets at the start of this `watch()` call, so what
@@ -540,7 +645,13 @@ impl PathManager {
     let removed_dirs: Vec<InternedPath> =
       self.directories.removed.iter().map(|p| p.clone()).collect();
     for dir in &removed_dirs {
-      self.last_watch_events.remove(dir);
+      // Still below a registered context: it stays reported, as a directory
+      // found there, and keeps its event clock.
+      if self.is_below_context(dir) {
+        self.context_directories.insert(dir.clone());
+      } else {
+        self.last_watch_events.remove(dir);
+      }
       self.forget_context_entries_under(dir);
     }
 
@@ -550,8 +661,11 @@ impl PathManager {
   /// A context was unregistered: forget what its scan found below it, except
   /// what another still-registered context also covers.
   fn forget_context_entries_under(&self, dir: &InternedPath) {
-    let orphaned =
-      |path: &InternedPath| path.starts_with(dir.as_ref() as &Path) && !self.is_below_context(path);
+    let orphaned = |path: &InternedPath| {
+      path.starts_with(dir.as_ref() as &Path)
+        && !self.is_below_context(path)
+        && !self.directories.all.contains(path)
+    };
     let files: Vec<InternedPath> = self
       .context_files
       .iter()
