@@ -50,6 +50,7 @@ it("concatenates only locally empty CommonJS export-star chains", () => {
 		"./empty-barrel.js",
 		"./empty.js",
 		"./shadowed-require.js",
+		"./empty.js?mixed",
 		"./mixed-barrel.js"
 	]) {
 		expect(nestedModuleNames.has(name)).toBe(true);
@@ -66,7 +67,6 @@ it("concatenates only locally empty CommonJS export-star chains", () => {
 		"./empty.js?dynamic",
 		"./top-level-return.js",
 		"./real-cjs.js",
-		"./empty.js?mixed",
 		"./empty.js?default",
 		"./empty.js?namespace",
 		"./empty.js?dynamic-import",
@@ -85,17 +85,19 @@ it("concatenates only locally empty CommonJS export-star chains", () => {
 	);
 });
 
-it("keeps the CommonJS wrapper when a namespace is observed through multiple star reexports", () => {
-	// Enumerating the namespace and reading a missing name must not make code generation
-	// resolve that name as a local binding of the empty CommonJS leaf.
-	expect(Object.keys(chainedNamespace)).toContain("value");
+it("omits missing exports from a namespace observed through multiple star reexports", () => {
+	// A missing binding reads as undefined without becoming an own namespace property.
+	expect(Object.keys(chainedNamespace)).toEqual(["explicitMissing"]);
+	expect(Object.hasOwn(chainedNamespace, "explicitMissing")).toBe(true);
+	expect(chainedNamespace.explicitMissing).toBeUndefined();
+	expect(Object.hasOwn(chainedNamespace, "value")).toBe(false);
 	expect(chainedNamespace.value).toBeUndefined();
-	const empty = stats.modules.find(
+	const empty = nestedModules.find(
 		module => module.name === "./empty.js?namespace-chain"
 	);
 	expect(empty).toBeDefined();
 	expect(empty.providedExports).toBe(null);
-	expect(nestedModuleNames.has(empty.name)).toBe(false);
+	expect(nestedModuleNames.has(empty.name)).toBe(true);
 });
 
 it("keeps the CommonJS wrapper for dynamic import", async () => {

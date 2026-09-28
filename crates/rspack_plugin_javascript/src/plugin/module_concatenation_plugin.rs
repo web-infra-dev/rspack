@@ -21,7 +21,6 @@ use rspack_core::{
   },
   filter_runtime, get_cached_readable_identifier, get_target,
   incremental::IncrementalPasses,
-  is_exports_object_referenced,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
@@ -29,7 +28,7 @@ use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency},
+  dependency::ESMExportImportedSpecifierDependency,
   parser_and_generator::JavaScriptParserAndGenerator,
 };
 
@@ -63,90 +62,6 @@ fn can_reference_unknown_empty_commonjs_without_wrapper(
   }
 }
 
-fn is_namespace_object_referenced(
-  module_id: &ModuleIdentifier,
-  module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCacheArtifact,
-  side_effects_state_artifact: &SideEffectsStateArtifact,
-  exports_info_artifact: &ExportsInfoArtifact,
-  cache: &mut IdentifierMap<bool>,
-) -> bool {
-  if let Some(&referenced) = cache.get(module_id) {
-    return referenced;
-  }
-  let mut queue = vec![*module_id];
-  let mut visited = IdentifierSet::default();
-  let mut reexport_targets: IdentifierMap<Vec<ModuleIdentifier>> = IdentifierMap::default();
-  let mut namespace_references = Vec::new();
-  while let Some(current) = queue.pop() {
-    if !visited.insert(current) {
-      continue;
-    }
-    if let Some(&referenced) = cache.get(&current) {
-      if referenced {
-        namespace_references.push(current);
-      }
-      continue;
-    }
-
-    for connection in module_graph.get_incoming_connections(&current) {
-      if !connection.is_active(
-        module_graph,
-        None,
-        module_graph_cache,
-        side_effects_state_artifact,
-        exports_info_artifact,
-      ) {
-        continue;
-      }
-      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-      // A namespace observation can reach this module through any number of star reexports.
-      // Follow the reexporters as well as checking this module's direct references.
-      if let Some(dependency) = dependency
-        .downcast_ref::<ESMExportImportedSpecifierDependency>()
-        .filter(|dependency| is_plain_export_star(dependency, module_graph))
-        && let Some(origin) = module_graph.get_parent_module(&dependency.id)
-      {
-        reexport_targets.entry(*origin).or_default().push(current);
-        queue.push(*origin);
-      }
-      let can_observe_namespace = dependency
-        .downcast_ref::<ESMImportSpecifierDependency>()
-        .is_some()
-        || dependency
-          .downcast_ref::<ESMExportImportedSpecifierDependency>()
-          .is_some_and(|dependency| {
-            dependency.name.is_some() && dependency.get_ids(module_graph).is_empty()
-          });
-      if can_observe_namespace
-        && dependency.as_module_dependency().is_some_and(|dependency| {
-          is_exports_object_referenced(&dependency.get_referenced_exports(
-            module_graph,
-            module_graph_cache,
-            exports_info_artifact,
-            None,
-          ))
-        })
-      {
-        namespace_references.push(current);
-      }
-    }
-  }
-  // Propagate observations back along the collected star edges, including cycles. Cache every
-  // result, not just the query root, so shared reexport chains are scanned only once. A visited
-  // node is not necessarily observed: negative results are recorded only after propagation.
-  while let Some(current) = namespace_references.pop() {
-    cache.insert(current, true);
-    if let Some(targets) = reexport_targets.remove(&current) {
-      namespace_references.extend(targets);
-    }
-  }
-  for current in visited {
-    cache.entry(current).or_insert(false);
-  }
-  cache[module_id]
-}
-
 fn is_export_info_from_dependencies(
   export_info: &ExportInfoData,
   dependencies: &HashSet<DependencyId>,
@@ -170,7 +85,6 @@ fn get_unknown_empty_commonjs_candidates(
   side_effects_state_artifact: &SideEffectsStateArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> IdentifierSet {
-  let mut namespace_object_referenced_modules = IdentifierMap::default();
   module_ids
     .iter()
     .filter_map(|module_id| {
@@ -192,53 +106,38 @@ fn get_unknown_empty_commonjs_candidates(
       }
       // Replacements can inject unwalked factory bindings, e.g. DefinePlugin injecting `exports`.
       // Empty replacements only remove source, including the original strict directive.
-      if module.get_presentational_dependencies().is_some_and(|dependencies| {
-        dependencies.iter().any(|dependency| {
-          dependency.as_any().downcast_ref::<ConstDependency>()
-            .is_some_and(|dependency| !dependency.content.is_empty())
+      if module
+        .get_presentational_dependencies()
+        .is_some_and(|dependencies| {
+          dependencies.iter().any(|dependency| {
+            dependency
+              .as_any()
+              .downcast_ref::<ConstDependency>()
+              .is_some_and(|dependency| !dependency.content.is_empty())
+          })
         })
-      }) {
+      {
         return None;
       }
       let safe_imports = module_graph
-          .get_incoming_connections(module_id)
-          .all(|connection| {
-            // Ignore only connections that are inactive in every runtime. A namespace used by
-            // another entry must still retain the wrapper, even if unused in this one.
-            if !connection.is_active(
-              module_graph,
-              None,
-              module_graph_cache,
-              side_effects_state_artifact,
-              exports_info_artifact,
-            ) {
-              return true;
-            }
-            let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-            can_reference_unknown_empty_commonjs_without_wrapper(dependency, module_graph)
-              // A star edge can become a checked named reexport after usage analysis. Such a
-              // lookup needs the CommonJS object even if the leaf has only `other exports` info.
-              && !dependency.as_module_dependency().is_some_and(|dependency| {
-                dependency
-                  .get_referenced_exports(module_graph, module_graph_cache, exports_info_artifact, None)
-                  .iter()
-                  .any(|export| !export.name.is_empty())
-              })
-              && !dependency
-                .downcast_ref::<ESMExportImportedSpecifierDependency>()
-                .filter(|dependency| is_plain_export_star(dependency, module_graph))
-                .and_then(|dependency| module_graph.get_parent_module(&dependency.id))
-                .is_some_and(|origin| {
-                  is_namespace_object_referenced(
-                    origin,
-                    module_graph,
-                    module_graph_cache,
-                    side_effects_state_artifact,
-                    exports_info_artifact,
-                    &mut namespace_object_referenced_modules,
-                  )
-                })
-          });
+        .get_incoming_connections(module_id)
+        .all(|connection| {
+          // Ignore only connections that are inactive in every runtime. A namespace used by
+          // another entry must still retain the wrapper, even if unused in this one.
+          if !connection.is_active(
+            module_graph,
+            None,
+            module_graph_cache,
+            side_effects_state_artifact,
+            exports_info_artifact,
+          ) {
+            return true;
+          }
+          let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+          // A star reexport does not expose the CommonJS object itself. Missing names are
+          // omitted from the ESM barrel's surface during concatenation code generation.
+          can_reference_unknown_empty_commonjs_without_wrapper(dependency, module_graph)
+        });
       safe_imports.then_some(*module_id)
     })
     .collect()
@@ -737,7 +636,7 @@ impl ModuleConcatenationPlugin {
       if !is_target_active {
         continue;
       }
-      if cached_connection.has_imported_names || cached.provided_names {
+      if cached_connection.can_concatenate || cached.provided_names {
         imports.push(cached_connection.module_identifier);
         seen.insert(cached_connection.module_identifier);
       }
@@ -1298,9 +1197,14 @@ impl ModuleConcatenationPlugin {
         }
         let mut unknown_provided_exports = None;
         for export_info in relevant_exports.iter() {
-          // Root exports use unconditional getters. Unknown provision must retain runtime
-          // export checks even when a particular star target can be concatenated.
-          if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
+          // Code generation omits missing star exports from the validated empty targets.
+          // Other unknown exports still need runtime checks and cannot provide a root surface.
+          if !matches!(export_info.provided(), Some(ExportProvided::Provided))
+            && !is_export_info_from_dependencies(
+              export_info,
+              &ignorable_dynamic_star_export_dependencies,
+            )
+          {
             unknown_provided_exports.get_or_insert_with(Vec::new).push({
               let name = export_info
                 .name()
@@ -1453,7 +1357,10 @@ impl ModuleConcatenationPlugin {
             Some(CachedOutgoingConnection {
               connection: con.clone(),
               module_identifier: *con.module_identifier(),
-              has_imported_names: imported_names.iter().all(|item| !item.name.is_empty()),
+              // Empty star targets can join even when usage observes the whole namespace and
+              // their side-effect-only import is inactive. Keep the exception on this edge.
+              can_concatenate: imported_names.iter().all(|item| !item.name.is_empty())
+                || ignorable_dynamic_star_export_dependencies.contains(dep.id()),
               active: con.is_target_active(
                 module_graph,
                 Some(&runtime),
@@ -1617,6 +1524,31 @@ impl ModuleConcatenationPlugin {
       stats_candidates += candidates.len();
       if !current_configuration.is_empty() {
         let modules = current_configuration.get_modules();
+        // The code-generation exception applies only to leaves whose wrappers are actually
+        // removed. If a required empty target could not join this group, keep the original root.
+        if !ignorable_dynamic_star_export_dependencies.is_empty()
+          && modules.iter().any(|module| {
+            module_graph
+              .module_by_identifier(module)
+              .expect("should have module")
+              .build_info()
+              .all_star_exports
+              .iter()
+              .any(|dependency| {
+                ignorable_dynamic_star_export_dependencies.contains(dependency)
+                  && module_graph
+                    .module_identifier_by_dependency_id(dependency)
+                    .is_none_or(|target| !modules.contains(target))
+              })
+          })
+        {
+          stats_empty_configurations += 1;
+          empty_config_warnings.push((
+            current_configuration.root_module,
+            current_configuration.into_warnings_sorted(),
+          ));
+          continue;
+        }
         stats_size_sum += modules.len();
         let root_module = current_configuration.root_module;
 
@@ -1949,7 +1881,7 @@ impl DifferentChunkModules {
 struct CachedOutgoingConnection {
   connection: ModuleGraphConnection,
   module_identifier: ModuleIdentifier,
-  has_imported_names: bool,
+  can_concatenate: bool,
   active: bool,
 }
 
