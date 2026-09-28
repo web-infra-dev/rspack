@@ -1,7 +1,7 @@
 import path from 'node:path';
+import { defineConfig, definePlugin } from '@rspack/cli';
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   optimization: {
     // avoid analyze side effects that will change index.js dependencies at HMR
@@ -10,15 +10,12 @@ export default {
   cache: {
     type: 'persistent',
   },
-  experiments: {
-    lazyBarrel: true,
-  },
   plugins: [
-    function (compiler) {
-      let createdModules = new Set();
+    definePlugin((compiler) => {
+      const createdModules = new Set<string>();
       compiler.hooks.compilation.tap(
         'test',
-        (compilation, { normalModuleFactory }) => {
+        (_compilation, { normalModuleFactory }) => {
           normalModuleFactory.hooks.createModule.tap('test', (data) => {
             createdModules.add(data.resourceResolveData.resource);
           });
@@ -29,6 +26,6 @@ export default {
           createdModules.has(path.resolve(import.meta.dirname, 'lib/c.js')),
         ).toBe(false);
       });
-    },
+    }),
   ],
-};
+});

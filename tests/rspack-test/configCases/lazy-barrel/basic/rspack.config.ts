@@ -1,5 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import { defineConfig, definePlugin } from '@rspack/cli';
 
 const allModules = fs
   .readdirSync(import.meta.dirname, { recursive: true, withFileTypes: true })
@@ -7,7 +8,7 @@ const allModules = fs
     (dirent) =>
       dirent.isFile() &&
       dirent.name !== 'package.json' &&
-      dirent.name !== 'rspack.config.mjs' &&
+      dirent.name !== 'rspack.config.ts' &&
       dirent.name !== 'test.filter.mjs',
   )
   .map((dirent) => path.resolve(dirent.parentPath ?? dirent.path, dirent.name));
@@ -22,16 +23,13 @@ const lazyModules = new Set(
   ].map((filename) => path.resolve(import.meta.dirname, filename)),
 );
 
-export default /** @type {import("@rspack/core").Configuration} */ ({
-  experiments: {
-    lazyBarrel: true,
-  },
+export default defineConfig({
   plugins: [
-    function (compiler) {
-      const createdModules = new Set();
+    definePlugin((compiler) => {
+      const createdModules = new Set<string>();
       compiler.hooks.thisCompilation.tap(
         'Test',
-        (compilation, { normalModuleFactory }) => {
+        (_compilation, { normalModuleFactory }) => {
           normalModuleFactory.hooks.createModule.tap('Test', (data) => {
             createdModules.add(data.resourceResolveData.resource);
           });
@@ -47,6 +45,6 @@ export default /** @type {import("@rspack/core").Configuration} */ ({
           ).length,
         ).toBe(0);
       });
-    },
+    }),
   ],
 });
