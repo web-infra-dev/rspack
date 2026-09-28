@@ -1,3 +1,8 @@
 .foo {
   user-select: none;
+  margin-inline-end: 100px;
+
+  & .bar {
+    color: red;
+  }
 }

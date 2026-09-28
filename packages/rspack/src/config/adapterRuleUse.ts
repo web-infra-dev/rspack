@@ -556,6 +556,7 @@ function createRawModuleRuleUsesImpl(
         `${path}[${index}]`,
         options.compiler,
         isBuiltin,
+        fingerprintOptions,
       ),
       options: o,
       cache: use.cache ?? false,
@@ -571,6 +572,7 @@ function resolveStringifyLoaders(
   path: string,
   compiler: Compiler,
   isBuiltin: boolean,
+  normalizedOptions: RuleSetLoaderWithOptions['options'],
 ) {
   const obj = parseResource(use.loader);
   let ident = use.ident;
@@ -600,7 +602,11 @@ function resolveStringifyLoaders(
       parallelism,
     );
     if (isBuiltin) {
-      compiler.__internal__ruleSet.builtinReferences.set(ident, use.options);
+      // Inline builtin loaders resolve their options from this native map.
+      compiler.__internal__ruleSet.builtinReferences.set(
+        ident,
+        normalizedOptions,
+      );
     }
   }
 
