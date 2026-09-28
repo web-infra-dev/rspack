@@ -6,7 +6,7 @@ use super::{FileMetadata, Result};
 use crate::file_metadata::FilePermissions;
 
 #[async_trait::async_trait]
-pub trait WritableFileSystem: Debug + Send + Sync {
+pub trait WritableFileSystem: rspack_util::MaybeAllocative + Debug + Send + Sync {
   /// Creates a new, empty directory at the provided path.
   ///
   /// NOTE: If a parent of the given path doesn’t exist, this function is supposed to return an error.

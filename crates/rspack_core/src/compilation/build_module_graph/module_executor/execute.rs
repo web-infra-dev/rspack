@@ -5,6 +5,8 @@ use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::{Diagnostic, Error};
 use rspack_paths::InternedPathSet;
 use rspack_sources::{RawStringSource, SourceExt};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use tokio::sync::oneshot::Sender;
 
@@ -32,6 +34,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExecutedRuntimeModule {
   pub identifier: Identifier,
   pub name: String,

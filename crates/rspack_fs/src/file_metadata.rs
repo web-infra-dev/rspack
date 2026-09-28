@@ -1,10 +1,13 @@
 use std::fs::{Metadata, Permissions};
 
 use cfg_if::cfg_if;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{Error, IoResultToFsResultExt, Result};
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FileMetadata {
   pub is_file: bool,
   pub is_directory: bool,

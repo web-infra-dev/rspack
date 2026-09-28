@@ -2,6 +2,8 @@ use std::fmt::{Display, Formatter};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_hash::{RspackHash, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   CodeGenerationDataItem, Compilation, DependencyCodeGeneration, DependencyRange,
@@ -11,6 +13,7 @@ use crate::{
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RuntimeRequirementsDependencyWriteOperation {
   Assign,
   Add,
@@ -27,6 +30,7 @@ impl RspackHash for RuntimeRequirementsDependencyWriteOperation {
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeRequirementsDependencyWriteInfo {
   pub value_range: DependencyRange,
   pub assignment_range: DependencyRange,
@@ -43,6 +47,7 @@ impl RspackHash for RuntimeRequirementsDependencyWriteInfo {
 
 #[cacheable]
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RuntimeRequirementsDependencyMode {
   #[default]
   Normal,
@@ -83,6 +88,7 @@ impl RuntimeRequirementsDependencyMode {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeRequirementsDependency {
   pub range: DependencyRange,
   pub runtime_requirements: RuntimeGlobals,
@@ -184,6 +190,7 @@ impl RuntimeRequirementsDependency {
 
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CodeGenerationRuntimeRequirementsWrite {
   pub runtime_requirements: RuntimeGlobals,
 }
@@ -199,6 +206,7 @@ impl CodeGenerationRuntimeRequirementsWrite {
 
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeRequirementsDependencyTemplate;
 
 impl RuntimeRequirementsDependencyTemplate {

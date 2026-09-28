@@ -6,6 +6,8 @@ use std::{
 use itertools::Itertools as _;
 use regex::Regex;
 use rspack_error::Diagnostic;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 use serde_json::{Map, Value, json};
 use swc_experimental_ecma_ast::Span;
@@ -53,11 +55,16 @@ type OnTypeof = dyn Fn(&DefineRecord, &mut JavascriptParser, u32 /* start */, u3
   + Send
   + Sync;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DefineRecord {
   code: Value,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_option_box))]
   pub on_evaluate_identifier: Option<Box<OnEvaluateIdentifier>>,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_option_box))]
   pub on_evaluate_typeof: Option<Box<OnEvaluateTypeof>>,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_option_box))]
   pub on_expression: Option<Box<OnExpression>>,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_option_box))]
   pub on_typeof: Option<Box<OnTypeof>>,
 }
 
@@ -124,9 +131,12 @@ impl DefineRecord {
 }
 
 #[derive(Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ObjectDefineRecord {
   object: Value,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_option_box))]
   pub on_evaluate_identifier: Option<Box<OnObjectEvaluateIdentifier>>,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_option_box))]
   pub on_expression: Option<Box<OnObjectExpression>>,
 }
 
@@ -184,6 +194,7 @@ impl ObjectDefineRecord {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct WalkData {
   pub tiling_definitions: FxHashMap<String, String>,
   pub diagnostics: Vec<Diagnostic>,

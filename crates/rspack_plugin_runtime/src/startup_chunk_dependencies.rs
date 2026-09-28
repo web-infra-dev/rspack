@@ -4,6 +4,8 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::runtime_module::{
   StartupChunkDependenciesRuntimeModule, StartupEntrypointRuntimeModule, is_enabled_for_chunk,
@@ -11,6 +13,7 @@ use crate::runtime_module::{
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct StartupChunkDependenciesPlugin {
   chunk_loading: ChunkLoading,
   async_chunk_loading: bool,

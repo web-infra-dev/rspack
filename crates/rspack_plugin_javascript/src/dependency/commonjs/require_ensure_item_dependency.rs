@@ -4,9 +4,12 @@ use rspack_core::{
   DependencyId, DependencyRange, DependencyType, ModuleDependency,
 };
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RequireEnsureItemDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]

@@ -10,6 +10,8 @@ use rspack_cacheable::{
 };
 use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxLinkedHashMap;
 
 use self::alias_value_cacheable::AsAliasValue;
@@ -25,6 +27,7 @@ pub type AliasMap = rspack_resolver::AliasValue;
 // support false here for simplicity.
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Alias {
   OverwriteToNoAlias,
   MergeAlias(
@@ -55,6 +58,7 @@ impl value_type::GetValueType for Alias {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Restriction {
   Path(String),
   Regex(RspackRegex),
@@ -81,6 +85,7 @@ pub(super) type Restrictions = Vec<Restriction>;
 
 #[cacheable]
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Resolve {
   /// Tried detect file with this extension.
   pub extensions: Option<Extensions>,
@@ -149,6 +154,7 @@ pub struct Resolve {
 /// Derived from [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#options)
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct TsconfigOptions {
   /// Allows you to specify where to find the TypeScript configuration file.
   /// You may provide
@@ -172,6 +178,7 @@ impl From<TsconfigOptions> for rspack_resolver::TsconfigOptions {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum TsconfigReferences {
   #[default]
   Disabled,
@@ -234,6 +241,7 @@ type DependencyCategoryStr = Cow<'static, str>;
 
 #[cacheable]
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ByDependency(
   #[cacheable(with=AsMap<AsRefStr>)] FxLinkedHashMap<DependencyCategoryStr, Resolve>,
 );

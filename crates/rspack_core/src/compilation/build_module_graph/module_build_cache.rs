@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use rspack_collections::{Identifiable, IdentifierDashMap};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   BoxModule, BuildModuleGraphArtifact, FileSystemInfo, ModuleGraph, ModuleIdentifier, ModuleRef,
@@ -14,6 +16,7 @@ use crate::{
 /// Memory entries share the built module with the graph. Persistent entries
 /// encode the same module directly, including its dependencies and build metadata.
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct ModuleBuildCache {
   cache: CacheFacade,
   restore_enabled: bool,

@@ -25,6 +25,7 @@ type BucketChanges = HashMap<String, Vec<(Vec<u8>, Option<Vec<u8>>)>>;
 /// The DB organizes data into buckets, where each bucket contains multiple pack files
 /// with automatic hot/cold separation for optimal performance.
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DB {
   fs: ScopeFileSystem,
   /// Cached buckets, lazily loaded on first access

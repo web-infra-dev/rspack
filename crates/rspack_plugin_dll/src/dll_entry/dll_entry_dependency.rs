@@ -3,11 +3,14 @@ use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, Context, Dependency, DependencyId,
   DependencyType, ModuleDependency,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::DllEntryPluginOptions;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DllEntryDependency {
   pub context: Context,
 

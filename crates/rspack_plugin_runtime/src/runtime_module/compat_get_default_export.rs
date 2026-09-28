@@ -2,12 +2,15 @@ use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
   impl_runtime_module,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 static COMPAT_GET_DEFAULT_EXPORT_TEMPLATE: &str =
   include_str!("runtime/compat_get_default_export.ejs");
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompatGetDefaultExportRuntimeModule {}
 
 impl CompatGetDefaultExportRuntimeModule {

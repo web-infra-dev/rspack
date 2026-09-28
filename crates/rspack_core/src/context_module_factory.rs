@@ -7,6 +7,8 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_core::common::util::take::Take;
 use tracing::instrument;
 
@@ -83,12 +85,14 @@ define_hook!(ContextModuleFactoryBeforeResolve: SeriesWaterfall(data: BeforeReso
 define_hook!(ContextModuleFactoryAfterResolve: SeriesWaterfall(data: AfterResolveResult) -> AfterResolveResult);
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ContextModuleFactoryHooks {
   pub before_resolve: ContextModuleFactoryBeforeResolveHook,
   pub after_resolve: ContextModuleFactoryAfterResolveHook,
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ContextModuleFactory {
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,

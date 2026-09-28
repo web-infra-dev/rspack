@@ -6,6 +6,8 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ModuleDependency, ModuleIdentifier, TemplateContext,
   TemplateReplaceSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{css_syntax::serialize_url_value, utils::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
@@ -13,6 +15,7 @@ const ASSET_AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUB
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssUrlDependency {
   id: DependencyId,
   request: String,
@@ -106,6 +109,7 @@ impl AsContextDependency for CssUrlDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssUrlDependencyTemplate;
 
 impl CssUrlDependencyTemplate {

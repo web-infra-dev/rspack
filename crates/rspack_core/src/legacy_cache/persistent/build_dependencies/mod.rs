@@ -3,6 +3,8 @@ use std::{collections::VecDeque, sync::Arc};
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::{
@@ -27,6 +29,7 @@ pub enum BuildDepsValidationResult {
 
 /// Build dependencies manager
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct BuildDeps {
   /// The build dependencies has been added to snapshot.
   ///

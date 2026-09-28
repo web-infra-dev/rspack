@@ -60,6 +60,7 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 ///
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#sourcemapsource).
 #[derive(Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SourceMapSource {
   value: Box<str>,
   name: Box<str>,

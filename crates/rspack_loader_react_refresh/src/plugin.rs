@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{
   BoxLoader, Context, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, Plugin, Resolver,
 };
@@ -10,6 +12,7 @@ use crate::REACT_REFRESH_LOADER_IDENTIFIER;
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ReactRefreshLoaderPlugin;
 
 impl ReactRefreshLoaderPlugin {

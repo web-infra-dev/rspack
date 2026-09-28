@@ -1,9 +1,12 @@
 use rspack_collections::{IdentifierMap, IdentifierSet};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use smallvec::SmallVec;
 
 use crate::{Compilation, ContextTypePrefix, DependencyType, ModuleGraph, ModuleIdentifier};
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum CollectState<T> {
   #[default]
   NoCollect,
@@ -12,6 +15,7 @@ enum CollectState<T> {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CircularModulesInfo {
   modules: CollectState<IdentifierSet>,
   cycle_paths: CollectState<Vec<Vec<ModuleIdentifier>>>,

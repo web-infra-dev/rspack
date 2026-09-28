@@ -11,12 +11,15 @@ use rspack_core::{
   UsedName, create_exports_object_referenced, property_access, to_normal_comment,
 };
 use rspack_hash::{RspackHash, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::esm_compatibility_dependency::add_async_module_boundary;
 use crate::Atom;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ProvideDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -132,6 +135,7 @@ impl AsContextDependency for ProvideDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ProvideDependencyTemplate;
 
 impl ProvideDependencyTemplate {

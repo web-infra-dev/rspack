@@ -5,10 +5,13 @@ use rspack_core::{
   InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeCondition, RuntimeGlobals,
   TemplateContext, TemplateReplaceSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::json_stringify_str;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MockMethodDependency {
   call_expr_range: DependencyRange,
   callee_range: DependencyRange,
@@ -35,6 +38,7 @@ pub struct MockMethodDependency {
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum MockMethod {
   Mock,
   DoMock,
@@ -109,6 +113,7 @@ impl AsContextDependency for MockMethodDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MockMethodDependencyTemplate;
 
 impl MockMethodDependencyTemplate {

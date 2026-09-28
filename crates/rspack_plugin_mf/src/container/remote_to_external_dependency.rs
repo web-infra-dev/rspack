@@ -3,9 +3,12 @@ use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RemoteToExternalDependency {
   id: DependencyId,
   request: String,

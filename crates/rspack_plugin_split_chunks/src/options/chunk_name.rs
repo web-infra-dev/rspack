@@ -3,6 +3,8 @@ use std::sync::Arc;
 use futures::future::BoxFuture;
 use rspack_core::{ChunkUkey, Compilation, Module};
 use rspack_error::Result;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 pub struct ChunkNameGetterFnCtx<'a> {
   pub module: &'a dyn Module,
@@ -18,8 +20,9 @@ type ChunkNameGetterFn = Arc<
 >;
 
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ChunkNameGetter {
   String(String),
-  Fn(ChunkNameGetterFn),
+  Fn(#[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_arc))] ChunkNameGetterFn),
   Disabled,
 }

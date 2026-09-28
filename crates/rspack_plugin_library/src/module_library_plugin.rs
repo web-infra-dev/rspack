@@ -11,6 +11,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin, RenderSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 
@@ -18,6 +20,7 @@ const PLUGIN_NAME: &str = "rspack.ModuleLibraryPlugin";
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleLibraryPlugin;
 
 impl ModuleLibraryPlugin {

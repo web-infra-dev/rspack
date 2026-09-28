@@ -4,12 +4,15 @@ use rspack_core::{
   EvaluatedInlinableValue, ExportProvided, ExportsInfoArtifact, ExportsType, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec, SideEffectsStateArtifact, UsedName,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::{CommonJsRequireDependency, ESMImportSpecifierDependency, ImportDependency};
 use crate::utils::eval::DependencyData;
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependencyBranchGuard(#[cacheable(with=AsCacheable)] DependencyData);
 
 impl DependencyBranchGuard {
@@ -137,6 +140,7 @@ pub fn compose_dependency_condition(
   }))
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct BranchGuardDependencyCondition {
   base: Option<DependencyCondition>,
   branch_guard: DependencyBranchGuard,

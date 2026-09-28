@@ -115,7 +115,7 @@ use crate::{
 
 type KeepRight = bool;
 
-pub trait JavascriptParserPlugin<'p, 'a> {
+pub trait JavascriptParserPlugin<'p, 'a>: rspack_util::MaybeAllocative {
   /// Used by the parser drive to precompute which hook paths this plugin
   /// actually implements.
   ///

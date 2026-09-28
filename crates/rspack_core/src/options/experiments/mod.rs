@@ -5,6 +5,7 @@ pub mod runtime_mode {
   use std::fmt;
 
   #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
   pub enum RuntimeMode {
     #[default]
     Webpack,
@@ -21,9 +22,12 @@ pub mod runtime_mode {
   }
 }
 
+#[cfg(allocative)]
+use rspack_util::allocative;
 use runtime_mode::RuntimeMode;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NewCacheOptions {
   pub code_generation: bool,
   pub module: bool,
@@ -49,6 +53,7 @@ impl NewCacheOptions {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Experiments {
   pub css: bool,
   pub new_cache: NewCacheOptions,

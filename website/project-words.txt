@@ -5,6 +5,7 @@ ahabhgk
 Akait
 alexander-akait
 alibaba
+allocative
 analysable
 ansi
 antd
@@ -208,6 +209,7 @@ sockjs
 sokra
 solidjs
 sooniter
+speedscope
 statoscope
 struct
 svgr

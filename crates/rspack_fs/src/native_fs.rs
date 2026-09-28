@@ -8,6 +8,8 @@ use fs_err::tokio as tokio_fs;
 use fs_err::{self as fs, File};
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use tracing::instrument;
 
 use crate::{
@@ -15,13 +17,17 @@ use crate::{
   IoResultToFsResultExt, ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct NativeFileSystemOptions {
   // enable Yarn PnP feature
   pnp: bool,
 }
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NativeFileSystem {
   options: NativeFileSystemOptions,
+  // pnp does not expose the allocations retained by its ZIP cache.
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque))]
   pnp_lru: LruZipCache<Vec<u8>>,
 }
 impl NativeFileSystem {

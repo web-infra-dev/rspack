@@ -7,6 +7,8 @@ use rspack_core::{
   impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::utils::get_output_dir;
 use crate::{
@@ -83,6 +85,7 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleChunkLoadingRuntimeModule {
   omit_on_demand_loading: bool,
 }

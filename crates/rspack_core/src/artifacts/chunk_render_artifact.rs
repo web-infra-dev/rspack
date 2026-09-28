@@ -1,10 +1,13 @@
 use std::ops::{Deref, DerefMut};
 
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 
 use crate::{ArtifactExt, ChunkRenderResult, ChunkUkey, incremental::IncrementalPasses};
 
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkRenderArtifact(FxHashMap<ChunkUkey, ChunkRenderResult>);
 
 impl ArtifactExt for ChunkRenderArtifact {

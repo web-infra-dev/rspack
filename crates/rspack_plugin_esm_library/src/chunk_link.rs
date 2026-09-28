@@ -7,9 +7,12 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource},
 };
 use rspack_intern::{Atom, AtomMap, IndexAtomMap, IndexAtomSet};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Ref {
   Symbol(SymbolRef),
   Inline(String),
@@ -25,10 +28,12 @@ impl Ref {
 }
 
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SymbolRef {
   pub module: ModuleIdentifier,
   pub symbol: Atom,
   pub ids: Vec<Atom>,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_arc))]
   renderer: Arc<dyn Fn(&SymbolRef) -> String + Send + Sync>,
 }
 
@@ -63,6 +68,7 @@ impl SymbolRef {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExternalInterop {
   pub module: ModuleIdentifier,
   pub from_module: IdentifierSet,
@@ -242,18 +248,21 @@ impl ExternalInterop {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ReExportFrom {
   Chunk(ChunkUkey),
   Request(String),
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RawImportSource {
   Chunk(ChunkUkey),
   Source((String, Option<String>)),
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkLinkContext {
   pub chunk: ChunkUkey,
 

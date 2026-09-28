@@ -7,6 +7,7 @@ use super::CacheDirectory;
 
 /// File system storage configuration options
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FileSystemOptions {
   /// Storage root directory path. Filesystem cache entries are stored under
   /// `<directory>/<compiler-path-hash>`.

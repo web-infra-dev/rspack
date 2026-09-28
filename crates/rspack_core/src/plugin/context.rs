@@ -1,6 +1,8 @@
 use std::{ops::Deref, sync::Arc};
 
 use rspack_cacheable::{cacheable, with::AsInnerConverter};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
@@ -17,8 +19,12 @@ pub type BoxedParserAndGeneratorBuilder =
   Box<dyn 'static + Send + Sync + Fn(Arc<ResolvedModuleOptions>) -> BoxedParserAndGenerator>;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, allocative(bound = "T: allocative::Allocative, U"))]
 pub struct ArcComputed<T, U> {
   owner: Arc<T>,
+  // Non-owning projection into owner; visiting it would count the same value twice.
+  #[cfg_attr(allocative, allocative(skip))]
   computed: *const U,
 }
 
@@ -169,6 +175,7 @@ impl<'a> From<&'a ResolvedModuleOptions> for &'a JsonGeneratorOptions {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ResolvedModuleOptionsCacheKey {
   pub rule_ids: ModuleRuleIds,
   pub module_type: ModuleType,
@@ -196,6 +203,7 @@ impl ResolvedModuleOptionsCacheKey {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ResolvedModuleOptions {
   cache_key: ResolvedModuleOptionsCacheKey,
   parser: Option<ParserOptions>,

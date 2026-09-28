@@ -9,6 +9,8 @@ use rspack_core::{
   ResourceIdentifier, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::create_resource_identifier_for_esm_dependency;
 use crate::Atom;
@@ -17,6 +19,7 @@ use crate::Atom;
 // https://github.com/webpack/webpack/blob/2944286213cf1b3697a1c8dd41ffd3f8ada99448/lib/dependencies/ImportWeakDependency.js
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportWeakDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -166,6 +169,7 @@ impl AsContextDependency for ImportWeakDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportWeakDependencyTemplate;
 
 impl ImportWeakDependencyTemplate {

@@ -1,10 +1,13 @@
 use async_trait::async_trait;
 use rspack_core::{ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
 use rspack_error::Result;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{rsc_entry_dependency::RscEntryDependency, rsc_entry_module::RscEntryModule};
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RscEntryModuleFactory;
 
 #[async_trait]

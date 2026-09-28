@@ -8,6 +8,8 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use serde::Serialize;
 
 use super::{
@@ -18,6 +20,7 @@ use super::{
 use crate::ShareScope;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ContainerPluginOptions {
   pub name: String,
   pub share_scope: ShareScope,
@@ -30,6 +33,7 @@ pub struct ContainerPluginOptions {
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExposeOptions {
   pub name: Option<String>,
   pub import: Vec<String>,
@@ -37,6 +41,7 @@ pub struct ExposeOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ContainerPlugin {
   options: ContainerPluginOptions,
 }

@@ -22,6 +22,8 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::asset_condition::{AssetConditions, AssetConditionsObject, match_object};
 use thread_local::ThreadLocal;
 
@@ -29,6 +31,7 @@ static CSS_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
 
 #[derive(Debug, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PluginOptions {
   pub test: Option<AssetConditions>,
   pub include: Option<AssetConditions>,
@@ -38,16 +41,19 @@ pub struct PluginOptions {
 }
 
 #[derive(Debug, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Draft {
   pub custom_media: bool,
 }
 
 #[derive(Debug, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NonStandard {
   pub deep_selector_combinator: bool,
 }
 
 #[derive(Debug, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PseudoClasses {
   pub hover: Option<String>,
   pub active: Option<String>,
@@ -57,6 +63,7 @@ pub struct PseudoClasses {
 }
 
 #[derive(Debug, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MinimizerOptions {
   pub error_recovery: bool,
   pub include: Option<u32>,
@@ -65,11 +72,14 @@ pub struct MinimizerOptions {
   pub non_standard: Option<NonStandard>,
   pub unused_symbols: Vec<String>,
   pub pseudo_classes: Option<PseudoClasses>,
+  // Browsers contains only optional numeric versions, with no owned heap.
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_inline))]
   pub targets: Option<Browsers>,
 }
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LightningCssMinimizerRspackPlugin {
   options: PluginOptions,
 }

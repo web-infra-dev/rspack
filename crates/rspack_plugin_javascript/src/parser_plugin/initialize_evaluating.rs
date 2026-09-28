@@ -2,6 +2,8 @@ use std::borrow::Cow;
 
 use cow_utils::CowUtils;
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_ecma_ast::CallExpr;
 
 use super::JavascriptParserPlugin;
@@ -15,6 +17,7 @@ const SPLIT_METHOD_NAME: &str = "split";
 const SUBSTR_METHOD_NAME: &str = "substr";
 const SUBSTRING_METHOD_NAME: &str = "substring";
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct InitializeEvaluating;
 
 #[rspack_macros::implemented_javascript_parser_hooks]

@@ -20,6 +20,8 @@ use rspack_core::{
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxHashSet;
 use swc_experimental_allocator::Allocator;
 use swc_experimental_ecma_ast::{Comments, EsVersion, Program, VisitWith};
@@ -145,6 +147,7 @@ impl ParserRuntimeRequirementsData {
 }
 
 #[cacheable]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct JavaScriptParserAndGenerator {
   #[cacheable(with=AsInner)]
   import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,

@@ -7,6 +7,8 @@ use rspack_core::{
 };
 use rspack_intern::Atom;
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 use swc_experimental_ecma_ast::{BlockStmtOrExpr, CallExpr, Callee, Expr, GetSpan, Lit};
 
@@ -26,6 +28,7 @@ use crate::{
   },
 };
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AMDDefineDependencyParserPlugin;
 
 fn is_unbound_function_expression(expr: &Expr) -> bool {

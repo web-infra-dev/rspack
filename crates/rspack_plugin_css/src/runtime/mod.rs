@@ -11,6 +11,8 @@ use rspack_plugin_runtime::{
   extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
   get_chunk_runtime_requirements, render_chunk_loading_hmr_state_expression, stringify_chunks,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::json_stringify;
 
 static CSS_LOADING_TEMPLATE: &str = include_str!("./css_loading.ejs");
@@ -74,6 +76,7 @@ static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| 
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssLoadingRuntimeModule {}
 
 impl CssLoadingRuntimeModule {

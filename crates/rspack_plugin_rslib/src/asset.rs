@@ -8,10 +8,13 @@ use rspack_core::{
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_plugin_asset::AssetParserAndGenerator;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashSet;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct RslibAssetParserAndGenerator(pub AssetParserAndGenerator);
 
 #[cacheable_dyn]

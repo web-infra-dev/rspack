@@ -7,6 +7,7 @@ use crate::{css_dependency::CssDependency, plugin::PLUGIN_NAME};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssExtractJsonData {
   pub identifier: String,
   pub content: String,
@@ -19,6 +20,7 @@ pub struct CssExtractJsonData {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PluginCssExtractParserPlugin {
   cache: FxDashMap<String, Vec<CssExtractJsonData>>,
 }
@@ -83,3 +85,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for PluginCssExtractParserPlugin {
     None
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

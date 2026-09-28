@@ -1,4 +1,6 @@
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{ExportInfoTargetValue, ExportProvided, ExportsInfo, ExportsInfoData, UsageState};
@@ -7,6 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum ExportName {
   Other,
   SideEffects,
@@ -14,6 +17,7 @@ enum ExportName {
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportInfo {
   exports_info: ExportsInfo,
   export_name: ExportName,
@@ -39,6 +43,7 @@ impl ExportInfo {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportInfoData {
   belongs_to: ExportsInfo,
   // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad4153d/lib/ExportsInfo.js#L78

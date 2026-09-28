@@ -4,6 +4,8 @@ use std::{
 };
 
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{
   current_time,
   fx_hash::{FxHashMap, FxHashSet},
@@ -20,6 +22,7 @@ fn new_error(msg: &str) -> Error {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum FileType {
   Dir(FileMetadata),
   File {
@@ -67,6 +70,7 @@ impl FileType {
 }
 
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MemoryFileSystem {
   files: Arc<Mutex<FxHashMap<Utf8PathBuf, FileType>>>,
 }

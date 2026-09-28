@@ -90,7 +90,9 @@ async function build() {
 			features.push("sftrace-setup");
 			rustflags.push("-Zinstrument-xray=always");
 		}
-		if (process.env.ALLOCATIVE) {
+		// Diagnostic builds support memory snapshots without a custom rebuild.
+		// Collection remains opt-in through RSPACK_ALLOCATIVE_DIR at runtime.
+		if (process.env.ALLOCATIVE || values.profile === "release-debug" || values.profile === "profiling") {
 			features.push("allocative");
 			rustflags.push("--cfg=allocative");
 		}

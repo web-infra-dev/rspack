@@ -11,6 +11,8 @@ use rspack_core::{
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{identifier::split_at_query_mark, itoa};
 
 use crate::{
@@ -21,6 +23,7 @@ use crate::{
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct CssModule {
   pub(crate) identifier: String,
   pub(crate) content: String,
@@ -212,6 +215,7 @@ impl DependenciesBlock for CssModule {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct CssModuleFactory;
 
 #[async_trait::async_trait]

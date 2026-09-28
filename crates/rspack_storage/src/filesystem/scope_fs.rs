@@ -13,6 +13,7 @@ pub type Writer = Box<dyn WriteStream>;
 /// Confines all file operations to a specified workspace directory,
 /// automatically handles relative path conversion, and provides a unified file operation interface.
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ScopeFileSystem {
   /// Workspace root path
   workspace: Utf8PathBuf,

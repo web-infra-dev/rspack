@@ -14,6 +14,8 @@ use lightningcss::{
   traits::IntoOwned,
 };
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{
   Loader, LoaderContext, RunnerContext,
   rspack_sources::{
@@ -36,10 +38,12 @@ pub type LightningcssLoaderVisitor = Box<dyn Send + Fn(&mut StyleSheet<'static, 
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LightningCssLoader {
   id: Identifier,
   #[debug(skip)]
   #[cacheable(with=Skip)]
+  #[cfg_attr(allocative, allocative(visit = visit_visitors))]
   visitors: Option<Mutex<Vec<LightningcssLoaderVisitor>>>,
   config: Config,
 }
@@ -310,4 +314,38 @@ pub fn to_static(
   let mut stylesheet = StyleSheet::new(sources, rules, options);
   stylesheet.license_comments = license_comments;
   stylesheet
+}
+
+#[cfg(allocative)]
+fn visit_visitors(
+  value: &Option<Mutex<Vec<LightningcssLoaderVisitor>>>,
+  visitor: &mut allocative::Visitor<'_>,
+) {
+  use allocative::Key;
+  let mut visitor = visitor.enter_self(value);
+  if let Some(lock) = value {
+    let mut lock_visitor = visitor.enter_self(lock);
+    if let Ok(callbacks) = lock.try_lock() {
+      let mut vector = lock_visitor.enter_self(&*callbacks);
+      let mut pointer = vector.enter_unique(Key::new("ptr"), std::mem::size_of::<usize>());
+      let mut data = pointer.enter(
+        Key::new("capacity"),
+        callbacks.capacity() * std::mem::size_of::<LightningcssLoaderVisitor>(),
+      );
+      for callback in callbacks.iter() {
+        allocative::visit_opaque_box(callback, &mut data);
+      }
+      data.visit_simple(
+        Key::new("unused_capacity"),
+        (callbacks.capacity() - callbacks.len()) * std::mem::size_of::<LightningcssLoaderVisitor>(),
+      );
+      data.exit();
+      pointer.exit();
+      vector.exit();
+    } else {
+      lock_visitor.visit_opaque(lock);
+    }
+    lock_visitor.exit();
+  }
+  visitor.exit();
 }

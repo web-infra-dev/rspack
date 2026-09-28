@@ -5,9 +5,12 @@ use rspack_core::{
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct IsIncludeDependency {
   pub range: DependencyRange,
   pub id: DependencyId,
@@ -75,6 +78,7 @@ impl DependencyCodeGeneration for IsIncludeDependency {
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct IsIncludedDependencyTemplate;
 
 impl IsIncludedDependencyTemplate {

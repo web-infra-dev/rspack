@@ -7,11 +7,14 @@ use rspack_core::{
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use serde_json::Value;
 
 use crate::id_helpers::ModuleFilterFn;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum SyncModuleIdsPluginMode {
   Read,
   Create,
@@ -53,10 +56,12 @@ fn parse_module_ids(buffer: &[u8]) -> Result<BTreeMap<String, ModuleId>> {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SyncModuleIdsPlugin {
   path: String,
   context: Option<String>,
   #[debug(skip)]
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_option_arc))]
   test: Option<ModuleFilterFn>,
   mode: SyncModuleIdsPluginMode,
   #[debug(skip)]

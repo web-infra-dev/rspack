@@ -5,6 +5,8 @@ use rspack_cacheable::cacheable;
 use rspack_collections::IdentifierMap;
 use rspack_error::{Result, error};
 use rspack_hash::{RspackHash, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::FxHashSet;
 
@@ -15,6 +17,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct OriginRecord {
   pub module: Option<ModuleIdentifier>,
   pub loc: Option<DependencyLocation>,
@@ -22,6 +25,7 @@ pub struct OriginRecord {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
   pub kind: ChunkGroupKind,
@@ -336,6 +340,7 @@ impl ChunkGroup {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ChunkGroupKind {
   Entrypoint {
     initial: bool,
@@ -379,6 +384,7 @@ impl ChunkGroupKind {
 
 #[cacheable]
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum EntryRuntime {
   String(String),
   #[default]
@@ -420,6 +426,7 @@ impl Display for EntryRuntime {
 // pub type EntryRuntime = String;
 #[cacheable]
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
@@ -493,6 +500,7 @@ impl Display for ChunkGroupOrderKey {
 
 #[cacheable]
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
   pub preload_order: Option<i32>,
@@ -522,6 +530,7 @@ impl ChunkGroupOptions {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum GroupOptions {
   Entrypoint(Box<EntryOptions>),
   ChunkGroup(ChunkGroupOptions),

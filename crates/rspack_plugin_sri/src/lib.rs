@@ -42,6 +42,7 @@ static COMPILATION_CONTEXT_MAP: LazyLock<FxDashMap<CompilationId, Arc<SRICompila
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SubresourceIntegrityPlugin {
   pub options: SubresourceIntegrityPluginOptions,
   pub validate_error: Option<rspack_error::Error>,

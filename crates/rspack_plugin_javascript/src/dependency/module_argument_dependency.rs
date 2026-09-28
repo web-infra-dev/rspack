@@ -4,9 +4,12 @@ use rspack_core::{
   DependencyTemplateType, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_hash::{RspackHash, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleArgumentDependency {
   id: Option<String>,
   range: DependencyRange,
@@ -64,6 +67,7 @@ impl DependencyCodeGeneration for ModuleArgumentDependency {
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleArgumentDependencyTemplate;
 
 impl ModuleArgumentDependencyTemplate {

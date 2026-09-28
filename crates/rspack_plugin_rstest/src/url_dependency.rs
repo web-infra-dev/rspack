@@ -4,9 +4,12 @@ use rspack_core::{
   ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::{URLDependency, URLDependencyTemplate};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RstestUrlDependencyTemplate {
   /// List of extensions to preserve (e.g., `[".wasm", ".node"]`)
   preserve_extensions: Vec<String>,

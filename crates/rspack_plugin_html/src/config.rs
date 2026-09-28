@@ -3,12 +3,15 @@ use std::{fmt, path::PathBuf, str::FromStr};
 use futures::future::BoxFuture;
 use rspack_core::{Compilation, PublicPath};
 use rspack_error::Result;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxHashMap;
 use serde::Serialize;
 use sugar_path::SugarPath;
 
 #[derive(Serialize, Debug, Clone, Copy, Default)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum HtmlInject {
   #[default]
   Head,
@@ -46,6 +49,7 @@ impl FromStr for HtmlInject {
 
 #[derive(Serialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum HtmlScriptLoading {
   Blocking,
   Defer,
@@ -76,6 +80,7 @@ impl FromStr for HtmlScriptLoading {
 type TemplateParameterTsfn =
   Box<dyn for<'a> Fn(String) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct TemplateParameterFn {
   pub inner: TemplateParameterTsfn,
 }
@@ -87,6 +92,7 @@ impl std::fmt::Debug for TemplateParameterFn {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum TemplateParameters {
   Map(FxHashMap<String, String>),
   Function(TemplateParameterFn),
@@ -95,6 +101,7 @@ pub enum TemplateParameters {
 
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HtmlRspackPluginBaseOptions {
   pub href: Option<String>,
   pub target: Option<String>,
@@ -103,6 +110,7 @@ pub struct HtmlRspackPluginBaseOptions {
 type TemplateRenderTsfn =
   Box<dyn for<'a> Fn(String) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct TemplateRenderFn {
   pub inner: TemplateRenderTsfn,
 }
@@ -115,6 +123,7 @@ impl std::fmt::Debug for TemplateRenderFn {
 
 #[derive(Serialize, Debug, Clone, Copy, Default)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum HtmlChunkSortMode {
   #[default]
   Auto,
@@ -140,6 +149,7 @@ impl FromStr for HtmlChunkSortMode {
 
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HtmlRspackPluginOptions {
   /// emitted file name in output path
   #[serde(default = "default_filename")]

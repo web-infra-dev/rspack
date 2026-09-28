@@ -10,6 +10,8 @@ use rspack_core::{
 use rspack_intern::Atom;
 use rspack_plugin_javascript::dependency::ImportDependency;
 use rspack_plugin_rslib::dyn_import_external::render_dyn_import_external_module;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::EsmLibraryPlugin;
 
@@ -195,6 +197,7 @@ fn render_lazy_commonjs_external_import(
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DynamicImportDependencyTemplate {
   /// module_id → namespace export name in the chunk.
   /// For modules whose exports were renamed in a multi-module chunk,

@@ -1,10 +1,13 @@
 use std::ops::{Deref, DerefMut};
 
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 
 use crate::{ArtifactExt, ChunkUkey, RuntimeGlobals, incremental::IncrementalPasses};
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CgcRuntimeRequirementsArtifact(FxHashMap<ChunkUkey, RuntimeGlobals>);
 
 impl ArtifactExt for CgcRuntimeRequirementsArtifact {

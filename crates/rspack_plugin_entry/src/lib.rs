@@ -1,5 +1,7 @@
 use std::sync::LazyLock;
 
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{
   Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context, DependencyRef,
   DependencyType, EntryDependency, EntryOptions, Plugin,
@@ -11,6 +13,7 @@ type LazyDependency = LazyLock<DependencyRef, Box<dyn FnOnce() -> DependencyRef 
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct EntryPlugin {
   // Need "cache" the dependency to tell incremental that this entry dependency is not changed
   // so it can be reused and skip the module make

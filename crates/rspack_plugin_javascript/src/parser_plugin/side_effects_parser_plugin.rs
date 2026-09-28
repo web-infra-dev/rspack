@@ -5,6 +5,8 @@ use rspack_core::{
 };
 use rspack_intern::AtomSet;
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom, wtf8::Wtf8};
 use swc_experimental_ecma_ast::{
   ArrayLit, ArrowExpr, AssignExpr, AssignOp, BlockStmt, BlockStmtOrExpr, CallExpr, Class,
@@ -25,6 +27,7 @@ use crate::{
 static PURE_COMMENTS: LazyLock<regex::Regex> = LazyLock::new(|| {
   regex::Regex::new("(?s)^\\s*(#|@)__PURE__(?:\\s|$)").expect("Should create the regex")
 });
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SideEffectsParserPlugin {
   analyze_side_effects_free: bool,
 }

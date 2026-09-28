@@ -11,6 +11,8 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_ids::id_helpers::assign_deterministic_ids;
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::utils::mangle_exports::{
@@ -56,6 +58,7 @@ fn get_mangleable_state(
 /// Struct to represent the mangle exports plugin.
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MangleExportsPlugin {
   deterministic: bool,
 }

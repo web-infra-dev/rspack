@@ -11,6 +11,8 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -30,6 +32,7 @@ pub struct RscClientPluginOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RscClientPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,

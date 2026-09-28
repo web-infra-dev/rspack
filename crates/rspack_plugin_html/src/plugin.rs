@@ -35,6 +35,7 @@ static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcHtmlPluginHoo
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HtmlRspackPlugin {
   config: HtmlRspackPluginOptions,
 }

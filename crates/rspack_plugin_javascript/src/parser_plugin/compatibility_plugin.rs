@@ -3,6 +3,8 @@ use std::sync::Arc;
 use rspack_core::{
   ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange, ExportsArgument,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{SpanExt, itoa};
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, UnaryExpr, VarDeclarator};
 
@@ -23,6 +25,7 @@ pub struct NestedRequireData {
   in_short_hand: bool,
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompatibilityPlugin;
 
 impl CompatibilityPlugin {

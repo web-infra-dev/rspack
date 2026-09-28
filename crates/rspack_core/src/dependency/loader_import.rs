@@ -1,4 +1,6 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::AffectType;
 use crate::{
@@ -8,6 +10,7 @@ use crate::{
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LoaderImportDependency {
   id: DependencyId,
   context: Context,

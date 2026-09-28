@@ -10,6 +10,8 @@ use rspack_core::{
   RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::json_stringify_str;
 
 use super::local_module::LocalModule;
@@ -150,6 +152,7 @@ impl Branch {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AMDDefineDependency {
   id: DependencyId,
   range: DependencyRange,
@@ -250,6 +253,7 @@ impl DependencyCodeGeneration for AMDDefineDependency {
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AMDDefineDependencyTemplate;
 
 impl AMDDefineDependencyTemplate {

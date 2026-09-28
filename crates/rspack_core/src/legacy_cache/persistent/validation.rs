@@ -7,6 +7,8 @@ use rspack_cacheable::cacheable;
 use rspack_error::Error;
 use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_tasks::{get_current_dependency_id, set_current_dependency_id};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::{
   build_dependencies::{BuildDeps, BuildDepsValidationResult},
@@ -53,6 +55,7 @@ pub struct CacheValidationReport {
 /// is checked first, then the build dependency snapshot, and cached entries
 /// are restored only when both checks succeed.
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CacheValidation {
   codec: Arc<CacheCodec>,
   version: String,

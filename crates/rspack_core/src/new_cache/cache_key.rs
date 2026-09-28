@@ -1,10 +1,14 @@
 use std::{fmt, ops::Deref, sync::Arc};
 
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 /// Immutable, reference-counted cache identifier.
 ///
 /// Cloning a key only increments its reference count. The string is released
 /// when its last key is dropped.
 #[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CacheKey(Arc<str>);
 
 impl CacheKey {

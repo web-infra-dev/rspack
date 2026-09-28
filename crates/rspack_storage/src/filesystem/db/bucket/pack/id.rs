@@ -5,6 +5,7 @@ use crate::{Error, Result};
 /// Pack IDs are sequential integers starting from 1.
 /// ID 0 is reserved for the "hot pack" which stores frequently modified data.
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, PartialOrd)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PackId(usize);
 
 impl std::fmt::Display for PackId {

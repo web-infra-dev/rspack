@@ -15,6 +15,8 @@ use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_intern::Atom;
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::ext::IntoAny;
 use rustc_hash::FxHasher;
 
@@ -30,6 +32,7 @@ pub struct InitFragmentContents {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum InitFragmentKey {
   ESMImport(String),
   ESMExports,
@@ -216,7 +219,9 @@ pub trait InitFragmentRenderContext {
 }
 
 #[cacheable_dyn]
-pub trait InitFragment: IntoAny + RspackHash + DynClone + Debug + Sync + Send {
+pub trait InitFragment:
+  rspack_util::MaybeAllocative + IntoAny + RspackHash + DynClone + Debug + Sync + Send
+{
   /// getContent + getEndContent
   fn contents(
     self: Box<Self>,
@@ -248,6 +253,7 @@ impl<T: InitFragment + 'static> InitFragmentExt for T {
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum InitFragmentStage {
   StageConstants,
   StageAsyncBoundary,
@@ -357,6 +363,7 @@ impl InitFragmentRenderContext for ChunkRenderContext {
 
 #[cacheable]
 #[derive(Debug, Clone, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NormalInitFragment {
   content: String,
   stage: InitFragmentStage,
@@ -422,6 +429,7 @@ impl InitFragment for NormalInitFragment {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ESMExportBinding {
   Getter(#[cacheable(with=AsPreset)] Atom),
   Value(#[cacheable(with=AsPreset)] Atom),
@@ -444,6 +452,7 @@ impl RspackHash for ESMExportBinding {
 
 #[cacheable]
 #[derive(Debug, Clone, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ESMExportInitFragment {
   exports_argument: ExportsArgument,
   // TODO: should be a map
@@ -561,6 +570,7 @@ impl InitFragment for ESMExportInitFragment {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AwaitDependenciesInitFragment {
   #[cacheable(with=AsVec)]
   promises: LinkedHashSet<String, BuildHasherDefault<FxHasher>>,
@@ -631,6 +641,7 @@ impl InitFragment for AwaitDependenciesInitFragment {
 
 #[cacheable]
 #[derive(Debug, Clone, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConditionalInitFragment {
   content: String,
   stage: InitFragmentStage,
@@ -752,6 +763,7 @@ fn wrap_in_condition(condition: &str, source: &str) -> String {
 
 #[cacheable]
 #[derive(Debug, Clone, rspack_hash::RspackHash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExternalModuleInitFragment {
   imported_module: String,
   // webpack also supports `ImportSpecifiers` but not ever used.

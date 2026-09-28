@@ -1,3 +1,6 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 mod drive;
 
 use std::{
@@ -33,6 +36,7 @@ static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcReadContentHa
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RealContentHashPlugin;
 
 impl RealContentHashPlugin {

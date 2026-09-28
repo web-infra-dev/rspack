@@ -36,6 +36,7 @@ use super::{
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HoistContainerReferencesPlugin {
   federation_deps: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
@@ -309,3 +310,6 @@ impl Plugin for HoistContainerReferencesPlugin {
     Ok(())
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

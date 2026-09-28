@@ -2,12 +2,15 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{Loader, LoaderContext, RunnerContext};
 use rspack_error::Result;
 use rspack_loader_runner::{DisplayWithSuffix, Identifier};
 use serde_json::json;
 
 #[cacheable]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SimpleLoader;
 #[cacheable_dyn]
 #[async_trait]
@@ -28,6 +31,7 @@ impl Loader<RunnerContext> for SimpleLoader {
 pub const SIMPLE_LOADER_IDENTIFIER: &str = "builtin:test-simple-loader";
 
 #[cacheable]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SimpleAsyncLoader;
 #[cacheable_dyn]
 #[async_trait]
@@ -47,6 +51,7 @@ impl Loader<RunnerContext> for SimpleAsyncLoader {
 pub const SIMPLE_ASYNC_LOADER_IDENTIFIER: &str = "builtin:test-simple-async-loader";
 
 #[cacheable]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PitchingLoader;
 #[cacheable_dyn]
 #[async_trait]
@@ -71,6 +76,7 @@ impl Loader<RunnerContext> for PitchingLoader {
 pub const PITCHING_LOADER_IDENTIFIER: &str = "builtin:test-pitching-loader";
 
 #[cacheable]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PassthroughLoader;
 #[cacheable_dyn]
 #[async_trait]
@@ -88,6 +94,7 @@ impl Loader<RunnerContext> for PassthroughLoader {
 pub const PASS_THROUGH_LOADER_IDENTIFIER: &str = "builtin:test-passthrough-loader";
 
 #[cacheable]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NoPassthroughLoader;
 #[cacheable_dyn]
 #[async_trait]
@@ -107,6 +114,7 @@ pub const NO_PASS_THROUGH_LOADER_IDENTIFIER: &str = "builtin:test-no-passthrough
 static DEPENDENCY_LOADER_RUNS: AtomicUsize = AtomicUsize::new(0);
 
 #[cacheable]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependencyLoader;
 #[cacheable_dyn]
 #[async_trait]

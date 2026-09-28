@@ -1,12 +1,15 @@
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
 use rspack_paths::{InternedPath, InternedPathSet};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 
 use crate::DependencyId;
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FactorizeInfo {
   related_dep_ids: Vec<DependencyId>,
   file_dependencies: Box<[InternedPath]>,
@@ -66,6 +69,7 @@ impl FactorizeInfo {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct FactorizationArtifact {
   infos: FxHashMap<DependencyId, FactorizeInfo>,
   dependency_owners: FxHashMap<DependencyId, DependencyId>,

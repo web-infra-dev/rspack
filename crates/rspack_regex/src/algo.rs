@@ -6,7 +6,9 @@ use regress::Match;
 use rspack_error::{Error, error};
 
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HashRegressRegex {
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque))]
   pub regex: regress::Regex,
   expr: String,
   flags: String,
@@ -45,7 +47,9 @@ impl HashRegressRegex {
 }
 
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HashRustRegex {
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque))]
   pub regex: regex::Regex,
   expr: String,
   flags: String,
@@ -102,6 +106,7 @@ impl HashRustRegex {
 }
 
 #[derive(Clone, Debug, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Algo {
   /// Regress is considered having the same behaviors as RegExp in JS.
   /// But Regress has poor performance. To improve performance of regex matching,

@@ -8,11 +8,14 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ModuleDependency, RuntimeGlobals, TemplateContext,
   TemplateReplaceSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::amd_require_item_dependency::AMDRequireItemDependency;
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum AMDRequireArrayItem {
   Require,
   String(String),
@@ -22,6 +25,7 @@ pub enum AMDRequireArrayItem {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AMDRequireArrayDependency {
   id: DependencyId,
   deps_array: Vec<AMDRequireArrayItem>,
@@ -119,6 +123,7 @@ impl AsContextDependency for AMDRequireArrayDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct AMDRequireArrayDependencyTemplate;
 
 impl AMDRequireArrayDependencyTemplate {

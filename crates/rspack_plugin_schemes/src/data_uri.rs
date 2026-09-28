@@ -8,6 +8,8 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::base64;
 
 static URI_REGEX: LazyLock<Regex> = LazyLock::new(|| {
@@ -16,6 +18,7 @@ static URI_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DataUriPlugin;
 
 #[plugin_hook(NormalModuleFactoryResolveForScheme for DataUriPlugin,tracing=false)]

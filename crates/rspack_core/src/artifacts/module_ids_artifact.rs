@@ -1,10 +1,13 @@
 use std::ops::{Deref, DerefMut};
 
 use rspack_collections::IdentifierMap;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{ArtifactExt, ModuleId, incremental::IncrementalPasses};
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleIdsArtifact(IdentifierMap<ModuleId>);
 
 impl ArtifactExt for ModuleIdsArtifact {

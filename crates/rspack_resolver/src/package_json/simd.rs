@@ -84,6 +84,7 @@ fn is_object_root(buf: &[u8]) -> bool {
   buf.iter().find(|b| !b.is_ascii_whitespace()) == Some(&b'{')
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct JSONCell {
   value: BorrowedValue<'static>,
   buf: Vec<u8>,
@@ -136,6 +137,7 @@ impl Default for JSONCell {
 
 /// Deserialized package.json
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PackageJson {
   /// Path to `package.json`. Contains the `package.json` filename.
   ///

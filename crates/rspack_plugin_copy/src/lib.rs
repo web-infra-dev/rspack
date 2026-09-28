@@ -23,6 +23,8 @@ use rspack_error::{Diagnostic, Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
 
@@ -36,6 +38,7 @@ pub struct CopyRspackPluginOptions {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Info {
   pub immutable: Option<bool>,
   pub minimized: Option<bool>,
@@ -48,6 +51,7 @@ pub struct Info {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Related {
   pub source_map: Option<String>,
 }
@@ -60,6 +64,7 @@ pub enum FromType {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ToType {
   Dir,
   File,
@@ -86,12 +91,14 @@ pub struct ToFnCtx<'a> {
 
 pub type ToFn = Box<dyn for<'a> Fn(ToFnCtx<'a>) -> BoxFuture<'a, Result<String>> + Sync + Send>;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ToOption {
   String(String),
-  Fn(ToFn),
+  Fn(#[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_box))] ToFn),
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CopyPattern {
   pub from: String,
   #[debug(skip)]
@@ -105,11 +112,13 @@ pub struct CopyPattern {
   pub glob_options: CopyGlobOptions,
   pub copy_permissions: Option<bool>,
   #[debug(skip)]
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_option_box))]
   pub transform_fn: Option<TransformerFn>,
   pub cache: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CopyGlobOptions {
   pub case_sensitive_match: Option<bool>,
   pub dot: Option<bool>,
@@ -117,6 +126,7 @@ pub struct CopyGlobOptions {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RunPatternResult {
   pub source_filename: Utf8PathBuf,
   pub absolute_filename: Utf8PathBuf,
@@ -130,6 +140,7 @@ pub struct RunPatternResult {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CopyRspackPlugin {
   pub patterns: Vec<CopyPattern>,
   pattern_cache: Mutex<Vec<Option<CachedPatternResult>>>,

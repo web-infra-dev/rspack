@@ -4,15 +4,23 @@ use std::{
   hash::{BuildHasher, Hash},
 };
 
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxBuildHasher;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum OverlayValue<V> {
   Value(V),
   Tombstone,
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(
+  allocative,
+  allocative(bound = "K: allocative::Allocative, V: allocative::Allocative, S")
+)]
 pub struct OverlayMap<K, V, S = FxBuildHasher> {
   base: HashMap<K, V, S>,
   overlay: Option<HashMap<K, OverlayValue<V>, S>>,

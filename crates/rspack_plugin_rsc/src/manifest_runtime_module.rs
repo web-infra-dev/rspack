@@ -6,6 +6,8 @@ use rspack_core::{
   RuntimeTemplate, impl_runtime_module,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   plugin_state::PLUGIN_STATES, reference_manifest::RscEntryManifest, utils::to_json_string_literal,
@@ -13,6 +15,7 @@ use crate::{
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RscManifestRuntimeModule {}
 
 impl RscManifestRuntimeModule {

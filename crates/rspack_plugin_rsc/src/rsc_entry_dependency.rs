@@ -8,6 +8,8 @@ use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency, ResourceIdentifier,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::plugin_state::{
   ClientModuleImport, ClientModulesByServerEntry, CssImportsByServerEntry,
@@ -15,6 +17,7 @@ use crate::plugin_state::{
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RscEntryDependency {
   id: DependencyId,
   pub name: Arc<str>,

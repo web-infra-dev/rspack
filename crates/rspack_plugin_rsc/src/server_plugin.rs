@@ -166,6 +166,7 @@ fn group_client_entries_by_owner(
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RscServerPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
@@ -781,3 +782,6 @@ async fn failed(&self, _compilation: &Compilation) -> Result<()> {
   self.coordinator.failed().await?;
   Ok(())
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

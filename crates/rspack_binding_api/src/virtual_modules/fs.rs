@@ -8,6 +8,7 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 use crate::virtual_modules::VirtualFileStore;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct VirtualFileSystem {
   real_fs: Arc<dyn ReadableFileSystem>,
   virtual_file_store: Arc<RwLock<dyn VirtualFileStore>>,
@@ -149,3 +150,6 @@ impl ReadableFileSystem for VirtualFileSystem {
     self.real_fs.permissions(path).await
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

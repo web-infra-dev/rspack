@@ -19,6 +19,8 @@ use rspack_core::{
   TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::create_resource_identifier_for_esm_dependency;
 use crate::Atom;
@@ -64,6 +66,7 @@ pub mod import_emitted_runtime {
 // ESMImportDependency is merged ESMImportSideEffectDependency.
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ESMImportSideEffectDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
@@ -654,6 +657,7 @@ impl ModuleDependency for ESMImportSideEffectDependency {
 
 impl AsContextDependency for ESMImportSideEffectDependency {}
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct ESMImportSideEffectDependencyCondition;
 
 impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
@@ -697,6 +701,7 @@ impl DependencyCodeGeneration for ESMImportSideEffectDependency {
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ESMImportSideEffectDependencyTemplate;
 
 impl ESMImportSideEffectDependencyTemplate {

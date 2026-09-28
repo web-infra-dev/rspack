@@ -1,3 +1,5 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use super::{super::graph_updater::repair::context::TaskContext, module_tracker::ModuleTracker};
@@ -7,6 +9,7 @@ use crate::{DependencyId, ModuleIdentifier};
 ///
 /// If the meta data is same, we can assume that it is a same entry.
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportModuleMeta {
   pub origin_module_identifier: ModuleIdentifier,
   pub request: String,

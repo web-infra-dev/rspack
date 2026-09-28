@@ -4,12 +4,15 @@ use rspack_core::{
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   TemplateContext, TemplateReplaceSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 // Remove `export` label.
 // Before: `export const a = 1`
 // After: `const a = 1`
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ESMExportHeaderDependency {
   id: DependencyId,
   range: DependencyRange,
@@ -63,6 +66,7 @@ impl AsContextDependency for ESMExportHeaderDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ESMExportHeaderDependencyTemplate;
 
 impl ESMExportHeaderDependencyTemplate {

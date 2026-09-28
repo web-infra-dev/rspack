@@ -1,5 +1,7 @@
 use derive_more::Debug;
 use futures::future::BoxFuture;
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{
   BeforeResolveResult, ContextModuleFactoryBeforeResolve, ModuleFactoryCreateData,
   NormalModuleFactoryBeforeResolve, Plugin,
@@ -11,11 +13,13 @@ use rspack_regex::RspackRegex;
 pub type CheckResourceFn =
   Box<dyn for<'a> Fn(&'a str, &'a str) -> BoxFuture<'a, Result<bool>> + Sync + Send>;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CheckResourceContent {
-  Fn(CheckResourceFn),
+  Fn(#[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_box))] CheckResourceFn),
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct IgnorePluginOptions {
   pub resource_reg_exp: Option<RspackRegex>,
   pub context_reg_exp: Option<RspackRegex>,
@@ -25,6 +29,7 @@ pub struct IgnorePluginOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct IgnorePlugin {
   options: IgnorePluginOptions,
 }

@@ -1,10 +1,13 @@
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::base64;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 // https://www.w3.org/TR/2016/REC-SRI-20160623/#cryptographic-hash-functions
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum SubresourceIntegrityHashFunction {
   Sha256,
   Sha384,

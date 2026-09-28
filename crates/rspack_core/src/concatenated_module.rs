@@ -22,6 +22,8 @@ use rspack_intern::{Atom, AtomMap, AtomRef, AtomSet, IndexAtomMap, IndexAtomSet}
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{
   SpanExt, fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str,
   source_map::SourceMapKind, swc::join_atom,
@@ -64,6 +66,7 @@ define_hook!(ConcatenatedModuleExportsDefinitions: SeriesBail(exports_definition
 define_hook!(ConcatenatedModuleConcatenatedInfo: Series(compilation: &Compilation, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>, info: &mut ConcatenatedModuleInfo, all_used_names: &mut HashSet<Atom>));
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConcatenatedModuleHooks {
   pub exports_definitions: ConcatenatedModuleExportsDefinitionsHook,
   pub concatenated_info: ConcatenatedModuleConcatenatedInfoHook,
@@ -71,6 +74,7 @@ pub struct ConcatenatedModuleHooks {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RootModuleContext {
   pub id: ModuleIdentifier,
   pub readable_identifier: String,
@@ -122,6 +126,7 @@ pub enum BindingType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct NonDeferAccess(bool);
 
 fn merge_non_defer_access(a: NonDeferAccess, b: NonDeferAccess) -> NonDeferAccess {
@@ -134,6 +139,7 @@ fn subtract_non_defer_access(a: NonDeferAccess, b: NonDeferAccess) -> NonDeferAc
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConcatenatedInnerModule {
   pub id: ModuleIdentifier,
   pub size: f64,
@@ -146,6 +152,7 @@ static REGEX: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ConcatenationEntry {
   Concatenated(ConcatenationEntryConcatenated),
   External(ConcatenationEntryExternal),
@@ -161,11 +168,13 @@ impl ConcatenationEntry {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConcatenationEntryConcatenated {
   module: ModuleIdentifier,
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConcatenationEntryExternal {
   dependency: DependencyId,
   runtime_condition: RuntimeCondition,
@@ -183,6 +192,7 @@ impl ConcatenationEntryExternal {
 
 #[cacheable]
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConcatenatedImportMapItem {
   #[cacheable(with=AsVec<AsPreset>)]
   pub specifiers: HashSet<Atom>,
@@ -194,6 +204,7 @@ pub type ConcatenatedImportMap =
   Option<FxIndexMap<(String, Option<String>), ConcatenatedImportMapItem>>;
 
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConcatenatedModuleInfo {
   pub index: usize,
   pub module: ModuleIdentifier,
@@ -237,6 +248,7 @@ pub struct ConcatenatedModuleInfo {
 /// the module. That costs 24 bytes per binding and 4 bytes per reference
 /// instead of a map slot, a vector header and another copy of the identifier.
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct BindingRefs {
   pub(crate) bindings: Vec<BindingRef>,
   pub(crate) refs: Vec<u32>,
@@ -245,6 +257,7 @@ pub struct BindingRefs {
 /// One binding: its name and the range of its references inside
 /// [`BindingRefs::refs`].
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct BindingRef {
   pub(crate) name: Atom,
   pub(crate) ctxt: SyntaxContext,
@@ -378,6 +391,7 @@ impl ConcatenatedModuleInfo {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExternalModuleInfo {
   pub index: usize,
   pub module: ModuleIdentifier,
@@ -430,6 +444,7 @@ struct MergedConcatenatedImport {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ModuleInfo {
   External(ExternalModuleInfo),
   Concatenated(Box<ConcatenatedModuleInfo>),
@@ -612,6 +627,7 @@ impl ModuleInfo {
 }
 
 #[derive(Default, Clone, Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportSpec {
   pub atoms: BTreeMap<Atom, Atom>,
   pub default_import: Option<Atom>,
@@ -621,6 +637,7 @@ pub struct ImportSpec {
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConcatenatedModule {
   id: ModuleIdentifier,
   /// Used to implementing [Module] trait for [ConcatenatedModule]

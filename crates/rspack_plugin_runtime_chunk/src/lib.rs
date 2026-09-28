@@ -1,12 +1,15 @@
 use std::fmt;
 
 use futures::future::BoxFuture;
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{CompilationAddEntry, EntryOptions};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeChunkPlugin {
   name: RuntimeChunkName,
 }
@@ -22,11 +25,12 @@ pub struct RuntimeChunkOptions {
   pub name: RuntimeChunkName,
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RuntimeChunkName {
   Single,
   Multiple,
   String(String),
-  Fn(RuntimeChunkNameFn),
+  Fn(#[cfg_attr(allocative, allocative(visit = allocative::visit_opaque_box))] RuntimeChunkNameFn),
 }
 
 impl fmt::Debug for RuntimeChunkName {

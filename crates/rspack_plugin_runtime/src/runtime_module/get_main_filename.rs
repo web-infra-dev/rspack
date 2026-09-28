@@ -2,9 +2,12 @@ use rspack_core::{
   Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeTemplate, SourceType, impl_runtime_module,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct GetMainFilenameRuntimeModule {
   global: RuntimeGlobals,
   filename: Filename,

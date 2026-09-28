@@ -7,6 +7,8 @@ use rspack_cacheable::{
 };
 use rspack_collections::IdentifierIndexMap;
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{fx_hash::FxIndexMap, itoa};
 use rustc_hash::FxHashMap as HashMap;
 
@@ -23,6 +25,7 @@ const MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX: &str = "._";
 
 #[cacheable]
 #[derive(Default, Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleReferenceOptions {
   #[cacheable(with=AsVec<AsPreset>)]
   pub ids: Vec<Atom>,
@@ -38,6 +41,7 @@ pub struct ModuleReferenceOptions {
 /// output because it consumes the mutations after the module codegen pass.
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CodeGenerationDataConcatenationScopeOutput {
   #[cacheable(with=AsOption<AsPreset>)]
   namespace_export_symbol: Option<Atom>,

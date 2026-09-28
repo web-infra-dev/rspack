@@ -2,11 +2,14 @@ use rspack_core::{
   Compilation, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
   impl_runtime_module,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::utils::{runtime_require_scope_name, runtime_require_scope_requirement};
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ShareContainerRuntimeModule {}
 
 impl ShareContainerRuntimeModule {

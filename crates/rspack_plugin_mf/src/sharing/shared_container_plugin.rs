@@ -7,6 +7,8 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   container::{
@@ -17,6 +19,7 @@ use crate::{
 };
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SharedContainerPluginOptions {
   pub name: String,
   pub request: String,
@@ -27,6 +30,7 @@ pub struct SharedContainerPluginOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SharedContainerPlugin {
   options: SharedContainerPluginOptions,
 }

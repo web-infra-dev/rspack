@@ -5,6 +5,8 @@ use rspack_cacheable::{
   Deserializer, Serializer, Validator, cacheable,
 };
 use rspack_error::Result;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::etag::Etag;
 use crate::cache::CacheCodec;
@@ -13,6 +15,7 @@ use crate::cache::CacheCodec;
 ///
 /// Cloning this wrapper only increments an `Arc`; the cached object itself is
 /// never cloned.
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CacheValue<T>(Arc<T>);
 
 impl<T> CacheValue<T> {
@@ -58,6 +61,7 @@ impl<T> From<Arc<T>> for CacheValue<T> {
 /// Internal marker automatically implemented for cacheable values.
 pub trait CacheValueData:
   Any
+  + rspack_util::MaybeAllocative
   + Send
   + Sync
   + Sized
@@ -68,7 +72,7 @@ pub trait CacheValueData:
 
 impl<T> CacheValueData for T
 where
-  T: Any + Send + Sync + Archive + for<'a> Serialize<Serializer<'a>>,
+  T: Any + rspack_util::MaybeAllocative + Send + Sync + Archive + for<'a> Serialize<Serializer<'a>>,
   T::Archived: for<'a> CheckBytes<Validator<'a>> + Deserialize<T, Deserializer>,
 {
 }
@@ -79,10 +83,21 @@ pub(super) type CacheValueDecoder =
 
 /// Type-erased value used only inside the shared cache layers.
 #[derive(Clone)]
-pub(super) struct ErasedCacheValue(Arc<dyn Any + Send + Sync>);
+#[cfg_attr(allocative, derive(allocative::Allocative))]
+pub(super) struct ErasedCacheValue(Arc<ErasedValue>);
+
+#[cfg(allocative)]
+type ErasedValue = dyn CacheValueObject;
+#[cfg(not(allocative))]
+type ErasedValue = dyn Any + Send + Sync;
+
+#[cfg(allocative)]
+trait CacheValueObject: Any + Send + Sync + rspack_util::MaybeAllocative {}
+#[cfg(allocative)]
+impl<T: Any + Send + Sync + rspack_util::MaybeAllocative> CacheValueObject for T {}
 
 impl ErasedCacheValue {
-  fn new<T: Any + Send + Sync>(value: Arc<T>) -> Self {
+  fn new<T: Any + Send + Sync + rspack_util::MaybeAllocative>(value: Arc<T>) -> Self {
     Self(value)
   }
 
@@ -106,6 +121,7 @@ struct StoredCacheEntry<T> {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(super) struct CacheEntry {
   etag: Option<Etag>,
   value: ErasedCacheValue,
@@ -143,11 +159,7 @@ fn encode_cache_entry<T: CacheValueData>(
   entry: &CacheEntry,
   codec: &CacheCodec,
 ) -> Result<Vec<u8>> {
-  let value = entry
-    .value
-    .0
-    .clone()
-    .downcast::<T>()
+  let value = Arc::downcast::<T>(entry.value.0.clone())
     .map_err(|_| rspack_error::error!("Cache value type mismatch"))?;
   codec.encode(&StoredCacheEntry {
     etag: entry.etag.clone(),

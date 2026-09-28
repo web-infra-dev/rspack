@@ -7,8 +7,9 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [features]
-codspeed = ["rspack_core/codspeed", "rspack_plugin_schemes/codspeed"]
-full     = ["loaders"]
+allocative = ["rspack_core/allocative", "rspack_loader_swc?/allocative"]
+codspeed   = ["rspack_core/codspeed", "rspack_plugin_schemes/codspeed"]
+full       = ["loaders"]
 
 loader_lightningcss   = ["rspack_loader_lightningcss"]
 loader_preact_refresh = ["rspack_loader_preact_refresh"]

@@ -39,6 +39,7 @@ impl<F: ToNapiValue> ToNapiValue for RawLazyCompilationTest<F> {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LazyCompilationTestFn {
   tsfn: ThreadsafeFunction<ModuleObject, Option<bool>>,
 }
@@ -95,6 +96,7 @@ pub struct RawLazyCompilationOption {
   pub reserved_externals: Vec<String>,
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct JsBackend {
   current_active_modules: ThreadsafeFunction<(), HashSet<String>>,
 }
@@ -124,3 +126,6 @@ impl Backend for JsBackend {
     Ok(active_modules.into_iter().map(Into::into).collect())
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

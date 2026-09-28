@@ -8,6 +8,8 @@ use std::{
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_collections::{IdentifierHasher, IdentifierSet, SsoHashSet};
 use rspack_hash::{RspackHashDigest, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashSet, FxHasher};
 use serde::{Serialize, Serializer};
@@ -25,6 +27,7 @@ pub type ModuleIdSet = std::collections::HashSet<ModuleId, BuildHasherDefault<Id
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleId(#[cacheable(with=AsPreset)] Ustr);
 
 impl From<String> for ModuleId {
@@ -81,6 +84,7 @@ impl rspack_hash::RspackHash for ModuleId {
 }
 
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkGraphModule {
   pub(super) entry_in_chunks: FxHashSet<ChunkUkey>,
   pub chunks: SsoHashSet<ChunkUkey>,

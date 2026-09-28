@@ -2,6 +2,8 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeTemplate, RuntimeVariable, impl_runtime_module,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::get_chunk_runtime_requirements;
 
@@ -10,6 +12,7 @@ static MAKE_DEFERRED_NAMESPACE_OBJECT_TEMPLATE: &str =
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MakeDeferredNamespaceObjectRuntimeModule {
   chunk_ukey: ChunkUkey,
 }

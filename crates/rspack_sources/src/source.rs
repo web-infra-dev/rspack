@@ -106,8 +106,20 @@ impl<'a> SourceValue<'a> {
   }
 }
 
+/// Require object traversal only in profiling builds.
+#[cfg(allocative)]
+pub trait SourceAllocative: allocative::Allocative {}
+#[cfg(allocative)]
+impl<T: allocative::Allocative + ?Sized> SourceAllocative for T {}
+#[cfg(not(allocative))]
+pub trait SourceAllocative {}
+#[cfg(not(allocative))]
+impl<T: ?Sized> SourceAllocative for T {}
+
 /// [Source] abstraction, [webpack-sources docs](https://github.com/webpack/webpack-sources/#source).
-pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send {
+pub trait Source:
+  SourceAllocative + StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send
+{
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
 
@@ -295,6 +307,7 @@ fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
 
 /// The source map created by [Source::map].
 #[derive(Serialize)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct SourceMapFields<'a> {
   pub(crate) version: u8,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -382,12 +395,14 @@ impl Hash for SourceMapFields<'_> {
 }
 
 #[allow(dead_code)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum SourceMapOwner {
   Bytes(Vec<u8>),
   Source(BoxSource),
 }
 
 /// The source map created by [Source::map].
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SourceMap<'a> {
   // Kept to retain data borrowed by `fields`; it is intentionally not read.
   #[allow(dead_code)]

@@ -4,6 +4,7 @@ use rspack_core::ConstDependency;
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
 use swc_experimental_ecma_ast::{Lit, ModuleItem, Program, Span, Stmt};
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ReactDirectivesParserPlugin;
 
 impl ReactDirectivesParserPlugin {
@@ -65,3 +66,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ReactDirectivesParserPlugin {
     None
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

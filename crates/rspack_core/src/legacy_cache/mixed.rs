@@ -1,8 +1,12 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 use super::{Cache, memory::MemoryCache, persistent::PersistentCache};
 use crate::Compilation;
 
 /// Combines process-local and persistent build caches.
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MixedCache {
   persistent: PersistentCache,
   memory: MemoryCache,

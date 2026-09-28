@@ -73,6 +73,7 @@ pub struct RsdoctorDependency {
 }
 
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RsdoctorExportUsageDependency {
   pub dependency_id: DependencyId,
   pub origin_module_identifier: Identifier,
@@ -273,3 +274,6 @@ pub struct RsdoctorModuleOriginalSource {
   pub source: String,
   pub size: i32,
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

@@ -5,12 +5,15 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, Module, ModuleIdentifier, TemplateContext,
   TemplateReplaceSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashSet;
 
 use crate::utils::replace_css_module_id_placeholder;
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CssIcssSymbolValue {
   Literal(String),
   Import {
@@ -22,6 +25,7 @@ pub enum CssIcssSymbolValue {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssIcssSymbolDependency {
   id: DependencyId,
   value: CssIcssSymbolValue,
@@ -73,6 +77,7 @@ impl AsModuleDependency for CssIcssSymbolDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssIcssSymbolDependencyTemplate;
 
 impl CssIcssSymbolDependencyTemplate {

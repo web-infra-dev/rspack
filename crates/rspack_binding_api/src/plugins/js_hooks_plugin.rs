@@ -12,11 +12,14 @@ use rspack_plugin_javascript::JsPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_rsdoctor::RsdoctorPlugin;
 use rspack_plugin_runtime::RuntimePlugin;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use super::interceptor::*;
 
 #[plugin]
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct JsHooksAdapterPlugin {
   non_skippable_registers: NonSkippableRegisters,
   register_compiler_this_compilation_taps: RegisterCompilerThisCompilationTaps,

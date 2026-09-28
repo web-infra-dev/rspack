@@ -1,3 +1,6 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 use crate::{
   BuildChunkGraphArtifact, Compilation, artifacts::ArtifactExt, incremental::IncrementalPasses,
   recover_artifact,
@@ -8,6 +11,7 @@ use crate::{
 /// Artifact recovery is part of incremental compilation itself. It must stay
 /// available regardless of which build cache implementation is selected.
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct IncrementalArtifacts {
   previous_compilation: Option<Box<Compilation>>,
 

@@ -4,6 +4,8 @@ use either::Either;
 use once_cell::sync::OnceCell;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::IdentifierSet;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashSet;
 
 use crate::{
@@ -11,6 +13,7 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Mutations {
   inner: Vec<Mutation>,
 
@@ -30,6 +33,7 @@ impl fmt::Display for Mutations {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Mutation {
   ModuleAdd { module: ModuleIdentifier },
   ModuleUpdate { module: ModuleIdentifier },

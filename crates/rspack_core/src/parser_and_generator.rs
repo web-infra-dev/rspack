@@ -10,6 +10,8 @@ use rspack_hash::RspackHashDigest;
 use rspack_intern::Atom;
 use rspack_loader_runner::{AdditionalData, ParseMeta, ParseMetaValue, ResourceData};
 use rspack_sources::BoxSource;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -47,6 +49,7 @@ pub struct ParseContext<'a> {
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CollectedTypeScriptInfo {
   #[cacheable(with=AsVec<AsPreset>)]
   pub type_exports: FxHashSet<Atom>,
@@ -69,6 +72,7 @@ pub const COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY: &str = "rspack-collected-ts-
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct TSEnumValue(
   #[cacheable(with=AsMap<AsPreset>)] FxHashMap<Atom, Option<EvaluatedInlinableValue>>,
 );
@@ -134,7 +138,7 @@ pub struct GenerateContext<'a> {
 
 #[cacheable_dyn]
 #[async_trait::async_trait]
-pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
+pub trait ParserAndGenerator: rspack_util::MaybeAllocative + Send + Sync + Debug + AsAny {
   /// The source types that the generator can generate (the source types you can make requests for)
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType];
   /// Parse the source and return the dependencies and the ast or source

@@ -4,6 +4,8 @@ use rspack_cacheable::{
 };
 use rspack_collections::IdentifierMap;
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{DependencyId, DependencyRef, ModuleIdentifier};
@@ -16,6 +18,7 @@ pub enum ForwardId {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ForwardedIdSet {
   All,
   IdSet(FxHashSet<Atom>),
@@ -71,6 +74,7 @@ pub enum LazyUntil {
 
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LazyDependencies {
   #[cacheable(with=AsMap<AsPreset, AsPreset>)]
   forward_id_to_request: FxHashMap<Atom, Atom>,
@@ -138,12 +142,14 @@ impl LazyDependencies {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum HasLazyDependencies {
   Pending(ForwardedIdSet),
   Has(LazyDependencies),
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleToLazyMake {
   module_to_lazy_dependencies: IdentifierMap<HasLazyDependencies>,
 }

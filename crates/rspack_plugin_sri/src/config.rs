@@ -16,6 +16,7 @@ pub type IntegrityCallbackFn =
   Arc<dyn Fn(IntegrityCallbackData) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum IntegrityHtmlPlugin {
   NativePlugin,
   JavaScriptPlugin,
@@ -39,6 +40,7 @@ impl TryFrom<String> for IntegrityHtmlPlugin {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SubresourceIntegrityPluginOptions {
   pub hash_func_names: Vec<SubresourceIntegrityHashFunction>,
   pub html_plugin: IntegrityHtmlPlugin,

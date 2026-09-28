@@ -11,6 +11,8 @@ use std::{
 use futures::future::BoxFuture;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_collections::IdentifierMap;
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{
   AsyncModulesArtifact, BoxModule, ChunkByUkey, ChunkNamedIdArtifact, CircularModulesInfo,
   Compilation, CompilationAfterOptimizeModules, CompilationAfterProcessAssets,
@@ -37,6 +39,7 @@ pub struct ProgressPluginHandlerInfo {
   pub module_identifier: Option<String>,
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ProgressPluginOptions {
   Handler(HandlerFn),
   Default(ProgressPluginDisplayOptions),
@@ -59,6 +62,7 @@ impl std::fmt::Debug for ProgressPluginOptions {
 static MULTI_PROGRESS: LazyLock<MultiProgress> =
   LazyLock::new(|| MultiProgress::with_draw_target(ProgressDrawTarget::stdout_with_hz(100)));
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ProgressPluginDisplayOptions {
   // the prefix name of progress bar
   pub prefix: String,
@@ -73,6 +77,7 @@ pub struct ProgressPluginDisplayOptions {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ProgressPluginStateInfo {
   pub value: String,
   pub time: Instant,
@@ -81,8 +86,11 @@ pub struct ProgressPluginStateInfo {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ProgressPlugin {
   pub options: ProgressPluginOptions,
+  // indicatif keeps its shared rendering state private.
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_opaque))]
   pub progress_bar: Option<ProgressBar>,
   pub modules_count: Arc<AtomicU32>,
   pub modules_done: Arc<AtomicU32>,

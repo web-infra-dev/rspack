@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 use super::{Cache, CacheKey, CacheValue, Etag, cache_value::CacheValueData};
 
 /// A namespaced view of the shared cache.
@@ -7,6 +10,7 @@ use super::{Cache, CacheKey, CacheValue, Etag, cache_value::CacheValueData};
 /// This is the minimal equivalent of webpack's `CacheFacade`: it prefixes
 /// identifiers with a fixed namespace and creates item facades.
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CacheFacade {
   cache: Arc<Cache>,
   name: String,

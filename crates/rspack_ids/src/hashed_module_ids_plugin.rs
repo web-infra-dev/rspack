@@ -5,6 +5,8 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::{HashDigest, HashFunction, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashSet;
 
 use crate::id_helpers::{
@@ -33,6 +35,7 @@ impl Default for HashedModuleIdsPluginOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HashedModuleIdsPlugin {
   context: Option<String>,
   hash_function: HashFunction,

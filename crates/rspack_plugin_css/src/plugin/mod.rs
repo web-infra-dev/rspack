@@ -12,6 +12,7 @@ use rspack_hook::plugin;
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CssPlugin;
 
 #[derive(Debug)]
@@ -233,3 +234,6 @@ fn compare_module_lists(a: &SortedModules, b: &SortedModules) -> cmp::Ordering {
     )
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

@@ -9,7 +9,7 @@ use rspack_error::Result;
 
 use crate::CompilationId;
 
-pub trait Plugin: fmt::Debug + Send + Sync {
+pub trait Plugin: rspack_util::MaybeAllocative + fmt::Debug + Send + Sync {
   fn name(&self) -> &'static str {
     "unknown"
   }

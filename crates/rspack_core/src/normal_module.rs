@@ -23,6 +23,8 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use serde_json::json;
 use tracing::{Instrument, info_span};
@@ -46,6 +48,7 @@ use crate::{
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ModuleIssuer {
   Unset,
   None,
@@ -84,6 +87,7 @@ define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut Loader
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NormalModuleHooks {
   pub read_resource: NormalModuleReadResourceHook,
   pub loader: NormalModuleLoaderHook,
@@ -93,6 +97,7 @@ pub struct NormalModuleHooks {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NormalModule {
   id: ModuleIdentifier,
   /// Context of this module

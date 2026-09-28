@@ -10,9 +10,12 @@ use std::{
 };
 
 use dashmap::DashMap;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHasher;
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum LogType {
   Error {
     message: String,
@@ -250,6 +253,7 @@ pub trait InfrastructureLogSink: Send + Sync {
 }
 
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct InfrastructureLogger {
   sink: Arc<dyn InfrastructureLogSink>,
   name: Arc<str>,
@@ -370,6 +374,7 @@ impl CacheCount {
 pub type CompilationLogging = Arc<DashMap<Arc<str>, Vec<LogType>, BuildHasherDefault<FxHasher>>>;
 
 #[derive(Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompilationLogger {
   logging: CompilationLogging,
   name: Arc<str>,
@@ -409,5 +414,12 @@ impl Logger for CompilationLogger {
     } else {
       self.logging.insert(self.name.clone(), vec![log_type]);
     }
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for dyn InfrastructureLogSink {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    visitor.visit_opaque(self);
   }
 }

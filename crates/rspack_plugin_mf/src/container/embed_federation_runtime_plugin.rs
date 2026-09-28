@@ -44,6 +44,7 @@ impl AddFederationRuntimeDependencyHook for FederationRuntimeDependencyCollector
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct EmbedFederationRuntimePlugin {
   experiments: ModuleFederationRuntimeExperimentsOptions,
   collected_dependency_ids: Arc<Mutex<FxHashSet<DependencyId>>>,
@@ -268,3 +269,6 @@ impl Default for EmbedFederationRuntimePlugin {
     Self::new(ModuleFederationRuntimeExperimentsOptions::default())
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

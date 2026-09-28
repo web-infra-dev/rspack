@@ -1,3 +1,5 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_allocator::CloneIn;
 use swc_experimental_ecma_ast::{
   AssignExpr, AwaitExpr, BinExpr, BinaryOp, CallExpr, Callee, ClassMember, CondExpr, Expr,
@@ -25,6 +27,7 @@ fn is_logic_op(op: BinaryOp) -> bool {
 
 const PLUGIN_BITMASK_BITS: usize = u64::BITS as usize;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct JavaScriptParserPluginDrive {
   plugins: Vec<BoxJavascriptParserPlugin>,
   // Each bit stores whether the plugin at the same index implements the hook.

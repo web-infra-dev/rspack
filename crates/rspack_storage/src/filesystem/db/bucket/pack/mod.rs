@@ -20,6 +20,7 @@ use crate::{Error, Result};
 /// - Followed by raw key bytes and value bytes
 /// - Content hash is computed from all keys and values for integrity verification
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Pack {
   data: Vec<(Vec<u8>, Vec<u8>)>,
 }

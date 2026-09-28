@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use rspack_core::{BoxDependency, DependencyRange, ImportMetaKnownProperties};
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, MemberExpr, Span};
 
 use crate::{
@@ -122,6 +124,7 @@ impl JavascriptParser<'_> {
   }
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleHotReplacementParserPlugin {
   _private: (),
 }
@@ -191,6 +194,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ModuleHotReplacementParserPlugin
   }
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportMetaHotReplacementParserPlugin {
   _private: (),
 }

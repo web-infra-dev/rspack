@@ -1,8 +1,12 @@
 use std::{marker::PhantomData, ops::Deref};
 
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 use super::OverlayValue;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DenseIdOverlayMap<K, V> {
   base: Vec<Option<V>>,
   overlay: Option<Vec<Option<OverlayValue<V>>>>,

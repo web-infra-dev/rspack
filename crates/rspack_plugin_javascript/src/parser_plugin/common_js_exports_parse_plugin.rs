@@ -2,6 +2,8 @@ use rspack_core::{
   BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
 };
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_ecma_ast::{
   AssignExpr, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, Prop, PropName,
   PropOrSpread, Span, ThisExpr, UnaryExpr, UnaryOp,
@@ -267,6 +269,7 @@ fn handle_access_export(
   Some(true)
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CommonJsExportsParserPlugin {
   skip_in_esm: bool,
 }

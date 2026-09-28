@@ -327,3 +327,21 @@ fn pretty_type_error(return_value: Unknown, error: napi::Error) -> rspack_error:
   };
   rspack_error::error!(reason)
 }
+
+#[cfg(allocative)]
+impl<T: 'static + JsValuesTupleIntoVec, R> allocative::Allocative for ThreadsafeFunction<T, R> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("inner"), &self.inner);
+    // env is borrowed from Node; PhantomData owns no T/R values.
+    visitor.exit();
+  }
+}
+#[cfg(allocative)]
+impl allocative::Allocative for DynThreadsafeFunction {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::Key::new("inner"), &self.inner);
+    visitor.exit();
+  }
+}

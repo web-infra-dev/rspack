@@ -1,4 +1,7 @@
 use std::{fmt, sync::Arc};
+
+#[cfg(allocative)]
+pub use rspack_util::allocative;
 mod artifacts;
 mod binding;
 mod compilation;
@@ -133,6 +136,7 @@ pub mod debug_info;
   Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, rspack_macros::StringEnum,
 )]
 #[string_enum(rename_all = "kebab-case")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum SourceType {
   #[string_enum(rename = "javascript")]
   JavaScript,
@@ -185,6 +189,7 @@ impl From<&ModuleType> for SourceType {
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ModuleType {
   Json,
   Css,
@@ -322,6 +327,7 @@ pub type ModuleLayer = String;
 pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
 
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkByUkey {
   inner: FxHashMap<ChunkUkey, Chunk>,
 }
@@ -406,6 +412,7 @@ impl ChunkByUkey {
 }
 
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkGroupByUkey {
   inner: FxHashMap<ChunkGroupUkey, ChunkGroup>,
 }

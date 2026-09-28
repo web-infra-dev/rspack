@@ -4,6 +4,8 @@ use rspack_core::{
   InitFragmentKey, InitFragmentStage, ModuleCodeTemplate, ModuleGraph, ModuleInitFragments,
   NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsageState,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::Atom;
 
@@ -56,6 +58,7 @@ pub(super) fn add_async_module_boundary(
 // Add `__rspack_require.r(__rspack_exports);`.
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ESMCompatibilityDependency;
 
 #[cacheable_dyn]
@@ -67,6 +70,7 @@ impl DependencyCodeGeneration for ESMCompatibilityDependency {
 
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ESMCompatibilityDependencyTemplate;
 
 impl ESMCompatibilityDependencyTemplate {

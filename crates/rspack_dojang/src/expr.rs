@@ -3,6 +3,7 @@ use serde_json::Value;
 use crate::dojang::DojangOptions;
 
 #[derive(PartialEq, Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Op {
   Not,          // !
   Or,           // ||
@@ -28,6 +29,7 @@ pub enum Op {
 }
 
 #[derive(PartialEq, Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Keyword {
   In,
   Continue,
@@ -35,6 +37,7 @@ pub enum Keyword {
 }
 
 #[derive(PartialEq, Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Operand {
   Value(Value),
   Array(Vec<Operand>),
@@ -45,16 +48,19 @@ pub enum Operand {
 
 // Name that will be found in the execution context.
 #[derive(PartialEq, Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Object {
   pub name: String,
 }
 
 #[derive(PartialEq, Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Tokens {
   pub ops: Vec<Op>,
 }
 
 #[derive(PartialEq, Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Action<T> {
   Show(Show<T>),
   If(T),    // If condition
@@ -91,6 +97,7 @@ impl Action<Tokens> {
 }
 
 #[derive(PartialEq, Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Show<T> {
   Html { start: usize, end: usize }, // [start, end) of the original template.
   ExprEscaped(T),
@@ -98,6 +105,7 @@ pub enum Show<T> {
 }
 
 #[derive(PartialEq, Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Parser {
   pub parse_tree: Vec<Action<Tokens>>,
 }

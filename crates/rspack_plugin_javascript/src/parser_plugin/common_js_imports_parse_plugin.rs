@@ -9,6 +9,8 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_intern::AtomRef;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{SpanExt, json_stringify_str};
 use swc_experimental_allocator::CloneIn;
 use swc_experimental_ecma_ast::{
@@ -1503,6 +1505,7 @@ impl<'a> CallOrNewExpr<'a> {
   }
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CommonJsImportsParserPlugin;
 
 impl CommonJsImportsParserPlugin {

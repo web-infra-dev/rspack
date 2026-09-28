@@ -1,7 +1,10 @@
 use rspack_cacheable::cacheable;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[cacheable]
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LoaderRunnerOptions {
   pub cache: bool,
   /// Loader name used as part of the cache key.

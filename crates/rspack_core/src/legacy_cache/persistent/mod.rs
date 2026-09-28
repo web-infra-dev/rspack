@@ -1,3 +1,6 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 pub mod build_dependencies;
 pub mod context;
 pub mod occasion;
@@ -31,6 +34,7 @@ const LOGGER_NAME: &str = "rspack.persistentCache";
 
 /// Persistent cache implementation
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PersistentCache {
   /// Guards `initialize` from running more than once per compiler instance
   initialized: bool,

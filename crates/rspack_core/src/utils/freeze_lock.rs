@@ -9,6 +9,8 @@ use rspack_cacheable::{
     rc::{ArchivedRc, Flavor},
   },
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use triomphe::{Arc, UniqueArc};
 
 /// Metadata with independent build and publication lifetimes.
@@ -20,6 +22,7 @@ use triomphe::{Arc, UniqueArc};
 /// cache values are already frozen and cannot be made mutable again.
 ///
 /// [rustc's `FreezeLock`]: https://github.com/rust-lang/rust/blob/main/compiler/rustc_data_structures/src/sync/freeze.rs
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FreezeLock<T> {
   frozen: OnceLock<Arc<T>>,
   building: RwLock<Option<UniqueArc<T>>>,

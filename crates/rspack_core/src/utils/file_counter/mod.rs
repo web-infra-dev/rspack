@@ -4,6 +4,8 @@ use std::hash::BuildHasherDefault;
 
 use rspack_collections::IdentifierSet;
 use rspack_paths::{InternedPath, InternedPathMap};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashSet;
 use ustr::IdentityHasher;
 
@@ -12,6 +14,7 @@ use crate::{DependencyId, utils::incremental_info::IncrementalInfo};
 
 /// Tracks the modules and dependencies that currently reference a path.
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PathResourceIds {
   modules: IdentifierSet,
   dependencies: FxHashSet<DependencyId>,
@@ -47,6 +50,7 @@ impl PathResourceIds {
 
 /// Used to count file usage and track which modules/dependencies use each file
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FileCounter {
   inner: InternedPathMap<PathResourceIds>,
   incremental_info: IncrementalInfo<InternedPath, BuildHasherDefault<IdentityHasher>>,

@@ -6,6 +6,8 @@ use std::{
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_error::Result;
 use rspack_paths::{InternedPathSet, Utf8PathBuf};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
 use tokio::sync::Notify;
 
@@ -21,14 +23,17 @@ use crate::{InfrastructureLogger, Logger, cache::CacheCodec};
 const VALIDATOR_KEY: &str = "validator";
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct PendingWrites {
   entries: FxDashMap<CacheKey, PendingWrite>,
   new_build_dependencies: Mutex<Option<InternedPathSet>>,
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct PendingWrite {
   entry: CacheEntry,
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_inline))]
   encoder: CacheValueEncoder,
 }
 
@@ -42,6 +47,7 @@ impl PendingWrites {
   }
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct State {
   database: Database,
   pending_writes: PendingWrites,
@@ -58,6 +64,7 @@ impl std::fmt::Debug for State {
 
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FileCacheStrategy {
   validator: CacheValidator,
   codec: Arc<CacheCodec>,

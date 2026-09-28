@@ -1,5 +1,7 @@
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   ArtifactExt, ExportsInfo, ExportsInfoData, ModuleIdentifier,
@@ -8,6 +10,7 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportsInfoArtifact {
   module_exports_info: IdentifierMap<ExportsInfo>,
   exports_info_map: rollback::RollbackAtomMap<ExportsInfo, ExportsInfoData>,

@@ -9,6 +9,8 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_intern::Atom;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency};
@@ -98,6 +100,7 @@ pub fn connection_active_inline_value_for_esm_export_imported_specifier(
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct InlineExportsPlugin;
 
 // We put it to optimize_dependencies hook instead of optimize_code_generation hook like MangleExportsPlugin

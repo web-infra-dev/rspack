@@ -1,0 +1,32 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is dual-licensed under either the MIT license found in the
+ * LICENSE-MIT file in the root directory of this source tree or the Apache
+ * License, Version 2.0 found in the LICENSE-APACHE file in the root directory
+ * of this source tree. You may select, at your option, one of the
+ * above-listed licenses.
+ */
+
+use std::sync::Mutex;
+
+use crate::allocative_trait::Allocative;
+
+static ROOTS: Mutex<Vec<&'static (dyn Allocative + Sync + 'static)>> = Mutex::new(Vec::new());
+
+/// Register global root which can be later traversed by profiler.
+///
+/// [`root`](crate::root) macro can be used to register global root.
+pub fn register_root(root: &'static (dyn Allocative + Sync + 'static)) {
+  ROOTS
+    .lock()
+    .expect("global root registration lock must not be poisoned")
+    .push(root);
+}
+
+pub(crate) fn roots() -> Vec<&'static (dyn Allocative + Sync + 'static)> {
+  ROOTS
+    .lock()
+    .expect("global root registration lock must not be poisoned")
+    .clone()
+}

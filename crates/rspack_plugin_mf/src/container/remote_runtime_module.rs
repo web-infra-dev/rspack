@@ -7,6 +7,8 @@ use rspack_core::{
   RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
@@ -25,6 +27,7 @@ static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequir
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RemoteRuntimeModule {
   enhanced: bool,
 }

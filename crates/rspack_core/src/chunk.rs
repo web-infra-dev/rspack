@@ -5,6 +5,8 @@ use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use ustr::Ustr;
@@ -17,6 +19,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ChunkKind {
   HotUpdate,
   Normal,
@@ -27,6 +30,7 @@ pub enum ChunkKind {
 pub type ChunkContentHash = HashMap<SourceType, RspackHashDigest>;
 
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkHashesResult {
   hash: RspackHashDigest,
   content_hash: ChunkContentHash,
@@ -47,6 +51,7 @@ impl ChunkHashesResult {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkRenderResult {
   pub manifests: Vec<RenderManifestEntry>,
   pub diagnostics: Vec<Diagnostic>,
@@ -92,6 +97,7 @@ impl ChunkSplitData {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Chunk {
   ukey: ChunkUkey,
   kind: ChunkKind,

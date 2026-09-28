@@ -3,11 +3,14 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsPreset, AsTuple2, AsVec},
 };
 use rspack_sources::{BoxSource, ConcatSource, SourceExt};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{AssetInfo, CompilationAsset};
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CachedMinimizeEntry {
   #[cacheable(with=AsPreset)]
   pub source: BoxSource,
@@ -16,6 +19,7 @@ pub struct CachedMinimizeEntry {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CachedExtractedComments {
   #[cacheable(with=AsPreset)]
   pub source: BoxSource,
@@ -24,6 +28,7 @@ pub struct CachedExtractedComments {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CachedSourceMapDevToolPluginEntry {
   #[cacheable(with=AsVec<AsPreset>)]
   asset_append: Vec<BoxSource>,

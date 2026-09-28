@@ -4,12 +4,15 @@ use rspack_cacheable::{
   cacheable,
   with::{AsOption, AsPreset},
 };
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_error::ToStringResultToRspackResultExt;
 use serde::Deserialize;
 
 #[cacheable]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Draft {
   pub custom_media: bool,
 }
@@ -17,6 +20,7 @@ pub struct Draft {
 #[cacheable]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NonStandard {
   pub deep_selector_combinator: bool,
 }
@@ -24,6 +28,7 @@ pub struct NonStandard {
 #[cacheable]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct PseudoClasses {
   pub hover: Option<String>,
   pub active: Option<String>,
@@ -34,10 +39,13 @@ pub struct PseudoClasses {
 
 #[cacheable]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Config {
   pub minify: Option<bool>,
   pub error_recovery: Option<bool>,
   #[cacheable(with=AsOption<AsPreset>)]
+  // Browsers contains only optional version numbers.
+  #[cfg_attr(allocative, allocative(visit = allocative::visit_inline))]
   pub targets: Option<Browsers>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,

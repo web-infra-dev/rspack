@@ -16,6 +16,8 @@ use rspack_cacheable::{
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 
 use crate::{Scheme, get_scheme, parse_resource};
@@ -128,6 +130,7 @@ impl Debug for Content {
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ResourceData {
   /// Resource with absolute path, query and fragment
   resource: String,
@@ -315,6 +318,7 @@ impl ResourceData {
 /// package.json.sideEffects in tree shaking.
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DescriptionData {
   /// Path to package.json
   #[cacheable(with=As<PortablePath>)]
@@ -346,7 +350,7 @@ impl DescriptionData {
 pub type AdditionalData = anymap::Map<dyn Any + Send + Sync>;
 
 #[cacheable_dyn]
-pub trait ParseMetaValue: CloneAny + Send + Sync {
+pub trait ParseMetaValue: rspack_util::MaybeAllocative + CloneAny + Send + Sync {
   fn clone_parse_meta(&self) -> Box<dyn ParseMetaValue>;
   fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync>;
 }

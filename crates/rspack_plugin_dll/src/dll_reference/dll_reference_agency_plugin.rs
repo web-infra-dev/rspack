@@ -2,12 +2,15 @@ use rspack_core::{Context, ExternalItem, ExternalItemValue, LibraryType, Plugin}
 use rspack_error::Result;
 use rspack_hook::plugin;
 use rspack_plugin_externals::ExternalsPlugin;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::delegated_plugin::{DelegatedPlugin, DelegatedPluginOptions};
 use crate::{DllManifest, DllManifestContent};
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DllReferenceAgencyPluginOptions {
   pub context: Option<Context>,
   pub name: Option<String>,
@@ -21,6 +24,7 @@ pub struct DllReferenceAgencyPluginOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DllReferenceAgencyPlugin {
   options: DllReferenceAgencyPluginOptions,
 }

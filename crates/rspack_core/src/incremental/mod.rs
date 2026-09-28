@@ -11,6 +11,8 @@ use std::{
 use bitflags::bitflags;
 pub use mutations::{Mutation, Mutations};
 use rspack_error::{Diagnostic, Error};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 pub const TRACING_TARGET: &str = "rspack_incremental";
 
@@ -112,6 +114,7 @@ impl IncrementalPasses {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct IncrementalOptions {
   pub silent: bool,
   pub passes: IncrementalPasses,
@@ -133,6 +136,7 @@ impl IncrementalOptions {
   }
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum IncrementalState {
   /// Initial compilation with no mutations from a previous compilation.
   Cold,
@@ -156,6 +160,7 @@ impl fmt::Debug for IncrementalState {
   }
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Incremental {
   silent: bool,
   passes: AtomicU16,
@@ -290,5 +295,12 @@ impl From<NotFriendlyForIncremental> for rspack_error::Error {
     ));
     error.code = Some("NotFriendlyForIncremental".into());
     error
+  }
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for IncrementalPasses {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    visitor.enter_self(self).exit();
   }
 }

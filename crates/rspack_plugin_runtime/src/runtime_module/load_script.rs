@@ -4,6 +4,8 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeModuleRuntimeRequirements, RuntimeTemplate, impl_runtime_module,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   CreateScriptData, RuntimeModuleChunkWrapper, RuntimePlugin, extract_runtime_globals_from_ejs,
@@ -28,6 +30,7 @@ static LOAD_SCRIPT_CREATE_SCRIPT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRun
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct LoadScriptRuntimeModule {
   unique_name: String,
   with_create_script_url: bool,

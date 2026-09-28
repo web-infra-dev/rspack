@@ -18,7 +18,7 @@ pub use self::{
 ///
 /// Provides scope-grouped key-value storage with batch operations and async persistence
 #[async_trait::async_trait]
-pub trait Storage: std::fmt::Debug + Sync + Send {
+pub trait Storage: StorageAllocative + std::fmt::Debug + Sync + Send {
   /// Loads all key-value pairs from the specified scope
   async fn load(&self, scope: &'static str) -> Result<Vec<(Vec<u8>, Vec<u8>)>>;
 
@@ -63,3 +63,12 @@ pub trait Storage: std::fmt::Debug + Sync + Send {
 
 /// Box-wrapped Storage trait object
 pub type BoxStorage = Box<dyn Storage>;
+
+#[cfg(allocative)]
+pub trait StorageAllocative: allocative::Allocative {}
+#[cfg(allocative)]
+impl<T: allocative::Allocative + ?Sized> StorageAllocative for T {}
+#[cfg(not(allocative))]
+pub trait StorageAllocative {}
+#[cfg(not(allocative))]
+impl<T: ?Sized> StorageAllocative for T {}

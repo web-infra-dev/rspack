@@ -7,6 +7,8 @@ use rspack_cacheable::{
 };
 use rspack_error::Result;
 use rspack_sources::BoxSource;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 
 use super::{super::storage::Storage, Occasion};
@@ -46,6 +48,7 @@ struct SourceMapAssetEntry {
 /// a cache version.
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct CacheKey {
   filename: String,
   version: String,
@@ -64,6 +67,7 @@ impl CacheKey {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SourceMapDevToolPluginCache {
   entries: FxHashMap<CacheKey, Option<CachedSourceMapDevToolPluginEntry>>,
   pending_writes: Vec<CacheKey>,
@@ -164,6 +168,7 @@ impl SourceMapDevToolPluginCache {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SourceMapDevToolPluginOccasion {
   codec: Arc<CacheCodec>,
 }

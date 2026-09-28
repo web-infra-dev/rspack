@@ -8,6 +8,8 @@ use rspack_error::{Error, Result, Severity};
 use rspack_macros::AstObject;
 use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
 use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, ObjectLit};
@@ -425,6 +427,7 @@ fn create_import_meta_glob_dependency(
   ))
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportMetaContextDependencyParserPlugin {
   pub webpack_context: bool,
   pub glob: bool,

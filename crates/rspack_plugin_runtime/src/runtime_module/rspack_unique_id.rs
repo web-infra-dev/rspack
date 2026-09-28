@@ -2,9 +2,12 @@ use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
   RuntimeTemplate, impl_runtime_module,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RspackUniqueIdRuntimeModule {
   bundler_name: String,
   bundler_version: String,

@@ -5,6 +5,7 @@ use std::fmt::Display;
 pub use simd::*;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ModuleType {
   #[default]
   CommonJs,
@@ -31,6 +32,7 @@ impl TryFrom<&str> for ModuleType {
   }
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum SideEffects {
   Bool(bool),
   String(String),

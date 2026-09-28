@@ -1,5 +1,7 @@
 use rspack_cacheable::cacheable;
 use rspack_hash::RspackHasher;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   DependencyId, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
@@ -10,6 +12,7 @@ use crate::{
 /// Multiple connections may share a dependency while retaining distinct IDs.
 #[cacheable(hashable)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleGraphConnectionId(u32);
 
 impl From<u32> for ModuleGraphConnectionId {
@@ -30,6 +33,7 @@ impl std::ops::Deref for ModuleGraphConnectionId {
 /// references to a new root, preserving the dependency while changing the origin.
 #[cacheable]
 #[derive(Debug, Clone, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModuleGraphConnection {
   pub id: ModuleGraphConnectionId,
   pub dependency_id: DependencyId,
@@ -157,6 +161,7 @@ impl ModuleGraphConnection {
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ConnectionState {
   Active(bool),
   // While determining the active state, this flag is used to signal a circular connection.

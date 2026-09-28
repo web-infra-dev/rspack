@@ -5,6 +5,8 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::id_helpers::{
   NaturalChunkCompareCache, assign_ascending_chunk_ids, compare_chunks_natural,
@@ -12,6 +14,7 @@ use crate::id_helpers::{
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct NaturalChunkIdsPlugin;
 
 #[plugin_hook(CompilationChunkIds for NaturalChunkIdsPlugin)]

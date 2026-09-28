@@ -6,6 +6,8 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result, error};
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   compact_hashed_id::{
@@ -25,6 +27,7 @@ pub struct CompactHashedModuleIdsPluginOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompactHashedModuleIdsPlugin {
   min_length: usize,
 }

@@ -3,6 +3,8 @@ use std::sync::Arc;
 use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_core::{BoxDependency, DependencyRange};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashSet as HashSet;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, MemberExpr, Span};
 
@@ -12,6 +14,7 @@ use crate::{Atom, dependency::ProvideDependency, visitors::JavascriptParser};
 const SOURCE_DOT: &str = r#"."#;
 const MODULE_DOT: &str = r#"_dot_"#;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ProvideParserPlugin {
   provide: Arc<ProvideValue>,
   names: Arc<HashSet<String>>,

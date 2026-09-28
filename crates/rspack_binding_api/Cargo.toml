@@ -11,7 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-allocative       = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
+allocative       = ["rspack_loader_swc/allocative", "rspack_core/allocative", "rspack_tracing_perfetto?/allocative"]
 browser          = []
 debug_tool       = ["rspack_core/debug_tool"]
 perfetto         = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]

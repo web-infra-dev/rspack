@@ -5,6 +5,8 @@ use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
   impl_runtime_module,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::extract_runtime_module_variables_from_ejs;
 
@@ -16,6 +18,7 @@ static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| 
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct StartupChunkDependenciesRuntimeModule {
   async_chunk_loading: bool,
 }

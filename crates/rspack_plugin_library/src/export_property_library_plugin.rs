@@ -12,6 +12,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin, RenderSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::utils::get_options_for_chunk;
 
@@ -22,6 +24,7 @@ struct ExportPropertyLibraryPluginParsed<'a> {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ExportPropertyLibraryPlugin {
   library_type: LibraryType,
   ns_object_used: bool,

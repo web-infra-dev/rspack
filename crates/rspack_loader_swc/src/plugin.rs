@@ -8,6 +8,8 @@ use rspack_core::{
 };
 use rspack_error::{Result, SerdeResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
 
@@ -15,6 +17,7 @@ use crate::{SWC_LOADER_IDENTIFIER, SwcLoader};
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SwcLoaderPlugin;
 
 impl SwcLoaderPlugin {

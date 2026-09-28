@@ -1,5 +1,7 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
 
 use super::{
@@ -29,12 +31,14 @@ impl<T> Clone for MemoryCacheGetResult<T> {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum MemoryCacheValue {
   Miss,
   Hit(CacheEntry),
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct MemoryCacheEntry {
   value: MemoryCacheValue,
   ttl: AtomicU32,
@@ -65,12 +69,14 @@ impl MemoryCacheEntry {
 
 /// In-memory cache with generation-based garbage collection.
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MemoryCache {
   max_generations: MemoryCacheGenerations,
   entries: FxDashMap<CacheKey, MemoryCacheEntry>,
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 enum MemoryCacheGenerations {
   Infinity,
   Finite(u32),

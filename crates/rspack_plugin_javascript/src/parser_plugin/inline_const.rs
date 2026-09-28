@@ -1,5 +1,7 @@
 use rspack_cacheable::cacheable;
 use rspack_core::EvaluatedInlinableValue;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::ryu_js;
 use swc_experimental_ecma_ast::{ObjectPatProp, Pat, VarDeclarator};
 
@@ -25,6 +27,7 @@ pub struct ConstValueData {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum ConstValue {
   NoInlinable,
   Inlinable(EvaluatedInlinableValue),
@@ -40,6 +43,7 @@ impl ConstValue {
 }
 
 #[derive(Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ConstValuePlugin {
   inline: bool,
 }

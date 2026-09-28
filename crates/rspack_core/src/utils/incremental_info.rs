@@ -3,11 +3,15 @@ use std::{
   hash::{BuildHasher, Hash},
 };
 
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxBuildHasher;
 
 /// A struct to collect incremental info.
 ///
 /// The `added`, `updated`, `removed` are disjoint.
+#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, allocative(bound = "T: allocative::Allocative, S"))]
 pub struct IncrementalInfo<T, S = FxBuildHasher> {
   /// The added data but never removed.
   added: HashSet<T, S>,

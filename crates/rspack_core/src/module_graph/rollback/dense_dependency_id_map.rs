@@ -1,6 +1,10 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 use crate::DependencyId;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DenseDependencyIdMap<V> {
   values: Vec<Option<V>>,
 }

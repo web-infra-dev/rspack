@@ -3880,18 +3880,34 @@ dependencies = [
 [[package]]
 name = "rspack-allocative"
 version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "942dd788eb5b967d155baa21e4699e4a164e2b217a236ded02f22d86564730a4"
 dependencies = [
+ "arc-swap",
  "atomic_refcell",
  "camino",
  "ctor 0.1.26",
  "dashmap",
- "hashbrown 0.14.5",
+ "either",
+ "fixedbitset",
+ "halfbrown",
+ "hashlink",
+ "hstr",
  "indexmap",
+ "json",
+ "napi",
  "once_cell",
+ "parking_lot",
+ "pnp",
  "rspack-allocative_derive",
+ "rustc-hash",
+ "serde_json",
+ "simd-json",
+ "smallvec",
+ "smol_str",
+ "swc_config",
+ "swc_core",
+ "swc_ecma_minifier",
  "tokio",
+ "triomphe",
  "ustr-fxhash",
 ]
 
@@ -3933,6 +3949,15 @@ dependencies = [
  "tracing",
  "xxhash-rust",
  "zerocopy",
+]
+
+[[package]]
+name = "rspack_allocative_testing"
+version = "0.102.7"
+dependencies = [
+ "rspack-allocative",
+ "rspack_sources",
+ "smol_str",
 ]
 
 [[package]]
@@ -4236,6 +4261,7 @@ dependencies = [
  "rayon",
  "regex",
  "rkyv 0.8.18",
+ "rspack-allocative",
  "rspack-turbo-persistence",
  "rspack_cacheable",
  "rspack_collections",
@@ -4287,6 +4313,7 @@ name = "rspack_dojang"
 version = "0.102.7"
 dependencies = [
  "html-escape",
+ "rspack-allocative",
  "rustc-hash",
  "serde_json",
 ]
@@ -4298,6 +4325,7 @@ dependencies = [
  "anyhow",
  "miette",
  "owo-colors",
+ "rspack-allocative",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_location",
@@ -4351,6 +4379,7 @@ name = "rspack_hook"
 version = "0.102.7"
 dependencies = [
  "async-trait",
+ "rspack-allocative",
  "rspack_error",
  "rspack_macros",
  "tracing",
@@ -4386,6 +4415,7 @@ dependencies = [
  "hstr",
  "indexmap",
  "ref-cast",
+ "rspack-allocative",
  "rustc-hash",
  "serde",
  "swc_core",
@@ -4539,6 +4569,7 @@ version = "0.102.7"
 dependencies = [
  "itoa",
  "memchr",
+ "rspack-allocative",
  "rspack_cacheable",
 ]
 
@@ -4577,6 +4608,7 @@ version = "0.102.7"
 dependencies = [
  "napi",
  "oneshot",
+ "rspack-allocative",
  "rspack_error",
  "serde_json",
  "tokio",
@@ -4617,6 +4649,7 @@ dependencies = [
  "camino",
  "dashmap",
  "indexmap",
+ "rspack-allocative",
  "rspack_cacheable",
  "rspack_intern",
  "rustc-hash",
@@ -5539,6 +5572,7 @@ dependencies = [
  "regex",
  "regex-syntax",
  "regress",
+ "rspack-allocative",
  "rspack_cacheable",
  "rspack_error",
  "swc_core",
@@ -5562,6 +5596,7 @@ dependencies = [
  "normalize-path",
  "pnp",
  "regex",
+ "rspack-allocative",
  "rspack_paths",
  "rustc-hash",
  "serde",
@@ -5580,6 +5615,7 @@ dependencies = [
  "memchr",
  "regex",
  "rkyv 0.8.18",
+ "rspack-allocative",
  "rustc-hash",
  "serde",
  "simd-json",
@@ -5596,6 +5632,7 @@ dependencies = [
  "cow-utils",
  "futures",
  "itertools 0.14.0",
+ "rspack-allocative",
  "rspack_error",
  "rspack_fs",
  "rspack_parallel",
@@ -5610,6 +5647,7 @@ version = "0.102.7"
 dependencies = [
  "cow-utils",
  "heck",
+ "rspack-allocative",
  "rustc-hash",
  "serde",
  "swc_core",
@@ -5630,6 +5668,7 @@ dependencies = [
 name = "rspack_tasks"
 version = "0.102.7"
 dependencies = [
+ "rspack-allocative",
  "tokio",
 ]
 

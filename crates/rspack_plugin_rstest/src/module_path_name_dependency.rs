@@ -4,10 +4,13 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   NormalInitFragment, TemplateContext, TemplateReplaceSource,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::json_stringify;
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum NameType {
   DirName,
   FileName,
@@ -15,6 +18,7 @@ pub enum NameType {
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModulePathNameDependency {
   r#type: NameType,
 }
@@ -37,6 +41,7 @@ impl AsContextDependency for ModulePathNameDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ModulePathNameDependencyTemplate;
 
 impl ModulePathNameDependencyTemplate {

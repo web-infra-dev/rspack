@@ -5,6 +5,8 @@ use rspack_core::{
   ReferencedSpecifier, get_context,
 };
 use rspack_error::{Error, Severity};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{SpanExt, swc::get_swc_comments};
 use rustc_hash::FxHashMap;
 use swc_experimental_allocator::CloneIn;
@@ -237,6 +239,7 @@ struct ImportTagData {
   import_span: Span,
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ImportParserPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]

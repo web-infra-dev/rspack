@@ -1,3 +1,5 @@
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -6,6 +8,7 @@ use tracing::info;
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct EnsureChunkConditionsPlugin;
 
 #[plugin_hook(CompilationOptimizeChunks for EnsureChunkConditionsPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_BASIC)]

@@ -7,6 +7,7 @@ use tokio::sync::{mpsc, oneshot};
 ///
 /// Tasks are executed sequentially in the order they are added.
 /// Uses tokio's unbounded_channel which automatically suspends the receiver when idle.
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct TaskQueue {
   sender: LazyLock<mpsc::UnboundedSender<BoxFuture<'static, ()>>>,
 }

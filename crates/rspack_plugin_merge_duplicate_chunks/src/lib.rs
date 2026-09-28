@@ -1,4 +1,6 @@
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+#[cfg(allocative)]
+use rspack_core::allocative;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationOptimizeChunks, ExportsInfoData, Plugin, RuntimeSpec,
   incremental::Mutation, is_runtime_equal,
@@ -9,6 +11,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 #[plugin]
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MergeDuplicateChunksPlugin;
 
 #[plugin_hook(CompilationOptimizeChunks for MergeDuplicateChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_BASIC)]

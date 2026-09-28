@@ -8,6 +8,8 @@ use rspack_core::{
 use rspack_plugin_runtime::{
   extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::test::is_hot_test;
 
 static HOT_MODULE_REPLACEMENT_TEMPLATE: &str = include_str!("runtime/hot_module_replacement.ejs");
@@ -24,6 +26,7 @@ static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HotModuleReplacementRuntimeModule {}
 
 impl HotModuleReplacementRuntimeModule {

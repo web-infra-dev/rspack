@@ -13,6 +13,8 @@ use rspack_plugin_runtime::{
   extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
   get_chunk_runtime_requirements, render_chunk_loading_hmr_state_expression, stringify_chunks,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::plugin::{InsertType, MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL, SOURCE_TYPE};
@@ -75,6 +77,7 @@ static CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRunt
 
 #[impl_runtime_module]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct CssLoadingRuntimeModule {
   attributes: FxHashMap<String, String>,
   link_type: Option<String>,

@@ -1,4 +1,6 @@
 use rspack_collections::IdentifierMap;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 use crate::{
   ArtifactExt, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
@@ -6,6 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CgmRuntimeRequirementsArtifact {
   module_to_runtime_requirements: IdentifierMap<RuntimeSpecMap<RuntimeGlobals>>,
 }

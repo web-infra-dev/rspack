@@ -16,6 +16,7 @@ use crate::{Error, Result};
 /// - Hot pack (ID 0): Frequently modified data, always loaded in memory
 /// - Cold packs (ID 1+): Immutable data, loaded on-demand
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Bucket {
   meta: Meta,
   hot_pack: Pack,

@@ -6,6 +6,8 @@ use napi::bindgen_prelude::Buffer;
 use rspack_error::{Result, error};
 use rspack_fs::{FsResultToIoResultExt, WritableFileSystem};
 use rspack_paths::Utf8Path;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{base64, current_time, fx_hash::FxHashMap};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
@@ -75,6 +77,7 @@ pub enum FetchResultType {
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HttpCache {
   cache_location: Option<PathBuf>,
   lockfile_cache: LockfileCache,
@@ -545,4 +548,11 @@ fn compute_integrity(content: &[u8]) -> String {
   let digest = hasher.finalize();
   // Use base64 for integrity as that's the standard format
   format!("sha512-{}", base64::encode_to_string(digest))
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for dyn HttpClient {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    visitor.visit_opaque(self);
+  }
 }

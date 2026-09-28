@@ -6,6 +6,7 @@ use rspack_regex::RspackRegex;
 use super::NodeFileSystem;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct HybridFileSystem {
   allowlist: Vec<RspackRegex>,
   node_fs: NodeFileSystem,
@@ -78,3 +79,6 @@ impl ReadableFileSystem for HybridFileSystem {
     self.pick_fs_for_path(path).permissions(path).await
   }
 }
+
+#[cfg(allocative)]
+use rspack_util::allocative;

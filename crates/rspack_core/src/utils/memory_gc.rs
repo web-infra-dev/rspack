@@ -2,8 +2,11 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use dashmap::DashMap;
 use rspack_collections::{Identifier, IdentifierDashMap};
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[derive(Debug, Hash, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 struct CacheData<Item> {
   item: Item,
   generation: u32,
@@ -16,6 +19,7 @@ impl<Item> CacheData<Item> {
 }
 /// memory storage with garbage collection based on generations
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct MemoryGCStorage<Item> {
   generation: AtomicU32,
   max_generations: u32,

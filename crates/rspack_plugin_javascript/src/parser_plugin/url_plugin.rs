@@ -5,6 +5,8 @@ use rspack_core::{
   JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use swc_experimental_ecma_ast::{
   Expr, ExprOrSpread, GetSpan, MemberExpr, MetaPropKind, NewExpr, Visit, VisitWith,
 };
@@ -96,6 +98,7 @@ pub fn get_url_request(
   None
 }
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct URLPlugin {
   pub mode: Option<JavascriptParserUrl>,
   pub import_meta_url_enabled: bool,

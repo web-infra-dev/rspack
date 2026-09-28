@@ -1,3 +1,6 @@
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 mod cache;
 mod context;
 mod resolver;
@@ -44,6 +47,7 @@ type JsLoaderRunnerGetterTsfn = ThreadsafeFunction<
   true,
 >;
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct JsLoaderRunnerGetter {
   ts_fn: Mutex<Option<JsLoaderRunnerGetterTsfn>>,
 }
@@ -110,6 +114,7 @@ impl JsLoaderRunnerGetter {
 }
 
 #[plugin]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub(crate) struct JsLoaderRspackPlugin {
   compiler_id: once_cell::sync::OnceCell<CompilerId>,
   pub(crate) runner_getter: JsLoaderRunnerGetter,

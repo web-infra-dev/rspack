@@ -101,6 +101,7 @@ where
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RsdoctorPluginModuleGraphFeature {
   ModuleGraph,
   ModuleIds,
@@ -129,6 +130,7 @@ impl fmt::Display for RsdoctorPluginModuleGraphFeature {
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RsdoctorPluginChunkGraphFeature {
   ChunkGraph,
   Assets,
@@ -154,12 +156,14 @@ impl fmt::Display for RsdoctorPluginChunkGraphFeature {
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RsdoctorPluginSourceMapFeature {
   pub module: bool,
   pub cheap: bool,
 }
 
 #[derive(Default, Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RsdoctorPluginOptions {
   pub module_graph_features: FxHashSet<RsdoctorPluginModuleGraphFeature>,
   pub chunk_graph_features: FxHashSet<RsdoctorPluginChunkGraphFeature>,
@@ -169,6 +173,7 @@ pub struct RsdoctorPluginOptions {
 
 #[plugin]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RsdoctorPlugin {
   pub options: RsdoctorPluginOptions,
 }

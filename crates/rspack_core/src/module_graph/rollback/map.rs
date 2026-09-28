@@ -8,15 +8,23 @@ use rayon::iter::{
   IntoParallelRefIterator as RayonIntoParallelRefIterator,
   IntoParallelRefMutIterator as RayonIntoParallelRefMutIterator,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxBuildHasher;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum Action<K, V> {
   Inserted { key: K, previous: Option<V> },
   Removed { key: K, value: V },
 }
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(
+  allocative,
+  allocative(bound = "K: allocative::Allocative, V: allocative::Allocative, S")
+)]
 pub struct RollbackMap<K, V, S = FxBuildHasher> {
   map: HashMap<K, V, S>,
   undo_stack: Vec<Action<K, V>>,
