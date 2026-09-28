@@ -337,6 +337,7 @@ const applyExperimentsDefaults = (
     D(experiments.newCache, 'devtool', true);
     D(experiments.newCache, 'loader', true);
     D(experiments.newCache, 'minimize', true);
+    D(experiments.newCache, 'resolver', true);
   }
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);

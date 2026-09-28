@@ -3213,6 +3213,8 @@ export type NewCache = {
   loader?: boolean;
   /** Enable the asset minimization cache. @default true */
   minimize?: boolean;
+  /** Enable the module and loader resolution cache. @default true */
+  resolver?: boolean;
 };
 
 export type NewCachePresets = boolean;

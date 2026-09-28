@@ -281,8 +281,14 @@ impl Compiler {
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
     let plugin_driver_clone = self.plugin_driver.clone();
+    let resolver_factory_clone = self.resolver_factory.clone();
+    let loader_resolver_factory_clone = self.loader_resolver_factory.clone();
     let compilation_id = self.compilation.id();
-    let _guard = scopeguard::guard((), move |_| plugin_driver_clone.clear_cache(compilation_id));
+    let _guard = scopeguard::guard((), move |_| {
+      resolver_factory_clone.clear_cache();
+      loader_resolver_factory_clone.clear_cache();
+      plugin_driver_clone.clear_cache(compilation_id)
+    });
     let compilation_logging = self.compilation.get_logging().clone();
     compilation_logging.clear();
     self.incremental_artifacts.reset();
@@ -329,6 +335,13 @@ impl Compiler {
   }
   #[instrument("Compiler:compile", target=TRACING_BENCH_TARGET,skip_all)]
   async fn compile(&mut self) -> Result<()> {
+    let resolver_cache = self.compilation.resolver_cache.as_ref();
+    self
+      .resolver_factory
+      .set_resolver_cache(resolver_cache.map(|cache| cache.child("normal")));
+    self
+      .loader_resolver_factory
+      .set_resolver_cache(resolver_cache.map(|cache| cache.child("loader")));
     let mut compilation_params = self.new_compilation_params();
     // Make sure `thisCompilation` is emitted before any JS side access to `JsCompilation`.
     self
@@ -355,6 +368,10 @@ impl Compiler {
       )
       .await?;
     logger.time_end(start);
+
+    if let Some(cache) = &self.compilation.resolver_cache {
+      cache.log(&self.compilation.get_logger("rspack.ResolverCache"));
+    }
 
     // Consume plugin driver diagnostic
     let plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
