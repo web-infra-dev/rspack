@@ -12,9 +12,8 @@ if (enableCompileCache) {
   }
 }
 
-import { RspackCLI } from '../dist/index.js';
-
 async function runCLI() {
+  const { RspackCLI } = await import('../dist/index.js');
   const cli = new RspackCLI();
   await cli.run(process.argv);
 }
