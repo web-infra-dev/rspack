@@ -308,7 +308,7 @@ export class Compilation {
     runtimeModule: liteTapable.SyncHook<[RuntimeModule, Chunk]>;
     seal: liteTapable.SyncHook<[]>;
     afterSeal: liteTapable.AsyncSeriesHook<[], void>;
-    needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
+    needAdditionalPass: liteTapable.SyncBailHook<[], boolean | void>;
   }>;
   name?: string;
   startTime?: number;

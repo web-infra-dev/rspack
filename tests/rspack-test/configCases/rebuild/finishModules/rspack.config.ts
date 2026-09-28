@@ -1,16 +1,14 @@
 import { resolve, join } from 'node:path';
-import { NormalModule } from '@rspack/core';
+import { defineConfig, definePlugin } from '@rspack/cli';
+import { NormalModule, type LoaderContext } from '@rspack/core';
 
-/**
- * @param {import("@rspack/core").Compiler} compiler the compiler
- */
-var testPlugin = (compiler) => {
+const testPlugin = definePlugin((compiler) => {
   compiler.hooks.compilation.tap('TestPlugin', (compilation) => {
     let shouldReplace = false;
     NormalModule.getCompilationHooks(compilation).loader.tap(
       'TestPlugin',
-      (loaderContext) => {
-        /** @type {any} */ (loaderContext).shouldReplace = shouldReplace;
+      (loaderContext: LoaderContext & { shouldReplace?: boolean }) => {
+        loaderContext.shouldReplace = shouldReplace;
       },
     );
     compilation.hooks.finishModules.tapAsync(
@@ -18,16 +16,9 @@ var testPlugin = (compiler) => {
       function (modules, callback) {
         const src = resolve(join(import.meta.dirname, 'other-file.js'));
 
-        /**
-         *
-         * @param {any} m test
-         * @returns {boolean} test
-         */
-        function matcher(m) {
-          return m.resource && m.resource === src;
-        }
-
-        const module = Array.from(modules).find(matcher);
+        const module = Array.from(modules).find(
+          (m) => m instanceof NormalModule && m.resource === src,
+        );
 
         if (!module) {
           throw new Error('something went wrong');
@@ -45,10 +36,9 @@ var testPlugin = (compiler) => {
       },
     );
   });
-};
+});
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   module: {
     rules: [
       {
@@ -61,4 +51,4 @@ export default {
     concatenateModules: false,
   },
   plugins: [testPlugin],
-};
+});
