@@ -97,7 +97,7 @@ where
 }
 
 impl HtmlPluginTag {
-  pub fn create_style(href: &str) -> HtmlPluginTag {
+  pub fn create_style(href: &str, unique_name: &str) -> HtmlPluginTag {
     HtmlPluginTag {
       tag_name: "link".to_string(),
       attributes: vec![
@@ -108,6 +108,12 @@ impl HtmlPluginTag {
         HtmlPluginAttribute {
           attr_name: "rel".to_string(),
           attr_value: Some("stylesheet".to_string()),
+        },
+        // URL hooks may rewrite or reorder assets before tags are created.
+        // Mark ownership here without relying on a URL-to-chunk mapping.
+        HtmlPluginAttribute {
+          attr_name: "data-rspack".to_string(),
+          attr_value: Some(format!("{unique_name}:css")),
         },
       ],
       void_tag: true,

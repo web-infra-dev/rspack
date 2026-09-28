@@ -35,7 +35,10 @@ if (typeof document === "undefined") return;
 		if (dataHref) {
 			dataHref = dataHref.split('?')[0]
 		}
-		if (!matchingTag && (dataHref === href || dataHref === fullhref)) matchingTag = tag;
+		if (dataHref === href || dataHref === fullhref) {
+			if (tag.getAttribute("data-rspack") === extractCssLoadingUniqueName + ":css") return tag;
+			if (!matchingTag) matchingTag = tag;
+		}
 	}
 	if (matchingTag) return matchingTag;
 

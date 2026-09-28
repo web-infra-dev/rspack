@@ -1,5 +1,5 @@
 import { defineConfig } from '@rspack/cli';
-import { rspack } from '@rspack/core';
+import { rspack, type Compiler } from '@rspack/core';
 
 export default defineConfig(
   [true, false].map((runtime) => ({
@@ -23,6 +23,22 @@ export default defineConfig(
       ],
     },
     plugins: [
+      {
+        apply(compiler: Compiler) {
+          compiler.hooks.compilation.tap('RewriteCssUrls', (compilation) => {
+            rspack.HtmlRspackPlugin.getCompilationHooks(
+              compilation,
+            ).beforeAssetTagGeneration.tap('RewriteCssUrls', (data) => {
+              data.assets.css = data.assets.css
+                .map((url) =>
+                  url.replace('/assets/', 'https://cdn.example.com/'),
+                )
+                .reverse();
+              return data;
+            });
+          });
+        },
+      },
       new rspack.CssExtractRspackPlugin({
         filename: 'extract-[name].css',
         runtime,

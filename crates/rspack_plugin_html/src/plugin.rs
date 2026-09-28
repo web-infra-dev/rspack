@@ -21,7 +21,6 @@ use crate::{
   config::{HtmlInject, HtmlRspackPluginOptions},
   injector::AssetInjector,
   parser::HtmlCompiler,
-  tag::HtmlPluginAttribute,
   template::HtmlTemplate,
 };
 
@@ -90,30 +89,18 @@ async fn generate_html(
     .borrow()
     .before_asset_tag_generation
     .call(BeforeAssetTagGenerationData {
-      assets: assets_info.0,
+      assets: assets_info,
       output_name: html_file_name.as_str().to_string(),
       compilation_id: compilation.id(),
       uid: config.uid,
     })
     .await?;
 
-  let mut asset_tags: HtmlPluginAssetTags =
-    HtmlPluginAssetTags::from_assets(config, &before_generation_data.assets);
-
-  // Only generated chunk stylesheets belong to Rspack's CSS loading runtimes.
-  // Keep the native and extracted CSS namespaces separate for mixed chunks.
-  for tag in &mut asset_tags.styles {
-    if let Some(key) = tag
-      .asset
-      .as_ref()
-      .and_then(|asset| assets_info.1.get(asset))
-    {
-      tag.attributes.push(HtmlPluginAttribute {
-        attr_name: "data-rspack".to_string(),
-        attr_value: Some(key.clone()),
-      });
-    }
-  }
+  let asset_tags = HtmlPluginAssetTags::from_assets(
+    config,
+    &before_generation_data.assets,
+    &compilation.options.output.unique_name,
+  );
 
   let alter_asset_tags_data = hooks
     .borrow()

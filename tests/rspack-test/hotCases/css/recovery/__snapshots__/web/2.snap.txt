@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 53
-- Update: main.hot-update.js, size: 6385
+- Update: main.hot-update.js, size: 6443
 
 ## Manifest
 
@@ -89,7 +89,7 @@ function noop() {}
 function updateCss(el, uniqueName, url) {
     var _el_getAttribute;
     let normalizedUrl;
-    if ('stylesheet' !== el.rel || !(null == (_el_getAttribute = el.getAttribute('data-rspack')) ? void 0 : _el_getAttribute.startsWith(`${uniqueName}:mini-css-chunk-`))) return;
+    if ('stylesheet' !== el.rel || el.getAttribute('data-rspack') !== `${uniqueName}:css` && !(null == (_el_getAttribute = el.getAttribute('data-rspack')) ? void 0 : _el_getAttribute.startsWith(`${uniqueName}:mini-css-chunk-`))) return;
     if (url) normalizedUrl = url;
     else {
         let href = el.getAttribute('href');

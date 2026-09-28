@@ -113,7 +113,10 @@ function updateCss(
   // Framework-owned stylesheets must be updated by their owner.
   if (
     el.rel !== 'stylesheet' ||
-    !el.getAttribute('data-rspack')?.startsWith(`${uniqueName}:mini-css-chunk-`)
+    (el.getAttribute('data-rspack') !== `${uniqueName}:css` &&
+      !el
+        .getAttribute('data-rspack')
+        ?.startsWith(`${uniqueName}:mini-css-chunk-`))
   ) {
     return;
   }
