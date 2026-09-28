@@ -34,6 +34,7 @@
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
     "build:binding:profiling": "pnpm --filter @rspack/binding run build:profiling",
     "build:bench": "cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches --bench rspack_sources",
+    "build:bench:memory": "cargo codspeed build -m memory --profile codspeed -p rspack_benchmark --bench memory",
     "build:bench:main": "cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches",
     "build:bench:rspack-sources": "cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench rspack_sources",
     "prepare": "rs hooks",

@@ -47,6 +47,9 @@ swc_experimental_ecma_parser          = { workspace = true, features = ["unstabl
 swc_experimental_ecma_semantic        = { workspace = true }
 swc_experimental_ecma_transforms_base = { workspace = true }
 
+[features]
+allocative = ["rspack_core/allocative"]
+
 [[bench]]
 harness = false
 name    = "benches"
@@ -54,6 +57,10 @@ name    = "benches"
 [[bench]]
 harness = false
 name    = "rspack_sources"
+
+[[bench]]
+harness = false
+name    = "memory"
 
 [[bench]]
 harness = false

@@ -9,7 +9,7 @@ on:
       runner: # Runner labels
         required: true
         type: string
-      measurement: # CodSpeed measurement mode, "simulation" or "walltime"
+      measurement: # CodSpeed measurement mode: "simulation", "walltime", or "memory"
         required: false
         type: string
         default: 'simulation'
@@ -65,7 +65,7 @@ jobs:
       - name: Install cargo-codspeed binary
         uses: taiki-e/install-action@16b05812d776ae1dfaabc8277e421fb6d2506419 # v2
         with:
-          tool: cargo-codspeed@4.4.1
+          tool: cargo-codspeed@4.7.0
 
       - name: Setup Rust Target
         run: rustup target add ${{ inputs.target }}
@@ -74,6 +74,7 @@ jobs:
         run: cargo codegen
 
       - name: Build benchmark (${{ inputs.measurement }})
+        if: ${{ inputs.measurement != 'memory' }}
         run: |
           bench_args=()
           if [ -n "${{ inputs.bench_target }}" ]; then
@@ -82,6 +83,10 @@ jobs:
             bench_args+=(--bench benches --bench rspack_sources)
           fi
           cargo codspeed build -m ${{ inputs.measurement }} --profile codspeed -p rspack_benchmark "${bench_args[@]}"
+
+      - name: Build memory benchmark
+        if: ${{ inputs.measurement == 'memory' }}
+        run: cargo codspeed build -m memory --profile codspeed -p rspack_benchmark --bench memory
 
       - name: Prepare CodSpeed temporary directory
         run: mkdir -p "${RUNNER_TEMP}/codspeed-valgrind-tmp"
@@ -143,6 +148,55 @@ jobs:
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: rev:2ca934f5a71e0299e0a3941a84ac3b242b3b63b6
           skip-hash-check-warning: true
+
+      - name: Run benchmark (memory)
+        if: ${{ inputs.measurement == 'memory' }}
+        uses: CodSpeedHQ/action@48820ecdc9112f8f10eab425853ccc461510c0dc # runner v5.3.1 adds physical RSS tracking
+        timeout-minutes: 30
+        env:
+          RSPACK_BENCHCASES_DIR: ${{ github.workspace }}/.bench/rspack-benchcases
+          BENCH_MODE: memory
+        with:
+          mode: memory
+          experimental-memory-track-physical: true
+          run: |
+            if [ -n "${{ inputs.bench_filter }}" ]; then
+              cargo codspeed run --bench memory "${{ inputs.bench_filter }}"
+            else
+              cargo codspeed run --bench memory
+            fi
+          token: ${{ secrets.CODSPEED_TOKEN }}
+
+      - name: Capture bounded Allocative snapshots
+        if: ${{ always() && inputs.measurement == 'memory' }}
+        env:
+          BENCH_MODE: memory
+          RSPACK_BENCHCASES_DIR: ${{ github.workspace }}/.bench/rspack-benchcases
+          RSPACK_ALLOCATIVE_DIR: ${{ runner.temp }}/rspack-allocative
+          RSPACK_ALLOCATIVE_MAX_SNAPSHOTS: 3
+          RSPACK_ALLOCATIVE_SNAPSHOT_MODULE_GRAPH: 1
+        run: cargo bench --profile codspeed -p rspack_benchmark --bench memory --features rspack_benchmark/allocative -- --test
+
+      - name: Summarize Allocative snapshots
+        if: ${{ always() && inputs.measurement == 'memory' }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/rspack-memory-artifact"
+          shopt -s nullglob
+          snapshots=("${RUNNER_TEMP}/rspack-allocative/"*.allocative)
+          if [ ${#snapshots[@]} -gt 0 ]; then
+            python3 scripts/memory/allocative_summary.py "${snapshots[@]}" --output "${RUNNER_TEMP}/rspack-memory-artifact/allocative-summary.json"
+            cp "${RUNNER_TEMP}/rspack-allocative/"*.coverage.json "${RUNNER_TEMP}/rspack-memory-artifact/" 2>/dev/null || true
+          else
+            printf '{"schema_version":1,"kind":"allocative-summary","snapshots":[]}\n' > "${RUNNER_TEMP}/rspack-memory-artifact/allocative-summary.json"
+          fi
+
+      - name: Upload memory summary
+        if: ${{ always() && inputs.measurement == 'memory' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: rspack-memory-summary-${{ inputs.target }}
+          path: ${{ runner.temp }}/rspack-memory-artifact
+          if-no-files-found: ignore
 
       - name: Prepare Valgrind temporary files artifact
         if: ${{ always() && inputs.measurement == 'simulation' }}

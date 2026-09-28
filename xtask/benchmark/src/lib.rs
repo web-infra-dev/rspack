@@ -21,29 +21,33 @@ static RAYON_FOR_BENCHMARK: Once = Once::new();
 enum BenchMode {
   Simulation,
   Walltime,
+  Memory,
 }
 
 impl BenchMode {
   fn current() -> Self {
     match std::env::var(ENV_BENCH_MODE).as_deref() {
       Ok("walltime") => Self::Walltime,
+      Ok("memory") => Self::Memory,
       Ok("simulation") | Err(_) => Self::Simulation,
       Ok(value) => {
-        panic!("{ENV_BENCH_MODE} must be either \"simulation\" or \"walltime\", got \"{value}\"")
+        panic!(
+          "{ENV_BENCH_MODE} must be \"simulation\", \"walltime\", or \"memory\", got \"{value}\""
+        )
       }
     }
   }
 
   fn blocking_threads(self) -> usize {
     match self {
-      Self::Simulation => SIMULATION_BENCHMARK_BLOCKING_THREADS,
+      Self::Simulation | Self::Memory => SIMULATION_BENCHMARK_BLOCKING_THREADS,
       Self::Walltime => walltime_benchmark_thread_count(),
     }
   }
 
   fn rayon_threads(self) -> usize {
     match self {
-      Self::Simulation => SIMULATION_BENCHMARK_RAYON_THREADS,
+      Self::Simulation | Self::Memory => SIMULATION_BENCHMARK_RAYON_THREADS,
       Self::Walltime => walltime_benchmark_thread_count(),
     }
   }

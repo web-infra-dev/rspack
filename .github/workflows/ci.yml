@@ -109,6 +109,17 @@ jobs:
       bench_target: walltime
       runner: '"physical-1-exclusive"'
 
+  bench-rust-memory:
+    name: Rust Memory Bench
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/bench-rust.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+      measurement: memory
+      bench_target: memory
+      runner: '"ubuntu-24.04"'
+
   test-windows:
     name: Test Windows
     needs: [check-changed]
