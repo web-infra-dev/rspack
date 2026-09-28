@@ -16,8 +16,7 @@ use rustc_hash::FxHasher;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
-  Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
-  ResolverCache,
+  Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolverCache,
 };
 
 /// Cloning returns independent dependency collections to each cache caller while sharing paths.
