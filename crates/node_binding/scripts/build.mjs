@@ -21,6 +21,13 @@ const watch = process.argv.includes("--watch");
 
 const measureFresh = process.env.MEASURE_CARGO_FRESH === "1" && !watch;
 const isReleaseProfile = values.profile === "release" || values.profile === "release-wasi";
+const isJemallocProfiling = values.profile === "profiling";
+
+if (isJemallocProfiling && (process.env.SFTRACE || process.env.TRACY)) {
+	throw new Error(
+		"The profiling binding uses jemalloc; unset SFTRACE and TRACY for this build."
+	);
+}
 
 build().then((value) => {
 	// Regarding cargo's non-zero exit code as an error.
@@ -84,6 +91,9 @@ async function build() {
 		}
 		if (values.profile === "release-debug") {
 			features.push("system-allocator");
+		}
+		if (isJemallocProfiling) {
+			features.push("jemalloc-profiler");
 		}
 		args.push("--no-dts-cache");
 		if (process.env.SFTRACE) {

@@ -450,7 +450,10 @@ impl JsCompiler {
         callbackify(
           f,
           async move {
-            let result = compiler.build().await.to_napi_result_with_message(|e| {
+            let result = compiler.build().await;
+            #[cfg(all(feature = "jemalloc-profiler", not(target_family = "wasm")))]
+            rspack_allocator::dump_compilation_heap_profile("build");
+            let result = result.to_napi_result_with_message(|e| {
               print_error_diagnostic(e, compiler.options.stats.colors)
             });
             result?;
@@ -485,10 +488,12 @@ impl JsCompiler {
                 changed_files.into_iter().collect::<FxHashSet<_>>(),
                 removed_files.into_iter().collect::<FxHashSet<_>>(),
               )
-              .await
-              .to_napi_result_with_message(|e| {
-                print_error_diagnostic(e, compiler.options.stats.colors)
-              });
+              .await;
+            #[cfg(all(feature = "jemalloc-profiler", not(target_family = "wasm")))]
+            rspack_allocator::dump_compilation_heap_profile("rebuild");
+            let result = result.to_napi_result_with_message(|e| {
+              print_error_diagnostic(e, compiler.options.stats.colors)
+            });
             result?;
             tracing::debug!("rebuild ok");
             Ok(())

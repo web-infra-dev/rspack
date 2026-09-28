@@ -47,4 +47,28 @@ Rust benchmarks live in `xtask/benchmark/`. Build them with `pnpm run build:benc
 
 Use `pnpm run build:binding:profiling` for a profiling binding. Tracing support lives in `crates/rspack_tracing/`.
 
+The profiling binding uses jemalloc's sampled heap profiler and writes a snapshot after each completed build or rebuild when `RSPACK_JEMALLOC_PROFILE_DIR` is set. Start the Node process with `_RJEM_MALLOC_CONF=prof:true,prof_active:true,lg_prof_sample:19` to enable profiling. The default sampling interval is intentional for large projects; setting `lg_prof_sample:0` records every allocation and can add substantial overhead.
+
+```sh
+pnpm run build:binding:profiling
+mkdir -p /tmp/rspack-heap
+cd /path/to/flow-web-monorepo
+RSPACK_JEMALLOC_PROFILE_DIR=/tmp/rspack-heap \
+_RJEM_MALLOC_CONF='prof:true,prof_active:true,lg_prof_sample:19' \
+NODE_OPTIONS='--max-old-space-size=16384' \
+pnpm --filter app-flow-chat run dev
+```
+
+Each completed compilation writes a `*.heap` file. Analyze one with jemalloc's `jeprof` and the profiling binding as the symbol file:
+
+```sh
+cd /path/to/rspack
+jeprof --show_bytes --inuse_space --text crates/node_binding/rspack.darwin-arm64.node /tmp/rspack-heap/<snapshot>.heap
+jeprof --show_bytes --inuse_space --svg crates/node_binding/rspack.darwin-arm64.node /tmp/rspack-heap/<snapshot>.heap > /tmp/rspack-heap/heap.svg
+```
+
+On macOS, install `jeprof` with `brew install jemalloc` if it is not already available.
+
+Use the binding artifact matching the host platform. The SVG is a call graph; `jeprof --collapsed` can be piped to Brendan Gregg's FlameGraph tool when a flame graph is preferred. These snapshots cover allocations routed through Rspack's Rust global allocator, not Node/V8 or independent native allocators.
+
 See the [debugging guide](../website/docs/en/contribute/development/debugging.mdx) for VS Code configurations, JavaScript inspection, and `rust-lldb`. See [project layout](../website/docs/en/contribute/development/project.md) for core, plugin, API, CLI, and binding paths.

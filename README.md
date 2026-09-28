@@ -117,3 +117,14 @@ Thanks to:
 ## License
 
 Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICENSE).
+
+cd /Users/bytedance/Documents/github/web-infra-dev/rspack
+
+jeprof --show_bytes --inuse_space --collapsed \
+crates/node_binding/rspack.darwin-arm64.node \
+/tmp/app-flow-chat-jemalloc/rspack-build-19003-4.heap \
+| /tmp/app-flow-chat-jemalloc/flamegraph.pl \
+--title 'app-flow-chat Rspack Rust heap in-use' \
+--countname bytes \
+
+> /tmp/app-flow-chat-jemalloc/profile-flamegraph.svg
