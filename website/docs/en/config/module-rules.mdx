@@ -768,7 +768,7 @@ type RuleSetUse =
   | RuleSetUseItem[]
   | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
 
-type RuleSetUseItem = string | RuleSetLoaderWithOptions;
+type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
 
 type RuleSetLoaderWithOptions = {
   ident?: string;
