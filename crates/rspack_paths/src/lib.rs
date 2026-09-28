@@ -15,14 +15,13 @@ pub use camino::{Utf8Component, Utf8Components, Utf8Path, Utf8PathBuf, Utf8Prefi
 use dashmap::{DashMap, DashSet};
 use indexmap::{IndexMap, IndexSet};
 #[cfg(feature = "cacheable")]
-use rspack_cacheable::{
-  ContextGuard, Error as CacheableError, cacheable,
-  utils::PortablePath,
-  with::{Custom, CustomConverter},
-};
+use rspack_cacheable::cacheable;
 use rspack_intern::{InternSliceStorage, InternedSlice, SliceInternable};
 use rustc_hash::FxHasher;
 pub use ustr::IdentityHasher;
+
+#[cfg(feature = "cacheable")]
+mod cacheable;
 
 /// Returns the byte index immediately after a DOS device path prefix
 /// (`\\\\?\\` or `\\\\.\\`), or zero when `path` has no such prefix.
@@ -165,7 +164,7 @@ fn path_from_bytes(bytes: &[u8]) -> &Path {
 /// An interned path: equal paths share one allocation process-wide, so equality is a pointer
 /// comparison and each path is stored once. Hashing still uses the precomputed content hash
 /// (see [`Hash`] below).
-#[cfg_attr(feature = "cacheable", cacheable(with=Custom))]
+#[cfg_attr(feature = "cacheable", cacheable(with=cacheable::AsInternedPath))]
 #[derive(Clone, PartialEq, Eq)]
 pub struct InternedPath(InternedSlice<PreHashedPath>);
 
@@ -272,19 +271,6 @@ impl From<&InternedPath> for InternedPath {
 impl From<&str> for InternedPath {
   fn from(value: &str) -> Self {
     InternedPath::new(<str as std::convert::AsRef<Path>>::as_ref(value))
-  }
-}
-
-#[cfg(feature = "cacheable")]
-impl CustomConverter for InternedPath {
-  type Target = PortablePath;
-  fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
-    Ok(PortablePath::new(self.as_path(), guard.project_root()))
-  }
-  fn deserialize(data: Self::Target, guard: &ContextGuard) -> Result<Self, CacheableError> {
-    Ok(Self::from(PathBuf::from(
-      data.into_path_string(guard.project_root()),
-    )))
   }
 }
 
