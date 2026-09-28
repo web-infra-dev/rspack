@@ -12,7 +12,7 @@ use super::JavascriptParserPlugin;
 use crate::{
   Atom,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier},
-  visitors::{JavascriptParser, Statement, expr_name},
+  visitors::{JavascriptParser, Statement, VariableInfoFlags, expr_name},
 };
 
 pub struct CommonJsPlugin;
@@ -21,6 +21,10 @@ const COMMONJS_REQUIRE_ACCESS_TAG: &str = "commonjs require access";
 
 impl CommonJsPlugin {
   fn should_track_module_exports_access(parser: &JavascriptParser) -> bool {
+    if !parser.compiler_options.optimization.concatenate_modules {
+      return false;
+    }
+
     let is_strict = parser
       .javascript_options
       .override_strict
@@ -54,10 +58,16 @@ impl CommonJsPlugin {
 
     // `CallHooksName` dispatches variable tags before the original name. This gives the observer
     // hooks below a chance to record an access before an earlier CommonJS or AMD hook SyncBails on
-    // `require`. The observer returns `None`, so dependency parsing remains unchanged.
+    // `require`. Keep the binding free: an observer tag is not a local declaration.
+    // An existing binding has already been tagged, shadowed or renamed and must be preserved.
     let require = Atom::from("require");
-    if !parser.is_variable_defined(&require) {
-      parser.tag_variable_without_data(require, COMMONJS_REQUIRE_ACCESS_TAG);
+    if parser.get_variable_info(&require).is_none() {
+      parser.tag_variable_with_flags::<()>(
+        require,
+        COMMONJS_REQUIRE_ACCESS_TAG,
+        None,
+        VariableInfoFlags::FREE | VariableInfoFlags::TAGGED,
+      );
     }
   }
 
@@ -99,7 +109,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
 
   fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
     // CommonJS exports and AMD define parsing share this state. Reuse it instead of duplicating
-    // their syntax handling here.
+    // their syntax handling here. Observers return None; handled export syntax is covered here,
+    // and source replacements are checked separately by the concatenation candidate predicate.
+    // Like other parser analysis, this relies on plugins keeping their dependencies and metadata
+    // consistent when they consume a hook. It does not change global provided-export information.
     if parser.parser_exports_state.is_some() {
       Self::mark_module_exports_accessed(parser);
     }

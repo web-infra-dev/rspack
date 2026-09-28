@@ -161,6 +161,39 @@ impl std::fmt::Debug for JavaScriptParserAndGenerator {
 }
 
 impl JavaScriptParserAndGenerator {
+  pub(crate) fn concatenation_bailout_reason(
+    &self,
+    module: &dyn rspack_core::Module,
+    allow_empty_commonjs: bool,
+  ) -> Option<Cow<'static, str>> {
+    // Only ESM eligibility may be skipped for a validated empty CommonJS candidate.
+    // All other bailouts stay on the ordinary concatenation path.
+    if !allow_empty_commonjs {
+      if module.build_meta().exports_type() != BuildMetaExportsType::Namespace {
+        return Some("Module is not an ECMAScript module".into());
+      }
+
+      if let Some(deps) = module.get_presentational_dependencies() {
+        if !deps.iter().any(|dep| {
+          // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/javascript/JavascriptGenerator.js#L65-L74
+          dep
+            .as_any()
+            .downcast_ref::<ESMCompatibilityDependency>()
+            .is_some()
+        }) {
+          return Some("Module is not an ECMAScript module".into());
+        }
+      } else {
+        return Some("Module is not an ECMAScript module".into());
+      }
+    }
+
+    if let Some(bailout) = module.build_info().module_concatenation_bailout.as_deref() {
+      return Some(format!("Module uses {bailout}").into());
+    }
+    None
+  }
+
   pub fn new(module_options: Arc<ResolvedModuleOptions>) -> Self {
     Self {
       import_meta: ArcComputed::new(module_options, |options| options.into()),
@@ -475,28 +508,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
-    // Only ES modules are valid for optimization
-    if module.build_meta().exports_type() != BuildMetaExportsType::Namespace {
-      return Some("Module is not an ECMAScript module".into());
-    }
-
-    if let Some(deps) = module.get_presentational_dependencies() {
-      if !deps.iter().any(|dep| {
-        // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/javascript/JavascriptGenerator.js#L65-L74
-        dep
-          .as_any()
-          .downcast_ref::<ESMCompatibilityDependency>()
-          .is_some()
-      }) {
-        return Some("Module is not an ECMAScript module".into());
-      }
-    } else {
-      return Some("Module is not an ECMAScript module".into());
-    }
-
-    if let Some(bailout) = module.build_info().module_concatenation_bailout.as_deref() {
-      return Some(format!("Module uses {bailout}").into());
-    }
-    None
+    self.concatenation_bailout_reason(module, false)
   }
 }

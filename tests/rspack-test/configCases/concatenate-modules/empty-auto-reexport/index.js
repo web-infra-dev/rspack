@@ -1,4 +1,8 @@
-import { getValue, missing } from "./barrel";
+import { value } from "./barrel";
+import defaultValue from "./empty.js?default";
+import * as directNamespace from "./empty.js?namespace";
+import "./amd-exports";
+import "./amd-require";
 import "./sloppy-empty";
 import "./shadowed-require";
 import "./access-exports";
@@ -6,40 +10,47 @@ import "./access-webpack-module";
 import "./defined-exports";
 import "./require-access";
 import "./arguments-access";
-import "./mutate-empty";
-import "./dynamic";
+import "./empty.js?dynamic";
 import "./top-level-return";
-import * as namespace from "./namespace-barrel";
+import * as chainedNamespace from "./namespace-chain-barrel";
 import { value as mixedValue } from "./mixed-barrel";
 
-it("concatenates only locally empty CommonJS export-star chains", () => {
-	expect(getValue()).toBe(42);
-	expect(missing).toBeUndefined();
-	expect(mixedValue).toBe(1);
-	expect(Object.keys(namespace)).toEqual([]);
-	expect(globalThis.emptyAutoReexportMutatedValue).toBe(42);
-	expect(globalThis.emptyAutoReexportReturnAfter).toBeUndefined();
+const stats = __STATS__;
+const effects = [
+	globalThis.emptyAutoAmdDefine,
+	globalThis.emptyAutoReexportReturnAfter
+];
+const amdRequire = globalThis.emptyAutoAmdRequire;
+const resolved = globalThis.emptyAutoResolve;
+delete globalThis.emptyAutoAmdDefine;
+delete globalThis.emptyAutoAmdRequire;
+delete globalThis.emptyAutoResolve;
+delete globalThis.emptyAutoReexportReturnAfter;
 
-	const allModules = __STATS__.modules.flatMap(module => [
-		module,
-		...(module.modules ?? [])
+const nestedModules = stats.modules.flatMap(module => module.modules ?? []);
+const nestedModuleNames = new Set(nestedModules.map(module => module.name));
+
+it("concatenates only locally empty CommonJS export-star chains", () => {
+	expect(value).toBe(42);
+	expect(defaultValue).toEqual({});
+	expect(defaultValue.__esModule).toBeUndefined();
+	expect(directNamespace.default).toEqual({});
+	expect(directNamespace.default.__esModule).toBeUndefined();
+	expect(effects).toEqual([42, undefined]);
+	expect(mixedValue).toBe(1);
+	expect(resolved).toEqual([
+		"./empty.js?require-target",
+		"./empty.js?require-target"
 	]);
-	const empty = allModules.find(module => module.name === "./empty.js");
+	const empty = nestedModules.find(module => module.name === "./empty.js");
 	expect(empty.providedExports).toBe(null);
 
-	const nestedModuleNames = new Set(
-		__STATS__.modules.flatMap(module =>
-			(module.modules ?? []).map(nested => nested.name)
-		)
-	);
 	for (const name of [
 		"./barrel.js",
 		"./empty-barrel.js",
 		"./empty.js",
 		"./shadowed-require.js",
-		"./namespace-barrel.js",
-		"./mixed-barrel.js",
-		"./mixed-empty.js"
+		"./mixed-barrel.js"
 	]) {
 		expect(nestedModuleNames.has(name)).toBe(true);
 	}
@@ -51,23 +62,45 @@ it("concatenates only locally empty CommonJS export-star chains", () => {
 		"./defined-exports.js",
 		"./require-access.js",
 		"./arguments-access.js",
-		"./mutate-empty.js",
-		"./mutated-empty.js",
-		"./dynamic.js",
+		"./empty.js?require-target",
+		"./empty.js?dynamic",
 		"./top-level-return.js",
-		"./namespace-empty.js",
-		"./real-cjs.js"
+		"./real-cjs.js",
+		"./empty.js?mixed",
+		"./empty.js?default",
+		"./empty.js?namespace",
+		"./empty.js?dynamic-import",
+		"./amd-exports.js",
+		"./amd-require.js"
 	]) {
-		expect(__STATS__.modules.some(module => module.name === name)).toBe(true);
+		expect(stats.modules.some(module => module.name === name)).toBe(true);
 		expect(nestedModuleNames.has(name)).toBe(false);
 	}
 
-	const topLevelReturn = __STATS__.modules.find(
+	const topLevelReturn = stats.modules.find(
 		module => module.name === "./top-level-return.js"
 	);
 	expect(topLevelReturn.optimizationBailout).toEqual(
 		expect.arrayContaining([expect.stringContaining("top-level return")])
 	);
-	delete globalThis.emptyAutoReexportMutatedValue;
-	delete globalThis.emptyAutoReexportReturnAfter;
+});
+
+it("keeps the CommonJS wrapper when a namespace is observed through multiple star reexports", () => {
+	// Enumerating the namespace and reading a missing name must not make code generation
+	// resolve that name as a local binding of the empty CommonJS leaf.
+	expect(Object.keys(chainedNamespace)).toContain("value");
+	expect(chainedNamespace.value).toBeUndefined();
+	const empty = stats.modules.find(
+		module => module.name === "./empty.js?namespace-chain"
+	);
+	expect(empty).toBeDefined();
+	expect(empty.providedExports).toBe(null);
+	expect(nestedModuleNames.has(empty.name)).toBe(false);
+});
+
+it("keeps the CommonJS wrapper for dynamic import", async () => {
+	const namespace = await import("./empty.js?dynamic-import");
+	expect(namespace.default).toEqual({});
+	expect(namespace.default.__esModule).toBeUndefined();
+	expect(await amdRequire).toBe(true);
 });

@@ -9,12 +9,13 @@ module.exports = {
   module: {
     rules: [
       { test: /empty\.js$/, sideEffects: true },
-      { test: /dynamic\.js$/, type: 'javascript/dynamic' },
+      { resourceQuery: /^\?dynamic$/, type: 'javascript/dynamic' },
     ],
   },
   optimization: {
     concatenateModules: true,
     minimize: false,
+    moduleIds: 'named',
   },
   plugins: [
     new rspack.DefinePlugin({

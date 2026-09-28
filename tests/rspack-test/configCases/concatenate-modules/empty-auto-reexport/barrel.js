@@ -1,2 +1,2 @@
 export * from "./empty-barrel";
-export { getValue } from "./value";
+export const value = 42;
