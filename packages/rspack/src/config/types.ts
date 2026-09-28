@@ -911,7 +911,7 @@ export type RuleSetLoaderWithOptions = {
   options?: RuleSetLoaderOptions;
 };
 
-export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions;
+export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions | Falsy;
 
 export type RuleSetUse =
   | RuleSetUseItem

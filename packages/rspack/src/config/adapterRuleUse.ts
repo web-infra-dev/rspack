@@ -14,6 +14,7 @@ import { parseResource } from '../util/identifier';
 import type { RspackOptionsNormalized } from './normalization';
 import type {
   Environment,
+  Falsy,
   Mode,
   PublicPath,
   Resolve,
@@ -496,7 +497,7 @@ export function createRawModuleRuleUses(
 ): RawModuleRuleUse[] {
   const normalizeRuleSetUseItem = (
     item: RuleSetUseItem,
-  ): RuleSetLoaderWithOptions =>
+  ): RuleSetLoaderWithOptions | Falsy =>
     typeof item === 'string' ? { loader: item } : item;
   const allUses = Array.isArray(uses)
     ? [...uses].map(normalizeRuleSetUseItem)
@@ -526,7 +527,7 @@ function getBuiltinLoaderOptions(
 }
 
 function createRawModuleRuleUsesImpl(
-  uses: RuleSetLoaderWithOptions[],
+  uses: (RuleSetLoaderWithOptions | Falsy)[],
   path: string,
   options: ComposeJsUseOptions,
 ): RawModuleRuleUse[] {
@@ -534,7 +535,10 @@ function createRawModuleRuleUsesImpl(
     return [];
   }
 
-  return uses.filter(Boolean).map((use, index) => {
+  const filteredUses = uses.filter((use): use is RuleSetLoaderWithOptions =>
+    Boolean(use),
+  );
+  return filteredUses.map((use, index) => {
     let o: string | undefined;
     let fingerprintOptions = use.options;
     let isBuiltin = false;

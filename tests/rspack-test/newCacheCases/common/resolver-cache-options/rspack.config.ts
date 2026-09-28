@@ -1,7 +1,8 @@
 import path from 'node:path';
+import { defineConfig, definePlugin } from '@rspack/cli';
+import type { Resolve } from '@rspack/core';
 
-/** @type {import('@rspack/core').Configuration} */
-export default {
+export default defineConfig({
   mode: 'development',
   experiments: {
     newCache: {
@@ -14,7 +15,7 @@ export default {
     },
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
         compiler.hooks.compilation.tap(
           'ResolverCacheOptionsTest',
@@ -22,7 +23,13 @@ export default {
             compilation.hooks.finishModules.tapPromise(
               'ResolverCacheOptionsTest',
               async () => {
-                const cases = [
+                const cases: [
+                  type: string,
+                  options: Resolve,
+                  request: string,
+                  expected: string | false,
+                  directory?: string,
+                ][] = [
                   [
                     'normal',
                     { alias: { target: './first.js' } },
@@ -75,10 +82,12 @@ export default {
                   const resolver = compiler.resolverFactory.get(type, options);
                   const resolve = async () => {
                     const dependencies = {
-                      fileDependencies: new Set(),
-                      missingDependencies: new Set(),
+                      fileDependencies: new Set<string>(),
+                      missingDependencies: new Set<string>(),
                     };
-                    const result = await new Promise((resolve, reject) => {
+                    const result = await new Promise<
+                      string | false | undefined
+                    >((resolve, reject) => {
                       resolver.resolve(
                         {},
                         path.join(compiler.context, directory),
@@ -109,6 +118,6 @@ export default {
           },
         );
       },
-    },
+    }),
   ],
-};
+});

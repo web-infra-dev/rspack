@@ -31,6 +31,7 @@ import type { ChunkGraph } from './ChunkGraph';
 import type { Compiler } from './Compiler';
 import type { ContextModuleFactory } from './ContextModuleFactory';
 import type {
+  Falsy,
   Filename,
   OutputNormalized,
   RspackOptionsNormalized,
@@ -1007,7 +1008,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   createChildCompiler(
     name: string,
     outputOptions: OutputNormalized,
-    plugins: RspackPluginInstance[],
+    plugins: (RspackPluginInstance | Falsy)[],
   ) {
     const idx = this.childrenCounters[name] || 0;
     this.childrenCounters[name] = idx + 1;

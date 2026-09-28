@@ -1,4 +1,5 @@
-import { DefinePlugin } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import { DefinePlugin, type Compiler } from '@rspack/core';
 
 const nullValue = null;
 const undefinedValue = undefined;
@@ -13,32 +14,25 @@ class FailPlugin {
 }
 
 class TestChildCompilationPlugin {
-  constructor(output) {}
-
-  apply(compiler) {
+  apply(compiler: Compiler) {
     compiler.hooks.make.tapAsync(
       'TestChildCompilationFailurePlugin',
       (compilation, cb) => {
-        const child = compilation.createChildCompiler(
-          'name',
-          compiler.outputOptions,
-          [
-            undefinedValue && new FailPlugin(),
-            nullValue && new FailPlugin(),
-            falseValue && new FailPlugin(),
-            zeroValue && new FailPlugin(),
-            emptyStringValue && new FailPlugin(),
-          ],
-        );
+        const child = compilation.createChildCompiler('name', {}, [
+          undefinedValue && new FailPlugin(),
+          nullValue && new FailPlugin(),
+          falseValue && new FailPlugin(),
+          zeroValue && new FailPlugin(),
+          emptyStringValue && new FailPlugin(),
+        ]);
 
-        child.runAsChild(cb);
+        child.runAsChild((error) => cb(error));
       },
     );
   }
 }
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   // Will failed because we don't have unknown-loader
   module: {
     defaultRules: [
@@ -92,9 +86,6 @@ export default {
       },
     ],
   },
-  resolve: {
-    plugins: [undefinedValue && new FailPlugin()],
-  },
   plugins: [
     new DefinePlugin({
       ONE: JSON.stringify('ONE'),
@@ -110,4 +101,4 @@ export default {
     minimize: true,
     minimizer: [nullValue && new FailPlugin()],
   },
-};
+});
