@@ -2589,20 +2589,19 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.stat_processed_chunk_groups_for_merging += self.chunk_groups_for_merging.len() as u32;
     let chunk_groups_for_merging = std::mem::take(&mut self.chunk_groups_for_merging);
 
-    // A growth candidate must still satisfy every incoming edge. Refresh the
+    // Pending additions must still satisfy every incoming edge. Refresh the
     // existing merge inputs before taking CGIs out for parallel processing.
-    let growing_groups = chunk_groups_for_merging
+    let groups_with_additions = chunk_groups_for_merging
       .iter()
       .map(|((info_ukey, _), _)| *info_ukey)
       .filter(|info_ukey| {
-        let info = self.chunk_group_info(info_ukey);
-        info
+        !self
+          .chunk_group_info(info_ukey)
           .available_modules_to_be_added
-          .iter()
-          .any(|modules| !modules.is_subset(&info.min_available_modules))
+          .is_empty()
       })
       .collect::<HashSet<_>>();
-    for info_ukey in growing_groups {
+    for info_ukey in groups_with_additions {
       let group = self.chunk_group_info(&info_ukey).chunk_group;
       let parents = compilation
         .build_chunk_graph_artifact
