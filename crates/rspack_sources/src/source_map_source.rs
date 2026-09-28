@@ -59,6 +59,10 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 /// source map for the original source.
 ///
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#sourcemapsource).
+#[cfg_attr(
+  any(allocative, feature = "allocative"),
+  derive(allocative::Allocative)
+)]
 #[derive(Eq)]
 pub struct SourceMapSource {
   value: Box<str>,
@@ -120,6 +124,11 @@ impl SourceMapSource {
 }
 
 impl Source for SourceMapSource {
+  #[cfg(any(allocative, feature = "allocative"))]
+  fn visit_allocative(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.value))
   }

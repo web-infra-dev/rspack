@@ -1,5 +1,7 @@
 use rspack_cacheable::cacheable;
 use rspack_hash::RspackHasher;
+#[cfg(any(allocative, feature = "allocative"))]
+use rspack_util::allocative;
 
 use crate::{
   DependencyId, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
@@ -43,6 +45,15 @@ pub struct ModuleGraphConnection {
 
   active: bool,
   conditional: bool,
+}
+
+#[cfg(any(allocative, feature = "allocative"))]
+impl allocative::Allocative for ModuleGraphConnection {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    // Connection identifiers are interned/scalar values. The connection object itself is the
+    // retained allocation; its referenced module and dependency are visited from their tables.
+    visitor.enter_self(self).exit();
+  }
 }
 
 impl std::hash::Hash for ModuleGraphConnection {

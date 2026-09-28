@@ -17,6 +17,8 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
 use rspack_intern::{Atom, AtomSet, IndexAtomMap};
 use rspack_sources::BoxSource;
+#[cfg(any(allocative, feature = "allocative"))]
+use rspack_util::allocative;
 use rspack_util::{
   ext::AsAny,
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -27,6 +29,8 @@ use serde::Serialize;
 use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
+#[cfg(any(allocative, feature = "allocative"))]
+use crate::TSEnumValue;
 use crate::{
   AsyncDependenciesBlockRef, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
@@ -325,6 +329,226 @@ pub struct BuildInfo {
   pub extras: serde_json::Map<String, serde_json::Value>,
   #[cacheable(with=AsVec)]
   pub deferred_pure_checks: HashSet<DeferredPureCheck>,
+}
+
+#[cfg(any(allocative, feature = "allocative"))]
+impl allocative::Allocative for BuildInfo {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    fn visit_json(value: &json::JsonValue, visitor: &mut allocative::Visitor<'_>) {
+      match value {
+        json::JsonValue::String(value) => {
+          visitor.visit_field(allocative::Key::new("string"), value);
+        }
+        json::JsonValue::Array(values) => {
+          visitor.visit_field_with(
+            allocative::Key::new("array"),
+            values.capacity() * std::mem::size_of::<json::JsonValue>(),
+            |visitor| {
+              for value in values {
+                visit_json(value, visitor);
+              }
+            },
+          );
+        }
+        json::JsonValue::Object(values) => {
+          visitor.visit_field_with(
+            allocative::Key::new("object"),
+            std::mem::size_of_val(values),
+            |visitor| {
+              for (key, value) in values.iter() {
+                visitor.visit_field(allocative::Key::new("key"), key);
+                visit_json(value, visitor);
+              }
+            },
+          );
+        }
+        json::JsonValue::Short(value) => {
+          visitor.visit_simple(allocative::Key::new("short_string"), value.as_str().len());
+        }
+        json::JsonValue::Null | json::JsonValue::Number(_) | json::JsonValue::Boolean(_) => {
+          visitor.visit_simple(
+            allocative::Key::new("scalar"),
+            std::mem::size_of::<json::JsonValue>(),
+          );
+        }
+      }
+    }
+
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field_with(
+      allocative::Key::new("value_dependencies"),
+      std::mem::size_of_val(&self.value_dependencies),
+      |visitor| {
+        for (key, value) in &self.value_dependencies {
+          visitor.visit_field(allocative::Key::new("key"), key);
+          visitor.visit_field(allocative::Key::new("value"), value);
+        }
+      },
+    );
+    visitor.visit_simple(
+      allocative::Key::new("export_and_dependency_indexes"),
+      self.esm_named_exports.len() * std::mem::size_of::<Atom>()
+        + self.all_star_exports.capacity() * std::mem::size_of::<DependencyId>()
+        + self.deferred_pure_checks.len() * std::mem::size_of::<DeferredPureCheck>(),
+    );
+    if let Some(snapshot) = &self.snapshot {
+      visitor.visit_field(allocative::Key::new("snapshot"), snapshot);
+    }
+    if let Some(json_data) = &self.json_data {
+      visit_json(json_data, &mut visitor);
+    }
+    if let Some(asset) = &self.asset {
+      visitor.visit_simple(
+        allocative::Key::new("asset_build_info"),
+        std::mem::size_of_val(asset.as_ref()),
+      );
+    }
+    if let Some(css) = &self.css {
+      let exports_count = css
+        .exports
+        .values()
+        .map(|exports| exports.len())
+        .sum::<usize>();
+      let export_text_bytes = css
+        .exports
+        .iter()
+        .map(|(name, exports)| {
+          name.len()
+            + exports
+              .iter()
+              .map(|export| {
+                export.ident.len()
+                  + export.from.as_ref().map_or(0, |from| from.len())
+                  + export.orig_name.len()
+              })
+              .sum::<usize>()
+        })
+        .sum::<usize>();
+      let local_name_bytes = css
+        .local_names
+        .iter()
+        .map(|(key, value)| key.len() + value.len())
+        .sum::<usize>();
+      let condition_bytes = css
+        .inherited_render_conditions
+        .iter()
+        .chain(std::iter::once(&css.render_condition))
+        .map(|condition| {
+          condition.media.as_ref().map_or(0, |value| value.len())
+            + condition.supports.as_ref().map_or(0, |value| value.len())
+            + match &condition.layer {
+              Some(CssLayer::Named(value)) => value.len(),
+              Some(CssLayer::Anonymous) | None => 0,
+            }
+        })
+        .sum::<usize>();
+      visitor.visit_simple(
+        allocative::Key::new("css_build_info"),
+        std::mem::size_of_val(css)
+          + css.exports.len() * std::mem::size_of::<(SmolStr, FxIndexSet<CssExport>)>()
+          + exports_count * std::mem::size_of::<CssExport>()
+          + css.local_names.len() * std::mem::size_of::<(SmolStr, SmolStr)>()
+          + css.inherited_render_conditions.capacity()
+            * std::mem::size_of::<CssModuleRenderCondition>()
+          + export_text_bytes
+          + local_name_bytes
+          + condition_bytes,
+      );
+    }
+    if let Some(side_effects_free) = &self.side_effects_free {
+      visitor.visit_simple(
+        allocative::Key::new("side_effects_free"),
+        side_effects_free.len() * std::mem::size_of::<Atom>(),
+      );
+    }
+    if let Some(top_level_declarations) = &self.top_level_declarations {
+      visitor.visit_simple(
+        allocative::Key::new("top_level_declarations"),
+        top_level_declarations.len() * std::mem::size_of::<Atom>(),
+      );
+    }
+    visitor.visit_field_with(
+      allocative::Key::new("loader_assets"),
+      std::mem::size_of_val(&self.assets),
+      |visitor| {
+        for asset in self.assets.values() {
+          allocative::Allocative::visit(asset, visitor);
+        }
+      },
+    );
+    if let Some(bailout) = &self.module_concatenation_bailout {
+      visitor.visit_field(
+        allocative::Key::new("module_concatenation_bailout"),
+        bailout,
+      );
+    }
+    if let Some(collected_typescript_info) = &self.collected_typescript_info {
+      visitor.visit_simple(
+        allocative::Key::new("collected_typescript_info"),
+        collected_typescript_info.type_exports.len() * std::mem::size_of::<Atom>()
+          + collected_typescript_info.exported_enums.len()
+            * std::mem::size_of::<(Atom, TSEnumValue)>(),
+      );
+    }
+    if let Some(rsc) = &self.rsc {
+      visitor.visit_simple(
+        allocative::Key::new("rsc_metadata"),
+        std::mem::size_of_val(rsc)
+          + (rsc.server_refs.len() + rsc.client_refs.len()) * std::mem::size_of::<Wtf8Atom>()
+          + rsc.action_ids.len() * std::mem::size_of::<(Atom, Atom)>(),
+      );
+    }
+    if let Some(isolated_dts) = &self.isolated_dts {
+      visitor.visit_field(
+        allocative::Key::new("isolated_dts_resource"),
+        &isolated_dts.resource_path,
+      );
+      visitor.visit_field(
+        allocative::Key::new("isolated_dts_code"),
+        &isolated_dts.code,
+      );
+      visitor.visit_field_with(
+        allocative::Key::new("isolated_dts_references"),
+        isolated_dts.references.capacity() * std::mem::size_of::<String>(),
+        |visitor| {
+          for reference in &isolated_dts.references {
+            allocative::Allocative::visit(reference, visitor);
+          }
+        },
+      );
+    }
+    visitor.visit_field_with(
+      allocative::Key::new("external_metadata"),
+      std::mem::size_of_val(&self.extras),
+      |visitor| {
+        for (key, value) in &self.extras {
+          visitor.visit_field(allocative::Key::new("key"), key);
+          match value {
+            serde_json::Value::String(value) => {
+              visitor.visit_field(allocative::Key::new("string"), value);
+            }
+            serde_json::Value::Array(values) => {
+              visitor.visit_simple(
+                allocative::Key::new("array_entries"),
+                values.capacity() * std::mem::size_of::<serde_json::Value>(),
+              );
+            }
+            serde_json::Value::Object(values) => {
+              visitor.visit_simple(
+                allocative::Key::new("object_entries"),
+                values.len() * std::mem::size_of::<(String, serde_json::Value)>(),
+              );
+            }
+            _ => visitor.visit_simple(
+              allocative::Key::new("scalar"),
+              std::mem::size_of::<serde_json::Value>(),
+            ),
+          }
+        }
+      },
+    );
+    visitor.exit();
+  }
 }
 
 impl Default for BuildInfo {
@@ -925,6 +1149,25 @@ pub trait Module:
   }
 }
 
+#[cfg(any(allocative, feature = "allocative"))]
+impl allocative::Allocative for dyn Module + '_ {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    // Module implementations are owned by plugins and cannot be reflected generically. Count
+    // their concrete object and traverse the retained source, the largest common owned field.
+    if let Some(source) = self.source() {
+      visitor.visit_field(allocative::Key::new("source"), source);
+    }
+    visitor.visit_field(
+      allocative::Key::new("dependencies_block"),
+      self.dependencies_block(),
+    );
+    let build_info = self.build_info();
+    visitor.visit_field(allocative::Key::new("build_info"), &*build_info);
+    visitor.exit();
+  }
+}
+
 fn get_exports_type_impl(
   identifier: ModuleIdentifier,
   build_meta: &BuildMeta,
@@ -1076,6 +1319,19 @@ pub struct BoxModule(Box<dyn Module>);
 #[derive(Debug, Clone)]
 #[repr(transparent)]
 pub struct ModuleRef(Arc<dyn Module>);
+
+#[cfg(any(allocative, feature = "allocative"))]
+impl allocative::Allocative for ModuleRef {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field_with(
+      allocative::Key::new("module"),
+      std::mem::size_of_val(self.0.as_ref()),
+      |visitor| allocative::Allocative::visit(self.0.as_ref(), visitor),
+    );
+    visitor.exit();
+  }
+}
 
 impl From<BoxModule> for ModuleRef {
   fn from(module: BoxModule) -> Self {

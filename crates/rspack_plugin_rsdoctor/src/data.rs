@@ -72,8 +72,13 @@ pub struct RsdoctorDependency {
   pub dependency: ModuleUkey,
 }
 
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RsdoctorExportUsageDependency {
+  #[cfg_attr(allocative, allocative(skip))]
   pub dependency_id: DependencyId,
   pub origin_module_identifier: Identifier,
   pub target_module_identifier: Identifier,

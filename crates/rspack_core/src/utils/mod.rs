@@ -274,8 +274,8 @@ pub fn compare_chunks_with_graph(
   compare_module_iterables(&modules_a, &modules_b)
 }
 
-#[cfg(allocative)]
-pub fn snapshot_allocative(name: &str) {
+#[cfg(any(allocative, feature = "allocative"))]
+pub fn snapshot_allocative(name: &str, compilation: &Compilation) {
   use std::{
     path::PathBuf,
     sync::{
@@ -285,6 +285,91 @@ pub fn snapshot_allocative(name: &str) {
   };
 
   use rspack_util::allocative;
+
+  struct CompilationMemory<'a>(&'a Compilation);
+
+  impl allocative::Allocative for CompilationMemory<'_> {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+      let mut visitor = visitor.enter_self(self);
+      visitor.visit_field_with(
+        allocative::Key::new("assets"),
+        std::mem::size_of_val(self.0.assets())
+          + self.0.assets().capacity() * std::mem::size_of::<String>()
+          + self
+            .0
+            .assets()
+            .capacity()
+            .saturating_sub(self.0.assets().len())
+            * std::mem::size_of::<crate::CompilationAsset>(),
+        |visitor| {
+          // Visit values only; asset names can contain private project paths.
+          for asset in self.0.assets().values() {
+            allocative::Allocative::visit(asset, visitor);
+          }
+        },
+      );
+      visitor.visit_field(
+        allocative::Key::new("module_graph"),
+        self.0.get_module_graph(),
+      );
+      visitor.visit_field(
+        allocative::Key::new("chunk_graph"),
+        &self.0.build_chunk_graph_artifact.chunk_graph,
+      );
+      visitor.visit_field_with(
+        allocative::Key::new("runtime_module_sources"),
+        std::mem::size_of_val(&self.0.runtime_modules_code_generation_source)
+          + self.0.runtime_modules_code_generation_source.capacity()
+            * std::mem::size_of::<crate::ModuleIdentifier>()
+          + self
+            .0
+            .runtime_modules_code_generation_source
+            .capacity()
+            .saturating_sub(self.0.runtime_modules_code_generation_source.len())
+            * std::mem::size_of::<rspack_sources::BoxSource>(),
+        |visitor| {
+          // Runtime module keys are interned identifiers; omit them while visiting source values.
+          for source in self.0.runtime_modules_code_generation_source.values() {
+            allocative::Allocative::visit(source, visitor);
+          }
+        },
+      );
+      visitor.visit_field_with(
+        allocative::Key::new("code_generation_result_sources"),
+        std::mem::size_of_val(self.0.code_generation_results.inner())
+          + self.0.code_generation_results.inner().capacity()
+            * std::mem::size_of::<crate::ModuleIdentifier>(),
+        |visitor| {
+          for runtime_results in self.0.code_generation_results.inner().values() {
+            visitor.visit_simple(
+              allocative::Key::new("runtime_result_map"),
+              std::mem::size_of_val(runtime_results),
+            );
+            for result in runtime_results.values() {
+              visitor.visit_simple(
+                allocative::Key::new("code_generation_result_metadata"),
+                std::mem::size_of_val(result) + std::mem::size_of_val(&**result),
+              );
+              let sources = result.sources();
+              visitor.visit_field_with(
+                allocative::Key::new("result_sources"),
+                std::mem::size_of_val(sources)
+                  + sources.capacity() * std::mem::size_of::<crate::SourceType>()
+                  + sources.capacity().saturating_sub(sources.len())
+                    * std::mem::size_of::<rspack_sources::BoxSource>(),
+                |visitor| {
+                  for source in sources.values() {
+                    allocative::Allocative::visit(source, visitor);
+                  }
+                },
+              );
+            }
+          }
+        },
+      );
+      visitor.exit();
+    }
+  }
 
   static ENABLE: LazyLock<Option<PathBuf>> = LazyLock::new(|| {
     std::env::var_os("RSPACK_ALLOCATIVE_DIR")
@@ -297,11 +382,47 @@ pub fn snapshot_allocative(name: &str) {
   static COUNT: AtomicUsize = AtomicUsize::new(0);
 
   if let Some(dir) = ENABLE.as_deref() {
+    let count = COUNT.fetch_add(1, atomic::Ordering::Relaxed);
+    let max_snapshots = std::env::var("RSPACK_ALLOCATIVE_MAX_SNAPSHOTS")
+      .ok()
+      .and_then(|value| value.parse::<usize>().ok())
+      .unwrap_or(10);
+    if count >= max_snapshots {
+      return;
+    }
+
     let mut builder = allocative::FlameGraphBuilder::default();
+    builder.visit_root(&CompilationMemory(compilation));
     builder.visit_global_roots();
     let buf = builder.finish_and_write_flame_graph();
-    let count = COUNT.fetch_add(1, atomic::Ordering::Relaxed);
-    let path = dir.join(format!("{}-{}.allocative", count, name));
+    let stem = format!("{}-{}-{}", std::process::id(), count, name);
+    let path = dir.join(format!("{stem}.allocative"));
     std::fs::write(path, buf).expect("allocative write failed");
+    let coverage = serde_json::json!({
+      "schema_version": 1,
+      "kind": "partial-rust-object-graph",
+      "phase": name,
+      "included_roots": [
+        "Compilation assets and source values",
+        "ModuleGraph modules, module build metadata, module dependencies, async blocks, connections, and graph metadata",
+        "Module build-info value dependencies, JSON data, CSS metadata, assets, and filesystem snapshot indexes",
+        "ChunkGraph module and chunk entries",
+        "Code generation result sources",
+        "Runtime module code generation sources",
+        "Allocative global roots registered in this build"
+      ],
+      "limitations": [
+        "This is explicit Allocative traversal, not a complete Rust heap scan.",
+        "Plugin-owned module and dependency objects are counted shallowly; module source, dependencies block, and common build-info fields are traversed.",
+        "Opaque plugin fields, unvisited Compilation artifacts, allocator fragmentation, and allocations outside Rspack's allocator are not represented.",
+        "Some graph and filesystem index storage is estimated from collection capacity; hash-table control bytes are not included."
+      ],
+      "privacy": "Map keys and asset names are omitted from the object snapshot."
+    });
+    std::fs::write(
+      dir.join(format!("{stem}.coverage.json")),
+      serde_json::to_vec_pretty(&coverage).expect("coverage report serialization failed"),
+    )
+    .expect("coverage report write failed");
   }
 }

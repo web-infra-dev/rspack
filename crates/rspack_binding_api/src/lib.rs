@@ -561,6 +561,37 @@ impl JsCompiler {
   pub fn get_compiler_id(&self) -> External<CompilerId> {
     External::new(self.compiler.id())
   }
+
+  /// Return the live Rspack Rust heap size when using the jemalloc profiling build.
+  /// Other allocators do not expose this metric and return `None`.
+  #[napi]
+  pub fn get_rust_heap_allocated_bytes(&self) -> Option<f64> {
+    #[cfg(all(feature = "jemalloc-profiler", not(target_family = "wasm")))]
+    {
+      return rspack_allocator::jemalloc_allocated_bytes()
+        .ok()
+        .map(|bytes| bytes as f64);
+    }
+
+    #[cfg(not(all(feature = "jemalloc-profiler", not(target_family = "wasm"))))]
+    {
+      None
+    }
+  }
+
+  /// Return the Rust global allocator used by this binding build.
+  #[napi]
+  pub fn get_rust_heap_allocator_name(&self) -> String {
+    #[cfg(all(feature = "jemalloc-profiler", not(target_family = "wasm")))]
+    {
+      return "jemalloc".to_string();
+    }
+
+    #[cfg(not(all(feature = "jemalloc-profiler", not(target_family = "wasm"))))]
+    {
+      "default".to_string()
+    }
+  }
 }
 
 struct RunGuard {

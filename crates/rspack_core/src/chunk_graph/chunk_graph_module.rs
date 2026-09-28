@@ -8,6 +8,8 @@ use std::{
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_collections::{IdentifierHasher, IdentifierSet, SsoHashSet};
 use rspack_hash::{RspackHashDigest, RspackHasher};
+#[cfg(any(allocative, feature = "allocative"))]
+use rspack_util::allocative;
 use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashSet, FxHasher};
 use serde::{Serialize, Serializer};
@@ -85,6 +87,26 @@ pub struct ChunkGraphModule {
   pub(super) entry_in_chunks: FxHashSet<ChunkUkey>,
   pub chunks: SsoHashSet<ChunkUkey>,
   pub(super) runtime_in_chunks: FxHashSet<ChunkUkey>,
+}
+
+#[cfg(any(allocative, feature = "allocative"))]
+impl allocative::Allocative for ChunkGraphModule {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_simple(
+      allocative::Key::new("entry_chunks"),
+      self.entry_in_chunks.len() * std::mem::size_of::<ChunkUkey>(),
+    );
+    visitor.visit_simple(
+      allocative::Key::new("chunks"),
+      self.chunks.len() * std::mem::size_of::<ChunkUkey>(),
+    );
+    visitor.visit_simple(
+      allocative::Key::new("runtime_chunks"),
+      self.runtime_in_chunks.len() * std::mem::size_of::<ChunkUkey>(),
+    );
+    visitor.exit();
+  }
 }
 
 impl ChunkGraphModule {

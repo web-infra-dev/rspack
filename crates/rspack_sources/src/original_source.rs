@@ -35,6 +35,10 @@ use crate::{
 ///   "AAAA;AACA",
 /// );
 /// ```
+#[cfg_attr(
+  any(allocative, feature = "allocative"),
+  derive(allocative::Allocative)
+)]
 #[derive(Clone, Eq)]
 pub struct OriginalSource {
   value: Box<str>,
@@ -62,6 +66,11 @@ impl OriginalSource {
 }
 
 impl Source for OriginalSource {
+  #[cfg(any(allocative, feature = "allocative"))]
+  fn visit_allocative(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.value))
   }

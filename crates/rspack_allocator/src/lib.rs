@@ -2,7 +2,9 @@
 mod jemalloc_profiler;
 
 #[cfg(all(feature = "jemalloc-profiler", not(target_family = "wasm")))]
-pub use jemalloc_profiler::dump_compilation_heap_profile;
+pub use jemalloc_profiler::{
+  allocated_bytes as jemalloc_allocated_bytes, dump_compilation_heap_profile,
+};
 
 #[global_allocator]
 #[cfg(not(any(miri, target_family = "wasm")))]

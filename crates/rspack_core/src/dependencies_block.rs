@@ -3,6 +3,8 @@ use std::{fmt::Write as _, hash::BuildHasherDefault, sync::Arc};
 use rspack_cacheable::cacheable;
 use rspack_collections::{Identifier, IdentifierHasher};
 use rspack_hash::{RspackHash, RspackHasher};
+#[cfg(any(allocative, feature = "allocative"))]
+use rspack_util::allocative;
 
 use crate::{
   BoxDependency, Compilation, Dependency, DependencyId, DependencyLocation, DependencyRef,
@@ -76,6 +78,36 @@ pub struct DependenciesBlockData {
   #[cacheable(omit_bounds)]
   blocks: Vec<AsyncDependenciesBlockRef>,
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
+}
+
+#[cfg(any(allocative, feature = "allocative"))]
+impl allocative::Allocative for DependenciesBlockData {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field_with(
+      allocative::Key::new("dependencies"),
+      self.dependencies.capacity() * std::mem::size_of::<DependencyRef>(),
+      |visitor| {
+        for dependency in &self.dependencies {
+          allocative::Allocative::visit(dependency, visitor);
+        }
+      },
+    );
+    visitor.visit_field_with(
+      allocative::Key::new("blocks"),
+      self.blocks.capacity() * std::mem::size_of::<AsyncDependenciesBlockRef>(),
+      |visitor| {
+        for block in &self.blocks {
+          allocative::Allocative::visit(block.as_ref(), visitor);
+        }
+      },
+    );
+    visitor.visit_simple(
+      allocative::Key::new("block_ids"),
+      self.block_ids.capacity() * std::mem::size_of::<AsyncDependenciesBlockIdentifier>(),
+    );
+    visitor.exit();
+  }
 }
 
 impl DependenciesBlockData {
@@ -165,6 +197,21 @@ pub struct AsyncDependenciesBlock {
   loc: Option<DependencyLocation>,
   parent: ModuleIdentifier,
   request: Option<String>,
+}
+
+#[cfg(any(allocative, feature = "allocative"))]
+impl allocative::Allocative for AsyncDependenciesBlock {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(
+      allocative::Key::new("dependencies_block"),
+      &self.dependencies_block,
+    );
+    if let Some(request) = &self.request {
+      visitor.visit_field(allocative::Key::new("request"), request);
+    }
+    visitor.exit();
+  }
 }
 
 impl AsyncDependenciesBlock {

@@ -38,12 +38,20 @@ use crate::{
 ///   "start1\nstart2\nreplaced!\nend1\nend2"
 /// );
 /// ```
+#[cfg_attr(
+  any(allocative, feature = "allocative"),
+  derive(allocative::Allocative)
+)]
 pub struct ReplaceSource {
   inner: BoxSource,
   replacements: Vec<Replacement>,
 }
 
 /// Enforce replacement order when two replacement start and end are both equal
+#[cfg_attr(
+  any(allocative, feature = "allocative"),
+  derive(allocative::Allocative)
+)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ReplacementEnforce {
   /// pre
@@ -56,6 +64,10 @@ pub enum ReplacementEnforce {
 }
 
 /// A single text replacement in a [ReplaceSource].
+#[cfg_attr(
+  any(allocative, feature = "allocative"),
+  derive(allocative::Allocative)
+)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Replacement {
   start: u32,
@@ -313,6 +325,11 @@ impl ReplaceSource {
 }
 
 impl Source for ReplaceSource {
+  #[cfg(any(allocative, feature = "allocative"))]
+  fn visit_allocative(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   fn source(&self) -> SourceValue<'_> {
     if self.replacements.is_empty() {
       return self.inner.source();

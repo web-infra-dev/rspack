@@ -22,6 +22,8 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
 use rspack_location::DependencyLocation;
+#[cfg(any(allocative, feature = "allocative"))]
+use rspack_util::allocative;
 use rspack_util::ext::AsAny;
 use triomphe::{Arc as TriompheArc, UniqueArc};
 use unsize::{CoerceUnsize, Coercion};
@@ -189,6 +191,15 @@ pub trait Dependency:
   }
 }
 
+#[cfg(any(allocative, feature = "allocative"))]
+impl allocative::Allocative for dyn Dependency + '_ {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    // Dependency implementations are provided by core and plugins. Count the concrete object;
+    // graph-owned references and dependency-specific payloads are not uniformly introspectable.
+    visitor.enter_self(self).exit();
+  }
+}
+
 impl dyn Dependency + '_ {
   pub fn downcast_ref<D: Any>(&self) -> Option<&D> {
     self.as_any().downcast_ref::<D>()
@@ -307,6 +318,19 @@ pub type BoxDependency = UniqueDependency;
 /// This newtype also supplies rkyv with the dynamically sized allocation support that
 /// `triomphe::Arc` does not currently expose for trait objects.
 pub struct DependencyRef(TriompheArc<dyn Dependency>);
+
+#[cfg(any(allocative, feature = "allocative"))]
+impl allocative::Allocative for DependencyRef {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field_with(
+      allocative::Key::new("dependency"),
+      std::mem::size_of_val(self.0.as_ref()),
+      |visitor| allocative::Allocative::visit(self.0.as_ref(), visitor),
+    );
+    visitor.exit();
+  }
+}
 
 impl DependencyRef {
   /// Parser construction may mutate a dependency until its reference is published.

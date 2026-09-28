@@ -53,7 +53,7 @@ use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathSet};
 use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
-#[cfg(allocative)]
+#[cfg(any(allocative, feature = "allocative"))]
 use rspack_util::allocative;
 use rspack_util::{fx_hash::FxIndexMap, itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -192,7 +192,10 @@ pub struct CompilationHooks {
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(
+  any(allocative, feature = "allocative"),
+  derive(allocative::Allocative)
+)]
 pub struct CompilationId(pub u32);
 
 impl CompilationId {
@@ -1318,10 +1321,15 @@ impl Compilation {
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
 
 #[cacheable]
+#[cfg_attr(
+  any(allocative, feature = "allocative"),
+  derive(allocative::Allocative)
+)]
 #[derive(Debug, Clone)]
 pub struct CompilationAsset {
   #[cacheable(with=AsOption<AsPreset>)]
   pub source: Option<BoxSource>,
+  #[cfg_attr(any(allocative, feature = "allocative"), allocative(skip))]
   pub info: BindingCell<AssetInfo>,
 }
 

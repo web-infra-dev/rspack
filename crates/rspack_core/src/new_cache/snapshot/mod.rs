@@ -2,7 +2,11 @@ mod file_system_info;
 
 use rspack_cacheable::cacheable;
 use rspack_hash::RspackHashDigest;
+#[cfg(any(allocative, feature = "allocative"))]
+use rspack_paths::InternedPath;
 use rspack_paths::{InternedPathMap, InternedPathSet};
+#[cfg(any(allocative, feature = "allocative"))]
+use rspack_util::allocative;
 
 pub use self::file_system_info::{FileSystemInfo, SnapshotValidationResult};
 
@@ -77,6 +81,54 @@ pub struct Snapshot {
   pub(super) managed_missing: Option<InternedPathSet>,
   #[cacheable(omit_bounds)]
   pub(super) children: Option<Vec<Snapshot>>,
+}
+
+#[cfg(any(allocative, feature = "allocative"))]
+impl allocative::Allocative for Snapshot {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    let map_storage_bytes = self.file_timestamps.as_ref().map_or(0, |map| {
+      map.capacity() * std::mem::size_of::<(InternedPath, Option<FileSystemInfoEntry>)>()
+    }) + self.file_hashes.as_ref().map_or(0, |map| {
+      map.capacity() * std::mem::size_of::<(InternedPath, Option<FileHash>)>()
+    }) + self.file_timestamp_hashes.as_ref().map_or(0, |map| {
+      map.capacity() * std::mem::size_of::<(InternedPath, Option<TimestampAndHash>)>()
+    }) + self.context_timestamps.as_ref().map_or(0, |map| {
+      map.capacity() * std::mem::size_of::<(InternedPath, Option<ContextFileSystemInfoEntry>)>()
+    }) + self.context_hashes.as_ref().map_or(0, |map| {
+      map.capacity() * std::mem::size_of::<(InternedPath, Option<RspackHashDigest>)>()
+    }) + self.context_timestamp_hashes.as_ref().map_or(0, |map| {
+      map.capacity() * std::mem::size_of::<(InternedPath, Option<ContextTimestampAndHash>)>()
+    }) + self.missing_existence.as_ref().map_or(0, |map| {
+      map.capacity() * std::mem::size_of::<(InternedPath, bool)>()
+    }) + self.managed_item_info.as_ref().map_or(0, |map| {
+      map.capacity() * std::mem::size_of::<(InternedPath, String)>()
+        + map.values().map(String::capacity).sum::<usize>()
+    }) + self.managed_files.as_ref().map_or(0, |set| {
+      set.capacity() * std::mem::size_of::<InternedPath>()
+    }) + self.managed_contexts.as_ref().map_or(0, |set| {
+      set.capacity() * std::mem::size_of::<InternedPath>()
+    }) + self.managed_missing.as_ref().map_or(0, |set| {
+      set.capacity() * std::mem::size_of::<InternedPath>()
+    });
+    visitor.visit_simple(
+      allocative::Key::new("filesystem_snapshot_indexes"),
+      map_storage_bytes,
+    );
+    if let Some(children) = &self.children {
+      visitor.visit_field_with(
+        allocative::Key::new("child_snapshots"),
+        std::mem::size_of_val(children)
+          + (children.capacity() - children.len()) * std::mem::size_of::<Snapshot>(),
+        |visitor| {
+          for child in children {
+            allocative::Allocative::visit(child, visitor);
+          }
+        },
+      );
+    }
+    visitor.exit();
+  }
 }
 
 impl Snapshot {

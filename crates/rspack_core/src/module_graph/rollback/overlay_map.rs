@@ -165,6 +165,10 @@ where
     self.overlay.is_some()
   }
 
+  pub fn capacity(&self) -> usize {
+    self.base.capacity() + self.overlay.as_ref().map_or(0, HashMap::capacity)
+  }
+
   // if overlay enabled and key not in overlay, clone from base to overlay
   fn materialize_overlay_value(&mut self, key: &K)
   where

@@ -12,7 +12,7 @@ system-allocator  = []
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 sftrace-setup     = { workspace = true, optional = true }
-tikv-jemalloc-ctl = { workspace = true, optional = true }
+tikv-jemalloc-ctl = { workspace = true, optional = true, features = ["stats"] }
 tikv-jemallocator = { workspace = true, optional = true }
 tracy-client      = { workspace = true, optional = true }
 

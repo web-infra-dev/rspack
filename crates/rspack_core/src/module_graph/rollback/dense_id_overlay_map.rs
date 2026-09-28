@@ -30,6 +30,25 @@ impl<K: Deref<Target = u32>, V> DenseIdOverlayMap<K, V> {
   }
 
   #[inline]
+  pub fn capacity(&self) -> usize {
+    self.base.capacity() + self.overlay.as_ref().map_or(0, Vec::capacity)
+  }
+
+  #[inline]
+  pub fn values(&self) -> impl Iterator<Item = &V> {
+    let len = self.next_index();
+    (0..len).filter_map(move |index| {
+      if let Some(Some(value)) = self.overlay.as_ref().and_then(|overlay| overlay.get(index)) {
+        return match value {
+          OverlayValue::Value(value) => Some(value),
+          OverlayValue::Tombstone => None,
+        };
+      }
+      self.base.get(index).and_then(Option::as_ref)
+    })
+  }
+
+  #[inline]
   pub fn checkpoint(&mut self) {
     self.overlay.get_or_insert_with(Vec::new);
   }

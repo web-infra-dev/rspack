@@ -6,6 +6,17 @@ use std::{
 
 static SNAPSHOT_INDEX: AtomicUsize = AtomicUsize::new(0);
 
+/// Return the live bytes currently allocated by Rspack's jemalloc instance.
+///
+/// This is available only in the opt-in jemalloc profiling build. It does not
+/// include allocations made by other allocators in the Node process.
+pub fn allocated_bytes() -> Result<usize, String> {
+  use tikv_jemalloc_ctl::{epoch, stats};
+
+  epoch::advance().map_err(|error| format!("could not refresh jemalloc stats: {error:?}"))?;
+  stats::allocated::read().map_err(|error| format!("could not read jemalloc stats: {error:?}"))
+}
+
 /// Write a jemalloc heap profile for the currently live Rust allocations.
 ///
 /// The output is disabled unless `RSPACK_JEMALLOC_PROFILE_DIR` is set. Jemalloc profiling itself

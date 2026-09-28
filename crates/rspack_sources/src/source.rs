@@ -108,6 +108,15 @@ impl<'a> SourceValue<'a> {
 
 /// [Source] abstraction, [webpack-sources docs](https://github.com/webpack/webpack-sources/#source).
 pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send {
+  /// Visit memory owned by this source for the optional Allocative snapshot.
+  ///
+  /// External source implementations keep the default shallow view unless they override this.
+  #[cfg(any(allocative, feature = "allocative"))]
+  fn visit_allocative(&self, visitor: &mut allocative::Visitor<'_>) {
+    let visitor = visitor.enter_self(self);
+    visitor.exit();
+  }
+
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
 
@@ -139,7 +148,19 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()>;
 }
 
+#[cfg(any(allocative, feature = "allocative"))]
+impl allocative::Allocative for dyn Source {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    self.visit_allocative(visitor);
+  }
+}
+
 impl Source for BoxSource {
+  #[cfg(any(allocative, feature = "allocative"))]
+  fn visit_allocative(&self, visitor: &mut allocative::Visitor<'_>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+
   #[inline]
   fn source(&self) -> SourceValue<'_> {
     self.as_ref().source()
@@ -294,6 +315,10 @@ fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
 }
 
 /// The source map created by [Source::map].
+#[cfg_attr(
+  any(allocative, feature = "allocative"),
+  derive(allocative::Allocative)
+)]
 #[derive(Serialize)]
 pub(crate) struct SourceMapFields<'a> {
   pub(crate) version: u8,
@@ -382,12 +407,20 @@ impl Hash for SourceMapFields<'_> {
 }
 
 #[allow(dead_code)]
+#[cfg_attr(
+  any(allocative, feature = "allocative"),
+  derive(allocative::Allocative)
+)]
 enum SourceMapOwner {
   Bytes(Vec<u8>),
   Source(BoxSource),
 }
 
 /// The source map created by [Source::map].
+#[cfg_attr(
+  any(allocative, feature = "allocative"),
+  derive(allocative::Allocative)
+)]
 pub struct SourceMap<'a> {
   // Kept to retain data borrowed by `fields`; it is intentionally not read.
   #[allow(dead_code)]

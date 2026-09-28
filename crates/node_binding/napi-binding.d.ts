@@ -367,6 +367,13 @@ export declare class JsCompiler {
   close(): Promise<void>
   getVirtualFileStore(): VirtualFileStore | null
   getCompilerId(): ExternalObject<CompilerId>
+  /**
+   * Return the live Rspack Rust heap size when using the jemalloc profiling build.
+   * Other allocators do not expose this metric and return `None`.
+   */
+  getRustHeapAllocatedBytes(): number | null
+  /** Return the Rust global allocator used by this binding build. */
+  getRustHeapAllocatorName(): string
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
