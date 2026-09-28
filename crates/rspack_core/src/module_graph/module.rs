@@ -1,8 +1,6 @@
 use std::fmt;
 
 use rspack_cacheable::{cacheable, with::Skip};
-#[cfg(any(allocative, feature = "allocative"))]
-use rspack_util::allocative;
 use rustc_hash::FxHashSet;
 
 use crate::{DependencyId, ModuleGraphConnectionId, ModuleIdentifier, ModuleIssuer};
@@ -56,52 +54,6 @@ pub struct ModuleGraphModule {
   pub post_order_index: Option<u32>,
   pub depth: Option<usize>,
   pub optimization_bailout: Vec<OptimizationBailoutItem>,
-}
-
-#[cfg(any(allocative, feature = "allocative"))]
-impl allocative::Allocative for ModuleGraphModule {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
-    let mut visitor = visitor.enter_self(self);
-    visitor.visit_simple(
-      allocative::Key::new("outgoing_connection_ids"),
-      self.outgoing_connections.capacity() * std::mem::size_of::<ModuleGraphConnectionId>(),
-    );
-    visitor.visit_simple(
-      allocative::Key::new("incoming_connection_ids"),
-      self.incoming_connections.capacity() * std::mem::size_of::<ModuleGraphConnectionId>(),
-    );
-    visitor.visit_simple(
-      allocative::Key::new("dependency_ids"),
-      self.all_dependencies.capacity() * std::mem::size_of::<DependencyId>(),
-    );
-    visitor.visit_simple(
-      allocative::Key::new("issuer"),
-      std::mem::size_of_val(&self.issuer),
-    );
-    visitor.visit_field_with(
-      allocative::Key::new("optimization_bailouts"),
-      self.optimization_bailout.capacity() * std::mem::size_of::<OptimizationBailoutItem>(),
-      |visitor| {
-        for item in &self.optimization_bailout {
-          match item {
-            OptimizationBailoutItem::Message(message) => {
-              visitor.visit_field(allocative::Key::new("message"), message);
-            }
-            OptimizationBailoutItem::SideEffects {
-              node_type,
-              loc,
-              short_id,
-            } => {
-              visitor.visit_field(allocative::Key::new("node_type"), node_type);
-              visitor.visit_field(allocative::Key::new("location"), loc);
-              visitor.visit_field(allocative::Key::new("short_id"), short_id);
-            }
-          }
-        }
-      },
-    );
-    visitor.exit();
-  }
 }
 
 impl ModuleGraphModule {

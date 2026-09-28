@@ -47,17 +47,6 @@ Rust benchmarks live in `xtask/benchmark/`. Build them with `pnpm run build:benc
 
 Use `pnpm run build:binding:profiling` for a profiling binding. Tracing support lives in `crates/rspack_tracing/`.
 
-To write an Allocative heap snapshot after each completed build or rebuild, compile the binding with `ALLOCATIVE=1` and set `RSPACK_ALLOCATIVE_DIR` for the Node process:
-
-```sh
-ALLOCATIVE=1 pnpm run build:binding:profiling
-RSPACK_ALLOCATIVE_DIR=/tmp/rspack-allocative \
-NODE_OPTIONS='--max-old-space-size=16384' \
-pnpm --filter app-flow-chat run dev
-```
-
-The `.allocative` files include selected Rspack global roots, compilation assets and sources, ModuleGraph and module build info, ChunkGraph, code generation result sources, and runtime module sources. Common build-info payloads include JSON values, CSS metadata, loader assets, and filesystem snapshot indexes. The adjacent `*.coverage.json` lists covered roots and limitations. These are explicit reachable-object traversals, not complete heap scans. Plugin-specific module and dependency fields are counted shallowly; module source, its dependencies block, and common build-info fields are traversed. Map keys and asset names are omitted. Built-in `rspack_sources` types are traversed recursively; other `Source` implementations use the trait's shallow default unless they opt in. At most 10 snapshots are written per process by default; set `RSPACK_ALLOCATIVE_MAX_SNAPSHOTS` to lower that bound.
-
 To write bounded process reports after each completed compilation, set `RSPACK_MEMORY_REPORT_DIR`:
 
 ```sh
@@ -112,14 +101,8 @@ pnpm run build:bench:memory
 BENCH_MODE=memory \
 RSPACK_BENCHCASES_DIR="$PWD/.bench/rspack-benchcases" \
 cargo codspeed run --bench memory
-BENCH_MODE=memory \
-RSPACK_BENCHCASES_DIR="$PWD/.bench/rspack-benchcases" \
-RSPACK_ALLOCATIVE_DIR=/tmp/rspack-allocative \
-RSPACK_ALLOCATIVE_MAX_SNAPSHOTS=3 \
-RSPACK_ALLOCATIVE_SNAPSHOT_MODULE_GRAPH=1 \
-cargo bench --profile codspeed -p rspack_benchmark --bench memory --features rspack_benchmark/allocative -- --test
 ```
 
-The reusable CI workflow runs CodSpeed memory mode on `ubuntu-24.04`. It uploads bounded Allocative summaries and coverage metadata only; app-flow-chat data is never part of the CI fixture. CodSpeed tracks allocations and peak memory during the benchmark, while Allocative describes the selected objects remaining after compilation.
+The reusable CI workflow runs CodSpeed memory mode on `ubuntu-24.04`. It uses only public repository fixtures; app-flow-chat data remains local. CodSpeed reports allocation totals and peak-memory measurements for these benchmark runs.
 
 See the [debugging guide](../website/docs/en/contribute/development/debugging.mdx) for VS Code configurations, JavaScript inspection, and `rust-lldb`. See [project layout](../website/docs/en/contribute/development/project.md) for core, plugin, API, CLI, and binding paths.

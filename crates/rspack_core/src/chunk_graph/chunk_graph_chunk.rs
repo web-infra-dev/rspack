@@ -8,8 +8,6 @@ use itertools::Itertools;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_collections::{IdentifierHasher, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rspack_hash::RspackHasher;
-#[cfg(any(allocative, feature = "allocative"))]
-use rspack_util::allocative;
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Serialize, Serializer};
@@ -96,38 +94,6 @@ pub struct ChunkGraphChunk {
   pub(super) runtime_modules: Vec<ModuleIdentifier>,
 
   pub(super) source_types_by_module: Option<IdentifierMap<FxHashSet<SourceType>>>,
-}
-
-#[cfg(any(allocative, feature = "allocative"))]
-impl allocative::Allocative for ChunkGraphChunk {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
-    let mut visitor = visitor.enter_self(self);
-    visitor.visit_simple(
-      allocative::Key::new("entry_modules"),
-      self.entry_modules.len() * std::mem::size_of::<(ModuleIdentifier, ChunkGroupUkey)>(),
-    );
-    visitor.visit_simple(
-      allocative::Key::new("modules"),
-      self.modules.len() * std::mem::size_of::<ModuleIdentifier>(),
-    );
-    visitor.visit_simple(
-      allocative::Key::new("runtime_modules"),
-      self.runtime_modules.capacity() * std::mem::size_of::<ModuleIdentifier>(),
-    );
-    if let Some(source_types_by_module) = &self.source_types_by_module {
-      let source_type_count = source_types_by_module
-        .values()
-        .map(|types| types.len())
-        .sum::<usize>();
-      visitor.visit_simple(
-        allocative::Key::new("source_types_by_module"),
-        source_types_by_module.len()
-          * std::mem::size_of::<(ModuleIdentifier, FxHashSet<SourceType>)>()
-          + source_type_count * std::mem::size_of::<SourceType>(),
-      );
-    }
-    visitor.exit();
-  }
 }
 
 impl ChunkGraphChunk {

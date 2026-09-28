@@ -299,12 +299,6 @@ fn build_module_graph_case(
           compiler.compilation.get_module_graph().modules_len(),
           NUM_MODULES + NUM_MODULES / 10
         );
-        // The dedicated snapshot pass captures this graph-only fixture. Keep it out of normal
-        // CodSpeed runs so Allocative traversal does not affect the memory measurement.
-        #[cfg(feature = "allocative")]
-        if std::env::var_os("RSPACK_ALLOCATIVE_SNAPSHOT_MODULE_GRAPH").is_some() {
-          rspack_core::snapshot_allocative("module_graph", &compiler.compilation);
-        }
       },
       BatchSize::PerIteration,
     );

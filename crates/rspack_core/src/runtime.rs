@@ -5,7 +5,7 @@ use rspack_cacheable::{
   with::{AsPreset, AsRefStr, AsVec},
 };
 use rspack_hash::RspackHasher;
-#[cfg(any(allocative, feature = "allocative"))]
+#[cfg(allocative)]
 use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 use smol_str::{SmolStr, SmolStrBuilder};
@@ -15,16 +15,13 @@ use crate::{EntryOptions, EntryRuntime};
 
 #[cacheable]
 #[derive(Debug, Default, Clone, rspack_hash::RspackHash)]
-#[cfg_attr(
-  any(allocative, feature = "allocative"),
-  derive(allocative::Allocative)
-)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
   #[rspack_hash(skip)]
   inner: UstrSet,
   #[cacheable(with=AsPreset)]
-  #[cfg_attr(any(allocative, feature = "allocative"), allocative(skip))]
+  #[cfg_attr(allocative, allocative(skip))]
   key: RuntimeKey,
 }
 
@@ -189,10 +186,7 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-  any(allocative, feature = "allocative"),
-  derive(allocative::Allocative)
-)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RuntimeCondition {
   Boolean(bool),
   Spec(RuntimeSpec),

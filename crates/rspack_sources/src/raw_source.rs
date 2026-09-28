@@ -26,10 +26,6 @@ use crate::{
 /// assert_eq!(s.map(&ObjectPool::default(), &MapOptions::default()), None);
 /// assert_eq!(s.size(), 16);
 /// ```
-#[cfg_attr(
-  any(allocative, feature = "allocative"),
-  derive(allocative::Allocative)
-)]
 #[derive(Clone, PartialEq, Eq)]
 pub struct RawStringSource(Cow<'static, str>);
 
@@ -66,11 +62,6 @@ impl From<&str> for RawStringSource {
 }
 
 impl Source for RawStringSource {
-  #[cfg(any(allocative, feature = "allocative"))]
-  fn visit_allocative(&self, visitor: &mut allocative::Visitor<'_>) {
-    allocative::Allocative::visit(self, visitor);
-  }
-
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.0))
   }
@@ -169,19 +160,6 @@ pub struct RawBufferSource {
   value_as_string: OnceLock<Option<String>>,
 }
 
-#[cfg(any(allocative, feature = "allocative"))]
-impl allocative::Allocative for RawBufferSource {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
-    let mut visitor = visitor.enter_self(self);
-    visitor.visit_field(allocative::Key::new("value"), &self.value);
-    visitor.visit_field(
-      allocative::Key::new("value_as_string"),
-      &self.value_as_string,
-    );
-    visitor.exit();
-  }
-}
-
 impl RawBufferSource {
   #[allow(unsafe_code)]
   fn get_or_init_value_as_string(&self) -> &str {
@@ -232,11 +210,6 @@ impl From<&[u8]> for RawBufferSource {
 }
 
 impl Source for RawBufferSource {
-  #[cfg(any(allocative, feature = "allocative"))]
-  fn visit_allocative(&self, visitor: &mut allocative::Visitor<'_>) {
-    allocative::Allocative::visit(self, visitor);
-  }
-
   fn source(&self) -> SourceValue<'_> {
     SourceValue::Buffer(Cow::Borrowed(&self.value))
   }

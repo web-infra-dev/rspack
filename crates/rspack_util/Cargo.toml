@@ -47,7 +47,6 @@ rspack_regex = { workspace = true }
 signal-hook  = { workspace = true, optional = true }
 
 [features]
-allocative = ["dep:allocative"]
 debug_tool = ["signal-hook"]                                                         # only used for local debug and  should not be enabled in production release
 plugin     = ["anyhow", "once_cell", "wasmtime", "wasi-common", "swc_plugin_runner"]
 

@@ -12,7 +12,7 @@ pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_macros::MergeFrom;
 use rspack_paths::Utf8PathBuf;
-#[cfg(any(allocative, feature = "allocative"))]
+#[cfg(allocative)]
 use rspack_util::allocative;
 
 use super::CleanOptions;
@@ -261,10 +261,7 @@ impl From<&str> for WasmLoadingType {
 }
 
 #[derive(Debug, Clone)]
-#[cfg_attr(
-  any(allocative, feature = "allocative"),
-  derive(allocative::Allocative)
-)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CrossOriginLoading {
   Disable,
   Enable(String),

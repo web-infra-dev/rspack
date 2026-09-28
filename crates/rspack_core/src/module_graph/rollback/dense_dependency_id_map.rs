@@ -51,11 +51,6 @@ impl<V> DenseDependencyIdMap<V> {
   }
 
   #[inline]
-  pub fn capacity(&self) -> usize {
-    self.values.capacity()
-  }
-
-  #[inline]
   pub fn iter(&self) -> impl Iterator<Item = (DependencyId, &V)> {
     self.values.iter().enumerate().filter_map(|(index, value)| {
       value

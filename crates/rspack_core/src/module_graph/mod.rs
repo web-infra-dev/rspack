@@ -8,8 +8,6 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierHasher, IdentifierMap};
 use rspack_error::Result;
 use rspack_intern::Atom;
-#[cfg(any(allocative, feature = "allocative"))]
-use rspack_util::allocative;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -172,98 +170,6 @@ impl ModuleGraph {
   // reset to last checkpoint
   pub fn reset(&mut self) {
     self.inner.recover()
-  }
-}
-
-#[cfg(any(allocative, feature = "allocative"))]
-impl allocative::Allocative for ModuleGraph {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
-    let mut visitor = visitor.enter_self(self);
-    let data = &self.inner;
-    let module_count = data.modules.len();
-
-    visitor.visit_field_with(
-      allocative::Key::new("modules"),
-      std::mem::size_of_val(&data.modules)
-        + data.modules.capacity() * std::mem::size_of::<ModuleIdentifier>()
-        + data.modules.capacity().saturating_sub(module_count) * std::mem::size_of::<ModuleRef>(),
-      |visitor| {
-        for (_, module) in data.modules.iter() {
-          allocative::Allocative::visit(module, visitor);
-        }
-      },
-    );
-    let dependency_count = data.dependencies.iter().count();
-    visitor.visit_field_with(
-      allocative::Key::new("dependencies"),
-      std::mem::size_of_val(&data.dependencies)
-        + data
-          .dependencies
-          .capacity()
-          .saturating_sub(dependency_count)
-          * std::mem::size_of::<Option<DependencyRef>>(),
-      |visitor| {
-        for (_, dependency) in data.dependencies.iter() {
-          allocative::Allocative::visit(dependency, visitor);
-        }
-      },
-    );
-    visitor.visit_field_with(
-      allocative::Key::new("async_blocks"),
-      std::mem::size_of_val(&data.blocks)
-        + data.blocks.capacity()
-          * std::mem::size_of::<(AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef)>(),
-      |visitor| {
-        for block in data.blocks.values() {
-          allocative::Allocative::visit(block.as_ref(), visitor);
-        }
-      },
-    );
-    let module_graph_module_count = data.module_graph_modules.iter().count();
-    visitor.visit_field_with(
-      allocative::Key::new("module_graph_modules"),
-      std::mem::size_of_val(&data.module_graph_modules)
-        + data.module_graph_modules.capacity() * std::mem::size_of::<ModuleIdentifier>()
-        + data
-          .module_graph_modules
-          .capacity()
-          .saturating_sub(module_graph_module_count)
-          * std::mem::size_of::<ModuleGraphModule>(),
-      |visitor| {
-        for (_, module_graph_module) in data.module_graph_modules.iter() {
-          allocative::Allocative::visit(module_graph_module, visitor);
-        }
-      },
-    );
-    let connection_count = data.connections.values().count();
-    visitor.visit_field_with(
-      allocative::Key::new("connections"),
-      std::mem::size_of_val(&data.connections)
-        + data.connections.capacity().saturating_sub(connection_count)
-          * std::mem::size_of::<Option<ModuleGraphConnection>>(),
-      |visitor| {
-        for connection in data.connections.values() {
-          allocative::Allocative::visit(connection, visitor);
-        }
-      },
-    );
-
-    // These dense indexes primarily contain IDs and scalar metadata; account for their inline
-    // storage without emitting identifier strings or dependency-specific source locations.
-    visitor.visit_simple(
-      allocative::Key::new("dependency_parents_index"),
-      data.dependency_id_to_parents.capacity() * std::mem::size_of::<Option<DependencyParents>>(),
-    );
-    visitor.visit_simple(
-      allocative::Key::new("connection_conditions_index"),
-      data.connection_to_condition.capacity() * std::mem::size_of::<Option<DependencyCondition>>(),
-    );
-    visitor.visit_simple(
-      allocative::Key::new("dependency_connection_index"),
-      data.dependency_id_to_connection_id.capacity()
-        * std::mem::size_of::<Option<ModuleGraphConnectionId>>(),
-    );
-    visitor.exit();
   }
 }
 

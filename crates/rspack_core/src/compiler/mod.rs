@@ -328,8 +328,8 @@ impl Compiler {
       .await?;
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
-    #[cfg(any(allocative, feature = "allocative"))]
-    crate::utils::snapshot_allocative("build", &self.compilation);
+    #[cfg(allocative)]
+    crate::utils::snapshot_allocative("build");
 
     Ok(())
   }

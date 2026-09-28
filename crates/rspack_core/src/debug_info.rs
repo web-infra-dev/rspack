@@ -1,14 +1,11 @@
 use std::{fmt::Display, sync::Mutex};
 
-#[cfg(any(allocative, feature = "allocative"))]
+#[cfg(allocative)]
 use rspack_util::allocative;
 
 /// Debug info used when programs panics
 /// Only works with #[cfg(debug_assertions)]
-#[cfg_attr(
-  any(allocative, feature = "allocative"),
-  derive(allocative::Allocative)
-)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DebugInfo {
   /// The base directory. See [options.context](https://webpack.js.org/configuration/entry-context/#context)
   pub(crate) context: Option<String>,
@@ -47,5 +44,5 @@ impl Display for DebugInfo {
   }
 }
 
-#[cfg_attr(any(allocative, feature = "allocative"), allocative::root)]
+#[cfg_attr(allocative, allocative::root)]
 pub static DEBUG_INFO: Mutex<DebugInfo> = Mutex::new(DebugInfo::new());

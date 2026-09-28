@@ -60,10 +60,6 @@ use crate::{
 ///   .unwrap()
 /// );
 /// ```
-#[cfg_attr(
-  any(allocative, feature = "allocative"),
-  derive(allocative::Allocative)
-)]
 #[derive(Default)]
 pub struct ConcatSource {
   children: Mutex<Vec<BoxSource>>,
@@ -177,11 +173,6 @@ impl ConcatSource {
 }
 
 impl Source for ConcatSource {
-  #[cfg(any(allocative, feature = "allocative"))]
-  fn visit_allocative(&self, visitor: &mut allocative::Visitor<'_>) {
-    allocative::Allocative::visit(self, visitor);
-  }
-
   fn source(&self) -> SourceValue<'_> {
     let children = self.optimized_children();
     if children.len() == 1 {

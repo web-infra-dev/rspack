@@ -141,10 +141,6 @@ where
     self.map.len()
   }
 
-  pub fn capacity(&self) -> usize {
-    self.map.capacity()
-  }
-
   // check the length of mutations for debug performance purpose
 }
 

@@ -167,37 +167,6 @@ jobs:
             fi
           token: ${{ secrets.CODSPEED_TOKEN }}
 
-      - name: Capture bounded Allocative snapshots
-        if: ${{ always() && inputs.measurement == 'memory' }}
-        env:
-          BENCH_MODE: memory
-          RSPACK_BENCHCASES_DIR: ${{ github.workspace }}/.bench/rspack-benchcases
-          RSPACK_ALLOCATIVE_DIR: ${{ runner.temp }}/rspack-allocative
-          RSPACK_ALLOCATIVE_MAX_SNAPSHOTS: 3
-          RSPACK_ALLOCATIVE_SNAPSHOT_MODULE_GRAPH: 1
-        run: cargo bench --profile codspeed -p rspack_benchmark --bench memory --features rspack_benchmark/allocative -- --test
-
-      - name: Summarize Allocative snapshots
-        if: ${{ always() && inputs.measurement == 'memory' }}
-        run: |
-          mkdir -p "${RUNNER_TEMP}/rspack-memory-artifact"
-          shopt -s nullglob
-          snapshots=("${RUNNER_TEMP}/rspack-allocative/"*.allocative)
-          if [ ${#snapshots[@]} -gt 0 ]; then
-            python3 scripts/memory/allocative_summary.py "${snapshots[@]}" --output "${RUNNER_TEMP}/rspack-memory-artifact/allocative-summary.json"
-            cp "${RUNNER_TEMP}/rspack-allocative/"*.coverage.json "${RUNNER_TEMP}/rspack-memory-artifact/" 2>/dev/null || true
-          else
-            printf '{"schema_version":1,"kind":"allocative-summary","snapshots":[]}\n' > "${RUNNER_TEMP}/rspack-memory-artifact/allocative-summary.json"
-          fi
-
-      - name: Upload memory summary
-        if: ${{ always() && inputs.measurement == 'memory' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: rspack-memory-summary-${{ inputs.target }}
-          path: ${{ runner.temp }}/rspack-memory-artifact
-          if-no-files-found: ignore
-
       - name: Prepare Valgrind temporary files artifact
         if: ${{ always() && inputs.measurement == 'simulation' }}
         run: |

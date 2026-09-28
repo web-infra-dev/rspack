@@ -17,10 +17,6 @@ use crate::{
   source::SourceValue,
 };
 
-#[cfg_attr(
-  any(allocative, feature = "allocative"),
-  derive(allocative::Allocative)
-)]
 #[derive(Default)]
 struct CachedData {
   hash: OnceLock<u64>,
@@ -64,10 +60,6 @@ struct CachedData {
 ///   "Hello World\nconsole.log('test');\nconsole.log('test2');\nHello2\n"
 /// );
 /// ```
-#[cfg_attr(
-  any(allocative, feature = "allocative"),
-  derive(allocative::Allocative)
-)]
 pub struct CachedSource {
   inner: BoxSource,
   cache: Arc<CachedData>,
@@ -138,11 +130,6 @@ impl CachedSource {
 }
 
 impl Source for CachedSource {
-  #[cfg(any(allocative, feature = "allocative"))]
-  fn visit_allocative(&self, visitor: &mut allocative::Visitor<'_>) {
-    allocative::Allocative::visit(self, visitor);
-  }
-
   fn source(&self) -> SourceValue<'_> {
     // Check if it's a RawBufferSource containing a CachedSource
     if let Some(buffer_source) = self

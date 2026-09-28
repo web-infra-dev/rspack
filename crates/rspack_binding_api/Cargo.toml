@@ -11,7 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-allocative        = ["rspack_core/allocative", "rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_sources/allocative", "rspack_plugin_rsc/allocative", "rspack_tracing_perfetto?/allocative"]
+allocative        = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
 browser           = []
 debug_tool        = ["rspack_core/debug_tool"]
 jemalloc-profiler = ["rspack_allocator/jemalloc-profiler"]
@@ -44,7 +44,6 @@ rspack_plugin_rsdoctor    = { workspace = true }
 rspack_plugin_rslib       = { workspace = true }
 rspack_plugin_rstest      = { workspace = true }
 rspack_plugin_runtime     = { workspace = true }
-rspack_sources            = { workspace = true }
 rspack_tasks              = { workspace = true }
 rspack_util               = { workspace = true }
 rspack_watcher            = { workspace = true }
