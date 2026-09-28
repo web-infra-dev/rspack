@@ -13,7 +13,6 @@ use rspack_util::time::current_time;
 use crate::{
   CacheFacade, CacheValue, Etag, FileSystemInfo, IsolatedDts, ItemCacheFacade, Module, RscMeta,
   RunnerContext,
-  cache::SnapshotStrategyOptions,
   new_cache::{Snapshot, SnapshotValidationResult},
 };
 
@@ -43,7 +42,9 @@ pub fn loader_cache_etag(
   // Context and missing dependencies intentionally invalidate the minimal cache: inherited values
   // disable lookup, and entries that add either kind are skipped at store time. This trade-off lets
   // the etag omit both kinds entirely.
+  // Equal bytes are not equivalent inputs: non-raw JS loaders strip a BOM only from buffers.
   rspack_hash::rspack_hash_object!(&mut hasher, {
+    "content_is_string" => !content.is_buffer(),
     "content" => content,
     "file_dependencies" => sorted_dependency_paths(&existing.file),
     "build_dependencies" => sorted_dependency_paths(&existing.build),
@@ -105,7 +106,7 @@ pub async fn loader_cache_dependency_snapshot(
       &files,
       &empty,
       &empty,
-      SnapshotStrategyOptions::timestamp(),
+      file_system_info.module_strategy(),
     )
     .await
     .ok()?;
@@ -165,7 +166,7 @@ struct LoaderCacheEntry {
   #[cacheable(with=AsMap)]
   parse_meta: ParseMeta,
   isolated_dts: Option<Box<IsolatedDts>>,
-  rsc: Option<RscMeta>,
+  rsc: Option<Box<RscMeta>>,
 }
 
 pub(crate) struct LoaderCacheMissState {
@@ -229,7 +230,7 @@ pub(crate) async fn before_normal_loader(
     etag.clone(),
   );
 
-  if let Some(entry) = item_cache.get::<LoaderCacheEntry>()?
+  if let Some(entry) = item_cache.get::<LoaderCacheEntry>()
     && loader_cache_dependency_snapshot_is_valid(
       &context.context.file_system_info,
       &entry.dependency_snapshot,
@@ -266,18 +267,18 @@ pub(crate) async fn before_normal_loader(
 pub(crate) async fn after_normal_loader(
   context: &LoaderContext<RunnerContext>,
   state: &LoaderCacheMissState,
-) -> Result<()> {
+) {
   if !context.cacheable
     || context.diagnostics.len() != state.diagnostics_len
     || !context.context.module.build_info().assets.is_empty()
     || !context.context.module.build_info().extras.is_empty()
     || context.additional_data().is_some()
   {
-    return Ok(());
+    return;
   }
 
   if !context.removed_dependencies().is_empty() {
-    return Ok(());
+    return;
   }
   let Some(dependency_snapshot) = loader_cache_dependency_snapshot(
     &context.context.file_system_info,
@@ -285,7 +286,7 @@ pub(crate) async fn after_normal_loader(
   )
   .await
   else {
-    return Ok(());
+    return;
   };
 
   let (content, content_is_string) = match context.content() {
@@ -310,5 +311,5 @@ pub(crate) async fn after_normal_loader(
     loader_name,
     state.etag.clone(),
   );
-  item_cache.store(CacheValue::new(entry))
+  item_cache.store(CacheValue::new(entry));
 }

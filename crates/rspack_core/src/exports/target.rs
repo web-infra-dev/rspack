@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{

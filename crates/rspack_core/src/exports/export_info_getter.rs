@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use itertools::Itertools;
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{ExportInfoData, ExportInfoTargetValue, ExportProvided, UsageState, UsedNameItem};

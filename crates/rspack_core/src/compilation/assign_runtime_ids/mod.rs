@@ -24,7 +24,7 @@ impl PassExt for AssignRuntimeIdsPass {
         .kind
         .get_entry_options()
         .and_then(|o| match &o.runtime {
-          Some(EntryRuntime::String(s)) => Some(s.to_owned()),
+          Some(EntryRuntime::String(s)) if !s.is_empty() => Some(s.to_owned()),
           _ => None,
         })
         .or_else(|| entrypoint.name().map(|n| n.to_string()));

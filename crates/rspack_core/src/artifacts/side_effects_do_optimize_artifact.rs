@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use rayon::prelude::{FromParallelIterator, IntoParallelIterator, ParallelIterator};
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -21,7 +21,7 @@ pub struct SideEffectsDoOptimizeMoveTarget {
   pub target_export: Option<Vec<Atom>>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct SideEffectsOptimizeArtifact(FxHashMap<DependencyId, SideEffectsDoOptimize>);
 
 impl Deref for SideEffectsOptimizeArtifact {

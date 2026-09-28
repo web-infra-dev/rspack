@@ -8,7 +8,8 @@ use rspack_core::{
   get_context,
 };
 use rspack_error::{Error, Severity};
-use rspack_util::{SpanExt, atom::Atom};
+use rspack_intern::Atom;
+use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{BlockStmtOrExpr, CallExpr, ExprOrSpread, GetSpan, Pat};
 
 use crate::{

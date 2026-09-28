@@ -1,6 +1,6 @@
 ---
 name: rspack-perf-codspeed-goal
-description: Use when optimizing a benchmarked code path through a GitHub PR where success depends on GitHub Actions checks, CodSpeed PR comments, requested percentage thresholds, flaky CI reruns, rebases, review comments, or repeated performance iterations. For Rspack performance work, combine this workflow with the rspack-perf skill and keep changes within the user-specified plugin, file, crate, feature, compilation stage, benchmark, or hot path unless expanding scope is necessary for correctness or the measured optimization.
+description: Iterate on a requested Rspack performance target using a PR and CI/CodSpeed measurements; excludes local Valgrind goals.
 ---
 
 # Rspack perf CodSpeed goal

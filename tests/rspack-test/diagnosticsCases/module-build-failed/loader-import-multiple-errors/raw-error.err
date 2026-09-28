@@ -1,0 +1,12 @@
+Array [
+  Object {
+    code: ModuleParseError,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-import-multiple-errors/failed.js,
+    moduleName: ,
+  },
+  Object {
+    code: ModuleParseError,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-import-multiple-errors/failed.js,
+    moduleName: ,
+  },
+]

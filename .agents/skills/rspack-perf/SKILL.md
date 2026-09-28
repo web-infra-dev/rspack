@@ -1,6 +1,6 @@
 ---
 name: rspack-perf
-description: Use when optimizing performance for user-specified files, features, compilation stages, Rust crates, JavaScript plugins, graph processing, parser work, chunking, code generation, or memory/CPU hot paths in Rspack.
+description: Optimize a requested Rspack CPU or memory hot path using its data cardinality and architecture constraints.
 ---
 
 # Rspack performance optimization

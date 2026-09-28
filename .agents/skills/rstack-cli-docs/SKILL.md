@@ -3,7 +3,7 @@ name: rstack-cli-docs
 description: Consult installed, version-matched Rstack docs only for user-facing `rs` command behavior, `rstack.config.*` semantics, or public `rstack` APIs. Do not use for purely internal implementation, tests, performance, or repository maintenance.
 ---
 
-# Rstack CLI Docs
+# Rstack CLI docs
 
 Rstack CLI is the `rstack` package, exposed through the `rs` binaries. It provides one CLI, one
 config file, and a consistent workflow for the Rstack JavaScript toolchain.

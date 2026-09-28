@@ -1,0 +1,20 @@
+use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, to_bytes, with::AsPreset};
+use rspack_intern::Atom;
+
+#[cacheable]
+#[derive(Debug, PartialEq, Eq)]
+struct Module {
+  #[cacheable(with=AsPreset)]
+  id: Atom,
+}
+
+#[test]
+fn test_preset_atom() {
+  let module = Module {
+    id: Atom::new("abc"),
+  };
+
+  let bytes = to_bytes(&module, &()).unwrap();
+  let new_module: Module = from_bytes(&bytes, &()).unwrap();
+  assert_eq!(module, new_module);
+}

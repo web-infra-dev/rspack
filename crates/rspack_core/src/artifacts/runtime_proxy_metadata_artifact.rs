@@ -93,7 +93,7 @@ impl RuntimeProxyMetadata {
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct RuntimeProxyMetadataArtifact(FxHashMap<ChunkUkey, RuntimeProxyMetadata>);
 
 impl ArtifactExt for RuntimeProxyMetadataArtifact {

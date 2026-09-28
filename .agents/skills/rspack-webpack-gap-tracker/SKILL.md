@@ -1,6 +1,6 @@
 ---
 name: rspack-webpack-gap-tracker
-description: Use when tracking, auditing, or updating Rspack compatibility gaps against webpack, including missing webpack features, built-in and ecosystem plugin compatibility gaps, completed compatibility features, and missing webpack test coverage.
+description: Audit or update the Rspack webpack-compatibility tracker, including feature gaps, completed features, and missing tests.
 ---
 
 # Rspack webpack gap tracker

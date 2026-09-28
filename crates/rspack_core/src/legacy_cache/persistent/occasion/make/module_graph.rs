@@ -8,9 +8,10 @@ use rustc_hash::FxHashSet;
 
 use super::alternatives::{TempDependency, TempModule};
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
-  DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
-  ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, RayonConsumer,
+  AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BoxDependency, DependenciesBlock,
+  Dependency, DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
+  ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, ModuleRef,
+  RayonConsumer,
   cache::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
   legacy_cache::persistent::storage::Storage,
@@ -28,10 +29,10 @@ type CachedDependency<'a> = (
 #[cacheable]
 struct Node<'a> {
   pub mgm: OwnedOrRef<'a, ModuleGraphModule>,
-  pub module: OwnedOrRef<'a, BoxModule>,
+  pub module: OwnedOrRef<'a, ModuleRef>,
   pub dependencies: Vec<CachedDependency<'a>>,
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
-  pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlock>>,
+  pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlockRef>>,
   pub lazy_info: Option<OwnedOrRef<'a, LazyDependencies>>,
 }
 
@@ -63,7 +64,11 @@ pub fn save_module_graph(
       let blocks = module
         .get_blocks()
         .par_iter()
-        .map(|block_id| mg.block_by_id(block_id).expect("should have block").into())
+        .map(|block_id| {
+          mg.block_ref_by_id(block_id)
+            .expect("should have block")
+            .into()
+        })
         .collect::<Vec<_>>();
       let dependencies = mgm
         .all_dependencies()
@@ -79,8 +84,8 @@ pub fn save_module_graph(
       let connections = mgm
         .outgoing_connections()
         .par_iter()
-        .map(|dep_id| {
-          mg.connection_by_dependency_id(dep_id)
+        .map(|connection_id| {
+          mg.connection_by_id(connection_id)
             .expect("should have connection")
             .into()
         })
@@ -175,12 +180,17 @@ pub async fn recovery_module_graph(
       }
       for con in node.connections {
         let con = con.into_owned();
-        need_check_dep.push((con.dependency_id, *con.module_identifier()));
+        need_check_dep.push((con.id, *con.module_identifier()));
         mg.cache_recovery_connection(con);
       }
-      for block in node.blocks {
-        let block = block.into_owned();
-        mg.add_block(Box::new(block));
+      let mut blocks = node
+        .blocks
+        .into_iter()
+        .map(OwnedOrRef::into_owned)
+        .collect::<Vec<_>>();
+      while let Some(block) = blocks.pop() {
+        blocks.extend(block.get_block_refs().iter().cloned());
+        mg.add_block(block);
       }
       if let Some(lazy_info) = node.lazy_info {
         module_to_lazy_make
@@ -190,9 +200,9 @@ pub async fn recovery_module_graph(
       mg.add_module(module);
     });
   // recovery incoming connections
-  for (dep_id, module_identifier) in need_check_dep {
+  for (connection_id, module_identifier) in need_check_dep {
     let mgm = mg.module_graph_module_by_identifier_mut(&module_identifier);
-    mgm.add_incoming_connection(dep_id);
+    mgm.add_incoming_connection(connection_id);
   }
 
   // recovery entry
@@ -205,7 +215,8 @@ pub async fn recovery_module_graph(
   let mut entry_dependencies: FxHashSet<DependencyId> = Default::default();
   for mid in entry_module {
     let dep = TempDependency::default();
-    let connection = ModuleGraphConnection::new(*dep.id(), None, mid, false);
+    let connection =
+      ModuleGraphConnection::new(mg.next_connection_id(), *dep.id(), None, mid, false);
     entry_dependencies.insert(*dep.id());
     mg.add_dependency(BoxDependency::new(dep));
     mg.cache_recovery_connection(connection);

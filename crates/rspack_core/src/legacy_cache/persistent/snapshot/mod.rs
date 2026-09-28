@@ -11,10 +11,7 @@ use rspack_paths::{InternedPath, InternedPathSet};
 pub(crate) use self::strategy::{StrategyHelper, ValidateResult};
 pub use self::{scope::SnapshotScope, strategy::Strategy};
 use super::storage::Storage;
-use crate::{
-  FutureConsumer,
-  cache::{CacheCodec, SnapshotOptions, SnapshotStrategyOptions},
-};
+use crate::{FutureConsumer, SnapshotOptions, SnapshotStrategyOptions, cache::CacheCodec};
 
 /// Snapshot is used to check if files have been modified or deleted.
 ///
@@ -58,13 +55,13 @@ impl Snapshot {
     Some(match scope {
       SnapshotScope::FILE => {
         helper
-          .file_strategy(path, options.dependencies_strategy())
+          .file_strategy(path, SnapshotStrategyOptions::hash_and_timestamp())
           .await
       }
       SnapshotScope::MISSING => Strategy::Missing,
       SnapshotScope::CONTEXT => {
         helper
-          .dir_strategy(path, options.context_dependencies_strategy())
+          .dir_strategy(path, SnapshotStrategyOptions::timestamp())
           .await
       }
       SnapshotScope::BUILD => {
@@ -178,7 +175,7 @@ mod tests {
   use rspack_paths::InternedPath;
 
   use super::{super::storage::MemoryStorage, Snapshot, SnapshotScope};
-  use crate::cache::{CacheCodec, PathMatcher, SnapshotOptions};
+  use crate::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions, cache::CacheCodec};
 
   macro_rules! p {
     ($tt:tt) => {
@@ -191,11 +188,16 @@ mod tests {
     let fs = Arc::new(MemoryFileSystem::default());
     let mut storage = MemoryStorage::default();
     let codec = Arc::new(CacheCodec::new(None));
-    let options = SnapshotOptions::new(
-      vec![PathMatcher::String("constant".into())],
-      vec![PathMatcher::String("node_modules/project".into())],
-      vec![PathMatcher::String("node_modules".into())],
-    );
+    let options = SnapshotOptions {
+      immutable_paths: vec![PathMatcher::String("constant".into())],
+      unmanaged_paths: vec![PathMatcher::String("node_modules/project".into())],
+      managed_paths: vec![PathMatcher::String("node_modules".into())],
+      resolve_build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+      build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+      resolve: SnapshotStrategyOptions::hash_and_timestamp(),
+      module: SnapshotStrategyOptions::hash_and_timestamp(),
+      context_module: SnapshotStrategyOptions::timestamp(),
+    };
 
     fs.create_dir_all("/node_modules/project".into())
       .await

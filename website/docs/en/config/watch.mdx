@@ -57,7 +57,7 @@ export default {
 
 ### watchOptions.ignored
 
-- **Type:** `RegExp | string | string[]`
+- **Type:** `RegExp | string | string[] | ((entry: string) => boolean)`
 - **Default:** `/[\\/](?:\.git|node_modules)[\\/]/`
 
 Use `watchOptions.ignored` to exclude matching files and directories from watch mode. Ignoring directories that do not need to be watched can reduce CPU and memory usage.
@@ -111,6 +111,18 @@ export default {
 ```
 
 The glob syntax used by `watchOptions.ignored` is based on [glob-to-regexp](https://github.com/fitzgen/glob-to-regexp). See its documentation for details about the supported pattern syntax.
+
+Finally, `ignored` can be a function that is asked about every entry and returns `true` to exclude it:
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    ignored: (entry) => entry.includes('.git'),
+  },
+};
+```
+
+Unlike the other forms, the function receives the entry with the platform path separators, and it has to exclude the entries below an excluded directory itself.
 
 ### watchOptions.poll
 

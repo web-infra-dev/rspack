@@ -11,6 +11,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
+use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource,
   runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
@@ -18,7 +19,6 @@ use rspack_plugin_javascript::{
 };
 use rspack_util::{
   SpanExt,
-  atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
 
@@ -613,7 +613,7 @@ var {} = {{}};
       let mut exports = exports.iter().collect::<Vec<_>>();
       exports.sort_unstable();
       for exported_name in exports {
-        let is_default = exported_name.as_str() == "default";
+        let is_default = exported_name == "default";
 
         if is_default {
           if export_default.is_none() {
@@ -787,8 +787,8 @@ var {} = {{}};
       )));
     };
 
-    for ((atom, ctxt), refs) in &info.binding_to_ref {
-      if ctxt == &info.global_ctxt
+    for (atom, ctxt, refs) in info.binding_to_ref.iter() {
+      if ctxt == info.global_ctxt
         && let Some(binding_ref) = chunk_link.refs.get(atom.as_str())
       {
         let final_name = match binding_ref {
@@ -796,7 +796,7 @@ var {} = {{}};
           Ref::Inline(inline) => Cow::Borrowed(inline),
         };
 
-        for ident in refs {
+        for ident in refs.iter().map(|index| &info.idents[*index as usize]) {
           let name = if ident.shorthand {
             Cow::Owned(format!("{}: {}", &ident.id.sym, &final_name))
           } else {

@@ -10,13 +10,13 @@ use rayon::iter::{
 };
 use rustc_hash::FxBuildHasher;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Action<K, V> {
   Inserted { key: K, previous: Option<V> },
   Removed { key: K, value: V },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RollbackMap<K, V, S = FxBuildHasher> {
   map: HashMap<K, V, S>,
   undo_stack: Vec<Action<K, V>>,

@@ -10,9 +10,9 @@ use futures::future::BoxFuture;
 use itertools::Itertools;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, CacheCount, CacheFacade, CacheOptions, CacheValue, Chunk, ChunkUkey, Compilation,
-  CompilationAsset, CompilationParams, CompilationProcessAssets, CompilerCompilation, Etag,
-  Filename, Logger, ModuleIdentifier, PathData, Plugin,
+  AssetInfo, CacheCount, CacheFacade, CacheValue, Chunk, ChunkUkey, Compilation, CompilationAsset,
+  CompilationParams, CompilationProcessAssets, CompilerCompilation, Etag, Filename, Logger,
+  ModuleIdentifier, PathData, Plugin,
   cache::CachedSourceMapDevToolPluginEntry,
   legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
@@ -456,7 +456,7 @@ impl SourceMapDevToolPlugin {
         cache.get::<CachedSourceMapDevToolPluginEntry>(
           &filename,
           Some(Etag::from(asset.info.version.clone())),
-        )?
+        )
       } else {
         None
       };
@@ -508,7 +508,7 @@ impl SourceMapDevToolPlugin {
           mapped_asset.asset.0.as_ref(),
           Some(Etag::from(asset.info.version.clone())),
           CacheValue::new(cache_entry),
-        )?;
+        );
       }
 
       mapped_assets.extend(new_mapped_assets);
@@ -1281,9 +1281,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .await?,
   );
 
-  let new_cache = (compilation.options.experiments.new_cache.devtool
-    && !matches!(&compilation.options.cache, CacheOptions::Disabled))
-  .then(|| compilation.get_cache(PLUGIN_NAME));
+  let new_cache = compilation
+    .options
+    .experiments
+    .new_cache
+    .devtool
+    .then(|| compilation.get_cache(PLUGIN_NAME));
   let mut legacy_cache = if new_cache.is_some() {
     None
   } else {

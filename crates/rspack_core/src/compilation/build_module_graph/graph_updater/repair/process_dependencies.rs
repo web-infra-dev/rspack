@@ -37,7 +37,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         .mark_as_add(dependency_id);
     }
 
-    let module_graph = &mut context.artifact.module_graph;
+    let module_graph = &context.artifact.module_graph;
 
     for dependency_id in dependencies {
       let dependency = module_graph.dependency_by_id(&dependency_id);
@@ -96,8 +96,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         })
         .clone();
       res.push(Box::new(FactorizeTask {
-        compiler_id: context.compiler_id,
-        compilation_id: context.compilation_id,
+        build_context: context.build_context.clone(),
         module_factory,
         original_module_identifier: Some(module.identifier()),
         original_module_context: module.get_context(),
@@ -108,8 +107,6 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         issuer_layer: module.get_layer().cloned(),
         dependencies,
         resolve_options: module.get_resolve_options(),
-        options: context.compiler_options.clone(),
-        resolver_factory: context.resolver_factory.clone(),
         from_unlazy,
       }));
     }

@@ -17,5 +17,6 @@ runs:
       with:
         script: |
           const limit = parseInt("${{ inputs.size-threshold }}") || 51200;
-          const action = require("./.github/actions/binary-limit/binary-limit-script.js");
+          const { pathToFileURL } = require('node:url');
+          const { default: action } = await import(pathToFileURL(`${process.env.GITHUB_WORKSPACE}/.github/actions/binary-limit/binary-limit-script.mjs`).href);
           await action({github, context, limit});

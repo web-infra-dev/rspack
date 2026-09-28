@@ -46,7 +46,7 @@ impl DependencyCodeGeneration for ConstDependency {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct ConstDependencyTemplate;
 
 impl ConstDependencyTemplate {

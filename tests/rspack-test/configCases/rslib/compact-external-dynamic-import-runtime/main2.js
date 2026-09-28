@@ -8,3 +8,11 @@ export const main = async () => {
   const jqueryNs = await import('jquery', { with: { type: 'url' } }) // import attributes should be preserved
 	console.log(angular, react, reactNs, vueNs, dyn, jqueryNs)
 }
+
+export const nested = () => new Promise((resolve, reject) => {
+	require.ensure([], () => {
+		require.ensure([], () => {
+			import('vue').then(resolve, reject);
+		}, error => reject(error));
+	}, error => reject(error));
+});

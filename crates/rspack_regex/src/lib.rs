@@ -47,6 +47,22 @@ impl Debug for RspackRegex {
 }
 
 impl RspackRegex {
+  /// Return capture `index` from the first match, corresponding to
+  /// `RegExp.exec(text)[index]`. Index zero returns the full match.
+  pub fn capture<'a>(&self, text: &'a str, index: usize) -> Option<&'a str> {
+    let range = match self.algo.as_ref() {
+      Algo::Regress(regex) => regex.regex.find(text)?.group(index)?,
+      Algo::RustRegex(regex) => regex.regex.captures(text)?.get(index)?.range(),
+      Algo::EndWith { .. } => {
+        // The suffix optimization only retains the information needed by test().
+        let regex = regress::Regex::with_flags(&self.source, self.flags.as_str())
+          .expect("an existing regexp should compile");
+        regex.find(text)?.group(index)?
+      }
+    };
+    text.get(range)
+  }
+
   #[inline]
   pub fn test(&self, text: &str) -> bool {
     self.algo.test(text)

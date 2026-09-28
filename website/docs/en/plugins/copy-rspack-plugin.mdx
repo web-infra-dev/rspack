@@ -68,9 +68,6 @@ export default {
 ```ts title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   entry: './src/index.js',
@@ -81,7 +78,7 @@ export default {
       patterns: [
         {
           from: '*.json',
-          context: path.join(__dirname, 'src'),
+          context: path.join(import.meta.dirname, 'src'),
         },
       ],
     }),
@@ -120,9 +117,6 @@ It can refer to a file or a directory. If a relative path is passed, it is relat
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   plugins: [
@@ -132,15 +126,15 @@ export default {
         { from: 'relative/path/to/file.js' },
         { from: 'relative/path/to/dir' },
         // absolute path
-        { from: path.resolve(__dirname, 'src', 'file.js') },
-        { from: path.resolve(__dirname, 'src', 'dir') },
+        { from: path.resolve(import.meta.dirname, 'src', 'file.js') },
+        { from: path.resolve(import.meta.dirname, 'src', 'dir') },
         // glob
         { from: 'dir/**/*' },
         // If absolute path is a `glob` we replace backslashes with forward slashes,
         // because only forward slashes can be used in the `glob`
         {
           from: path.posix.join(
-            path.resolve(__dirname, 'src').replace(/\\/g, '/'),
+            path.resolve(import.meta.dirname, 'src').replace(/\\/g, '/'),
             '*.txt',
           ),
         },
@@ -197,15 +191,14 @@ export default {
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       // `./src/*.json` -> `./dist/*.json`
-      patterns: [{ from: '*.json', context: path.join(__dirname, 'src') }],
+      patterns: [
+        { from: '*.json', context: path.join(import.meta.dirname, 'src') },
+      ],
     }),
   ],
 };
@@ -295,12 +288,15 @@ export default {
 Whether to ignore the error if there are missing files or directories.
 
 ```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+import path from 'node:path';
+
 export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [
         {
-          from: path.resolve(__dirname, 'missing-file.txt'),
+          from: path.resolve(import.meta.dirname, 'missing-file.txt'),
           noErrorOnMissing: true,
         },
       ],

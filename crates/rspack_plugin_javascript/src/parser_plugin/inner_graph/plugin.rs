@@ -1,10 +1,11 @@
+use std::sync::Arc;
+
 use rspack_core::{
   BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
   UsedByExportsDeferredPureCheck,
 };
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, ClassMember, DefaultDecl, Expr, GetSpan, Ident, MemberExpr, ModuleDecl,
   Pat, Program, Span, ThisExpr, VarDeclarator,
@@ -15,6 +16,7 @@ use super::state::{
   InnerGraphUsageOperation, TopLevelSymbol,
 };
 use crate::{
+  Atom,
   dependency::{ESMImportSpecifierDependency, PureExpressionDependency, URLDependency},
   parser_plugin::{DEFAULT_STAR_JS_WORD, JavascriptParserPlugin},
   side_effects_parser_plugin::{
@@ -98,7 +100,7 @@ impl InnerGraphParserPlugin {
   pub fn infer_dependency_usage(
     state: &mut InnerGraphState,
     deferred_pure_checks_by_symbol: &HashMap<TopLevelSymbol, Vec<UsedByExportsDeferredPureCheck>>,
-  ) -> Vec<(InnerGraphUsageOperation, UsedByExports)> {
+  ) -> Vec<(InnerGraphUsageOperation, Arc<UsedByExports>)> {
     let mut non_terminal = state.inner_graph.keys().copied().collect::<HashSet<_>>();
     let mut processed: HashMap<TopLevelSymbol, HashSet<InnerGraphMapSetValue>> = HashMap::default();
 
@@ -232,8 +234,11 @@ impl InnerGraphParserPlugin {
         UsedByExports::bool(false)
       }
       .with_deferred_pure_checks(deferred_pure_checks);
+      // One payload per top level symbol: several dependencies can refer to the same
+      // symbol and used to each clone the heap allocated export set.
+      let used_by_exports = Arc::new(used_by_exports);
       for cb in cbs {
-        finalized.push((cb, used_by_exports.clone()));
+        finalized.push((cb, Arc::clone(&used_by_exports)));
       }
     }
 
@@ -409,7 +414,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     {
       let name = &fn_decl.ident().map_or_else(
         || DEFAULT_STAR_JS_WORD.clone(),
-        |ident| Atom::from(ident.sym.as_str()),
+        |ident| Atom::from(&ident.sym),
       );
       let fn_variable = Self::tag_top_level_symbol(parser, name);
 
@@ -444,7 +449,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     {
       let name = &class_decl.ident().map_or_else(
         || DEFAULT_STAR_JS_WORD.clone(),
-        |ident| Atom::from(ident.sym.as_str()),
+        |ident| Atom::from(&ident.sym),
       );
       let class_variable = Self::tag_top_level_symbol(parser, name);
       parser
@@ -550,7 +555,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     if let Pat::Ident(ident) = &decl.name
       && let Some(init) = &decl.init
     {
-      let name = Atom::from(ident.id.sym.as_str());
+      let name = Atom::from(&ident.id.sym);
       let mut callees = vec![];
 
       if init.is_class()
@@ -738,7 +743,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
           .unwrap_or(ExportedVariableInfo::Name(top_level_symbol_variable_name));
         if let Some(class_ident) = class_decl_or_expr.ident() {
-          parser.set_variable(Atom::from(class_ident.sym.as_str()), class_var.clone());
+          parser.set_variable(Atom::from(&class_ident.sym), class_var.clone());
         }
         parser.set_variable("this".into(), class_var);
       }

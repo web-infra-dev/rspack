@@ -80,6 +80,15 @@ pub struct ProjectReference {
   pub tsconfig: Option<Arc<TsConfig>>,
 }
 
+/// tsc's `PathIsRelative`: `.`, `..`, or a `./`, `../` (also `.\`, `..\`)
+/// prefix. `paths` never applies to these; an absolute specifier is not relative.
+pub(crate) fn is_relative_specifier(specifier: &str) -> bool {
+  matches!(
+    specifier.as_bytes(),
+    [b'.'] | [b'.', b'.'] | [b'.', b'/' | b'\\', ..] | [b'.', b'.', b'/' | b'\\', ..]
+  )
+}
+
 impl TsConfig {
   #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path.as_str())))]
   pub fn parse(root: bool, path: &Utf8Path, json: &mut str) -> Result<Self, serde_json::Error> {

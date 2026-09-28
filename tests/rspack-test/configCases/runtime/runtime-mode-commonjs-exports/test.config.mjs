@@ -1,0 +1,19 @@
+import fs from "node:fs";
+import path from "node:path";
+
+export default {
+  afterExecute(options) {
+    const source = fs.readFileSync(
+      path.resolve(options.output.path, "bundle0.js"),
+      "utf-8",
+    );
+
+    expect(source).toContain("var __rspack_unused_export;");
+    expect(source).toContain('__rspack_unused_export = "unused";');
+    expect(source).toContain("__rspack_unused_export = ({");
+    expect(source).toContain("\n})();\n");
+    expect(source).not.toContain("}).call(this);");
+    expect(source).not.toContain("__webpack_unused_export__");
+    expect(source).not.toContain("__webpack_unused_export");
+  },
+};

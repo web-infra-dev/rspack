@@ -1,166 +1,29 @@
 # Rspack
 
-## Project overview
+Rspack is a Rust-based JavaScript bundler with a webpack-compatible API.
 
-Rspack is a high-performance JavaScript bundler written in Rust that offers strong compatibility with the webpack ecosystem.
+## Build and validation
 
-## Project architecture
+Before testing changed code, build the artifacts those tests consume using the [development commands](.agents/DEVELOPMENT.md#build).
 
-- **Monorepo** with Rust crates (`crates/`) and JavaScript packages (`packages/`)
-- See [Project Architecture](website/docs/en/contribute/development/project.md) for details
+## Adding tests
 
-## Concurrency architecture
+- **Rust:** Do not add new Rust tests in ordinary changes. New cases belong in dedicated test crates; do not add inline `#[test]` functions or crate-local unit tests.
+- **JavaScript:** Reuse existing runners and add cases under `tests/rspack-test/{type}Cases/`. Do not add top-level or suite-level `test.js` runners. Harness-required files inside a case, such as `hookCases/**/test.js`, are allowed.
 
-- **Synchronous concurrency**: Prefer `rayon` for CPU-bound parallel work and data-parallel iteration
-- **Asynchronous concurrency**: Prefer the abstractions provided by `rspack_parallel` instead of using raw `tokio` task orchestration directly
-- **Thread pool boundaries**: Avoid mixing `rayon` and `tokio` thread pools for the same workflow unless there is a clear boundary that cannot be avoided
-- **Rule of thumb**: Do not use `tokio` to parallelize synchronous CPU-heavy work, and do not introduce `rayon` inside async orchestration that should stay within `rspack_parallel`
+## Pull requests
 
-## Cache architecture
+- Follow [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md).
+- Update relevant English and Chinese docs when public behavior or APIs change.
 
-- **Backend boundary**: `crates/rspack_core/src/new_cache/` and `crates/rspack_core/src/legacy_cache/` may depend on shared code in `crates/rspack_core/src/cache/`, but must not reference each other.
-- Read [Cache and Incremental](.agents/CACHE_AND_INCREMENTAL.md) before modifying either cache backend or their shared dependencies.
+## References
 
-## Setup
-
-- **Rust**: Use the toolchain pinned by `rust-toolchain.toml`
-- **Node.js**: Latest LTS
-- **pnpm**: Version in `package.json`
-- Run `pnpm run setup` to install and build
-
-## Building
-
-- `pnpm run build:js` - Build JavaScript/TypeScript packages
-- `pnpm run build:binding:dev` - Build Rust crates (dev)
-- `pnpm run build:cli:dev` - Full build (dev)
-- `pnpm run build:binding:debug` - Debug build
-- `pnpm run build:binding:release` - Release build
-- `pnpm run build:cli:dev:wasm` - WASM build
-- `pnpm run build:cli:dev:browser` - Browser build
-
-## Testing
-
-- `pnpm run test:rs` - Rust unit tests
-- `pnpm run test:unit` - JavaScript unit tests
-- `pnpm run test:e2e` - E2E tests
-- `pnpm run test:base` - Integration tests (in `tests/rspack-test`)
-- `pnpm run test:hot` - HMR tests
-- `cd tests/rspack-test && pnpm run test -t "configCases/asset"` - Run filtered tests
-
-Before running tests after code changes:
-
-- If you modified JavaScript/TypeScript code, run `pnpm run build:js` first
-- If you modified Rust code, run `pnpm run build:binding:dev` first
-- If your change spans both JS and Rust, run `pnpm run build:cli:dev` first
-
-## Debugging
-
-- **VS Code**: `.vscode/launch.json` with `Debug Rspack` and `Attach` options
-- **Rust**: Set breakpoints, use `Debug Rspack` or `Attach Rust`
-- **JavaScript**: Use `--inspect` flag, attach with `Attach JavaScript`
-- **rust-lldb**: `rust-lldb -- node /path/to/rspack build` for panic debugging
-
-## Code quality
-
-- **Linting**: `pnpm run lint:js` (Rslint), `pnpm run lint:rs` (cargo check), `cargo lint` (Rust)
-- **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (rs fmt), `cargo fmt --all --check` (Rust)
-- **Style**: snake_case for Rust, camelCase for JS/TS
-
-## Common tasks
-
-### Adding a new feature
-
-1. Create feature branch from `main`
-2. Implement in appropriate crate/package
-3. Add test coverage when needed, following the restrictions in [Adding tests](#adding-tests)
-4. Update docs if APIs change
-5. Run checks and tests: `pnpm run lint:js && pnpm run lint:rs && cargo lint && pnpm run test:unit && pnpm run test:rs`
-6. Format: `pnpm run format:rs && pnpm run format:js`
-7. Create PR
-
-### Modifying code
-
-- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, avoid linting and formatting for fast local development
-- **JS/TS**: API in `packages/rspack/src/`, CLI in `packages/rspack-cli/src/`, rebuild with `pnpm run build:js`, test with `pnpm run test:unit`
-
-### Adding tests
-
-- **Rust**: Do not add new Rust tests in ordinary changes, especially unit tests for small functions. Only add Rust test cases when they belong in a dedicated test crate; do not add inline `#[test]` functions or crate-local unit tests.
-- **JavaScript**: Do not create new top-level or suite-level `test.js` runner entry files. Reuse an existing runner and add coverage only by adding a case under the appropriate cases directory, such as `tests/rspack-test/{type}Cases/` (Normal, Config, Hot, Watch, StatsOutput, StatsAPI, Diagnostic, Hash, Compiler, Defaults, Error, Hook, TreeShaking, Builtin). Files required inside an individual case by an existing harness, such as `hookCases/**/test.js`, are allowed and are not new runner entry points.
-
-## Dependency management
-
-- **Package manager**: pnpm (workspaces for monorepo)
-- **Rust**: `Cargo.toml` in each crate
-- **JavaScript**: `package.json` files
-
-## Performance
-
-- **Benchmarks**: Rust CodSpeed benchmarks in `xtask/benchmark/`, run with `pnpm run bench:ci` (setup: `pnpm run bench:prepare`)
-- **Profiling**: `pnpm run build:binding:profiling`
-- **Tracing**: See `crates/rspack_tracing/`
-
-## Documentation
-
-- **Site**: `website/` directory
-- **Docs**: `website/docs/en/` (English), `website/docs/zh/` (Chinese)
-- **API**: `website/docs/en/api/`
-
-## Pull request guidelines
-
-- **Template**: Use `.github/PULL_REQUEST_TEMPLATE.md`
-- **Title prefix**: `test:`, `fix:`, `feat:`, `refactor:`, `chore:`
-- **Semver alignment**:
-  - `fix:` -> PATCH bump
-  - `feat:` -> MINOR bump
-  - Any breaking change -> MAJOR bump (`type(scope)!:` and/or `BREAKING CHANGE:` in commit body)
-- **CI**: All checks must pass
-
-## Contributing
-
-- Follow existing code patterns
-- Add test coverage for new features only under the restrictions in [Adding tests](#adding-tests)
-- Update docs when APIs change
-- Run linters before submitting
-- Use Conventional Commits in semver style: `type(scope): subject`
-- Prefer these types for release impact: `fix`, `feat`; use `!` or `BREAKING CHANGE:` only for incompatible changes
-- Keep PRs focused (one feature/fix per PR)
-
-## Finding code
-
-- **Rust core**: `crates/rspack_core/`
-- **Plugins**: `crates/rspack_plugin_*/`
-- **JavaScript API**: `packages/rspack/src/`
-- **JavaScript binding API**: `crates/rspack_binding_api/`
-- **Node-API support**: `crates/rspack_napi/`
-- **Generated binding package**: `crates/node_binding/`
-- **CLI**: `packages/rspack-cli/src/`
-- **Tests**: `tests/rspack-test/`
-
-## Error handling
-
-- Use `rspack_error` crate for Rust errors
-- Provide clear, actionable error messages
-- Include context (file paths, line numbers)
-
-## AI-Friendly Documentation
-
-This project includes comprehensive documentation designed for AI assistants and large language models. All AI-friendly documentation is located in the `.agents/` directory:
-
-- **[Architecture Guide](.agents/ARCHITECTURE.md)** - High-level architecture overview, core components, compilation pipeline, and system design
-- **[`rspack_sources` Architecture](.agents/RSPACK_SOURCES.md)** - Source composition, source-map streaming, UTF-8/UTF-16 position invariants, ownership, caching, and performance rules; read before changing or heavily using `crates/rspack_sources`
-- **[JavaScript Binding Guide](.agents/BINDING.md)** - Binding ownership, lifetimes, hook bridging, performance rules, file map, and validation
-- **[API Design](.agents/API_DESIGN.md)** - API design principles, patterns, versioning strategy, and compatibility guidelines
-- **[Code Style](.agents/CODE_STYLE.md)** - Coding standards and conventions for Rust and TypeScript/JavaScript
-- **[Common Patterns](.agents/COMMON_PATTERNS.md)** - Common code patterns, templates, and best practices for plugin/loader development
-- **[Glossary](.agents/GLOSSARY.md)** - Comprehensive glossary of terms and concepts used throughout the codebase
-- **[Skills](.agents/SKILLS.md)** - Required skills and knowledge areas for contributing to Rspack
-
-These documents provide detailed context about the project structure, coding standards, common patterns, and domain-specific knowledge to help AI assistants better understand and contribute to the codebase.
-
-## Resources
-
-- [Project Architecture](website/docs/en/contribute/development/project.md)
-- [Testing Guide](website/docs/en/contribute/development/testing.mdx)
-- [Debugging Guide](website/docs/en/contribute/development/debugging.mdx)
-- [API Docs](website/docs/en/api/index.mdx)
+- [Concurrency](.agents/ARCHITECTURE.md#parallel-processing): read before changing parallel execution or task scheduling.
+- [Cache and Incremental](.agents/CACHE_AND_INCREMENTAL.md): read before changing either cache backend or shared cache dependencies.
+- [Rspack Sources](.agents/RSPACK_SOURCES.md): read before changing or heavily using `crates/rspack_sources`.
+- [Binding](.agents/BINDING.md): read when changing Rust/JavaScript ownership, lifetimes, or hook bridging.
+- [Rust cloning](.agents/CODE_STYLE.md#cloning) and [error handling](.agents/CODE_STYLE.md#error-handling): read the relevant rules before adding `Clone` implementations or changing Rust error handling.
+- [Architecture](.agents/ARCHITECTURE.md) and [project layout](website/docs/en/contribute/development/project.md): compilation flow and subsystem locations.
+- [API design](.agents/API_DESIGN.md): public contracts and webpack compatibility.
+- [Code style](.agents/CODE_STYLE.md), [common patterns](.agents/COMMON_PATTERNS.md), and [glossary](.agents/GLOSSARY.md): conventions and terminology.
+- [Testing](website/docs/en/contribute/development/testing.mdx) and [debugging](website/docs/en/contribute/development/debugging.mdx): harness and debugger details.

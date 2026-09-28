@@ -63,9 +63,15 @@ async fn chunk_ids(
     "CompactHashedChunkIdsPlugin",
   )?;
 
-  // Prevent generated ids from aliasing preassigned ids on case-insensitive file systems.
+  // [name] falls back to the chunk id for unnamed chunks. Reserve names as well as
+  // preassigned ids to avoid filename collisions, including on case-insensitive file systems.
   let used_ids = get_used_chunk_ids(chunk_by_ukey)
     .into_iter()
+    .chain(
+      chunk_by_ukey
+        .values()
+        .filter_map(|chunk| chunk.name().map(str::to_owned)),
+    )
     .map(|mut id| {
       id.make_ascii_lowercase();
       id
@@ -82,10 +88,11 @@ async fn chunk_ids(
 
   let mut chunks_with_hashes = chunks
     .into_par_iter()
-    .map(|chunk| {
+    .map(|chunk| -> Result<_> {
       let name = get_full_chunk_name(
         chunk,
         chunk_graph,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         module_graph,
         module_graph_cache,
         &compilation
@@ -93,10 +100,10 @@ async fn chunk_ids(
           .side_effects_state_artifact,
         context,
         &compilation.exports_info_artifact,
-      );
-      (chunk, hash_lowercase_alphanumeric(&name))
+      )?;
+      Ok((chunk, hash_lowercase_alphanumeric(&name)))
     })
-    .collect::<Vec<_>>();
+    .collect::<Result<Vec<_>>>()?;
 
   let mut chunk_compare_cache = NaturalChunkCompareCache::default();
   chunks_with_hashes.sort_unstable_by(|(a, _), (b, _)| {

@@ -11,6 +11,8 @@ import {
   format as prettyFormat,
 } from 'pretty-format';
 import merge from 'rspack-merge';
+import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
+import { findTestFile, readTestFile } from '../helper/read-test-file';
 import { TestContext, type TTestContextOptions } from '../test/context';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv, ITesterConfig } from '../type';
@@ -34,7 +36,7 @@ const creator = new BasicCaseCreator({
           const options = await config(
             context,
             name,
-            ['rspack.config.js', 'webpack.config.js'],
+            RSPACK_CONFIG_FILES,
             defaultOptions(context, caseConfig.options),
           );
           if (!global.printLogger) {
@@ -76,9 +78,11 @@ export function createHookCase(
   dist: string,
   source: string,
 ) {
-  const caseConfig: Partial<THookCaseConfig> = require(
-    path.join(src, 'test.js'),
-  );
+  const testFile = findTestFile(src, 'test');
+  if (!testFile) {
+    throw new Error(`Missing test definition in ${src}`);
+  }
+  const caseConfig = readTestFile<Partial<THookCaseConfig>>(testFile);
   const testName = path.basename(
     name.slice(0, name.indexOf(path.extname(name))),
   );

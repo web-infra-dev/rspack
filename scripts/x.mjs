@@ -205,7 +205,7 @@ program
       'publish',
       '--publish-as-is', // Publish crates from the current commit without versioning
       '--no-remove-dev-deps', // Do not remove dev-dependencies from `Cargo.lock`, otherwise the `Cargo.toml` will be updated and dirty check will fail
-      '--no-verify', // Skip verification of the workspace. This was pre-checked by `release-crates.yml` with `cargo check` with `separated` strategy
+      '--no-verify', // Standalone crate checks run in CI on main.
       // Commented `--locked` flag
       // because some dev-deps refer to workspace members with versions rspack_swc_plugin_ts_collector
       // and these workspace members are to be removed in release. This would cause `Cargo.lock` to be updated.

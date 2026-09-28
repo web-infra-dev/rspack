@@ -1,9 +1,9 @@
-const { DefinePlugin, HtmlRspackPlugin } = require('@rspack/core');
-const { VueLoaderPlugin } = require('rspack-vue-loader');
+import { DefinePlugin, HtmlRspackPlugin } from '@rspack/core';
+import { VueLoaderPlugin } from 'rspack-vue-loader';
 
 /** @type { import('@rspack/core').RspackOptions } */
-module.exports = {
-  context: __dirname,
+export default {
+  context: import.meta.dirname,
   mode: 'development',
   entry: './src/main.js',
   devServer: {

@@ -4,6 +4,13 @@ import type { RstestConfig } from 'rstack/test';
 import packageJson from './package.json' with { type: 'json' };
 
 define.lib({
+  tools: {
+    rspack: {
+      experiments: {
+        runtimeMode: 'rspack',
+      },
+    },
+  },
   lib: [
     {
       format: 'esm',

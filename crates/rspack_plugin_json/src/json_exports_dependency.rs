@@ -23,11 +23,11 @@ impl JsonExportsDependency {
     }
   }
 
-  fn data<'a>(&self, module_graph: &'a ModuleGraph) -> &'a JsonValue {
+  fn data<'a>(&self, module_graph: &'a ModuleGraph) -> rspack_core::FreezeReadGuard<'a, JsonValue> {
     module_graph
       .get_parent_module(&self.id)
       .and_then(|identifier| module_graph.module_by_identifier(identifier))
-      .and_then(|module| module.build_info().json_data.as_ref())
+      .and_then(|module| module.build_info().try_map(|info| info.json_data.as_ref()))
       .expect("JSON export dependency should have parent JSON module data")
   }
 }
@@ -45,7 +45,7 @@ impl Dependency for JsonExportsDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: get_exports_from_data(self.data(module_graph), self.exports_depth, 1)
+      exports: get_exports_from_data(&self.data(module_graph), self.exports_depth, 1)
         .map_or(ExportsOfExportsSpec::NoExports, ExportsOfExportsSpec::Names),
       ..Default::default()
     })

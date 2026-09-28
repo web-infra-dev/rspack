@@ -1,3 +1,4 @@
+use rspack_intern::AtomRef;
 use rspack_util::SpanExt;
 pub mod ast;
 mod call_hooks_name;
@@ -23,25 +24,25 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
-  DependencyCodeGeneration, DependencyCodeGenerationRef, DependencyId, DependencyLocation,
-  DependencyRange, FactoryMeta, ImportMeta, ImportMetaKnownProperties,
-  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
-  ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
+  DependenciesBlock, Dependency, DependencyCodeGeneration, DependencyCodeGenerationRef,
+  DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
+  ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
-use swc_atoms::Atom;
 use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{
-  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, Decl, Expr, GetSpan, Ident, Lit,
-  MemberExpr, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase,
+  ArrayPat, AssignPat, AssignTarget, AssignTargetPat, CallExpr, Callee, Decl, Expr, GetSpan, Ident,
+  Lit, MemberExpr, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase,
   OptChainExpr, Pat, Program, RestPat, Span, Stmt, ThisExpr,
 };
 
 use crate::{
-  BoxJavascriptParserPlugin,
+  Atom, BoxJavascriptParserPlugin,
   dependency::{DependencyBranchGuard, local_module::LocalModule},
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
@@ -191,7 +192,7 @@ pub enum ExportedVariableInfo {
   VariableInfo(VariableInfoId),
 }
 
-fn object_and_members_to_name(object: &Atom, members_reversed: &[impl AsRef<str>]) -> String {
+fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]) -> String {
   let total_len = object.len()
     + members_reversed.len()
     + members_reversed
@@ -245,7 +246,7 @@ impl RootName for ThisExpr {
 
 impl RootName for Ident<'_> {
   fn get_root_name(&self) -> Option<Atom> {
-    Some(Atom::from(self.sym.as_str()))
+    Some(Atom::from(&self.sym))
   }
 }
 
@@ -259,7 +260,7 @@ impl RootName for MetaPropExpr {
 }
 
 pub struct NameInfo<'a> {
-  pub name: &'a Atom,
+  pub name: &'a str,
   pub info: Option<&'a VariableInfo>,
 }
 
@@ -416,7 +417,8 @@ pub struct JavascriptParser<'parser> {
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
-  blocks: Vec<Box<AsyncDependenciesBlock>>,
+  blocks: Vec<Option<Box<AsyncDependenciesBlock>>>,
+  block_parents: Vec<Option<usize>>,
   // ===== inputs =======
   pub(crate) source: &'parser str,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
@@ -440,6 +442,7 @@ pub struct JavascriptParser<'parser> {
   pub in_try: bool,
   pub(crate) terminated: Option<ScopeTerminated>,
   pub(crate) in_short_hand: bool,
+  pub(crate) in_assignment_pattern: bool,
   pub(crate) in_tagged_template_tag: bool,
   pub(crate) member_expr_in_optional_chain: bool,
   pub(crate) semicolons: &'parser mut FxHashSet<u32>,
@@ -485,9 +488,14 @@ impl<'parser> JavascriptParser<'parser> {
   ) -> Self {
     let warning_diagnostics: Vec<Diagnostic> = Vec::new();
     let errors = Vec::new();
-    let dependencies = Vec::with_capacity(64);
-    let blocks = Vec::with_capacity(64);
-    let presentational_dependencies = Vec::with_capacity(64);
+    // These three vectors are moved into the scan result and stay alive for the
+    // whole build, so their capacity is a per-module constant cost. Most modules
+    // have a handful of dependencies and no async blocks, while presentational
+    // dependencies average around seven in a large app, so start small without
+    // going all the way down to one element and let the rare large module grow.
+    let dependencies = Vec::with_capacity(16);
+    let blocks = Vec::with_capacity(4);
+    let presentational_dependencies = Vec::with_capacity(8);
     let parser_exports_state: Option<bool> = None;
 
     let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32 + parser_plugins.len());
@@ -612,6 +620,7 @@ impl<'parser> JavascriptParser<'parser> {
       in_try: false,
       terminated: None,
       in_short_hand: false,
+      in_assignment_pattern: false,
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
@@ -645,6 +654,7 @@ impl<'parser> JavascriptParser<'parser> {
       is_renaming: None,
       location_advancer: DependencyLocationAdvancer::new(),
       collecting_dependencies_for_block: None,
+      block_parents: Vec::new(),
       dependencies_in_branch_guard: None,
       current_branch_guard: None,
     }
@@ -656,9 +666,31 @@ impl<'parser> JavascriptParser<'parser> {
         &mut self.inner_graph,
         &mut self.dependencies,
       );
+      // Keep flat indices stable for dependency analysis, then assemble the tree
+      // from children to parents while preserving each block's insertion order.
+      let mut nested_blocks = vec![Vec::new(); self.blocks.len()];
+      let mut blocks = Vec::new();
+      for (index, (block, parent)) in self
+        .blocks
+        .into_iter()
+        .zip(self.block_parents)
+        .enumerate()
+        .rev()
+      {
+        let mut block = block.expect("reserved parser block should be initialized");
+        for child in nested_blocks[index].drain(..).rev() {
+          block.add_block(child);
+        }
+        if let Some(parent) = parent {
+          nested_blocks[parent].push(block.into());
+        } else {
+          blocks.push(block);
+        }
+      }
+      blocks.reverse();
       Ok(ScanDependenciesResult {
         dependencies: self.dependencies,
-        blocks: self.blocks,
+        blocks,
         presentational_dependencies: self.presentational_dependencies,
         warning_diagnostics: self.warning_diagnostics,
         side_effects_item: self.side_effects_item,
@@ -698,8 +730,8 @@ impl<'parser> JavascriptParser<'parser> {
     &self.dependencies
   }
 
-  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {
-    self.dependencies.get_mut(idx)
+  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut (dyn Dependency + 'static)> {
+    self.dependencies.get_mut(idx).map(AsMut::as_mut)
   }
 
   pub fn collect_dependencies_for_block(
@@ -761,13 +793,28 @@ impl<'parser> JavascriptParser<'parser> {
     Arc::get_mut(self.presentational_dependencies.get_mut(idx)?)
   }
 
-  pub fn add_block(&mut self, mut block: Box<AsyncDependenciesBlock>) {
+  pub fn reserve_block(&mut self) -> usize {
+    let index = self.blocks.len();
+    self.blocks.push(None);
+    self
+      .block_parents
+      .push(self.collecting_dependencies_for_block);
+    index
+  }
+
+  pub fn set_block(&mut self, index: usize, mut block: Box<AsyncDependenciesBlock>) {
     if let Some(guard) = &self.current_branch_guard {
       for dep in block.dependencies_mut() {
-        guard.bind_dependency(dep.as_mut());
+        guard.bind_dependency(dep);
       }
     }
-    self.blocks.push(block);
+    debug_assert!(self.blocks[index].is_none());
+    self.blocks[index] = Some(block);
+  }
+
+  pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
+    let index = self.reserve_block();
+    self.set_block(index, block);
   }
 
   pub fn next_block_idx(&self) -> usize {
@@ -775,7 +822,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn get_block_mut(&mut self, idx: usize) -> Option<&mut Box<AsyncDependenciesBlock>> {
-    self.blocks.get_mut(idx)
+    self.blocks.get_mut(idx).and_then(Option::as_mut)
   }
 
   pub fn add_error(&mut self, error: Diagnostic) {
@@ -853,7 +900,10 @@ impl<'parser> JavascriptParser<'parser> {
     self.last_esm_import_order
   }
 
-  pub fn get_variable_info(&mut self, name: &Atom) -> Option<&VariableInfo> {
+  pub fn get_variable_info<'key>(
+    &mut self,
+    name: impl Into<AtomRef<'key>>,
+  ) -> Option<&VariableInfo> {
     let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_variable(id))
   }
@@ -902,9 +952,9 @@ impl<'parser> JavascriptParser<'parser> {
     None
   }
 
-  pub fn get_tag_data<Data: TagInfoData>(
+  pub fn get_tag_data<'key, Data: TagInfoData>(
     &mut self,
-    name: &Atom,
+    name: impl Into<AtomRef<'key>>,
     tag: &'static str,
   ) -> Option<&Data> {
     self
@@ -913,9 +963,9 @@ impl<'parser> JavascriptParser<'parser> {
       .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
   }
 
-  pub fn get_tag_data_mut<Data: TagInfoData>(
+  pub fn get_tag_data_mut<'key, Data: TagInfoData>(
     &mut self,
-    name: &Atom,
+    name: impl Into<AtomRef<'key>>,
     tag: &'static str,
   ) -> Option<&mut Data> {
     self
@@ -936,9 +986,16 @@ impl<'parser> JavascriptParser<'parser> {
       .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
   }
 
-  pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {
+  pub fn get_free_info_from_variable<'a>(
+    &'a mut self,
+    name: impl Into<AtomRef<'a>>,
+  ) -> Option<NameInfo<'a>> {
+    let name = name.into();
     let Some(info) = self.get_variable_info(name) else {
-      return Some(NameInfo { name, info: None });
+      return Some(NameInfo {
+        name: name.as_str(),
+        info: None,
+      });
     };
     let Some(name) = &info.name else {
       return None;
@@ -947,14 +1004,21 @@ impl<'parser> JavascriptParser<'parser> {
       return None;
     }
     Some(NameInfo {
-      name,
+      name: name.as_str(),
       info: Some(info),
     })
   }
 
-  pub fn get_name_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {
+  pub fn get_name_info_from_variable<'a>(
+    &'a mut self,
+    name: impl Into<AtomRef<'a>>,
+  ) -> Option<NameInfo<'a>> {
+    let name = name.into();
     let Some(info) = self.get_variable_info(name) else {
-      return Some(NameInfo { name, info: None });
+      return Some(NameInfo {
+        name: name.as_str(),
+        info: None,
+      });
     };
     let Some(name) = &info.name else {
       return None;
@@ -963,7 +1027,7 @@ impl<'parser> JavascriptParser<'parser> {
       return None;
     }
     Some(NameInfo {
-      name,
+      name: name.as_str(),
       info: Some(info),
     })
   }
@@ -1227,7 +1291,7 @@ impl<'parser> JavascriptParser<'parser> {
             members.push(value);
             member_ranges.push(expr.obj.span());
           } else if let Some(ident) = expr.prop.as_ident() {
-            members.push(Atom::from(ident.sym.as_str()));
+            members.push(Atom::from(&ident.sym));
             member_ranges.push(expr.obj.span());
           } else {
             break;
@@ -1260,7 +1324,8 @@ impl<'parser> JavascriptParser<'parser> {
     F: FnOnce(&mut Self, &Ident),
   {
     let drive = self.plugin_drive.clone();
-    if !Atom::from(ident.sym.as_str())
+    if !ident
+      .sym
       .call_hooks_name(self, |parser, for_name| {
         drive.pattern(parser, ident, for_name)
       })
@@ -1297,9 +1362,8 @@ impl<'parser> JavascriptParser<'parser> {
         ObjectPatProp::KeyValue(kv) => self.enter_pattern(PatRef::Borrowed(&kv.value), on_ident),
         ObjectPatProp::Assign(assign) => {
           let old = self.in_short_hand;
-          if assign.value.is_none() {
-            self.in_short_hand = true;
-          }
+          // Defaulted shorthand bindings must also preserve their property key.
+          self.in_short_hand = true;
           self.enter_ident(&assign.key.id, on_ident);
           self.in_short_hand = old;
         }
@@ -1315,7 +1379,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.enter_pattern(PatRef::Borrowed(&rest.arg), on_ident)
   }
 
-  fn enter_pattern<F>(&mut self, pattern: PatRef<'_>, on_ident: F)
+  pub(crate) fn enter_pattern<F>(&mut self, pattern: PatRef<'_>, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
@@ -1330,15 +1394,25 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn enter_assign_target_pattern<F>(&mut self, pattern: &AssignTargetPat, on_ident: F)
+  fn enter_assignment_target<F>(&mut self, target: &AssignTarget, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
-    match pattern {
-      AssignTargetPat::Array(array) => self.enter_array_pattern(array, on_ident),
-      AssignTargetPat::Object(obj) => self.enter_object_pattern(obj, on_ident),
-      AssignTargetPat::Invalid(_) => (),
+    let old = self.in_assignment_pattern;
+    self.in_assignment_pattern = true;
+    match target {
+      AssignTarget::Simple(simple) => {
+        if let Some(ident) = simple.as_ident() {
+          self.enter_ident(&ident.id, on_ident);
+        }
+      }
+      AssignTarget::Pat(pattern) => match &**pattern {
+        AssignTargetPat::Array(array) => self.enter_array_pattern(array, on_ident),
+        AssignTargetPat::Object(obj) => self.enter_object_pattern(obj, on_ident),
+        AssignTargetPat::Invalid(_) => (),
+      },
     }
+    self.in_assignment_pattern = old;
   }
 
   fn enter_patterns<'a, I, F>(&mut self, patterns: I, on_ident: F)
@@ -1500,7 +1574,7 @@ impl<'parser> JavascriptParser<'parser> {
     scope.is_strict
   }
 
-  pub fn is_variable_defined(&mut self, name: &Atom) -> bool {
+  pub fn is_variable_defined<'key>(&mut self, name: impl Into<AtomRef<'key>>) -> bool {
     let Some(info) = self.get_variable_info(name) else {
       return false;
     };
@@ -1559,7 +1633,7 @@ impl<'parser> JavascriptParser<'parser> {
       ),
       Expr::Member(member) => eval::eval_member_expression(self, member, expr),
       Expr::Ident(ident) => {
-        let name = Atom::from(ident.sym.as_str());
+        let name = Atom::from(&ident.sym);
         if name == "undefined" {
           let mut eval =
             BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
@@ -1600,7 +1674,7 @@ impl<'parser> JavascriptParser<'parser> {
               let mut eval =
                 BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
               eval.set_identifier(
-                Atom::from(ident.sym.as_str()),
+                Atom::from(&ident.sym),
                 ExportedVariableInfo::Name(name.clone()),
                 None,
                 None,
@@ -1624,7 +1698,7 @@ impl<'parser> JavascriptParser<'parser> {
           );
           Some(eval)
         };
-        let Some(info) = self.get_variable_info(&"this".into()) else {
+        let Some(info) = self.get_variable_info("this") else {
           // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
           return drive
             .evaluate_identifier(self, "this", None, this.span.real_lo(), this.span.real_hi())

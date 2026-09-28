@@ -9,7 +9,8 @@ use rspack_core::{
   ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
   create_exports_object_referenced, property_access, to_normal_comment,
 };
-use swc_atoms::Atom;
+
+use crate::Atom;
 
 #[cacheable]
 #[derive(Debug)]
@@ -50,6 +51,18 @@ impl CommonJsFullRequireDependency {
       asi_safe,
       loc,
     }
+  }
+
+  pub fn names(&self) -> &[Atom] {
+    &self.names
+  }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn asi_safe(&self) -> bool {
+    self.asi_safe
   }
 }
 

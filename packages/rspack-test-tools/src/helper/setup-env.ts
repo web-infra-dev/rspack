@@ -1,10 +1,10 @@
 // @ts-nocheck
-const path = require('node:path');
+import path from 'node:path';
 
 // Setup environment variable for binding testing
 if (process.env.RSPACK_BINDING_BUILDER_TESTING) {
   process.env.RSPACK_BINDING = path.resolve(
-    __dirname,
+    import.meta.dirname,
     '../../node_modules/@rspack/binding-testing',
   );
 }

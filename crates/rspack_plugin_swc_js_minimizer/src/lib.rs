@@ -10,7 +10,7 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, CacheOptions, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
+  AssetInfo, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilerCompilation, Etag, Logger, Plugin,
   cache::{CachedExtractedComments, CachedMinimizeEntry},
   diagnostics::MinifyError,
@@ -225,9 +225,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
 
-  let new_cache = (compilation.options.experiments.new_cache.minimize
-    && !matches!(&compilation.options.cache, CacheOptions::Disabled))
-  .then(|| compilation.get_cache(PLUGIN_NAME));
+  let new_cache = compilation
+    .options
+    .experiments
+    .new_cache
+    .minimize
+    .then(|| compilation.get_cache(PLUGIN_NAME));
   let minimize_persistent_cache = compilation.minimize_persistent_cache.take();
   let legacy_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
     Mutex::new(Vec::new());
@@ -277,7 +280,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             "{:016x}",
             minimize_cache_hash(original_source, self.options_hash, filename, is_module)
           ));
-          let value = cache.get::<CachedMinimizeEntry>(asset_filename, Some(etag.clone()))?;
+          let value = cache.get::<CachedMinimizeEntry>(asset_filename, Some(etag.clone()));
           Some((cache, etag, value))
         } else {
           None
@@ -522,7 +525,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             extracted_comments: extracted_comments_for_cache,
           };
           if let Some((cache, etag, _)) = &new_cache_entry {
-            cache.store(asset_filename, Some(etag.clone()), CacheValue::new(entry))?;
+            cache.store(asset_filename, Some(etag.clone()), CacheValue::new(entry));
           } else if let Some(cache_key) = cache_key {
             legacy_cache_entries
               .lock()

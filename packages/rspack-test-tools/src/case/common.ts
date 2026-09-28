@@ -4,7 +4,10 @@ import fs from 'fs-extra';
 import merge from 'rspack-merge';
 import { readConfigFile } from '../helper';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
-import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
+import {
+  checkArrayExpectation,
+  findExpectationFile,
+} from '../helper/legacy/checkArrayExpectation';
 import { DEBUG_SCOPES } from '../test/debug';
 import type { ITestContext, ITestEnv } from '../type';
 
@@ -153,8 +156,8 @@ export async function check(
     }
 
     if (
-      fs.existsSync(context.getSource('errors.js')) ||
-      fs.existsSync(context.getSource('warnings.js')) ||
+      findExpectationFile(context.getSource(), 'errors') ||
+      findExpectationFile(context.getSource(), 'warnings') ||
       stats.hasErrors() ||
       stats.hasWarnings()
     ) {
@@ -198,7 +201,7 @@ export async function check(
   );
 
   // clear error if checked
-  if (fs.existsSync(context.getSource('errors.js'))) {
+  if (findExpectationFile(context.getSource(), 'errors')) {
     context.clearError();
   }
 }

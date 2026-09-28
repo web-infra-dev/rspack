@@ -4,7 +4,7 @@ use std::{fmt, ops::Deref, sync::Arc};
 ///
 /// Cloning a key only increments its reference count. The string is released
 /// when its last key is dropped.
-#[derive(Clone, Eq, Hash, PartialEq)]
+#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct CacheKey(Arc<str>);
 
 impl CacheKey {

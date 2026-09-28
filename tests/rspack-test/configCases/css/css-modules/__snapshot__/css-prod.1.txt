@@ -4,7 +4,7 @@
 
 
 
-@media small {
+@media (max-width: 599px) {
 	abbr:hover {
 		color: limegreen;
 		transition-duration: Xs;
@@ -56,7 +56,7 @@
 }
 
 
-colorValue-v3 {
+.red {
 	color: .red;
 }
 

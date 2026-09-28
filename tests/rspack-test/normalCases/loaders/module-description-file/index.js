@@ -8,5 +8,5 @@ it("should run a loader from .webpack-loader.js extension", function() {
 	expect(require("testloader/lib/loader!../_resources/abc.txt")).toBe("abcwebpack");
 });
 it("should be able to pipe loaders", function() {
-	expect(require("testloader!./reverseloader!../_resources/abc.txt")).toBe("cbawebpack");
+	expect(require("testloader!./reverseloader.mjs!../_resources/abc.txt")).toBe("cbawebpack");
 });

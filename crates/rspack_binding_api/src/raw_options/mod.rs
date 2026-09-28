@@ -20,6 +20,7 @@ mod raw_module;
 mod raw_node;
 mod raw_optimization;
 mod raw_output;
+mod raw_snapshot;
 mod raw_split_chunks;
 mod raw_stats;
 
@@ -34,6 +35,7 @@ pub use raw_module::*;
 pub use raw_node::*;
 pub use raw_optimization::*;
 pub use raw_output::*;
+pub use raw_snapshot::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
 
@@ -55,9 +57,10 @@ pub struct RawOptions {
   pub stats: RawStatsOptions,
   // For now, memory.max_generation will not be exposed to the js side.
   #[napi(
-    ts_type = r#"boolean | { type: "memory", snapshot: RawSnapshotOptions } | ({ type: "persistent" } & RawCacheOptionsPersistent)"#
+    ts_type = r#"boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent) | ({ type: "filesystem" } & RawFileSystemCacheOptions)"#
   )]
   pub cache: RawCacheOptions,
+  pub snapshot: RawSnapshotOptions,
   pub experiments: RawExperiments,
   #[napi(ts_type = "false | { [key: string]: boolean }")]
   pub incremental: Option<WithFalse<RawIncremental>>,
@@ -138,6 +141,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
       incremental,
       stats,
       cache,
+      snapshot: value.snapshot.into(),
       optimization,
       node,
       amd: value.amd,

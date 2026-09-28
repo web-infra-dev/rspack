@@ -20,8 +20,9 @@ impl PassExt for ProcessAssetsPass {
     process_assets(compilation, plugin_driver).await
   }
 
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) -> Result<()> {
     cache.after_process_assets(compilation).await;
+    Ok(())
   }
 }
 

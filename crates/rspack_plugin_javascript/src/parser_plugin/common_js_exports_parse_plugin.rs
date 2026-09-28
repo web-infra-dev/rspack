@@ -2,7 +2,6 @@ use rspack_core::{
   BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
 };
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, Prop, PropName,
   PropOrSpread, Span, ThisExpr, UnaryExpr, UnaryOp,
@@ -10,6 +9,7 @@ use swc_experimental_ecma_ast::{
 
 use super::JavascriptParserPlugin;
 use crate::{
+  Atom,
   dependency::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
     ExportsBase, ModuleDecoratorDependency,
@@ -25,7 +25,7 @@ fn get_value_of_property_description<'a>(expr: &'a Expr<'a>) -> Option<&'a Expr<
       if let PropOrSpread::Prop(prop) = prop
         && let Prop::KeyValue(key_value_prop) = &**prop
         && let PropName::Ident(ident) = &key_value_prop.key
-        && ident.sym.as_str() == "value"
+        && ident.sym == "value"
       {
         return Some(&key_value_prop.value);
       }
@@ -146,7 +146,7 @@ fn parse_require_call<'p: 'a, 'a>(
   let mut ids = Vec::new();
   while let Some(member) = expr.as_member() {
     if let Some(prop) = member.prop.as_ident() {
-      ids.push(Atom::from(prop.sym.as_str()));
+      ids.push(Atom::from(&prop.sym));
     } else if let Some(prop) = member.prop.as_computed()
       && let prop = parser.evaluate_expression(&prop.expr)
       && let Some(prop) = prop.as_string()

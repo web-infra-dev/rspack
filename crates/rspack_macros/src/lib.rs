@@ -61,10 +61,13 @@ pub fn define_hook(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   .into()
 }
 
-/// Derives `as_str` and `From<&str>` for a fieldless enum.
+/// Derives `as_str` and `From<&str>` for a string enum.
 ///
-/// Variant names use `snake_case` by default. Use `#[string_enum(rename = "...")]` to override a
-/// value and mark exactly one variant with `#[string_enum(fallback)]` for unknown strings.
+/// Variant names use `snake_case` by default. Use `#[string_enum(rename_all = "...")]` on the enum
+/// to select a serde-style rename rule, or `#[string_enum(rename = "...")]` on a variant to
+/// override its value. Mark exactly one variant with `#[string_enum(fallback)]` for unknown
+/// strings. The fallback may be a unit variant or a newtype variant that can store the unknown
+/// string.
 #[proc_macro_derive(StringEnum, attributes(string_enum))]
 pub fn string_enum_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   let input = syn::parse_macro_input!(input as syn::DeriveInput);

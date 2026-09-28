@@ -46,7 +46,6 @@ pub struct BeforeResolveData {
   pub pattern: ContextModulePattern,
 }
 
-#[derive(Clone)]
 pub enum AfterResolveResult {
   Ignored,
   Data(Box<AfterResolveData>),
@@ -252,15 +251,21 @@ impl ContextModuleFactory {
         let mut loader_result = Vec::with_capacity(loaders.len());
         let loader_resolver = self.get_loader_resolver();
         for loader_request in loaders {
-          let resolve_result = loader_resolver
-            .resolve(data.context.as_ref(), loader_request)
-            .await
-            .to_rspack_result_with_message(|e| {
-              format!(
-                "Failed to resolve loader: {loader_request} in {} {e}",
-                data.context
-              )
-            })?;
+          let (result, dependencies) = loader_resolver
+            .resolve_with_context(data.context.as_ref(), loader_request)
+            .await;
+          data
+            .file_dependencies
+            .extend(dependencies.file_dependencies);
+          data
+            .missing_dependencies
+            .extend(dependencies.missing_dependencies);
+          let resolve_result = result.to_rspack_result_with_message(|e| {
+            format!(
+              "Failed to resolve loader: {loader_request} in {} {e}",
+              data.context
+            )
+          })?;
           match resolve_result {
             ResolveResult::Resource(resource) => {
               let resource = resource.full_path();
@@ -396,7 +401,7 @@ impl ContextModuleFactory {
     let context_module_options = &mut options;
     let context_options = &context_module_options.context_options;
     let after_resolve_data = AfterResolveData {
-      compilation_id: data.compilation_id,
+      compilation_id: data.build_context.compilation_id,
       resource: context_module_options.resource.clone(),
       context: resolve_context,
       dependencies: data.dependencies.clone(),

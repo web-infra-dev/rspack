@@ -7,9 +7,9 @@ use rspack_core::{
   FakeNamespaceObjectMode, ModuleGraph, ModuleReferenceOptions, RuntimeGlobals, TemplateContext,
   get_exports_type, property_access,
 };
+use rspack_intern::Atom;
 use rspack_plugin_javascript::dependency::ImportDependency;
 use rspack_plugin_rslib::dyn_import_external::render_dyn_import_external_module;
-use rspack_util::atom::Atom;
 
 use crate::EsmLibraryPlugin;
 

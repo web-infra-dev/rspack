@@ -1,6 +1,6 @@
-const { rspack } = require('@rspack/core');
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: {
     main: './src/index.js',
   },

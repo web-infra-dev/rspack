@@ -17,11 +17,12 @@ use crate::{
 
 pub async fn repair(
   compilation: &Compilation,
-  mut artifact: BuildModuleGraphArtifact,
+  artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
   build_dependencies: HashSet<BuildDependency>,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
-  let module_graph = artifact.get_module_graph_mut();
+  let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
+  let module_graph = &ctx.artifact.module_graph;
   let mut grouped_deps = HashMap::default();
   for (dep_id, parent_module_identifier) in build_dependencies {
     grouped_deps
@@ -47,8 +48,7 @@ pub async fn repair(
           let module_factory = compilation.get_dependency_factory(dependency.as_ref());
           let dependency = dependency.clone();
           Box::new(factorize::FactorizeTask {
-            compiler_id: compilation.compiler_id(),
-            compilation_id: compilation.id(),
+            build_context: ctx.build_context.clone(),
             module_factory,
             original_module_identifier: None,
             original_module_source: None,
@@ -57,8 +57,6 @@ pub async fn repair(
             original_module_context: None,
             dependencies: vec![dependency],
             resolve_options: None,
-            options: compilation.options.clone(),
-            resolver_factory: compilation.resolver_factory.clone(),
             from_unlazy: false,
           }) as Box<dyn Task<TaskContext>>
         })
@@ -66,7 +64,6 @@ pub async fn repair(
     })
     .collect::<Vec<_>>();
 
-  let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
   run_task_loop(&mut ctx, init_tasks).await?;
   Ok((ctx.artifact, ctx.exports_info_artifact))
 }

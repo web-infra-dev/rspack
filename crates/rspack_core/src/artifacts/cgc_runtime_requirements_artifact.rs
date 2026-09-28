@@ -4,7 +4,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{ArtifactExt, ChunkUkey, RuntimeGlobals, incremental::IncrementalPasses};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct CgcRuntimeRequirementsArtifact(FxHashMap<ChunkUkey, RuntimeGlobals>);
 
 impl ArtifactExt for CgcRuntimeRequirementsArtifact {

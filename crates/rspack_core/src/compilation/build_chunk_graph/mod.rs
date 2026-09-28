@@ -3,19 +3,21 @@
 
 use tracing::instrument;
 
-use crate::Compilation;
+use crate::{Compilation, incremental::IncrementalPasses};
 pub(crate) mod code_splitter;
 pub(crate) mod incremental;
 pub(crate) mod pass;
 
+// TODO: heuristic incremental updates are temporarily disabled. Keep cache
+// preparation tied to the same switch, including on the initial compilation.
+pub(crate) const ENABLE_HEURISTIC_INCREMENTAL: bool = false;
+
 #[instrument("Compilation:build_chunk_graph", skip_all)]
 pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<()> {
-  // TODO: heuristic incremental update is temporarily disabled
-  // Original code:
-  // let enable_incremental = compilation
-  //   .incremental
-  //   .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
-  let enable_incremental = false;
+  let enable_incremental = ENABLE_HEURISTIC_INCREMENTAL
+    && compilation
+      .incremental
+      .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
   let mut splitter = if enable_incremental {
     std::mem::take(&mut compilation.build_chunk_graph_artifact.code_splitter)
   } else {
@@ -27,6 +29,18 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
     .modules_keys()
     .copied()
     .collect::<Vec<_>>();
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .reserve_modules(all_modules.len());
+
+  // Make sure all modules (particularly weak dependencies) have a CGM before splitting.
+  for module_identifier in &all_modules {
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .add_module(*module_identifier);
+  }
 
   splitter.prepare(&all_modules, compilation)?;
 
@@ -42,12 +56,12 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
   // remove empty chunk groups
   splitter.remove_orphan(compilation)?;
 
-  // make sure all module (weak dependency particularly) has a cgm
+  // Orphan cleanup may remove the CGM of a module that remains in the module graph.
   for module_identifier in all_modules {
     compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .add_module(module_identifier)
+      .add_module(module_identifier);
   }
 
   compilation

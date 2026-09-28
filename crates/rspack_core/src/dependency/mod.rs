@@ -37,6 +37,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
+use rspack_intern::Atom;
 pub use runtime_requirements_dependency::{
   CodeGenerationRuntimeRequirementsWrite, RuntimeRequirementsDependency,
   RuntimeRequirementsDependencyTemplate, RuntimeRequirementsDependencyWriteOperation,
@@ -44,7 +45,6 @@ pub use runtime_requirements_dependency::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
-use swc_core::ecma::atoms::Atom;
 
 use crate::{
   ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType, ModuleGraph,
@@ -206,13 +206,14 @@ impl std::fmt::Debug for DependencyCondition {
   }
 }
 
+/// Boxed to keep optional import attributes small in dependency structs.
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Serialize, Default, PartialEq, Eq)]
-pub struct ImportAttributes(FxHashMap<String, String>);
+pub struct ImportAttributes(Box<FxHashMap<String, String>>);
 
 impl FromIterator<(String, String)> for ImportAttributes {
   fn from_iter<T: IntoIterator<Item = (String, String)>>(iter: T) -> Self {
-    Self(FxHashMap::from_iter(iter))
+    Self(Box::new(FxHashMap::from_iter(iter)))
   }
 }
 

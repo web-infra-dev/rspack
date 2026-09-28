@@ -1,6 +1,6 @@
 use crate::DependencyId;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct DenseDependencyIdMap<V> {
   values: Vec<Option<V>>,
 }

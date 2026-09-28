@@ -8,7 +8,8 @@ use rspack_core::{
 };
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::json_stringify_str;
-use swc_atoms::Atom;
+
+use crate::Atom;
 
 pub const IMPORT_META_RSC_BINDING: &str = "__rspack_import_meta_rsc__";
 

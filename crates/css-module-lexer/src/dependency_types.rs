@@ -185,11 +185,13 @@ pub enum Dependency<'s> {
     request: &'s str,
     range: Range,
     kind: UrlRangeKind,
+    magic_comments: Option<&'s str>,
   },
   Import {
     request: &'s str,
     range: Range,
     attributes: DependencyIndex<ImportAttributes<'s>>,
+    magic_comments: Option<&'s str>,
   },
   ICSSImportUrl {
     name: &'s str,
@@ -403,6 +405,7 @@ impl<'s> DependencyContext<'s> {
     layer: Option<&'s str>,
     supports: Option<&'s str>,
     media: Option<&'s str>,
+    magic_comments: Option<&'s str>,
   ) {
     let attributes = DependencyIndex::from_index(self.import_attributes.len());
     self
@@ -412,6 +415,7 @@ impl<'s> DependencyContext<'s> {
       request,
       range,
       attributes,
+      magic_comments,
     });
   }
 

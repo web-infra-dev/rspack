@@ -4,7 +4,7 @@ use rspack_collections::IdentifierSet;
 
 use crate::{ArtifactExt, incremental::IncrementalPasses};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct ImportedByDeferModulesArtifact(IdentifierSet);
 
 impl ArtifactExt for ImportedByDeferModulesArtifact {

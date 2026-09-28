@@ -1,4 +1,4 @@
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 use rustc_hash::FxHashSet;
 
 use crate::{

@@ -48,6 +48,12 @@ use rspack_error::Result;
 7. Hook implementations
 8. Trait implementations
 
+### Cloning
+
+- Add `Clone` only for a concrete need, whether derived or manually implemented.
+- If it copies underlying data, explain why in the type's documentation and PR description.
+  Implementations that only clone `Arc` handles are exempt from this explanation.
+
 ### Error handling
 
 - Use `rspack_error::Result<T>` for fallible operations

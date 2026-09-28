@@ -57,7 +57,7 @@ export default {
 
 ### watchOptions.ignored
 
-- **类型：** `RegExp | string | string[]`
+- **类型：** `RegExp | string | string[] | ((entry: string) => boolean)`
 - **默认值：** `/[\\/](?:\.git|node_modules)[\\/]/`
 
 使用 `watchOptions.ignored` 可以从监听范围中排除匹配的文件和目录。忽略不需要监听的目录有助于降低 CPU 和内存占用。
@@ -111,6 +111,18 @@ export default {
 ```
 
 `watchOptions.ignored` 的 glob 语法基于 [glob-to-regexp](https://github.com/fitzgen/glob-to-regexp)。有关支持的模式语法，请参阅其文档。
+
+最后，`ignored` 也可以是一个函数，它会被每个条目调用，返回 `true` 表示排除该条目：
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    ignored: (entry) => entry.includes('.git'),
+  },
+};
+```
+
+与其他形式不同，函数拿到的路径保留了当前平台的分隔符，并且需要自行排除被排除目录下的条目。
 
 ### watchOptions.poll
 

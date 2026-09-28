@@ -11,10 +11,6 @@ on:
         type: boolean
         required: false
         default: false
-      bench: # Run benchmarks?
-        type: boolean
-        required: false
-        default: false
       ref: # Git reference to checkout
         required: false
         type: string

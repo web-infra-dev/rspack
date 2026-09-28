@@ -842,7 +842,7 @@ export type ResolveOptions = {
    * A list of resolve restrictions to restrict the paths that a request can be resolved on.
    * @default []
    * */
-  restrictions?: string[];
+  restrictions?: (string | RegExp)[];
 
   /**
    * A list of directories where server-relative URLs (beginning with '/') are resolved.
@@ -911,7 +911,7 @@ export type RuleSetLoaderWithOptions = {
   options?: RuleSetLoaderOptions;
 };
 
-export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions;
+export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions | Falsy;
 
 export type RuleSetUse =
   | RuleSetUseItem
@@ -1812,7 +1812,10 @@ export type ExternalsType =
   | 'modern-module'
   | 'script'
   | 'node-commonjs'
-  | 'commonjs-import';
+  | 'commonjs-import'
+  | 'asset'
+  | 'asset-url'
+  | 'css-import';
 //#endregion
 
 //#region Externals
@@ -1865,12 +1868,12 @@ export type ExternalItemFunctionData = {
   };
   /**
    * Get a resolve function with the current resolver options.
+   * The returned function accepts a callback or returns a Promise when called without one.
    */
   getResolve?: (
     options?: ResolveOptions,
-  ) =>
-    | ((context: string, request: string, callback: ResolveCallback) => void)
-    | ((context: string, request: string) => Promise<string>);
+  ) => ((context: string, request: string, callback: ResolveCallback) => void) &
+    ((context: string, request: string) => Promise<string | undefined>);
 };
 
 /**
@@ -1890,16 +1893,14 @@ export type ExternalItem =
   | string
   | RegExp
   | ExternalItemObjectUnknown
-  | ((data: ExternalItemFunctionData) => ExternalItemValue)
   | ((
       data: ExternalItemFunctionData,
       callback: (
-        err?: Error,
+        err?: Error | null,
         result?: ExternalItemValue,
         type?: ExternalsType,
       ) => void,
-    ) => void)
-  | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>);
+    ) => ExternalItemValue | void | Promise<ExternalItemValue | void>);
 
 /**
  * Prevent bundling of certain imported packages and instead retrieve these external dependencies at runtime.
@@ -2069,7 +2070,7 @@ export type Loader = Record<string, any>;
 /**
  * Snapshot options for determining which files have been modified.
  */
-export type CacheSnapshotOptions = {
+export type SnapshotOptions = {
   /**
    * An array of paths to immutable files, changes to these paths will be ignored during hot restart.
    */
@@ -2083,7 +2084,27 @@ export type CacheSnapshotOptions = {
    * @default [/[\\/]node_modules[\\/][^.]/]
    */
   managedPaths?: (string | RegExp)[];
+  /** Snapshot strategy for build dependencies. */
+  buildDependencies?: SnapshotStrategyOptions;
+  /** Snapshot strategy for resolving build dependencies. */
+  resolveBuildDependencies?: SnapshotStrategyOptions;
+  /** Snapshot strategy for module dependencies. */
+  module?: SnapshotStrategyOptions;
+  /** Snapshot strategy for context modules. */
+  contextModule?: SnapshotStrategyOptions;
+  /** Snapshot strategy for resolving requests. */
+  resolve?: SnapshotStrategyOptions;
 };
+
+export type SnapshotStrategyOptions = {
+  /** Use content hashes to detect changes. */
+  hash?: boolean;
+  /** Use timestamps to detect changes. */
+  timestamp?: boolean;
+};
+
+/** @deprecated Use `SnapshotOptions` and the top-level `snapshot` option. */
+export type CacheSnapshotOptions = SnapshotOptions;
 
 /**
  * Storage options for persistent cache.
@@ -2147,9 +2168,7 @@ export type PersistentCacheOptions = {
    * cache per compiler path.
    */
   maxVersions?: number;
-  /**
-   * Snapshot options for determining which files have been modified.
-   */
+  /** @deprecated Use the top-level `snapshot` option instead. */
   snapshot?: CacheSnapshotOptions;
   /**
    * Storage options for cache.
@@ -2177,10 +2196,35 @@ export type MemoryCacheOptions = {
    * Cache type.
    */
   type: 'memory';
+};
+
+/** Filesystem cache options. Requires `experiments.newCache` to be enabled. */
+export type FileSystemCacheOptions = {
+  type: 'filesystem';
+  /** Name for the cache. Different names create coexisting caches. */
+  name?: string;
+  /** Build dependencies grouped by category. Changes invalidate the cache. */
+  buildDependencies?: Record<string, string[]>;
+  /** Base directory for the cache. Defaults to `node_modules/.cache/rspack`. */
+  cacheDirectory?: string;
+  /** Cache location. Defaults to `<cacheDirectory>/<name>`. */
+  cacheLocation?: string;
+  /** Cache version. Changing this value invalidates the cache. Defaults to `""`. */
+  version?: string;
+  /** Read existing cache data without writing to disk. Defaults to `false`. */
+  readonly?: boolean;
   /**
-   * Snapshot options for determining which files have been modified.
+   * Generations to retain unused entries in memory. Use 0 to disable the memory
+   * cache or Infinity to retain entries forever. Defaults to 5 in development,
+   * Infinity otherwise.
    */
-  snapshot?: CacheSnapshotOptions;
+  maxMemoryGenerations?: number;
+  /** Idle time before writing to disk, in milliseconds. Defaults to 60000. */
+  idleTimeout?: number;
+  /** Idle time before the initial write, in milliseconds. Defaults to 5000. */
+  idleTimeoutForInitialStore?: number;
+  /** Idle time after large changes, in milliseconds. Defaults to 1000. */
+  idleTimeoutAfterLargeChanges?: number;
 };
 
 /**
@@ -2195,7 +2239,10 @@ export type MemoryCacheOptions = {
  * cache: false
  */
 export type CacheOptions =
-  boolean | MemoryCacheOptions | PersistentCacheOptions;
+  | boolean
+  | MemoryCacheOptions
+  | PersistentCacheOptions
+  | FileSystemCacheOptions;
 //#endregion
 
 //#region Stats
@@ -2813,6 +2860,14 @@ export type OptimizationSplitChunksCacheGroup = {
 /** Tell Rspack how to splitting chunks. */
 export type OptimizationSplitChunksOptions = {
   /**
+   * Maximum rounds of intersection discovery for additional shared-module groups.
+   * Defaults to `1` (pairwise intersections) in production and `0` otherwise.
+   * Set `0` to disable discovery.
+   * Higher depths allow newly discovered intersections to participate in the next round.
+   */
+  dedupDepth?: number;
+
+  /**
    * Options for module cache group
    * */
   cacheGroups?: Record<string, false | OptimizationSplitChunksCacheGroup>;
@@ -3150,12 +3205,16 @@ export type UseInputFileSystem = false | RegExp[];
 export type NewCache = {
   /** Enable the module code generation cache. @default true */
   codeGeneration?: boolean;
+  /** Enable the module build cache. @default true */
+  module?: boolean;
   /** Enable the devtool asset cache. @default true */
   devtool?: boolean;
   /** Enable the per-loader cache. @default true */
   loader?: boolean;
   /** Enable the asset minimization cache. @default true */
   minimize?: boolean;
+  /** Enable the module and loader resolution cache. @default true */
+  resolver?: boolean;
 };
 
 export type NewCachePresets = boolean;
@@ -3263,8 +3322,10 @@ export type WatchOptions = {
 
   /**
    * Ignore some files from being watched.
+   * A function receives each entry and must return `true` to ignore it; unlike
+   * the other forms, its path keeps the platform separators.
    */
-  ignored?: string | RegExp | string[];
+  ignored?: string | RegExp | string[] | ((entry: string) => boolean);
 
   /**
    * Turn on polling by passing true, or specifying a poll interval in milliseconds.
@@ -3420,6 +3481,8 @@ export type RspackOptions = {
    * Options for caching.
    */
   cache?: CacheOptions;
+  /** Options for detecting changes to dependencies. */
+  snapshot?: SnapshotOptions;
   /**
    * The context in which the compilation should occur.
    */

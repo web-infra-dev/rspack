@@ -21,6 +21,10 @@ impl RequireHeaderDependency {
       loc,
     }
   }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
 }
 
 #[cacheable_dyn]

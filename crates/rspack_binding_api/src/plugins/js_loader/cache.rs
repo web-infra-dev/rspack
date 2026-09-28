@@ -143,12 +143,12 @@ impl JsLoaderCache {
   ) -> napi::Result<Option<JsLoaderCacheEntry>> {
     let loader = self.loader(loader_index)?;
     let content = match content {
-      Either::A(content) => content.into_bytes(),
-      Either::B(content) => content.to_vec(),
+      Either::A(content) => Content::String(content),
+      Either::B(content) => Content::Buffer(content.to_vec()),
     };
     let existing: LoaderDependencies = existing.into();
     let etag = loader_cache_etag(
-      &Content::Buffer(content),
+      &content,
       &existing,
       &loader.options_cache_key,
       &loader.loader_version,
@@ -159,10 +159,7 @@ impl JsLoaderCache {
       &loader.loader_name,
       etag.clone(),
     );
-    let Some(entry) = item_cache
-      .get::<LoaderCacheEntry>()
-      .map_err(|error| napi::Error::from_reason(error.to_string()))?
-    else {
+    let Some(entry) = item_cache.get::<LoaderCacheEntry>() else {
       self.set_pending_etag(loader_index, Some(etag))?;
       return Ok(None);
     };
@@ -226,9 +223,8 @@ impl JsLoaderCache {
       parse_meta: output.parse_meta,
     };
     let item_cache = loader_cache_item(&self.cache, &self.module_identifier, loader_name, etag);
-    item_cache
-      .store(CacheValue::new(entry))
-      .map_err(|error| napi::Error::from_reason(error.to_string()))
+    item_cache.store(CacheValue::new(entry));
+    Ok(())
   }
 }
 

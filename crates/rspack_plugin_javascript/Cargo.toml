@@ -30,6 +30,7 @@ rspack_error                          = { workspace = true }
 rspack_hash                           = { workspace = true }
 rspack_hook                           = { workspace = true }
 rspack_ids                            = { workspace = true }
+rspack_intern                         = { workspace = true, features = ["swc"] }
 rspack_macros                         = { workspace = true }
 rspack_parallel                       = { workspace = true }
 rspack_paths                          = { workspace = true }
@@ -40,7 +41,6 @@ serde_json                            = { workspace = true }
 slotmap                               = { workspace = true }
 smallvec                              = { workspace = true }
 sugar_path                            = { workspace = true }
-swc_atoms                             = { workspace = true }
 swc_experimental_allocator            = { workspace = true }
 swc_experimental_ecma_ast             = { workspace = true }
 swc_experimental_ecma_parser          = { workspace = true, features = ["unstable"] }

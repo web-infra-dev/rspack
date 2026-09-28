@@ -1,4 +1,4 @@
-import content from "./loader!!";
+import content from "./loader.mjs!!";
 
 it("should compile", () => {
 	expect(typeof content).toBe("string");

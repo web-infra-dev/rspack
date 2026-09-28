@@ -10,7 +10,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_hash::RspackHasher;
-use rspack_util::{atom::Atom, json_stringify, ryu_js};
+use rspack_intern::Atom;
+use rspack_util::{json_stringify, ryu_js};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{DependencyId, property_access};

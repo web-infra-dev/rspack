@@ -10,7 +10,6 @@ import RuntimeModuleType from '../../types/runtime-module.mdx';
 import SourceType from '../../types/source.mdx';
 import HashType from '../../types/hash.mdx';
 import CompilerType from '../../types/compiler.mdx';
-import { ApiMeta } from '@components/ApiMeta';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import Columns from '@components/Columns';
 import { NoSSR } from '@rspress/core/runtime';
@@ -233,9 +232,9 @@ direction LR
     HookReviveChunks(hooks.reviveChunks) --> HookBeforeChunkIds(hooks.beforeChunkIds)
     HookBeforeChunkIds --> HookChunkIds(hooks.moduleIds)
     HookChunkIds --> HookOptimizeChunkIds(hooks.optimizeChunkIds)
-    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(<a href="#afteroptimizechunkids">hooks.afterOptimizeChunkIds</a>)
+    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(hooks.afterOptimizeChunkIds)
 
-    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds flow-hook-non-support
+    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds,HookAfterOptimizeChunkIds flow-hook-non-support
     end
 
     CreateChunkIds --> CreateRecords
@@ -563,24 +562,6 @@ type ExecuteModuleContext = {
     key="Module"
   >
     <ModuleType />
-  </CollapsePanel>
-</Collapse>
-
-## `afterOptimizeChunkIds`
-
-<ApiMeta addedVersion="2.2.3" />
-
-<Badge text="只读" type="info" />
-
-在 chunk id 优化阶段结束之后调用。
-
-- **类型：** `SyncHook<[Iterable<Chunk>]>`
-- **参数：**
-  - `Iterable<Chunk>`：Chunk 实例的可迭代对象
-
-<Collapse>
-  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
-    <ChunkType />
   </CollapsePanel>
 </Collapse>
 

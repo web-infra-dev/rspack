@@ -22,7 +22,11 @@ import {
   SourceMapSource,
 } from 'webpack-sources';
 
-import { commitCustomFieldsToRust } from '../BuildInfo';
+import {
+  commitCustomFieldsToRust,
+  pickCustomBuildInfoFields,
+  replaceCustomBuildInfoFields,
+} from '../BuildInfo';
 import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import {
@@ -363,11 +367,23 @@ export async function runLoaders(
               args: traceData.args,
             });
           }
-          if (res.error) {
-            onError(
-              compiler.__internal__takeModuleExecutionResult(res.id) ??
-                new Error(res.error),
-            );
+          if (res.errors.length > 0) {
+            const executionError =
+              compiler.__internal__takeModuleExecutionResult(res.id);
+            if (executionError != null) {
+              onError(executionError);
+            } else if (res.errors.length === 1) {
+              onError(res.errors[0]);
+            } else {
+              const error = new AggregateError(
+                res.errors,
+                res.errors
+                  .map((error: RspackError) => error.message)
+                  .join('\n'),
+              );
+              (error as RspackError).hideStack = true;
+              onError(error);
+            }
           } else {
             onDone(compiler.__internal__takeModuleExecutionResult(res.id));
           }
@@ -690,23 +706,6 @@ export async function runLoaders(
     return options;
   };
 
-  let compilation: Compilation | undefined = compiler._lastCompilation;
-  let step = 0;
-  while (compilation) {
-    NormalModule.getCompilationHooks(compilation).loader.call(
-      loaderContext,
-      loaderContext._module,
-    );
-    compilation = compilation.compiler.parentCompilation;
-    step++;
-    if (step > 1000) {
-      throw Error(
-        'Too many nested child compiler, exceeded max limitation 1000',
-      );
-    }
-  }
-  dependencies.mergeChanges();
-
   /// Sync with `context`
   Object.defineProperty(loaderContext, 'loaderIndex', {
     enumerable: true,
@@ -732,6 +731,23 @@ export async function runLoaders(
   loaderContext.__internal__setParseMeta = (key: string, value: string) => {
     context.__internal__parseMeta[key] = value;
   };
+
+  let compilation: Compilation | undefined = compiler._lastCompilation;
+  let step = 0;
+  while (compilation) {
+    NormalModule.getCompilationHooks(compilation).loader.call(
+      loaderContext,
+      loaderContext._module,
+    );
+    compilation = compilation.compiler.parentCompilation;
+    step++;
+    if (step > 1000) {
+      throw Error(
+        'Too many nested child compiler, exceeded max limitation 1000',
+      );
+    }
+  }
+  dependencies.mergeChanges();
 
   const getWorkerLoaderContext = () => {
     const normalModule =
@@ -803,6 +819,7 @@ export async function runLoaders(
         request: normalModule?.request,
         userRequest: normalModule?.userRequest,
         rawRequest: normalModule?.rawRequest,
+        buildInfo: pickCustomBuildInfoFields(normalModule?.buildInfo),
       },
     } as any;
     Object.assign(workerLoaderContext, compiler.options.loader);
@@ -930,6 +947,17 @@ export async function runLoaders(
               }
               return item;
             });
+            break;
+          }
+          case RequestType.UpdateBuildInfo: {
+            const buildInfo = loaderContext._module?.buildInfo as
+              Record<string, unknown> | undefined;
+            if (buildInfo) {
+              replaceCustomBuildInfoFields(
+                buildInfo,
+                pickCustomBuildInfoFields(args[0]),
+              );
+            }
             break;
           }
           case RequestType.LoaderCacheGet: {
@@ -1092,7 +1120,11 @@ export async function runLoaders(
 
           if (hasArg) {
             const [content, sourceMap, additionalData] = args;
-            context.content = isNil(content) ? null : toBuffer(content);
+            context.content = isNil(content)
+              ? null
+              : typeof content === 'string'
+                ? content
+                : toBuffer(content);
             context.sourceMap = serializeObject(sourceMap);
             context.additionalData = additionalData || undefined;
             break;
@@ -1175,12 +1207,19 @@ export async function runLoaders(
           }
         }
 
-        context.content = isNil(content) ? null : toBuffer(content);
+        context.content = isNil(content)
+          ? null
+          : typeof content === 'string'
+            ? content
+            : toBuffer(content);
         context.sourceMap = sourceMapParsed
           ? JsSourceMap.__to_binding(sourceMap)
           : rawSourceMap;
-        context.additionalData = additionalData || undefined;
-        context.__internal__utf8Hint = typeof content === 'string';
+        // Rust has no consumer after the chain finishes; avoid creating an unused JS reference.
+        context.additionalData =
+          loaderContext.loaderIndex < 0
+            ? undefined
+            : additionalData || undefined;
 
         break;
       }

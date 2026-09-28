@@ -1,9 +1,9 @@
-const path = require('path');
-const rspack = require('@rspack/core');
+import path from 'node:path';
+import rspack from '@rspack/core';
 
 /** @type {rspack.Configuration} */
-module.exports = {
-  context: __dirname,
+export default {
+  context: import.meta.dirname,
   entry: {
     main: './src/index.js',
   },
@@ -11,7 +11,7 @@ module.exports = {
   mode: 'development',
   resolve: {
     alias: {
-      'shared-lib': path.resolve(__dirname, 'src/shared-lib'),
+      'shared-lib': path.resolve(import.meta.dirname, 'src/shared-lib'),
     },
   },
   plugins: [

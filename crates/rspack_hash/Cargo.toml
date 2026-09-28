@@ -13,6 +13,7 @@ lightningcss       = { workspace = true }
 md4                = { workspace = true }
 rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
+rspack_intern      = { workspace = true, features = ["atom"] }
 rspack_macros      = { workspace = true }
 rspack_util        = { workspace = true }
 serde              = { workspace = true }

@@ -9,11 +9,11 @@ use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
-  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, DependencyRef,
-  DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData, ModuleIdentifier,
-  ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, PluginExt, ResolveOptionsWithDependencyType, ResolveResult,
-  RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
+  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, Dependency,
+  DependencyRef, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData,
+  ModuleIdentifier, ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, Plugin, PluginExt, ResolveOptionsWithDependencyType,
+  ResolveResult, RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
   resolver::ResolveInnerError,
@@ -37,7 +37,7 @@ use crate::{
   esm_import_dependency::{
     RstestESMImportSideEffectDependencyTemplate, RstestESMImportSpecifierDependencyTemplate,
   },
-  import_dependency::ImportDependencyTemplate,
+  import_dependency::{ImportDependencyTemplate, RstestImportDependency},
   mock_method_dependency::MockMethodDependencyTemplate,
   mock_module_id_dependency::{MockModuleIdDependency, MockModuleIdDependencyTemplate},
   module_path_name_dependency::ModulePathNameDependencyTemplate,
@@ -56,6 +56,8 @@ pub struct RstestPluginOptions {
   pub globals: bool,
   pub inject_import_meta_rstest_origin: bool,
   pub inject_dynamic_import_origin: Option<RstestDynamicImportOriginOptions>,
+  pub update_import_mock_api: bool,
+  pub update_require_mock_api: bool,
   pub inject_require_resolve_origin: Option<RstestRequireResolveOriginOptions>,
 }
 
@@ -187,6 +189,18 @@ impl RstestPlugin {
 
   fn synthetic_mock_dep(data: &ModuleFactoryCreateData) -> bool {
     data.request.starts_with(MOCK_TARGET_REQUEST_PREFIX)
+      || data
+        .dependencies
+        .first()
+        .and_then(|dep| dep.downcast_ref::<MockModuleIdDependency>())
+        .is_some_and(MockModuleIdDependency::has_missing_module_fallback)
+      || data
+        .dependencies
+        .first()
+        .and_then(|dep| dep.downcast_ref::<RstestImportDependency>())
+        .and_then(|dep| dep.get_attributes())
+        .and_then(|attrs| attrs.get("rstest"))
+        .is_some_and(|value| value == "importMock")
   }
 
   fn resolve_directory_mock_target(
@@ -215,7 +229,12 @@ impl RstestPlugin {
     let dependency_category = *dep.category();
     let has_missing_module_fallback = dep
       .downcast_ref::<MockModuleIdDependency>()
-      .is_some_and(|dep| dep.has_missing_module_fallback());
+      .is_some_and(|dep| dep.has_missing_module_fallback())
+      || dep
+        .downcast_ref::<RstestImportDependency>()
+        .and_then(|dep| dep.get_attributes())
+        .and_then(|attrs| attrs.get("rstest"))
+        .is_some_and(|value| value == "importMock");
     let request = data
       .request
       .strip_prefix(MOCK_TARGET_REQUEST_PREFIX)
@@ -232,7 +251,36 @@ impl RstestPlugin {
       resolve_to_context: false,
       dependency_category,
     };
-    let resolver = data.resolver_factory.get(dep);
+    let resolver = data.build_context.resolver_factory.get(dep);
+
+    let is_direct_manual_mock_target = data.dependencies.first().is_some_and(|dep| {
+      dep.downcast_ref::<RstestImportDependency>().is_some()
+        || dep
+          .downcast_ref::<MockModuleIdDependency>()
+          .is_some_and(MockModuleIdDependency::has_missing_module_fallback)
+    }) && !data.request.starts_with(MOCK_TARGET_REQUEST_PREFIX);
+
+    // These dependencies already carry their manual mock target as the
+    // dependency request. Resolve it directly so a missing manual mock can
+    // fall through to the runtime registry without manufacturing another
+    // `__mocks__` path from the original request.
+    if is_direct_manual_mock_target {
+      let (result, dependencies) = resolver
+        .resolve_with_context(data.context.as_ref(), &data.request)
+        .await;
+      data.add_file_dependencies(dependencies.file_dependencies);
+      data.add_missing_dependencies(dependencies.missing_dependencies);
+      if matches!(
+        result,
+        Err(ResolveInnerError::RspackResolver(
+          rspack_resolver::ResolveError::NotFound(_)
+            | rspack_resolver::ResolveError::MatchedAliasNotFound(_, _)
+        ))
+      ) {
+        return Some(false);
+      }
+      return None;
+    }
 
     let resolved_directory_target = if stripped.starts_with('.') {
       let (resolve_result, resolve_dependencies) = resolver
@@ -255,15 +303,64 @@ impl RstestPlugin {
       None
     };
 
-    let resolved_request = resolved_directory_target
+    let mut resolved_request = resolved_directory_target
       .unwrap_or(default_target)
       .to_string();
 
-    let (manual_mock_result, manual_mock_dependencies) = resolver
+    let (mut manual_mock_result, manual_mock_dependencies) = resolver
       .resolve_with_context(data.context.as_ref(), &resolved_request)
       .await;
     data.add_file_dependencies(manual_mock_dependencies.file_dependencies);
     data.add_missing_dependencies(manual_mock_dependencies.missing_dependencies);
+
+    // Keep project-level mocks authoritative, including for aliases and workspace packages.
+    // Only a missing mock should fall through; other resolver errors must remain visible.
+    if !stripped.starts_with('.')
+      && matches!(
+        &manual_mock_result,
+        Err(ResolveInnerError::RspackResolver(
+          rspack_resolver::ResolveError::NotFound(_)
+            | rspack_resolver::ResolveError::MatchedAliasNotFound(_, _)
+        ))
+      )
+    {
+      let (resolve_result, resolve_dependencies) = resolver
+        .resolve_with_context(data.context.as_ref(), stripped)
+        .await;
+      data.add_file_dependencies(resolve_dependencies.file_dependencies);
+      data.add_missing_dependencies(resolve_dependencies.missing_dependencies);
+
+      if let Ok(ResolveResult::Resource(resource)) = resolve_result
+        && let (Some(parent), Some(file_name)) = (resource.path.parent(), resource.path.file_name())
+      {
+        resolved_request = parent.join("__mocks__").join(file_name).to_string();
+        let (result, dependencies) = resolver
+          .resolve_with_context(data.context.as_ref(), &resolved_request)
+          .await;
+        data.add_file_dependencies(dependencies.file_dependencies);
+        data.add_missing_dependencies(dependencies.missing_dependencies);
+        manual_mock_result = result;
+
+        // Preserve format-specific mocks before trying a shared mock via resolve.extensions.
+        if matches!(
+          &manual_mock_result,
+          Err(ResolveInnerError::RspackResolver(
+            rspack_resolver::ResolveError::NotFound(_)
+              | rspack_resolver::ResolveError::MatchedAliasNotFound(_, _)
+          ))
+        ) && let Some(stem) = resource.path.file_stem()
+          && stem != file_name
+        {
+          resolved_request = parent.join("__mocks__").join(stem).to_string();
+          let (result, dependencies) = resolver
+            .resolve_with_context(data.context.as_ref(), &resolved_request)
+            .await;
+          data.add_file_dependencies(dependencies.file_dependencies);
+          data.add_missing_dependencies(dependencies.missing_dependencies);
+          manual_mock_result = result;
+        }
+      }
+    }
 
     match manual_mock_result {
       Err(ResolveInnerError::RspackResolver(
@@ -452,6 +549,8 @@ async fn nmf_parser(
         globals: self.options.globals,
         inject_import_meta_rstest_origin: self.options.inject_import_meta_rstest_origin,
         inject_dynamic_import_origin,
+        update_import_mock_api: self.options.update_import_mock_api,
+        update_require_mock_api: self.options.update_require_mock_api,
         inject_require_resolve_origin,
         commonjs_magic_comments,
       },
@@ -482,12 +581,21 @@ async fn compilation(
     Arc::new(MockModuleIdDependencyTemplate::default()),
   );
 
-  if let Some(Some(callee)) = self.dynamic_import_origin_callee.get() {
+  if self.options.update_import_mock_api
+    || self.options.update_require_mock_api
+    || self
+      .dynamic_import_origin_callee
+      .get()
+      .is_some_and(|callee| callee.is_some())
+  {
+    let callee = self
+      .dynamic_import_origin_callee
+      .get()
+      .and_then(|callee| callee.as_ref())
+      .map_or_else(String::new, |callee| callee.to_string());
     compilation.set_dependency_template(
       RstestDynamicImportOriginDependencyTemplate::template_type(),
-      Arc::new(RstestDynamicImportOriginDependencyTemplate::new(
-        callee.to_string(),
-      )),
+      Arc::new(RstestDynamicImportOriginDependencyTemplate::new(callee)),
     );
   }
 
@@ -631,9 +739,9 @@ async fn optimize_dependencies(
   };
 
   let mut updated_mocked_module_ids = IdentifierSet::default();
-  let module_graph = build_module_graph_artifact.get_module_graph_mut();
+  let module_graph = build_module_graph_artifact.get_module_graph();
   for module_id in mocked_module_ids {
-    if let Some(module) = module_graph.module_by_identifier_mut(&module_id)
+    if let Some(module) = module_graph.module_by_identifier(&module_id)
       && module_declared_side_effect_free(module.as_ref()) == Some(true)
     {
       module.set_factory_meta(FactoryMeta {

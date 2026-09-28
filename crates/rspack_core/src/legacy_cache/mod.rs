@@ -3,14 +3,16 @@ mod memory;
 mod mixed;
 pub mod persistent;
 
-use std::{fmt::Debug, sync::Arc};
+use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
+use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
+use rspack_paths::Utf8PathBuf;
 
 use self::{
   disable::DisableCache, memory::MemoryCache, mixed::MixedCache, persistent::PersistentCache,
 };
-use crate::{CacheOptions, Compilation, CompilationLogging, CompilerOptions};
+use crate::{CacheOptions, Compilation, CompilationLogging, CompilerOptions, MaxMemoryGenerations};
 
 /// Cache trait
 ///
@@ -59,7 +61,7 @@ pub fn create_cache(
   }
 
   match &compiler_option.cache {
-    CacheOptions::Disabled => Box::new(DisableCache),
+    CacheOptions::Disabled | CacheOptions::FileSystem(_) => Box::new(DisableCache),
     CacheOptions::Memory { .. } => Box::<MemoryCache>::default(),
     CacheOptions::Persistent(option) => {
       let persistent = PersistentCache::new(
@@ -73,4 +75,30 @@ pub fn create_cache(
       Box::new(MixedCache::new(persistent))
     }
   }
+}
+
+pub type BuildDepsOptions = Vec<PathBuf>;
+
+/// Storage options for the legacy persistent cache.
+#[cacheable]
+#[derive(Debug, Clone, Hash)]
+pub enum StorageOptions {
+  FileSystem {
+    #[cacheable(with=As<PortablePath>)]
+    directory: Utf8PathBuf,
+  },
+}
+
+/// Options for the legacy persistent cache.
+#[derive(Debug, Clone)]
+pub struct PersistentCacheOptions {
+  pub build_dependencies: BuildDepsOptions,
+  pub version: String,
+  pub storage: StorageOptions,
+  pub portable: bool,
+  pub readonly: bool,
+  /// Filesystem cache max age in seconds.
+  pub max_age: u64,
+  /// Number of generations to retain entries in the memory front cache.
+  pub max_memory_generations: MaxMemoryGenerations,
 }

@@ -1,0 +1,8 @@
+@import /* rspackIgnore: true */ url("./missing.css");
+@import /* webpackIgnore : true */ url("./missing-whitespace.css");
+@import /* webpackIgnore: true, webpackChunkName: "ignored" */ url("./missing-webpack-mixed.css");
+@import /* webpackChunkName: "ignored", rspackIgnore: true */ url("./missing-rspack-mixed.css");
+
+.class {
+	background: /* rspackIgnore: true */ url("./missing.png");
+}

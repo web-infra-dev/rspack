@@ -1,11 +1,12 @@
-use std::{collections::BTreeMap, hash::Hash, sync::atomic::Ordering::Relaxed};
+use std::{hash::Hash, sync::atomic::Ordering::Relaxed};
 
 use rspack_cacheable::cacheable;
-use rspack_util::{atom::Atom, ext::DynHash};
+use rspack_intern::Atom;
+use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 
-use super::{ExportInfoData, NEXT_EXPORTS_INFO_UKEY};
+use super::{ExportInfoData, NEXT_EXPORTS_INFO_UKEY, NamedExports};
 use crate::{ExportsInfoArtifact, RuntimeSpec};
 
 #[cacheable]
@@ -32,7 +33,7 @@ impl ExportsInfo {
 
 #[derive(Debug, Clone)]
 pub struct ExportsInfoData {
-  exports: BTreeMap<Atom, ExportInfoData>,
+  exports: NamedExports,
 
   /// other export info is a strange name and hard to understand
   /// it has 2 meanings:
@@ -51,7 +52,7 @@ impl Default for ExportsInfoData {
   fn default() -> Self {
     let id = ExportsInfo::new();
     Self {
-      exports: BTreeMap::default(),
+      exports: NamedExports::default(),
       other_exports_info: ExportInfoData::new(id, None, None),
       side_effects_only_info: ExportInfoData::new(id, Some("*side effects only*".into()), None),
       id,
@@ -88,11 +89,11 @@ impl ExportsInfoData {
     self.exports.get_mut(name)
   }
 
-  pub fn exports(&self) -> &BTreeMap<Atom, ExportInfoData> {
+  pub fn exports(&self) -> &NamedExports {
     &self.exports
   }
 
-  pub fn exports_mut(&mut self) -> &mut BTreeMap<Atom, ExportInfoData> {
+  pub fn exports_mut(&mut self) -> &mut NamedExports {
     &mut self.exports
   }
 

@@ -17,6 +17,18 @@ import Attribution from '@components/Attribution';
 
 <PropertyType type="false | object" />
 
+默认情况下，性能提示仅在 production 模式下为浏览器目标启用。
+
+例如，未配置 `performance` 时：
+
+| `mode`                      | `target`                 | 默认的 `performance`   |
+| --------------------------- | ------------------------ | ---------------------- |
+| `'production'`              | `'web'` 或 `'webworker'` | `{ hints: 'warning' }` |
+| `'production'`              | `'node'`                 | `false`                |
+| `'development'` 或 `'none'` | `'web'`                  | `false`                |
+
+如需在 Node.js 的 production 构建中启用性能提示，可设置 `performance: {}`。如需在 development 或 none 模式下启用，还需要将 `performance.hints` 设为 `'warning'` 或 `'error'`。
+
 将 `performance` 设为 `false` 可禁用性能提示功能：
 
 ```js title="rspack.config.mjs"
@@ -30,6 +42,8 @@ export default {
 <PropertyType type="(assetFilename: string) => boolean" />
 
 用于筛选哪些资源会参与性能提示计算。返回 `true` 的文件会被纳入计算，返回 `false` 的文件会被忽略。
+
+默认情况下，Rspack 会排除被标记为开发资源的产物，例如 source map。自定义的 `assetFilter` 会替换默认筛选规则，并同时应用于单个资源体积和入口总体积的计算。
 
 例如在性能提示计算时忽略 CSS 文件：
 
@@ -50,6 +64,8 @@ export default {
     { defaultValue: 'false', mode: 'development' },
   ]}
 />
+
+在 none 模式下，`hints` 也默认为 `false`。这些默认值在 `performance` 为对象时生效。当 `performance` 为 `false` 时，无论使用哪种模式，性能提示都会被禁用。
 
 控制是否启用性能提示，以及提示级别：
 

@@ -31,6 +31,7 @@ import type { ChunkGraph } from './ChunkGraph';
 import type { Compiler } from './Compiler';
 import type { ContextModuleFactory } from './ContextModuleFactory';
 import type {
+  Falsy,
   Filename,
   OutputNormalized,
   RspackOptionsNormalized,
@@ -59,7 +60,6 @@ import { StatsFactory } from './stats/StatsFactory';
 import { StatsPrinter } from './stats/StatsPrinter';
 import { AsyncTask } from './util/AsyncTask';
 import { createReadonlyMap } from './util/createReadonlyMap';
-import { createFakeCompilationDependencies } from './util/fake';
 import type { InputFileSystem } from './util/fs';
 import type Hash from './util/hash';
 import { SourceAdapter } from './util/source';
@@ -70,6 +70,10 @@ import './ChunkGraph';
 // patch CodeGenerationResults
 import './CodeGenerationResults';
 import { createDiagnosticArray } from './Diagnostics';
+import {
+  createFileSystemDependencies,
+  type FileSystemDependencies,
+} from './FileSystemDependencies';
 import type { CodeGenerationResult } from './taps/compilation';
 
 export type Assets = Record<string, Source>;
@@ -276,7 +280,6 @@ export class Compilation {
       void
     >;
     beforeModuleIds: liteTapable.SyncHook<[Iterable<Module>]>;
-    afterOptimizeChunkIds: liteTapable.SyncHook<[Iterable<Chunk>]>;
     finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
     chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
     chunkAsset: liteTapable.SyncHook<[Chunk, string]>;
@@ -306,7 +309,7 @@ export class Compilation {
     runtimeModule: liteTapable.SyncHook<[RuntimeModule, Chunk]>;
     seal: liteTapable.SyncHook<[]>;
     afterSeal: liteTapable.AsyncSeriesHook<[], void>;
-    needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
+    needAdditionalPass: liteTapable.SyncBailHook<[], boolean | void>;
   }>;
   name?: string;
   startTime?: number;
@@ -331,6 +334,14 @@ export class Compilation {
   };
   needAdditionalPass: boolean;
 
+  #fileSystemDependencies: Pick<
+    JsCompilation,
+    | 'fileDependencies'
+    | 'contextDependencies'
+    | 'missingDependencies'
+    | 'buildDependencies'
+  >;
+
   #addIncludeDispatcher: AddEntryItemDispatcher;
   #addEntryDispatcher: AddEntryItemDispatcher;
 
@@ -338,6 +349,25 @@ export class Compilation {
 
   constructor(compiler: Compiler, inner: JsCompilation) {
     this.#inner = inner;
+    // Share the binding's string cache between collection reads and watch deltas.
+    const fileSystemDependencies = (this.#fileSystemDependencies = {
+      fileDependencies: inner.fileDependencies,
+      contextDependencies: inner.contextDependencies,
+      missingDependencies: inner.missingDependencies,
+      buildDependencies: inner.buildDependencies,
+    });
+    this.fileDependencies = createFileSystemDependencies(
+      fileSystemDependencies.fileDependencies,
+    );
+    this.contextDependencies = createFileSystemDependencies(
+      fileSystemDependencies.contextDependencies,
+    );
+    this.missingDependencies = createFileSystemDependencies(
+      fileSystemDependencies.missingDependencies,
+    );
+    this.buildDependencies = createFileSystemDependencies(
+      fileSystemDependencies.buildDependencies,
+    );
     this.#shutdown = false;
 
     const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
@@ -412,7 +442,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
         'modules',
       ]),
       beforeModuleIds: new liteTapable.SyncHook(['modules']),
-      afterOptimizeChunkIds: new liteTapable.SyncHook(['chunks']),
       finishModules: new liteTapable.AsyncSeriesHook(['modules']),
       chunkHash: new liteTapable.SyncHook(['chunk', 'hash']),
       chunkAsset: new liteTapable.SyncHook(['chunk', 'filename']),
@@ -943,49 +972,34 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     );
   }
 
-  fileDependencies = createFakeCompilationDependencies(
-    () => this.#inner.dependencies().fileDependencies,
-    (d) => this.#inner.addFileDependencies(d),
-  );
-
   get __internal__addedFileDependencies() {
-    return this.#inner.dependencies().addedFileDependencies;
+    return this.#fileSystemDependencies.fileDependencies.added;
   }
 
   get __internal__removedFileDependencies() {
-    return this.#inner.dependencies().removedFileDependencies;
+    return this.#fileSystemDependencies.fileDependencies.removed;
   }
 
   get __internal__addedContextDependencies() {
-    return this.#inner.dependencies().addedContextDependencies;
+    return this.#fileSystemDependencies.contextDependencies.added;
   }
 
   get __internal__removedContextDependencies() {
-    return this.#inner.dependencies().removedContextDependencies;
+    return this.#fileSystemDependencies.contextDependencies.removed;
   }
 
   get __internal__addedMissingDependencies() {
-    return this.#inner.dependencies().addedMissingDependencies;
+    return this.#fileSystemDependencies.missingDependencies.added;
   }
 
   get __internal__removedMissingDependencies() {
-    return this.#inner.dependencies().removedMissingDependencies;
+    return this.#fileSystemDependencies.missingDependencies.removed;
   }
 
-  contextDependencies = createFakeCompilationDependencies(
-    () => this.#inner.dependencies().contextDependencies,
-    (d) => this.#inner.addContextDependencies(d),
-  );
-
-  missingDependencies = createFakeCompilationDependencies(
-    () => this.#inner.dependencies().missingDependencies,
-    (d) => this.#inner.addMissingDependencies(d),
-  );
-
-  buildDependencies = createFakeCompilationDependencies(
-    () => this.#inner.dependencies().buildDependencies,
-    (d) => this.#inner.addBuildDependencies(d),
-  );
+  fileDependencies: FileSystemDependencies;
+  contextDependencies: FileSystemDependencies;
+  missingDependencies: FileSystemDependencies;
+  buildDependencies: FileSystemDependencies;
 
   getStats() {
     return new Stats(this);
@@ -994,7 +1008,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   createChildCompiler(
     name: string,
     outputOptions: OutputNormalized,
-    plugins: RspackPluginInstance[],
+    plugins: (RspackPluginInstance | Falsy)[],
   ) {
     const idx = this.childrenCounters[name] || 0;
     this.childrenCounters[name] = idx + 1;

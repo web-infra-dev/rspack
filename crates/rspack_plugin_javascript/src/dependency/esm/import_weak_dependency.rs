@@ -9,9 +9,9 @@ use rspack_core::{
   ResourceIdentifier, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
-use swc_atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
+use crate::Atom;
 
 // Align with webpack's ImportWeakDependency:
 // https://github.com/webpack/webpack/blob/2944286213cf1b3697a1c8dd41ffd3f8ada99448/lib/dependencies/ImportWeakDependency.js

@@ -170,6 +170,7 @@ impl BuildModuleGraphArtifact {
     self
       .build_dependencies
       .remove_files(&resource_id, &build_info.dependencies.build);
+    drop(build_info);
     self.make_failed_module.remove(module_identifier);
 
     // clean incoming & all_dependencies(outgoing) factorize info
@@ -181,7 +182,12 @@ impl BuildModuleGraphArtifact {
       .all_dependencies()
       .iter()
       .copied()
-      .chain(mgm.incoming_connections().clone())
+      .chain(
+        self
+          .module_graph
+          .get_incoming_connections(module_identifier)
+          .map(|con| con.dependency_id),
+      )
       .collect::<Vec<_>>();
     for dep_id in dep_ids {
       self.make_failed_dependencies.remove(&dep_id);

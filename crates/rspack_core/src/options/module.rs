@@ -462,7 +462,12 @@ impl ImportMetaOptions {
 
 impl MergeFrom for ImportMetaOptions {
   fn merge_from(mut self, other: &Self) -> Self {
-    self.properties.extend(other.properties.clone());
+    self.properties.extend(
+      other
+        .properties
+        .iter()
+        .map(|(name, enabled)| (name.clone(), *enabled)),
+    );
     self.enabled_known_properties = Self::enabled_known_properties(&self.properties);
     self
   }

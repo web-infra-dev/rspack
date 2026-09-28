@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_paths::{InternedPath, InternedPathDashSet};
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use super::{FsEvent, FsEventKind};
 use crate::{EventBatch, paths::PathManager};
@@ -88,21 +88,69 @@ impl<'a> DependencyFinder<'a> {
   }
 }
 
-/// `Trigger` is responsible for sending file system events to the event channel
-/// when a relevant file or directory change is detected.
-pub struct Trigger {
+/// Classifies one raw file system event: drops what the `ignored` filter
+/// rejects, normalizes the kind against the disk, and resolves which registered
+/// dependencies the event should wake up.
+///
+/// Deliberately NOT run on the thread that reads events from the OS. One event
+/// costs several `stat` calls, and a JS-backed `ignored` predicate costs a full
+/// Node event loop turn; doing that inline stalls the reader, and on Linux the
+/// inotify queue is bounded — a stalled reader means the kernel silently drops
+/// events (`IN_Q_OVERFLOW`).
+struct EventProcessor {
   /// Shared reference to the path register, which tracks watched files/directories/missing.
   path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
   tx: UnboundedSender<EventBatch>,
 }
 
+/// `Trigger` is responsible for sending file system events to the event channel
+/// when a relevant file or directory change is detected.
+///
+/// It only buffers: the OS watcher callback hands an event over and returns
+/// immediately, and a dedicated thread drains the buffer one event at a time.
+pub struct Trigger {
+  pending: UnboundedSender<(InternedPath, FsEventKind)>,
+}
+
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<EventBatch>) -> Self {
-    Self { path_manager, tx }
+    let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind)>();
+    let processor = EventProcessor { path_manager, tx };
+
+    // One event at a time, in arrival order: the JS `ignored` predicate is
+    // awaited, not blocked on, and the next event is not started until the
+    // current one has been classified.
+    //
+    // Ends when the last `Trigger` is dropped and the channel closes.
+    std::thread::Builder::new()
+      .name("rspack-fs-event-filter".to_string())
+      .spawn(move || {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+          .enable_all()
+          .build()
+          .expect("create watcher event filter runtime");
+
+        runtime.block_on(async move {
+          while let Some((path, kind)) = incoming.recv().await {
+            processor.process(&path, kind).await;
+          }
+        });
+      })
+      .expect("spawn watcher event filter thread");
+
+    Self { pending }
   }
 
+  /// Hands a raw event to the filter thread. Never blocks — this runs straight
+  /// from the OS watcher callback.
+  pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
+    let _ = self.pending.send((path.clone(), kind));
+  }
+}
+
+impl EventProcessor {
   /// Called when a file system event occurs.
   /// Finds all dependencies related to the given path and triggers events for each.
   /// # Example
@@ -116,12 +164,12 @@ impl Trigger {
   /// If the file `/path/to/file.js` is changed, the trigger will send an event for the following paths:
   /// - `/path`
   /// - `/path/to`
-  pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
+  async fn process(&self, path: &InternedPath, kind: FsEventKind) {
     // Drop events inside ignored subtrees. The recursive-root watch delivers
     // events for unregistered paths (e.g. the build-output dir); left through,
     // `find_associated_event` bubbles them to a registered parent and triggers
     // a spurious rebuild.
-    if self.path_manager.is_ignored_path(path.as_ref()) {
+    if self.path_manager.is_ignored_path(path.as_ref()).await {
       return;
     }
 

@@ -11,7 +11,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{comparators::compare_ids, itoa};
 
 use crate::id_helpers::{
-  get_long_module_name, get_short_module_name, should_assign_module_id_without_chunk,
+  get_long_module_name, get_short_module_name_with_graph, should_assign_module_id_without_chunk,
 };
 
 fn add_conflicted_module_name(
@@ -44,7 +44,11 @@ fn assign_named_module_ids(
       let module = module_graph
         .module_by_identifier(&item)
         .expect("should have module");
-      let name = ModuleId::from(get_short_module_name(module, context));
+      let name = ModuleId::from(get_short_module_name_with_graph(
+        module,
+        context,
+        module_graph,
+      ));
       (item, name)
     })
     .collect();

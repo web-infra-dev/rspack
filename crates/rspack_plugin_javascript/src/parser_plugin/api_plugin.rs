@@ -9,12 +9,12 @@ use rspack_core::{
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
-use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, CallExpr, GetSpan, Ident, MemberExpr, Pat, Span, UnaryExpr, VarDeclarator,
 };
 
 use crate::{
+  Atom,
   dependency::{
     ExportInfoDependency, IsIncludeDependency, ModuleArgumentDependency, RequireMainDependency,
   },

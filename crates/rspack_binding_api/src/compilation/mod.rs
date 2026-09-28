@@ -4,11 +4,11 @@ mod dependencies;
 mod diagnostics;
 pub mod entries;
 
-use std::{cell::RefCell, path::Path, ptr::NonNull};
+use std::{cell::RefCell, ptr::NonNull};
 
 use chunks::Chunks;
 pub use code_generation_results::*;
-use dependencies::JsDependencies;
+use dependencies::FileSystemDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
 use napi_derive::napi;
@@ -31,6 +31,7 @@ use crate::{
   chunk_group::ChunkGroupWrapper,
   dependencies::EntryDependency,
   error::{ErrorCode, JsRspackDiagnostic, RspackError, RspackResultToNapiResultExt},
+  file_system_dependency_strings::intern_js_values,
   filename::JsFilename,
   module::{JsAddingRuntimeModule, ModuleObject},
   module_graph::JsModuleGraph,
@@ -39,11 +40,11 @@ use crate::{
   source::{JsSourceFromJs, JsSourceToJs},
   stats::{JsStats, JsStatsOptimizationBailout, create_stats_warnings},
   utils::callbackify,
+  with_compilation,
 };
 
 #[napi]
 pub struct JsCompilation {
-  #[allow(dead_code)]
   pub(crate) id: CompilationId,
   pub(crate) inner: NonNull<Compilation>,
 }
@@ -52,6 +53,29 @@ impl JsCompilation {
   pub(crate) fn new(id: CompilationId, inner: NonNull<Compilation>) -> Self {
     #[allow(clippy::unwrap_used)]
     Self { id, inner }
+  }
+
+  // `inner` points at the `Compilation` inlined in `Compiler`, and `Compiler::rebuild`
+  // replaces the value in that slot, so a handle from an earlier build aliases whichever
+  // compilation occupies the slot now. Reading the module graph through such a handle is
+  // the case that aborts the process: these accessors reach into
+  // `build_module_graph_artifact`, which the running build steals for the whole make phase.
+  //
+  // Resolve the compilation by id the way `ChunkGraph` and `JsModuleGraph` already do,
+  // which drops the handle when it is no longer current, and then check that the artifact
+  // is still in its cell.
+  fn with_module_graph<R>(
+    &self,
+    f: impl FnOnce(&Compilation) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    with_compilation(self.id, |compilation| {
+      if compilation.build_module_graph_artifact.is_stolen() {
+        return Err(napi::Error::from_reason(
+          "ModuleGraph is not available while a compilation pass is holding the module graph artifact".to_string(),
+        ));
+      }
+      f(compilation)
+    })
   }
 
   pub(crate) fn as_ref(&self) -> napi::Result<&'static Compilation> {
@@ -198,55 +222,56 @@ impl JsCompilation {
 
   #[napi(getter, ts_return_type = "Array<Module>")]
   pub fn modules<'a>(&self, env: &'a Env) -> Result<Array<'a>> {
-    let compilation = self.as_ref()?;
-    let module_graph = compilation.get_module_graph();
-    let mut arr = env.create_array(module_graph.modules_len() as u32)?;
-    for (i, identifier) in module_graph.modules_keys().enumerate() {
-      arr.set(
-        i as u32,
-        compilation
-          .module_by_identifier(identifier)
-          .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())),
-      )?;
-    }
-    Ok(arr)
+    self.with_module_graph(|compilation| {
+      let module_graph = compilation.get_module_graph();
+      let mut arr = env.create_array(module_graph.modules_len() as u32)?;
+      for (i, identifier) in module_graph.modules_keys().enumerate() {
+        arr.set(
+          i as u32,
+          compilation
+            .module_by_identifier(identifier)
+            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())),
+        )?;
+      }
+      Ok(arr)
+    })
   }
 
   #[napi(getter, ts_return_type = "Array<Module>")]
   pub fn built_modules(&self) -> Result<Vec<ModuleObject>> {
-    let compilation = self.as_ref()?;
-
-    Ok(
-      compilation
-        .build_module_graph_artifact
-        .built_modules()
-        .filter_map(|module_id| {
-          compilation
-            .module_by_identifier(module_id)
-            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
-        })
-        .collect::<Vec<_>>(),
-    )
+    self.with_module_graph(|compilation| {
+      Ok(
+        compilation
+          .build_module_graph_artifact
+          .built_modules()
+          .filter_map(|module_id| {
+            compilation
+              .module_by_identifier(module_id)
+              .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
+          })
+          .collect::<Vec<_>>(),
+      )
+    })
   }
 
   #[napi]
   pub fn get_optimization_bailout(&self) -> Result<Vec<JsStatsOptimizationBailout>> {
-    let compilation = self.as_ref()?;
-
-    Ok(
-      compilation
-        .get_module_graph()
-        .module_graph_modules()
-        .map(|(_, mgm)| mgm)
-        .flat_map(|item| {
-          item.optimization_bailout.iter().map(|b| match b {
-            OptimizationBailoutItem::Message(msg) => msg.as_str().to_owned(),
-            b => b.to_string(),
+    self.with_module_graph(|compilation| {
+      Ok(
+        compilation
+          .get_module_graph()
+          .module_graph_modules()
+          .map(|(_, mgm)| mgm)
+          .flat_map(|item| {
+            item.optimization_bailout.iter().map(|b| match b {
+              OptimizationBailoutItem::Message(msg) => msg.as_str().to_owned(),
+              b => b.to_string(),
+            })
           })
-        })
-        .map(|item| JsStatsOptimizationBailout { inner: item })
-        .collect::<Vec<_>>(),
-    )
+          .map(|item| JsStatsOptimizationBailout { inner: item })
+          .collect::<Vec<_>>(),
+      )
+    })
   }
 
   #[napi(getter, ts_return_type = "Chunks")]
@@ -443,11 +468,60 @@ impl JsCompilation {
     Ok(compilation.get_hash().map(|hash| hash.to_owned()))
   }
 
-  #[napi]
-  pub fn dependencies(&'static self) -> Result<JsDependencies> {
-    let compilation = self.as_ref()?;
+  #[napi(getter)]
+  pub fn file_dependencies(&self) -> Result<FileSystemDependencies> {
+    Ok(FileSystemDependencies::new(
+      self.as_ref()?.compiler_id(),
+      |compilation| {
+        (
+          &compilation.build_module_graph_artifact.file_dependencies,
+          &compilation.file_dependencies,
+        )
+      },
+      |compilation| &mut compilation.file_dependencies,
+    ))
+  }
 
-    Ok(JsDependencies::new(compilation))
+  #[napi(getter)]
+  pub fn context_dependencies(&self) -> Result<FileSystemDependencies> {
+    Ok(FileSystemDependencies::new(
+      self.as_ref()?.compiler_id(),
+      |compilation| {
+        (
+          &compilation.build_module_graph_artifact.context_dependencies,
+          &compilation.context_dependencies,
+        )
+      },
+      |compilation| &mut compilation.context_dependencies,
+    ))
+  }
+
+  #[napi(getter)]
+  pub fn missing_dependencies(&self) -> Result<FileSystemDependencies> {
+    Ok(FileSystemDependencies::new(
+      self.as_ref()?.compiler_id(),
+      |compilation| {
+        (
+          &compilation.build_module_graph_artifact.missing_dependencies,
+          &compilation.missing_dependencies,
+        )
+      },
+      |compilation| &mut compilation.missing_dependencies,
+    ))
+  }
+
+  #[napi(getter)]
+  pub fn build_dependencies(&self) -> Result<FileSystemDependencies> {
+    Ok(FileSystemDependencies::new(
+      self.as_ref()?.compiler_id(),
+      |compilation| {
+        (
+          &compilation.build_module_graph_artifact.build_dependencies,
+          &compilation.build_dependencies,
+        )
+      },
+      |compilation| &mut compilation.build_dependencies,
+    ))
   }
 
   #[napi]
@@ -575,42 +649,38 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn add_file_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation
-      .file_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+  pub fn add_file_dependencies(&mut self, env: Env, deps: Vec<napi::JsString<'_>>) -> Result<()> {
+    let paths = intern_js_values(&env, self.as_ref()?.compiler_id(), deps)?;
+    self.as_mut()?.file_dependencies.extend(paths);
     Ok(())
   }
 
   #[napi]
-  pub fn add_context_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation
-      .context_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+  pub fn add_context_dependencies(
+    &mut self,
+    env: Env,
+    deps: Vec<napi::JsString<'_>>,
+  ) -> Result<()> {
+    let paths = intern_js_values(&env, self.as_ref()?.compiler_id(), deps)?;
+    self.as_mut()?.context_dependencies.extend(paths);
     Ok(())
   }
 
   #[napi]
-  pub fn add_missing_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation
-      .missing_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+  pub fn add_missing_dependencies(
+    &mut self,
+    env: Env,
+    deps: Vec<napi::JsString<'_>>,
+  ) -> Result<()> {
+    let paths = intern_js_values(&env, self.as_ref()?.compiler_id(), deps)?;
+    self.as_mut()?.missing_dependencies.extend(paths);
     Ok(())
   }
 
   #[napi]
-  pub fn add_build_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation
-      .build_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+  pub fn add_build_dependencies(&mut self, env: Env, deps: Vec<napi::JsString<'_>>) -> Result<()> {
+    let paths = intern_js_values(&env, self.as_ref()?.compiler_id(), deps)?;
+    self.as_mut()?.build_dependencies.extend(paths);
     Ok(())
   }
 
@@ -655,7 +725,7 @@ impl JsCompilation {
 
         Ok(modules)
       }),
-      Some(|| drop(reference)),
+      Some(|_: &Env, _: &mut _| drop(reference)),
     )
   }
 
@@ -701,29 +771,34 @@ impl JsCompilation {
           file_dependencies: res
             .file_dependencies
             .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
+            .map(|dependency| dependency.to_string_lossy().into_owned())
             .collect(),
           context_dependencies: res
             .context_dependencies
             .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
+            .map(|dependency| dependency.to_string_lossy().into_owned())
             .collect(),
           build_dependencies: res
             .build_dependencies
             .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
+            .map(|dependency| dependency.to_string_lossy().into_owned())
             .collect(),
           missing_dependencies: res
             .missing_dependencies
             .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
+            .map(|dependency| dependency.to_string_lossy().into_owned())
             .collect(),
           id: res.id,
-          error: res.error,
+          errors: res
+            .errors
+            .iter()
+            .map(|diagnostic| RspackError::try_from_diagnostic(compilation, diagnostic))
+            .collect::<napi::Result<Vec<_>>>()
+            .map_err(|err| napi::Error::new(err.status.into(), err.reason))?,
         };
         Ok(js_result)
       }),
-      Some(|| {
+      Some(|_: &Env, _: &mut _| {
         drop(reference);
       }),
     )
@@ -879,7 +954,7 @@ impl JsCompilation {
 
           Ok(JsAddEntryItemCallbackArgs(results))
         }),
-        Some(|| {
+        Some(|_: &Env, _: &mut _| {
           drop(reference);
         }),
       )
@@ -982,7 +1057,7 @@ impl JsCompilation {
 
           Ok(JsAddEntryItemCallbackArgs(results))
         }),
-        Some(|| {
+        Some(|_: &Env, _: &mut _| {
           drop(reference);
         }),
       )
@@ -1106,7 +1181,7 @@ pub struct JsExecuteModuleResult {
   pub missing_dependencies: Vec<String>,
   pub cacheable: bool,
   pub id: u32,
-  pub error: Option<String>,
+  pub errors: Vec<RspackError>,
 }
 
 #[napi(object)]

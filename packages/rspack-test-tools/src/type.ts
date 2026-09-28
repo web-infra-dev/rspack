@@ -38,7 +38,7 @@ export interface ITestCompilerManager {
   getCompiler(): Compiler | null;
   createCompiler(): Compiler;
   createCompilerWithCallback(
-    callback: (error: Error | null, stats: Stats | null) => void,
+    callback: (error: Error | null, stats?: Stats) => void,
   ): Compiler;
   build(): Promise<Stats>;
   watch(timeout?: number): void;
@@ -194,6 +194,9 @@ export type TTestConfig = {
 
   // Only valid for Hot tests
   checkSteps?: boolean;
+  // Expected percentages for unchanged NewCache restarts, keyed by cache label.
+  // Unspecified caches are expected to hit 100%.
+  cacheHitRate?: Record<string, number>;
   // Only valid for Watch tests
   ignoreNotFriendlyForIncrementalWarnings?: boolean;
   resourceLoader?: (
@@ -215,7 +218,7 @@ export interface ITestRunner {
 
 export type TCompilerFactory = (
   options: RspackOptions | RspackOptions[],
-  callback?: (error: Error | null, stats: Stats | null) => void,
+  callback?: (error: Error | null, stats?: Stats) => void,
 ) => Compiler;
 
 export interface TRunnerFactory {

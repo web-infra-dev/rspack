@@ -86,9 +86,9 @@ use crate::{
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
-  cache::SnapshotOptions,
   compilation::build_module_graph::{
-    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
+    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
+    update_module_graph,
   },
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
@@ -97,14 +97,14 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade},
+  new_cache::{CacheFacade, CompilerCache},
   to_identifier,
 };
 
 define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
 define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoked_modules: &IdentifierSet));
-define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &dyn crate::Module));
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &[Identifier], code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
@@ -130,7 +130,6 @@ define_hook!(CompilationBeforeModuleIds: Series(compilation: &Compilation, modul
 define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, preserved_module_ids: &ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationRecordModules: Series(compilation: &Compilation, module_ids: &ModuleIdsArtifact));
 define_hook!(CompilationChunkIds: Series(compilation: &Compilation, chunk_by_ukey: &mut ChunkByUkey, named_chunk_ids_artifact: &mut ChunkNamedIdArtifact, diagnostics: &mut Vec<Diagnostic>));
-define_hook!(CompilationAfterOptimizeChunkIds: Series(compilation: &Compilation));
 define_hook!(CompilationRuntimeModule: Series(compilation: &Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey, runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>));
 define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationRuntimeRequirementInModule: SeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals),tracing=false);
@@ -173,7 +172,6 @@ pub struct CompilationHooks {
   pub module_ids: CompilationModuleIdsHook,
   pub record_modules: CompilationRecordModulesHook,
   pub chunk_ids: CompilationChunkIdsHook,
-  pub after_optimize_chunk_ids: CompilationAfterOptimizeChunkIdsHook,
   pub runtime_module: CompilationRuntimeModuleHook,
   pub additional_module_runtime_requirements: CompilationAdditionalModuleRuntimeRequirementsHook,
   pub runtime_requirement_in_module: CompilationRuntimeRequirementInModuleHook,
@@ -240,7 +238,9 @@ pub struct Compilation {
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
-  cache: Cache,
+  cache: CompilerCache,
+  pub(crate) module_build_cache: Option<ModuleBuildCache>,
+  pub resolver_cache: Option<crate::ResolverCache>,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
@@ -352,7 +352,7 @@ impl Compilation {
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
-    cache: Cache,
+    cache: CompilerCache,
     modified_files: InternedPathSet,
     removed_files: InternedPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -361,18 +361,29 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    let snapshot_options = match &options.cache {
-      CacheOptions::Disabled => SnapshotOptions::default(),
-      CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
-      CacheOptions::Persistent(options) => options.snapshot.clone(),
-    };
+    // Rebuilds own their invalidation path, so skip module restoration while
+    // still publishing rebuilt modules for subsequent compilations.
+    let module_build_cache = options
+      .experiments
+      .new_cache
+      .module
+      .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), !is_rebuild));
     let file_system_info = FileSystemInfo::new(
       input_filesystem.clone(),
       CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
-      snapshot_options,
+      options.snapshot.clone(),
       options.output.hash_function,
     );
-
+    let resolver_cache = (options.experiments.new_cache.resolver
+      && !matches!(options.cache, crate::CacheOptions::Disabled))
+    .then(|| {
+      crate::ResolverCache::new(
+        cache.facade("ResolverCache"),
+        file_system_info.clone(),
+        options.snapshot.resolve,
+        &CompilationLogger::new("rspack.ResolverCache", logging.clone()),
+      )
+    });
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -394,6 +405,8 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
+      module_build_cache,
+      resolver_cache,
       file_system_info,
       plugin_driver,
       buildtime_plugin_driver,
@@ -421,10 +434,7 @@ impl Compilation {
       chunk_render_cache_artifact: StealCell::new(ChunkRenderCacheArtifact::new(
         match &options.cache {
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
-          CacheOptions::Memory {
-            max_generations, ..
-          } => *max_generations,
-          CacheOptions::Persistent(_) => 1,
+          _ => 1,
         },
       )),
       code_generate_cache_artifact: StealCell::new(CodeGenerateCacheArtifact::new(&options)),
@@ -488,7 +498,7 @@ impl Compilation {
   }
 
   // it will return None during make phase since mg is incomplete
-  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
+  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&crate::ModuleRef> {
     if self.build_module_graph_artifact.is_stolen() {
       return None;
     }
@@ -625,7 +635,7 @@ impl Compilation {
   pub fn get_import_var(
     &self,
     module: ModuleIdentifier,
-    target_module: Option<&BoxModule>,
+    target_module: Option<&crate::ModuleRef>,
     user_request: &str,
     phase: ImportPhase,
     runtime: Option<&RuntimeSpec>,
@@ -1087,7 +1097,7 @@ impl Compilation {
     &mut self,
     module_identifiers: IdentifierSet,
     exports_info_artifact: &mut ExportsInfoArtifact,
-    f: impl Fn(Vec<&BoxModule>) -> T,
+    f: impl Fn(Vec<&crate::ModuleRef>) -> T,
   ) -> Result<T> {
     let artifact = self.build_module_graph_artifact.steal();
 
@@ -1504,7 +1514,7 @@ impl AssetInfoRelated {
 pub fn assign_depths<'a>(
   assign_map: &mut IdentifierMap<usize>,
   modules: impl Iterator<Item = &'a ModuleIdentifier>,
-  outgoings: &IdentifierMap<Vec<ModuleIdentifier>>,
+  module_graph: &ModuleGraph,
   initial_queue_capacity: usize,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
@@ -1523,9 +1533,14 @@ pub fn assign_depths<'a>(
         vac.insert(depth);
       }
     };
-    if let Some(outgoing_modules) = outgoings.get(&id) {
-      for con in outgoing_modules {
-        q.push_back((*con, depth + 1));
+    // Resolve outgoing connections while walking instead of materializing a
+    // graph-wide map: the walk only ever reads the modules it visits.
+    let Some(module_graph_module) = module_graph.module_graph_module_by_identifier(&id) else {
+      continue;
+    };
+    for connection_id in module_graph_module.outgoing_connections() {
+      if let Some(connection) = module_graph.connection_by_id(connection_id) {
+        q.push_back((*connection.module_identifier(), depth + 1));
       }
     }
   }

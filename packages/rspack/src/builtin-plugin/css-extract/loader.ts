@@ -1,8 +1,14 @@
 import path from 'node:path';
 
-import type { Filename, LoaderContext, LoaderDefinition } from '../..';
+import type {
+  Compilation,
+  Filename,
+  LoaderContext,
+  LoaderDefinition,
+} from '../..';
 import {
   type CssExtractPluginData,
+  type CssExtractPluginContext,
   PLUGIN_NAME,
   pluginSymbol,
   stringifyLocal,
@@ -45,12 +51,15 @@ export function hotLoader(
   },
 ): string {
   const localsJsonString = JSON.stringify(JSON.stringify(context.locals));
-  const pluginData = (
-    context.loaderContext as unknown as Record<
-      symbol,
-      CssExtractPluginData | undefined
-    >
-  )[pluginSymbol];
+  let pluginData: CssExtractPluginData | undefined;
+  let compilation: Compilation | undefined = context.loaderContext._compilation;
+  while (compilation) {
+    // Parent loader hooks run after child hooks, so parent options take precedence.
+    pluginData =
+      (compilation as Compilation & CssExtractPluginContext)[pluginSymbol] ??
+      pluginData;
+    compilation = compilation.compiler?.parentCompilation;
+  }
   // with `runtime: false` there is no hmrC.miniCss handler, so the injected
   // timestamp stays as the only change signal for css-only edits
   const changeSignal =
@@ -94,7 +103,7 @@ const loader: LoaderDefinition = function loader(content) {
   }
 };
 
-export const pitch: LoaderDefinition['pitch'] = function (request, _, data) {
+export const pitch: LoaderDefinition['pitch'] = function (request) {
   if (
     this._module &&
     (this._module.type === 'css' ||
@@ -273,7 +282,7 @@ export const pitch: LoaderDefinition['pitch'] = function (request, _, data) {
       this.__internal__setParseMeta(PLUGIN_NAME, JSON.stringify(dependencies));
     }
 
-    callback(null, resultSource, undefined, data);
+    callback(null, resultSource);
   };
 
   this.importModule(

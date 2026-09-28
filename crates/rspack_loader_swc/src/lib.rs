@@ -256,7 +256,7 @@ impl SwcLoader {
 
     if let Some(rsc) = rsc_meta.borrow_mut().take() {
       let module = &mut loader_context.context.module;
-      module.build_info_mut().rsc = Some(rsc);
+      module.build_info_mut().rsc = Some(Box::new(rsc));
       if let Some(code) = to_server_entry(module)? {
         loader_context.finish_with(code);
         return Ok(());
@@ -293,6 +293,11 @@ impl SwcLoader {
       );
     }
 
+    // Earlier loaders may collect metadata (for example, feature flags) for later loaders
+    // and plugins. SWC does not consume it, but must preserve it across the transform.
+    // This matches swc-loader >= 0.2.7; see the metadata passthrough fixes:
+    // https://github.com/swc-project/pkgs/pull/121
+    // https://github.com/web-infra-dev/rspack/pull/13661 (fixes #13654).
     let additional_data = loader_context.take_additional_data();
     loader_context.finish_with((code, map, additional_data));
 

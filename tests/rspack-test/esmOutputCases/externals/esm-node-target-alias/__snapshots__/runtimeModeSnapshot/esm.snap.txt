@@ -6,41 +6,25 @@ import { parse } from "node:url";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 moduleFactories.add({
-"node:fs?435f"
-/*!****************************!*\
-  !*** external "node:path" ***!
-  \****************************/
-(module) {
-module.exports = __rspack_createRequire_require("node:path");
-
-},
-"node:url?b4ec"
-/*!***************************!*\
-  !*** external "node:url" ***!
-  \***************************/
-(module) {
-module.exports = __rspack_createRequire_require("node:url");
-
-},
 "./cjs-consumer.cjs"
 /*!**************************!*\
   !*** ./cjs-consumer.cjs ***!
   \**************************/
 (__unused_rspack_module, exports) {
 // CJS require of "module" type external — should be downgraded to node-commonjs
-const nodePath = rspackRequire(/*! node:fs */ "node:fs?435f");
+const nodePath = __rspack_createRequire_require("node:path");
 exports.n = nodePath.resolve;
 
 // CJS require of "module-import" type external — should also be downgraded
-const nodeUrl = rspackRequire(/*! node:url */ "node:url?b4ec");
+const nodeUrl = __rspack_createRequire_require("node:url");
 exports.g = nodeUrl.parse;
 
 
 },
 });
-// node:fs?16c7
+// node:fs
 
-// node:url?e0e4
+// node:url
 
 // ./index.js
 const cjs_consumer = rspackRequire("./cjs-consumer.cjs");

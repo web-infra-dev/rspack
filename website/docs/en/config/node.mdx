@@ -15,9 +15,11 @@ Set `node` to `false` to disable all Node.js global polyfills and mocks. Otherwi
 ## node.global
 
 - **Type:** `boolean | 'warn'`
-- **Default:** `'warn'`
+- **Default:** `false` when the [target](/config/target) provides `global` natively, otherwise `'warn'`.
 
 Controls whether Rspack should provide a polyfill for the Node.js `global` object when bundling for non-Node environments.
+
+For example, `target: 'node'` defaults to `false`, while `target: 'web'` defaults to `'warn'`.
 
 See [the Node.js documentation](https://nodejs.org/api/globals.html#globals_global) for the exact behavior of this object.
 

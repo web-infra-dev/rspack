@@ -13,10 +13,10 @@ use rspack_cacheable::{
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHasher};
+use rspack_intern::Atom;
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
 use rspack_util::ext::IntoAny;
 use rustc_hash::FxHasher;
-use swc_core::ecma::atoms::Atom;
 
 use crate::{
   ExportsArgument, GenerateContext, ModuleCodeTemplate, RuntimeCondition, RuntimeGlobals,
@@ -787,7 +787,7 @@ impl ExternalModuleInitFragment {
     let key = InitFragmentKey::ExternalModule(format!(
       "external module imports|{}|{}",
       imported_module,
-      default_import.clone().unwrap_or_else(|| "null".to_string()),
+      default_import.as_deref().unwrap_or("null"),
     ));
     let top_level_decl_symbols =
       Self::collect_top_level_decl_symbols(&self_import_specifiers, default_import.as_deref());

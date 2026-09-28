@@ -7,22 +7,39 @@ use std::{
 
 use napi::bindgen_prelude::*;
 use napi_derive::*;
+use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_paths::InternedPath;
 use rspack_regex::RspackRegex;
-use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
+use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions, IgnoredFn};
 
-type JsWatcherIgnored = Either3<String, Vec<String>, RspackRegex>;
+type JsWatcherIgnored = Either4<String, Vec<String>, RspackRegex, ThreadsafeFunction<String, bool>>;
 
 fn to_fs_watcher_ignored(ignored: Option<JsWatcherIgnored>) -> FsWatcherIgnored {
   if let Some(ignored) = ignored {
     match ignored {
-      Either3::A(path) => FsWatcherIgnored::Path(path),
-      Either3::B(paths) => FsWatcherIgnored::Paths(paths),
-      Either3::C(regex) => FsWatcherIgnored::Regex(regex),
+      Either4::A(path) => FsWatcherIgnored::Path(path),
+      Either4::B(paths) => FsWatcherIgnored::Paths(paths),
+      Either4::C(regex) => FsWatcherIgnored::Regex(regex),
+      Either4::D(func) => FsWatcherIgnored::Function(to_ignored_fn(func)),
     }
   } else {
     FsWatcherIgnored::None
   }
+}
+
+fn to_ignored_fn(func: ThreadsafeFunction<String, bool>) -> IgnoredFn {
+  Arc::new(move |path: String| {
+    let func = func.clone();
+    Box::pin(async move {
+      match func.call_with_sync(path.clone()).await {
+        Ok(ignored) => ignored,
+        Err(e) => {
+          tracing::error!("failed to call the `ignored` function with `{path}`: {e}");
+          false
+        }
+      }
+    })
+  })
 }
 
 #[napi(object, object_to_js = false)]
@@ -33,9 +50,10 @@ pub struct NativeWatcherOptions {
 
   pub aggregate_timeout: Option<u32>,
 
-  #[napi(ts_type = "string | string[] | RegExp")]
+  #[napi(ts_type = "string | string[] | RegExp | ((entry: string) => boolean)")]
   /// The ignored paths for the watcher.
-  /// It can be a single path, an array of paths, or a regular expression.
+  /// It can be a single path, an array of paths, a regular expression, or a
+  /// predicate returning `true` for entries to ignore.
   pub ignored: Option<JsWatcherIgnored>,
 }
 

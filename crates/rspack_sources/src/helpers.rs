@@ -218,14 +218,7 @@ impl<'a> TextSpan<'a> {
   pub(crate) fn utf16_len_of(&self, text: &str) -> usize {
     match self.ascii_hit {
       AsciiHit::Ascii => text.len(),
-      AsciiHit::NotAscii => utf16_len(text),
-      AsciiHit::Unknown => {
-        if text.is_ascii() {
-          text.len()
-        } else {
-          utf16_len(text)
-        }
-      }
+      AsciiHit::NotAscii | AsciiHit::Unknown => utf16_len(text),
     }
   }
 

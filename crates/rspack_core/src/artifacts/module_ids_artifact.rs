@@ -4,7 +4,7 @@ use rspack_collections::IdentifierMap;
 
 use crate::{ArtifactExt, ModuleId, incremental::IncrementalPasses};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct ModuleIdsArtifact(IdentifierMap<ModuleId>);
 
 impl ArtifactExt for ModuleIdsArtifact {
