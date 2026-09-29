@@ -12,9 +12,6 @@ export default defineConfig({
     chunkIds: 'named',
     moduleIds: 'named',
   },
-  experiments: {
-    layers: true,
-  },
   output: {
     chunkFilename: '[id].js',
   },
