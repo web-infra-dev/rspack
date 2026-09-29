@@ -23,6 +23,7 @@ impl rspack_cacheable::CacheableContext for Context {
 ///
 /// This struct encapsulates the serialization and deserialization logic,
 /// automatically passing the project context to rspack_cacheable's to_bytes and from_bytes.
+/// Serialized entries are compressed so pending filesystem writes retain less memory.
 ///
 /// # Example
 ///
@@ -53,7 +54,12 @@ impl CacheCodec {
   where
     T: for<'a> Serialize<Serializer<'a>>,
   {
-    to_bytes(data, &self.context).map_err(rspack_error::Error::from_error)
+    let bytes = to_bytes(data, &self.context).map_err(rspack_error::Error::from_error)?;
+    // Storage retains encoded entries while writes are pending. Keep compressed
+    // payloads rather than another full copy of the compilation state.
+    let mut compressed = lz4_flex::block::compress_prepend_size(&bytes);
+    compressed.shrink_to_fit();
+    Ok(compressed)
   }
 
   pub fn decode<T>(&self, bytes: &[u8]) -> Result<T>
@@ -61,6 +67,8 @@ impl CacheCodec {
     T: Archive,
     T::Archived: for<'a> CheckBytes<Validator<'a>> + Deserialize<T, Deserializer>,
   {
-    from_bytes(bytes, &self.context).map_err(rspack_error::Error::from_error)
+    let bytes =
+      lz4_flex::block::decompress_size_prepended(bytes).map_err(rspack_error::Error::from_error)?;
+    from_bytes(&bytes, &self.context).map_err(rspack_error::Error::from_error)
   }
 }
