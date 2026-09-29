@@ -47,7 +47,7 @@ pub(super) struct CssModuleParser<'context> {
   css_local_names: CssLocalNames,
   local_definitions: FxHashMap<(SmolStr, bool), DependencyId>,
   global_composes: FxHashMap<SmolStr, DependencyId>,
-  pending_local_composes: FxHashMap<DependencyId, SmolStr>,
+  pending_local_composes: FxHashMap<SmolStr, DependencyId>,
   icss_definitions: FxHashMap<String, DependencyId>,
   icss_value_symbols: FxHashSet<SmolStr>,
   current_icss_import_from: Option<String>,
@@ -307,7 +307,7 @@ impl<'context> CssModuleParser<'context> {
     // Local composes resolve against the completed module, including declarations
     // that occur later in the file. Preserve composition order while fixing IDs.
     let mut local_targets = FxHashMap::default();
-    for (placeholder, name) in std::mem::take(&mut self.pending_local_composes) {
+    for (name, placeholder) in std::mem::take(&mut self.pending_local_composes) {
       let target = if let Some(id) = self.local_export(&name) {
         id
       } else {
@@ -327,6 +327,8 @@ impl<'context> CssModuleParser<'context> {
           *target = *id;
         }
       }
+      let mut seen = FxHashSet::default();
+      definition.composes.retain(|id| seen.insert(*id));
     }
     self.apply_composes_source_order();
     self.add_warnings(warnings);
@@ -1274,17 +1276,9 @@ impl<'context> CssModuleParser<'context> {
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
     let name = unescape_identifier(name);
-    let id = self
-      .ensure_local_definition(name.as_ref(), false, false, module_hash_options)
-      .await?;
     self
-      .dependencies
-      .push(BoxDependency::new(CssIcssSymbolDependency::new(
-        id,
-        (range.start, range.end).into(),
-        true,
-      )));
-    Ok(())
+      .add_local_symbol(name.as_ref(), range, false, module_hash_options)
+      .await
   }
 
   async fn handle_optional_local_ident_usage(
@@ -1310,16 +1304,14 @@ impl<'context> CssModuleParser<'context> {
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
     let name = unescape_identifier(name);
-    let id = self
-      .ensure_local_definition(name.as_ref(), false, true, module_hash_options)
-      .await?;
     self
-      .definitions
-      .get_mut(&id)
-      .expect("local CSS definition should exist")
-      .ranges
-      .push((start, end).into());
-    Ok(())
+      .add_local_declaration(
+        name.as_ref(),
+        (start, end).into(),
+        false,
+        module_hash_options,
+      )
+      .await
   }
 
   async fn handle_local_var_usage(
@@ -1342,20 +1334,21 @@ impl<'context> CssModuleParser<'context> {
     }
 
     self
-      .add_local_var_self_reference(name.as_ref(), range, module_hash_options)
+      .add_local_symbol(name.as_ref(), range, true, module_hash_options)
       .await?;
     Ok(())
   }
 
-  async fn add_local_var_self_reference(
+  // `name` is decoded by the syntax-specific caller exactly once.
+  async fn add_local_symbol(
     &mut self,
     name: &str,
     range: css_module_lexer::Range,
+    custom_property: bool,
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
-    let name = unescape_identifier(name);
     let id = self
-      .ensure_local_definition(name.as_ref(), true, false, module_hash_options)
+      .ensure_local_definition(name, custom_property, false, module_hash_options)
       .await?;
     self
       .dependencies
@@ -1377,8 +1370,9 @@ impl<'context> CssModuleParser<'context> {
     if !enabled {
       return Ok(());
     }
+    let name = unescape_identifier(name);
     self
-      .add_local_var_self_reference(name, range, module_hash_options)
+      .add_local_symbol(name.as_ref(), range, true, module_hash_options)
       .await
   }
 
@@ -1390,15 +1384,32 @@ impl<'context> CssModuleParser<'context> {
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
     let name = unescape_identifier(name);
+    self
+      .add_local_declaration(
+        name.as_ref(),
+        (start, end).into(),
+        true,
+        module_hash_options,
+      )
+      .await
+  }
+
+  async fn add_local_declaration(
+    &mut self,
+    name: &str,
+    range: DependencyRange,
+    custom_property: bool,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
+  ) -> Result<()> {
     let id = self
-      .ensure_local_definition(name.as_ref(), true, true, module_hash_options)
+      .ensure_local_definition(name, custom_property, true, module_hash_options)
       .await?;
     self
       .definitions
       .get_mut(&id)
       .expect("local CSS definition should exist")
       .ranges
-      .push((start, end).into());
+      .push(range);
     Ok(())
   }
 
@@ -1570,8 +1581,12 @@ impl<'context> CssModuleParser<'context> {
     } else {
       from.map(|from| self.resolve_icss_import_request(from))
     };
+    let mut seen_names = FxHashSet::default();
     for name in names {
       let name = unescape_identifier(name);
+      if !seen_names.insert(SmolStr::new(&name)) {
+        continue;
+      }
       let target = if let Some(request) = &request {
         let dep = CssIcssImportDependency::new(
           request.clone(),
@@ -1610,9 +1625,10 @@ impl<'context> CssModuleParser<'context> {
       } else if let Some(id) = self.local_export(name.as_ref()) {
         id
       } else {
-        let id = DependencyId::new();
-        self.pending_local_composes.insert(id, name.as_ref().into());
-        id
+        *self
+          .pending_local_composes
+          .entry(name.as_ref().into())
+          .or_default()
       };
       for local in &local_classes {
         if let Some(id) = self.local_export(local) {

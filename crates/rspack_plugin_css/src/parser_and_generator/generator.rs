@@ -56,7 +56,9 @@ struct CssImportedModule {
 }
 
 // Both representations are collected during the same dependency traversal.
-#[derive(Default)]
+// Cloning cached parts preserves repeated values in distinct composition branches;
+// borrowed CSS spans stay borrowed, while generated JS strings are copied.
+#[derive(Default, Clone)]
 struct CssExportValue<'a> {
   css: Option<Vec<Cow<'a, str>>>,
   js: Option<Vec<Cow<'a, str>>>,
@@ -76,6 +78,9 @@ pub(crate) struct CssModuleGenerator<'a, 'g> {
   css_inject_style: Option<String>,
   css_style_sheet: Option<String>,
   resolving_css_exports: HashSet<DependencyId>,
+  resolved_css_exports: HashMap<(DependencyId, bool, bool), CssExportValue<'g>>,
+  css_export_cycles: usize,
+  css_output_prepared: bool,
   used_local_idents: HashSet<DependencyId>,
   outputs_prepared: bool,
 }
@@ -107,6 +112,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       css_inject_style: None,
       css_style_sheet: None,
       resolving_css_exports: Default::default(),
+      resolved_css_exports: Default::default(),
+      css_export_cycles: 0,
+      css_output_prepared: false,
       used_local_idents: Default::default(),
       outputs_prepared: false,
     }
@@ -202,7 +210,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn generate_js_exports(&mut self) -> Result<String> {
-    self.prepare_outputs();
+    self.prepare_outputs(false);
     if self.generate_context.concatenation_scope.is_some() {
       let exports = self.collect_used_css_exports();
       return self.concat_css_exports_inner(None, exports);
@@ -262,7 +270,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   pub(crate) fn render_css_module_source(&mut self) -> BoxSource {
-    self.prepare_outputs();
+    self.prepare_outputs(true);
     std::mem::replace(
       &mut self.css_output,
       ReplaceSource::new(RawStringSource::from("")),
@@ -270,16 +278,19 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     .boxed()
   }
 
-  fn prepare_outputs(&mut self) {
-    if self.outputs_prepared {
+  fn prepare_outputs(&mut self, render_css: bool) {
+    if self.outputs_prepared && (!render_css || self.css_output_prepared) {
       return;
     }
     self.outputs_prepared = true;
 
     let roots = self.collect_css_export_roots();
-    let css_values = self.resolve_css_exports(roots);
-    self.render_icss_dependencies(&css_values);
-    self.render_dependency_templates();
+    let css_values = self.resolve_css_exports(roots, render_css);
+    if render_css {
+      self.render_icss_dependencies(&css_values);
+      self.render_dependency_templates();
+      self.css_output_prepared = true;
+    }
   }
 
   fn collect_css_export_roots(&self) -> FxIndexMap<DependencyId, bool> {
@@ -306,6 +317,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   fn resolve_css_exports(
     &mut self,
     roots: FxIndexMap<DependencyId, bool>,
+    render_css: bool,
   ) -> HashMap<DependencyId, Option<String>> {
     let mut css_values = HashMap::default();
     for (id, emit_js) in roots {
@@ -319,7 +331,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
           .js_output
           .insert(id, value.js.as_deref().unwrap_or_default().join(" + "));
       }
-      css_values.insert(id, value.css.map(|parts| parts.join("")));
+      if render_css {
+        css_values.insert(id, value.css.map(|parts| parts.join("")));
+      }
     }
     css_values
   }
@@ -917,22 +931,33 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     emit_js: bool,
     follow_self_imports: bool,
   ) -> CssExportValue<'g> {
+    let cache_key = (id, emit_js, follow_self_imports);
+    if let Some(value) = self.resolved_css_exports.get(&cache_key) {
+      return value.clone();
+    }
+    if !self.resolving_css_exports.insert(id) {
+      self.css_export_cycles += 1;
+      return CssExportValue::default();
+    }
+    let cycles = self.css_export_cycles;
     let graph = self.generate_context.compilation.get_module_graph();
     let dependency = graph.dependency_by_id(&id);
-    if let Some(import) = dependency.downcast_ref::<CssIcssImportDependency>() {
-      return self.resolve_css_import(import, emit_js, follow_self_imports);
-    }
-    let Some(export) = dependency.downcast_ref::<CssIcssExportDependency>() else {
-      return CssExportValue::default();
+    let value = if let Some(import) = dependency.downcast_ref::<CssIcssImportDependency>() {
+      self.resolve_css_import(import, emit_js, follow_self_imports)
+    } else if let Some(export) = dependency.downcast_ref::<CssIcssExportDependency>() {
+      if export.local_ident {
+        self.used_local_idents.insert(id);
+      }
+      self.resolve_css_export_definition(export, emit_js, follow_self_imports)
+    } else {
+      CssExportValue::default()
     };
-    if !self.resolving_css_exports.insert(id) {
-      return CssExportValue::default();
-    }
-    if export.local_ident {
-      self.used_local_idents.insert(id);
-    }
-    let value = self.resolve_css_export_definition(export, emit_js, follow_self_imports);
     self.resolving_css_exports.remove(&id);
+    // A cycle truncates values according to the current active path. Only
+    // completed acyclic expansions are reusable from a different root.
+    if self.css_export_cycles == cycles {
+      self.resolved_css_exports.insert(cache_key, value.clone());
+    }
     value
   }
 
@@ -977,6 +1002,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     target: &dyn Module,
     id: DependencyId,
   ) -> CssExportValue<'g> {
+    let cache_key = (id, false, true);
+    if let Some(value) = self.resolved_css_exports.get(&cache_key) {
+      return value.clone();
+    }
+    let cycles = self.css_export_cycles;
     let build_info = target.build_info();
     let Some(css_build_info) = build_info.css.as_deref() else {
       return CssExportValue::default();
@@ -993,10 +1023,16 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       css_build_info,
     );
     child.resolving_css_exports = active;
+    child.css_export_cycles = cycles;
     let value = child.resolve_css_export_dependency(id, false, true);
     let active = std::mem::take(&mut child.resolving_css_exports);
+    let child_cycles = child.css_export_cycles;
     drop(child);
     self.resolving_css_exports = active;
+    self.css_export_cycles = child_cycles;
+    if cycles == child_cycles {
+      self.resolved_css_exports.insert(cache_key, value.clone());
+    }
     value
   }
 
@@ -1116,16 +1152,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_identifier).is_some(),
       )
     };
-    let find_target_module = |dep_id: &DependencyId| {
-      module_graph
-        .get_module_by_dependency_id(dep_id)
-        .map(|target| {
-          let priority = candidate_priority(target.as_ref());
-          (target, priority)
-        })
-    };
-    let from = find_target_module(id)
-      .map(|(target, _)| target)
+    let from = module_graph
+      .get_module_by_dependency_id(id)
       .and_then(|target| {
         if target
           .source_types(module_graph)
