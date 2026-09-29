@@ -1,7 +1,5 @@
 #[cfg(windows)]
 use std::borrow::Cow;
-#[cfg(unix)]
-use std::os::unix::ffi::OsStrExt;
 use std::{
   collections::{HashMap, HashSet},
   ffi::OsStr,
@@ -153,8 +151,8 @@ impl SliceInternable for PreHashedPath {
 /// Reads back bytes produced by `OsStr::as_encoded_bytes`.
 ///
 /// # Panics-free safety
-/// The bytes always come from [`InternedPath::from_parts`], which takes them from `as_encoded_bytes`
-/// on this same platform and stores the whole slice — the round trip `OsStr` documents as sound.
+/// Callers pass complete `as_encoded_bytes` slices from the same Rust version and target platform,
+/// including native cache round trips.
 #[inline]
 fn path_from_bytes(bytes: &[u8]) -> &Path {
   // SAFETY: See above.
@@ -175,8 +173,15 @@ impl Debug for InternedPath {
 }
 
 impl InternedPath {
+  #[inline]
   pub fn new(path: &Path) -> Self {
-    Self::from_parts(hash_path(path), path)
+    Self::from_bytes(path.as_os_str().as_encoded_bytes())
+  }
+
+  /// Intern complete `OsStr::as_encoded_bytes` from the same Rust version and target platform.
+  #[inline]
+  pub(crate) fn from_bytes(bytes: &[u8]) -> Self {
+    Self(InternedSlice::new(hash_path_bytes(bytes), bytes))
   }
 
   /// Build an `InternedPath` from a precomputed hash without rehashing. The caller MUST guarantee
@@ -210,11 +215,16 @@ impl InternedPath {
 /// intern a resolved dependency without rehashing it.
 #[inline]
 pub fn hash_path(path: &Path) -> u64 {
+  hash_path_bytes(path.as_os_str().as_encoded_bytes())
+}
+
+#[inline]
+fn hash_path_bytes(bytes: &[u8]) -> u64 {
   let mut hasher = FxHasher::default();
   #[cfg(unix)]
-  hasher.write(path.as_os_str().as_bytes());
+  hasher.write(bytes);
   #[cfg(not(unix))]
-  path.hash(&mut hasher);
+  path_from_bytes(bytes).hash(&mut hasher);
   hasher.finish()
 }
 
