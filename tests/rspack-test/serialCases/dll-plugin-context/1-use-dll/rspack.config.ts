@@ -1,7 +1,8 @@
-import { rspack as webpack } from '@rspack/core';
 import { readFileSync } from 'node:fs';
+import { defineConfig } from '@rspack/cli';
+import { type DllReferencePluginOptionsManifest, rspack } from '@rspack/core';
 
-const manifest = JSON.parse(
+const manifest: DllReferencePluginOptionsManifest = JSON.parse(
   readFileSync(
     new URL(
       '../../../js/config/dll-plugin-context/manifest0.json',
@@ -9,27 +10,29 @@ const manifest = JSON.parse(
     ),
     'utf-8',
   ),
-); // eslint-disable-line node/no-missing-require
-const camelCaseManifest = JSON.parse(JSON.stringify(manifest));
+);
+const camelCaseManifest: DllReferencePluginOptionsManifest = JSON.parse(
+  JSON.stringify(manifest),
+);
 for (const item of Object.values(camelCaseManifest.content)) {
   if (item.buildMeta?.defaultObject === 'redirect-warn') {
+    // @ts-expect-error Exercise legacy manifest input outside the public type.
     item.buildMeta.defaultObject = 'redirectWarn';
   }
 }
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   optimization: {
     moduleIds: 'named',
   },
   plugins: [
-    new webpack.DllReferencePlugin({
+    new rspack.DllReferencePlugin({
       manifest,
       name: '../0-create-dll/dll.js',
       scope: 'dll',
       sourceType: 'commonjs2',
     }),
-    new webpack.DllReferencePlugin({
+    new rspack.DllReferencePlugin({
       // Rspack 2.x used to emit the camelCase spelling. Keep accepting those
       // manifests while new manifests use webpack's kebab-case spelling.
       manifest: camelCaseManifest,
@@ -38,4 +41,4 @@ export default {
       sourceType: 'commonjs2',
     }),
   ],
-};
+});

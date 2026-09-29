@@ -118,6 +118,9 @@ catalogs:
     '@types/jsdom':
       specifier: ^30.0.0
       version: 30.0.0
+    '@types/mime-types':
+      specifier: 3.0.1
+      version: 3.0.1
     '@types/node':
       specifier: ^20.19.43
       version: 20.19.43
@@ -130,6 +133,9 @@ catalogs:
     '@types/semver':
       specifier: ^7.8.0
       version: 7.8.0
+    '@types/yamljs':
+      specifier: ^0.2.34
+      version: 0.2.34
     '@typescript/native':
       specifier: npm:typescript@^7.0.2
       version: 7.0.2
@@ -1056,12 +1062,18 @@ importers:
       '@types/jsdom':
         specifier: 'catalog:'
         version: 30.0.0
+      '@types/mime-types':
+        specifier: 'catalog:'
+        version: 3.0.1
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
+      '@types/yamljs':
+        specifier: 'catalog:'
+        version: 0.2.34
       '@webdiscus/pug-loader':
         specifier: 'catalog:'
         version: 2.11.1(enhanced-resolve@5.25.1)
@@ -3754,6 +3766,9 @@ packages:
   '@types/mdx@2.0.14':
     resolution: {integrity: sha512-T48PeuJtvLosNTPVhfnIp3i/n3a4g4Bad7YCq5k64D4u7NwDrAotikQ+5+sjtUvBmxCMlbo3dVL+C2dP0rWHzg==}
 
+  '@types/mime-types@3.0.1':
+    resolution: {integrity: sha512-xRMsfuQbnRq1Ef+C+RKaENOxXX87Ygl38W1vDfPHRku02TgQr+Qd8iivLtAMcR0KF5/29xlnFihkTlbqFrGOVQ==}
+
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
@@ -3785,6 +3800,9 @@ packages:
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
+
+  '@types/yamljs@0.2.34':
+    resolution: {integrity: sha512-gJvfRlv9ErxdOv7ux7UsJVePtX54NAvQyd8ncoiFqK8G5aeHIfQfGH2fbruvjAQ9657HwAaO54waS+Dsk2QTUQ==}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
@@ -9931,6 +9949,8 @@ snapshots:
 
   '@types/mdx@2.0.14': {}
 
+  '@types/mime-types@3.0.1': {}
+
   '@types/ms@2.1.0': {}
 
   '@types/node@20.19.43':
@@ -9959,6 +9979,8 @@ snapshots:
   '@types/unist@2.0.11': {}
 
   '@types/unist@3.0.3': {}
+
+  '@types/yamljs@0.2.34': {}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true

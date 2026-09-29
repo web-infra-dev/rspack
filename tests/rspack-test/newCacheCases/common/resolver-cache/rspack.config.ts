@@ -1,9 +1,9 @@
 import path from 'node:path';
+import { defineConfig, definePlugin } from '@rspack/cli';
 
 let buildIndex = 0;
 
-/** @type {import('@rspack/core').Configuration} */
-export default {
+export default defineConfig({
   mode: 'development',
   experiments: {
     newCache: {
@@ -19,7 +19,7 @@ export default {
     extensions: ['.json', '.js'],
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
         compiler.hooks.done.tap('ResolverCacheTest', ({ compilation }) => {
           const preferred = buildIndex === 2;
@@ -46,6 +46,6 @@ export default {
           buildIndex++;
         });
       },
-    },
+    }),
   ],
-};
+});

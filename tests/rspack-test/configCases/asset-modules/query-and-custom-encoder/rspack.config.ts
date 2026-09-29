@@ -1,8 +1,9 @@
+import { defineConfig } from '@rspack/cli';
+import type { AssetInlineGeneratorOptions } from '@rspack/core';
 import svgToMiniDataURI from 'mini-svg-data-uri';
 import mimeTypes from 'mime-types';
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   mode: 'development',
   module: {
     rules: [
@@ -12,20 +13,16 @@ export default {
         generator: {
           dataUrl: (source, { filename, module }) => {
             if (filename.endsWith('?foo=bar')) {
-              if (typeof source !== 'string') {
-                source = source.toString();
-              }
-
-              return svgToMiniDataURI(source);
+              return svgToMiniDataURI(source.toString());
             }
 
-            const mimeType = mimeTypes.lookup(module.nameForCondition());
+            const mimeType = mimeTypes.lookup(module.nameForCondition()!);
             const encodedContent = source.toString('base64');
 
             return `data:${mimeType};base64,${encodedContent}`;
           },
-        },
+        } satisfies AssetInlineGeneratorOptions,
       },
     ],
   },
-};
+});

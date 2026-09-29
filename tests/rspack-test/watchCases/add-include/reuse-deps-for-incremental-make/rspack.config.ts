@@ -1,14 +1,15 @@
-let step = 0;
-let factorizeRequests = [];
+import { defineConfig, definePlugin } from '@rspack/cli';
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+let step = 0;
+let factorizeRequests: string[] = [];
+
+export default defineConfig({
   plugins: [
-    function (compiler) {
+    definePlugin((compiler) => {
       const PLUGIN_NAME = 'TEST_PLUGIN';
       const { EntryPlugin } = compiler.rspack;
       compiler.hooks.finishMake.tapPromise(PLUGIN_NAME, (compilation) => {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           const dependency = EntryPlugin.createDependency('./foo.js');
           compilation.addInclude(compiler.context, dependency, {}, (err) => {
             if (err) return reject(err);
@@ -21,7 +22,7 @@ export default {
 
       compiler.hooks.compilation.tap(
         PLUGIN_NAME,
-        (compilation, { normalModuleFactory }) => {
+        (_compilation, { normalModuleFactory }) => {
           normalModuleFactory.hooks.factorize.tap(PLUGIN_NAME, (data) => {
             factorizeRequests.push(data.request);
           });
@@ -41,6 +42,6 @@ export default {
         step += 1;
         factorizeRequests = [];
       });
-    },
+    }),
   ],
-};
+});

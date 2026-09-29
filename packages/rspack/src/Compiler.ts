@@ -27,6 +27,7 @@ import { ContextModuleFactory } from './ContextModuleFactory';
 import { bindingHelpers } from './util/bindingHelpers';
 import type {
   EntryNormalized,
+  Falsy,
   OutputNormalized,
   RspackOptionsNormalized,
   RspackPluginInstance,
@@ -709,7 +710,7 @@ class Compiler {
     compilerName: string,
     compilerIndex: number,
     outputOptions: OutputNormalized,
-    plugins: RspackPluginInstance[],
+    plugins: (RspackPluginInstance | Falsy)[],
   ): Compiler {
     const options: RspackOptionsNormalized = {
       ...this.options,

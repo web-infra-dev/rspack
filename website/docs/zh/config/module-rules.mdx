@@ -765,9 +765,9 @@ export default {
 type RuleSetUse =
   | RuleSetUseItem
   | RuleSetUseItem[]
-  | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
+  | ((ctx: RawFuncUseCtx) => RuleSetUseItem | RuleSetUseItem[]);
 
-type RuleSetUseItem = string | RuleSetLoaderWithOptions;
+type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
 
 type RuleSetLoaderWithOptions = {
   ident?: string;
@@ -799,7 +799,7 @@ export default {
 };
 ```
 
-也可以使用一个函数：
+也可以使用函数为每个模块选择 loader，返回 loader 名称、loader 配置对象或由它们组成的数组：
 
 ```js title="rspack.config.mjs"
 export default {
