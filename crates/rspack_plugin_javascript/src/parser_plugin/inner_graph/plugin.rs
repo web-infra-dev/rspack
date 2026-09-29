@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::{
   BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
   UsedByExportsDeferredPureCheck,
@@ -98,7 +100,7 @@ impl InnerGraphParserPlugin {
   pub fn infer_dependency_usage(
     state: &mut InnerGraphState,
     deferred_pure_checks_by_symbol: &HashMap<TopLevelSymbol, Vec<UsedByExportsDeferredPureCheck>>,
-  ) -> Vec<(InnerGraphUsageOperation, UsedByExports)> {
+  ) -> Vec<(InnerGraphUsageOperation, Arc<UsedByExports>)> {
     let mut non_terminal = state.inner_graph.keys().copied().collect::<HashSet<_>>();
     let mut processed: HashMap<TopLevelSymbol, HashSet<InnerGraphMapSetValue>> = HashMap::default();
 
@@ -232,8 +234,11 @@ impl InnerGraphParserPlugin {
         UsedByExports::bool(false)
       }
       .with_deferred_pure_checks(deferred_pure_checks);
+      // One payload per top level symbol: several dependencies can refer to the same
+      // symbol and used to each clone the heap allocated export set.
+      let used_by_exports = Arc::new(used_by_exports);
       for cb in cbs {
-        finalized.push((cb, used_by_exports.clone()));
+        finalized.push((cb, Arc::clone(&used_by_exports)));
       }
     }
 

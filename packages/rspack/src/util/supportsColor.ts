@@ -13,6 +13,6 @@ export function isStatsColorSupported(): boolean {
       argv.includes('--color') ||
       process.platform === 'win32' ||
       (process.stdout?.isTTY && env.TERM !== 'dumb') ||
-      'CI' in env)
+      (Boolean(env.CI) && env.CI !== 'false'))
   );
 }

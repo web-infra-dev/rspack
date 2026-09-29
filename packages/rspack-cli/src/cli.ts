@@ -40,7 +40,7 @@ function isEnvColorSupported(): boolean {
       p.platform === 'win32' ||
       ((p.stdout as typeof process.stdout | undefined)?.isTTY &&
         env.TERM !== 'dumb') ||
-      'CI' in env)
+      (Boolean(env.CI) && env.CI !== 'false'))
   );
 }
 

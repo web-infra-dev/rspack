@@ -9,6 +9,7 @@ pub struct RawNewCache {
   pub devtool: bool,
   pub loader: bool,
   pub minimize: bool,
+  pub resolver: bool,
 }
 
 impl From<RawNewCache> for NewCacheOptions {
@@ -19,6 +20,7 @@ impl From<RawNewCache> for NewCacheOptions {
       devtool: value.devtool,
       loader: value.loader,
       minimize: value.minimize,
+      resolver: value.resolver,
     }
   }
 }
