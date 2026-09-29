@@ -4,7 +4,18 @@ use rspack_core::{
   DependencyCategory, DependencyId, DependencyRange, DependencyType,
 };
 
-/// One use of a CSS symbol, not its definition or a module import.
+#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CssIcssSymbolKind {
+  /// A selector or declaration is rewritten without marking its export used.
+  LocalDeclaration,
+  /// A local reference also keeps its definition alive, such as `animation: spin`.
+  LocalReference,
+  /// An ICSS value is substituted into the source without identifier escaping.
+  IcssReference,
+}
+
+/// One source occurrence of a CSS symbol, pointing to its shared definition.
 /// In `@value color: red; .button { color: color }`, this stores the range of
 /// the last `color` and the ID of its definition. `animation: spin` similarly
 /// references the local keyframe definition and escapes its generated identifier.
@@ -15,15 +26,15 @@ pub struct CssIcssSymbolDependency {
   id: DependencyId,
   pub target: DependencyId,
   range: DependencyRange,
-  pub local_ident: bool,
+  pub kind: CssIcssSymbolKind,
 }
 impl CssIcssSymbolDependency {
-  pub fn new(target: DependencyId, range: DependencyRange, local_ident: bool) -> Self {
+  pub fn new(target: DependencyId, range: DependencyRange, kind: CssIcssSymbolKind) -> Self {
     Self {
       id: DependencyId::new(),
       target,
       range,
-      local_ident,
+      kind,
     }
   }
 }

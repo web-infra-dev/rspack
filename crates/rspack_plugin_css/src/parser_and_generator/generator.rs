@@ -3,10 +3,10 @@ use std::borrow::Cow;
 use concat_string::concat_string;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  ChunkGraph, Context, CssBuildInfo, CssExportType, CssModuleRenderCondition, Dependency,
-  DependencyCodeGeneration, DependencyId, DependencyType, GenerateContext, Module, ModuleArgument,
-  ModuleIdentifier, ModuleInitFragments, RESERVED_IDENTIFIER, RuntimeGlobals, SourceType,
-  TemplateContext, UsageState, UsedNameItem, css_module_render_conditions_identifier,
+  ChunkGraph, Compilation, Context, CssBuildInfo, CssExportType, CssModuleRenderCondition,
+  Dependency, DependencyCodeGeneration, DependencyId, DependencyType, GenerateContext, Module,
+  ModuleArgument, ModuleIdentifier, ModuleInitFragments, RESERVED_IDENTIFIER, RuntimeGlobals,
+  SourceType, TemplateContext, UsageState, UsedNameItem, css_module_render_conditions_identifier,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt},
   to_identifier,
 };
@@ -20,7 +20,8 @@ use crate::{
   css_exports::{css_export_dependency, css_export_name, find_css_export_target, find_export},
   css_syntax::{escape_identifier, unescape_identifier},
   dependency::{
-    CssIcssExportDependency, CssIcssImportDependency, CssIcssSymbolDependency, CssImportDependency,
+    CssIcssExportDependency, CssIcssImportDependency, CssIcssSymbolDependency, CssIcssSymbolKind,
+    CssImportDependency,
   },
   parser_and_generator::{
     CodeGenerationDataUnusedLocalIdent, CssExportsRef, CssSourceBuilder, get_used_exports,
@@ -288,8 +289,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let roots = self.collect_css_export_roots(render_css);
     let css_values = self.resolve_css_exports(roots);
     if render_css {
-      self.render_icss_dependencies(&css_values);
-      self.render_dependency_templates();
+      self.render_css_dependencies(&css_values);
       self.css_output_prepared = true;
     }
   }
@@ -301,7 +301,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let emit_js = self.generate_context.requested_source_type == SourceType::JavaScript;
     let mut roots = FxIndexMap::default();
     // Used exports keep local identifiers alive without needing their CSS value.
-    // Only declarations and symbol uses that rewrite CSS request that value.
+    // Only ICSS references that rewrite CSS request the expanded CSS value.
     for dependency in self.collect_used_css_exports().values() {
       roots.insert(
         *dependency.id(),
@@ -312,14 +312,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       );
     }
     for dependency in self.module.get_dependencies() {
-      if let Some(export) = dependency.downcast_ref::<CssIcssExportDependency>() {
-        if !export.local_ident && !export.ranges.is_empty() {
-          roots.entry(*export.id()).or_default().css |= render_css;
-        }
-      } else if let Some(symbol) = dependency.downcast_ref::<CssIcssSymbolDependency>() {
+      if let Some(symbol) = dependency.downcast_ref::<CssIcssSymbolDependency>()
+        && symbol.kind != CssIcssSymbolKind::LocalDeclaration
+      {
         // Local symbols such as `animation: spin` keep their definitions alive
         // even though rendering the use only needs the generated identifier.
-        roots.entry(symbol.target).or_default().css |= render_css && !symbol.local_ident;
+        roots.entry(symbol.target).or_default().css |=
+          render_css && symbol.kind == CssIcssSymbolKind::IcssReference;
       }
     }
     roots
@@ -357,73 +356,21 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     css_values
   }
 
-  fn render_icss_dependencies(&mut self, css_values: &HashMap<DependencyId, Option<String>>) {
-    let module = self.module;
-    for dependency in module.get_dependencies() {
-      if let Some(export) = dependency.downcast_ref::<CssIcssExportDependency>() {
-        self.render_css_export_declaration(
-          export,
-          css_values.get(export.id()).and_then(Option::as_deref),
-        );
-      } else if let Some(symbol) = dependency.downcast_ref::<CssIcssSymbolDependency>() {
-        self.render_css_symbol(
-          symbol,
-          css_values.get(&symbol.target).and_then(Option::as_deref),
-        );
-      }
-    }
-  }
-
-  fn render_css_export_declaration(
-    &mut self,
-    export: &CssIcssExportDependency,
-    value: Option<&str>,
-  ) {
-    if export.ranges.is_empty() {
-      return;
-    }
-    // Rendering a declaration does not make it used. Its source spelling also
-    // excludes compositions that only belong to the exported value.
-    let value = if export.local_ident {
-      self.render_local_ident(export)
-    } else {
-      value.unwrap_or_default().to_owned()
-    };
-    for range in &export.ranges {
-      self
-        .css_output
-        .replace(range.start, range.end, value.clone(), None);
-    }
-  }
-
-  fn render_css_symbol(&mut self, symbol: &CssIcssSymbolDependency, value: Option<&str>) {
-    let value = if symbol.local_ident {
-      let definition = css_export_dependency(
-        self.generate_context.compilation.get_module_graph(),
-        &symbol.target,
-      );
-      Some(self.render_local_ident(definition))
-    } else {
-      value.map(str::to_owned)
-    };
-    if let Some(value) = value {
-      let range = symbol
-        .range()
-        .expect("CSS symbol should have a source range");
-      self.css_output.replace(range.start, range.end, value, None);
-    }
-  }
-
-  fn render_local_ident(&self, definition: &CssIcssExportDependency) -> String {
+  fn render_local_ident(
+    compilation: &Compilation,
+    module: &dyn Module,
+    definition: &CssIcssExportDependency,
+  ) -> String {
     escape_identifier(&replace_css_module_id_placeholder(
       &definition.value,
-      self.generate_context.compilation,
-      self.module,
+      compilation,
+      module,
     ))
     .into_owned()
   }
 
-  fn render_dependency_templates(&mut self) {
+  fn render_css_dependencies(&mut self, css_values: &HashMap<DependencyId, Option<String>>) {
+    let mut local_idents = HashMap::default();
     let mut init_fragments = ModuleInitFragments::default();
     let mut context = TemplateContext {
       compilation: self.generate_context.compilation,
@@ -434,14 +381,35 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       data: self.generate_context.data,
       runtime_template: self.generate_context.runtime_template,
     };
+    // Keep each source occurrence in parser order, including imports and URLs.
+    // Grouping replacements by definition makes ReplaceSource repeatedly shift
+    // its sorted replacement vector for interleaved occurrences.
     for dependency in self.module.get_dependencies() {
-      if matches!(
-        dependency.dependency_type(),
-        DependencyType::CssIcssExport | DependencyType::CssIcssSymbol
-      ) {
-        continue;
-      }
-      if let Some(dependency) = dependency.as_dependency_code_generation() {
+      if let Some(symbol) = dependency.downcast_ref::<CssIcssSymbolDependency>() {
+        let value = match symbol.kind {
+          CssIcssSymbolKind::LocalDeclaration | CssIcssSymbolKind::LocalReference => {
+            let value = local_idents.entry(symbol.target).or_insert_with(|| {
+              let definition =
+                css_export_dependency(context.compilation.get_module_graph(), &symbol.target);
+              Self::render_local_ident(context.compilation, context.module, definition)
+            });
+            Some(value.as_str())
+          }
+          CssIcssSymbolKind::IcssReference => {
+            css_values.get(&symbol.target).and_then(Option::as_deref)
+          }
+        };
+        if let Some(value) = value {
+          let range = symbol
+            .range()
+            .expect("CSS symbol should have a source range");
+          self
+            .css_output
+            .replace(range.start, range.end, value.to_owned(), None);
+        }
+      } else if dependency.dependency_type() != &DependencyType::CssIcssExport
+        && let Some(dependency) = dependency.as_dependency_code_generation()
+      {
         render_dependency_template(dependency, &mut self.css_output, &mut context);
       }
     }
