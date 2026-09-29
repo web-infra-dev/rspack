@@ -711,7 +711,7 @@ The mapping from names to chunk groups.
 
 **Type:** `ReadonlySet<Module>`
 
-The collection is populated on first access to `size`, `has`, or an iteration method. Reading `compilation.modules` alone does not load the modules. Subsequent accesses through the same collection use that snapshot; read `compilation.modules` again to obtain a new collection.
+The collection reads the native module graph on demand. `size` and `has` query it without converting the module collection to JavaScript; iteration retrieves the module objects only when needed.
 
 List of all modules, with the structure as follows:
 

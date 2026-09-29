@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import util from 'node:util';
-import { runCompiler } from '@rspack/test-tools/helper/lifecycle';
+import { createFsFromVolume, Volume } from 'memfs';
+import { rspack } from '@rspack/core';
+import { runCompiler, closeCompiler } from '@rspack/test-tools/helper/lifecycle';
 
 const scenarios = [
   'no-hook',
@@ -8,28 +10,33 @@ const scenarios = [
   'empty-promise',
   'empty-async',
   'chunks-only',
+  'size-only',
+  'has-only',
   'read-modules',
 ];
 
-export default scenarios.map((name) => ({
+const cases = scenarios.map((name) => ({
   name,
   description: `materializes only the optimizeTree collections used by ${name}`,
   options: () => ({ mode: 'development', entry: './entry.js' }),
   compiler(_context, compiler) {
     compiler.hooks.thisCompilation.tap('LazyCollections', (compilation) => {
       const inner = compilation.__internal_getInner();
-      const descriptor = Object.getOwnPropertyDescriptor(
-        Object.getPrototypeOf(inner),
-        'modules',
-      );
-      assert(descriptor?.get);
+      const nativeModules = inner.modules;
+      const getModules = nativeModules.values;
       let moduleReads = 0;
       let chunkReads = 0;
       Object.defineProperty(inner, 'modules', {
         configurable: true,
         get() {
+          return nativeModules;
+        },
+      });
+      Object.defineProperty(nativeModules, 'values', {
+        configurable: true,
+        value() {
           moduleReads++;
-          return descriptor.get.call(inner);
+          return getModules.call(nativeModules);
         },
       });
 
@@ -44,6 +51,8 @@ export default scenarios.map((name) => ({
       });
 
       const hook = compilation.hooks.optimizeTree;
+      // Creating the facade before modules are built must not read the graph.
+      const retained = compilation.modules;
       if (name === 'empty-sync') {
         hook.tap('LazyCollections', () => {});
       } else if (name === 'empty-promise') {
@@ -59,6 +68,29 @@ export default scenarios.map((name) => ({
           assert([...chunks].length > 0);
           assert.equal(moduleReads, 0);
           assert.equal(chunkReads, 1);
+        });
+      } else if (name === 'size-only') {
+        hook.tap('LazyCollections', (_chunks, modules) => {
+          assert.equal(modules, retained);
+          assert(modules.size >= 2);
+          assert.equal(moduleReads, 0);
+        });
+      } else if (name === 'has-only') {
+        hook.tap('LazyCollections', (_chunks, modules) => {
+          const chunk = compilation.entrypoints
+            .get('main')
+            .getEntrypointChunk();
+          const [entry] = compilation.chunkGraph
+            .getChunkEntryModulesIterable(chunk);
+          assert(entry);
+          assert.equal(modules.has(entry), true);
+          assert.equal(modules.has({}), false);
+          assert.equal(modules.has(null), false);
+          assert.equal(
+            modules.has({ identifier: () => entry.identifier() }),
+            false,
+          );
+          assert.equal(moduleReads, 0);
         });
       } else if (name === 'read-modules') {
         hook.tapPromise('LazyCollections', async (_chunks, modules) => {
@@ -80,6 +112,7 @@ export default scenarios.map((name) => ({
           assert.equal(modules.size, expected.size);
           assert.equal(modules.has(values[0]), true);
           assert.equal(modules.has({}), false);
+          assert.equal(moduleReads, 1);
           assert.deepEqual([...modules], values);
           assert.deepEqual([...modules.keys()], values);
           assert.deepEqual([...modules.values()], values);
@@ -103,21 +136,24 @@ export default scenarios.map((name) => ({
               assert.deepEqual(modules[method](other), expected[method](other));
             }
           }
-          assert.equal(moduleReads, 1);
-
-          // A new getter access must not reuse a snapshot from an earlier phase.
+          // Accessors query the live graph without enumerating the collection.
+          const reads = moduleReads;
           const fresh = compilation.modules;
-          assert.notEqual(fresh, modules);
-          assert.equal(moduleReads, 1);
+          assert.equal(fresh, modules);
           assert.equal(fresh.size, expected.size);
-          assert.equal(moduleReads, 2);
+          assert.equal(moduleReads, reads);
         });
       }
 
       compilation.hooks.afterSeal.tap('LazyCollections', () => {
-        assert.equal(moduleReads, name === 'read-modules' ? 2 : 0);
+        if (name === 'read-modules') {
+          assert(moduleReads > 0);
+        } else {
+          assert.equal(moduleReads, 0);
+        }
         assert.equal(chunkReads, name === 'chunks-only' ? 1 : 0);
         delete inner.modules;
+        delete nativeModules.values;
         delete chunks._values;
       });
     });
@@ -134,3 +170,56 @@ export default scenarios.map((name) => ({
     }
   },
 }));
+
+cases.push({
+  name: 'compiler-identity',
+  description: 'checks module ownership and rejects stale compilation collections',
+  async run() {
+    const options = {
+      mode: 'development',
+      context: import.meta.dirname,
+      entry: './entry.js',
+      output: { path: '/dist' },
+      optimization: { minimize: false },
+    };
+    const first = rspack(options);
+    const second = rspack(options);
+    first.outputFileSystem = createFsFromVolume(new Volume());
+    second.outputFileSystem = createFsFromVolume(new Volume());
+    let foreignModule;
+    const collections = [];
+    first.hooks.thisCompilation.tap('ModuleOwnership', (compilation) => {
+      compilation.hooks.optimizeTree.tap('ModuleOwnership', (_chunks, modules) => {
+        foreignModule = [...modules].find((module) =>
+          module.resource?.endsWith('entry.js'),
+        );
+        assert(foreignModule);
+      });
+    });
+    second.hooks.thisCompilation.tap('ModuleOwnership', (compilation) => {
+      const modules = compilation.modules;
+      collections.push(modules);
+      compilation.hooks.optimizeTree.tap('ModuleOwnership', () => {
+        const entry = [...modules].find((module) =>
+          module.resource?.endsWith('entry.js'),
+        );
+        assert(entry);
+        assert.equal(entry.identifier(), foreignModule.identifier());
+        assert.equal(modules.has(entry), true);
+        assert.equal(modules.has(foreignModule), false);
+      });
+    });
+    try {
+      assert.equal((await runCompiler(first)).hasErrors(), false);
+      assert.equal((await runCompiler(second)).hasErrors(), false);
+      assert.equal((await runCompiler(second)).hasErrors(), false);
+      assert.throws(() => collections[0].size, /Unable to access compilation/);
+      assert(collections[1].size > 0);
+    } finally {
+      await closeCompiler(first);
+      await closeCompiler(second);
+    }
+  },
+});
+
+export default cases;

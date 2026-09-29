@@ -707,7 +707,7 @@ class MyPlugin {
 
 **类型：** `ReadonlySet<Module>`
 
-集合在首次访问 `size`、`has` 或迭代方法时填充。仅读取 `compilation.modules` 不会加载模块。同一个集合的后续访问会使用该快照；再次读取 `compilation.modules` 可获取新的集合。
+集合按需读取原生模块图。`size` 和 `has` 直接查询模块图，无需将模块集合转换为 JavaScript；迭代时才会获取模块对象。
 
 获取所有模块，其结构如下：
 
