@@ -1076,9 +1076,6 @@ export interface JsResolveData {
   contextInfo: ContextInfo
   /** The import attributes of the dependency that triggered this resolution, read-only. */
   attributes?: Record<string, string>
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
   createData?: JsCreateData
 }
 
