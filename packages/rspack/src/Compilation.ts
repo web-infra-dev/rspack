@@ -59,6 +59,7 @@ import { StatsFactory } from './stats/StatsFactory';
 import { StatsPrinter } from './stats/StatsPrinter';
 import { AsyncTask } from './util/AsyncTask';
 import { createReadonlyMap } from './util/createReadonlyMap';
+import { createReadonlySet } from './util/createReadonlySet';
 import type { InputFileSystem } from './util/fs';
 import type Hash from './util/hash';
 import { SourceAdapter } from './util/source';
@@ -567,7 +568,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   get modules(): ReadonlySet<Module> {
-    return new Set(this.#inner.modules);
+    return createReadonlySet(() => this.#inner.modules);
   }
 
   get builtModules(): ReadonlySet<Module> {
