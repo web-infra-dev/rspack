@@ -1,0 +1,5 @@
+:export {
+  color: green;
+  --color: red;
+  --color: blue;
+}

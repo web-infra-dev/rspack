@@ -1,7 +1,7 @@
 Object {
   UsedClassName: mrynNF,
   VARS: --_odIAe Ks_BHh undefined m2PA6x,
-  __webpack_modules__: 11,
+  __webpack_modules__: 8,
   animation: _4v9LUE,
   animationName: RI1Z9k,
   class: fcj_Kv,
