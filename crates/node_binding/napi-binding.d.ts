@@ -276,6 +276,19 @@ export declare class ExternalModule {
   _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
+/** Native operations on the owning compiler's current dependency collection. */
+export declare class FileSystemDependencies {
+  get added(): Array<string>
+  get removed(): Array<string>
+  size(): number
+  has(value: string): boolean
+  clear(): void
+  update(added: Array<string>, deleted: Array<string>): void
+  values(this: this): ReadonlyArray<string>
+  add(value: string): void
+  addAll(values: Array<string>): void
+}
+
 /** One shared cache, initialized from the first compiler that uses it. */
 export declare class JsCache {
   constructor()
@@ -289,7 +302,7 @@ export declare class JsCompilation {
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsSource | null
-  get modules(): Array<Module>
+  get modules(): Modules
   get builtModules(): Array<Module>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   get chunks(): Chunks
@@ -307,7 +320,10 @@ export declare class JsCompilation {
   get entrypoints(): ChunkGroup[]
   get chunkGroups(): ChunkGroup[]
   get hash(): string | null
-  dependencies(): JsDependencies
+  get fileDependencies(): FileSystemDependencies
+  get contextDependencies(): FileSystemDependencies
+  get missingDependencies(): FileSystemDependencies
+  get buildDependencies(): FileSystemDependencies
   pushDiagnostic(diagnostic: JsRspackDiagnostic): void
   pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
@@ -342,7 +358,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, jsHelpers: JsHelpers)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -382,21 +398,6 @@ export declare class JsCoordinator {
   constructor()
 }
 
-export declare class JsDependencies {
-  get fileDependencies(): Array<string>
-  get addedFileDependencies(): Array<string>
-  get removedFileDependencies(): Array<string>
-  get contextDependencies(): Array<string>
-  get addedContextDependencies(): Array<string>
-  get removedContextDependencies(): Array<string>
-  get missingDependencies(): Array<string>
-  get addedMissingDependencies(): Array<string>
-  get removedMissingDependencies(): Array<string>
-  get buildDependencies(): Array<string>
-  get addedBuildDependencies(): Array<string>
-  get removedBuildDependencies(): Array<string>
-}
-
 export declare class JsEntries {
   clear(): void
   get size(): number
@@ -421,18 +422,18 @@ export declare class JsLoaderCache {
 }
 
 export declare class JsModuleGraph {
-  getModule(dependency: Dependency): Module | null
-  getResolvedModule(dependency: Dependency): Module | null
+  getModule(dependency: Dependency | EntryDependency): Module | null
+  getResolvedModule(dependency: Dependency | EntryDependency): Module | null
   getUsedExports(module: Module, runtime: string | string[]): boolean | Array<string> | null
   getProvidedExports(module: Module): true | string[] | null
   getIssuer(module: Module): Module | null
   getExportsInfo(module: Module): JsExportsInfo
-  getConnection(dependency: Dependency): ModuleGraphConnection | null
+  getConnection(dependency: Dependency | EntryDependency): ModuleGraphConnection | null
   getOutgoingConnections(module: Module): ModuleGraphConnection[]
   getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[]
   getIncomingConnections(module: Module): ModuleGraphConnection[]
-  getParentModule(dependency: Dependency): Module | null
-  getParentBlockIndex(dependency: Dependency): number
+  getParentModule(dependency: Dependency | EntryDependency): Module | null
+  getParentBlockIndex(dependency: Dependency | EntryDependency): number
   isAsync(module: Module): boolean
 }
 
@@ -472,6 +473,13 @@ export declare class ModuleGraphConnection {
   get resolvedModule(): Module | null
   get originModule(): Module | null
   getActiveState(runtime: string | string[] | undefined): ConnectionState
+}
+
+/** Read-only operations on a compilation's module collection. */
+export declare class Modules {
+  size(): number
+  has(value: Module): boolean
+  values(): ReadonlyArray<Module>
 }
 
 export declare class NativeWatcher {
@@ -892,6 +900,11 @@ export interface JsFactoryMeta {
   sideEffectFree?: boolean
 }
 
+export interface JsHelpers {
+  applyIndexedArrayUpdates: <T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void
+  swapRemoveArrayElements: <T>(array: T[], removedIndices: Uint32Array) => void
+}
+
 export interface JsHtmlPluginAssets {
   publicPath: string
   js: Array<string>
@@ -1070,9 +1083,6 @@ export interface JsResolveData {
   contextInfo: ContextInfo
   /** The import attributes of the dependency that triggered this resolution, read-only. */
   attributes?: Record<string, string>
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
   createData?: JsCreateData
 }
 
@@ -2806,6 +2816,7 @@ export interface RawNewCache {
   devtool: boolean
   loader: boolean
   minimize: boolean
+  resolver: boolean
 }
 
 export interface RawNodeOption {
@@ -3080,6 +3091,8 @@ export interface RawRstestPluginOptions {
    */
   injectImportMetaRstestOrigin?: boolean
 injectDynamicImportOrigin?: boolean | { functionName?: string }
+updateImportMockAPI?: boolean
+updateRequireMockAPI?: boolean
 injectRequireResolveOrigin?: boolean | { functionName?: string }
 }
 

@@ -158,99 +158,101 @@ export default {
 
 This syntax is used to describe all the possible ways that an external library can be made available. `lodash` here is available as `lodash` under AMD and CommonJS module systems but available as `_` in a global variable form. `subtract` here is available via the property `subtract` under the global `math` object (e.g. `window['math']['subtract']`).
 
-### function
+### Function
 
-- **Type:**
-  - `function ({ context, request, contextInfo, getResolve }, callback)`
-  - `function ({ context, request, contextInfo, getResolve }) => promise`
+**Type:**
 
-It might be useful to define your own function to control the behavior of what you want to externalize from Rspack. [webpack-node-externals](https://www.npmjs.com/package/webpack-node-externals), for example, excludes all modules from the `node_modules` directory and provides options to allowlist packages.
+```ts
+type ExternalFunction = (
+  data: ExternalItemFunctionData,
+  callback: (
+    error?: Error | null,
+    result?: ExternalItemValue,
+    externalsType?: ExternalsType,
+  ) => void,
+) => ExternalItemValue | void | Promise<ExternalItemValue | void>;
+```
 
-Here're arguments the function can receive:
+Use a function when the decision to externalize a dependency depends on its request or other module information. The function can return a result directly, return a Promise, or call a callback.
 
-- `ctx` (`object`): Object containing details of the file.
-  - `ctx.context` (`string`): The directory of the file which contains the import.
-  - `ctx.request` (`string`): The import path being requested.
-  - `ctx.contextInfo` (`object`): Contains information about the issuer (e.g. the layer and compiler)
-  - `ctx.getResolve`: Get a resolve function with the current resolver options.
-- `callback` (`function (err, result, type)`): Callback function used to indicate how the module should be externalized.
-
-The callback function takes three arguments:
-
-- `err` (`Error`): Used to indicate if there has been an error while externalizing the import. If there is an error, this should be the only parameter used.
-- `result` (`string | string[] | object | boolean`): Describes the external module.
-  - `string | string[] | object`: Describes the external module with the other external formats ([`string`](#string), [`string[]`](#string-array), or [`object`](#object)).
-  - `boolean`: Passing `true` externalizes the dependency using the original request path as the external module name. Passing `false` tells Rspack to skip the remaining external configuration and bundle the dependency instead.
-- `type` (`string`): Optional parameter that indicates the module [external type](#externalstype) (if it has not already been indicated in the `result` parameter).
-
-As an example, to externalize all imports where the import path matches a regular expression you could do the following:
+For example, this configuration keeps `react` and its subpaths as ES module imports:
 
 ```js title="rspack.config.mjs"
 export default {
-  externals: [
-    function ({ context, request }, callback) {
-      if (/^yourregex$/.test(request)) {
-        // Externalize to a commonjs module using the request path
-        return callback(null, 'commonjs ' + request);
-      }
-
-      // Continue without externalizing the import
-      callback();
-    },
-  ],
+  output: {
+    module: true,
+  },
+  externalsType: 'module',
+  externals: ({ request }) => {
+    if (request === 'react' || request?.startsWith('react/')) {
+      return request;
+    }
+  },
 };
 ```
 
-Other examples using different module formats:
+The consumer must be able to resolve these imports, for example through another bundler or a browser import map.
+
+For synchronous return values, declare exactly one parameter, as in `({ request }) => ...`. Rspack uses the function's parameter count to distinguish this form from callback usage. For asynchronous work, use an `async` function or return a Promise.
+
+#### Request data
+
+The first argument contains information about the dependency:
+
+- `request`: The module request as written in the source code, such as `react` or `./utils.js`, before it is resolved to a file path.
+- `context`: The directory from which the request is resolved.
+- `dependencyType`: The dependency category, such as `esm` or `commonjs`.
+- `contextInfo.issuer`: The path of the module that made the request.
+- `contextInfo.issuerLayer`: The layer of the requesting module, if set.
+- `getResolve`: Creates a resolver using the current resolve options. See [Resolving requests](#resolving-requests).
+
+#### Results
+
+Return values, Promise results, and callback results have the same meaning:
+
+- **String, string array, or object:** Externalize the request using the corresponding value format: [string](#string), [string array](#string-array), or [object](#object).
+- **`true`:** Externalize the request using its original name and [`externalsType`](#externalstype).
+- **`false`:** Stop checking the remaining rules in this `externals` configuration without externalizing the request. Other `ExternalsPlugin` instances can still externalize it.
+- **`undefined`:** Continue checking the next rule. For callbacks, use `callback()`.
+
+If no rule externalizes a request, Rspack continues normal module processing. To override `externalsType` for a single result, add a type prefix such as `'window _'`, or pass the type as the callback's third argument.
+
+#### Callback usage
+
+The second argument is a callback. Call `callback(error)` on failure, `callback(null, result, externalsType?)` to supply a result, or `callback()` to continue checking other rules. When using this form, call the callback on every path instead of returning a result.
+
+The ESM example above can also be written using a callback:
 
 ```js title="rspack.config.mjs"
 export default {
-  externals: [
-    function (ctx, callback) {
-      // The external is a `commonjs2` module located in `@scope/library`
-      callback(null, '@scope/library', 'commonjs2');
-    },
-  ],
+  output: {
+    module: true,
+  },
+  externalsType: 'module',
+  externals: ({ request }, callback) => {
+    if (request === 'react' || request?.startsWith('react/')) {
+      callback(null, request);
+      return;
+    }
+    callback();
+  },
 };
 ```
 
-```js title="rspack.config.mjs"
-export default {
-  externals: [
-    function (ctx, callback) {
-      // The external is a global variable called `nameOfGlobal`.
-      callback(null, 'nameOfGlobal');
-    },
-  ],
-};
+#### Resolving requests
+
+Use `getResolve()` when the decision to externalize a dependency depends on its resolved path or package metadata. For example, inside an async external function that receives `{ context, request, getResolve }`:
+
+```js
+const resolve = getResolve();
+const resolvedPath = await resolve(context, request);
 ```
 
-```js title="rspack.config.mjs"
-export default {
-  externals: [
-    function (ctx, callback) {
-      // The external is a named export in the `@scope/library` module.
-      callback(null, ['@scope/library', 'namedexport'], 'commonjs');
-    },
-  ],
-};
-```
+Pass [resolve options](/config/resolve) to `getResolve(options)` to customize the resolver. The returned function also accepts a callback: `resolve(context, request, (error, resolvedPath, resolveData) => { ... })`.
 
-```js title="rspack.config.mjs"
-export default {
-  externals: [
-    function (ctx, callback) {
-      // The external is a UMD module
-      callback(null, {
-        root: 'componentsGlobal',
-        commonjs: '@scope/components',
-        commonjs2: '@scope/components',
-        amd: 'components',
-      });
-    },
-  ],
-};
-```
+A successful resolution returns a path. If the request is ignored, for example by an alias set to `false`, the Promise resolves to `undefined` and the callback receives `false` as its second argument. A resolution error rejects the Promise or is passed to the callback's first argument.
+
+In callback mode, the optional third argument contains resolution details. Its `descriptionFileData` field contains the parsed `package.json` object when available, so you can read fields such as `name`, `version`, or `type` directly without calling `JSON.parse()`.
 
 ### RegExp
 

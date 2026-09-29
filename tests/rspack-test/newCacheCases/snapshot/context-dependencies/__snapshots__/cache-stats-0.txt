@@ -11,6 +11,10 @@
     "module code generation cache": {
       "hits": 0,
       "total": 1
+    },
+    "resolver cache": {
+      "hits": 2,
+      "total": 7
     }
   }
 ]

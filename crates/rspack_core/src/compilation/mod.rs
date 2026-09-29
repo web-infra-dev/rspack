@@ -240,6 +240,7 @@ pub struct Compilation {
   logging: CompilationLogging,
   cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
+  pub resolver_cache: Option<crate::ResolverCache>,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
@@ -373,7 +374,16 @@ impl Compilation {
       options.snapshot.clone(),
       options.output.hash_function,
     );
-
+    let resolver_cache = (options.experiments.new_cache.resolver
+      && !matches!(options.cache, crate::CacheOptions::Disabled))
+    .then(|| {
+      crate::ResolverCache::new(
+        cache.facade("ResolverCache"),
+        file_system_info.clone(),
+        options.snapshot.resolve,
+        &CompilationLogger::new("rspack.ResolverCache", logging.clone()),
+      )
+    });
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -396,6 +406,7 @@ impl Compilation {
       logging,
       cache,
       module_build_cache,
+      resolver_cache,
       file_system_info,
       plugin_driver,
       buildtime_plugin_driver,

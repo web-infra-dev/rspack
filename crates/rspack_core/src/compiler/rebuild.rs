@@ -70,7 +70,10 @@ impl Compiler {
       let mut all_files = modified_files.clone();
       all_files.extend(removed_files.iter().cloned());
 
+      self.resolver_factory.clear_cache();
+      self.loader_resolver_factory.clear_cache();
       self.plugin_driver.clear_cache(self.compilation.id());
+
       let compilation_logging = self.compilation.get_logging().clone();
       compilation_logging.clear();
 

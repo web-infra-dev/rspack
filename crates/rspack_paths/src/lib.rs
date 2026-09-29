@@ -1,7 +1,5 @@
 #[cfg(windows)]
 use std::borrow::Cow;
-#[cfg(unix)]
-use std::os::unix::ffi::OsStrExt;
 use std::{
   collections::{HashMap, HashSet},
   ffi::OsStr,
@@ -13,16 +11,15 @@ use std::{
 
 pub use camino::{Utf8Component, Utf8Components, Utf8Path, Utf8PathBuf, Utf8Prefix};
 use dashmap::{DashMap, DashSet};
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 #[cfg(feature = "cacheable")]
-use rspack_cacheable::{
-  ContextGuard, Error as CacheableError, cacheable,
-  utils::PortablePath,
-  with::{Custom, CustomConverter},
-};
+use rspack_cacheable::cacheable;
 use rspack_intern::{InternSliceStorage, InternedSlice, SliceInternable};
 use rustc_hash::FxHasher;
 pub use ustr::IdentityHasher;
+
+#[cfg(feature = "cacheable")]
+mod cacheable;
 
 /// Returns the byte index immediately after a DOS device path prefix
 /// (`\\\\?\\` or `\\\\.\\`), or zero when `path` has no such prefix.
@@ -154,8 +151,8 @@ impl SliceInternable for PreHashedPath {
 /// Reads back bytes produced by `OsStr::as_encoded_bytes`.
 ///
 /// # Panics-free safety
-/// The bytes always come from [`InternedPath::from_parts`], which takes them from `as_encoded_bytes`
-/// on this same platform and stores the whole slice — the round trip `OsStr` documents as sound.
+/// Callers pass complete `as_encoded_bytes` slices from the same Rust version and target platform,
+/// including native cache round trips.
 #[inline]
 fn path_from_bytes(bytes: &[u8]) -> &Path {
   // SAFETY: See above.
@@ -165,7 +162,7 @@ fn path_from_bytes(bytes: &[u8]) -> &Path {
 /// An interned path: equal paths share one allocation process-wide, so equality is a pointer
 /// comparison and each path is stored once. Hashing still uses the precomputed content hash
 /// (see [`Hash`] below).
-#[cfg_attr(feature = "cacheable", cacheable(with=Custom))]
+#[cfg_attr(feature = "cacheable", cacheable(with=cacheable::AsInternedPath))]
 #[derive(Clone, PartialEq, Eq)]
 pub struct InternedPath(InternedSlice<PreHashedPath>);
 
@@ -176,8 +173,15 @@ impl Debug for InternedPath {
 }
 
 impl InternedPath {
+  #[inline]
   pub fn new(path: &Path) -> Self {
-    Self::from_parts(hash_path(path), path)
+    Self::from_bytes(path.as_os_str().as_encoded_bytes())
+  }
+
+  /// Intern complete `OsStr::as_encoded_bytes` from the same Rust version and target platform.
+  #[inline]
+  pub(crate) fn from_bytes(bytes: &[u8]) -> Self {
+    Self(InternedSlice::new(hash_path_bytes(bytes), bytes))
   }
 
   /// Build an `InternedPath` from a precomputed hash without rehashing. The caller MUST guarantee
@@ -211,11 +215,16 @@ impl InternedPath {
 /// intern a resolved dependency without rehashing it.
 #[inline]
 pub fn hash_path(path: &Path) -> u64 {
+  hash_path_bytes(path.as_os_str().as_encoded_bytes())
+}
+
+#[inline]
+fn hash_path_bytes(bytes: &[u8]) -> u64 {
   let mut hasher = FxHasher::default();
   #[cfg(unix)]
-  hasher.write(path.as_os_str().as_bytes());
+  hasher.write(bytes);
   #[cfg(not(unix))]
-  path.hash(&mut hasher);
+  path_from_bytes(bytes).hash(&mut hasher);
   hasher.finish()
 }
 
@@ -275,19 +284,6 @@ impl From<&str> for InternedPath {
   }
 }
 
-#[cfg(feature = "cacheable")]
-impl CustomConverter for InternedPath {
-  type Target = PortablePath;
-  fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
-    Ok(PortablePath::new(self.as_path(), guard.project_root()))
-  }
-  fn deserialize(data: Self::Target, guard: &ContextGuard) -> Result<Self, CacheableError> {
-    Ok(Self::from(PathBuf::from(
-      data.into_path_string(guard.project_root()),
-    )))
-  }
-}
-
 impl Hash for InternedPath {
   /// Hashes by content, not by the interned pointer: [`InternedPathMap`] and friends feed this
   /// straight into [`IdentityHasher`], and pointer addresses are allocation-aligned (low bits
@@ -314,6 +310,9 @@ pub type InternedPathDashMap<V> = DashMap<InternedPath, V, BuildHasherDefault<Id
 /// A standard `DashSet` using `InternedPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
 pub type InternedPathDashSet = DashSet<InternedPath, BuildHasherDefault<IdentityHasher>>;
+
+/// An indexed map using the path's precomputed hash.
+pub type InternedPathIndexMap<V> = IndexMap<InternedPath, V, BuildHasherDefault<IdentityHasher>>;
 
 /// A standard `IndexSet` using `InternedPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.

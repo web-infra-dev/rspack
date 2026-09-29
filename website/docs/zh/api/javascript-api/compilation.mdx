@@ -17,7 +17,7 @@ import CacheType from '../../types/cache.mdx';
 import CompilerType from '../../types/compiler.mdx';
 import RuntimeTemplateType from '../../types/runtime-template.mdx';
 import RspackErrorType from '../../types/rspack-error.mdx';
-import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
+import FileSystemDependenciesType from '../../types/file-system-dependencies.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # Compilation
@@ -761,65 +761,65 @@ class MyPlugin {
 
 ### fileDependencies
 
-**类型：** `CompilationDependencies`
+**类型：** `FileSystemDependencies`
 
 获取此 Compilation 对资源文件的依赖信息，其结构如下：
 
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CompilationDependencies.ts"
-    key="CompilationDependencies"
+    header="FileSystemDependencies.ts"
+    key="FileSystemDependencies"
   >
-    <CompilationDependenciesType />
+    <FileSystemDependenciesType />
   </CollapsePanel>
 </Collapse>
 
 ### contextDependencies
 
-**类型：** `CompilationDependencies`
+**类型：** `FileSystemDependencies`
 
 获取此 Compilation 对目录的依赖信息。
 
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CompilationDependencies.ts"
-    key="CompilationDependencies"
+    header="FileSystemDependencies.ts"
+    key="FileSystemDependencies"
   >
-    <CompilationDependenciesType />
+    <FileSystemDependenciesType />
   </CollapsePanel>
 </Collapse>
 
 ### missingDependencies
 
-**类型：** `CompilationDependencies`
+**类型：** `FileSystemDependencies`
 
 获取此 Compilation 对缺失文件的依赖信息。
 
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CompilationDependencies.ts"
-    key="CompilationDependencies"
+    header="FileSystemDependencies.ts"
+    key="FileSystemDependencies"
   >
-    <CompilationDependenciesType />
+    <FileSystemDependenciesType />
   </CollapsePanel>
 </Collapse>
 
 ### buildDependencies
 
-**类型：** `CompilationDependencies`
+**类型：** `FileSystemDependencies`
 
 获取此 Compilation 对构建文件的依赖信息。
 
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CompilationDependencies.ts"
-    key="CompilationDependencies"
+    header="FileSystemDependencies.ts"
+    key="FileSystemDependencies"
   >
-    <CompilationDependenciesType />
+    <FileSystemDependenciesType />
   </CollapsePanel>
 </Collapse>
 

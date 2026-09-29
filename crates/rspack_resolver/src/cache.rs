@@ -68,6 +68,14 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     F: FnOnce(TsConfig) -> Fut + Send,
     Fut: Send + Future<Output = Result<TsConfig, ResolveError>>,
   {
+    // Like TypeScript, resolve the config file against cwd before deriving
+    // baseUrl and paths. A relative config must not produce relative resources.
+    let path = if path.is_absolute() {
+      Cow::Borrowed(path)
+    } else {
+      Cow::Owned(camino::absolute_utf8(path)?)
+    };
+    let path = path.as_ref();
     if let Some(tsconfig_ref) = self.tsconfigs.get(path.as_std_path()) {
       return Ok(Arc::clone(tsconfig_ref.value()));
     }

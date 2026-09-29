@@ -246,6 +246,7 @@ impl IdleFileCache {
   }
 
   pub async fn shutdown(&self) {
+    self.idle_epoch.fetch_add(1, Ordering::Release);
     self.send(Command::Shutdown);
     self.command_sender.closed().await;
   }

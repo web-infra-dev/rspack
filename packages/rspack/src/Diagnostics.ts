@@ -2,14 +2,11 @@ import util from 'node:util';
 import type { Diagnostics } from '@rspack/binding';
 import type { RspackError } from './RspackError';
 
-const $proxy = Symbol.for('proxy');
+const proxies = new WeakMap<Diagnostics, RspackError[]>();
 
-export function createDiagnosticArray(
-  adm: Diagnostics & { [$proxy]?: RspackError[] },
-): RspackError[] {
-  if ($proxy in adm) {
-    return adm[$proxy] as RspackError[];
-  }
+export function createDiagnosticArray(adm: Diagnostics): RspackError[] {
+  const cached = proxies.get(adm);
+  if (cached) return cached;
 
   const array: RspackError[] & {
     [util.inspect.custom]?: () => RspackError[];
@@ -210,6 +207,6 @@ export function createDiagnosticArray(
     },
   });
 
-  adm[$proxy] = proxy;
+  proxies.set(adm, proxy);
   return proxy;
 }
