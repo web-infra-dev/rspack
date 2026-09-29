@@ -14,16 +14,15 @@ export default defineConfig({
         );
         let visitedUnrelatedDirectory = false;
 
-        inputFileSystem.readdir = (dirPath, ...args: unknown[]) => {
+        inputFileSystem.readdir = ((
+          ...args: Parameters<InputFileSystem['readdir']>
+        ) => {
+          const [dirPath] = args;
           if (normalizePath(dirPath.toString()).endsWith('/src/unrelated')) {
             visitedUnrelatedDirectory = true;
           }
-          return Reflect.apply(
-            originalInputFileSystem.readdir,
-            originalInputFileSystem,
-            [dirPath, ...args],
-          );
-        };
+          return originalInputFileSystem.readdir(...args);
+        }) as InputFileSystem['readdir'];
 
         compiler.inputFileSystem = inputFileSystem;
         compiler.hooks.beforeCompile.tap(
