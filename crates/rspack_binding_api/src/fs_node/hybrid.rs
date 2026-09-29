@@ -58,6 +58,10 @@ impl ReadableFileSystem for HybridFileSystem {
     self.pick_fs_for_path(path).symlink_metadata(path).await
   }
 
+  async fn read_link(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+    self.pick_fs_for_path(path).read_link(path).await
+  }
+
   async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
     self.pick_fs_for_path(path).canonicalize(path).await
   }

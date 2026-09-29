@@ -38,6 +38,9 @@ pub trait ReadableFileSystem: Debug + Send + Sync {
   /// See [std::fs::symlink_metadata]
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata>;
 
+  /// See [std::fs::read_link].
+  async fn read_link(&self, path: &Utf8Path) -> Result<Utf8PathBuf>;
+
   /// See [std::fs::canonicalize]
   async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf>;
 

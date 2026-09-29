@@ -4,9 +4,77 @@
 - shared.js
 
 ## Asset Files
-
+- Bundle: async-shared_js.chunk.mjs
+- Bundle: main.mjs
+- Bundle: runtime.mjs
+- Manifest: runtime.LAST_HASH.hot-update.json.mjs, size: 54
+- Update: main.LAST_HASH.hot-update.mjs, size: 401
+- Update: runtime.LAST_HASH.hot-update.mjs, size: 294
 
 ## Manifest
 
+### runtime.LAST_HASH.hot-update.json.mjs
+
+```json
+{"c":["main","runtime"],"r":[],"m":[]}
+```
+
 
 ## Update
+
+
+### main.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./shared.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_id = "main";
+export const __rspack_esm_ids = ["main"];
+export const __webpack_modules__ = {
+"./shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  sharedData: () => (sharedData)
+});
+const sharedData = {
+	version: "2.0.0",
+	timestamp: Date.now()
+};
+
+
+},
+
+};
+
+```
+
+
+
+### runtime.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+export const __rspack_esm_id = "runtime";
+export const __rspack_esm_ids = ["runtime"];
+export const __webpack_modules__ = {};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+;
+
+```

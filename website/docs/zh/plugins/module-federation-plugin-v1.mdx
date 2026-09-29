@@ -32,7 +32,7 @@ export default {
 
 ```ts
 interface ModuleFederationPluginV1Options {
-  name: string;
+  name?: string;
   filename?: string;
   exposes?: Exposes;
   remotes?: Remotes;
@@ -45,4 +45,4 @@ interface ModuleFederationPluginV1Options {
 }
 ```
 
-`name` 是必填选项。公共字段的详细说明请参考 [ModuleFederationPlugin 选项](/plugins/module-federation-plugin#选项)。Module Federation v1 不支持 `implementation`、`runtimePlugins` 或 `shareStrategy`。
+暴露模块时必须提供 `name`。如果插件只配置远程模块或共享依赖，或未启用任何选项，则可以省略。公共字段的详细说明请参考 [ModuleFederationPlugin 选项](/plugins/module-federation-plugin#选项)。Module Federation v1 不支持 `implementation`、`runtimePlugins` 或 `shareStrategy`。

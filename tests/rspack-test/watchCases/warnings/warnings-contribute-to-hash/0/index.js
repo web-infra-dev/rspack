@@ -1,4 +1,4 @@
-require("./warning-loader!./changing-file");
+require("./warning-loader.mjs!./changing-file");
 
 it("should detect a change on warnings change", function() {
 	switch(WATCH_STEP) {

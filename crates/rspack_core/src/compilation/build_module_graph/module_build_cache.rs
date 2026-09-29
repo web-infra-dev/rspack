@@ -16,13 +16,15 @@ use crate::{
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCache {
   cache: CacheFacade,
+  restore_enabled: bool,
   pending: Arc<IdentifierDashMap<u64>>,
 }
 
 impl ModuleBuildCache {
-  pub(crate) fn new(cache: CacheFacade) -> Self {
+  pub(crate) fn new(cache: CacheFacade, restore_enabled: bool) -> Self {
     Self {
       cache,
+      restore_enabled,
       pending: Default::default(),
     }
   }
@@ -39,6 +41,10 @@ impl ModuleBuildCache {
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
   ) -> Result<Option<ModuleRef>> {
+    if !self.restore_enabled {
+      return Ok(None);
+    }
+
     let identifier = module.identifier();
     let Some(result) = self.cache.get::<ModuleRef>(identifier.as_str(), None) else {
       return Ok(None);

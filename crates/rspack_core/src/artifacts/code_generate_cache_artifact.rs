@@ -31,7 +31,7 @@ impl CodeGenerateCacheArtifact {
         CacheOptions::Memory {
           max_generations, ..
         } => Some(MemoryGCStorage::new(*max_generations)),
-        CacheOptions::Persistent(_) => Some(MemoryGCStorage::new(1)),
+        CacheOptions::Persistent(_) | CacheOptions::FileSystem(_) => Some(MemoryGCStorage::new(1)),
         CacheOptions::Disabled => None,
       },
       runtime_mode: options.experiments.runtime_mode,

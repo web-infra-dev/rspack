@@ -18,9 +18,9 @@ thread_local! {
   pub(crate) static GLOBAL_CLEANUP_FLAG: Cell<bool> = const { Cell::new(false) };
 }
 
-// A RAII (Resource Acquisition Is Initialization) style wrapper around `Ref` that ensures the
-// reference is unreferenced when it goes out of scope. This struct maintains a single reference
-// count and automatically cleans up when it is dropped.
+// Owns an N-API reference handle and deletes it on drop. `new` creates a strong
+// reference; `from_napi_ref` preserves the existing count, including zero for a
+// weak reference.
 pub struct OneShotRef {
   env: napi_env,
   napi_ref: sys::napi_ref,

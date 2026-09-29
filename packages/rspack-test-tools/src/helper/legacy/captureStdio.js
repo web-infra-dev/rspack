@@ -1,6 +1,10 @@
 // @ts-nocheck
-const { stripVTControlCharacters: stripAnsi } = require('node:util');
+import { stripVTControlCharacters as stripAnsi } from 'node:util';
 
+/**
+ * @param {NodeJS.WriteStream} stdio
+ * @param {boolean} [tty]
+ */
 export function captureStdio(stdio, tty) {
   let logs = [];
 
@@ -32,7 +36,7 @@ export function captureStdio(stdio, tty) {
       stdio.write = write;
       stdio.isTTY = isTTY;
 
-      delete require.cache[require.resolve('../../')];
+      delete require.cache[require.resolve('@rspack/test-tools')];
       // delete require.cache[
       // 	require.resolve("../../lib/node/NodeEnvironmentPlugin")
       // ];

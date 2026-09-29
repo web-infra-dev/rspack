@@ -10,9 +10,9 @@ use futures::future::BoxFuture;
 use itertools::Itertools;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, CacheCount, CacheFacade, CacheOptions, CacheValue, Chunk, ChunkUkey, Compilation,
-  CompilationAsset, CompilationParams, CompilationProcessAssets, CompilerCompilation, Etag,
-  Filename, Logger, ModuleIdentifier, PathData, Plugin,
+  AssetInfo, CacheCount, CacheFacade, CacheValue, Chunk, ChunkUkey, Compilation, CompilationAsset,
+  CompilationParams, CompilationProcessAssets, CompilerCompilation, Etag, Filename, Logger,
+  ModuleIdentifier, PathData, Plugin,
   cache::CachedSourceMapDevToolPluginEntry,
   legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
@@ -1281,9 +1281,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .await?,
   );
 
-  let new_cache = (compilation.options.experiments.new_cache.devtool
-    && !matches!(&compilation.options.cache, CacheOptions::Disabled))
-  .then(|| compilation.get_cache(PLUGIN_NAME));
+  let new_cache = compilation
+    .options
+    .experiments
+    .new_cache
+    .devtool
+    .then(|| compilation.get_cache(PLUGIN_NAME));
   let mut legacy_cache = if new_cache.is_some() {
     None
   } else {

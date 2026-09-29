@@ -9,6 +9,7 @@ import type {
   WatchFileSystem,
 } from '@rspack/core';
 import { createFsFromVolume, Volume } from 'memfs';
+import { readTestFile } from '../helper/read-test-file';
 import { BasicCaseCreator } from '../test/creator';
 import type {
   ITestContext,
@@ -28,12 +29,12 @@ function createMultiCompilerProcessor(
         [
           {
             name: 'a',
-            context: path.join(__dirname, 'fixtures'),
+            context: path.join(import.meta.dirname, 'fixtures'),
             entry: './a.js',
           },
           {
             name: 'b',
-            context: path.join(__dirname, 'fixtures'),
+            context: path.join(import.meta.dirname, 'fixtures'),
             entry: './b.js',
           },
         ],
@@ -103,8 +104,8 @@ export function createMultiCompilerCase(
   dist: string,
   testConfig: string,
 ) {
-  let caseConfigList:
-    TMultiCompilerCaseConfig | TMultiCompilerCaseConfig[] = require(testConfig);
+  let caseConfigList: TMultiCompilerCaseConfig | TMultiCompilerCaseConfig[] =
+    readTestFile(testConfig);
   if (!Array.isArray(caseConfigList)) {
     caseConfigList = [caseConfigList];
   }
@@ -141,5 +142,5 @@ export type TMultiCompilerCaseConfig = {
     compiler: Compiler;
     compilation?: Compilation;
   }) => MaybePromise<void>;
-  compilerCallback?: (error: Error | null, stats: Stats | null) => void;
+  compilerCallback?: (error: Error | null, stats?: Stats) => void;
 };

@@ -114,6 +114,12 @@ fn get_modules_size(modules: &[&ModuleRef], compilation: &Compilation) -> f64 {
 }
 
 impl ChunkGraph {
+  pub(crate) fn reserve_chunks(&mut self, total: usize) {
+    self
+      .chunk_graph_chunk_by_chunk_ukey
+      .reserve(total.saturating_sub(self.chunk_graph_chunk_by_chunk_ukey.len()));
+  }
+
   pub fn add_chunk(&mut self, chunk_ukey: ChunkUkey) {
     self
       .chunk_graph_chunk_by_chunk_ukey

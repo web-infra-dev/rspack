@@ -1,5 +1,5 @@
-import "./App.vue.css!=!./pitcher.js!./App.vue";
-import "./Charset.vue.css!=!./charset-pitcher.js!./Charset.vue";
+import "./App.vue.css!=!./pitcher.mjs!./App.vue";
+import "./Charset.vue.css!=!./charset-pitcher.mjs!./Charset.vue";
 
 it("should include CSS imported through an inline match resource", () => {
 	const css = getLinkSheet(document.querySelector("link"));

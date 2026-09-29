@@ -10,9 +10,11 @@ The `ContextModuleFactory` module is used by the `Compiler` to generate dependen
 
 ## `beforeResolve`
 
-`AsyncSeriesWaterfallHook<[BeforeResolveResult]>`
+`AsyncSeriesWaterfallHook<[BeforeResolveResult], BeforeResolveResult | void>`
 
-Called before resolving the requested directory. The request can be ignored by returning `false`.
+Called before resolving the requested directory.
+
+Callbacks can return the resolve data or modify it directly without returning a value. Return `false` to ignore the request.
 
 <Collapse>
   <CollapsePanel
@@ -37,9 +39,11 @@ export type BeforeResolveResult =
 
 ## `afterResolve`
 
-`AsyncSeriesWaterfallHook<[AfterResolveResult]>`
+`AsyncSeriesWaterfallHook<[AfterResolveResult], AfterResolveResult | void>`
 
-Called after the requested directory resolved.
+Called after the requested directory has been resolved.
+
+Callbacks can return the resolve data or modify it directly without returning a value. Return `false` to ignore the request.
 
 <Collapse>
   <CollapsePanel

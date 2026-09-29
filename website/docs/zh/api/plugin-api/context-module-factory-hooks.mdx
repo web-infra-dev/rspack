@@ -10,9 +10,11 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
 
 ## `beforeResolve`
 
-`AsyncSeriesWaterfallHook<[BeforeResolveResult]>`
+`AsyncSeriesWaterfallHook<[BeforeResolveResult], BeforeResolveResult | void>`
 
-在解析请求的目录之前调用。通过返回 `false` 可以忽略该请求。
+在解析请求的目录之前调用。
+
+回调可以返回解析数据，也可以直接修改解析数据而不返回值。返回 `false` 会忽略该请求。
 
 <Collapse>
   <CollapsePanel
@@ -37,9 +39,11 @@ export type BeforeResolveResult =
 
 ## `afterResolve`
 
-`AsyncSeriesWaterfallHook<[AfterResolveResult]>`
+`AsyncSeriesWaterfallHook<[AfterResolveResult], AfterResolveResult | void>`
 
-在请求的目录解析后调用。
+在请求的目录解析完成后调用。
+
+回调可以返回解析数据，也可以直接修改解析数据而不返回值。返回 `false` 会忽略该请求。
 
 <Collapse>
   <CollapsePanel

@@ -1,0 +1,47 @@
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
+  entry: {
+    main: {
+      import: ['./index'],
+    },
+  },
+  node: {
+    __dirname: false,
+    __filename: false,
+  },
+  target: 'web',
+  output: {
+    filename: '[name].js',
+  },
+  module: {
+    generator: {
+      'css/auto': {
+        exportsOnly: false,
+      },
+    },
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+    ],
+  },
+  optimization: {
+    splitChunks: {
+      minSize: 1,
+      cacheGroups: {
+        styles: {
+          chunks: 'all',
+          name: 'styles',
+          test: /\.css$/,
+          priority: 99,
+        },
+      },
+    },
+  },
+});

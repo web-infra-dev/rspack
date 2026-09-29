@@ -10,10 +10,10 @@ use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::OnceCell;
 use regex::Regex;
 use rspack_core::{
-  ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
-  CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency, FilenameRenderValue,
-  GeneratorOptions, ImportAttributes, LocalIdentName, Module, ModuleType, NormalModuleCreateData,
-  PathData, PlaceholderKind, ResourceData,
+  ChunkGraph, Compilation, CompiledStringTemplate, CompilerOptions, CssExportType,
+  CssExportsConvention, CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency,
+  FileReplacements, FilenameRenderValue, GeneratorOptions, ImportAttributes, LocalIdentName,
+  Module, ModuleType, NormalModuleCreateData, PathData, PlaceholderKind, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
@@ -162,12 +162,83 @@ pub struct LocalIdentModuleHashOptions<'a> {
   pub exports_convention: Option<CssExportsConvention>,
 }
 
+/// Values that only depend on the module and the generator options, reused by every local ident
+/// rendered for the module.
+#[derive(Debug, Clone)]
+struct LocalIdentRenderCache {
+  /// Static templates are looked up once; function templates are evaluated for each render.
+  compiled_template: Option<Arc<CompiledStringTemplate<'static>>>,
+  has_local_placeholder: bool,
+  /// Replacement values for the filename placeholders of the local ident template.
+  file_replacements: FileReplacements,
+  /// `[contenthash]` of the module source, empty unless the template uses it.
+  content_hash: String,
+  /// Prepared module ID placeholder shared by all local ident template renders.
+  module_id: Cow<'static, str>,
+  chunk_name: String,
+  folder: String,
+}
+
+impl LocalIdentRenderCache {
+  fn new(options: &LocalIdentOptions<'_>) -> Self {
+    let output = &options.compiler_options.output;
+    let content_hash = if options
+      .local_ident_name
+      .template
+      .as_str()
+      .contains("[contenthash")
+    {
+      let mut hasher = RspackHasher::new(&output.hash_function);
+      hasher.write(options.source.as_bytes());
+      let hash = hasher.digest(&output.hash_digest);
+      non_numeric_only_hash(hash.encoded(), output.hash_digest_length)
+    } else {
+      String::new()
+    };
+
+    let resource_path = split_at_query_mark(&options.relative_resource).0;
+    let resource_path = resource_path.split('#').next().unwrap_or(resource_path);
+    let chunk_name = Path::new(resource_path)
+      .file_stem()
+      .and_then(|s| s.to_str())
+      .unwrap_or_default()
+      .to_string();
+    let folder = Path::new(&options.relative_resource)
+      .parent()
+      .and_then(|p| p.file_name())
+      .and_then(|s| s.to_str())
+      .unwrap_or("")
+      .to_string();
+    let file_replacements = FileReplacements::new(
+      PathData::default()
+        .filename(&options.relative_resource)
+        .content_hash(&content_hash),
+    );
+
+    Self {
+      compiled_template: options.local_ident_name.template.compiled_template(),
+      has_local_placeholder: options
+        .local_ident_name
+        .template
+        .template()
+        .is_some_and(|template| template.contains("[local]")),
+      file_replacements,
+      content_hash,
+      module_id: PathData::prepare_id(CSS_MODULE_ID_PLACEHOLDER),
+      chunk_name,
+      folder,
+    }
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct LocalIdentOptions<'a> {
   relative_resource: String,
   module_type: &'static str,
   source: Arc<str>,
   module_hash: OnceCell<String>,
+  /// Values reused by every local ident rendered for this module.
+  render_cache: OnceCell<LocalIdentRenderCache>,
   compiler_options: &'a CompilerOptions,
   local_ident_name: &'a LocalIdentName,
   local_ident_hash_digest: HashDigest,
@@ -210,6 +281,7 @@ impl<'a> LocalIdentOptions<'a> {
       module_type: module_type.as_str(),
       source,
       module_hash: OnceCell::new(),
+      render_cache: OnceCell::new(),
       compiler_options,
       local_ident_name,
       local_ident_hash_digest,
@@ -294,6 +366,7 @@ impl<'a> LocalIdentOptions<'a> {
       hasher.write(b"|");
       hasher.write(update.content.as_bytes());
     }
+    let local_ident_name = json_stringify_str(local_ident_name);
     for name in module_hash_options.export_dependency_names.iter() {
       let convention_names = export_locals_convention(
         name,
@@ -303,7 +376,6 @@ impl<'a> LocalIdentOptions<'a> {
       );
       let convention_names =
         simd_json::to_string(&convention_names).expect("css export names should be serializable");
-      let local_ident_name = json_stringify_str(local_ident_name);
       hasher.write(b"exportsConvention|");
       hasher.write(convention_names.as_bytes());
       hasher.write(b"|localIdentName|");
@@ -334,54 +406,27 @@ impl<'a> LocalIdentOptions<'a> {
         .rendered(self.local_ident_hash_digest_length)
         .to_string()
     };
-    let content_hash;
-    let content_hash = if self
-      .local_ident_name
-      .template
-      .as_str()
-      .contains("[contenthash")
-    {
-      let mut hasher = RspackHasher::new(&output.hash_function);
-      hasher.write(self.source.as_bytes());
-      let hash = hasher.digest(&output.hash_digest);
-      content_hash = non_numeric_only_hash(hash.encoded(), output.hash_digest_length);
-      content_hash.as_str()
-    } else {
-      ""
-    };
-    let resource_path = split_at_query_mark(&self.relative_resource).0;
-    let resource_path = resource_path.split('#').next().unwrap_or(resource_path);
-    let resource_path = Path::new(resource_path);
-    let chunk_name = resource_path
-      .file_stem()
-      .and_then(|s| s.to_str())
-      .unwrap_or_default();
-    let id = PathData::prepare_id(CSS_MODULE_ID_PLACEHOLDER);
-    let hash = if self
-      .local_ident_name
-      .template
-      .template()
-      .is_some_and(|template| template.contains("[local]"))
-    {
+    let cache = self
+      .render_cache
+      .get_or_init(|| LocalIdentRenderCache::new(self));
+    let hash = if cache.has_local_placeholder {
       self.module_hash(module_hash_options)
     } else {
       local_ident_hash.as_str()
     };
     let local_ident = LocalIdentNameRenderOptions {
+      compiled_template: cache.compiled_template.as_deref(),
       path_data: PathData::default()
         .filename(&self.relative_resource)
-        .chunk_name(chunk_name)
+        .chunk_name(&cache.chunk_name)
         .hash(hash)
-        .content_hash(content_hash)
-        .id(id.as_ref()),
+        .content_hash(&cache.content_hash)
+        .id(cache.module_id.as_ref()),
+      file_replacements: &cache.file_replacements,
       local,
       local_ident_hash: &local_ident_hash,
       unique_name: &output.unique_name,
-      folder: Path::new(&self.relative_resource)
-        .parent()
-        .and_then(|p| p.file_name())
-        .and_then(|s| s.to_str())
-        .unwrap_or(""),
+      folder: &cache.folder,
     }
     .render_local_ident_name(self.local_ident_name)
     .await?;
@@ -480,7 +525,10 @@ fn prepare_css_module_id(v: &str) -> Cow<'_, str> {
 }
 
 struct LocalIdentNameRenderOptions<'a> {
+  compiled_template: Option<&'a CompiledStringTemplate<'static>>,
   path_data: PathData<'a>,
+  /// Replacements shared by every local ident of the module.
+  file_replacements: &'a FileReplacements,
   local: &'a str,
   local_ident_hash: &'a str,
   unique_name: &'a str,
@@ -507,22 +555,33 @@ fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
 
 impl LocalIdentNameRenderOptions<'_> {
   pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
-    local_ident_name
-      .template
-      .render_with(self.path_data, None, |placeholder| {
-        match placeholder.kind() {
-          PlaceholderKind::FullHash => Some(FilenameRenderValue::Value(Cow::Borrowed(
-            self.local_ident_hash,
-          ))),
-          PlaceholderKind::UniqueName => {
-            Some(FilenameRenderValue::Value(Cow::Borrowed(self.unique_name)))
-          }
-          PlaceholderKind::Local => Some(FilenameRenderValue::Value(Cow::Borrowed(self.local))),
-          PlaceholderKind::Folder => Some(FilenameRenderValue::Value(Cow::Borrowed(self.folder))),
-          _ => None,
+    let dynamic_template;
+    let compiled_template = match self.compiled_template {
+      Some(template) => template,
+      None => {
+        dynamic_template = local_ident_name
+          .template
+          .compiled(self.path_data, None)
+          .await?;
+        dynamic_template.as_ref()
+      }
+    };
+    Ok(compiled_template.render_with_path_data_and_replacements(
+      self.path_data,
+      self.file_replacements,
+      None,
+      |placeholder| match placeholder.kind() {
+        PlaceholderKind::FullHash => Some(FilenameRenderValue::Value(Cow::Borrowed(
+          self.local_ident_hash,
+        ))),
+        PlaceholderKind::UniqueName => {
+          Some(FilenameRenderValue::Value(Cow::Borrowed(self.unique_name)))
         }
-      })
-      .await
+        PlaceholderKind::Local => Some(FilenameRenderValue::Value(Cow::Borrowed(self.local))),
+        PlaceholderKind::Folder => Some(FilenameRenderValue::Value(Cow::Borrowed(self.folder))),
+        _ => None,
+      },
+    ))
   }
 }
 

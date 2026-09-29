@@ -1,0 +1,40 @@
+import { defineConfig } from '@rspack/cli';
+import { type Compiler, NormalModule } from '@rspack/core';
+import path from 'node:path';
+
+class Plugin {
+  apply(compiler: Compiler) {
+    const moduleMap = new Map<string, unknown>();
+
+    compiler.hooks.compilation.tap('PLUGIN', (compilation) => {
+      compilation.hooks.finishModules.tap('PLUGIN', (modules) => {
+        for (const module of modules) {
+          if (!(module instanceof NormalModule)) continue;
+          if (moduleMap.has(module.resource)) {
+            const timestamp = moduleMap.get(module.resource);
+            // index.js only run loader by once.
+            expect(module.buildInfo.timestamp).toBe(timestamp);
+          } else {
+            moduleMap.set(module.resource, module.buildInfo.timestamp);
+          }
+        }
+      });
+    });
+  }
+}
+
+export default defineConfig({
+  plugins: [new Plugin()],
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: path.join(import.meta.dirname, 'loader.mjs'),
+          },
+        ],
+      },
+    ],
+  },
+});

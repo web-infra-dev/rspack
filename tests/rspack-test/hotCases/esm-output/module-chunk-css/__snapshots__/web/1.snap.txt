@@ -4,9 +4,80 @@
 - style.module.css
 
 ## Asset Files
-
+- Bundle: main.mjs
+- Bundle: runtime.mjs
+- Manifest: runtime.LAST_HASH.hot-update.json.mjs, size: 75
+- Update: main.LAST_HASH.hot-update.mjs, size: 647
+- Update: runtime.LAST_HASH.hot-update.mjs, size: 294
 
 ## Manifest
 
+### runtime.LAST_HASH.hot-update.json.mjs
+
+```json
+{"c":["main","runtime"],"r":[],"m":[],"css":{"c":["main"]}}
+```
+
 
 ## Update
+
+
+### main.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./style.module.css
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_id = "main";
+export const __rspack_esm_ids = ["main"];
+export const __webpack_modules__ = {
+"./style.module.css"(module, __unused_rspack_exports, __webpack_require__) {
+var exports = {
+  "class-other": "style_module_css-class-other",
+};
+// only invalidate when locals change
+var stringified_exports = JSON.stringify(exports);
+if (module.hot.data && module.hot.data.exports && module.hot.data.exports != stringified_exports) {
+  module.hot.invalidate();
+} else {
+  module.hot.accept();
+}
+module.hot.dispose(function(data) { data.exports = stringified_exports; });
+__webpack_require__.r(module.exports = exports);
+
+
+},
+
+};
+
+```
+
+
+
+### runtime.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+export const __rspack_esm_id = "runtime";
+export const __rspack_esm_ids = ["runtime"];
+export const __webpack_modules__ = {};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+;
+
+```

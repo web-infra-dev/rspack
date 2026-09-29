@@ -11,6 +11,7 @@ version.workspace = true
 [dependencies]
 derive_more        = { workspace = true, features = ["debug"] }
 futures            = { workspace = true }
+hashbrown          = { workspace = true }
 itertools          = { workspace = true }
 rayon              = { workspace = true }
 regex              = { workspace = true }
@@ -23,6 +24,7 @@ rspack_parallel    = { workspace = true }
 rspack_regex       = { workspace = true }
 rspack_util        = { workspace = true }
 rustc-hash         = { workspace = true }
+smallvec           = { workspace = true }
 tracing            = { workspace = true }
 
 [lints]

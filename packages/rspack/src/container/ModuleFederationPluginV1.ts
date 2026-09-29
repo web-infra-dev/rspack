@@ -16,7 +16,11 @@ export interface ModuleFederationPluginV1Options {
   exposes?: Exposes;
   filename?: string;
   library?: LibraryOptions;
-  name: string;
+  /**
+   * The container name. A non-empty string is required when exposing modules
+   * or enabling shared dependency tree shaking.
+   */
+  name?: string;
   remoteType?: ExternalsType;
   remotes?: Remotes;
   runtime?: EntryRuntime;
@@ -52,7 +56,7 @@ export class ModuleFederationPluginV1 {
           : Object.keys(options.exposes).length > 0)
       ) {
         new ContainerPlugin({
-          name: options.name,
+          name: options.name!,
           library,
           filename: options.filename,
           runtime: options.runtime,

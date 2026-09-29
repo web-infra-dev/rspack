@@ -787,8 +787,8 @@ var {} = {{}};
       )));
     };
 
-    for ((atom, ctxt), refs) in &info.binding_to_ref {
-      if ctxt == &info.global_ctxt
+    for (atom, ctxt, refs) in info.binding_to_ref.iter() {
+      if ctxt == info.global_ctxt
         && let Some(binding_ref) = chunk_link.refs.get(atom.as_str())
       {
         let final_name = match binding_ref {
@@ -796,7 +796,7 @@ var {} = {{}};
           Ref::Inline(inline) => Cow::Borrowed(inline),
         };
 
-        for ident in refs {
+        for ident in refs.iter().map(|index| &info.idents[*index as usize]) {
           let name = if ident.shorthand {
             Cow::Owned(format!("{}: {}", &ident.id.sym, &final_name))
           } else {

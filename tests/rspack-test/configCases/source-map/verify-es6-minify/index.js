@@ -17,7 +17,7 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 		runtimeSource = name => sourceUrl(`rspack/runtime/${name}`);
 	}
 	expect(map.sources.sort()).toEqual([
-		sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`),
+		sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.cjs`),
 		sourceUrl("./a.js"),
 		sourceUrl("./b-dir/b.js"),
 		sourceUrl("./b-dir/c-dir/c.js"),

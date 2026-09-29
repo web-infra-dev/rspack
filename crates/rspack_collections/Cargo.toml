@@ -11,10 +11,13 @@ version.workspace       = true
 [dependencies]
 allocative       = { workspace = true, optional = true }
 dashmap          = { workspace = true }
+either           = { workspace = true }
 hashlink         = { workspace = true }
 indexmap         = { workspace = true }
 rspack_cacheable = { workspace = true }
+rustc-hash       = { workspace = true }
 serde            = { workspace = true, features = ["derive"] }
+smallvec         = { workspace = true }
 ustr             = { workspace = true, features = ["serde"] }
 
 [lints]

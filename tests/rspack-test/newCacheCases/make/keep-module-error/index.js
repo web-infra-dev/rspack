@@ -1,6 +1,6 @@
 import value from "./value";
 
-const loadErrorModule = () => import("./loader.js!./file");
+const loadErrorModule = () => import("./loader.mjs!./file");
 
 it("should module error exist", async () => {
 	if (COMPILER_INDEX === 0) {

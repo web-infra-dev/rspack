@@ -10,7 +10,7 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, CacheOptions, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
+  AssetInfo, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilerCompilation, Etag, Logger, Plugin,
   cache::{CachedExtractedComments, CachedMinimizeEntry},
   diagnostics::MinifyError,
@@ -225,9 +225,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
 
-  let new_cache = (compilation.options.experiments.new_cache.minimize
-    && !matches!(&compilation.options.cache, CacheOptions::Disabled))
-  .then(|| compilation.get_cache(PLUGIN_NAME));
+  let new_cache = compilation
+    .options
+    .experiments
+    .new_cache
+    .minimize
+    .then(|| compilation.get_cache(PLUGIN_NAME));
   let minimize_persistent_cache = compilation.minimize_persistent_cache.take();
   let legacy_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
     Mutex::new(Vec::new());

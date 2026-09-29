@@ -765,9 +765,9 @@ export default {
 type RuleSetUse =
   | RuleSetUseItem
   | RuleSetUseItem[]
-  | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
+  | ((ctx: RawFuncUseCtx) => RuleSetUseItem | RuleSetUseItem[]);
 
-type RuleSetUseItem = string | RuleSetLoaderWithOptions;
+type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
 
 type RuleSetLoaderWithOptions = {
   ident?: string;
@@ -799,7 +799,7 @@ export default {
 };
 ```
 
-也可以使用一个函数：
+也可以使用函数为每个模块选择 loader，返回 loader 名称、loader 配置对象或由它们组成的数组：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -904,11 +904,13 @@ export default {
 ## rules[].use.parallel.maxWorkers
 
 - **类型：** `number`
-- **默认值：** `undefined`
+- **默认值：** `Math.max(os.cpus().length - 1, 1)`
 
 当 `parallel` 配置为对象时，限制共享 loader worker pool 使用的最大 worker 线程数。请使用正整数。
 
-如果省略 `maxWorkers`，Rspack 会自动选择 worker 数量。loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
+默认情况下，Rspack 使用 `os.cpus()` 返回的逻辑 CPU 数量减一，最少为一个 worker。
+
+loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
 
 ```js title="rspack.config.mjs"
 export default {

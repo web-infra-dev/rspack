@@ -1,0 +1,56 @@
+# Case simple: Step 1
+
+## Changed Files
+- module.js
+
+## Asset Files
+- Bundle: main.mjs
+- Manifest: main.LAST_HASH.hot-update.json.mjs, size: 44
+- Update: main.LAST_HASH.hot-update.mjs, size: 530
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json.mjs
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./module.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+export const __rspack_esm_id = "main";
+export const __rspack_esm_ids = ["main"];
+export const __webpack_modules__ = {
+"./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  greeting: () => (greeting)
+});
+const greeting = "Hello HMR!";
+
+
+},
+
+};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+;
+
+```

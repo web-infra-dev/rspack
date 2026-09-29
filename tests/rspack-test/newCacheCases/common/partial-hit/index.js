@@ -1,4 +1,4 @@
-import value from "./uncached-loader!./value";
+import value from "./uncached-loader.mjs!./value";
 import stable from "./stable";
 
 it("should rebuild an uncacheable module and reuse the other modules", () => {

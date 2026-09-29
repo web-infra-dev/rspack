@@ -2,8 +2,11 @@
   {
     "module build cache": {
       "hits": 0,
-      "total": 6,
-      "hitRate": 0
+      "total": 6
+    },
+    "resolver cache": {
+      "hits": 9,
+      "total": 18
     }
   }
 ]

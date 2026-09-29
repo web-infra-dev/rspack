@@ -10,6 +10,7 @@
     "test": "rs test",
     "testu": "rs test -u",
     "test:base": "rs test --project base",
+    "test:configs": "tsc -p tsconfig.configs.json",
     "test:hot": "rs test --project hottest"
   },
   "devDependencies": {
@@ -27,8 +28,10 @@
     "@swc/plugin-remove-console": "catalog:",
     "@types/fs-extra": "catalog:",
     "@types/jsdom": "catalog:",
+    "@types/mime-types": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/yamljs": "catalog:",
     "@webdiscus/pug-loader": "catalog:",
     "acorn": "catalog:",
     "babel-loader": "catalog:",

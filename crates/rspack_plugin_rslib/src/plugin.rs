@@ -34,6 +34,7 @@ use crate::{
   isolated_dts::{IsolatedDtsAsset, complete_isolated_dts_outputs},
   parser_plugin::RslibParserPlugin,
   react_directives_parser_plugin::ReactDirectivesParserPlugin,
+  url_external::{ExternalURLDependencyTemplate, cutout_url_externals},
   worker_external::{ExternalWorkerDependencyTemplate, cutout_worker_externals},
 };
 
@@ -236,6 +237,17 @@ async fn compilation(
     }),
   );
 
+  let url_template = compilation.get_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::NewUrl),
+  );
+  compilation.set_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::NewUrl),
+    Arc::new(ExternalURLDependencyTemplate {
+      cutout_all_externals: true,
+      template: url_template,
+    }),
+  );
+
   let export_template = compilation.get_dependency_template(
     rspack_core::DependencyTemplateType::Dependency(DependencyType::EsmExportImportedSpecifier),
   );
@@ -332,6 +344,11 @@ async fn optimize_dependencies(
     build_module_graph_artifact,
   );
   cutout_worker_externals(
+    true,
+    compilation.options.output.module,
+    build_module_graph_artifact,
+  );
+  cutout_url_externals(
     true,
     compilation.options.output.module,
     build_module_graph_artifact,

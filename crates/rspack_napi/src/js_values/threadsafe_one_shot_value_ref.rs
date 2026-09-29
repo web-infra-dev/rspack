@@ -15,6 +15,12 @@ use napi::{
 
 use crate::{CLEANUP_ENV_HOOK, GLOBAL_CLEANUP_FLAG};
 
+// This process-global dropper assumes all references belong to one Node environment.
+// Parallel loader workers send loader state and results back to the compiler's JS
+// thread before they become references here; they do not transfer these references
+// directly to Rust. This does not cover compilers created in separate worker_threads
+// isolates: that requires a TSFN per napi_env, removed during environment cleanup,
+// so napi_delete_reference always receives the environment that owns the reference.
 static DELETE_REF_TS_FN: AtomicPtr<napi_threadsafe_function__> = AtomicPtr::new(ptr::null_mut());
 
 extern "C" fn napi_js_callback(
@@ -35,6 +41,17 @@ pub struct ThreadsafeOneShotRef {
   napi_ref: sys::napi_ref,
   thread_id: ThreadId,
 }
+
+// SAFETY: Moving the wrapper only transfers opaque Node-API handles. Off-thread
+// Drop queues their deletion through the TSFN instead of accessing JS directly.
+// This requires the shared TSFN to belong to the originating environment and
+// remain valid until the deletion is queued.
+unsafe impl Send for ThreadsafeOneShotRef {}
+
+// SAFETY: Shared references do not mutate the stored handles. JS value lookup
+// through ToNapiValue must still run on the originating JS thread with its env;
+// sharing this wrapper does not make the underlying JS value thread-safe.
+unsafe impl Sync for ThreadsafeOneShotRef {}
 
 impl ThreadsafeOneShotRef {
   pub fn new<T: ToNapiValue>(env: napi_env, val: T) -> Result<Self> {

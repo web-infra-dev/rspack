@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use memchr::memchr2;
+
 const REPLACEMENT_CHARACTER: char = '\u{FFFD}';
 
 #[derive(Clone, Copy)]
@@ -9,7 +11,7 @@ struct Escape {
 }
 
 fn decode_css_escapes(input: &str, trim_url_whitespace: bool) -> Cow<'_, str> {
-  let first_escape_or_null = input.bytes().position(|byte| matches!(byte, b'\\' | b'\0'));
+  let first_escape_or_null = memchr2(b'\\', b'\0', input.as_bytes());
 
   let Some(first_escape_or_null) = first_escape_or_null else {
     return if trim_url_whitespace {
@@ -52,10 +54,17 @@ fn decode_css_escapes(input: &str, trim_url_whitespace: bool) -> Cow<'_, str> {
       _ => unreachable!("scanner only stops at a CSS escape or null"),
     }
 
-    let next_special = input.as_bytes()[position..]
-      .iter()
-      .position(|byte| matches!(byte, b'\\' | b'\0'))
-      .map_or(input.len(), |offset| position + offset);
+    let rest = &input.as_bytes()[position..];
+    // Keep the scalar scan for short tails: the vectorized search setup
+    // costs more than it saves when the remaining input is small.
+    let next_special = if rest.len() >= 32 {
+      memchr2(b'\\', b'\0', rest).map_or(input.len(), |offset| position + offset)
+    } else {
+      rest
+        .iter()
+        .position(|byte| matches!(byte, b'\\' | b'\0'))
+        .map_or(input.len(), |offset| position + offset)
+    };
     let segment = &input[position..next_special];
     let previous_len = output.len();
     let significant_segment_len = append_raw_segment(&mut output, segment, trim_url_whitespace);

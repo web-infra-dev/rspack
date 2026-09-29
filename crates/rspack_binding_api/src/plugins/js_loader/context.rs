@@ -6,7 +6,7 @@ use rspack_collections::Identifiable;
 use rspack_core::{Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
-use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
+use rspack_napi::ThreadsafeOneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::cache::JsLoaderCacheObject;
@@ -84,10 +84,10 @@ pub enum JsLoaderState {
 impl From<LoaderState> for JsLoaderState {
   fn from(value: LoaderState) -> Self {
     match value {
-      LoaderState::ProcessResource | LoaderState::Finished => {
+      LoaderState::Init | LoaderState::ProcessResource | LoaderState::Finished => {
         panic!("Unexpected loader runner state: {value:?}")
       }
-      LoaderState::Init | LoaderState::Pitching => JsLoaderState::Pitching,
+      LoaderState::Pitching => JsLoaderState::Pitching,
       LoaderState::Normal => JsLoaderState::Normal,
     }
   }
@@ -171,8 +171,6 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
 
 #[napi(object)]
 pub struct JsLoaderContext {
-  #[napi(ts_type = "object | undefined")]
-  pub loader_context_state: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
   pub module: ModuleObject,
@@ -182,7 +180,7 @@ pub struct JsLoaderContext {
   /// Content maybe empty in pitching stage
   pub content: Either3<String, Buffer, Null>,
   #[napi(ts_type = "any")]
-  pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
+  pub additional_data: Option<ThreadsafeOneShotRef>,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
@@ -208,33 +206,30 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   fn try_from(
     cx: &mut rspack_core::LoaderContext<RunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
+    let content = match cx.take_content() {
+      Some(Content::String(content)) => Either3::A(content),
+      Some(Content::Buffer(content)) => Either3::B(content.into()),
+      None => Either3::C(Null),
+    };
+    let additional_data = cx
+      .take_additional_data()
+      .and_then(|mut data| data.remove::<ThreadsafeOneShotRef>());
+
     let module = &cx.context.module;
 
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {
-      loader_context_state: cx
-        .context
-        .loader_context_data
-        .get::<ThreadsafeJsValueRef<Unknown>>()
-        .cloned(),
       resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
         NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
         cx.context.compiler_id,
       ),
       hot: cx.hot,
-      content: match cx.content() {
-        Some(Content::String(content)) => Either3::A(content.clone()),
-        Some(Content::Buffer(content)) => Either3::B(content.clone().into()),
-        None => Either3::C(Null),
-      },
+      content,
       // Since js side only set parse meta, and can't read it, so we can use Default here to only bring the
       // set values from js side to rust side.
       parse_meta: Default::default(),
-      additional_data: cx
-        .additional_data()
-        .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
-        .cloned(),
+      additional_data,
       source_map: cx
         .source_map()
         .map(|v| v.to_json())

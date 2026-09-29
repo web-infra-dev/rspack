@@ -18,7 +18,8 @@ import type {
   AssetModuleFilename,
   Bail,
   BundlerInfoOptions,
-  CacheSnapshotOptions,
+  SnapshotOptions,
+  FileSystemCacheOptions,
   ChunkFilename,
   ChunkLoading,
   ChunkLoadingGlobal,
@@ -73,6 +74,7 @@ import type {
   ParserOptionsByModuleType,
   Path,
   Performance,
+  PersistentCacheOptions,
   Plugins,
   PublicPath,
   Resolve,
@@ -281,17 +283,46 @@ export const getNormalizedRspackOptions = (
       if (cache === true) {
         return {
           type: 'memory',
-          snapshot: getNormalizedCacheSnapshot(),
         };
+      }
+      if (cache.type === 'persistent' && config.experiments?.newCache) {
+        cache = convertPersistentCacheOptions(cache);
       }
       switch (cache.type) {
         case undefined:
         case 'memory':
           return {
-            ...cache,
             type: 'memory',
-            snapshot: getNormalizedCacheSnapshot(cache.snapshot),
           };
+        case 'filesystem': {
+          const context = config.context || process.cwd();
+          return {
+            type: 'filesystem',
+            name: cache.name,
+            version: cache.version,
+            readonly: cache.readonly,
+            maxMemoryGenerations: cache.maxMemoryGenerations,
+            idleTimeout: cache.idleTimeout,
+            idleTimeoutForInitialStore: cache.idleTimeoutForInitialStore,
+            idleTimeoutAfterLargeChanges: cache.idleTimeoutAfterLargeChanges,
+            cacheDirectory: optionalNestedConfig(
+              cache.cacheDirectory,
+              (directory) => path.resolve(context, directory),
+            ),
+            cacheLocation: optionalNestedConfig(
+              cache.cacheLocation,
+              (location) => path.resolve(context, location),
+            ),
+            buildDependencies: Object.fromEntries(
+              Object.entries(cache.buildDependencies || {}).map(
+                ([key, deps]) => [
+                  key,
+                  deps.map((dependency) => path.resolve(context, dependency)),
+                ],
+              ),
+            ),
+          };
+        }
         case 'persistent': {
           const hasMaxVersions = Object.hasOwn(cache, 'maxVersions');
           if (hasMaxVersions) {
@@ -312,7 +343,6 @@ export const getNormalizedRspackOptions = (
             buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
               deps.map((d) => path.resolve(context, d)),
             ),
-            snapshot: getNormalizedCacheSnapshot(cache.snapshot),
             storage: nestedConfig(cache.storage, (storage) => ({
               type: storage.type,
               directory: optionalNestedConfig(storage.directory, (directory) =>
@@ -327,6 +357,12 @@ export const getNormalizedRspackOptions = (
         default:
           throw new Error(`Not implemented cache.type ${(cache as any).type}`);
       }
+    }),
+    snapshot: getNormalizedSnapshot({
+      ...(typeof config.cache === 'object' && config.cache.type === 'persistent'
+        ? config.cache.snapshot
+        : undefined),
+      ...config.snapshot,
     }),
     stats: nestedConfig(config.stats, (stats) => {
       if (stats === false) {
@@ -502,14 +538,39 @@ const getNormalizedNewCacheOptions = (
   return newCache;
 };
 
-const getNormalizedCacheSnapshot = (
-  snapshot?: CacheSnapshotOptions,
-): CacheSnapshotNormalized =>
+const getNormalizedSnapshot = (snapshot?: SnapshotOptions): SnapshotOptions =>
   nestedConfig(snapshot, (snapshot) => ({
     immutablePaths: optionalNestedArray(snapshot.immutablePaths, (p) => [...p]),
     unmanagedPaths: optionalNestedArray(snapshot.unmanagedPaths, (p) => [...p]),
     managedPaths: optionalNestedArray(snapshot.managedPaths, (p) => [...p]),
+    buildDependencies: optionalNestedConfig(
+      snapshot.buildDependencies,
+      cloneObject,
+    ),
+    resolveBuildDependencies: optionalNestedConfig(
+      snapshot.resolveBuildDependencies,
+      cloneObject,
+    ),
+    module: optionalNestedConfig(snapshot.module, cloneObject),
+    contextModule: optionalNestedConfig(snapshot.contextModule, cloneObject),
+    resolve: optionalNestedConfig(snapshot.resolve, cloneObject),
   }));
+
+const convertPersistentCacheOptions = (
+  cache: PersistentCacheOptions,
+): FileSystemCacheOptions => ({
+  type: 'filesystem',
+  name: cache.name,
+  version: cache.version,
+  readonly: cache.readonly,
+  maxMemoryGenerations: cache.maxMemoryGenerations,
+  buildDependencies:
+    cache.buildDependencies === undefined
+      ? undefined
+      : { config: cache.buildDependencies },
+  cacheDirectory: cache.storage?.directory,
+  cacheLocation: cache.storage?.location,
+});
 
 const nestedConfig = <T, R>(value: T | undefined, fn: (value: T) => R) =>
   value === undefined ? fn({} as T) : fn(value);
@@ -636,18 +697,15 @@ export interface ModuleOptionsNormalized {
   noParse?: NoParseOption;
 }
 
-export type CacheSnapshotNormalized = {
-  immutablePaths?: (string | RegExp)[];
-  unmanagedPaths?: (string | RegExp)[];
-  managedPaths?: (string | RegExp)[];
-};
+/** @deprecated Use the top-level `snapshot` option. */
+export type CacheSnapshotNormalized = SnapshotOptions;
 
 export type CacheNormalized =
   | false
   | {
       type: 'memory';
-      snapshot: CacheSnapshotNormalized;
     }
+  | FileSystemCacheOptions
   | {
       type: 'persistent';
       name?: string;
@@ -656,7 +714,6 @@ export type CacheNormalized =
       maxAge?: number;
       maxMemoryGenerations?: number;
       maxVersions?: number;
-      snapshot: CacheSnapshotNormalized;
       storage: {
         type: 'filesystem';
         directory?: string;
@@ -710,6 +767,7 @@ export interface RspackOptionsNormalized {
   node: Node;
   loader: Loader;
   cache?: CacheNormalized;
+  snapshot: SnapshotOptions;
   stats: StatsValue;
   optimization: Optimization;
   plugins: Plugins;

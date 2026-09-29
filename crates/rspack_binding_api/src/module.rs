@@ -819,6 +819,7 @@ impl FromNapiValue for ModuleObject {
 
 pub struct ModuleObjectRef {
   pub(crate) identifier: ModuleIdentifier,
+  pub(crate) compiler_id: CompilerId,
 }
 
 impl FromNapiValue for ModuleObjectRef {
@@ -829,18 +830,23 @@ impl FromNapiValue for ModuleObjectRef {
       Ok(match instance {
         Either5::A(normal_module) => Self {
           identifier: normal_module.module.identifier,
+          compiler_id: normal_module.module.compiler_id,
         },
         Either5::B(concatenated_module) => Self {
           identifier: concatenated_module.module.identifier,
+          compiler_id: concatenated_module.module.compiler_id,
         },
         Either5::C(context_module) => Self {
           identifier: context_module.module.identifier,
+          compiler_id: context_module.module.compiler_id,
         },
         Either5::D(external_module) => Self {
           identifier: external_module.module.identifier,
+          compiler_id: external_module.module.compiler_id,
         },
         Either5::E(module) => Self {
           identifier: module.identifier,
+          compiler_id: module.compiler_id,
         },
       })
     }

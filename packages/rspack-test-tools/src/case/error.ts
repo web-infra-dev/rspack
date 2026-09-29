@@ -2,6 +2,7 @@ import type fs from 'node:fs';
 import path from 'node:path';
 import type { Compiler, RspackOptions, StatsError } from '@rspack/core';
 import merge from 'rspack-merge';
+import { readTestFile } from '../helper/read-test-file';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv, MaybePromise } from '../type';
 
@@ -56,7 +57,9 @@ export function createErrorCase(
   if (!addedSerializer) {
     addedSerializer = true;
   }
-  const caseConfigList = require(testConfig);
+  const caseConfigList = readTestFile<TErrorCaseConfig | TErrorCaseConfig[]>(
+    testConfig,
+  );
   function createCase(caseConfig: TErrorCaseConfig) {
     if (caseConfig.skip) {
       it.skip(name, () => {});

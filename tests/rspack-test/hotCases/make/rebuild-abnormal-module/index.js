@@ -1,4 +1,4 @@
-import "./loader.js!./a.js";
+import "./loader.mjs!./a.js";
 import index from "./file";
 
 it("should rebuild abnormal module success", async () => {

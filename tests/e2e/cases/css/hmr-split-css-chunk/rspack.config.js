@@ -34,7 +34,7 @@ export default {
         use: [
           rspack.CssExtractRspackPlugin.loader,
           'css-loader',
-          './dep-loader.cjs',
+          './dep-loader.mjs',
         ],
       },
     ],

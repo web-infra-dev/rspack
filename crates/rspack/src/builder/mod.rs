@@ -52,11 +52,11 @@ use rspack_core::{
   JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
   MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
   ModuleType, NewCacheOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
-  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
+  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PathMatcher,
   PrintlnInfrastructureLogSink, PublicPath, Resolve, ResolverFactory, RuleSetCondition,
-  RuleSetLogicalConditions, SideEffectOption, SnapshotOptions, StatsOptions, TrustedTypes,
-  UsedExportsOption, WasmLoading, WasmLoadingType, create_cache, incremental::IncrementalOptions,
-  runtime_mode::RuntimeMode,
+  RuleSetLogicalConditions, SideEffectOption, SnapshotOptions, SnapshotStrategyOptions,
+  StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType, create_cache,
+  incremental::IncrementalOptions, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -611,6 +611,8 @@ pub struct CompilerOptionsBuilder {
   context: Option<Context>,
   /// Options for caching.
   cache: Option<CacheOptions>,
+  /// Options for detecting dependency changes.
+  snapshot: Option<SnapshotOptions>,
   /// The mode in which Rspack should operate.
   mode: Option<Mode>,
   /// The type of externals.
@@ -650,6 +652,7 @@ impl From<&mut CompilerOptionsBuilder> for CompilerOptionsBuilder {
       externals_presets: value.externals_presets.take(),
       context: value.context.take(),
       cache: value.cache.take(),
+      snapshot: value.snapshot.take(),
       mode: value.mode.take(),
       resolve: value.resolve.take(),
       resolve_loader: value.resolve_loader.take(),
@@ -725,6 +728,12 @@ impl CompilerOptionsBuilder {
   /// Set options for caching.
   pub fn cache(&mut self, cache: CacheOptions) -> &mut Self {
     self.cache = Some(cache);
+    self
+  }
+
+  /// Set options for detecting dependency changes.
+  pub fn snapshot(&mut self, snapshot: SnapshotOptions) -> &mut Self {
+    self.snapshot = Some(snapshot);
     self
   }
 
@@ -974,10 +983,7 @@ impl CompilerOptionsBuilder {
     let bail = d!(self.bail.take(), false);
     let cache = d!(self.cache.take(), {
       if development {
-        CacheOptions::Memory {
-          max_generations: 1,
-          snapshot: SnapshotOptions::default(),
-        }
+        CacheOptions::Memory { max_generations: 1 }
       } else {
         CacheOptions::Disabled
       }
@@ -986,6 +992,28 @@ impl CompilerOptionsBuilder {
     // apply experiments defaults
     let mut experiments_builder = f!(self.experiments.take(), Experiments::builder);
     let experiments = experiments_builder.build(builder_context, development, production)?;
+    if matches!(&cache, CacheOptions::FileSystem(_)) && !experiments.new_cache.is_enabled() {
+      return Err(
+        BuilderError::Option(
+          "cache.type".into(),
+          "filesystem requires experiments.newCache to be enabled".into(),
+        )
+        .into(),
+      );
+    }
+    // apply snapshot defaults
+    let snapshot = f!(self.snapshot.take(), || SnapshotOptions {
+      immutable_paths: vec![],
+      unmanaged_paths: vec![],
+      managed_paths: vec![PathMatcher::Regexp(
+        RspackRegex::new(r"[\\/]node_modules[\\/][^.]").expect("should initialize `Regex`"),
+      )],
+      resolve_build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+      build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+      resolve: SnapshotStrategyOptions::new(production, true),
+      module: SnapshotStrategyOptions::new(production, true),
+      context_module: SnapshotStrategyOptions::timestamp(),
+    });
 
     // apply incremental defaults
     let incremental = f!(self.incremental.take(), IncrementalOptions::advanced_silent);
@@ -1322,6 +1350,7 @@ impl CompilerOptionsBuilder {
       module,
       stats,
       cache,
+      snapshot,
       experiments,
       incremental,
       node,
