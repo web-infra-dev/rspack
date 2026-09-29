@@ -3,6 +3,7 @@ mod code_generation_results;
 mod dependencies;
 mod diagnostics;
 pub mod entries;
+mod modules;
 
 use std::{cell::RefCell, ptr::NonNull};
 
@@ -11,6 +12,7 @@ pub use code_generation_results::*;
 use dependencies::FileSystemDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
+use modules::Modules;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -68,14 +70,7 @@ impl JsCompilation {
     &self,
     f: impl FnOnce(&Compilation) -> napi::Result<R>,
   ) -> napi::Result<R> {
-    with_compilation(self.id, |compilation| {
-      if compilation.build_module_graph_artifact.is_stolen() {
-        return Err(napi::Error::from_reason(
-          "ModuleGraph is not available while a compilation pass is holding the module graph artifact".to_string(),
-        ));
-      }
-      f(compilation)
-    })
+    with_module_graph(self.id, f)
   }
 
   pub(crate) fn as_ref(&self) -> napi::Result<&'static Compilation> {
@@ -106,6 +101,20 @@ impl JsCompilation {
       "Cannot mutate exports info artifact after it was stolen from compilation.".to_string(),
     ))
   }
+}
+
+fn with_module_graph<R>(
+  compilation_id: CompilationId,
+  f: impl FnOnce(&Compilation) -> napi::Result<R>,
+) -> napi::Result<R> {
+  with_compilation(compilation_id, |compilation| {
+    if compilation.build_module_graph_artifact.is_stolen() {
+      return Err(napi::Error::from_reason(
+        "ModuleGraph is not available while a compilation pass is holding the module graph artifact",
+      ));
+    }
+    f(compilation)
+  })
 }
 
 #[napi]
@@ -220,21 +229,9 @@ impl JsCompilation {
       .transpose()
   }
 
-  #[napi(getter, ts_return_type = "Array<Module>")]
-  pub fn modules<'a>(&self, env: &'a Env) -> Result<Array<'a>> {
-    self.with_module_graph(|compilation| {
-      let module_graph = compilation.get_module_graph();
-      let mut arr = env.create_array(module_graph.modules_len() as u32)?;
-      for (i, identifier) in module_graph.modules_keys().enumerate() {
-        arr.set(
-          i as u32,
-          compilation
-            .module_by_identifier(identifier)
-            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())),
-        )?;
-      }
-      Ok(arr)
-    })
+  #[napi(getter)]
+  pub fn modules(&self) -> Modules {
+    Modules::new(self.id)
   }
 
   #[napi(getter, ts_return_type = "Array<Module>")]
