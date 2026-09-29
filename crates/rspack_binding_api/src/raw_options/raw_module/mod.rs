@@ -286,6 +286,7 @@ impl From<RawParserOptions> for ParserOptions {
 #[napi(object)]
 pub struct RawJavascriptParserOptions {
   pub dynamic_import_mode: Option<String>,
+  pub dynamic_url: Option<bool>,
   pub dynamic_import_preload: Option<String>,
   pub dynamic_import_prefetch: Option<String>,
   pub dynamic_import_fetch_priority: Option<String>,
@@ -382,6 +383,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         .dynamic_import_fetch_priority
         .map(|x| DynamicImportFetchPriority::from(x.as_str())),
       url: value.url.map(|v| JavascriptParserUrl::from(v.as_str())),
+      dynamic_url: value.dynamic_url,
       expr_context_critical: value.expr_context_critical,
       unknown_context_critical: value.unknown_context_critical,
       wrapped_context_reg_exp: value.wrapped_context_reg_exp,
