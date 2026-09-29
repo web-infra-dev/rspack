@@ -759,7 +759,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     return assets.map((asset) => this.#createAsset(asset));
   }
 
-  getAsset(name: string): Readonly<Asset> | void {
+  getAsset(name: string): Readonly<Asset> | undefined {
     const asset = this.#inner.getAsset(name);
     if (!asset) {
       return;

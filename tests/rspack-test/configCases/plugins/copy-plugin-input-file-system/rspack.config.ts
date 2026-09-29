@@ -1,7 +1,10 @@
 import path from 'node:path';
-import { CopyRspackPlugin } from '@rspack/core';
+import { defineConfig, definePlugin } from '@rspack/cli';
+import { CopyRspackPlugin, type InputFileSystem } from '@rspack/core';
 
-function normalizePath(filePath) {
+type Callback<T> = (error: NodeJS.ErrnoException | null, result?: T) => void;
+
+function normalizePath(filePath: string) {
   const normalized = filePath.replace(/\\/g, '/');
   return normalized.length > 1 ? normalized.replace(/\/+$/, '') : normalized;
 }
@@ -14,7 +17,7 @@ const files = new Map([
   [`${virtualRoot}/nested/file.txt`, 'nested from js input fs\n'],
 ]);
 
-function createStats(filePath) {
+function createStats(filePath: string) {
   const normalizedPath = normalizePath(filePath);
   const isFile = files.has(normalizedPath);
   const isDirectory =
@@ -29,12 +32,12 @@ function createStats(filePath) {
     mtimeMs: 0,
     ctimeMs: 0,
     birthtimeMs: 0,
-    size: isFile ? Buffer.byteLength(files.get(normalizedPath)) : 0,
+    size: isFile ? Buffer.byteLength(files.get(normalizedPath)!) : 0,
     mode: isFile ? 0o100644 : 0o040755,
   };
 }
 
-function isVirtualPath(filePath) {
+function isVirtualPath(filePath: string) {
   const normalizedPath = normalizePath(filePath);
   return (
     normalizedPath === virtualRoot ||
@@ -42,24 +45,26 @@ function isVirtualPath(filePath) {
   );
 }
 
-function createInputFileSystem(originalInputFileSystem) {
-  const inputFileSystem = Object.create(originalInputFileSystem);
+function createInputFileSystem(originalInputFileSystem: InputFileSystem) {
+  const inputFileSystem: InputFileSystem = Object.create(
+    originalInputFileSystem,
+  );
 
   Object.assign(inputFileSystem, {
-    readFile(filePath, callback) {
+    readFile(filePath: string, callback: Callback<Buffer>) {
       if (!isVirtualPath(filePath)) {
         return originalInputFileSystem.readFile(filePath, callback);
       }
       const normalizedPath = normalizePath(filePath);
       if (files.has(normalizedPath)) {
-        callback(null, Buffer.from(files.get(normalizedPath)));
+        callback(null, Buffer.from(files.get(normalizedPath)!));
       } else {
         callback(
           Object.assign(new Error(`ENOENT: ${filePath}`), { code: 'ENOENT' }),
         );
       }
     },
-    readdir(dirPath, callback) {
+    readdir(dirPath: string, callback: Callback<string[]>) {
       if (!isVirtualPath(dirPath)) {
         return originalInputFileSystem.readdir(dirPath, callback);
       }
@@ -74,7 +79,7 @@ function createInputFileSystem(originalInputFileSystem) {
         );
       }
     },
-    stat(filePath, callback) {
+    stat(filePath: string, callback: Callback<ReturnType<typeof createStats>>) {
       if (!isVirtualPath(filePath)) {
         return originalInputFileSystem.stat(filePath, callback);
       }
@@ -87,12 +92,15 @@ function createInputFileSystem(originalInputFileSystem) {
         );
       }
     },
-    lstat(filePath, callback) {
+    lstat(
+      filePath: string,
+      callback: Callback<ReturnType<typeof createStats>>,
+    ) {
       this.stat(filePath, callback);
     },
-    realpath(filePath, callback) {
+    realpath(filePath: string, callback: Callback<string>) {
       if (!isVirtualPath(filePath)) {
-        return originalInputFileSystem.realpath(filePath, callback);
+        return originalInputFileSystem.realpath!(filePath, callback);
       }
       callback(null, filePath);
     },
@@ -101,22 +109,24 @@ function createInputFileSystem(originalInputFileSystem) {
   return inputFileSystem;
 }
 
-export default {
+export default defineConfig({
   entry: './index.js',
   target: 'node',
   experiments: {
     useInputFileSystem: [/copy-plugin-input-file-system[\\/]virtual/],
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
-        const inputFileSystem = createInputFileSystem(compiler.inputFileSystem);
+        const inputFileSystem = createInputFileSystem(
+          compiler.inputFileSystem!,
+        );
         compiler.inputFileSystem = inputFileSystem;
         compiler.hooks.beforeCompile.tap('CopyPluginInputFileSystem', () => {
           compiler.inputFileSystem = inputFileSystem;
         });
       },
-    },
+    }),
     new CopyRspackPlugin({
       patterns: [
         {
@@ -136,4 +146,4 @@ export default {
   output: {
     clean: true,
   },
-};
+});
