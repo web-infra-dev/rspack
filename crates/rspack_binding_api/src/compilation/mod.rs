@@ -733,12 +733,13 @@ impl JsCompilation {
   #[napi(
     ts_args_type = "request: string, layer: string | undefined, public_path: JsFilename | undefined, base_uri: string | undefined, original_module: string, original_module_context: string | undefined | null, callback: (...args: any[]) => any"
   )]
-  pub fn import_module(
+  pub fn import_module<'a>(
     &self,
+    env: &'a Env,
     reference: Reference<JsCompilation>,
     request: String,
     layer: Option<String>,
-    public_path: Option<JsFilename>,
+    public_path: Option<Unknown<'a>>,
     base_uri: Option<String>,
     original_module: String,
     original_module_context: Option<String>,
@@ -747,6 +748,31 @@ impl JsCompilation {
     let compilation = self
       .as_ref()
       .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
+    let public_path = if let Some(public_path) = public_path {
+      let mut compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+        let references = ref_cell.borrow();
+        references.get(&compilation.compiler_id()).cloned()
+      });
+      let js_compiler = compiler_reference
+        .as_mut()
+        .and_then(|reference| reference.get_mut())
+        .ok_or_else(|| {
+          napi::Error::new(
+            napi::Status::GenericFailure.into(),
+            "Unable to importModule now. The Compiler has been garbage collected by JavaScript.",
+          )
+        })?;
+      // Convert function-valued public paths in their owning compiler's scope so
+      // their callbacks are released when the compiler closes.
+      Some(
+        js_compiler
+          .compiler_scoped_tsfn_manager
+          .scope(|| unsafe { JsFilename::from_napi_value(env.raw(), public_path.raw()) })
+          .map_err(|err| napi::Error::new(err.status.into(), err.reason))?,
+      )
+    } else {
+      None
+    };
     let compiler_context = compilation.compiler_context.clone();
     callbackify(
       callback,
