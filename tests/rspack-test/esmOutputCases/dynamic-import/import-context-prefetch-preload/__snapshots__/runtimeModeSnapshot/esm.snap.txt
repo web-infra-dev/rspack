@@ -1,5 +1,5 @@
 ```mjs title=a.mjs
-import { rspackRequire, moduleFactories, makeNamespaceObject } from "./runtime.mjs";
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
 moduleFactories.add({
 "./modules/a.js"
 /*!**********************!*\
@@ -9,7 +9,10 @@ moduleFactories.add({
 makeNamespaceObject(exports);
 /* export default */ const __rspack_default_export = ("a");
 
-Object.defineProperty(exports, "default", { enumerable: true, value: __rspack_default_export });
+definePropertyGetters(exports, {
+}, {
+  "default": __rspack_default_export
+});
 
 
 },
@@ -18,7 +21,7 @@ Object.defineProperty(exports, "default", { enumerable: true, value: __rspack_de
 ```
 
 ```mjs title=b.mjs
-import { rspackRequire, moduleFactories, makeNamespaceObject } from "./runtime.mjs";
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
 moduleFactories.add({
 "./modules/b.js"
 /*!**********************!*\
@@ -30,7 +33,10 @@ import("./c.mjs").then(rspackRequire.bind(rspackRequire, /*! ./c */ "./modules/c
 
 /* export default */ const __rspack_default_export = ("b");
 
-Object.defineProperty(exports, "default", { enumerable: true, value: __rspack_default_export });
+definePropertyGetters(exports, {
+}, {
+  "default": __rspack_default_export
+});
 
 
 },
@@ -39,7 +45,7 @@ Object.defineProperty(exports, "default", { enumerable: true, value: __rspack_de
 ```
 
 ```mjs title=c.mjs
-import { rspackRequire, moduleFactories, makeNamespaceObject } from "./runtime.mjs";
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
 moduleFactories.add({
 "./modules/c.js"
 /*!**********************!*\
@@ -49,7 +55,10 @@ moduleFactories.add({
 makeNamespaceObject(exports);
 /* export default */ const __rspack_default_export = ("c");
 
-Object.defineProperty(exports, "default", { enumerable: true, value: __rspack_default_export });
+definePropertyGetters(exports, {
+}, {
+  "default": __rspack_default_export
+});
 
 
 },
@@ -214,6 +223,19 @@ var moduleFactories = modules;
 export { moduleFactories };
 
 var scriptNonce;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
 // rspack/runtime/esm_ensure_chunk
 var ensureChunkHandlers = {};
 var ensureChunk = function(chunkId, fetchPriority) {

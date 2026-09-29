@@ -15,7 +15,7 @@ use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_intern::Atom;
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
-use rspack_util::{ext::IntoAny, json_stringify_str};
+use rspack_util::ext::IntoAny;
 use rustc_hash::FxHasher;
 
 use crate::{
@@ -476,7 +476,11 @@ impl InitFragment for ESMExportInitFragment {
 
     self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
 
-    let mut content = String::new();
+    let mut content =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    content.push('(');
+    content.push_str(&runtime_template.render_exports_argument(self.exports_argument));
+    content.push_str(", {");
 
     let mut getters = self
       .export_map
@@ -484,56 +488,48 @@ impl InitFragment for ESMExportInitFragment {
       .filter_map(|(key, value)| match value {
         ESMExportBinding::Getter(getter) => Some((key, getter)),
         _ => None,
-      })
-      .peekable();
-
-    if getters.peek().is_some() {
-      content.push_str(
-        &runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-      );
-      content.push('(');
-      content.push_str(&runtime_template.render_exports_argument(self.exports_argument));
-      content.push_str(", {");
-      if let Some((key, getter)) = getters.next() {
-        content.push_str("\n  ");
-        content.push_str(&property_name(key)?);
-        content.push_str(": ");
-        content.push_str(&runtime_template.returning_function(getter, ""));
-      }
-      for (key, getter) in getters {
-        content.push_str(",\n  ");
-        content.push_str(&property_name(key)?);
-        content.push_str(": ");
-        content.push_str(&runtime_template.returning_function(getter, ""));
-      }
-      content.push_str("\n});\n");
+      });
+    if let Some((key, getter)) = getters.next() {
+      content.push_str("\n  ");
+      content.push_str(&property_name(key)?);
+      content.push_str(": ");
+      content.push_str(&runtime_template.returning_function(getter, ""));
     }
+    for (key, getter) in getters {
+      content.push_str(",\n  ");
+      content.push_str(&property_name(key)?);
+      content.push_str(": ");
+      content.push_str(&runtime_template.returning_function(getter, ""));
+    }
+    content.push_str("\n}");
 
-    // Value bindings are installed as data descriptors with a direct
-    // `Object.defineProperty` call instead of a third `values` argument to
-    // `DEFINE_PROPERTY_GETTERS`. Minimizers are free to rewrite the `.d`
-    // runtime (SWC flattens it to a per-key `(exports, name, getter)` form),
-    // which would silently drop a values object; a direct defineProperty call
-    // survives minification and produces the same data descriptor.
-    let values: Vec<_> = self
+    let mut values_content = String::new();
+    let mut values = self
       .export_map
       .iter()
       .filter_map(|(key, value)| match value {
         ESMExportBinding::Value(value) => Some((key, value)),
         _ => None,
-      })
-      .collect();
-    if !values.is_empty() {
-      let exports_argument = runtime_template.render_exports_argument(self.exports_argument);
-      for (key, value) in values {
-        content.push_str("Object.defineProperty(");
-        content.push_str(&exports_argument);
-        content.push_str(", ");
-        content.push_str(&json_stringify_str(key));
-        content.push_str(", { enumerable: true, value: ");
-        content.push_str(value);
-        content.push_str(" });\n");
-      }
+      });
+    if let Some((key, value)) = values.next() {
+      values_content.push_str("\n  ");
+      values_content.push_str(&property_name(key)?);
+      values_content.push_str(": ");
+      values_content.push_str(value);
+    }
+    for (key, value) in values {
+      values_content.push_str(",\n  ");
+      values_content.push_str(&property_name(key)?);
+      values_content.push_str(": ");
+      values_content.push_str(value);
+    }
+
+    if values_content.is_empty() {
+      content.push_str(");\n");
+    } else {
+      content.push_str(", {");
+      content.push_str(&values_content);
+      content.push_str("\n});\n");
     }
 
     let res = if matches!(self.is_circular_module, None | Some(true)) {

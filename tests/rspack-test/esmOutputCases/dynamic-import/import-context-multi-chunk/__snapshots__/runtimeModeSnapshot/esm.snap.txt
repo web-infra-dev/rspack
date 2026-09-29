@@ -1,5 +1,5 @@
 ```mjs title=a.mjs
-import { rspackRequire, moduleFactories, makeNamespaceObject } from "./runtime.mjs";
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
 import "./shared-chunk.mjs";
 
 moduleFactories.add({
@@ -14,7 +14,10 @@ makeNamespaceObject(exports);
 
 /* export default */ const __rspack_default_export = (_shared__rspack_import_0/* .value */.U);
 
-Object.defineProperty(exports, "default", { enumerable: true, value: __rspack_default_export });
+definePropertyGetters(exports, {
+}, {
+  "default": __rspack_default_export
+});
 
 
 },
@@ -24,7 +27,7 @@ export {};
 ```
 
 ```mjs title=b.mjs
-import { rspackRequire, moduleFactories, makeNamespaceObject } from "./runtime.mjs";
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
 import "./shared-chunk.mjs";
 
 moduleFactories.add({
@@ -39,7 +42,10 @@ makeNamespaceObject(exports);
 
 /* export default */ const __rspack_default_export = (_shared__rspack_import_0/* .value */.U + 1);
 
-Object.defineProperty(exports, "default", { enumerable: true, value: __rspack_default_export });
+definePropertyGetters(exports, {
+}, {
+  "default": __rspack_default_export
+});
 
 
 },
@@ -153,6 +159,19 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
 // rspack/runtime/esm_ensure_chunk
 var ensureChunkHandlers = {};
 var ensureChunk = function(chunkId, fetchPriority) {
@@ -209,7 +228,7 @@ ensureChunkHandlers.j = function(chunkId, promises) {
 ```
 
 ```mjs title=shared-chunk.mjs
-import { rspackRequire, moduleFactories } from "./runtime.mjs";
+import { rspackRequire, moduleFactories, definePropertyGetters } from "./runtime.mjs";
 moduleFactories.add({
 "./shared.js"
 /*!*******************!*\
@@ -218,7 +237,10 @@ moduleFactories.add({
 (__unused_rspack_module, exports) {
 const value = globalThis.__rspack_test_value || 42;
 
-Object.defineProperty(exports, "U", { enumerable: true, value: value });
+definePropertyGetters(exports, {
+}, {
+  U: value
+});
 
 
 },

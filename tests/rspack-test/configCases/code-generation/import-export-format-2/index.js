@@ -32,12 +32,8 @@ it("should use the same accessor syntax for import and export", function () {
 
 	/*********** DO NOT MATCH BELOW THIS LINE ***********/
 
-	// Checking harmonyexportinitfragment.js formation of standard export fragment.
-	// Unmutated local bindings in non-circular modules are installed as value
-	// descriptors via a direct defineProperty call, which survives minimizers
-	// rewriting the `.d` runtime, instead of as getter entries in the `.d` map.
-	const exportsArgument = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK ? "__rspack_exports" : "__webpack_exports__";
-	expectSourceToContain(source, `Object.defineProperty(${exportsArgument}, "bar", { enumerable: true, value: bar })`);
+	// Checking harmonyexportinitfragment.js formation of standard export fragment
+	expectSourceToContain(source, "bar: bar");
 
 	// Checking formation of imports
 	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
