@@ -1,12 +1,12 @@
-/** @type {import("@rspack/core").Configuration[]} */
-export default [
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig([
   {
     name: 'default',
     entry: './index',
     target: 'node',
     output: {
       filename: 'default-[name].js',
-      libraryTarget: 'commonjs2',
     },
     optimization: {
       splitChunks: {
@@ -21,7 +21,6 @@ export default [
     target: 'node',
     output: {
       filename: 'many-vendors-[name].js',
-      libraryTarget: 'commonjs2',
     },
     optimization: {
       splitChunks: {
@@ -34,9 +33,7 @@ export default [
           vendors: {
             test: /node_modules/,
             name: (m) => {
-              const match =
-                /** @type {string} */
-                (m.nameForCondition()).match(/([b-d]+)\.js$/);
+              const match = m.nameForCondition()?.match(/([b-d]+)\.js$/);
               if (match) return `vendors-${match[1]}`;
             },
           },
@@ -44,4 +41,4 @@ export default [
       },
     },
   },
-];
+]);
