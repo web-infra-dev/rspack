@@ -153,3 +153,11 @@ new rspack.container.ModuleFederationPluginV1({
   enhanced: dynamicEnhanced,
   exposes: { './entry': reusableLegacyExpose },
 });
+
+// Consumer-only containers preserve main's optional-name contract.
+new rspack.container.ModuleFederationPlugin({ shared: ['react'] });
+const unnamedEnhancedConsumer: EnhancedModuleFederationPluginV1Options = {
+  enhanced: true,
+  shared: ['react'],
+};
+new rspack.container.ModuleFederationPluginV1(unnamedEnhancedConsumer);

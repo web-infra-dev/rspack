@@ -18,7 +18,11 @@ export interface ModuleFederationPluginV1BaseOptions<
   exposes?: Exposes<Enhanced>;
   filename?: string;
   library?: LibraryOptions;
-  name: string;
+  /**
+   * The container name. A non-empty string is required when exposing modules
+   * or enabling shared dependency tree shaking.
+   */
+  name?: string;
   remoteType?: ExternalsType;
   remotes?: Remotes;
   runtime?: EntryRuntime;
