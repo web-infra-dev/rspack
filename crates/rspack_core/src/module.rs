@@ -299,10 +299,8 @@ pub struct BuildInfo {
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
-  /// Top-level bindings assigned after declaration (`x = …`, `x++`, `for (x of …)`).
   #[cacheable(with=AsVec<AsPreset>)]
   pub mutated_bindings: HashSet<Atom>,
-  /// Set when the module contains a direct `eval(...)` call.
   pub has_direct_eval: bool,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
