@@ -19,7 +19,9 @@ export default defineConfig({
             loader: 'builtin:lightningcss-loader',
             /** @type {import("@rspack/core").LightningcssLoaderOptions} */
             options: {
-              targets: ['Edge >= 12'],
+              targets: { edge: '12' },
+              include: { nesting: true },
+              exclude: { logicalProperties: true },
             },
           },
         ],

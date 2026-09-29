@@ -66,6 +66,11 @@ export class ContainerPlugin<
 
   constructor(options: ContainerPluginConstructorOptions<Enhanced>) {
     super();
+
+    if (typeof options.name !== 'string') {
+      throw new Error('[ContainerPlugin] name must be a string.');
+    }
+
     const enhanced = options.enhanced ?? false;
     const shareScope = normalizeShareScope(
       options.shareScope || 'default',

@@ -1,4 +1,4 @@
-import cases from "./cases.mjs";
+import cases from "./cases.ts";
 
 export default {
   isolateSource: true,

@@ -1,3 +1,4 @@
+import path from 'node:path';
 import {
   type RawAssetGeneratorDataUrlFnCtx,
   type RawAssetGeneratorOptions,
@@ -295,7 +296,8 @@ function getRawTsConfig(
   if (tsConfig === undefined) return tsConfig;
   const { configFile, references } = tsConfig;
   return {
-    configFile,
+    // WASI's cwd can differ from the JavaScript host's working directory.
+    configFile: path.resolve(configFile),
     referencesType:
       references === 'auto' ? 'auto' : references ? 'manual' : 'disabled',
     references: references === 'auto' ? undefined : references,
