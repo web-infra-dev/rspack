@@ -13,7 +13,6 @@ _index_module_css__rspack_import_0.compose;
 "./index.module.css"(module) {
 var exports = {
   "foo": "_1Oz6B3",
-  "bar": "I7OqUU",
   "compose": "PGgXEu" + " " + "I7OqUU",
 };
 
