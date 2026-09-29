@@ -200,6 +200,26 @@ jobs:
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # WASM
+      - name: Setup WASI SDK
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/wasi-sdk.tar.gz" \
+            "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/wasi-sdk-${WASI_SDK_VERSION}.0-x86_64-linux.tar.gz"
+          echo "$WASI_SDK_SHA256  $RUNNER_TEMP/wasi-sdk.tar.gz" | sha256sum --check
+          tar xzf "$RUNNER_TEMP/wasi-sdk.tar.gz" -C "$RUNNER_TEMP"
+          wasi_sdk_path="$RUNNER_TEMP/wasi-sdk-${WASI_SDK_VERSION}.0-x86_64-linux"
+          # lzzzz builds C sources; Rust's WASI target alone does not provide headers.
+          # Scope C tools and flags to the target so host build scripts are unaffected.
+          {
+            echo "WASI_SDK_PATH=$wasi_sdk_path"
+            echo "CC_wasm32_wasip1_threads=$wasi_sdk_path/bin/clang"
+            echo "AR_wasm32_wasip1_threads=$wasi_sdk_path/bin/llvm-ar"
+            echo "CFLAGS_wasm32_wasip1_threads=--sysroot=$wasi_sdk_path/share/wasi-sysroot -pthread"
+          } >> "$GITHUB_ENV"
+        env:
+          WASI_SDK_VERSION: '27'
+          WASI_SDK_SHA256: 'b7d4d944c88503e4f21d84af07ac293e3440b1b6210bfd7fe78e0afd92c23bc2'
+
       # For CI, build the full WASI binding once and reuse it for browser tests by
       # copying it to the browser artifact name. The browser-specific slim build is
       # only needed for release packaging.
