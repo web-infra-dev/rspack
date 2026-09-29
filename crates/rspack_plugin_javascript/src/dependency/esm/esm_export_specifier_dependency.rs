@@ -214,33 +214,12 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
     let is_circular_module = compilation
       .circular_modules
       .is_circular_module(&module.identifier());
-    // Non-circular modules evaluate fully before importers can read exports, so
-    // unmutated local bindings can be copied as value descriptors. Mutated
-    // bindings keep getters so later assignments stay live. Re-exports use
-    // ESMExportImportedSpecifierDependency and are not handled here.
     let is_mutated = module.build_info().mutated_bindings.contains(&dep.value);
-    // A module imported with `import defer` shares its exports object with the
-    // deferred-namespace Proxy as the proxy target. A non-configurable,
-    // non-writable data property on the target constrains the proxy's get trap
-    // (it must return the real value), which breaks pre-evaluation behavior
-    // such as hiding `then`. Keep getters for deferred modules.
     let is_deferred = compilation.get_module_graph().is_deferred(
       &compilation.imported_by_defer_modules_artifact,
       &module.identifier(),
     );
-    // Value descriptors are installed with `Object.defineProperty` in module
-    // scope, where a top-level binding named `Object` would shadow the global.
-    // Such modules keep getters, which are installed from the runtime scope.
-    let object_shadowed = module
-      .build_info()
-      .top_level_declarations
-      .as_ref()
-      .is_some_and(|decls| decls.contains("Object"));
-    let binding = if matches!(is_circular_module, Some(false))
-      && !is_mutated
-      && !is_deferred
-      && !object_shadowed
-    {
+    let binding = if matches!(is_circular_module, Some(false)) && !is_mutated && !is_deferred {
       ESMExportBinding::Value(dep.value.clone())
     } else {
       ESMExportBinding::Getter(dep.value.clone())

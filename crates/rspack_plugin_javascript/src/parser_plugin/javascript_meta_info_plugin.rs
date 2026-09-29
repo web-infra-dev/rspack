@@ -19,8 +19,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
   ) -> Option<bool> {
     if for_name == "eval" {
       parser.build_info.module_concatenation_bailout = Some("eval()".into());
-      // Direct eval can assign any in-scope binding at runtime, so no
-      // top-level binding of this module can be proven unmutated.
       parser.build_info.has_direct_eval = true;
       if let Some(top_level_symbol) = parser.inner_graph.get_top_level_symbol() {
         parser.inner_graph.add_usage(
@@ -53,8 +51,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
           .expect("must have value")
           .insert(name.clone());
         if has_direct_eval {
-          // Direct eval may assign any in-scope binding; treat every top-level
-          // binding as mutated so exports keep live-binding getters.
           parser.mark_mutated_binding(name);
         }
       }
