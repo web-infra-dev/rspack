@@ -1,7 +1,6 @@
-// const { getRuntimeKey } = require("@rspack/corelib/util/runtime");
+import { defineConfig, definePlugin } from '@rspack/cli';
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   module: {
     rules: [
       {
@@ -17,7 +16,7 @@ export default {
     concatenateModules: false,
   },
   plugins: [
-    function getJsonCodeGeneratedSource(compiler) {
+    definePlugin(function getJsonCodeGeneratedSource(compiler) {
       compiler.hooks.compilation.tap(
         getJsonCodeGeneratedSource.name,
         (compilation) => {
@@ -30,10 +29,10 @@ export default {
                     module,
                     'main',
                   );
-                  const source = sources.get('javascript');
+                  const source = sources.get('javascript')!;
                   const file = compilation.getAssetPath('[name].js', {
                     filename: `${module
-                      .readableIdentifier(compilation.requestShortener)
+                      .readableIdentifier()
                       .replace(/[?#]/g, '_')}.js`,
                   });
                   compilation.emitAsset(file, source);
@@ -43,6 +42,6 @@ export default {
           );
         },
       );
-    },
+    }),
   ],
-};
+});

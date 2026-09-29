@@ -1,13 +1,14 @@
 import path from 'node:path';
+import { defineConfig } from '@rspack/cli';
 
-/** @type {import("@rspack/core").Configuration[]} */
-export default [
+export default defineConfig([
   {
     entry: {
       index: path.resolve(import.meta.dirname, './index.js'),
     },
     output: {
       library: {
+        type: 'var',
         name: '[name]',
         export: 'default',
       },
@@ -22,6 +23,7 @@ export default [
     },
     output: {
       library: {
+        type: 'var',
         name: '[name]_doc',
         export: 'default',
       },
@@ -30,4 +32,4 @@ export default [
       concatenateModules: true,
     },
   },
-];
+]);
