@@ -98,6 +98,7 @@ export const JsCoordinator = __napiModule.exports.JsCoordinator
 export const JsEntries = __napiModule.exports.JsEntries
 export const JsExportsInfo = __napiModule.exports.JsExportsInfo
 export const JsModuleGraph = __napiModule.exports.JsModuleGraph
+export const JsPathDependencies = __napiModule.exports.JsPathDependencies
 export const JsResolver = __napiModule.exports.JsResolver
 export const JsResolverFactory = __napiModule.exports.JsResolverFactory
 export const JsStats = __napiModule.exports.JsStats

@@ -13,14 +13,14 @@ use rustc_hash::FxHashMap;
 
 use crate::{
   compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction,
-  normal_module_factory::JsResolveData,
+  normal_module_factory::{JsResolveData, JsResolveDataUpdate},
 };
 
 #[napi(object, object_to_js = false)]
 pub struct RawNormalModuleReplacementPluginOptions {
   #[napi(ts_type = "RegExp")]
   pub resource_reg_exp: RspackRegex,
-  #[napi(ts_type = "string | ((data: JsResolveData) => JsResolveData)")]
+  #[napi(ts_type = "string | ((data: JsResolveData) => JsResolveDataUpdate)")]
   pub new_resource: RawNormalModuleReplacer,
 }
 
@@ -33,7 +33,8 @@ impl From<RawNormalModuleReplacementPluginOptions> for NormalModuleReplacementPl
   }
 }
 
-type RawNormalModuleReplacer = Either<String, ThreadsafeFunction<JsResolveData, JsResolveData>>;
+type RawNormalModuleReplacer =
+  Either<String, ThreadsafeFunction<JsResolveData, JsResolveDataUpdate>>;
 struct RawNormalModuleReplacerWrapper(RawNormalModuleReplacer);
 
 impl From<RawNormalModuleReplacerWrapper> for NormalModuleReplacer {

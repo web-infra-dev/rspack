@@ -97,8 +97,8 @@ use crate::{
   },
   module::{JsExecuteModuleArg, JsRuntimeModule, JsRuntimeModuleArg, ModuleObject},
   normal_module_factory::{
-    JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
-    JsResolveForSchemeOutput,
+    JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveDataUpdate,
+    JsResolveForSchemeArgs, JsResolveForSchemeOutput,
   },
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
@@ -623,15 +623,15 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_after_seal_taps: RegisterFunction,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveDataUpdate]>); stage: number; }>"
   )]
   pub register_normal_module_factory_before_resolve_taps: RegisterFunction,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveDataUpdate>); stage: number; }>"
   )]
   pub register_normal_module_factory_factorize_taps: RegisterFunction,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveDataUpdate>); stage: number; }>"
   )]
   pub register_normal_module_factory_resolve_taps: RegisterFunction,
   #[napi(
@@ -639,7 +639,7 @@ pub struct RegisterJsTaps {
   )]
   pub register_normal_module_factory_resolve_for_scheme_taps: RegisterFunction,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveDataUpdate]>); stage: number; }>"
   )]
   pub register_normal_module_factory_after_resolve_taps: RegisterFunction,
   #[napi(
@@ -935,21 +935,21 @@ define_register!(
 /* NormalModuleFactory Hooks */
 define_register!(
   RegisterNormalModuleFactoryBeforeResolveTaps,
-  tap = NormalModuleFactoryBeforeResolveTap<JsResolveData, Promise<(Option<bool>, JsResolveData)>> @ NormalModuleFactoryBeforeResolveHook,
+  tap = NormalModuleFactoryBeforeResolveTap<JsResolveData, Promise<(Option<bool>, JsResolveDataUpdate)>> @ NormalModuleFactoryBeforeResolveHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleFactoryBeforeResolve,
   skip = true,
 );
 define_register!(
   RegisterNormalModuleFactoryFactorizeTaps,
-  tap = NormalModuleFactoryFactorizeTap<JsResolveData, Promise<JsResolveData>> @ NormalModuleFactoryFactorizeHook,
+  tap = NormalModuleFactoryFactorizeTap<JsResolveData, Promise<JsResolveDataUpdate>> @ NormalModuleFactoryFactorizeHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleFactoryFactorize,
   skip = true,
 );
 define_register!(
   RegisterNormalModuleFactoryResolveTaps,
-  tap = NormalModuleFactoryResolveTap<JsResolveData, Promise<JsResolveData>> @ NormalModuleFactoryResolveHook,
+  tap = NormalModuleFactoryResolveTap<JsResolveData, Promise<JsResolveDataUpdate>> @ NormalModuleFactoryResolveHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleFactoryResolve,
   skip = true,
@@ -963,7 +963,7 @@ define_register!(
 );
 define_register!(
   RegisterNormalModuleFactoryAfterResolveTaps,
-  tap = NormalModuleFactoryAfterResolveTap<JsResolveData, Promise<(Option<bool>, JsResolveData)>> @ NormalModuleFactoryAfterResolveHook,
+  tap = NormalModuleFactoryAfterResolveTap<JsResolveData, Promise<(Option<bool>, JsResolveDataUpdate)>> @ NormalModuleFactoryAfterResolveHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleFactoryAfterResolve,
   skip = true,

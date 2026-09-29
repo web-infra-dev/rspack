@@ -40,6 +40,15 @@ interface KnownBuildInfo {
 
 export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
+export interface JsResolveData extends JsPathDependencies {
+	request: string;
+	context: string;
+	contextInfo: ContextInfo;
+	/** The import attributes of the dependency that triggered this resolution, read-only. */
+	attributes?: Record<string, string>;
+	createData?: JsCreateData;
+}
+
 export interface Module {
 	readonly type: string;
 	get context(): string | undefined;

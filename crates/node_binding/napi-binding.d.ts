@@ -40,6 +40,15 @@ interface KnownBuildInfo {
 
 export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
+export interface JsResolveData extends JsPathDependencies {
+	request: string;
+	context: string;
+	contextInfo: ContextInfo;
+	/** The import attributes of the dependency that triggered this resolution, read-only. */
+	attributes?: Record<string, string>;
+	createData?: JsCreateData;
+}
+
 export interface Module {
 	readonly type: string;
 	get context(): string | undefined;
@@ -435,6 +444,12 @@ export declare class JsModuleGraph {
   getParentModule(dependency: Dependency | EntryDependency): Module | null
   getParentBlockIndex(dependency: Dependency | EntryDependency): number
   isAsync(module: Module): boolean
+}
+
+export declare class JsPathDependencies {
+  get fileDependencies(): Array<string>
+  get contextDependencies(): Array<string>
+  get missingDependencies(): Array<string>
 }
 
 export declare class JsResolver {
@@ -1070,15 +1085,9 @@ export interface JsRealContentHashPluginUpdateHashData {
   oldHash: string
 }
 
-export interface JsResolveData {
+export interface JsResolveDataUpdate {
   request: string
   context: string
-  contextInfo: ContextInfo
-  /** The import attributes of the dependency that triggered this resolution, read-only. */
-  attributes?: Record<string, string>
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
   createData?: JsCreateData
 }
 
@@ -2823,7 +2832,7 @@ export interface RawNonStandard {
 
 export interface RawNormalModuleReplacementPluginOptions {
   resourceRegExp: RegExp
-  newResource: string | ((data: JsResolveData) => JsResolveData)
+  newResource: string | ((data: JsResolveData) => JsResolveDataUpdate)
 }
 
 export interface RawOccurrenceChunkIdsPluginOptions {
@@ -3364,11 +3373,11 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
-  registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
-  registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
-  registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
+  registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveDataUpdate]>); stage: number; }>
+  registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveDataUpdate>); stage: number; }>
+  registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveDataUpdate>); stage: number; }>
   registerNormalModuleFactoryResolveForSchemeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>
-  registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
+  registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveDataUpdate]>); stage: number; }>
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>

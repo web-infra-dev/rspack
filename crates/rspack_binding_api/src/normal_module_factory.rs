@@ -1,9 +1,11 @@
 use napi::{
-  Env,
-  bindgen_prelude::{Object, ToNapiValue},
+  Env, JsValue,
+  bindgen_prelude::{JavaScriptClassExt, Object, ToNapiValue},
+  sys::napi_value,
 };
 use napi_derive::napi;
 use rspack_core::{ModuleFactoryCreateData, NormalModuleCreateData, ResourceData, parse_resource};
+use rspack_paths::InternedPath;
 use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
@@ -73,19 +75,52 @@ impl JsCreateData {
   }
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[derive(Debug)]
+#[napi]
+pub struct JsPathDependencies {
+  // Own the paths independently of the factory and compiler lifetimes.
+  file_dependencies: Vec<InternedPath>,
+  context_dependencies: Vec<InternedPath>,
+  missing_dependencies: Vec<InternedPath>,
+}
+
+#[napi]
+impl JsPathDependencies {
+  #[napi(getter)]
+  pub fn file_dependencies(&self) -> Vec<String> {
+    self
+      .file_dependencies
+      .iter()
+      .map(|path| path.to_string_lossy().into_owned())
+      .collect()
+  }
+
+  #[napi(getter)]
+  pub fn context_dependencies(&self) -> Vec<String> {
+    self
+      .context_dependencies
+      .iter()
+      .map(|path| path.to_string_lossy().into_owned())
+      .collect()
+  }
+
+  #[napi(getter)]
+  pub fn missing_dependencies(&self) -> Vec<String> {
+    self
+      .missing_dependencies
+      .iter()
+      .map(|path| path.to_string_lossy().into_owned())
+      .collect()
+  }
+}
+
 pub struct JsResolveData {
-  pub request: String,
-  pub context: String,
-  pub context_info: ContextInfo,
-  /// The import attributes of the dependency that triggered this resolution, read-only.
-  pub attributes: Option<HashMap<String, String>>,
-  pub file_dependencies: Vec<String>,
-  pub context_dependencies: Vec<String>,
-  pub missing_dependencies: Vec<String>,
-  pub create_data: Option<JsCreateData>,
+  request: String,
+  context: String,
+  context_info: ContextInfo,
+  attributes: Option<HashMap<String, String>>,
+  create_data: Option<JsCreateData>,
+  dependencies: JsPathDependencies,
 }
 
 impl JsResolveData {
@@ -93,7 +128,7 @@ impl JsResolveData {
     data: &ModuleFactoryCreateData,
     create_data: Option<&NormalModuleCreateData>,
   ) -> Self {
-    JsResolveData {
+    Self {
       request: data.request.clone(),
       context: data.context.to_string(),
       context_info: ContextInfo {
@@ -114,35 +149,53 @@ impl JsResolveData {
             .map(|(key, value)| (key.to_owned(), value.to_owned()))
             .collect()
         }),
-      file_dependencies: data
-        .file_dependencies
-        .iter()
-        .map(|item| item.to_string_lossy().into_owned())
-        .collect::<Vec<_>>(),
-      context_dependencies: data
-        .context_dependencies
-        .iter()
-        .map(|item| item.to_string_lossy().into_owned())
-        .collect::<Vec<_>>(),
-      missing_dependencies: data
-        .missing_dependencies
-        .iter()
-        .map(|item| item.to_string_lossy().into_owned())
-        .collect::<Vec<_>>(),
       create_data: create_data.map(|create_data| JsCreateData {
         request: create_data.request.clone(),
         user_request: create_data.user_request.clone(),
         resource: create_data.resource_resolve_data.resource().to_owned(),
       }),
+      dependencies: JsPathDependencies {
+        file_dependencies: data.file_dependencies.iter().cloned().collect(),
+        context_dependencies: data.context_dependencies.iter().cloned().collect(),
+        missing_dependencies: data.missing_dependencies.iter().cloned().collect(),
+      },
     }
   }
+}
 
+impl ToNapiValue for JsResolveData {
+  unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> napi::Result<napi_value> {
+    let env = Env::from_raw(env);
+    let instance = val.dependencies.into_instance(&env)?;
+    let mut object = instance.as_object(&env);
+    // Keep common fields as JS-owned data properties, including mutable createData.
+    object.set("request", val.request)?;
+    object.set("context", val.context)?;
+    object.set("contextInfo", val.context_info)?;
+    if let Some(attributes) = val.attributes {
+      object.set("attributes", attributes)?;
+    }
+    if let Some(create_data) = val.create_data {
+      object.set("createData", create_data)?;
+    }
+    Ok(object.raw())
+  }
+}
+
+#[napi(object, object_to_js = false)]
+pub struct JsResolveDataUpdate {
+  pub request: String,
+  pub context: String,
+  pub create_data: Option<JsCreateData>,
+}
+
+impl JsResolveDataUpdate {
   pub fn update_nmf_data(
     self,
     data: &mut ModuleFactoryCreateData,
     create_data: Option<&mut NormalModuleCreateData>,
   ) {
-    // only supports update request for now, `attributes` is read-only
+    // Other fields are snapshots and are not written back to the factory.
     data.request = self.request;
     data.context = self.context.into();
     if let Some(new_data) = self.create_data
