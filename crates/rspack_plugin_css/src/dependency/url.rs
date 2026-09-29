@@ -14,6 +14,8 @@ use crate::{css_syntax::serialize_url_value, utils::AUTO_PUBLIC_PATH_PLACEHOLDER
 static ASSET_AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new("__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__"));
 
+/// An asset reference, for example `background: url("./logo.png")`.
+/// Resolves the asset module and replaces only the URL with its emitted URL.
 #[cacheable]
 #[derive(Debug)]
 pub struct CssUrlDependency {

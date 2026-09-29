@@ -63,16 +63,12 @@ pub enum DependencyType {
   CssUrl,
   // css @import
   CssImport,
-  // css modules compose
-  CssCompose,
+  // css named import (@value, :import, or composes)
+  CssIcssImport,
   // css :export
-  CssExport,
+  CssIcssExport,
   // css icss symbol
   CssIcssSymbol,
-  // css modules local ident
-  CssLocalIdent,
-  // css modules self reference
-  CssSelfReferenceLocalIdent,
   // context element
   ContextElement(ContextTypePrefix),
   // import context
@@ -182,11 +178,9 @@ impl DependencyType {
       DependencyType::ModuleHotDecline => "module.hot.decline",
       DependencyType::CssUrl => "css url",
       DependencyType::CssImport => "css import",
-      DependencyType::CssCompose => "css compose",
-      DependencyType::CssExport => "css export",
+      DependencyType::CssIcssImport => "css :import",
+      DependencyType::CssIcssExport => "css :export",
       DependencyType::CssIcssSymbol => "css icss symbol",
-      DependencyType::CssLocalIdent => "css local ident",
-      DependencyType::CssSelfReferenceLocalIdent => "css self reference local ident",
       DependencyType::ContextElement(type_prefix) => match type_prefix {
         ContextTypePrefix::Import => "import() context element",
         ContextTypePrefix::Normal => "context element",

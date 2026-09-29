@@ -1,0 +1,6 @@
+Object {
+  a: animation-name_module_css-a,
+  animationName: animation-name_module_css-animationName,
+  b: animation-name_module_css-b,
+  c: animation-name_module_css-c,
+}

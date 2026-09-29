@@ -24,7 +24,7 @@ use rspack_util::{
 use rustc_hash::{FxHashSet, FxHasher};
 
 use crate::{
-  dependency::{CssComposeDependency, CssImportDependency},
+  dependency::{CssIcssImportDependency, CssImportDependency},
   parser_and_generator::CssParserAndGenerator,
 };
 
@@ -120,7 +120,7 @@ pub(crate) fn css_dependency_export_type(dependency: &dyn Dependency) -> Option<
     .and_then(|dep| dep.export_type())
     .or_else(|| {
       dependency
-        .downcast_ref::<CssComposeDependency>()
+        .downcast_ref::<CssIcssImportDependency>()
         .and_then(|dep| dep.export_type())
     })
 }
@@ -135,8 +135,10 @@ pub(crate) struct CssDependencyMeta {
 pub(crate) fn css_dependency_meta(dependency: &dyn Dependency) -> CssDependencyMeta {
   let css_import_dependency = dependency.downcast_ref::<CssImportDependency>();
   let is_css_import_dependency = css_import_dependency.is_some();
-  let is_css_dependency =
-    is_css_import_dependency || dependency.downcast_ref::<CssComposeDependency>().is_some();
+  let is_css_dependency = is_css_import_dependency
+    || dependency
+      .downcast_ref::<CssIcssImportDependency>()
+      .is_some();
 
   CssDependencyMeta {
     is_css_import_dependency,
