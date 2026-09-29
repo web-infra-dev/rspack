@@ -1,8 +1,9 @@
+import { defineConfig } from '@rspack/cli';
 import toml from 'toml';
 import json from 'json5';
 import yaml from 'yamljs';
 
-export default {
+export default defineConfig({
   module: {
     rules: [
       {
@@ -28,4 +29,4 @@ export default {
       },
     ],
   },
-};
+});

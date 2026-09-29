@@ -133,6 +133,9 @@ catalogs:
     '@types/semver':
       specifier: ^7.8.0
       version: 7.8.0
+    '@types/yamljs':
+      specifier: ^0.2.34
+      version: 0.2.34
     '@typescript/native':
       specifier: npm:typescript@^7.0.2
       version: 7.0.2
@@ -1068,6 +1071,9 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
+      '@types/yamljs':
+        specifier: 'catalog:'
+        version: 0.2.34
       '@webdiscus/pug-loader':
         specifier: 'catalog:'
         version: 2.11.1(enhanced-resolve@5.25.1)
@@ -3794,6 +3800,9 @@ packages:
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
+
+  '@types/yamljs@0.2.34':
+    resolution: {integrity: sha512-gJvfRlv9ErxdOv7ux7UsJVePtX54NAvQyd8ncoiFqK8G5aeHIfQfGH2fbruvjAQ9657HwAaO54waS+Dsk2QTUQ==}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
@@ -9970,6 +9979,8 @@ snapshots:
   '@types/unist@2.0.11': {}
 
   '@types/unist@3.0.3': {}
+
+  '@types/yamljs@0.2.34': {}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true
