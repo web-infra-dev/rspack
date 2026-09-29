@@ -1,7 +1,7 @@
+import { defineConfig } from '@rspack/cli';
 import { CssExtractRspackPlugin } from '@rspack/core';
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   entry: {
     a: './a.js',
     b: { import: './b.js', dependOn: 'a' },
@@ -31,12 +31,8 @@ export default {
   },
 
   target: 'web',
-  plugins: [
-    new CssExtractRspackPlugin({
-      experimentalUseImportModule: true,
-    }),
-  ],
+  plugins: [new CssExtractRspackPlugin()],
   experiments: {
     css: false,
   },
-};
+});

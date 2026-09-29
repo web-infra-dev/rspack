@@ -57,6 +57,7 @@ catalog:
   '@swc/types': '0.1.28'
   '@types/fs-extra': '11.0.4'
   '@types/jsdom': '^30.0.0'
+  '@types/mime-types': '3.0.1'
   '@types/node': '^20.19.43'
   '@types/react': '^19.3.0'
   '@types/react-dom': '^19.3.0'

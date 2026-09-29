@@ -1,4 +1,6 @@
+import { defineConfig } from '@rspack/cli';
 import { EnvironmentPlugin } from '@rspack/core';
+
 process.env.AAA = 'aaa';
 process.env.BBB = 'bbb';
 process.env.CCC = 'ccc';
@@ -7,46 +9,25 @@ process.env.FFF = 'fff';
 process.env.GGG = 'ggg';
 process.env.III = '';
 
-/** @type {import("@rspack/core").Configuration[]} */
-export default [
+export default defineConfig([
   {
     name: 'aaa',
-    module: {
-      unknownContextRegExp: /$^/,
-      unknownContextCritical: false,
-    },
     plugins: [new EnvironmentPlugin('AAA')],
   },
   {
     name: 'bbbccc',
-    module: {
-      unknownContextRegExp: /$^/,
-      unknownContextCritical: false,
-    },
     plugins: [new EnvironmentPlugin('BBB', 'CCC')],
   },
   {
     name: 'ddd',
-    module: {
-      unknownContextRegExp: /$^/,
-      unknownContextCritical: false,
-    },
     plugins: [new EnvironmentPlugin('DDD')],
   },
   {
     name: 'eeefff',
-    module: {
-      unknownContextRegExp: /$^/,
-      unknownContextCritical: false,
-    },
     plugins: [new EnvironmentPlugin(['EEE', 'FFF'])],
   },
   {
     name: 'ggghhh',
-    module: {
-      unknownContextRegExp: /$^/,
-      unknownContextCritical: false,
-    },
     plugins: [
       new EnvironmentPlugin({
         GGG: 'ggg-default',
@@ -56,10 +37,6 @@ export default [
   },
   {
     name: 'iii',
-    module: {
-      unknownContextRegExp: /$^/,
-      unknownContextCritical: false,
-    },
     plugins: [new EnvironmentPlugin('III')],
   },
-];
+]);
