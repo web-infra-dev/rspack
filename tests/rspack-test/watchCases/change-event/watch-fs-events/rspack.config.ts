@@ -1,5 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { defineConfig } from '@rspack/cli';
+import type { Compiler, WatchFileSystem } from '@rspack/core';
+
+// Internal compatibility surface exercised by this test.
+interface WatchFileSystemWithWatcher extends WatchFileSystem {
+  watcher?: {
+    on(event: 'change', listener: (filename: string) => void): void;
+  } | null;
+}
+
 // Records the `change` events exposed by `WatchFileSystem.on`, the same `change`
 // from the watchpack-compatible `watcher` shim (the surface
 // ts-checker-rspack-plugin reaches for), and the batched `aggregated` event,
@@ -8,13 +18,13 @@ import path from 'node:path';
 // Rust test, since native fs remove events are asynchronous and hard to assert
 // reliably from a watch case.)
 class RecordWatchEventsPlugin {
-  apply(compiler) {
-    const changed = [];
-    const watcherChanged = [];
-    const aggregatedChanges = [];
+  apply(compiler: Compiler) {
+    const changed: string[] = [];
+    const watcherChanged: string[] = [];
+    const aggregatedChanges: string[] = [];
 
     compiler.hooks.afterEnvironment.tap('RecordWatchEventsPlugin', () => {
-      const wfs = compiler.watchFileSystem;
+      const wfs: WatchFileSystemWithWatcher | null = compiler.watchFileSystem;
       if (!wfs) {
         return;
       }
@@ -52,10 +62,9 @@ class RecordWatchEventsPlugin {
   }
 }
 
-/** @type {import('@rspack/core').Configuration} */
-export default {
+export default defineConfig({
   plugins: [new RecordWatchEventsPlugin()],
   watchOptions: {
     aggregateTimeout: 100,
   },
-};
+});
