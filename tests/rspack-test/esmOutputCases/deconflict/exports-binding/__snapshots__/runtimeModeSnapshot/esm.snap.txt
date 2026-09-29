@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-import { rspackRequire, moduleFactories, esmModuleDecorator } from "./runtime.mjs";
+import { rspackRequire, moduleFactories, definePropertyGetters, esmModuleDecorator } from "./runtime.mjs";
 moduleFactories.add({
 "./wrapped.js"
 /*!********************!*\
@@ -12,7 +12,10 @@ const __nested_rspack_exports__ = 44;
 // Accessing module prevents this module from being scope hoisted.
 console.log.bind(module);
 
-Object.defineProperty(exports, "A", { enumerable: true, value: __nested_rspack_exports__ });
+definePropertyGetters(exports, {
+}, {
+  A: __nested_rspack_exports__
+});
 
 
 },
@@ -69,6 +72,19 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
 // rspack/runtime/esm_module_decorator
 var esmModuleDecorator = (module) => {
   module = Object.create(module);
@@ -85,6 +101,8 @@ export { esmModuleDecorator };
 // rspack/runtime/esm_register_module
 moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 
 
 ```

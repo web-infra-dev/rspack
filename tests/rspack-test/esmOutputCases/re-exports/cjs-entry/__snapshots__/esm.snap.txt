@@ -23,8 +23,9 @@ const foo = 1
 
 __webpack_require__.d(__webpack_exports__, {
   bar: () => (/* reexport safe */ _bar__rspack_import_0.bar)
+}, {
+  foo: foo
 });
-Object.defineProperty(__webpack_exports__, "foo", { enumerable: true, value: foo });
 
 
 },

@@ -1,5 +1,5 @@
 ```mjs title=a.mjs
-import { rspackRequire, moduleFactories, makeNamespaceObject } from "./runtime-main.mjs";
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime-main.mjs";
 moduleFactories.add({
 "./modules-a/a.js"
 /*!************************!*\
@@ -9,7 +9,10 @@ moduleFactories.add({
 makeNamespaceObject(exports);
 /* export default */ const __rspack_default_export = ("a");
 
-Object.defineProperty(exports, "default", { enumerable: true, value: __rspack_default_export });
+definePropertyGetters(exports, {
+}, {
+  "default": __rspack_default_export
+});
 
 
 },
@@ -19,7 +22,7 @@ export {};
 ```
 
 ```mjs title=b.mjs
-import { rspackRequire, moduleFactories, makeNamespaceObject } from "./runtime-other.mjs";
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime-other.mjs";
 moduleFactories.add({
 "./modules-b/b.js"
 /*!************************!*\
@@ -29,7 +32,10 @@ moduleFactories.add({
 makeNamespaceObject(exports);
 /* export default */ const __rspack_default_export = ("b");
 
-Object.defineProperty(exports, "default", { enumerable: true, value: __rspack_default_export });
+definePropertyGetters(exports, {
+}, {
+  "default": __rspack_default_export
+});
 
 
 },
@@ -127,6 +133,19 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
 // rspack/runtime/esm_ensure_chunk
 var ensureChunkHandlers = {};
 var ensureChunk = function(chunkId, fetchPriority) {
@@ -140,6 +159,16 @@ export { ensureChunk };
 // rspack/runtime/esm_register_module
 moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
+// rspack/runtime/get javascript chunk filename
+// This function allow to reference chunks
+var getChunkScriptFilename = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+};
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {
@@ -204,6 +233,19 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
 // rspack/runtime/esm_ensure_chunk
 var ensureChunkHandlers = {};
 var ensureChunk = function(chunkId, fetchPriority) {
@@ -217,6 +259,16 @@ export { ensureChunk };
 // rspack/runtime/esm_register_module
 moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
+// rspack/runtime/get javascript chunk filename
+// This function allow to reference chunks
+var getChunkScriptFilename = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+};
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {

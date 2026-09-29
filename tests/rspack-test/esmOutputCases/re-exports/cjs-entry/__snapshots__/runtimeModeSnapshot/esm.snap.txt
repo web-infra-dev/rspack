@@ -22,8 +22,9 @@ const foo = 1
 
 definePropertyGetters(exports, {
   bar: () => (/* reexport safe */ _bar__rspack_import_0.bar)
+}, {
+  foo: foo
 });
-Object.defineProperty(exports, "foo", { enumerable: true, value: foo });
 
 
 },

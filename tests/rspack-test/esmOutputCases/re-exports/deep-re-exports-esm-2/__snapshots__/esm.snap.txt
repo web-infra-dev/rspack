@@ -26,7 +26,10 @@ __webpack_require__.r(__webpack_exports__);
 
 const lib = 42
 
-Object.defineProperty(__webpack_exports__, "lib", { enumerable: true, value: lib });
+__webpack_require__.d(__webpack_exports__, {
+}, {
+  lib: lib
+});
 
 
 },
@@ -52,8 +55,9 @@ __webpack_require__.d(__webpack_exports__, {
   fs: () => (/* reexport safe */ _lib3__rspack_import_1.fs),
   lib3: () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */42)),
   lib4: () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */24))
+}, {
+  lib2: lib2
 });
-Object.defineProperty(__webpack_exports__, "lib2", { enumerable: true, value: lib2 });
 
 
 },
