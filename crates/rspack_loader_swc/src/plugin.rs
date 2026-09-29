@@ -4,7 +4,8 @@ use std::{
 };
 
 use rspack_core::{
-  BoxLoader, Context, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, Plugin, Resolver,
+  BoxLoader, Context, ModuleFactoryCreateData, ModuleRuleUseLoader,
+  NormalModuleFactoryResolveLoader, Plugin, Resolver,
 };
 use rspack_error::{Result, SerdeResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
@@ -52,6 +53,7 @@ pub(crate) async fn resolve_loader(
   _context: &Context,
   _resolver: &Resolver,
   l: &ModuleRuleUseLoader,
+  _data: &mut ModuleFactoryCreateData,
 ) -> Result<Option<BoxLoader>> {
   let loader_request = &l.loader;
   let options = l.options.as_deref().unwrap_or("{}");

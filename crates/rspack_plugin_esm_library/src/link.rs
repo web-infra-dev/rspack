@@ -1020,6 +1020,9 @@ var {} = {{}};
     let module_graph = compilation.get_module_graph();
 
     let mut all_used_names: FxHashSet<Atom> = RESERVED_NAMES_ATOM_SET.clone();
+    // Shared by the require bootstrap and deferred namespace runtime in both
+    // runtime modes. Hoisted user bindings must not shadow this cache.
+    all_used_names.insert("__rspack_deferred_exports".into());
     all_used_names.extend(runtime_module_used_names.iter().cloned());
     all_used_names.extend(chunk_link.hoisted_modules.iter().flat_map(|m| {
       let info = &concate_modules_map[m];

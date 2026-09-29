@@ -911,12 +911,12 @@ export type RuleSetLoaderWithOptions = {
   options?: RuleSetLoaderOptions;
 };
 
-export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions;
+export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions | Falsy;
 
 export type RuleSetUse =
   | RuleSetUseItem
   | RuleSetUseItem[]
-  | ((data: RawFuncUseCtx) => RuleSetUseItem[]);
+  | ((data: RawFuncUseCtx) => RuleSetUseItem | RuleSetUseItem[]);
 
 export type RuleSetRuleUseAndLoader =
   | {
@@ -1868,12 +1868,12 @@ export type ExternalItemFunctionData = {
   };
   /**
    * Get a resolve function with the current resolver options.
+   * The returned function accepts a callback or returns a Promise when called without one.
    */
   getResolve?: (
     options?: ResolveOptions,
-  ) =>
-    | ((context: string, request: string, callback: ResolveCallback) => void)
-    | ((context: string, request: string) => Promise<string>);
+  ) => ((context: string, request: string, callback: ResolveCallback) => void) &
+    ((context: string, request: string) => Promise<string | undefined>);
 };
 
 /**
@@ -1893,16 +1893,14 @@ export type ExternalItem =
   | string
   | RegExp
   | ExternalItemObjectUnknown
-  | ((data: ExternalItemFunctionData) => ExternalItemValue)
   | ((
       data: ExternalItemFunctionData,
       callback: (
-        err?: Error,
+        err?: Error | null,
         result?: ExternalItemValue,
         type?: ExternalsType,
       ) => void,
-    ) => void)
-  | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>);
+    ) => ExternalItemValue | void | Promise<ExternalItemValue | void>);
 
 /**
  * Prevent bundling of certain imported packages and instead retrieve these external dependencies at runtime.
@@ -3215,6 +3213,8 @@ export type NewCache = {
   loader?: boolean;
   /** Enable the asset minimization cache. @default true */
   minimize?: boolean;
+  /** Enable the module and loader resolution cache. @default true */
+  resolver?: boolean;
 };
 
 export type NewCachePresets = boolean;

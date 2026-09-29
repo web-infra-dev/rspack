@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsOption, AsPreset, AsVec},
@@ -47,7 +49,7 @@ pub struct ESMImportSpecifierDependency {
   ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
-  used_by_exports: Option<UsedByExports>,
+  used_by_exports: Option<Arc<UsedByExports>>,
   #[cacheable(with=AsOption<AsCacheable>)]
   branch_guard: Option<DependencyBranchGuard>,
   #[cacheable(with=AsOption<AsCacheable>)]
@@ -161,12 +163,12 @@ impl ESMImportSpecifierDependency {
       .unwrap_or(ExportPresenceMode::Error)
   }
 
-  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<Arc<UsedByExports>>) {
     self.used_by_exports = used_by_exports;
   }
 
   pub fn used_by_exports(&self) -> Option<&UsedByExports> {
-    self.used_by_exports.as_ref()
+    self.used_by_exports.as_deref()
   }
 
   pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
@@ -780,7 +782,7 @@ fn connection_active_for_esm_import_specifier(
     return false;
   }
 
-  if let Some(used_by_exports) = dependency.used_by_exports.as_ref() {
+  if let Some(used_by_exports) = dependency.used_by_exports.as_deref() {
     if has_impure_deferred_pure_checks(module_graph, exports_info_artifact, used_by_exports) {
       return true;
     }
@@ -790,13 +792,13 @@ fn connection_active_for_esm_import_specifier(
     }
   }
 
-  match dependency.used_by_exports.as_ref() {
+  match dependency.used_by_exports.as_deref() {
     Some(_) => connection_active_used_by_exports(
       connection,
       runtime,
       module_graph,
       exports_info_artifact,
-      dependency.used_by_exports.as_ref(),
+      dependency.used_by_exports.as_deref(),
     ),
     None => true,
   }
