@@ -300,12 +300,9 @@ pub struct BuildInfo {
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
   /// Top-level bindings assigned after declaration (`x = …`, `x++`, `for (x of …)`).
-  /// Used to keep live-binding getters for mutated ESM exports.
   #[cacheable(with=AsVec<AsPreset>)]
   pub mutated_bindings: HashSet<Atom>,
-  /// Whether the module contains a direct `eval(...)` call, which can read or
-  /// assign any in-scope binding at runtime. Used to keep live-binding getters
-  /// for all exports of such modules.
+  /// Set when the module contains a direct `eval(...)` call.
   pub has_direct_eval: bool,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,

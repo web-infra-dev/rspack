@@ -848,7 +848,6 @@ impl<'parser> JavascriptParser<'parser> {
     matches!(self.top_level_scope, TopLevelScope::Top)
   }
 
-  /// Record that a top-level binding is assigned after its declaration.
   pub(crate) fn mark_mutated_binding(&mut self, name: Atom) {
     let top_level_definitions = self.top_level_definitions;
     let is_top_level = self
@@ -857,9 +856,8 @@ impl<'parser> JavascriptParser<'parser> {
     if !is_top_level {
       return;
     }
-    // A binding renamed by the compatibility plugin (e.g. a local named
-    // `__webpack_exports__`) is referenced by export dependencies under its
-    // renamed identifier, so record the renamed name as well.
+    // Compatibility renames (e.g. `__webpack_exports__`) are referenced under
+    // the renamed identifier, so record that name as well.
     let renamed = self
       .get_tag_data::<NestedRequireData>(&name, NESTED_IDENTIFIER_TAG)
       .map(|data| Atom::from(data.name.as_str()));

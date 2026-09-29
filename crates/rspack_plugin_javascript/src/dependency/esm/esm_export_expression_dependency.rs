@@ -205,26 +205,11 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       {
         let local = Atom::from(name);
         let is_mutated = module.build_info().mutated_bindings.contains(&local);
-        // Deferred modules share their exports object with a deferred-namespace
-        // Proxy target; non-configurable data properties would break the
-        // proxy's get trap, so they keep getters.
         let is_deferred = compilation.get_module_graph().is_deferred(
           &compilation.imported_by_defer_modules_artifact,
           &module_identifier,
         );
-        // `Object.defineProperty` is emitted in module scope, where a
-        // top-level binding named `Object` would shadow the global. Such
-        // modules keep getters, which are installed from the runtime scope.
-        let object_shadowed = module
-          .build_info()
-          .top_level_declarations
-          .as_ref()
-          .is_some_and(|decls| decls.contains("Object"));
-        let binding = if matches!(is_circular_module, Some(false))
-          && !is_mutated
-          && !is_deferred
-          && !object_shadowed
-        {
+        let binding = if matches!(is_circular_module, Some(false)) && !is_mutated && !is_deferred {
           ESMExportBinding::Value(Atom::from(format!("/* export default binding */ {name}")))
         } else {
           ESMExportBinding::Getter(Atom::from(format!("/* export default binding */ {name}")))
@@ -272,29 +257,15 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       {
         if let UsedName::Normal(used) = used {
           if supports_const {
-            // Deferred modules share their exports object with a
-            // deferred-namespace Proxy target; non-configurable data
-            // properties would break the proxy's get trap, so they keep
-            // getters.
             let is_deferred = compilation.get_module_graph().is_deferred(
               &compilation.imported_by_defer_modules_artifact,
               &module_identifier,
             );
-            // `Object.defineProperty` is emitted in module scope, where a
-            // top-level binding named `Object` would shadow the global. Such
-            // modules keep getters, which are installed from the runtime
-            // scope.
-            let object_shadowed = module
-              .build_info()
-              .top_level_declarations
-              .as_ref()
-              .is_some_and(|decls| decls.contains("Object"));
-            let binding =
-              if matches!(is_circular_module, Some(false)) && !is_deferred && !object_shadowed {
-                ESMExportBinding::Value(DEFAULT_EXPORT.into())
-              } else {
-                ESMExportBinding::Getter(DEFAULT_EXPORT.into())
-              };
+            let binding = if matches!(is_circular_module, Some(false)) && !is_deferred {
+              ESMExportBinding::Value(DEFAULT_EXPORT.into())
+            } else {
+              ESMExportBinding::Getter(DEFAULT_EXPORT.into())
+            };
             init_fragments.push(Box::new(ESMExportInitFragment::new(
               module.get_exports_argument(),
               vec![(
