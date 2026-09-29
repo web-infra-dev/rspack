@@ -56,6 +56,8 @@ pub fn create_cache(
     crate::CacheOptions::FileSystem(options) => options,
   };
 
+  // TurboPersistence already compresses SST blocks and blobs with LZ4.
+  // Keep the codec uncompressed to avoid compressing each entry twice.
   let codec = Arc::new(CacheCodec::new(None));
   let logger = Arc::new(InfrastructureLogger::new(
     "rspack.cache.IdleFileCache",

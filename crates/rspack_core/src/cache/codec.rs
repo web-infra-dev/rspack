@@ -24,7 +24,8 @@ impl rspack_cacheable::CacheableContext for Context {
 ///
 /// This struct encapsulates the serialization and deserialization logic,
 /// automatically passing the project context to rspack_cacheable's to_bytes and from_bytes.
-/// Serialized entries are compressed so pending filesystem writes retain less memory.
+/// Compression can be enabled for storage backends that retain serialized entries
+/// without compressing them themselves.
 ///
 /// # Example
 ///
@@ -40,6 +41,7 @@ impl rspack_cacheable::CacheableContext for Context {
 #[derive(Debug, Clone)]
 pub struct CacheCodec {
   context: Context,
+  compression: bool,
 }
 
 impl CacheCodec {
@@ -48,7 +50,13 @@ impl CacheCodec {
       context: Context {
         portable_project_root,
       },
+      compression: false,
     }
+  }
+
+  pub fn with_compression(mut self) -> Self {
+    self.compression = true;
+    self
   }
 
   pub fn encode<T>(&self, data: &T) -> Result<Vec<u8>>
@@ -56,6 +64,9 @@ impl CacheCodec {
     T: for<'a> Serialize<Serializer<'a>>,
   {
     let bytes = to_bytes(data, &self.context).map_err(rspack_error::Error::from_error)?;
+    if !self.compression {
+      return Ok(bytes);
+    }
     // Storage retains encoded entries while writes are pending. Keep compressed
     // payloads rather than another full copy of the compilation state.
     let uncompressed_len = u32::try_from(bytes.len()).map_err(rspack_error::Error::from_error)?;
@@ -72,6 +83,9 @@ impl CacheCodec {
     T: Archive,
     T::Archived: for<'a> CheckBytes<Validator<'a>> + Deserialize<T, Deserializer>,
   {
+    if !self.compression {
+      return from_bytes(bytes, &self.context).map_err(rspack_error::Error::from_error);
+    }
     let (uncompressed_len, compressed) = bytes
       .split_first_chunk::<4>()
       .ok_or_else(|| rspack_error::error!("Cache entry is missing its uncompressed length"))?;

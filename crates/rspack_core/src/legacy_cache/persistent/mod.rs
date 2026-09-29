@@ -57,7 +57,7 @@ impl PersistentCache {
     } else {
       None
     };
-    let codec = Arc::new(CacheCodec::new(portable_project_root));
+    let codec = Arc::new(CacheCodec::new(portable_project_root).with_compression());
     // Each compiler path owns exactly one storage directory.
     let cache_directory = {
       let mut hasher = DefaultHasher::new();
