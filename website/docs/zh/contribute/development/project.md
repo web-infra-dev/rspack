@@ -41,6 +41,29 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 - **`rspack_futures`**: 异步工具，提供异步编程支持
 - **`rspack_workspace`**: 工作区支持，用于处理单体仓库场景
 
+`rspack_sources` 用可组合的 Source 表示生成内容。`RawStringSource` 支持拥有所有权的
+`String`、共享的 `Arc<str>` 和 `SmolStr`；对于 `&'static str`，使用 `from_static`
+可以避免复制文本。`SourceSlice::new(source, start..end)` 保留原 Source，选取字节偏移的
+左闭右开区间。区间必须在原 Source 范围内，文本操作要求端点位于 UTF-8 字符边界。
+
+`ReplaceSource::replace_source` 和 `insert_source` 接受 `BoxSource`，因此可以复用已有文本，
+无需先创建中间字符串。原有的字符串替换方法仍可使用。`to_writer` 将原 Source 和替换 Source
+直接写入目标 Writer。切片保留原始位置映射；作为替换内容时，与字符串替换一样，继承替换位置的
+映射，不使用替换 Source 自身的 source map。
+
+```rust
+use std::sync::Arc;
+use rspack_sources::{RawStringSource, ReplaceSource, Source, SourceExt, SourceSlice};
+
+let text: Arc<str> = Arc::from("hello world");
+let original = RawStringSource::from(text).boxed();
+let mut output = ReplaceSource::new(original.clone());
+output.replace_source(6, 11, SourceSlice::new(original, 0..5).boxed(), None);
+let mut bytes = Vec::new();
+output.to_writer(&mut bytes).unwrap();
+assert_eq!(bytes, b"hello hello");
+```
+
 ### 缓存与存储
 
 - **`rspack_cacheable`**: 缓存系统，提供可缓存数据的序列化和反序列化

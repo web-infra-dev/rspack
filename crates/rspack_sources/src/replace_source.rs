@@ -8,8 +8,8 @@ use std::{
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  BoxSource, MapOptions, Mapping, OriginalLocation, OriginalSource, Source, SourceExt, SourceMap,
-  SourceValue,
+  BoxSource, MapOptions, Mapping, OriginalLocation, OriginalSource, RawStringSource, Source,
+  SourceExt, SourceMap, SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, TextSpan, get_map},
   linear_map::LinearMap,
   object_pool::ObjectPool,
@@ -18,6 +18,8 @@ use crate::{
 
 /// Decorates a Source with replacements and insertions of source code,
 /// usually used in dependencies
+///
+/// Cloning shares the inner and replacement sources, but copies replacement metadata and owned names.
 ///
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#replacesource).
 ///
@@ -56,17 +58,45 @@ pub enum ReplacementEnforce {
 }
 
 /// A single text replacement in a [ReplaceSource].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// Cloning shares the content source and copies an owned replacement name, if present.
+#[derive(Debug, Clone, Eq)]
 pub struct Replacement {
   start: u32,
   end: u32,
-  content: Cow<'static, str>,
+  content: BoxSource,
   name: Option<Cow<'static, str>>,
   enforce: ReplacementEnforce,
   insertion_order: u32,
 }
 
+impl Hash for Replacement {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.start.hash(state);
+    self.end.hash(state);
+    self.content.hash(state);
+    self.name.hash(state);
+    self.enforce.hash(state);
+    self.insertion_order.hash(state);
+  }
+}
+
+impl PartialEq for Replacement {
+  fn eq(&self, other: &Self) -> bool {
+    self.start == other.start
+      && self.end == other.end
+      && self.content.as_ref() == other.content.as_ref()
+      && self.name == other.name
+      && self.enforce == other.enforce
+      && self.insertion_order == other.insertion_order
+  }
+}
+
 impl Replacement {
+  #[cfg(feature = "rspack_cacheable")]
+  pub(crate) fn insertion_order(&self) -> u32 {
+    self.insertion_order
+  }
+
   /// Get the start offset.
   pub fn start(&self) -> u32 {
     self.start
@@ -78,7 +108,7 @@ impl Replacement {
   }
 
   /// Get the replacement content.
-  pub fn content(&self) -> &str {
+  pub fn content(&self) -> &BoxSource {
     &self.content
   }
 
@@ -137,7 +167,7 @@ impl ReplaceSource {
   /// Insert a static string content at start.
   ///
   /// This method is optimized for `&'static str` inputs, avoiding unnecessary
-  /// heap allocations by using `Cow::Borrowed` internally. Use this when you
+  /// string allocations by retaining the static string in a `RawStringSource`. Use this when you
   /// have string literals or other static strings that don't need to be owned.
   ///
   /// # Performance
@@ -171,7 +201,7 @@ impl ReplaceSource {
   /// Insert a static string content at start, with ReplacementEnforce.
   ///
   /// This method is optimized for `&'static str` inputs, avoiding unnecessary
-  /// heap allocations by using `Cow::Borrowed` internally. Use this when you
+  /// string allocations by retaining the static string in a `RawStringSource`. Use this when you
   /// have string literals or other static strings that don't need to be owned.
   ///
   /// # Performance
@@ -205,7 +235,7 @@ impl ReplaceSource {
   /// Create a replacement with static string content at `[start, end)`.
   ///
   /// This method is optimized for `&'static str` inputs, avoiding unnecessary
-  /// heap allocations by using `Cow::Borrowed` internally. Use this when you
+  /// string allocations by retaining the static string in a `RawStringSource`. Use this when you
   /// have string literals or other static strings that don't need to be owned.
   ///
   /// # Performance
@@ -240,20 +270,19 @@ impl ReplaceSource {
     name: Option<String>,
     enforce: ReplacementEnforce,
   ) {
-    self.add_replacement(Replacement {
+    self.replace_source_with_enforce(
       start,
       end,
-      content: content.into(),
-      name: name.map(Into::into),
+      RawStringSource::from(content).boxed(),
+      name,
       enforce,
-      insertion_order: self.replacements.len() as u32,
-    });
+    );
   }
 
   /// Create a replacement with static string content at `[start, end)`, with ReplacementEnforce.
   ///
   /// This method is optimized for `&'static str` inputs, avoiding unnecessary
-  /// heap allocations by using `Cow::Borrowed` internally. Use this when you
+  /// string allocations by retaining the static string in a `RawStringSource`. Use this when you
   /// have string literals or other static strings that don't need to be owned.
   ///
   /// # Performance
@@ -280,8 +309,50 @@ impl ReplaceSource {
     self.add_replacement(Replacement {
       start,
       end,
-      content: Cow::Borrowed(content),
+      content: RawStringSource::from_static(content).boxed(),
       name: name.map(Cow::Borrowed),
+      enforce,
+      insertion_order: self.replacements.len() as u32,
+    });
+  }
+
+  /// Insert a source without materializing its content.
+  /// The inserted text inherits the mapping at the insertion point, like string replacements.
+  pub fn insert_source(&mut self, start: u32, content: BoxSource, name: Option<String>) {
+    self.replace_source(start, start, content, name);
+  }
+
+  /// Replace `[start, end)` with a source without materializing its content.
+  /// Replacement source maps are ignored; text inherits the mapping at the replacement point.
+  pub fn replace_source(&mut self, start: u32, end: u32, content: BoxSource, name: Option<String>) {
+    self.replace_source_with_enforce(start, end, content, name, ReplacementEnforce::Normal);
+  }
+
+  /// Insert a source with an explicit replacement order.
+  pub fn insert_source_with_enforce(
+    &mut self,
+    start: u32,
+    content: BoxSource,
+    name: Option<String>,
+    enforce: ReplacementEnforce,
+  ) {
+    self.replace_source_with_enforce(start, start, content, name, enforce);
+  }
+
+  /// Replace `[start, end)` with a source and an explicit replacement order.
+  pub fn replace_source_with_enforce(
+    &mut self,
+    start: u32,
+    end: u32,
+    content: BoxSource,
+    name: Option<String>,
+    enforce: ReplacementEnforce,
+  ) {
+    self.add_replacement(Replacement {
+      start,
+      end,
+      content,
+      name: name.map(Into::into),
       enforce,
       insertion_order: self.replacements.len() as u32,
     });
@@ -318,11 +389,7 @@ impl Source for ReplaceSource {
       return self.inner.source();
     }
 
-    let mut string = String::with_capacity(self.size());
-    self.rope(&mut |chunk| {
-      string.push_str(chunk);
-    });
-    SourceValue::String(Cow::Owned(string))
+    SourceValue::String(SourceValue::Buffer(self.buffer()).into_string_lossy())
   }
 
   #[allow(unsafe_code)]
@@ -371,7 +438,7 @@ impl Source for ReplaceSource {
         }
         // Insert replacement content split into chunks by lines
         let replacement = unsafe { self.replacements.get_unchecked(replacement_idx) };
-        on_chunk(&replacement.content);
+        replacement.content.rope(on_chunk);
 
         // Remove replaced content by settings this variable
         replacement_end = if let Some(replacement_end) = replacement_end {
@@ -413,14 +480,20 @@ impl Source for ReplaceSource {
     // Handle remaining replacements one by one
     while replacement_idx < self.replacements.len() {
       let replacement = unsafe { self.replacements.get_unchecked(replacement_idx) };
-      let content = &replacement.content;
-      on_chunk(content);
+      replacement.content.rope(on_chunk);
       replacement_idx += 1;
     }
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
-    self.source().into_bytes()
+    if self.replacements.is_empty() {
+      return self.inner.buffer();
+    }
+    let mut bytes = Vec::with_capacity(self.size());
+    self
+      .to_writer(&mut bytes)
+      .expect("writing a source to a Vec cannot fail");
+    Cow::Owned(bytes)
   }
 
   fn size(&self) -> usize {
@@ -430,33 +503,15 @@ impl Source for ReplaceSource {
       return inner_source_size;
     }
 
-    // Simulate the replacement process to calculate accurate size
     let mut size = inner_source_size;
-    let mut inner_pos = 0u32;
-
-    for replacement in self.replacements.iter() {
-      // Add original content before replacement
-      if inner_pos < replacement.start {
-        // This content is already counted in inner_source_size, so no change needed
-      }
-      if replacement.start as usize >= inner_source_size {
-        size += replacement.content.len();
-        continue;
-      }
-
-      // Handle the replacement itself
-      let original_length = replacement
-        .end
-        .saturating_sub(replacement.start.max(inner_pos)) as usize;
-      let replacement_length = replacement.content.len();
-
-      // Subtract original content length and add replacement content length
-      size = size
-        .saturating_sub(original_length)
-        .saturating_add(replacement_length);
-
-      // Move position forward, handling overlaps
-      inner_pos = inner_pos.max(replacement.end);
+    let mut inner_pos = 0;
+    for replacement in &self.replacements {
+      let start = (replacement.start as usize)
+        .min(inner_source_size)
+        .max(inner_pos);
+      let end = (replacement.end as usize).min(inner_source_size).max(start);
+      size = size - (end - start) + replacement.content.size();
+      inner_pos = end;
     }
 
     size
@@ -487,14 +542,63 @@ impl Source for ReplaceSource {
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-    let mut result = Ok(());
-    self.rope(&mut |chunk| {
-      if result.is_err() {
-        return;
+    if self.replacements.is_empty() {
+      return self.inner.to_writer(writer);
+    }
+    let mut writer = ReplacementWriter {
+      writer,
+      replacements: self.replacements.iter().peekable(),
+      position: 0,
+      skip_until: 0,
+    };
+    self.inner.to_writer(&mut writer)?;
+    for replacement in writer.replacements {
+      replacement.content.to_writer(writer.writer)?;
+    }
+    Ok(())
+  }
+}
+
+// Consume the inner source's byte stream once, emitting replacement sources directly
+// into the destination writer. Byte writes may split UTF-8 characters arbitrarily.
+struct ReplacementWriter<'a, 'b> {
+  writer: &'a mut dyn std::io::Write,
+  replacements: std::iter::Peekable<std::slice::Iter<'b, Replacement>>,
+  position: usize,
+  skip_until: usize,
+}
+
+impl std::io::Write for ReplacementWriter<'_, '_> {
+  fn write(&mut self, mut bytes: &[u8]) -> std::io::Result<usize> {
+    let len = bytes.len();
+    while !bytes.is_empty() {
+      if let Some(replacement) = self.replacements.peek()
+        && replacement.start as usize <= self.position
+      {
+        replacement.content.to_writer(self.writer)?;
+        self.skip_until = self.skip_until.max(replacement.end as usize);
+        self.replacements.next();
+        continue;
       }
-      result = writer.write_all(chunk.as_bytes());
-    });
-    result
+      let end = self
+        .replacements
+        .peek()
+        .map_or(self.position + bytes.len(), |r| {
+          (r.start as usize).min(self.position + bytes.len())
+        });
+      let count = end - self.position;
+      let skip = self.skip_until.saturating_sub(self.position).min(count);
+      if skip < count {
+        self.writer.write_all(&bytes[skip..count])?;
+      }
+      self.position = end;
+      bytes = &bytes[count..];
+    }
+    Ok(len)
+  }
+
+  fn flush(&mut self) -> std::io::Result<()> {
+    self.writer.flush()
   }
 }
 
@@ -512,21 +616,21 @@ impl std::fmt::Debug for ReplaceSource {
         ReplacementEnforce::Pre => {
           writeln!(
             f,
-            "{indent_str}  source.replace_with_enforce({:#?}, {:#?}, {:#?}, {:#?}, ReplacementEnforce::Pre);",
+            "{indent_str}  source.replace_source_with_enforce({:#?}, {:#?}, {:#?}, {:#?}, ReplacementEnforce::Pre);",
             repl.start, repl.end, repl.content, repl.name
           )?;
         }
         ReplacementEnforce::Normal => {
           writeln!(
             f,
-            "{indent_str}  source.replace({:#?}, {:#?}, {:#?}, {:#?});",
+            "{indent_str}  source.replace_source({:#?}, {:#?}, {:#?}, {:#?});",
             repl.start, repl.end, repl.content, repl.name
           )?;
         }
         ReplacementEnforce::Post => {
           writeln!(
             f,
-            "{indent_str}  source.replace_with_enforce({:#?}, {:#?}, {:#?}, {:#?}, ReplacementEnforce::Post);",
+            "{indent_str}  source.replace_source_with_enforce({:#?}, {:#?}, {:#?}, {:#?}, ReplacementEnforce::Post);",
             repl.start, repl.end, repl.content, repl.name
           )?;
         }
@@ -583,19 +687,34 @@ fn for_each_line<'a>(source: &'a str, mut on_line: impl FnMut(&'a str, bool)) {
   }
 }
 
-struct ReplaceSourceChunks<'a> {
+pub(crate) struct ReplaceSourceChunks<'a> {
   is_original_source: bool,
   chunks: Box<dyn Chunks<'a> + 'a>,
-  replacements: &'a [Replacement],
+  replacements: Cow<'a, [Replacement]>,
 }
 
 impl<'a> ReplaceSourceChunks<'a> {
+  pub(crate) fn slice(source: &'a BoxSource, range: std::ops::Range<usize>) -> Self {
+    let mut replacements = ReplaceSource::new(source.clone());
+    if range.start > 0 {
+      replacements.replace_static(0, range.start as u32, "", None);
+    }
+    if range.end < source.size() {
+      replacements.replace_static(range.end as u32, source.size() as u32, "", None);
+    }
+    Self {
+      is_original_source: source.as_ref().as_any().is::<OriginalSource>(),
+      chunks: source.stream_chunks(),
+      replacements: Cow::Owned(replacements.replacements),
+    }
+  }
+
   pub fn new(source: &'a ReplaceSource) -> Self {
     let is_original_source = source.inner.as_ref().as_any().is::<OriginalSource>();
     Self {
       is_original_source,
       chunks: source.inner.stream_chunks(),
-      replacements: &source.replacements,
+      replacements: Cow::Borrowed(&source.replacements),
     }
   }
 }
@@ -690,8 +809,11 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
             if chunk.ends_with('\n') {
               generated_line_offset -= 1;
               if generated_column_offset_line == line {
-                // undo exiting corrections form the current line
+                // Undo existing corrections from the current line.
                 generated_column_offset += mapping.generated_column as i64;
+              } else {
+                generated_column_offset = mapping.generated_column as i64;
+                generated_column_offset_line = line;
               }
             } else if generated_column_offset_line == line {
               generated_column_offset -= chunk.utf16_len() as i64;
@@ -713,7 +835,7 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
                 chunk.slice_to(chunk_pos as usize).as_str(),
               )
             {
-              original.original_column += chunk_pos;
+              original.original_column += chunk.slice_to(chunk_pos as usize).utf16_len() as u32;
             }
           }
           pos += chunk_pos;
@@ -793,58 +915,65 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
               let mut global_index = name_mapping.get(name.as_ref()).copied();
               if global_index.is_none() {
                 let len = name_mapping.len() as u32;
-                name_mapping.insert(Cow::Borrowed(name), len);
-                on_name.borrow_mut()(len, Cow::Borrowed(name));
+                let name = match &self.replacements {
+                  Cow::Borrowed(replacements) => {
+                    Cow::Borrowed(replacements[i].name.as_deref().expect("replacement name"))
+                  }
+                  Cow::Owned(_) => Cow::Owned(name.to_string()),
+                };
+                name_mapping.insert(name.clone(), len);
+                on_name.borrow_mut()(len, name);
                 global_index = Some(len);
               }
               replacement_name_index = global_index;
             }
           }
-          let content = repl.content.as_ref();
-          let content_is_ascii = content.is_ascii();
-          for_each_line(content, |content_line, ends_with_newline| {
-            let content_chunk = TextSpan::with_ascii(content_line, content_is_ascii);
-            on_chunk(
-              Some(content_chunk),
-              Mapping {
-                generated_line: line as u32,
-                generated_column: ((mapping.generated_column as i64)
-                  + if line == generated_column_offset_line {
-                    generated_column_offset
+          repl.content.rope(&mut |content| {
+            let content_is_ascii = content.is_ascii();
+            for_each_line(content, |content_line, ends_with_newline| {
+              let content_chunk = TextSpan::with_ascii(content_line, content_is_ascii);
+              on_chunk(
+                Some(content_chunk),
+                Mapping {
+                  generated_line: line as u32,
+                  generated_column: ((mapping.generated_column as i64)
+                    + if line == generated_column_offset_line {
+                      generated_column_offset
+                    } else {
+                      0
+                    }) as u32,
+                  original: if mapping.original.and_then(|original| original.name_index)
+                    == replacement_name_index
+                  {
+                    mapping.original
                   } else {
-                    0
-                  }) as u32,
-                original: if mapping.original.and_then(|original| original.name_index)
-                  == replacement_name_index
-                {
-                  mapping.original
-                } else {
-                  mapping.original.map(|original| OriginalLocation {
-                    source_index: original.source_index,
-                    original_line: original.original_line,
-                    original_column: original.original_column,
-                    name_index: replacement_name_index,
-                  })
+                    mapping.original.map(|original| OriginalLocation {
+                      source_index: original.source_index,
+                      original_line: original.original_line,
+                      original_column: original.original_column,
+                      name_index: replacement_name_index,
+                    })
+                  },
                 },
-              },
-            );
-            // Only the first chunk has name assigned
-            replacement_name_index = None;
+              );
+              // Only the first chunk has name assigned
+              replacement_name_index = None;
 
-            if !ends_with_newline {
-              let content_utf16_len = content_chunk.utf16_len() as i64;
-              if generated_column_offset_line == line {
-                generated_column_offset += content_utf16_len;
+              if !ends_with_newline {
+                let content_utf16_len = content_chunk.utf16_len() as i64;
+                if generated_column_offset_line == line {
+                  generated_column_offset += content_utf16_len;
+                } else {
+                  generated_column_offset = content_utf16_len;
+                  generated_column_offset_line = line;
+                }
               } else {
-                generated_column_offset = content_utf16_len;
+                generated_line_offset += 1;
+                line += 1;
+                generated_column_offset = -(mapping.generated_column as i64);
                 generated_column_offset_line = line;
               }
-            } else {
-              generated_line_offset += 1;
-              line += 1;
-              generated_column_offset = -(mapping.generated_column as i64);
-              generated_column_offset_line = line;
-            }
+            });
           });
 
           // Remove replaced content by settings this variable
@@ -872,8 +1001,11 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
               if chunk.ends_with('\n') {
                 generated_line_offset -= 1;
                 if generated_column_offset_line == line {
-                  // undo exiting corrections form the current line
+                  // Undo existing corrections from the current line.
                   generated_column_offset += mapping.generated_column as i64;
+                } else {
+                  generated_column_offset = mapping.generated_column as i64;
+                  generated_column_offset_line = line;
                 }
               } else if generated_column_offset_line == line {
                 let remaining_chunk_utf16_len =
@@ -901,7 +1033,9 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
                     .as_str(),
                 )
               {
-                original.original_column += offset as u32;
+                original.original_column += chunk
+                  .slice(chunk_pos as usize, (chunk_pos + offset as u32) as usize)
+                  .utf16_len() as u32;
               }
             }
 
@@ -983,41 +1117,41 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
     // Handle remaining replacements one by one
     let mut line = result.generated_line as i64 + generated_line_offset;
     while i < repls.len() {
-      let content = repls[i].content.as_ref();
-      let content_is_ascii = content.is_ascii();
+      repls[i].content.rope(&mut |content| {
+        let content_is_ascii = content.is_ascii();
+        for_each_line(content, |content_line, ends_with_newline| {
+          let content_chunk = TextSpan::with_ascii(content_line, content_is_ascii);
+          on_chunk(
+            Some(content_chunk),
+            Mapping {
+              generated_line: line as u32,
+              generated_column: ((result.generated_column as i64)
+                + if line == generated_column_offset_line {
+                  generated_column_offset
+                } else {
+                  0
+                }) as u32,
+              original: None,
+            },
+          );
 
-      for_each_line(content, |content_line, ends_with_newline| {
-        let content_chunk = TextSpan::with_ascii(content_line, content_is_ascii);
-        on_chunk(
-          Some(content_chunk),
-          Mapping {
-            generated_line: line as u32,
-            generated_column: ((result.generated_column as i64)
-              + if line == generated_column_offset_line {
-                generated_column_offset
-              } else {
-                0
-              }) as u32,
-            original: None,
-          },
-        );
-
-        // Handle line and column offset updates
-        if !ends_with_newline {
-          let content_utf16_len = content_chunk.utf16_len() as i64;
-          // Last line of current replacement doesn't end with newline
-          if generated_column_offset_line == line {
-            generated_column_offset += content_utf16_len;
+          // Handle line and column offset updates
+          if !ends_with_newline {
+            let content_utf16_len = content_chunk.utf16_len() as i64;
+            // Last line of current replacement doesn't end with newline
+            if generated_column_offset_line == line {
+              generated_column_offset += content_utf16_len;
+            } else {
+              generated_column_offset = content_utf16_len;
+              generated_column_offset_line = line;
+            }
           } else {
-            generated_column_offset = content_utf16_len;
+            // Line ends with newline or not the last line
+            line += 1;
+            generated_column_offset = -(result.generated_column as i64);
             generated_column_offset_line = line;
           }
-        } else {
-          // Line ends with newline or not the last line
-          line += 1;
-          generated_column_offset = -(result.generated_column as i64);
-          generated_column_offset_line = line;
-        }
+        });
       });
 
       i += 1;
@@ -1499,7 +1633,7 @@ return <div>{data.foo}</div>
     );
     let mut hasher = twox_hash::XxHash64::default();
     source.hash(&mut hasher);
-    assert_eq!(format!("{:x}", hasher.finish()), "96abdb94c6fd5aba");
+    assert_eq!(format!("{:x}", hasher.finish()), "e8fe1c4a43bce8cb");
   }
 
   #[test]
@@ -1571,8 +1705,8 @@ return <div>{data.foo}</div>
       "file.txt",
     ).boxed()
   );
-  source.replace(0, 0, "println!(\"", None);
-  source.replace(5, 5, "\")", None);
+  source.replace_source(0, 0, RawStringSource::from_static("println!(\"").boxed(), None);
+  source.replace_source(5, 5, RawStringSource::from_static("\")").boxed(), None);
   source.boxed()
 }"#
     );
@@ -1764,7 +1898,7 @@ return <div>{data.foo}</div>
             original: Some(OriginalLocation {
               source_index: 0,
               original_line: 1,
-              original_column: 19,
+              original_column: 7,
               name_index: None
             })
           }

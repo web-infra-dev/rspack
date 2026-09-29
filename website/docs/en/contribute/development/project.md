@@ -41,6 +41,32 @@ hook bridge, and lifecycle relationships between these crates and `@rspack/core`
 - **`rspack_futures`**: Async utilities providing asynchronous programming support
 - **`rspack_workspace`**: Workspace support for handling monorepo scenarios
 
+`rspack_sources` represents generated content as composable sources. `RawStringSource`
+accepts owned `String`, shared `Arc<str>`, and `SmolStr` values; use `from_static`
+for `&'static str` without copying its text. `SourceSlice::new(source, start..end)`
+retains a source and selects a half-open byte range. The range must fit the source;
+text operations require UTF-8 boundaries.
+
+`ReplaceSource::replace_source` and `insert_source` accept a `BoxSource`, so code
+can reuse existing text without creating an intermediate string. String replacement
+methods remain available. `to_writer` streams the original and replacement sources
+to the destination. A slice preserves its original source locations; when used as
+replacement content, it inherits the mapping at the replacement point, like a string
+replacement. The replacement source's own map is not used.
+
+```rust
+use std::sync::Arc;
+use rspack_sources::{RawStringSource, ReplaceSource, Source, SourceExt, SourceSlice};
+
+let text: Arc<str> = Arc::from("hello world");
+let original = RawStringSource::from(text).boxed();
+let mut output = ReplaceSource::new(original.clone());
+output.replace_source(6, 11, SourceSlice::new(original, 0..5).boxed(), None);
+let mut bytes = Vec::new();
+output.to_writer(&mut bytes).unwrap();
+assert_eq!(bytes, b"hello hello");
+```
+
 ### Caching & storage
 
 - **`rspack_cacheable`**: Caching system providing serialization and deserialization for cacheable data

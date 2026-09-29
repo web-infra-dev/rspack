@@ -4,6 +4,8 @@ use std::{
   sync::{Arc, OnceLock},
 };
 
+use smol_str::SmolStr;
+
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
   helpers::{
@@ -26,13 +28,37 @@ use crate::{
 /// assert_eq!(s.map(&ObjectPool::default(), &MapOptions::default()), None);
 /// assert_eq!(s.size(), 16);
 /// ```
-#[derive(Clone, PartialEq, Eq)]
-pub struct RawStringSource(Cow<'static, str>);
+/// Cloning copies owned strings; static strings and shared strings retain their backing storage.
+#[derive(Clone)]
+pub struct RawStringSource(RawString);
 
-#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
-static_assertions::assert_eq_size!(RawStringSource, [u8; 24]);
+#[derive(Clone)]
+enum RawString {
+  Static(&'static str),
+  Owned(String),
+  Shared(Arc<str>),
+  Small(SmolStr),
+}
+
+impl PartialEq for RawStringSource {
+  fn eq(&self, other: &Self) -> bool {
+    self.as_str() == other.as_str()
+  }
+}
+
+impl Eq for RawStringSource {}
 
 impl RawStringSource {
+  /// Borrow the text without copying, regardless of its storage representation.
+  pub fn as_str(&self) -> &str {
+    match &self.0 {
+      RawString::Static(value) => value,
+      RawString::Owned(value) => value,
+      RawString::Shared(value) => value,
+      RawString::Small(value) => value,
+    }
+  }
+
   /// Create a new [RawStringSource] from a static &str.
   ///
   /// ```
@@ -43,7 +69,7 @@ impl RawStringSource {
   /// assert_eq!(s.source().into_string_lossy(), code);
   /// ```
   pub fn from_static(s: &'static str) -> Self {
-    Self(Cow::Borrowed(s))
+    Self(RawString::Static(s))
   }
 }
 
@@ -51,31 +77,43 @@ impl From<String> for RawStringSource {
   fn from(mut value: String) -> Self {
     // Source contents are immutable, so they do not need room to grow.
     value.shrink_to_fit();
-    Self(Cow::Owned(value))
+    Self(RawString::Owned(value))
   }
 }
 
 impl From<&str> for RawStringSource {
   fn from(value: &str) -> Self {
-    Self(Cow::Owned(value.to_string()))
+    Self(RawString::Owned(value.to_string()))
+  }
+}
+
+impl From<Arc<str>> for RawStringSource {
+  fn from(value: Arc<str>) -> Self {
+    Self(RawString::Shared(value))
+  }
+}
+
+impl From<SmolStr> for RawStringSource {
+  fn from(value: SmolStr) -> Self {
+    Self(RawString::Small(value))
   }
 }
 
 impl Source for RawStringSource {
   fn source(&self) -> SourceValue<'_> {
-    SourceValue::String(Cow::Borrowed(&self.0))
+    SourceValue::String(Cow::Borrowed(self.as_str()))
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    on_chunk(self.0.as_ref())
+    on_chunk(self.as_str())
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
-    Cow::Borrowed(self.0.as_bytes())
+    Cow::Borrowed(self.as_str().as_bytes())
   }
 
   fn size(&self) -> usize {
-    self.0.len()
+    self.as_str().len()
   }
 
   fn map(&self, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap<'_>> {
@@ -87,7 +125,7 @@ impl Source for RawStringSource {
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-    writer.write_all(self.0.as_bytes())
+    writer.write_all(self.as_str().as_bytes())
   }
 }
 
@@ -98,7 +136,7 @@ impl std::fmt::Debug for RawStringSource {
     write!(
       f,
       "{indent_str}RawStringSource::from_static({:?}).boxed()",
-      self.0.as_ref()
+      self.as_str()
     )
   }
 }
@@ -114,7 +152,7 @@ struct RawStringChunks<'source>(&'source str);
 
 impl<'source> RawStringChunks<'source> {
   pub fn new(source: &'source RawStringSource) -> Self {
-    RawStringChunks(&source.0)
+    RawStringChunks(source.as_str())
   }
 }
 

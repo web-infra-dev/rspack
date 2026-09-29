@@ -4180,6 +4180,7 @@ dependencies = [
  "rspack_sources",
  "rustc-hash",
  "serde_json",
+ "smol_str",
  "ustr-fxhash",
  "xxhash-rust",
 ]
@@ -5584,6 +5585,7 @@ dependencies = [
  "serde",
  "simd-json",
  "simd-utf16-len",
+ "smol_str",
  "static_assertions",
  "twox-hash",
 ]
