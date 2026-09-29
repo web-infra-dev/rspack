@@ -299,6 +299,14 @@ pub struct BuildInfo {
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
+  /// Top-level bindings assigned after declaration (`x = …`, `x++`, `for (x of …)`).
+  /// Used to keep live-binding getters for mutated ESM exports.
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub mutated_bindings: HashSet<Atom>,
+  /// Whether the module contains a direct `eval(...)` call, which can read or
+  /// assign any in-scope binding at runtime. Used to keep live-binding getters
+  /// for all exports of such modules.
+  pub has_direct_eval: bool,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   #[cacheable(with=AsOption<AsPreset>)]
@@ -339,6 +347,8 @@ impl Default for BuildInfo {
       snapshot: None,
       value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
+      mutated_bindings: HashSet::default(),
+      has_direct_eval: false,
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,

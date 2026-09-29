@@ -10,10 +10,7 @@ __webpack_require__.add({
 __webpack_require__.r(__webpack_exports__);
 /* export default */ const __rspack_default_export = ("a");
 
-__webpack_require__.d(__webpack_exports__, {
-}, {
-  "default": __rspack_default_export
-});
+Object.defineProperty(__webpack_exports__, "default", { enumerable: true, value: __rspack_default_export });
 
 
 },
@@ -34,10 +31,7 @@ __webpack_require__.add({
 __webpack_require__.r(__webpack_exports__);
 /* export default */ const __rspack_default_export = ("b");
 
-__webpack_require__.d(__webpack_exports__, {
-}, {
-  "default": __rspack_default_export
-});
+Object.defineProperty(__webpack_exports__, "default", { enumerable: true, value: __rspack_default_export });
 
 
 },
@@ -135,20 +129,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/define_property_getters
-(() => {
-__webpack_require__.d = (exports, getters, values) => {
-	var define = (defs, kind) => {
-		for(var key in defs) {
-			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
-				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
-			}
-		}
-	};
-	define(getters, "get");
-	define(values, "value");
-};
-})();
 // webpack/runtime/esm_ensure_chunk
 (() => {
 __webpack_require__.f = {};
@@ -164,20 +144,6 @@ __webpack_require__.e = function(chunkId, fetchPriority) {
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
-})();
-// webpack/runtime/get javascript chunk filename
-(() => {
-// This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return "" + chunkId + ".mjs"
-}
-})();
-// webpack/runtime/has_own_property
-(() => {
-__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 })();
 // webpack/runtime/make_namespace_object
 (() => {
@@ -245,20 +211,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/define_property_getters
-(() => {
-__webpack_require__.d = (exports, getters, values) => {
-	var define = (defs, kind) => {
-		for(var key in defs) {
-			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
-				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
-			}
-		}
-	};
-	define(getters, "get");
-	define(values, "value");
-};
-})();
 // webpack/runtime/esm_ensure_chunk
 (() => {
 __webpack_require__.f = {};
@@ -274,20 +226,6 @@ __webpack_require__.e = function(chunkId, fetchPriority) {
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
-})();
-// webpack/runtime/get javascript chunk filename
-(() => {
-// This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return "" + chunkId + ".mjs"
-}
-})();
-// webpack/runtime/has_own_property
-(() => {
-__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 })();
 // webpack/runtime/make_namespace_object
 (() => {
