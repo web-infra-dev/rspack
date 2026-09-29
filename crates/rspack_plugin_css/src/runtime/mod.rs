@@ -271,7 +271,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let initial_chunks =
         chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
-      let mut css_installed_chunk_ids = ChunkIdSet::default();
       let mut all_initial_chunk_ids = ChunkIdSet::default();
 
       for chunk_ukey in initial_chunks.iter() {
@@ -281,9 +280,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           .expect_get(chunk_ukey)
           .expect_id()
           .clone();
-        if !chunk_has_css(chunk_ukey, compilation) {
-          css_installed_chunk_ids.insert(id.clone());
-        }
         all_initial_chunk_ids.insert(id);
       }
 
@@ -321,13 +317,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         // undefined = chunk not loaded, null = chunk preloaded/prefetched
         // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
 
-        // An initial CSS chunk for one entry can be async for another entry sharing
-        // this runtime. Only mark chunks without CSS as loaded; cssLoadStylesheet
-        // checks for an existing link when a CSS chunk is requested.
-        source.push_str(&format!(
-          "var cssInstalledChunks = {};\n",
-          &stringify_chunks(&css_installed_chunk_ids, 0)
-        ));
+        // TODO: Optimize skipping CSS loading for initial chunks.
+        source.push_str("var cssInstalledChunks = {};\n");
 
         let create_link_raw = context.runtime_template.render(
           &self.template_id(TemplateId::CreateLink),
