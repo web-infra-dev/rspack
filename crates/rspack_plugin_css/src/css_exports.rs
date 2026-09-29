@@ -5,7 +5,9 @@ use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
 
 use crate::{
-  dependency::{CssIcssExportDependency, CssIcssImportDependency, CssIcssSymbolDependency},
+  dependency::{
+    CssIcssExportDependency, CssIcssImportDependency, CssIcssSymbolDependency, CssIcssSymbolKind,
+  },
   utils::export_locals_convention,
 };
 
@@ -74,6 +76,7 @@ pub(crate) fn hash_icss_imports(
     .filter_map(|dep| {
       dep
         .downcast_ref::<CssIcssSymbolDependency>()
+        .filter(|dep| dep.kind != CssIcssSymbolKind::LocalDeclaration)
         .map(|dep| dep.target)
     })
     .collect::<Vec<_>>();

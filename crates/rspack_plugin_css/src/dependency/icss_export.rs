@@ -36,8 +36,6 @@ pub struct CssIcssExportDependency {
   pub references: Vec<CssIcssReference>,
   /// Space-separated values appended by `composes`; never copied definitions.
   pub composes: Vec<DependencyId>,
-  /// Declaration locations that use this definition's own generated identifier.
-  pub ranges: Vec<DependencyRange>,
   pub local_ident: bool,
   /// `None` for definitions used internally without declaring a JS export.
   pub can_mangle: Option<bool>,
@@ -57,7 +55,6 @@ impl CssIcssExportDependency {
       value,
       references,
       composes: Vec::new(),
-      ranges: Vec::new(),
       local_ident,
       can_mangle,
     }

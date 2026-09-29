@@ -21,7 +21,7 @@ use crate::{
   css_syntax::{normalize_url, unescape_identifier},
   dependency::{
     CssIcssExportDependency, CssIcssImportDependency, CssIcssReference, CssIcssSymbolDependency,
-    CssImportDependency, CssUrlDependency,
+    CssIcssSymbolKind, CssImportDependency, CssUrlDependency,
   },
   utils::{
     LocalIdentModuleHashOptions, LocalIdentOptions, PresentationalDependencyHashUpdate,
@@ -1355,7 +1355,7 @@ impl<'context> CssModuleParser<'context> {
       .push(BoxDependency::new(CssIcssSymbolDependency::new(
         id,
         (range.start, range.end).into(),
-        true,
+        CssIcssSymbolKind::LocalReference,
       )));
     Ok(())
   }
@@ -1405,11 +1405,12 @@ impl<'context> CssModuleParser<'context> {
       .ensure_local_definition(name, custom_property, true, module_hash_options)
       .await?;
     self
-      .definitions
-      .get_mut(&id)
-      .expect("local CSS definition should exist")
-      .ranges
-      .push(range);
+      .dependencies
+      .push(BoxDependency::new(CssIcssSymbolDependency::new(
+        id,
+        range,
+        CssIcssSymbolKind::LocalDeclaration,
+      )));
     Ok(())
   }
 
@@ -1736,7 +1737,7 @@ impl<'context> CssModuleParser<'context> {
       .push(BoxDependency::new(CssIcssSymbolDependency::new(
         id,
         (range.start, range.end).into(),
-        false,
+        CssIcssSymbolKind::IcssReference,
       )));
   }
 
