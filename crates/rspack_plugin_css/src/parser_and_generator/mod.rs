@@ -30,7 +30,7 @@ pub(crate) use source_builder::CssSourceBuilder;
 
 use crate::{
   css_exports::css_export_dependency,
-  dependency::{CssIcssExportDependency, CssIcssSymbolDependency},
+  dependency::CssIcssExportDependency,
   parser_and_generator::{generator::CssModuleGenerator, parser::CssModuleParser},
   utils::css_generator_options,
 };
@@ -143,48 +143,6 @@ pub struct CodeGenerationDataUnusedLocalIdent {
 
 #[cacheable_dyn]
 impl CodeGenerationDataItem for CodeGenerationDataUnusedLocalIdent {}
-
-pub fn get_unused_local_ident(
-  css_build_info: &CssBuildInfo,
-  module_graph: &ModuleGraph,
-  identifier: ModuleIdentifier,
-  runtime: Option<&RuntimeSpec>,
-  exports_info_artifact: &ExportsInfoArtifact,
-) -> Option<CodeGenerationDataUnusedLocalIdent> {
-  let exports = css_build_info.exports()?;
-  let local_names = css_build_info.local_names()?;
-  let exports_info = exports_info_artifact
-    .get_exports_info_optional(&identifier)
-    .map(|info| info.as_data(exports_info_artifact));
-  let used_roots = exports
-    .iter()
-    .filter(|(name, _)| {
-      exports_info.as_ref().is_none_or(|info| {
-        info
-          .get_read_only_export_info(&Atom::from(name.as_str()))
-          .get_used(runtime)
-          != UsageState::Unused
-      })
-    })
-    .map(|(_, id)| *id);
-  let module = module_graph.module_by_identifier(&identifier)?;
-  // CSS uses such as `animation: spin` keep local definitions live independently
-  // of whether their JS export is imported. No synthetic self-module edge is needed.
-  let symbol_roots = module.get_dependencies().iter().filter_map(|dep| {
-    dep
-      .downcast_ref::<CssIcssSymbolDependency>()
-      .map(|dep| dep.target)
-  });
-  let used =
-    crate::css_exports::local_css_identifiers(module_graph, used_roots.chain(symbol_roots));
-  Some(CodeGenerationDataUnusedLocalIdent {
-    idents: local_names
-      .values()
-      .filter(|id| !used.contains(id))
-      .map(|id| css_export_dependency(module_graph, id).value.clone())
-      .collect(),
-  })
-}
 
 #[cacheable_dyn]
 #[async_trait::async_trait]

@@ -1,19 +1,13 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyType, ExportNameOrSpec,
+  ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RuntimeSpec,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 use smol_str::SmolStr;
 
-use crate::{
-  css_exports::resolve_css_dependency,
-  css_syntax::escape_identifier,
-  utils::{css_generator_options, export_locals_convention},
-};
+use crate::utils::{css_generator_options, export_locals_convention};
 
 /// A reference inside one value, such as `color` in `@value shadow: 0 0 color`.
 /// The surrounding text stays in the owning definition; the referenced value
@@ -119,9 +113,6 @@ impl Dependency for CssIcssExportDependency {
 }
 #[cacheable_dyn]
 impl DependencyCodeGeneration for CssIcssExportDependency {
-  fn dependency_template(&self) -> Option<DependencyTemplateType> {
-    Some(CssIcssExportDependencyTemplate::template_type())
-  }
   fn update_hash(
     &self,
     hasher: &mut RspackHasher,
@@ -133,44 +124,3 @@ impl DependencyCodeGeneration for CssIcssExportDependency {
 }
 impl AsContextDependency for CssIcssExportDependency {}
 impl AsModuleDependency for CssIcssExportDependency {}
-
-#[cacheable]
-#[derive(Debug, Default)]
-pub struct CssIcssExportDependencyTemplate;
-impl CssIcssExportDependencyTemplate {
-  pub fn template_type() -> DependencyTemplateType {
-    DependencyTemplateType::Dependency(DependencyType::CssIcssExport)
-  }
-}
-impl DependencyTemplate for CssIcssExportDependencyTemplate {
-  fn render(
-    &self,
-    dep: &dyn DependencyCodeGeneration,
-    source: &mut TemplateReplaceSource,
-    context: &mut TemplateContext,
-  ) {
-    let dep = dep
-      .as_any()
-      .downcast_ref::<CssIcssExportDependency>()
-      .expect("CSS export template requires a CSS export dependency");
-    if dep.ranges.is_empty() {
-      return;
-    }
-    // A declaration's source spelling uses its own identifier, not its composes.
-    let value = crate::utils::replace_css_module_id_placeholder(
-      &dep.value,
-      context.compilation,
-      context.module,
-    );
-    let value = if dep.local_ident {
-      escape_identifier(&value).into_owned()
-    } else {
-      resolve_css_dependency(context.compilation, context.module, *dep.id())
-        .map(String::from)
-        .unwrap_or_default()
-    };
-    for range in &dep.ranges {
-      source.replace(range.start, range.end, value.clone(), None);
-    }
-  }
-}
