@@ -19,6 +19,9 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::queue::Queue;
 use rustc_hash::FxHashMap as HashMap;
 
+// Avoid scheduling separate jobs for the few items in a short propagation wave.
+const MIN_PARALLEL_ITEMS: usize = 16;
+
 type SharedRuntimeSpec = Option<Arc<RuntimeSpec>>;
 type ProcessBlockTask = (ModuleOrAsyncDependenciesBlock, SharedRuntimeSpec, bool);
 type NonNestedTask = (SharedRuntimeSpec, bool, Vec<ReferencedExport>);
@@ -148,6 +151,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       // and also added referenced modules to queue for further processing
       let batch_res = batch
         .into_par_iter()
+        .with_min_len(MIN_PARALLEL_ITEMS)
         .map(|(block_id, runtime, force_side_effects)| {
           let (referenced_exports, module_tasks) = self.process_module(
             module_graph,
@@ -179,6 +183,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
         let collected = batch_res
           .into_par_iter()
+          .with_min_len(MIN_PARALLEL_ITEMS)
           .map(
             |(runtime, force_side_effects, referenced_exports, module_tasks)| {
               let mut nested_tasks = Vec::with_capacity(referenced_exports.len());
@@ -240,6 +245,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           .collect::<Vec<_>>();
         non_nested_tasks
           .into_par_iter()
+          .with_min_len(MIN_PARALLEL_ITEMS)
           .map(|(module_id, (tasks, mut exports_info))| {
             let module = mg
               .module_by_identifier(&module_id)
