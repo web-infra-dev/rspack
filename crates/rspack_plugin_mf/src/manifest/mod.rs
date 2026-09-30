@@ -17,8 +17,9 @@ use data::{
 };
 pub use data::{StatsBuildInfo, StatsRoot};
 pub use options::{
-  ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPluginOptions,
-  RemoteAliasTarget,
+  EnhancedManifestExposeOption, EnhancedManifestSharedOption,
+  EnhancedModuleFederationManifestPluginOptions, ManifestExposeOption, ManifestSharedOption,
+  ModuleFederationManifestPluginOptions, RemoteAliasTarget,
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -43,10 +44,14 @@ use crate::{
 #[plugin]
 #[derive(Debug)]
 pub struct ModuleFederationManifestPlugin {
-  options: ModuleFederationManifestPluginOptions,
+  options: EnhancedModuleFederationManifestPluginOptions,
 }
 impl ModuleFederationManifestPlugin {
   pub fn new(options: ModuleFederationManifestPluginOptions) -> Self {
+    Self::new_enhanced(options.into())
+  }
+
+  pub fn new_enhanced(options: EnhancedModuleFederationManifestPluginOptions) -> Self {
     Self::new_inner(options)
   }
 }

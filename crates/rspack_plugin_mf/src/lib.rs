@@ -122,8 +122,10 @@ pub use container::{
   },
 };
 pub use manifest::{
-  ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPlugin,
-  ModuleFederationManifestPluginOptions, RemoteAliasTarget, StatsBuildInfo,
+  EnhancedManifestExposeOption, EnhancedManifestSharedOption,
+  EnhancedModuleFederationManifestPluginOptions, ManifestExposeOption, ManifestSharedOption,
+  ModuleFederationManifestPlugin, ModuleFederationManifestPluginOptions, RemoteAliasTarget,
+  StatsBuildInfo,
 };
 pub use sharing::{
   collect_shared_entry_plugin::{CollectSharedEntryPlugin, CollectSharedEntryPluginOptions},

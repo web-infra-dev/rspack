@@ -575,7 +575,7 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::ModuleFederationManifestPlugin => {
         let options = downcast_into::<RawModuleFederationManifestPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(ModuleFederationManifestPlugin::new(options.into()).boxed())
+        plugins.push(ModuleFederationManifestPlugin::new_enhanced(options.into()).boxed())
       }
       BuiltinPluginName::NamedModuleIdsPlugin => {
         plugins.push(NamedModuleIdsPlugin::default().boxed())

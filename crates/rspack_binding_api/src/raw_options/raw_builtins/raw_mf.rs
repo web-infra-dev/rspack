@@ -4,8 +4,8 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_mf::{
   CollectSharedEntryPluginOptions, ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion,
-  ContainerPluginOptions, ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption,
-  ManifestSharedOption, ModuleFederationManifestPluginOptions,
+  ContainerPluginOptions, ContainerReferencePluginOptions, EnhancedManifestExposeOption,
+  EnhancedManifestSharedOption, EnhancedModuleFederationManifestPluginOptions, ExposeOptions,
   ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePluginOptions,
   OptimizeSharedConfig, ProvideOptions, ProvideVersion, RemoteAliasTarget, RemoteOptions,
   ShareScope, SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions,
@@ -440,9 +440,11 @@ pub struct RawModuleFederationManifestPluginOptions {
   pub build_info: Option<RawStatsBuildInfo>,
 }
 
-impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifestPluginOptions {
+impl From<RawModuleFederationManifestPluginOptions>
+  for EnhancedModuleFederationManifestPluginOptions
+{
   fn from(value: RawModuleFederationManifestPluginOptions) -> Self {
-    ModuleFederationManifestPluginOptions {
+    EnhancedModuleFederationManifestPluginOptions {
       name: value.name,
       global_name: value.global_name,
       stats_file_name: value.stats_file_name.unwrap_or_default(),
@@ -466,7 +468,7 @@ impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifest
         .exposes
         .unwrap_or_default()
         .into_iter()
-        .map(|expose| ManifestExposeOption {
+        .map(|expose| EnhancedManifestExposeOption {
           path: expose.path,
           name: expose.name,
           layer: expose.layer,
@@ -476,7 +478,7 @@ impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifest
         .shared
         .unwrap_or_default()
         .into_iter()
-        .map(|shared| ManifestSharedOption {
+        .map(|shared| EnhancedManifestSharedOption {
           name: shared.name,
           version: shared.version,
           required_version: shared.required_version,
