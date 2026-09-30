@@ -1501,12 +1501,9 @@ impl<'context> CssModuleParser<'context> {
     }
   }
 
-  fn local_export(&self, name: &str) -> Option<DependencyId> {
-    self.css_exports.get(name).copied().or_else(|| {
-      export_locals_convention(name, self.convention())
-        .iter()
-        .find_map(|name| self.css_exports.get(name.as_str()).copied())
-    })
+  fn local_ident_definition(&self, name: &str) -> Option<DependencyId> {
+    // CSS compositions use raw local names; convention aliases are JS exports.
+    self.local_definitions.get(name)?.ident
   }
 
   fn contains_local_definition(&self, mut export: DependencyId, local: DependencyId) -> bool {
@@ -1686,9 +1683,9 @@ impl<'context> CssModuleParser<'context> {
         // copying its value or building a synthetic module request.
         self
           .literal_definition(binding.dependency)
-          .and_then(|value| self.local_export(value))
+          .and_then(|value| self.local_ident_definition(value))
           .unwrap_or(binding.dependency)
-      } else if let Some(id) = self.local_export(name.as_ref()) {
+      } else if let Some(id) = self.local_ident_definition(name.as_ref()) {
         id
       } else {
         *self
@@ -1699,7 +1696,7 @@ impl<'context> CssModuleParser<'context> {
           .get_or_insert_with(DependencyId::new)
       };
       for local in &local_classes {
-        if let Some(id) = self.local_export(local) {
+        if let Some(id) = self.local_ident_definition(local) {
           let dep = self.definition_mut(id);
           if !dep.composes.contains(&target) {
             dep.composes.push(target);
@@ -1718,7 +1715,7 @@ impl<'context> CssModuleParser<'context> {
       let Some(placeholder) = local.pending_compose.take() else {
         continue;
       };
-      let target = if let Some(id) = self.local_export(name) {
+      let target = if let Some(id) = local.ident {
         id
       } else {
         self.add_dependency(CssIcssExportDependency::new(
