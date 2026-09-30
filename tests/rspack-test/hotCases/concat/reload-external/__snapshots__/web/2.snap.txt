@@ -62,7 +62,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 ### Status
 
 ```txt
-check => prepare => dispose => apply => idle
+check => prepare => ready => dispose => apply => idle
 ```
 
 

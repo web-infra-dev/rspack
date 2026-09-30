@@ -114,6 +114,7 @@ async fn compilation(
   compilation: &mut Compilation,
   params: &mut CompilationParams,
 ) -> Result<()> {
+  compilation.lazy_compilation_enabled |= self.entries || self.imports;
   compilation.set_dependency_factory(
     DependencyType::LazyImport,
     Arc::new(LazyCompilationDependencyFactory::new(

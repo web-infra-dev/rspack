@@ -10,8 +10,8 @@
 - Bundle: modules_module_js.chunk.CURRENT_HASH.js
 - Bundle: modules_module_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 71
-- Update: main.LAST_HASH.hot-update.js, size: 470
-- Update: modules_module_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1054
+- Update: main.LAST_HASH.hot-update.js, size: 3132
+- Update: modules_module_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 2398
 
 ## Manifest
 
@@ -31,6 +31,7 @@
 - ./generation.js
 
 #### Changed Runtime Modules
+- webpack/runtime/ensure_async_block
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -48,6 +49,32 @@ __webpack_require__.d(__webpack_exports__, {
 },
 
 },function(__webpack_require__) {
+// webpack/runtime/ensure_async_block
+(() => {
+
+__webpack_require__.eb = (function(chunks, rows) {
+  var previous = "";
+  chunks = chunks.map(function(row) {
+    return typeof row === "number" ? row : (previous = previous.slice(0, row[0]) + row[1]);
+  });
+  var blocks = Object.create(null);
+  previous = "";
+  rows.forEach(function(row) {
+    previous = previous.slice(0, row[0]) + row[1];
+    blocks[previous] = [row[2], row[3]];
+  });
+  var ensureBlock = function(blockId, ensureChunk) {
+    var block = blocks[blockId];
+    if (!block) return Promise.reject(new Error("Missing async block " + blockId));
+    return Promise.all(block[0].map(function(chunkId) {
+      return ensureChunk(chunks[chunkId], block[1] || undefined);
+    }));
+  };
+  ensureBlock.has = function(blockId) { return blocks[blockId] !== undefined; };
+  return ensureBlock;
+})([[0,"modules_demo_js"],[15,"_lazy-compilation-proxy"],[8,"module_js"],[17,"_lazy-compilation-proxy"]], [[0,"<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules|lazy|/^\\.\\/.*$/|groupOptions: {}|namespace object|importPhase: evaluation|dep=context<ROOT>/tests/rspack-test/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules|./demo.js|modifier=./demo.js",[1],null],[0,"<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules|lazy|/^\\.\\/.*$/|groupOptions: {}|namespace object|importPhase: evaluation|dep=context<ROOT>/tests/rspack-test/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules|./demo|modifier=./demo",[1],null],[0,"<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules|lazy|/^\\.\\/.*$/|groupOptions: {}|namespace object|importPhase: evaluation|dep=context<ROOT>/tests/rspack-test/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules|./module.js|modifier=./module.js",[3],null],[0,"<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules|lazy|/^\\.\\/.*$/|groupOptions: {}|namespace object|importPhase: evaluation|dep=context<ROOT>/tests/rspack-test/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules|./module|modifier=./module",[3],null],[0,"lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules/demo.js|dep=",[0],null],[0,"lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules/module.js|dep=",[2],null]]);
+
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -71,9 +98,10 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 ```js
 self["rspackHotUpdate"]("modules_module_js_lazy-compilation-proxy", {
 "./modules/module.js!lazy-compilation-proxy"(module, __unused_rspack_exports, __webpack_require__) {
+if (__webpack_require__.eb && __webpack_require__.eb.has && __webpack_require__.eb.has("lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules/module.js|dep=")) {
 var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2F_rspack%2Flazy%2Ftrigger");
 var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules/module.js";
-        module.exports = __webpack_require__.e(/* import() */ "modules_module_js").then(__webpack_require__.bind(__webpack_require__, "./modules/module.js"));
+        module.exports = __webpack_require__.eb(/* import() */ "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules/module.js|dep=", __webpack_require__.e).then(__webpack_require__.bind(__webpack_require__, "./modules/module.js"));
         if (module.hot) {
           module.hot.accept();
           module.hot.accept("./modules/module.js", function() { module.hot.invalidate(); });
@@ -82,6 +110,19 @@ var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/load
             module.hot.data.resolveSelf(module.exports);
         }
         
+} else {
+var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2F_rspack%2Flazy%2Ftrigger");
+var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules/module.js";
+        var resolveSelf, onError;
+        module.exports = new Promise(function(resolve, reject) { resolveSelf = resolve; onError = reject; });
+        if (module.hot) {
+          module.hot.accept();
+          if (module.hot.data && module.hot.data.resolveSelf) module.hot.data.resolveSelf(module.exports);
+          module.hot.dispose(function(data) { data.resolveSelf = resolveSelf; dispose(data); });
+        }
+        var dispose = client.activate({ data: data, active: false, module: module, onError: onError })
+
+}
 
 },
 
@@ -95,7 +136,7 @@ var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/load
 ### Status
 
 ```txt
-check => prepare => dispose => apply => idle
+check => prepare => ready => dispose => apply => idle
 ```
 
 
@@ -125,6 +166,7 @@ Updated Modules:
 - ./modules/demo.js!lazy-compilation-proxy
 
 Updated Runtime:
+- `__webpack_require__.eb`
 - `__webpack_require__.h`
 
 

@@ -131,6 +131,24 @@ function createHotStepProcessor(
       if (replaceContentConfig) {
         str = replaceContentConfig(str);
       }
+      // Decode front-coded block identities before normalizing paths. Otherwise
+      // prefix lengths and suffixes retain the checkout's absolute path length.
+      str = str.replace(
+        /(return ensureBlock;\n\}\)\()(\[[^\n]+\]), (\[[^\n]+\])(\);)/g,
+        (_, start: string, chunks: string, rows: string, end: string) => {
+          let previous = '';
+          const decoded = JSON.parse(rows).map(
+            ([prefix, suffix, ...data]: [number, string, ...unknown[]]) => {
+              previous = previous.slice(0, prefix) + suffix;
+              const identity = normalizePlaceholder(previous)
+                .replaceAll(__ROOT_PATH__, '<ROOT>')
+                .replaceAll(escapeSep(__ROOT_PATH__), '<ROOT>');
+              return [0, identity, ...data];
+            },
+          );
+          return `${start}${chunks}, ${JSON.stringify(decoded)}${end}`;
+        },
+      );
       return normalizePlaceholder(
         Object.entries(resultHashes)
           .reduce((str, [raw, replacement]) => {
