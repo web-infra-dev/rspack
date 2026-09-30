@@ -1,0 +1,4 @@
+.base { color: red; }
+.foo-bar { composes: base; color: blue; }
+.fooBar { composes: base; color: green; }
+.foo-bar { color: orange; }

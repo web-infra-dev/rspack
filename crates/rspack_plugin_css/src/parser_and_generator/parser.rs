@@ -1509,6 +1509,30 @@ impl<'context> CssModuleParser<'context> {
     })
   }
 
+  fn contains_local_definition(&self, mut export: DependencyId, local: DependencyId) -> bool {
+    loop {
+      if export == local {
+        return true;
+      }
+      let Some(definition) = self.definition(export) else {
+        return false;
+      };
+      if definition.composes.contains(&local) {
+        return true;
+      }
+      let [reference] = definition.references.as_slice() else {
+        return false;
+      };
+      if !definition.value.is_empty() || reference.range.start != 0 || reference.range.end != 0 {
+        return false;
+      }
+      // Alias collisions wrap an earlier export in an empty definition, with
+      // newly appended locals in `composes`. Follow that chain to find all
+      // existing members without expanding value substitutions or compositions.
+      export = reference.dependency_id;
+    }
+  }
+
   async fn ensure_local_definition(
     &mut self,
     name: &str,
@@ -1572,12 +1596,12 @@ impl<'context> CssModuleParser<'context> {
         continue;
       }
       let export = if let Some(previous) = self.css_exports.get(alias.as_str()).copied() {
+        if self.contains_local_definition(previous, id) {
+          continue;
+        }
         let previous_definition = self
           .definition(previous)
           .expect("CSS export definition should exist");
-        if previous == id || previous_definition.composes.contains(&id) {
-          continue;
-        }
         if let Some(export) = appended.get(&previous) {
           *export
         } else {
