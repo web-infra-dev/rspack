@@ -1,5 +1,5 @@
 const runtime =
-  require('../../../packages/rspack/src/runtime/moduleFederationDefaultRuntime.js').default;
+  require('../../../packages/rspack/dist/moduleFederationDefaultRuntime.js').default;
 const {
   bundlerRuntime,
 } = require('@module-federation/runtime-tools/webpack-bundler-runtime');
@@ -34,6 +34,8 @@ function createRuntime({
   rejectRemoteScan = false,
   remoteData,
   legacyInitialization = false,
+  initializationRequires = [],
+  sharingHandlers = [],
   // Use the real bundler-runtime initContainerEntry instead of recording
   // its arguments; the runtime under test then gets its own scope map.
   realInitContainerEntry = false,
@@ -98,6 +100,7 @@ function createRuntime({
     shareScopeMap,
     sharedHandler: {
       initializeSharing(shareScope) {
+        sharingHandlers.push(this);
         initializedScopes.push(shareScope);
         const scan = () => {
           this.completedScans = (this.completedScans || 0) + 1;
@@ -127,6 +130,10 @@ function createRuntime({
   instance.sharedHandler.host = instance;
   const localBundlerRuntime = {
     ...bundlerRuntime,
+    I: (options) => {
+      initializationRequires.push(options.webpackRequire);
+      return bundlerRuntime.I(options);
+    },
     consumes: (options) => {
       consumeCalls.push(options.chunkId);
     },
@@ -203,6 +210,26 @@ const hostShareScopeMap = () => ({
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [
+  {
+    description:
+      'leaves ordinary scalar sharing on the original runtime and handler',
+    build() {},
+    check: async () => {
+      const initializationRequires = [];
+      const sharingHandlers = [];
+      const { runtimeRequire, instance } = createRuntime({
+        remoteShareScope: 'default',
+        external: { init() {} },
+        initializationRequires,
+        sharingHandlers,
+      });
+      await runtimeRequire.I('default', []);
+      expect(initializationRequires).toHaveLength(1);
+      expect(initializationRequires[0]).toBe(runtimeRequire);
+      expect(sharingHandlers).toHaveLength(1);
+      expect(sharingHandlers[0]).toBe(instance.sharedHandler);
+    },
+  },
   {
     description:
       'keeps concurrent asynchronous remote scans scoped without mutating remotes',

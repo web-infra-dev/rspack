@@ -52,6 +52,16 @@ export default function () {
 
     const createShareScopeRequire = (shareScopes) => {
       const ordered = Array.isArray(shareScopes);
+      if (
+        !ordered &&
+        Object.values(remotesLoadingModuleIdToRemoteDataMapping).every(
+          (remote) =>
+            !Array.isArray(remote.shareScope) &&
+            (remote.shareScope || 'default') === shareScopes,
+        )
+      ) {
+        return runtimeRequire;
+      }
       // The bundler runtime reads each remote's external request from this
       // mapping. Give each entry its own token so aliases sharing a deduplicated
       // external module retain their individual scope contracts.
@@ -66,13 +76,17 @@ export default function () {
         idToExternalAndNameMapping[id] = [...data];
         idToExternalAndNameMapping[id][2] = request;
       }
-      const federation = {
-        ...runtimeRequire.federation,
-        bundlerRuntimeOptions: {
-          ...runtimeRequire.federation.bundlerRuntimeOptions,
-          remotes: { ...remotes, idToExternalAndNameMapping },
-        },
-      };
+      // This function is serialized without its module scope. Avoid object
+      // spread, which the package build lowers to out-of-function helpers.
+      const federation = Object.assign({}, runtimeRequire.federation, {
+        bundlerRuntimeOptions: Object.assign(
+          {},
+          runtimeRequire.federation.bundlerRuntimeOptions,
+          {
+            remotes: Object.assign({}, remotes, { idToExternalAndNameMapping }),
+          },
+        ),
+      });
       const wrapExternal = (external, remote) => {
         if (!ordered) {
           if (
@@ -159,6 +173,15 @@ export default function () {
       }
       const arrayAwareInitializeSharing = function (shareScope, options) {
         const host = this.host || instance;
+        if (
+          !host.options.remotes.some(
+            (remote) =>
+              Array.isArray(remote.shareScope) &&
+              remote.shareScope.includes(shareScope),
+          )
+        ) {
+          return initializeSharing.call(this, shareScope, options);
+        }
         const remotes = host.options.remotes.map((remote) =>
           Array.isArray(remote.shareScope) &&
           remote.shareScope.includes(shareScope)
