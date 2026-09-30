@@ -5147,7 +5147,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_mf_test"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "rspack_collections",
  "rspack_core",
