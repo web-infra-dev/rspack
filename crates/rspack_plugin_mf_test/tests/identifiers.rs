@@ -3,8 +3,50 @@ use std::collections::HashSet;
 use rspack_collections::Identifiable;
 use rspack_core::{Context, runtime_mode::RuntimeMode};
 use rspack_plugin_mf::{
-  ConsumeOptions, ConsumeSharedModule, ProvideSharedModule, ProvideVersion, ShareScope,
+  ConsumeOptions, ConsumeSharedModule, ConsumeVersion, ProvideSharedModule, ProvideVersion,
+  ShareScope,
 };
+
+#[test]
+fn provider_identifiers_distinguish_runtime_behavior() {
+  let options = [
+    (false, None, None, None, None),
+    (true, None, None, None, None),
+    (false, Some(true), None, None, None),
+    (false, Some(false), None, None, None),
+    (false, None, Some(ConsumeVersion::False), None, None),
+    (
+      false,
+      None,
+      Some(ConsumeVersion::Version("^1.0.0".into())),
+      None,
+      None,
+    ),
+    (false, None, None, Some(true), None),
+    (false, None, None, Some(false), None),
+    (false, None, None, None, Some("runtime-infer".to_string())),
+  ];
+  let mut identifiers = HashSet::new();
+  for (eager, singleton, required_version, strict_version, tree_shaking_mode) in options {
+    let module = ProvideSharedModule::new(
+      ShareScope::Single("default".into()),
+      "react".into(),
+      ProvideVersion::Version("1.0.0".into()),
+      "/shared.js".into(),
+      eager,
+      singleton,
+      required_version,
+      strict_version,
+      None,
+      tree_shaking_mode,
+      RuntimeMode::Webpack,
+    );
+    assert!(
+      identifiers.insert(module.identifier()),
+      "provider behavior must not collapse"
+    );
+  }
+}
 
 fn identifiers(scope: ShareScope, key: &str, layer: Option<&str>) -> [String; 2] {
   let consume = ConsumeSharedModule::new(

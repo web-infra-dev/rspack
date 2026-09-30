@@ -4,6 +4,10 @@ it("should finish the build when a provider is first discovered while building a
 	const entry = provided.find((item) => item.name === "unused-provider");
 	expect(entry).toBeDefined();
 	expect(entry.version).toBe("1.0.0");
+	const discovered = provided.find((item) => item.name === "package");
+	expect(discovered).toBeDefined();
+	const discoveredFactory = await discovered.factory();
+	expect(discoveredFactory()).toBe("package");
 	const factory = await entry.factory();
 	expect(factory()).toBe("package");
 });
