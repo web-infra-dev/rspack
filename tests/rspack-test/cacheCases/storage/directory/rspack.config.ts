@@ -1,11 +1,12 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
+import type { PersistentCacheOptions } from '@rspack/core';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
 const cacheDir = path.join(import.meta.dirname, 'node_modules/.cache/test');
 const cacheLocation = path.join(cacheDir, 'test-cache');
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   cache: {
     type: 'persistent',
@@ -16,16 +17,17 @@ export default {
     },
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
         compiler.hooks.done.tapPromise('Test Plugin', async function () {
-          expect(compiler.options.cache.name).toBe('test-cache');
-          expect(compiler.options.cache.storage.directory).toBe(cacheDir);
-          expect(compiler.options.cache.storage.location).toBe(cacheLocation);
+          const cache = compiler.options.cache as PersistentCacheOptions;
+          expect(cache.name).toBe('test-cache');
+          expect(cache.storage?.directory).toBe(cacheDir);
+          expect(cache.storage?.location).toBe(cacheLocation);
           const stat = await fs.stat(cacheLocation);
           expect(stat.isDirectory()).toBeTruthy();
         });
       },
-    },
+    }),
   ],
-};
+});
