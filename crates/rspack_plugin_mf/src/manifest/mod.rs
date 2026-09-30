@@ -242,6 +242,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         SharedIdentity::new(&shared.share_scope, &shared.name, shared.layer.as_deref());
       shared_map
         .entry(identity)
+        .and_modify(|entry| {
+          if entry.version.is_empty()
+            && let Some(version) = &shared.version
+          {
+            entry.version = version.clone();
+          }
+        })
         .or_insert_with_key(|identity| StatsShared {
           id: compose_shared_id(&container_name, identity),
           name: shared.name.clone(),
