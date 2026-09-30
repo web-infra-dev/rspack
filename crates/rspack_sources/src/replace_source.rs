@@ -129,6 +129,10 @@ impl ReplaceSource {
     &self.replacements
   }
 
+  pub(crate) fn shrink_to_fit(&mut self) {
+    self.replacements.shrink_to_fit();
+  }
+
   /// Insert a content at start.
   pub fn insert(&mut self, start: u32, content: String, name: Option<String>) {
     self.replace(start, start, content, name)
