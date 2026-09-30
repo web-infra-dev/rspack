@@ -104,6 +104,8 @@ impl NativeWatcher {
   }
 
   #[napi]
+  // Env is injected by N-API; the JavaScript watch signature is unchanged.
+  #[allow(clippy::too_many_arguments)]
   pub fn watch(
     &mut self,
     env: Env,
