@@ -10,7 +10,7 @@ use serde::{Serialize, Serializer};
 use simd_json::{BorrowedValue, ErrorType, prelude::*};
 
 use crate::{
-  Result,
+  ReplaceSource, Result,
   helpers::{Chunks, StreamChunks, decode_mappings_fields},
   object_pool::ObjectPool,
 };
@@ -250,9 +250,14 @@ pub trait SourceExt {
 }
 
 impl<T: Source + 'static> SourceExt for T {
-  fn boxed(self) -> BoxSource {
+  fn boxed(mut self) -> BoxSource {
     if let Some(source) = self.as_any().downcast_ref::<BoxSource>() {
       return source.clone();
+    }
+    // The replacement list cannot be mutated after the source is shared.
+    // Compact it here instead of adding interior mutability to source()/map().
+    if let Some(source) = (&mut self as &mut dyn Any).downcast_mut::<ReplaceSource>() {
+      source.shrink_to_fit();
     }
     Arc::from(self)
   }
