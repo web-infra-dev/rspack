@@ -4074,6 +4074,7 @@ dependencies = [
  "serde_json",
  "sftrace-setup",
  "simd-json",
+ "slotmap",
  "swc_core",
  "tokio",
  "tracing",
@@ -4578,6 +4579,7 @@ dependencies = [
  "napi",
  "oneshot",
  "rspack_error",
+ "scopeguard",
  "serde_json",
  "tokio",
 ]
