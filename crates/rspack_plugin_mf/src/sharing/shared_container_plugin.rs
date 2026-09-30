@@ -24,6 +24,31 @@ pub struct SharedContainerPluginOptions {
   pub version: String,
   pub file_name: Option<Filename>,
   pub library: LibraryOptions,
+}
+
+impl From<SharedContainerPluginOptions> for EnhancedSharedContainerPluginOptions {
+  fn from(value: SharedContainerPluginOptions) -> Self {
+    Self {
+      share_key: value.name.clone(),
+      share_scope: ShareScope::Single("default".to_string()),
+      layer: None,
+      name: value.name,
+      request: value.request,
+      version: value.version,
+      file_name: value.file_name,
+      library: value.library,
+    }
+  }
+}
+
+/// Shared-container options with an explicit share key, scope, and layer.
+#[derive(Debug)]
+pub struct EnhancedSharedContainerPluginOptions {
+  pub name: String,
+  pub request: String,
+  pub version: String,
+  pub file_name: Option<Filename>,
+  pub library: LibraryOptions,
   pub share_key: String,
   pub share_scope: ShareScope,
   pub layer: Option<String>,
@@ -32,11 +57,15 @@ pub struct SharedContainerPluginOptions {
 #[plugin]
 #[derive(Debug)]
 pub struct SharedContainerPlugin {
-  options: SharedContainerPluginOptions,
+  options: EnhancedSharedContainerPluginOptions,
 }
 
 impl SharedContainerPlugin {
   pub fn new(options: SharedContainerPluginOptions) -> Self {
+    Self::new_enhanced(options.into())
+  }
+
+  pub fn new_enhanced(options: EnhancedSharedContainerPluginOptions) -> Self {
     Self::new_inner(options)
   }
 }

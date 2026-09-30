@@ -21,7 +21,7 @@ use super::{
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
 use crate::{
-  ConsumeOptions, ConsumeVersion, ShareScope, SharedIdentity,
+  ConsumeVersion, EnhancedConsumeOptions, ShareScope, SharedIdentity,
   utils::{json_stringify, module_identifier_namespace},
 };
 
@@ -35,7 +35,7 @@ pub struct ConsumeSharedModule {
   lib_ident: String,
   readable_identifier: String,
   context: Context,
-  options: ConsumeOptions,
+  options: EnhancedConsumeOptions,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
   build_meta: FreezeLock<BuildMeta>,
@@ -58,7 +58,15 @@ impl ConsumeSharedModule {
     self.options.required_version.as_ref()
   }
 
-  pub fn new(context: Context, options: ConsumeOptions, runtime_mode: RuntimeMode) -> Self {
+  pub fn new(context: Context, options: crate::ConsumeOptions, runtime_mode: RuntimeMode) -> Self {
+    Self::new_enhanced(context, options.into(), runtime_mode)
+  }
+
+  pub fn new_enhanced(
+    context: Context,
+    options: EnhancedConsumeOptions,
+    runtime_mode: RuntimeMode,
+  ) -> Self {
     let scopes_key = options.share_scope.key();
     let namespace = module_identifier_namespace(runtime_mode);
     let identity_key = SharedIdentity::new(

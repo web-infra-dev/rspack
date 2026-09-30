@@ -111,7 +111,10 @@ impl RspackHash for ShareScope {
 }
 
 pub use container::{
-  container_plugin::{ContainerPlugin, ContainerPluginOptions, ExposeOptions},
+  container_plugin::{
+    ContainerPlugin, ContainerPluginOptions, EnhancedContainerPluginOptions, EnhancedExposeOptions,
+    ExposeOptions,
+  },
   container_reference_plugin::{
     ContainerReferencePlugin, ContainerReferencePluginOptions, RemoteOptions,
   },
@@ -128,20 +131,30 @@ pub use manifest::{
   StatsBuildInfo,
 };
 pub use sharing::{
-  collect_shared_entry_plugin::{CollectSharedEntryPlugin, CollectSharedEntryPluginOptions},
+  collect_shared_entry_plugin::{
+    CollectSharedEntryPlugin, CollectSharedEntryPluginOptions,
+    EnhancedCollectSharedEntryPluginOptions,
+  },
   consume_shared_module::ConsumeSharedModule,
   consume_shared_plugin::{
     ConsumeOptions, ConsumeSharedPlugin, ConsumeSharedPluginOptions, ConsumeVersion,
+    EnhancedConsumeOptions, EnhancedConsumeSharedPluginOptions,
   },
   provide_shared_module::ProvideSharedModule,
-  provide_shared_plugin::{ProvideOptions, ProvideSharedPlugin, ProvideVersion},
+  provide_shared_plugin::{
+    EnhancedProvideOptions, ProvideOptions, ProvideSharedPlugin, ProvideVersion,
+  },
   share_runtime_module::{
     CodeGenerationDataShareInit, DataInitStage, ShareInitData, ShareRuntimeModule,
   },
   share_runtime_plugin::ShareRuntimePlugin,
-  shared_container_plugin::{SharedContainerPlugin, SharedContainerPluginOptions},
+  shared_container_plugin::{
+    EnhancedSharedContainerPluginOptions, SharedContainerPlugin, SharedContainerPluginOptions,
+  },
   shared_used_exports_optimizer_plugin::{
-    OptimizeSharedConfig, SharedUsedExportsOptimizerPlugin, SharedUsedExportsOptimizerPluginOptions,
+    EnhancedOptimizeSharedConfig, EnhancedSharedUsedExportsOptimizerPluginOptions,
+    OptimizeSharedConfig, SharedUsedExportsOptimizerPlugin,
+    SharedUsedExportsOptimizerPluginOptions,
   },
 };
 
