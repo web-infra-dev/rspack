@@ -1,10 +1,10 @@
-use rspack_plugin_mf::ExposeOptions;
+use rspack_plugin_mf::EnhancedExposeOptions;
 
 #[test]
 fn expose_options_serialize_to_the_webpack_identifier_payload() {
   let plain = (
     "./a",
-    ExposeOptions {
+    EnhancedExposeOptions {
       name: None,
       import: vec!["./a.js".into()],
       layer: None,
@@ -16,7 +16,7 @@ fn expose_options_serialize_to_the_webpack_identifier_payload() {
   );
   let layered = (
     "./b",
-    ExposeOptions {
+    EnhancedExposeOptions {
       name: Some("b".into()),
       import: vec!["./b.js".into()],
       layer: Some("server".into()),
