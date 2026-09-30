@@ -1,7 +1,7 @@
 import fs from 'node:fs';
+import { defineConfig, definePlugin } from '@rspack/cli';
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   module: {
     rules: [
       {
@@ -16,13 +16,10 @@ export default {
     useInputFileSystem: [/.*/],
   },
   plugins: [
-    {
+    definePlugin({
       apply(compiler) {
-        compiler.inputFileSystem = {
-          readFile: fs.readFile,
-          stat: fs.stat,
-        };
+        compiler.inputFileSystem = fs;
       },
-    },
+    }),
   ],
-};
+});
