@@ -23,7 +23,7 @@ use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
 };
 use crate::{
-  ShareScope, SharedIdentity,
+  ShareScope, SharedIdentity, push_identifier_component,
   utils::{json_stringify, module_identifier_namespace, module_require_scope_name},
 };
 
@@ -102,9 +102,14 @@ impl ContainerEntryModule {
     let shared_identity = SharedIdentity::new(&share_scope, &share_key, layer.as_deref());
     let identity_key = shared_identity.identifier_key();
     let lib_ident = format!("{namespace}/share/container/{identity_key}");
+    let mut identifier = String::from("share container entry ");
+    push_identifier_component(&mut identifier, &name);
+    push_identifier_component(&mut identifier, &request);
+    push_identifier_component(&mut identifier, &identity_key);
+    push_identifier_component(&mut identifier, &version);
     Self {
       dependencies_block: Default::default(),
-      identifier: ModuleIdentifier::from(format!("share container entry {identity_key}@{version}")),
+      identifier: ModuleIdentifier::from(identifier.as_str()),
       lib_ident,
       exposes: vec![],
       share_scope,
