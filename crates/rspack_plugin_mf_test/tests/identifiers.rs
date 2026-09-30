@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use rspack_collections::Identifiable;
 use rspack_core::{Context, runtime_mode::RuntimeMode};
 use rspack_plugin_mf::{
-  ConsumeOptions, ConsumeSharedModule, ConsumeVersion, ProvideSharedModule, ProvideVersion, ShareScope,
+  ConsumeOptions, ConsumeSharedModule, ConsumeVersion, ProvideSharedModule, ProvideVersion,
+  ShareScope,
 };
 
 #[test]

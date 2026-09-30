@@ -7,13 +7,13 @@ use std::{
 use regex::Regex;
 use rspack_core::{
   BoxDependency, BoxModule, Compilation, CompilationParams, CompilerCompilation,
-  CompilerFinishMake, DependencyType, EntryOptions, ModuleFactoryCreateData,
+  CompilerFinishMake, Dependency, DependencyType, EntryOptions, ModuleFactoryCreateData,
   NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_loader_runner::ResourceData;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use tokio::sync::RwLock;
 
 use super::{
@@ -361,26 +361,39 @@ async fn compilation(
 
 #[plugin_hook(CompilerFinishMake for ProvideSharedPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  // Drop the read guard before `add_include`: building the included modules
-  // runs `normal_module_factory_module`, which takes the write lock on this
-  // same map when it discovers another provider.
-  let dependencies = {
-    let resolved_provide_map = self.resolved_provide_map.read().await;
-    provide_dependencies(&resolved_provide_map)
-  };
-  let entries = dependencies
-    .into_iter()
-    .map(|dependency| {
-      (
-        BoxDependency::new(dependency),
-        EntryOptions {
-          name: None,
-          ..Default::default()
-        },
-      )
-    })
-    .collect::<Vec<_>>();
-  compilation.add_include(entries).await?;
+  let mut included = FxHashSet::default();
+  loop {
+    // Release the lock before building: included modules can discover more
+    // providers through `normal_module_factory_module` on the same map.
+    let dependencies = {
+      let resolved_provide_map = self.resolved_provide_map.read().await;
+      provide_dependencies(&resolved_provide_map)
+    };
+    let entries = dependencies
+      .into_iter()
+      .filter(|dependency| {
+        included.insert(
+          dependency
+            .resource_identifier()
+            .expect("provided dependencies have a resource identifier")
+            .to_string(),
+        )
+      })
+      .map(|dependency| {
+        (
+          BoxDependency::new(dependency),
+          EntryOptions {
+            name: None,
+            ..Default::default()
+          },
+        )
+      })
+      .collect::<Vec<_>>();
+    if entries.is_empty() {
+      break;
+    }
+    compilation.add_include(entries).await?;
+  }
   Ok(())
 }
 
