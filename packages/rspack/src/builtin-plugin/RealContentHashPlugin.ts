@@ -13,7 +13,7 @@ const RealContentHashPluginImpl = create(
 );
 
 export type RealContentHashPluginHooks = {
-  updateHash: liteTapable.SyncBailHook<[Buffer[], string], string | undefined>;
+  updateHash: liteTapable.SyncBailHook<[Buffer[], string], string | void>;
 };
 
 export const RealContentHashPlugin =
