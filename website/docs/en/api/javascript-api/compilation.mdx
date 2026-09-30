@@ -435,8 +435,6 @@ compiler.hooks.make.tap('MyPlugin', (compilation) => {
 
 Add a custom runtime module to the compilation.
 
-Rspack retains the module's `generate` callback while its native runtime module is in use. Incremental builds may retain a previous compilation; once its runtime module is no longer needed, the callback can be released without closing the compiler. Closing the compiler releases any remaining registered callbacks.
-
 ```ts
 addRuntimeModule(
   c: Chunk, // the runtime chunk which to add the runtime module

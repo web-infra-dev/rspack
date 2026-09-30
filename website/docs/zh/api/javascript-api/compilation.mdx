@@ -435,8 +435,6 @@ compiler.hooks.make.tap('MyPlugin', (compilation) => {
 
 添加一个自定义的运行时模块。
 
-Rspack 会在对应的原生运行时模块仍被使用时持有模块的 `generate` 回调。增量构建可能保留上一轮 compilation；当其运行时模块不再被使用时，回调即可释放，无需关闭 compiler。关闭 compiler 会释放剩余的已注册回调。
-
 ```ts
 addRuntimeModule(
   c: Chunk, // 运行时模块所在的 Chunk
