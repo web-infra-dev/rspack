@@ -319,7 +319,6 @@ export default {
 
   升级 `@module-federation` scope 下的 npm 包至 `0.21.0` 及以上版本。
 
-
 ## Rust 集成
 
 `rspack_plugin_mf` crate 保留现有的共享配置结构体和 `new(...)` 构造函数，以兼容 Rust 集成。配置请求覆盖和 layer 时，请使用对应的 `Enhanced*` 配置类型和 `new_enhanced(...)` 构造函数。旧配置保持无 layer 的行为；共享容器使用其名称作为共享键，并使用 `default` 共享作用域。
