@@ -10,21 +10,21 @@ use std::{
 use regex::Regex;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsPreset, AsVec, Skip},
+  with::{AsPreset, AsVec},
 };
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Compilation,
-  CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyId, DependencyType,
-  ExportsInfoArtifact, GenerateContext, Module, ModuleGraph, ModuleIdentifier, NO_SOURCE_TYPE_LIST,
-  NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
-  ResolvedModuleOptions, RuntimeSpec, SourceType, UsageState,
+  CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType, ExportsInfoArtifact,
+  GenerateContext, Module, ModuleGraph, ModuleIdentifier, NO_SOURCE_TYPE_LIST, NormalModule,
+  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, ResolvedModuleOptions, RuntimeSpec,
+  SourceType, UsageState,
   rspack_sources::{BoxSource, Source},
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_intern::Atom;
 use rspack_util::fx_hash::FxIndexMap;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
 pub(crate) use source_builder::CssSourceBuilder;
 
@@ -55,10 +55,6 @@ pub struct CssParserAndGenerator {
   pub export_type: Option<CssExportType>,
   pub exports_only: bool,
   pub es_module: bool,
-  // Generated during codegen, shared by source types and child generators.
-  // Rebuilding or restoring the module starts with an empty cache.
-  #[cacheable(with=Skip)]
-  local_idents: tokio::sync::OnceCell<FxHashMap<DependencyId, SmolStr>>,
 }
 
 impl CssParserAndGenerator {
@@ -214,7 +210,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
     &mut self,
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>> {
-    self.local_idents = Default::default();
     let generator_options = css_generator_options(parse_context.module_generator_options);
     let parser_options = css_parser_options(parse_context.module_parser_options);
     let named_exports = parser_options

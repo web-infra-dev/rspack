@@ -1,6 +1,7 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{ChunkGraph, Compilation, DependencyId, Module, ModuleGraph};
 use rspack_hash::{RspackHash, RspackHasher};
+use rspack_util::identifier::make_paths_relative;
 use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
 
@@ -101,8 +102,10 @@ pub(crate) fn hash_icss_imports(
     {
       let identifier = target.identifier();
       if modules.insert(identifier) {
-        identifier.hash(hasher);
+        make_paths_relative(&compilation.options.context, identifier.as_str()).hash(hasher);
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, identifier).hash(hasher);
+        // Target builds have finished before module hashing starts. Reuse the
+        // stored source/build-meta digest while traversing transitive exports.
         target.build_info().hash.hash(hasher);
         CssModuleGenerator::hash_local_ident_inputs(target, compilation, hasher);
       }

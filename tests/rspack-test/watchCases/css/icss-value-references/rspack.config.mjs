@@ -7,7 +7,12 @@ export default {
       {
         test: /\.css$/,
         type: 'css/module',
-        generator: { exportsOnly: false },
+        generator: {
+          exportsOnly: false,
+          localIdentName: '[local]-[hash:8]',
+          localIdentHashDigest: 'hex',
+          localIdentHashDigestLength: 8,
+        },
       },
     ],
   },
