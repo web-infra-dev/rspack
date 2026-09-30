@@ -22,7 +22,7 @@ struct CachedData {
   hash: OnceLock<u64>,
   size: OnceLock<usize>,
   is_ascii: OnceLock<bool>,
-  chunks: OnceLock<Vec<&'static str>>,
+  chunks: OnceLock<Box<[&'static str]>>,
   columns_map: OnceLock<Option<SourceMap<'static>>>,
   line_only_map: OnceLock<Option<SourceMap<'static>>>,
 }
@@ -91,12 +91,13 @@ impl CachedSource {
       self.inner.rope(&mut |chunk| {
         chunks.push(chunk);
       });
+      let chunks = chunks.into_boxed_slice();
       #[allow(unsafe_code)]
       // SAFETY: CachedSource guarantees that the underlying source outlives the cache,
-      // so transmuting Vec<&str> to Vec<&'static str> is safe in this context.
-      // This allows us to store string slices in the cache without additional allocations.
+      // so transmuting Box<[&str]> to Box<[&'static str]> is safe in this context.
+      // The boxed slice retains only the used references instead of Vec's spare capacity.
       unsafe {
-        std::mem::transmute::<Vec<&str>, Vec<&'static str>>(chunks)
+        std::mem::transmute::<Box<[&str]>, Box<[&'static str]>>(chunks)
       }
     })
   }
