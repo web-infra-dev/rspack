@@ -30,8 +30,37 @@ static ABSOLUTE_REQUEST: LazyLock<Regex> =
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvideOptions {
-  #[doc(hidden)]
-  pub config_id: usize,
+  pub share_key: String,
+  pub share_scope: ShareScope,
+  pub version: Option<ProvideVersion>,
+  pub eager: bool,
+  pub singleton: Option<bool>,
+  pub required_version: Option<ConsumeVersion>,
+  pub strict_version: Option<bool>,
+  pub tree_shaking_mode: Option<String>,
+}
+
+impl From<ProvideOptions> for EnhancedProvideOptions {
+  fn from(value: ProvideOptions) -> Self {
+    Self {
+      request: None,
+      layer: None,
+      share_key: value.share_key,
+      share_scope: value.share_scope,
+      version: value.version,
+      eager: value.eager,
+      singleton: value.singleton,
+      required_version: value.required_version,
+      strict_version: value.strict_version,
+      tree_shaking_mode: value.tree_shaking_mode,
+    }
+  }
+}
+
+/// Provider options with an optional request override and compilation layer.
+/// Cloned to retain each configuration in exact and prefix matching maps.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnhancedProvideOptions {
   pub request: Option<String>,
   pub layer: Option<String>,
   pub share_key: String,
@@ -62,7 +91,22 @@ pub struct VersionedProvideOptions {
   pub tree_shaking_mode: Option<String>,
 }
 
-impl ProvideOptions {
+/// Cloned with its ID when a configuration enters a matching map.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct NormalizedProvideOptions {
+  config_id: usize,
+  options: EnhancedProvideOptions,
+}
+
+impl std::ops::Deref for NormalizedProvideOptions {
+  type Target = EnhancedProvideOptions;
+
+  fn deref(&self) -> &Self::Target {
+    &self.options
+  }
+}
+
+impl NormalizedProvideOptions {
   fn to_versioned(&self, request: &str) -> VersionedProvideOptions {
     VersionedProvideOptions {
       config_id: self.config_id,
@@ -171,17 +215,28 @@ fn provide_dependencies(
 #[plugin]
 #[derive(Debug)]
 pub struct ProvideSharedPlugin {
-  provides: Vec<(String, ProvideOptions)>,
+  provides: Vec<(String, NormalizedProvideOptions)>,
   resolved_provide_map: RwLock<FxHashMap<RequestMatchKey, Vec<VersionedProvideOptions>>>,
-  match_provides: RwLock<FxHashMap<RequestMatchKey, Vec<ProvideOptions>>>,
-  prefix_match_provides: RwLock<Vec<(RequestMatchKey, Vec<ProvideOptions>)>>,
+  match_provides: RwLock<FxHashMap<RequestMatchKey, Vec<NormalizedProvideOptions>>>,
+  prefix_match_provides: RwLock<Vec<(RequestMatchKey, Vec<NormalizedProvideOptions>)>>,
 }
 
 impl ProvideSharedPlugin {
-  pub fn new(mut provides: Vec<(String, ProvideOptions)>) -> Self {
-    for (config_id, (_, config)) in provides.iter_mut().enumerate() {
-      config.config_id = config_id;
-    }
+  pub fn new(provides: Vec<(String, ProvideOptions)>) -> Self {
+    Self::new_enhanced(
+      provides
+        .into_iter()
+        .map(|(key, options)| (key, options.into()))
+        .collect(),
+    )
+  }
+
+  pub fn new_enhanced(provides: Vec<(String, EnhancedProvideOptions)>) -> Self {
+    let provides = provides
+      .into_iter()
+      .enumerate()
+      .map(|(config_id, (key, options))| (key, NormalizedProvideOptions { config_id, options }))
+      .collect();
     Self::new_inner(
       provides,
       Default::default(),
@@ -424,7 +479,7 @@ async fn normal_module_factory_module(
   };
   if let Some((configs, remainder)) = prefix_match {
     for mut config in configs {
-      config.share_key.push_str(&remainder);
+      config.options.share_key.push_str(&remainder);
       matched.push(config);
     }
   }

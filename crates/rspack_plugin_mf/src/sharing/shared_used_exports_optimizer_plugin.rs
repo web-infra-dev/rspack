@@ -64,6 +64,50 @@ fn update_shared_exports(
 
 #[derive(Debug, Clone)]
 pub struct OptimizeSharedConfig {
+  pub share_key: String,
+  pub tree_shaking: bool,
+  pub used_exports: Vec<String>,
+}
+
+impl From<OptimizeSharedConfig> for EnhancedOptimizeSharedConfig {
+  fn from(value: OptimizeSharedConfig) -> Self {
+    Self {
+      request: value.share_key.clone(),
+      issuer_layer: None,
+      share_scope: ShareScope::Single("default".to_string()),
+      layer: None,
+      share_key: value.share_key,
+      tree_shaking: value.tree_shaking,
+      used_exports: value.used_exports,
+    }
+  }
+}
+
+#[derive(Debug, Clone)]
+pub struct SharedUsedExportsOptimizerPluginOptions {
+  pub shared: Vec<OptimizeSharedConfig>,
+  pub inject_tree_shaking_used_exports: bool,
+  pub stats_file_name: Option<String>,
+  pub manifest_file_name: Option<String>,
+}
+
+impl From<SharedUsedExportsOptimizerPluginOptions>
+  for EnhancedSharedUsedExportsOptimizerPluginOptions
+{
+  fn from(value: SharedUsedExportsOptimizerPluginOptions) -> Self {
+    Self {
+      shared: value.shared.into_iter().map(Into::into).collect(),
+      inject_tree_shaking_used_exports: value.inject_tree_shaking_used_exports,
+      stats_file_name: value.stats_file_name,
+      manifest_file_name: value.manifest_file_name,
+    }
+  }
+}
+
+/// Export-usage configuration keyed by request, share scope, and layer.
+/// Cloned with plugin options when the optimizer is cloned.
+#[derive(Debug, Clone)]
+pub struct EnhancedOptimizeSharedConfig {
   pub request: String,
   pub issuer_layer: Option<String>,
   pub share_key: String,
@@ -74,8 +118,8 @@ pub struct OptimizeSharedConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct SharedUsedExportsOptimizerPluginOptions {
-  pub shared: Vec<OptimizeSharedConfig>,
+pub struct EnhancedSharedUsedExportsOptimizerPluginOptions {
+  pub shared: Vec<EnhancedOptimizeSharedConfig>,
   pub inject_tree_shaking_used_exports: bool,
   pub stats_file_name: Option<String>,
   pub manifest_file_name: Option<String>,
@@ -101,6 +145,10 @@ pub struct SharedUsedExportsOptimizerPlugin {
 
 impl SharedUsedExportsOptimizerPlugin {
   pub fn new(options: SharedUsedExportsOptimizerPluginOptions) -> Self {
+    Self::new_enhanced(options.into())
+  }
+
+  pub fn new_enhanced(options: EnhancedSharedUsedExportsOptimizerPluginOptions) -> Self {
     let mut shared_map: FxHashMap<SharedIdentity, SharedEntryData> = FxHashMap::default();
     let mut request_map: FxHashMap<RequestMatchKey, Vec<SharedIdentity>> = FxHashMap::default();
     let inject_tree_shaking_used_exports = options.inject_tree_shaking_used_exports;
