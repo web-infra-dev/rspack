@@ -8,6 +8,7 @@ use crate::{
   dependency::{
     CssIcssExportDependency, CssIcssImportDependency, CssIcssSymbolDependency, CssIcssSymbolKind,
   },
+  parser_and_generator::generator::CssModuleGenerator,
   utils::export_locals_convention,
 };
 
@@ -103,6 +104,7 @@ pub(crate) fn hash_icss_imports(
         identifier.hash(hasher);
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, identifier).hash(hasher);
         target.build_info().hash.hash(hasher);
+        CssModuleGenerator::hash_local_ident_inputs(target, compilation, hasher);
       }
       if let Some(id) = find_export(target, dep.import_name()) {
         pending.push(id);

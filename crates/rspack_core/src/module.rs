@@ -216,6 +216,26 @@ pub fn push_css_module_identifier_part(identifier: &mut String, value: &str) {
   identifier.push_str(value);
 }
 
+/// Parser-collected inputs used to generate local identifiers during codegen.
+#[cacheable]
+#[derive(Debug)]
+pub struct CssLocalIdentHashInputs {
+  pub export_dependency_names: Vec<String>,
+  pub graph_export_names: Vec<String>,
+  pub presentational_dependency_hash_updates: Vec<CssPresentationalHashUpdate>,
+  pub es_module: bool,
+  pub named_exports: bool,
+  pub exports_convention: Option<crate::CssExportsConvention>,
+}
+
+#[cacheable]
+#[derive(Debug)]
+pub struct CssPresentationalHashUpdate {
+  pub start: u32,
+  pub end: u32,
+  pub content: String,
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct CssBuildInfo {
@@ -226,6 +246,8 @@ pub struct CssBuildInfo {
   pub exports: CssExports,
   #[cacheable(with=AsMap<AsPreset>)]
   pub local_names: CssLocalNames,
+  /// Shared across build-info clones; contains raw inputs, not generated names.
+  pub local_ident_hash_inputs: Option<Arc<CssLocalIdentHashInputs>>,
   /// Conditions inherited from parent CSS modules.
   ///
   /// Webpack stores the current module condition before inherited conditions.

@@ -10,21 +10,21 @@ use std::{
 use regex::Regex;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsPreset, AsVec},
+  with::{AsPreset, AsVec, Skip},
 };
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Compilation,
-  CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType, ExportsInfoArtifact,
-  GenerateContext, Module, ModuleGraph, ModuleIdentifier, NO_SOURCE_TYPE_LIST, NormalModule,
-  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, ResolvedModuleOptions, RuntimeSpec,
-  SourceType, UsageState,
+  CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyId, DependencyType,
+  ExportsInfoArtifact, GenerateContext, Module, ModuleGraph, ModuleIdentifier, NO_SOURCE_TYPE_LIST,
+  NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
+  ResolvedModuleOptions, RuntimeSpec, SourceType, UsageState,
   rspack_sources::{BoxSource, Source},
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_intern::Atom;
 use rspack_util::fx_hash::FxIndexMap;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 pub(crate) use source_builder::CssSourceBuilder;
 
@@ -55,6 +55,10 @@ pub struct CssParserAndGenerator {
   pub export_type: Option<CssExportType>,
   pub exports_only: bool,
   pub es_module: bool,
+  // Generated during codegen, shared by source types and child generators.
+  // Rebuilding or restoring the module starts with an empty cache.
+  #[cacheable(with=Skip)]
+  local_idents: tokio::sync::OnceCell<FxHashMap<DependencyId, SmolStr>>,
 }
 
 impl CssParserAndGenerator {
@@ -210,6 +214,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     &mut self,
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>> {
+    self.local_idents = Default::default();
     let generator_options = css_generator_options(parse_context.module_generator_options);
     let parser_options = css_parser_options(parse_context.module_parser_options);
     let named_exports = parser_options
@@ -254,31 +259,20 @@ impl ParserAndGenerator for CssParserAndGenerator {
       .css
       .as_deref()
       .expect("CSS module should have build info");
-    match generate_context.requested_source_type {
-      SourceType::Css => Ok(
-        CssModuleGenerator::new(
-          source.clone(),
-          module,
-          css_build_info,
-          generate_context,
-          self.hot,
-          self.es_module,
-        )
-        .generate_css_source(),
-      ),
-      SourceType::JavaScript => CssModuleGenerator::new(
-        source.clone(),
-        module,
-        css_build_info,
-        generate_context,
-        self.hot,
-        self.es_module,
-      )
-      .generate_javascript_source(),
-      _ => panic!(
-        "Unsupported source type: {:?}",
-        generate_context.requested_source_type
-      ),
+    let requested_source_type = generate_context.requested_source_type;
+    let generator = CssModuleGenerator::new(
+      source.clone(),
+      module,
+      css_build_info,
+      generate_context,
+      self.hot,
+      self.es_module,
+    )
+    .await?;
+    match requested_source_type {
+      SourceType::Css => generator.generate_css_source().await,
+      SourceType::JavaScript => generator.generate_javascript_source().await,
+      source_type => panic!("Unsupported source type: {source_type:?}"),
     }
   }
 
@@ -317,6 +311,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     self.es_module.hash(&mut hasher);
     self.exports_only.hash(&mut hasher);
     self.effective_export_type(module).hash(&mut hasher);
+    CssModuleGenerator::hash_local_ident_inputs(module, compilation, &mut hasher);
     crate::css_exports::hash_icss_imports(compilation, module, &mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }

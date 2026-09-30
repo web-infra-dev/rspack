@@ -11,9 +11,10 @@ use once_cell::sync::OnceCell;
 use regex::Regex;
 use rspack_core::{
   ChunkGraph, Compilation, CompiledStringTemplate, CompilerOptions, CssExportType,
-  CssExportsConvention, CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency,
-  FileReplacements, FilenameRenderValue, GeneratorOptions, ImportAttributes, LocalIdentName,
-  Module, ModuleType, NormalModuleCreateData, PathData, PlaceholderKind, ResourceData,
+  CssExportsConvention, CssLocalIdentHashInputs, CssModuleGeneratorOptions,
+  CssModuleRenderCondition, Dependency, FileReplacements, FilenameRenderValue, GeneratorOptions,
+  ImportAttributes, LocalIdentName, Module, ModuleType, NormalModuleCreateData, PathData,
+  PlaceholderKind, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
@@ -21,7 +22,7 @@ use rspack_util::{
   identifier::{make_paths_relative, split_at_query_mark},
   itoa, json_stringify_str,
 };
-use rustc_hash::{FxHashSet, FxHasher};
+use rustc_hash::FxHasher;
 
 use crate::{
   dependency::{CssIcssImportDependency, CssImportDependency},
@@ -147,23 +148,6 @@ pub(crate) fn css_dependency_meta(dependency: &dyn Dependency) -> CssDependencyM
   }
 }
 
-#[derive(Debug, Clone)]
-pub struct PresentationalDependencyHashUpdate<'a> {
-  pub start: u32,
-  pub end: u32,
-  pub content: &'a str,
-}
-
-#[derive(Debug, Clone)]
-pub struct LocalIdentModuleHashOptions<'a> {
-  pub export_dependency_names: Vec<String>,
-  pub graph_export_names: FxHashSet<String>,
-  pub presentational_dependency_hash_updates: Vec<PresentationalDependencyHashUpdate<'a>>,
-  pub es_module: bool,
-  pub named_exports: bool,
-  pub exports_convention: Option<CssExportsConvention>,
-}
-
 /// Values that only depend on the module and the generator options, reused by every local ident
 /// rendered for the module.
 #[derive(Debug, Clone)]
@@ -233,11 +217,11 @@ impl LocalIdentRenderCache {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct LocalIdentOptions<'a> {
   relative_resource: String,
   module_type: &'static str,
-  source: Arc<str>,
+  source: Cow<'a, str>,
   module_hash: OnceCell<String>,
   /// Values reused by every local ident rendered for this module.
   render_cache: OnceCell<LocalIdentRenderCache>,
@@ -253,7 +237,7 @@ impl<'a> LocalIdentOptions<'a> {
   pub fn new(
     resource_data: &ResourceData,
     module_type: &ModuleType,
-    source: Arc<str>,
+    source: Cow<'a, str>,
     compiler_options: &'a CompilerOptions,
     generator_options: &'a CssModuleGeneratorOptions,
   ) -> Self {
@@ -293,14 +277,14 @@ impl<'a> LocalIdentOptions<'a> {
     }
   }
 
-  fn module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions<'_>) -> &str {
+  fn module_hash(&self, module_hash_options: &CssLocalIdentHashInputs) -> &str {
     self
       .module_hash
       .get_or_init(|| self.get_module_hash(module_hash_options))
       .as_str()
   }
 
-  fn get_module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions<'_>) -> String {
+  fn get_module_hash(&self, module_hash_options: &CssLocalIdentHashInputs) -> String {
     let local_ident_name = self.local_ident_name.template.as_str();
     let build_hash = {
       let mut hasher = RspackHasher::new(&self.local_ident_hash_function);
@@ -326,16 +310,10 @@ impl<'a> LocalIdentOptions<'a> {
     };
 
     let graph_hash = {
-      let mut graph_exports = module_hash_options
-        .graph_export_names
-        .iter()
-        .collect::<Vec<_>>();
-      graph_exports.sort();
-
       let mut hasher = RspackHasher::new(&self.local_ident_hash_function);
       hasher.write(self.relative_resource.as_bytes());
       hasher.write(b"false");
-      for name in graph_exports {
+      for name in &module_hash_options.graph_export_names {
         hasher.write(name.as_bytes());
         hasher.write(b"2truefalse");
       }
@@ -392,7 +370,7 @@ impl<'a> LocalIdentOptions<'a> {
   pub async fn get_local_ident(
     &self,
     local: &str,
-    module_hash_options: &LocalIdentModuleHashOptions<'_>,
+    module_hash_options: &CssLocalIdentHashInputs,
   ) -> Result<String> {
     let output = &self.compiler_options.output;
     let local_ident_hash = {
