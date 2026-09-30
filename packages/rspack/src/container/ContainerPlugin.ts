@@ -43,9 +43,18 @@ export type Exposes<Enhanced extends boolean = false> =
   (ExposesItem | ExposesObject<Enhanced>)[] | ExposesObject<Enhanced>;
 export type ExposesItem = string;
 export type ExposesItems = ExposesItem[];
-export type ExposesObject<Enhanced extends boolean = false> = {
-  [k: string]: ExposesConfig<Enhanced> | ExposesItem | ExposesItems;
+type ExposesObjectBase<Config> = {
+  [k: string]: Config | ExposesItem | ExposesItems;
 };
+// Select concrete map shapes rather than nesting the conditional inside the
+// index signature: TypeScript otherwise treats the generic maps as assignable.
+export type ExposesObject<Enhanced extends boolean = false> = [
+  Enhanced,
+] extends [true]
+  ? ExposesObjectBase<ExposesConfig<true>>
+  : [Enhanced] extends [false]
+    ? ExposesObjectBase<ExposesConfig<false>>
+    : ExposesObjectBase<ExposesConfig<boolean>>;
 type ExposesBaseConfig = {
   import: ExposesItem | ExposesItems;
   name?: string;

@@ -93,8 +93,9 @@ export class ModuleFederationPluginV1 {
           filename: options.filename,
           runtime: options.runtime,
           shareScope: options.shareScope,
-          exposes: options.exposes,
-          enhanced,
+          ...(options.enhanced
+            ? { exposes: options.exposes, enhanced: true }
+            : { exposes: options.exposes, enhanced: false }),
         }).apply(compiler);
       }
       if (

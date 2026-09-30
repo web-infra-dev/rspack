@@ -17,6 +17,7 @@ use rspack_util::source_map::SourceMapKind;
 
 use super::{
   provide_for_shared_dependency::ProvideForSharedDependency,
+  provide_shared_dependency::push_provider_behavior,
   provide_shared_plugin::ProvideVersion,
   share_runtime_module::{
     CodeGenerationDataShareInit, DataInitInfo, ProvideSharedInfo, ShareInitData,
@@ -79,7 +80,16 @@ impl ProvideSharedModule {
     // Same layout as webpack's ProvideSharedModule: `(scope)`, then ` (layer)`
     // when layered, then `name@version = request`. External manifest readers
     // parse it by token position.
-    let identifier = format!("{readable_identifier} [identity:{identity_key}]");
+    let mut identifier = format!("{readable_identifier} [identity:{identity_key}] [behavior:");
+    push_provider_behavior(
+      &mut identifier,
+      eager,
+      singleton,
+      required_version.as_ref(),
+      strict_version,
+      tree_shaking_mode.as_deref(),
+    );
+    identifier.push(']');
     Self {
       dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),

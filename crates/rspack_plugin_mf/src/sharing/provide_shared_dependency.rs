@@ -7,6 +7,42 @@ use rspack_core::{
 use super::provide_shared_plugin::ProvideVersion;
 use crate::{ConsumeVersion, ShareScope, SharedIdentity, push_identifier_component};
 
+pub(crate) fn push_provider_behavior(
+  identifier: &mut String,
+  eager: bool,
+  singleton: Option<bool>,
+  required_version: Option<&ConsumeVersion>,
+  strict_version: Option<bool>,
+  tree_shaking_mode: Option<&str>,
+) {
+  identifier.push(if eager { '1' } else { '0' });
+  identifier.push(match singleton {
+    None => 'n',
+    Some(false) => '0',
+    Some(true) => '1',
+  });
+  match required_version {
+    None => identifier.push('n'),
+    Some(ConsumeVersion::False) => identifier.push('f'),
+    Some(ConsumeVersion::Version(version)) => {
+      identifier.push('v');
+      push_identifier_component(identifier, version);
+    }
+  }
+  identifier.push(match strict_version {
+    None => 'n',
+    Some(false) => '0',
+    Some(true) => '1',
+  });
+  match tree_shaking_mode {
+    None => identifier.push('n'),
+    Some(mode) => {
+      identifier.push('s');
+      push_identifier_component(identifier, mode);
+    }
+  }
+}
+
 #[cacheable]
 #[derive(Debug)]
 pub struct ProvideSharedDependency {
@@ -47,7 +83,14 @@ impl ProvideSharedDependency {
     );
     push_identifier_component(&mut resource_identifier, &request);
     push_identifier_component(&mut resource_identifier, &version.to_string());
-    resource_identifier.push(if eager { '1' } else { '0' });
+    push_provider_behavior(
+      &mut resource_identifier,
+      eager,
+      singleton,
+      required_version.as_ref(),
+      strict_version,
+      tree_shaking_mode.as_deref(),
+    );
     let resource_identifier = resource_identifier.into();
     Self {
       id: DependencyId::new(),

@@ -6,6 +6,7 @@ import rspack, {
   type EnhancedContainerPluginOptions,
   type EnhancedModuleFederationPluginV1Options,
   type ExposesConfig,
+  type ExposesObject,
   type ModuleFederationPluginV1Options,
 } from '@rspack/core';
 
@@ -98,6 +99,26 @@ const extendedContainer: ExtendedContainerOptions = {
 new rspack.container.ContainerPlugin(extendedContainer);
 
 const reusableLegacyExpose: ExposesConfig = { import: './index' };
+const reusableLayeredExposes: ExposesObject<true> = {
+  './entry': { import: './index', layer: 'server' },
+};
+new rspack.container.ContainerPlugin({
+  name: 'reusable-layered',
+  enhanced: true,
+  exposes: reusableLayeredExposes,
+});
+// @ts-expect-error A reusable enhanced map must not bypass the legacy gate.
+export const legacyExposeMap: ExposesObject<false> = reusableLayeredExposes;
+// @ts-expect-error A reusable enhanced map requires enhanced: true.
+new rspack.container.ContainerPlugin({
+  name: 'legacy-map',
+  exposes: reusableLayeredExposes,
+});
+new rspack.container.ModuleFederationPluginV1({
+  name: 'legacy-map',
+  // @ts-expect-error V1 also requires the enhanced gate for a reusable layered map.
+  exposes: reusableLayeredExposes,
+});
 new rspack.container.ContainerPlugin({
   name: 'dynamic-enhanced',
   enhanced: dynamicEnhanced,
