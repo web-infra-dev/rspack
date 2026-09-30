@@ -27,6 +27,62 @@ use crate::ShareScope;
 #[cacheable]
 #[derive(Debug, Clone, rspack_hash::RspackHash)]
 pub struct ConsumeOptions {
+  pub import: Option<String>,
+  pub import_resolved: Option<String>,
+  pub share_key: String,
+  pub share_scope: ShareScope,
+  pub required_version: Option<ConsumeVersion>,
+  pub package_name: Option<String>,
+  pub strict_version: bool,
+  pub singleton: bool,
+  pub eager: bool,
+  pub tree_shaking_mode: Option<String>,
+}
+
+impl From<ConsumeOptions> for EnhancedConsumeOptions {
+  fn from(value: ConsumeOptions) -> Self {
+    Self {
+      request: None,
+      issuer_layer: None,
+      layer: None,
+      import: value.import,
+      import_resolved: value.import_resolved,
+      share_key: value.share_key,
+      share_scope: value.share_scope,
+      required_version: value.required_version,
+      package_name: value.package_name,
+      strict_version: value.strict_version,
+      singleton: value.singleton,
+      eager: value.eager,
+      tree_shaking_mode: value.tree_shaking_mode,
+    }
+  }
+}
+
+#[derive(Debug)]
+pub struct ConsumeSharedPluginOptions {
+  pub consumes: Vec<(String, Arc<ConsumeOptions>)>,
+  pub enhanced: bool,
+}
+
+impl From<ConsumeSharedPluginOptions> for EnhancedConsumeSharedPluginOptions {
+  fn from(value: ConsumeSharedPluginOptions) -> Self {
+    Self {
+      consumes: value
+        .consumes
+        .into_iter()
+        .map(|(key, options)| (key, Arc::new(Arc::unwrap_or_clone(options).into())))
+        .collect(),
+      enhanced: value.enhanced,
+    }
+  }
+}
+
+/// Consumer options with request, issuer-layer, and shared-layer selection.
+/// Cloned when resolving a fallback without changing the configured consumer.
+#[cacheable]
+#[derive(Debug, Clone, rspack_hash::RspackHash)]
+pub struct EnhancedConsumeOptions {
   pub request: Option<String>,
   pub issuer_layer: Option<String>,
   pub layer: Option<String>,
@@ -76,15 +132,15 @@ pub static PACKAGE_NAME: LazyLock<Regex> =
 
 #[derive(Debug)]
 pub struct MatchedConsumes {
-  pub resolved: FxHashMap<RequestMatchKey, Arc<ConsumeOptions>>,
-  pub unresolved: FxHashMap<RequestMatchKey, Arc<ConsumeOptions>>,
-  pub prefixed: Vec<(RequestMatchKey, Arc<ConsumeOptions>)>,
+  pub resolved: FxHashMap<RequestMatchKey, Arc<EnhancedConsumeOptions>>,
+  pub unresolved: FxHashMap<RequestMatchKey, Arc<EnhancedConsumeOptions>>,
+  pub prefixed: Vec<(RequestMatchKey, Arc<EnhancedConsumeOptions>)>,
 }
 
 pub async fn resolve_matched_configs(
   compilation: &mut Compilation,
   resolver: Arc<Resolver>,
-  configs: &[(String, Arc<ConsumeOptions>)],
+  configs: &[(String, Arc<EnhancedConsumeOptions>)],
   enhanced: bool,
 ) -> MatchedConsumes {
   let mut resolved = FxHashMap::default();
@@ -147,15 +203,15 @@ pub fn get_required_version_from_description_file(
 }
 
 #[derive(Debug)]
-pub struct ConsumeSharedPluginOptions {
-  pub consumes: Vec<(String, Arc<ConsumeOptions>)>,
+pub struct EnhancedConsumeSharedPluginOptions {
+  pub consumes: Vec<(String, Arc<EnhancedConsumeOptions>)>,
   pub enhanced: bool,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct ConsumeSharedPlugin {
-  options: ConsumeSharedPluginOptions,
+  options: EnhancedConsumeSharedPluginOptions,
   resolver: OnceLock<Arc<Resolver>>,
   compiler_context: OnceLock<Context>,
   matched_consumes: OnceLock<Arc<MatchedConsumes>>,
@@ -163,6 +219,10 @@ pub struct ConsumeSharedPlugin {
 
 impl ConsumeSharedPlugin {
   pub fn new(options: ConsumeSharedPluginOptions) -> Self {
+    Self::new_enhanced(options.into())
+  }
+
+  pub fn new_enhanced(options: EnhancedConsumeSharedPluginOptions) -> Self {
     Self::new_inner(
       options,
       Default::default(),
@@ -231,7 +291,7 @@ impl ConsumeSharedPlugin {
     &self,
     context: &Context,
     request: &str,
-    config: Arc<ConsumeOptions>,
+    config: Arc<EnhancedConsumeOptions>,
     mut add_diagnostic: impl FnMut(Diagnostic),
   ) -> Option<ConsumeVersion> {
     let mut required_version_warning = |details: &str| {
@@ -306,7 +366,7 @@ impl ConsumeSharedPlugin {
     &self,
     context: &Context,
     request: &str,
-    config: Arc<ConsumeOptions>,
+    config: Arc<EnhancedConsumeOptions>,
     runtime_mode: RuntimeMode,
     mut add_diagnostic: impl FnMut(Diagnostic),
   ) -> ConsumeSharedModule {
@@ -350,13 +410,13 @@ impl ConsumeSharedPlugin {
     let required_version = self
       .get_required_version(context, request, config.clone(), add_diagnostic)
       .await;
-    ConsumeSharedModule::new(
+    ConsumeSharedModule::new_enhanced(
       if direct_fallback {
         self.get_context()
       } else {
         context.clone()
       },
-      ConsumeOptions {
+      EnhancedConsumeOptions {
         request: config.request.clone(),
         issuer_layer: config.issuer_layer.clone(),
         layer: config.layer.clone(),
@@ -439,7 +499,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
       .create_consume_shared_module(
         &data.context,
         request,
-        Arc::new(ConsumeOptions {
+        Arc::new(EnhancedConsumeOptions {
           request: Some(request.to_owned()),
           issuer_layer: options.issuer_layer.clone(),
           layer: options.layer.clone(),
