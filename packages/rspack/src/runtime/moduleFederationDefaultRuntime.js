@@ -52,11 +52,29 @@ export default function () {
 
     const createShareScopeRequire = (shareScopes) => {
       const ordered = Array.isArray(shareScopes);
-      const wrapExternal = (external, externalModuleId) => {
+      // The bundler runtime reads each remote's external request from this
+      // mapping. Give each entry its own token so aliases sharing a deduplicated
+      // external module retain their individual scope contracts.
+      const remotes = runtimeRequire.federation.bundlerRuntimeOptions.remotes;
+      const externalRequests = new Map();
+      const idToExternalAndNameMapping = {};
+      for (const [id, data] of Object.entries(
+        remotes.idToExternalAndNameMapping,
+      )) {
+        const request = {};
+        externalRequests.set(request, { id: data[2], shareScope: data[0] });
+        idToExternalAndNameMapping[id] = [...data];
+        idToExternalAndNameMapping[id][2] = request;
+      }
+      const federation = {
+        ...runtimeRequire.federation,
+        bundlerRuntimeOptions: {
+          ...runtimeRequire.federation.bundlerRuntimeOptions,
+          remotes: { ...remotes, idToExternalAndNameMapping },
+        },
+      };
+      const wrapExternal = (external, remote) => {
         if (!ordered) {
-          const remote = Object.values(
-            remotesLoadingModuleIdToRemoteDataMapping,
-          ).find((remote) => remote.externalModuleId === externalModuleId);
           if (
             !remote ||
             (!Array.isArray(remote.shareScope) &&
@@ -67,9 +85,7 @@ export default function () {
         }
         if (!external) return external;
         if (external.then) {
-          return external.then((external) =>
-            wrapExternal(external, externalModuleId),
-          );
+          return external.then((external) => wrapExternal(external, remote));
         }
         const init = external.init;
         if (typeof init !== 'function') return external;
@@ -77,14 +93,14 @@ export default function () {
         Object.defineProperty(facade, 'init', {
           value: (shareScope, initScope, remoteEntryInitOptions) => {
             if (!ordered) {
-              return init.call(
-                external,
-                shareScope,
-                initScope,
-                remoteEntryInitOptions === undefined
-                  ? undefined
-                  : withShareScopeKeys(remoteEntryInitOptions, [shareScopes]),
-              );
+              return remoteEntryInitOptions === undefined
+                ? init.call(external, shareScope, initScope)
+                : init.call(
+                    external,
+                    shareScope,
+                    initScope,
+                    withShareScopeKeys(remoteEntryInitOptions, [shareScopes]),
+                  );
             }
             let initializedScopes = arrayInitializedExternals.get(external);
             if (!initializedScopes) {
@@ -116,8 +132,18 @@ export default function () {
         return facade;
       };
       return new Proxy(runtimeRequire, {
+        get(target, key, receiver) {
+          return key === 'federation'
+            ? federation
+            : Reflect.get(target, key, receiver);
+        },
         apply(target, thisArg, args) {
-          return wrapExternal(Reflect.apply(target, thisArg, args), args[0]);
+          const remote = externalRequests.get(args[0]);
+          const moduleArgs = remote ? [remote.id, ...args.slice(1)] : args;
+          return wrapExternal(
+            Reflect.apply(target, thisArg, moduleArgs),
+            remote,
+          );
         },
       });
     };
@@ -132,23 +158,35 @@ export default function () {
         return;
       }
       const arrayAwareInitializeSharing = function (shareScope, options) {
-        const arrayRemotes = [];
-        for (const remote of instance.options.remotes) {
-          if (
-            Array.isArray(remote.shareScope) &&
-            remote.shareScope.includes(shareScope)
-          ) {
-            arrayRemotes.push([remote, remote.shareScope]);
-            remote.shareScope = shareScope;
-          }
-        }
-        try {
-          return initializeSharing.call(this, shareScope, options);
-        } finally {
-          for (const [remote, shareScopes] of arrayRemotes) {
-            remote.shareScope = shareScopes;
-          }
-        }
+        const host = this.host || instance;
+        const remotes = host.options.remotes.map((remote) =>
+          Array.isArray(remote.shareScope) &&
+          remote.shareScope.includes(shareScope)
+            ? Object.create(remote, {
+                shareScope: { value: shareScope, enumerable: true },
+              })
+            : remote,
+        );
+        // A call-local view survives asynchronous hooks and overlapping scope
+        // initialization without temporarily changing the host's remote config.
+        const scopedOptions = Object.create(host.options, {
+          remotes: { value: remotes },
+        });
+        const scopedHost = new Proxy(host, {
+          get(target, key, receiver) {
+            return key === 'options'
+              ? scopedOptions
+              : Reflect.get(target, key, receiver);
+          },
+        });
+        const scopedHandler = new Proxy(this, {
+          get(target, key, receiver) {
+            return key === 'host'
+              ? scopedHost
+              : Reflect.get(target, key, receiver);
+          },
+        });
+        return initializeSharing.call(scopedHandler, shareScope, options);
       };
       arrayAwareInitializeSharing.__rspack_share_scope_array_wrapper__ = true;
       sharedHandler.initializeSharing = arrayAwareInitializeSharing;

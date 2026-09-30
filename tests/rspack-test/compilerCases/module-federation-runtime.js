@@ -30,6 +30,10 @@ function createRuntime({
   consumeCalls = [],
   additionalInitScopes = [],
   scopeToSharingDataMapping = {},
+  deferRemoteScan = false,
+  rejectRemoteScan = false,
+  remoteData,
+  legacyInitialization = false,
   // Use the real bundler-runtime initContainerEntry instead of recording
   // its arguments; the runtime under test then gets its own scope map.
   realInitContainerEntry = false,
@@ -55,7 +59,7 @@ function createRuntime({
     },
     remotesLoadingData: {
       chunkMapping: {},
-      moduleIdToRemoteDataMapping: {
+      moduleIdToRemoteDataMapping: remoteData || {
         remote: {
           shareScope: remoteShareScope,
           name: './module',
@@ -95,13 +99,19 @@ function createRuntime({
     sharedHandler: {
       initializeSharing(shareScope) {
         initializedScopes.push(shareScope);
-        if (
-          instance.options.remotes.some(
-            (item) => item.shareScope === shareScope,
+        const scan = () => {
+          this.completedScans = (this.completedScans || 0) + 1;
+          this.host.completedScans = (this.host.completedScans || 0) + 1;
+          if (rejectRemoteScan) throw new Error('remote scan failed');
+          if (
+            this.host.options.remotes.some(
+              (item) => item.shareScope === shareScope,
+            )
           )
-        ) {
-          matchedScopes.push(shareScope);
-        }
+            matchedScopes.push(shareScope);
+        };
+        if (deferRemoteScan) return Promise.resolve().then(scan);
+        scan();
         return [];
       },
     },
@@ -114,6 +124,7 @@ function createRuntime({
     },
     registerShared() {},
   };
+  instance.sharedHandler.host = instance;
   const localBundlerRuntime = {
     ...bundlerRuntime,
     consumes: (options) => {
@@ -127,6 +138,15 @@ function createRuntime({
           initContainerCalls.push(options);
         },
   };
+  if (legacyInitialization) {
+    localBundlerRuntime.I = ({ webpackRequire, shareScopeName, initScope }) => {
+      const remoteId =
+        webpackRequire.federation.bundlerRuntimeOptions.remotes
+          .idToExternalAndNameMapping.remote[2];
+      const container = webpackRequire(remoteId);
+      return container.init(webpackRequire.S[shareScopeName], initScope);
+    };
+  }
   const importedBundlerRuntime = {
     ...localBundlerRuntime,
     bundlerRuntime: localBundlerRuntime,
@@ -183,6 +203,100 @@ const hostShareScopeMap = () => ({
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [
+  {
+    description:
+      'keeps concurrent asynchronous remote scans scoped without mutating remotes',
+    build() {},
+    check: async () => {
+      const { instance, matchedScopes, remote } = createRuntime({
+        deferRemoteScan: true,
+      });
+      const first = instance.initializeSharing('primary');
+      const second = instance.initializeSharing('secondary');
+      expect(remote.shareScope).toEqual(['primary', 'secondary']);
+      await Promise.all([first, second]);
+      expect(matchedScopes).toEqual(['primary', 'secondary']);
+      expect(remote.shareScope).toEqual(['primary', 'secondary']);
+      expect(instance.completedScans).toBe(2);
+      expect(instance.sharedHandler.completedScans).toBe(2);
+    },
+  },
+  {
+    description:
+      'preserves remote configuration after a rejected asynchronous scan',
+    build() {},
+    check: async () => {
+      const { instance, remote } = createRuntime({
+        deferRemoteScan: true,
+        rejectRemoteScan: true,
+      });
+      const result = await Promise.allSettled([
+        instance.initializeSharing('primary'),
+      ]);
+      expect(result[0].status).toBe('rejected');
+      expect(result[0].reason.message).toBe('remote scan failed');
+      expect(remote.shareScope).toEqual(['primary', 'secondary']);
+      expect(instance.completedScans).toBe(1);
+      expect(instance.sharedHandler.completedScans).toBe(1);
+    },
+  },
+  {
+    description: 'keeps scalar legacy initialization at two arguments',
+    build() {},
+    check: async () => {
+      const calls = [];
+      const { runtimeRequire } = createRuntime({
+        legacyInitialization: true,
+        external: {
+          init(...args) {
+            calls.push(args);
+          },
+        },
+      });
+      await runtimeRequire.I('primary', []);
+      expect(calls).toHaveLength(1);
+      expect(calls[0]).toHaveLength(2);
+    },
+  },
+  ...[false, true].map((reverse) => ({
+    description: `keeps shared-external aliases' scope contracts distinct (${reverse})`,
+    build() {},
+    check: async () => {
+      const contracts = [];
+      const entries = [
+        [
+          'scalar',
+          {
+            shareScope: 'primary',
+            name: './scalar',
+            externalModuleId: 'external',
+            remoteName: 'remote',
+          },
+        ],
+        [
+          'ordered',
+          {
+            shareScope: ['primary', 'secondary'],
+            name: './ordered',
+            externalModuleId: 'external',
+            remoteName: 'remote',
+          },
+        ],
+      ];
+      const { runtimeRequire } = createRuntime({
+        external: {
+          init(_scope, _initScope, options) {
+            contracts.push(options.shareScopeKeys);
+          },
+        },
+        remoteData: Object.fromEntries(reverse ? entries.reverse() : entries),
+      });
+      await runtimeRequire.I('primary', []);
+      expect(contracts).toEqual(
+        reverse ? [['primary'], 'primary'] : ['primary', ['primary']],
+      );
+    },
+  })),
   {
     description: 'preserves scalar custom-scope container initialization',
     build() {},
@@ -328,7 +442,8 @@ module.exports = [
     },
   },
   {
-    description: 'binds a configured array scope by name when initialized alone',
+    description:
+      'binds a configured array scope by name when initialized alone',
     build() {},
     check: async () => {
       const {
