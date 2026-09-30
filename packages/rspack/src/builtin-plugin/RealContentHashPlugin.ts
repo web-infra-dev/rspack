@@ -12,8 +12,31 @@ const RealContentHashPluginImpl = create(
   'compilation',
 );
 
+// Observer taps may return void, but invoking the hook returns undefined
+// when no tap supplies a hash. Keep these return types separate.
+interface UpdateHashHookOptions extends liteTapable.Hook<
+  [Buffer[], string],
+  string | undefined
+> {
+  tap(
+    options: liteTapable.Options,
+    fn: (assets: Buffer[], oldHash: string) => string | void,
+  ): void;
+  withOptions(
+    options: Parameters<liteTapable.Hook['withOptions']>[0],
+  ): UpdateHashHookOptions;
+}
+
+interface UpdateHashHook extends liteTapable.SyncBailHook<
+  [Buffer[], string],
+  string | undefined
+> {
+  tap: UpdateHashHookOptions['tap'];
+  withOptions: UpdateHashHookOptions['withOptions'];
+}
+
 export type RealContentHashPluginHooks = {
-  updateHash: liteTapable.SyncBailHook<[Buffer[], string], string | void>;
+  updateHash: UpdateHashHook;
 };
 
 export const RealContentHashPlugin =
@@ -32,7 +55,10 @@ RealContentHashPlugin.getCompilationHooks = (compilation: Compilation) => {
   let hooks = compilationHooksMap.get(compilation);
   if (hooks === undefined) {
     hooks = {
-      updateHash: new liteTapable.SyncBailHook(['assets', 'oldHash']),
+      updateHash: new liteTapable.SyncBailHook([
+        'assets',
+        'oldHash',
+      ]) as UpdateHashHook,
     };
     compilationHooksMap.set(compilation, hooks);
   }
@@ -45,7 +71,7 @@ export const createRealContentHashPluginHooksRegisters: CreatePartialRegisters<
   return {
     registerRealContentHashPluginUpdateHashTaps: createTap(
       RegisterJsTapKind.RealContentHashPluginUpdateHash,
-      function () {
+      function (): liteTapable.Hook<[Buffer[], string], string | undefined> {
         return RealContentHashPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
         ).updateHash;
