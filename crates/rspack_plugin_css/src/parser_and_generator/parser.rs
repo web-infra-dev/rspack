@@ -3,11 +3,12 @@ use std::{path::Path, sync::Arc};
 use once_cell::sync::OnceCell;
 use rspack_core::{
   BoxDependency, ConstDependency, CssAutoOrModuleParserOptions, CssExportType, CssExports,
-  CssExportsConvention, CssLayer, CssModuleGeneratorOptions, CssModuleRenderCondition,
-  CssParserImport, CssParserImportContext, Dependency, DependencyCodeGenerationRef, DependencyId,
-  DependencyRange, ModuleType, ParseContext, ParseResult, ResourceData, StaticExportsDependency,
-  StaticExportsSpec, diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom,
-  rspack_sources::Source, topological_sort,
+  CssExportsConvention, CssLayer, CssLocalNames, CssModuleGeneratorOptions,
+  CssModuleRenderCondition, CssParserImport, CssParserImportContext, Dependency,
+  DependencyCodeGenerationRef, DependencyId, DependencyRange, ModuleType, ParseContext,
+  ParseResult, ResourceData, StaticExportsDependency, StaticExportsSpec,
+  diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
+  topological_sort,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray};
 use rspack_plugin_javascript::{RawMagicComment, try_extract_magic_comment_from_comments};
@@ -38,14 +39,33 @@ pub(super) struct CssModuleParser<'context> {
   source: Arc<dyn Source>,
   source_code: Arc<str>,
   diagnostics: Vec<Diagnostic>,
+  // Owns dependencies in parse order and allows definition lookup by ID.
   dependencies: FxIndexMap<DependencyId, BoxDependency>,
   presentational_dependencies: Vec<DependencyCodeGenerationRef>,
   code_generation_dependencies: Vec<DependencyId>,
+  // Public JS export names after exportsConvention; colliding aliases may
+  // point to a combined definition containing several local identifiers.
   css_exports: CssExports,
-  local_definitions: FxHashMap<SmolStr, LocalCssDefinitions>,
+  // Raw local names encountered in declarations or references. Composes uses
+  // these bindings to resolve a class independently of public export aliases.
+  local_ident_definitions: FxHashMap<SmolStr, DependencyId>,
+  // Raw dashed local names (such as custom properties), kept separate from
+  // ordinary identifiers because they require a different generated name.
+  local_dashed_ident_definitions: FxHashMap<SmolStr, DependencyId>,
+  // Declared locals only, persisted in CssBuildInfo so codegen can report
+  // unused generated identifiers to the CSS minimizer.
+  css_local_names: CssLocalNames,
+  // Unresolved local compose names mapped to placeholder IDs. Resolve them
+  // after parsing to support declarations that appear later in the module.
+  pending_local_composes: FxHashMap<SmolStr, DependencyId>,
+  // Reuses literal definitions for names composed with `from global`.
   global_composes: FxHashMap<SmolStr, DependencyId>,
+  // Current @value/:import/:export bindings, including whether a name can
+  // interpolate individual identifiers or only replace a whole value.
   icss_definitions: FxHashMap<SmolStr, IcssBinding>,
+  // Resolved request of the :import block whose bindings are being parsed.
   current_icss_import_from: Option<String>,
+  // Tracks imported CSS order for the cascade before chunk graph construction.
   composes_order: ComposesOrderState,
   local_ident_options: OnceCell<LocalIdentOptions<'context>>,
 }
@@ -54,31 +74,6 @@ pub(super) struct CssModuleParser<'context> {
 enum LocalCssIdentKind {
   Ident,
   DashedIdent,
-}
-
-#[derive(Default)]
-struct LocalCssDefinitions {
-  ident: Option<DependencyId>,
-  dashed_ident: Option<DependencyId>,
-  /// The last declared kind determines the identifier used by CSS generation.
-  declared: Option<DependencyId>,
-  pending_compose: Option<DependencyId>,
-}
-
-impl LocalCssDefinitions {
-  fn get(&self, kind: LocalCssIdentKind) -> Option<DependencyId> {
-    match kind {
-      LocalCssIdentKind::Ident => self.ident,
-      LocalCssIdentKind::DashedIdent => self.dashed_ident,
-    }
-  }
-
-  fn set(&mut self, kind: LocalCssIdentKind, id: DependencyId) {
-    match kind {
-      LocalCssIdentKind::Ident => self.ident = Some(id),
-      LocalCssIdentKind::DashedIdent => self.dashed_ident = Some(id),
-    }
-  }
 }
 
 #[derive(Clone, Copy)]
@@ -311,7 +306,10 @@ impl<'context> CssModuleParser<'context> {
       presentational_dependencies: vec![],
       code_generation_dependencies: vec![],
       css_exports: Default::default(),
-      local_definitions: Default::default(),
+      local_ident_definitions: Default::default(),
+      local_dashed_ident_definitions: Default::default(),
+      css_local_names: Default::default(),
+      pending_local_composes: Default::default(),
       global_composes: Default::default(),
       icss_definitions: Default::default(),
       current_icss_import_from: None,
@@ -355,11 +353,7 @@ impl<'context> CssModuleParser<'context> {
 
     let css_build_info = self.parse_context.build_info.css.get_or_insert_default();
     css_build_info.exports = self.css_exports;
-    css_build_info.local_names = self
-      .local_definitions
-      .into_iter()
-      .filter_map(|(name, definitions)| definitions.declared.map(|id| (name, id)))
-      .collect();
+    css_build_info.local_names = self.css_local_names;
     css_build_info.has_charset = self.has_charset;
 
     Ok(
@@ -1503,7 +1497,7 @@ impl<'context> CssModuleParser<'context> {
 
   fn local_ident_definition(&self, name: &str) -> Option<DependencyId> {
     // CSS compositions use raw local names; convention aliases are JS exports.
-    self.local_definitions.get(name)?.ident
+    self.local_ident_definitions.get(name).copied()
   }
 
   fn contains_local_definition(&self, mut export: DependencyId, local: DependencyId) -> bool {
@@ -1537,12 +1531,12 @@ impl<'context> CssModuleParser<'context> {
     declared: bool,
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<DependencyId> {
-    let id = if let Some(id) = self
-      .local_definitions
-      .get(name)
-      .and_then(|local| local.get(kind))
-    {
-      id
+    let existing = match kind {
+      LocalCssIdentKind::Ident => self.local_ident_definitions.get(name),
+      LocalCssIdentKind::DashedIdent => self.local_dashed_ident_definitions.get(name),
+    };
+    let id = if let Some(id) = existing {
+      *id
     } else {
       let ident = self
         .get_local_ident_options()
@@ -1561,20 +1555,17 @@ impl<'context> CssModuleParser<'context> {
         true,
         None,
       ));
-      self
-        .local_definitions
-        .entry(name.into())
-        .or_default()
-        .set(kind, id);
+      match kind {
+        LocalCssIdentKind::Ident => self.local_ident_definitions.insert(name.into(), id),
+        LocalCssIdentKind::DashedIdent => {
+          self.local_dashed_ident_definitions.insert(name.into(), id)
+        }
+      };
       id
     };
     if declared {
       self.definition_mut(id).can_mangle = Some(true);
-      self
-        .local_definitions
-        .get_mut(name)
-        .expect("local CSS definition should exist")
-        .declared = Some(id);
+      self.css_local_names.insert(name.into(), id);
     }
     let mut appended = FxHashMap::default();
     for alias in export_locals_convention(name, self.convention()) {
@@ -1689,11 +1680,9 @@ impl<'context> CssModuleParser<'context> {
         id
       } else {
         *self
-          .local_definitions
+          .pending_local_composes
           .entry(name.as_ref().into())
           .or_default()
-          .pending_compose
-          .get_or_insert_with(DependencyId::new)
       };
       for local in &local_classes {
         if let Some(id) = self.local_ident_definition(local) {
@@ -1707,30 +1696,25 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn resolve_pending_local_composes(&mut self) {
+    if self.pending_local_composes.is_empty() {
+      return;
+    }
     // Resolve against the completed module, including later declarations.
     // Keep each composition's original position when replacing its placeholder.
-    let mut local_definitions = std::mem::take(&mut self.local_definitions);
     let mut local_targets = FxHashMap::default();
-    for (name, local) in &mut local_definitions {
-      let Some(placeholder) = local.pending_compose.take() else {
-        continue;
-      };
-      let target = if let Some(id) = local.ident {
+    for (name, placeholder) in std::mem::take(&mut self.pending_local_composes) {
+      let target = if let Some(id) = self.local_ident_definition(&name) {
         id
       } else {
         self.add_dependency(CssIcssExportDependency::new(
           name.clone(),
-          name.clone(),
+          name,
           vec![],
           false,
           None,
         ))
       };
       local_targets.insert(placeholder, target);
-    }
-    self.local_definitions = local_definitions;
-    if local_targets.is_empty() {
-      return;
     }
     for dependency in self.dependencies.values_mut() {
       let Some(definition) = dependency.downcast_mut::<CssIcssExportDependency>() else {
