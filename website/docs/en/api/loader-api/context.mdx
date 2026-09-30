@@ -618,8 +618,6 @@ Compile and execute a module at the build time. This is an alternative lightweig
 
 `importModule` will return a Promise if no callback is provided.
 
-The `publicPath` option accepts a string or a function. A function is retained only for the import operation; Rspack releases its reference when the operation finishes, including when it fails, without waiting for the compiler to close.
-
 ```js title="loader.mjs"
 import path from 'node:path';
 

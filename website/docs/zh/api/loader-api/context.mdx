@@ -616,8 +616,6 @@ function importModule<T = any>(
 
 在没有提供回调函数时，`importModule` 会返回一个 Promise。
 
-`publicPath` 选项接受字符串或函数。函数仅在本次导入操作期间被持有；无论操作成功还是失败，Rspack 都会在操作结束后释放对它的引用，无需等待 compiler 关闭。
-
 ```js title="loader.mjs"
 import path from 'node:path';
 
