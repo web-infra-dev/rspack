@@ -32,6 +32,21 @@ const sortedSharedIdentities = (output) =>
     a.id.localeCompare(b.id) || a.name.localeCompare(b.name),
   );
 
+it('preserves known versions when coalescing shares in either configuration order', () => {
+  for (const output of [
+    analyzedStats,
+    analyzedManifest,
+    disabledStats,
+    disabledManifest,
+  ]) {
+    for (const name of ['consumer-first-version', 'provider-first-version']) {
+      const shares = output.shared.filter((shared) => shared.name === name);
+      expect(shares).toHaveLength(1);
+      expect(shares[0].version).toBe('1.0.0');
+    }
+  }
+});
+
 it('preserves legacy IDs and analyzed/disabled identity parity', () => {
   expect(sortedSharedIdentities(analyzedStats)).toEqual(
     sortedSharedIdentities(disabledStats),

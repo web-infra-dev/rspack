@@ -33,6 +33,28 @@ const createConfig = (fileName, disableAssetsAnalyze) => ({
         },
       },
       shared: {
+        'consumer-before-provider': {
+          shareKey: 'consumer-first-version',
+          import: false,
+          requiredVersion: false,
+        },
+        'provider-after-consumer': {
+          shareKey: 'consumer-first-version',
+          import: 'legacy-a',
+          version: '1.0.0',
+          requiredVersion: false,
+        },
+        'provider-before-consumer': {
+          shareKey: 'provider-first-version',
+          import: 'legacy-b',
+          version: '1.0.0',
+          requiredVersion: false,
+        },
+        'consumer-after-provider': {
+          shareKey: 'provider-first-version',
+          import: false,
+          requiredVersion: false,
+        },
         layered: {
           import: 'legacy-a',
           version: '1.0.0',
