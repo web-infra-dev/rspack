@@ -14,7 +14,7 @@ use rustc_hash::FxHashMap;
 use serde::{Serialize, Serializer, ser::SerializeMap};
 
 use super::{
-  consume_shared_plugin::ConsumeOptions, provide_shared_dependency::ProvideSharedDependency,
+  consume_shared_plugin::EnhancedConsumeOptions, provide_shared_dependency::ProvideSharedDependency,
 };
 use crate::{ShareScope, SharedIdentity};
 
@@ -59,18 +59,35 @@ impl Serialize for CollectSharedEntries<'_> {
 
 #[derive(Debug)]
 pub struct CollectSharedEntryPluginOptions {
-  pub consumes: Vec<(String, Arc<ConsumeOptions>)>,
+  pub consumes: Vec<(String, Arc<crate::ConsumeOptions>)>,
+  pub filename: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct EnhancedCollectSharedEntryPluginOptions {
+  pub consumes: Vec<(String, Arc<EnhancedConsumeOptions>)>,
   pub filename: Option<String>,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct CollectSharedEntryPlugin {
-  options: CollectSharedEntryPluginOptions,
+  options: EnhancedCollectSharedEntryPluginOptions,
 }
 
 impl CollectSharedEntryPlugin {
   pub fn new(options: CollectSharedEntryPluginOptions) -> Self {
+    Self::new_enhanced(EnhancedCollectSharedEntryPluginOptions {
+      consumes: options
+        .consumes
+        .into_iter()
+        .map(|(key, options)| (key, Arc::new(Arc::unwrap_or_clone(options).into())))
+        .collect(),
+      filename: options.filename,
+    })
+  }
+
+  pub fn new_enhanced(options: EnhancedCollectSharedEntryPluginOptions) -> Self {
     Self::new_inner(options)
   }
 

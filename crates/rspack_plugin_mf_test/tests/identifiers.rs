@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use rspack_collections::Identifiable;
 use rspack_core::{Context, runtime_mode::RuntimeMode};
 use rspack_plugin_mf::{
-  ConsumeOptions, ConsumeSharedModule, ConsumeVersion, ProvideSharedModule, ProvideVersion,
+  ConsumeSharedModule, ConsumeVersion, EnhancedConsumeOptions, ProvideSharedModule, ProvideVersion,
   ShareScope,
 };
 
@@ -28,7 +28,7 @@ fn provider_identifiers_distinguish_runtime_behavior() {
   ];
   let mut identifiers = HashSet::new();
   for (eager, singleton, required_version, strict_version, tree_shaking_mode) in options {
-    let module = ProvideSharedModule::new(
+    let module = ProvideSharedModule::new_enhanced(
       ShareScope::Single("default".into()),
       "react".into(),
       ProvideVersion::Version("1.0.0".into()),
@@ -49,9 +49,9 @@ fn provider_identifiers_distinguish_runtime_behavior() {
 }
 
 fn identifiers(scope: ShareScope, key: &str, layer: Option<&str>) -> [String; 2] {
-  let consume = ConsumeSharedModule::new(
+  let consume = ConsumeSharedModule::new_enhanced(
     Context::from(""),
-    ConsumeOptions {
+    EnhancedConsumeOptions {
       request: None,
       issuer_layer: None,
       layer: layer.map(str::to_string),
@@ -68,7 +68,7 @@ fn identifiers(scope: ShareScope, key: &str, layer: Option<&str>) -> [String; 2]
     },
     RuntimeMode::Webpack,
   );
-  let provide = ProvideSharedModule::new(
+  let provide = ProvideSharedModule::new_enhanced(
     scope,
     key.to_string(),
     ProvideVersion::Version("1.0.0".to_string()),

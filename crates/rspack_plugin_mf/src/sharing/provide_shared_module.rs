@@ -59,6 +59,34 @@ impl ProvideSharedModule {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
+    tree_shaking_mode: Option<String>,
+    runtime_mode: RuntimeMode,
+  ) -> Self {
+    Self::new_enhanced(
+      share_scope,
+      name,
+      version,
+      request,
+      eager,
+      singleton,
+      required_version,
+      strict_version,
+      None,
+      tree_shaking_mode,
+      runtime_mode,
+    )
+  }
+
+  #[allow(clippy::too_many_arguments)]
+  pub fn new_enhanced(
+    share_scope: ShareScope,
+    name: String,
+    version: ProvideVersion,
+    request: String,
+    eager: bool,
+    singleton: Option<bool>,
+    required_version: Option<ConsumeVersion>,
+    strict_version: Option<bool>,
     layer: Option<String>,
     tree_shaking_mode: Option<String>,
     runtime_mode: RuntimeMode,
