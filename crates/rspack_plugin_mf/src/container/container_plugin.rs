@@ -17,6 +17,13 @@ use super::{
 };
 use crate::ShareScope;
 
+#[rspack_cacheable::cacheable]
+#[derive(Debug, Clone, Serialize)]
+pub struct ExposeOptions {
+  pub name: Option<String>,
+  pub import: Vec<String>,
+}
+
 #[derive(Debug)]
 pub struct ContainerPluginOptions {
   pub name: String,
@@ -28,9 +35,49 @@ pub struct ContainerPluginOptions {
   pub enhanced: bool,
 }
 
+impl From<ExposeOptions> for EnhancedExposeOptions {
+  fn from(value: ExposeOptions) -> Self {
+    Self {
+      name: value.name,
+      import: value.import,
+      layer: None,
+    }
+  }
+}
+
+impl From<ContainerPluginOptions> for EnhancedContainerPluginOptions {
+  fn from(value: ContainerPluginOptions) -> Self {
+    Self {
+      name: value.name,
+      share_scope: value.share_scope,
+      library: value.library,
+      runtime: value.runtime,
+      filename: value.filename,
+      exposes: value
+        .exposes
+        .into_iter()
+        .map(|(key, options)| (key, options.into()))
+        .collect(),
+      enhanced: value.enhanced,
+    }
+  }
+}
+
+/// Container configuration with layer-aware exposed modules.
+#[derive(Debug)]
+pub struct EnhancedContainerPluginOptions {
+  pub name: String,
+  pub share_scope: ShareScope,
+  pub library: LibraryOptions,
+  pub runtime: Option<EntryRuntime>,
+  pub filename: Option<Filename>,
+  pub exposes: Vec<(String, EnhancedExposeOptions)>,
+  pub enhanced: bool,
+}
+
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Serialize)]
-pub struct ExposeOptions {
+pub struct EnhancedExposeOptions {
   pub name: Option<String>,
   pub import: Vec<String>,
   /// Layer the exposed module is built in. Serialized into the container
@@ -43,11 +90,15 @@ pub struct ExposeOptions {
 #[plugin]
 #[derive(Debug)]
 pub struct ContainerPlugin {
-  options: ContainerPluginOptions,
+  options: EnhancedContainerPluginOptions,
 }
 
 impl ContainerPlugin {
   pub fn new(options: ContainerPluginOptions) -> Self {
+    Self::new_enhanced(options.into())
+  }
+
+  pub fn new_enhanced(options: EnhancedContainerPluginOptions) -> Self {
     Self::new_inner(options)
   }
 }

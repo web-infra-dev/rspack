@@ -4,8 +4,8 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_mf::{
   CollectSharedEntryPluginOptions, ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion,
-  ContainerPluginOptions, ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption,
-  ManifestSharedOption, ModuleFederationManifestPluginOptions,
+  ContainerReferencePluginOptions, EnhancedContainerPluginOptions, EnhancedExposeOptions,
+  ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPluginOptions,
   ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePluginOptions,
   OptimizeSharedConfig, ProvideOptions, ProvideVersion, RemoteAliasTarget, RemoteOptions,
   ShareScope, SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions,
@@ -39,9 +39,9 @@ pub struct RawContainerPluginOptions {
 }
 
 impl RawContainerPluginOptions {
-  pub fn into_options(self) -> ContainerPluginOptions {
+  pub fn into_options(self) -> EnhancedContainerPluginOptions {
     let share_scope = into_share_scope(self.share_scope);
-    ContainerPluginOptions {
+    EnhancedContainerPluginOptions {
       name: self.name,
       share_scope,
       library: self.library.into(),
@@ -62,11 +62,11 @@ pub struct RawExposeOptions {
   pub import: Vec<String>,
 }
 
-impl From<RawExposeOptions> for (String, ExposeOptions) {
+impl From<RawExposeOptions> for (String, EnhancedExposeOptions) {
   fn from(value: RawExposeOptions) -> Self {
     (
       value.key,
-      ExposeOptions {
+      EnhancedExposeOptions {
         name: value.name,
         import: value.import,
         layer: value.layer,

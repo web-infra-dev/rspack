@@ -526,7 +526,7 @@ impl<'a> BuiltinPlugin<'a> {
         let options = downcast_into::<RawContainerPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?
           .into_options();
-        plugins.push(ContainerPlugin::new(options).boxed());
+        plugins.push(ContainerPlugin::new_enhanced(options).boxed());
       }
       BuiltinPluginName::ContainerReferencePlugin => {
         plugins.push(
