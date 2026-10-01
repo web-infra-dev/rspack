@@ -114,9 +114,9 @@ impl NativeWatcher {
     missing: (Vec<String>, Vec<String>),
     start_time: BigInt,
     #[napi(ts_arg_type = "(err: Error | null, result: NativeWatchResult) => void")]
-    callback: Function<'static, AggregateArgs, ()>,
+    callback: Function<'static>,
     #[napi(ts_arg_type = "(event: NativeWatchUndelayedEvent) => void")]
-    callback_undelayed: Function<'static, NativeWatchUndelayedEvent, ()>,
+    callback_undelayed: Function<'static>,
   ) -> napi::Result<()> {
     if self.closed {
       return Err(napi::Error::from_reason(
@@ -226,10 +226,6 @@ fn to_tuple_path_iterator(
 
 // A single stream survives watch() callback replacement. Each queued message
 // retains the callbacks of the generation that produced it.
-type AggregateArgs = FnArgs<(
-  Either<Null, napi::Error>,
-  Either<NativeWatchResult, Undefined>,
-)>;
 type DeliveryFunction = napi::threadsafe_function::ThreadsafeFunction<
   JsDelivery,
   (),
@@ -241,8 +237,8 @@ type DeliveryFunction = napi::threadsafe_function::ThreadsafeFunction<
 >;
 
 struct JsCallbacks {
-  aggregate: FunctionRef<AggregateArgs, ()>,
-  undelayed: FunctionRef<NativeWatchUndelayedEvent, ()>,
+  aggregate: FunctionRef<Unknown<'static>, Unknown<'static>>,
+  undelayed: FunctionRef<Unknown<'static>, Unknown<'static>>,
 }
 
 enum JsDelivery {
@@ -256,19 +252,20 @@ struct JsDispatchArgs(JsDelivery);
 impl JsValuesTupleIntoVec for JsDispatchArgs {
   fn into_vec(self, raw_env: napi::sys::napi_env) -> napi::Result<Vec<napi::sys::napi_value>> {
     let env = Env::from_raw(raw_env);
-    match self.0 {
+    let args = match self.0 {
       JsDelivery::Aggregate(callbacks, result) => {
         let callback = callbacks.aggregate.borrow_back(&env)?;
         match result {
-          Ok(result) => FnArgs::from((callback, true, Null, result)).into_vec(raw_env),
-          Err(error) => FnArgs::from((callback, true, error, ())).into_vec(raw_env),
+          Ok(result) => (callback, true, Either::A(Null), Either3::A(result)),
+          Err(error) => (callback, true, Either::B(error), Either3::C(())),
         }
       }
       JsDelivery::Undelayed(callbacks, event) => {
         let callback = callbacks.undelayed.borrow_back(&env)?;
-        FnArgs::from((callback, false, Null, event)).into_vec(raw_env)
+        (callback, false, Either::A(Null), Either3::B(event))
       }
-    }
+    };
+    FnArgs::from(args).into_vec(raw_env)
   }
 }
 
