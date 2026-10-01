@@ -563,7 +563,7 @@ Called right before emitting assets to output dir.
 
 ## `assetEmitted`
 
-Called for each asset after it has been emitted to the output directory, including when writing the file is skipped because it is immutable or unchanged.
+Called for each asset after it has been emitted to the output directory, including when writing the file is skipped because it is immutable or unchanged. Unlike Rspack, webpack calls this hook only when the file is actually written.
 
 - **Type:** `AsyncSeriesHook<[string, AssetEmittedInfo]>`
 - **Arguments:**
@@ -575,7 +575,7 @@ Called for each asset after it has been emitted to the output directory, includi
     - `targetPath`: the full path of the emitted file
     - `compilation`: the current [compilation](/api/javascript-api/compilation) object
 
-`source` and `content` are materialized lazily on first read and cached per info object. Repeated reads return the same `Source` and `Buffer` instances, including across taps that share that info object. The cache is not shared across different info objects or assets. Within one `assetEmitted` call, each property is materialized once for that info object, so later reads, including in later taps sharing the object, do not reflect asset updates made after the first read.
+`source` and `content` are materialized lazily on first read and cached per info object. Repeated reads return the same `Source` and `Buffer` instances, including across taps that share that info object. Taps registered in different stage ranges may receive separate info objects. The cache is not shared across different info objects or assets. Within one `assetEmitted` call, each property is materialized once for that info object, so later reads, including in later taps sharing the object, do not reflect asset updates made after the first read.
 
 Materializing `source`, directly or through `content`, transfers the whole asset into JavaScript; reading `content` also obtains its bytes as a `Buffer`. Filter by `filename` or `targetPath` before reading either property. If neither property is read, the asset is not transferred into JavaScript for this hook.
 
