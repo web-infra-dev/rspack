@@ -142,6 +142,15 @@ it.each([
 		enabled: false,
 	},
 	{
+		name: "numeric chunk IDs",
+		mode: "development",
+		lazy: true,
+		hot: true,
+		concatenate: false,
+		chunkIds: "natural",
+		enabled: true,
+	},
+	{
 		name: "concatenation",
 		mode: "development",
 		lazy: true,
@@ -200,7 +209,7 @@ it.each([
 			optimization: {
 				minimize: false,
 				concatenateModules: policy.concatenate,
-				chunkIds: "named",
+				chunkIds: policy.chunkIds || "named",
 			},
 			plugins: policy.hot ? [new rspack.HotModuleReplacementPlugin()] : [],
 		});

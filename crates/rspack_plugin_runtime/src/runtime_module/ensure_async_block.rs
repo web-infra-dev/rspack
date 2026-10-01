@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeModuleRuntimeRequirements, RuntimeTemplate, impl_runtime_module,
@@ -89,34 +91,56 @@ impl RuntimeModule for EnsureAsyncBlockRuntimeModule {
       .collect::<Vec<_>>();
     chunk_ids.sort_unstable();
     chunk_ids.dedup();
-    let mut encoded_chunks = Vec::new();
+    let mut chunks = String::from("[");
     let mut previous_chunk = "";
-    for chunk_id in &chunk_ids {
-      let encoded = if let Some(number) = chunk_id.as_number() {
-        serde_json::json!(number)
+    for (index, chunk_id) in chunk_ids.iter().enumerate() {
+      if index != 0 {
+        chunks.push(',');
+      }
+      if let Some(number) = chunk_id.as_number() {
+        write!(chunks, "{number}").expect("infallible write to String");
       } else {
         let (prefix, suffix) = front_code(previous_chunk, chunk_id.as_str());
-        let encoded = serde_json::json!([prefix, suffix]);
+        write!(
+          chunks,
+          "[{prefix},{}]",
+          rspack_util::json_stringify_str(suffix)
+        )
+        .expect("infallible write to String");
         previous_chunk = chunk_id.as_str();
-        encoded
-      };
-      encoded_chunks.push(encoded);
+      }
     }
+    chunks.push(']');
+    let mut rows = String::from("[");
     let mut previous_block = "";
-    let encoded_blocks = blocks
-      .iter()
-      .map(|(block_id, (chunks, priority))| {
-        let (prefix, suffix) = front_code(previous_block, block_id);
-        previous_block = block_id;
-        let chunks = chunks
-          .iter()
-          .map(|chunk| chunk_ids.binary_search(chunk).expect("chunk in dictionary"))
-          .collect::<Vec<_>>();
-        (prefix, suffix, chunks, priority)
-      })
-      .collect::<Vec<_>>();
-    let chunks = rspack_util::json_stringify(&encoded_chunks);
-    let blocks = rspack_util::json_stringify(&encoded_blocks);
+    for (index, (block_id, (block_chunks, priority))) in blocks.iter().enumerate() {
+      if index != 0 {
+        rows.push(',');
+      }
+      let (prefix, suffix) = front_code(previous_block, block_id);
+      previous_block = block_id;
+      write!(
+        rows,
+        "[{prefix},{},[",
+        rspack_util::json_stringify_str(suffix)
+      )
+      .expect("infallible write to String");
+      for (index, chunk) in block_chunks.iter().enumerate() {
+        if index != 0 {
+          rows.push(',');
+        }
+        let chunk_index = chunk_ids.binary_search(chunk).expect("chunk in dictionary");
+        write!(rows, "{chunk_index}").expect("infallible write to String");
+      }
+      rows.push_str("],");
+      if let Some(priority) = priority {
+        rows.push_str(&rspack_util::json_stringify_str(priority));
+      } else {
+        rows.push_str("null");
+      }
+      rows.push(']');
+    }
+    rows.push(']');
     let definition = context
       .runtime_template
       .render_runtime_global_definition(&RuntimeGlobals::ENSURE_ASYNC_BLOCK);
@@ -142,7 +166,7 @@ impl RuntimeModule for EnsureAsyncBlockRuntimeModule {
   }};
   ensureBlock.has = function(blockId) {{ return blocks[blockId] !== undefined; }};
   return ensureBlock;
-}})({chunks}, {blocks});
+}})({chunks}, {rows});
 "#
     ))
   }
