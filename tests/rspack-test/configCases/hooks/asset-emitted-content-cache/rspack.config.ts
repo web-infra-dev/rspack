@@ -4,10 +4,12 @@ import { strict as assert } from 'node:assert';
 import type { Source } from 'webpack-sources';
 
 const pluginName = 'AssetEmittedContentCache';
+const retry = 'cache-retry.txt';
 const expected = new Map<string, Buffer>([
   ['cache-text.txt', Buffer.from('synthetic é')],
   ['cache-binary.dat', Buffer.from([0, 255, 128, 1])],
   ['cache-empty.txt', Buffer.alloc(0)],
+  [retry, Buffer.from('retry')],
 ]);
 const untouched = 'cache-untouched.txt';
 const filenames = new Set([...expected.keys(), untouched]);
@@ -29,6 +31,7 @@ class Plugin {
           new RawSource(Buffer.from([0, 255, 128, 1])),
         );
         compilation.emitAsset('cache-empty.txt', new RawSource(''));
+        compilation.emitAsset(retry, new RawSource('retry'));
         compilation.emitAsset(untouched, new RawSource('untouched'));
       });
 
@@ -38,6 +41,10 @@ class Plugin {
         compilation.getAsset = function (filename) {
           if (filenames.has(filename)) {
             getAssetCalls.set(filename, (getAssetCalls.get(filename) ?? 0) + 1);
+            // Simulate a missing asset once; subsequent lookups use the real asset.
+            if (filename === retry && getAssetCalls.get(filename) === 1) {
+              return undefined;
+            }
           }
           return getAsset.call(this, filename);
         };
@@ -49,6 +56,14 @@ class Plugin {
       firstSeen.add(filename);
       assert.equal(getAssetCalls.get(filename) ?? 0, 0);
       if (filename === untouched) return;
+      if (filename === retry) {
+        assert.throws(() => info.source, {
+          message: `Asset ${filename} not found`,
+        });
+        // A failed read must not prevent this second source access from succeeding.
+        assert(info.source);
+        assert.equal(getAssetCalls.get(filename), 2);
+      }
 
       const first = info.content;
       assert(Buffer.isBuffer(first));
@@ -58,7 +73,7 @@ class Plugin {
       const source = info.source;
       assert.strictEqual(info.source, source);
       assert.deepEqual(first, source.buffer());
-      assert.equal(getAssetCalls.get(filename), 1);
+      assert.equal(getAssetCalls.get(filename), filename === retry ? 2 : 1);
       firstContents.set(filename, first);
       firstSources.set(filename, source);
     });
@@ -73,7 +88,7 @@ class Plugin {
       }
       assert.strictEqual(info.content, firstContents.get(filename));
       assert.strictEqual(info.source, firstSources.get(filename));
-      assert.equal(getAssetCalls.get(filename), 1);
+      assert.equal(getAssetCalls.get(filename), filename === retry ? 2 : 1);
     });
 
     compiler.hooks.done.tap(pluginName, () => {

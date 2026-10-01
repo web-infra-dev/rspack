@@ -549,21 +549,21 @@ compiler.hooks.shouldEmit.tap('MyPlugin', (compilation) => {
   </CollapsePanel>
 </Collapse>
 
-### `assetEmitted`
+## `assetEmitted`
 
-在单个资源写入输出目录后调用。
+在每个资源输出到结果目录后调用，包括因资源不可变或内容未发生变化而跳过文件写入的情况。
 
 - **类型：** `AsyncSeriesHook<[string, AssetEmittedInfo]>`
 - **参数：**
-  - `filename`：输出的资源名称，包括可能存在的查询字符串
-  - `info`：输出资源的相关信息：
-    - `content`：包含资源字节的 `Buffer`
-    - `source`：资源的 `Source` 对象
-    - `outputPath`：输出目录
-    - `targetPath`：输出文件的完整路径
-    - `compilation`：当前 [compilation](/api/javascript-api/compilation) 对象
+  - `filename`: 输出的资源名称，包括可能存在的查询字符串
+  - `info`: 输出资源的相关信息：
+    - `content`: 包含资源字节的 `Buffer`
+    - `source`: 资源的 `Source` 对象
+    - `outputPath`: 输出目录
+    - `targetPath`: 输出文件的完整路径
+    - `compilation`: 当前 [compilation](/api/javascript-api/compilation) 对象
 
-`source` 和 `content` 在首次读取时才会生成，并缓存在各自的 info 对象中。重复读取会返回同一个 `Source` 和 `Buffer` 实例，共享同一 info 对象的 tap 之间也是如此。不同的 info 对象或资源之间不共享缓存。
+`source` 和 `content` 在首次读取时才会生成，并按 info 对象缓存。重复读取会返回同一个 `Source` 和 `Buffer` 实例，共享同一 info 对象的 tap 之间也是如此。不同的 info 对象或资源之间不共享缓存。在一次 `assetEmitted` 调用中，每个属性只会为该 info 对象生成一次，因此后续读取（包括共享该对象的后续 tap 中的读取）不会反映首次读取后对资源所做的更新。
 
 无论直接读取 `source`，还是通过 `content` 访问它，生成 `source` 都会将整个资源传输到 JavaScript 中；读取 `content` 还会获取以 `Buffer` 表示的资源字节。请先根据 `filename` 或 `targetPath` 进行过滤，再读取这些属性。如果两个属性都未被读取，则不会为此钩子将资源传输到 JavaScript 中。
 
