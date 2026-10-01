@@ -60,6 +60,7 @@ impl RuntimeModule for EnsureAsyncBlockRuntimeModule {
       .collect::<rspack_collections::IdentifierSet>();
     let module_graph = compilation.get_module_graph();
     let mut blocks = Vec::new();
+    let mut chunk_ids = Vec::new();
 
     for (block_id, block) in module_graph.blocks() {
       if !runtime_modules.contains(block.parent()) {
@@ -68,27 +69,22 @@ impl RuntimeModule for EnsureAsyncBlockRuntimeModule {
       let group = graph
         .chunk_graph
         .get_block_chunk_group(block_id, &graph.chunk_group_by_ukey);
-      let chunks = group
-        .into_iter()
-        .flat_map(|group| &group.chunks)
-        .map(|chunk| graph.chunk_by_ukey.expect_get(chunk))
-        .filter(|chunk| !chunk.has_runtime(&graph.chunk_group_by_ukey))
-        .filter_map(|chunk| chunk.id().cloned())
-        .collect::<Vec<_>>();
-      let priority = group
-        .and_then(|group| group.kind.get_normal_options())
-        .and_then(|options| options.fetch_priority)
-        .map(|priority| priority.to_string());
-      blocks.push((block_id.as_str(), (chunks, priority)));
+      blocks.push(block_id);
+      if let Some(group) = group {
+        for chunk in &group.chunks {
+          let chunk = graph.chunk_by_ukey.expect_get(chunk);
+          if !chunk.has_runtime(&graph.chunk_group_by_ukey)
+            && let Some(chunk_id) = chunk.id()
+          {
+            chunk_ids.push(chunk_id.as_str());
+          }
+        }
+      }
     }
-    blocks.sort_unstable_by_key(|(block_id, _)| *block_id);
+    blocks.sort_unstable_by_key(|block_id| block_id.as_str());
 
     // The map belongs to this runtime generation. All JS/CSS loading and fetch
     // priority behavior stays in the existing caller-provided ensure function.
-    let mut chunk_ids = blocks
-      .iter()
-      .flat_map(|(_, (chunks, _))| chunks.iter().cloned())
-      .collect::<Vec<_>>();
     chunk_ids.sort_unstable();
     chunk_ids.dedup();
     let mut chunks = String::from("[");
@@ -97,23 +93,27 @@ impl RuntimeModule for EnsureAsyncBlockRuntimeModule {
       if index != 0 {
         chunks.push(',');
       }
-      if let Some(number) = chunk_id.as_number() {
+      if let Some(number) = rspack_util::numeric_id_value(chunk_id) {
         write!(chunks, "{number}").expect("infallible write to String");
       } else {
-        let (prefix, suffix) = front_code(previous_chunk, chunk_id.as_str());
+        let (prefix, suffix) = front_code(previous_chunk, chunk_id);
         write!(
           chunks,
           "[{prefix},{}]",
           rspack_util::json_stringify_str(suffix)
         )
         .expect("infallible write to String");
-        previous_chunk = chunk_id.as_str();
+        previous_chunk = chunk_id;
       }
     }
     chunks.push(']');
     let mut rows = String::from("[");
     let mut previous_block = "";
-    for (index, (block_id, (block_chunks, priority))) in blocks.iter().enumerate() {
+    for (index, block_id) in blocks.iter().enumerate() {
+      let group = graph
+        .chunk_graph
+        .get_block_chunk_group(block_id, &graph.chunk_group_by_ukey);
+      let block_id = block_id.as_str();
       if index != 0 {
         rows.push(',');
       }
@@ -125,16 +125,31 @@ impl RuntimeModule for EnsureAsyncBlockRuntimeModule {
         rspack_util::json_stringify_str(suffix)
       )
       .expect("infallible write to String");
-      for (index, chunk) in block_chunks.iter().enumerate() {
-        if index != 0 {
-          rows.push(',');
+      if let Some(group) = group {
+        let mut first = true;
+        for chunk in &group.chunks {
+          let chunk = graph.chunk_by_ukey.expect_get(chunk);
+          if chunk.has_runtime(&graph.chunk_group_by_ukey) {
+            continue;
+          }
+          if let Some(chunk_id) = chunk.id() {
+            if !first {
+              rows.push(',');
+            }
+            first = false;
+            let chunk_index = chunk_ids
+              .binary_search(&chunk_id.as_str())
+              .expect("chunk in dictionary");
+            write!(rows, "{chunk_index}").expect("infallible write to String");
+          }
         }
-        let chunk_index = chunk_ids.binary_search(chunk).expect("chunk in dictionary");
-        write!(rows, "{chunk_index}").expect("infallible write to String");
       }
       rows.push_str("],");
-      if let Some(priority) = priority {
-        rows.push_str(&rspack_util::json_stringify_str(priority));
+      if let Some(priority) = group
+        .and_then(|group| group.kind.get_normal_options())
+        .and_then(|options| options.fetch_priority)
+      {
+        rows.push_str(&rspack_util::json_stringify_str(&priority.to_string()));
       } else {
         rows.push_str("null");
       }
