@@ -1,0 +1,17 @@
+[package]
+description       = "rspack storage integration tests"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_storage_test"
+publish           = false
+repository        = "https://github.com/web-infra-dev/rspack"
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+rspack_fs      = { workspace = true }
+rspack_paths   = { workspace = true }
+rspack_storage = { workspace = true }
+tokio          = { workspace = true, features = ["macros", "rt-multi-thread"] }
