@@ -283,17 +283,17 @@ fn create_execute_aggregate_task(
         tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
 
         // Get the files to process
-        let files = {
+        let (changed, deleted) = {
           let mut files = files.lock().expect("should lock files data");
           if files.is_empty() {
             running.store(false, Ordering::Relaxed);
             continue;
           }
-          std::mem::take(&mut *files)
+          files.take_aggregated()
         };
 
         // Call the event handler with the changed and deleted files
-        event_handler.on_event_handle(files.changed, files.deleted);
+        event_handler.on_event_handle(changed, deleted);
         running.store(false, Ordering::Relaxed);
       }
     }
