@@ -119,7 +119,10 @@ function createOrderConfig(shape: 'same' | 'overlap'): Configuration {
     target: 'node',
     entry: { [namespace]: `./${shape}/index.js` },
     devtool: false,
-    output: { filename: '[name].js', chunkFilename: '[name].js' },
+    output: {
+      filename: '[name].js',
+      chunkFilename: `${namespace}-[name].js`,
+    },
     optimization: {
       minimize: false,
       concatenateModules: false,
