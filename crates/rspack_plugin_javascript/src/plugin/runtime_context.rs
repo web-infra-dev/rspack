@@ -9,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 
-use super::{JsPlugin, RenderBootstrapResult};
+use super::{JsPlugin, RenderBootstrapResult, get_js_entry_modules_with_chunk_group};
 use crate::{
   RenderSource,
   runtime::{
@@ -328,10 +328,7 @@ function {}(moduleId) {{
       if chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph) {
         let mut buf2: Vec<Cow<str>> = Vec::new();
         buf2.push("// Load entry module and return exports".into());
-        let entries = compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+        let entries = get_js_entry_modules_with_chunk_group(chunk_ukey, compilation);
         let module_graph = compilation.get_module_graph();
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation
@@ -653,13 +650,9 @@ impl JsPlugin {
       .get_chunk_modules_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph);
     let has_entry_modules =
       chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph);
-    let inlined_modules = if allow_inline_startup && has_entry_modules {
-      Some(
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey),
-      )
+    let js_entry_modules = get_js_entry_modules_with_chunk_group(chunk_ukey, compilation);
+    let inlined_modules = if allow_inline_startup && !js_entry_modules.is_empty() {
+      Some(&js_entry_modules)
     } else {
       None
     };
@@ -890,13 +883,14 @@ impl JsPlugin {
         )
         .await?;
       sources.add(render_source.source);
-    } else if let Some(last_entry_module) = compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
-      .keys()
-      .next_back()
-    {
+    } else if let Some(last_entry_module) = js_entry_modules.keys().next_back().or_else(|| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
+        .keys()
+        .next_back()
+    }) {
       let mut render_source = RenderSource {
         source: RawStringSource::from(startup.join("\n") + "\n").boxed(),
       };

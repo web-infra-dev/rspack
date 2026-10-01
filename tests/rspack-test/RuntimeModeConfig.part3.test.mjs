@@ -1,0 +1,32 @@
+import path from "node:path";
+import { describeByWalk, createConfigCase } from "@rspack/test-tools";
+
+const rspackRuntimeModeOptions = {
+	experiments: {
+		runtimeMode: "rspack"
+	}
+};
+globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK = true;
+
+// Part 3: Test cases starting with p-z and others
+describeByWalk(
+	import.meta.filename,
+	(name, src, dist) => {
+		createConfigCase(name, src, dist, rspackRuntimeModeOptions);
+	},
+	{
+		source: path.join(import.meta.dirname, "configCases"),
+		dist: path.resolve(import.meta.dirname, "./js/runtime-mode-config"),
+		exclude: [
+			// Exclude a-o
+			/^[a-o]/,
+			// Custom runtime sources are not supported in rspack runtime mode.
+			/^builtin-swc-loader\/preact-refresh$/,
+			/^container-1-5\/tree-shaking-shared-(infer|server)-mode$/,
+			/^hooks\/(modify-extract-css-loading-runtime|rspack-issue-5571|runtime-module|runtime-requirement-in-tree)$/,
+			/^rstest\/(dynamic-import-origin|mock|mock-dynamic-import-external|mock-shared-runtime|module-path-names|new-url-wasm)$/,
+			/^runtime\/add-runtime-module/,
+			/^sharing\/tree-shaking-shared$/
+		]
+	}
+);

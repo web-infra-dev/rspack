@@ -56,7 +56,7 @@ The default configuration was chosen to fit web performance best practices, but 
 
 ### optimization.splitChunks
 
-This configuration object represents the default behavior of the `SplitChunksPlugin`.
+This configuration object represents the default behavior of the `SplitChunksPlugin` in production mode.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -64,6 +64,7 @@ export default {
   optimization: {
     splitChunks: {
       chunks: 'async',
+      dedupDepth: 1,
       minChunks: 1,
       minSize: 20000,
       maxAsyncRequests: 30,
@@ -96,6 +97,67 @@ When files paths are processed by Rspack, they always contain `/` on UNIX system
 Passing an entry name to `{cacheGroup}.test` and using a name of an existing chunk for `{cacheGroup}.name` is no longer allowed.
 
 :::
+
+### splitChunks.dedupDepth
+
+- **Type:** `number`
+- **Default:** `1` in `production` mode; `0` in `development` or `none` mode.
+
+This option controls how Rspack finds modules shared by different chunks.
+
+For example, suppose each page initially produces one chunk. `{ A, B }` means that pages `A` and `B` both use this code. Extracting the modules they share into a shared bundle can reduce duplication.
+
+**`dedupDepth: 0`: Use page combinations that already exist**
+
+Suppose module `x` is used by pages `A` and `B`, while module `y` is used by pages `A`, `B`, and `C`:
+
+```text
+x → { A, B }
+y → { A, B, C }
+```
+
+`{ A, B }` is already the group of pages that use `x`, and both pages also use `y`. Rspack can therefore consider putting `x` and `y` into a bundle shared by `A` and `B`. Depth `0` uses these relationships, where one existing group is contained in another, but does not discover new page combinations.
+
+**`dedupDepth: 1`: Find common combinations for one more round**
+
+For a different example, consider three modules used by these pages:
+
+| Module | Pages that use it  |
+| ------ | ------------------ |
+| `x`    | `A`, `B`, `C`, `D` |
+| `y`    | `A`, `B`, `C`, `E` |
+| `z`    | `A`, `B`, `D`, `E` |
+
+Compare two modules at a time and find the pages that use both:
+
+```text
+x and y → { A, B, C }
+x and z → { A, B, D }
+y and z → { A, B, E }
+```
+
+None of these combinations appeared on its own in the original list. Depth `1` discovers them, so Rspack may extract `x` and `y` into a separate chunk that `A`, `B`, and `C` depend on.
+
+**`dedupDepth: 2`: Continue with combinations found in the previous round**
+
+In the same example, `{ A, B, C }` and `{ A, B, D }`, found in the previous round, both contain `A` and `B`. Comparing them discovers a new combination: `{ A, B }`. Since `x`, `y`, and `z` are all used by those two pages, Rspack can consider putting all three modules into a bundle shared by `A` and `B`. The first round could not find this combination.
+
+Higher depths continue this process. It stops early if no new combinations are found. These examples explain how Rspack finds code that could be shared; whether it creates a shared bundle also depends on the other `splitChunks` options.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      dedupDepth: 1,
+    },
+  },
+};
+```
+
+Usually, `dedupDepth: 1` is sufficient. Increasing the depth can cause computation time to grow exponentially, while further reductions in bundle size may be small.
+
+This option is configured on `splitChunks` and cannot be overridden by individual cache groups.
 
 ### splitChunks.cacheGroups
 

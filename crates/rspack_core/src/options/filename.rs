@@ -281,6 +281,19 @@ impl<'template> CompiledStringTemplate<'template> {
   pub fn render_with_path_data<'value>(
     &self,
     options: PathData<'_>,
+    asset_info: Option<&mut AssetInfo>,
+    renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
+  ) -> String {
+    let file_replacements = FileReplacements::new(options);
+    self.render_with_path_data_and_replacements(options, &file_replacements, asset_info, renderer)
+  }
+
+  /// Same as [`Self::render_with_path_data`], but reuses `file_replacements` that the caller
+  /// computed from `options.filename` once.
+  pub fn render_with_path_data_and_replacements<'value>(
+    &self,
+    options: PathData<'_>,
+    file_replacements: &FileReplacements,
     mut asset_info: Option<&mut AssetInfo>,
     mut renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
   ) -> String {
@@ -291,7 +304,6 @@ impl<'template> CompiledStringTemplate<'template> {
       asset_info.version = content_hash.to_string();
     }
 
-    let file_replacements = FileReplacements::new(options);
     self.render_with_writer(|placeholder, output| {
       if let Some(value) = renderer(placeholder) {
         render_filename_value(placeholder, value, &mut asset_info, output);
@@ -300,7 +312,7 @@ impl<'template> CompiledStringTemplate<'template> {
         render_placeholder(
           placeholder,
           options,
-          &file_replacements,
+          file_replacements,
           &mut asset_info,
           output,
         )
@@ -517,6 +529,24 @@ impl Filename {
     let compiled = self.compiled(options, asset_info.as_deref()).await?;
     Ok(compiled.render_with_path_data(options, asset_info, renderer))
   }
+
+  /// Same as [`Self::render_with`], but reuses `file_replacements` that the caller computed
+  /// from `options.filename` once.
+  pub async fn render_with_replacements<'value>(
+    &self,
+    options: PathData<'_>,
+    file_replacements: &FileReplacements,
+    asset_info: Option<&mut AssetInfo>,
+    renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
+  ) -> rspack_error::Result<String> {
+    let compiled = self.compiled(options, asset_info.as_deref()).await?;
+    Ok(compiled.render_with_path_data_and_replacements(
+      options,
+      file_replacements,
+      asset_info,
+      renderer,
+    ))
+  }
 }
 
 impl rspack_hash::RspackHash for Filename {
@@ -611,8 +641,15 @@ fn hash_len(hash: &str, len: Option<u16>) -> usize {
   len.map_or(hash_len, usize::from).min(hash_len)
 }
 
-#[derive(Debug, Default)]
-struct FileReplacements {
+/// Replacement values for the `[file]`, `[base]`, `[name]`, `[path]`, `[ext]`, `[query]` and
+/// `[fragment]` placeholders of a filename template.
+///
+/// Only the template `filename` (and, for data URIs, its content hash) is needed to compute
+/// them, so callers that render many templates for the same filename can build this once with
+/// [`FileReplacements::new`] and reuse it through
+/// [`CompiledStringTemplate::render_with_path_data_and_replacements`].
+#[derive(Debug, Default, Clone)]
+pub struct FileReplacements {
   file: Option<String>,
   base: Option<String>,
   name: Option<String>,
@@ -623,7 +660,8 @@ struct FileReplacements {
 }
 
 impl FileReplacements {
-  fn new(options: PathData<'_>) -> Self {
+  /// Computes the replacements from the filename of `options`.
+  pub fn new(options: PathData<'_>) -> Self {
     let Some(filename) = options.filename else {
       return Self::default();
     };

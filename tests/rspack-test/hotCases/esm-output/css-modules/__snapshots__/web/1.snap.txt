@@ -5,9 +5,98 @@
 - style2.module.css
 
 ## Asset Files
-
+- Bundle: main.mjs
+- Bundle: style2_module_css.chunk.mjs
+- Manifest: main.LAST_HASH.hot-update.json.mjs, size: 105
+- Update: main.LAST_HASH.hot-update.mjs, size: 815
+- Update: style2_module_css.LAST_HASH.hot-update.mjs, size: 659
 
 ## Manifest
 
+### main.LAST_HASH.hot-update.json.mjs
+
+```json
+{"c":["main","style2_module_css"],"r":[],"m":[],"css":{"c":["main","style2_module_css"]}}
+```
+
 
 ## Update
+
+
+### main.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./style.module.css
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+export const __rspack_esm_id = "main";
+export const __rspack_esm_ids = ["main"];
+export const __webpack_modules__ = {
+"./style.module.css"(module, __unused_rspack_exports, __webpack_require__) {
+var exports = {
+  "class-other": "style_module_css-class-other",
+};
+// only invalidate when locals change
+var stringified_exports = JSON.stringify(exports);
+if (module.hot.data && module.hot.data.exports && module.hot.data.exports != stringified_exports) {
+  module.hot.invalidate();
+} else {
+  module.hot.accept();
+}
+module.hot.dispose(function(data) { data.exports = stringified_exports; });
+__webpack_require__.r(module.exports = exports);
+
+
+},
+
+};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+;
+
+```
+
+
+
+### style2_module_css.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./style2.module.css
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_id = "style2_module_css";
+export const __rspack_esm_ids = ["style2_module_css"];
+export const __webpack_modules__ = {
+"./style2.module.css"(module, __unused_rspack_exports, __webpack_require__) {
+var exports = {
+  "bar": "style2_module_css-bar",
+};
+// only invalidate when locals change
+var stringified_exports = JSON.stringify(exports);
+if (module.hot.data && module.hot.data.exports && module.hot.data.exports != stringified_exports) {
+  module.hot.invalidate();
+} else {
+  module.hot.accept();
+}
+module.hot.dispose(function(data) { data.exports = stringified_exports; });
+__webpack_require__.r(module.exports = exports);
+
+
+},
+
+};
+
+```

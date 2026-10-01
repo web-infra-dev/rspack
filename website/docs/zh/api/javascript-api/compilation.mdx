@@ -17,7 +17,7 @@ import CacheType from '../../types/cache.mdx';
 import CompilerType from '../../types/compiler.mdx';
 import RuntimeTemplateType from '../../types/runtime-template.mdx';
 import RspackErrorType from '../../types/rspack-error.mdx';
-import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
+import FileSystemDependenciesType from '../../types/file-system-dependencies.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # Compilation
@@ -239,7 +239,7 @@ getAsset(
   name: string; // 产物文件名
   source: Source; // 产物内容
   info: AssetInfo; // 产物信息
-}> | void;
+}> | undefined;
 ```
 
 以下示例将打印名为 `main.js` 的产物体积：
@@ -402,7 +402,7 @@ compiler.hooks.emit.tapAsync('MyPlugin', (compilation) => {
 createChildCompiler(
   name: string, // 子编译器名称
   outputOptions: OutputNormalized, // 子编译所使用的 Output 配置对象
-  plugins: RspackPluginInstance[] // 子编译所添加的插件
+  plugins?: (RspackPluginInstance | Falsy)[] // 为子编译器额外添加的插件
 ): Compiler;
 ```
 
@@ -761,65 +761,65 @@ class MyPlugin {
 
 ### fileDependencies
 
-**类型：** `CompilationDependencies`
+**类型：** `FileSystemDependencies`
 
 获取此 Compilation 对资源文件的依赖信息，其结构如下：
 
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CompilationDependencies.ts"
-    key="CompilationDependencies"
+    header="FileSystemDependencies.ts"
+    key="FileSystemDependencies"
   >
-    <CompilationDependenciesType />
+    <FileSystemDependenciesType />
   </CollapsePanel>
 </Collapse>
 
 ### contextDependencies
 
-**类型：** `CompilationDependencies`
+**类型：** `FileSystemDependencies`
 
 获取此 Compilation 对目录的依赖信息。
 
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CompilationDependencies.ts"
-    key="CompilationDependencies"
+    header="FileSystemDependencies.ts"
+    key="FileSystemDependencies"
   >
-    <CompilationDependenciesType />
+    <FileSystemDependenciesType />
   </CollapsePanel>
 </Collapse>
 
 ### missingDependencies
 
-**类型：** `CompilationDependencies`
+**类型：** `FileSystemDependencies`
 
 获取此 Compilation 对缺失文件的依赖信息。
 
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CompilationDependencies.ts"
-    key="CompilationDependencies"
+    header="FileSystemDependencies.ts"
+    key="FileSystemDependencies"
   >
-    <CompilationDependenciesType />
+    <FileSystemDependenciesType />
   </CollapsePanel>
 </Collapse>
 
 ### buildDependencies
 
-**类型：** `CompilationDependencies`
+**类型：** `FileSystemDependencies`
 
 获取此 Compilation 对构建文件的依赖信息。
 
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CompilationDependencies.ts"
-    key="CompilationDependencies"
+    header="FileSystemDependencies.ts"
+    key="FileSystemDependencies"
   >
-    <CompilationDependenciesType />
+    <FileSystemDependenciesType />
   </CollapsePanel>
 </Collapse>
 

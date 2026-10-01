@@ -1,4 +1,4 @@
-import url from '!!./parent-loader!./target.txt';
+import url from '!!./parent-loader.mjs!./target.txt';
 import fs from 'node:fs';
 import path from 'node:path';
 

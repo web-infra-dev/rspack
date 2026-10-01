@@ -1,0 +1,32 @@
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  context: import.meta.dirname,
+  module: {
+    parser: {
+      asset: {
+        dataUrlCondition: {
+          // Size of the `logo.png` is 700+ bytes
+          maxSize: 1000,
+        },
+      },
+    },
+    rules: [
+      {
+        test: /\.png$/,
+        resourceQuery: /should-be-externalized/,
+        type: 'asset',
+        parser: {
+          dataUrlCondition: {
+            maxSize: 100,
+          },
+        },
+      },
+      {
+        test: /\.png$/,
+        resourceQuery: /should-be-inlined/,
+        type: 'asset',
+      },
+    ],
+  },
+});

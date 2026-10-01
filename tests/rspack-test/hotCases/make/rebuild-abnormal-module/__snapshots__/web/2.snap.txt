@@ -24,7 +24,7 @@
 
 #### Changed Modules
 - ./file.js
-- ./loader.js!./a.js
+- ./loader.mjs!./a.js
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -42,7 +42,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 },
-"./loader.js!./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+"./loader.mjs!./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -81,7 +81,7 @@ check => prepare => dispose => apply => fail
 Outdated Modules:
 - ./file.js
 - ./index.js
-- ./loader.js!./a.js
+- ./loader.mjs!./a.js
 
 
 Outdated Dependencies:
@@ -93,7 +93,7 @@ Outdated Dependencies:
 
 Updated Modules:
 - ./file.js
-- ./loader.js!./a.js
+- ./loader.mjs!./a.js
 
 Updated Runtime:
 - `__webpack_require__.h`

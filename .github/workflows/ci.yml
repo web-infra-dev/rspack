@@ -96,7 +96,7 @@ jobs:
     uses: ./.github/workflows/bench-rust.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: '"ubuntu-22.04"'
+      runner: '"rspack-ubuntu-24.04-vm-medium-verify"'
 
   bench-rust-walltime:
     name: Rust Bench Walltime

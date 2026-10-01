@@ -226,8 +226,29 @@ pub(crate) fn create_named_module_ids_benchmark(c: &mut Criterion, rt: &Runtime)
 }
 
 pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
+  split_chunks_benchmark_with_min_size(c, rt, 0.0, 0, "rust@split_chunks");
+}
+
+pub(crate) fn split_chunks_dedup_depth_benchmark(c: &mut Criterion, rt: &Runtime) {
+  for (dedup_depth, name) in [
+    (0, "rust@split_chunks_dedup_depth_0"),
+    (1, "rust@split_chunks_dedup_depth_1"),
+    (2, "rust@split_chunks_dedup_depth_2"),
+    (3, "rust@split_chunks_dedup_depth_3"),
+  ] {
+    split_chunks_benchmark_with_min_size(c, rt, 128.0, dedup_depth, name);
+  }
+}
+
+fn split_chunks_benchmark_with_min_size(
+  c: &mut Criterion,
+  rt: &Runtime,
+  min_size: f64,
+  dedup_depth: u32,
+  name: &str,
+) {
   let fs = Arc::new(MemoryFileSystem::default());
-  let mut compiler = create_split_chunks_stage_compiler(fs.clone());
+  let mut compiler = create_split_chunks_stage_compiler(fs.clone(), min_size, dedup_depth);
 
   rt.block_on(async {
     fs.create_dir_all("/src".into())
@@ -307,7 +328,7 @@ pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
   restore_initial_chunk_state(&mut compiler.compilation);
 
   let compiler = RefCell::new(compiler);
-  c.bench_function("rust@split_chunks", |b| {
+  c.bench_function(name, |b| {
     b.iter_batched_ref(
       || {
         let mut compiler = compiler.borrow_mut();
@@ -588,7 +609,8 @@ pub(crate) fn runtime_requirements_benchmark(c: &mut Criterion, rt: &Runtime) {
   );
 
   c.bench_function("rust@runtime_requirements", |b| {
-    b.iter_batched(
+    // Keep compiler teardown outside the measured runtime requirements pass.
+    b.iter_batched_ref(
       || {
         let fs = Arc::new(MemoryFileSystem::default());
         let random_table = random_table.clone();
@@ -604,9 +626,9 @@ pub(crate) fn runtime_requirements_benchmark(c: &mut Criterion, rt: &Runtime) {
         });
         compiler
       },
-      |mut compiler| {
+      |compiler| {
         rt.block_on(async {
-          run_runtime_requirements_pass(&mut compiler).await.unwrap();
+          run_runtime_requirements_pass(compiler).await.unwrap();
         });
         black_box((
           compiler.compilation.runtime_modules.len(),
@@ -1094,7 +1116,11 @@ fn create_real_content_hash_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compile
     .unwrap()
 }
 
-fn create_split_chunks_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
+fn create_split_chunks_stage_compiler(
+  fs: Arc<MemoryFileSystem>,
+  min_size: f64,
+  dedup_depth: u32,
+) -> Compiler {
   let mut builder = Compiler::builder();
   builder
     .context("/")
@@ -1111,7 +1137,7 @@ fn create_split_chunks_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
         .concatenate_modules(false),
     )
     .incremental(IncrementalOptions::empty_passes())
-    .plugin(Box::new(create_split_chunks_plugin()));
+    .plugin(Box::new(create_split_chunks_plugin(min_size, dedup_depth)));
   for entry_index in 0..SPLIT_CHUNKS_ENTRY_COUNT {
     builder.entry(
       format!("entry-{entry_index}"),
@@ -1967,10 +1993,11 @@ fn count_assigned_export_used_names(compilation: &Compilation) -> usize {
     .sum()
 }
 
-fn create_split_chunks_plugin() -> SplitChunksPlugin {
+fn create_split_chunks_plugin(min_size: f64, dedup_depth: u32) -> SplitChunksPlugin {
   let js_zero_sizes = SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], 0.0);
 
   SplitChunksPlugin::new(PluginOptions {
+    dedup_depth,
     cache_groups: vec![CacheGroup {
       key: "shared-modules".to_string(),
       chunk_filter: create_all_chunk_filter(),
@@ -1979,7 +2006,7 @@ fn create_split_chunks_plugin() -> SplitChunksPlugin {
       layer: create_default_module_layer_filter(),
       name: ChunkNameGetter::Disabled,
       priority: 0.0,
-      min_size: js_zero_sizes.clone(),
+      min_size: SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], min_size),
       min_size_reduction: js_zero_sizes.clone(),
       enforce_size_threshold: SplitChunkSizes::default(),
       reuse_existing_chunk: false,

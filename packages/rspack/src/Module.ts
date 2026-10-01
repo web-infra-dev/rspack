@@ -9,7 +9,11 @@ export type ResourceDataWithData = ResourceData & {
   data?: Record<string, any>;
 };
 export type ContextInfo = binding.ContextInfo;
-export type ResolveData = binding.JsResolveData;
+export type ResolveData = binding.JsResolveData & {
+  fileDependencies: string[];
+  contextDependencies: string[];
+  missingDependencies: string[];
+};
 
 export class ContextModuleFactoryBeforeResolveData {
   #inner: binding.JsContextModuleFactoryBeforeResolveData;
@@ -83,7 +87,7 @@ export type ContextModuleFactoryBeforeResolveResult =
 export class ContextModuleFactoryAfterResolveData {
   #inner: binding.JsContextModuleFactoryAfterResolveData;
 
-  declare resource: number;
+  declare resource: string;
   declare context: string;
   declare request: string;
   declare regExp: RegExp | undefined;

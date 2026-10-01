@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::hash_map::Entry, sync::Arc};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap};
@@ -446,8 +446,8 @@ impl ConcatenationNameAllocator {
     context: &ConcatenationContext,
   ) {
     let escaped_identifier = context.module_identifier(&module_info.module);
-    for (name, ctxt) in module_info.binding_to_ref.keys() {
-      if ctxt != &module_info.module_ctxt {
+    for (name, ctxt) in module_info.binding_to_ref.names() {
+      if ctxt != module_info.module_ctxt {
         continue;
       }
 
@@ -587,8 +587,8 @@ pub fn analyze_module_scope(
   module_info.binding_to_ref.clear();
   module_info.all_used_names.reserve(identifiers.len());
   module_info.idents.reserve(identifiers.len());
-  module_info.global_scope_ident.reserve(identifiers.len());
-  module_info.binding_to_ref.reserve(identifiers.len());
+  let mut binding_groups: FxHashMap<(Atom, SyntaxContext), u32> = FxHashMap::default();
+  let mut binding_refs: Vec<(u32, u32)> = Vec::with_capacity(identifiers.len());
 
   for identifier in identifiers {
     let scope = semantic.node_scope(&identifier.id);
@@ -619,12 +619,18 @@ pub fn analyze_module_scope(
 
     let legacy = legacy.unwrap_or_else(|| identifier.to_legacy(&semantic));
     module_info.idents.push(legacy.clone());
-    module_info
-      .binding_to_ref
-      .entry((legacy.id.sym.clone().into(), legacy.id.ctxt))
-      .or_default()
-      .push(legacy);
+    let name: Atom = legacy.id.sym.clone().into();
+    let ctxt = legacy.id.ctxt;
+    let index =
+      u32::try_from(module_info.idents.len() - 1).expect("too many identifiers in one module");
+    let group = match binding_groups.entry((name.clone(), ctxt)) {
+      Entry::Occupied(occupied) => *occupied.get(),
+      Entry::Vacant(vacant) => *vacant.insert(module_info.binding_to_ref.push_binding(name, ctxt)),
+    };
+    binding_refs.push((group, index));
   }
+
+  module_info.binding_to_ref.finish(binding_refs);
 
   module_info.has_ast = true;
   Ok(())
@@ -676,10 +682,10 @@ impl<'a> ConcatenationContext<'a> {
         escaped_identifiers.push((Some(info.id()), readable_identifier, module_identifier));
 
         if let ModuleInfo::Concatenated(info) = info {
-          for (identifier, _) in &info.binding_to_ref {
+          for (name, _) in info.binding_to_ref.names() {
             escaped_names
-              .entry(identifier.0.clone())
-              .or_insert_with(|| escape_name_atom_ref(&identifier.0));
+              .entry(name.clone())
+              .or_insert_with(|| escape_name_atom_ref(name));
           }
 
           if let Some(import_map) = &info.import_map {

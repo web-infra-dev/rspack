@@ -1,7 +1,7 @@
 PublicPath: auto
 asset bundle.js xx KiB {889} [emitted] (name: main)
-asset 98396dbfd5c74c34.png xx bytes ({889}) [emitted] [immutable] [from: raw.png] (auxiliary name: main)
-Entrypoint main xx KiB (xx bytes) = bundle.js xx KiB (98396dbfd5c74c34.png xx bytes)
+asset xxx.png xx bytes ({889}) [emitted] [immutable] [from: raw.png] (auxiliary name: main)
+Entrypoint main xx KiB (xx bytes) = bundle.js xx KiB (xxx.png xx bytes)
 chunk {889} (runtime: main) bundle.js (main) xx bytes (asset) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
   > ./index main
   ./index.js + 1 modules [523] xx bytes {889} [depth 0] [code generated]

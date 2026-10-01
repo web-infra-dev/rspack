@@ -17,7 +17,7 @@ import CacheType from '../../types/cache.mdx';
 import CompilerType from '../../types/compiler.mdx';
 import RuntimeTemplateType from '../../types/runtime-template.mdx';
 import RspackErrorType from '../../types/rspack-error.mdx';
-import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
+import FileSystemDependenciesType from '../../types/file-system-dependencies.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # Compilation
@@ -239,7 +239,7 @@ getAsset(
   name: string;
   source: Source;
   info: AssetInfo;
-}> | void;
+}> | undefined;
 ```
 
 The following code will print the size of the asset named `main.js`:
@@ -402,7 +402,7 @@ Allows running another instance of Rspack inside of Rspack. However, as a child 
 createChildCompiler(
   name: string, // name for the child `Compiler`
   outputOptions: OutputNormalized, // Output options object
-  plugins: RspackPluginInstance[] // Plugins that will be applied
+  plugins?: (RspackPluginInstance | Falsy)[] // Additional plugins for the child compiler
 ): Compiler;
 ```
 
@@ -765,65 +765,65 @@ The mapping from names to chunks.
 
 ### fileDependencies
 
-**Type:** `CompilationDependencies`
+**Type:** `FileSystemDependencies`
 
 List of files this compilation depends on.
 
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CompilationDependencies.ts"
-    key="CompilationDependencies"
+    header="FileSystemDependencies.ts"
+    key="FileSystemDependencies"
   >
-    <CompilationDependenciesType />
+    <FileSystemDependenciesType />
   </CollapsePanel>
 </Collapse>
 
 ### contextDependencies
 
-**Type:** `CompilationDependencies`
+**Type:** `FileSystemDependencies`
 
 List of directories this compilation depends on.
 
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CompilationDependencies.ts"
-    key="CompilationDependencies"
+    header="FileSystemDependencies.ts"
+    key="FileSystemDependencies"
   >
-    <CompilationDependenciesType />
+    <FileSystemDependenciesType />
   </CollapsePanel>
 </Collapse>
 
 ### missingDependencies
 
-**Type:** `CompilationDependencies`
+**Type:** `FileSystemDependencies`
 
 List of not existing files this compilation depends on.
 
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CompilationDependencies.ts"
-    key="CompilationDependencies"
+    header="FileSystemDependencies.ts"
+    key="FileSystemDependencies"
   >
-    <CompilationDependenciesType />
+    <FileSystemDependenciesType />
   </CollapsePanel>
 </Collapse>
 
 ### buildDependencies
 
-**Type:** `CompilationDependencies`
+**Type:** `FileSystemDependencies`
 
 List of build dependencies this compilation depends on.
 
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CompilationDependencies.ts"
-    key="CompilationDependencies"
+    header="FileSystemDependencies.ts"
+    key="FileSystemDependencies"
   >
-    <CompilationDependenciesType />
+    <FileSystemDependenciesType />
   </CollapsePanel>
 </Collapse>
 

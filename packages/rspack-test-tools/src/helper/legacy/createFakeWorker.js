@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import path from 'node:path';
-import { Worker as NodeWorker } from 'node:worker_threads';
+import * as workerThreads from 'node:worker_threads';
 
 export const createFakeWorker = (env, { outputDirectory }) =>
   class Worker {
@@ -111,7 +111,7 @@ if (${options.type === 'module'}) {
 	require(${JSON.stringify(file)});
 }
 `;
-      this.worker = new NodeWorker(workerBootstrap, {
+      this.worker = new workerThreads.Worker(workerBootstrap, {
         eval: true,
       });
 

@@ -312,34 +312,40 @@ module.exports = {
 
 ### Compiler
 
-| 入口文件 | `Compiler.test.js`                                                                                         |
+| 入口文件 | `Compiler.test.mjs`                                                                                        |
 | -------- | ---------------------------------------------------------------------------------------------------------- |
 | 用例目录 | [`tests/compilerCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/compilerCases) |
 | 产物目录 | `无`                                                                                                       |
 | 默认配置 | [`无`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/compiler.ts)  |
 | 产物运行 | `否`                                                                                                       |
 
-此测试固定使用 `tests/rspack-test/fixtures` 作为构建的源码，因此用例以单文件编写，其输出结构如下：
+Compiler 用例支持现有单文件形式和自包含目录形式。单文件用例默认以 `tests/rspack-test/fixtures` 作为构建上下文；目录用例以自身目录作为上下文，并包含 `test.config.mjs`、`test.config.cjs` 或 `test.config.js`（按此优先级查找）。只发现配置入口，同目录中的编译输入、loader 和辅助文件不会注册为测试。
 
-```js title="{case.js}"
-interface TCompilerCaseConfig {
-  description: string; // 用例描述
-  options?: (context: ITestContext) => TCompilerOptions<T>; // 用例构建配置
-  compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // 用例 compiler 创建方式
-  build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>; // 用例构建方式
-  check?: (
-    context: ITestContext,
-    compiler: TCompiler<T>,
-    stats: TCompilerStats<T>,
-  ) => Promise<void>; // 用例的检测函数
-}
+配置导出一个 `TCompilerCaseConfig` 或其数组。普通用例通过 `options`、`compiler`、`build` 和 `check` 定制框架管理的 compiler。GC 测试或自行管理 compiler 的场景则使用 `run`：
 
-// [!code highlight:4]
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
-  // ...
-};
+```js title="object-lifecycle/test.config.mjs"
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
+export default [
+  {
+    name: 'hooks',
+    description: 'should collect hook closures and captured objects',
+    async run() {
+      const { default: run } = await import('./hooks.mjs');
+      await run();
+    },
+  },
+];
 ```
+
+`run` 不能与 `options`、`compiler`、`build`、`check`、`compilerCallback` 或 `error` 混用。框架不会为这种用例创建 compiler 或持有 Stats；用例需在 `finally` 中关闭自己创建的 compiler。两种形式均支持 `description`、`skip` 和可选的 `name`。名称在同一配置内必须唯一，使用小写字母、数字及分隔它们的单个连字符。旧的未命名用例保留索引标识。
+
+使用完整的目录/场景路径筛选具名用例：
+
+```bash
+pnpm --dir tests/rspack-test run test -t 'compilerCases/object-lifecycle/hooks'
+```
+
+GC 和 compiler 辅助函数从 `@rspack/test-tools/helper/lifecycle` 导入。GC 场景在已有测试进程内执行，runner 已启用 `--expose-gc`。需要独立 libuv 测量环境和自然退出检查时，使用 `@rspack/test-tools/helper/node-case` 的 `runNodeCase(moduleURL, args)`：模块默认导出异步函数，接收 JSON 参数并返回 JSON 结果（空返回转换为 `null`）。每个子进程超时为 20 秒，只有自然退出才算成功。示例见 `compilerCases/libuv-handles`。
 
 ### Defaults
 

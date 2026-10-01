@@ -1,1 +1,1 @@
-import "../disable_cache_loader!./b";
+import "../disable_cache_loader.mjs!./b";

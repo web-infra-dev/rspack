@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, str};
 
 use bitflags::bitflags;
+use memchr::{memchr2, memchr3};
 use rustc_hash::FxHashSet;
 use smallvec::SmallVec;
 
@@ -1069,46 +1070,77 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
   fn scan_string(&self, start: usize, quote: u8) -> (TokenKind, usize, usize, usize, TokenFlags) {
     let mut end = start + 1;
     let mut flags = TokenFlags::ascii();
-    while end < self.value.len() {
-      let byte = self.value[end];
-      if byte == quote {
-        return (TokenKind::QuotedString, end + 1, start + 1, end, flags);
-      }
-      if is_new_line(byte) {
-        return (TokenKind::BadString, end, start + 1, end, flags);
-      }
-      if byte == 0 {
-        flags.mark_null();
-      } else if !byte.is_ascii() {
-        flags.mark_non_ascii();
-      }
-      if byte == C_REVERSE_SOLIDUS {
-        flags.mark_escape();
-        if self.value.get(end + 1).is_some_and(|next| !next.is_ascii()) {
+    loop {
+      // Scan short runs with a bounded scalar loop. This keeps the common
+      // short-string path branch-friendly, preserves the exact first error
+      // position, and pays the bulk search cost only for long runs.
+      let short_end = end.saturating_add(32).min(self.value.len());
+      while end < short_end {
+        let byte = self.value[end];
+        if byte == quote {
+          return (TokenKind::QuotedString, end + 1, start + 1, end, flags);
+        }
+        if is_new_line(byte) {
+          return (TokenKind::BadString, end, start + 1, end, flags);
+        }
+        if byte == 0 {
+          flags.mark_null();
+        } else if !byte.is_ascii() {
           flags.mark_non_ascii();
         }
-        if self
-          .value
-          .get(end + 1)
-          .is_some_and(|next| is_new_line(*next))
-        {
-          end += 1;
-          if self.value.get(end) == Some(&C_CARRIAGE_RETURN)
-            && self.value.get(end + 1) == Some(&C_LINE_FEED)
+        if byte == C_REVERSE_SOLIDUS {
+          flags.mark_escape();
+          if self.value.get(end + 1).is_some_and(|next| !next.is_ascii()) {
+            flags.mark_non_ascii();
+          }
+          if self
+            .value
+            .get(end + 1)
+            .is_some_and(|next| is_new_line(*next))
           {
             end += 1;
+            if self.value.get(end) == Some(&C_CARRIAGE_RETURN)
+              && self.value.get(end + 1) == Some(&C_LINE_FEED)
+            {
+              end += 1;
+            }
+            end += 1;
+          } else if self.is_valid_escape_at(end) {
+            end = self.scan_escape(end);
+          } else {
+            end += 1;
           }
-          end += 1;
-        } else if self.is_valid_escape_at(end) {
-          end = self.scan_escape(end);
         } else {
-          end += 1;
+          end += self.utf8_width_at(end);
         }
-      } else {
-        end += self.utf8_width_at(end);
       }
+      if end == self.value.len() {
+        return (TokenKind::BadString, end, start + 1, end, flags);
+      }
+      // Bulk search: skip ordinary string content with a vectorized search
+      // for the next quote, escape, or line feed.
+      let rest = &self.value[end..];
+      let end_rel = memchr3(quote, C_REVERSE_SOLIDUS, C_LINE_FEED, rest).unwrap_or(rest.len());
+      // A carriage return or form feed ends the string before any later
+      // quote, escape, or line feed, so report it at its exact position.
+      let segment_end =
+        memchr2(C_CARRIAGE_RETURN, C_FORM_FEED, &rest[..end_rel]).unwrap_or(end_rel);
+      // Null and non-ASCII bytes inside the skipped run only affect token
+      // flags; their exact positions do not matter. Only the bytes before a
+      // terminating carriage return or form feed belong to the string.
+      if memchr::memchr(b'\0', &rest[..segment_end]).is_some() {
+        flags.mark_null();
+      }
+      if !rest[..segment_end].is_ascii() {
+        flags.mark_non_ascii();
+      }
+      end += segment_end;
+      if segment_end != end_rel {
+        return (TokenKind::BadString, end, start + 1, end, flags);
+      }
+      // end now points at a quote, escape, line feed, or EOF. The scalar
+      // loop handles it with the original per-byte logic.
     }
-    (TokenKind::BadString, end, start + 1, end, flags)
   }
 
   fn scan_ident_like(&self, start: usize) -> (TokenKind, usize, usize, usize, TokenFlags) {
@@ -1150,63 +1182,104 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
   ) -> (TokenKind, usize, usize, usize, TokenFlags) {
     let mut end = content_start;
     let mut flags = TokenFlags::ascii();
-    while end < self.value.len() {
-      let byte = self.value[end];
-      if byte == C_RIGHT_PARENTHESIS {
-        return (TokenKind::Url, end + 1, content_start, end, flags);
-      }
-      if is_white_space(byte) {
-        let content_end = end;
-        let close = self.skip_white_space(end);
-        if self.value.get(close) == Some(&C_RIGHT_PARENTHESIS) {
-          return (TokenKind::Url, close + 1, content_start, content_end, flags);
+    'scan: loop {
+      // Scan short runs with a bounded scalar loop before falling back to
+      // the bulk search, matching the short-string strategy in scan_string.
+      let short_end = end.saturating_add(32).min(self.value.len());
+      while end < short_end {
+        let byte = self.value[end];
+        if byte == C_RIGHT_PARENTHESIS {
+          return (TokenKind::Url, end + 1, content_start, end, flags);
         }
-        return self.scan_bad_url(start, close, content_start, flags);
-      }
-      if byte == 0 {
-        flags.mark_null();
-      } else if !byte.is_ascii() {
-        flags.mark_non_ascii();
-      }
-      if byte == C_QUOTATION_MARK
-        || byte == C_APOSTROPHE
-        || byte == C_LEFT_PARENTHESIS
-        || is_non_printable(byte)
-      {
-        return self.scan_bad_url(start, end, content_start, flags);
-      }
-      if byte == C_REVERSE_SOLIDUS {
-        flags.mark_escape();
-        if self.value.get(end + 1).is_some_and(|next| !next.is_ascii()) {
+        if is_white_space(byte) {
+          let content_end = end;
+          let close = self.skip_white_space(end);
+          if self.value.get(close) == Some(&C_RIGHT_PARENTHESIS) {
+            return (TokenKind::Url, close + 1, content_start, content_end, flags);
+          }
+          return self.scan_bad_url(start, close, content_start, flags);
+        }
+        if byte == 0 {
+          flags.mark_null();
+        } else if !byte.is_ascii() {
           flags.mark_non_ascii();
         }
-        if self.is_valid_escape_at(end) {
-          end = self.scan_escape(end);
-        } else if self
-          .value
-          .get(end + 1)
-          .is_some_and(|next| is_new_line(*next))
+        if byte == C_QUOTATION_MARK
+          || byte == C_APOSTROPHE
+          || byte == C_LEFT_PARENTHESIS
+          || is_non_printable(byte)
         {
-          end += 2;
-          if self.value.get(end - 1) == Some(&C_CARRIAGE_RETURN)
-            && self.value.get(end) == Some(&C_LINE_FEED)
-          {
-            end += 1;
-          }
-        } else {
           return self.scan_bad_url(start, end, content_start, flags);
         }
-      } else {
-        end += self.utf8_width_at(end);
+        if byte == C_REVERSE_SOLIDUS {
+          flags.mark_escape();
+          if self.value.get(end + 1).is_some_and(|next| !next.is_ascii()) {
+            flags.mark_non_ascii();
+          }
+          if self.is_valid_escape_at(end) {
+            end = self.scan_escape(end);
+          } else if self
+            .value
+            .get(end + 1)
+            .is_some_and(|next| is_new_line(*next))
+          {
+            end += 2;
+            if self.value.get(end - 1) == Some(&C_CARRIAGE_RETURN)
+              && self.value.get(end) == Some(&C_LINE_FEED)
+            {
+              end += 1;
+            }
+          } else {
+            return self.scan_bad_url(start, end, content_start, flags);
+          }
+        } else {
+          end += self.utf8_width_at(end);
+        }
       }
+      if end == self.value.len() {
+        return (
+          TokenKind::BadUrl,
+          self.value.len(),
+          content_start,
+          self.value.len(),
+          flags,
+        );
+      }
+      // Bulk search: the closing parenthesis is almost always the next byte
+      // that needs attention, so find it with a vectorized search and then
+      // verify the skipped run. Any byte before it that requires per-byte
+      // handling (whitespace, quote, parenthesis, escape, or non-printable)
+      // hands control back to the scalar loop at that exact position.
+      let rest = &self.value[end..];
+      let close_rel = memchr::memchr(C_RIGHT_PARENTHESIS, rest).unwrap_or(rest.len());
+      let segment = &rest[..close_rel];
+      if !segment.is_ascii() {
+        flags.mark_non_ascii();
+      }
+      let bad_rel = segment.iter().position(|byte| {
+        *byte <= C_SPACE
+          || *byte == C_QUOTATION_MARK
+          || *byte == C_APOSTROPHE
+          || *byte == C_LEFT_PARENTHESIS
+          || *byte == C_REVERSE_SOLIDUS
+          || *byte == 0x7F
+      });
+      if let Some(offset) = bad_rel {
+        end += offset;
+        continue 'scan;
+      }
+      end += close_rel;
+      if close_rel == rest.len() {
+        return (
+          TokenKind::BadUrl,
+          self.value.len(),
+          content_start,
+          self.value.len(),
+          flags,
+        );
+      }
+      return (TokenKind::Url, end + 1, content_start, end, flags);
     }
-    (
-      TokenKind::BadUrl,
-      self.value.len(),
-      content_start,
-      self.value.len(),
-      flags,
-    )
   }
 
   fn scan_bad_url(
@@ -1216,41 +1289,61 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     content_start: usize,
     mut flags: TokenFlags,
   ) -> (TokenKind, usize, usize, usize, TokenFlags) {
-    while end < self.value.len() {
-      let byte = self.value[end];
-      if byte == 0 {
-        flags.mark_null();
-      } else if !byte.is_ascii() {
-        flags.mark_non_ascii();
-      }
-      if byte == C_RIGHT_PARENTHESIS {
-        end += 1;
-        break;
-      }
-      if byte == C_REVERSE_SOLIDUS {
-        flags.mark_escape();
-        if self.value.get(end + 1).is_some_and(|next| !next.is_ascii()) {
+    loop {
+      let short_end = end.saturating_add(32).min(self.value.len());
+      while end < short_end {
+        let byte = self.value[end];
+        if byte == 0 {
+          flags.mark_null();
+        } else if !byte.is_ascii() {
           flags.mark_non_ascii();
         }
-        if self.is_valid_escape_at(end) {
-          end = self.scan_escape(end);
-        } else if self
-          .value
-          .get(end + 1)
-          .is_some_and(|next| is_new_line(*next))
-        {
-          end += 2;
-          if self.value.get(end - 1) == Some(&C_CARRIAGE_RETURN)
-            && self.value.get(end) == Some(&C_LINE_FEED)
+        if byte == C_RIGHT_PARENTHESIS {
+          end += 1;
+          return (TokenKind::BadUrl, end, content_start, end, flags);
+        }
+        if byte == C_REVERSE_SOLIDUS {
+          flags.mark_escape();
+          if self.value.get(end + 1).is_some_and(|next| !next.is_ascii()) {
+            flags.mark_non_ascii();
+          }
+          if self.is_valid_escape_at(end) {
+            end = self.scan_escape(end);
+          } else if self
+            .value
+            .get(end + 1)
+            .is_some_and(|next| is_new_line(*next))
           {
+            end += 2;
+            if self.value.get(end - 1) == Some(&C_CARRIAGE_RETURN)
+              && self.value.get(end) == Some(&C_LINE_FEED)
+            {
+              end += 1;
+            }
+          } else {
             end += 1;
           }
         } else {
-          end += 1;
+          end += self.utf8_width_at(end);
         }
-      } else {
-        end += self.utf8_width_at(end);
       }
+      if end == self.value.len() {
+        break;
+      }
+      // Bulk search: skip ordinary content with a vectorized search for the
+      // next closing parenthesis or escape.
+      let rest = &self.value[end..];
+      let rel = memchr2(C_RIGHT_PARENTHESIS, C_REVERSE_SOLIDUS, rest).unwrap_or(rest.len());
+      let segment = &rest[..rel];
+      if memchr::memchr(b'\0', segment).is_some() {
+        flags.mark_null();
+      }
+      if !segment.is_ascii() {
+        flags.mark_non_ascii();
+      }
+      end += rel;
+      // end now points at a closing parenthesis, escape, or EOF. The scalar
+      // loop handles it with the original per-byte logic.
     }
     (TokenKind::BadUrl, end, content_start, end, flags)
   }

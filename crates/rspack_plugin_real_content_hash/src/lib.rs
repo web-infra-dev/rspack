@@ -1,6 +1,7 @@
 mod drive;
 
 use std::{
+  borrow::Cow,
   hash::BuildHasherDefault,
   sync::{Arc, LazyLock},
 };
@@ -120,7 +121,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       asset.get_source().map(|source| {
         (
           name.as_str(),
-          AssetData::new(source.clone(), asset.get_info(), &hash_ac),
+          AssetData::new(source, asset.get_info(), &hash_ac),
         )
       })
     })
@@ -307,27 +308,21 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
 }
 
 #[derive(Debug)]
-struct AssetData {
+struct AssetData<'a> {
   own_hashes: HashSet<String>,
   referenced_hashes: HashSet<String>,
   #[debug(skip)]
-  old_source: BoxSource,
+  old_source: &'a BoxSource,
   #[debug(skip)]
-  content: AssetDataContent,
+  content: Option<Cow<'a, str>>,
   #[debug(skip)]
   new_source: OnceCell<BoxSource>,
   #[debug(skip)]
   new_source_without_own: OnceCell<BoxSource>,
 }
 
-#[derive(Debug)]
-enum AssetDataContent {
-  Buffer,
-  String(String),
-}
-
-impl AssetData {
-  pub fn new(source: BoxSource, info: &AssetInfo, hash_ac: &AhoCorasick) -> Self {
+impl<'a> AssetData<'a> {
+  pub fn new(source: &'a BoxSource, info: &AssetInfo, hash_ac: &AhoCorasick) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
     let content = if let SourceValue::String(content) = source.source() {
@@ -339,9 +334,12 @@ impl AssetData {
         }
         referenced_hashes.insert(hash.to_string());
       }
-      AssetDataContent::String(content.into_owned())
+      // Borrow contiguous sources instead of copying them for the entire pass.
+      // Sources without hash matches will never need replacement, so discard
+      // their materialized content as soon as the scan is complete.
+      (!own_hashes.is_empty() || !referenced_hashes.is_empty()).then_some(content)
     } else {
-      AssetDataContent::Buffer
+      None
     };
 
     Self {
@@ -366,7 +364,7 @@ impl AssetData {
       &self.new_source
     })
     .get_or_init(|| {
-      if let AssetDataContent::String(content) = &self.content
+      if let Some(content) = &self.content
         && (!self.own_hashes.is_empty()
           || self
             .referenced_hashes
@@ -395,7 +393,7 @@ impl AssetData {
 
 struct OrderedHashesBuilder<'a> {
   hash_to_asset_names: &'a HashMap<&'a str, Vec<&'a str>>,
-  assets_data: &'a HashMap<&'a str, AssetData>,
+  assets_data: &'a HashMap<&'a str, AssetData<'a>>,
 }
 
 struct OrderedHashes {
@@ -406,7 +404,7 @@ struct OrderedHashes {
 impl<'a> OrderedHashesBuilder<'a> {
   pub fn new(
     hash_to_asset_names: &'a HashMap<&'a str, Vec<&'a str>>,
-    assets_data: &'a HashMap<&'a str, AssetData>,
+    assets_data: &'a HashMap<&'a str, AssetData<'a>>,
   ) -> Self {
     Self {
       hash_to_asset_names,

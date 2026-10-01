@@ -3,6 +3,7 @@ import {
   type RawNormalModuleReplacementPluginOptions,
 } from '@rspack/binding';
 import type { ResolveData } from '../Module';
+import { createResolveData } from '../NormalModuleFactory';
 import { create } from './base';
 
 export const NormalModuleReplacementPlugin = create(
@@ -16,7 +17,7 @@ export const NormalModuleReplacementPlugin = create(
       newResource:
         typeof newResource === 'function'
           ? (data) => {
-              newResource(data);
+              newResource(createResolveData(data));
               return data;
             }
           : newResource,

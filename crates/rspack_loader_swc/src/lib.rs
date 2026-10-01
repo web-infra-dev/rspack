@@ -256,7 +256,7 @@ impl SwcLoader {
 
     if let Some(rsc) = rsc_meta.borrow_mut().take() {
       let module = &mut loader_context.context.module;
-      module.build_info_mut().rsc = Some(rsc);
+      module.build_info_mut().rsc = Some(Box::new(rsc));
       if let Some(code) = to_server_entry(module)? {
         loader_context.finish_with(code);
         return Ok(());

@@ -3,6 +3,10 @@ import type { Compiler, RspackOptions, Stats } from '@rspack/core';
 import fs from 'fs-extra';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
 import { captureStdio } from '../helper/legacy/captureStdio';
+import {
+  findRspackConfigFile,
+  RSPACK_CONFIG_FILES,
+} from '../helper/read-config-file';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
 import { build, compiler, configMultiCompiler } from './common';
@@ -29,7 +33,7 @@ export function createStatsProcessor(
       configMultiCompiler(
         context,
         name,
-        ['rspack.config.js', 'webpack.config.js'],
+        RSPACK_CONFIG_FILES,
         defaultOptions,
         overrideOptions,
       );
@@ -39,6 +43,19 @@ export function createStatsProcessor(
       await statsCompiler(context, c);
     },
     build: async (context: ITestContext) => {
+      // Clean custom output paths too, so previous runs don't affect asset emission status.
+      const options = context.getCompiler().getOptions();
+      const source = context.getSource();
+      for (const o of Array.isArray(options) ? options : [options]) {
+        const outputPath = o.output?.path;
+        if (
+          outputPath &&
+          outputPath !== source &&
+          !source.startsWith(outputPath + path.sep)
+        ) {
+          fs.removeSync(outputPath);
+        }
+      }
       await build(context, name);
     },
     run: async (env: ITestEnv, context: ITestContext) => {
@@ -67,10 +84,7 @@ export function createStatsOutputCase(name: string, src: string, dist: string) {
 }
 
 function defaultOptions(index: number, context: ITestContext): RspackOptions {
-  if (
-    fs.existsSync(path.join(context.getSource(), 'rspack.config.js')) ||
-    fs.existsSync(path.join(context.getSource(), 'webpack.config.js'))
-  ) {
+  if (findRspackConfigFile(context.getSource())) {
     return {
       output: {
         bundlerInfo: {
@@ -150,12 +164,6 @@ function check(
   const stats = compiler.getStats();
   if (!stats || !compiler) return;
 
-  for (const compilation of []
-    .concat((stats as any).stats || stats)
-    .map((s: any) => s.compilation)) {
-    compilation.logging.delete('webpack.Compilation.ModuleProfile');
-  }
-
   if (REG_ERROR_CASE.test(name)) {
     env.expect(stats.hasErrors()).toBe(true);
   } else if (stats.hasErrors()) {
@@ -218,6 +226,14 @@ function check(
       .replace(/[0-9]+(\.[0-9]+)? bytes/g, 'xx bytes')
       .replace(/[0-9]+(\.[0-9]+)? ms/g, 'xx ms');
   }
+
+  // Normalize content hashes while preserving chunk ids and names such as `abcdef.js`.
+  // Digit-only hashes need 8+ characters to distinguish them from ids in these cases.
+  actual = actual.replace(/(?!\d+-)[0-9a-f]{6,32}(?=\.)/g, (match) =>
+    /\d/.test(match) && (/[a-f]/.test(match) || match.length >= 8)
+      ? 'xxx'
+      : match,
+  );
 
   actual = actual
     .split('\n')

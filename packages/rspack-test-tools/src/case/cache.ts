@@ -10,7 +10,7 @@ import {
   type StatsModule,
 } from '@rspack/core';
 import fs from 'fs-extra';
-import { isJavaScript } from '../helper';
+import { isJavaScript, RSPACK_CONFIG_FILES } from '../helper';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
 import { HotUpdatePlugin } from '../helper/hot-update';
 import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
@@ -491,7 +491,7 @@ async function generateOptions(
   options = await config(
     context,
     'cacheCase',
-    ['rspack.config.js', 'webpack.config.js'].map((i) => path.resolve(temp, i)),
+    RSPACK_CONFIG_FILES.map((i) => path.resolve(temp, i)),
     options,
   );
 

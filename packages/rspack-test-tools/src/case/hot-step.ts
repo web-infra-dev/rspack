@@ -6,7 +6,7 @@ import type {
   StatsCompilation,
 } from '@rspack/core';
 import fs from 'fs-extra';
-import { escapeSep } from '../helper';
+import { escapeSep, isJavaScript } from '../helper';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
@@ -163,8 +163,15 @@ function createHotStepProcessor(
         const content = replaceContent(
           fs.readFileSync(context.getDist(fileName), 'utf-8'),
         );
-        if (fileName.endsWith('hot-update.js')) {
-          const modules = getModuleHandler(context.getDist(fileName), options);
+        if (
+          fileName.endsWith('hot-update.js') ||
+          fileName.endsWith('hot-update.mjs')
+        ) {
+          const modules = fileName.endsWith('.mjs')
+            ? Object.keys(
+                require(context.getDist(fileName)).__webpack_modules__,
+              )
+            : getModuleHandler(context.getDist(fileName), options);
           const runtime: string[] = [];
           for (const i of content.matchAll(
             /\/\/ ((?:webpack|rspack)\/runtime\/[\w_-]+)\s*\n/g,
@@ -181,8 +188,13 @@ function createHotStepProcessor(
           });
           return `- Update: ${renderName}, size: ${content.length}`;
         }
-        if (fileName.endsWith('hot-update.json')) {
-          const manifest = JSON.parse(content);
+        if (
+          fileName.endsWith('hot-update.json') ||
+          fileName.endsWith('hot-update.json.mjs')
+        ) {
+          const manifest = fileName.endsWith('.mjs')
+            ? require(context.getDist(fileName)).default
+            : JSON.parse(content);
           manifest.c?.sort();
           manifest.r?.sort();
           manifest.m?.sort();
@@ -196,7 +208,7 @@ function createHotStepProcessor(
           });
           return `- Manifest: ${renderName}, size: ${i.size}`;
         }
-        if (fileName.endsWith('.js')) {
+        if (isJavaScript(fileName)) {
           return `- Bundle: ${renderName}`;
         }
       })

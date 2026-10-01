@@ -123,7 +123,10 @@ export const applyRspackOptionsDefaults = (
       `${ERROR_PREFIX} "cache.type: 'filesystem'" requires "experiments.newCache" to be enabled.`,
     );
   }
-  applySnapshotDefaults(options.snapshot, production);
+  applySnapshotDefaults(options.snapshot, {
+    production,
+    newCache: Boolean(options.experiments.newCache),
+  });
 
   applyOptimizationDefaults(options.optimization, {
     production,
@@ -280,11 +283,15 @@ const applyCacheDefaults = (
 
 const applySnapshotDefaults = (
   snapshot: SnapshotOptions,
-  production: boolean,
+  { production, newCache }: { production: boolean; newCache: boolean },
 ) => {
   F(snapshot, 'immutablePaths', () => []);
   F(snapshot, 'unmanagedPaths', () => []);
-  F(snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
+  F(snapshot, 'managedPaths', () =>
+    newCache
+      ? [/^(.+?[\\/]node_modules[\\/])/]
+      : [/[\\/]node_modules[\\/][^.]/],
+  );
   F(snapshot, 'resolveBuildDependencies', () => ({
     timestamp: true,
     hash: true,
@@ -330,6 +337,7 @@ const applyExperimentsDefaults = (
     D(experiments.newCache, 'devtool', true);
     D(experiments.newCache, 'loader', true);
     D(experiments.newCache, 'minimize', true);
+    D(experiments.newCache, 'resolver', true);
   }
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
@@ -1261,6 +1269,7 @@ const applyOptimizationDefaults = (
   });
   const { splitChunks } = optimization;
   if (splitChunks) {
+    D(splitChunks, 'dedupDepth', production ? 1 : 0);
     A(splitChunks, 'defaultSizeTypes', () => ['javascript', 'css', 'unknown']);
     D(splitChunks, 'hidePathInfo', production);
     D(splitChunks, 'chunks', 'async');

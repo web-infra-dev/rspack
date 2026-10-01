@@ -14,7 +14,7 @@ type Compilation = {
   renameAsset(filename: string, newFilename: string): void; // rename the asset
   deleteAsset(filename: string): void; // delete an existing asset
   getAssets(): readonly Asset[]; // get all assets
-  getAsset(name: string): Readonly<Asset> | void; // get asset from name
+  getAsset(name: string): Readonly<Asset> | undefined; // get asset from name
   getPath(filename: string, data?: PathData): string; // generate path from template
   getPathWithInfo(filename: string, data?: PathData): PathWithInfo; // generate path and asset info from template
   getStats(): Stats; // get stats object
@@ -41,10 +41,10 @@ type Compilation = {
   readonly modules: ReadonlySet<Module>; // set of all modules
   readonly chunks: ReadonlySet<Chunk>; // set of all chunks
   readonly namedChunks: ReadonlyMap<string, Readonly<Chunk>>; // mapping of named chunks
-  fileDependencies: CompilationDependencies; // dependent files
-  contextDependencies: CompilationDependencies; // dependent directories
-  missingDependencies: CompilationDependencies; // dependent missing files
-  buildDependencies: CompilationDependencies; // dependent build files
+  fileDependencies: FileSystemDependencies; // dependent files
+  contextDependencies: FileSystemDependencies; // dependent directories
+  missingDependencies: FileSystemDependencies; // dependent missing files
+  buildDependencies: FileSystemDependencies; // dependent build files
   errors: RspackError[]; // errors during compilation
   warnings: RspackError[]; // warnings during compilation
 };

@@ -134,6 +134,9 @@ define.lib({
   tools: {
     rspack: [
       {
+        experiments: {
+          runtimeMode: 'rspack',
+        },
         module: {
           parser: {
             javascript: {

@@ -36,7 +36,7 @@ use crate::{
   ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
   ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
   RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SnapshotValidationResult, SourceType, contextify,
+  SnapshotValidationResult, SourceType, contextify, contextify_source_map, contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -98,11 +98,13 @@ pub struct NormalModule {
   /// Context of this module
   context: Box<Context>,
   /// Request with loaders from config
-  request: String,
+  /// Omitted when identical to the interned module identifier.
+  request: Option<Box<str>>,
   /// Request intended by user (without loaders from config)
-  user_request: String,
+  /// Omitted when identical to the resolved resource.
+  user_request: Option<Box<str>>,
   /// Request without resolving
-  raw_request: String,
+  raw_request: Box<str>,
   /// The resolved module type of a module
   module_type: ModuleType,
   /// Layer of the module
@@ -110,7 +112,7 @@ pub struct NormalModule {
   /// Affiliated parser and generator to the module type
   parser_and_generator: Box<dyn ParserAndGenerator>,
   /// Resource matched with inline match resource, (`!=!` syntax)
-  match_resource: Option<ResourceData>,
+  match_resource: Option<Box<ResourceData>>,
   /// Resource data (path, query, fragment etc.)
   resource_data: Arc<ResourceData>,
   /// Loaders for the module
@@ -196,22 +198,27 @@ impl NormalModule {
     import_phase: ImportPhase,
   ) -> Self {
     let module_type = module_type.into();
-    let id = Self::create_id(&module_type, layer.as_ref(), &request, import_phase);
+    let id = ModuleIdentifier::from(
+      Self::create_id(&module_type, layer.as_ref(), &request, import_phase).as_ref(),
+    );
+    let request = (request != id.as_str()).then(|| request.into_boxed_str());
+    let user_request =
+      (user_request != resource_data.resource()).then(|| user_request.into_boxed_str());
     let build_info = BuildInfo {
       import_phase,
       ..Default::default()
     };
     Self {
-      id: ModuleIdentifier::from(id.as_ref()),
+      id,
       context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
       request,
       user_request,
-      raw_request,
+      raw_request: raw_request.into_boxed_str(),
       module_type,
       layer,
       parser_and_generator,
       parser_and_generator_options,
-      match_resource,
+      match_resource: match_resource.map(Box::new),
       resource_data,
       resolve_options,
       loaders,
@@ -242,10 +249,10 @@ impl NormalModule {
   }
 
   pub fn match_resource(&self) -> Option<&ResourceData> {
-    self.match_resource.as_ref()
+    self.match_resource.as_deref()
   }
 
-  pub fn match_resource_mut(&mut self) -> &mut Option<ResourceData> {
+  pub fn match_resource_mut(&mut self) -> &mut Option<Box<ResourceData>> {
     &mut self.match_resource
   }
 
@@ -254,11 +261,14 @@ impl NormalModule {
   }
 
   pub fn request(&self) -> &str {
-    &self.request
+    self.request.as_deref().unwrap_or_else(|| self.id.as_str())
   }
 
   pub fn user_request(&self) -> &str {
-    &self.user_request
+    self
+      .user_request
+      .as_deref()
+      .unwrap_or_else(|| self.resource_data.resource())
   }
 
   pub fn raw_request(&self) -> &str {
@@ -380,7 +390,7 @@ impl Module for NormalModule {
   }
 
   fn readable_identifier(&self, context: &Context) -> Cow<'_, str> {
-    Cow::Owned(context.shorten(&self.user_request))
+    Cow::Owned(context.shorten(self.user_request()))
   }
 
   fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
@@ -472,7 +482,7 @@ impl Module for NormalModule {
     self.parsed = true;
 
     let no_parse = if let Some(no_parse) = build_context.compiler_options.module.no_parse.as_ref() {
-      no_parse.try_match(self.request.as_str()).await?
+      no_parse.try_match(self.request()).await?
     } else {
       false
     };
@@ -508,14 +518,12 @@ impl Module for NormalModule {
         file_system_info: build_context.file_system_info.clone(),
         resolver_factory,
         source_map_kind: self.source_map_kind,
-        loader_context_data: Default::default(),
         module: self,
       },
       fs,
     )
     .instrument(info_span!("NormalModule:run_loaders",))
     .await;
-    drop(loader_result.context.loader_context_data);
     self = loader_result.context.module;
 
     if let Some(err) = err {
@@ -561,6 +569,7 @@ impl Module for NormalModule {
       Content::String(loader_result.content.into_string_lossy())
     };
     let source = self.create_source(
+      build_context.compiler_options.context.as_str(),
       content,
       loader_result.source_map.map(|source_map| *source_map),
     )?;
@@ -588,7 +597,7 @@ impl Module for NormalModule {
         source,
         dependencies,
         blocks,
-        presentational_dependencies,
+        mut presentational_dependencies,
         code_generation_dependencies,
         side_effects_bailout,
       },
@@ -603,8 +612,11 @@ impl Module for NormalModule {
         module_generator_options: self.parser_and_generator_options.generator_options(),
         module_type: &self.module_type,
         module_layer: self.layer.as_ref(),
-        module_user_request: &self.user_request,
-        module_match_resource: self.match_resource.as_ref(),
+        module_user_request: self
+          .user_request
+          .as_deref()
+          .unwrap_or_else(|| self.resource_data.resource()),
+        module_match_resource: self.match_resource.as_deref(),
         module_source_map_kind: self.source_map_kind,
         loaders: &self.loaders,
         resource_data: &self.resource_data,
@@ -642,6 +654,7 @@ impl Module for NormalModule {
     // Other side effects should be set outside use_cache
     self.source = Some(source);
     self.code_generation_dependencies = Some(code_generation_dependencies);
+    presentational_dependencies.shrink_to_fit();
     self.presentational_dependencies = Some(presentational_dependencies);
 
     self.build_info.get_mut().hash = Some(self.init_build_hash(
@@ -688,7 +701,7 @@ impl Module for NormalModule {
     let Some(source) = &self.source else {
       return Err(error!(
         "Failed to generate code because ast or source is not set for module {}",
-        self.request
+        self.request()
       ));
     };
 
@@ -931,6 +944,7 @@ impl Diagnosable for NormalModule {
 impl NormalModule {
   fn create_source(
     &self,
+    context: &str,
     content: Content,
     source_map: Option<SourceMap<'static>>,
   ) -> Result<BoxSource> {
@@ -939,13 +953,14 @@ impl NormalModule {
     }
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled()
-      && let Some(source_map) = source_map
+      && let Some(mut source_map) = source_map
     {
+      contextify_source_map(context, &mut source_map);
       let content = content.into_string_lossy();
       return Ok(
         SourceMapSource::new(WithoutOriginalOptions {
           value: content,
-          name: self.request(),
+          name: contextify_source_url(context, self.request()),
           source_map,
         })
         .boxed(),
@@ -954,7 +969,9 @@ impl NormalModule {
     if source_map_kind.enabled()
       && let Content::String(content) = content
     {
-      return Ok(OriginalSource::new(content, self.request()).boxed());
+      return Ok(
+        OriginalSource::new(content, contextify_source_url(context, self.request())).boxed(),
+      );
     }
     Ok(RawStringSource::from(content.into_string_lossy()).boxed())
   }

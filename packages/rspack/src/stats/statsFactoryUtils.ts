@@ -605,7 +605,7 @@ const sortOrderRegular = (field: string) => {
 
 export const sortByField = (
   field: string,
-): ((a1: Object, a2: Object) => number) => {
+): ((a1: Record<string, any>, a2: Record<string, any>) => number) => {
   if (!field) {
     const noSort = (_a: any, _b: any) => 0;
     return noSort;
@@ -656,13 +656,10 @@ export const moduleGroup = (
   };
 };
 
-export const mergeToObject = (
-  items: {
-    [key: string]: any;
-    name: string;
-  }[],
-): Object => {
-  const obj = Object.create(null);
+export const mergeToObject = <T extends { name: string }>(
+  items: T[],
+): Record<string, T> => {
+  const obj: Record<string, T> = Object.create(null);
   for (const item of items) {
     obj[item.name] = item;
   }

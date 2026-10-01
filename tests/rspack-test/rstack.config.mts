@@ -15,7 +15,7 @@ define.test(() => {
   const setupFilesAfterEnv = [
     '@rspack/test-tools/setup-env',
     '@rspack/test-tools/setup-expect',
-    './expects/stats-string-comparator.js',
+    './expects/stats-string-comparator.mjs',
   ];
 
   const wasmConfig =

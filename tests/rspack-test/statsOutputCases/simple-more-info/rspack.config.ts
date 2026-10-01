@@ -1,0 +1,24 @@
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  mode: 'production',
+  entry: './index',
+  output: {
+    filename: 'bundle.js',
+  },
+  profile: true,
+  stats: {
+    assets: true,
+    reasons: true,
+    chunkModules: true,
+    dependentModules: true,
+    chunkOrigins: true,
+    modules: true,
+    cached: true,
+    cachedAssets: true,
+    source: true,
+    errorDetails: true,
+    publicPath: true,
+    outputPath: true,
+  },
+});

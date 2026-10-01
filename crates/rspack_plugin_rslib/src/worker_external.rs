@@ -32,10 +32,12 @@ pub fn cutout_worker_externals(
   let mut connections_to_disable = Vec::new();
 
   for (_, module) in mg.modules() {
-    for block_id in module.get_blocks() {
-      let Some(block) = mg.block_by_id(block_id) else {
+    let mut blocks = module.get_blocks().to_vec();
+    while let Some(block_id) = blocks.pop() {
+      let Some(block) = mg.block_by_id(&block_id) else {
         continue;
       };
+      blocks.extend_from_slice(block.get_blocks());
       for dependency in block.get_dependencies() {
         if !dependency.as_any().is::<WorkerDependency>() {
           continue;

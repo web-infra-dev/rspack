@@ -39,6 +39,11 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
 
   constructor(options: ContainerPluginOptions) {
     super();
+
+    if (typeof options.name !== 'string') {
+      throw new Error('[ContainerPlugin] name must be a string.');
+    }
+
     const shareScope = options.shareScope || 'default';
     const enhanced = options.enhanced ?? false;
     validateShareScope(shareScope, enhanced, 'ContainerPlugin');
