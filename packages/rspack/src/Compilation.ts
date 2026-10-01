@@ -1013,7 +1013,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   createChildCompiler(
     name: string,
     outputOptions: OutputNormalized,
-    plugins: (RspackPluginInstance | Falsy)[],
+    plugins?: (RspackPluginInstance | Falsy)[],
   ) {
     const idx = this.childrenCounters[name] || 0;
     this.childrenCounters[name] = idx + 1;

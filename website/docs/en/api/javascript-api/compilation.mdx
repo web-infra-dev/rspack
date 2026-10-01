@@ -402,7 +402,7 @@ Allows running another instance of Rspack inside of Rspack. However, as a child 
 createChildCompiler(
   name: string, // name for the child `Compiler`
   outputOptions: OutputNormalized, // Output options object
-  plugins: RspackPluginInstance[] // Plugins that will be applied
+  plugins?: (RspackPluginInstance | Falsy)[] // Additional plugins for the child compiler
 ): Compiler;
 ```
 

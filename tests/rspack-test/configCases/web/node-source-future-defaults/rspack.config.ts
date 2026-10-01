@@ -1,15 +1,14 @@
-/** @type {import("@rspack/core").Configuration[]} */
-export default [
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig([
   {
     target: 'web',
-    optimization: false,
     experiments: {
       futureDefaults: true,
     },
   },
   {
     target: 'web',
-    optimization: false,
     node: {
       __filename: 'mock',
       __dirname: 'mock',
@@ -24,4 +23,4 @@ export default [
       global: true,
     },
   },
-];
+]);

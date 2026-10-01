@@ -402,7 +402,7 @@ compiler.hooks.emit.tapAsync('MyPlugin', (compilation) => {
 createChildCompiler(
   name: string, // 子编译器名称
   outputOptions: OutputNormalized, // 子编译所使用的 Output 配置对象
-  plugins: RspackPluginInstance[] // 子编译所添加的插件
+  plugins?: (RspackPluginInstance | Falsy)[] // 为子编译器额外添加的插件
 ): Compiler;
 ```
 
