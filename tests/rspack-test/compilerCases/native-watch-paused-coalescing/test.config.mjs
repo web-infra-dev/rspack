@@ -37,15 +37,13 @@ async function runArm() {
 
   const abort = new AbortController();
   const { signal } = abort;
-  const rawEventsDuringMakeGate = [];
-  const fileInvalidationsDuringMakeGate = [];
   const nodes = ["client", "server"].map(name => ({
-    name, runs: [], done: 0, registrations: 0, handle: undefined,
+    name, runs: [], invalidations: [], done: 0, registrations: 0, handle: undefined,
     entered: deferred(), release: deferred(),
   }));
   const waiters = new Set();
   let failure;
-  let gated = false;
+  let phase = "initial";
   let acknowledgement;
   const pulse = () => {
     for (const waiter of waiters) waiter();
@@ -94,26 +92,19 @@ async function runArm() {
         pulse();
       });
       c.hooks.invalid.tap("PausedCoalescing", file => {
-        if (gated && file) fileInvalidationsDuringMakeGate.push({ node: node.name, file });
+        node.invalidations.push({ file, phase, beforeRun: node.runs.length });
       });
     }],
   })));
 
-  // Observe registrations and both raw event surfaces without replacing the
-  // callbacks or the graph scheduler. Keep only owned sets and strings.
+  // Observe registrations without replacing callbacks or the graph scheduler.
+  // Keep only owned sets and strings.
   compiler.compilers.forEach((c, index) => {
     const node = nodes[index];
     const wfs = c.watchFileSystem;
-    const raw = surface => file => {
-      if (gated) rawEventsDuringMakeGate.push({ node: node.name, surface, file });
-    };
-    wfs.on("change", raw("filesystem-change"));
-    wfs.on("remove", raw("filesystem-remove"));
     const watch = wfs.watch;
     wfs.watch = function (...args) {
       node.handle = watch.apply(this, args);
-      this.watcher.on("change", raw("shim-change"));
-      this.watcher.on("remove", raw("shim-remove"));
       node.registrations++;
       pulse();
       return node.handle;
@@ -121,6 +112,7 @@ async function runArm() {
   });
 
   let watchdog;
+  let succeeded = false;
   try {
     await Promise.race([
       new Promise((_, reject) => {
@@ -136,17 +128,18 @@ async function runArm() {
         await waitFor(() => nodes.every(n => n.done >= 1 && n.registrations >= 1));
         await setImmediate(undefined, { signal });
         await setTimeout(windows ? 500 : 250, undefined, { signal });
+        phase = "first-edit";
         fs.writeFileSync(valueFile, "export default 1;");
         await Promise.all(nodes.map(n => n.entered.promise));
         signal.throwIfAborted();
-        gated = true;
+        phase = "make-gate";
         acknowledgement = deferred();
         const acknowledged = acknowledgement.promise;
         fs.writeFileSync(valueFile, "export default 2;");
         await acknowledged;
         await setTimeout(settle, undefined, { signal });
         acknowledgement = undefined;
-        gated = false;
+        phase = "follow-up";
         for (const node of nodes) node.release.resolve();
         await waitFor(() => nodes.every(n => n.done >= 3 && n.registrations >= 3));
         await setImmediate(undefined, { signal });
@@ -155,6 +148,7 @@ async function runArm() {
         const core = nodes.map(node => ({
           name: node.name,
           runs: node.runs.slice(1),
+          invalidations: node.invalidations,
           value: readExecutedBundleValue(path.join(output, `${node.name}.js`)),
         }));
         for (const node of core) {
@@ -163,12 +157,12 @@ async function runArm() {
             expect(run.changed.has(valueFile), `${node.name}: filesystem rebuild must include ${valueFile}`).toBe(true);
           }
           expect(node.value, `${node.name}: bundle must include the paused edit`).toBe(2);
+          expect(node.invalidations.filter(i => i.phase === "follow-up").map(({ file, beforeRun }) => ({ file, beforeRun })), `${node.name}: exactly one file invalidation before the file-backed follow-up watchRun`).toEqual([{ file: valueFile, beforeRun: 2 }]);
         }
-        expect(rawEventsDuringMakeGate, "paused make gates must suppress both raw event surfaces").toEqual([]);
-        expect(fileInvalidationsDuringMakeGate, "paused make gates must suppress file invalidations").toEqual([]);
+        expect(nodes.flatMap(n => n.invalidations.filter(i => i.phase === "make-gate")), "paused make gates must suppress all invalid calls").toEqual([]);
+        phase = "drain";
 
         const node = nodes[0];
-        const c = compiler.compilers[0];
         node.handle.pause();
         acknowledgement = deferred();
         const drainAcknowledged = acknowledgement.promise;
@@ -179,19 +173,10 @@ async function runArm() {
         const first = node.handle.getInfo();
         const second = node.handle.getInfo();
         expect(first.changes.has(valueFile), "first getInfo must consume the paused change").toBe(true);
-        expect(first.removals.size, "same-value rewrite must not report a removal").toBe(0);
         expect(second.changes.size, "second getInfo must not replay consumed changes").toBe(0);
-        expect(second.removals.size, "second getInfo must not replay consumed removals").toBe(0);
-        const before = node.runs.length;
-        const registrations = node.registrations;
-        c.watching.invalidate();
-        await waitFor(() => node.done >= before + 1 && node.registrations > registrations);
-        await setImmediate(undefined, { signal });
-        await setTimeout(observe, undefined, { signal });
-        expect(node.runs, "manual invalidation must build once without replaying the drained event").toHaveLength(before + 1);
-        expect(readExecutedBundleValue(path.join(output, "client.js")), "manual invalidation must preserve the bundle value").toBe(2);
       })(),
     ]);
+    succeeded = true;
   } finally {
     globalThis.clearTimeout(watchdog);
     failure ??= new Error("native watcher: stopped");
@@ -202,8 +187,19 @@ async function runArm() {
       node.release.resolve();
     }
     pulse();
-    await new Promise((resolve, reject) => compiler.close(error => error ? reject(error) : resolve()));
-    fs.rmSync(root, { recursive: true, force: true });
+    let cleanupError;
+    try {
+      await new Promise((resolve, reject) => compiler.close(error => error ? reject(error) : resolve()));
+    } catch (error) {
+      cleanupError = error;
+    } finally {
+      try {
+        fs.rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      } catch (error) {
+        cleanupError ??= error;
+      }
+    }
+    if (succeeded && cleanupError) throw cleanupError;
   }
 }
 

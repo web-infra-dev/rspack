@@ -70,7 +70,6 @@ class NativeWatcherShim extends EventEmitter {
 export default class NativeWatchFileSystem implements WatchFileSystem {
   #inner: binding.NativeWatcher | undefined;
   #isFirstWatch = true;
-  #paused = true;
   #inputFileSystem: InputFileSystem;
   // Long-lived emitter backing the `on`/`once` API, so listeners registered
   // once keep receiving events across watch cycles.
@@ -151,7 +150,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       this.#inner?.triggerEvent(kind, path),
     );
     this.#watcher = watcher;
-    this.#paused = false;
+    let paused = false;
+    let closed = false;
     let undelayedReported = false;
 
     nativeWatcher.watch(
@@ -160,11 +160,12 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       this.formatWatchDependencies(missing),
       BigInt(startTime),
       (err: Error | null, result) => {
+        if (closed) return;
         if (err) {
           callback(err, new Map(), new Map(), new Set(), new Set());
           return;
         }
-        this.#paused = true;
+        paused = true;
         nativeWatcher.pause();
         const changedFiles = result.changedFiles;
         const removedFiles = result.removedFiles;
@@ -180,10 +181,14 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         // path, where the forwarded `aggregated` runs before its rebuild callback.
         this.#events.emit('aggregated', changes, removals);
         watcher.emit('aggregated', changes, removals);
+        if (!undelayedReported && changedFiles.length) {
+          undelayedReported = true;
+          callbackUndelayed?.(changedFiles[0], Date.now());
+        }
         callback(err, new Map(), new Map(), changes, removals);
       },
       (event) => {
-        if (this.#paused) return;
+        if (paused || closed) return;
         if (event.kind === 'change') {
           // The native watcher reports paths without an mtime, so events are
           // stamped with their arrival time.
@@ -205,7 +210,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
     return {
       close: () => {
-        this.#paused = true;
+        paused = true;
+        closed = true;
         // Detach immediately: a closed native watcher rejects further watch()
         // calls, so a later compiler.watch() must get a fresh instance with a
         // full (non-incremental) registration.
@@ -219,7 +225,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       },
 
       pause: () => {
-        this.#paused = true;
+        paused = true;
         nativeWatcher.pause();
       },
 
