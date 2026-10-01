@@ -1,5 +1,5 @@
 import { defineConfig } from '@rspack/cli';
-import { type Chunk, type Configuration } from '@rspack/core';
+import { type Chunk, type Compiler, type Configuration } from '@rspack/core';
 
 const outputs = new Map<boolean, Map<string, Buffer>>();
 
@@ -40,7 +40,7 @@ function createConfig(native: boolean): Configuration {
     },
     plugins: [
       {
-        apply(compiler) {
+        apply(compiler: Compiler) {
           compiler.hooks.afterEmit.tap('CheckSelectorCache', (compilation) => {
             // One eligible set {a,b,c}: at most one call per member.
             if (!native) expect(calls).toBeLessThanOrEqual(seen.size);
