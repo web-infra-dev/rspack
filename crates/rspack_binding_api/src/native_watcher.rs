@@ -170,6 +170,15 @@ impl NativeWatcher {
   }
 
   #[napi]
+  pub fn take_aggregated(&self) -> NativeWatchResult {
+    let (changed_files, removed_files) = self.watcher.take_aggregated();
+    NativeWatchResult {
+      changed_files: changed_files.into_iter().collect(),
+      removed_files: removed_files.into_iter().collect(),
+    }
+  }
+
+  #[napi]
   pub fn pause(&self) -> napi::Result<()> {
     self
       .watcher

@@ -18,7 +18,7 @@ use std::{
 
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
-use executor::Executor;
+use executor::{Executor, FilesData};
 pub use ignored::{FsWatcherIgnored, IgnoredFn};
 use paths::PathManager;
 use rspack_error::Result;
@@ -112,6 +112,7 @@ enum WatcherOp {
 
 pub struct FsWatcher {
   paused: Arc<AtomicBool>,
+  files_data: Arc<Mutex<FilesData>>,
   trigger: Arc<Mutex<Option<Arc<Trigger>>>>,
   op_tx: mpsc::UnboundedSender<WatcherOp>,
 }
@@ -138,7 +139,13 @@ impl FsWatcher {
       trigger.clone(),
     );
     let paused = Arc::new(AtomicBool::new(false));
-    let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
+    let files_data = Arc::new(Mutex::new(FilesData::default()));
+    let executor = Executor::new(
+      rx,
+      options.aggregate_timeout,
+      Arc::clone(&paused),
+      Arc::clone(&files_data),
+    );
     let scanner = Scanner::new(tx, Arc::clone(&path_manager));
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
@@ -153,6 +160,7 @@ impl FsWatcher {
 
     Self {
       paused,
+      files_data,
       trigger,
       op_tx: spawn_owner_thread(inner),
     }
@@ -232,6 +240,15 @@ impl FsWatcher {
     if let Some(trigger) = trigger {
       trigger.on_event(path, kind);
     }
+  }
+
+  /// Takes the pending changed and removed files, leaving empty buffers for later events.
+  pub fn take_aggregated(&self) -> (HashSet<String>, HashSet<String>) {
+    self
+      .files_data
+      .lock()
+      .expect("should lock files data")
+      .take_aggregated()
   }
 
   /// Pauses the file system watcher, stopping the execution of the event loop.

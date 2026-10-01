@@ -70,6 +70,7 @@ class NativeWatcherShim extends EventEmitter {
 export default class NativeWatchFileSystem implements WatchFileSystem {
   #inner: binding.NativeWatcher | undefined;
   #isFirstWatch = true;
+  #paused = true;
   #inputFileSystem: InputFileSystem;
   // Long-lived emitter backing the `on`/`once` API, so listeners registered
   // once keep receiving events across watch cycles.
@@ -150,6 +151,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       this.#inner?.triggerEvent(kind, path),
     );
     this.#watcher = watcher;
+    this.#paused = false;
+    let undelayedReported = false;
 
     nativeWatcher.watch(
       this.formatWatchDependencies(files),
@@ -161,18 +164,11 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
           callback(err, new Map(), new Map(), new Set(), new Set());
           return;
         }
+        this.#paused = true;
         nativeWatcher.pause();
         const changedFiles = result.changedFiles;
         const removedFiles = result.removedFiles;
-        if (this.#inputFileSystem?.purge) {
-          const fs = this.#inputFileSystem;
-          for (const item of changedFiles) {
-            fs.purge?.(item);
-          }
-          for (const item of removedFiles) {
-            fs.purge?.(item);
-          }
-        }
+        this.#purge(changedFiles, removedFiles);
         // TODO: add fileTimeInfoEntries and contextTimeInfoEntries
         const changes = new Set(changedFiles);
         const removals = new Set(removedFiles);
@@ -187,11 +183,15 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         callback(err, new Map(), new Map(), changes, removals);
       },
       (event) => {
+        if (this.#paused) return;
         if (event.kind === 'change') {
           // The native watcher reports paths without an mtime, so events are
           // stamped with their arrival time.
           const mtime = Date.now();
-          callbackUndelayed(event.path, mtime);
+          if (!undelayedReported) {
+            undelayedReported = true;
+            callbackUndelayed?.(event.path, mtime);
+          }
           this.#events.emit('change', event.path, mtime);
           watcher.emit('change', event.path, mtime);
         } else {
@@ -205,6 +205,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
     return {
       close: () => {
+        this.#paused = true;
         // Detach immediately: a closed native watcher rejects further watch()
         // calls, so a later compiler.watch() must get a fresh instance with a
         // full (non-incremental) registration.
@@ -218,20 +219,32 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       },
 
       pause: () => {
+        this.#paused = true;
         nativeWatcher.pause();
       },
 
-      getInfo() {
-        // This is a placeholder implementation.
-        // TODO: The actual implementation should return the current state of the watcher.
+      getInfo: () => {
+        const { changedFiles, removedFiles } = nativeWatcher.takeAggregated();
+        this.#purge(changedFiles, removedFiles);
         return {
-          changes: new Set(),
-          removals: new Set(),
+          changes: new Set(changedFiles),
+          removals: new Set(removedFiles),
           fileTimeInfoEntries: new Map(),
           contextTimeInfoEntries: new Map(),
         };
       },
     };
+  }
+
+  #purge(changes: Iterable<string>, removals: Iterable<string>): void {
+    if (this.#inputFileSystem?.purge) {
+      for (const item of changes) {
+        this.#inputFileSystem.purge(item);
+      }
+      for (const item of removals) {
+        this.#inputFileSystem.purge(item);
+      }
+    }
   }
 
   getNativeWatcher(options: Watchpack.WatchOptions): binding.NativeWatcher {
