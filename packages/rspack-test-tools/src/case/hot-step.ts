@@ -142,7 +142,8 @@ function createHotStepProcessor(
               previous = previous.slice(0, prefix) + suffix;
               const identity = normalizePlaceholder(previous)
                 .replaceAll(__ROOT_PATH__, '<ROOT>')
-                .replaceAll(escapeSep(__ROOT_PATH__), '<ROOT>');
+                .replaceAll(escapeSep(__ROOT_PATH__), '<ROOT>')
+                .replace(/<ROOT>[^|]*/g, escapeSep);
               return [0, identity, ...data];
             },
           );

@@ -1,5 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeModuleRuntimeRequirements, RuntimeTemplate, impl_runtime_module,
@@ -59,7 +57,7 @@ impl RuntimeModule for EnsureAsyncBlockRuntimeModule {
       .copied()
       .collect::<rspack_collections::IdentifierSet>();
     let module_graph = compilation.get_module_graph();
-    let mut blocks = BTreeMap::new();
+    let mut blocks = Vec::new();
 
     for (block_id, block) in module_graph.blocks() {
       if !runtime_modules.contains(block.parent()) {
@@ -79,28 +77,29 @@ impl RuntimeModule for EnsureAsyncBlockRuntimeModule {
         .and_then(|group| group.kind.get_normal_options())
         .and_then(|options| options.fetch_priority)
         .map(|priority| priority.to_string());
-      blocks.insert(block_id.as_str(), (chunks, priority));
+      blocks.push((block_id.as_str(), (chunks, priority)));
     }
+    blocks.sort_unstable_by_key(|(block_id, _)| *block_id);
 
     // The map belongs to this runtime generation. All JS/CSS loading and fetch
     // priority behavior stays in the existing caller-provided ensure function.
-    let chunk_ids = blocks
-      .values()
-      .flat_map(|(chunks, _)| chunks.iter().cloned())
-      .collect::<BTreeSet<_>>();
-    let mut chunk_indexes = BTreeMap::new();
+    let mut chunk_ids = blocks
+      .iter()
+      .flat_map(|(_, (chunks, _))| chunks.iter().cloned())
+      .collect::<Vec<_>>();
+    chunk_ids.sort_unstable();
+    chunk_ids.dedup();
     let mut encoded_chunks = Vec::new();
-    let mut previous_chunk = String::new();
-    for (index, chunk_id) in chunk_ids.into_iter().enumerate() {
+    let mut previous_chunk = "";
+    for chunk_id in &chunk_ids {
       let encoded = if let Some(number) = chunk_id.as_number() {
         serde_json::json!(number)
       } else {
-        let (prefix, suffix) = front_code(&previous_chunk, chunk_id.as_str());
+        let (prefix, suffix) = front_code(previous_chunk, chunk_id.as_str());
         let encoded = serde_json::json!([prefix, suffix]);
-        previous_chunk = chunk_id.as_str().to_string();
+        previous_chunk = chunk_id.as_str();
         encoded
       };
-      chunk_indexes.insert(chunk_id, index);
       encoded_chunks.push(encoded);
     }
     let mut previous_block = "";
@@ -111,7 +110,7 @@ impl RuntimeModule for EnsureAsyncBlockRuntimeModule {
         previous_block = block_id;
         let chunks = chunks
           .iter()
-          .map(|chunk| chunk_indexes[chunk])
+          .map(|chunk| chunk_ids.binary_search(chunk).expect("chunk in dictionary"))
           .collect::<Vec<_>>();
         (prefix, suffix, chunks, priority)
       })
