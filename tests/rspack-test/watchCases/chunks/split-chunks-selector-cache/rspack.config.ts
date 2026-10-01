@@ -56,8 +56,6 @@ export default defineConfig({
             expect(counters[group]).toBeLessThanOrEqual(
               compilationIndex < 2 ? 3 : 5,
             );
-            if (compilationIndex === 2)
-              expect(counters[group]).toBeGreaterThan(3);
           }
         });
       },

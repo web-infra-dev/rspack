@@ -1,3 +1,3 @@
 export default {
-	findBundle: index => index < 2 ? "./same.js" : "./overlap.js"
+  findBundle: index => ["./same.js", "./same.js", "./overlap.js", "./overlap.js", "./same-order.js", "./overlap-order.js"][index]
 };

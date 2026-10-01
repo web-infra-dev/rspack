@@ -199,14 +199,9 @@ impl Deref for ChunkCombination {
   }
 }
 
-struct CachedSelectedChunks {
-  chunks: Vec<ChunkUkey>,
-  key: ChunksKey,
-}
-
 struct SelectedChunksCacheEntry {
   combination: Arc<ChunkCombinationData>,
-  selected: Arc<OnceCell<Arc<CachedSelectedChunks>>>,
+  selected: Arc<OnceCell<FxHashSet<ChunkUkey>>>,
 }
 
 type SelectedChunksCache = FxDashMap<(u32, ChunksKey), Vec<SelectedChunksCacheEntry>>;
@@ -214,7 +209,6 @@ type SelectedChunksCache = FxDashMap<(u32, ChunksKey), Vec<SelectedChunksCacheEn
 enum SelectedChunks<'a> {
   All(&'a ChunkCombination),
   Filtered(Vec<ChunkUkey>),
-  Cached(Arc<CachedSelectedChunks>),
 }
 
 impl SelectedChunks<'_> {
@@ -222,7 +216,6 @@ impl SelectedChunks<'_> {
     match self {
       Self::All(chunks) => chunks.len(),
       Self::Filtered(chunks) => chunks.len(),
-      Self::Cached(selected) => selected.chunks.len(),
     }
   }
 
@@ -230,7 +223,6 @@ impl SelectedChunks<'_> {
     match self {
       Self::All(chunks) => Either::Left(chunks.iter()),
       Self::Filtered(chunks) => Either::Right(chunks.iter()),
-      Self::Cached(selected) => Either::Right(selected.chunks.iter()),
     }
   }
 
@@ -238,7 +230,6 @@ impl SelectedChunks<'_> {
     match self {
       Self::All(chunks) => Some(chunks.key),
       Self::Filtered(_) => None,
-      Self::Cached(selected) => Some(selected.key),
     }
   }
 }
@@ -1082,10 +1073,10 @@ impl SplitChunksPlugin {
                   .or_default();
                 // ChunksKey is a hash, not exact set identity. Compare membership
                 // on every hit, including combinations from used-export grouping.
-                if let Some(entry) = entries
-                  .iter()
-                  .find(|entry| entry.combination.chunks == chunk_combination.data.chunks)
-                {
+                if let Some(entry) = entries.iter().find(|entry| {
+                  Arc::ptr_eq(&entry.combination, &chunk_combination.data)
+                    || entry.combination.chunks == chunk_combination.data.chunks
+                }) {
                   Arc::clone(&entry.selected)
                 } else {
                   let selected = Arc::new(OnceCell::new());
@@ -1112,14 +1103,21 @@ impl SplitChunksPlugin {
                   .collect::<Result<Vec<_>>>()?
                   .into_iter()
                   .filter_map(|(chunk, matched)| matched.then_some(*chunk))
-                  .collect::<Vec<_>>();
-                  // Keep the original filtering order for name callbacks; only
-                  // the grouping key sorts indices, as in the uncached path.
-                  let key = get_key(chunks.iter().copied(), chunk_index_map);
-                  Ok::<_, rspack_error::Error>(Arc::new(CachedSelectedChunks { chunks, key }))
+                  .collect::<FxHashSet<_>>();
+                  Ok::<_, rspack_error::Error>(chunks)
                 })
                 .await?;
-              SelectedChunks::Cached(Arc::clone(selected))
+              // Equal memberships can have different hash-set layouts. Keep
+              // only filter results in the cell, never the initializer's order.
+              // Every module follows its own combination, exactly as uncached
+              // filtering does, including the original Filtered/key() path.
+              SelectedChunks::Filtered(
+                chunk_combination
+                  .iter()
+                  .filter(|chunk| selected.contains(chunk))
+                  .copied()
+                  .collect(),
+              )
             }
             _ => SelectedChunks::Filtered(
               chunk_combination
