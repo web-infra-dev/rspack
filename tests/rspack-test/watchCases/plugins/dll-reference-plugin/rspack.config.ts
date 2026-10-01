@@ -1,24 +1,24 @@
-import { rspack as webpack } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import { rspack } from '@rspack/core';
 
-/** @type {import("@rspack/core").Configuration} */
-export default {
+export default defineConfig({
   optimization: {
     concatenateModules: true,
   },
   plugins: [
-    new webpack.DllReferencePlugin({
+    new rspack.DllReferencePlugin({
       name: "function(id) { return {default: 'ok'}; }",
       scope: 'dll',
       content: {
         './module': {
           id: 1,
+          exports: ['default'],
           buildMeta: {
             exportsType: 'namespace',
-            providedExports: ['default'],
           },
         },
       },
     }),
   ],
   ignoreWarnings: [/is not friendly for incremental/],
-};
+});
