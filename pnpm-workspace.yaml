@@ -51,7 +51,7 @@ catalog:
   '@rstackjs/load-config': '^1.0.1'
   '@rstest/core': '0.12.2'
   '@rstest/playwright': '0.12.2'
-  '@shikijs/transformers': '^4.4.3'
+  '@shikijs/transformers': '^4.5.0'
   '@swc/helpers': '0.5.23'
   '@swc/plugin-remove-console': '^14.0.0'
   '@swc/types': '0.1.28'
