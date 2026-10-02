@@ -9,10 +9,7 @@ it("should work if there are new initial chunks", async () => {
 import "lib-js/a";
 
 it("should work if there are new initial chunks", async () => {
-	await import("./initial");
-	expect(
-		globalThis.__INITIAL_CHUNK_HMR_CHUNKS__.some(([chunkIds]) =>
-			chunkIds.includes("lib")
-		)
-	).toBe(true);
+	// HMR must install the new initial dependency before import() can ensure it.
+	expect(__webpack_modules__["./node_modules/lib-js/b.js"]).toBeTypeOf("function");
+	expect((await import("./initial")).value).toBe("b");
 });

@@ -8,16 +8,17 @@
 - Bundle: async/initial_js.js
 - Bundle: lib.CURRENT_HASH.js
 - Bundle: main.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 41
+- Manifest: main.LAST_HASH.hot-update.json, size: 117
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: main.LAST_HASH.hot-update.js, size: 25524
+- Update: lib.LAST_HASH.hot-update.js, size: 1600
+- Update: main.LAST_HASH.hot-update.js, size: 27881
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["initial_js","main"],"r":[],"m":[]}
+{"c":["initial_js","lib","main"],"r":[],"m":[],"initial":{"main":["lib"]},"unchanged":["./node_modules/lib-js/a.js"]}
 ```
 
 
@@ -52,6 +53,43 @@ const value = "b";
 
 
 
+### lib.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./node_modules/lib-js/a.js
+- ./node_modules/lib-js/b.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("lib", {
+"./node_modules/lib-js/a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  a: () => (a)
+});
+const a = "a";
+
+
+},
+"./node_modules/lib-js/b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  b: () => (b)
+});
+const b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+
+},
+
+});
+```
+
+
+
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
@@ -73,12 +111,9 @@ __webpack_require__.r(__webpack_exports__);
 
 
 it("should work if there are new initial chunks", async () => {
-	await Promise.all(/* import() */ [__webpack_require__.e("lib"), __webpack_require__.e("initial_js")]).then(__webpack_require__.bind(__webpack_require__, "./initial.js"));
-	expect(
-		globalThis.__INITIAL_CHUNK_HMR_CHUNKS__.some(([chunkIds]) =>
-			chunkIds.includes("lib")
-		)
-	).toBe(true);
+	// HMR must install the new initial dependency before import() can ensure it.
+	expect(__webpack_require__.m["./node_modules/lib-js/b.js"]).toBeTypeOf("function");
+	expect((await Promise.all(/* import() */ [__webpack_require__.e("lib"), __webpack_require__.e("initial_js")]).then(__webpack_require__.bind(__webpack_require__, "./initial.js"))).value).toBe("b");
 });
 
 
@@ -222,7 +257,7 @@ var cssInitialChunkIds = {"lib": 1,"main": 1,};
 var cssChunkIsLoaded = (chunkId) => {
 	return typeof __webpack_require__.hmrS_jsonp !== "undefined" && __webpack_require__.hmrS_jsonp && __webpack_require__.hmrS_jsonp[chunkId] === 0;
 };
-__webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css) => {
+__webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, initial) => {
 	if (typeof document === 'undefined') return;
 	applyHandlers.push(cssApplyHandler);
 	// `css` is the hot-update manifest's css namespace (aligned with webpack):
@@ -231,28 +266,38 @@ __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promise
 	// no CSS work at all — notably the runtime chunk is in `chunkIds` on every
 	// update (its full hash always changes) while its stylesheet rarely does.
 	var cssRemovedChunkIds = (css && css.r) || [];
-	var cssChunkIds = (css && css.c) || [];
+	var cssChunkIds = ((css && css.c) || []).slice();
+	var files = (css && css.f) || {};
+	var oldFiles = (css && css.o) || {};
+	var requiredCssChunks = Object.create(null);
+	if (initial) Object.keys(initial).forEach((entryId) => {
+		if (cssChunkIsLoaded(entryId)) initial[entryId].forEach((id) => {
+			requiredCssChunks[id] = true;
+			if (files[id] && cssChunkIds.indexOf(id) < 0) cssChunkIds.push(id);
+		});
+	});
 	var seen = {};
 	cssRemovedChunkIds.forEach((chunkId) => {
-		var filename = __webpack_require__.k(chunkId);
+		var filename = oldFiles[chunkId] || __webpack_require__.k(chunkId);
 		if (!filename) return;
 		var oldTag = cssLoadStylesheet(chunkId, __webpack_require__.p + filename);
 		if (oldTag) cssOldTags.push(oldTag);
 	});
 	cssChunkIds.forEach((chunkId) => {
-		var filename = __webpack_require__.k(chunkId);
+		var filename = files[chunkId] || __webpack_require__.k(chunkId);
 		if (!filename) return;
 		var url = __webpack_require__.p + filename;
 		if (seen[url]) {
 			return;
 		}
 		seen[url] = true;
-		var oldTag = cssLoadStylesheet(chunkId, url);
+		var oldFilename = oldFiles[chunkId] || __webpack_require__.k(chunkId);
+		var oldTag = oldFilename && cssLoadStylesheet(chunkId, __webpack_require__.p + oldFilename);
 		// The manifest is computed from the compilation and also lists chunks this
 		// page never loaded. A missing tag is legitimate only for a chunk that is
 		// actually on the page: an initial chunk gaining its first stylesheet, or
 		// a loaded async chunk whose stylesheet was removed by an earlier update.
-		if (!oldTag && !cssInitialChunkIds[chunkId] && !cssChunkIsLoaded(chunkId)) return;
+		if (!oldTag && !requiredCssChunks[chunkId] && !cssInitialChunkIds[chunkId] && !cssChunkIsLoaded(chunkId)) return;
 		promises.push(
 			new Promise((resolve, reject) => {
 				var link = cssLoadStylesheet(
@@ -399,9 +444,15 @@ var hotCurrentUpdateChunks;
 var hotCurrentUpdate;
 var hotCurrentUpdateRemovedChunks;
 var hotCurrentUpdateRuntime;
+var hotCurrentUpdateInitialChunks;
+var hotCurrentUpdateUnchangedModules;
 function hotApplyHandler(options) {
 	if (__webpack_require__.f) delete __webpack_require__.f.jsonpHmr;
 	hotCurrentUpdateChunks = undefined;
+	var initialChunks = hotCurrentUpdateInitialChunks || {};
+	var unchangedModules = hotCurrentUpdateUnchangedModules || {};
+	hotCurrentUpdateInitialChunks = undefined;
+	hotCurrentUpdateUnchangedModules = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
 		var outdatedModules = [updateModuleId];
 		var outdatedDependencies = {};
@@ -500,6 +551,12 @@ function hotApplyHandler(options) {
 
 	for (var moduleId in hotCurrentUpdate) {
 		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {
+			// A complete initial-chunk payload also contains unchanged factories.
+			// Preserve existing instances on movement unless explicitly invalidated.
+			if (unchangedModules[moduleId] && __webpack_require__.o(__webpack_require__.m, moduleId)) {
+				var cachedModule = __webpack_require__.c[moduleId];
+				if (!cachedModule || !cachedModule.hot._selfInvalidated) continue;
+			}
 			var newModuleFactory = hotCurrentUpdate[moduleId];
 			var result = newModuleFactory ? getAffectedModuleEffects(moduleId) : {
 				type: "disposed",
@@ -689,6 +746,14 @@ function hotApplyHandler(options) {
 				
 			}
 
+			// A full payload has now installed the chunk's factories. Keep the
+			// loading state in sync so subsequent edits download its hot updates.
+			for (var chunkId in initialChunks) {
+				var installed = jsonpInstalledChunks[chunkId];
+				if (installed && typeof installed[0] === "function") installed[0]();
+				jsonpInstalledChunks[chunkId] = 0;
+			}
+
 			// call accept handlers
 			for (var outdatedModuleId in outdatedDependencies) {
 				if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
@@ -823,7 +888,11 @@ __webpack_require__.hmrC.jsonp = function (
 	removedModules,
 	promises,
 	applyHandlers,
-	updatedModulesList
+	updatedModulesList,
+	css,
+	miniCss,
+	initial,
+	unchanged
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -833,11 +902,25 @@ __webpack_require__.hmrC.jsonp = function (
 		return obj;
 	}, {});
 	hotCurrentUpdateRuntime = [];
+	hotCurrentUpdateInitialChunks = Object.create(null);
+	hotCurrentUpdateUnchangedModules = Object.create(null);
+	(unchanged || []).forEach(function (id) { hotCurrentUpdateUnchangedModules[id] = true; });
+	var requiredInitialChunks = Object.create(null);
+	if (initial) {
+		Object.keys(initial).forEach(function (entryId) {
+			if (__webpack_require__.o(jsonpInstalledChunks, entryId) && jsonpInstalledChunks[entryId] === 0) {
+				initial[entryId].forEach(function (id) { requiredInitialChunks[id] = true; });
+			}
+		});
+	}
 	chunkIds.forEach(function (chunkId) {
 		if (
-			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
-			jsonpInstalledChunks[chunkId] !== undefined
+			requiredInitialChunks[chunkId] || (
+				__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
+				jsonpInstalledChunks[chunkId] !== undefined
+			)
 		) {
+			if (requiredInitialChunks[chunkId]) hotCurrentUpdateInitialChunks[chunkId] = true;
 			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
 			hotCurrentUpdateChunks[chunkId] = true;
 		} else {

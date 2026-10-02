@@ -7,7 +7,7 @@
 ## Asset Files
 - Bundle: main.mjs
 - Bundle: style2_module_css.chunk.mjs
-- Manifest: main.LAST_HASH.hot-update.json.mjs, size: 105
+- Manifest: main.LAST_HASH.hot-update.json.mjs, size: 253
 - Update: main.LAST_HASH.hot-update.mjs, size: 815
 - Update: style2_module_css.LAST_HASH.hot-update.mjs, size: 659
 
@@ -16,7 +16,7 @@
 ### main.LAST_HASH.hot-update.json.mjs
 
 ```json
-{"c":["main","style2_module_css"],"r":[],"m":[],"css":{"c":["main","style2_module_css"]}}
+{"c":["main","style2_module_css"],"r":[],"m":[],"css":{"c":["main","style2_module_css"],"f":{"main":"main.css","style2_module_css":"style2_module_css.chunk.css"},"o":{"main":"main.css","style2_module_css":"style2_module_css.chunk.css"}}}
 ```
 
 
