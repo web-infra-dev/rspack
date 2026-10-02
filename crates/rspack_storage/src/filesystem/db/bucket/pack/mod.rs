@@ -130,6 +130,10 @@ impl Pack {
   /// The index includes a bloom filter for fast key lookups and a content hash for integrity.
   pub async fn save(&self, fs: &ScopeFileSystem, id: PackId) -> Result<PackIndex> {
     let pack_name = id.pack_name();
+    // Open before encoding: stream_write yields (remove_file), and buffers built
+    // before it would stay resident across that await in every concurrently
+    // spawned pack save. Native writes below do not yield.
+    let mut writer = fs.stream_write(&pack_name).await?;
     let allocation_error = |reason: String| {
       Error::FS(rspack_fs::Error::from(std::io::Error::new(
         ErrorKind::OutOfMemory,
@@ -182,6 +186,9 @@ impl Pack {
         ))))
       })?;
       bytes.truncate(written + 5);
+      // Writes may yield (JS-backed FS): keep only the compressed bytes, not the
+      // codec bound.
+      bytes.shrink_to_fit();
       Some(bytes)
     } else {
       None
@@ -199,7 +206,6 @@ impl Pack {
       }
       None => body,
     };
-    let mut writer = fs.stream_write(pack_name).await?;
     writer.write_all(&encoded).await?;
     writer.flush().await?;
     writer.close().await?;
