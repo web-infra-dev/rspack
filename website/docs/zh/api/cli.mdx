@@ -37,6 +37,8 @@ Rspack CLI 提供了一些公共选项，可以用于所有命令：
 | `-h, --help`           | 显示帮助信息                                                                                                                |
 | `-v, --version`        | 显示版本号                                                                                                                  |
 
+`--env` 支持点分隔的键。例如，`--env app --env app.name=demo` 会向配置函数传递 `app: { name: 'demo' }`，用对象替换之前的 `app` 标记。
+
 :::tip
 Rspack CLI 的所有选项都支持使用 `camelCase`（驼峰命名）和 `kebab-case`（短横线命名），例如 `--configLoader` 和 `--config-loader` 都是有效的。
 :::
