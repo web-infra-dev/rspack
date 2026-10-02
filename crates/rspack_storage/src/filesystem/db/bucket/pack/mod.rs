@@ -4,10 +4,12 @@ mod id_alloc;
 
 use std::{
   hash::{Hash, Hasher},
-  io::{ErrorKind, Read, Write},
+  io::ErrorKind,
 };
 
-use lz4_flex::frame::{BlockMode, BlockSize, FrameDecoder, FrameEncoder, FrameInfo};
+use lz4_flex::block::{
+  compress_into_with_dict, decompress_into_with_dict, get_maximum_output_size,
+};
 use rustc_hash::FxHasher;
 
 pub use self::{generator::PackGenerator, id::PackId, id_alloc::PackIdAlloc};
@@ -19,37 +21,52 @@ use crate::{Error, Result};
 
 const RAW_ENCODING: u8 = 0;
 const LZ4_ENCODING: u8 = 1;
+const CHUNK: usize = 256 * 1024;
+const DICT: usize = 64 * 1024;
 
-struct CompressionSink {
+struct CappedOutput {
   bytes: Vec<u8>,
   cap: usize,
 }
 
-impl Write for CompressionSink {
-  fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-    // Sink errors must carry no payload: lz4_flex converts io::Error into its own
-    // error type by downcasting any payload, so a payload makes `finish()` panic.
-    if buf.len() > self.cap - self.bytes.len() {
-      // Reserved for the savings cap.
+impl CappedOutput {
+  fn compress_chunk(
+    &mut self,
+    staging: &mut Vec<u8>,
+    dict_len: &mut usize,
+    scratch: &mut [u8],
+  ) -> std::io::Result<()> {
+    let (dict, chunk) = staging.split_at(*dict_len);
+    // Errors are matched by kind in `save`. A codec error cannot happen with a
+    // bound-sized scratch; if it does, the pack is stored raw.
+    let written = compress_into_with_dict(chunk, scratch, dict)
+      .map_err(|_| std::io::Error::from(ErrorKind::FileTooLarge))?;
+    if 4 + written > self.cap - self.bytes.len() {
       return Err(ErrorKind::FileTooLarge.into());
     }
     self
       .bytes
-      .try_reserve(buf.len())
+      .try_reserve(4 + written)
       .map_err(|_| std::io::Error::from(ErrorKind::OutOfMemory))?;
-    self.bytes.extend_from_slice(buf);
-    Ok(buf.len())
-  }
-
-  fn flush(&mut self) -> std::io::Result<()> {
+    self
+      .bytes
+      .extend_from_slice(&(written as u32).to_le_bytes());
+    self.bytes.extend_from_slice(&scratch[..written]);
+    let staged_len = staging.len();
+    *dict_len = DICT.min(staged_len);
+    staging.copy_within(staged_len - *dict_len.., 0);
+    staging.truncate(*dict_len);
     Ok(())
   }
 }
 
 /// A pack file containing a collection of key-value pairs.
 ///
-/// A leading encoding byte selects a raw body or an LZ4 frame with a prepended
-/// little-endian u32 decoded size. Frames use linked blocks of at most 256 KiB.
+/// Marker 0x00 selects a raw body. Marker 0x01 selects a little-endian u32
+/// decoded size followed by chunks, each a little-endian u32 compressed length
+/// and an LZ4 block. Each chunk decodes to min(256 KiB, remaining decoded size),
+/// so only the last chunk can be shorter. Blocks use the preceding up-to-64 KiB
+/// raw bytes as their dictionary. No trailing bytes are allowed.
 /// Small/incompressible bodies stay raw.
 /// The decoded body contains `key_len value_len` headers terminated by a newline,
 /// followed by key/value bytes. Content hashes cover logical keys and values,
@@ -104,15 +121,34 @@ impl Pack {
         buffer
           .try_reserve_exact(size)
           .map_err(|e| invalid(&format!("cannot allocate decoded body: {e}")))?;
-        let mut take = FrameDecoder::new(compressed).take(size as u64 + 1);
-        take
-          .read_to_end(&mut buffer)
-          .map_err(|e| invalid(&format!("LZ4 decode failed: {e}")))?;
-        if buffer.len() != size {
-          return Err(invalid("LZ4 decoded size mismatch"));
+        let mut remaining = compressed;
+        let mut pos = 0;
+        while pos < size {
+          let len_bytes: [u8; 4] = remaining
+            .get(..4)
+            .ok_or_else(|| invalid("missing LZ4 chunk length"))?
+            .try_into()
+            .map_err(|_| invalid("invalid LZ4 chunk length"))?;
+          let len = u32::from_le_bytes(len_bytes) as usize;
+          remaining = &remaining[4..];
+          let block = remaining
+            .get(..len)
+            .ok_or_else(|| invalid("LZ4 chunk length out of bounds"))?;
+          let n = CHUNK.min(size - pos);
+          // Zero-fill each chunk just before decoding into it (capacity is reserved).
+          buffer.resize(pos + n, 0);
+          let (head, tail) = buffer.split_at_mut(pos);
+          let dict = &head[pos.saturating_sub(DICT)..];
+          let written = decompress_into_with_dict(block, &mut tail[..n], dict)
+            .map_err(|e| invalid(&format!("LZ4 decode failed: {e}")))?;
+          if written != n {
+            return Err(invalid("LZ4 decoded chunk size mismatch"));
+          }
+          remaining = &remaining[len..];
+          pos += n;
         }
-        if !take.into_inner().into_inner().is_empty() {
-          return Err(invalid("trailing bytes after LZ4 frame"));
+        if !remaining.is_empty() {
+          return Err(invalid("trailing bytes after LZ4 chunks"));
         }
         // Release the compressed input before allocating individual KV entries.
         drop(encoded);
@@ -201,26 +237,45 @@ impl Pack {
     let compressed = if raw_len >= 128
       && let Ok(size) = u32::try_from(raw_len)
     {
-      let info = FrameInfo::new()
-        .block_size(BlockSize::Max256KB)
-        .block_mode(BlockMode::Linked)
-        .block_checksums(false)
-        .content_checksum(false)
-        .content_size(Some(raw_len as u64));
       // Account for the prepended size when requiring at least 12.5% savings.
-      let sink = CompressionSink {
+      let mut sink = CappedOutput {
         bytes: Vec::new(),
         cap: raw_len - raw_len / 8 - 4,
       };
-      let encoded = (|| -> std::io::Result<CompressionSink> {
-        let mut encoder = FrameEncoder::with_frame_info(info, sink);
+      // Size buffers for the pack: chunks never exceed `first`. After the first
+      // chunk, staging holds at most DICT + min(CHUNK, rest), which fits in
+      // min(DICT, rest) + first because DICT <= CHUNK.
+      let first = CHUNK.min(raw_len);
+      let rest = raw_len - first;
+      let mut staging = Vec::new();
+      staging
+        .try_reserve_exact(DICT.min(rest) + first)
+        .map_err(|e| allocation_error(e.to_string()))?;
+      let mut scratch = Vec::new();
+      let scratch_len = get_maximum_output_size(first);
+      scratch
+        .try_reserve_exact(scratch_len)
+        .map_err(|e| allocation_error(e.to_string()))?;
+      scratch.resize(scratch_len, 0);
+      let encoded = (|| -> std::io::Result<CappedOutput> {
+        let mut dict_len = 0;
         for (key, value) in &self.data {
           let header = format!("{} {}\n", key.len(), value.len());
-          encoder.write_all(header.as_bytes())?;
-          encoder.write_all(key)?;
-          encoder.write_all(value)?;
+          for mut bytes in [header.as_bytes(), key.as_slice(), value.as_slice()] {
+            while !bytes.is_empty() {
+              let n = bytes.len().min(dict_len + CHUNK - staging.len());
+              staging.extend_from_slice(&bytes[..n]);
+              bytes = &bytes[n..];
+              if staging.len() == dict_len + CHUNK {
+                sink.compress_chunk(&mut staging, &mut dict_len, &mut scratch)?;
+              }
+            }
+          }
         }
-        encoder.finish().map_err(std::io::Error::from)
+        if staging.len() > dict_len {
+          sink.compress_chunk(&mut staging, &mut dict_len, &mut scratch)?;
+        }
+        Ok(sink)
       })();
       match encoded {
         Ok(sink) => Some((size, sink.bytes)),

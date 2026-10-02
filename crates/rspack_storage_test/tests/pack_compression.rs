@@ -71,8 +71,19 @@ async fn test_encoding_markers_and_exact_roundtrip() -> Result<()> {
       .expect("saved pack");
     assert_eq!(bytes[0], marker);
     if marker == 0x01 {
-      // Frame magic, linked blocks, content size, and a 256 KiB block maximum.
-      assert_eq!(&bytes[5..11], &[0x04, 0x22, 0x4d, 0x18, 0x48, 0x50]);
+      let size = u32::from_le_bytes(bytes[1..5].try_into().expect("decoded size")) as usize;
+      let mut remaining = &bytes[5..];
+      let mut chunks = 0;
+      while !remaining.is_empty() {
+        let len = u32::from_le_bytes(remaining[..4].try_into().expect("chunk length")) as usize;
+        assert!(
+          len > 0 && len <= remaining.len() - 4,
+          "bounded chunk length"
+        );
+        remaining = &remaining[4 + len..];
+        chunks += 1;
+      }
+      assert_eq!(chunks, size.div_ceil(256 * 1024));
     }
     assert_eq!(storage(&fs).load(SCOPE).await?, vec![(key, value)]);
   }
