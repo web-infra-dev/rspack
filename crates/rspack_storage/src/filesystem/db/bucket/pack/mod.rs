@@ -4,10 +4,10 @@ mod id_alloc;
 
 use std::{
   hash::{Hash, Hasher},
-  io::ErrorKind,
+  io::{ErrorKind, Read, Write},
 };
 
-use lz4_flex::block::{compress_into, decompress_into, get_maximum_output_size};
+use lz4_flex::frame::{BlockMode, BlockSize, FrameDecoder, FrameEncoder, FrameInfo};
 use rustc_hash::FxHasher;
 
 pub use self::{generator::PackGenerator, id::PackId, id_alloc::PackIdAlloc};
@@ -20,10 +20,37 @@ use crate::{Error, Result};
 const RAW_ENCODING: u8 = 0;
 const LZ4_ENCODING: u8 = 1;
 
+struct CompressionSink {
+  bytes: Vec<u8>,
+  cap: usize,
+}
+
+impl Write for CompressionSink {
+  fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+    // Sink errors must carry no payload: lz4_flex converts io::Error into its own
+    // error type by downcasting any payload, so a payload makes `finish()` panic.
+    if buf.len() > self.cap - self.bytes.len() {
+      // Reserved for the savings cap.
+      return Err(ErrorKind::FileTooLarge.into());
+    }
+    self
+      .bytes
+      .try_reserve(buf.len())
+      .map_err(|_| std::io::Error::from(ErrorKind::OutOfMemory))?;
+    self.bytes.extend_from_slice(buf);
+    Ok(buf.len())
+  }
+
+  fn flush(&mut self) -> std::io::Result<()> {
+    Ok(())
+  }
+}
+
 /// A pack file containing a collection of key-value pairs.
 ///
-/// A leading encoding byte selects a raw body or an LZ4 block with a prepended
-/// little-endian u32 decoded size. Small/incompressible bodies stay raw.
+/// A leading encoding byte selects a raw body or an LZ4 frame with a prepended
+/// little-endian u32 decoded size. Frames use linked blocks of at most 256 KiB.
+/// Small/incompressible bodies stay raw.
 /// The decoded body contains `key_len value_len` headers terminated by a newline,
 /// followed by key/value bytes. Content hashes cover logical keys and values,
 /// not encoded file bytes.
@@ -77,11 +104,15 @@ impl Pack {
         buffer
           .try_reserve_exact(size)
           .map_err(|e| invalid(&format!("cannot allocate decoded body: {e}")))?;
-        buffer.resize(size, 0);
-        let written = decompress_into(compressed, &mut buffer)
+        let mut take = FrameDecoder::new(compressed).take(size as u64 + 1);
+        take
+          .read_to_end(&mut buffer)
           .map_err(|e| invalid(&format!("LZ4 decode failed: {e}")))?;
-        if written != size {
+        if buffer.len() != size {
           return Err(invalid("LZ4 decoded size mismatch"));
+        }
+        if !take.into_inner().into_inner().is_empty() {
+          return Err(invalid("trailing bytes after LZ4 frame"));
         }
         // Release the compressed input before allocating individual KV entries.
         drop(encoded);
@@ -129,6 +160,20 @@ impl Pack {
   ///
   /// The index includes a bloom filter for fast key lookups and a content hash for integrity.
   pub async fn save(&self, fs: &ScopeFileSystem, id: PackId) -> Result<PackIndex> {
+    // Use append writes: not every filesystem's write_all appends to the stream.
+    async fn write_bytes(writer: &mut dyn rspack_fs::WriteStream, mut bytes: &[u8]) -> Result<()> {
+      while !bytes.is_empty() {
+        let written = writer.write(bytes).await?;
+        if written == 0 {
+          return Err(Error::FS(rspack_fs::Error::from(std::io::Error::from(
+            ErrorKind::WriteZero,
+          ))));
+        }
+        bytes = &bytes[written..];
+      }
+      Ok(())
+    }
+
     let pack_name = id.pack_name();
     // Open before encoding: stream_write yields (remove_file), and buffers built
     // before it would stay resident across that await in every concurrently
@@ -140,73 +185,71 @@ impl Pack {
         format!("Cannot allocate pack '{pack_name}': {reason}"),
       )))
     };
-    let mut body = Vec::new();
-    body
-      .try_reserve(1)
-      .map_err(|e| allocation_error(e.to_string()))?;
-    // Reserve the marker from the start, so raw fallback never shifts/copies the body.
-    body.push(RAW_ENCODING);
+    let mut raw_len = 0usize;
     let mut index_gen = IndexGenerator::default();
     for (key, value) in &self.data {
       let header = format!("{} {}\n", key.len(), value.len());
-      let item_len = key
-        .len()
-        .checked_add(value.len())
-        .and_then(|len| len.checked_add(body.len()))
-        .and_then(|len| len.checked_add(header.len()))
+      raw_len = raw_len
+        .checked_add(header.len())
+        .and_then(|len| len.checked_add(key.len()))
+        .and_then(|len| len.checked_add(value.len()))
         .ok_or_else(|| allocation_error("serialized body size overflow".into()))?;
-      body
-        .try_reserve(item_len - body.len())
-        .map_err(|e| allocation_error(e.to_string()))?;
-      body.extend_from_slice(header.as_bytes());
-      body.extend_from_slice(key);
-      body.extend_from_slice(value);
       index_gen.add_key(key);
       index_gen.add_value(value);
     }
-    let body_len = body.len() - 1;
     // LZ4's size prefix is u32. Larger bodies remain raw, without failing the save.
-    // The codec's output bound multiplies by 110 internally: on 32-bit targets,
-    // also fall back to raw if that intermediate multiplication would overflow.
-    let compressed = if body_len >= 128
-      && let Ok(size) = u32::try_from(body_len)
-      && body_len.checked_mul(110).is_some()
+    let compressed = if raw_len >= 128
+      && let Ok(size) = u32::try_from(raw_len)
     {
-      let mut bytes = Vec::new();
-      let capacity = get_maximum_output_size(body_len) + 5;
-      bytes
-        .try_reserve_exact(capacity)
-        .map_err(|e| allocation_error(e.to_string()))?;
-      bytes.resize(capacity, 0);
-      bytes[0] = LZ4_ENCODING;
-      bytes[1..5].copy_from_slice(&size.to_le_bytes());
-      let written = compress_into(&body[1..], &mut bytes[5..]).map_err(|e| {
-        Error::FS(rspack_fs::Error::from(std::io::Error::other(format!(
-          "Cannot encode pack '{pack_name}': {e}"
-        ))))
-      })?;
-      bytes.truncate(written + 5);
-      // Writes may yield (JS-backed FS): keep only the compressed bytes, not the
-      // codec bound.
-      bytes.shrink_to_fit();
-      Some(bytes)
+      let info = FrameInfo::new()
+        .block_size(BlockSize::Max256KB)
+        .block_mode(BlockMode::Linked)
+        .block_checksums(false)
+        .content_checksum(false)
+        .content_size(Some(raw_len as u64));
+      // Account for the prepended size when requiring at least 12.5% savings.
+      let sink = CompressionSink {
+        bytes: Vec::new(),
+        cap: raw_len - raw_len / 8 - 4,
+      };
+      let encoded = (|| -> std::io::Result<CompressionSink> {
+        let mut encoder = FrameEncoder::with_frame_info(info, sink);
+        for (key, value) in &self.data {
+          let header = format!("{} {}\n", key.len(), value.len());
+          encoder.write_all(header.as_bytes())?;
+          encoder.write_all(key)?;
+          encoder.write_all(value)?;
+        }
+        encoder.finish().map_err(std::io::Error::from)
+      })();
+      match encoded {
+        Ok(sink) => Some((size, sink.bytes)),
+        Err(e) if e.kind() == ErrorKind::FileTooLarge => None,
+        Err(e) if e.kind() == ErrorKind::OutOfMemory => {
+          return Err(allocation_error(e.to_string()));
+        }
+        Err(e) => {
+          return Err(Error::FS(rspack_fs::Error::from(std::io::Error::other(
+            format!("Cannot encode pack '{pack_name}': {e}"),
+          ))));
+        }
+      }
     } else {
       None
     };
-    // Account for the prepended size when requiring at least 12.5% savings.
-    // Both buffers already contain their marker, so neither needs a front insertion.
-    let encoded = match compressed {
-      Some(bytes) if bytes.len() - 1 <= body_len - body_len / 8 => {
-        drop(body);
-        bytes
+    if let Some((size, bytes)) = compressed {
+      let [a, b, c, d] = size.to_le_bytes();
+      write_bytes(writer.as_mut(), &[LZ4_ENCODING, a, b, c, d]).await?;
+      write_bytes(writer.as_mut(), &bytes).await?;
+    } else {
+      write_bytes(writer.as_mut(), &[RAW_ENCODING]).await?;
+      for (key, value) in &self.data {
+        let header = format!("{} {}\n", key.len(), value.len());
+        write_bytes(writer.as_mut(), header.as_bytes()).await?;
+        write_bytes(writer.as_mut(), key).await?;
+        write_bytes(writer.as_mut(), value).await?;
       }
-      Some(bytes) => {
-        drop(bytes);
-        body
-      }
-      None => body,
-    };
-    writer.write_all(&encoded).await?;
+    }
     writer.flush().await?;
     writer.close().await?;
     Ok(index_gen.finish())

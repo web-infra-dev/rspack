@@ -70,6 +70,10 @@ async fn test_encoding_markers_and_exact_roundtrip() -> Result<()> {
       .max_by_key(|(_, bytes)| bytes.len())
       .expect("saved pack");
     assert_eq!(bytes[0], marker);
+    if marker == 0x01 {
+      // Frame magic, linked blocks, content size, and a 256 KiB block maximum.
+      assert_eq!(&bytes[5..11], &[0x04, 0x22, 0x4d, 0x18, 0x48, 0x50]);
+    }
     assert_eq!(storage(&fs).load(SCOPE).await?, vec![(key, value)]);
   }
   Ok(())
@@ -114,7 +118,7 @@ async fn rejects_corruption_and_rebuilds(bytes: &[u8], reason: &str) -> Result<(
 
 #[tokio::test]
 async fn test_declared_lz4_size_exceeding_ratio_is_rejected() -> Result<()> {
-  // A 4 MiB decoded size exceeds 255 times this one-byte LZ4 block.
+  // A 4 MiB decoded size exceeds 255 times this one-byte LZ4 payload.
   rejects_corruption_and_rebuilds(&[0x01, 0, 0, 64, 0, 0], "LZ4 decoded size out of bounds").await
 }
 
