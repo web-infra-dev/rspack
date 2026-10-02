@@ -105,6 +105,35 @@ describe('profile', () => {
     ).toBe(true);
   });
 
+  it('should write javascript trace timestamps within the build time range', async () => {
+    const start = Date.now();
+    const { exitCode } = await run(
+      __dirname,
+      [],
+      {},
+      { RSPACK_PROFILE: 'OVERVIEW', RSPACK_TRACE_LAYER: 'logger' },
+    );
+    const end = Date.now();
+    expect(exitCode).toBe(0);
+
+    const tracePath = resolve(
+      getDefaultOutputDirname(),
+      defaultLoggerTracePath,
+    );
+    const timestamps = fs
+      .readFileSync(tracePath, 'utf-8')
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line))
+      .filter((line) => line.target === 'javascript')
+      .map((line) => Date.parse(line.timestamp));
+    expect(timestamps.length).toBeGreaterThan(0);
+    for (const ts of timestamps) {
+      expect(ts).toBeGreaterThanOrEqual(start);
+      expect(ts).toBeLessThanOrEqual(end);
+    }
+  });
+
   it('should be able to customize output path', async () => {
     const { exitCode } = await run(
       __dirname,
