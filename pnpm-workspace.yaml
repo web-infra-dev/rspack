@@ -87,7 +87,7 @@ catalog:
   'date-fns': '^4.4.0'
   'diff': '9.0.0'
   'emnapi': '1.11.3'
-  'enhanced-resolve': '5.25.1'
+  'enhanced-resolve': '5.26.0'
   'es5-ext': '^0.10.64'
   'execa': '^5.1.1'
   'exit-hook': '^5.1.0'
