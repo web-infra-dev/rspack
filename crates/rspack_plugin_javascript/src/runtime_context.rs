@@ -42,6 +42,15 @@ fn runtime_iife_end(runtime_requirements: RuntimeGlobals) -> &'static str {
   }
 }
 
+fn render_hmr_chunk_state(key: &str, variable: &str, runtime_context: &str) -> String {
+  // A replacement chunk loader gets a new lexical scope, but must retain the
+  // installed-chunk map used by the loader that downloaded the update.
+  let property = rspack_util::json_stringify(&format!("hmrS_{key}"));
+  format!(
+    "var {variable}={runtime_context}[{property}];\nObject.defineProperty({runtime_context}, {property}, {{ configurable: true, get: function() {{ return {variable}; }}, set: function(value) {{ {variable} = value; }} }});\n"
+  )
+}
+
 pub fn should_export_rspack_runtime_globals(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -305,7 +314,11 @@ fn render_runtime_chunk_runtime_modules_sync(
     {
       for key in &hmr_state_keys {
         let state_expression = runtime_template.render_hmr_runtime_state_expression(key);
-        sources.add(RawStringSource::from(format!("var {state_expression};\n")));
+        sources.add(RawStringSource::from(render_hmr_chunk_state(
+          key,
+          &state_expression,
+          &runtime_context,
+        )));
       }
     }
 
@@ -353,7 +366,11 @@ fn render_runtime_chunk_runtime_modules_sync(
     .intersects(*HMR_RUNTIME_STATE_GLOBALS)
   {
     for key in &hmr_state_keys {
-      wrapped_sources.add(RawStringSource::from(format!("var hmrS_{key};\n")));
+      wrapped_sources.add(RawStringSource::from(render_hmr_chunk_state(
+        key,
+        &format!("hmrS_{key}"),
+        &runtime_context,
+      )));
     }
   }
   for (runtime_module_source, generated_requirements, context_requirements, needs_top_level) in
@@ -566,7 +583,11 @@ pub async fn render_hot_update_chunk_runtime_modules(
         } else {
           format!("hmrS_{key}")
         };
-      sources.add(RawStringSource::from(format!("var {state_expression};\n")));
+      sources.add(RawStringSource::from(render_hmr_chunk_state(
+        key,
+        &state_expression,
+        &runtime_context,
+      )));
     }
   }
 

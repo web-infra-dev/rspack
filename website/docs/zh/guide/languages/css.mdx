@@ -8,6 +8,8 @@ import { PackageManagerTabs, Tabs, Tab } from '@theme';
 
 Rspack 内置了对 CSS 的支持，并提供了多种能力来支持 CSS 打包。
 
+使用内置 CSS 支持或 `CssExtractRspackPlugin` 时，如果分包变化为已打开的页面增加了 initial chunk 依赖，热更新可以补载相应的样式表。
+
 ## 开启 CSS 支持
 
 你可以从以下方式中进行选择：

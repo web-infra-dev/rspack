@@ -1,0 +1,584 @@
+# Case initial-depend-on-css-migration: Step 1
+
+## Changed Files
+- other.js
+
+## Asset Files
+- Bundle: base.js
+- Bundle: main.js
+- Bundle: other.js
+- Bundle: parent.js
+- Bundle: runtime.js
+- Bundle: shared.js
+- Bundle: sibling.js
+- Manifest: runtime.LAST_HASH.hot-update.json, size: 311
+- Update: other.LAST_HASH.hot-update.js, size: 5014
+- Update: runtime.LAST_HASH.hot-update.js, size: 13057
+- Update: shared.LAST_HASH.hot-update.js, size: 864
+
+## Manifest
+
+### runtime.LAST_HASH.hot-update.json
+
+```json
+{"c":["other","runtime","shared"],"r":[],"m":[],"initial":{"base":["shared"],"parent":["shared"],"other":["shared"],"sibling":["shared"],"main":["shared"]},"unchanged":["./shared.css"],"miniCss":{"c":["shared"],"r":["base"],"f":{"shared":"shared.CSS_HASH_0.css"},"o":{"base":"base.CSS_HASH_1.css"}}}
+```
+
+
+## Update
+
+
+### other.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ../../../../../../../../packages/rspack/dist/cssExtractHmr.js
+- ./other.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("other", {
+"./other.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* import */ var _shared_css__rspack_import_0 = __webpack_require__("./shared.css");
+
+/* export default */ const __rspack_default_export = (1);
+
+
+},
+"../../../../../../../../packages/rspack/dist/cssExtractHmr.js"(__unused_rspack___webpack_module__, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  cssReload: () => (cssReload),
+  normalizeUrl: () => (normalizeUrl)
+});
+function normalizeUrl(url) {
+    let urlString = url.trim();
+    if (/^data:/i.test(urlString)) return urlString;
+    let protocol = -1 !== urlString.indexOf('//') ? `${urlString.split('//')[0]}//` : '', components = urlString.replace(RegExp(protocol, 'i'), '').split('/'), host = components[0].toLowerCase().replace(/\.$/, '');
+    return components[0] = '', protocol + host + components.reduce((accumulator, item)=>{
+        switch(item){
+            case '..':
+                accumulator.pop();
+                break;
+            case '.':
+                break;
+            default:
+                accumulator.push(item);
+        }
+        return accumulator;
+    }, []).join('/');
+}
+let srcByModuleId = Object.create(null), noDocument = "u" < typeof document, { forEach: forEach } = Array.prototype;
+function noop() {}
+function updateCss(el, url) {
+    let normalizedUrl;
+    if (url) normalizedUrl = url;
+    else {
+        let href = el.getAttribute('href');
+        if (!href) return;
+        normalizedUrl = href.split('?')[0];
+    }
+    if (!isUrlRequest(el.href) || !1 === el.isLoaded || !normalizedUrl || !(normalizedUrl.indexOf('.css') > -1)) return;
+    el.visited = !0;
+    let newEl = el.cloneNode();
+    newEl.isLoaded = !1, newEl.addEventListener('load', ()=>{
+        !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
+    }), newEl.addEventListener('error', ()=>{
+        !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
+    }), newEl.href = `${normalizedUrl}?${Date.now()}`;
+    let parent = el.parentNode;
+    parent && (el.nextSibling ? parent.insertBefore(newEl, el.nextSibling) : parent.appendChild(newEl));
+}
+function reloadAll() {
+    let elements = document.querySelectorAll('link');
+    forEach.call(elements, (el)=>{
+        !0 !== el.visited && updateCss(el);
+    });
+}
+function isUrlRequest(url) {
+    return !!/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(url);
+}
+function cssReload(moduleId, options) {
+    var fn;
+    let timeout;
+    if (noDocument) return console.log('[HMR] No `window.document` found, CSS HMR disabled'), noop;
+    let getScriptSrc = function(moduleId) {
+        let src = srcByModuleId[moduleId];
+        if (!src) {
+            if (document.currentScript) ({ src } = document.currentScript);
+            else {
+                let scripts = document.getElementsByTagName("script"), lastScriptTag = scripts[scripts.length - 1];
+                lastScriptTag && ({ src } = lastScriptTag);
+            }
+            srcByModuleId[moduleId] = src;
+        }
+        return (fileMap)=>{
+            if (!src) return null;
+            let splitResult = src.match(/([^\\/]+)\.js$/), filename = splitResult && splitResult[1];
+            return filename && fileMap ? fileMap.split(',').map((mapRule)=>{
+                let reg = RegExp(`${filename}\\.js$`, 'g');
+                return normalizeUrl(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
+            }) : [
+                src.replace('.js', '.css')
+            ];
+        };
+    }(moduleId);
+    return fn = function() {
+        let src = getScriptSrc(options.filename), reloaded = function(src) {
+            if (!src) return !1;
+            let elements = document.querySelectorAll('link'), loaded = !1;
+            return forEach.call(elements, (el)=>{
+                var href;
+                let ret, normalizedHref;
+                if (!el.href) return;
+                let url = (href = el.href, ret = '', normalizedHref = normalizeUrl(href), src.some((url)=>{
+                    normalizedHref.indexOf(src) > -1 && (ret = url);
+                }), ret);
+                !isUrlRequest(url) || !0 !== el.visited && url && (updateCss(el, url), loaded = !0);
+            }), loaded;
+        }(src);
+        if (options.locals) {
+            console.log('[HMR] Detected local CSS Modules. Reload all CSS'), reloadAll();
+            return;
+        }
+        reloaded ? console.log('[HMR] CSS reload %s', src && src.join(' ')) : (console.log('[HMR] Reload all CSS'), reloadAll());
+    }, timeout = 0, function(...args) {
+        let self = this;
+        clearTimeout(timeout), timeout = setTimeout(function() {
+            return fn.apply(self, args);
+        }, 50);
+    };
+}
+
+
+
+},
+
+});
+```
+
+
+
+### runtime.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/css_loading
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("runtime", {},function(__webpack_require__) {
+// webpack/runtime/get mini-css chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.miniCssF = (chunkId) => {
+  // return url for filenames not based on template
+  
+  // return url for filenames based on template
+  return "" + chunkId + "." + {"main": "59f87dee1dc902aa","shared": "bffac893f467463a",}[chunkId] + ".css"
+}
+})();
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/css loading
+(() => {
+if (typeof document === "undefined") return;
+var extractCssCreateStylesheet = function (
+	chunkId, fullhref, oldTag, resolve, reject, fetchPriority
+) {
+	var linkTag = document.createElement("link");
+
+linkTag.rel = "stylesheet";
+
+linkTag.type = "text/css";
+
+if (__webpack_require__.nc) {
+  linkTag.nonce = __webpack_require__.nc;
+}
+linkTag.href = fullhref;
+
+
+
+	var onLinkComplete = function (event) {
+		// avoid mem leaks.
+		linkTag.onerror = linkTag.onload = null;
+		if (event.type === 'load') {
+			resolve();
+		} else {
+			var errorType = event && (event.type === 'load' ? 'missing' : event.type);
+			var realHref = event && event.target && event.target.href || fullhref;
+			var err = new Error("Loading CSS chunk " + chunkId + " failed.\\n(" + realHref + ")");
+			err.code = "CSS_CHUNK_LOAD_FAILED";
+			err.type = errorType;
+			err.request = realHref;
+			if (linkTag.parentNode) linkTag.parentNode.removeChild(linkTag)
+			reject(err);
+		}
+	}
+	linkTag.onerror = linkTag.onload = onLinkComplete;
+	if (oldTag) {
+            oldTag.parentNode.insertBefore(linkTag, oldTag.nextSibling);
+          } else {
+            document.head.appendChild(linkTag);
+          }
+	return linkTag;
+}
+var extractCssFindStylesheet = function (href, fullhref) {
+	var existingLinkTags = document.getElementsByTagName("link");
+	for (var i = 0; i < existingLinkTags.length; i++) {
+		var tag = existingLinkTags[i];
+		var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");
+		if (dataHref) {
+			dataHref = dataHref.split('?')[0]
+		}
+		if (tag.rel === "stylesheet" && (dataHref === href || dataHref === fullhref)) return tag;
+	}
+
+	var existingStyleTags = document.getElementsByTagName("style");
+	for (var i = 0; i < existingStyleTags.length; i++) {
+		var tag = existingStyleTags[i];
+		var dataHref = tag.getAttribute("data-href");
+		if (dataHref === href || dataHref === fullhref) return tag;
+	}
+}
+
+var extractCssLoadStylesheet = function (chunkId, fetchPriority) {
+	return new Promise(function (resolve, reject) {
+		var href = __webpack_require__.miniCssF(chunkId);
+		var fullhref = __webpack_require__.p + href;
+		if (extractCssFindStylesheet(href, fullhref)) return resolve();
+		extractCssCreateStylesheet(chunkId, fullhref, null, resolve, reject, fetchPriority);
+	})
+}
+
+// no chunk loading
+var extractCssOldTags = [];
+var extractCssNewTags = [];
+var extractCssApplyHandler = function (options) {
+	return {
+		dispose: function () {},
+		apply: function () {
+			for (var i = 0; i < extractCssNewTags.length; i++) extractCssNewTags[i].sheet.disabled = false;
+			for (var i = 0; i < extractCssOldTags.length; i++) {
+				var oldTag = extractCssOldTags[i];
+				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
+			}
+			extractCssOldTags.length = 0;
+			extractCssNewTags.length = 0;
+		}
+	}
+}
+var extractCssInitialChunkIds = {"base": 1,"main": 1,"other": 1,"parent": 1,"runtime": 1,"shared": 1,"sibling": 1,};
+// A chunk is present on this page only when the active JavaScript
+// chunk-loading runtime records it as fully loaded.
+var extractCssChunkIsLoaded = function (chunkId) {
+	return typeof __webpack_require__.hmrS_jsonp !== "undefined" && __webpack_require__.hmrS_jsonp && __webpack_require__.hmrS_jsonp[chunkId] === 0;
+};
+__webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, initial) {
+	applyHandlers.push(extractCssApplyHandler);
+	/**
+		`miniCss` is the hot-update manifest's namespace for extracted CSS:
+		`miniCss.c` lists the chunks whose extracted CSS content actually changed
+		and `miniCss.r` the chunks whose extracted CSS disappeared. It is kept
+		apart from the native css runtime's `css` namespace so neither runtime
+		reacts to the other's stylesheets. Its absence means this update carries
+		no extracted CSS work at all — notably the runtime chunk is in `chunkIds`
+		on every update (its full hash always changes) while its stylesheet
+		rarely does.
+	 */
+	var cssRemovedChunkIds = (miniCss && miniCss.r) || [];
+	var cssChunkIds = ((miniCss && miniCss.c) || []).slice();
+	var files = (miniCss && miniCss.f) || {};
+	var oldFiles = (miniCss && miniCss.o) || {};
+	var requiredCssChunks = Object.create(null);
+	if (initial) Object.keys(initial).forEach(function (entryId) {
+		if (extractCssChunkIsLoaded(entryId)) initial[entryId].forEach(function (id) {
+			requiredCssChunks[id] = true;
+			if (files[id] && cssChunkIds.indexOf(id) < 0) cssChunkIds.push(id);
+		});
+	});
+	var seen = {};
+	cssRemovedChunkIds.forEach(function (chunkId) {
+		var href = oldFiles[chunkId] || __webpack_require__.miniCssF(chunkId);
+		if (!href) return;
+		var oldTag = extractCssFindStylesheet(href, __webpack_require__.p + href);
+		if (oldTag) extractCssOldTags.push(oldTag);
+	});
+	cssChunkIds.forEach(function (chunkId) {
+		var href = files[chunkId] || __webpack_require__.miniCssF(chunkId);
+		if (!href) return;
+		var fullhref = __webpack_require__.p + href;
+		if (seen[fullhref]) return;
+		seen[fullhref] = true;
+		var oldHref = oldFiles[chunkId] || __webpack_require__.miniCssF(chunkId);
+		var oldTag = oldHref && extractCssFindStylesheet(oldHref, __webpack_require__.p + oldHref);
+		// The manifest is computed from the compilation and also lists chunks this
+		// page never loaded. A missing tag is legitimate only for a chunk that is
+		// actually on the page: an initial chunk gaining its first stylesheet, or
+		// a loaded async chunk whose stylesheet was removed by an earlier update.
+		if (!oldTag && !requiredCssChunks[chunkId] && !extractCssInitialChunkIds[chunkId] && !extractCssChunkIsLoaded(chunkId)) return;
+		promises.push(new Promise(function (resolve, reject) {
+			var tag = extractCssCreateStylesheet(
+				chunkId,
+
+				/**
+					Use a query to bypass the browser cache: with an existing link the
+					browser may treat the new tag as the same resource and skip fetching
+					(this can happen during lazy compilation, same strategy as the
+					updateCss API), and even without a current link the stable filename
+					may still be cached from before the stylesheet was removed.
+				 */
+				`${fullhref}?${Date.now()}`,
+				oldTag,
+				function () {
+					tag.sheet.disabled = true;
+					if (oldTag) extractCssOldTags.push(oldTag);
+					extractCssNewTags.push(tag);
+					resolve();
+				},
+				reject
+			);
+		}))
+	});
+}
+
+// no prefetch
+// no preload
+})();
+// webpack/runtime/css_loading
+(() => {
+var cssInstalledChunks = {};
+var cssLoadingUniqueName = "";
+function handleCssComposes(exports, composes) {
+	for (var i = 0; i < composes.length; i += 3) {
+		var moduleId = composes[i];
+		var composeFrom = composes[i + 1];
+		var composeVar = composes[i + 2];
+		var composedId = __webpack_require__(composeFrom)[composeVar];
+		exports[moduleId] = exports[moduleId] + " " + composedId
+	}
+}
+var loadingAttribute = "data-rspack-loading";
+var cssLoadStylesheet = (chunkId, url, done, hmr, fetchPriority) => {
+	var link,
+		needAttach,
+		key = "chunk-" + chunkId;
+	if (!hmr) {
+		var links = document.getElementsByTagName("link");
+		for (var i = 0; i < links.length; i++) {
+			var l = links[i];
+			var href = l.getAttribute("href") || l.href;
+			if (href && !href.startsWith(__webpack_require__.p)) {
+				href =
+					__webpack_require__.p + (href.startsWith("/") ? href.slice(1) : href);
+			}
+			if (
+				l.rel == "stylesheet" &&
+				((href && href.startsWith(url)) ||
+					l.getAttribute("data-rspack") == cssLoadingUniqueName + ":" + key)
+			) {
+				link = l;
+				break;
+			}
+		}
+		if (!done) return link;
+	}
+	if (!link) {
+		needAttach = true;
+		link = document.createElement("link");
+if (__webpack_require__.nc) {
+  link.setAttribute("nonce", __webpack_require__.nc);
+}
+
+
+link.setAttribute(loadingAttribute, 1);
+link.rel = "stylesheet";
+link.href = url;
+
+
+	}
+	var onLinkComplete = (prev, event) => {
+		link.onerror = link.onload = null;
+		link.removeAttribute(loadingAttribute);
+		clearTimeout(timeout);
+		if (event && event.type != "load" && link.parentNode) link.parentNode.removeChild(link);
+		done(event);
+		if (prev) return prev(event);
+	};
+	if (link.getAttribute(loadingAttribute)) {
+		var timeout = setTimeout(
+			onLinkComplete.bind(null, undefined, { type: "timeout", target: link }),
+			120000 
+		);
+		link.onerror = onLinkComplete.bind(null, link.onerror);
+		link.onload = onLinkComplete.bind(null, link.onload);
+	} else onLinkComplete(undefined, { type: "load", target: link });
+	if (hmr && hmr.getAttribute("fetchpriority")) link.setAttribute("fetchpriority", hmr.getAttribute("fetchpriority"));
+	hmr ? document.head.insertBefore(link, hmr) : needAttach && document.head.appendChild(link);
+	return link;
+};
+var cssOldTags = [];
+var cssNewTags = [];
+var cssApplyHandler = (options) => {
+	return {
+		dispose: () => { },
+		apply: () => {
+			cssNewTags.forEach((newTag) => {
+				newTag.sheet.disabled = false;
+			});
+			while (cssOldTags.length) {
+				var oldTag = cssOldTags.pop();
+				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
+			}
+			while (cssNewTags.length) {
+				cssNewTags.pop();
+			}
+		}
+	};
+};
+var cssInitialChunkIds = {"base": 1,"main": 1,"other": 1,"parent": 1,"runtime": 1,"shared": 1,"sibling": 1,};
+// A chunk is present on this page only when the active JavaScript
+// chunk-loading runtime records it as fully loaded.
+var cssChunkIsLoaded = (chunkId) => {
+	return typeof __webpack_require__.hmrS_jsonp !== "undefined" && __webpack_require__.hmrS_jsonp && __webpack_require__.hmrS_jsonp[chunkId] === 0;
+};
+__webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, initial) => {
+	if (typeof document === 'undefined') return;
+	applyHandlers.push(cssApplyHandler);
+	// `css` is the hot-update manifest's css namespace (aligned with webpack):
+	// `css.c` lists the chunks whose CSS content actually changed and `css.r`
+	// the chunks whose CSS disappeared. Its absence means this update carries
+	// no CSS work at all — notably the runtime chunk is in `chunkIds` on every
+	// update (its full hash always changes) while its stylesheet rarely does.
+	var cssRemovedChunkIds = (css && css.r) || [];
+	var cssChunkIds = ((css && css.c) || []).slice();
+	var files = (css && css.f) || {};
+	var oldFiles = (css && css.o) || {};
+	var requiredCssChunks = Object.create(null);
+	if (initial) Object.keys(initial).forEach((entryId) => {
+		if (cssChunkIsLoaded(entryId)) initial[entryId].forEach((id) => {
+			requiredCssChunks[id] = true;
+			if (files[id] && cssChunkIds.indexOf(id) < 0) cssChunkIds.push(id);
+		});
+	});
+	var seen = {};
+	cssRemovedChunkIds.forEach((chunkId) => {
+		var filename = oldFiles[chunkId] || __webpack_require__.k(chunkId);
+		if (!filename) return;
+		var oldTag = cssLoadStylesheet(chunkId, __webpack_require__.p + filename);
+		if (oldTag) cssOldTags.push(oldTag);
+	});
+	cssChunkIds.forEach((chunkId) => {
+		var filename = files[chunkId] || __webpack_require__.k(chunkId);
+		if (!filename) return;
+		var url = __webpack_require__.p + filename;
+		if (seen[url]) {
+			return;
+		}
+		seen[url] = true;
+		var oldFilename = oldFiles[chunkId] || __webpack_require__.k(chunkId);
+		var oldTag = oldFilename && cssLoadStylesheet(chunkId, __webpack_require__.p + oldFilename);
+		// The manifest is computed from the compilation and also lists chunks this
+		// page never loaded. A missing tag is legitimate only for a chunk that is
+		// actually on the page: an initial chunk gaining its first stylesheet, or
+		// a loaded async chunk whose stylesheet was removed by an earlier update.
+		if (!oldTag && !requiredCssChunks[chunkId] && !cssInitialChunkIds[chunkId] && !cssChunkIsLoaded(chunkId)) return;
+		promises.push(
+			new Promise((resolve, reject) => {
+				var link = cssLoadStylesheet(
+					chunkId,
+					url + (url.indexOf("?") < 0 ? "?" : "&") + "hmr=" + Date.now(),
+					(event) => {
+						if (event.type !== "load") {
+							var error = new Error();
+							var errorType = event && event.type;
+							var realSrc = event && event.target && event.target.src;
+							error.message =
+								"Loading css hot update chunk " +
+								chunkId +
+								" failed.\n(" +
+								errorType +
+								": " +
+								realSrc +
+								")";
+							error.name = "ChunkLoadError";
+							error.type = errorType;
+							error.request = realSrc;
+							reject(error);
+						} else {
+							link.sheet.disabled = true;
+							if (oldTag) cssOldTags.push(oldTag);
+							cssNewTags.push(link);
+							resolve();
+						}
+					},
+					oldTag
+				);
+			})
+		);
+	});
+};
+
+})();
+
+}
+);
+```
+
+
+
+### shared.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./shared.css
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared", {
+"./shared.css"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+// extracted by css-extract-rspack-plugin
+
+    if(true) {
+      (function() {
+        var localsJsonString = undefined;
+        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
+    }
+  
+
+},
+
+});
+```

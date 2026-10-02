@@ -6,16 +6,16 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: lazy.chunk.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 60
+- Manifest: main.LAST_HASH.hot-update.json, size: 84
 - Update: lazy.LAST_HASH.hot-update.js, size: 1223
-- Update: main.LAST_HASH.hot-update.js, size: 6485
+- Update: main.LAST_HASH.hot-update.js, size: 7082
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["lazy","main"],"r":[],"m":[],"miniCss":{"c":["lazy"]}}
+{"c":["lazy","main"],"r":[],"m":[],"miniCss":{"c":["lazy"],"f":{"lazy":"lazy.css"}}}
 ```
 
 
@@ -214,7 +214,7 @@ var extractCssInitialChunkIds = {"main": 1,};
 var extractCssChunkIsLoaded = function (chunkId) {
 	return typeof __webpack_require__.hmrS_jsonp !== "undefined" && __webpack_require__.hmrS_jsonp && __webpack_require__.hmrS_jsonp[chunkId] === 0;
 };
-__webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss) {
+__webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, initial) {
 	applyHandlers.push(extractCssApplyHandler);
 	/**
 		`miniCss` is the hot-update manifest's namespace for extracted CSS:
@@ -227,26 +227,36 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 		rarely does.
 	 */
 	var cssRemovedChunkIds = (miniCss && miniCss.r) || [];
-	var cssChunkIds = (miniCss && miniCss.c) || [];
+	var cssChunkIds = ((miniCss && miniCss.c) || []).slice();
+	var files = (miniCss && miniCss.f) || {};
+	var oldFiles = (miniCss && miniCss.o) || {};
+	var requiredCssChunks = Object.create(null);
+	if (initial) Object.keys(initial).forEach(function (entryId) {
+		if (extractCssChunkIsLoaded(entryId)) initial[entryId].forEach(function (id) {
+			requiredCssChunks[id] = true;
+			if (files[id] && cssChunkIds.indexOf(id) < 0) cssChunkIds.push(id);
+		});
+	});
 	var seen = {};
 	cssRemovedChunkIds.forEach(function (chunkId) {
-		var href = __webpack_require__.miniCssF(chunkId);
+		var href = oldFiles[chunkId] || __webpack_require__.miniCssF(chunkId);
 		if (!href) return;
 		var oldTag = extractCssFindStylesheet(href, __webpack_require__.p + href);
 		if (oldTag) extractCssOldTags.push(oldTag);
 	});
 	cssChunkIds.forEach(function (chunkId) {
-		var href = __webpack_require__.miniCssF(chunkId);
+		var href = files[chunkId] || __webpack_require__.miniCssF(chunkId);
 		if (!href) return;
 		var fullhref = __webpack_require__.p + href;
 		if (seen[fullhref]) return;
 		seen[fullhref] = true;
-		var oldTag = extractCssFindStylesheet(href, fullhref);
+		var oldHref = oldFiles[chunkId] || __webpack_require__.miniCssF(chunkId);
+		var oldTag = oldHref && extractCssFindStylesheet(oldHref, __webpack_require__.p + oldHref);
 		// The manifest is computed from the compilation and also lists chunks this
 		// page never loaded. A missing tag is legitimate only for a chunk that is
 		// actually on the page: an initial chunk gaining its first stylesheet, or
 		// a loaded async chunk whose stylesheet was removed by an earlier update.
-		if (!oldTag && !extractCssInitialChunkIds[chunkId] && !extractCssChunkIsLoaded(chunkId)) return;
+		if (!oldTag && !requiredCssChunks[chunkId] && !extractCssInitialChunkIds[chunkId] && !extractCssChunkIsLoaded(chunkId)) return;
 		promises.push(new Promise(function (resolve, reject) {
 			var tag = extractCssCreateStylesheet(
 				chunkId,

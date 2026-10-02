@@ -1,21 +1,24 @@
 mod hot_module_replacement;
+mod initial_chunks;
 
 use std::{
-  collections::hash_map,
-  sync::{LazyLock, Mutex},
+  collections::{BTreeMap, hash_map},
+  sync::{Arc, LazyLock, Mutex},
 };
 
 use atomic_refcell::AtomicRefCell;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
+use initial_chunks::{EntryChunks, collect_entry_chunks};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationContentHash,
   CompilationParams, CompilationProcessAssets, CompilationRecords, CompilerCompilation,
-  DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
-  NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
+  DependencyType, LoaderContext, ManifestAssetType, ModuleId, ModuleIdentifier, ModuleType,
+  NormalModuleFactoryParser, NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData,
+  Plugin, RunnerContext, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
+  chunk_graph_module::ModuleIdSet,
   incremental::{IncrementalPasses, Mutation},
   rspack_sources::{RawStringSource, SourceExt},
 };
@@ -33,7 +36,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 /// Safety with [atomic_refcell::AtomicRefCell]:
 ///
-/// `previous_css_hashes` is only touched from the processAssets hook, which
+/// The baseline snapshots are only touched from the processAssets hook, which
 /// runs serially (each compiler owns its plugin instance and drives one
 /// compilation at a time). The content_hash tap runs concurrently across
 /// chunks, so `collected_css_hashes` uses a `Mutex` instead.
@@ -49,11 +52,20 @@ pub struct HotModuleReplacementPlugin {
   // the previous sealed build's per-chunk css digests: the old side of the
   // diff, advanced on every build like `CompilationRecords`
   previous_css_hashes: AtomicRefCell<ChunkIdMap<ChunkCssHashes>>,
+  previous_css_files: AtomicRefCell<Arc<ChunkIdMap<ChunkCssFiles>>>,
+  // Keep the last recorded build and the current candidate. A failed build
+  // may not advance CompilationRecords, so key these snapshots by its hash.
+  entry_chunks: AtomicRefCell<HashMap<RspackHashDigest, Arc<EntryChunks>>>,
 }
 
 impl Default for HotModuleReplacementPlugin {
   fn default() -> Self {
-    Self::new_inner(Default::default(), Default::default())
+    Self::new_inner(
+      Default::default(),
+      Default::default(),
+      Default::default(),
+      Default::default(),
+    )
   }
 }
 
@@ -65,6 +77,36 @@ impl Default for HotModuleReplacementPlugin {
 struct ChunkCssHashes {
   css: Option<RspackHashDigest>,
   mini_css: Option<RspackHashDigest>,
+}
+
+/// Filenames needed while preparing CSS updates before the filename runtime changes.
+#[derive(Debug, Default)]
+struct ChunkCssFiles {
+  css: Option<String>,
+  mini_css: Option<String>,
+}
+
+fn collect_css_files(compilation: &Compilation) -> ChunkIdMap<ChunkCssFiles> {
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values()
+    .filter_map(|chunk| {
+      let mut files = ChunkCssFiles::default();
+      for filename in chunk.files() {
+        if let Some(asset) = compilation.assets().get(filename) {
+          match &asset.info.asset_type {
+            ManifestAssetType::Css => files.css = Some(filename.clone()),
+            ManifestAssetType::Custom(kind) if kind.as_str() == "extract-css" => {
+              files.mini_css = Some(filename.clone())
+            }
+            _ => {}
+          }
+        }
+      }
+      (files.css.is_some() || files.mini_css.is_some()).then(|| (chunk.expect_id().clone(), files))
+    })
+    .collect()
 }
 
 impl ChunkCssHashes {
@@ -176,6 +218,29 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     &mut *self.previous_css_hashes.borrow_mut(),
     current_css_hashes.clone(),
   );
+  let current_css_files = Arc::new(collect_css_files(compilation));
+  let old_css_files = std::mem::replace(
+    &mut *self.previous_css_files.borrow_mut(),
+    Arc::clone(&current_css_files),
+  );
+
+  let current_entries = Arc::new(collect_entry_chunks(compilation));
+  let old_entries = {
+    let old_hash = compilation
+      .records
+      .as_ref()
+      .and_then(|records| records.hash.as_ref());
+    let mut snapshots = self.entry_chunks.borrow_mut();
+    snapshots.retain(|hash, _| Some(hash) == old_hash);
+    let previous = old_hash
+      .and_then(|hash| snapshots.get(hash))
+      .cloned()
+      .unwrap_or_default();
+    if let Some(hash) = &compilation.hash {
+      snapshots.insert(hash.clone(), Arc::clone(&current_entries));
+    }
+    previous
+  };
 
   let Some(records) = compilation.records.take() else {
     return Ok(());
@@ -250,10 +315,61 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .collect::<HashSet<_>>()
     });
 
-  for (chunk_id, (old_runtime, old_module_ids)) in old_chunks {
+  // A runtime can be shared by pages with different entrypoints. Use the old
+  // entry chunk as the loaded-page anchor, rather than treating every initial
+  // chunk in the compilation as a dependency of every page.
+  let mut initial_chunks = ChunkIdSet::default();
+  let mut entry_names = current_entries.keys().collect::<Vec<_>>();
+  entry_names.sort_unstable();
+  for name in entry_names {
+    let (entry_id, dependencies) = &current_entries[name];
+    let Some((old_entry_id, old_dependencies)) = old_entries.get(name) else {
+      continue;
+    };
+    let Some(entry_ukey) = current_chunk_ukeys.get(entry_id) else {
+      continue;
+    };
+    let entry = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(entry_ukey);
+    let added: Vec<_> = dependencies
+      .iter()
+      .filter(|id| !old_dependencies.contains(id))
+      .cloned()
+      .collect();
+    if added.is_empty() {
+      continue;
+    }
+    initial_chunks.extend(added.iter().cloned());
+    for runtime in entry.runtime().iter() {
+      if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
+        info
+          .initial_chunks
+          .insert(old_entry_id.clone(), added.clone());
+      }
+    }
+  }
+  let chunk_ids: Vec<_> = old_chunks
+    .keys()
+    .chain(
+      initial_chunks
+        .iter()
+        .filter(|id| !old_chunks.contains_key(*id)),
+    )
+    .cloned()
+    .collect();
+  let empty_runtime = RuntimeSpec::default();
+  let empty_module_ids = ModuleIdSet::default();
+  for chunk_id in chunk_ids {
+    let (old_runtime, old_module_ids) = old_chunks
+      .get(&chunk_id)
+      .map_or((&empty_runtime, &empty_module_ids), |(runtime, modules)| {
+        (runtime, modules)
+      });
+    let full_chunk = initial_chunks.contains(&chunk_id);
     let mut new_modules = vec![];
     let mut new_runtime_modules = vec![];
-    let chunk_id = chunk_id.clone();
     let new_runtime: RuntimeSpec;
     let removed_from_runtime: RuntimeSpec;
 
@@ -276,7 +392,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       }
 
-      if old_runtime == &new_runtime
+      if !full_chunk
+        && old_runtime == &new_runtime
         && changed_chunks
           .as_ref()
           .is_some_and(|chunks| !chunks.contains(&current_chunk.ukey()))
@@ -290,6 +407,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .get_chunk_modules_identifier(&current_chunk.ukey())
         .iter()
         .filter_map(|&module| {
+          if full_chunk {
+            return Some(module);
+          }
           let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)?;
           let Some(old_module_hashes) = old_all_modules.get(module_id) else {
             return Some(module);
@@ -329,15 +449,27 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       old_css_hashes.and_then(|hashes| hashes.mini_css.as_ref()),
       new_css_hashes.and_then(|hashes| hashes.mini_css.as_ref()),
     );
+    let old_files = old_css_files.get(&chunk_id);
+    let new_files = current_css_files.get(&chunk_id);
 
     for removed in removed_from_runtime.iter() {
       if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed) {
         info.removed_chunk_ids.insert(chunk_id.clone());
         if old_css_hashes.is_some_and(|hashes| hashes.css.is_some()) {
           info.css_removed_chunk_ids.insert(chunk_id.clone());
+          if let Some(filename) = old_files.and_then(|files| files.css.as_ref()) {
+            info
+              .css_old_files
+              .insert(chunk_id.clone(), filename.clone());
+          }
         }
         if old_css_hashes.is_some_and(|hashes| hashes.mini_css.is_some()) {
           info.mini_css_removed_chunk_ids.insert(chunk_id.clone());
+          if let Some(filename) = old_files.and_then(|files| files.mini_css.as_ref()) {
+            info
+              .mini_css_old_files
+              .insert(chunk_id.clone(), filename.clone());
+          }
         }
       }
     }
@@ -347,6 +479,28 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     if current_chunk.is_some() {
       for runtime in new_runtime.iter() {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
+          if css_update != CssUpdate::Unchanged || full_chunk {
+            if let Some(filename) = old_files.and_then(|files| files.css.as_ref()) {
+              info
+                .css_old_files
+                .insert(chunk_id.clone(), filename.clone());
+            }
+            if let Some(filename) = new_files.and_then(|files| files.css.as_ref()) {
+              info.css_files.insert(chunk_id.clone(), filename.clone());
+            }
+          }
+          if mini_css_update != CssUpdate::Unchanged || full_chunk {
+            if let Some(filename) = old_files.and_then(|files| files.mini_css.as_ref()) {
+              info
+                .mini_css_old_files
+                .insert(chunk_id.clone(), filename.clone());
+            }
+            if let Some(filename) = new_files.and_then(|files| files.mini_css.as_ref()) {
+              info
+                .mini_css_files
+                .insert(chunk_id.clone(), filename.clone());
+            }
+          }
           if css_update == CssUpdate::Removed {
             info.css_removed_chunk_ids.insert(chunk_id.clone());
           }
@@ -406,6 +560,43 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
+      if full_chunk {
+        // Full payloads make an unloaded initial dependency available, but
+        // factories which merely moved must not invalidate existing instances.
+        for module in &new_modules {
+          let Some(module_id) =
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
+          else {
+            continue;
+          };
+          let Some(old_hashes) = old_all_modules.get(module_id) else {
+            continue;
+          };
+          let current_runtime = current_chunk.map_or(&new_runtime, |chunk| chunk.runtime());
+          let Some(new_hash) = compilation
+            .code_generation_results
+            .get_hash(module, Some(current_runtime))
+          else {
+            continue;
+          };
+          for runtime in new_runtime.iter() {
+            let mut previous = old_hashes
+              .iter()
+              .filter(|(id, _)| {
+                old_chunks
+                  .get(*id)
+                  .is_some_and(|(runtimes, _)| runtimes.contains(runtime))
+              })
+              .peekable();
+            if previous.peek().is_some()
+              && previous.all(|(_, hash)| hash == new_hash)
+              && let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime)
+            {
+              info.unchanged_modules.insert(module_id.clone());
+            }
+          }
+        }
+      }
       let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
       hot_update_chunk.set_id(chunk_id.clone());
       hot_update_chunk.set_runtime(if let Some(current_chunk) = current_chunk {
@@ -579,6 +770,16 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         old_content
           .mini_css_removed_chunk_ids
           .extend(content.mini_css_removed_chunk_ids);
+        old_content.initial_chunks.extend(content.initial_chunks);
+        old_content
+          .unchanged_modules
+          .extend(content.unchanged_modules);
+        old_content.css_files.extend(content.css_files);
+        old_content.css_old_files.extend(content.css_old_files);
+        old_content.mini_css_files.extend(content.mini_css_files);
+        old_content
+          .mini_css_old_files
+          .extend(content.mini_css_old_files);
         compilation.push_diagnostic(Diagnostic::warn(
           "HotModuleReplacementPlugin".to_string(),
           r#"The configured output.hotUpdateMainFilename doesn't lead to unique filenames per runtime and HMR update differs between runtimes.
@@ -605,14 +806,25 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       "r": r,
       "m": m,
     });
-    if let Some(css) =
-      css_manifest_json(content.css_updated_chunk_ids, content.css_removed_chunk_ids)
-    {
+    if !content.initial_chunks.is_empty() {
+      manifest_json["initial"] = serde_json::json!(content.initial_chunks);
+    }
+    if !content.unchanged_modules.is_empty() {
+      manifest_json["unchanged"] = serde_json::json!(content.unchanged_modules);
+    }
+    if let Some(css) = css_manifest_json(
+      content.css_updated_chunk_ids,
+      content.css_removed_chunk_ids,
+      content.css_files,
+      content.css_old_files,
+    ) {
       manifest_json["css"] = css;
     }
     if let Some(mini_css) = css_manifest_json(
       content.mini_css_updated_chunk_ids,
       content.mini_css_removed_chunk_ids,
+      content.mini_css_files,
+      content.mini_css_old_files,
     ) {
       manifest_json["miniCss"] = mini_css;
     }
@@ -724,6 +936,12 @@ struct HotUpdateContent {
   css_removed_chunk_ids: ChunkIdSet,
   mini_css_updated_chunk_ids: ChunkIdSet,
   mini_css_removed_chunk_ids: ChunkIdSet,
+  initial_chunks: ChunkIdMap<Vec<ChunkId>>,
+  unchanged_modules: HashSet<ModuleId>,
+  css_files: ChunkIdMap<String>,
+  css_old_files: ChunkIdMap<String>,
+  mini_css_files: ChunkIdMap<String>,
+  mini_css_old_files: ChunkIdMap<String>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -743,8 +961,13 @@ impl CssUpdate {
   }
 }
 
-fn css_manifest_json(updated: ChunkIdSet, removed: ChunkIdSet) -> Option<serde_json::Value> {
-  if updated.is_empty() && removed.is_empty() {
+fn css_manifest_json(
+  updated: ChunkIdSet,
+  removed: ChunkIdSet,
+  files: ChunkIdMap<String>,
+  old_files: ChunkIdMap<String>,
+) -> Option<serde_json::Value> {
+  if updated.is_empty() && removed.is_empty() && files.is_empty() {
     return None;
   }
   let mut css = serde_json::Map::new();
@@ -755,6 +978,19 @@ fn css_manifest_json(updated: ChunkIdSet, removed: ChunkIdSet) -> Option<serde_j
   if !removed.is_empty() {
     let r: Vec<ChunkId> = removed.into_iter().collect();
     css.insert("r".to_string(), serde_json::json!(r));
+  }
+  // Serialize filename lookup tables deterministically.
+  if !files.is_empty() {
+    css.insert(
+      "f".to_string(),
+      serde_json::json!(files.into_iter().collect::<BTreeMap<_, _>>()),
+    );
+  }
+  if !old_files.is_empty() {
+    css.insert(
+      "o".to_string(),
+      serde_json::json!(old_files.into_iter().collect::<BTreeMap<_, _>>()),
+    );
   }
   Some(serde_json::Value::Object(css))
 }
