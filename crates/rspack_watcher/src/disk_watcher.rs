@@ -1,6 +1,9 @@
 use std::{sync::Arc, time::Duration};
 
-use notify::{Event, EventKind, RecommendedWatcher, Watcher, event::ModifyKind};
+use notify::{
+  Event, EventKind, RecommendedWatcher, Watcher,
+  event::{ModifyKind, RenameMode},
+};
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
@@ -43,6 +46,11 @@ impl DiskWatcher {
             return;
           }
 
+          let appeared = matches!(
+            event.kind,
+            EventKind::Create(_)
+              | EventKind::Modify(ModifyKind::Name(RenameMode::To | RenameMode::Any))
+          );
           let kind = match event.kind {
             EventKind::Create(_) => FsEventKind::Create,
             EventKind::Modify(
@@ -55,7 +63,7 @@ impl DiskWatcher {
             _ => return,
           };
           for path in event.paths.into_iter().map(InternedPath::from) {
-            trigger.on_event(&path, kind);
+            trigger.on_disk_event(&path, kind, appeared);
           }
         }
 
