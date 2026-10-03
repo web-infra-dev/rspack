@@ -55,8 +55,9 @@ use crate::{
   },
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
-    analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
-    extract_tla_shared_modules, mark_facade_chunks, optimize_runtime_chunks,
+    EntryNamespaceExports, analyze_dyn_import_targets, assign_dyn_import_chunk_short_names,
+    ensure_entry_exports, extract_tla_shared_modules, mark_facade_chunks,
+    optimize_entry_namespace_exports, optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
   runtime::{
@@ -84,6 +85,7 @@ pub struct EsmLibraryPlugin {
   pub(crate) strict_export_chunks: AtomicRefCell<FxHashSet<ChunkUkey>>,
   pub(crate) all_dyn_targets: AtomicRefCell<IdentifierSet>,
   pub(crate) namespace_targets: AtomicRefCell<IdentifierSet>,
+  pub(crate) entry_namespace_exports: AtomicRefCell<EntryNamespaceExports>,
   pub(crate) direct_commonjs_external_dependencies: DirectCommonJsExternalDependencies,
   /// module_id → namespace export name in the chunk, for modules whose exports
   /// were renamed in a multi-module chunk. Written during link, read during code generation.
@@ -95,6 +97,7 @@ impl EsmLibraryPlugin {
     Self::new_inner(
       preserve_modules,
       split_chunks,
+      Default::default(),
       Default::default(),
       Default::default(),
       Default::default(),
@@ -303,6 +306,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  *self.entry_namespace_exports.borrow_mut() = Default::default();
   compilation.set_dependency_template(
     ExternalBindingBailout::template_type(),
     Arc::new(ExternalBindingBailout),
@@ -663,6 +667,22 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_BASIC - 1)]
+async fn optimize_entry_namespace_export_chunks(
+  &self,
+  compilation: &mut Compilation,
+) -> Result<Option<bool>> {
+  // optimizeChunks can repeat. Do not undo a later optimizer's integration by
+  // introducing the namespace split points again in the same compilation.
+  if self.entry_namespace_exports.borrow().initialized {
+    return Ok(None);
+  }
+  let mut state = optimize_entry_namespace_exports(compilation, self.preserve_modules.is_none());
+  state.initialized = true;
+  *self.entry_namespace_exports.borrow_mut() = state;
+  Ok(None)
+}
+
 #[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   // check if we have to generate proxy chunks
@@ -931,6 +951,11 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
+
+    ctx
+      .compilation_hooks
+      .optimize_chunks
+      .tap(optimize_entry_namespace_export_chunks::new(self));
 
     ctx
       .compilation_hooks

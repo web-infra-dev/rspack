@@ -282,6 +282,12 @@ pub struct ChunkLinkContext {
   pub raw_star_exports: FxIndexMap<String, IndexAtomSet>,
 
   /**
+   * native namespace re-exports to internal chunks
+   * Map<chunk, export names>
+   */
+  pub namespace_re_exports: FxIndexMap<ChunkUkey, FxIndexSet<Atom>>,
+
+  /**
   import order matters, it affects execution order
   */
   pub imports: IdentifierIndexMap<FxHashMap<Atom, Atom>>,
@@ -361,6 +367,7 @@ impl ChunkLinkContext {
       raw_import_stmts: Default::default(),
       module_external_namespace_imports: Default::default(),
       raw_star_exports: Default::default(),
+      namespace_re_exports: Default::default(),
     }
   }
 
