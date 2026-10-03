@@ -177,6 +177,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
       return Some(true);
     }
 
+    if parser.javascript_options.dynamic_url == Some(false) {
+      return None;
+    }
+
     let mut nested_new_url_visitor = NestedNewUrlVisitor::default();
     arg.expr.visit_with(&mut nested_new_url_visitor);
     if nested_new_url_visitor.has_nested_new_url {

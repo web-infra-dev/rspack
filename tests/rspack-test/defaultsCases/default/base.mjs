@@ -303,6 +303,7 @@ export default {
 			        dynamicImportMode: lazy,
 			        dynamicImportPrefetch: false,
 			        dynamicImportPreload: false,
+			        dynamicUrl: true,
 			        exportsPresence: error,
 			        exprContextCritical: true,
 			        importDynamic: true,

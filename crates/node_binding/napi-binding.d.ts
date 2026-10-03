@@ -2543,6 +2543,7 @@ export interface RawJavascriptParserCommonjsOptions {
 
 export interface RawJavascriptParserOptions {
   dynamicImportMode?: string
+  dynamicUrl?: boolean
   dynamicImportPreload?: string
   dynamicImportPrefetch?: string
   dynamicImportFetchPriority?: string
