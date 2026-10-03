@@ -37,7 +37,7 @@ macro_rules! impl_module_methods {
 
       #[napi(
         js_name = "_originalSource",
-        ts_return_type = "JsSource | undefined",
+        ts_return_type = "JsSourceLazy | undefined",
         enumerable = false
       )]
       pub fn original_source<'a>(
