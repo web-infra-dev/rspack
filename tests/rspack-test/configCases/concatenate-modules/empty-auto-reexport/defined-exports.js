@@ -1,0 +1,2 @@
+"use strict";
+void EMPTY_AUTO_REEXPORT_DEFINED_EXPORTS;
