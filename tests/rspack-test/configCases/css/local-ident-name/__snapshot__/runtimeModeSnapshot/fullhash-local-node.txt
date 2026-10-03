@@ -1,0 +1,9 @@
+Object {
+  btn--info_is-disabled_1: RxPWhb-btn--info_is-disabled_1,
+  btn-info_is-disabled: _7I_CgP-btn-info_is-disabled,
+  color-red: --RunHhc-color-red,
+  foo: bar,
+  foo_bar: _oMWge-foo_bar,
+  my-btn-info_is-disabled: value,
+  simple: vY2qxW-simple,
+}

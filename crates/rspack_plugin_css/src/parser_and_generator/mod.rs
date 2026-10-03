@@ -254,31 +254,20 @@ impl ParserAndGenerator for CssParserAndGenerator {
       .css
       .as_deref()
       .expect("CSS module should have build info");
-    match generate_context.requested_source_type {
-      SourceType::Css => Ok(
-        CssModuleGenerator::new(
-          source.clone(),
-          module,
-          css_build_info,
-          generate_context,
-          self.hot,
-          self.es_module,
-        )
-        .generate_css_source(),
-      ),
-      SourceType::JavaScript => CssModuleGenerator::new(
-        source.clone(),
-        module,
-        css_build_info,
-        generate_context,
-        self.hot,
-        self.es_module,
-      )
-      .generate_javascript_source(),
-      _ => panic!(
-        "Unsupported source type: {:?}",
-        generate_context.requested_source_type
-      ),
+    let requested_source_type = generate_context.requested_source_type;
+    let generator = CssModuleGenerator::new(
+      source.clone(),
+      module,
+      css_build_info,
+      generate_context,
+      self.hot,
+      self.es_module,
+    )
+    .await?;
+    match requested_source_type {
+      SourceType::Css => generator.generate_css_source().await,
+      SourceType::JavaScript => generator.generate_javascript_source().await,
+      source_type => panic!("Unsupported source type: {source_type:?}"),
     }
   }
 
@@ -317,6 +306,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     self.es_module.hash(&mut hasher);
     self.exports_only.hash(&mut hasher);
     self.effective_export_type(module).hash(&mut hasher);
+    CssModuleGenerator::hash_local_ident_inputs(module, compilation, &mut hasher);
     crate::css_exports::hash_icss_imports(compilation, module, &mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }

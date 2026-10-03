@@ -57,7 +57,15 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
 
       if let Some(runtime_map) = compilation.cgm_hash_artifact.get_runtime_map(mi) {
         if module_runtimes.is_empty() {
-          // module has no runtime, skip
+          // CSS modules without their own chunk still need a stored hash for
+          // local identifiers rendered by a parent or concatenated module.
+          if mg
+            .module_by_identifier(mi)
+            .is_some_and(|module| module.build_info().css.is_some())
+            && runtime_map.get(&RuntimeSpec::default()).is_none()
+          {
+            modules.insert(*mi);
+          }
           continue;
         }
         if module_runtimes.len() == 1 {
@@ -137,6 +145,10 @@ pub async fn create_module_hashes(
           for runtime in chunk_graph.get_module_runtimes_iter(module_identifier, chunk_by_ukey) {
             let hash = module.get_runtime_hash(compilation, Some(runtime)).await?;
             hashes.set(runtime.clone(), hash);
+          }
+          if hashes.size() == 0 && module.build_info().css.is_some() {
+            let hash = module.get_runtime_hash(compilation, None).await?;
+            hashes.set(RuntimeSpec::default(), hash);
           }
           Ok((module_identifier, hashes))
         },

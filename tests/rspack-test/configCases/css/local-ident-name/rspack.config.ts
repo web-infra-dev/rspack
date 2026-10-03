@@ -56,6 +56,15 @@ const common = defineConfig({
             },
           },
           {
+            resourceQuery: /\?hash-fullhash-local$/,
+            generator: {
+              localIdentHashDigest: 'hex',
+              localIdentHashDigestLength: 20,
+              localIdentHashFunction: 'md4',
+              localIdentName: '[hash]__[fullhash]__[local]',
+            },
+          },
+          {
             resourceQuery: /\?path-name-local$/,
             generator: {
               localIdentName: '[path][name]__[local]',

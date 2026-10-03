@@ -15,6 +15,7 @@ it("should have correct local ident for css export locals", async () => {
     hash,
     hashLocal,
     fullhashLocal,
+    hashFullhashLocal,
     pathNameLocal,
     fileLocal,
     queryFragment,
@@ -26,6 +27,7 @@ it("should have correct local ident for css export locals", async () => {
     import("./style.module.css?hash"),
     import("./style.module.css?hash-local"),
     import("./style.module.css?fullhash-local"),
+    import("./style.module.css?hash-fullhash-local"),
     import("./style.module.css?path-name-local"),
     import("./style.module.css?file-local"),
     import("./style.module.css?q#f"),
@@ -49,11 +51,22 @@ it("should have correct local ident for css export locals", async () => {
   expect(getHashPrefix(fullhashLocal.simple, "simple")).not.toBe(
     getHashPrefix(fullhashLocal.foo_bar, "foo_bar")
   );
+  expect(getHashPrefix(hashLocal.simple, "simple")).toMatch(/^_?[a-f0-9]{20}$/);
+  expect(getHashPrefix(fullhashLocal.simple, "simple")).toMatch(/^_?[A-Za-z0-9_-]{6}$/);
+  expect(hash.simple).not.toBe(hash.foo_bar);
+  const [simpleHash, simpleFullHash, simpleLocal] = hashFullhashLocal.simple.split("__");
+  const [fooHash, fooFullHash, fooLocal] = hashFullhashLocal.foo_bar.split("__");
+  expect(simpleHash).toBe(fooHash);
+  expect(simpleFullHash).not.toBe(fooFullHash);
+  expect(simpleHash).toMatch(/^_?[a-f0-9]{20}$/);
+  expect(simpleFullHash).toMatch(/^[a-f0-9]{20}$/);
+  expect(simpleLocal).toBe("simple");
+  expect(fooLocal).toBe("foo_bar");
 
   expect(idLocal).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "id-local.txt"));
   expect(hash).toMatchFileSnapshotSync(getSnapshotPath("hash.txt"));
   expect(hashLocal).toMatchFileSnapshotSync(getSnapshotPath("hash-local.txt"));
-  expect(fullhashLocal).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "fullhash-local.txt"));
+  expect(fullhashLocal).toMatchFileSnapshotSync(getSnapshotPath("fullhash-local.txt"));
   expect(pathNameLocal).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "path-name-local.txt"));
   expect(fileLocal).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "file-local.txt"));
   expect(queryFragment).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "query-fragment.txt"));
