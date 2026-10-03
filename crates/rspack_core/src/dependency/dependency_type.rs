@@ -83,8 +83,6 @@ pub enum DependencyType {
   ImportMetaGlob,
   // import.meta.resolve
   ImportMetaResolve,
-  // import.meta.resolve context
-  ImportMetaResolveContext,
   // commonjs require context
   CommonJSRequireContext,
   // require.context
@@ -208,7 +206,6 @@ impl DependencyType {
       DependencyType::ImportMetaContext => "import.meta context",
       DependencyType::ImportMetaGlob => "import.meta.glob",
       DependencyType::ImportMetaResolve => "import.meta.resolve",
-      DependencyType::ImportMetaResolveContext => "import.meta.resolve context",
       DependencyType::ContainerExposed => "container exposed",
       DependencyType::ContainerEntry => "container entry",
       DependencyType::ShareContainerEntry => "share container entry",

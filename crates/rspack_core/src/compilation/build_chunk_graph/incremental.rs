@@ -50,7 +50,7 @@ impl ChunkReCreation {
           create_data.cgi,
           create_data.chunk,
           compilation,
-        );
+        )?;
         Ok(())
       }
     }
@@ -387,19 +387,23 @@ impl CodeSplitter {
     Ok(())
   }
 
-  pub fn recover_from_cache(&mut self, cgi_ukey: CgiUkey, compilation: &mut Compilation) -> bool {
+  pub fn recover_from_cache(
+    &mut self,
+    cgi_ukey: CgiUkey,
+    compilation: &mut Compilation,
+  ) -> Result<bool> {
     if !compilation
       .incremental
       .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH)
     {
-      return false;
+      return Ok(false);
     }
 
     let Some(cgi) = self.chunk_group_infos.get(&cgi_ukey) else {
-      return false;
+      return Ok(false);
     };
     let Some(blocks) = self.incoming_blocks_by_cgi.get(&cgi.ukey) else {
-      return false;
+      return Ok(false);
     };
 
     let cg = compilation
@@ -415,19 +419,19 @@ impl CodeSplitter {
       .as_async()
       .and_then(|block_id| self.chunk_caches.get(&block_id).cloned())
     else {
-      return false;
+      return Ok(false);
     };
 
     if !cache.can_rebuild {
       self.stat_cache_miss_by_cant_rebuild += 1;
-      return false;
+      return Ok(false);
     }
 
     let module_graph = compilation.get_module_graph();
     let DependenciesBlockIdentifier::AsyncDependenciesBlock(block_id) =
       blocks.iter().next().expect("should have one block")
     else {
-      return false;
+      return Ok(false);
     };
 
     let block = module_graph
@@ -443,7 +447,7 @@ impl CodeSplitter {
       )
     {
       self.stat_cache_miss_by_available_modules += 1;
-      return false;
+      return Ok(false);
     }
 
     let cache_result = cache
@@ -485,10 +489,10 @@ impl CodeSplitter {
         cgi_ukey,
         chunk,
         compilation,
-      );
+      )?;
     }
 
-    true
+    Ok(true)
   }
 
   #[instrument(skip_all)]

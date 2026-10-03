@@ -34,5 +34,5 @@ it("should handle import.meta.resolve with a trailing comma", function () {
 	const id = import.meta.resolve(
 		"./foo.js",
 	);
-	expect(id).toBe(require.resolve("./foo.js"));
+	expect(id).toBe(new URL("./foo.js", import.meta.url).href);
 });

@@ -70,22 +70,23 @@ pub use self::{
   runtime_requirements::RuntimeRequirementsPass,
 };
 use crate::{
-  AsyncModulesArtifact, BindingCell, BoxModule, BuildChunkGraphArtifact, CacheCount, CacheOptions,
-  CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
-  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
-  ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
-  ChunkRenderResult, ChunkUkey, CircularModulesInfo, CodeGenerateCacheArtifact, CodeGenerationJob,
-  CodeGenerationResult, CodeGenerationResultBuilder, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef, DependencyTemplate,
-  DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
-  ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, FileSystemInfo, Filename,
-  ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
-  ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
-  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
-  SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
+  AsyncDependenciesBlock, AsyncModulesArtifact, BindingCell, BoxModule, BuildChunkGraphArtifact,
+  CacheCount, CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact,
+  CgmRuntimeRequirementsArtifact, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact, ChunkKind, ChunkNamedIdArtifact,
+  ChunkRenderArtifact, ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CircularModulesInfo,
+  CodeGenerateCacheArtifact, CodeGenerationJob, CodeGenerationResult, CodeGenerationResultBuilder,
+  CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform,
+  ConcatenationScope, DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef,
+  DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions,
+  EntryRuntime, Entrypoint, ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook,
+  FileSystemInfo, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
+  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact, ReferencedExport,
+  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
+  RuntimeProxyMetadataArtifact, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
+  StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
     update_module_graph,
@@ -122,6 +123,9 @@ define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilati
  diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, circular_modules: &mut CircularModulesInfo, diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation));
+// Called before assigning an async block to a chunk group. Setting create to false
+// processes the block in the referencing chunk, including its runtime conditions.
+define_hook!(CompilationShouldCreateChunkGroup: Sync(compilation: &Compilation, block: &AsyncDependenciesBlock, create: &mut bool),tracing=false);
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeTree: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -164,6 +168,7 @@ pub struct CompilationHooks {
   pub optimize_dependencies: CompilationOptimizeDependenciesHook,
   pub optimize_modules: CompilationOptimizeModulesHook,
   pub after_optimize_modules: CompilationAfterOptimizeModulesHook,
+  pub should_create_chunk_group: CompilationShouldCreateChunkGroupHook,
   pub optimize_chunks: CompilationOptimizeChunksHook,
   pub optimize_tree: CompilationOptimizeTreeHook,
   pub optimize_chunk_modules: CompilationOptimizeChunkModulesHook,

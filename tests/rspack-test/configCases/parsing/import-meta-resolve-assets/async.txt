@@ -1,0 +1,1 @@
+This asset is loaded through an ordinary dynamic import.
