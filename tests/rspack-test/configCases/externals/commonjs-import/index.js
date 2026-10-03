@@ -8,8 +8,8 @@ it("dynamic import should be preserved, others should be in commonjs external", 
 	expect(caseContent).toContain(`require("external1-alias")`)
 	expect(caseContent).not.toContain(`require("external2-alias")`)
 	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
-		expect(caseContent).toContain(`const e2 = Promise.resolve(/* import() */).then(__rspack_context.r.bind(__rspack_context.r, `)
+		expect(caseContent).toContain(`const e2 = Promise.resolve(/* import() */).then(() => (__rspack_context.r(`)
 	} else {
-		expect(caseContent).toContain(`const e2 = Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, `)
+		expect(caseContent).toContain(`const e2 = Promise.resolve(/* import() */).then(() => (__webpack_require__(`)
 	}
 });

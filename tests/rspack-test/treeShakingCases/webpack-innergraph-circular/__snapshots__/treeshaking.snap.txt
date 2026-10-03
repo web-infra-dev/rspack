@@ -28,7 +28,7 @@ it("export should be unused when only unused functions use it", () => {
 	if (true) {
 		expect(_inner__rspack_import_0.exportCUsed).toBe(false);
 	}
-	return __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
+	return __webpack_require__.e(/* import() */ "chunk_js").then(() => (__webpack_require__("./chunk.js")));
 });
 
 

@@ -58,7 +58,7 @@ __webpack_require__.add({
 
 module.exports = {
 
-  "./modules-a/a.js": function() { return __webpack_require__.e(/*! esm */ "a").then(__webpack_require__.bind(__webpack_require__, /*! ./modules-a/a.js */ "./modules-a/a.js")); }
+  "./modules-a/a.js": function() { return __webpack_require__.e(/*! esm */ "a").then(() => (__webpack_require__(/*! ./modules-a/a.js */ "./modules-a/a.js"))); }
 };
 
 
@@ -90,7 +90,7 @@ __webpack_require__.add({
 
 module.exports = {
 
-  "./modules-b/b.js": function() { return __webpack_require__.e(/*! esm */ "b").then(__webpack_require__.bind(__webpack_require__, /*! ./modules-b/b.js */ "./modules-b/b.js")); }
+  "./modules-b/b.js": function() { return __webpack_require__.e(/*! esm */ "b").then(() => (__webpack_require__(/*! ./modules-b/b.js */ "./modules-b/b.js"))); }
 };
 
 
@@ -168,12 +168,8 @@ __webpack_require__.add = function registerModules(modules) { Object.assign(__we
 // webpack/runtime/get javascript chunk filename
 (() => {
 // This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  // return url for filenames not based on template
 
-  // return url for filenames based on template
-  return "" + chunkId + ".mjs"
-}
+__webpack_require__.u = (chunkId) => (chunkId + ".mjs");
 })();
 // webpack/runtime/has_own_property
 (() => {
@@ -278,12 +274,8 @@ __webpack_require__.add = function registerModules(modules) { Object.assign(__we
 // webpack/runtime/get javascript chunk filename
 (() => {
 // This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  // return url for filenames not based on template
 
-  // return url for filenames based on template
-  return "" + chunkId + ".mjs"
-}
+__webpack_require__.u = (chunkId) => (chunkId + ".mjs");
 })();
 // webpack/runtime/has_own_property
 (() => {

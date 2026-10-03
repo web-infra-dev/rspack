@@ -41,6 +41,13 @@ fn render_full_hash<'value>(
   FilenameRenderValue::Rendered(Cow::Owned(format!("\" + {hash_expression} + \"")))
 }
 
+fn drop_dead_concat_operand(mut expression: String) -> String {
+  if expression.starts_with("\"\" + ") && expression.ends_with('"') {
+    drop(expression.drain(..5));
+  }
+  expression
+}
+
 #[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
   #[cacheable(with=Unsupported)]
@@ -379,31 +386,33 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         };
         let chunk_runtime = chunk.runtime().as_str();
 
-        let filename = compiled.render_with_path_data(
-          PathData::default()
-            .chunk_id_optional(chunk_id.as_deref())
-            .chunk_name_optional(chunk_name.as_deref())
-            .runtime(chunk_runtime),
-          None,
-          |placeholder| match placeholder.kind() {
-            PlaceholderKind::Hash | PlaceholderKind::FullHash => {
-              Some(render_full_hash(placeholder, compilation, runtime_template))
-            }
-            PlaceholderKind::ChunkHash => chunk
-              .rendered_hash(
-                &compilation.chunk_hashes_artifact,
-                compilation.options.output.hash_digest_length,
-              )
-              .map(|chunk_hash| FilenameRenderValue::Value(Cow::Borrowed(chunk_hash))),
-            PlaceholderKind::ContentHash => chunk
-              .rendered_content_hash_by_source_type(
-                &compilation.chunk_hashes_artifact,
-                &self.source_type,
-                compilation.options.output.hash_digest_length,
-              )
-              .map(|content_hash| FilenameRenderValue::Value(Cow::Borrowed(content_hash))),
-            _ => None,
-          },
+        let filename = drop_dead_concat_operand(
+          compiled.render_with_path_data(
+            PathData::default()
+              .chunk_id_optional(chunk_id.as_deref())
+              .chunk_name_optional(chunk_name.as_deref())
+              .runtime(chunk_runtime),
+            None,
+            |placeholder| match placeholder.kind() {
+              PlaceholderKind::Hash | PlaceholderKind::FullHash => {
+                Some(render_full_hash(placeholder, compilation, runtime_template))
+              }
+              PlaceholderKind::ChunkHash => chunk
+                .rendered_hash(
+                  &compilation.chunk_hashes_artifact,
+                  compilation.options.output.hash_digest_length,
+                )
+                .map(|chunk_hash| FilenameRenderValue::Value(Cow::Borrowed(chunk_hash))),
+              PlaceholderKind::ContentHash => chunk
+                .rendered_content_hash_by_source_type(
+                  &compilation.chunk_hashes_artifact,
+                  &self.source_type,
+                  compilation.options.output.hash_digest_length,
+                )
+                .map(|content_hash| FilenameRenderValue::Value(Cow::Borrowed(content_hash))),
+              _ => None,
+            },
+          ),
         );
 
         if let Some(chunk_id) = chunk.id() {
@@ -425,7 +434,11 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       self.global.clone()
     };
 
-    let source = runtime_template.render(self.id(), Some(serde_json::json!({
+    let dynamic_url = drop_dead_concat_operand(
+      dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type)),
+    );
+
+    let mut source = runtime_template.render(self.id(), Some(serde_json::json!({
       "_global": match self.source_type {
         SourceType::JavaScript => runtime_template
           .render_runtime_global_definition(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
@@ -438,9 +451,12 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                         .iter()
                         .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
                         .join("\n"),
-      "_dynamic_url": dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
+      "_has_static_urls": !static_urls.is_empty(),
+      "_dynamic_url": dynamic_url
     })))?;
 
+    let trimmed_len = source.trim_end().len();
+    source.truncate(trimmed_len);
     Ok(source)
   }
 }

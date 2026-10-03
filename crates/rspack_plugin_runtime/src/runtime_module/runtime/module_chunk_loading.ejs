@@ -16,7 +16,7 @@
         if (<%- HAS_OWN_PROPERTY %>(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[chunkId] = 0;
     }
     <% if (_with_on_chunk_load) { %><%- weak(ON_CHUNKS_LOADED) %>();<% } %>
 };
