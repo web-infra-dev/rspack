@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
+use concat_string::concat_string;
 use rspack_core::{
-  BoxDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
-  JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
+  AsyncDependenciesBlock, BoxDependency, ContextDependency, ContextMode, ContextOptions,
+  DependencyCategory, EntryOptions, GroupOptions, JavascriptParserUrl, RuntimeGlobals,
+  RuntimeRequirementsDependency, get_context,
 };
+use rspack_hash::{HashDigest, RspackHash, RspackHasher};
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{
   Expr, ExprOrSpread, GetSpan, MemberExpr, MetaPropKind, NewExpr, Visit, VisitWith,
@@ -166,14 +169,32 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
         return None;
       }
       let dep = URLDependency::new(
-        request.into(),
+        request.clone().into(),
         expr.span.into(),
         (start, end).into(),
         self.mode,
       );
-      let dep_idx = parser.next_dependency_idx();
-      parser.add_dependency(BoxDependency::new(dep));
-      InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_idx));
+      let mut hasher = RspackHasher::from(&parser.compiler_options.output);
+      parser.module_identifier.hash(&mut hasher);
+      request.hash(&mut hasher);
+      (start, end).hash(&mut hasher);
+      let hash = hasher.digest(&HashDigest::Hex);
+      let runtime = concat_string!("url-", hash.rendered(16));
+      let loc = parser.to_dependency_location(expr.span.into());
+      let mut block = Box::new(AsyncDependenciesBlock::new(
+        *parser.module_identifier,
+        loc,
+        None,
+        vec![BoxDependency::new(dep)],
+        Some(request),
+      ));
+      block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
+        runtime: Some(runtime.into()),
+        ..Default::default()
+      })));
+      let block_idx = parser.next_block_idx();
+      parser.add_block(block);
+      InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(block_idx));
       return Some(true);
     }
 

@@ -182,5 +182,6 @@ impl InnerGraphState {
 pub(crate) enum InnerGraphUsageOperation {
   PureExpression(usize),
   ESMImportSpecifier(usize),
+  // Index of the async block containing the URL dependency.
   URLDependency(usize),
 }
