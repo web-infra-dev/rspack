@@ -75,6 +75,40 @@ pub fn compile_context_module_glob_request(
   CompiledContextModuleGlobRequest { request, recursive }
 }
 
+pub(super) fn resolve_context_module_glob_alias(
+  patterns: &[String],
+  request: &str,
+  resolved_base: &str,
+  context: &str,
+  compiler_context: &str,
+) -> Vec<String> {
+  let request = request.trim_end_matches('/');
+  patterns
+    .iter()
+    .map(|pattern| {
+      let (negative, path) = pattern
+        .strip_prefix('!')
+        .map_or(("", pattern.as_str()), |path| ("!", path));
+      let Some(suffix) = path
+        .strip_prefix(request)
+        .and_then(|path| path.strip_prefix('/'))
+      else {
+        return pattern.clone();
+      };
+      let resolved_pattern = Utf8Path::new(resolved_base)
+        .node_join_posix(suffix)
+        .node_normalize_posix();
+      let resolved_pattern = resolved_pattern.as_str();
+      let rewritten = if Utf8Path::new(resolved_pattern).starts_with(compiler_context) {
+        context_relative_glob_request(resolved_pattern, compiler_context, true)
+      } else {
+        context_relative_glob_request(resolved_pattern, context, false)
+      };
+      format!("{negative}{rewritten}")
+    })
+    .collect()
+}
+
 fn case_insensitive_context_module_glob_base(
   patterns: &[String],
   context: &str,

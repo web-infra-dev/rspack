@@ -260,7 +260,7 @@ function glob(
 ```
 
 - **参数：**
-  - `pattern`：匹配文件的 glob 模式字符串，或 glob 模式字符串数组（例如 `'./dir/*.js'`）。支持 `*`、`?`、`[abc]`、`{a,b}` 以及 `**`（递归匹配）。数组模式也可以包含负向模式，例如 `'!**/bar.js'`。
+  - `pattern`：匹配文件的 glob 模式字符串，或 glob 模式字符串数组（例如 `'./dir/*.js'`）。支持 `*`、`?`、`[abc]`、`{a,b}` 以及 `**`（递归匹配）。不以相对路径符号开头的模式可以使用 `resolve.alias`（例如 `'@/pages/*.js'`）；当文件位于项目根目录内时，返回对象的 key 使用相对于项目根目录的解析后路径。数组模式也可以包含负向模式，例如 `'!**/bar.js'`。
   - `options.eager`：设置为 `true` 时，模块直接包含在 bundle 中并同步加载。默认为 `false`，模块会延迟加载，每个值是一个返回 `Promise` 的 thunk 函数。
   - `options.import`：只导入每个匹配模块的指定导出。例如使用 `'default'` 获取默认导出，或使用 `'setup'` 这样的具名导出。
   - `options.query`：为每个匹配模块请求追加 query。可以是 `'?raw'` 这样的 query 字符串，也可以是会序列化为 URL query 字符串的对象。`import.meta.glob()` 返回对象中的 key 不包含 query。
