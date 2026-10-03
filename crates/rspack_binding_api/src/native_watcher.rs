@@ -5,22 +5,40 @@ use std::{
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use napi::bindgen_prelude::*;
+use napi::{Either, bindgen_prelude::*};
 use napi_derive::*;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_paths::InternedPath;
 use rspack_regex::RspackRegex;
-use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions, IgnoredFn};
+use rspack_watcher::{
+  FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherIgnoredItem, FsWatcherOptions, IgnoredFn,
+};
 
-type JsWatcherIgnored = Either4<String, Vec<String>, RspackRegex, ThreadsafeFunction<String, bool>>;
+type JsWatcherIgnoredItem = Either<String, RspackRegex>;
+type JsWatcherIgnored = Either5<
+  String,
+  Vec<String>,
+  RspackRegex,
+  ThreadsafeFunction<String, bool>,
+  Vec<JsWatcherIgnoredItem>,
+>;
 
 fn to_fs_watcher_ignored(ignored: Option<JsWatcherIgnored>) -> FsWatcherIgnored {
   if let Some(ignored) = ignored {
     match ignored {
-      Either4::A(path) => FsWatcherIgnored::Path(path),
-      Either4::B(paths) => FsWatcherIgnored::Paths(paths),
-      Either4::C(regex) => FsWatcherIgnored::Regex(regex),
-      Either4::D(func) => FsWatcherIgnored::Function(to_ignored_fn(func)),
+      Either5::A(path) => FsWatcherIgnored::Path(path),
+      Either5::B(paths) => FsWatcherIgnored::Paths(paths),
+      Either5::C(regex) => FsWatcherIgnored::Regex(regex),
+      Either5::D(func) => FsWatcherIgnored::Function(to_ignored_fn(func)),
+      Either5::E(items) => FsWatcherIgnored::Mixed(
+        items
+          .into_iter()
+          .map(|item| match item {
+            Either::A(path) => FsWatcherIgnoredItem::Path(path),
+            Either::B(regex) => FsWatcherIgnoredItem::Regex(regex),
+          })
+          .collect(),
+      ),
     }
   } else {
     FsWatcherIgnored::None
@@ -50,10 +68,10 @@ pub struct NativeWatcherOptions {
 
   pub aggregate_timeout: Option<u32>,
 
-  #[napi(ts_type = "string | string[] | RegExp | ((entry: string) => boolean)")]
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[] | ((entry: string) => boolean)")]
   /// The ignored paths for the watcher.
-  /// It can be a single path, an array of paths, a regular expression, or a
-  /// predicate returning `true` for entries to ignore.
+  /// It can be a single path, a regular expression, an array mixing paths and
+  /// regular expressions, or a predicate returning `true` for entries to ignore.
   pub ignored: Option<JsWatcherIgnored>,
 }
 

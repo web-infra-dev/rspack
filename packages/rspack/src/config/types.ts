@@ -3325,7 +3325,8 @@ export type WatchOptions = {
    * A function receives each entry and must return `true` to ignore it; unlike
    * the other forms, its path keeps the platform separators.
    */
-  ignored?: string | RegExp | string[] | ((entry: string) => boolean);
+  ignored?:
+    string | RegExp | (string | RegExp)[] | ((entry: string) => boolean);
 
   /**
    * Turn on polling by passing true, or specifying a poll interval in milliseconds.
