@@ -69,9 +69,12 @@ fn encode_lowercase_alphanumeric_hash(mut hash: u64) -> [u8; FULL_LOWERCASE_ALPH
   identifier
 }
 
+pub(crate) const MAX_REHASH_ATTEMPTS: usize = 1024;
+
 pub(crate) struct CompactHashedIdAssigner {
   min_length: usize,
   used_ids: FxHashSet<String>,
+  used_hashes: FxHashSet<String>,
 }
 
 impl CompactHashedIdAssigner {
@@ -79,12 +82,33 @@ impl CompactHashedIdAssigner {
     Self {
       min_length,
       used_ids,
+      used_hashes: FxHashSet::default(),
     }
   }
 
-  pub(crate) fn assign(&mut self, hash: &[u8]) -> Option<String> {
-    // SAFETY: The hash encoders only emit ASCII characters.
-    let hash = unsafe { std::str::from_utf8_unchecked(hash) };
+  pub(crate) fn assign<const N: usize>(
+    &mut self,
+    key: &str,
+    hash: [u8; N],
+    rehash: impl Fn(&str) -> [u8; N],
+  ) -> Option<String> {
+    let mut hash = hash;
+    for salt in 1..=MAX_REHASH_ATTEMPTS {
+      // SAFETY: The hash encoders only emit ASCII characters.
+      let hash_str = unsafe { std::str::from_utf8_unchecked(&hash) };
+      // Identical keys produce identical hashes whose prefixes are all taken already.
+      // Rehash with a salt instead of spending one extra character per duplicate.
+      if self.used_hashes.insert(hash_str.to_owned())
+        && let Some(id) = self.assign_prefix(hash_str)
+      {
+        return Some(id);
+      }
+      hash = rehash(&format!("{key}\0{salt}"));
+    }
+    None
+  }
+
+  fn assign_prefix(&mut self, hash: &str) -> Option<String> {
     let id = (self.min_length..=hash.len()).find_map(|length| {
       let candidate = &hash[..length];
       if self.used_ids.contains(candidate) {
@@ -96,5 +120,46 @@ impl CompactHashedIdAssigner {
 
     self.used_ids.insert(id.clone());
     Some(id)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use rustc_hash::FxHashSet;
+
+  use super::*;
+
+  #[test]
+  fn identical_keys_get_distinct_short_ids() {
+    let mut assigner = CompactHashedIdAssigner::new(1, FxHashSet::default());
+    let ids = (0..100)
+      .map(|_| {
+        assigner
+          .assign(
+            "same",
+            hash_lowercase_alphanumeric("same"),
+            hash_lowercase_alphanumeric,
+          )
+          .expect("should assign an id")
+      })
+      .collect::<FxHashSet<_>>();
+
+    assert_eq!(ids.len(), 100);
+    assert!(
+      ids
+        .iter()
+        .all(|id| id.len() < FULL_LOWERCASE_ALPHANUMERIC_LENGTH)
+    );
+  }
+
+  #[test]
+  fn distinct_keys_keep_prefix_extension() {
+    let mut assigner = CompactHashedIdAssigner::new(1, FxHashSet::default());
+    let hash = hash_identifier("module");
+    let first = assigner
+      .assign("module", hash, hash_identifier)
+      .expect("should assign an id");
+
+    assert_eq!(first.as_bytes(), &hash[..first.len()]);
   }
 }
