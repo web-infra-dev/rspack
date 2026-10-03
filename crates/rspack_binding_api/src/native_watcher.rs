@@ -76,6 +76,7 @@ pub struct NativeWatchUndelayedEvent {
 pub struct NativeWatcher {
   watcher: FsWatcher,
   closed: bool,
+  delivery: Option<Arc<JsDeliveryStream>>,
 }
 
 fn timestamp_to_system_time(millis: u64) -> SystemTime {
@@ -98,12 +99,16 @@ impl NativeWatcher {
     Self {
       watcher,
       closed: false,
+      delivery: None,
     }
   }
 
   #[napi]
+  // Env is injected by N-API; the JavaScript watch signature is unchanged.
+  #[allow(clippy::too_many_arguments)]
   pub fn watch(
     &mut self,
+    env: Env,
     files: (Vec<String>, Vec<String>),
     directories: (Vec<String>, Vec<String>),
     missing: (Vec<String>, Vec<String>),
@@ -119,8 +124,26 @@ impl NativeWatcher {
       ));
     }
 
-    let js_event_handler = JsEventHandler::new(callback)?;
-    let js_event_handler_undelayed = JsEventHandlerUndelayed::new(callback_undelayed)?;
+    let delivery = match &self.delivery {
+      Some(delivery) => Arc::clone(delivery),
+      None => {
+        let delivery = Arc::new(JsDeliveryStream::new(&env)?);
+        self.delivery = Some(Arc::clone(&delivery));
+        delivery
+      }
+    };
+    let callbacks = Arc::new(JsCallbacks {
+      aggregate: callback.create_ref()?,
+      undelayed: callback_undelayed.create_ref()?,
+    });
+    let js_event_handler = JsEventHandler {
+      delivery: Arc::clone(&delivery),
+      callbacks: Arc::clone(&callbacks),
+    };
+    let js_event_handler_undelayed = JsEventHandler {
+      delivery,
+      callbacks,
+    };
 
     let start_time = start_time.get_u64().1;
 
@@ -157,6 +180,9 @@ impl NativeWatcher {
   #[napi(ts_return_type = "Promise<void>")]
   pub fn close<'env>(&mut self, env: &'env Env) -> napi::Result<PromiseRaw<'env, ()>> {
     self.closed = true;
+    // Handler references keep the stream alive until the ordered close aborts
+    // both executor tasks. Already queued messages retain their own callbacks.
+    self.delivery.take();
 
     // Call outside the async block: the synchronous enqueue keeps close
     // ordered behind preceding `watch` calls.
@@ -198,31 +224,100 @@ fn to_tuple_path_iterator(
   )
 }
 
-struct JsEventHandler {
-  inner: napi::threadsafe_function::ThreadsafeFunction<
-    NativeWatchResult,
-    napi::Unknown<'static>,
-    NativeWatchResult,
-    Status,
-    true,
-    true,
-    1,
-  >,
+// A single stream survives watch() callback replacement. Each queued message
+// retains the callbacks of the generation that produced it.
+type DeliveryFunction = napi::threadsafe_function::ThreadsafeFunction<
+  JsDelivery,
+  (),
+  JsDispatchArgs,
+  Status,
+  false,
+  false,
+  0,
+>;
+
+struct JsCallbacks {
+  aggregate: FunctionRef<Unknown<'static>, Unknown<'static>>,
+  undelayed: FunctionRef<Unknown<'static>, Unknown<'static>>,
 }
 
-impl JsEventHandler {
-  fn new(callback: Function<'static>) -> napi::Result<Self> {
-    let callback = callback
-      .build_threadsafe_function::<NativeWatchResult>()
-      .callee_handled::<true>()
-      .max_queue_size::<1>()
-      .weak::<true>()
-      .build_callback(
-        move |ctx: napi::threadsafe_function::ThreadSafeCallContext<_>| Ok(ctx.value),
-      )?;
+enum JsDelivery {
+  Aggregate(Arc<JsCallbacks>, napi::Result<NativeWatchResult>),
+  Undelayed(Arc<JsCallbacks>, NativeWatchUndelayedEvent),
+}
 
-    Ok(Self { inner: callback })
+// Convert only the callback and its arguments; never invoke user code here.
+struct JsDispatchArgs(JsDelivery);
+
+impl JsValuesTupleIntoVec for JsDispatchArgs {
+  fn into_vec(self, raw_env: napi::sys::napi_env) -> napi::Result<Vec<napi::sys::napi_value>> {
+    let env = Env::from_raw(raw_env);
+    let args = match self.0 {
+      JsDelivery::Aggregate(callbacks, result) => {
+        let callback = callbacks.aggregate.borrow_back(&env)?;
+        match result {
+          Ok(result) => (callback, true, Either::A(Null), Either3::A(result)),
+          Err(error) => (callback, true, Either::B(error), Either3::C(())),
+        }
+      }
+      JsDelivery::Undelayed(callbacks, event) => {
+        let callback = callbacks.undelayed.borrow_back(&env)?;
+        (callback, false, Either::A(Null), Either3::B(event))
+      }
+    };
+    FnArgs::from(args).into_vec(raw_env)
   }
+}
+
+struct JsDeliveryStream {
+  inner: DeliveryFunction,
+}
+
+impl JsDeliveryStream {
+  fn new(env: &Env) -> napi::Result<Self> {
+    // A fixed, trusted expression: no user source, module lookup, or global
+    // mutation. Keep user invocation in JS so *any* thrown value follows the
+    // TSFN's original pending-exception path without Rust Error conversion.
+    let dispatch: Function<'_, (), ()> = env.run_script(
+      "(callback, aggregate, error, value) => aggregate ? callback(error, value) : callback(value)",
+    )?;
+    let inner = dispatch
+      .build_threadsafe_function::<JsDelivery>()
+      .callee_handled::<false>()
+      .weak::<false>()
+      // Nonblocking with no queue bound: a blocked JS thread cannot cause
+      // QueueFull to silently discard a raw event or an aggregate snapshot.
+      .max_queue_size::<0>()
+      .build_callback(
+        |ctx: napi::threadsafe_function::ThreadSafeCallContext<JsDelivery>| {
+          Ok(JsDispatchArgs(ctx.value))
+        },
+      )?;
+    Ok(Self { inner })
+  }
+
+  fn send(&self, event: JsDelivery) -> rspack_error::Result<()> {
+    let status = self.inner.call(
+      event,
+      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
+    );
+    match status {
+      Status::Ok => Ok(()),
+      // JS environment teardown cannot accept more callbacks. Return an error
+      // to stop raw delivery for this batch; never retry against a closing env.
+      Status::Closing => Err(rspack_error::error!(
+        "Native watcher JavaScript delivery is closing"
+      )),
+      other => Err(rspack_error::error!(
+        "Native watcher JavaScript delivery failed: {other:?}"
+      )),
+    }
+  }
+}
+
+struct JsEventHandler {
+  delivery: Arc<JsDeliveryStream>,
+  callbacks: Arc<JsCallbacks>,
 }
 
 impl rspack_watcher::EventAggregateHandler for JsEventHandler {
@@ -231,74 +326,46 @@ impl rspack_watcher::EventAggregateHandler for JsEventHandler {
     changed_files: rspack_util::fx_hash::FxHashSet<String>,
     deleted_files: rspack_util::fx_hash::FxHashSet<String>,
   ) {
-    let changed_files_vec: Vec<String> = changed_files.into_iter().collect();
-    let deleted_files_vec: Vec<String> = deleted_files.into_iter().collect();
     let result = NativeWatchResult {
-      changed_files: changed_files_vec,
-      removed_files: deleted_files_vec,
+      changed_files: changed_files.into_iter().collect(),
+      removed_files: deleted_files.into_iter().collect(),
     };
-    self.inner.call(
+    if let Err(error) = self.delivery.send(JsDelivery::Aggregate(
+      Arc::clone(&self.callbacks),
       Ok(result),
-      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
-    );
+    )) {
+      tracing::debug!("{error}");
+    }
   }
 
   fn on_error(&self, error: rspack_error::Error) {
-    // Handle error, maybe log it or notify the user
-    let error_message = format!("Watcher error: {error}");
-    self.inner.call(
-      Err(napi::Error::from_reason(error_message)),
-      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
-    );
+    if let Err(error) = self.delivery.send(JsDelivery::Aggregate(
+      Arc::clone(&self.callbacks),
+      Err(napi::Error::from_reason(format!("Watcher error: {error}"))),
+    )) {
+      tracing::debug!("{error}");
+    }
   }
 }
 
-struct JsEventHandlerUndelayed {
-  inner: napi::threadsafe_function::ThreadsafeFunction<
-    NativeWatchUndelayedEvent,
-    napi::Unknown<'static>,
-    NativeWatchUndelayedEvent,
-    Status,
-    false,
-    false,
-    1,
-  >,
-}
-
-impl JsEventHandlerUndelayed {
-  fn new(callback: Function<'static>) -> napi::Result<Self> {
-    let callback = callback
-      .build_threadsafe_function::<NativeWatchUndelayedEvent>()
-      .weak::<false>()
-      .max_queue_size::<1>()
-      .build_callback(
-        move |ctx: napi::threadsafe_function::ThreadSafeCallContext<_>| Ok(ctx.value),
-      )?;
-
-    Ok(Self { inner: callback })
-  }
-}
-
-impl rspack_watcher::EventHandler for JsEventHandlerUndelayed {
+impl rspack_watcher::EventHandler for JsEventHandler {
   fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
-    self.inner.call(
+    self.delivery.send(JsDelivery::Undelayed(
+      Arc::clone(&self.callbacks),
       NativeWatchUndelayedEvent {
         kind: "change".to_string(),
         path: changed_file,
       },
-      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
-    );
-    Ok(())
+    ))
   }
 
   fn on_delete(&self, deleted_file: String) -> rspack_error::Result<()> {
-    self.inner.call(
+    self.delivery.send(JsDelivery::Undelayed(
+      Arc::clone(&self.callbacks),
       NativeWatchUndelayedEvent {
         kind: "remove".to_string(),
         path: deleted_file,
       },
-      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
-    );
-    Ok(())
+    ))
   }
 }

@@ -1053,6 +1053,20 @@ impl ModuleCodeTemplate {
       });
       return format!("Promise.resolve({})", comment.trim());
     };
+    if compilation.uses_stable_async_block_map() {
+      let comment = self.comment(CommentOptions {
+        request: None,
+        chunk_name: None,
+        message: Some(message),
+      });
+      // Pass the caller's ensure function to preserve HMR promise tracking.
+      return format!(
+        "{}({comment}{}, {})",
+        self.render_runtime_globals(&RuntimeGlobals::ENSURE_ASYNC_BLOCK),
+        json_stringify(&block.as_str()),
+        self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+      );
+    }
     let chunk_group = compilation
       .build_chunk_graph_artifact
       .chunk_graph

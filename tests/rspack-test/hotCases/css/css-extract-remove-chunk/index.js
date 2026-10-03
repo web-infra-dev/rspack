@@ -11,9 +11,11 @@ it("should remove the stylesheet when the chunk is removed", async () => {
 	if (typeof document !== "undefined") {
 		expect(stylesheets().length).toBe(1);
 	}
+	const original = typeof document !== "undefined" && stylesheets()[0];
 	await NEXT_HMR();
 	if (typeof document !== "undefined") {
-		expect(stylesheets().length).toBe(0);
+		expect(stylesheets()).toEqual([original]);
+		expect(original.disabled).toBe(true);
 	}
 });
 

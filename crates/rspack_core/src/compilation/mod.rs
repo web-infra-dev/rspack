@@ -223,6 +223,10 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
+  // Set by compiler plugins before the compilation passes start. These
+  // capabilities must stay constant across rebuilds of the same compiler.
+  pub lazy_compilation_enabled: bool,
+  pub hot_module_replacement_enabled: bool,
   pub records: Option<Arc<CompilationRecords>>,
   pub options: Arc<CompilerOptions>,
   pub platform: Arc<CompilerPlatform>,
@@ -388,6 +392,8 @@ impl Compilation {
       id: CompilationId::new(),
       compiler_id,
       hot_index: 0,
+      lazy_compilation_enabled: false,
+      hot_module_replacement_enabled: false,
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),
@@ -472,6 +478,13 @@ impl Compilation {
       is_rebuild,
       compiler_context,
     }
+  }
+
+  pub fn uses_stable_async_block_map(&self) -> bool {
+    self.lazy_compilation_enabled
+      && self.hot_module_replacement_enabled
+      && self.options.mode.is_development()
+      && !self.options.optimization.concatenate_modules
   }
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {

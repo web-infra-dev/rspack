@@ -1,0 +1,132 @@
+# Case css-extract-owned-link-no-runtime: Step 2
+
+## Changed Files
+- app.js
+- style.css
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 53
+- Update: main.LAST_HASH.hot-update.js, size: 1356
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[],"miniCss":{"c":["main"]}}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./app.js
+- ./style.css
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* import */ var _style_css__rspack_import_0 = __webpack_require__("./style.css");
+
+/* export default */ const __rspack_default_export = (3);
+
+
+},
+"./style.css"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+// extracted by css-extract-rspack-plugin
+
+    if(true) {
+      (function() {
+        var localsJsonString = undefined;
+        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
+    }
+  
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => ready => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./app.js
+- ./style.css
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./app.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./app.js
+- ./style.css
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./app.js
+
+Disposed Callback:
+- ./style.css

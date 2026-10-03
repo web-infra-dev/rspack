@@ -105,74 +105,82 @@ function getCurrentScriptUrl(moduleId: string) {
   };
 }
 
+const pendingCssUpdates = new WeakMap<
+  HTMLLinkElement,
+  { url: string | undefined }
+>();
 function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
-  let normalizedUrl: string;
-  if (!url) {
-    const href = el.getAttribute('href');
-    if (!href) {
-      return;
-    }
-
-    normalizedUrl = href.split('?')[0];
-  } else {
-    normalizedUrl = url;
-  }
-
-  if (!isUrlRequest(el.href)) {
+  const normalizedUrl = url || el.getAttribute('href')?.split('?')[0];
+  if (!isUrlRequest(el.href) || !normalizedUrl?.includes('.css') || el.disabled)
+    return;
+  const pending = pendingCssUpdates.get(el);
+  if (pending) {
+    pending.url = normalizedUrl;
     return;
   }
-
-  if (el.isLoaded === false) {
-    // We seem to be about to replace a css link that hasn't loaded yet.
-    // We're probably changing the same file more than once.
-    return;
-  }
-
-  if (!normalizedUrl || !(normalizedUrl.indexOf('.css') > -1)) {
-    return;
-  }
-
-  el.visited = true;
-
-  const newEl = el.cloneNode() as Node & Record<string, any>;
-
-  newEl.isLoaded = false;
-
-  newEl.addEventListener('load', () => {
-    if (newEl.isLoaded) {
-      return;
-    }
-
-    newEl.isLoaded = true;
-    if (el.parentNode) {
-      el.parentNode.removeChild(el);
-    }
-  });
-
-  newEl.addEventListener('error', () => {
-    if (newEl.isLoaded) {
-      return;
-    }
-
-    newEl.isLoaded = true;
-    if (el.parentNode) {
-      el.parentNode.removeChild(el);
-    }
-  });
-
-  newEl.href = `${normalizedUrl}?${Date.now()}`;
-
+  if (el.isLoaded === false) return;
   const parent = el.parentNode;
-
-  if (!parent) {
-    return;
-  }
-
-  if (el.nextSibling) {
-    parent.insertBefore(newEl, el.nextSibling);
-  } else {
-    parent.appendChild(newEl);
-  }
+  if (!parent) return;
+  const state: { url: string | undefined } = { url: undefined };
+  pendingCssUpdates.set(el, state);
+  el.isLoaded = false;
+  const previousHref = el.href;
+  const newEl = el.cloneNode() as HTMLLinkElement & Record<string, any>;
+  newEl.visited = true;
+  newEl.isLoaded = false;
+  const nextHref = `${normalizedUrl}?${Date.now()}`;
+  let committed = false;
+  let stopped = false;
+  const cleanup = (retryQueued = true) => {
+    if (stopped) return;
+    stopped = true;
+    observer.disconnect();
+    newEl.remove();
+    el.removeEventListener('load', finish);
+    el.removeEventListener('error', failCommit);
+    pendingCssUpdates.delete(el);
+    el.isLoaded = true;
+    el.visited = false;
+    if (retryQueued && state.url && el.parentNode === parent)
+      updateCss(el, state.url);
+  };
+  const finish = () => cleanup();
+  const failCommit = () => {
+    // Keep the already loaded replacement visible while recovering the document.
+    window.location.reload();
+  };
+  const observer = new MutationObserver(() => {
+    if (
+      el.disabled ||
+      el.parentNode !== parent ||
+      el.href !== (committed ? newEl.href : previousHref)
+    )
+      cleanup(false);
+  });
+  observer.observe(parent, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['href', 'disabled'],
+  });
+  newEl.addEventListener(
+    'load',
+    () => {
+      if (stopped) return;
+      if (el.disabled || el.parentNode !== parent || el.href !== previousHref) {
+        cleanup(false);
+        return;
+      }
+      committed = true;
+      el.addEventListener('load', finish);
+      el.addEventListener('error', failCommit);
+      el.setAttribute('href', nextHref);
+    },
+    { once: true },
+  );
+  newEl.addEventListener('error', () => cleanup(), { once: true });
+  newEl.href = nextHref;
+  parent.insertBefore(newEl, el.nextSibling);
 }
 
 function getReloadUrl(href: string, src: string[]): string {

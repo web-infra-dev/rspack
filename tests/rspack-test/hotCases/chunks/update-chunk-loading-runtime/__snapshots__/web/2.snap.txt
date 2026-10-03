@@ -114,7 +114,7 @@ __webpack_require__.d(__webpack_exports__, {
 ### Status
 
 ```txt
-check => prepare => dispose => apply => idle
+check => prepare => ready => dispose => apply => idle
 ```
 
 

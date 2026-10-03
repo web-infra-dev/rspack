@@ -14,7 +14,7 @@ it("should wait until promises returned by status handlers are fulfilled", async
 	module.hot.addStatusHandler(handler);
 	await NEXT_HMR();
 	// constructor not strict equal
-	expect(handler.mock.calls).toEqual([['check'], ['prepare'], ['dispose'], ['apply'], ['idle']]);
+	expect(handler.mock.calls).toEqual([['check'], ['prepare'], ['ready'], ['dispose'], ['apply'], ['idle']]);
 	for (let result of handler.mock.results)
 		expect(result.value.test).toHaveBeenCalledTimes(1);
 	expect(module.hot.status()).toBe("idle");
