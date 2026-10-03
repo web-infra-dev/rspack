@@ -29,6 +29,7 @@ use crate::{
 };
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
+pub const RUNTIME_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_RUNTIME_PUBLIC_PATH__";
 pub const CSS_MODULE_ID_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_MODULE_ID__";
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((-?[0-9])|--)").expect("Invalid regexp"));
