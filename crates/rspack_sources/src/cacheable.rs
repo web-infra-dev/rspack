@@ -4,34 +4,46 @@
 use crate::{
   BoxSource, CachedSource, ConcatSource, OriginalSource, RawBufferSource, RawStringSource,
   ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap, SourceMapSource,
-  SourceMapSourceOptions,
+  SourceMapSourceOptions, SourceSlice,
 };
 
 /// Serializable representation of a [`Replacement`](crate::Replacement).
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[rkyv(serialize_bounds(
+  __S: rkyv::ser::Writer + rkyv::ser::Allocator + rkyv::rancor::Fallible<Error: rkyv::rancor::Source>
+))]
+#[rkyv(deserialize_bounds(
+  __D: rkyv::rancor::Fallible<Error: rkyv::rancor::Source>
+))]
+#[rkyv(bytecheck(bounds(
+  __C: rkyv::validation::ArchiveContext + rkyv::rancor::Fallible<Error: rkyv::rancor::Source>
+)))]
 pub struct CacheableReplacement {
   /// Start offset.
   pub start: u32,
   /// End offset.
   pub end: u32,
   /// Replacement content.
-  pub content: String,
+  #[rkyv(omit_bounds)]
+  pub content: Box<CacheableSource>,
   /// Replacement name.
   pub name: Option<String>,
   /// Enforce order: 0 = Pre, 1 = Normal, 2 = Post.
   pub enforce: u8,
+  /// Original insertion order, retained when the sorted edits are restored.
+  pub insertion_order: u32,
 }
 
 /// Serializable representation of a [`BoxSource`].
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[rkyv(serialize_bounds(
-  __S: rkyv::ser::Writer + rkyv::ser::Allocator + rkyv::rancor::Fallible
+  __S: rkyv::ser::Writer + rkyv::ser::Allocator + rkyv::rancor::Fallible<Error: rkyv::rancor::Source>
 ))]
 #[rkyv(deserialize_bounds(
   __D: rkyv::rancor::Fallible<Error: rkyv::rancor::Source>
 ))]
 #[rkyv(bytecheck(bounds(
-  __C: rkyv::validation::ArchiveContext + rkyv::rancor::Fallible
+  __C: rkyv::validation::ArchiveContext + rkyv::rancor::Fallible<Error: rkyv::rancor::Source>
 )))]
 pub enum CacheableSource {
   /// [`RawBufferSource`]
@@ -78,7 +90,15 @@ pub enum CacheableSource {
     #[rkyv(omit_bounds)]
     inner: Box<CacheableSource>,
     /// The replacements.
+    #[rkyv(omit_bounds)]
     replacements: Vec<CacheableReplacement>,
+  },
+  /// [`SourceSlice`]
+  Slice {
+    #[rkyv(omit_bounds)]
+    inner: Box<CacheableSource>,
+    start: u32,
+    end: u32,
   },
   /// [`CachedSource`]
   Cached {
@@ -141,9 +161,10 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
       .replacements()
       .iter()
       .map(|r| CacheableReplacement {
+        insertion_order: r.insertion_order(),
         start: r.start(),
         end: r.end(),
-        content: r.content().to_string(),
+        content: Box::new(to_cacheable(r.content().as_ref())),
         name: r.name().map(|n| n.to_string()),
         enforce: match r.enforce() {
           ReplacementEnforce::Pre => 0,
@@ -155,6 +176,14 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
     return CacheableSource::Replace {
       inner: Box::new(to_cacheable(s.inner().as_ref())),
       replacements,
+    };
+  }
+
+  if let Some(s) = source.as_any().downcast_ref::<SourceSlice>() {
+    return CacheableSource::Slice {
+      inner: Box::new(to_cacheable(s.inner().as_ref())),
+      start: s.range().start as u32,
+      end: s.range().end as u32,
     };
   }
 
@@ -195,10 +224,11 @@ pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
     }
     CacheableSource::Replace {
       inner,
-      replacements,
+      mut replacements,
     } => {
       let inner = from_cacheable(*inner);
       let mut source = ReplaceSource::new(inner);
+      replacements.sort_unstable_by_key(|r| r.insertion_order);
       for r in replacements {
         let enforce = match r.enforce {
           0 => ReplacementEnforce::Pre,
@@ -208,9 +238,18 @@ pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
             panic!("Invalid enforce value in cached replacement: {}", r.enforce)
           }
         };
-        source.replace_with_enforce(r.start, r.end, r.content, r.name, enforce);
+        source.replace_source_with_enforce(
+          r.start,
+          r.end,
+          from_cacheable(*r.content),
+          r.name,
+          enforce,
+        );
       }
       source.boxed()
+    }
+    CacheableSource::Slice { inner, start, end } => {
+      SourceSlice::new(from_cacheable(*inner), start as usize..end as usize).boxed()
     }
     CacheableSource::Cached { inner } => CachedSource::new(from_cacheable(*inner)).boxed(),
   }

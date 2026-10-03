@@ -213,7 +213,8 @@ representation optimizations.
 
 | Type              | Role                 | Important behavior                                                  |
 | ----------------- | -------------------- | ------------------------------------------------------------------- |
-| `RawStringSource` | text leaf            | no mappings; use `from_static` for literals                         |
+| `RawStringSource` | text leaf            | static, owned, `Arc<str>`, or `SmolStr` text; no mappings            |
+| `SourceSlice`     | shared byte-range view | retains the original source and its mappings without copying text |
 | `RawBufferSource` | binary leaf          | exact bytes; lazy lossy rope view                                   |
 | `OriginalSource`  | mapped text leaf     | lazily creates token-like or line mappings                          |
 | `SourceMapSource` | existing/nested map  | directly borrows one map or composes outer and inner maps           |
@@ -230,14 +231,19 @@ Important implementation details:
   shifts generated positions and remaps child-local indices into global deduplicated tables.
 - `ReplaceSource` ranges are half-open byte ranges. Edits are ordered by
   `(start, end, enforce, insertion_order)`; ordered producers get the append fast path. Mapping
-  repair uses lazy source-content identity checks.
+  repair uses lazy source-content identity checks. Each replacement retains a `BoxSource`; string
+  helpers wrap text in `RawStringSource`. Replacement text inherits the edit location mapping,
+  ignoring its own map. `SourceSlice` mapping reuses this algorithm with temporary prefix/suffix
+  deletions.
 - `CachedSource` shares hash, size, ASCII, rope, full-map, and line-map caches across clones.
 
 ### Cache placement and the `ReplaceSource` cost model
 
 `ReplaceSource::size()` intentionally computes the exact byte size from the inner size and the
 sorted replacement list on each direct call. `ReplaceSource::source()` uses that result to allocate
-the final `String` once at the exact capacity, then traverses `rope()` to fill it. This direct,
+the final byte buffer once at the exact capacity, then streams `to_writer()` into it and converts
+it into a string. A writer adapter selects original byte ranges and invokes each replacement
+source's `to_writer()` directly; nested replacement content is never flattened first. This direct,
 uncached path therefore scans replacement metadata for `size()` and processes it again while
 rendering. Do not treat that fact alone as evidence that `ReplaceSource` needs an internal size
 cache: exact preallocation avoids growth reallocations, while a cache would enlarge every mutable
@@ -285,8 +291,10 @@ shifting as material; first prefer making that producer submit edits in sorted o
 
 ### Immutable and stable source data
 
-Source graphs have a build phase followed by a shared read phase. Leaf sources own their content in
-`Cow<'static, str>`, `Box<str>`, or `Vec<u8>` and do not mutate it through `Source` methods.
+Source graphs have a build phase followed by a shared read phase. Leaf sources retain static strings or own their content in `String`, `Arc<str>`, `SmolStr`,
+`Box<str>`, or `Vec<u8>` and do not mutate it through `Source` methods. `RawStringSource`
+equality and hashing depend on text, independent of its storage variant. `SourceSlice` retains
+its owning `BoxSource` and a validated range; text access requires UTF-8 boundaries.
 `ConcatSource` can only add children, and `ReplaceSource` can only add edits; both mutation paths
 require `&mut self`. After boxing into `Arc<dyn Source>`, the graph is read through shared
 references.
