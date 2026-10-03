@@ -156,10 +156,11 @@ impl RawExternalItemFnCtx {
           async move {
             let merged_resolve_options = match second.resolve_options.as_ref() {
               Some(second_resolve_options) => match first.resolve_options.as_ref() {
-                Some(first_resolve_options) => Some(Box::new(
+                Some(first_resolve_options) => Some(Arc::new(
                   first_resolve_options
+                    .as_ref()
                     .clone()
-                    .merge(*second_resolve_options.clone()),
+                    .merge(second_resolve_options.as_ref().clone()),
                 )),
                 None => Some(second_resolve_options.clone()),
               },

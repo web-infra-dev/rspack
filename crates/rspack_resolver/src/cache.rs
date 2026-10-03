@@ -251,6 +251,43 @@ impl CachedPathImpl {
     )
   }
 
+  /// `is_dir` for paths that were already probed, without the async call.
+  ///
+  /// Registers the same dependency as `is_dir` — a missing dependency when the
+  /// cached metadata is a miss — because the metadata cache outlives a single
+  /// resolution while `ctx` does not.
+  ///
+  /// Returns `None` when the metadata is not cached yet, so the caller can fall
+  /// back to `is_dir` (which also registers the missing dependency).
+  pub fn is_dir_cached(&self, ctx: &mut Ctx) -> Option<bool> {
+    let meta = *self.meta.get()?;
+    Some(match meta {
+      Some(meta) => meta.is_dir,
+      None => {
+        ctx.add_missing_dependency(self);
+        false
+      }
+    })
+  }
+
+  /// `is_file` for paths that were already probed, without the async call.
+  ///
+  /// Registers the same dependencies as `is_file` and returns `None` when the
+  /// metadata is not cached yet, so the caller falls back to the async version.
+  pub fn is_file_cached(&self, ctx: &mut Ctx) -> Option<bool> {
+    let meta = *self.meta.get()?;
+    Some(match meta {
+      Some(meta) => {
+        ctx.add_file_dependency(self);
+        meta.is_file
+      }
+      None => {
+        ctx.add_missing_dependency(self);
+        false
+      }
+    })
+  }
+
   pub async fn realpath<Fs: FileSystem + Send + Sync>(&self, fs: &Fs) -> io::Result<Utf8PathBuf> {
     // Cache hit: avoid the heap-allocated `Box::pin` for the cache-miss state machine
     // by returning before delegating to the boxed recursive helper.
@@ -347,7 +384,14 @@ impl CachedPathImpl {
   ) -> Result<Option<Arc<PackageJson>>, ResolveError> {
     let mut cache_value = self;
     // Go up directories when the querying path is not a directory
-    while !cache_value.is_dir(fs, ctx).await {
+    loop {
+      let is_dir = match cache_value.is_dir_cached(ctx) {
+        Some(is_dir) => is_dir,
+        None => cache_value.is_dir(fs, ctx).await,
+      };
+      if is_dir {
+        break;
+      }
       if let Some(cv) = &cache_value.parent {
         cache_value = cv.as_ref();
       } else {

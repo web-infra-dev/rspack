@@ -1,7 +1,4 @@
-use std::{
-  fmt::Debug,
-  sync::{Arc, LazyLock},
-};
+use std::{fmt::Debug, sync::LazyLock};
 
 use regex::Regex;
 use rspack_core::{
@@ -237,10 +234,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             issuer_layer: data.issuer_layer.clone(),
           },
           resolve_options_with_dependency_type: ResolveOptionsWithDependencyType {
-            resolve_options: data
-              .resolve_options
-              .clone()
-              .map(|r| Box::new(Arc::unwrap_or_clone(r))),
+            resolve_options: data.resolve_options.clone(),
             resolve_to_context: false,
             dependency_category: *data
               .dependencies

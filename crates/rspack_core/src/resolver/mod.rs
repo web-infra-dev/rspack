@@ -108,9 +108,7 @@ pub async fn resolve_for_error_hints(
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Option<String> {
   let dep = ResolveOptionsWithDependencyType {
-    resolve_options: args
-      .resolve_options
-      .map(|r| Box::new(Arc::unwrap_or_clone(r))),
+    resolve_options: args.resolve_options,
     resolve_to_context: args.resolve_to_context,
     dependency_category: *args.dependency_category,
   };
@@ -133,9 +131,11 @@ pub async fn resolve_for_error_hints(
   // Try to resolve without fully specified
   if fully_specified {
     let mut dep = dep.clone();
-    dep.resolve_options = dep.resolve_options.map(|mut options| {
-      options.fully_specified = Some(false);
-      options
+    dep.resolve_options = dep.resolve_options.map(|options| {
+      Arc::new(Resolve {
+        fully_specified: Some(false),
+        ..(*options).clone()
+      })
     });
     let resolver = plugin_driver.resolver_factory.get(dep);
     if let Ok(ResolveResult::Resource(resource)) = resolver.resolve(base_dir, args.specifier).await
@@ -313,10 +313,7 @@ pub async fn resolve(
   plugin_driver: &SharedPluginDriver,
 ) -> (Result<ResolveResult, Error>, ResolveDependencies) {
   let dep = ResolveOptionsWithDependencyType {
-    resolve_options: args
-      .resolve_options
-      .clone()
-      .map(|r| Box::new(Arc::unwrap_or_clone(r))),
+    resolve_options: args.resolve_options.clone(),
     resolve_to_context: args.resolve_to_context,
     dependency_category: *args.dependency_category,
   };
