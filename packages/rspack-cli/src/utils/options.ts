@@ -156,7 +156,7 @@ function normalizeEnvToObject(options: CommonOptions) {
         return;
       }
 
-      if (!prevRef[someKey] || typeof prevRef[someKey] === 'string') {
+      if (!prevRef[someKey] || typeof prevRef[someKey] !== 'object') {
         prevRef[someKey] = {};
       }
 

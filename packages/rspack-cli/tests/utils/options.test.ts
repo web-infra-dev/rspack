@@ -9,6 +9,22 @@ describe('normalizeCommonOptions --env parsing', () => {
     expect(opts.env.app.debug).toBe('true');
   });
 
+  it.each(['app', 'app=value', 'app='])(
+    'replaces a scalar with an object when parsing %s followed by a nested key',
+    (prefix) => {
+      const opts: any = { env: [prefix, 'app.name=demo'] };
+      normalizeCommonOptions(opts, 'build');
+      expect(opts.env.app).toEqual({ name: 'demo' });
+    },
+  );
+
+  it('replaces a nested boolean flag with an object', () => {
+    const opts: any = { env: ['app.debug', 'app.debug.name=demo'] };
+    normalizeCommonOptions(opts, 'serve');
+    expect(opts.env.app.debug).toEqual({ name: 'demo' });
+    expect(opts.env.RSPACK_SERVE).toBe(true);
+  });
+
   it('sets RSPACK_BUILD and RSPACK_BUNDLE on build action', () => {
     const opts: any = { env: [] };
     normalizeCommonOptions(opts, 'build');

@@ -37,6 +37,8 @@ Rspack CLI provides several common flags that can be used with all commands:
 | `-h, --help`           | Show help information                                                                                                                         |
 | `-v, --version`        | Show version number                                                                                                                           |
 
+`--env` supports dotted keys. For example, `--env app --env app.name=demo` passes `app: { name: 'demo' }` to the configuration function, replacing the earlier `app` flag with an object.
+
 :::tip
 All flags in Rspack CLI support the `camelCase` and `kebab-case`, for example, both `--configLoader` and `--config-loader` are valid.
 :::
