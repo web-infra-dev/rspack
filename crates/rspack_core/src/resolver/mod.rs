@@ -1,5 +1,6 @@
 mod boxfs;
 mod factory;
+mod resolver_cache;
 mod resolver_impl;
 use std::{
   borrow::Borrow,
@@ -18,6 +19,7 @@ use sugar_path::SugarPath;
 
 pub use self::{
   factory::{ResolveOptionsWithDependencyType, ResolverFactory},
+  resolver_cache::ResolverCache,
   resolver_impl::{ResolveDependencies, ResolveInnerError, ResolveInnerOptions, Resolver},
 };
 use crate::{

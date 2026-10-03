@@ -9,12 +9,13 @@ use rspack_hash::{HashDigest, HashFunction, RspackHashDigest, RspackHasher};
 use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap, InternedPathSet, Utf8Path};
 use rspack_regex::RspackRegex;
-use rspack_util::{node_path::NodePath, time::mtime_accuracy};
+use rspack_util::{fx_hash::FxDashMap, node_path::NodePath, time::mtime_accuracy};
 use simd_json::prelude::{ValueAsScalar, ValueObjectAccess};
+use smallvec::{SmallVec, smallvec};
 
 use super::{
-  ContextFileSystemInfoEntry, ContextTimestampAndHash, FileHash, FileSystemInfoEntry, Snapshot,
-  TimestampAndHash,
+  ContextFileSystemInfoEntry, ContextTimestampAndHash, FileHash, FileSystemInfoEntry,
+  SharedSnapshot, Snapshot, TimestampAndHash, snapshot_optimization::SnapshotOptimizations,
 };
 use crate::{
   CompilationLogger, InfrastructureLogger, LogType, Logger, PathMatcher, SnapshotOptions,
@@ -140,6 +141,8 @@ struct FileSystemInfoInner {
   context_timestamp_hashes: InternedPathDashMap<Option<ContextTimestampAndHash>>,
   managed_items: InternedPathDashMap<Option<String>>,
   managed_item_directory_info: InternedPathDashMap<Arc<InternedPathSet>>,
+  snapshot_optimizations: SnapshotOptimizations,
+  snapshot_cache: FxDashMap<SharedSnapshot, SnapshotValidationResult>,
 }
 
 impl fmt::Debug for FileSystemInfo {
@@ -186,6 +189,8 @@ impl FileSystemInfo {
         context_timestamp_hashes: Default::default(),
         managed_items: Default::default(),
         managed_item_directory_info: Default::default(),
+        snapshot_optimizations: Default::default(),
+        snapshot_cache: Default::default(),
       }),
     }
   }
@@ -268,6 +273,7 @@ impl FileSystemInfo {
     if !managed_missing.is_empty() {
       snapshot.managed_missing = Some(managed_missing);
     }
+    self.inner.snapshot_optimizations.optimize(&mut snapshot);
     Ok(snapshot)
   }
 
@@ -428,8 +434,8 @@ impl FileSystemInfo {
     items: &InternedPathSet,
     managed_set: &mut InternedPathSet,
     managed_items: &mut InternedPathSet,
-  ) -> Vec<InternedPath> {
-    let mut captured_items = Vec::with_capacity(items.len());
+  ) -> InternedPathSet {
+    let mut captured_items = InternedPathSet::default();
     for path in items {
       match self.check_managed(path) {
         PathClassification::Immutable => {
@@ -440,7 +446,10 @@ impl FileSystemInfo {
           managed_set.insert(path.clone());
         }
         PathClassification::Unmanaged => {
-          captured_items.push(path.clone());
+          if captured_items.is_empty() {
+            captured_items.reserve(items.len());
+          }
+          captured_items.insert(path.clone());
         }
       }
     }
@@ -452,9 +461,35 @@ impl FileSystemInfo {
   async fn process_captured_files(
     &self,
     snapshot: &mut Snapshot,
-    paths: Vec<InternedPath>,
+    mut paths: InternedPathSet,
     mode: SnapshotMode,
   ) -> Result<()> {
+    if paths.is_empty() {
+      return Ok(());
+    }
+    {
+      let optimizations = &self.inner.snapshot_optimizations;
+      match mode {
+        SnapshotMode::Timestamp => optimizations.file_timestamps.reuse(
+          snapshot,
+          &mut paths,
+          |snapshot| snapshot.file_timestamps.as_ref(),
+          true,
+        ),
+        SnapshotMode::Hash => optimizations.file_hashes.reuse(
+          snapshot,
+          &mut paths,
+          |snapshot| snapshot.file_hashes.as_ref(),
+          false,
+        ),
+        SnapshotMode::TimestampAndHash => optimizations.file_timestamp_hashes.reuse(
+          snapshot,
+          &mut paths,
+          |snapshot| snapshot.file_timestamp_hashes.as_ref(),
+          true,
+        ),
+      }
+    }
     if paths.is_empty() {
       return Ok(());
     }
@@ -516,9 +551,35 @@ impl FileSystemInfo {
   async fn process_captured_directories(
     &self,
     snapshot: &mut Snapshot,
-    paths: Vec<InternedPath>,
+    mut paths: InternedPathSet,
     mode: SnapshotMode,
   ) -> Result<()> {
+    if paths.is_empty() {
+      return Ok(());
+    }
+    {
+      let optimizations = &self.inner.snapshot_optimizations;
+      match mode {
+        SnapshotMode::Timestamp => optimizations.context_timestamps.reuse(
+          snapshot,
+          &mut paths,
+          |snapshot| snapshot.context_timestamps.as_ref(),
+          true,
+        ),
+        SnapshotMode::Hash => optimizations.context_hashes.reuse(
+          snapshot,
+          &mut paths,
+          |snapshot| snapshot.context_hashes.as_ref(),
+          false,
+        ),
+        SnapshotMode::TimestampAndHash => optimizations.context_timestamp_hashes.reuse(
+          snapshot,
+          &mut paths,
+          |snapshot| snapshot.context_timestamp_hashes.as_ref(),
+          true,
+        ),
+      }
+    }
     if paths.is_empty() {
       return Ok(());
     }
@@ -580,8 +641,17 @@ impl FileSystemInfo {
   async fn process_captured_missing(
     &self,
     snapshot: &mut Snapshot,
-    paths: Vec<InternedPath>,
+    mut paths: InternedPathSet,
   ) -> Result<()> {
+    if paths.is_empty() {
+      return Ok(());
+    }
+    self.inner.snapshot_optimizations.missing_existence.reuse(
+      snapshot,
+      &mut paths,
+      |snapshot| snapshot.missing_existence.as_ref(),
+      false,
+    );
     if paths.is_empty() {
       return Ok(());
     }
@@ -1049,21 +1119,66 @@ impl FileSystemInfo {
     Ok(Some(info))
   }
 
-  #[async_recursion::async_recursion]
   async fn validate_snapshot(
     &self,
     snapshot: &Snapshot,
     modified_files: &mut InternedPathSet,
     removed_files: &mut InternedPathSet,
   ) -> Result<()> {
-    if let Some(children) = &snapshot.children {
-      for child in children {
+    self
+      .validate_snapshot_entries(snapshot, modified_files, removed_files)
+      .await?;
+    let Some(children) = &snapshot.children else {
+      return Ok(());
+    };
+    // Optimized children are leaves. An inline stack also supports merged or
+    // deserialized trees without allocating a boxed future for each child.
+    let mut pending: SmallVec<[_; 8]> = smallvec![children.iter()];
+    while let Some(children) = pending.last_mut() {
+      let Some(child) = children.next() else {
+        pending.pop();
+        continue;
+      };
+      if let Some(result) = self.inner.snapshot_cache.get(child) {
+        append_validation_result(&result, modified_files, removed_files);
+        continue;
+      }
+      if let Some(children) = &child.children {
         self
-          .validate_snapshot(child, modified_files, removed_files)
+          .validate_snapshot_entries(child, modified_files, removed_files)
           .await?;
+        pending.push(children.iter());
+      } else {
+        let mut modified = InternedPathSet::default();
+        let mut removed = InternedPathSet::default();
+        self
+          .validate_snapshot_entries(child, &mut modified, &mut removed)
+          .await?;
+        let result = if modified.is_empty() && removed.is_empty() {
+          SnapshotValidationResult::Valid
+        } else {
+          SnapshotValidationResult::Invalid {
+            modified_files: modified,
+            removed_files: removed,
+          }
+        };
+        append_validation_result(&result, modified_files, removed_files);
+        self
+          .inner
+          .snapshot_cache
+          .entry(child.clone())
+          .or_insert(result);
       }
     }
+    Ok(())
+  }
 
+  async fn validate_snapshot_entries(
+    &self,
+    snapshot: &Snapshot,
+    modified_files: &mut InternedPathSet,
+    removed_files: &mut InternedPathSet,
+  ) -> Result<()> {
     if let Some(entries) = &snapshot.file_timestamps {
       for (path, expected) in entries {
         let current = self.file_timestamp(path).await?;
@@ -1284,6 +1399,21 @@ fn context_timestamp_matches(
       current.timestamp_hash == expected.timestamp_hash
     }
     _ => false,
+  }
+}
+
+fn append_validation_result(
+  result: &SnapshotValidationResult,
+  modified_files: &mut InternedPathSet,
+  removed_files: &mut InternedPathSet,
+) {
+  if let SnapshotValidationResult::Invalid {
+    modified_files: modified,
+    removed_files: removed,
+  } = result
+  {
+    modified_files.extend(modified.iter().cloned());
+    removed_files.extend(removed.iter().cloned());
   }
 }
 
