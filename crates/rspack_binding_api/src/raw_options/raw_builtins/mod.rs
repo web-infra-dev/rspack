@@ -520,7 +520,7 @@ impl<'a> BuiltinPlugin<'a> {
         let options = downcast_into::<RawSharedUsedExportsOptimizerPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?
           .into();
-        plugins.push(SharedUsedExportsOptimizerPlugin::new(options).boxed());
+        plugins.push(SharedUsedExportsOptimizerPlugin::new_enhanced(options).boxed());
       }
       BuiltinPluginName::ContainerPlugin => {
         plugins.push(
@@ -549,22 +549,22 @@ impl<'a> BuiltinPlugin<'a> {
           .map(Into::into)
           .collect();
         provides.sort_unstable_by_key(|(k, _)| k.clone());
-        plugins.push(ProvideSharedPlugin::new(provides).boxed())
+        plugins.push(ProvideSharedPlugin::new_enhanced(provides).boxed())
       }
       BuiltinPluginName::CollectSharedEntryPlugin => {
         let options = downcast_into::<RawCollectShareEntryPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?
           .into();
-        plugins.push(CollectSharedEntryPlugin::new(options).boxed())
+        plugins.push(CollectSharedEntryPlugin::new_enhanced(options).boxed())
       }
       BuiltinPluginName::SharedContainerPlugin => {
         let options = downcast_into::<RawSharedContainerPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?
           .into();
-        plugins.push(SharedContainerPlugin::new(options).boxed())
+        plugins.push(SharedContainerPlugin::new_enhanced(options).boxed())
       }
       BuiltinPluginName::ConsumeSharedPlugin => plugins.push(
-        ConsumeSharedPlugin::new(
+        ConsumeSharedPlugin::new_enhanced(
           downcast_into::<RawConsumeSharedPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into(),

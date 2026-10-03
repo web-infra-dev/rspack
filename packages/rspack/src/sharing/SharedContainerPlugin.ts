@@ -10,6 +10,7 @@ import {
 import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import type { LibraryOptions } from '../config';
+import type { ShareScope } from './SharePlugin';
 import { encodeName } from './utils';
 
 export type SharedContainerPluginOptions = {
@@ -17,8 +18,12 @@ export type SharedContainerPluginOptions = {
   shareName: string;
   version: string;
   request: string;
+  shareKey?: string;
+  shareScope?: ShareScope;
+  layer?: string;
   library?: LibraryOptions;
   independentShareFileName?: string;
+  artifactIdentity?: string;
 };
 
 function assert(condition: any, msg: string): asserts condition {
@@ -38,15 +43,26 @@ export class SharedContainerPlugin extends RspackBuiltinPlugin {
 
   constructor(options: SharedContainerPluginOptions) {
     super();
-    const { shareName, library, request, independentShareFileName, mfName } =
-      options;
+    const {
+      shareName,
+      library,
+      request,
+      independentShareFileName,
+      artifactIdentity,
+      mfName,
+    } = options;
     const version = options.version || '0.0.0';
-    this._globalName = encodeName(`${mfName}_${shareName}_${version}`);
+    this._globalName = encodeName(
+      `${mfName}_${shareName}_${version}${artifactIdentity ? `_${artifactIdentity}` : ''}`,
+    );
     const fileName = independentShareFileName || `${version}/share-entry.js`;
     this._shareName = shareName;
     this._options = {
       name: shareName,
       request: request,
+      shareKey: options.shareKey ?? shareName,
+      shareScope: options.shareScope ?? 'default',
+      layer: options.layer,
       library: (library
         ? { ...library, name: this._globalName }
         : undefined) || {
