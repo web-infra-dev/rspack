@@ -4716,7 +4716,6 @@ dependencies = [
  "async-trait",
  "atomic_refcell",
  "concat-string",
- "cow-utils",
  "css-module-lexer",
  "cssparser",
  "heck",
@@ -4881,7 +4880,6 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_css",
  "rspack_plugin_javascript",
- "rspack_regex",
  "tracing",
 ]
 
@@ -5333,7 +5331,6 @@ version = "0.102.8"
 dependencies = [
  "camino",
  "cow-utils",
- "regex",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
