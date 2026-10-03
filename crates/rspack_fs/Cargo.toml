@@ -14,6 +14,7 @@ fs-err       = { workspace = true }
 pnp          = { workspace = true }
 rspack_error = { workspace = true }
 rspack_paths = { workspace = true }
+rspack_tasks = { workspace = true }
 rspack_util  = { workspace = true }
 tokio        = { workspace = true, features = ["rt", "macros", "sync", "time"] }
 tracing      = { workspace = true }
@@ -30,3 +31,6 @@ workspace = true
 
 [lib]
 doctest = false
+
+[features]
+goexec = ["rspack_tasks/goexec"]

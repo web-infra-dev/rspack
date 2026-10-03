@@ -3,13 +3,15 @@ use std::{
   path::{Path, PathBuf},
 };
 
-#[cfg(not(target_family = "wasm"))]
+#[cfg(all(not(target_family = "wasm"), not(feature = "goexec")))]
 use fs_err::tokio as tokio_fs;
 use fs_err::{self as fs, File};
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use tracing::instrument;
 
+#[cfg(feature = "goexec")]
+use self::goexec_fs as tokio_fs;
 use crate::{
   Error, FileMetadata, FilePermissions, IntermediateFileSystem, IntermediateFileSystemExtras,
   IoResultToFsResultExt, ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
@@ -38,15 +40,15 @@ impl NativeFileSystem {
 impl WritableFileSystem for NativeFileSystem {
   #[instrument(skip(self), level = "debug")]
   async fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
-    fs::create_dir(dir).to_fs_result()
+    rspack_tasks::runtime::blocking(|| fs::create_dir(dir).to_fs_result())
   }
   #[instrument(skip(self), level = "debug")]
   async fn create_dir_all(&self, dir: &Utf8Path) -> Result<()> {
-    fs::create_dir_all(dir).to_fs_result()
+    rspack_tasks::runtime::blocking(|| fs::create_dir_all(dir).to_fs_result())
   }
   #[instrument(skip(self), level = "debug")]
   async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()> {
-    fs::write(file, data).to_fs_result()
+    rspack_tasks::runtime::blocking(|| fs::write(file, data).to_fs_result())
   }
   #[instrument(skip(self), level = "debug")]
   async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
@@ -155,63 +157,71 @@ impl From<FileType> for FileMetadata {
 impl ReadableFileSystem for NativeFileSystem {
   #[instrument(skip(self), level = "debug")]
   async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    if self.options.pnp {
-      let path = path.as_std_path();
-      let buffer = match VPath::from(path)? {
-        VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
-        VPath::Virtual(info) => fs::read(info.physical_base_path()),
-        VPath::Native(path) => fs::read(&path),
-      };
-      return buffer.map_err(Error::from);
-    }
+    rspack_tasks::runtime::blocking(|| {
+      if self.options.pnp {
+        let path = path.as_std_path();
+        let buffer = match VPath::from(path)? {
+          VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
+          VPath::Virtual(info) => fs::read(info.physical_base_path()),
+          VPath::Native(path) => fs::read(&path),
+        };
+        return buffer.map_err(Error::from);
+      }
 
-    fs::read(path).map_err(Error::from)
+      fs::read(path).map_err(Error::from)
+    })
   }
   #[instrument(skip(self), level = "debug")]
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    if self.options.pnp {
-      let path = path.as_std_path();
-      let buffer = match VPath::from(path)? {
-        VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
-        VPath::Virtual(info) => fs::read(info.physical_base_path()),
-        VPath::Native(path) => fs::read(&path),
-      };
-      return buffer.to_fs_result();
-    }
-    fs::read(path).to_fs_result()
+    rspack_tasks::runtime::blocking(|| {
+      if self.options.pnp {
+        let path = path.as_std_path();
+        let buffer = match VPath::from(path)? {
+          VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
+          VPath::Virtual(info) => fs::read(info.physical_base_path()),
+          VPath::Native(path) => fs::read(&path),
+        };
+        return buffer.to_fs_result();
+      }
+      fs::read(path).to_fs_result()
+    })
   }
   #[instrument(skip(self), level = "debug")]
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    self.metadata_sync(path)
+    rspack_tasks::runtime::blocking(|| self.metadata_sync(path))
   }
   #[instrument(skip(self), level = "debug")]
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    if self.options.pnp {
-      let path = path.as_std_path();
-      return match VPath::from(path)? {
-        VPath::Zip(info) => self
-          .pnp_lru
-          .file_type(info.physical_base_path(), info.zip_path)
-          .map(FileMetadata::from)
-          .to_fs_result(),
+    rspack_tasks::runtime::blocking(|| {
+      if self.options.pnp {
+        let path = path.as_std_path();
+        return match VPath::from(path)? {
+          VPath::Zip(info) => self
+            .pnp_lru
+            .file_type(info.physical_base_path(), info.zip_path)
+            .map(FileMetadata::from)
+            .to_fs_result(),
 
-        VPath::Virtual(info) => {
-          let meta = fs::metadata(info.physical_base_path())?;
-          FileMetadata::try_from(meta)
-        }
-        VPath::Native(path) => {
-          let meta = fs::metadata(path)?;
-          FileMetadata::try_from(meta)
-        }
-      };
-    }
-    let meta = fs::metadata(path)?;
-    meta.try_into()
+          VPath::Virtual(info) => {
+            let meta = fs::metadata(info.physical_base_path())?;
+            FileMetadata::try_from(meta)
+          }
+          VPath::Native(path) => {
+            let meta = fs::metadata(path)?;
+            FileMetadata::try_from(meta)
+          }
+        };
+      }
+      let meta = fs::metadata(path)?;
+      meta.try_into()
+    })
   }
   #[instrument(skip(self), level = "debug")]
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    let meta = fs::symlink_metadata(path)?;
-    meta.try_into()
+    rspack_tasks::runtime::blocking(|| {
+      let meta = fs::symlink_metadata(path)?;
+      meta.try_into()
+    })
   }
   #[instrument(skip(self), level = "debug")]
   async fn read_link(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
@@ -219,56 +229,60 @@ impl ReadableFileSystem for NativeFileSystem {
   }
   #[instrument(skip(self), level = "debug")]
   async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
-    if self.options.pnp {
-      let path = path.as_std_path();
-      let path = match VPath::from(path)? {
-        VPath::Zip(info) => dunce::canonicalize(info.physical_base_path().join(info.zip_path)),
-        VPath::Virtual(info) => dunce::canonicalize(info.physical_base_path()),
-        VPath::Native(path) => dunce::canonicalize(path),
-      };
-      return path.map(|x| x.assert_utf8()).to_fs_result();
-    }
-    let path = dunce::canonicalize(path)?;
-    Ok(path.assert_utf8())
+    rspack_tasks::runtime::blocking(|| {
+      if self.options.pnp {
+        let path = path.as_std_path();
+        let path = match VPath::from(path)? {
+          VPath::Zip(info) => dunce::canonicalize(info.physical_base_path().join(info.zip_path)),
+          VPath::Virtual(info) => dunce::canonicalize(info.physical_base_path()),
+          VPath::Native(path) => dunce::canonicalize(path),
+        };
+        return path.map(|x| x.assert_utf8()).to_fs_result();
+      }
+      let path = dunce::canonicalize(path)?;
+      Ok(path.assert_utf8())
+    })
   }
   #[instrument(skip(self), level = "debug")]
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    self.read_dir_sync(dir)
+    rspack_tasks::runtime::blocking(|| self.read_dir_sync(dir))
   }
   #[instrument(skip(self), level = "debug")]
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    let mut res = vec![];
-    let dir = if self.options.pnp {
-      let path = dir.as_std_path();
-      match VPath::from(path)? {
-        VPath::Zip(info) => {
-          self.pnp_lru.act(info.physical_base_path(), |zip| {
-            for path in zip.dirs.iter().chain(zip.files.keys()) {
-              let pathbuf = PathBuf::from(path);
-              if let Some(file_name) = pathbuf.file_name() {
-                let parent_path = pathbuf.parent().unwrap_or_else(|| Path::new("."));
-                if Path::new(&info.zip_path) == parent_path {
-                  res.push(file_name.to_string_lossy().to_string());
+    rspack_tasks::runtime::blocking(|| {
+      let mut res = vec![];
+      let dir = if self.options.pnp {
+        let path = dir.as_std_path();
+        match VPath::from(path)? {
+          VPath::Zip(info) => {
+            self.pnp_lru.act(info.physical_base_path(), |zip| {
+              for path in zip.dirs.iter().chain(zip.files.keys()) {
+                let pathbuf = PathBuf::from(path);
+                if let Some(file_name) = pathbuf.file_name() {
+                  let parent_path = pathbuf.parent().unwrap_or_else(|| Path::new("."));
+                  if Path::new(&info.zip_path) == parent_path {
+                    res.push(file_name.to_string_lossy().to_string());
+                  }
                 }
               }
-            }
-          })?;
+            })?;
 
-          return Ok(res);
+            return Ok(res);
+          }
+          VPath::Virtual(info) => info.physical_base_path(),
+          VPath::Native(path) => path,
         }
-        VPath::Virtual(info) => info.physical_base_path(),
-        VPath::Native(path) => path,
+      } else {
+        dir.into()
+      };
+
+      for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        res.push(entry.file_name().to_string_lossy().to_string());
       }
-    } else {
-      dir.into()
-    };
 
-    for entry in fs::read_dir(dir)? {
-      let entry = entry?;
-      res.push(entry.file_name().to_string_lossy().to_string());
-    }
-
-    Ok(res)
+      Ok(res)
+    })
   }
   #[instrument(skip(self), level = "debug")]
   async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
@@ -473,5 +487,37 @@ mod tests {
 
     assert!(message.contains(source.as_str()));
     assert!(message.contains(destination.as_str()));
+  }
+}
+
+// Keep fs-err path context while executing short calls inline on goexec.
+#[cfg(feature = "goexec")]
+mod goexec_fs {
+  use std::{io, path::Path};
+
+  use rspack_tasks::runtime::blocking;
+  pub async fn remove_file(p: impl AsRef<Path>) -> io::Result<()> {
+    blocking(|| fs_err::remove_file(p))
+  }
+  pub async fn remove_dir_all(p: impl AsRef<Path>) -> io::Result<()> {
+    blocking(|| fs_err::remove_dir_all(p))
+  }
+  pub async fn read(p: impl AsRef<Path>) -> io::Result<Vec<u8>> {
+    blocking(|| fs_err::read(p))
+  }
+  pub async fn metadata(p: impl AsRef<Path>) -> io::Result<std::fs::Metadata> {
+    blocking(|| fs_err::metadata(p))
+  }
+  pub async fn set_permissions(p: impl AsRef<Path>, perm: std::fs::Permissions) -> io::Result<()> {
+    blocking(|| fs_err::set_permissions(p, perm))
+  }
+  pub struct ReadDir(fs_err::ReadDir);
+  pub async fn read_dir(p: impl AsRef<Path>) -> io::Result<ReadDir> {
+    blocking(|| fs_err::read_dir(p.as_ref()).map(ReadDir))
+  }
+  impl ReadDir {
+    pub async fn next_entry(&mut self) -> io::Result<Option<fs_err::DirEntry>> {
+      blocking(|| self.0.next().transpose())
+    }
   }
 }

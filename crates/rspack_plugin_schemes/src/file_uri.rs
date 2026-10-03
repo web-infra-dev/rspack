@@ -8,7 +8,11 @@ use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::AssertUtf8;
-#[cfg(all(not(target_family = "wasm"), not(feature = "codspeed")))]
+#[cfg(all(
+  not(target_family = "wasm"),
+  not(feature = "codspeed"),
+  not(feature = "goexec")
+))]
 use tokio::task::spawn_blocking;
 use url::Url;
 
@@ -54,16 +58,28 @@ async fn read_resource(
     && let Some(resource_path) = resource_data.path()
     && !resource_path.as_str().is_empty()
   {
+    #[cfg(all(not(target_family = "wasm"), feature = "goexec"))]
+    let result = rspack_tasks::runtime::blocking(|| fs.read_sync(resource_path));
+    #[cfg(not(feature = "goexec"))]
     let resource_path_owned = resource_path.to_owned();
+    #[cfg(not(feature = "goexec"))]
     let fs = fs.clone();
-    #[cfg(all(not(target_family = "wasm"), not(feature = "codspeed")))]
+    #[cfg(all(
+      not(target_family = "wasm"),
+      not(feature = "codspeed"),
+      not(feature = "goexec")
+    ))]
     let result = {
       // Avoid blocking the Tokio worker thread on native targets.
       spawn_blocking(move || fs.read_sync(resource_path_owned.as_path()))
         .await
         .map_err(|e| error!("{e}, spawn task failed"))?
     };
-    #[cfg(all(not(target_family = "wasm"), feature = "codspeed"))]
+    #[cfg(all(
+      not(target_family = "wasm"),
+      feature = "codspeed",
+      not(feature = "goexec")
+    ))]
     // Keep CodSpeed benchmark file reads on the current runtime thread to avoid
     // Tokio blocking-pool scheduling noise in simulation measurements.
     let result = fs.read_sync(resource_path_owned.as_path());
