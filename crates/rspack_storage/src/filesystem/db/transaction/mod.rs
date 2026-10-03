@@ -1,5 +1,7 @@
 mod lock;
 
+use rspack_paths::Utf8Path;
+
 use self::lock::{CommitLock, StateLock};
 use super::ScopeFileSystem;
 use crate::Result;
@@ -137,7 +139,15 @@ impl Transaction {
     }
 
     // Move added files from temp to root
+    let mut previous_parent = None;
     for path in commit_lock.added_files() {
+      let path = Utf8Path::new(path);
+      let parent = path.parent().expect("should have parent");
+      if previous_parent != Some(parent) {
+        // Bucket directories may be removed while their in-memory state survives.
+        self.root_fs.child_fs(parent).ensure_exist().await?;
+        previous_parent = Some(parent);
+      }
       ScopeFileSystem::move_to(&self.temp_fs, &self.root_fs, path).await?;
     }
 
