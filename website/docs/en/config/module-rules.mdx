@@ -680,6 +680,26 @@ There are two phases that all loaders enter one after the other:
 - **Pitching phase:** the `pitch` method on loaders is called in the order `post, inline, normal, pre`. See [Pitching Loader](/api/loader-api/writing-loaders#pitching-loader) for details.
 - **Normal phase:** the default method on loaders is executed in the order `pre, normal, inline, post`. Transformation on the source code of a module happens in this phase.
 
+## rules[].as
+
+- **Type:** `string`
+- **Stability:** Experimental
+
+Changes the filename used to match subsequent rules. `*` is replaced with the current filename without its extension. The source file is still read from its original path; `as` only changes rule matching, including nested rules. Query and fragment remain unchanged.
+
+For example, `example.source.js` will match the later `.txt` rule as `example.source.txt`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      { test: /\.source\.js$/, type: 'asset/source', as: '*.txt' },
+      { test: /\.txt$/, use: './text-loader.js' },
+    ],
+  },
+};
+```
+
 ## rules[].type
 
 - **Type:** `string`
