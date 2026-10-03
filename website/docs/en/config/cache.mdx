@@ -447,6 +447,8 @@ export default {
 
 The logs include key persistent cache events, such as whether persistent cache is enabled, whether build dependencies are valid, whether cache recovery succeeded, and why the persistent cache was invalidated. They also include read and write timings for each cache phase (for example, build dependency validation, snapshot restore, occasion recovery, staging, and flushing to disk).
 
+Messages about cache enablement, valid build dependencies, successful recovery, and snapshot dependency changes use the `log` level. Set `stats.logging` to `'log'` or `'verbose'`, or enable `stats.loggingDebug` as shown above, to display them.
+
 If you want to include logs from other loggers too, enable `stats.logging`:
 
 ```js title="rspack.config.mjs"
