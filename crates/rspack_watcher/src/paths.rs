@@ -8,8 +8,12 @@ use std::{
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet};
+use rspack_util::{
+  fx_hash::FxHashMap,
+  time::{current_time, mtime_accuracy, mtime_safe_time, system_time_to_millis},
+};
 
-use super::{FsWatcherIgnored, ignored::IgnoredMatcher};
+use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -207,6 +211,48 @@ impl PathTracker {
   }
 }
 
+/// One value of watchpack's `files` map, as written by `setFileTime`: the mtime
+/// a path was last seen with, plus the safe time and accuracy fixed at that
+/// observation.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct FileTime {
+  mtime: SystemTime,
+  safe_time: u64,
+  accuracy: u64,
+  /// Whether the build already knows this mtime — through a delivered event,
+  /// or because the path was on disk when it was registered. Only such a
+  /// record deduplicates a later event carrying the same mtime.
+  reported: bool,
+}
+
+impl FileTime {
+  /// watchpack `setFileTime(initial = true)`: the path was found on disk by a
+  /// scan, so only its mtime says when it changed — the safe time is that
+  /// mtime padded by the filesystem's timestamp accuracy.
+  fn initial(mtime: SystemTime) -> Self {
+    let mtime_ms = system_time_to_millis(mtime);
+    Self {
+      mtime,
+      safe_time: mtime_safe_time(mtime_ms),
+      accuracy: mtime_accuracy(mtime_ms),
+      reported: true,
+    }
+  }
+
+  /// watchpack `setFileTime(initial = false)`: a live event just reported the
+  /// path. The change happened no later than now, whatever mtime the new
+  /// content carries (a restored backup, a timestamp-preserving copy), so the
+  /// safe time is now, exactly.
+  fn observed(mtime: SystemTime) -> Self {
+    Self {
+      mtime,
+      safe_time: current_time(),
+      accuracy: 0,
+      reported: true,
+    }
+  }
+}
+
 /// `PathManager` is responsible for managing the set of files, directories, and missing paths.
 #[derive(Default)]
 pub(crate) struct PathManager {
@@ -214,10 +260,32 @@ pub(crate) struct PathManager {
   directories: PathTracker,
   missing: PathTracker,
   ignored: IgnoredMatcher,
-  /// Baseline mtime for registered files, captured at scan time.
-  /// Used to filter stale FSEvents that arrive for files not actually modified.
+  /// watchpack's `files` map: the last observation of each registered file,
+  /// and of each registered-missing path once an event has shown it on disk.
+  /// Its mtime filters stale FSEvents; the whole record feeds
+  /// `collect_time_info_entries` without a syscall.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
-  file_mtimes: InternedPathDashMap<SystemTime>,
+  file_times: InternedPathDashMap<FileTime>,
+  /// watchpack's per-`DirectoryWatcher` `lastWatchEvent`: when an event last
+  /// reached each registered context (its own or a descendant's), in epoch
+  /// millis, seeded with the moment its watch became active. An edit inside a
+  /// directory does not bump its mtime, so this is the floor for the
+  /// context's safe time.
+  last_watch_events: InternedPathDashMap<u64>,
+  /// watchpack's `DirectoryWatcher.files`: every file found below a registered
+  /// context by its initial scan or reported there by an event. Their records
+  /// live in `file_times`; this set is what `collect_time_info_entries` walks.
+  context_files: InternedPathDashSet,
+  /// watchpack's nested `DirectoryWatcher.directories`: every subdirectory
+  /// found below a registered context.
+  context_directories: InternedPathDashSet,
+  /// Every directory above a registered file or missing path, ever: a removal
+  /// of one of them may have taken registered records with it. Only grows; a
+  /// stale entry just costs an unneeded sweep.
+  registered_ancestors: InternedPathDashSet,
+  /// The `followSymlinks` watch option: the context scan descends into
+  /// symlinked directories, as watchpack does.
+  follow_symlinks: bool,
 }
 
 impl PathManager {
@@ -228,8 +296,18 @@ impl PathManager {
       directories: PathTracker::default(),
       missing: PathTracker::default(),
       ignored: IgnoredMatcher::new(ignored),
-      file_mtimes: InternedPathDashMap::default(),
+      file_times: InternedPathDashMap::default(),
+      last_watch_events: InternedPathDashMap::default(),
+      context_files: InternedPathDashSet::default(),
+      context_directories: InternedPathDashSet::default(),
+      registered_ancestors: InternedPathDashSet::default(),
+      follow_symlinks: false,
     }
+  }
+
+  pub fn with_follow_symlinks(mut self, follow_symlinks: bool) -> Self {
+    self.follow_symlinks = follow_symlinks;
+    self
   }
 
   /// Reset the per-`watch()`-call diff state (added / removed sets) without
@@ -259,47 +337,244 @@ impl PathManager {
   ///
   /// Use `has_mtime_changed` (which atomically reads-and-updates the
   /// baseline) to advance the recorded mtime in response to real events.
-  pub fn set_file_mtime_if_absent(&self, path: InternedPath, mtime: SystemTime) {
-    self.file_mtimes.entry(path).or_insert(mtime);
+  pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
+    self
+      .file_times
+      .entry(path)
+      .or_insert_with(|| FileTime::initial(mtime));
   }
 
-  /// Drop the baseline for a path that is no longer being watched, so the
-  /// map does not grow unboundedly across watch cycles.
-  pub fn remove_file_mtime(&self, path: &InternedPath) {
-    self.file_mtimes.remove(path);
+  /// Record `path` as found on disk by a scan that did not report it: time
+  /// info only, never a deduplication baseline, so the path's own event still
+  /// goes through. A record already there is kept.
+  pub fn set_unreported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
+    self
+      .file_times
+      .entry(path.clone())
+      .or_insert_with(|| FileTime {
+        reported: false,
+        ..FileTime::initial(mtime)
+      });
   }
 
-  /// Check if a file's mtime has changed from the stored baseline.
+  /// Drop the record for a path that is no longer being watched (or no longer
+  /// on disk), so the map does not grow unboundedly across watch cycles.
+  pub fn remove_file_time(&self, path: &InternedPath) {
+    self.file_times.remove(path);
+    self.context_files.remove(path);
+    if self.context_directories.remove(path).is_some() {
+      self.last_watch_events.remove(path);
+    }
+  }
+
+  /// Drop the records of every path inside the directory `dir` (watchpack's
+  /// `onDirectoryRemoved` marks them all missing).
+  pub fn remove_file_times_under(&self, dir: &InternedPath) {
+    let under = |path: &InternedPath| path.starts_with(dir.as_ref() as &Path);
+    self.file_times.retain(|path, _| !under(path));
+    self.context_files.retain(|path| !under(path));
+    self.context_directories.retain(|path| !under(path));
+    self
+      .last_watch_events
+      .retain(|path, _| !under(path) || self.directories.all.contains(path));
+  }
+
+  /// watchpack's initial scan of a `DirectoryWatcher`, for this cycle's newly
+  /// registered contexts: index every file and subdirectory below them, so
+  /// `collect_time_info_entries` reports them like watchpack does. A path the
+  /// live watch already observed keeps its record.
+  pub async fn scan_contexts(&self) {
+    let contexts: Vec<InternedPath> = self.directories.added.iter().map(|p| p.clone()).collect();
+    self.scan_below(contexts).await;
+  }
+
+  /// Index every file and subdirectory below `roots`, minus what `ignored`
+  /// excludes (watchpack's `DirectoryWatcher` initial scan).
+  async fn scan_below(&self, roots: Vec<InternedPath>) {
+    let now = current_time();
+    // Each directory carries the real paths of the directories above it: with
+    // `followSymlinks`, a link back into its own ancestry is a loop, while two
+    // links to one directory are two aliases, each scanned.
+    let mut pending: Vec<(InternedPath, Vec<PathBuf>)> =
+      roots.into_iter().map(|root| (root, Vec::new())).collect();
+    while let Some((dir, mut ancestry)) = pending.pop() {
+      if self.follow_symlinks {
+        let Ok(real) = std::fs::canonicalize(&dir) else {
+          continue;
+        };
+        if ancestry.contains(&real) {
+          continue;
+        }
+        ancestry.push(real);
+      }
+      let Ok(entries) = std::fs::read_dir(&dir) else {
+        continue;
+      };
+      for entry in entries.flatten() {
+        let path = InternedPath::from(entry.path());
+        if self.is_ignored_path(path.as_ref()).await {
+          continue;
+        }
+        let Ok(metadata) = self.entry_metadata(&path) else {
+          continue;
+        };
+        if metadata.is_dir() {
+          self.context_directories.insert(path.clone());
+          self.last_watch_events.entry(path.clone()).or_insert(now);
+          pending.push((path, ancestry.clone()));
+        } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
+          self.context_files.insert(path.clone());
+          // A registered file or missing path's record is the event
+          // deduplication baseline, kept by `Trigger` and the scanner; seeding
+          // it here would make its own creation event look stale.
+          if self.files.all.contains(&path) || self.missing.all.contains(&path) {
+            continue;
+          }
+          self
+            .file_times
+            .entry(path)
+            .or_insert_with(|| FileTime::initial(mtime));
+        }
+      }
+    }
+  }
+
+  /// An event named `path` below a registered context: index it the way the
+  /// scan would have (watchpack's `DirectoryWatcher.setFileTime` /
+  /// `setDirectory` on a watch event). A file's record is always the live
+  /// observation, even with an unchanged mtime: a second write inside one
+  /// timestamp tick still happened now. A directory is
+  /// scanned, since one moved in arrives as a single event with no events
+  /// for what it already contains; that includes a registered context
+  /// reappearing at its own path.
+  pub async fn set_context_entry(&self, path: &InternedPath) {
+    let is_context = self.directories.all.contains(path);
+    if !is_context && !self.is_below_context(path) {
+      return;
+    }
+    let Ok(metadata) = self.entry_metadata(path) else {
+      return;
+    };
+    if metadata.is_dir() {
+      if !is_context {
+        self.context_directories.insert(path.clone());
+      }
+      self
+        .last_watch_events
+        .entry(path.clone())
+        .or_insert_with(current_time);
+      self.scan_below(vec![path.clone()]).await;
+      return;
+    }
+    if is_context {
+      return;
+    }
+    self.context_files.insert(path.clone());
+    // Like the scan: a registered path's record is its dedup baseline, kept by
+    // `has_mtime_changed`.
+    if self.files.all.contains(path) || self.missing.all.contains(path) {
+      return;
+    }
+    if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
+      self.set_file_time(path, mtime, false, false);
+    }
+  }
+
+  /// A path's metadata as the context scan sees it: through a symlink only
+  /// with `followSymlinks`, otherwise the link itself (watchpack's `lstat`).
+  fn entry_metadata(&self, path: &InternedPath) -> std::io::Result<std::fs::Metadata> {
+    if self.follow_symlinks {
+      std::fs::metadata(path)
+    } else {
+      std::fs::symlink_metadata(path)
+    }
+  }
+
+  /// Whether removing `path` can take recorded paths below it along: it is a
+  /// registered or discovered context, or a directory above a registered
+  /// file or missing path.
+  pub fn may_contain_records(&self, path: &InternedPath) -> bool {
+    self.directories.all.contains(path)
+      || self.context_directories.contains(path)
+      || self.registered_ancestors.contains(path)
+  }
+
+  fn is_below_context(&self, path: &InternedPath) -> bool {
+    path
+      .ancestors()
+      .skip(1)
+      .any(|ancestor| self.directories.all.contains(&InternedPath::from(ancestor)))
+  }
+
+  /// watchpack's `setFileTime(filePath, mtime, initial, ignoreWhenEqual)`:
+  /// record `path` as seen with `mtime` — from a scan (`initial`, safe time
+  /// derived from the mtime) or from a live event (safe time = now). With
+  /// `ignore_when_equal`, a record already carrying this mtime is kept as is.
+  /// Returns whether a record was written.
+  pub fn set_file_time(
+    &self,
+    path: &InternedPath,
+    mtime: SystemTime,
+    initial: bool,
+    ignore_when_equal: bool,
+  ) -> bool {
+    if ignore_when_equal
+      && self
+        .file_times
+        .get(path)
+        .is_some_and(|current| current.reported && current.mtime == mtime)
+    {
+      return false;
+    }
+    let time = if initial {
+      FileTime::initial(mtime)
+    } else {
+      FileTime::observed(mtime)
+    };
+    self.file_times.insert(path.clone(), time);
+    true
+  }
+
+  /// The watch over this cycle's newly registered contexts just became
+  /// active: nothing earlier is covered by events, so their `lastWatchEvent`
+  /// starts now (watchpack stamps it during the initial scan).
+  pub fn record_initial_last_watch_events(&self) {
+    let now = current_time();
+    for dir in self.directories.added.iter() {
+      self.last_watch_events.entry(dir.clone()).or_insert(now);
+    }
+  }
+
+  /// An event reached `path` or something below it: advance the
+  /// `lastWatchEvent` of `path` and of every registered or discovered
+  /// context above it.
+  pub fn set_last_watch_events(&self, path: &InternedPath) {
+    let now = current_time();
+    for ancestor in path.ancestors() {
+      let ancestor = InternedPath::from(ancestor);
+      if self.directories.all.contains(&ancestor) || self.context_directories.contains(&ancestor) {
+        self.last_watch_events.insert(ancestor, now);
+      }
+    }
+  }
+
+  /// Check whether a watched path's mtime differs from its stored baseline,
+  /// advancing the baseline when it does. Covers registered files and
+  /// registered-missing paths (on disk by the time an event names them);
+  /// other paths, files found below a context included, pass through
+  /// unfiltered.
   /// Returns `true` if the event should pass through (mtime changed or no baseline).
   /// Returns `false` if the event should be suppressed (mtime unchanged = stale).
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
-    if !self.files.all.contains(path) {
+    if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       return true;
     }
 
-    let current_mtime = match path
-      .metadata()
-      .and_then(|m| m.modified().or_else(|_| m.created()))
-    {
-      Ok(mtime) => mtime,
-      Err(_) => return true,
+    let Some(current_mtime) = disk_mtime(path) else {
+      return true;
     };
 
-    match self.file_mtimes.get(path) {
-      Some(baseline) => {
-        if current_mtime != *baseline {
-          drop(baseline);
-          self.file_mtimes.insert(path.clone(), current_mtime);
-          true
-        } else {
-          false
-        }
-      }
-      None => {
-        self.file_mtimes.insert(path.clone(), current_mtime);
-        true
-      }
-    }
+    self.set_file_time(path, current_mtime, false, true)
   }
 
   /// Update the paths, directories, and missing paths in the `PathManager`.
@@ -328,16 +603,91 @@ impl PathManager {
       .update(&self.missing, &self.ignored)
       .await?;
 
-    // Prune mtime baselines for files no longer being watched so the map
-    // does not grow unboundedly across `watch()` cycles. `reset()` has
-    // already cleared `self.files.removed` at the start of this `watch()`
-    // call, so what we see here is only this cycle's removals.
+    let added: Vec<InternedPath> = self
+      .files
+      .added
+      .iter()
+      .chain(self.missing.added.iter())
+      .map(|p| p.clone())
+      .collect();
+    for path in &added {
+      for ancestor in path.ancestors().skip(1) {
+        if !self
+          .registered_ancestors
+          .insert(InternedPath::from(ancestor))
+        {
+          break;
+        }
+      }
+    }
+
+    // Prune per-path state for paths no longer being watched so the maps do
+    // not grow unboundedly across `watch()` cycles. `reset()` has already
+    // cleared the `removed` sets at the start of this `watch()` call, so what
+    // we see here is only this cycle's removals. A missing path that this
+    // cycle re-registers as a file keeps its baseline: re-seeding it from a
+    // fresh stat would reopen the rewatch-gap race `set_file_time_if_absent`
+    // guards against. A path still below a registered context keeps its
+    // record: the context reports it.
     let removed_files: Vec<InternedPath> = self.files.removed.iter().map(|p| p.clone()).collect();
     for path in &removed_files {
-      self.remove_file_mtime(path);
+      if !self.is_below_context(path) {
+        self.file_times.remove(path);
+      }
+    }
+    let removed_missing: Vec<InternedPath> =
+      self.missing.removed.iter().map(|p| p.clone()).collect();
+    for path in &removed_missing {
+      if !self.files.all.contains(path) && !self.is_below_context(path) {
+        self.file_times.remove(path);
+      }
+    }
+    let removed_dirs: Vec<InternedPath> =
+      self.directories.removed.iter().map(|p| p.clone()).collect();
+    for dir in &removed_dirs {
+      // Still below a registered context: it stays reported, as a directory
+      // found there, and keeps its event clock.
+      if self.is_below_context(dir) {
+        self.context_directories.insert(dir.clone());
+      } else {
+        self.last_watch_events.remove(dir);
+      }
+      self.forget_context_entries_under(dir);
     }
 
     Ok(())
+  }
+
+  /// A context was unregistered: forget what its scan found below it, except
+  /// what another still-registered context also covers.
+  fn forget_context_entries_under(&self, dir: &InternedPath) {
+    let orphaned = |path: &InternedPath| {
+      path.starts_with(dir.as_ref() as &Path)
+        && !self.is_below_context(path)
+        && !self.directories.all.contains(path)
+    };
+    let files: Vec<InternedPath> = self
+      .context_files
+      .iter()
+      .filter(|path| orphaned(path))
+      .map(|path| path.clone())
+      .collect();
+    for path in &files {
+      self.context_files.remove(path);
+      if !self.files.all.contains(path) && !self.missing.all.contains(path) {
+        self.file_times.remove(path);
+      }
+    }
+    let directories: Vec<InternedPath> = self
+      .context_directories
+      .iter()
+      .filter(|path| orphaned(path))
+      .map(|path| path.clone())
+      .collect();
+    for path in &directories {
+      self.context_directories.remove(path);
+      self.last_watch_events.remove(path);
+    }
   }
 
   /// Create a new `PathAccessor` to access the current state of paths, directories, and missing paths.
@@ -353,6 +703,141 @@ impl PathManager {
       None => false,
     }
   }
+}
+
+impl PathManager {
+  /// A file's `file_times` record (no syscall), falling back to a fresh stat
+  /// for a registered file with no record yet (e.g. one whose record was
+  /// dropped when it was removed).
+  fn file_time(&self, path: &InternedPath) -> Option<FileTime> {
+    if let Some(time) = self.file_times.get(path) {
+      return Some(*time);
+    }
+    disk_mtime(path).map(FileTime::initial)
+  }
+
+  fn stat_mtime_ms(path: &InternedPath) -> Option<u64> {
+    disk_mtime(path).map(system_time_to_millis)
+  }
+
+  fn entry(time: FileTime) -> TimeInfoEntry {
+    TimeInfoEntry::Entry {
+      safe_time: time.safe_time,
+      timestamp: system_time_to_millis(time.mtime),
+      accuracy: time.accuracy,
+    }
+  }
+
+  /// watchpack's `collectTimeInfoEntries(fileTimestamps, directoryTimestamps)`
+  /// over every registered path, returned as `(fileTimestamps,
+  /// directoryTimestamps)`.
+  ///
+  /// Files — registered, or found below a context — reuse their `file_times`
+  /// record. A registered-missing path reads
+  /// as `null` until an event (or the scan's backfill) has recorded it on
+  /// disk — deliberately no stat fallback: the missing set is every resolver
+  /// miss, and stat'ing it on each aggregate would be a syscall storm.
+  ///
+  /// A directory that exists gets, like a nested-watching `DirectoryWatcher`,
+  /// an `ExistenceOnlyTimeEntry` in `fileTimestamps` and an
+  /// `OnlySafeTimeEntry` in `directoryTimestamps` whose safe time is the max
+  /// of its own mtime, its `lastWatchEvent` and the safe times of every
+  /// registered file beneath it — so an in-directory content change, which
+  /// does NOT bump the directory mtime, still advances it. Absent on disk
+  /// reads as `null` in both.
+  pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
+    let accessor = self.access();
+
+    let file_paths: Vec<InternedPath> = accessor.files().0.iter().map(|p| p.clone()).collect();
+    let mut file_timestamps = TimeInfoEntries::with_capacity(file_paths.len());
+    let mut file_safe_times: Vec<(InternedPath, u64)> = Vec::with_capacity(file_paths.len());
+    for path in &file_paths {
+      let entry = self
+        .file_time(path)
+        .map_or(TimeInfoEntry::Null, Self::entry);
+      if let TimeInfoEntry::Entry { safe_time, .. } = entry {
+        file_safe_times.push((path.clone(), safe_time));
+      }
+      file_timestamps.push((path.to_string_lossy().to_string(), entry));
+    }
+    // webpack registers `files` and `missing` as disjoint sets, so a null
+    // missing entry never clobbers a real file entry sharing the same key.
+    for path in accessor.missing().0.iter() {
+      let entry = self
+        .file_times
+        .get(&path)
+        .map_or(TimeInfoEntry::Null, |time| Self::entry(*time));
+      if let TimeInfoEntry::Entry { safe_time, .. } = entry {
+        file_safe_times.push((path.clone(), safe_time));
+      }
+      file_timestamps.push((path.to_string_lossy().to_string(), entry));
+    }
+    // Files found below contexts, like watchpack's `DirectoryWatcher.files`.
+    for path in self.context_files.iter() {
+      if accessor.files().0.contains(&path) {
+        continue;
+      }
+      let Some(time) = self.file_times.get(&path).map(|time| *time) else {
+        continue;
+      };
+      file_safe_times.push((path.clone(), time.safe_time));
+      file_timestamps.push((path.to_string_lossy().to_string(), Self::entry(time)));
+    }
+
+    let mut dir_paths: Vec<InternedPath> =
+      accessor.directories().0.iter().map(|p| p.clone()).collect();
+    dir_paths.extend(
+      self
+        .context_directories
+        .iter()
+        .filter(|dir| !accessor.directories().0.contains(dir))
+        .map(|dir| dir.clone()),
+    );
+    let mut dir_safe_times: FxHashMap<InternedPath, Option<u64>> =
+      FxHashMap::with_capacity_and_hasher(dir_paths.len(), Default::default());
+    for dir in &dir_paths {
+      let own_safe_time = Self::stat_mtime_ms(dir).map(mtime_safe_time);
+      let last_watch_event = self.last_watch_events.get(dir).map(|time| *time);
+      dir_safe_times.insert(
+        dir.clone(),
+        own_safe_time.map(|own| last_watch_event.map_or(own, |event| own.max(event))),
+      );
+    }
+    // Raise each ancestor directory that exists by its descendant files' safe
+    // times; a record cannot resurrect a directory gone from disk.
+    for (file, safe_time) in &file_safe_times {
+      let mut cursor = file.parent().map(InternedPath::from);
+      while let Some(dir) = cursor {
+        if let Some(Some(current)) = dir_safe_times.get_mut(&dir) {
+          *current = (*current).max(*safe_time);
+        }
+        cursor = dir.parent().map(InternedPath::from);
+      }
+    }
+    let mut directory_timestamps = TimeInfoEntries::with_capacity(dir_paths.len());
+    for dir in &dir_paths {
+      let path = dir.to_string_lossy().to_string();
+      match dir_safe_times.get(dir).copied().flatten() {
+        Some(safe_time) => {
+          file_timestamps.push((path.clone(), TimeInfoEntry::ExistenceOnlyTimeEntry));
+          directory_timestamps.push((path, TimeInfoEntry::OnlySafeTimeEntry { safe_time }));
+        }
+        None => {
+          file_timestamps.push((path.clone(), TimeInfoEntry::Null));
+          directory_timestamps.push((path, TimeInfoEntry::Null));
+        }
+      }
+    }
+
+    (file_timestamps, directory_timestamps)
+  }
+}
+
+pub(crate) fn disk_mtime(path: &InternedPath) -> Option<SystemTime> {
+  path
+    .metadata()
+    .and_then(|m| m.modified().or_else(|_| m.created()))
+    .ok()
 }
 
 #[cfg(test)]
@@ -507,18 +992,18 @@ mod tests {
       .metadata()
       .and_then(|m| m.modified())
       .expect("read initial mtime");
-    pm.set_file_mtime_if_absent(path.clone(), initial_mtime);
+    pm.set_file_time_if_absent(path.clone(), initial_mtime);
 
     // T3 — rspack starts a rebuild; `reset()` runs ahead of the next `watch()`.
     pm.reset();
 
-    // Invariant: `file_mtimes` must survive `reset()`. Without this the
+    // Invariant: `file_times` must survive `reset()`. Without this the
     // baseline gets wiped on every watch cycle and the next bullet point
     // can no longer hold.
     assert_eq!(
-      pm.file_mtimes.get(&path).map(|v| *v),
+      pm.file_times.get(&path).map(|v| v.mtime),
       Some(initial_mtime),
-      "file_mtimes must persist across reset()",
+      "file_times must persist across reset()",
     );
 
     // T4 — a real write lands while no watcher is attached. The sleep
@@ -539,11 +1024,11 @@ mod tests {
     // T5 — second `watch()` cycle reaches `record_initial_file_mtimes`,
     // which delegates here. For an already-baselined path it must be a
     // no-op so the post-write mtime does NOT overwrite the original.
-    pm.set_file_mtime_if_absent(path.clone(), post_write_mtime);
+    pm.set_file_time_if_absent(path.clone(), post_write_mtime);
     assert_eq!(
-      pm.file_mtimes.get(&path).map(|v| *v),
+      pm.file_times.get(&path).map(|v| v.mtime),
       Some(initial_mtime),
-      "set_file_mtime_if_absent must not overwrite an existing baseline",
+      "set_file_time_if_absent must not overwrite an existing baseline",
     );
 
     // T6 — the delayed FSEvent finally reaches `Trigger::on_event`, which
@@ -558,7 +1043,7 @@ mod tests {
     // subsequent duplicate FSEvent (e.g. re-delivery during rewatch)
     // can still be filtered correctly.
     assert_eq!(
-      pm.file_mtimes.get(&path).map(|v| *v),
+      pm.file_times.get(&path).map(|v| v.mtime),
       Some(post_write_mtime),
       "has_mtime_changed should advance the baseline on a real change",
     );
