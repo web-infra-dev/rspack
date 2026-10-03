@@ -1,11 +1,17 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use std::hash::Hash;
+
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
   DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec,
   ExportsSpec, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_hash::{RspackHash, RspackHasher};
+use rspack_hash::RspackHasher;
+use rspack_intern::Atom;
 
 use crate::{css_syntax::escape_identifier, utils::replace_css_module_id_placeholder};
 
@@ -13,8 +19,12 @@ use crate::{css_syntax::escape_identifier, utils::replace_css_module_id_placehol
 #[derive(Debug)]
 pub struct CssLocalIdentDependency {
   id: DependencyId,
-  local_ident: String,
-  convention_names: Vec<String>,
+  /// Interned hashed ident shared with every use of this class.
+  #[cacheable(with=AsPreset)]
+  local_ident: Atom,
+  /// Interned export names. Archived as the same string list as the previous `Vec<String>`.
+  #[cacheable(with=AsVec<AsPreset>)]
+  convention_names: Vec<Atom>,
   start: u32,
   end: u32,
 }
@@ -23,8 +33,8 @@ impl CssLocalIdentDependency {
   pub fn new(local_ident: String, convention_names: Vec<String>, start: u32, end: u32) -> Self {
     Self {
       id: DependencyId::new(),
-      local_ident,
-      convention_names,
+      local_ident: Atom::from(local_ident),
+      convention_names: convention_names.into_iter().map(Atom::from).collect(),
       start,
       end,
     }
@@ -86,7 +96,8 @@ impl DependencyCodeGeneration for CssLocalIdentDependency {
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.local_ident.hash(hasher);
+    // Hash the text, not `Atom`'s cached hash, so module hashes stay stable.
+    self.local_ident.as_str().hash(hasher);
   }
 }
 
