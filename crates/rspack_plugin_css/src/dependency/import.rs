@@ -9,6 +9,9 @@ use rspack_core::{
 
 use crate::utils::source_order_to_i32;
 
+/// A stylesheet import, for example `@import "./base.css" screen;`.
+/// Owns the module request and rendering conditions, and removes the original
+/// at-rule when the imported stylesheet is emitted by the CSS pipeline.
 #[cacheable]
 #[derive(Debug)]
 pub struct CssImportDependency {

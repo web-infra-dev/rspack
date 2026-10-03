@@ -20,16 +20,17 @@ use rspack_core::{
   SourceType, UsageState,
   rspack_sources::{BoxSource, Source},
 };
-pub use rspack_core::{CssExport, CssExports};
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_intern::Atom;
-use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rspack_util::fx_hash::FxIndexMap;
+use rustc_hash::FxHashSet;
 use smol_str::SmolStr;
 pub(crate) use source_builder::CssSourceBuilder;
 
 use crate::{
+  css_exports::css_export_dependency,
+  dependency::CssIcssExportDependency,
   parser_and_generator::{generator::CssModuleGenerator, parser::CssModuleParser},
   utils::css_generator_options,
 };
@@ -45,7 +46,7 @@ pub(crate) static CSS_MODULE_AND_JS_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
-pub type CssExportsRef<'a> = FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>;
+pub type CssExportsRef<'a> = FxIndexMap<&'a str, &'a CssIcssExportDependency>;
 
 #[cacheable]
 #[derive(Debug, Default)]
@@ -104,6 +105,7 @@ fn css_parser_options(parser_options: Option<&ParserOptions>) -> &CssAutoOrModul
 
 pub fn get_used_exports<'a>(
   css_build_info: &'a CssBuildInfo,
+  module_graph: &'a ModuleGraph,
   identifier: ModuleIdentifier,
   runtime: Option<&RuntimeSpec>,
   exports_info_artifact: &ExportsInfoArtifact,
@@ -127,7 +129,7 @@ pub fn get_used_exports<'a>(
           true
         }
       })
-      .map(|(name, exports)| (name.as_str(), exports))
+      .map(|(name, id)| (name.as_str(), css_export_dependency(module_graph, id)))
       .collect(),
   )
 }
@@ -141,56 +143,6 @@ pub struct CodeGenerationDataUnusedLocalIdent {
 
 #[cacheable_dyn]
 impl CodeGenerationDataItem for CodeGenerationDataUnusedLocalIdent {}
-
-pub fn get_unused_local_ident(
-  css_build_info: &CssBuildInfo,
-  identifier: ModuleIdentifier,
-  runtime: Option<&RuntimeSpec>,
-  exports_info_artifact: &ExportsInfoArtifact,
-) -> Option<CodeGenerationDataUnusedLocalIdent> {
-  let exports = css_build_info.exports()?;
-  let local_names = css_build_info.local_names()?;
-  let exports_names = exports.iter().fold(
-    FxHashMap::<&str, FxHashSet<Atom>>::default(),
-    |mut map, (name, css_exports)| {
-      css_exports.iter().for_each(|css_export| {
-        if let Some(set) = map.get_mut(css_export.orig_name.as_str()) {
-          set.insert(Atom::from(name.as_str()));
-        } else {
-          map.insert(
-            css_export.orig_name.as_str(),
-            FxHashSet::from_iter([Atom::from(name.as_str())]),
-          );
-        }
-      });
-      map
-    },
-  );
-
-  let exports_info = exports_info_artifact
-    .get_exports_info_optional(&identifier)
-    .map(|info| info.as_data(exports_info_artifact));
-
-  Some(CodeGenerationDataUnusedLocalIdent {
-    idents: exports_names
-      .iter()
-      .filter(|(_, export_names)| {
-        export_names.iter().all(|export_name| {
-          let export_info = exports_info
-            .as_ref()
-            .map(|info| info.get_read_only_export_info(export_name));
-
-          if let Some(export_info) = export_info {
-            matches!(export_info.get_used(runtime), UsageState::Unused)
-          } else {
-            false
-          }
-        })
-      })
-      .filter_map(|(css_name, _)| local_names.get(*css_name).cloned())
-      .collect(),
-  })
-}
 
 #[cacheable_dyn]
 #[async_trait::async_trait]
@@ -365,6 +317,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     self.es_module.hash(&mut hasher);
     self.exports_only.hash(&mut hasher);
     self.effective_export_type(module).hash(&mut hasher);
+    crate::css_exports::hash_icss_imports(compilation, module, &mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 

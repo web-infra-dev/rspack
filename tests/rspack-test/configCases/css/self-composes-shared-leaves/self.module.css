@@ -1,0 +1,15 @@
+.button {
+  color: red;
+}
+
+.primaryButton {
+  composes: button from "./self.module.css";
+}
+
+.secondaryButton {
+  composes: button from "./self.module.css";
+}
+
+.top {
+  composes: primaryButton secondaryButton from "./self.module.css";
+}

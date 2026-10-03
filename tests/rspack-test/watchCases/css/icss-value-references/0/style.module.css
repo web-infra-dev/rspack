@@ -1,0 +1,16 @@
+:import("./colors.module.css") {
+	token: danger;
+}
+
+:export {
+	value: token;
+}
+
+.first {
+	color: token;
+	border-color: token;
+}
+
+.second {
+	background: token;
+}
