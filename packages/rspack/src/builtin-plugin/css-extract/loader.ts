@@ -71,7 +71,11 @@ export function hotLoader(
         var cssReload = require(${stringifyRequest(
           context.loaderContext,
           path.join(import.meta.dirname, 'cssExtractHmr.js'),
-        )}).cssReload(module.id, ${JSON.stringify(context.options ?? {})});
+        )}).cssReload(module.id, ${JSON.stringify({
+          ...context.options,
+          uniqueName:
+            context.loaderContext._compiler?.options.output.uniqueName ?? '',
+        })});
         // only invalidate when locals change
         if (
           module.hot.data &&

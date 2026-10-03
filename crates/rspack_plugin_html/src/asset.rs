@@ -15,7 +15,7 @@ use rspack_core::{
 use rspack_error::{AnyhowResultToRspackResultExt, Result};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::Utf8PathBuf;
-use rspack_util::fx_hash::FxHashMap;
+use rspack_util::fx_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 use sugar_path::SugarPath;
 
@@ -37,15 +37,15 @@ pub struct HtmlPluginAssets {
 }
 
 impl HtmlPluginAssets {
-  pub async fn create_assets<'a>(
+  pub async fn create_assets(
     config: &HtmlRspackPluginOptions,
-    compilation: &'a Compilation,
+    compilation: &Compilation,
     public_path: &str,
     output_path: &Utf8PathBuf,
     html_file_name: &Filename,
-  ) -> Result<(HtmlPluginAssets, FxHashMap<String, &'a CompilationAsset>)> {
+  ) -> Result<HtmlPluginAssets> {
     let mut assets: HtmlPluginAssets = HtmlPluginAssets::default();
-    let mut asset_map = FxHashMap::default();
+    let mut asset_paths = FxHashSet::default();
     assets.public_path = public_path.to_string();
 
     let sorted_entry_names: Vec<&String> =
@@ -93,12 +93,12 @@ impl HtmlPluginAssets {
         {
           None
         } else {
-          Some((asset_name.clone(), asset))
+          Some(asset_name)
         }
       })
       .collect::<Vec<_>>();
 
-    for (asset_name, asset) in included_assets {
+    for asset_name in included_assets {
       if let Some(extension) =
         Path::new(asset_name.split("?").next().unwrap_or_default()).extension()
       {
@@ -110,13 +110,13 @@ impl HtmlPluginAssets {
         }
         let final_path = generate_posix_path(&asset_uri);
         if extension.eq_ignore_ascii_case("css") {
-          if asset_map.insert(final_path.to_string(), asset).is_none() {
+          if asset_paths.insert(final_path.to_string()) {
             assets.css.push(final_path.to_string());
           }
         } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
           // keep the `if` to make the code more readable
           #[allow(clippy::collapsible_if)]
-          if asset_map.insert(final_path.to_string(), asset).is_none() {
+          if asset_paths.insert(final_path.to_string()) {
             assets.js.push(final_path.to_string());
           }
         }
@@ -169,7 +169,7 @@ impl HtmlPluginAssets {
       None
     };
 
-    Ok((assets, asset_map))
+    Ok(assets)
   }
 }
 
@@ -181,7 +181,11 @@ pub struct HtmlPluginAssetTags {
 }
 
 impl HtmlPluginAssetTags {
-  pub fn from_assets(config: &HtmlRspackPluginOptions, assets: &HtmlPluginAssets) -> Self {
+  pub fn from_assets(
+    config: &HtmlRspackPluginOptions,
+    assets: &HtmlPluginAssets,
+    unique_name: &str,
+  ) -> Self {
     let mut asset_tags = HtmlPluginAssetTags::default();
 
     // create script tags
@@ -198,7 +202,7 @@ impl HtmlPluginAssetTags {
       assets
         .css
         .par_iter()
-        .map(|x| HtmlPluginTag::create_style(x.as_str()))
+        .map(|x| HtmlPluginTag::create_style(x.as_str(), unique_name))
         .collect::<Vec<_>>(),
     );
 
