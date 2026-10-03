@@ -19,6 +19,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
   ) -> Option<bool> {
     if for_name == "eval" {
       parser.build_info.module_concatenation_bailout = Some("eval()".into());
+      parser.build_info.has_direct_eval = true;
       if let Some(top_level_symbol) = parser.inner_graph.get_top_level_symbol() {
         parser.inner_graph.add_usage(
           TopLevelSymbol::global(),
@@ -40,6 +41,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
       .get_all_variables_from_current_scope()
       .map(|(name, _)| Atom::new(name))
       .collect();
+    let has_direct_eval = parser.build_info.has_direct_eval;
     for name in variables {
       if parser.is_variable_defined(&name) {
         parser
@@ -47,7 +49,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
           .top_level_declarations
           .as_mut()
           .expect("must have value")
-          .insert(name);
+          .insert(name.clone());
+        if has_direct_eval {
+          parser.mark_mutated_binding(name);
+        }
       }
     }
     None

@@ -47,8 +47,8 @@ use crate::{
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
     self, CreatedRequireReferencesState, ImportsReferencesState, InnerGraphParserPlugin,
-    JavaScriptParserPluginDrive, JavascriptParserPlugin, RequireReferencesState,
-    inner_graph::state::InnerGraphState,
+    JavaScriptParserPluginDrive, JavascriptParserPlugin, NESTED_IDENTIFIER_TAG, NestedRequireData,
+    RequireReferencesState, inner_graph::state::InnerGraphState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -437,6 +437,7 @@ pub struct JavascriptParser<'parser> {
   // ===== states =======
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) definitions: ScopeInfoId,
+  pub(crate) top_level_definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
@@ -606,6 +607,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut db = ScopeInfoDB::new();
+    let definitions = db.create();
 
     Self {
       last_esm_import_order: 0,
@@ -624,7 +626,8 @@ impl<'parser> JavascriptParser<'parser> {
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
-      definitions: db.create(),
+      definitions,
+      top_level_definitions: definitions,
       definitions_db: db,
       plugin_drive,
       resource_data,
@@ -843,6 +846,25 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn is_top_level_scope(&self) -> bool {
     matches!(self.top_level_scope, TopLevelScope::Top)
+  }
+
+  pub(crate) fn mark_mutated_binding(&mut self, name: Atom) {
+    let top_level_definitions = self.top_level_definitions;
+    let is_top_level = self
+      .get_variable_info(&name)
+      .is_some_and(|info| info.declared_scope == top_level_definitions);
+    if !is_top_level {
+      return;
+    }
+    // Compatibility renames (e.g. `__webpack_exports__`) are referenced under
+    // the renamed identifier, so record that name as well.
+    let renamed = self
+      .get_tag_data::<NestedRequireData>(&name, NESTED_IDENTIFIER_TAG)
+      .map(|data| Atom::from(data.name.as_str()));
+    if let Some(renamed) = renamed {
+      self.build_info.mutated_bindings.insert(renamed);
+    }
+    self.build_info.mutated_bindings.insert(name);
   }
 
   pub fn is_top_level_this(&self) -> bool {
@@ -1323,6 +1345,9 @@ impl<'parser> JavascriptParser<'parser> {
   where
     F: FnOnce(&mut Self, &Ident),
   {
+    if self.in_assignment_pattern {
+      self.mark_mutated_binding(Atom::from(&ident.sym));
+    }
     let drive = self.plugin_drive.clone();
     if !ident
       .sym

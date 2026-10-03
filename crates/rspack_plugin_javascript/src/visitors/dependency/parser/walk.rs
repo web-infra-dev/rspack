@@ -476,6 +476,9 @@ impl JavascriptParser<'_> {
         self.walk_variable_declaration(decl);
       }
       ForHead::Pat(pat) => {
+        self.enter_pattern(PatRef::Borrowed(pat), |this, ident| {
+          this.mark_mutated_binding(Atom::from(&ident.sym));
+        });
         self.walk_pattern(pat);
       }
     }
@@ -598,6 +601,9 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_update_expression(&mut self, expr: &UpdateExpr) {
+    if let Some(ident) = expr.arg.as_ident() {
+      self.mark_mutated_binding(Atom::from(&ident.sym));
+    }
     if !self.javascript_options.is_create_require_enabled() {
       self.walk_expression(&expr.arg);
       return;
