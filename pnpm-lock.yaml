@@ -209,8 +209,8 @@ catalogs:
       specifier: 1.11.3
       version: 1.11.3
     enhanced-resolve:
-      specifier: 5.25.1
-      version: 5.25.1
+      specifier: 5.26.0
+      version: 5.26.0
     es5-ext:
       specifier: ^0.10.64
       version: 0.10.64
@@ -730,7 +730,7 @@ importers:
         version: 5.0.0
       enhanced-resolve:
         specifier: 'catalog:'
-        version: 5.25.1
+        version: 5.26.0
       http-proxy-middleware:
         specifier: 'catalog:'
         version: 4.2.0(supports-color@8.1.1)
@@ -1076,7 +1076,7 @@ importers:
         version: 0.2.34
       '@webdiscus/pug-loader':
         specifier: 'catalog:'
-        version: 2.11.1(enhanced-resolve@5.25.1)
+        version: 2.11.1(enhanced-resolve@5.26.0)
       acorn:
         specifier: 'catalog:'
         version: 8.18.0
@@ -4960,12 +4960,12 @@ packages:
     resolution: {integrity: sha512-/kyM18EfinwXZbno9FyUGeFh87KC8HRQBQGildHZbEuRyWFOmv1U10o9BBp8XVZDVNNuQKyIGIu5ZYAAXJ0V2Q==}
     engines: {node: '>= 4'}
 
-  enhanced-resolve@5.24.5:
-    resolution: {integrity: sha512-L1l8TNvomm6UVW5B253AGxQagSQr+vGwhMlrrfRS2qmhx46AMpMVJKQYLvWYbysTMY8VoicOvzHzoHMbyzB+4A==}
-    engines: {node: '>=10.13.0'}
-
   enhanced-resolve@5.25.1:
     resolution: {integrity: sha512-nGXts5znJzmWPu+mIE9izCOzdg63oJca2mDzGWWTth7sr4aCToKcoyFVBQwN75Ij5Pf6p510EwkTqViTRzDV+w==}
+    engines: {node: '>=10.13.0'}
+
+  enhanced-resolve@5.26.0:
+    resolution: {integrity: sha512-9vhedylFonb2YGogzUKX6+Ja72gOJbN1QHAqdrvqLwhdl/QWbKopzoUC9EbQNVsAns/bx/4uyqalrQAoy1IByw==}
     engines: {node: '>=10.13.0'}
 
   entities@4.5.0:
@@ -9868,7 +9868,7 @@ snapshots:
   '@tailwindcss/node@4.3.3':
     dependencies:
       '@jridgewell/remapping': 2.3.5
-      enhanced-resolve: 5.24.5
+      enhanced-resolve: 5.25.1
       jiti: 2.7.0
       lightningcss: 1.32.0
       magic-string: 0.30.21
@@ -10274,10 +10274,10 @@ snapshots:
 
   '@vue/shared@3.5.43': {}
 
-  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.25.1)':
+  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.26.0)':
     dependencies:
       ansis: 3.10.0
-      enhanced-resolve: 5.25.1
+      enhanced-resolve: 5.26.0
       parse5: 7.3.0
       pug: 3.0.4
       webpack-merge: 6.0.1
@@ -11242,12 +11242,12 @@ snapshots:
 
   emojis-list@3.0.0: {}
 
-  enhanced-resolve@5.24.5:
+  enhanced-resolve@5.25.1:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
 
-  enhanced-resolve@5.25.1:
+  enhanced-resolve@5.26.0:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
