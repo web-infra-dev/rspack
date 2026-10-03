@@ -38,7 +38,7 @@ impl SharedUsedExportsOptimizerRuntimeModule {
         .iter()
         .map(|(share_key, set)| {
           let mut exports: Vec<String> = set.iter().cloned().collect();
-          exports.sort();
+          exports.sort_unstable();
           (share_key.clone(), exports)
         })
         .collect();

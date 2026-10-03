@@ -290,13 +290,17 @@ export type { ModuleFederationPluginOptions } from './container/ModuleFederation
 
 import { ModuleFederationPluginV1 } from './container/ModuleFederationPluginV1';
 
-export type { ModuleFederationPluginV1Options } from './container/ModuleFederationPluginV1';
+export type {
+  EnhancedModuleFederationPluginV1Options,
+  ModuleFederationPluginV1Options,
+} from './container/ModuleFederationPluginV1';
 
 import { ContainerPlugin } from './container/ContainerPlugin';
 import { ContainerReferencePlugin } from './container/ContainerReferencePlugin';
 
 export type {
   ContainerPluginOptions,
+  EnhancedContainerPluginOptions,
   Exposes,
   ExposesConfig,
   ExposesItem,

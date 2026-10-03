@@ -20,7 +20,7 @@ use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 
 use super::{
-  container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
+  container_exposed_dependency::ContainerExposedDependency, container_plugin::EnhancedExposeOptions,
 };
 use crate::{
   ShareScope, SharedIdentity, push_identifier_component,
@@ -34,7 +34,7 @@ pub struct ContainerEntryModule {
   dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   lib_ident: String,
-  exposes: Vec<(String, ExposeOptions)>,
+  exposes: Vec<(String, EnhancedExposeOptions)>,
   share_scope: ShareScope,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
@@ -51,7 +51,7 @@ pub struct ContainerEntryModule {
 impl ContainerEntryModule {
   pub fn new(
     name: String,
-    exposes: Vec<(String, ExposeOptions)>,
+    exposes: Vec<(String, EnhancedExposeOptions)>,
     share_scope: ShareScope,
     enhanced: bool,
     runtime_mode: RuntimeMode,
@@ -63,6 +63,9 @@ impl ContainerEntryModule {
       identifier: ModuleIdentifier::from(format!(
         "container entry {} {}",
         share_scope.identifier_fragment(),
+        // Same `[[key, options]]` payload as webpack's ContainerEntryModule,
+        // which external manifest readers parse; `EnhancedExposeOptions::layer` is
+        // serialized only when present.
         json_stringify(&exposes),
       )),
       lib_ident,
@@ -134,7 +137,7 @@ impl ContainerEntryModule {
     }
   }
 
-  pub fn exposes(&self) -> &[(String, ExposeOptions)] {
+  pub fn exposes(&self) -> &[(String, EnhancedExposeOptions)] {
     &self.exposes
   }
 
@@ -235,9 +238,10 @@ impl Module for ContainerEntryModule {
             .import
             .iter()
             .map(|request| {
-              BoxDependency::new(ContainerExposedDependency::new(
+              BoxDependency::new(ContainerExposedDependency::new_with_layer(
                 name.clone(),
                 request.clone(),
+                options.layer.clone(),
               ))
             })
             .collect(),
