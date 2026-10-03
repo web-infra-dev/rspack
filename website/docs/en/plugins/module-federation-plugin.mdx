@@ -205,6 +205,8 @@ Used to control whether to generate a manifest and the corresponding generation 
 
 When enabled, the plugin emits both `mf-manifest.json` and `mf-stats.json` (you can customize the base name through `fileName`) on every build and writes them into the build output so other tooling can read them during the `processAssets` hook or from the final artifacts.
 
+When asset analysis finds multiple concrete providers for a shared name, both files include an optional `shared[].providers` array. Each record contains `version`, a context-relative `import`, and `assets`. Existing shared fields remain unchanged. The array is omitted for zero or one provider and when asset analysis is disabled. Provider-specific fallback entry metadata and layer-aware grouping are outside this draft; see the [provider metadata RFC](https://github.com/module-federation/core/issues/5082).
+
 - `mf-stats.json`: Contains full build statistics, including the asset lists for exposes/shared/remotes, `metaData` (plugin version, build info, `remoteEntry`, etc.), and extra asset analysis data, making it suitable for later aggregation or diagnostics.
 - `mf-manifest.json`: A runtime manifest distilled from the stats file. The structure stays stable and can be consumed by Module Federation clients when loading remote modules. The exposes/shared/remotes sections describe what is publicly exposed.
 

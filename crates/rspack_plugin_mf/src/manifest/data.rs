@@ -56,6 +56,16 @@ pub struct StatsShared {
   pub usedIn: Vec<String>,
   #[serde(default)]
   pub usedExports: Vec<String>,
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub providers: Vec<StatsSharedProvider>,
+}
+
+/// Cloned with existing shared stats and manifest records, including owned import and asset paths.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct StatsSharedProvider {
+  pub version: String,
+  pub import: String,
+  pub assets: StatsAssetsGroup,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -126,6 +136,8 @@ pub struct ManifestShared {
   pub singleton: Option<bool>,
   #[serde(default)]
   pub assets: StatsAssetsGroup,
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub providers: Vec<StatsSharedProvider>,
 }
 
 #[derive(Debug, Serialize, Clone)]
