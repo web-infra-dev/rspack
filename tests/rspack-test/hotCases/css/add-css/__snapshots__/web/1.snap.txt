@@ -8,7 +8,7 @@
 - Bundle: lazy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 56
 - Update: lazy.LAST_HASH.hot-update.js, size: 334
-- Update: main.LAST_HASH.hot-update.js, size: 7577
+- Update: main.LAST_HASH.hot-update.js, size: 7567
 
 ## Manifest
 
@@ -69,7 +69,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 })();
 // webpack/runtime/css_loading
 (() => {
-var cssInstalledChunks = {"main": 0,};
+var cssInstalledChunks = {};
 var cssLoadingUniqueName = "";
 function handleCssComposes(exports, composes) {
 	for (var i = 0; i < composes.length; i += 3) {
