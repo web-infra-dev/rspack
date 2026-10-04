@@ -9,7 +9,7 @@ var __webpack_require__ = {};
 
 // webpack/runtime/create_fake_namespace_object
 (() => {
-var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+var getProto = Object.getPrototypeOf;
 var leafPrototypes;
 // create a fake namespace object
 // mode & 1: value is a module id, require it

@@ -5,7 +5,7 @@
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
 /* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
-Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, "./index.js"));
+Promise.resolve(/* import() */).then(() => (__webpack_require__("./index.js")));
 
 console.log("index1");
 
@@ -31,7 +31,7 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 "use strict";
 /* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
 /* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
-__webpack_require__.e(/* import() */ "index_js").then(__webpack_require__.bind(__webpack_require__, "./index.js"));
+__webpack_require__.e(/* import() */ "index_js").then(() => (__webpack_require__("./index.js")));
 
 console.log("index2");
 
@@ -58,7 +58,7 @@ var __webpack_exports__ = (__webpack_exec__("./index2.js"));
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
 /* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
-Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, "./index.js"));
+Promise.resolve(/* import() */).then(() => (__webpack_require__("./index.js")));
 
 console.log("index1");
 

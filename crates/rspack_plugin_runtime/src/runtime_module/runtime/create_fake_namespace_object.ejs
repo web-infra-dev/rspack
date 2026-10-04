@@ -1,4 +1,4 @@
-<%- var("getProto") %> = Object.getPrototypeOf ? <%- returningFunction("Object.getPrototypeOf(obj)", "obj") %> : <%- returningFunction("obj.__proto__", "obj") %>;
+<%- var("getProto") %> = Object.getPrototypeOf;
 <%- var("leafPrototypes") %>;
 // create a fake namespace object
 // mode & 1: value is a module id, require it
@@ -16,7 +16,7 @@
 	var ns = Object.create(null);
   <%- MAKE_NAMESPACE_OBJECT %>(ns);
 	var def = {};
-	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
+	<%- _leaf_prototypes_assignment %>;
 	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
 		Object.getOwnPropertyNames(current).forEach(<%- basicFunction("key") %> { def[key] = <%- returningFunction("value[key]", "") %> });
 	}
