@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
-- Update: main.LAST_HASH.hot-update.js, size: 18632
+- Update: main.LAST_HASH.hot-update.js, size: 20340
 
 ## Manifest
 
@@ -151,9 +151,15 @@ var hotCurrentUpdateChunks;
 var hotCurrentUpdate;
 var hotCurrentUpdateRemovedChunks;
 var hotCurrentUpdateRuntime;
+var hotCurrentUpdateInitialChunks;
+var hotCurrentUpdateUnchangedModules;
 function hotApplyHandler(options) {
 	if (__webpack_require__.f) delete __webpack_require__.f.jsonpHmr;
 	hotCurrentUpdateChunks = undefined;
+	var initialChunks = hotCurrentUpdateInitialChunks || {};
+	var unchangedModules = hotCurrentUpdateUnchangedModules || {};
+	hotCurrentUpdateInitialChunks = undefined;
+	hotCurrentUpdateUnchangedModules = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
 		var outdatedModules = [updateModuleId];
 		var outdatedDependencies = {};
@@ -252,6 +258,12 @@ function hotApplyHandler(options) {
 
 	for (var moduleId in hotCurrentUpdate) {
 		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {
+			// A complete initial-chunk payload also contains unchanged factories.
+			// Preserve existing instances on movement unless explicitly invalidated.
+			if (unchangedModules[moduleId] && __webpack_require__.o(__webpack_require__.m, moduleId)) {
+				var cachedModule = __webpack_require__.c[moduleId];
+				if (!cachedModule || !cachedModule.hot._selfInvalidated) continue;
+			}
 			var newModuleFactory = hotCurrentUpdate[moduleId];
 			var result = newModuleFactory ? getAffectedModuleEffects(moduleId) : {
 				type: "disposed",
@@ -441,6 +453,14 @@ function hotApplyHandler(options) {
 				
 			}
 
+			// A full payload has now installed the chunk's factories. Keep the
+			// loading state in sync so subsequent edits download its hot updates.
+			for (var chunkId in initialChunks) {
+				var installed = jsonpInstalledChunks[chunkId];
+				if (installed && typeof installed[0] === "function") installed[0]();
+				jsonpInstalledChunks[chunkId] = 0;
+			}
+
 			// call accept handlers
 			for (var outdatedModuleId in outdatedDependencies) {
 				if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
@@ -575,7 +595,11 @@ __webpack_require__.hmrC.jsonp = function (
 	removedModules,
 	promises,
 	applyHandlers,
-	updatedModulesList
+	updatedModulesList,
+	css,
+	miniCss,
+	initial,
+	unchanged
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -585,11 +609,25 @@ __webpack_require__.hmrC.jsonp = function (
 		return obj;
 	}, {});
 	hotCurrentUpdateRuntime = [];
+	hotCurrentUpdateInitialChunks = Object.create(null);
+	hotCurrentUpdateUnchangedModules = Object.create(null);
+	(unchanged || []).forEach(function (id) { hotCurrentUpdateUnchangedModules[id] = true; });
+	var requiredInitialChunks = Object.create(null);
+	if (initial) {
+		Object.keys(initial).forEach(function (entryId) {
+			if (__webpack_require__.o(jsonpInstalledChunks, entryId) && jsonpInstalledChunks[entryId] === 0) {
+				initial[entryId].forEach(function (id) { requiredInitialChunks[id] = true; });
+			}
+		});
+	}
 	chunkIds.forEach(function (chunkId) {
 		if (
-			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
-			jsonpInstalledChunks[chunkId] !== undefined
+			requiredInitialChunks[chunkId] || (
+				__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
+				jsonpInstalledChunks[chunkId] !== undefined
+			)
 		) {
+			if (requiredInitialChunks[chunkId]) hotCurrentUpdateInitialChunks[chunkId] = true;
 			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
 			hotCurrentUpdateChunks[chunkId] = true;
 		} else {

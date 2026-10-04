@@ -1,0 +1,14 @@
+# Case initial-chunk-migration: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: main.js
+- Bundle: other.js
+- Bundle: runtime.js
+
+## Manifest
+
+
+## Update

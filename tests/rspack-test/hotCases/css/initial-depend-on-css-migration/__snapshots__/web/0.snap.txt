@@ -1,0 +1,17 @@
+# Case initial-depend-on-css-migration: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: base.js
+- Bundle: main.js
+- Bundle: other.js
+- Bundle: parent.js
+- Bundle: runtime.js
+- Bundle: sibling.js
+
+## Manifest
+
+
+## Update
