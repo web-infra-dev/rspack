@@ -158,14 +158,16 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
     let tx = self.task_result_sender.clone();
     let is_expected_shutdown = self.is_expected_shutdown.clone();
     self.background_task_count += 1;
-    rspack_tasks::spawn_in_compiler_context(task::unconstrained(
-      async move {
-        let r = task.background_run().await;
-        if !is_expected_shutdown.load(Ordering::Relaxed) {
-          tx.send(r).expect("failed to send task result");
+    drop(rspack_tasks::spawn_in_compiler_context(
+      task::unconstrained(
+        async move {
+          let r = task.background_run().await;
+          if !is_expected_shutdown.load(Ordering::Relaxed) {
+            tx.send(r).expect("failed to send task result");
+          }
         }
-      }
-      .in_current_span(),
+        .in_current_span(),
+      ),
     ));
   }
 }
