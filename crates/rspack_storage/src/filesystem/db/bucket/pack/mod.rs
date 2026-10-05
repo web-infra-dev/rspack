@@ -88,7 +88,11 @@ impl Pack {
   /// Saves the pack to disk and generates its index metadata.
   ///
   /// The index includes a bloom filter for fast key lookups and a content hash for integrity.
-  pub async fn save(&self, fs: &ScopeFileSystem, id: PackId) -> Result<PackIndex> {
+  pub async fn save(&mut self, fs: &ScopeFileSystem, id: PackId) -> Result<PackIndex> {
+    // Nearby keys share the LZ4 window and make output deterministic.
+    // Keys are unique within a pack, so an unstable sort is sufficient.
+    self.data.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+
     // Use append writes: not every filesystem's write_all appends to the stream.
     async fn write_bytes(writer: &mut dyn rspack_fs::WriteStream, mut bytes: &[u8]) -> Result<()> {
       while !bytes.is_empty() {

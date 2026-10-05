@@ -141,7 +141,7 @@ mod test {
     // meta not found
     assert!(Meta::load(&fs).await.is_err());
 
-    let pack = Pack::new(vec![("key1".into(), "value1".into())]);
+    let mut pack = Pack::new(vec![("key1".into(), "value1".into())]);
 
     // new a meta
     let mut meta = Meta::default();

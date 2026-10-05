@@ -139,6 +139,7 @@ impl Bucket {
       .map(|(pack_id, pack)| {
         let fs = writable_fs.clone();
         async move {
+          let mut pack = pack;
           let index = pack.save(&fs, pack_id).await?;
           Ok::<_, Error>((pack_id, pack, index))
         }
