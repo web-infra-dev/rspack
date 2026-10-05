@@ -1,16 +1,11 @@
 mod generator;
 mod id;
 mod id_alloc;
+mod load;
 
-use std::{
-  hash::{Hash, Hasher},
-  io::ErrorKind,
-};
+use std::io::ErrorKind;
 
-use lz4_flex::block::{
-  compress_into_with_dict, decompress_into_with_dict, get_maximum_output_size,
-};
-use rustc_hash::FxHasher;
+use lz4_flex::block::{compress_into_with_dict, get_maximum_output_size};
 
 pub use self::{generator::PackGenerator, id::PackId, id_alloc::PackIdAlloc};
 use super::{
@@ -85,111 +80,7 @@ impl Pack {
   ///
   /// Returns: (Pack, content_hash)
   pub async fn load(fs: &ScopeFileSystem, id: PackId) -> Result<(Self, u64)> {
-    let pack_name = id.pack_name();
-    let invalid =
-      |reason: &str| Error::InvalidFormat(format!("Invalid pack '{pack_name}': {reason}"));
-    let file_size = fs.stat(&pack_name).await?.size;
-    if file_size == 0 {
-      return Err(invalid("encoded size out of bounds"));
-    }
-    let file_size = usize::try_from(file_size)
-      .map_err(|e| invalid(&format!("encoded size out of bounds: {e}")))?;
-    let mut reader = fs.stream_read(&pack_name).await?;
-    // Read the checked size exactly, rather than trusting a header or reading an
-    // unbounded stream. An error/short read is not silently treated as EOF.
-    let encoded = reader.read(file_size).await?;
-    reader.close().await?;
-    let (&encoding, body) = encoded
-      .split_first()
-      .ok_or_else(|| invalid("missing encoding"))?;
-    let (body, offset) = match encoding {
-      RAW_ENCODING => (encoded, 1),
-      LZ4_ENCODING => {
-        let size_bytes: [u8; 4] = body
-          .get(..4)
-          .ok_or_else(|| invalid("missing LZ4 decoded size"))?
-          .try_into()
-          .map_err(|_| invalid("invalid LZ4 decoded size"))?;
-        let size = u32::from_le_bytes(size_bytes) as usize;
-        let compressed = &body[4..];
-        // LZ4 length extensions consume a byte per 255 output bytes. This
-        // additional bound rejects tiny inputs claiming a huge decoded body.
-        if size > compressed.len().saturating_mul(255) {
-          return Err(invalid("LZ4 decoded size out of bounds"));
-        }
-        let mut buffer = Vec::new();
-        buffer
-          .try_reserve_exact(size)
-          .map_err(|e| invalid(&format!("cannot allocate decoded body: {e}")))?;
-        let mut remaining = compressed;
-        let mut pos = 0;
-        while pos < size {
-          let len_bytes: [u8; 4] = remaining
-            .get(..4)
-            .ok_or_else(|| invalid("missing LZ4 chunk length"))?
-            .try_into()
-            .map_err(|_| invalid("invalid LZ4 chunk length"))?;
-          let len = u32::from_le_bytes(len_bytes) as usize;
-          remaining = &remaining[4..];
-          let block = remaining
-            .get(..len)
-            .ok_or_else(|| invalid("LZ4 chunk length out of bounds"))?;
-          let n = CHUNK.min(size - pos);
-          // Zero-fill each chunk just before decoding into it (capacity is reserved).
-          buffer.resize(pos + n, 0);
-          let (head, tail) = buffer.split_at_mut(pos);
-          let dict = &head[pos.saturating_sub(DICT)..];
-          let written = decompress_into_with_dict(block, &mut tail[..n], dict)
-            .map_err(|e| invalid(&format!("LZ4 decode failed: {e}")))?;
-          if written != n {
-            return Err(invalid("LZ4 decoded chunk size mismatch"));
-          }
-          remaining = &remaining[len..];
-          pos += n;
-        }
-        if !remaining.is_empty() {
-          return Err(invalid("trailing bytes after LZ4 chunks"));
-        }
-        // Release the compressed input before allocating individual KV entries.
-        drop(encoded);
-        (buffer, 0)
-      }
-      _ => return Err(invalid("unknown encoding")),
-    };
-
-    let mut content_hasher = FxHasher::default();
-    let mut data = vec![];
-    let mut remaining = &body[offset..];
-    while !remaining.is_empty() {
-      let header_end = remaining
-        .iter()
-        .position(|&byte| byte == b'\n')
-        .ok_or_else(|| invalid("unterminated item header"))?;
-      let header = std::str::from_utf8(&remaining[..header_end])
-        .map_err(|e| invalid(&format!("non-UTF8 item header: {e}")))?;
-      let (key_len, value_len) = header
-        .split_once(' ')
-        .ok_or_else(|| invalid(&format!("expected key_len value_len, got '{header:.128}'")))?;
-      let key_len = key_len
-        .parse::<usize>()
-        .map_err(|e| invalid(&format!("invalid key length '{key_len:.128}': {e}")))?;
-      let value_len = value_len
-        .parse::<usize>()
-        .map_err(|e| invalid(&format!("invalid value length '{value_len:.128}': {e}")))?;
-      remaining = &remaining[header_end + 1..];
-      let item_len = key_len
-        .checked_add(value_len)
-        .filter(|&len| len <= remaining.len())
-        .ok_or_else(|| invalid("item lengths exceed remaining body"))?;
-      let key = remaining[..key_len].to_vec();
-      let value = remaining[key_len..item_len].to_vec();
-      key.hash(&mut content_hasher);
-      value.hash(&mut content_hasher);
-      data.push((key, value));
-      remaining = &remaining[item_len..];
-    }
-
-    Ok((Self { data }, content_hasher.finish()))
+    load::load(fs, id).await
   }
 
   /// Saves the pack to disk and generates its index metadata.

@@ -137,3 +137,45 @@ async fn test_declared_lz4_size_exceeding_ratio_is_rejected() -> Result<()> {
 async fn test_old_format_pack_is_a_miss_and_can_be_rebuilt() -> Result<()> {
   rejects_corruption_and_rebuilds(b"3 5\nkeyvalue", "unknown encoding").await
 }
+
+#[tokio::test]
+async fn test_multichunk_items_cross_boundaries() -> Result<()> {
+  const CHUNK: usize = 256 * 1024;
+  let fs = Arc::new(MemoryFileSystem::default());
+  let make_storage = || {
+    FileSystemStorage::new(FileSystemOptions {
+      directory: "/cache".into(),
+      cache_directory: CacheDirectory::new("0123456789abcdef"),
+      max_pack_size: 2 * 1024 * 1024,
+      expire: 0,
+      fs: fs.clone(),
+    })
+  };
+  // Each item occupies 2 * CHUNK - 2 bytes including its 14-byte header.
+  // Whatever the storage ordering, the second header straddles a chunk boundary,
+  // and both keys and values cross boundaries. Values exceed a full chunk.
+  let mut expected: Vec<_> = (0..3)
+    .map(|i| (vec![b'a' + i; CHUNK - 17], vec![b'x' + i; CHUNK + 1]))
+    .collect();
+  let mut writer = make_storage();
+  for (key, value) in &expected {
+    writer.set(SCOPE, key.clone(), value.clone());
+  }
+  writer.save();
+  writer.flush().await;
+  drop(writer);
+
+  let saved = packs(&fs).await?;
+  let (_, bytes) = saved
+    .iter()
+    .max_by_key(|(_, bytes)| bytes.len())
+    .expect("saved pack");
+  assert_eq!(bytes[0], 0x01);
+  let size = u32::from_le_bytes(bytes[1..5].try_into().expect("decoded size")) as usize;
+  assert_eq!(size, 3 * (2 * CHUNK - 2));
+  let mut loaded = make_storage().load(SCOPE).await?;
+  expected.sort_unstable();
+  loaded.sort_unstable();
+  assert_eq!(loaded, expected);
+  Ok(())
+}
