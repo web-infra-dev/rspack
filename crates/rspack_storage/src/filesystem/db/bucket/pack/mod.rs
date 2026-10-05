@@ -127,7 +127,7 @@ impl Pack {
       index_gen.add_value(value);
     }
     // LZ4's size prefix is u32. Larger bodies remain raw, without failing the save.
-    let compressed = if raw_len >= 128
+    let compressed = if raw_len >= 8 * 1024
       && let Ok(size) = u32::try_from(raw_len)
     {
       // Account for the prepended size when requiring at least 12.5% savings.

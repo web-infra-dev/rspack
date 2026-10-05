@@ -52,7 +52,7 @@ fn random_bytes(len: usize) -> Vec<u8> {
 async fn test_encoding_markers_and_exact_roundtrip() -> Result<()> {
   for (value, marker) in [
     (b"synthetic repetitive text\n".repeat(1024), 0x01),
-    (random_bytes(4096), 0x00),
+    (random_bytes(16 * 1024), 0x00),
     (b"tiny".to_vec(), 0x00),
     (Vec::new(), 0x00),
   ] {
@@ -93,7 +93,7 @@ async fn test_encoding_markers_and_exact_roundtrip() -> Result<()> {
 async fn rejects_corruption_and_rebuilds(bytes: &[u8], reason: &str) -> Result<()> {
   let fs = Arc::new(MemoryFileSystem::default());
   let mut writer = storage(&fs, 512_000);
-  let value = vec![b'x'; 8000];
+  let value = vec![b'x'; 8 * 1024];
   writer.set(SCOPE, b"key".to_vec(), value.clone());
   writer.save();
   writer.flush().await;
