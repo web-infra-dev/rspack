@@ -1,14 +1,23 @@
-use std::hash::{Hash, Hasher};
+use std::{
+  fmt::Arguments,
+  hash::{Hash, Hasher},
+};
 
-use lz4_flex::block::decompress_into_with_dict;
+use lz4_flex::block::{decompress_into_with_dict, get_maximum_output_size};
 use rustc_hash::FxHasher;
 
 use super::{CHUNK, DICT, LZ4_ENCODING, Pack, PackId, RAW_ENCODING, ScopeFileSystem};
 use crate::{Error, Result};
 
-// Valid usize lengths need at most 41 bytes on 64-bit platforms. Leave room
-// for leading zeroes without allowing corrupt packs to grow an unbounded header.
+// The "{key_len} {value_len}" header needs at most 41 bytes on 64-bit platforms.
+// Leave room for leading zeroes without allowing corrupt packs to grow an unbounded header.
 const MAX_HEADER: usize = 128;
+
+#[cold]
+#[inline(never)]
+fn invalid(pack_name: &str, reason: Arguments<'_>) -> Error {
+  Error::InvalidFormat(format!("Invalid pack '{pack_name}': {reason}"))
+}
 
 enum State {
   Header,
@@ -45,35 +54,49 @@ impl<'a> ItemParser<'a> {
     }
   }
 
-  fn invalid(&self, reason: &str) -> Error {
-    Error::InvalidFormat(format!("Invalid pack '{}': {reason}", self.pack_name))
-  }
-
   fn start_item(&mut self) -> Result<()> {
     let header = std::str::from_utf8(&self.header)
-      .map_err(|e| self.invalid(&format!("non-UTF8 item header: {e}")))?;
-    let (key_len, value_len) = header
-      .split_once(' ')
-      .ok_or_else(|| self.invalid(&format!("expected key_len value_len, got '{header:.128}'")))?;
-    self.key_len = key_len
-      .parse::<usize>()
-      .map_err(|e| self.invalid(&format!("invalid key length '{key_len:.128}': {e}")))?;
-    self.value_len = value_len
-      .parse::<usize>()
-      .map_err(|e| self.invalid(&format!("invalid value length '{value_len:.128}': {e}")))?;
+      .map_err(|e| invalid(self.pack_name, format_args!("non-UTF8 item header: {e}")))?;
+    let (key_len, value_len) = header.split_once(' ').ok_or_else(|| {
+      invalid(
+        self.pack_name,
+        format_args!("expected key_len value_len, got '{header:.128}'"),
+      )
+    })?;
+    self.key_len = key_len.parse::<usize>().map_err(|e| {
+      invalid(
+        self.pack_name,
+        format_args!("invalid key length '{key_len:.128}': {e}"),
+      )
+    })?;
+    self.value_len = value_len.parse::<usize>().map_err(|e| {
+      invalid(
+        self.pack_name,
+        format_args!("invalid value length '{value_len:.128}': {e}"),
+      )
+    })?;
     self
       .key_len
       .checked_add(self.value_len)
       .filter(|&len| len <= self.remaining)
-      .ok_or_else(|| self.invalid("item lengths exceed remaining body"))?;
-    self
-      .key
-      .try_reserve_exact(self.key_len)
-      .map_err(|e| self.invalid(&format!("cannot allocate item key: {e}")))?;
-    self
-      .value
-      .try_reserve_exact(self.value_len)
-      .map_err(|e| self.invalid(&format!("cannot allocate item value: {e}")))?;
+      .ok_or_else(|| {
+        invalid(
+          self.pack_name,
+          format_args!("item lengths exceed remaining body"),
+        )
+      })?;
+    self.key.try_reserve_exact(self.key_len).map_err(|e| {
+      invalid(
+        self.pack_name,
+        format_args!("cannot allocate item key: {e}"),
+      )
+    })?;
+    self.value.try_reserve_exact(self.value_len).map_err(|e| {
+      invalid(
+        self.pack_name,
+        format_args!("cannot allocate item value: {e}"),
+      )
+    })?;
     self.header.clear();
     self.state = State::Key;
     Ok(())
@@ -89,7 +112,10 @@ impl<'a> ItemParser<'a> {
           let newline = bytes.iter().position(|&byte| byte == b'\n');
           let n = newline.unwrap_or(bytes.len());
           if n > MAX_HEADER - self.header.len() {
-            return Err(self.invalid("unterminated item header"));
+            return Err(invalid(
+              self.pack_name,
+              format_args!("item header too long"),
+            ));
           }
           self.header.extend_from_slice(&bytes[..n]);
           let consumed = n + usize::from(newline.is_some());
@@ -135,10 +161,16 @@ impl<'a> ItemParser<'a> {
 
   fn finish(self) -> Result<(Pack, u64)> {
     if !self.header.is_empty() {
-      return Err(self.invalid("unterminated item header"));
+      return Err(invalid(
+        self.pack_name,
+        format_args!("unterminated item header"),
+      ));
     }
     if self.remaining != 0 || !matches!(self.state, State::Header) {
-      return Err(self.invalid("item lengths exceed remaining body"));
+      return Err(invalid(
+        self.pack_name,
+        format_args!("item lengths exceed remaining body"),
+      ));
     }
     Ok((Pack { data: self.data }, self.hasher.finish()))
   }
@@ -146,19 +178,20 @@ impl<'a> ItemParser<'a> {
 
 pub(super) async fn load(fs: &ScopeFileSystem, id: PackId) -> Result<(Pack, u64)> {
   let pack_name = id.pack_name();
-  let invalid =
-    |reason: &str| Error::InvalidFormat(format!("Invalid pack '{pack_name}': {reason}"));
   let file_size = fs.stat(&pack_name).await?.size;
   if file_size == 0 {
-    return Err(invalid("encoded size out of bounds"));
+    return Err(invalid(
+      &pack_name,
+      format_args!("encoded size out of bounds"),
+    ));
   }
-  let file_size =
-    usize::try_from(file_size).map_err(|e| invalid(&format!("encoded size out of bounds: {e}")))?;
+  let file_size = usize::try_from(file_size)
+    .map_err(|e| invalid(&pack_name, format_args!("encoded size out of bounds: {e}")))?;
   let mut reader = fs.stream_read(&pack_name).await?;
   let encoding = reader.read(1).await?;
   let encoding = *encoding
     .first()
-    .ok_or_else(|| invalid("missing encoding"))?;
+    .ok_or_else(|| invalid(&pack_name, format_args!("missing encoding")))?;
   let mut consumed = 1;
   let parser = match encoding {
     RAW_ENCODING => {
@@ -167,7 +200,7 @@ pub(super) async fn load(fs: &ScopeFileSystem, id: PackId) -> Result<(Pack, u64)
         let n = CHUNK.min(file_size - consumed);
         let bytes = reader.read(n).await?;
         if bytes.len() != n {
-          return Err(invalid("item lengths exceed remaining body"));
+          return Err(invalid(&pack_name, format_args!("short RAW read")));
         }
         consumed += bytes.len();
         parser.feed(&bytes)?;
@@ -176,66 +209,88 @@ pub(super) async fn load(fs: &ScopeFileSystem, id: PackId) -> Result<(Pack, u64)
     }
     LZ4_ENCODING => {
       if file_size - consumed < 4 {
-        return Err(invalid("missing LZ4 decoded size"));
+        return Err(invalid(
+          &pack_name,
+          format_args!("missing LZ4 decoded size"),
+        ));
       }
       let size_bytes: [u8; 4] = reader
         .read(4)
         .await?
         .try_into()
-        .map_err(|_| invalid("invalid LZ4 decoded size"))?;
+        .map_err(|_| invalid(&pack_name, format_args!("invalid LZ4 decoded size")))?;
       consumed += 4;
       let size = u32::from_le_bytes(size_bytes) as usize;
       // Length extensions consume a byte per 255 decoded bytes.
       if size > (file_size - consumed).saturating_mul(255) {
-        return Err(invalid("LZ4 decoded size out of bounds"));
+        return Err(invalid(
+          &pack_name,
+          format_args!("LZ4 decoded size out of bounds"),
+        ));
       }
       let mut parser = ItemParser::new(&pack_name, size);
+      let first = CHUNK.min(size);
+      let window_len = DICT.min(size - first) + first;
       let mut window = Vec::new();
-      window
-        .try_reserve_exact(DICT + CHUNK)
-        .map_err(|e| invalid(&format!("cannot allocate decoded body: {e}")))?;
+      window.try_reserve_exact(window_len).map_err(|e| {
+        invalid(
+          &pack_name,
+          format_args!("cannot allocate decode window: {e}"),
+        )
+      })?;
+      window.resize(window_len, 0);
       let mut dict_len = 0;
       let mut pos = 0;
       while pos < size {
         if file_size - consumed < 4 {
-          return Err(invalid("missing LZ4 chunk length"));
+          return Err(invalid(
+            &pack_name,
+            format_args!("missing LZ4 chunk length"),
+          ));
         }
         let len_bytes: [u8; 4] = reader
           .read(4)
           .await?
           .try_into()
-          .map_err(|_| invalid("invalid LZ4 chunk length"))?;
+          .map_err(|_| invalid(&pack_name, format_args!("invalid LZ4 chunk length")))?;
         consumed += 4;
         let len = u32::from_le_bytes(len_bytes) as usize;
-        if len > file_size - consumed {
-          return Err(invalid("LZ4 chunk length out of bounds"));
+        let n = CHUNK.min(size - pos);
+        if len > file_size - consumed || len > get_maximum_output_size(n) {
+          return Err(invalid(
+            &pack_name,
+            format_args!("LZ4 chunk length out of bounds"),
+          ));
         }
         let block = reader.read(len).await?;
         if block.len() != len {
-          return Err(invalid("LZ4 chunk length out of bounds"));
+          return Err(invalid(&pack_name, format_args!("short LZ4 read")));
         }
         consumed += len;
-        let n = CHUNK.min(size - pos);
-        window.resize(dict_len + n, 0);
-        let (dict, out) = window.split_at_mut(dict_len);
+        let (dict, out) = window[..dict_len + n].split_at_mut(dict_len);
         let written = decompress_into_with_dict(&block, out, dict)
-          .map_err(|e| invalid(&format!("LZ4 decode failed: {e}")))?;
+          .map_err(|e| invalid(&pack_name, format_args!("LZ4 decode failed: {e}")))?;
         if written != n {
-          return Err(invalid("LZ4 decoded chunk size mismatch"));
+          return Err(invalid(
+            &pack_name,
+            format_args!("LZ4 decoded chunk size mismatch"),
+          ));
         }
         parser.feed(out)?;
-        let window_len = window.len();
-        dict_len = DICT.min(window_len);
-        window.copy_within(window_len - dict_len.., 0);
-        window.truncate(dict_len);
+        let decoded_end = dict_len + n;
+        dict_len = DICT.min(decoded_end);
+        window.copy_within(decoded_end - dict_len..decoded_end, 0);
         pos += n;
       }
       if consumed != file_size {
-        return Err(invalid("trailing bytes after LZ4 chunks"));
+        return Err(invalid(
+          &pack_name,
+          format_args!("trailing bytes after LZ4 chunks"),
+        ));
       }
       parser
     }
-    _ => return Err(invalid("unknown encoding")),
+    _ => return Err(invalid(&pack_name, format_args!("unknown encoding"))),
   };
   reader.close().await?;
   parser.finish()

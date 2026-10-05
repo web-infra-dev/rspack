@@ -6,11 +6,11 @@ use rspack_storage::{CacheDirectory, FileSystemOptions, FileSystemStorage, Resul
 
 const SCOPE: &str = "values";
 
-fn storage(fs: &Arc<MemoryFileSystem>) -> FileSystemStorage {
+fn storage(fs: &Arc<MemoryFileSystem>, max_pack_size: usize) -> FileSystemStorage {
   FileSystemStorage::new(FileSystemOptions {
     directory: "/cache".into(),
     cache_directory: CacheDirectory::new("0123456789abcdef"),
-    max_pack_size: 512_000,
+    max_pack_size,
     expire: 0,
     fs: fs.clone(),
   })
@@ -57,7 +57,7 @@ async fn test_encoding_markers_and_exact_roundtrip() -> Result<()> {
     (Vec::new(), 0x00),
   ] {
     let fs = Arc::new(MemoryFileSystem::default());
-    let mut writer = storage(&fs);
+    let mut writer = storage(&fs, 512_000);
     let key = vec![0, 255, 10, 32];
     writer.set(SCOPE, key.clone(), value.clone());
     writer.save();
@@ -85,14 +85,14 @@ async fn test_encoding_markers_and_exact_roundtrip() -> Result<()> {
       }
       assert_eq!(chunks, size.div_ceil(256 * 1024));
     }
-    assert_eq!(storage(&fs).load(SCOPE).await?, vec![(key, value)]);
+    assert_eq!(storage(&fs, 512_000).load(SCOPE).await?, vec![(key, value)]);
   }
   Ok(())
 }
 
 async fn rejects_corruption_and_rebuilds(bytes: &[u8], reason: &str) -> Result<()> {
   let fs = Arc::new(MemoryFileSystem::default());
-  let mut writer = storage(&fs);
+  let mut writer = storage(&fs, 512_000);
   let value = vec![b'x'; 8000];
   writer.set(SCOPE, b"key".to_vec(), value.clone());
   writer.save();
@@ -106,7 +106,7 @@ async fn rejects_corruption_and_rebuilds(bytes: &[u8], reason: &str) -> Result<(
     .expect("saved pack");
   fs.write(&file, bytes).await?;
 
-  let mut reader = storage(&fs);
+  let mut reader = storage(&fs, 512_000);
   let error = reader
     .load(SCOPE)
     .await
@@ -121,7 +121,7 @@ async fn rejects_corruption_and_rebuilds(bytes: &[u8], reason: &str) -> Result<(
   reader.save();
   reader.flush().await;
   assert_eq!(
-    storage(&fs).load(SCOPE).await?,
+    storage(&fs, 512_000).load(SCOPE).await?,
     vec![(b"key".to_vec(), value)]
   );
   Ok(())
@@ -142,22 +142,13 @@ async fn test_old_format_pack_is_a_miss_and_can_be_rebuilt() -> Result<()> {
 async fn test_multichunk_items_cross_boundaries() -> Result<()> {
   const CHUNK: usize = 256 * 1024;
   let fs = Arc::new(MemoryFileSystem::default());
-  let make_storage = || {
-    FileSystemStorage::new(FileSystemOptions {
-      directory: "/cache".into(),
-      cache_directory: CacheDirectory::new("0123456789abcdef"),
-      max_pack_size: 2 * 1024 * 1024,
-      expire: 0,
-      fs: fs.clone(),
-    })
-  };
   // Each item occupies 2 * CHUNK - 2 bytes including its 14-byte header.
   // Whatever the storage ordering, the second header straddles a chunk boundary,
-  // and both keys and values cross boundaries. Values exceed a full chunk.
+  // and headers and values cross boundaries. Values exceed a full chunk.
   let mut expected: Vec<_> = (0..3)
     .map(|i| (vec![b'a' + i; CHUNK - 17], vec![b'x' + i; CHUNK + 1]))
     .collect();
-  let mut writer = make_storage();
+  let mut writer = storage(&fs, 2 * 1024 * 1024);
   for (key, value) in &expected {
     writer.set(SCOPE, key.clone(), value.clone());
   }
@@ -173,7 +164,7 @@ async fn test_multichunk_items_cross_boundaries() -> Result<()> {
   assert_eq!(bytes[0], 0x01);
   let size = u32::from_le_bytes(bytes[1..5].try_into().expect("decoded size")) as usize;
   assert_eq!(size, 3 * (2 * CHUNK - 2));
-  let mut loaded = make_storage().load(SCOPE).await?;
+  let mut loaded = storage(&fs, 2 * 1024 * 1024).load(SCOPE).await?;
   expected.sort_unstable();
   loaded.sort_unstable();
   assert_eq!(loaded, expected);
