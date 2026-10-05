@@ -32,6 +32,8 @@ impl CappedOutput {
     scratch: &mut [u8],
   ) -> std::io::Result<()> {
     let (dict, chunk) = staging.split_at(*dict_len);
+    // The fast encoder needs an empty dictionary or at least 4 bytes; ours is 0 or 64 KiB.
+    debug_assert!(dict.is_empty() || dict.len() >= 4);
     // Errors are matched by kind in `save`. A codec error cannot happen with a
     // bound-sized scratch; if it does, the pack is stored raw.
     let written = compress_into_with_dict(chunk, scratch, dict)
