@@ -7,6 +7,10 @@ publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[package.metadata.cargo-shear]
+# Adding napi-derive as a dependency to workaround an issue where `dts` will no longer work without it.
+ignored = ["napi-derive", "tracing"]
+
 [lib]
 crate-type = ["cdylib"]
 test       = false
@@ -22,10 +26,6 @@ sftrace-setup    = ["rspack_binding_api/sftrace-setup"]
 system-allocator = ["rspack_binding_api/system-allocator"]
 test-loader      = ["rspack_binding_api/test-loader"]
 tracy-client     = ["rspack_binding_api/tracy-client"]
-
-[package.metadata.cargo-shear]
-# Adding napi-derive as a dependency to workaround an issue where `dts` will no longer work without it.
-ignored = ["napi-derive", "tracing"]
 
 [dependencies]
 rspack_binding_api = { workspace = true }

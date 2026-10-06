@@ -7,6 +7,9 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[package.metadata.cargo-shear]
+ignored = ["tracing"]
+
 [dependencies]
 rayon        = { workspace = true }
 rspack_core  = { workspace = true }
@@ -14,9 +17,6 @@ rspack_error = { workspace = true }
 rspack_hook  = { workspace = true }
 rustc-hash   = { workspace = true }
 tracing      = { workspace = true }
-
-[package.metadata.cargo-shear]
-ignored = ["tracing"]
 
 [lints]
 workspace = true

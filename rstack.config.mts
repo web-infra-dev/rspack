@@ -32,16 +32,12 @@ define.fmt({
       options: {
         plugins: ['prettier-plugin-toml'],
         printWidth: 120,
-        alignEntries: true,
-        arrayAutoExpand: false,
-        reorderKeys: true,
-        allowedBlankLines: 2,
-      },
-    },
-    {
-      files: ['clippy.toml', 'deny.toml'],
-      options: {
-        arrayAutoExpand: true,
+        keyValueEqualsSignAlignment: true,
+        groupBlankLinesLimit: 2,
+        stringQuoteStyle: 'preserve',
+        keyQuoteStyle: 'preserve',
+        commentStyle: 'preserve',
+        trailingCommentSpaceWidth: 1,
       },
     },
   ],

@@ -7,6 +7,9 @@ publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[package.metadata.cargo-shear]
+ignored = ["rspack_cacheable"]
+
 [dependencies]
 criterion = { workspace = true }
 rayon     = { workspace = true }
@@ -58,9 +61,6 @@ name    = "rspack_sources"
 [[bench]]
 harness = false
 name    = "walltime"
-
-[package.metadata.cargo-shear]
-ignored = ["rspack_cacheable"]
 
 [lints]
 workspace = true

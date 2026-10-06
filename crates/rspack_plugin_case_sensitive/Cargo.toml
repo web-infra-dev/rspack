@@ -6,6 +6,9 @@ name              = "rspack_plugin_case_sensitive"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[package.metadata.cargo-shear]
+ignored = ["tracing"]
+
 [dependencies]
 cow-utils          = { workspace = true }
 itertools          = { workspace = true }
@@ -15,9 +18,6 @@ rspack_error       = { workspace = true }
 rspack_hook        = { workspace = true }
 rustc-hash         = { workspace = true }
 tracing            = { workspace = true }
-
-[package.metadata.cargo-shear]
-ignored = ["tracing"]
 
 [lints]
 workspace = true

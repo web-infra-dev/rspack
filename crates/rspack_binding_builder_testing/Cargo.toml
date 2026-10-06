@@ -11,14 +11,13 @@ publish                 = false
 repository.workspace    = true
 version.workspace       = true
 
-[lib]
-crate-type = ["cdylib"]
-test       = false
-
-
 [package.metadata.cargo-shear]
 # `napi-derive` uses absolute path to `napi`
 ignored = ["napi"]
+
+[lib]
+crate-type = ["cdylib"]
+test       = false
 
 [features]
 plugin = ["rspack_binding_builder/plugin"]

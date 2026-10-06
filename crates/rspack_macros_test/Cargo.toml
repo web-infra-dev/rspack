@@ -7,6 +7,10 @@ publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[package.metadata.cargo-shear]
+ignored       = ["tracing", "rspack_cacheable", "rspack_collections", "rspack_hash"]
+ignored-paths = ["tests/ui/hook/*.rs"]
+
 [dev-dependencies]
 async-trait        = { workspace = true }
 rspack_cacheable   = { workspace = true }
@@ -20,10 +24,6 @@ rspack_util        = { workspace = true }
 tokio              = { workspace = true, features = ["macros"] }
 tracing            = { workspace = true }
 trybuild           = { workspace = true }
-
-[package.metadata.cargo-shear]
-ignored       = ["tracing", "rspack_cacheable", "rspack_collections", "rspack_hash"]
-ignored-paths = ["tests/ui/hook/*.rs"]
 
 [lints]
 workspace = true

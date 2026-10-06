@@ -56,11 +56,10 @@ rspack_plugin_worker                  = { workspace = true }
 rspack_tasks                          = { workspace = true }
 rspack_util                           = { workspace = true }
 # Loaders
-rspack_loader_lightningcss   = { workspace = true, optional = true }
-rspack_loader_preact_refresh = { workspace = true, optional = true }
-rspack_loader_react_refresh  = { workspace = true, optional = true }
-rspack_loader_swc            = { workspace = true, optional = true }
-
+rspack_loader_lightningcss            = { workspace = true, optional = true }
+rspack_loader_preact_refresh          = { workspace = true, optional = true }
+rspack_loader_react_refresh           = { workspace = true, optional = true }
+rspack_loader_swc                     = { workspace = true, optional = true }
 
 [dev-dependencies]
 insta          = { workspace = true, features = ["filters"] }

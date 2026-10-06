@@ -10,8 +10,16 @@ name                    = "rspack_binding_api"
 repository.workspace    = true
 version.workspace       = true
 
+[package.metadata.cargo-shear]
+ignored = ["parking_lot", "rspack_tracing_perfetto"]
+
 [features]
-allocative       = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
+allocative       = [
+  "rspack_util/allocative",
+  "rspack_collections/allocative",
+  "rspack_cacheable/allocative",
+  "rspack_tracing_perfetto?/allocative"
+]
 browser          = []
 debug_tool       = ["rspack_core/debug_tool"]
 perfetto         = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]
@@ -120,12 +128,20 @@ serde                                  = { workspace = true }
 serde_json                             = { workspace = true }
 simd-json                              = { workspace = true }
 slotmap                                = { workspace = true }
-swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "sync", "time", "test-util", "tracing", "parking_lot"] }
+swc_core                               = { workspace = true, default-features = false, features = [
+  "ecma_transforms_react"
+] }
+tokio                                  = { workspace = true, features = [
+  "rt",
+  "rt-multi-thread",
+  "macros",
+  "sync",
+  "time",
+  "test-util",
+  "tracing",
+  "parking_lot"
+] }
 ustr                                   = { workspace = true }
-
-[package.metadata.cargo-shear]
-ignored = ["parking_lot", "rspack_tracing_perfetto"]
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 # Explicitly adding features `nightly` to turn on wasm atomic support

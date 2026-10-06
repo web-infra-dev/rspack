@@ -5,6 +5,10 @@ license           = "MIT"
 name              = "rspack_plugin_extract_css"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
+
+[package.metadata.cargo-shear]
+ignored = ["tracing", "tokio"]
+
 [dependencies]
 async-trait              = { workspace = true }
 cow-utils                = { workspace = true }
@@ -25,9 +29,6 @@ serde_json               = { workspace = true }
 tokio                    = { workspace = true }
 tracing                  = { workspace = true }
 ustr                     = { workspace = true }
-
-[package.metadata.cargo-shear]
-ignored = ["tracing", "tokio"]
 
 [lints]
 workspace = true

@@ -6,6 +6,9 @@ name        = "rspack_collection_hasher"
 publish     = false
 version     = "0.1.0"
 
+[package.metadata.rust-analyzer]
+rustc_private = true
+
 [lib]
 crate-type = ["cdylib"]
 
@@ -23,6 +26,3 @@ rustc-hash         = "2.1.1"
 ustr               = { package = "ustr-fxhash", version = "1.0.1", default-features = false }
 
 [workspace]
-
-[package.metadata.rust-analyzer]
-rustc_private = true

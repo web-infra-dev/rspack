@@ -6,11 +6,11 @@ name              = "rspack_plugin_remove_duplicate_modules"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
-[lints]
-workspace = true
-
 [package.metadata.cargo-shear]
 ignored = ["tracing"]
+
+[lints]
+workspace = true
 
 [dependencies]
 rayon   = { workspace = true }

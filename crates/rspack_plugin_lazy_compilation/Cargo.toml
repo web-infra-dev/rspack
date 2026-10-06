@@ -8,6 +8,9 @@ name                    = "rspack_plugin_lazy_compilation"
 repository.workspace    = true
 version.workspace       = true
 
+[package.metadata.cargo-shear]
+ignored = ["tracing"]
+
 [dependencies]
 async-trait = { workspace = true }
 simd-json   = { workspace = true }
@@ -24,9 +27,6 @@ rspack_paths             = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_regex             = { workspace = true }
 rspack_util              = { workspace = true }
-
-[package.metadata.cargo-shear]
-ignored = ["tracing"]
 
 [lints]
 workspace = true

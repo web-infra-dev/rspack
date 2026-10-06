@@ -6,6 +6,9 @@ name              = "rspack_plugin_css"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[package.metadata.cargo-shear]
+ignored = ["tokio"]
+
 [dependencies]
 async-trait              = { workspace = true }
 atomic_refcell           = { workspace = true }
@@ -35,9 +38,6 @@ smol_str                 = { workspace = true }
 tokio                    = { workspace = true }
 tracing                  = { workspace = true }
 urlencoding              = { workspace = true }
-
-[package.metadata.cargo-shear]
-ignored = ["tokio"]
 
 [lints]
 workspace = true

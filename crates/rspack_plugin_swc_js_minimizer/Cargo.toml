@@ -23,7 +23,17 @@ rspack_regex               = { workspace = true }
 rspack_util                = { workspace = true }
 simd-json                  = { workspace = true }
 swc_config                 = { workspace = true }
-swc_core                   = { workspace = true, features = ["__parser", "__utils", "common_sourcemap", "ecma_preset_env", "ecma_transforms_optimization", "ecma_transforms_module", "ecma_transforms_compat", "ecma_transforms_typescript", "ecma_quote"] }
+swc_core                   = { workspace = true, features = [
+  "__parser",
+  "__utils",
+  "common_sourcemap",
+  "ecma_preset_env",
+  "ecma_transforms_optimization",
+  "ecma_transforms_module",
+  "ecma_transforms_compat",
+  "ecma_transforms_typescript",
+  "ecma_quote"
+] }
 swc_ecma_minifier          = { workspace = true, features = ["concurrent"] }
 thread_local               = { workspace = true }
 tracing                    = { workspace = true }

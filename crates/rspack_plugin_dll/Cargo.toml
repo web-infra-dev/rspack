@@ -7,6 +7,9 @@ name               = "rspack_plugin_dll"
 repository         = "https://github.com/web-infra-dev/rspack"
 version.workspace  = true
 
+[package.metadata.cargo-shear]
+ignored = ["tracing"]
+
 [dependencies]
 rspack_cacheable        = { workspace = true }
 rspack_collections      = { workspace = true }
@@ -32,6 +35,3 @@ workspace = true
 [lib]
 doctest = false
 test    = false
-
-[package.metadata.cargo-shear]
-ignored = ["tracing"]

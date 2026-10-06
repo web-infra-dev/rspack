@@ -12,6 +12,10 @@ readme               = "README.md"
 repository.workspace = true
 version.workspace    = true
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [lib]
 doctest = false
 
@@ -20,16 +24,16 @@ workspace = true
 
 [dependencies]
 dashmap    = { workspace = true }
-serde      = { workspace = true, features = ["derive"] }            # derive for Deserialize from package.json
-serde_json = { workspace = true, features = ["preserve_order"] }    # preserve_order: package_json.exports requires order such as `["require", "import", "default"]`
+serde      = { workspace = true, features = ["derive"] } # derive for Deserialize from package.json
+serde_json = { workspace = true, features = ["preserve_order"] } # preserve_order: package_json.exports requires order such as `["require", "import", "default"]`
 tracing    = { workspace = true, features = ["attributes", "std"] }
 
 simd-json = { workspace = true }
 
-camino              = { workspace = true, features = ["serde1"] }    # UTF-8 path types used for all internal path representations
+camino              = { workspace = true, features = ["serde1"] } # UTF-8 path types used for all internal path representations
 cfg-if              = { workspace = true }
 cow-utils           = { workspace = true }
-dunce               = { workspace = true }                           # Normalize Windows paths to the most compatible format, avoiding UNC where possible
+dunce               = { workspace = true } # Normalize Windows paths to the most compatible format, avoiding UNC where possible
 indexmap            = { workspace = true, features = ["serde"] }
 json-strip-comments = { workspace = true }
 rspack_paths        = { workspace = true, default-features = false } # no cacheable: it pulls swc_core, which breaks wasm32-unknown-unknown
@@ -47,6 +51,7 @@ futures           = { workspace = true }
 # out of the wasm feature set.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { workspace = true, features = ["sync", "rt-multi-thread", "macros"] }
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { workspace = true, features = ["sync", "macros"] }
 
@@ -56,15 +61,11 @@ regex          = { workspace = true }
 vfs            = { workspace = true } # for testing with in memory file system
 
 [features]
-default = ["yarn_pnp"]
+default                   = ["yarn_pnp"]
 ## Enables the [PackageJson::raw_json] API,
 ## which returns the `package.json` with `serde_json::Value`.
 package_json_raw_json_api = []
 ## [Yarn Plug'n'Play](https://yarnpkg.com/features/pnp)
-yarn_pnp = ["pnp", "arc-swap"]
+yarn_pnp                  = ["pnp", "arc-swap"]
 # For remove tracing calls in release build
-enable_instrument = []
-
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+enable_instrument         = []
