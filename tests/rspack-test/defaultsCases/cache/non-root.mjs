@@ -23,6 +23,7 @@ export default {
 			+     "portable": false,
 			+     "readonly": false,
 			+     "storage": Object {
+			+       "compression": "lz4",
 			+       "directory": "<cwd>/fixtures/node_modules/.cache/rspack",
 			+       "location": "<cwd>/fixtures/node_modules/.cache/rspack/none",
 			+       "type": "filesystem",

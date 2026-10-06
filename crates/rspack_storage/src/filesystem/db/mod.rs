@@ -94,7 +94,12 @@ impl DB {
   /// - `None`: Remove the key
   ///
   /// Returns `false` when the DB is readonly or the save failed.
-  pub async fn save(&self, changes: BucketChanges, max_pack_size: usize) -> bool {
+  pub async fn save(
+    &self,
+    changes: BucketChanges,
+    max_pack_size: usize,
+    compression: bool,
+  ) -> bool {
     if self.readonly.load(Ordering::Relaxed) {
       return false;
     }
@@ -125,7 +130,7 @@ impl DB {
               Bucket::new(readable_fs).await?
             };
             let affacted_files = bucket
-              .save(Some(writable_fs), changes, max_pack_size)
+              .save(Some(writable_fs), changes, max_pack_size, compression)
               .await?;
             Ok::<_, Error>((bucket_name, bucket, affacted_files))
           }
@@ -270,7 +275,7 @@ mod test {
     let mut data = HashMap::default();
     data.insert(String::from(name_1), bucket_data.clone());
     data.insert(String::from(name_2), bucket_data.clone());
-    assert!(db.save(data, 25).await);
+    assert!(db.save(data, 25, true).await);
 
     let mut data1 = db.load(name_1).await?;
     data1.sort();
@@ -292,7 +297,7 @@ mod test {
     let mut data = HashMap::default();
     data.insert(String::from(name_1), bucket_data.clone());
     data.insert(String::from(name_2), bucket_data);
-    assert!(db.save(data, 25).await);
+    assert!(db.save(data, 25, true).await);
     assert_eq!(db.bucket_names().await?.len(), 2);
 
     assert!(db.reset_all().await);

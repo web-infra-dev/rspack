@@ -17,6 +17,7 @@ export default {
 			+     "portable": false,
 			+     "readonly": false,
 			+     "storage": Object {
+			+       "compression": "lz4",
 			+       "directory": "<cwd>/node_modules/.cache/rspack",
 			+       "location": "<cwd>/node_modules/.cache/rspack/development",
 			+       "type": "filesystem",

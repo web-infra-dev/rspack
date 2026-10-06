@@ -86,6 +86,7 @@ pub enum StorageOptions {
   FileSystem {
     #[cacheable(with=As<PortablePath>)]
     directory: Utf8PathBuf,
+    compression: bool,
   },
 }
 

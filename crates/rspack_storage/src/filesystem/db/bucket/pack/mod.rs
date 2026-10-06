@@ -92,7 +92,12 @@ impl Pack {
   /// Saves the pack to disk and generates its index metadata.
   ///
   /// The index includes a bloom filter for fast key lookups and a content hash for integrity.
-  pub async fn save(&mut self, fs: &ScopeFileSystem, id: PackId) -> Result<PackIndex> {
+  pub async fn save(
+    &mut self,
+    fs: &ScopeFileSystem,
+    id: PackId,
+    compression: bool,
+  ) -> Result<PackIndex> {
     // Nearby keys share the LZ4 window and make output deterministic.
     // Keys are unique within a pack, so an unstable sort is sufficient.
     self.data.sort_unstable_by(|a, b| a.0.cmp(&b.0));
@@ -135,7 +140,8 @@ impl Pack {
       index_gen.add_value(value);
     }
     // LZ4's size prefix is u32. Larger bodies remain raw, without failing the save.
-    let compressed = if raw_len >= 8 * 1024
+    let compressed = if compression
+      && raw_len >= 8 * 1024
       && let Ok(size) = u32::try_from(raw_len)
     {
       // Account for the prepended size when requiring at least 12.5% savings.
@@ -251,7 +257,7 @@ mod test {
     assert!(!pack.remove("key4".as_bytes()));
     assert!(pack.remove("key2".as_bytes()));
 
-    let index = pack.save(&fs, pack_id).await?;
+    let index = pack.save(&fs, pack_id, true).await?;
     let (other_pack, content_hash) = Pack::load(&fs, pack_id).await?;
     assert!(index.check_content_hash(content_hash));
     assert_eq!(pack, other_pack);

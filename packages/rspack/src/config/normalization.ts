@@ -345,6 +345,7 @@ export const getNormalizedRspackOptions = (
             ),
             storage: nestedConfig(cache.storage, (storage) => ({
               type: storage.type,
+              compression: storage.compression,
               directory: optionalNestedConfig(storage.directory, (directory) =>
                 path.resolve(context, directory),
               ),
@@ -718,6 +719,7 @@ export type CacheNormalized =
         type: 'filesystem';
         directory?: string;
         location?: string;
+        compression?: false | 'lz4';
       };
       portable?: boolean;
       readonly?: boolean;

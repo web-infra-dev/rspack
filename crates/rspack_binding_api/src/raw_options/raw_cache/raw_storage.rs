@@ -7,6 +7,7 @@ pub struct RawStorageOptions {
   #[napi(ts_type = r#""filesystem""#)]
   pub r#type: String,
   pub directory: String,
+  pub compression: bool,
 }
 
 impl RawStorageOptions {
@@ -14,6 +15,7 @@ impl RawStorageOptions {
     match self.r#type.as_str() {
       "filesystem" => Ok(StorageOptions::FileSystem {
         directory: self.directory.into(),
+        compression: self.compression,
       }),
       storage_type => Err(rspack_error::error!(
         "unsupported storage type {storage_type}"

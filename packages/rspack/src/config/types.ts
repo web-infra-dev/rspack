@@ -2124,6 +2124,11 @@ export type CacheStorageOptions = {
    * @default '<directory>/<cache.name>'
    */
   location?: string;
+  /**
+   * Compress persistent cache packs with LZ4, or disable compression.
+   * @default 'lz4'
+   */
+  compression?: false | 'lz4';
 };
 
 /**

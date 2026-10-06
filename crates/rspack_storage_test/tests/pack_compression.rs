@@ -11,6 +11,7 @@ fn storage(fs: &Arc<MemoryFileSystem>, max_pack_size: usize) -> FileSystemStorag
     directory: "/cache".into(),
     cache_directory: CacheDirectory::new("0123456789abcdef"),
     max_pack_size,
+    compression: true,
     expire: 0,
     fs: fs.clone(),
   })

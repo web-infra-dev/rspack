@@ -210,6 +210,7 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
       type: cache.storage.type,
       // Raw `directory` expects the final cache path; normalized `directory` is only the base.
       directory: cache.storage.location!,
+      compression: cache.storage.compression !== false,
     },
     portable: cache.portable,
     readonly: cache.readonly,

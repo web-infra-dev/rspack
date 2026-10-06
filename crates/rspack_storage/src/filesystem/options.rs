@@ -15,6 +15,8 @@ pub struct FileSystemOptions {
   pub cache_directory: CacheDirectory,
   /// Maximum pack file size (bytes), creates new pack file when exceeded
   pub max_pack_size: usize,
+  /// Whether to compress pack files with LZ4 when beneficial
+  pub compression: bool,
   /// Data expiration time (seconds), 0 means never expire
   pub expire: u64,
   /// File system implementation

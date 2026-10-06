@@ -15,6 +15,21 @@ const validateContext = ({ context }: Configuration) => {
   }
 };
 
+const validateCache = ({ cache }: Configuration) => {
+  if (cache && typeof cache === 'object' && cache.type === 'persistent') {
+    const compression = cache.storage?.compression;
+    if (
+      compression !== undefined &&
+      compression !== false &&
+      compression !== 'lz4'
+    ) {
+      throw new Error(
+        `${ERROR_PREFIX} "cache.storage.compression" must be false or 'lz4', get \`${compression}\`.`,
+      );
+    }
+  }
+};
+
 const validateSplitChunks = ({ optimization }: Configuration) => {
   if (optimization?.splitChunks) {
     const { minChunks } = optimization.splitChunks;
@@ -84,6 +99,7 @@ const validateExternalUmd = ({
  */
 export function validateRspackConfig(config: Configuration) {
   validateContext(config);
+  validateCache(config);
   validateSplitChunks(config);
   validateExternalUmd(config);
 }

@@ -104,6 +104,7 @@ impl Bucket {
     writable_fs: Option<ScopeFileSystem>,
     data: Vec<(Vec<u8>, Option<Vec<u8>>)>,
     max_pack_size: usize,
+    compression: bool,
   ) -> Result<(Vec<String>, Vec<String>)> {
     let writable_fs = writable_fs.unwrap_or(self.fs.clone());
 
@@ -140,7 +141,7 @@ impl Bucket {
         let fs = writable_fs.clone();
         async move {
           let mut pack = pack;
-          let index = pack.save(&fs, pack_id).await?;
+          let index = pack.save(&fs, pack_id, compression).await?;
           Ok::<_, Error>((pack_id, pack, index))
         }
       })
@@ -243,7 +244,7 @@ mod test {
         )
       })
       .collect();
-    bucket.save(None, data, 25).await?;
+    bucket.save(None, data, 25, true).await?;
 
     let data = bucket.load_all().await?;
     assert_eq!(data.len(), 9);
