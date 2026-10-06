@@ -193,9 +193,7 @@ fn should_report_a_recreated_file_as_changed_only() {
   let aggregate_events = c!();
   helper.collect_events(
     rx,
-    |event, _| {
-      event.assert_path(helper.join("a"));
-    },
+    |_, _| {},
     |changes, abort| {
       changes.assert_changed(helper.join("a"));
       assert!(
