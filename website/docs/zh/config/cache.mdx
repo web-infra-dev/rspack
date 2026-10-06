@@ -422,11 +422,11 @@ export default {
 #### storage.compression
 
 - **类型：** `false | 'lz4'`
-- **默认值：** `'lz4'`
+- **默认值：** `false`
 
-`cache.storage.compression` 用于控制持久化缓存包的压缩，类似于 webpack 的 `cache.compression`。默认情况下，Rspack 会在能够减小体积时使用 LZ4 压缩。将其设置为 `false` 会以未压缩的形式写入所有缓存包。与默认值为 `false` 的 webpack 不同，Rspack 默认启用压缩。
+`cache.storage.compression` 用于控制持久化缓存包的压缩，类似于 webpack 的 `cache.compression`，两者都默认为 `false`。默认情况下，Rspack 会以未压缩的形式写入所有缓存包。将其设置为 `'lz4'`，即可使用 LZ4 压缩所有缓存包。对于可压缩的数据，这会减小缓存包体积并减少磁盘 I/O，代价是在保存和恢复时消耗更多 CPU。对于不可压缩的数据，缓存包体积可能略有增加。
 
-更改此选项不会使现有缓存失效，也无需更改缓存版本：Rspack 可以读取压缩和未压缩的缓存包。已有的缓存包会保持原有编码，直到被重新写入。
+更改 `compression` 会选择独立的缓存目录，如果此前未使用过该模式，则会创建新的缓存。旧目录在未使用的时间超过 [`cache.maxAge`](#maxage) 后，会在清理时被删除，默认期限为 7 天。在旧缓存过期前切换回原模式，可以复用该缓存。将 `maxAge` 设置为 `Infinity` 可禁用基于时间的清理。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -434,7 +434,7 @@ export default {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-      compression: false,
+      compression: 'lz4',
     },
   },
 };

@@ -433,11 +433,11 @@ export default {
 #### storage.compression
 
 - **Type:** `false | 'lz4'`
-- **Default:** `'lz4'`
+- **Default:** `false`
 
-`cache.storage.compression` controls compression of persistent cache packs, similar to webpack's `cache.compression`. By default, Rspack uses LZ4 compression when beneficial. Set it to `false` to write all packs uncompressed. Unlike webpack, which defaults to `false`, Rspack compresses by default.
+`cache.storage.compression` controls compression of persistent cache packs, similar to webpack's `cache.compression`, which also defaults to `false`. By default, Rspack writes all packs uncompressed. Set it to `'lz4'` to compress all packs with LZ4. Compressible data produces smaller packs with less disk I/O at the cost of more CPU during save and restore. Incompressible data may produce slightly larger packs.
 
-Changing this option does not invalidate the existing cache or require a version change: Rspack can load both compressed and uncompressed packs. Existing packs keep their current encoding until they are rewritten.
+Changing `compression` selects a separate cache directory and starts a new cache if that mode has not been used before. The previous directory is removed during cleanup after it has been unused for longer than [`cache.maxAge`](#maxage), which defaults to 7 days. Switching back before it expires can reuse the previous cache. Setting `maxAge` to `Infinity` disables age-based cleanup.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -445,7 +445,7 @@ export default {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-      compression: false,
+      compression: 'lz4',
     },
   },
 };
