@@ -127,7 +127,7 @@ catalog:
   'preact': '^10.29.8'
   'prebundle': '^1.6.5'
   'prettier': '3.9.9'
-  'prettier-plugin-toml': '2.0.6'
+  'prettier-plugin-toml': '3.0.2'
   'pretty-format': '30.5.1'
   'prop-types': '^15.8.1'
   'raw-loader': '^4.0.2'
