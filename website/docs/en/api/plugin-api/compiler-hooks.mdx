@@ -637,6 +637,47 @@ compiler.hooks.invalid.tap('MyPlugin', (fileName, changeTime) => {
 });
 ```
 
+## `watchInvalidation`
+
+Rspack calls this hook synchronously for each observed watch invalidation, before scheduling or coalescing rebuilds. It also fires while a compilation is running. Unlike `invalid`, it reports every observed cause, including repeated manual invalidations.
+
+- **Type:** `SyncHook<[WatchInvalidation]>`
+- **Argument:** an immutable `WatchInvalidation` with `watchId`, `revision`, and `cause`.
+
+```ts
+type WatchCause =
+  | { readonly kind: 'initial' }
+  | { readonly kind: 'lazy'; readonly keys: readonly string[] }
+  | {
+      readonly kind: 'source';
+      readonly changed: readonly string[];
+      readonly removed: readonly string[];
+    }
+  | { readonly kind: 'unknown' };
+
+interface WatchInvalidation {
+  readonly watchId: string;
+  readonly revision: number;
+  readonly cause: WatchCause;
+}
+```
+
+`WatchCause` and `WatchInvalidation` are exported from `@rspack/core`. Each `Watching` lifetime has a different `watchId`. Revision zero identifies the initial compilation and does not emit a notification. Subsequent invalidations have increasing revisions. Closing a watcher discards its pending invalidations.
+
+Manual `watching.invalidate()` calls have an `unknown` cause. File notifications and changes found when a paused watcher resumes have a `source` cause. Missing filename information has an `unknown` cause. A file notification and its later aggregated update can produce separate events for the same path.
+
+MultiCompiler scheduling does not add a cause when the child already has pending invalidations. A dependency invalidation has an `unknown` cause on the affected child. An otherwise uncaused scheduled rebuild also has an `unknown` cause.
+
+A `lazy` cause comes from Rspack's lazy compilation middleware and contains the newly queued opaque backend keys. Keys are not file paths or URLs. Repeated pending requests retain the middleware's existing scheduling deduplication. Requested keys do not prove that a compilation consumed them.
+
+```ts
+compiler.hooks.watchInvalidation.tap('WatchObserver', (event) => {
+  console.log(event.watchId, event.revision, event.cause);
+});
+```
+
+[Compilation.rebuildOrigin](/api/javascript-api/compilation#rebuildorigin) records the causes assigned to one compilation and the lazy keys consumed by its backend. Notifications do not guarantee that the rebuild succeeds or that an application has published the resulting runtime.
+
 ## `watchClose`
 
 Called when a watching compilation has stopped.
