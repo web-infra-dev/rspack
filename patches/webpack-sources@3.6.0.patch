@@ -1,0 +1,18 @@
+diff --git a/types.d.ts b/types.d.ts
+--- a/types.d.ts
++++ b/types.d.ts
+@@ -28,7 +28,6 @@
+ import StreamChunks = require("./types/helpers/streamChunks");
+ import StringBufferUtils = require("./types/helpers/stringBufferUtils");
+ 
+-declare namespace exports {
+ 	export namespace util {
+ 		export import scopes = Scopes;
+ 		export import stringBufferUtils = StringBufferUtils;
+@@ -59,6 +58,4 @@
+ 		SizeOnlySource,
+ 		CompatSource,
+ 	};
+-}
+ 
+-export = exports;
