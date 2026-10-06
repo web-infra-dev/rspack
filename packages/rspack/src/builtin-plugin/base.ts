@@ -10,6 +10,7 @@ const HOOKS_CAN_NOT_INHERENT_FROM_PARENT = [
   'emit',
   'afterEmit',
   'invalid',
+  'watchInvalidation',
   'done',
   'thisCompilation',
 ];

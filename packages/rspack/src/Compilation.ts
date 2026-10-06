@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { readWatchOrigin, type RebuildOrigin } from './WatchOrigin';
 import type {
   AssetInfo,
   ChunkGroup,
@@ -513,6 +514,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       inner.addEntry.bind(inner),
     );
     this[binding.COMPILATION_HOOKS_MAP_SYMBOL] = new WeakMap();
+  }
+
+  get rebuildOrigin(): RebuildOrigin | undefined {
+    return readWatchOrigin(this);
   }
 
   get hash(): Readonly<string | null> {
