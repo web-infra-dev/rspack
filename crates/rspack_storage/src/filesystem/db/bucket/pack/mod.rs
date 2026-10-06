@@ -5,7 +5,7 @@ mod load;
 
 use std::io::ErrorKind;
 
-use lz4_flex::block::{compress_into_with_dict, get_maximum_output_size};
+use lz4_flex::block::{compress_into, compress_into_with_dict, get_maximum_output_size};
 
 pub use self::{generator::PackGenerator, id::PackId, id_alloc::PackIdAlloc};
 use super::{
@@ -36,8 +36,12 @@ impl CappedOutput {
     debug_assert!(dict.is_empty() || dict.len() >= 4);
     // Errors are matched by kind in `save`. A codec error cannot happen with a
     // bound-sized scratch; if it does, the pack is stored raw.
-    let written = compress_into_with_dict(chunk, scratch, dict)
-      .map_err(|_| std::io::Error::from(ErrorKind::FileTooLarge))?;
+    let written = if dict.is_empty() {
+      compress_into(chunk, scratch)
+    } else {
+      compress_into_with_dict(chunk, scratch, dict)
+    }
+    .map_err(|_| std::io::Error::from(ErrorKind::FileTooLarge))?;
     if 4 + written > self.cap - self.bytes.len() {
       return Err(ErrorKind::FileTooLarge.into());
     }

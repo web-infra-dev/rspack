@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 
-use lz4_flex::block::{decompress_into_with_dict, get_maximum_output_size};
+use lz4_flex::block::{decompress_into, decompress_into_with_dict, get_maximum_output_size};
 use rustc_hash::FxHasher;
 
 use super::{CHUNK, DICT, LZ4_ENCODING, Pack, PackId, RAW_ENCODING, ScopeFileSystem};
@@ -277,8 +277,12 @@ impl<'a> Decoder<'a> {
         let n = CHUNK.min(self.decoded_remaining);
         let decoded_end = self.dict_len + n;
         let (dict, out) = self.window[..decoded_end].split_at_mut(self.dict_len);
-        let written = decompress_into_with_dict(bytes, out, dict)
-          .map_err(|_| invalid(pack_name, "LZ4 decode failed"))?;
+        let written = if dict.is_empty() {
+          decompress_into(bytes, out)
+        } else {
+          decompress_into_with_dict(bytes, out, dict)
+        }
+        .map_err(|_| invalid(pack_name, "LZ4 decode failed"))?;
         if written != n {
           return Err(invalid(pack_name, "LZ4 decoded chunk size mismatch"));
         }
