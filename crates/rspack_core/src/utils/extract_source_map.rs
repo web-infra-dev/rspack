@@ -3,9 +3,8 @@
   Author Natsu @xiaoxiaojx
 */
 
-use std::{borrow::Cow, path::PathBuf, sync::Arc};
+use std::{borrow::Cow, ops::Range, path::PathBuf, sync::Arc};
 
-use cow_utils::CowUtils;
 use futures::stream::{FuturesOrdered, StreamExt};
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -14,6 +13,13 @@ use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_sources::SourceMap;
 use rspack_util::{base64, node_path::NodePath};
 use rustc_hash::FxHashSet;
+use swc_core::{
+  common::{BytePos, comments::SingleThreadedComments, input::StringInput},
+  ecma::{
+    ast::EsVersion,
+    parser::{EsSyntax, Parser, Syntax, lexer::Lexer},
+  },
+};
 
 /// Source map extractor result
 #[derive(Debug)]
@@ -41,12 +47,37 @@ static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
 
 /// Extract source mapping URL from code comments
 pub fn get_source_mapping_url(code: &str) -> SourceMappingURL {
+  get_source_mapping_url_with_range(code).0
+}
+
+// Retain the public result shape; only extraction needs the byte range.
+fn get_source_mapping_url_with_range(code: &str) -> (SourceMappingURL, Option<Range<usize>>) {
   // Use captures_iter to find the last match, avoiding split and collect overhead
   let mut match_result = None;
   let mut replacement_string = String::new();
+  let mut replacement_range = None;
+
+  // Avoid parsing sources that have no possible directive. For JavaScript,
+  // use comment locations from the existing parser to reject string contents,
+  // including nested template literals and regular expressions. Non-JavaScript
+  // inputs (for example CSS) retain the existing extraction behavior.
+  let comment_starts = SOURCE_MAPPING_URL_REGEX
+    .is_match(code)
+    .then(|| javascript_comment_starts(code))
+    .flatten();
 
   // Find the last match from the end
-  if let Some(captures) = SOURCE_MAPPING_URL_REGEX.captures_iter(code).last() {
+  if let Some(captures) = SOURCE_MAPPING_URL_REGEX
+    .captures_iter(code)
+    .filter(|captures| {
+      comment_starts.as_ref().is_none_or(|starts| {
+        captures
+          .get(0)
+          .is_some_and(|matched| starts.contains(&matched.start()))
+      })
+    })
+    .last()
+  {
     match_result = captures
       .get(1)
       .or_else(|| captures.get(2))
@@ -54,11 +85,12 @@ pub fn get_source_mapping_url(code: &str) -> SourceMappingURL {
 
     // Get the complete match string for replacement
     replacement_string = captures.get(0).map_or("", |m| m.as_str()).to_string();
+    replacement_range = captures.get(0).map(|matched| matched.range());
   }
 
   let source_mapping_url = match_result.unwrap_or("").to_string();
 
-  SourceMappingURL {
+  let source_mapping_url = SourceMappingURL {
     source_mapping_url: if !source_mapping_url.is_empty() {
       urlencoding::decode(&source_mapping_url)
         .unwrap_or(Cow::Borrowed(&source_mapping_url))
@@ -67,7 +99,34 @@ pub fn get_source_mapping_url(code: &str) -> SourceMappingURL {
       source_mapping_url
     },
     replacement_string,
-  }
+  };
+  (source_mapping_url, replacement_range)
+}
+
+fn javascript_comment_starts(code: &str) -> Option<FxHashSet<usize>> {
+  let comments = SingleThreadedComments::default();
+  let lexer = Lexer::new(
+    Syntax::Es(EsSyntax {
+      jsx: true,
+      decorators: true,
+      ..Default::default()
+    }),
+    EsVersion::latest(),
+    StringInput::new(code, BytePos(1), BytePos(code.len() as u32 + 1)),
+    Some(&comments),
+  );
+  Parser::new_from(lexer).parse_program().ok()?;
+  let (leading, trailing) = comments.take_all();
+  let leading = leading.borrow();
+  let trailing = trailing.borrow();
+  Some(
+    leading
+      .values()
+      .chain(trailing.values())
+      .flatten()
+      .map(|comment| comment.span.lo.0 as usize - 1)
+      .collect(),
+  )
 }
 
 /// Check if value is a URL
@@ -248,10 +307,12 @@ pub async fn extract_source_map(
   input: &str,
   resource_path: &str,
 ) -> Result<ExtractSourceMapResult, String> {
-  let SourceMappingURL {
-    source_mapping_url,
-    replacement_string,
-  } = get_source_mapping_url(input);
+  let (
+    SourceMappingURL {
+      source_mapping_url, ..
+    },
+    replacement_range,
+  ) = get_source_mapping_url_with_range(input);
 
   if source_mapping_url.is_empty() {
     return Ok(ExtractSourceMapResult {
@@ -370,11 +431,10 @@ pub async fn extract_source_map(
   source_map.set_source_root(None);
 
   // Optimize string replacement to avoid unnecessary cloning
-  let new_source = if replacement_string.is_empty() {
-    input.to_string()
-  } else {
-    input.cow_replace(&replacement_string, "").into_owned()
-  };
+  let mut new_source = input.to_string();
+  if let Some(range) = replacement_range {
+    new_source.replace_range(range, "");
+  }
 
   Ok(ExtractSourceMapResult {
     source: new_source,
