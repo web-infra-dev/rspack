@@ -198,7 +198,7 @@ fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder:
       version: String::new(),
       storage: StorageOptions::FileSystem {
         directory: cache_dir.to_string_lossy().to_string().into(),
-        compression: true,
+        compression: false,
       },
       portable: false,
       readonly: false,

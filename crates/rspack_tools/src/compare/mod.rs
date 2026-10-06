@@ -114,7 +114,7 @@ pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage
     let storage = create_storage(
       StorageOptions::FileSystem {
         directory: path.clone(),
-        compression: true,
+        compression: false,
       },
       cache_directory,
       0,

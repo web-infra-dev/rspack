@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const cacheDir = path.join(import.meta.dirname, '.cache');
+let compilerIndex = 0;
 
 function packFiles(directory: string): string[] {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -20,7 +21,7 @@ export default defineConfig({
     storage: {
       type: 'filesystem',
       directory: cacheDir,
-      compression: false,
+      compression: 'lz4',
     },
   },
   module: {
@@ -34,6 +35,22 @@ export default defineConfig({
   plugins: [
     definePlugin({
       apply(compiler) {
+        compiler.hooks.done.tap('CompressedPacksTest', (stats) => {
+          const entries =
+            stats.toJson({ all: false, logging: 'verbose' }).logging?.[
+              'rspack.SourceMapDevToolPlugin'
+            ]?.entries ?? [];
+          const cacheEntry = entries.find(
+            (entry) =>
+              entry.type === 'cache' &&
+              entry.message.startsWith('source map persistent cache:'),
+          );
+          const match = cacheEntry?.message.match(/\((\d+)\/(\d+)\)/);
+          expect(match).toBeTruthy();
+          expect(Number(match![1])).toBe(compilerIndex === 1 ? 1 : 0);
+          expect(Number(match![2])).toBe(1);
+          compilerIndex++;
+        });
         const close = compiler.close.bind(compiler);
         compiler.close = (callback) => {
           close((error) => {
@@ -41,14 +58,18 @@ export default defineConfig({
             try {
               // Native close drains background storage writes before inspecting packs.
               const packs = packFiles(cacheDir);
-              const sourceMapPacks = packs.filter((file) =>
-                file.includes(
-                  `${path.sep}occasion_source_map_dev_tool_plugin${path.sep}`,
-                ),
+              const sourceMapPacks = packs.filter(
+                (file) =>
+                  file.includes(
+                    `${path.sep}occasion_source_map_dev_tool_plugin${path.sep}`,
+                  ) && fs.statSync(file).size > 1,
               );
               expect(sourceMapPacks.length).toBeGreaterThan(0);
-              for (const file of packs) {
-                expect(fs.readFileSync(file)[0]).toBe(0x00);
+              for (const file of sourceMapPacks) {
+                const pack = fs.readFileSync(file);
+                expect(pack[0]).toBe(0x01);
+                // The decoded size requires later chunks to use a dictionary.
+                expect(pack.readUInt32LE(1)).toBeGreaterThan(256 * 1024);
               }
               callback();
             } catch (error) {

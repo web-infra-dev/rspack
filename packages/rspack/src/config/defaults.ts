@@ -256,7 +256,7 @@ const applyCacheDefaults = (
       break;
     case 'persistent':
       D(cache.storage, 'type', 'filesystem');
-      D(cache.storage, 'compression', 'lz4');
+      D(cache.storage, 'compression', false);
       F(cache.storage, 'directory', () =>
         path.resolve(context, 'node_modules/.cache/rspack'),
       );
