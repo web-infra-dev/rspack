@@ -502,3 +502,9 @@ export const experiments: Experiments = {
   },
   rsc,
 };
+
+export type {
+  WatchCause,
+  WatchInvalidation,
+  RebuildOrigin,
+} from './WatchOrigin';
