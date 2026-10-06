@@ -1,11 +1,11 @@
 mod generator;
 mod id;
 mod id_alloc;
-mod load;
+mod lz4;
 
-use std::io::ErrorKind;
+use std::hash::{Hash, Hasher};
 
-use lz4_flex::block::{compress_into, compress_into_with_dict, get_maximum_output_size};
+use rustc_hash::FxHasher;
 
 pub use self::{generator::PackGenerator, id::PackId, id_alloc::PackIdAlloc};
 use super::{
@@ -14,64 +14,14 @@ use super::{
 };
 use crate::{Error, Result};
 
-const RAW_ENCODING: u8 = 0;
-const LZ4_ENCODING: u8 = 1;
-const CHUNK: usize = 256 * 1024;
-const DICT: usize = 64 * 1024;
-
-struct CappedOutput {
-  bytes: Vec<u8>,
-  cap: usize,
-}
-
-impl CappedOutput {
-  fn compress_chunk(
-    &mut self,
-    staging: &mut Vec<u8>,
-    dict_len: &mut usize,
-    scratch: &mut [u8],
-  ) -> std::io::Result<()> {
-    let (dict, chunk) = staging.split_at(*dict_len);
-    // The fast encoder needs an empty dictionary or at least 4 bytes; ours is 0 or 64 KiB.
-    debug_assert!(dict.is_empty() || dict.len() >= 4);
-    // Errors are matched by kind in `save`. A codec error cannot happen with a
-    // bound-sized scratch; if it does, the pack is stored raw.
-    let written = if dict.is_empty() {
-      compress_into(chunk, scratch)
-    } else {
-      compress_into_with_dict(chunk, scratch, dict)
-    }
-    .map_err(|_| std::io::Error::from(ErrorKind::FileTooLarge))?;
-    if 4 + written > self.cap - self.bytes.len() {
-      return Err(ErrorKind::FileTooLarge.into());
-    }
-    self
-      .bytes
-      .try_reserve(4 + written)
-      .map_err(|_| std::io::Error::from(ErrorKind::OutOfMemory))?;
-    self
-      .bytes
-      .extend_from_slice(&(written as u32).to_le_bytes());
-    self.bytes.extend_from_slice(&scratch[..written]);
-    let staged_len = staging.len();
-    *dict_len = DICT.min(staged_len);
-    staging.copy_within(staged_len - *dict_len.., 0);
-    staging.truncate(*dict_len);
-    Ok(())
-  }
-}
-
 /// A pack file containing a collection of key-value pairs.
 ///
-/// Marker 0x00 selects a raw body. Marker 0x01 selects a little-endian u32
-/// decoded size followed by chunks, each a little-endian u32 compressed length
-/// and an LZ4 block. Each chunk decodes to min(256 KiB, remaining decoded size),
-/// so only the last chunk can be shorter. Blocks use the preceding up-to-64 KiB
-/// raw bytes as their dictionary. No trailing bytes are allowed.
-/// Small/incompressible bodies stay raw.
-/// The decoded body contains `key_len value_len` headers terminated by a newline,
-/// followed by key/value bytes. Content hashes cover logical keys and values,
-/// not encoded file bytes.
+/// By default, pack files store data in a simple format:
+/// - Each item has a header line: "key_len value_len"
+/// - Followed by raw key bytes and value bytes
+/// - Content hash is computed from all keys and values for integrity verification
+///
+/// When compression is enabled, the LZ4 module encodes and decodes this body.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Pack {
   data: Vec<(Vec<u8>, Vec<u8>)>,
@@ -85,8 +35,50 @@ impl Pack {
   /// Loads a pack file from disk and returns the pack data with its content hash.
   ///
   /// Returns: (Pack, content_hash)
-  pub async fn load(fs: &ScopeFileSystem, id: PackId) -> Result<(Self, u64)> {
-    load::load(fs, id).await
+  pub async fn load(fs: &ScopeFileSystem, id: PackId, compression: bool) -> Result<(Self, u64)> {
+    if compression {
+      // Boxed so the default future keeps its size; most packs load in their own spawned task.
+      return Box::pin(lz4::load(fs, id)).await;
+    }
+
+    let pack_name = id.pack_name();
+    let mut reader = fs.stream_read(&pack_name).await?;
+
+    let mut content_hasher = FxHasher::default();
+    let mut data = vec![];
+    while let Ok(header) = reader.read_line().await {
+      if header.is_empty() {
+        break;
+      }
+      let parts: Vec<_> = header.split(' ').collect();
+      if parts.len() != 2 {
+        return Err(Error::InvalidFormat(format!(
+          "Invalid pack item header in '{pack_name}': expected 'key_len value_len', got '{header}'"
+        )));
+      }
+
+      let key_len = parts[0].parse::<usize>().map_err(|e| {
+        Error::InvalidFormat(format!(
+          "Failed to parse key length in '{pack_name}': invalid value '{}' ({e})",
+          parts[0]
+        ))
+      })?;
+      let key = reader.read(key_len).await?;
+      key.hash(&mut content_hasher);
+
+      let value_len = parts[1].parse::<usize>().map_err(|e| {
+        Error::InvalidFormat(format!(
+          "Failed to parse value length in '{pack_name}': invalid value '{}' ({e})",
+          parts[1]
+        ))
+      })?;
+      let value = reader.read(value_len).await?;
+      value.hash(&mut content_hasher);
+
+      data.push((key, value))
+    }
+
+    Ok((Self { data }, content_hasher.finish()))
   }
 
   /// Saves the pack to disk and generates its index metadata.
@@ -98,122 +90,28 @@ impl Pack {
     id: PackId,
     compression: bool,
   ) -> Result<PackIndex> {
-    // Nearby keys share the LZ4 window and make output deterministic.
-    // Keys are unique within a pack, so an unstable sort is sufficient.
-    self.data.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-
-    // Use append writes: not every filesystem's write_all appends to the stream.
-    async fn write_bytes(writer: &mut dyn rspack_fs::WriteStream, mut bytes: &[u8]) -> Result<()> {
-      while !bytes.is_empty() {
-        let written = writer.write(bytes).await?;
-        if written == 0 {
-          return Err(Error::FS(rspack_fs::Error::from(std::io::Error::from(
-            ErrorKind::WriteZero,
-          ))));
-        }
-        bytes = &bytes[written..];
-      }
-      Ok(())
+    if compression {
+      // Boxed so the default future keeps its size; most packs save in their own spawned task.
+      return Box::pin(lz4::save(self, fs, id)).await;
     }
 
-    let pack_name = id.pack_name();
-    // Open before encoding: stream_write yields (remove_file), and buffers built
-    // before it would stay resident across that await in every concurrently
-    // spawned pack save. Native writes below do not yield.
-    let mut writer = fs.stream_write(&pack_name).await?;
-    let allocation_error = |reason: String| {
-      Error::FS(rspack_fs::Error::from(std::io::Error::new(
-        ErrorKind::OutOfMemory,
-        format!("Cannot allocate pack '{pack_name}': {reason}"),
-      )))
-    };
-    let mut raw_len = 0usize;
+    let mut writer = fs.stream_write(id.pack_name()).await?;
+
     let mut index_gen = IndexGenerator::default();
     for (key, value) in &self.data {
-      let header = format!("{} {}\n", key.len(), value.len());
-      raw_len = raw_len
-        .checked_add(header.len())
-        .and_then(|len| len.checked_add(key.len()))
-        .and_then(|len| len.checked_add(value.len()))
-        .ok_or_else(|| allocation_error("serialized body size overflow".into()))?;
+      // header
+      let header = format!("{} {}", key.len(), value.len());
+      writer.write_line(&header).await?;
+
+      // key
+      writer.write(key).await?;
       index_gen.add_key(key);
+
+      // value
+      writer.write(value).await?;
       index_gen.add_value(value);
     }
-    // LZ4's size prefix is u32. Larger bodies remain raw, without failing the save.
-    let compressed = if compression
-      && raw_len >= 8 * 1024
-      && let Ok(size) = u32::try_from(raw_len)
-    {
-      // Account for the prepended size when requiring at least 12.5% savings.
-      let mut sink = CappedOutput {
-        bytes: Vec::new(),
-        cap: raw_len - raw_len / 8 - 4,
-      };
-      // Size buffers for the pack: chunks never exceed `first`. After the first
-      // chunk, staging holds at most DICT + min(CHUNK, rest), which fits in
-      // min(DICT, rest) + first because DICT <= CHUNK.
-      let first = CHUNK.min(raw_len);
-      let rest = raw_len - first;
-      let mut staging = Vec::new();
-      staging
-        .try_reserve_exact(DICT.min(rest) + first)
-        .map_err(|e| allocation_error(e.to_string()))?;
-      let mut scratch = Vec::new();
-      let scratch_len = get_maximum_output_size(first);
-      scratch
-        .try_reserve_exact(scratch_len)
-        .map_err(|e| allocation_error(e.to_string()))?;
-      scratch.resize(scratch_len, 0);
-      let encoded = (|| -> std::io::Result<CappedOutput> {
-        let mut dict_len = 0;
-        for (key, value) in &self.data {
-          let header = format!("{} {}\n", key.len(), value.len());
-          for mut bytes in [header.as_bytes(), key.as_slice(), value.as_slice()] {
-            while !bytes.is_empty() {
-              let n = bytes.len().min(dict_len + CHUNK - staging.len());
-              staging.extend_from_slice(&bytes[..n]);
-              bytes = &bytes[n..];
-              if staging.len() == dict_len + CHUNK {
-                sink.compress_chunk(&mut staging, &mut dict_len, &mut scratch)?;
-              }
-            }
-          }
-        }
-        if staging.len() > dict_len {
-          sink.compress_chunk(&mut staging, &mut dict_len, &mut scratch)?;
-        }
-        Ok(sink)
-      })();
-      match encoded {
-        Ok(sink) => Some((size, sink.bytes)),
-        Err(e) if e.kind() == ErrorKind::FileTooLarge => None,
-        Err(e) if e.kind() == ErrorKind::OutOfMemory => {
-          return Err(allocation_error(e.to_string()));
-        }
-        Err(e) => {
-          return Err(Error::FS(rspack_fs::Error::from(std::io::Error::other(
-            format!("Cannot encode pack '{pack_name}': {e}"),
-          ))));
-        }
-      }
-    } else {
-      None
-    };
-    if let Some((size, bytes)) = compressed {
-      let [a, b, c, d] = size.to_le_bytes();
-      write_bytes(writer.as_mut(), &[LZ4_ENCODING, a, b, c, d]).await?;
-      write_bytes(writer.as_mut(), &bytes).await?;
-    } else {
-      write_bytes(writer.as_mut(), &[RAW_ENCODING]).await?;
-      for (key, value) in &self.data {
-        let header = format!("{} {}\n", key.len(), value.len());
-        write_bytes(writer.as_mut(), header.as_bytes()).await?;
-        write_bytes(writer.as_mut(), key).await?;
-        write_bytes(writer.as_mut(), value).await?;
-      }
-    }
     writer.flush().await?;
-    writer.close().await?;
     Ok(index_gen.finish())
   }
 
@@ -245,7 +143,7 @@ mod test {
     fs.ensure_exist().await?;
 
     // pack not found
-    assert!(Pack::load(&fs, pack_id).await.is_err());
+    assert!(Pack::load(&fs, pack_id, false).await.is_err());
 
     let data: Vec<(Vec<u8>, Vec<u8>)> = vec![
       ("key1".into(), "value1".into()),
@@ -257,8 +155,8 @@ mod test {
     assert!(!pack.remove("key4".as_bytes()));
     assert!(pack.remove("key2".as_bytes()));
 
-    let index = pack.save(&fs, pack_id, true).await?;
-    let (other_pack, content_hash) = Pack::load(&fs, pack_id).await?;
+    let index = pack.save(&fs, pack_id, false).await?;
+    let (other_pack, content_hash) = Pack::load(&fs, pack_id, false).await?;
     assert!(index.check_content_hash(content_hash));
     assert_eq!(pack, other_pack);
 

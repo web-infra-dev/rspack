@@ -68,7 +68,11 @@ impl DB {
   }
 
   /// Loads all key-value pairs from the specified bucket.
-  pub async fn load(&self, bucket_name: &str) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
+  pub async fn load(
+    &self,
+    bucket_name: &str,
+    compression: bool,
+  ) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
     let mut buckets = self.buckets.lock().await;
 
     self.fs.ensure_exist().await?;
@@ -79,12 +83,12 @@ impl DB {
       Entry::Occupied(entry) => entry.into_mut(),
       Entry::Vacant(entry) => {
         let fs = self.fs.child_fs(bucket_name);
-        let bucket = Bucket::new(fs).await?;
+        let bucket = Bucket::new(fs, compression).await?;
         entry.insert(bucket)
       }
     };
 
-    bucket.load_all().await
+    bucket.load_all(compression).await
   }
 
   /// Saves changes to multiple buckets using a two-phase commit.
@@ -127,7 +131,7 @@ impl DB {
             let mut bucket = if let Some(bucket) = cached_bucket {
               bucket
             } else {
-              Bucket::new(readable_fs).await?
+              Bucket::new(readable_fs, compression).await?
             };
             let affacted_files = bucket
               .save(Some(writable_fs), changes, max_pack_size, compression)
@@ -261,7 +265,7 @@ mod test {
     let name_1 = "name1";
     let name_2 = "name2";
     assert!(db.bucket_names().await?.is_empty());
-    assert!(db.load(name_1).await?.is_empty());
+    assert!(db.load(name_1, false).await?.is_empty());
 
     let bucket_data: Vec<_> = (0..9)
       .map(|num| {
@@ -275,11 +279,11 @@ mod test {
     let mut data = HashMap::default();
     data.insert(String::from(name_1), bucket_data.clone());
     data.insert(String::from(name_2), bucket_data.clone());
-    assert!(db.save(data, 25, true).await);
+    assert!(db.save(data, 25, false).await);
 
-    let mut data1 = db.load(name_1).await?;
+    let mut data1 = db.load(name_1, false).await?;
     data1.sort();
-    let mut data2 = db.load(name_2).await?;
+    let mut data2 = db.load(name_2, false).await?;
     data2.sort();
     assert_eq!(data1.len(), 9);
     assert_eq!(data1, data2);
@@ -292,17 +296,17 @@ mod test {
     assert!(db.reset(name_2).await);
 
     assert!(db.bucket_names().await?.is_empty());
-    assert!(db.load(name_1).await?.is_empty());
+    assert!(db.load(name_1, false).await?.is_empty());
 
     let mut data = HashMap::default();
     data.insert(String::from(name_1), bucket_data.clone());
     data.insert(String::from(name_2), bucket_data);
-    assert!(db.save(data, 25, true).await);
+    assert!(db.save(data, 25, false).await);
     assert_eq!(db.bucket_names().await?.len(), 2);
 
     assert!(db.reset_all().await);
     assert!(db.bucket_names().await?.is_empty());
-    assert!(db.load(name_1).await?.is_empty());
+    assert!(db.load(name_1, false).await?.is_empty());
 
     Ok(())
   }

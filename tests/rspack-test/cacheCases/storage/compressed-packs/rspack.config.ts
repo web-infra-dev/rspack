@@ -4,6 +4,7 @@ import path from 'node:path';
 
 const cacheDir = path.join(import.meta.dirname, '.cache');
 let compilerIndex = 0;
+let sourceMapContentBytes = 0;
 
 function packFiles(directory: string): string[] {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -50,6 +51,23 @@ export default defineConfig({
           expect(Number(match![1])).toBe(compilerIndex === 1 ? 1 : 0);
           expect(Number(match![2])).toBe(1);
           compilerIndex++;
+          sourceMapContentBytes = stats.compilation
+            .getAssets()
+            .filter((asset) => asset.name.endsWith('.map'))
+            .reduce((total, asset) => {
+              const map = JSON.parse(asset.source.source().toString()) as {
+                sourcesContent: string[];
+              };
+              return (
+                total +
+                map.sourcesContent.reduce(
+                  (bytes, source) => bytes + Buffer.byteLength(source),
+                  0,
+                )
+              );
+            }, 0);
+          // The large source must span multiple decoded compression chunks.
+          expect(sourceMapContentBytes).toBeGreaterThan(256 * 1024);
         });
         const close = compiler.close.bind(compiler);
         compiler.close = (callback) => {
@@ -62,15 +80,15 @@ export default defineConfig({
                 (file) =>
                   file.includes(
                     `${path.sep}occasion_source_map_dev_tool_plugin${path.sep}`,
-                  ) && fs.statSync(file).size > 1,
+                  ) && fs.statSync(file).size > 8,
               );
               expect(sourceMapPacks.length).toBeGreaterThan(0);
-              for (const file of sourceMapPacks) {
-                const pack = fs.readFileSync(file);
-                expect(pack[0]).toBe(0x01);
-                // The decoded size requires later chunks to use a dictionary.
-                expect(pack.readUInt32LE(1)).toBeGreaterThan(256 * 1024);
-              }
+              const storedBytes = sourceMapPacks.reduce(
+                (total, file) => total + fs.statSync(file).size,
+                0,
+              );
+              // Uncompressed source-map packs cannot satisfy this savings bound.
+              expect(storedBytes).toBeLessThan(sourceMapContentBytes / 8);
               callback();
             } catch (error) {
               callback(error as Error);

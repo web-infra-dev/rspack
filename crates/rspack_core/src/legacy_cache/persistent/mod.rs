@@ -24,7 +24,7 @@ use self::{
 use super::Cache;
 use crate::{
   Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger,
-  PersistentCacheOptions, cache::CacheCodec,
+  PersistentCacheOptions, StorageOptions, cache::CacheCodec,
 };
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
@@ -58,10 +58,19 @@ impl PersistentCache {
       None
     };
     let codec = Arc::new(CacheCodec::new(portable_project_root));
-    // Each compiler path owns exactly one storage directory.
+    // Keep each encoding in its own directory so packs need no format marker.
     let cache_directory = {
       let mut hasher = DefaultHasher::new();
       compiler_path.hash(&mut hasher);
+      if matches!(
+        &option.storage,
+        StorageOptions::FileSystem {
+          compression: true,
+          ..
+        }
+      ) {
+        "lz4".hash(&mut hasher);
+      }
       CacheDirectory::new(hex::encode(hasher.finish().to_ne_bytes()))
     };
     let storage = create_storage(

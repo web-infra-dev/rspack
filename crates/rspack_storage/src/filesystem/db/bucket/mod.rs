@@ -24,7 +24,7 @@ pub struct Bucket {
 
 impl Bucket {
   /// Creates a new bucket, loading existing data or initializing empty.
-  pub async fn new(fs: ScopeFileSystem) -> Result<Self> {
+  pub async fn new(fs: ScopeFileSystem, compression: bool) -> Result<Self> {
     fs.ensure_exist().await?;
     // Load or initialize metadata
     let meta = match Meta::load(&fs).await {
@@ -34,7 +34,7 @@ impl Bucket {
     };
 
     // Load hot pack and verify integrity
-    let hot_pack = match Pack::load(&fs, PackIdAlloc::HOT_PACK_ID).await {
+    let hot_pack = match Pack::load(&fs, PackIdAlloc::HOT_PACK_ID, compression).await {
       Ok((pack, hash)) => {
         if !meta.hot_pack_index().check_content_hash(hash) {
           return Err(Error::CorruptedData(format!(
@@ -54,7 +54,7 @@ impl Bucket {
   }
 
   /// Loads all key-value pairs from all packs (hot + cold).
-  pub async fn load_all(&self) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
+  pub async fn load_all(&self, compression: bool) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
     let mut result = self.hot_pack.clone().data();
 
     // Load and verify all cold packs
@@ -67,7 +67,7 @@ impl Bucket {
         let pack_id = *pack_id;
         let expected_hash = index.content_hash();
         async move {
-          let (pack, hash) = Pack::load(&fs, pack_id).await?;
+          let (pack, hash) = Pack::load(&fs, pack_id, compression).await?;
           if hash != expected_hash {
             return Err(Error::CorruptedData(format!(
               "Pack '{}' content hash mismatch: expected {}, got {}",
@@ -109,7 +109,9 @@ impl Bucket {
     let writable_fs = writable_fs.unwrap_or(self.fs.clone());
 
     // Find packs that need to be rewritten (contain modified keys)
-    let need_update_packs = self.need_update_packs(data.iter().map(|(k, _)| k)).await?;
+    let need_update_packs = self
+      .need_update_packs(data.iter().map(|(k, _)| k), compression)
+      .await?;
 
     // Initialize pack generator for splitting
     let mut pack_generator = PackGenerator::new(max_pack_size);
@@ -175,6 +177,7 @@ impl Bucket {
   async fn need_update_packs(
     &mut self,
     keys: impl Iterator<Item = &Vec<u8>>,
+    compression: bool,
   ) -> Result<HashMap<PackId, Pack>> {
     let mut packs = HashMap::default();
     let mut modified_pack_id = HashSet::default();
@@ -193,7 +196,7 @@ impl Bucket {
 
         // Load pack if not already loaded
         if !packs.contains_key(pack_id) {
-          let (pack, hash) = Pack::load(&self.fs, *pack_id).await?;
+          let (pack, hash) = Pack::load(&self.fs, *pack_id, compression).await?;
           if !index.check_content_hash(hash) {
             return Err(Error::CorruptedData(format!(
               "Pack '{}' content hash mismatch: expected {}, got {}",
@@ -231,10 +234,10 @@ mod test {
   async fn test_bucket() -> Result<()> {
     let fs = ScopeFileSystem::new_memory_fs("/bucket1".into());
 
-    let mut bucket = Bucket::new(fs).await?;
+    let mut bucket = Bucket::new(fs, false).await?;
     assert_eq!(bucket.meta, Default::default());
     assert_eq!(bucket.hot_pack, Default::default());
-    assert!(bucket.load_all().await?.is_empty());
+    assert!(bucket.load_all(false).await?.is_empty());
 
     let data = (0..9)
       .map(|num| {
@@ -244,9 +247,9 @@ mod test {
         )
       })
       .collect();
-    bucket.save(None, data, 25, true).await?;
+    bucket.save(None, data, 25, false).await?;
 
-    let data = bucket.load_all().await?;
+    let data = bucket.load_all(false).await?;
     assert_eq!(data.len(), 9);
     for (i, (k, v)) in data.iter().sorted().enumerate() {
       assert_eq!(k, format!("key{i}").as_bytes());
