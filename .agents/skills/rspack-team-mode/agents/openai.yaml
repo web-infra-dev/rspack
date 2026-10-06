@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rspack team mode"
+  short_description: "Apply evidence-backed Rspack maintainer conventions"

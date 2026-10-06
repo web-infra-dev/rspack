@@ -1,0 +1,15 @@
+# Tradeoffs and counterexamples
+
+These are scoped evidence records, not votes or assertions that every contributor agrees.
+
+- Source-map adaptation: in [#14621](https://github.com/web-infra-dev/rspack/pull/14621), intellild initially favored centralized garbage-header handling, while SyMind separated FetchSourceMap adaptation from parsing. The final merged change removes that handling. Keep the final resolution distinct from the initial proposal. See [both accounts](core-a.md).
+- Path representation: hardfist's [2026-09-08 compatibility discussion](https://github.com/web-infra-dev/rspack/discussions/15543) distinguishes reproduced helper-level mismatches from source-only resolver comparisons. Intellild proposes internal URLs in a reply. No decision adopting that representation was found; targeted alignment and a representation redesign are different scopes.
+- Cache portability: hardfist's [2025-10-22 and 2026-07-22 replies](https://github.com/web-infra-dev/rspack/discussions/11965) distinguish cross-machine cache reuse from a pluggable storage backend. Do not claim a roadmap item already implements either public API. chenjiahan identifies jerrykingxyz's cache research in the same discussion.
+- Export-state ownership: hardfist's [2026-09-07 proposal](https://github.com/web-infra-dev/rspack/discussions/15517) separates reusable facts from later mutable compilation state and asks for clean-build versus incremental comparison before removing snapshots. This is a proposal, not evidence the architecture shipped.
+- Split-chunk discovery: JSerFeng's [2026-09-20 RFC](https://github.com/web-infra-dev/rspack/discussions/15802) spells out output-size, request-count and compilation-cost tradeoffs. Its proposed defaults and search bounds remain proposal evidence. Do not equate reduced duplication with fewer requests or universally faster builds.
+- Release plans: chenjiahan's [2026-09-09 discussion](https://github.com/web-infra-dev/rspack/discussions/15579) labels the Rspack 3.0 items as proposals open to change. Use current release documentation to establish shipped behavior.
+- Benchmark design: LingyuCoder's final [#13594](https://github.com/web-infra-dev/rspack/pull/13594) drops private restore-state probes. Do not preserve earlier replies describing a discarded probe design as a team requirement.
+- Compatibility boundaries: chenjiahan retains public deprecated aliases in [#12483](https://github.com/web-infra-dev/rspack/pull/12483). stormslowly removes an old internal protocol branch in [#12678](https://github.com/web-infra-dev/rspack/pull/12678) because the producer and consumer ship together. Apply the public contract at the right boundary.
+- Reuse versus extra work: CPunisher recommends reuse in [#12433](https://github.com/web-infra-dev/rspack/pull/12433), but asks for a dedicated emitter in [#13872](https://github.com/web-infra-dev/rspack/pull/13872) to avoid generating unrelated source maps. Neither case supports a blanket ban on new helpers.
+
+Source-reported test or benchmark results have not been rerun. Account-linked changes can include automation or coauthors; the individual ledgers preserve those qualifications.
