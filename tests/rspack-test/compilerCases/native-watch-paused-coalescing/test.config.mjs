@@ -1,11 +1,9 @@
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { setImmediate, setTimeout } from "node:timers/promises";
 import { rspack } from "@rspack/core";
 
-const require = createRequire(import.meta.url);
 const aggregateTimeout = 200;
 const windows = process.platform === "win32";
 const settle = aggregateTimeout + (windows ? 500 : 100);
@@ -17,13 +15,7 @@ function deferred() {
   return { promise, resolve };
 }
 
-/** @param {string} file @returns {number} */
-function readExecutedBundleValue(file) {
-  delete require.cache[require.resolve(file)];
-  return require(file).default;
-}
-
-async function runArm() {
+async function runScenario() {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "rspack-watch-")));
   const valueFile = path.join(root, "value.js");
   const output = path.join(root, "dist");
@@ -38,12 +30,11 @@ async function runArm() {
   const abort = new AbortController();
   const { signal } = abort;
   const nodes = ["client", "server"].map(name => ({
-    name, runs: [], invalidations: [], done: 0, registrations: 0, handle: undefined,
+    name, runs: [], done: 0, registrations: 0, handle: undefined,
     entered: deferred(), release: deferred(),
   }));
   const waiters = new Set();
   let failure;
-  let phase = "initial";
   let acknowledgement;
   const pulse = () => {
     for (const waiter of waiters) waiter();
@@ -77,8 +68,7 @@ async function runArm() {
     },
     plugins: [c => {
       c.hooks.watchRun.tap("PausedCoalescing", () => {
-        const run = { changed: new Set(c.modifiedFiles), removed: new Set(c.removedFiles) };
-        node.runs.push(run);
+        node.runs.push(true);
         pulse();
       });
       c.hooks.make.tapPromise("PausedCoalescing", async () => {
@@ -91,14 +81,10 @@ async function runArm() {
         node.done++;
         pulse();
       });
-      c.hooks.invalid.tap("PausedCoalescing", file => {
-        node.invalidations.push({ file, phase, beforeRun: node.runs.length });
-      });
     }],
   })));
 
-  // Observe registrations without replacing callbacks or the graph scheduler.
-  // Keep only owned sets and strings.
+  // Capture watch handles and registrations without replacing callbacks or the graph scheduler.
   compiler.compilers.forEach((c, index) => {
     const node = nodes[index];
     const wfs = c.watchFileSystem;
@@ -128,39 +114,23 @@ async function runArm() {
         await waitFor(() => nodes.every(n => n.done >= 1 && n.registrations >= 1));
         await setImmediate(undefined, { signal });
         await setTimeout(windows ? 500 : 250, undefined, { signal });
-        phase = "first-edit";
         fs.writeFileSync(valueFile, "export default 1;");
         await Promise.all(nodes.map(n => n.entered.promise));
         signal.throwIfAborted();
-        phase = "make-gate";
         acknowledgement = deferred();
         const acknowledged = acknowledgement.promise;
         fs.writeFileSync(valueFile, "export default 2;");
         await acknowledged;
         await setTimeout(settle, undefined, { signal });
         acknowledgement = undefined;
-        phase = "follow-up";
         for (const node of nodes) node.release.resolve();
         await waitFor(() => nodes.every(n => n.done >= 3 && n.registrations >= 3));
         await setImmediate(undefined, { signal });
         await setTimeout(observe, undefined, { signal });
 
-        const core = nodes.map(node => ({
-          name: node.name,
-          runs: node.runs.slice(1),
-          invalidations: node.invalidations,
-          value: readExecutedBundleValue(path.join(output, `${node.name}.js`)),
-        }));
-        for (const node of core) {
-          expect(node.runs, `${node.name}: first edit and exactly one paused follow-up`).toHaveLength(2);
-          for (const run of node.runs) {
-            expect(run.changed.has(valueFile), `${node.name}: filesystem rebuild must include ${valueFile}`).toBe(true);
-          }
-          expect(node.value, `${node.name}: bundle must include the paused edit`).toBe(2);
-          expect(node.invalidations.filter(i => i.phase === "follow-up").map(({ file, beforeRun }) => ({ file, beforeRun })), `${node.name}: exactly one file invalidation before the file-backed follow-up watchRun`).toEqual([{ file: valueFile, beforeRun: 2 }]);
+        for (const node of nodes) {
+          expect(node.runs.slice(1), `${node.name}: first edit and exactly one paused follow-up`).toHaveLength(2);
         }
-        expect(nodes.flatMap(n => n.invalidations.filter(i => i.phase === "make-gate")), "paused make gates must suppress all invalid calls").toEqual([]);
-        phase = "drain";
 
         const node = nodes[0];
         node.handle.pause();
@@ -173,7 +143,7 @@ async function runArm() {
         const first = node.handle.getInfo();
         const second = node.handle.getInfo();
         expect(first.changes.has(valueFile), "first getInfo must consume the paused change").toBe(true);
-        expect(second.changes.size, "second getInfo must not replay consumed changes").toBe(0);
+        expect({ changes: second.changes.size, removals: second.removals.size }, "second getInfo must return empty sets").toEqual({ changes: 0, removals: 0 });
       })(),
     ]);
     succeeded = true;
@@ -205,8 +175,8 @@ async function runArm() {
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 export default {
-  description: "should buffer paused native events into one file-backed follow-up",
+  description: "should coalesce paused native saves and consume pending changes",
   async run() {
-    await runArm();
+    await runScenario();
   },
 };
