@@ -40,6 +40,7 @@ type CacheOptions =
         type: 'filesystem';
         directory?: string;
         location?: string;
+        compression?: false | 'lz4';
       };
     };
 ```
@@ -338,7 +339,7 @@ export default {
 
 ### storage
 
-- **类型：** `{ type: 'filesystem'; directory?: string; location?: string }`
+- **类型：** `{ type: 'filesystem'; directory?: string; location?: string; compression?: false | 'lz4' }`
 
 配置缓存存储。目前仅支持文件系统存储。
 
@@ -413,6 +414,27 @@ export default {
     storage: {
       type: 'filesystem',
       location: '.custom-cache/client',
+    },
+  },
+};
+```
+
+#### storage.compression
+
+- **类型：** `false | 'lz4'`
+- **默认值：** `'lz4'`
+
+`cache.storage.compression` 用于控制持久化缓存包的压缩，类似于 webpack 的 `cache.compression`。默认情况下，Rspack 会在能够减小体积时使用 LZ4 压缩。将其设置为 `false` 会以未压缩的形式写入所有缓存包。与默认值为 `false` 的 webpack 不同，Rspack 默认启用压缩。
+
+更改此选项不会使现有缓存失效，也无需更改缓存版本：Rspack 可以读取压缩和未压缩的缓存包。已有的缓存包会保持原有编码，直到被重新写入。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+      compression: false,
     },
   },
 };
