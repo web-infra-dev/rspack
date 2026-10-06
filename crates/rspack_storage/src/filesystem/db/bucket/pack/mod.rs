@@ -19,6 +19,12 @@ const LZ4_ENCODING: u8 = 1;
 const CHUNK: usize = 256 * 1024;
 const DICT: usize = 64 * 1024;
 
+fn header_len(key_len: usize, value_len: usize) -> usize {
+  key_len.checked_ilog10().unwrap_or(0) as usize
+    + value_len.checked_ilog10().unwrap_or(0) as usize
+    + 4
+}
+
 struct CappedOutput {
   bytes: Vec<u8>,
   cap: usize,
@@ -125,9 +131,8 @@ impl Pack {
     let mut raw_len = 0usize;
     let mut index_gen = IndexGenerator::default();
     for (key, value) in &self.data {
-      let header = format!("{} {}\n", key.len(), value.len());
       raw_len = raw_len
-        .checked_add(header.len())
+        .checked_add(header_len(key.len(), value.len()))
         .and_then(|len| len.checked_add(key.len()))
         .and_then(|len| len.checked_add(value.len()))
         .ok_or_else(|| allocation_error("serialized body size overflow".into()))?;
@@ -160,9 +165,19 @@ impl Pack {
       scratch.resize(scratch_len, 0);
       let encoded = (|| -> std::io::Result<CappedOutput> {
         let mut dict_len = 0;
+        let mut key_digits = itoa::Buffer::new();
+        let mut value_digits = itoa::Buffer::new();
         for (key, value) in &self.data {
-          let header = format!("{} {}\n", key.len(), value.len());
-          for mut bytes in [header.as_bytes(), key.as_slice(), value.as_slice()] {
+          let key_len = key_digits.format(key.len()).as_bytes();
+          let value_len = value_digits.format(value.len()).as_bytes();
+          for mut bytes in [
+            key_len,
+            b" ",
+            value_len,
+            b"\n",
+            key.as_slice(),
+            value.as_slice(),
+          ] {
             while !bytes.is_empty() {
               let n = bytes.len().min(dict_len + CHUNK - staging.len());
               staging.extend_from_slice(&bytes[..n]);
@@ -200,6 +215,7 @@ impl Pack {
     } else {
       write_bytes(writer.as_mut(), &[RAW_ENCODING]).await?;
       for (key, value) in &self.data {
+        // A heap header keeps the save future small; it is held across write awaits.
         let header = format!("{} {}\n", key.len(), value.len());
         write_bytes(writer.as_mut(), header.as_bytes()).await?;
         write_bytes(writer.as_mut(), key).await?;
