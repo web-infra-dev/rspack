@@ -648,7 +648,25 @@ class MyPlugin {
 
 **类型：** `Readonly<string | null>`
 
-获取此次构建的哈希。
+表示当前整个 compilation 的哈希值。Rspack 根据各个 chunk 的哈希、内容哈希以及内部重建状态计算该值。
+
+在 Rspack 中，`hash` 和 `fullHash` 是只读的别名属性，返回值相同：
+
+- `null`：尚未计算 compilation 的哈希，例如执行 `thisCompilation` 钩子时。
+- `string`：compilation 的哈希已生成。可以在哈希计算之后执行的钩子中读取，例如 [processAssets](/api/plugin-api/compilation-hooks#processassets) 或 [afterSeal](/api/plugin-api/compilation-hooks#afterseal)。
+
+哈希生成使用 [output.hashFunction](/config/output#outputhashfunction)、[output.hashDigest](/config/output#outputhashdigest) 以及可选的 [output.hashSalt](/config/output#outputhashsalt)。两个属性都返回同一段哈希摘要前缀，长度最多为 [output.hashDigestLength](/config/output#outputhashdigestlength) 个字符。
+
+哈希在资源处理阶段之前计算。在 `processAssets` 中更新资源不会自动重新计算该值。
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    console.log('Compilation hash:', compilation.hash);
+    // compilation.fullHash 的值相同。
+  });
+});
+```
 
 ### assets
 

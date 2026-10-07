@@ -652,7 +652,25 @@ The [Compilation hooks](/api/plugin-api/compilation-hooks).
 
 **Type**: `Readonly<string | null>`
 
-The hash of this compilation.
+The hash representing the current compilation as a whole. Rspack calculates it from the chunks and their content hashes, together with its internal rebuild state.
+
+In Rspack, `hash` and `fullHash` are read-only aliases that return the same value:
+
+- `null`: the compilation hash has not been calculated yet, for example when the `thisCompilation` hook runs.
+- `string`: the compilation hash is available. You can read it in hooks that run after hashing, such as [processAssets](/api/plugin-api/compilation-hooks#processassets) or [afterSeal](/api/plugin-api/compilation-hooks#afterseal).
+
+Hash generation uses [output.hashFunction](/config/output#outputhashfunction), [output.hashDigest](/config/output#outputhashdigest), and the optional [output.hashSalt](/config/output#outputhashsalt). Both properties return the same digest prefix, with at most [output.hashDigestLength](/config/output#outputhashdigestlength) characters.
+
+The hash is calculated before asset processing. Updating assets in `processAssets` does not automatically recalculate this value.
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    console.log('Compilation hash:', compilation.hash);
+    // compilation.fullHash has the same value.
+  });
+});
+```
 
 ### assets
 
