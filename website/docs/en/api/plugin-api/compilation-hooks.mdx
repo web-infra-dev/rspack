@@ -915,24 +915,22 @@ Executed after setting up a child compiler.
 
 <Badge text="Read-only" type="info" />
 
-This hook is like a list of actions that gets triggered when a preset is used. It takes in an options object. When a plugin manages a preset, it should change settings in this object carefully without replacing existing ones.
+This hook sets default options for a stats preset.
 
 - **Type:** `HookMap<SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>>`
 - **Arguments:**
   - `Partial<StatsOptions>`: stats options
   - `CreateStatsOptionsContext`: stats context
 
-Use `compilation.hooks.statsPreset.for(presetName).tap(...)` to register a callback for the stats preset named `presetName`. When Rspack uses that preset, it passes the stats options object to the callback so the plugin can configure the preset's options.
-
-Here's an illustrative plugin example:
+For example, the following code defines a preset named `my-preset`. When a user configures `stats: 'my-preset'`, it sets `all` to `true` if that option has not been specified.
 
 ```js
 compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', (options) => {
-  if (options.all === undefined) options.all = true;
+  if (options.all === undefined) {
+    options.all = true;
+  }
 });
 ```
-
-This plugin ensures that for the preset `"my-preset"`, if the `all` option is undefined, it defaults to `true`.
 
 <Collapse>
   <CollapsePanel header="StatsOptions.ts" key="StatsOptions">

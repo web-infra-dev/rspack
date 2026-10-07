@@ -917,24 +917,22 @@ compilation.hooks.afterProcessAssets.tap('MyPlugin', (assets) => {
 
 <Badge text="只读" type="info" />
 
-当使用预设 stats 配置时触发。接收一个 stats 配置对象，当插件管理 stats 预设配置时，它应当在配置对象上仔细地修改，而非直接替换整个配置对象。
+这个钩子用于为 stats 预设设置默认选项。
 
 - **类型：** `HookMap<SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>>`
 - **参数：**
   - `Partial<StatsOptions>`：Stats 配置
   - `CreateStatsOptionsContext`：Stats 上下文
 
-使用 `compilation.hooks.statsPreset.for(presetName).tap(...)` 为名为 `presetName` 的 stats 预设注册回调。Rspack 使用该预设时，会将 stats 配置对象传给回调，供插件设置该预设的统计选项。
-
-以如下插件为例：
+例如，下面的代码定义了一个名为 `my-preset` 的预设。当用户配置 `stats: 'my-preset'` 时，如果没有指定 `all`，就将其设为 `true`。
 
 ```js
 compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', (options) => {
-  if (options.all === undefined) options.all = true;
+  if (options.all === undefined) {
+    options.all = true;
+  }
 });
 ```
-
-该插件确保对于预设 `"my-preset"`，如果 `all` 选项未定义，则默认为 `true`。
 
 <Collapse>
   <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
