@@ -398,8 +398,8 @@ catalogs:
       specifier: ^5.6.1
       version: 5.6.1
     tinypool:
-      specifier: ^2.1.2
-      version: 2.1.2
+      specifier: ^2.2.0
+      version: 2.2.0
     toml:
       specifier: ^5.0.0
       version: 5.0.0
@@ -748,7 +748,7 @@ importers:
         version: 0.8.0(@microsoft/api-extractor@7.59.3)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.0.23)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.2)(typescript@6.0.3)
       tinypool:
         specifier: 'catalog:'
-        version: 2.1.2
+        version: 2.2.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -7409,10 +7409,6 @@ packages:
   tinyglobby@0.2.17:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
-
-  tinypool@2.1.2:
-    resolution: {integrity: sha512-9YodfrxS9g9IbFr/KOjE5bAeJ0p61n3bW6mqvy0jtoeKd1kTW1Cxm0oulm6KX2lyM9Gl6WIe8nEbY7LWv5ZJww==}
-    engines: {node: ^20.0.0 || >=22.0.0}
 
   tinypool@2.2.0:
     resolution: {integrity: sha512-jBrmx4lYmaC9k/mgPbylxs7kBUxHtD8256up+HjLaDFfXScKJQyil+SWXSvhAtT7XHo+yTVlpB81PGmHP8oLSQ==}
@@ -14091,8 +14087,6 @@ snapshots:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
-
-  tinypool@2.1.2: {}
 
   tinypool@2.2.0: {}
 
