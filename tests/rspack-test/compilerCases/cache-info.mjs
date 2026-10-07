@@ -3,7 +3,8 @@ import path from "node:path";
 
 const persistent = (status, reason = null) => ({
   mode: "persistent",
-  persistent: { status, reason }
+  persistent: { status, reason },
+  moduleBuilds: null
 });
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
@@ -82,13 +83,14 @@ export default [
     }
   },
   ...[
-    { name: "disabled", cache: false, newCache: false },
-    { name: "memory", cache: { type: "memory" }, newCache: false },
-    { name: "persistent", cache: { type: "persistent" }, newCache: true }
-  ].map(({ name, cache, newCache }) => ({
-    description: `reports ${name} cache mode`,
+    { name: "disabled", cache: false, newCache: false, stats: { cacheInfo: true } },
+    { name: "memory", cache: { type: "memory" }, newCache: false, stats: { cacheInfo: true } },
+    { name: "persistent", cache: { type: "persistent" }, newCache: true, stats: { all: true } },
+    { name: "persistent", cache: { type: "persistent" }, newCache: { module: false }, stats: { cacheInfo: true }, suffix: "module-disabled" }
+  ].map(({ name, cache, newCache, stats, suffix = "" }) => ({
+    description: `reports ${name} cache mode ${suffix}`,
     options(context) {
-      const root = context.getDist(name);
+      const root = context.getDist(`${name}-${suffix}`);
       fs.rmSync(root, { recursive: true, force: true });
       fs.mkdirSync(root, { recursive: true });
       fs.writeFileSync(path.join(root, "entry.js"), "export default 1;");
@@ -96,6 +98,7 @@ export default [
         context: root,
         entry: "./entry.js",
         mode: "production",
+        stats,
         output: { path: path.join(root, "output") },
         cache,
         experiments: { newCache }
@@ -108,7 +111,7 @@ export default [
       const stats = await context.getCompiler().build();
       expect(stats.hasErrors()).toBe(false);
       expect(stats.toJson({ all: false, cacheInfo: true }).cacheInfo).toEqual(
-        name === "persistent" ? persistent("unknown") : { mode: name, persistent: null }
+        name === "persistent" ? persistent("unknown") : { mode: name, persistent: null, moduleBuilds: null }
       );
     }
   }))

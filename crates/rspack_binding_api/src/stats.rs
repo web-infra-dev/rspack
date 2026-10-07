@@ -984,6 +984,13 @@ pub struct JsStatsCacheInfo {
   pub status: Option<&'static str>,
   #[napi(ts_type = "'version' | 'buildDependencies' | 'recovery' | undefined")]
   pub reason: Option<&'static str>,
+  pub module_builds: Option<JsStatsModuleBuilds>,
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsStatsModuleBuilds {
+  pub reused: u32,
+  pub total: u32,
 }
 
 #[napi(object, object_from_js = false)]
@@ -1121,6 +1128,10 @@ impl JsStats {
       mode,
       status,
       reason,
+      module_builds: self
+        .inner
+        .module_build_cache_stats()
+        .map(|(reused, total)| JsStatsModuleBuilds { reused, total }),
     }
   }
 

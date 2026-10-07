@@ -88,6 +88,12 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 没有可报告的原因时，`reason` 为 `null`。该状态描述缓存验证和恢复情况，不表示模块构建缓存命中率。
 
+要收集模块构建复用计数，必须在创建编译器前显式配置 `stats: { cacheInfo: true }`。之后调用 `stats.toJson({ cacheInfo: true })` 无法启用收集，`stats: { all: true }` 和 `verbose` 预设也不会启用收集。收集过程会跟踪模块标识，因此会增加构建工作量和内存使用。
+
+可用时，`cacheInfo.moduleBuilds` 为 `{ reused, total }`。`total` 统计 `finishModules` 钩子结束后、封存和优化开始前主模块图中的不同模块数量，包括外部模块和不符合缓存条件的模块，但不包括运行时模块和独立的模块执行图。`reused` 统计其中从旧版持久化模块图或新模块构建缓存恢复，且之后未被撤销或重新构建的模块。新缓存也可能从内存或等待写入的数据恢复模块，而非仅从磁盘恢复。这些计数表示模块图中被复用的模块比例，不是缓存查询命中率或磁盘命中次数。
+
+未启用收集、缓存不是持久化缓存、编译为增量重建、旧缓存的恢复状态未知或新缓存的模块缓存已禁用时，`moduleBuilds` 为 `null`。`finishModules` 完成前，或其后重新构建模块或添加入口时，也无法获取计数。
+
 ## 产物选项
 
 ### stats.assets

@@ -1748,6 +1748,7 @@ CompilerOptions {
     },
     stats: StatsOptions {
         colors: <env-dependent>,
+        cache_info: false,
     },
     cache: Disabled,
     snapshot: SnapshotOptions {
