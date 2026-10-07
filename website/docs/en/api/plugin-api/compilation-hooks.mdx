@@ -915,7 +915,7 @@ Executed after setting up a child compiler.
 
 <Badge text="Read-only" type="info" />
 
-This hook sets default options for a stats preset.
+Plugins can use this hook to define a stats preset that groups multiple stats options into a set of defaults. Users can apply these defaults by specifying the preset name.
 
 - **Type:** `HookMap<SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>>`
 - **Arguments:**

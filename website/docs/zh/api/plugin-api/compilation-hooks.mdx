@@ -917,7 +917,7 @@ compilation.hooks.afterProcessAssets.tap('MyPlugin', (assets) => {
 
 <Badge text="只读" type="info" />
 
-这个钩子用于为 stats 预设设置默认选项。
+插件可以通过这个钩子定义 stats 预设，将多个统计选项组合成一组默认配置。用户通过预设名称即可使用这组配置。
 
 - **类型：** `HookMap<SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>>`
 - **参数：**
