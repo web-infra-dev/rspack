@@ -9,7 +9,7 @@ export default [
       const root = context.getDist("cache-session-initialization");
       fs.rmSync(root, { recursive: true, force: true });
       fs.mkdirSync(root, { recursive: true });
-      fs.writeFileSync(path.join(root, "entry.js"), "export default 1;");
+      fs.writeFileSync(path.join(root, "entry.js"), 'console.log("entry");');
       fs.writeFileSync(path.join(root, "build-dependency"), "first");
       context.setValue("root", root);
       return {
