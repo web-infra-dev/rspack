@@ -122,6 +122,30 @@ export class Watching {
       removed?: Iterable<string>;
     },
   ) {
+    const onSource = (kind: 'change' | 'remove', fileName: string | null) => {
+      if (this.#closed) return;
+      this.#origins.invalidate(
+        fileName == null
+          ? { kind: 'unknown' }
+          : {
+              kind: 'source',
+              changed: kind === 'change' ? [fileName] : [],
+              removed: kind === 'remove' ? [fileName] : [],
+            },
+      );
+    };
+    const onUndelayed = (fileName: string, changeTime: number) => {
+      if (this.#closed) return;
+      if (!this.#invalidReported) {
+        this.#invalidReported = true;
+        this.compiler.hooks.invalid.call(fileName, changeTime);
+      }
+      this.onInvalid();
+    };
+    const callbackUndelayed = (fileName: string, changeTime: number) => {
+      onSource('change', fileName);
+      onUndelayed(fileName, changeTime);
+    };
     this.pausedWatcher = undefined;
     // SAFETY: `watchFileSystem` is expected to be initialized.
     this.watcher = this.compiler.watchFileSystem!.watch(
@@ -156,20 +180,9 @@ export class Watching {
           );
           this.onChange();
         },
+        { callbackUndelayed, onSource, onUndelayed },
       ),
-      (fileName, changeTime) => {
-        if (this.#closed) return;
-        this.#origins.invalidate(
-          fileName == null
-            ? { kind: 'unknown' }
-            : { kind: 'source', changed: [fileName], removed: [] },
-        );
-        if (!this.#invalidReported) {
-          this.#invalidReported = true;
-          this.compiler.hooks.invalid.call(fileName, changeTime);
-        }
-        this.onInvalid();
-      },
+      callbackUndelayed,
     );
   }
 
@@ -358,10 +371,6 @@ export class Watching {
       this.compiler.contextTimestamps = contextTimeInfoEntries;
     }
 
-    this.compiler.modifiedFiles = this.#collectedChangedFiles;
-    this.compiler.removedFiles = this.#collectedRemovedFiles;
-    this.#collectedChangedFiles = undefined;
-    this.#collectedRemovedFiles = undefined;
     const run = () => {
       if (this.compiler.idle) {
         return this.compiler.cache.endIdle((err) => {
@@ -372,6 +381,10 @@ export class Watching {
       }
       this.invalid = false;
       this.#invalidReported = false;
+      this.compiler.modifiedFiles = this.#collectedChangedFiles;
+      this.compiler.removedFiles = this.#collectedRemovedFiles;
+      this.#collectedChangedFiles = undefined;
+      this.#collectedRemovedFiles = undefined;
       prepareWatchOrigin(this);
       this.compiler.hooks.watchRun.callAsync(this.compiler, (err) => {
         if (err) return this._done(err);

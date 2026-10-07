@@ -664,6 +664,8 @@ interface WatchInvalidation {
 
 `WatchCause` and `WatchInvalidation` are exported from `@rspack/core`. Each `Watching` lifetime has a different `watchId`. Revision zero identifies the initial compilation and does not emit a notification. Subsequent invalidations have increasing revisions. Closing a watcher discards its pending invalidations.
 
+For a `MultiCompiler`, register this hook on each child in `compiler.compilers`.
+
 Manual `watching.invalidate()` calls have an `unknown` cause. File notifications and changes found when a paused watcher resumes have a `source` cause. Missing filename information has an `unknown` cause. A file notification and its later aggregated update can produce separate events for the same path.
 
 MultiCompiler scheduling does not add a cause when the child already has pending invalidations. A dependency invalidation has an `unknown` cause on the affected child. An otherwise uncaused scheduled rebuild also has an `unknown` cause.

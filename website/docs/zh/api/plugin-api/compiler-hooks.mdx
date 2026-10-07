@@ -652,6 +652,8 @@ interface WatchInvalidation {
 
 `WatchCause` 和 `WatchInvalidation` 类型从 `@rspack/core` 导出。每个 `Watching` 生命周期具有不同的 `watchId`。修订号零表示初次编译，不触发通知。后续失效事件的修订号递增。关闭 watcher 会丢弃尚未分配的失效事件。
 
+对于 `MultiCompiler`，请在 `compiler.compilers` 中的每个子编译器上注册此钩子。
+
 手动调用 `watching.invalidate()` 的原因为 `unknown`。文件通知和暂停的 watcher 恢复时发现的变更原因为 `source`。缺少文件名的信息以 `unknown` 表示。同一路径的文件通知与后续聚合更新可能分别产生事件。
 
 MultiCompiler 调度子编译器时，若该子编译器已有待处理失效事件，则不额外添加原因。依赖失效会在受影响的子编译器上记录 `unknown` 原因。没有其他原因的调度重构建也记录为 `unknown`。
