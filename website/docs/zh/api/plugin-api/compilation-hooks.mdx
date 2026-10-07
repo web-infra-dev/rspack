@@ -924,7 +924,7 @@ compilation.hooks.afterProcessAssets.tap('MyPlugin', (assets) => {
   - `Partial<StatsOptions>`：Stats 配置
   - `CreateStatsOptionsContext`：Stats 上下文
 
-先通过钩子映射的 `.for(presetName)` 选择预设，再在返回的钩子上注册回调。
+使用 `compilation.hooks.statsPreset.for(presetName).tap(...)` 为名为 `presetName` 的 stats 预设注册回调。Rspack 使用该预设时，会将 stats 配置对象传给回调，供插件设置该预设的统计选项。
 
 以如下插件为例：
 

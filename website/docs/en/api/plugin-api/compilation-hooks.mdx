@@ -922,7 +922,7 @@ This hook is like a list of actions that gets triggered when a preset is used. I
   - `Partial<StatsOptions>`: stats options
   - `CreateStatsOptionsContext`: stats context
 
-Select a preset by calling `.for(presetName)` on the hook map, then register a tap on the returned hook.
+Use `compilation.hooks.statsPreset.for(presetName).tap(...)` to register a callback for the stats preset named `presetName`. When Rspack uses that preset, it passes the stats options object to the callback so the plugin can configure the preset's options.
 
 Here's an illustrative plugin example:
 
