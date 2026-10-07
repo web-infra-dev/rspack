@@ -878,6 +878,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
           mode: cacheInfo.mode,
           moduleBuilds: cacheInfo.moduleBuilds ?? null,
           counters: cacheInfo.counters,
+          persistentSessionInitialization: cacheInfo.sessionStatus
+            ? { status: cacheInfo.sessionStatus, reason: cacheInfo.sessionReason ?? null }
+            : null,
           persistent:
             cacheInfo.mode === 'persistent'
               ? { status: cacheInfo.status ?? 'unknown', reason: cacheInfo.reason ?? null }

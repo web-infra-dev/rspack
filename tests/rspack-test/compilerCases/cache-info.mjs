@@ -6,7 +6,8 @@ import { checkCacheCounters } from "./helpers/cache-counters.mjs";
 const persistent = (status, reason = null) => ({
   mode: "persistent",
   persistent: { status, reason },
-  moduleBuilds: null
+  moduleBuilds: null,
+  persistentSessionInitialization: null
 });
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
@@ -131,10 +132,17 @@ export default [
           total: 1
         });
       }
-      const { counters: _, ...state } = cacheInfo;
+      const { counters: _, persistentSessionInitialization, ...state } = cacheInfo;
       expect(state).toEqual(
-        name === "persistent" ? persistent("unknown") : { mode: name, persistent: null, moduleBuilds: null }
+        name === "persistent"
+          ? { mode: name, persistent: { status: "unknown", reason: null }, moduleBuilds: null }
+          : { mode: name, persistent: null, moduleBuilds: null }
       );
+      if (name === "persistent") {
+        expect(persistentSessionInitialization).toEqual({ status: expect.any(String), reason: null });
+      } else {
+        expect(persistentSessionInitialization).toBeNull();
+      }
     }
   }))
 ];

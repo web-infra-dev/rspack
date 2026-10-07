@@ -88,6 +88,8 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 没有可报告的原因时，`reason` 为 `null`。该状态描述缓存验证和恢复情况，不表示模块构建缓存命中率。
 
+使用新的文件系统缓存后端时，`cacheInfo.persistentSessionInitialization` 以相同的状态值报告共享缓存会话首次数据库验证的 `{ status, reason }`。这是创建编译时获取的快照；如果初始化尚未完成或后端无法报告，状态为 `unknown`。多个编译器和后续编译可能共享同一个会话，因此 `invalidated` 或 `cold` 不表示当前编译执行了该操作。`valid` 只表示初始版本和构建依赖检查通过，不表示缓存条目已恢复或使用。后续读取或写入错误不会改变该值。其他缓存后端的此字段为 `null`。
+
 `cacheInfo.counters` 包含详细编译日志中也有的缓存计数事件。每个事件包含 `logger`、`label`、`hit` 和 `total`；即使标签相同也会分别报告。`hit / total` 只表示对应计数器的比例：例如代码生成统计模块与运行时的任务，解析器统计解析请求。计数器可能同时包含内存和持久化缓存复用，有些计数器即使在缓存禁用时也会将不可缓存的工作计为未命中。缺少事件（包括空数组）不能说明未命中次数为零或没有缓存活动。不要将不同计数器合并为一个命中率。这些事件不包括基础设施诊断和计时信息。无需启用模块构建计数，调用 `stats.toJson({ cacheInfo: true })` 即可获取这些事件；提取过程会扫描编译日志。
 
 要收集模块构建复用计数，必须在创建编译器前显式配置 `stats: { cacheInfo: true }`。之后调用 `stats.toJson({ cacheInfo: true })` 无法启用收集，`stats: { all: true }` 和 `verbose` 预设也不会启用收集。收集过程会跟踪模块标识，因此会增加构建工作量和内存使用。

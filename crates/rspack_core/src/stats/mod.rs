@@ -178,6 +178,10 @@ impl<'compilation> Stats<'compilation> {
     self.context.0.persistent_cache_state
   }
 
+  pub fn cache_session_initial_validation(&self) -> crate::PersistentCacheState {
+    self.context.0.cache_session_initial_validation
+  }
+
   pub fn module_build_cache_stats(&self) -> Option<(u32, u32)> {
     self.context.0.module_build_cache_stats
   }

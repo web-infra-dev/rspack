@@ -16,7 +16,7 @@ use super::{
   snapshot::FileSystemInfo,
   validator::{CacheValidator, CacheValidatorResult},
 };
-use crate::{InfrastructureLogger, Logger, cache::CacheCodec};
+use crate::{InfrastructureLogger, Logger, PersistentCacheState, cache::CacheCodec};
 
 const VALIDATOR_KEY: &str = "validator";
 
@@ -63,6 +63,7 @@ pub struct FileCacheStrategy {
   codec: Arc<CacheCodec>,
   // Unset: initializing; Some: available; None: unavailable.
   state: OnceLock<RwLock<Option<State>>>,
+  initial_validation: OnceLock<PersistentCacheState>,
   unavailable: Notify,
   readonly: bool,
   logger: Arc<InfrastructureLogger>,
@@ -87,6 +88,7 @@ impl FileCacheStrategy {
       ),
       codec,
       state: OnceLock::new(),
+      initial_validation: OnceLock::new(),
       unavailable: Notify::new(),
       readonly,
       logger,
@@ -94,7 +96,12 @@ impl FileCacheStrategy {
   }
 
   pub async fn db_init(&self, (base_path, path): (Utf8PathBuf, Utf8PathBuf)) {
-    fn set_initialized(strategy: &FileCacheStrategy, database: Database) {
+    fn set_initialized(
+      strategy: &FileCacheStrategy,
+      database: Database,
+      validation: PersistentCacheState,
+    ) {
+      strategy.publish_initial_validation(validation);
       strategy
         .state
         .set(RwLock::new(Some(State {
@@ -108,6 +115,7 @@ impl FileCacheStrategy {
     let mut database = match Database::open(base_path, path, self.readonly) {
       Ok(database) => database,
       Err(error) => {
+        self.publish_initial_validation(PersistentCacheState::ValidationError);
         self.session_unavailable(Some(&error));
         return;
       }
@@ -115,31 +123,52 @@ impl FileCacheStrategy {
     self.logger.time_end(start);
 
     if database.is_empty() {
-      set_initialized(self, database);
+      set_initialized(self, database, PersistentCacheState::Cold);
       return;
     }
 
     let start = self.logger.time("validate cache database");
-    if let Err(e) = self.db_validate(&mut database).await {
-      self.shutdown_database(database);
-      self.session_unavailable(Some(&e));
-      return;
-    }
+    let validation = match self.db_validate(&mut database).await {
+      Ok(validation) => validation,
+      Err(error) => {
+        self.publish_initial_validation(PersistentCacheState::ValidationError);
+        self.shutdown_database(database);
+        self.session_unavailable(Some(&error));
+        return;
+      }
+    };
     self.logger.time_end(start);
     // Publish only after validation succeeds, so waiting readers cannot use an invalid DB.
-    set_initialized(self, database);
+    set_initialized(self, database, validation);
   }
 
-  async fn db_validate(&self, database: &mut Database) -> Result<()> {
+  fn publish_initial_validation(&self, validation: PersistentCacheState) {
+    #[cfg(target_family = "wasm")]
+    let validation = {
+      let _ = validation;
+      PersistentCacheState::Unknown
+    };
+    self
+      .initial_validation
+      .set(validation)
+      .expect("cache initialization should be reported only once");
+  }
+
+  pub(crate) fn initial_validation(&self) -> PersistentCacheState {
+    self.initial_validation.get().copied().unwrap_or_default()
+  }
+
+  async fn db_validate(&self, database: &mut Database) -> Result<PersistentCacheState> {
     let data = database.get(DatabaseFamily::Validator, &CacheKey::new(VALIDATOR_KEY))?;
     let validation = self.validator.validate(data.as_deref()).await?;
-    match validation {
-      CacheValidatorResult::Valid => {}
+    let state = match validation {
+      CacheValidatorResult::Valid => PersistentCacheState::Valid,
       CacheValidatorResult::InvalidVersion => {
         self
           .logger
           .log("Resetting cache, the cache version doesn't match");
         database.reset()?;
+        PersistentCacheState::InvalidVersion
       }
       CacheValidatorResult::InvalidBuildDependencies {
         modified_files,
@@ -151,15 +180,17 @@ impl FileCacheStrategy {
           removed_files.len()
         ));
         database.reset()?;
+        PersistentCacheState::InvalidBuildDependencies
       }
       CacheValidatorResult::InvalidError => {
         self
           .logger
           .warn("Resetting cache, unexpected error occurred");
         database.reset()?;
+        PersistentCacheState::ValidationError
       }
-    }
-    Ok(())
+    };
+    Ok(state)
   }
 
   fn read_state(&self) -> RwLockReadGuard<'_, Option<State>> {
