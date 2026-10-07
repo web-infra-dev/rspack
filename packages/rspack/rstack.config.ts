@@ -207,8 +207,8 @@ define.lib({
           'connect-next': './compiled/connect-next',
           '@rspack/lite-tapable': './compiled/@rspack/lite-tapable/dist',
           'http-proxy-middleware': './compiled/http-proxy-middleware',
-          // Note: the JS bundle resolves to ./compiled/webpack-sources/index.js, while DTS should point to the generated types directory.
-          'webpack-sources': './compiled/webpack-sources/types',
+          // Use the public type entry, which exports Source classes as both values and types.
+          'webpack-sources': './compiled/webpack-sources/index',
         },
       },
       redirect: {

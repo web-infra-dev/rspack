@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 function replaceFileContent(filePath, replaceFn) {
@@ -16,6 +16,19 @@ export default {
     {
       name: 'webpack-sources',
       copyDts: true,
+      afterBundle(task) {
+        // Avoid resolving the public types.d.ts entry as types/index.d.ts.
+        // The latter exports source constructors without their instance types.
+        renameSync(
+          join(task.distPath, 'types.d.ts'),
+          join(task.distPath, 'index.d.ts'),
+        );
+        replaceFileContent(join(task.distPath, 'package.json'), (content) => {
+          const packageJson = JSON.parse(content);
+          packageJson.types = 'index.d.ts';
+          return `${JSON.stringify(packageJson, null, 2)}\n`;
+        });
+      },
     },
     {
       name: 'connect-next',

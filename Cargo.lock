@@ -888,23 +888,9 @@ dependencies = [
 
 [[package]]
 name = "const-str"
-version = "0.3.2"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21077772762a1002bb421c3af42ac1725fa56066bfc53d9a55bb79905df2aaf3"
-dependencies = [
- "const-str-proc-macro",
-]
-
-[[package]]
-name = "const-str-proc-macro"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e1e0fdd2e5d3041e530e1b21158aeeef8b5d0e306bc5c1e3d6cf0930d10e25a"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
-]
+checksum = "18f12cc9948ed9604230cdddc7c86e270f9401ccbe3c2e98a4378c5e7632212f"
 
 [[package]]
 name = "constant_time_eq"
@@ -1157,7 +1143,7 @@ dependencies = [
 
 [[package]]
 name = "css-module-lexer"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "bitflags 2.13.1",
  "indoc",
@@ -1170,35 +1156,35 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
-version = "0.33.0"
+version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9be934d936a0fbed5bcdc01042b770de1398bf79d0e192f49fa7faea0e99281e"
+checksum = "8c9cdaae01d5ed7882b04d795e7f752f46ff52d2fa3b50a20d28c464510bba98"
 dependencies = [
  "cssparser-macros",
  "dtoa-short",
  "itoa",
- "phf",
+ "phf 0.13.1",
  "serde",
  "smallvec",
 ]
 
 [[package]]
 name = "cssparser-color"
-version = "0.1.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "556c099a61d85989d7af52b692e35a8d68a57e7df8c6d07563dc0778b3960c9f"
+checksum = "bbaa233e1dcd9c13a5d3e3a8a2c0f5a727bac380398345dbcb31db4597edc86b"
 dependencies = [
  "cssparser",
 ]
 
 [[package]]
 name = "cssparser-macros"
-version = "0.6.1"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13b588ba4ac1a99f7f2964d24b3d896ddc6bf847ee3855dbd4366f058cfcd331"
+checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 2.0.117",
+ "syn 3.0.3",
 ]
 
 [[package]]
@@ -2434,9 +2420,9 @@ dependencies = [
 
 [[package]]
 name = "lightningcss"
-version = "1.0.0-alpha.71"
+version = "1.0.0-alpha.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb6314c2f0590ac93c86099b98bb7ba8abcf759bfd89604ffca906472bb54937"
+checksum = "d31b760f96e8fdfe1d0c295e4bf76c503d6f15d2d470d53bd8cd1f7aa8c7d934"
 dependencies = [
  "ahash 0.8.12",
  "bitflags 2.13.1",
@@ -3009,14 +2995,14 @@ dependencies = [
 
 [[package]]
 name = "parcel_selectors"
-version = "0.28.2"
+version = "0.28.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54fd03f1ad26cb6b3ec1b7414fa78a3bd639e7dbb421b1a60513c96ce886a196"
+checksum = "d05f71e01edca03d245ab0a9f7ce13a974ceb79baaae8faf2ba0b11de6b90913"
 dependencies = [
  "bitflags 2.13.1",
  "cssparser",
  "log",
- "phf",
+ "phf 0.11.2",
  "phf_codegen",
  "precomputed-hash",
  "rustc-hash",
@@ -3111,8 +3097,19 @@ version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ade2d8b8f33c7333b51bcf0428d37e217e9f32192ae4772156f65063b8ce03dc"
 dependencies = [
- "phf_macros",
- "phf_shared",
+ "phf_macros 0.11.2",
+ "phf_shared 0.11.2",
+]
+
+[[package]]
+name = "phf"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1562dc717473dbaa4c1f85a36410e03c047b2e7df7f45ee938fbef64ae7fadf"
+dependencies = [
+ "phf_macros 0.13.1",
+ "phf_shared 0.13.1",
+ "serde",
 ]
 
 [[package]]
@@ -3121,8 +3118,8 @@ version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8d39688d359e6b34654d328e262234662d16cc0f60ec8dcbe5e718709342a5a"
 dependencies = [
- "phf_generator",
- "phf_shared",
+ "phf_generator 0.11.2",
+ "phf_shared 0.11.2",
 ]
 
 [[package]]
@@ -3131,8 +3128,18 @@ version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48e4cc64c2ad9ebe670cb8fd69dd50ae301650392e81c05f9bfcb2d5bdbc24b0"
 dependencies = [
- "phf_shared",
+ "phf_shared 0.11.2",
  "rand",
+]
+
+[[package]]
+name = "phf_generator"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "135ace3a761e564ec88c03a77317a7c6b80bb7f7135ef2544dbe054243b89737"
+dependencies = [
+ "fastrand",
+ "phf_shared 0.13.1",
 ]
 
 [[package]]
@@ -3141,8 +3148,21 @@ version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3444646e286606587e49f3bcf1679b8cef1dc2c5ecc29ddacaffc305180d464b"
 dependencies = [
- "phf_generator",
- "phf_shared",
+ "phf_generator 0.11.2",
+ "phf_shared 0.11.2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "phf_macros"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "812f032b54b1e759ccd5f8b6677695d5268c588701effba24601f6932f8269ef"
+dependencies = [
+ "phf_generator 0.13.1",
+ "phf_shared 0.13.1",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -3154,7 +3174,16 @@ version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90fcb95eef784c2ac79119d1dd819e162b5da872ce6f3c3abe1e8ca1c082f72b"
 dependencies = [
- "siphasher",
+ "siphasher 0.3.11",
+]
+
+[[package]]
+name = "phf_shared"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e57fef6bc5981e38c2ce2d63bfa546861309f875b8a75f092d1d54ae2d64f266"
+dependencies = [
+ "siphasher 1.0.4",
 ]
 
 [[package]]
@@ -3831,7 +3860,7 @@ dependencies = [
 
 [[package]]
 name = "rspack"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "bitflags 2.13.1",
  "derive_more",
@@ -3937,7 +3966,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_allocator"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "mimalloc",
  "sftrace-setup",
@@ -3946,7 +3975,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_benchmark"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "codspeed-criterion-compat",
@@ -3978,7 +4007,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_binding_api"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4085,21 +4114,21 @@ dependencies = [
 
 [[package]]
 name = "rspack_binding_build"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "napi-build",
 ]
 
 [[package]]
 name = "rspack_binding_builder"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "rspack_binding_api",
 ]
 
 [[package]]
 name = "rspack_binding_builder_macros"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4109,7 +4138,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_binding_builder_testing"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "napi",
  "napi-derive",
@@ -4123,7 +4152,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_browserslist"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "browserslist-rs",
  "lightningcss",
@@ -4132,7 +4161,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_cacheable"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "arc-swap",
  "camino",
@@ -4161,7 +4190,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_cacheable_macros"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "quote",
  "syn 2.0.117",
@@ -4169,7 +4198,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_cacheable_test"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "camino",
  "dashmap",
@@ -4187,7 +4216,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_collections"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "dashmap",
  "either",
@@ -4203,7 +4232,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_core"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "anymap3",
  "arc-swap",
@@ -4285,7 +4314,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_dojang"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "html-escape",
  "rustc-hash",
@@ -4294,7 +4323,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_error"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "anyhow",
  "miette",
@@ -4311,7 +4340,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_fs"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "cfg-if",
@@ -4328,7 +4357,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_hash"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "base64-simd 0.8.0",
  "itoa",
@@ -4349,7 +4378,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_hook"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "rspack_error",
@@ -4359,7 +4388,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_ids"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "derive_more",
  "futures",
@@ -4381,7 +4410,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_intern"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "dashmap",
  "hstr",
@@ -4396,7 +4425,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_javascript_compiler"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "anyhow",
  "indoc",
@@ -4417,7 +4446,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_lightningcss"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4438,7 +4467,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_preact_refresh"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4451,7 +4480,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_react_refresh"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4464,7 +4493,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_runner"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "anymap3",
  "async-trait",
@@ -4489,7 +4518,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_swc"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "either",
@@ -4524,7 +4553,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_testing"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4536,7 +4565,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_location"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "itoa",
  "memchr",
@@ -4545,7 +4574,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_macros"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "cow-utils",
  "heck",
@@ -4556,7 +4585,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_macros_test"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4574,7 +4603,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_napi"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "napi",
  "oneshot",
@@ -4586,7 +4615,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_napi_macros"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4595,7 +4624,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_node"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "napi-derive",
  "rspack_binding_api",
@@ -4605,7 +4634,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_parallel"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "rayon",
  "rspack_tasks",
@@ -4614,7 +4643,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_paths"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "camino",
  "dashmap",
@@ -4627,7 +4656,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_asset"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "mime_guess",
@@ -4644,7 +4673,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_banner"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "cow-utils",
  "futures",
@@ -4658,7 +4687,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_case_sensitive"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "cow-utils",
  "itertools 0.14.0",
@@ -4672,7 +4701,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_circular_dependencies"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "cow-utils",
  "derive_more",
@@ -4689,7 +4718,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_copy"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "cow-utils",
  "derive_more",
@@ -4711,7 +4740,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_css"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -4745,7 +4774,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_css_chunking"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "indexmap",
  "rspack_collections",
@@ -4761,7 +4790,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_devtool"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "cow-utils",
  "derive_more",
@@ -4787,7 +4816,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_dll"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4809,7 +4838,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_dynamic_entry"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "atomic_refcell",
  "derive_more",
@@ -4823,7 +4852,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_ensure_chunk_conditions"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4834,7 +4863,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_entry"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4844,7 +4873,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_esm_library"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -4873,7 +4902,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_externals"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "regex",
  "rspack_core",
@@ -4887,7 +4916,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_extract_css"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4912,7 +4941,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_hmr"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -4934,7 +4963,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_html"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "anyhow",
  "atomic_refcell",
@@ -4963,7 +4992,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_ignore"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "derive_more",
  "futures",
@@ -4976,7 +5005,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_javascript"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "anymap3",
  "async-trait",
@@ -5025,7 +5054,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_json"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -5039,7 +5068,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_lazy_compilation"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -5059,7 +5088,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_library"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "futures",
  "regex",
@@ -5079,7 +5108,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_lightning_css_minimizer"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "lightningcss",
  "parcel_sourcemap",
@@ -5096,7 +5125,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_limit_chunk_count"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -5107,7 +5136,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_merge_duplicate_chunks"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "rayon",
  "rspack_core",
@@ -5119,7 +5148,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_mf"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "camino",
@@ -5147,7 +5176,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_module_info_header"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "rspack_cacheable",
  "rspack_core",
@@ -5162,7 +5191,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_module_replacement"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "derive_more",
  "futures",
@@ -5177,7 +5206,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_no_emit_on_errors"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -5187,7 +5216,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_progress"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "futures",
  "indicatif",
@@ -5201,7 +5230,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_real_content_hash"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "aho-corasick",
  "atomic_refcell",
@@ -5221,7 +5250,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_remove_duplicate_modules"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "rayon",
  "rspack_collections",
@@ -5234,7 +5263,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_remove_empty_chunks"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -5244,7 +5273,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rsc"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -5278,7 +5307,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rsdoctor"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "atomic_refcell",
  "json",
@@ -5301,7 +5330,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rslib"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -5329,7 +5358,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rstest"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "camino",
  "cow-utils",
@@ -5350,7 +5379,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_runtime"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -5375,7 +5404,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_runtime_chunk"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "futures",
  "rspack_core",
@@ -5386,7 +5415,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_schemes"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5411,7 +5440,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_size_limits"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "derive_more",
  "futures",
@@ -5426,7 +5455,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_split_chunks"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "derive_more",
  "futures",
@@ -5449,7 +5478,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_sri"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -5481,7 +5510,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_swc_js_minimizer"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "cow-utils",
  "once_cell",
@@ -5505,7 +5534,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_wasm"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -5524,7 +5553,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_worker"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -5534,7 +5563,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_regex"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "cow-utils",
  "napi",
@@ -5548,7 +5577,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -5577,7 +5606,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "memchr",
  "regex",
@@ -5592,7 +5621,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_storage"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -5608,7 +5637,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_swc_plugin_import"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "cow-utils",
  "heck",
@@ -5619,7 +5648,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_swc_plugin_ts_collector"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "glob",
  "insta",
@@ -5630,14 +5659,14 @@ dependencies = [
 
 [[package]]
 name = "rspack_tasks"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "tokio",
 ]
 
 [[package]]
 name = "rspack_tools"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "clap",
  "itertools 0.14.0",
@@ -5652,7 +5681,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_tracing"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "chrono",
  "rspack_tracing_perfetto",
@@ -5664,7 +5693,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_tracing_perfetto"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "bytes",
  "micromegas-perfetto",
@@ -5677,7 +5706,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_util"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "anyhow",
  "base64-simd 0.8.0",
@@ -5715,7 +5744,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_watcher"
-version = "0.102.7"
+version = "0.102.8"
 dependencies = [
  "cow-utils",
  "dashmap",
@@ -5733,7 +5762,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_workspace"
-version = "0.102.7"
+version = "0.102.8"
 
 [[package]]
 name = "rustc-demangle"
@@ -6064,6 +6093,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 
 [[package]]
+name = "siphasher"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33f4fe9184a62d842c9ef383018f3306d8ba224fd9d836f56d7288308847c256"
+
+[[package]]
 name = "slab"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6357,7 +6392,7 @@ dependencies = [
  "parking_lot",
  "rustc-hash",
  "serde",
- "siphasher",
+ "siphasher 0.3.11",
  "swc_atoms",
  "swc_eq_ignore_macros",
  "swc_sourcemap",
@@ -6395,9 +6430,9 @@ dependencies = [
 
 [[package]]
 name = "swc_config"
-version = "6.0.0"
+version = "6.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "733985ad1340ea469d0d4366bae9664aa8f246006fa822a7d9365b41e48d7986"
+checksum = "bf6924ef781f1f8af3dfdac9674e94f0ab0c20af6b88b2e116af57b1e755b591"
 dependencies = [
  "anyhow",
  "bytes-str",
@@ -6466,7 +6501,7 @@ dependencies = [
  "is-macro",
  "num-bigint",
  "once_cell",
- "phf",
+ "phf 0.11.2",
  "rustc-hash",
  "serde",
  "string_enum",
@@ -6689,7 +6724,7 @@ version = "35.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fb95691978e1d3d100fca45dd3a1fcfab8d90d0554e796472023b3fd17bb1cf"
 dependencies = [
- "phf",
+ "phf 0.11.2",
  "swc_common",
  "swc_ecma_ast",
  "swc_ecma_utils",
@@ -6745,7 +6780,7 @@ dependencies = [
  "par-core",
  "par-iter",
  "parking_lot",
- "phf",
+ "phf 0.11.2",
  "radix_fmt",
  "rustc-hash",
  "ryu-js",
@@ -6775,7 +6810,7 @@ dependencies = [
  "compact_str",
  "either",
  "num-bigint",
- "phf",
+ "phf 0.11.2",
  "rustc-hash",
  "seq-macro",
  "serde",
@@ -6856,7 +6891,7 @@ version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0699de9c2e94b4706723a02d9d30da41d8f7ca526cdfb5328495ef25fceeef2a"
 dependencies = [
- "phf",
+ "phf 0.11.2",
  "rustc-hash",
  "swc_atoms",
  "swc_common",
@@ -6960,7 +6995,7 @@ dependencies = [
  "once_cell",
  "par-core",
  "par-iter",
- "phf",
+ "phf 0.11.2",
  "rustc-hash",
  "serde",
  "swc_atoms",
@@ -9019,9 +9054,9 @@ dependencies = [
 
 [[package]]
 name = "xxhash-rust"
-version = "0.8.15"
+version = "0.8.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdd20c5420375476fbd4394763288da7eb0cc0b8c11deed431a91562af7335d3"
+checksum = "4d93c89cdc2d3a63c3ec48ffe926931bdc069eafa8e4402fe6d8f790c9d1e576"
 
 [[package]]
 name = "yansi"

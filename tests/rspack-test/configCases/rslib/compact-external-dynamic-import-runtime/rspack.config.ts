@@ -1,17 +1,12 @@
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
 const {
   experiments: { RslibPlugin },
 } = rspack;
 
-/** @type {import("@rspack/core").Configuration} */
-
-const basic = {
-  plugins: [
-    new RslibPlugin({
-      compactExternalModuleDynamicImport: true,
-    }),
-  ],
+const basic = defineConfig({
+  plugins: [new RslibPlugin()],
   output: {
     filename: `[name].js`,
     chunkFilename: `async.js`,
@@ -33,9 +28,9 @@ const basic = {
   optimization: {
     minimize: false,
   },
-};
+});
 
-export default [
+export default defineConfig([
   {
     entry: {
       main: './main.js',
@@ -56,4 +51,4 @@ export default [
       filename: 'index.js',
     },
   },
-];
+]);

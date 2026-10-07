@@ -54,7 +54,7 @@ class ExamplePlugin {
 
 ### emitAsset
 
-添加一个产物，如果产物已经存在则会抛错。
+添加一个产物。允许使用相同文件名重复添加内容相同的产物。如果同名产物的内容不同，则会记录一个编译错误。如需替换已有产物，请使用 [updateAsset](#updateasset)。
 
 ```ts
 emitAsset(
@@ -382,7 +382,7 @@ getStats(): Stats;
 以下示例将输出模块总数：
 
 ```js
-compiler.hooks.emit.tapAsync('MyPlugin', (compilation) => {
+compiler.hooks.emit.tap('MyPlugin', (compilation) => {
   const modules = compilation.getStats().toJson({ modules: true }).modules;
   console.log(`Total modules: ${modules.length}`);
 });
@@ -402,7 +402,7 @@ compiler.hooks.emit.tapAsync('MyPlugin', (compilation) => {
 createChildCompiler(
   name: string, // 子编译器名称
   outputOptions: OutputNormalized, // 子编译所使用的 Output 配置对象
-  plugins: RspackPluginInstance[] // 子编译所添加的插件
+  plugins?: (RspackPluginInstance | Falsy)[] // 为子编译器额外添加的插件
 ): Compiler;
 ```
 
@@ -450,7 +450,7 @@ export default {
   plugins: [
     {
       apply(compiler) {
-        const { RuntimeModule } = compiler.rspack;
+        const { RuntimeModule, RuntimeGlobals } = compiler.rspack;
 
         class CustomRuntimeModule extends RuntimeModule {
           constructor() {
@@ -504,10 +504,21 @@ rebuildModule(m: Module, f: (err: Error | null, m: Module | null) => void): void
 compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.finishModules.tapPromise('MyPlugin', async (modules) => {
     const oldModule = Array.from(modules).find((item) =>
-      item.resource.endsWith('a.js'),
+      item.resource?.endsWith('a.js'),
     );
-    compilation.rebuildModule(oldModule, (err, m) => {
-      console.log(`Rebuilt ${m.identifier()}.`);
+    if (!oldModule) {
+      return;
+    }
+
+    await new Promise((resolve, reject) => {
+      compilation.rebuildModule(oldModule, (err, rebuiltModule) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        console.log(`Rebuilt ${rebuiltModule.identifier()}.`);
+        resolve();
+      });
     });
   });
 });
