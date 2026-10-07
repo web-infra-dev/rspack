@@ -365,13 +365,24 @@ class ExamplePlugin {
 
 Executes a plugin after compilation parameters are created.
 
-- **Type:** `AsyncSeriesHook<[]>`
+- **Type:** `AsyncSeriesHook<[CompilationParams]>`
+- **Arguments:**
+  - `params`: compilation parameters containing the [normal module factory](/api/plugin-api/normal-module-factory-hooks) and [context module factory](/api/plugin-api/context-module-factory-hooks).
+
+```ts
+type CompilationParams = {
+  normalModuleFactory: NormalModuleFactory;
+  contextModuleFactory: ContextModuleFactory;
+};
+```
 
 ## `compile`
 
 Called right after `beforeCompile`, before a new [compilation object](/api/javascript-api/compilation) is created.
 
-- **Type:** `SyncHook<[]>`
+- **Type:** `SyncHook<[CompilationParams]>`
+- **Arguments:**
+  - `params`: the same compilation parameters passed to [beforeCompile](#beforecompile).
 
 ## `thisCompilation`
 

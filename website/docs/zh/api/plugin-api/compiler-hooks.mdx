@@ -360,13 +360,24 @@ class ExamplePlugin {
 
 在编译参数创建后执行插件。
 
-- **类型：** `AsyncSeriesHook<[]>`
+- **类型：** `AsyncSeriesHook<[CompilationParams]>`
+- **参数：**
+  - `params`：编译参数，包含 [normal module factory](/api/plugin-api/normal-module-factory-hooks) 和 [context module factory](/api/plugin-api/context-module-factory-hooks)。
+
+```ts
+type CompilationParams = {
+  normalModuleFactory: NormalModuleFactory;
+  contextModuleFactory: ContextModuleFactory;
+};
+```
 
 ## `compile`
 
 在一个新的 [compilation 对象](/api/javascript-api/compilation) 被创建之前调用。
 
-- **类型：** `SyncHook<[]>`
+- **类型：** `SyncHook<[CompilationParams]>`
+- **参数：**
+  - `params`：与 [beforeCompile](#beforecompile) 接收的相同编译参数。
 
 ## `thisCompilation`
 
