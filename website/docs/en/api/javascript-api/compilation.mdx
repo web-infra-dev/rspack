@@ -382,7 +382,7 @@ getStats(): Stats;
 The following code prints the total number of modules:
 
 ```js
-compiler.hooks.emit.tapAsync('MyPlugin', (compilation) => {
+compiler.hooks.emit.tap('MyPlugin', (compilation) => {
   const modules = compilation.getStats().toJson({ modules: true }).modules;
   console.log(`Total modules: ${modules.length}`);
 });

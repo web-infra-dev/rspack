@@ -382,7 +382,7 @@ getStats(): Stats;
 以下示例将输出模块总数：
 
 ```js
-compiler.hooks.emit.tapAsync('MyPlugin', (compilation) => {
+compiler.hooks.emit.tap('MyPlugin', (compilation) => {
   const modules = compilation.getStats().toJson({ modules: true }).modules;
   console.log(`Total modules: ${modules.length}`);
 });
