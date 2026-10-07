@@ -1467,8 +1467,15 @@ export interface JsStatsChunkGroupChildren {
   prefetch?: Array<JsStatsChunkGroup>
 }
 
+export interface JsStatsCacheInfo {
+  mode: 'disabled' | 'memory' | 'persistent'
+  status?: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined
+  reason?: 'version' | 'buildDependencies' | 'recovery' | undefined
+}
+
 export interface JsStatsCompilation {
   assets?: Array<JsStatsAsset>
+  cacheInfo?: JsStatsCacheInfo
   assetsByChunkName?: Array<JsStatsAssetsByChunkName>
   chunks?: Array<JsStatsChunk>
   entrypoints?: Array<JsStatsChunkGroup>
@@ -1578,6 +1585,7 @@ export interface JsStatsOptimizationBailout {
 
 export interface JsStatsOptions {
   assets: boolean
+  cacheInfo: boolean
   cachedModules: boolean
   chunks: boolean
   chunkGroupAuxiliary: boolean

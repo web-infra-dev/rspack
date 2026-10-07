@@ -174,6 +174,10 @@ impl<'compilation> Stats<'compilation> {
     self.context.options()
   }
 
+  pub fn persistent_cache_state(&self) -> crate::PersistentCacheState {
+    self.context.0.persistent_cache_state
+  }
+
   pub fn assets(&self) -> &'compilation CompilationAssets {
     self.context.assets()
   }

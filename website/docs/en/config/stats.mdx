@@ -74,6 +74,20 @@ Enabling `stats.all` will lead to a large amount of data transmission between Ru
 
 Sets the [preset](/config/stats#stats-presets) for the type of information that gets displayed. It is useful for [extending stats behaviours](/config/stats#extending-stats-behaviours).
 
+### stats.cacheInfo
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Include `cacheInfo` in `stats.toJson()`. The object contains `mode` (`disabled`, `memory`, or `persistent`) and `persistent`, which is `null` outside persistent mode. In persistent mode, `persistent.status` is one of:
+
+- `cold`: no previous cache metadata was found.
+- `valid`: the existing metadata version and tracked build dependencies passed validation. This does not establish that snapshots or cache entries were restored, or that any work was reused.
+- `invalidated`: validation rejected the cache. `reason` is `version` or `buildDependencies`.
+- `error`: validation or recovery failed. `reason` is `recovery` for a failed snapshot or cache entry recovery, otherwise `null`.
+- `unknown`: the status is not available. This includes the new cache backend and subsequent compilations on the same compiler.
+
+`reason` is `null` when no reason is reported. The status describes cache validation and recovery, not a module-build hit rate.
+
 ## Asset options
 
 ### stats.assets

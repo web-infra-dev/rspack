@@ -8,7 +8,7 @@ use super::{
   storage::BoxStorage,
   validation::{CacheValidation, CacheValidationResult},
 };
-use crate::{CompilationLogger, LogType, Logger};
+use crate::{CompilationLogger, LogType, Logger, PersistentCacheState};
 
 const PATH_LOG_LIMIT: usize = 3;
 
@@ -28,6 +28,7 @@ pub struct CacheContext {
   /// call; all subsequent `load_*` calls become no-ops for this build.
   /// Restored to `false` (or derived from `invalid`) by `reset`.
   load_failed: bool,
+  state: PersistentCacheState,
   /// When `true`, all `save_*` and storage reset calls are skipped.
   ///
   /// This is a user-configured option, distinct from `DB::readonly` in the
@@ -45,6 +46,7 @@ impl CacheContext {
     Self {
       invalid: false,
       load_failed: false,
+      state: PersistentCacheState::Unknown,
       readonly,
       logger,
       storage,
@@ -53,6 +55,14 @@ impl CacheContext {
 
   pub fn logger(&self) -> &CompilationLogger {
     &self.logger
+  }
+
+  pub fn state(&self) -> PersistentCacheState {
+    self.state
+  }
+
+  pub fn clear_state(&mut self) {
+    self.state = PersistentCacheState::Unknown;
   }
 
   pub fn cleanup_stale(&self) {
@@ -73,7 +83,15 @@ impl CacheContext {
   pub async fn validate(&mut self, validation: &mut CacheValidation) {
     let report = validation.validate(&*self.storage).await;
     match report.result {
-      CacheValidationResult::Valid { tracked_files } => {
+      CacheValidationResult::Valid {
+        tracked_files,
+        has_meta,
+      } => {
+        self.state = if has_meta {
+          PersistentCacheState::Valid
+        } else {
+          PersistentCacheState::Cold
+        };
         self.logger().info(format!(
           "build dependencies are valid ({tracked_files} tracked)"
         ));
@@ -90,6 +108,7 @@ impl CacheContext {
         self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
       }
       CacheValidationResult::InvalidVersion { message } => {
+        self.state = PersistentCacheState::InvalidVersion;
         self
           .logger()
           .warn(format!("meta persistent cache recovery failed: {message}"));
@@ -100,6 +119,7 @@ impl CacheContext {
         modified_files,
         removed_files,
       } => {
+        self.state = PersistentCacheState::InvalidBuildDependencies;
         let reason = format_path_changes(&modified_files, &removed_files);
         self.logger().warn(format!(
           "persistent cache invalidated because build dependencies changed:\n{reason}"
@@ -113,6 +133,7 @@ impl CacheContext {
         self.invalidate();
       }
       CacheValidationResult::VersionError(error) => {
+        self.state = PersistentCacheState::ValidationError;
         self
           .logger()
           .warn(format!("meta persistent cache recovery failed: {error}"));
@@ -120,6 +141,7 @@ impl CacheContext {
         self.invalidate();
       }
       CacheValidationResult::BuildDependenciesError(error) => {
+        self.state = PersistentCacheState::ValidationError;
         self
           .logger()
           .warn(format!("build dependencies validation failed: {error}"));
@@ -221,6 +243,7 @@ impl CacheContext {
           }
           Err(err) => {
             self.load_failed = true;
+            self.state = PersistentCacheState::RecoveryError;
             self
               .logger()
               .warn(format!("snapshot scope load failed: {err}"));
@@ -315,6 +338,7 @@ impl CacheContext {
         }
         Err(err) => {
           self.load_failed = true;
+          self.state = PersistentCacheState::RecoveryError;
           self.logger().warn(format!(
             "{} persistent cache recovery failed: {err}",
             occasion.name()

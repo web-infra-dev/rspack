@@ -252,6 +252,14 @@ export type KnownStatsChunkOrigin = {
 
 export type StatsChunkOrigin = KnownStatsChunkOrigin & Record<string, any>;
 
+export type StatsCacheInfo = {
+  mode: 'disabled' | 'memory' | 'persistent';
+  persistent: {
+    status: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown';
+    reason: 'version' | 'buildDependencies' | 'recovery' | null;
+  } | null;
+};
+
 export type KnownStatsCompilation = {
   /**
    * webpack version.
@@ -262,6 +270,7 @@ export type KnownStatsCompilation = {
   rspackVersion?: string;
   name?: string;
   hash?: string;
+  cacheInfo?: StatsCacheInfo;
   env?: any;
   time?: number;
   builtAt?: number;

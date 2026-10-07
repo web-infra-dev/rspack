@@ -74,6 +74,20 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 按照[预设值](/config/stats#预设stats-presets)进行输出，这在[扩展信息输出行为](/config/stats#扩展信息输出行为)时很有用。
 
+### stats.cacheInfo
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+在 `stats.toJson()` 中输出 `cacheInfo`。该对象包含 `mode`（`disabled`、`memory` 或 `persistent`）和 `persistent`。非持久化缓存模式下，`persistent` 为 `null`。持久化缓存模式下，`persistent.status` 的值包括：
+
+- `cold`：未找到以前的缓存元数据。
+- `valid`：已有元数据的版本和跟踪的构建依赖通过验证。该状态不表示快照或缓存条目已恢复，也不表示任何工作已被复用。
+- `invalidated`：缓存未通过验证，`reason` 为 `version` 或 `buildDependencies`。
+- `error`：验证或恢复失败。快照或缓存条目恢复失败时，`reason` 为 `recovery`，否则为 `null`。
+- `unknown`：无法获得状态，包括使用新缓存后端和同一编译器的后续编译。
+
+没有可报告的原因时，`reason` 为 `null`。该状态描述缓存验证和恢复情况，不表示模块构建缓存命中率。
+
 ## 产物选项
 
 ### stats.assets
