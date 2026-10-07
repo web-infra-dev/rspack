@@ -191,11 +191,13 @@ compiler.hooks.compilation.tap(
 
 ## `resolveForScheme`
 
-`AsyncSeriesBailHook<[ResourceDataWithData]>`
+`HookMap<AsyncSeriesBailHook<[ResourceDataWithData], true | void>>`
 
 在解析带有 scheme（URI）的模块标识符之前调用。
 
 `resolveForScheme` 通常用于处理具有特定协议的模块标识符，例如 `file://`、`https://` 等。
+
+通过 `.for(scheme)` 选择协议，例如 `.for('https')`，再在返回的钩子上注册回调。处理完资源后返回 `true`，可以跳过该协议的后续回调。返回 `undefined` 或不返回值则继续执行下一个回调。
 
 ```js
 compiler.hooks.compilation.tap(

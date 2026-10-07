@@ -191,11 +191,13 @@ compiler.hooks.compilation.tap(
 
 ## `resolveForScheme`
 
-`AsyncSeriesBailHook<[ResourceDataWithData]>`
+`HookMap<AsyncSeriesBailHook<[ResourceDataWithData], true | void>>`
 
 Called before a module specifier with scheme (URI) is resolved.
 
 The `resolveForScheme` is typically used to handle module specifiers that have a specific protocol, such as `file://`, `https://`, etc.
+
+Select a scheme with `.for(scheme)`, such as `.for('https')`, then register a tap on the returned hook. Return `true` when the resource has been handled to skip subsequent taps for that scheme. Return `undefined` or omit the return value to continue to the next tap.
 
 ```js
 compiler.hooks.compilation.tap(
