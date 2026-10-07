@@ -54,7 +54,7 @@ class ExamplePlugin {
 
 ### emitAsset
 
-添加一个产物，如果产物已经存在则会抛错。
+添加一个产物。允许使用相同文件名重复添加内容相同的产物。如果同名产物的内容不同，则会记录一个编译错误。如需替换已有产物，请使用 [updateAsset](#updateasset)。
 
 ```ts
 emitAsset(
