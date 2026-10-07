@@ -374,9 +374,10 @@ class ExamplePlugin {
 
 你可以通过 `compilation` 参数来访问 compilation 对象的属性，或是注册 [compilation hooks](/api/plugin-api/compilation-hooks)。
 
-- **类型：** `SyncHook<[Compilation]>`
+- **类型：** `SyncHook<[Compilation, CompilationParams]>`
 - **参数：**
   - `compilation`: 创建的 [compilation 对象](/api/javascript-api/compilation)
+  - `params: CompilationParams`：本次编译使用的模块工厂，包含 `normalModuleFactory` 和 `contextModuleFactory` 属性。
 
 <Collapse>
   <CollapsePanel
@@ -412,9 +413,10 @@ class ExamplePlugin {
 
 `compilation` 钩子的调用晚于 [thisCompilation](#thiscompilation) 钩子，并且 `thisCompilation` 钩子不会被复制到 child compiler 中，而 `compilation` 钩子会被复制到 child compiler 中。
 
-- **类型：** `SyncHook<[Compilation]>`
+- **类型：** `SyncHook<[Compilation, CompilationParams]>`
 - **参数：**
   - `compilation`: 创建的 [compilation](/api/javascript-api/compilation) 对象
+  - `params: CompilationParams`：本次编译使用的模块工厂，包含 `normalModuleFactory` 和 `contextModuleFactory` 属性。
 
 <Collapse>
   <CollapsePanel
