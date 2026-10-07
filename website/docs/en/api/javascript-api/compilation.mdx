@@ -450,7 +450,7 @@ export default {
   plugins: [
     {
       apply(compiler) {
-        const { RuntimeModule } = compiler.rspack;
+        const { RuntimeModule, RuntimeGlobals } = compiler.rspack;
 
         class CustomRuntimeModule extends RuntimeModule {
           constructor() {
