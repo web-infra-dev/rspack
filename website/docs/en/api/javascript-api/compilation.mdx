@@ -507,10 +507,21 @@ The following code will rebuild the module ending with `a.js`:
 compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.finishModules.tapPromise('MyPlugin', async (modules) => {
     const oldModule = Array.from(modules).find((item) =>
-      item.resource.endsWith('a.js'),
+      item.resource?.endsWith('a.js'),
     );
-    compilation.rebuildModule(oldModule, (err, m) => {
-      console.log(`Rebuilt ${m.identifier()}.`);
+    if (!oldModule) {
+      return;
+    }
+
+    await new Promise((resolve, reject) => {
+      compilation.rebuildModule(oldModule, (err, rebuiltModule) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        console.log(`Rebuilt ${rebuiltModule.identifier()}.`);
+        resolve();
+      });
     });
   });
 });
