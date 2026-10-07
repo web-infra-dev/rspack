@@ -1472,6 +1472,14 @@ export interface JsStatsCacheInfo {
   status?: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined
   reason?: 'version' | 'buildDependencies' | 'recovery' | undefined
   moduleBuilds?: JsStatsModuleBuilds
+  counters: Array<JsStatsCacheCounter>
+}
+
+export interface JsStatsCacheCounter {
+  logger: string
+  label: string
+  hit: number
+  total: number
 }
 
 export interface JsStatsModuleBuilds {

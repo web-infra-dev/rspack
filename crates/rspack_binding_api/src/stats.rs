@@ -8,7 +8,7 @@ use napi::{
 use napi_derive::napi;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
-  CacheOptions, EntrypointsStatsOption, ExtendedStatsOptions, PersistentCacheState, Stats,
+  CacheOptions, EntrypointsStatsOption, ExtendedStatsOptions, LogType, PersistentCacheState, Stats,
   StatsChunk, StatsModule, StatsUsedExports,
   rspack_sources::{RawBufferSource, Source, SourceValue},
 };
@@ -985,6 +985,15 @@ pub struct JsStatsCacheInfo {
   #[napi(ts_type = "'version' | 'buildDependencies' | 'recovery' | undefined")]
   pub reason: Option<&'static str>,
   pub module_builds: Option<JsStatsModuleBuilds>,
+  pub counters: Vec<JsStatsCacheCounter>,
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsStatsCacheCounter {
+  pub logger: String,
+  pub label: &'static str,
+  pub hit: u32,
+  pub total: u32,
 }
 
 #[napi(object, object_from_js = false)]
@@ -1124,6 +1133,22 @@ impl JsStats {
     } else {
       (None, None)
     };
+    let mut counters = Vec::new();
+    for logging in self.inner.logging().iter() {
+      let (logger, events) = logging.pair();
+      for event in events {
+        if let LogType::Cache { label, hit, total } = event {
+          counters.push(JsStatsCacheCounter {
+            logger: logger.to_string(),
+            label: *label,
+            hit: *hit,
+            total: *total,
+          });
+        }
+      }
+    }
+    counters.sort_by(|a, b| a.logger.cmp(&b.logger));
+
     JsStatsCacheInfo {
       mode,
       status,
@@ -1132,6 +1157,7 @@ impl JsStats {
         .inner
         .module_build_cache_stats()
         .map(|(reused, total)| JsStatsModuleBuilds { reused, total }),
+      counters,
     }
   }
 

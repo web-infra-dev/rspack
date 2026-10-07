@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { checkCacheCounters } from "./helpers/cache-counters.mjs";
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 const cases = [false, true].map(newCache => {
@@ -94,7 +95,9 @@ const cases = [false, true].map(newCache => {
         dependencyBuilds = 0;
         const stats = await manager.build();
         expect(stats.hasErrors()).toBe(false);
-        expect(stats.toJson({ all: false, cacheInfo: true }).cacheInfo.moduleBuilds).toEqual(expected);
+        const cacheInfo = stats.toJson({ all: false, cacheInfo: true }).cacheInfo;
+        expect(cacheInfo.moduleBuilds).toEqual(expected);
+        checkCacheCounters(stats, cacheInfo.counters);
         return artifacts();
       };
       const restart = async version => {
@@ -148,6 +151,10 @@ const cases = [false, true].map(newCache => {
       forceLateRebuild = true;
       expect(await build(null)).toEqual(changed);
       await build(null);
+      await restart("second");
+      fs.writeFileSync(path.join(root, "entry.js"), 'console.log("no dependency");');
+      const removed = await build({ reused: 0, total: 1 });
+      expect(removed[0]).not.toContain("dependency-v2");
     }
   };
 });
