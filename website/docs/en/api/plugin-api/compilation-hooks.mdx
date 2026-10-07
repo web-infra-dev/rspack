@@ -770,7 +770,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
       const newContent = oldContent + '\nconsole.log("hello world!")';
       const source = new RawSource(newContent);
 
-      compilation.updateAsset(assetName, source);
+      compilation.updateAsset('foo.js', source);
     },
   );
 });
