@@ -659,8 +659,6 @@ In Rspack, `hash` and `fullHash` are read-only aliases that return the same valu
 - `null`: the compilation hash has not been calculated yet, for example when the `thisCompilation` hook runs.
 - `string`: the compilation hash is available. You can read it in hooks that run after hashing, such as [processAssets](/api/plugin-api/compilation-hooks#processassets) or [afterSeal](/api/plugin-api/compilation-hooks#afterseal).
 
-The hash length is limited by [output.hashDigestLength](/config/output#outputhashdigestlength).
-
 The hash is calculated before asset processing. Updating assets in `processAssets` does not automatically recalculate this value.
 
 ```js
