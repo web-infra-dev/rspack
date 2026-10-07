@@ -1,7 +1,6 @@
 mod generator;
 mod id;
 mod id_alloc;
-mod lz4;
 
 use std::hash::{Hash, Hasher};
 
@@ -16,12 +15,10 @@ use crate::{Error, Result};
 
 /// A pack file containing a collection of key-value pairs.
 ///
-/// By default, pack files store data in a simple format:
+/// Pack files store data in a simple format:
 /// - Each item has a header line: "key_len value_len"
 /// - Followed by raw key bytes and value bytes
 /// - Content hash is computed from all keys and values for integrity verification
-///
-/// When compression is enabled, the LZ4 module encodes and decodes this body.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Pack {
   data: Vec<(Vec<u8>, Vec<u8>)>,
@@ -35,12 +32,7 @@ impl Pack {
   /// Loads a pack file from disk and returns the pack data with its content hash.
   ///
   /// Returns: (Pack, content_hash)
-  pub async fn load(fs: &ScopeFileSystem, id: PackId, compression: bool) -> Result<(Self, u64)> {
-    if compression {
-      // Boxed so the default future keeps its size; most packs load in their own spawned task.
-      return Box::pin(lz4::load(fs, id)).await;
-    }
-
+  pub async fn load(fs: &ScopeFileSystem, id: PackId) -> Result<(Self, u64)> {
     let pack_name = id.pack_name();
     let mut reader = fs.stream_read(&pack_name).await?;
 
@@ -84,17 +76,7 @@ impl Pack {
   /// Saves the pack to disk and generates its index metadata.
   ///
   /// The index includes a bloom filter for fast key lookups and a content hash for integrity.
-  pub async fn save(
-    &mut self,
-    fs: &ScopeFileSystem,
-    id: PackId,
-    compression: bool,
-  ) -> Result<PackIndex> {
-    if compression {
-      // Boxed so the default future keeps its size; most packs save in their own spawned task.
-      return Box::pin(lz4::save(self, fs, id)).await;
-    }
-
+  pub async fn save(&self, fs: &ScopeFileSystem, id: PackId) -> Result<PackIndex> {
     let mut writer = fs.stream_write(id.pack_name()).await?;
 
     let mut index_gen = IndexGenerator::default();
@@ -143,7 +125,7 @@ mod test {
     fs.ensure_exist().await?;
 
     // pack not found
-    assert!(Pack::load(&fs, pack_id, false).await.is_err());
+    assert!(Pack::load(&fs, pack_id).await.is_err());
 
     let data: Vec<(Vec<u8>, Vec<u8>)> = vec![
       ("key1".into(), "value1".into()),
@@ -155,8 +137,8 @@ mod test {
     assert!(!pack.remove("key4".as_bytes()));
     assert!(pack.remove("key2".as_bytes()));
 
-    let index = pack.save(&fs, pack_id, false).await?;
-    let (other_pack, content_hash) = Pack::load(&fs, pack_id, false).await?;
+    let index = pack.save(&fs, pack_id).await?;
+    let (other_pack, content_hash) = Pack::load(&fs, pack_id).await?;
     assert!(index.check_content_hash(content_hash));
     assert_eq!(pack, other_pack);
 

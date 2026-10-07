@@ -141,16 +141,16 @@ mod test {
     // meta not found
     assert!(Meta::load(&fs).await.is_err());
 
-    let mut pack = Pack::new(vec![("key1".into(), "value1".into())]);
+    let pack = Pack::new(vec![("key1".into(), "value1".into())]);
 
     // new a meta
     let mut meta = Meta::default();
     let pack_id_1 = meta.pack_id_alloc.next_id();
-    let index_1 = pack.save(&fs, pack_id_1, false).await?;
+    let index_1 = pack.save(&fs, pack_id_1).await?;
     meta.update_pack_index(pack_id_1, Some(index_1));
 
     let pack_id_2 = meta.pack_id_alloc.next_id();
-    let index_2 = pack.save(&fs, pack_id_2, false).await?;
+    let index_2 = pack.save(&fs, pack_id_2).await?;
     meta.update_pack_index(pack_id_2, Some(index_2));
 
     let temp_id = meta.pack_id_alloc.next_id();

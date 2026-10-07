@@ -2125,7 +2125,8 @@ export type CacheStorageOptions = {
    */
   location?: string;
   /**
-   * Compress persistent cache packs with LZ4, or disable compression.
+   * Compress persistent module graph, minimized output, and source map values
+   * with LZ4, or disable compression.
    * @default false
    */
   compression?: false | 'lz4';

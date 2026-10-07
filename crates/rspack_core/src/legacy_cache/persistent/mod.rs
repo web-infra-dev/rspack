@@ -57,18 +57,20 @@ impl PersistentCache {
     } else {
       None
     };
-    let codec = Arc::new(CacheCodec::new(portable_project_root));
-    // Keep each encoding in its own directory so packs need no format marker.
+    let value_compression = matches!(
+      &option.storage,
+      StorageOptions::FileSystem {
+        compression: true,
+        ..
+      }
+    );
+    let codec =
+      Arc::new(CacheCodec::new(portable_project_root).with_value_compression(value_compression));
+    // Keep each value encoding in its own directory; storage stays format-agnostic.
     let cache_directory = {
       let mut hasher = DefaultHasher::new();
       compiler_path.hash(&mut hasher);
-      if matches!(
-        &option.storage,
-        StorageOptions::FileSystem {
-          compression: true,
-          ..
-        }
-      ) {
+      if value_compression {
         "lz4".hash(&mut hasher);
       }
       CacheDirectory::new(hex::encode(hasher.finish().to_ne_bytes()))

@@ -106,7 +106,7 @@ impl Occasion for MinimizeOccasion {
               comments_file_name: ec.comments_file_name.clone(),
             }),
         };
-        match self.codec.encode(&storage_entry) {
+        match self.codec.encode_value(&storage_entry) {
           Ok(bytes) => Some((key.to_bytes(), bytes)),
           Err(err) => {
             tracing::warn!("minimize persistent cache encode failed: {:?}", err);
@@ -135,7 +135,7 @@ impl Occasion for MinimizeOccasion {
         tracing::warn!("minimize persistent cache key has invalid length");
         continue;
       };
-      match self.codec.decode::<Entry>(&value) {
+      match self.codec.decode_value::<Entry>(value) {
         Ok(entry) => {
           entries.insert(
             key,

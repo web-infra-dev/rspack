@@ -32,3 +32,20 @@ where
   serialize_using(value, &mut serializer)?;
   Ok(serializer.into_writer().into_vec())
 }
+
+/// Serialize into an aligned buffer without copying the archive into a `Vec`.
+///
+/// Consumers that transform the archive can release this buffer before
+/// retaining their final representation.
+pub fn to_aligned_bytes<T, C: CacheableContext>(value: &T, ctx: &C) -> Result<AlignedVec>
+where
+  T: for<'a> Serialize<Serializer<'a>>,
+{
+  let guard = ContextGuard::new(ctx);
+  let mut arena = Arena::new();
+  let mut serializer = RkyvSerializer::new(AlignedVec::new(), arena.acquire(), Share::new());
+  guard.add_to_sharing(&mut serializer)?;
+
+  serialize_using(value, &mut serializer)?;
+  Ok(serializer.into_writer())
+}

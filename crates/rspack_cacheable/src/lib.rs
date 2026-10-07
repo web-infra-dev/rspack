@@ -35,11 +35,20 @@ pub fn from_bytes<T, C: CacheableContext>(_bytes: &[u8], _context: &C) -> Result
 }
 
 #[cfg(not(feature = "noop"))]
-pub use serialize::to_bytes;
+pub use serialize::{to_aligned_bytes, to_bytes};
 #[cfg(feature = "noop")]
 pub fn to_bytes<T, C: CacheableContext>(_value: &T, _ctx: &C) -> Result<Vec<u8>> {
   let _ = serialize::to_bytes::<u8, C>;
   panic!("Cannot use to_bytes when noop feature is enabled")
+}
+
+#[cfg(feature = "noop")]
+pub fn to_aligned_bytes<T, C: CacheableContext>(
+  _value: &T,
+  _ctx: &C,
+) -> Result<rkyv::util::AlignedVec> {
+  let _ = serialize::to_aligned_bytes::<u8, C>;
+  panic!("Cannot use to_aligned_bytes when noop feature is enabled")
 }
 
 pub use context::{CacheableContext, ContextGuard};
