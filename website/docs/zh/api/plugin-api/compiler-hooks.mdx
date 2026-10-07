@@ -396,8 +396,8 @@ class ExamplePlugin {
     compiler.hooks.thisCompilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation created:', compilation);
 
-      compilation.hooks.make.tap('ExamplePlugin', (compilation) => {
-        console.log("compilation's make hook called:", compilation);
+      compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
+        console.log('Generated assets:', Object.keys(assets));
       });
     });
   }
@@ -432,8 +432,8 @@ class ExamplePlugin {
     compiler.hooks.compilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation created:', compilation);
 
-      compilation.hooks.make.tap('ExamplePlugin', (compilation) => {
-        console.log("compilation's make hook called:", compilation);
+      compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
+        console.log('Generated assets:', Object.keys(assets));
       });
     });
   }
