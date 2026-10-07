@@ -22,7 +22,7 @@
 # this list would mean the nix crate, as well as any of its exclusive
 # dependencies not shared by any other crates, would be ignored, as the target
 # list here is effectively saying which targets you are building for.
-targets             = [
+targets = [
   # The triple can be any string, but only the target triples built in to
   # rustc (as of 1.40) can be checked against actual config expressions
   #"x86_64-unknown-linux-musl",
@@ -42,7 +42,7 @@ targets             = [
 # If true, metadata will be collected with `--all-features`. Note that this can't
 # be toggled off if true, if you want to conditionally enable `--all-features` it
 # is recommended to pass `--all-features` on the cmd line instead
-all-features        = false
+all-features = false
 # If true, metadata will be collected with `--no-default-features`. The same
 # caveat with `all-features` applies
 no-default-features = false
@@ -68,10 +68,10 @@ db-path = "~/.cargo/advisory-db"
 # The url(s) of the advisory databases to use
 db-urls = ["https://github.com/rustsec/advisory-db"]
 # The lint level for crates that have been yanked from their source registry
-yanked  = "warn"
+yanked = "warn"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
-ignore  = [
+ignore = [
   #"RUSTSEC-0000-0000",
   #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
   #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
@@ -90,7 +90,7 @@ ignore  = [
 # List of explicitly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
-allow                = [
+allow = [
   "MIT",
   "Apache-2.0",
   "Apache-2.0 WITH LLVM-exception",
@@ -113,7 +113,7 @@ allow                = [
 confidence-threshold = 0.8
 # Allow 1 or more licenses on a per-crate basis, so that particular licenses
 # aren't accepted for every possible crate as with the normal allow list
-exceptions           = [
+exceptions = [
   # Each entry is the crate and version constraint, and its specific allow
   # list
   #{ allow = ["Zlib"], crate = "adler32" },
@@ -142,7 +142,7 @@ exceptions           = [
 # published to private registries.
 # To see how to mark a crate as unpublished (to the official registry),
 # visit https://doc.rust-lang.org/cargo/reference/manifest.html#the-publish-field.
-ignore     = false
+ignore = false
 # One or more private registries that you might publish crates to, if a crate
 # is only published to private registries, and ignore is true, the crate will
 # not have its license(s) checked
@@ -155,15 +155,15 @@ registries = [
 # https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html
 [bans]
 # Lint level for when multiple versions of the same crate are detected
-multiple-versions          = "deny"
+multiple-versions = "deny"
 # Lint level for when a crate version requirement is `*`
-wildcards                  = "deny"
+wildcards = "deny"
 # The graph highlighting used when creating dotgraphs for crates
 # with multiple versions
 # * lowest-version - The path to the lowest versioned duplicate is highlighted
 # * simplest-path - The path to the version with the fewest edges is highlighted
 # * all - Both lowest-version and simplest-path are used
-highlight                  = "all"
+highlight = "all"
 # The default lint level for `default` features for crates that are members of
 # the workspace that is being checked. This can be overridden by allowing/denying
 # `default` on a crate-by-crate basis if desired.
@@ -171,14 +171,14 @@ workspace-default-features = "allow"
 # The default lint level for `default` features for external crates that are not
 # members of the workspace. This can be overridden by allowing/denying `default`
 # on a crate-by-crate basis if desired.
-external-default-features  = "allow"
+external-default-features = "allow"
 # List of crates that are allowed. Use with care!
-allow                      = [
+allow = [
   #"ansi_term@0.11.0",
   #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is allowed" },
 ]
 # List of crates to deny
-deny                       = [
+deny = [
   #"ansi_term@0.11.0",
   #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is banned" },
   # Wrapper crates can optionally be specified to allow the crate when it
@@ -211,7 +211,7 @@ deny                       = [
 
 # Certain crates/versions that will be skipped when doing duplicate detection.
 # Certain crates/versions that will be skipped when doing duplicate detection.
-skip      = [
+skip = [
   { crate = "ahash", reason = "external dependency" },
   { crate = "base64-simd", reason = "external dependency" },
   { crate = "convert_case", reason = "external dependency" },
@@ -259,9 +259,9 @@ skip-tree = [
 ]
 
 [bans.workspace-dependencies]
-duplicates                = 'deny'
+duplicates = 'deny'
 include-path-dependencies = true
-unused                    = "deny"
+unused = "deny"
 
 # This section is considered when running `cargo deny check sources`.
 # More documentation about the 'sources' section can be found here:
@@ -272,17 +272,17 @@ unused                    = "deny"
 unknown-registry = "warn"
 # Lint level for what to happen when a crate from a git repository that is not
 # in the allow list is encountered
-unknown-git      = "warn"
+unknown-git = "warn"
 # List of URLs for allowed crate registries. Defaults to the crates.io index
 # if not specified. If it is specified but empty, no registries are allowed.
-allow-registry   = ["https://github.com/rust-lang/crates.io-index"]
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 # List of URLs for allowed Git repositories
-allow-git        = []
+allow-git = []
 
 [sources.allow-org]
 # github.com organizations to allow git sources for
-github    = []
+github = []
 # gitlab.com organizations to allow git sources for
-gitlab    = []
+gitlab = []
 # bitbucket.org organizations to allow git sources for
 bitbucket = []

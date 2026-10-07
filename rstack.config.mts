@@ -37,7 +37,30 @@ define.fmt({
         stringQuoteStyle: 'preserve',
         keyQuoteStyle: 'preserve',
         commentStyle: 'preserve',
+        trailingCommentAlignment: true,
         trailingCommentSpaceWidth: 1,
+      },
+    },
+    {
+      files: 'Cargo.toml',
+      options: {
+        // Tombi always expands arrays that exceed the line width.
+        // Keep short dependency feature lists on one line.
+        printWidth: 160,
+      },
+    },
+    {
+      files: '.cargo/config.toml',
+      options: {
+        printWidth: 160,
+        trailingCommentAlignment: false,
+      },
+    },
+    {
+      files: 'deny.toml',
+      options: {
+        // Avoid aligning unrelated settings across explanatory comments.
+        keyValueEqualsSignAlignment: false,
       },
     },
   ],

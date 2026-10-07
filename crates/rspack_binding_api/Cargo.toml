@@ -14,12 +14,7 @@ version.workspace       = true
 ignored = ["parking_lot", "rspack_tracing_perfetto"]
 
 [features]
-allocative       = [
-  "rspack_util/allocative",
-  "rspack_collections/allocative",
-  "rspack_cacheable/allocative",
-  "rspack_tracing_perfetto?/allocative"
-]
+allocative       = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
 browser          = []
 debug_tool       = ["rspack_core/debug_tool"]
 perfetto         = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]
@@ -128,9 +123,7 @@ serde                                  = { workspace = true }
 serde_json                             = { workspace = true }
 simd-json                              = { workspace = true }
 slotmap                                = { workspace = true }
-swc_core                               = { workspace = true, default-features = false, features = [
-  "ecma_transforms_react"
-] }
+swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio                                  = { workspace = true, features = [
   "rt",
   "rt-multi-thread",
