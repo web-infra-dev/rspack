@@ -876,6 +876,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       if (cacheInfo) {
         object.cacheInfo = {
           mode: cacheInfo.mode,
+          moduleBuilds: cacheInfo.moduleBuilds ?? null,
           persistent:
             cacheInfo.mode === 'persistent'
               ? { status: cacheInfo.status ?? 'unknown', reason: cacheInfo.reason ?? null }

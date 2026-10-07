@@ -29,6 +29,8 @@ pub struct BuildModuleGraphArtifact {
   ///
   /// This field is empty on the initial compilation.
   pub issuer_update_modules: IdentifierSet,
+  /// Modules whose builds were restored from cache in this compilation.
+  pub(crate) reused_module_builds: Option<IdentifierSet>,
 
   // data
   /// Module graph data
@@ -74,6 +76,7 @@ impl BuildModuleGraphArtifact {
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
+      reused_module_builds: None,
       module_graph: Default::default(),
       factorization_artifact: Default::default(),
       side_effects_state_artifact: Default::default(),
@@ -163,6 +166,9 @@ impl BuildModuleGraphArtifact {
   ///
   /// This function will update index on MakeArtifact.
   pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
+    if let Some(reused) = &mut self.reused_module_builds {
+      reused.remove(module_identifier);
+    }
     let module = self
       .module_graph
       .module_by_identifier(module_identifier)

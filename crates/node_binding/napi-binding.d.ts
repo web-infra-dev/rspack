@@ -1466,6 +1466,12 @@ export interface JsStatsCacheInfo {
   mode: 'disabled' | 'memory' | 'persistent'
   status?: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined
   reason?: 'version' | 'buildDependencies' | 'recovery' | undefined
+  moduleBuilds?: JsStatsModuleBuilds
+}
+
+export interface JsStatsModuleBuilds {
+  reused: number
+  total: number
 }
 
 export interface JsStatsCompilation {
@@ -3205,6 +3211,7 @@ export interface RawStatsBuildInfo {
 
 export interface RawStatsOptions {
   colors: boolean
+  cacheInfo: boolean
 }
 
 export interface RawStorageOptions {

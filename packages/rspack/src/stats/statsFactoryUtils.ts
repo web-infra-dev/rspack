@@ -258,6 +258,7 @@ export type StatsCacheInfo = {
     status: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown';
     reason: 'version' | 'buildDependencies' | 'recovery' | null;
   } | null;
+  moduleBuilds: { reused: number; total: number } | null;
 };
 
 export type KnownStatsCompilation = {

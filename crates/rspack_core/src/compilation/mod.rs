@@ -251,6 +251,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   pub persistent_cache_state: PersistentCacheState,
+  pub(crate) module_build_cache_stats: Option<(u32, u32)>,
   cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub resolver_cache: Option<crate::ResolverCache>,
@@ -395,6 +396,17 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
+    let mut build_module_graph_artifact = BuildModuleGraphArtifact::new();
+    if options.stats.cache_info
+      && !is_rebuild
+      && match options.cache {
+        crate::CacheOptions::Persistent(_) => true,
+        crate::CacheOptions::FileSystem(_) => options.experiments.new_cache.module,
+        _ => false,
+      }
+    {
+      build_module_graph_artifact.reused_module_builds = Some(Default::default());
+    }
     // Rebuilds own their invalidation path, so skip module restoration while
     // still publishing rebuilt modules for subsequent compilations.
     let module_build_cache = options
@@ -439,6 +451,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       persistent_cache_state: PersistentCacheState::Unknown,
+      module_build_cache_stats: None,
       cache,
       module_build_cache,
       resolver_cache,
@@ -497,7 +510,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
+      build_module_graph_artifact: StealCell::new(build_module_graph_artifact),
       modified_files,
       removed_files,
       input_filesystem,
@@ -752,6 +765,7 @@ impl Compilation {
   where
     D: Into<DependencyRef>,
   {
+    self.module_build_cache_stats = None;
     for (entry, options) in args {
       self.add_entry(entry.into(), options).await?;
     }
@@ -783,6 +797,7 @@ impl Compilation {
   where
     D: Into<DependencyRef>,
   {
+    self.module_build_cache_stats = None;
     if !self.in_finish_make.load(Ordering::Acquire) {
       return Err(rspack_error::Error::error(
         "You can only call `add_include` during the finish make stage".into(),
@@ -1134,6 +1149,7 @@ impl Compilation {
     exports_info_artifact: &mut ExportsInfoArtifact,
     f: impl Fn(Vec<&crate::ModuleRef>) -> T,
   ) -> Result<T> {
+    self.module_build_cache_stats = None;
     let artifact = self.build_module_graph_artifact.steal();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
