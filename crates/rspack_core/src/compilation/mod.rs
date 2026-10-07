@@ -209,6 +209,18 @@ impl Default for CompilationId {
 
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 
+#[derive(Debug, Clone, Copy, Default)]
+pub enum PersistentCacheState {
+  #[default]
+  Unknown,
+  Cold,
+  Valid,
+  InvalidVersion,
+  InvalidBuildDependencies,
+  ValidationError,
+  RecoveryError,
+}
+
 /// Use macro to prevent cargo shear from failing and reporting errors
 /// due to the inability to parse the async closure syntax
 /// https://github.com/Boshen/cargo-shear/issues/143
@@ -238,6 +250,7 @@ pub struct Compilation {
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
+  pub persistent_cache_state: PersistentCacheState,
   cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub resolver_cache: Option<crate::ResolverCache>,
@@ -425,6 +438,7 @@ impl Compilation {
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       logging,
+      persistent_cache_state: PersistentCacheState::Unknown,
       cache,
       module_build_cache,
       resolver_cache,

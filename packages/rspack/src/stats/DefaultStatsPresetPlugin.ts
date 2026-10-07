@@ -164,6 +164,7 @@ const DEFAULTS: StatsDefault = {
   // 		? compilation.requestShortener
   // 		: new RequestShortener(options.context, compilation.compiler.root),
   performance: NORMAL_ON,
+  cacheInfo: NORMAL_OFF,
   hash: OFF_FOR_TO_STRING,
   env: NORMAL_OFF,
   version: NORMAL_ON,

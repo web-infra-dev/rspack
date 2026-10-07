@@ -51,6 +51,7 @@ export { RuntimeGlobals } from './RuntimeGlobals';
 export { RuntimeModule } from './RuntimeModule';
 export type {
   StatsAsset,
+  StatsCacheInfo,
   StatsChunk,
   StatsCompilation,
   StatsError,

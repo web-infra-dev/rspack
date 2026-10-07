@@ -8,7 +8,8 @@ use napi::{
 use napi_derive::napi;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
-  EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
+  CacheOptions, EntrypointsStatsOption, ExtendedStatsOptions, PersistentCacheState, Stats,
+  StatsChunk, StatsModule, StatsUsedExports,
   rspack_sources::{RawBufferSource, Source, SourceValue},
 };
 use rspack_error::Severity;
@@ -911,6 +912,7 @@ impl<'a> From<rspack_core::StatsAssetsByChunkName<'a>> for JsStatsAssetsByChunkN
 #[napi(object, object_to_js = false)]
 pub struct JsStatsOptions {
   pub assets: bool,
+  pub cache_info: bool,
   pub cached_modules: bool,
   pub chunks: bool,
   pub chunk_group_auxiliary: bool,
@@ -975,8 +977,19 @@ pub struct JsStatsGetAssets<'a> {
 }
 
 #[napi(object, object_from_js = false)]
+pub struct JsStatsCacheInfo {
+  #[napi(ts_type = "'disabled' | 'memory' | 'persistent'")]
+  pub mode: &'static str,
+  #[napi(ts_type = "'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined")]
+  pub status: Option<&'static str>,
+  #[napi(ts_type = "'version' | 'buildDependencies' | 'recovery' | undefined")]
+  pub reason: Option<&'static str>,
+}
+
+#[napi(object, object_from_js = false)]
 pub struct JsStatsCompilation<'a> {
   pub assets: Option<Vec<JsStatsAsset<'a>>>,
+  pub cache_info: Option<JsStatsCacheInfo>,
   pub assets_by_chunk_name: Option<Vec<JsStatsAssetsByChunkName<'a>>>,
   #[napi(ts_type = "Array<JsStatsChunk>")]
   pub chunks: Option<napi_value>,
@@ -1022,6 +1035,7 @@ impl JsStats {
   ) -> Result<JsStatsCompilationWrapper<'_>> {
     self.inner.clear_artifact_fallback_flags();
 
+    let cache_info = js_options.cache_info.then(|| self.cache_info());
     let options = ExtendedStatsOptions::from(js_options);
 
     let hash = options.hash.then(|| self.hash()).flatten();
@@ -1069,6 +1083,7 @@ impl JsStats {
 
     Ok(JsStatsCompilationWrapper(JsStatsCompilation {
       assets,
+      cache_info,
       assets_by_chunk_name,
       chunks,
       entrypoints,
@@ -1078,6 +1093,35 @@ impl JsStats {
       named_chunk_groups,
       warnings,
     }))
+  }
+
+  fn cache_info(&self) -> JsStatsCacheInfo {
+    let mode = match &self.inner.options().cache {
+      CacheOptions::Disabled => "disabled",
+      CacheOptions::Memory { .. } => "memory",
+      CacheOptions::FileSystem(_) | CacheOptions::Persistent(_) => "persistent",
+    };
+    let (status, reason) = if mode == "persistent" {
+      let (status, reason) = match self.inner.persistent_cache_state() {
+        PersistentCacheState::Unknown => ("unknown", None),
+        PersistentCacheState::Cold => ("cold", None),
+        PersistentCacheState::Valid => ("valid", None),
+        PersistentCacheState::InvalidVersion => ("invalidated", Some("version")),
+        PersistentCacheState::InvalidBuildDependencies => {
+          ("invalidated", Some("buildDependencies"))
+        }
+        PersistentCacheState::ValidationError => ("error", None),
+        PersistentCacheState::RecoveryError => ("error", Some("recovery")),
+      };
+      (Some(status), reason)
+    } else {
+      (None, None)
+    };
+    JsStatsCacheInfo {
+      mode,
+      status,
+      reason,
+    }
   }
 
   fn assets(&self) -> JsStatsGetAssets<'_> {
