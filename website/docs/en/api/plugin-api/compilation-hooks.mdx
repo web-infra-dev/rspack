@@ -963,7 +963,7 @@ Here's an illustrative plugin example:
 compilation.hooks.statsNormalize.tap('MyPlugin', (options) => {
   if (options.myOption === undefined) options.myOption = [];
 
-  if (!Array.isArray(options.myOption)) options.myOptions = [options.myOptions];
+  if (!Array.isArray(options.myOption)) options.myOption = [options.myOption];
 });
 ```
 
