@@ -917,10 +917,12 @@ Executed after setting up a child compiler.
 
 This hook is like a list of actions that gets triggered when a preset is used. It takes in an options object. When a plugin manages a preset, it should change settings in this object carefully without replacing existing ones.
 
-- **Type:** `SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>`
+- **Type:** `HookMap<SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>>`
 - **Arguments:**
   - `Partial<StatsOptions>`: stats options
   - `CreateStatsOptionsContext`: stats context
+
+Select a preset by calling `.for(presetName)` on the hook map, then register a tap on the returned hook.
 
 Here's an illustrative plugin example:
 

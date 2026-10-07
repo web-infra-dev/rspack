@@ -919,10 +919,12 @@ compilation.hooks.afterProcessAssets.tap('MyPlugin', (assets) => {
 
 当使用预设 stats 配置时触发。接收一个 stats 配置对象，当插件管理 stats 预设配置时，它应当在配置对象上仔细地修改，而非直接替换整个配置对象。
 
-- **类型：** `SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>`
+- **类型：** `HookMap<SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>>`
 - **参数：**
   - `Partial<StatsOptions>`：Stats 配置
   - `CreateStatsOptionsContext`：Stats 上下文
+
+先通过钩子映射的 `.for(presetName)` 选择预设，再在返回的钩子上注册回调。
 
 以如下插件为例：
 
