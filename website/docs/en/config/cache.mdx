@@ -435,7 +435,7 @@ export default {
 - **Type:** `false | 'lz4'`
 - **Default:** `false`
 
-`cache.storage.compression` controls compression of persistent cache packs, similar to webpack's `cache.compression`, which also defaults to `false`. By default, Rspack writes all packs uncompressed. Set it to `'lz4'` to compress all packs with LZ4. Compressible data produces smaller packs with less disk I/O at the cost of more CPU during save and restore. Incompressible data may produce slightly larger packs.
+`cache.storage.compression` controls compression of persistent cache values. It defaults to `false`, as webpack's `cache.compression` does, and leaves cached data uncompressed. Set it to `'lz4'` to compress module graph values, minimized output, and source maps when they are cached. Values stay compressed while waiting to be written and after being read back, until they are decoded for use. This lowers memory usage for compressible data and reduces disk writes, at the cost of compression and decompression CPU work. Incompressible chunks are stored without compression, with a small header overhead. Cache keys, snapshots, and validation metadata are not compressed.
 
 Changing `compression` selects a separate cache directory and starts a new cache if that mode has not been used before. The previous directory is removed during cleanup after it has been unused for longer than [`cache.maxAge`](#maxage), which defaults to 7 days. Switching back before it expires can reuse the previous cache. Setting `maxAge` to `Infinity` disables age-based cleanup.
 
