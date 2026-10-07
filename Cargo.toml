@@ -1,6 +1,3 @@
-# Keep workspace settings and build profiles in their existing groups.
-# tombi: format.rules.table-keys-order.disabled = true
-
 [workspace]
 members  = ["crates/*", "xtask/benchmark", "xtask"]
 resolver = "2"                                      # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
@@ -18,6 +15,9 @@ version       = "0.102.8"
 
 [workspace.metadata.dylint]
 libraries = [{ path = "linting/*" }]
+
+[workspace.metadata.release]
+rate-limit = { existing-packages = 70, new-packages = 70 }
 
 [workspace.dependencies]
 aho-corasick    = { version = "1.1.4", default-features = false }
@@ -278,8 +278,92 @@ rspack_util                            = { version = "=0.102.8", path = "crates/
 rspack_watcher                         = { version = "=0.102.8", path = "crates/rspack_watcher", default-features = false }
 rspack_workspace                       = { version = "=0.102.8", path = "crates/rspack_workspace", default-features = false }
 
-[workspace.metadata.release]
-rate-limit = { existing-packages = 70, new-packages = 70 }
+# the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1
+[workspace.lints.rust]
+absolute_paths_not_starting_with_crate = "warn"
+dead_code                              = "warn"
+trivial_numeric_casts                  = "warn"
+unused_import_braces                   = "warn"
+unused_lifetimes                       = "warn"
+unused_macro_rules                     = "warn"
+
+[workspace.lints.rust.unexpected_cfgs]
+check-cfg = ['cfg(allocative)', 'cfg(codspeed)', 'cfg(dylint_lib, values("rspack_collection_hasher"))']
+level     = "warn"
+
+[workspace.lints.clippy]
+cargo_common_metadata   = "allow"
+empty_docs              = "allow" # there are some false positives inside biome_wasm
+multiple_crate_versions = "allow"
+
+# pedantic
+checked_conversions          = "warn"
+cloned_instead_of_copied     = "warn"
+copy_iterator                = "warn"
+dbg_macro                    = "warn"
+doc_link_with_quotes         = "warn"
+empty_enums                  = "warn"
+expl_impl_clone_on_copy      = "warn"
+explicit_into_iter_loop      = "warn"
+filter_map_next              = "warn"
+flat_map_option              = "warn"
+fn_params_excessive_bools    = "warn"
+from_iter_instead_of_collect = "warn"
+implicit_clone               = "warn"
+# not sure whether it's necessary
+# implicit_hasher              = "warn"
+index_refutable_slice        = "warn"
+inefficient_to_string        = "warn"
+invalid_upcast_comparisons   = "warn"
+iter_not_returning_iterator  = "warn"
+large_stack_arrays           = "warn"
+large_types_passed_by_value  = "warn"
+macro_use_imports            = "warn"
+manual_ok_or                 = "warn"
+manual_string_new            = "warn"
+map_flatten                  = "warn"
+map_unwrap_or                = "warn"
+mismatching_type_param_order = "warn"
+mut_mut                      = "warn"
+naive_bytecount              = "warn"
+needless_bitwise_bool        = "warn"
+needless_continue            = "warn"
+# needless_for_each            = "warn"
+no_effect_underscore_binding = "warn"
+ref_binding_to_reference     = "warn"
+ref_option_ref               = "warn"
+stable_sort_primitive        = "warn"
+uninlined_format_args        = "warn"
+unnecessary_box_returns      = "warn"
+unnecessary_join             = "warn"
+unnested_or_patterns         = "warn"
+unreadable_literal           = "warn"
+verbose_bit_mask             = "warn"
+zero_sized_map_values        = "warn"
+
+# restriction
+empty_drop                      = "warn"
+float_cmp_const                 = "warn"
+get_unwrap                      = "warn"
+infinite_loop                   = "warn"
+lossy_float_literal             = "warn"
+rc_buffer                       = "warn"
+rc_mutex                        = "warn"
+rest_pat_in_fully_bound_structs = "warn"
+verbose_file_reads              = "warn"
+# https://github.com/rustwasm/wasm-bindgen/issues/3944
+#mem_forget                      = "warn"
+
+# performance
+iter_filter_is_ok       = "warn"
+iter_filter_is_some     = "warn"
+iter_with_drain         = "warn"
+redundant_clone         = "warn"
+regex_creation_in_loops = "warn"
+
+# regex
+invalid_regex = "warn"
+trivial_regex = "warn"
 
 # Follow servo's style https://github.com/servo/servo/blob/c95bd9d052d7eae378d31c5be0f92669cadb2c85/Cargo.toml#L175
 [profile.bench]
@@ -310,12 +394,6 @@ lto           = "fat"
 opt-level     = 3
 panic         = "abort"
 strip         = true
-
-[profile.codspeed]
-debug    = "full"
-inherits = "release"
-lto      = "off"
-strip    = "none"
 
 [profile.release.package]
 
@@ -530,6 +608,12 @@ opt-level = "s"
 [profile.release.package.tracing-subscriber]
 opt-level = "s"
 
+[profile.codspeed]
+debug    = "full"
+inherits = "release"
+lto      = "off"
+strip    = "none"
+
 # This is for CI build based on release but with faster build time
 [profile.ci]
 codegen-units = 256
@@ -553,90 +637,3 @@ debug     = 'full'
 inherits  = "release"
 opt-level = "s"
 strip     = "none"
-
-# the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1
-[workspace.lints.rust]
-absolute_paths_not_starting_with_crate = "warn"
-dead_code                              = "warn"
-trivial_numeric_casts                  = "warn"
-unused_import_braces                   = "warn"
-unused_lifetimes                       = "warn"
-unused_macro_rules                     = "warn"
-
-[workspace.lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(allocative)', 'cfg(codspeed)', 'cfg(dylint_lib, values("rspack_collection_hasher"))']
-level     = "warn"
-
-[workspace.lints.clippy]
-cargo_common_metadata   = "allow"
-empty_docs              = "allow" # there are some false positives inside biome_wasm
-multiple_crate_versions = "allow"
-
-# pedantic
-checked_conversions          = "warn"
-cloned_instead_of_copied     = "warn"
-copy_iterator                = "warn"
-dbg_macro                    = "warn"
-doc_link_with_quotes         = "warn"
-empty_enums                  = "warn"
-expl_impl_clone_on_copy      = "warn"
-explicit_into_iter_loop      = "warn"
-filter_map_next              = "warn"
-flat_map_option              = "warn"
-fn_params_excessive_bools    = "warn"
-from_iter_instead_of_collect = "warn"
-implicit_clone               = "warn"
-# not sure whether it's necessary
-# implicit_hasher              = "warn"
-index_refutable_slice        = "warn"
-inefficient_to_string        = "warn"
-invalid_upcast_comparisons   = "warn"
-iter_not_returning_iterator  = "warn"
-large_stack_arrays           = "warn"
-large_types_passed_by_value  = "warn"
-macro_use_imports            = "warn"
-manual_ok_or                 = "warn"
-manual_string_new            = "warn"
-map_flatten                  = "warn"
-map_unwrap_or                = "warn"
-mismatching_type_param_order = "warn"
-mut_mut                      = "warn"
-naive_bytecount              = "warn"
-needless_bitwise_bool        = "warn"
-needless_continue            = "warn"
-# needless_for_each            = "warn"
-no_effect_underscore_binding = "warn"
-ref_binding_to_reference     = "warn"
-ref_option_ref               = "warn"
-stable_sort_primitive        = "warn"
-uninlined_format_args        = "warn"
-unnecessary_box_returns      = "warn"
-unnecessary_join             = "warn"
-unnested_or_patterns         = "warn"
-unreadable_literal           = "warn"
-verbose_bit_mask             = "warn"
-zero_sized_map_values        = "warn"
-
-# restriction
-empty_drop                      = "warn"
-float_cmp_const                 = "warn"
-get_unwrap                      = "warn"
-infinite_loop                   = "warn"
-lossy_float_literal             = "warn"
-rc_buffer                       = "warn"
-rc_mutex                        = "warn"
-rest_pat_in_fully_bound_structs = "warn"
-verbose_file_reads              = "warn"
-# https://github.com/rustwasm/wasm-bindgen/issues/3944
-#mem_forget                      = "warn"
-
-# performance
-iter_filter_is_ok       = "warn"
-iter_filter_is_some     = "warn"
-iter_with_drain         = "warn"
-redundant_clone         = "warn"
-regex_creation_in_loops = "warn"
-
-# regex
-invalid_regex = "warn"
-trivial_regex = "warn"
