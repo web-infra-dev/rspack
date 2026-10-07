@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
+import { CopyRspackPlugin } from "@rspack/core";
+import { checkCacheCounters } from "./helpers/cache-counters.mjs";
 
 const persistent = (status, reason = null) => ({
   mode: "persistent",
@@ -51,10 +53,16 @@ export default [
         expect(stats.toJson({ all: false }).cacheInfo).toBeUndefined();
         const cacheInfo = stats.toJson({ all: false, cacheInfo: true }).cacheInfo;
         expect(stats.toJson({ all: true }).cacheInfo).toEqual(cacheInfo);
+        checkCacheCounters(stats, cacheInfo.counters);
+        expect(cacheInfo.counters).toContainEqual(expect.objectContaining({
+          logger: "rspack.Compilation",
+          label: "module code generation cache"
+        }));
         expect(artifacts()).toEqual(before);
         if (baseline) expect(before).toEqual(baseline);
         else baseline = before;
-        return cacheInfo;
+        const { counters: _, ...state } = cacheInfo;
+        return state;
       };
       const restart = async version => {
         await manager.close();
@@ -94,6 +102,7 @@ export default [
       fs.rmSync(root, { recursive: true, force: true });
       fs.mkdirSync(root, { recursive: true });
       fs.writeFileSync(path.join(root, "entry.js"), "export default 1;");
+      fs.writeFileSync(path.join(root, "asset.txt"), "asset");
       return {
         context: root,
         entry: "./entry.js",
@@ -101,7 +110,8 @@ export default [
         stats,
         output: { path: path.join(root, "output") },
         cache,
-        experiments: { newCache }
+        experiments: { newCache },
+        plugins: name === "disabled" ? [new CopyRspackPlugin({ patterns: [{ from: "asset.txt" }] })] : []
       };
     },
     compiler(_context, compiler) {
@@ -110,7 +120,19 @@ export default [
     async build(context) {
       const stats = await context.getCompiler().build();
       expect(stats.hasErrors()).toBe(false);
-      expect(stats.toJson({ all: false, cacheInfo: true }).cacheInfo).toEqual(
+      const cacheInfo = stats.toJson({ all: false, cacheInfo: true }).cacheInfo;
+      checkCacheCounters(stats, cacheInfo.counters);
+      if (name === "disabled") {
+        expect(cacheInfo.counters.some(counter => counter.label === "module code generation cache")).toBe(false);
+        expect(cacheInfo.counters).toContainEqual({
+          logger: "rspack.CopyRspackPlugin",
+          label: "copy pattern cache",
+          hit: 0,
+          total: 1
+        });
+      }
+      const { counters: _, ...state } = cacheInfo;
+      expect(state).toEqual(
         name === "persistent" ? persistent("unknown") : { mode: name, persistent: null, moduleBuilds: null }
       );
     }
