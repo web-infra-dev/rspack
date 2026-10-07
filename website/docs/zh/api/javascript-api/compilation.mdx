@@ -655,7 +655,7 @@ class MyPlugin {
 - `null`：尚未计算 compilation 的哈希，例如执行 `thisCompilation` 钩子时。
 - `string`：compilation 的哈希已生成。可以在哈希计算之后执行的钩子中读取，例如 [processAssets](/api/plugin-api/compilation-hooks#processassets) 或 [afterSeal](/api/plugin-api/compilation-hooks#afterseal)。
 
-哈希生成使用 [output.hashFunction](/config/output#outputhashfunction)、[output.hashDigest](/config/output#outputhashdigest) 以及可选的 [output.hashSalt](/config/output#outputhashsalt)。两个属性都返回同一段哈希摘要前缀，长度最多为 [output.hashDigestLength](/config/output#outputhashdigestlength) 个字符。
+哈希长度受 [output.hashDigestLength](/config/output#outputhashdigestlength) 限制。
 
 哈希在资源处理阶段之前计算。在 `processAssets` 中更新资源不会自动重新计算该值。
 
