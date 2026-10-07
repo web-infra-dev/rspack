@@ -54,7 +54,7 @@ class ExamplePlugin {
 
 ### emitAsset
 
-Emit a new asset, throw an error if the asset already exists.
+Emit an asset. Emitting the same filename with identical content is allowed. Emitting different content for an existing filename records a compilation error. Use [updateAsset](#updateasset) to intentionally replace an existing asset.
 
 ```ts
 emitAsset(
