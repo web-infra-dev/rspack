@@ -245,14 +245,11 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tapPromise(
-      'ExamplePlugin',
-      (compiler) => {
-        console.log('Build is about to start...');
+    compiler.hooks.beforeRun.tapPromise('ExamplePlugin', async (compiler) => {
+      console.log('Build is about to start...');
 
-        await someAsyncOperation();
-      },
-    );
+      await someAsyncOperation();
+    });
   }
 }
 ```
@@ -296,14 +293,11 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tapPromise(
-      'ExamplePlugin',
-      (compiler) => {
-        console.log('Build start...');
+    compiler.hooks.beforeRun.tapPromise('ExamplePlugin', async (compiler) => {
+      console.log('Build start...');
 
-        await someAsyncOperation();
-      },
-    );
+      await someAsyncOperation();
+    });
   }
 }
 ```
@@ -355,7 +349,7 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.watchRun.tapPromise('ExamplePlugin', compiler => {
+    compiler.hooks.watchRun.tapPromise('ExamplePlugin', async (compiler) => {
       await someAsyncOperation();
     });
   }
