@@ -187,7 +187,9 @@ function purgeInputFileSystem(): void;
 
 ### createChildCompiler
 
-允许在 Rspack 中运行另一个 Rspack 实例。但是，子编译器会应用不同的设置和配置。他会从父 Compiler（或者顶级 Compiler）中复制所有的钩子（hook）和插件（plugin），并且创建一个子 Compiler 实例。 返回值为创建好的 Compiler 实例。
+创建并返回一个子 `Compiler`，可以为其指定输出选项和额外插件。子编译器会继承父编译器中符合条件的钩子回调和内置插件。
+
+`make`、`compile`、`emit`、`afterEmit`、`invalid`、`done` 和 `thisCompilation` 钩子上的回调不会复制到子编译器。内置插件仅在支持子编译器继承时才会被继承。可以通过 `plugins` 参数为子编译器应用额外插件。
 
 ```ts
 function createChildCompiler(
