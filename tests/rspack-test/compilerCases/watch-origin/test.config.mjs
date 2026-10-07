@@ -124,6 +124,45 @@ export default [
     },
   },
   {
+    description: 'includes source inputs arriving while the cache leaves idle in the same origin',
+    options,
+    async build(context, compiler) {
+      const run = session(compiler);
+      let release;
+      try {
+        await run.next();
+        await setImmediate();
+        let entered;
+        const waiting = new Promise(resolve => { entered = resolve; });
+        let hold = true;
+        compiler.cache.hooks.endIdle.tapAsync('OriginCutoff', callback => {
+          if (!hold) return callback();
+          hold = false;
+          release = callback;
+          entered();
+        });
+        const inputs = [];
+        compiler.hooks.watchRun.tap('OriginCutoff', () => {
+          inputs.push({ changed: [...compiler.modifiedFiles], removed: [...compiler.removedFiles] });
+        });
+        run.watching.invalidateWithChangesAndRemovals(new Set(['first.js']), new Set());
+        await waiting;
+        run.watching.invalidateWithChangesAndRemovals(new Set(['second.js']), new Set(['removed.js']));
+        release();
+        release = undefined;
+        const compilation = (await run.next()).compilation;
+        assert.deepEqual(inputs, [{ changed: ['first.js', 'second.js'], removed: ['removed.js'] }]);
+        assert.deepEqual(compilation.rebuildOrigin.causes.map(event => event.cause), [
+          { kind: 'source', changed: ['first.js'], removed: [] },
+          { kind: 'source', changed: ['second.js'], removed: ['removed.js'] },
+        ]);
+      } finally {
+        release?.();
+        await run.close();
+      }
+    },
+  },
+  {
     description: 'records the exact native lazy backend drain through HTTP including coalesced unknown and repeated activation',
     options() { return { ...options(), lazyCompilation: { entries: false, imports: true } }; },
     async build(context, compiler) {

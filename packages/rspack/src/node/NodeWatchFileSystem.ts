@@ -19,7 +19,10 @@ import type {
   Watcher,
   WatchFileSystem,
 } from '../util/fs';
-import { isInternalCallback } from '../util/watchTimeInfo';
+import {
+  getInternalWatchCallbacks,
+  isInternalCallback,
+} from '../util/watchTimeInfo';
 
 const require = createRequire(import.meta.url);
 
@@ -82,8 +85,23 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
     const Watchpack = require('watchpack');
     this.watcher = new Watchpack(options);
 
+    const internalCallbacks = getInternalWatchCallbacks(
+      callback,
+      callbackUndelayed,
+    );
+    if (internalCallbacks) {
+      this.watcher?.on('change', (filename) =>
+        internalCallbacks.onSource('change', filename),
+      );
+      this.watcher?.on('remove', (filename) =>
+        internalCallbacks.onSource('remove', filename),
+      );
+    }
     if (callbackUndelayed) {
-      this.watcher?.once('change', callbackUndelayed);
+      this.watcher?.once(
+        'change',
+        internalCallbacks?.onUndelayed ?? callbackUndelayed,
+      );
     }
 
     // Forward this cycle's watchpack events to the long-lived emitter so
