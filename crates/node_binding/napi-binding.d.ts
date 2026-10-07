@@ -1466,6 +1466,8 @@ export interface JsStatsCacheInfo {
   mode: 'disabled' | 'memory' | 'persistent'
   status?: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined
   reason?: 'version' | 'buildDependencies' | 'recovery' | undefined
+  sessionStatus?: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined
+  sessionReason?: 'version' | 'buildDependencies' | 'recovery' | undefined
   moduleBuilds?: JsStatsModuleBuilds
   counters: Array<JsStatsCacheCounter>
 }

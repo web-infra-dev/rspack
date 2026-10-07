@@ -984,6 +984,10 @@ pub struct JsStatsCacheInfo {
   pub status: Option<&'static str>,
   #[napi(ts_type = "'version' | 'buildDependencies' | 'recovery' | undefined")]
   pub reason: Option<&'static str>,
+  #[napi(ts_type = "'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined")]
+  pub session_status: Option<&'static str>,
+  #[napi(ts_type = "'version' | 'buildDependencies' | 'recovery' | undefined")]
+  pub session_reason: Option<&'static str>,
   pub module_builds: Option<JsStatsModuleBuilds>,
   pub counters: Vec<JsStatsCacheCounter>,
 }
@@ -1117,22 +1121,28 @@ impl JsStats {
       CacheOptions::Memory { .. } => "memory",
       CacheOptions::FileSystem(_) | CacheOptions::Persistent(_) => "persistent",
     };
+    let convert = |state| match state {
+      PersistentCacheState::Unknown => ("unknown", None),
+      PersistentCacheState::Cold => ("cold", None),
+      PersistentCacheState::Valid => ("valid", None),
+      PersistentCacheState::InvalidVersion => ("invalidated", Some("version")),
+      PersistentCacheState::InvalidBuildDependencies => ("invalidated", Some("buildDependencies")),
+      PersistentCacheState::ValidationError => ("error", None),
+      PersistentCacheState::RecoveryError => ("error", Some("recovery")),
+    };
     let (status, reason) = if mode == "persistent" {
-      let (status, reason) = match self.inner.persistent_cache_state() {
-        PersistentCacheState::Unknown => ("unknown", None),
-        PersistentCacheState::Cold => ("cold", None),
-        PersistentCacheState::Valid => ("valid", None),
-        PersistentCacheState::InvalidVersion => ("invalidated", Some("version")),
-        PersistentCacheState::InvalidBuildDependencies => {
-          ("invalidated", Some("buildDependencies"))
-        }
-        PersistentCacheState::ValidationError => ("error", None),
-        PersistentCacheState::RecoveryError => ("error", Some("recovery")),
-      };
+      let (status, reason) = convert(self.inner.persistent_cache_state());
       (Some(status), reason)
     } else {
       (None, None)
     };
+    let (session_status, session_reason) =
+      if matches!(&self.inner.options().cache, CacheOptions::FileSystem(_)) {
+        let (status, reason) = convert(self.inner.cache_session_initial_validation());
+        (Some(status), reason)
+      } else {
+        (None, None)
+      };
     let mut counters = Vec::new();
     for logging in self.inner.logging().iter() {
       let (logger, events) = logging.pair();
@@ -1153,6 +1163,8 @@ impl JsStats {
       mode,
       status,
       reason,
+      session_status,
+      session_reason,
       module_builds: self
         .inner
         .module_build_cache_stats()
