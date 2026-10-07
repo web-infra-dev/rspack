@@ -187,7 +187,7 @@ function purgeInputFileSystem(): void;
 
 ### createChildCompiler
 
-Runs another Rspack instance inside Rspack as a child compiler with different settings. Copies all hooks and plugins from the parent (or top-level) compiler and creates a child `Compiler` instance. Returns the created `Compiler`.
+Create and return a child `Compiler` with its own output options and additional plugins. For hook and plugin inheritance rules, see [compilation.createChildCompiler](/api/javascript-api/compilation#createchildcompiler).
 
 ```ts
 function createChildCompiler(
