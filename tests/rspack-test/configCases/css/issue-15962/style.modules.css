@@ -1,0 +1,37 @@
+button.root.hovered { color: red; }
+@media (hover: hover) {
+	.root.hovered { color: green; }
+	button.root.hovered { color: blue; }
+	div .descendant { color: blue; }
+	button.first, .second { color: blue; }
+	button.root:global(.plain) { color: blue; }
+	button:local(.explicit) { color: blue; }
+	button:hover.pseudo { color: blue; }
+	button:is(.functional, :global(.plain)) { color: blue; }
+	button#identifier { color: blue; }
+	button[data-value="{;}"] .attribute { color: blue; }
+	button/* comment */.commented { color: blue; }
+	svg|a.namespaced { color: blue; }
+	\62 utton.escaped { color: blue; }
+	按钮.unicode { color: blue; }
+	.after { color: green; }
+}
+@supports (display: grid) { button.supports { color: blue; } }
+@container (width > 100px) { button.container { color: blue; } }
+@layer base { button.layer { color: blue; } }
+.outer {
+	color:red;
+	--custom: { value: ".raw"; };
+	background:paint({ value: ".raw"; });
+	button.inner {
+		color:blue;
+		span.deep { color: blue; }
+		.nestedAfter { color: green; }
+	}
+	color:green;
+	button:hover.nestedPseudo { color: blue; }
+	button:global .global { color: blue; }
+	button:local .nestedLocal { color: blue; }
+	@media (hover: hover) { button.nestedMedia { color: blue; } }
+	color:blue
+}

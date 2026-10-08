@@ -290,6 +290,48 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     })
   }
 
+  /// Disambiguate a declaration from a type-first nested selector. Probe without
+  /// advancing the main stream or notifying its visitor: selector mode changes
+  /// must be applied before collecting identifiers in the prelude.
+  pub(crate) fn is_declaration_after_ident(&self, end: Pos, custom_property: bool) -> bool {
+    let mut probe = Lexer {
+      value: self.value,
+      scan_pos: end,
+      visitor: (),
+    };
+    let colon = loop {
+      let token = probe.next_token();
+      if !token.kind.is_trivia() {
+        break token;
+      }
+    };
+    if colon.kind != TokenKind::Colon {
+      return false;
+    }
+    // Custom properties can contain top-level curly blocks in their values.
+    // Whitespace after a colon cannot start a pseudo-class or pseudo-element.
+    if custom_property || probe.byte_at(colon.range.end).is_some_and(is_white_space) {
+      return true;
+    }
+    let mut depth = 0u32;
+    loop {
+      let token = probe.next_token();
+      match token.kind {
+        TokenKind::LeftCurlyBracket if depth == 0 => return false,
+        TokenKind::Semicolon | TokenKind::RightCurlyBracket if depth == 0 => return true,
+        TokenKind::Eof => return true,
+        TokenKind::Function
+        | TokenKind::LeftParenthesis
+        | TokenKind::LeftSquareBracket
+        | TokenKind::LeftCurlyBracket => depth += 1,
+        TokenKind::RightParenthesis
+        | TokenKind::RightSquareBracket
+        | TokenKind::RightCurlyBracket => depth = depth.saturating_sub(1),
+        _ => {}
+      }
+    }
+  }
+
   /// Skip value text that cannot produce a dependency or change the block
   /// structure. Delimiters of ordinary functions are tracked without
   /// manufacturing tokens, and the scanner stops before dependency-bearing
