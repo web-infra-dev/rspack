@@ -1149,7 +1149,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let Some(target) = find_css_export_target(compilation, &id) else {
       // Factorization already reported the unresolved import. Code generation
       // must still finish without trying to render a reference to its target.
-      return CssExportValue::default();
+      return Ok(CssExportValue::default());
     };
     let target_export = find_export(target, import.import_name());
     let is_self_import = target.identifier() == self.module.identifier();

@@ -175,6 +175,9 @@ jobs:
       - name: Build x86_64-pc-windows-msvc
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
+        env:
+          # Compiling swc_core can exhaust the default rustc thread stack.
+          RUST_MIN_STACK: 33554432
 
       - name: Build aarch64-pc-windows-msvc
         if: ${{ inputs.target == 'aarch64-pc-windows-msvc' }}
