@@ -1,11 +1,9 @@
 mod create_script_url_dependency;
-use std::sync::LazyLock;
 
 use concat_string::concat_string;
 pub use create_script_url_dependency::{
   CreateScriptUrlDependency, CreateScriptUrlDependencyTemplate,
 };
-use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
@@ -148,13 +146,6 @@ impl AsContextDependency for WorkerDependency {}
 pub struct WorkerDependencyTemplate;
 
 pub static WORKER_STATIC_URL_PLACEHOLDER: &str = "RSPACK_AUTO_WORKER_STATIC_URL_PLACEHOLDER_";
-pub static WORKER_STATIC_URL_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(&concat_string!(
-    WORKER_STATIC_URL_PLACEHOLDER,
-    r#"(?<dep>\d+)"#
-  ))
-  .expect("should be valid regex")
-});
 
 impl WorkerDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
