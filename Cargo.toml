@@ -26,7 +26,7 @@ async-trait     = { version = "0.1.92", default-features = false }
 atomic_refcell  = { version = "0.1.14", default-features = false }
 base64-simd     = { version = "0.8.0", default-features = false, features = ["alloc"] }
 bitflags        = { version = "2.13.2", default-features = false }
-browserslist-rs = { version = "0.20.0", default-features = false }
+browserslist-rs = { version = "0.21.2", default-features = false, features = ["deflate"] }
 bytes           = { version = "1.12.1", default-features = false }
 camino          = { version = "1.2.6", default-features = false }
 cargo_toml      = { version = "1.0.1", default-features = false }
