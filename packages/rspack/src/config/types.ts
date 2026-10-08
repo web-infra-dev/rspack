@@ -950,13 +950,23 @@ export type RuleSetRuleUseAndLoader =
       use?: never;
     };
 
+/** Resource components to override when matching subsequent rules. */
+export type RuleSetRuleOverrideResource = {
+  /** Extension including the leading dot. An empty string removes the extension. */
+  ext?: string;
+  /** Query including the leading `?`. An empty string removes the query. */
+  query?: string;
+  /** Fragment including the leading `#`. An empty string removes the fragment. */
+  fragment?: string;
+};
+
 /** Rule defines the conditions for matching a module and the behavior of handling those modules. */
 export type RuleSetRule = RuleSetRuleUseAndLoader & {
   /**
-   * Match subsequent rules as if the resource had this filename. `*` stands for the current filename without its extension.
+   * Override resource components for subsequent and nested rule matching. Omitted components are inherited.
    * @experimental
    */
-  as?: string;
+  overrideResource?: RuleSetRuleOverrideResource;
 
   /** Matches all modules that match this resource, and will match against Resource. */
   test?: RuleSetCondition;

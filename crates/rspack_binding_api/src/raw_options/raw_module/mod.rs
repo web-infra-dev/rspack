@@ -25,8 +25,8 @@ use rspack_core::{
   JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
   JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule, ModuleNoParseRules,
   ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap,
-  TypeReexportPresenceMode,
+  ModuleRuleOverrideResource, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption,
+  ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -153,8 +153,51 @@ type ThreadsafeUse = ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>;
 
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
+pub struct RawModuleRuleOverrideResource {
+  pub ext: Option<String>,
+  pub query: Option<String>,
+  pub fragment: Option<String>,
+}
+
+impl TryFrom<RawModuleRuleOverrideResource> for ModuleRuleOverrideResource {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: RawModuleRuleOverrideResource) -> rspack_error::Result<Self> {
+    if let Some(ext) = &value.ext
+      && ((!ext.is_empty() && !ext.starts_with('.')) || ext.contains(['/', '\\', '?', '#', '\0']))
+    {
+      return Err(error!(
+        "Rule.overrideResource.ext must be empty or start with '.', and must not contain path separators, '?', '#', or null bytes"
+      ));
+    }
+    if let Some(query) = &value.query
+      && !query.is_empty()
+      && !query.starts_with('?')
+    {
+      return Err(error!(
+        "Rule.overrideResource.query must be empty or start with '?'"
+      ));
+    }
+    if let Some(fragment) = &value.fragment
+      && !fragment.is_empty()
+      && !fragment.starts_with('#')
+    {
+      return Err(error!(
+        "Rule.overrideResource.fragment must be empty or start with '#'"
+      ));
+    }
+    Ok(Self {
+      ext: value.ext,
+      query: value.query,
+      fragment: value.fragment,
+    })
+  }
+}
+
+#[derive(Debug, Default)]
+#[napi(object, object_to_js = false)]
 pub struct RawModuleRule {
-  pub r#as: Option<String>,
+  pub override_resource: Option<RawModuleRuleOverrideResource>,
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
   ///   This is a custom matching rule not initially designed by webpack.
@@ -1105,7 +1148,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       .unwrap_or_default();
 
     Ok(ModuleRule {
-      r#as: value.r#as,
+      override_resource: value.override_resource.map(TryInto::try_into).transpose()?,
       rspack_resource: value
         .rspack_resource
         .map(|raw| raw.try_into())

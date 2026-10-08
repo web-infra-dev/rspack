@@ -1092,6 +1092,8 @@ export interface JsResourceData {
   resource: string
   /** Absolute resource path only */
   path?: string
+  /** Extension of the path, including its leading dot. Computed from path when received from Rust. */
+  ext?: string
   /** Resource query with `?` prefix */
   query?: string
   /** Resource fragment with `#` prefix */
@@ -2747,7 +2749,7 @@ export interface RawModuleOptions {
 }
 
 export interface RawModuleRule {
-  as?: string
+  overrideResource?: RawModuleRuleOverrideResource
   /**
    * A conditional match matching an absolute path + query + fragment.
    * Note:
@@ -2785,6 +2787,12 @@ export interface RawModuleRule {
   enforce?: 'pre' | 'post'
   /** Whether to extract source maps from the module. */
   extractSourceMap?: boolean
+}
+
+export interface RawModuleRuleOverrideResource {
+  ext?: string
+  query?: string
+  fragment?: string
 }
 
 /**

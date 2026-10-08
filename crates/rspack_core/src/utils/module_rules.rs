@@ -73,23 +73,6 @@ async fn module_rules_matcher_async<'rule, 'ctx>(
   Ok(())
 }
 
-fn apply_rule_as(pattern: &str, resource_data: &mut ResourceData) {
-  let Some(path) = resource_data.path() else {
-    return;
-  };
-  let filename = pattern.replace('*', path.file_stem().unwrap_or_default());
-  let path = path.with_file_name(filename);
-  let mut resource = path.as_str().to_owned();
-  if let Some(query) = resource_data.query() {
-    resource.push_str(query);
-  }
-  if let Some(fragment) = resource_data.fragment() {
-    resource.push_str(fragment);
-  }
-  resource_data.set_path(path);
-  resource_data.set_resource(resource);
-}
-
 macro_rules! ensure_sync_matched {
   ($result:expr) => {
     match $result {
@@ -269,8 +252,12 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
   }
 
   matched_rules.push(&module_rule.effect);
-  if let Some(pattern) = &module_rule.r#as {
-    apply_rule_as(pattern, resource_data.to_mut());
+  if let Some(resource) = &module_rule.override_resource {
+    resource_data.to_mut().override_resource(
+      resource.ext.as_deref(),
+      resource.query.as_deref(),
+      resource.fragment.as_deref(),
+    );
   }
 
   if let Some(rules) = &module_rule.rules {
@@ -447,8 +434,12 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
   }
 
   matched_rules.push(&module_rule.effect);
-  if let Some(pattern) = &module_rule.r#as {
-    apply_rule_as(pattern, resource_data.to_mut());
+  if let Some(resource) = &module_rule.override_resource {
+    resource_data.to_mut().override_resource(
+      resource.ext.as_deref(),
+      resource.query.as_deref(),
+      resource.fragment.as_deref(),
+    );
   }
 
   if let Some(rules) = &module_rule.rules {

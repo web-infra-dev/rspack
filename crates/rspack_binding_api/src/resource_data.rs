@@ -86,6 +86,11 @@ impl ToNapiValue for ReadonlyResourceDataWrapper {
           .with_utf8_name("resource")?
           .with_value(&env_wrapper.create_string(resource_data.resource())?),
       );
+      properties.push(
+        Property::new()
+          .with_utf8_name("ext")?
+          .with_value(&env_wrapper.create_string(resource_data.ext())?),
+      );
       if let Some(path) = resource_data.path() {
         properties.push(
           Property::new()
@@ -126,6 +131,8 @@ pub struct JsResourceData {
   pub resource: String,
   /// Absolute resource path only
   pub path: Option<String>,
+  /// Extension of the path, including its leading dot. Computed from path when received from Rust.
+  pub ext: Option<String>,
   /// Resource query with `?` prefix
   pub query: Option<String>,
   /// Resource fragment with `#` prefix
@@ -139,6 +146,7 @@ impl From<&rspack_core::ResourceData> for JsResourceData {
     Self {
       resource: value.resource().to_owned(),
       path: value.path().map(|p| p.as_str().to_string()),
+      ext: Some(value.ext().to_owned()),
       fragment: value.fragment().map(|r| r.to_owned()),
       query: value.query().map(|r| r.to_owned()),
       description_file_data: value.description().map(|data| data.json().to_owned()),

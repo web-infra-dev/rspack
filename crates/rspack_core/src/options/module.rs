@@ -1688,8 +1688,15 @@ pub type FnUse =
   Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
 #[derive(Debug, Default)]
+pub struct ModuleRuleOverrideResource {
+  pub ext: Option<String>,
+  pub query: Option<String>,
+  pub fragment: Option<String>,
+}
+
+#[derive(Debug, Default)]
 pub struct ModuleRule {
-  pub r#as: Option<String>,
+  pub override_resource: Option<ModuleRuleOverrideResource>,
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
   ///   This is a custom matching rule not initially designed by webpack.

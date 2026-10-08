@@ -2,6 +2,32 @@ use std::borrow::Cow;
 
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
+/// Returns the extension, including its leading dot, using Node.js `path.extname` semantics.
+pub fn extname(path: &str) -> &str {
+  let start = if cfg!(windows)
+    && path.len() >= 2
+    && path.as_bytes()[0].is_ascii_alphabetic()
+    && path.as_bytes()[1] == b':'
+  {
+    2
+  } else {
+    0
+  };
+  let is_separator = |c| c == '/' || (cfg!(windows) && c == '\\');
+  let filename = path[start..]
+    .trim_end_matches(is_separator)
+    .rsplit(is_separator)
+    .next()
+    .unwrap_or_default();
+  if filename == ".." {
+    return "";
+  }
+  match filename.rfind('.') {
+    Some(index) if index > 0 => &filename[index..],
+    _ => "",
+  }
+}
+
 fn is_path_separator(byte: &u8) -> bool {
   *byte == b'/' || *byte == b'\\'
 }

@@ -680,12 +680,18 @@ There are two phases that all loaders enter one after the other:
 - **Pitching phase:** the `pitch` method on loaders is called in the order `post, inline, normal, pre`. See [Pitching Loader](/api/loader-api/writing-loaders#pitching-loader) for details.
 - **Normal phase:** the default method on loaders is executed in the order `pre, normal, inline, post`. Transformation on the source code of a module happens in this phase.
 
-## rules[].as
+## rules[].overrideResource
 
-- **Type:** `string`
+- **Type:** `{ ext?: string; query?: string; fragment?: string }`
 - **Stability:** Experimental
 
-Changes the filename used to match subsequent rules. `*` is replaced with the current filename without its extension. The source file is still read from its original path; `as` only changes rule matching, including nested rules. Query and fragment remain unchanged.
+Overrides resource components used to match subsequent rules, including nested `rules` and `oneOf`. The override applies after the current rule's conditions match. Earlier rules are not matched again.
+
+- `ext` replaces the last extension of the current resource path, including its leading dot. Use `''` to remove the last extension. Extension detection follows Node.js `path.extname`: `.hidden` has no extension, `.hidden.local` has extension `.local`, and `file.` has extension `.`. The value must be empty or start with `.`, and cannot contain path separators, `?`, `#`, or null bytes.
+- `query` replaces the query, including its leading `?`. Use `''` to clear it.
+- `fragment` replaces the fragment, including its leading `#`. Use `''` to clear it.
+
+Omitted fields are inherited. Later overrides operate on the current matching resource. `test`, `resource`, `include`, and `exclude` see the updated path; `resourceQuery` and `resourceFragment` see the updated components. This changes rule matching only: loaders still receive the original resource path, query, and fragment.
 
 For example, `example.source.js` will match the later `.txt` rule as `example.source.txt`:
 
@@ -693,12 +699,20 @@ For example, `example.source.js` will match the later `.txt` rule as `example.so
 export default {
   module: {
     rules: [
-      { test: /\.source\.js$/, type: 'asset/source', as: '*.txt' },
+      {
+        test: /\.source\.js$/,
+        type: 'asset/source',
+        overrideResource: { ext: '.txt' },
+      },
       { test: /\.txt$/, use: './text-loader.js' },
     ],
   },
 };
 ```
+
+To override more components, use `overrideResource: { ext: '.txt', query: '?raw', fragment: '' }`. For example, `/src/example.source.js?inline#section` then matches later rules as `/src/example.source.txt?raw`.
+
+Overriding `ext` does not rerun `module.defaultRules`. Set `type` explicitly when a different module type is needed.
 
 ## rules[].type
 

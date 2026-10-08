@@ -678,12 +678,18 @@ export default {
 - **Pitching 阶段:** loader 导出的 `pitch` 方法在 `post, inline, normal, pre` 顺序下被调用。详见 [Pitching Loader](/api/loader-api/writing-loaders#pitching-loader)。
 - **Normal 阶段:** loader 导出的默认方法在 `pre, normal, inline, post` 顺序下被执行。模块的源码转换发生在该阶段。
 
-## rules[].as
+## rules[].overrideResource
 
-- **类型：** `string`
+- **类型：** `{ ext?: string; query?: string; fragment?: string }`
 - **稳定性：** 实验性功能
 
-修改后续规则匹配时使用的文件名。`*` 会替换为当前文件名去掉扩展名后的部分。文件仍从原路径读取；`as` 只影响规则匹配，包括嵌套规则。查询参数和片段保持不变。
+覆盖后续规则匹配时使用的资源分量，包括嵌套的 `rules` 和 `oneOf`。覆盖在当前规则的条件匹配成功后生效，已经执行的规则不会重新匹配。
+
+- `ext` 替换当前资源路径的最后一个扩展名，包含开头的 `.`。使用 `''` 删除最后一个扩展名。扩展名遵循 Node.js `path.extname` 的语义：`.hidden` 没有扩展名，`.hidden.local` 的扩展名为 `.local`，`file.` 的扩展名为 `.`。值必须为空或以 `.` 开头，且不能包含路径分隔符、`?`、`#` 或空字节。
+- `query` 替换查询参数，包含开头的 `?`。使用 `''` 清除查询参数。
+- `fragment` 替换片段，包含开头的 `#`。使用 `''` 清除片段。
+
+未指定的字段会继承，后续覆盖基于当前匹配资源进行。`test`、`resource`、`include` 和 `exclude` 使用更新后的路径，`resourceQuery` 和 `resourceFragment` 使用更新后的对应分量。覆盖只影响规则匹配，Loader 仍接收原来的资源路径、查询参数和片段。
 
 例如，`example.source.js` 在后续规则中会被当作 `example.source.txt`，因此会匹配 `.txt` 规则：
 
@@ -691,12 +697,20 @@ export default {
 export default {
   module: {
     rules: [
-      { test: /\.source\.js$/, type: 'asset/source', as: '*.txt' },
+      {
+        test: /\.source\.js$/,
+        type: 'asset/source',
+        overrideResource: { ext: '.txt' },
+      },
       { test: /\.txt$/, use: './text-loader.js' },
     ],
   },
 };
 ```
+
+如果要覆盖更多分量，可以使用 `overrideResource: { ext: '.txt', query: '?raw', fragment: '' }`。例如，`/src/example.source.js?inline#section` 在后续规则中会按 `/src/example.source.txt?raw` 匹配。
+
+覆盖 `ext` 不会重新执行 `module.defaultRules`。需要其他模块类型时，请显式设置 `type`。
 
 ## rules[].type
 

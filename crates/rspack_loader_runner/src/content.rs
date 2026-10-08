@@ -16,6 +16,7 @@ use rspack_cacheable::{
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_util::{identifier::insert_zero_width_space_for_fragment, node_path::extname};
 use rustc_hash::FxHashMap;
 
 use crate::{Scheme, get_scheme, parse_resource};
@@ -134,6 +135,8 @@ pub struct ResourceData {
   /// Absolute resource path only
   #[cacheable(with=AsOption<AsPreset>)]
   resource_path: Option<Utf8PathBuf>,
+  /// Extension of the resource path, including its leading dot; empty when there is no extension.
+  resource_ext: String,
   /// Resource query with `?` prefix
   resource_query: Option<String>,
   /// Resource fragment with `#` prefix
@@ -156,6 +159,7 @@ impl ResourceData {
     Self {
       resource,
       resource_path: None,
+      resource_ext: String::new(),
       resource_query: None,
       resource_fragment: None,
       resource_description: None,
@@ -176,6 +180,7 @@ impl ResourceData {
   ) -> Self {
     Self {
       resource,
+      resource_ext: extname(path.as_str()).to_owned(),
       resource_path: Some(path),
       resource_query: query,
       resource_fragment: fragment,
@@ -219,12 +224,15 @@ impl ResourceData {
     self.resource_path.as_deref()
   }
 
+  pub fn ext(&self) -> &str {
+    &self.resource_ext
+  }
+
   pub fn set_path<P: Into<Utf8PathBuf>>(&mut self, v: P) {
     let new_path = v.into();
-    if let Some(path) = self.path()
-      && path != new_path
-    {
+    if self.path() != Some(new_path.as_path()) {
       self.scheme.take();
+      self.resource_ext = extname(new_path.as_str()).to_owned();
       self.resource_path = Some(new_path);
     }
   }
@@ -257,6 +265,49 @@ impl ResourceData {
 
   pub fn set_fragment_optional(&mut self, v: Option<String>) {
     self.resource_fragment = v;
+  }
+
+  /// Updates the resource components together for rule matching.
+  /// Omitted values are inherited; an empty value removes the corresponding component.
+  pub fn override_resource(
+    &mut self,
+    ext: Option<&str>,
+    query: Option<&str>,
+    fragment: Option<&str>,
+  ) {
+    if let Some(ext) = ext
+      && let Some(path) = self.path()
+    {
+      let path = path.as_str();
+      let current_ext = extname(path);
+      // Keep trailing separators intact, just as extname ignores them.
+      let end = path
+        .trim_end_matches(|c| c == '/' || (cfg!(windows) && c == '\\'))
+        .len();
+      let path = format!(
+        "{}{}{}",
+        &path[..end - current_ext.len()],
+        ext,
+        &path[end..]
+      );
+      self.set_path(path);
+    }
+    if let Some(query) = query {
+      self.set_query_optional((!query.is_empty()).then(|| query.to_owned()));
+    }
+    if let Some(fragment) = fragment {
+      self.set_fragment_optional((!fragment.is_empty()).then(|| fragment.to_owned()));
+    }
+    if let Some(path) = self.path() {
+      let mut resource = insert_zero_width_space_for_fragment(path.as_str()).into_owned();
+      if let Some(query) = self.query() {
+        resource.push_str(&insert_zero_width_space_for_fragment(query));
+      }
+      if let Some(fragment) = self.fragment() {
+        resource.push_str(fragment);
+      }
+      self.set_resource(resource);
+    }
   }
 
   pub fn description(&self) -> Option<&DescriptionData> {
