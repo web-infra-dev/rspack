@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 53
-- Update: main.hot-update.js, size: 6038
+- Update: main.hot-update.js, size: 7281
 
 ## Manifest
 
@@ -86,24 +86,50 @@ function normalizeUrl(url) {
 }
 let srcByModuleId = Object.create(null), noDocument = "u" < typeof document, { forEach: forEach } = Array.prototype;
 function noop() {}
+let pendingCssUpdates = new WeakMap();
 function updateCss(el, url) {
-    let normalizedUrl;
-    if (url) normalizedUrl = url;
-    else {
-        let href = el.getAttribute('href');
-        if (!href) return;
-        normalizedUrl = href.split('?')[0];
+    var _el_getAttribute;
+    let normalizedUrl = url || (null == (_el_getAttribute = el.getAttribute('href')) ? void 0 : _el_getAttribute.split('?')[0]);
+    if (!isUrlRequest(el.href) || !(null == normalizedUrl ? void 0 : normalizedUrl.includes('.css')) || el.disabled) return;
+    let pending = pendingCssUpdates.get(el);
+    if (pending) {
+        pending.url = normalizedUrl;
+        return;
     }
-    if (!isUrlRequest(el.href) || !1 === el.isLoaded || !normalizedUrl || !(normalizedUrl.indexOf('.css') > -1)) return;
-    el.visited = !0;
-    let newEl = el.cloneNode();
-    newEl.isLoaded = !1, newEl.addEventListener('load', ()=>{
-        !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
-    }), newEl.addEventListener('error', ()=>{
-        !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
-    }), newEl.href = `${normalizedUrl}?${Date.now()}`;
+    if (!1 === el.isLoaded) return;
     let parent = el.parentNode;
-    parent && (el.nextSibling ? parent.insertBefore(newEl, el.nextSibling) : parent.appendChild(newEl));
+    if (!parent) return;
+    let state = {
+        url: void 0
+    };
+    pendingCssUpdates.set(el, state), el.isLoaded = !1;
+    let previousHref = el.href, newEl = el.cloneNode();
+    newEl.visited = !0, newEl.isLoaded = !1;
+    let nextHref = `${normalizedUrl}?${Date.now()}`, committed = !1, stopped = !1, cleanup = (retryQueued = !0)=>{
+        !stopped && (stopped = !0, observer.disconnect(), newEl.remove(), el.removeEventListener('load', finish), el.removeEventListener('error', failCommit), pendingCssUpdates.delete(el), el.isLoaded = !0, el.visited = !1, retryQueued && state.url && el.parentNode === parent && updateCss(el, state.url));
+    }, finish = ()=>cleanup(), failCommit = ()=>{
+        window.location.reload();
+    }, observer = new MutationObserver(()=>{
+        (el.disabled || el.parentNode !== parent || el.href !== (committed ? newEl.href : previousHref)) && cleanup(!1);
+    });
+    observer.observe(parent, {
+        childList: !0,
+        subtree: !0,
+        attributes: !0,
+        attributeFilter: [
+            'href',
+            'disabled'
+        ]
+    }), newEl.addEventListener('load', ()=>{
+        if (!stopped) {
+            if (el.disabled || el.parentNode !== parent || el.href !== previousHref) return void cleanup(!1);
+            committed = !0, el.addEventListener('load', finish), el.addEventListener('error', failCommit), el.setAttribute('href', nextHref);
+        }
+    }, {
+        once: !0
+    }), newEl.addEventListener('error', ()=>cleanup(), {
+        once: !0
+    }), newEl.href = nextHref, parent.insertBefore(newEl, el.nextSibling);
 }
 function reloadAll() {
     let elements = document.querySelectorAll('link');

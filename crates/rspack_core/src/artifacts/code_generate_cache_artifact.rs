@@ -47,6 +47,7 @@ impl CodeGenerateCacheArtifact {
   pub async fn use_cache<F>(
     &self,
     job: &CodeGenerationJob,
+    stable_async_block_map: bool,
     generator: F,
   ) -> (Result<CodeGenerationResult>, bool)
   where
@@ -58,10 +59,11 @@ impl CodeGenerateCacheArtifact {
     };
 
     let cache_key = Identifier::from(format!(
-      "{}|{}|{}",
+      "{}|{}|{}|stable-async-block-map={}",
       job.module,
       job.hash.encoded(),
-      self.runtime_mode
+      self.runtime_mode,
+      stable_async_block_map
     ));
     if let Some(value) = storage.get(&cache_key) {
       (Ok(value), true)

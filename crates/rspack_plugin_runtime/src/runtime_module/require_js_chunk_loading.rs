@@ -360,8 +360,12 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     }
 
     if with_hmr {
-      let source_with_hmr =
-        runtime_template.render(&self.template_id(TemplateId::WithHmr), None)?;
+      let source_with_hmr = runtime_template.render(
+        &self.template_id(TemplateId::WithHmr),
+        Some(serde_json::json!({
+          "_output_dir": &root_output_dir,
+        })),
+      )?;
 
       source.push_str(&source_with_hmr);
       let hmr_runtime = generate_javascript_hmr_runtime(
@@ -373,8 +377,12 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     }
 
     if with_hmr_manifest {
-      let source_with_hmr_manifest =
-        runtime_template.render(&self.template_id(TemplateId::WithHmrManifest), None)?;
+      let source_with_hmr_manifest = runtime_template.render(
+        &self.template_id(TemplateId::WithHmrManifest),
+        Some(serde_json::json!({
+          "_output_dir": &root_output_dir,
+        })),
+      )?;
 
       source.push_str(&source_with_hmr_manifest);
     }
