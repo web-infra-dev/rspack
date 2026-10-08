@@ -345,9 +345,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
             )
             .js;
         }
-        self
-          .js_output
-          .insert(id, value.js.as_deref().unwrap_or_default().join(" + "));
+        self.js_output.insert(
+          id,
+          value
+            .js
+            .map_or_else(|| json_stringify_str(""), |parts| parts.join(" + ")),
+        );
       }
       if requirements.css {
         css_values.insert(id, value.css.map(|parts| parts.join("")));
@@ -945,8 +948,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   ) -> CssExportValue<'g> {
     let compilation = self.generate_context.compilation;
     let id = *import.id();
-    let target =
-      find_css_export_target(compilation, &id).expect("CSS import should resolve to a module");
+    let Some(target) = find_css_export_target(compilation, &id) else {
+      // Factorization already reported the unresolved import. Code generation
+      // must still finish without trying to render a reference to its target.
+      return CssExportValue::default();
+    };
     let target_export = find_export(target, import.import_name());
     let is_self_import = target.identifier() == self.module.identifier();
     let mut value = if let Some(target_export) = target_export {

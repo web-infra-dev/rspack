@@ -1,0 +1,5 @@
+@value color from "./missing-value.module.css";
+
+.local {
+	color: color;
+}
