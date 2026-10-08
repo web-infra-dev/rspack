@@ -1,6 +1,6 @@
 use std::{
-  cell::RefCell,
   collections::hash_map::Entry,
+  io,
   sync::{Arc, LazyLock, Mutex, Weak},
 };
 
@@ -13,7 +13,7 @@ use rkyv::{
 };
 use rustc_hash::FxHashMap;
 use serde_json::Value;
-use xxhash_rust::const_xxh64::xxh64;
+use xxhash_rust::xxh64::xxh64;
 
 use super::{AsInner, AsPreset};
 use crate::{Error, Result};
@@ -21,10 +21,12 @@ use crate::{Error, Result};
 /// Shares decoded JSON without changing its string archive or serializer.
 ///
 /// Process-wide sharing is safe because values are immutable and every hash hit
-/// is verified against the full serialized content or the parsed value. Only weak handles and fixed-size
-/// keys are retained. Dead entries are pruned after an amortized number of misses
-/// proportional to the last live entry count (at least 64), and the table is shrunk.
-/// Verification retains at most 64 KiB of reusable scratch space per decoding thread.
+/// is verified against the full serialized content, including object key order.
+/// Retained metadata consists of fixed-size keys and weak handles. A dead weak
+/// handle keeps its small Arc allocation (about 96 bytes) until the next amortized
+/// prune. The table is bounded at about twice the live count at the last prune,
+/// with a minimum slack of 64 entries. Pruning and shrinking run only on misses,
+/// so the last table remains if decoding stops. No verification buffer is retained.
 pub struct AsSharedJson;
 
 type Key = (usize, u64);
@@ -62,25 +64,33 @@ impl JsonInterner {
 
 static JSON_INTERNER: LazyLock<Mutex<JsonInterner>> = LazyLock::new(Default::default);
 
-thread_local! {
-  static JSON_BUFFER: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+struct ComparingWriter<'a> {
+  expected: &'a [u8],
+  position: usize,
 }
 
-fn matches_json(value: &Value, text: &str) -> Result<bool> {
-  JSON_BUFFER.with(|buffer| {
-    let mut buffer = buffer.borrow_mut();
-    buffer.clear();
-    // to_string uses the same serializer with a Vec writer. Neither path changes
-    // object iteration order or number formatting based on the writer.
-    let result = simd_json::to_writer(&mut *buffer, value)
-      .map(|()| buffer.as_slice() == text.as_bytes())
-      .map_err(|_| Error::MessageError("serialize serde_json value failed"));
-    buffer.clear();
-    if buffer.capacity() > 64 * 1024 {
-      *buffer = Vec::new();
+impl io::Write for ComparingWriter<'_> {
+  fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+    if !self.expected[self.position..].starts_with(bytes) {
+      return Err(io::ErrorKind::InvalidData.into());
     }
-    result
-  })
+    self.position += bytes.len();
+    Ok(bytes.len())
+  }
+
+  fn flush(&mut self) -> io::Result<()> {
+    Ok(())
+  }
+}
+
+fn matches_json(value: &Value, text: &str) -> bool {
+  let mut writer = ComparingWriter {
+    expected: text.as_bytes(),
+    position: 0,
+  };
+  // to_string uses the same serializer with a Vec writer. Neither path changes
+  // object iteration order or number formatting based on the writer.
+  simd_json::to_writer(&mut writer, value).is_ok() && writer.position == writer.expected.len()
 }
 
 impl ArchiveWith<Arc<Value>> for AsSharedJson {
@@ -115,7 +125,7 @@ where
       .get(&key)
       .and_then(Weak::upgrade);
     if let Some(existing) = existing
-      && matches_json(&existing, text)?
+      && matches_json(&existing, text)
     {
       return Ok(existing);
     }
@@ -128,12 +138,12 @@ where
       .expect("JSON interner lock poisoned")
       .get_or_insert(key, &value);
     if let Some(existing) = existing {
-      // JSON parsing can change floating-point formatting. Comparing the parsed
-      // values also handles those byte-different round trips without trusting a hash.
-      if existing.as_ref() == value.as_ref() {
+      // Parsing can change number formatting. Compare serializations of both
+      // parsed values so those round trips share without ignoring object key order.
+      if simd_json::to_string(value.as_ref()).is_ok_and(|text| matches_json(&existing, &text)) {
         return Ok(existing);
       }
-      // A colliding candidate must never be returned for different content.
+      // A racing replacement only loses sharing; it never changes decoded content.
       JSON_INTERNER
         .lock()
         .expect("JSON interner lock poisoned")

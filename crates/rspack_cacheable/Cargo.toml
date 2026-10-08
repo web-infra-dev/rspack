@@ -32,7 +32,7 @@ smol_str                = { workspace = true }
 sugar_path              = { workspace = true }
 swc_core                = { workspace = true, features = ["ecma_ast"] }
 ustr                    = { workspace = true }
-xxhash-rust             = { workspace = true, features = ["const_xxh64"] }
+xxhash-rust             = { workspace = true, features = ["const_xxh64", "xxh64"] }
 
 [lints]
 workspace = true
