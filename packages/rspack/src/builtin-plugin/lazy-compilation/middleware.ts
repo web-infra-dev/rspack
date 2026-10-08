@@ -69,13 +69,19 @@ export const lazyCompilationMiddleware = (
       const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
       options.prefix = `${prefix}__${i++}`;
       const activeModules = new Set<string>();
+      const newlyActiveModules = new Set<string>();
 
       middlewareByCompiler.set(
         options.prefix,
-        lazyCompilationMiddlewareInternal(c, activeModules, options.prefix),
+        lazyCompilationMiddlewareInternal(
+          c,
+          activeModules,
+          newlyActiveModules,
+          options.prefix,
+        ),
       );
 
-      applyPlugin(c, options, activeModules);
+      applyPlugin(c, options, newlyActiveModules);
     }
 
     const keys = [...middlewareByCompiler.keys()];
@@ -98,17 +104,19 @@ export const lazyCompilationMiddleware = (
   }
 
   const activeModules: Set<string> = new Set();
+  const newlyActiveModules: Set<string> = new Set();
 
   const options = {
     ...compiler.options.lazyCompilation,
   };
 
-  applyPlugin(compiler, options, activeModules);
+  applyPlugin(compiler, options, newlyActiveModules);
 
   const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
   return lazyCompilationMiddlewareInternal(
     compiler,
     activeModules,
+    newlyActiveModules,
     lazyCompilationPrefix,
   );
 };
@@ -116,13 +124,16 @@ export const lazyCompilationMiddleware = (
 function applyPlugin(
   compiler: Compiler,
   options: LazyCompilationOptions,
-  activeModules: Set<string>,
+  newlyActiveModules: Set<string>,
 ) {
   const plugin = new BuiltinLazyCompilationPlugin(
-    // Keep the set across compilations. The client re-sends its whole active set
-    // after every HMR apply, so forgetting it here would make each re-send look
-    // like a fresh activation and trigger another rebuild.
-    () => new Set(activeModules),
+    // Hand over only the modules activated since the last compilation; the
+    // native plugin keeps every activated module across compilations.
+    () => {
+      const res = new Set(newlyActiveModules);
+      newlyActiveModules.clear();
+      return res;
+    },
     options.entries ?? true,
     options.imports ?? true,
     `${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,
@@ -227,7 +238,11 @@ function readModuleIdsFromBody(
 
 const lazyCompilationMiddlewareInternal = (
   compiler: Compiler | MultiCompiler,
+  // Every module ever activated. Never cleared: the client re-sends its whole
+  // pending set whenever one of its proxies is disposed, and a re-sent module
+  // must not trigger another rebuild.
   activeModules: Set<string>,
+  newlyActiveModules: Set<string>,
   lazyCompilationPrefix: string,
 ): DevServerMiddlewareHandler => {
   const logger = compiler.getInfrastructureLogger('LazyCompilation');
@@ -253,9 +268,9 @@ const lazyCompilationMiddlewareInternal = (
 
     const moduleActivated = [];
     for (const key of modules) {
-      const activated = activeModules.has(key);
-      activeModules.add(key);
-      if (!activated) {
+      if (!activeModules.has(key)) {
+        activeModules.add(key);
+        newlyActiveModules.add(key);
         logger.log(`${key} is now in use and will be compiled.`);
         moduleActivated.push(key);
       }
