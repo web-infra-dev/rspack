@@ -279,6 +279,16 @@ impl BuildModuleGraphArtifact {
     self.build_dependencies.reset_incremental_info();
   }
 
+  /// Collapses the file counters into their dense post-make form once make
+  /// stopped adding files, so seal and emit do not carry hash-table growth
+  /// slack; a later rebuild thaws the sets it mutates.
+  pub fn freeze_file_counters(&mut self) {
+    self.file_dependencies.freeze();
+    self.context_dependencies.freeze();
+    self.missing_dependencies.freeze();
+    self.build_dependencies.freeze();
+  }
+
   pub fn built_modules(&self) -> impl Iterator<Item = &ModuleIdentifier> {
     self.affected_modules.active()
   }

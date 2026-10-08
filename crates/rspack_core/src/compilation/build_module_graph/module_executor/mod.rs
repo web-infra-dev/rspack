@@ -159,6 +159,9 @@ impl ModuleExecutor {
       compilation.code_generated_modules.insert(id);
     }
 
+    // This make pass has stopped adding files; collapse the reverse indexes
+    // before the artifact is retained for later rebuilds.
+    make_artifact.freeze_file_counters();
     self.make_artifact = make_artifact.into();
     self.exports_info_artifact = exports_info_artifact.into();
     self.entries = entries;

@@ -98,7 +98,7 @@ pub async fn finish_build_module_graph(
   artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
-  update_module_graph(
+  let (mut artifact, exports_info_artifact) = update_module_graph(
     compilation,
     artifact,
     exports_info_artifact,
@@ -112,5 +112,9 @@ pub async fn finish_build_module_graph(
         .collect(),
     )],
   )
-  .await
+  .await?;
+  // Make has stopped adding files; collapse the reverse indexes before seal
+  // and emit keep them alive for the rest of the compilation.
+  artifact.freeze_file_counters();
+  Ok((artifact, exports_info_artifact))
 }
