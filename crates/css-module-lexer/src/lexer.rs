@@ -290,46 +290,133 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     })
   }
 
-  /// Disambiguate a declaration from a type-first nested selector. Probe without
-  /// advancing the main stream or notifying its visitor: selector mode changes
-  /// must be applied before collecting identifiers in the prelude.
+  /// Try the generic declaration syntax before falling back to a nested rule,
+  /// as described in https://drafts.csswg.org/css-syntax/#consume-block-contents.
+  /// A non-custom value may contain a top-level {} block only as its entire
+  /// value, optionally followed by !important. Property-specific validity is
+  /// left to the browser, so unknown properties remain available to CSS tools.
+  /// Probing never advances the main stream or notifies its identifier visitor.
   pub(crate) fn is_declaration_after_ident(&self, end: Pos, custom_property: bool) -> bool {
     let mut probe = Lexer {
       value: self.value,
       scan_pos: end,
       visitor: (),
     };
-    let colon = loop {
-      let token = probe.next_token();
-      if !token.kind.is_trivia() {
-        break token;
-      }
-    };
+    let colon = probe.next_non_trivia_token();
     if colon.kind != TokenKind::Colon {
       return false;
     }
-    // Custom properties can contain top-level curly blocks in their values.
-    // Whitespace after a colon cannot start a pseudo-class or pseudo-element.
-    if custom_property || probe.byte_at(colon.range.end).is_some_and(is_white_space) {
+    // A custom property followed by a colon can never be a qualified rule,
+    // even if its value is invalid.
+    if custom_property {
       return true;
     }
-    let mut depth = 0u32;
-    loop {
-      let token = probe.next_token();
-      match token.kind {
-        TokenKind::LeftCurlyBracket if depth == 0 => return false,
-        TokenKind::Semicolon | TokenKind::RightCurlyBracket if depth == 0 => return true,
-        TokenKind::Eof => return true,
-        TokenKind::Function
-        | TokenKind::LeftParenthesis
-        | TokenKind::LeftSquareBracket
-        | TokenKind::LeftCurlyBracket => depth += 1,
-        TokenKind::RightParenthesis
-        | TokenKind::RightSquareBracket
-        | TokenKind::RightCurlyBracket => depth = depth.saturating_sub(1),
-        _ => {}
+
+    // Flat values need no tokens: find their boundary with a vectorized search.
+    // Strings, comments, escapes, URLs and simple blocks use the tokenizer so
+    // punctuation inside a component value cannot become an outer boundary.
+    let rest = &self.value[probe.scan_pos as usize..];
+    let boundary = memchr3(C_LEFT_CURLY, C_SEMICOLON, C_RIGHT_CURLY, rest).unwrap_or(rest.len());
+    let prefix = &rest[..boundary];
+    if !prefix.iter().any(|byte| {
+      matches!(
+        byte,
+        b'"' | b'\'' | b'/' | b'\\' | b'(' | b')' | b'[' | b']'
+      )
+    }) {
+      if rest.get(boundary) != Some(&C_LEFT_CURLY) {
+        return true;
+      }
+      if prefix.iter().any(|byte| !is_white_space(*byte)) {
+        return false;
       }
     }
+
+    let mut has_value = false;
+    let mut has_curly_block = false;
+    loop {
+      let token = probe.next_non_trivia_token();
+      match token.kind {
+        TokenKind::Semicolon | TokenKind::RightCurlyBracket | TokenKind::Eof => return true,
+        TokenKind::BadString
+        | TokenKind::BadUrl
+        | TokenKind::RightParenthesis
+        | TokenKind::RightSquareBracket => return false,
+        TokenKind::LeftCurlyBracket => {
+          if has_value || has_curly_block {
+            return false;
+          }
+          has_curly_block = true;
+        }
+        TokenKind::Delim if has_curly_block && probe.byte_at(token.range.start) == Some(b'!') => {
+          let important = probe.next_non_trivia_token();
+          if important.kind != TokenKind::Ident {
+            return false;
+          }
+          let mut normalized = [0; MAX_CSS_KEYWORD_LEN];
+          if decode_css_keyword(
+            probe.slice_trusted(important.range.start, important.range.end),
+            &mut normalized,
+          ) != Some("important")
+          {
+            return false;
+          }
+          return matches!(
+            probe.next_non_trivia_token().kind,
+            TokenKind::Semicolon | TokenKind::RightCurlyBracket | TokenKind::Eof
+          );
+        }
+        _ => {
+          if has_curly_block {
+            return false;
+          }
+          has_value = true;
+        }
+      }
+      if !probe.consume_component_value(token.kind) {
+        return false;
+      }
+    }
+  }
+
+  fn next_non_trivia_token(&mut self) -> Token {
+    loop {
+      let token = self.next_token();
+      if !token.kind.is_trivia() && token.kind != TokenKind::BadComment {
+        return token;
+      }
+    }
+  }
+
+  /// Consume nested simple blocks and functions as single component values.
+  /// EOF implicitly closes them, as in CSS Syntax's component-value algorithm.
+  fn consume_component_value(&mut self, kind: TokenKind) -> bool {
+    let closing = |kind| match kind {
+      TokenKind::Function | TokenKind::LeftParenthesis => Some(TokenKind::RightParenthesis),
+      TokenKind::LeftSquareBracket => Some(TokenKind::RightSquareBracket),
+      TokenKind::LeftCurlyBracket => Some(TokenKind::RightCurlyBracket),
+      _ => None,
+    };
+    let Some(end) = closing(kind) else {
+      return true;
+    };
+    let mut stack: SmallVec<[TokenKind; 8]> = SmallVec::new();
+    stack.push(end);
+    while !stack.is_empty() {
+      let token = self.next_token();
+      if token.kind == TokenKind::Eof {
+        return true;
+      }
+      if matches!(token.kind, TokenKind::BadString | TokenKind::BadUrl) {
+        return false;
+      }
+      if let Some(end) = closing(token.kind) {
+        stack.push(end);
+      } else if stack.last() == Some(&token.kind) {
+        stack.pop();
+      }
+    }
+    true
   }
 
   /// Skip value text that cannot produce a dependency or change the block
