@@ -1,5 +1,5 @@
 ---
-description: '旧的架构是一个非常简单的版本，仅支持正常阶段的 loader。不考虑 pitch 的 loader。'
+description: '了解 Rspack loader 在 Rust 与 JavaScript 间的执行方式，包括 pitching、选项传递和执行优化。'
 ---
 
 # Rspack loader
