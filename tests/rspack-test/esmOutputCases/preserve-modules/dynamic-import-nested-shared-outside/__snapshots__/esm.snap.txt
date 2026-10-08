@@ -28,7 +28,7 @@ it('should preserve nested dynamic import modules and shared outside chunks', as
 
 	expect(feature.default()).toBe('feature:util:outside')
 	expect(feature.answer).toBe(42)
-})
+});
 
 export {};
 
@@ -40,7 +40,7 @@ import { outside } from "./outside_dep_js.mjs";
 // ./src/label.js
 
 
-const label = `entry:${outside}`
+const label = `entry:${outside}`;
 
 export { label };
 
@@ -48,7 +48,7 @@ export { label };
 
 ```mjs title=outside_dep_js.mjs
 // ./outside/dep.js
-const outside = 'outside'
+const outside = 'outside';
 
 
 
@@ -63,7 +63,7 @@ import { outside } from "../outside_dep_js.mjs";
 
 
 const util = `util:${outside}`
-const answer = 42
+const answer = 42;
 
 
 

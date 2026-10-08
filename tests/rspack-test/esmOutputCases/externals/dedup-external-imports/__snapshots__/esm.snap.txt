@@ -21,7 +21,7 @@ it('should not have duplicate import identifiers', async () => {
 	expect(readFile).toBeDefined()
 	expect(__rspack_external_fs).toBeDefined()
 	expect(__rspack_external_fs.readFile).toBe(readFile)
-})
+});
 
 export {};
 

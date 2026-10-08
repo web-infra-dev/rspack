@@ -15,7 +15,7 @@ var bar_default = /*#__PURE__*/compatGetDefaultExport(bar);
 
 
 
-const value = (/* inlined export .foo */"foo") + (bar_default())
+const value = (/* inlined export .foo */"foo") + (bar_default());
 
 
 

@@ -821,6 +821,10 @@ var {} = {{}};
       }
     }
 
+    if let Some(pos) = info.trailing_semicolon_position {
+      source.insert_static(pos, ";", None);
+    }
+
     Ok(source)
   }
 

@@ -15,7 +15,7 @@ it('should keep named reexports distinct from default imports in module-external
 	expect(b.shared).toBe('b')
 	expect(b.namedFoo).toBe('named-foo')
 	expect(b.namedFoo).not.toBe('default-foo')
-})
+});
 
 export {};
 
@@ -93,7 +93,7 @@ const shared = 'a'
 // ./b.js
 
 
-const b_shared = 'b'
+const b_shared = 'b';
 
 
 

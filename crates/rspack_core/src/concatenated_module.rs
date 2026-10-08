@@ -204,6 +204,8 @@ pub struct ConcatenatedModuleInfo {
   pub runtime_requirements: RuntimeGlobals,
   pub runtime_requirements_write: RuntimeGlobals,
   pub has_ast: bool,
+  /// Position of a missing final statement semicolon, before any trailing comments.
+  pub trailing_semicolon_position: Option<u32>,
   pub source: Option<ReplaceSource>,
   pub internal_source: Option<Arc<dyn Source>>,
   pub internal_names: AtomMap<Atom>,
