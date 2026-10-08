@@ -1,22 +1,14 @@
 ```mjs title=index.mjs
+export * as duplicatePackage from "./rules/duplicate-package/index.mjs";
 
 // ./src/index.js
 
 
-export { duplicatePackage } from "./rules/duplicate-package/index.mjs";
 
 ```
 
 ```mjs title=rules/duplicate-package/index.mjs
-import { __webpack_require__ } from "../../runtime.mjs";
 import { types_namespaceObject } from "./types.mjs";
-
-// NAMESPACE OBJECT: ./src/rules/duplicate-package/index.js
-var duplicate_package_namespaceObject = {};
-__webpack_require__.r(duplicate_package_namespaceObject);
-__webpack_require__.d(duplicate_package_namespaceObject, { 
-  value: () => (value) });
-
 
 // ./src/rules/duplicate-package/index.js
 
@@ -25,7 +17,7 @@ const { /* CheckVersionMap */J: CheckVersionMap } = types_namespaceObject;
 
 const value = CheckVersionMap.major;
 
-export { duplicate_package_namespaceObject as duplicatePackage, value };
+export { value };
 
 ```
 
