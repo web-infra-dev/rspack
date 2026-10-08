@@ -69,3 +69,52 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 	button.LOCAL-escaped\;boundary { color: blue; }
 	.LOCAL-afterSyntax { color: green; }
 }
+
+.LOCAL-recovery {
+	/* Invalid candidates synchronize without exporting names from their text. */
+	missingColon;
+	brokenString:"unterminated
+		.shouldNotExport;
+	brokenUrl:url(bad"url);
+	.LOCAL-afterInvalid { color: green; }
+
+	/* Semicolons in component values must not reset the declaration state. */
+	animation:{opaque; stillOpaque} !important;
+	animation:[opaque; stillOpaque] LOCAL-recoveryFade Xs;
+	animation:[opaque) ; stillOpaque} ] LOCAL-recoveryFade Xs;
+	color:{.opaque; :global(.opaqueGlobal)} !\69mportant;
+	color:{@import "not-a-file.css"; @property --opaque { syntax:"x"; }};
+	background:paint([{.opaque; .alsoOpaque}]);
+	--LOCAL-components:before{.opaque; stillOpaque}after;
+	--LOCAL-mismatched:paint([opaque) ; stillOpaque} ]);
+
+	/* Both prefixes are possible until the top-level curly block starts. */
+	button:where(.globalCandidate[data-token=--components], .LOCAL-localCandidate[data-token=--components]) {
+		color:var(--LOCAL-components);
+	}
+	/* The rule ends before the trailing text that invalidated the declaration. */
+	button:{color:red} trailing;
+	.LOCAL-afterTrailing { color: blue; }
+	.LOCAL-afterRecovery { animation: LOCAL-recoveryFade Xs; }
+}
+
+@keyframes LOCAL-recoveryFade {
+	to { opacity: 1; }
+}
+
+.LOCAL-pureRecovery {
+	missingColon /* cssmodules-pure-ignore */;
+	color:{.opaquePure; :global(.opaqueGlobalPure)} !important;
+	button:where(.pureGlobal, .LOCAL-pureLocal) {
+		color:red;
+	}
+	.LOCAL-afterPureRecovery { color:green; }
+}
+
+.LOCAL-eofRecovery {
+	/* EOF implicitly closes the unfinished function and square block. */
+	color:paint([opaque;
+
+.LOCAL-eofCurlyRecovery {
+	/* EOF closes the sole curly value without turning it into a rule body. */
+	color:{.opaqueAtEof

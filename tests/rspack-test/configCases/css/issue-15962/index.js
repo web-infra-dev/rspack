@@ -2,6 +2,10 @@ import * as styles from "./style.modules.css";
 import * as globalStyles from "./style.global.css";
 import * as smallStyles from "./small.modules.css";
 import * as syntaxStyles from "./syntax.modules.css";
+import * as recoveryStyles from "./recovery.modules.css";
+import * as pureRecoveryStyles from "./recovery.pure.modules.css";
+import * as eofStyles from "./eof.modules.css";
+import * as eofCurlyStyles from "./eof-curly.modules.css";
 
 it("localizes type-first selectors in nested rules", () => {
 	const fs = require("fs");
@@ -15,6 +19,10 @@ it("localizes type-first selectors in nested rules", () => {
 		local: styles,
 		global: globalStyles,
 		short: smallStyles,
-		syntax: syntaxStyles
+		syntax: syntaxStyles,
+		recovery: recoveryStyles,
+		pureRecovery: pureRecoveryStyles,
+		eof: eofStyles,
+		eofCurly: eofCurlyStyles
 	}).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "exports.txt"));
 });

@@ -12,6 +12,7 @@ use crate::{
     lowercase_ascii_keyword, strip_vendor_prefix,
   },
   dependencies::{PropertyKind, special_value_is_candidate},
+  parser::{ComponentValues, RecoveryBoundary},
 };
 
 const fn build_plain_ascii_name_byte_table() -> [bool; 256] {
@@ -290,133 +291,27 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     })
   }
 
-  /// Try the generic declaration syntax before falling back to a nested rule,
-  /// as described in https://drafts.csswg.org/css-syntax/#consume-block-contents.
-  /// A non-custom value may contain a top-level {} block only as its entire
-  /// value, optionally followed by !important. Property-specific validity is
-  /// left to the browser, so unknown properties remain available to CSS tools.
-  /// Probing never advances the main stream or notifies its identifier visitor.
-  pub(crate) fn is_declaration_after_ident(&self, end: Pos, custom_property: bool) -> bool {
-    let mut probe = Lexer {
-      value: self.value,
-      scan_pos: end,
-      visitor: (),
-    };
-    let colon = probe.next_non_trivia_token();
-    if colon.kind != TokenKind::Colon {
-      return false;
-    }
-    // A custom property followed by a colon can never be a qualified rule,
-    // even if its value is invalid.
-    if custom_property {
-      return true;
-    }
-
-    // Flat values need no tokens: find their boundary with a vectorized search.
-    // Strings, comments, escapes, URLs and simple blocks use the tokenizer so
-    // punctuation inside a component value cannot become an outer boundary.
-    let rest = &self.value[probe.scan_pos as usize..];
+  /// Find a flat value's first structural boundary without tokenizing it.
+  /// The range excludes the boundary and proves only lexical structure.
+  pub(crate) fn scan_flat_value(&self, start: Pos) -> Option<(Range, TokenKind)> {
+    let rest = &self.value[start as usize..];
     let boundary = memchr3(C_LEFT_CURLY, C_SEMICOLON, C_RIGHT_CURLY, rest).unwrap_or(rest.len());
-    let prefix = &rest[..boundary];
-    if !prefix.iter().any(|byte| {
+    if rest[..boundary].iter().any(|byte| {
       matches!(
         byte,
         b'"' | b'\'' | b'/' | b'\\' | b'(' | b')' | b'[' | b']'
       )
     }) {
-      if rest.get(boundary) != Some(&C_LEFT_CURLY) {
-        return true;
-      }
-      if prefix.iter().any(|byte| !is_white_space(*byte)) {
-        return false;
-      }
+      return None;
     }
-
-    let mut has_value = false;
-    let mut has_curly_block = false;
-    loop {
-      let token = probe.next_non_trivia_token();
-      match token.kind {
-        TokenKind::Semicolon | TokenKind::RightCurlyBracket | TokenKind::Eof => return true,
-        TokenKind::BadString
-        | TokenKind::BadUrl
-        | TokenKind::RightParenthesis
-        | TokenKind::RightSquareBracket => return false,
-        TokenKind::LeftCurlyBracket => {
-          if has_value || has_curly_block {
-            return false;
-          }
-          has_curly_block = true;
-        }
-        TokenKind::Delim if has_curly_block && probe.byte_at(token.range.start) == Some(b'!') => {
-          let important = probe.next_non_trivia_token();
-          if important.kind != TokenKind::Ident {
-            return false;
-          }
-          let mut normalized = [0; MAX_CSS_KEYWORD_LEN];
-          if decode_css_keyword(
-            probe.slice_trusted(important.range.start, important.range.end),
-            &mut normalized,
-          ) != Some("important")
-          {
-            return false;
-          }
-          return matches!(
-            probe.next_non_trivia_token().kind,
-            TokenKind::Semicolon | TokenKind::RightCurlyBracket | TokenKind::Eof
-          );
-        }
-        _ => {
-          if has_curly_block {
-            return false;
-          }
-          has_value = true;
-        }
-      }
-      if !probe.consume_component_value(token.kind) {
-        return false;
-      }
-    }
-  }
-
-  fn next_non_trivia_token(&mut self) -> Token {
-    loop {
-      let token = self.next_token();
-      if !token.kind.is_trivia() && token.kind != TokenKind::BadComment {
-        return token;
-      }
-    }
-  }
-
-  /// Consume nested simple blocks and functions as single component values.
-  /// EOF implicitly closes them, as in CSS Syntax's component-value algorithm.
-  fn consume_component_value(&mut self, kind: TokenKind) -> bool {
-    let closing = |kind| match kind {
-      TokenKind::Function | TokenKind::LeftParenthesis => Some(TokenKind::RightParenthesis),
-      TokenKind::LeftSquareBracket => Some(TokenKind::RightSquareBracket),
-      TokenKind::LeftCurlyBracket => Some(TokenKind::RightCurlyBracket),
-      _ => None,
+    let kind = match rest.get(boundary) {
+      Some(&C_LEFT_CURLY) => TokenKind::LeftCurlyBracket,
+      Some(&C_SEMICOLON) => TokenKind::Semicolon,
+      Some(&C_RIGHT_CURLY) => TokenKind::RightCurlyBracket,
+      None => TokenKind::Eof,
+      _ => unreachable!("flat scan must stop at a structural boundary"),
     };
-    let Some(end) = closing(kind) else {
-      return true;
-    };
-    let mut stack: SmallVec<[TokenKind; 8]> = SmallVec::new();
-    stack.push(end);
-    while !stack.is_empty() {
-      let token = self.next_token();
-      if token.kind == TokenKind::Eof {
-        return true;
-      }
-      if matches!(token.kind, TokenKind::BadString | TokenKind::BadUrl) {
-        return false;
-      }
-      if let Some(end) = closing(token.kind) {
-        stack.push(end);
-      } else if stack.last() == Some(&token.kind) {
-        stack.pop();
-      }
-    }
-    true
+    Some((Range::new(start, start + boundary as Pos), kind))
   }
 
   /// Skip value text that cannot produce a dependency or change the block
@@ -510,7 +405,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
           .visitor
           .visit_ident(name, Range::new(position as Pos, end as Pos));
         if is_function {
-          state.parentheses += 1;
+          state.consume(TokenKind::LeftParenthesis);
           position = end + 1;
         } else {
           position = end;
@@ -553,28 +448,28 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
           if options.preserve_delimiters {
             break;
           }
-          state.parentheses += 1;
+          state.consume(TokenKind::LeftParenthesis);
           position += 1;
         }
         C_RIGHT_PARENTHESIS => {
           if options.preserve_delimiters {
             break;
           }
-          state.parentheses = state.parentheses.saturating_sub(1);
+          state.consume(TokenKind::RightParenthesis);
           position += 1;
         }
         C_LEFT_SQUARE => {
           if options.preserve_delimiters {
             break;
           }
-          state.squares += 1;
+          state.consume(TokenKind::LeftSquareBracket);
           position += 1;
         }
         C_RIGHT_SQUARE => {
           if options.preserve_delimiters {
             break;
           }
-          state.squares = state.squares.saturating_sub(1);
+          state.consume(TokenKind::RightSquareBracket);
           position += 1;
         }
         C_LEFT_CURLY if stop_at_top_level_left_curly && !state.is_nested() => break,
@@ -582,15 +477,20 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
           if options.preserve_delimiters {
             break;
           }
-          state.curlies += 1;
+          state.consume(TokenKind::LeftCurlyBracket);
           position += 1;
         }
-        C_RIGHT_CURLY if state.curlies > 0 && !options.preserve_delimiters => {
-          state.curlies -= 1;
+        C_RIGHT_CURLY
+          if state.expects(TokenKind::RightCurlyBracket) && !options.preserve_delimiters =>
+        {
+          state.consume(TokenKind::RightCurlyBracket);
           position += 1;
         }
-        C_RIGHT_CURLY => break,
-        C_SEMICOLON if !state.is_nested() => break,
+        C_RIGHT_CURLY if options.preserve_delimiters || !state.is_nested() => break,
+        C_RIGHT_CURLY => position += 1,
+        C_SEMICOLON if RecoveryBoundary::at(TokenKind::Semicolon, state.is_nested()).is_some() => {
+          break;
+        }
         _ => position += 1,
       }
     }
@@ -911,6 +811,12 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
   /// `Bad*` token kinds, so EOF and tokenizer errors are never conflated.
   #[inline]
   pub fn next_token(&mut self) -> Token {
+    let token = self.next_token_without_visit();
+    self.visit_ident(token.kind, token.value_range);
+    token
+  }
+
+  fn next_token_without_visit(&mut self) -> Token {
     let start = self.scan_pos as usize;
     let len = self.value.len();
     if start >= len {
@@ -1148,14 +1054,12 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       "scan_pos moved backward from {start} to {}",
       self.scan_pos
     );
-    let token = Token::with_flags(
+    Token::with_flags(
       kind,
       Range::new(start as Pos, end as Pos),
       Range::new(value_start as Pos, value_end as Pos),
       flags,
-    );
-    self.visit_ident(token.kind, token.value_range);
-    token
+    )
   }
 
   #[inline]
@@ -1734,7 +1638,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
 /// The single forward stream used by dependency extraction.
 ///
 /// The stream owns the main scanner state and gives the dependency scanner one
-/// token of lookahead without cloning the lexer for every decision. Special
+/// buffered lookahead without cloning the lexer for every decision. Special
 /// parsers use the same stream through `next_parser_token`, so consuming a
 /// subgrammar never creates a second scanner over the source.
 ///
@@ -1759,12 +1663,7 @@ pub(crate) struct TokenStream<'a, 's, V: LexerVisitor = ()> {
   special_value_state: GenericValueScanState,
 }
 
-#[derive(Debug, Default)]
-pub(crate) struct GenericValueScanState {
-  parentheses: u32,
-  squares: u32,
-  curlies: u32,
-}
+pub(crate) type GenericValueScanState = ComponentValues;
 
 #[derive(Debug, Clone, Copy)]
 struct GenericValueScanOptions {
@@ -1779,13 +1678,6 @@ struct PrescannedIdent {
   start: Pos,
   end: Pos,
   flags: TokenFlags,
-}
-
-impl GenericValueScanState {
-  #[inline]
-  fn is_nested(&self) -> bool {
-    self.parentheses != 0 || self.squares != 0 || self.curlies != 0
-  }
 }
 
 #[inline]
@@ -1829,13 +1721,10 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       token.token.range,
       self.consumed
     );
+    self
+      .lexer
+      .visit_ident(token.token.kind, token.token.value_range);
     self.consumed = token.token.range.end;
-    if matches!(
-      token.token.kind,
-      TokenKind::Semicolon | TokenKind::RightCurlyBracket
-    ) {
-      self.generic_value_state = GenericValueScanState::default();
-    }
     debug_assert!(
       self.consumed <= self.lexer.scan_pos(),
       "consumed_pos ({}) exceeded scan_pos ({})",
@@ -1843,6 +1732,35 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       self.lexer.scan_pos()
     );
     token
+  }
+
+  /// Inspect a token without consuming it or notifying the identifier visitor.
+  /// Candidate parsers share this buffer; selected tokens are visited by `next`.
+  pub(crate) fn peek_nth(&mut self, index: usize, keep_comments: bool) -> TokenWithTrivia {
+    while self.buffered.len() <= index {
+      let item = self.read_significant(keep_comments);
+      self.buffered.push_back(item);
+    }
+    self.buffered[index]
+  }
+
+  /// Discard invalid input without producing identifier occurrences.
+  pub(crate) fn discard(&mut self, keep_comments: bool) {
+    let item = if let Some(item) = self.buffered.pop_front() {
+      item
+    } else {
+      self.read_significant(keep_comments)
+    };
+    self.consumed = item.token.range.end;
+  }
+
+  pub(crate) fn reset_value_scan_states(&mut self) {
+    self.generic_value_state = GenericValueScanState::default();
+    self.special_value_state = GenericValueScanState::default();
+  }
+
+  pub(crate) fn value_is_nested(&self) -> bool {
+    self.generic_value_state.is_nested() || self.special_value_state.is_nested()
   }
 
   /// Consume the next parser token while folding comments into its leading
@@ -2092,11 +2010,6 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   }
 
   #[inline]
-  pub(crate) fn reset_special_value_scan_state(&mut self) {
-    self.special_value_state = GenericValueScanState::default();
-  }
-
-  #[inline]
   pub(crate) fn fast_forward_selector_if_buffer_empty<F, C>(
     &mut self,
     square_depth: &mut u32,
@@ -2166,10 +2079,9 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   /// the full range is returned. On failure (`None`) the lexer position is
   /// unchanged so the caller can re-tokenize the region normally.
   pub(crate) fn fast_forward(&mut self, end: TokenKind) -> Option<Range> {
-    debug_assert!(
-      self.buffered.is_empty(),
-      "fast_forward requires an empty lookahead buffer"
-    );
+    if !self.buffered.is_empty() {
+      return None;
+    }
     let old_scan_pos = self.lexer.scan_pos();
     let old_consumed = self.consumed;
     let range = self.lexer.fast_forward(end)?;
@@ -2224,7 +2136,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
     let mut first_comment_start = None;
     let mut has_white_space = false;
     loop {
-      let token = self.lexer.next_token();
+      let token = self.lexer.next_token_without_visit();
       debug_assert!(token.range.start >= end);
       if token.kind == TokenKind::WhiteSpace {
         has_white_space = true;

@@ -1,4 +1,10 @@
 Object {
+  eof: Object {
+    eofRecovery: LOCAL-eofRecovery,
+  },
+  eofCurly: Object {
+    eofCurlyRecovery: LOCAL-eofCurlyRecovery,
+  },
   global: Object {
     globalModeId: LOCAL-globalModeId,
     globalModeLocal: LOCAL-globalModeLocal,
@@ -30,6 +36,21 @@ Object {
     second: LOCAL-second,
     supports: LOCAL-supports,
     unicode: LOCAL-unicode,
+  },
+  pureRecovery: Object {
+    afterPureRecovery: LOCAL-afterPureRecovery,
+    pureLocal: LOCAL-pureLocal,
+    pureRecovery: LOCAL-pureRecovery,
+  },
+  recovery: Object {
+    afterInvalid: LOCAL-afterInvalid,
+    afterRecovery: LOCAL-afterRecovery,
+    afterTrailing: LOCAL-afterTrailing,
+    components: --LOCAL-components,
+    localCandidate: LOCAL-localCandidate,
+    mismatched: --LOCAL-mismatched,
+    recovery: LOCAL-recovery,
+    recoveryFade: LOCAL-recoveryFade,
   },
   short: Object {
     small: LOCAL-small,

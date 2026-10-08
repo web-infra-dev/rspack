@@ -15,6 +15,7 @@ use crate::{
     WarningKind,
   },
   lexer::{LexerVisitor, Token, TokenFlags, TokenKind, TokenStream},
+  parser::{BlockItemKind, RecoveryBoundary, parse_block_item, recover_block_item},
 };
 
 /// Collects dashed identifiers while the dependency parser is in local mode.
@@ -366,6 +367,14 @@ impl BalancedItem {
     }
   }
 
+  pub fn new_square(start: Pos, end: Pos) -> Self {
+    Self {
+      kind: BalancedItemKind::Square,
+      range: Range::new(start, end),
+      magic_comments: None,
+    }
+  }
+
   pub fn new_curly(start: Pos, end: Pos) -> Self {
     Self {
       kind: BalancedItemKind::Curly,
@@ -387,6 +396,7 @@ enum BalancedItemKind {
   LocalClass,
   GlobalClass,
   Curly,
+  Square,
   Other,
 }
 
@@ -1447,7 +1457,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     match self.scan_context {
       ScanContext::Selector => self.selector_square_depth = 0,
       ScanContext::AtRule => stream.reset_at_rule_scan_state(),
-      ScanContext::SpecialValue(_) => stream.reset_special_value_scan_state(),
+      ScanContext::GenericValue | ScanContext::SpecialValue(_) => stream.reset_value_scan_states(),
       _ => {}
     }
     self.scan_context = scan_context;
@@ -1497,37 +1507,44 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     has_mode: bool,
   ) {
     loop {
+      // Select a grammar before visiting identifiers or emitting dependencies.
+      // Both candidates inspect the same token buffer; only the selected branch
+      // consumes it and changes mode/property state.
+      if self.scan_context == ScanContext::BlockItem {
+        let kind = stream.peek(keep_comments).token.kind;
+        if !matches!(
+          kind,
+          TokenKind::Comment
+            | TokenKind::BadComment
+            | TokenKind::AtKeyword
+            | TokenKind::Semicolon
+            | TokenKind::RightCurlyBracket
+            | TokenKind::Eof
+        ) {
+          let selected = parse_block_item(stream, keep_comments);
+          if selected == BlockItemKind::Invalid {
+            recover_block_item(stream, keep_comments);
+            continue;
+          }
+          self.is_next_rule_prelude = selected == BlockItemKind::Rule;
+          if self.is_next_rule_prelude
+            && self.block_nesting_level == 0
+            && let Some(mode_data) = &mut self.mode_data
+          {
+            mode_data.composes_local_classes.reset_to_initial();
+          }
+          let context = if self.is_next_rule_prelude {
+            ScanContext::Selector
+          } else {
+            ScanContext::DeclarationName
+          };
+          self.set_scan_context(stream, context);
+        }
+      }
       self.update_dashed_ident_collection(stream);
       let item = stream.next(keep_comments);
       let token = item.token;
-      if token.kind == TokenKind::Eof {
-        return;
-      }
-
       let is_trivia = matches!(token.kind, TokenKind::Comment | TokenKind::BadComment);
-      if !is_trivia && self.scan_context == ScanContext::BlockItem {
-        self.is_next_rule_prelude = match token.kind {
-          TokenKind::Ident => !stream.lexer().is_declaration_after_ident(
-            token.range.end,
-            dashed_ident_name_start(stream.slice_trusted(token.range.start, token.range.end))
-              .is_some(),
-          ),
-          TokenKind::Function | TokenKind::RightCurlyBracket => false,
-          _ => true,
-        };
-        if self.is_next_rule_prelude
-          && self.block_nesting_level == 0
-          && let Some(mode_data) = &mut self.mode_data
-        {
-          mode_data.composes_local_classes.reset_to_initial();
-        }
-        let scan_context = if self.is_next_rule_prelude {
-          ScanContext::Selector
-        } else {
-          ScanContext::DeclarationName
-        };
-        self.set_scan_context(stream, scan_context);
-      }
 
       if self.scan_context == ScanContext::TopLevel
         && self.is_next_rule_prelude
@@ -1589,6 +1606,11 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         TokenKind::Ident => {
           result = self.handle_ident(stream, token.range.start, token.range.end, token.flags);
         }
+        TokenKind::AtKeyword
+          if matches!(
+            self.scan_context,
+            ScanContext::GenericValue | ScanContext::SpecialValue(_)
+          ) => {}
         TokenKind::AtKeyword => {
           result = self.handle_at_keyword(stream, token.range.start, token.range.end, token.flags);
         }
@@ -1674,6 +1696,20 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         TokenKind::RightSquareBracket if self.scan_context == ScanContext::Selector => {
           self.selector_square_depth = self.selector_square_depth.saturating_sub(1);
         }
+        TokenKind::LeftSquareBracket => {
+          self.balanced.push(
+            BalancedItem::new_square(token.range.start, token.range.end),
+            self.mode_data.as_mut(),
+          );
+        }
+        TokenKind::RightSquareBracket
+          if self
+            .balanced
+            .last()
+            .is_some_and(|last| matches!(last.kind, BalancedItemKind::Square)) =>
+        {
+          self.balanced.pop(self.mode_data.as_mut());
+        }
         TokenKind::LeftParenthesis => {
           result =
             self.handle_left_parenthesis(stream.lexer_mut(), token.range.start, token.range.end);
@@ -1689,30 +1725,17 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         TokenKind::Comma => {
           result = self.handle_comma(stream.lexer_mut(), token.range.start, token.range.end);
         }
-        TokenKind::Semicolon => {
-          result = self.handle_semicolon(stream.lexer_mut(), token.range.start, token.range.end);
+        TokenKind::Semicolon | TokenKind::RightCurlyBracket | TokenKind::Eof => {
+          result = self.handle_recovery_boundary(stream, token);
         }
         TokenKind::LeftCurlyBracket => {
           result = self.handle_left_curly_bracket(stream, token.range.start, token.range.end);
-        }
-        TokenKind::RightCurlyBracket => {
-          result = self.handle_right_curly_bracket(stream, token.range.start, token.range.end);
         }
         _ => {}
       }
 
       if result.is_none() {
         return;
-      }
-      if token.kind == TokenKind::Semicolon {
-        match self.scope {
-          Scope::TopLevel => {
-            self.set_scan_context(stream, ScanContext::TopLevel);
-            self.is_next_rule_prelude = true;
-          }
-          Scope::InBlock => self.set_scan_context(stream, ScanContext::BlockItem),
-          _ => {}
-        }
       }
       self.update_dashed_ident_collection(stream);
       match self.scan_context {
@@ -3405,6 +3428,90 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     Some(())
   }
 
+  fn finish_property_value(&mut self, lexer: &mut DependencyLexer<'s>, end: Pos) -> Option<()> {
+    if let Some(mode_data) = &mut self.mode_data {
+      mode_data.pure_global = Some(end);
+      if mode_data.is_property_local_mode() {
+        if self.in_animation_property.is_some() {
+          self.handle_local_keyframes_dependency(lexer)?;
+        }
+        if self.in_list_style_property.is_some() {
+          self.handle_local_counter_style_dependency(lexer)?;
+        }
+        if self.in_font_palette_property.is_some() {
+          self.handle_local_font_palette_dependency(lexer)?;
+        }
+      }
+    }
+    self.exit_animation_property();
+    self.exit_list_style_property();
+    self.exit_font_palette_property();
+    self.exit_container_property();
+    self.exit_grid_property();
+    self.pending_custom_property = None;
+    self.pending_grid_property = None;
+    self.property_kind = PropertyKind::Generic;
+    Some(())
+  }
+
+  /// Synchronize statement and block state in one place. Inner component
+  /// delimiters cannot end a declaration; @import retains its legacy recovery
+  /// at a semicolon even inside malformed url()/supports() functions.
+  fn handle_recovery_boundary(
+    &mut self,
+    stream: &mut DependencyTokenStream<'_, 's>,
+    token: Token,
+  ) -> Option<()> {
+    let nested = self.selector_square_depth != 0
+      || self
+        .balanced
+        .0
+        .iter()
+        .any(|item| !item.kind.is_mode_class())
+      || stream.value_is_nested();
+    let import_semicolon = token.kind == TokenKind::Semicolon
+      && matches!(
+        self.scope,
+        Scope::InAtImport(_) | Scope::AtImportInvalid | Scope::AtNamespaceInvalid
+      );
+    match RecoveryBoundary::at(token.kind, nested && !import_semicolon) {
+      Some(RecoveryBoundary::Eof) => None,
+      Some(RecoveryBoundary::Semicolon) => {
+        stream.reset_value_scan_states();
+        self.handle_semicolon(stream.lexer_mut(), token.range.start, token.range.end)?;
+        if import_semicolon {
+          // A recovered import must not leave an unfinished function/mode
+          // stack attached to the next top-level rule.
+          while self.balanced.pop(self.mode_data.as_mut()).is_some() {}
+        }
+        match self.scope {
+          Scope::TopLevel => {
+            self.set_scan_context(stream, ScanContext::TopLevel);
+            self.is_next_rule_prelude = true;
+          }
+          Scope::InBlock => self.set_scan_context(stream, ScanContext::BlockItem),
+          _ => {}
+        }
+        Some(())
+      }
+      Some(RecoveryBoundary::RightCurly) => {
+        stream.reset_value_scan_states();
+        self.handle_right_curly_bracket(stream, token.range.start, token.range.end)
+      }
+      None => {
+        if token.kind == TokenKind::RightCurlyBracket
+          && self
+            .balanced
+            .last()
+            .is_some_and(|last| matches!(last.kind, BalancedItemKind::Curly))
+        {
+          self.balanced.pop(self.mode_data.as_mut());
+        }
+        Some(())
+      }
+    }
+  }
+
   fn handle_semicolon(
     &mut self,
     lexer: &mut DependencyLexer<'s>,
@@ -3527,35 +3634,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       Scope::AtImportInvalid | Scope::AtNamespaceInvalid => {
         self.scope = Scope::TopLevel;
       }
-      Scope::InBlock => {
-        if let Some(mode_data) = &mut self.mode_data {
-          mode_data.pure_global = Some(end);
-
-          if mode_data.is_property_local_mode() {
-            if self.in_animation_property.is_some() {
-              self.handle_local_keyframes_dependency(lexer)?;
-              self.exit_animation_property();
-            }
-            if self.in_list_style_property.is_some() {
-              self.handle_local_counter_style_dependency(lexer)?;
-              self.exit_list_style_property();
-            }
-            if self.in_font_palette_property.is_some() {
-              self.handle_local_font_palette_dependency(lexer)?;
-              self.exit_font_palette_property();
-            }
-            if self.in_container_property.is_some() {
-              self.exit_container_property();
-            }
-            if self.in_grid_property.is_some() {
-              self.exit_grid_property();
-            }
-          }
-        }
-        self.pending_custom_property = None;
-        self.pending_grid_property = None;
-        self.property_kind = PropertyKind::Generic;
-      }
+      Scope::InBlock => self.finish_property_value(lexer, end)?,
       Scope::TopLevel => {
         self.is_next_rule_prelude = true;
       }
@@ -3673,6 +3752,14 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     start: Pos,
     end: Pos,
   ) -> Option<()> {
+    if self.balanced.last().is_some_and(|last| {
+      matches!(
+        last.kind,
+        BalancedItemKind::Curly | BalancedItemKind::Square
+      )
+    }) {
+      return Some(());
+    }
     let Some(last) = self.balanced.pop(self.mode_data.as_mut()) else {
       return Some(());
     };
@@ -4120,38 +4207,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     end: Pos,
   ) -> Option<()> {
     if matches!(self.scope, Scope::InBlock) {
-      if matches!(
-          self.balanced.last(),
-          Some(last) if matches!(last.kind, BalancedItemKind::Curly)
-      ) {
-        self.balanced.pop(self.mode_data.as_mut());
-        return Some(());
-      }
-
-      if let Some(mode_data) = &mut self.mode_data {
-        mode_data.pure_global = Some(end);
-
-        if mode_data.is_property_local_mode() {
-          if self.in_animation_property.is_some() {
-            self.handle_local_keyframes_dependency(stream.lexer_mut())?;
-            self.exit_animation_property();
-          }
-          if self.in_list_style_property.is_some() {
-            self.handle_local_counter_style_dependency(stream.lexer_mut())?;
-            self.exit_list_style_property();
-          }
-          if self.in_font_palette_property.is_some() {
-            self.handle_local_font_palette_dependency(stream.lexer_mut())?;
-            self.exit_font_palette_property();
-          }
-          if self.in_container_property.is_some() {
-            self.exit_container_property();
-          }
-          if self.in_grid_property.is_some() {
-            self.exit_grid_property();
-          }
-        }
-      }
+      self.finish_property_value(stream.lexer_mut(), end)?;
       if self.block_nesting_level > 0 {
         self.block_nesting_level -= 1;
       }
@@ -4169,9 +4225,6 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       } else {
         self.set_scan_context(stream, ScanContext::BlockItem);
       }
-      self.pending_custom_property = None;
-      self.pending_grid_property = None;
-      self.property_kind = PropertyKind::Generic;
     }
     Some(())
   }

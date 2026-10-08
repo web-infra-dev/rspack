@@ -30,6 +30,12 @@ export default defineConfig({
         test: /\.modules\.css$/,
         type: 'css/module',
       },
+      {
+        test: /\.pure\.modules\.css$/,
+        parser: {
+          pure: true,
+        },
+      },
     ],
   },
   experiments: {

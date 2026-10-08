@@ -1,0 +1,3 @@
+.eofRecovery {
+	/* EOF implicitly closes the unfinished function and square block. */
+	color:paint([opaque;
