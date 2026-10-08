@@ -1,9 +1,12 @@
 use rspack_cacheable::cacheable;
 use rspack_tasks::fetch_new_dependency_id;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use serde::Serialize;
 
 #[cacheable(hashable)]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DependencyId(u32);
 
 impl DependencyId {
