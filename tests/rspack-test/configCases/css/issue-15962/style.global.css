@@ -1,0 +1,5 @@
+@media (hover: hover) {
+	button.raw:local(.globalModeLocal) { color: blue; }
+	button:local #globalModeId { color: blue; }
+	button.rawAfter { color: green; }
+}

@@ -1506,10 +1506,16 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
 
       let is_trivia = matches!(token.kind, TokenKind::Comment | TokenKind::BadComment);
       if !is_trivia && self.scan_context == ScanContext::BlockItem {
-        self.is_next_rule_prelude = !matches!(
-          token.kind,
-          TokenKind::Ident | TokenKind::Function | TokenKind::RightCurlyBracket
-        );
+        self.is_next_rule_prelude = match token.kind {
+          TokenKind::Ident => !stream.lexer().is_declaration_after_ident(
+            token.range.end,
+            stream
+              .slice_trusted(token.range.start, token.range.end)
+              .starts_with("--"),
+          ),
+          TokenKind::Function | TokenKind::RightCurlyBracket => false,
+          _ => true,
+        };
         if self.is_next_rule_prelude
           && self.block_nesting_level == 0
           && let Some(mode_data) = &mut self.mode_data
