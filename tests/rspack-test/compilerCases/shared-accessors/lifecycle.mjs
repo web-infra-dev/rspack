@@ -19,19 +19,26 @@ export default async function run() {
   try {
     const entryPath = path.join(context, 'index.js');
     const valuePath = path.join(context, 'value.js');
-    fs.writeFileSync(entryPath, "import './value.js';");
+    const binaryRequest = 'data:application/octet-stream;base64,AP9h';
+    fs.writeFileSync(
+      entryPath,
+      `import './value.js'; import '${binaryRequest}';`,
+    );
     fs.writeFileSync(valuePath, 'export default 42;');
     let compiler = rspack({
       context,
       entry: './index.js',
       mode: 'none',
       devtool: 'source-map',
+      module: {
+        rules: [{ mimetype: 'application/octet-stream', type: 'asset/inline' }],
+      },
       cache: false,
       output: { path: path.join(context, 'dist') },
     });
     compiler.outputFileSystem = createFsFromVolume(new Volume());
     let entry, removed, info, stats;
-    let originalSource, originalMap;
+    let originalSource, originalMap, binarySource;
     let generation = 0;
     const fileKey = Symbol.for('rspack.buildInfo.fileDependencies');
     let getContext, getFiles;
@@ -45,6 +52,11 @@ export default async function run() {
         assert(removed);
         originalSource = removed.originalSource();
         originalMap = originalSource.map();
+        const binaryModule = modules.find(
+          (module) => module.resource === binaryRequest,
+        );
+        assert(binaryModule);
+        binarySource = binaryModule.originalSource();
         info = removed.buildInfo;
         getContext = Object.getOwnPropertyDescriptor(entry, 'context').get;
         getFiles = Object.getOwnPropertyDescriptor(info, fileKey).get;
@@ -109,6 +121,9 @@ export default async function run() {
     // The unread map is an owned snapshot, even after module removal, close and owner GC.
     assert.equal(originalSource.source(), 'export default 42;');
     assert.deepEqual(originalMap.sourcesContent, ['export default 42;']);
+    assert.deepEqual(binarySource.source(), Buffer.from([0, 255, 97]));
+    binarySource.source()[0] = 42;
+    assert.deepEqual(binarySource.buffer(), Buffer.from([42, 255, 97]));
     // Keeping the accessor functions alive must not retain any of those owners.
     assert.equal(typeof getContext, 'function');
     assert.equal(typeof getFiles, 'function');

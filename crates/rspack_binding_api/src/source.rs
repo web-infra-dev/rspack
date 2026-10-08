@@ -102,26 +102,31 @@ impl From<JsSourceToJs> for BoxSource {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsSourceWithLazyMap {
-  pub source: Either<String, Buffer>,
+pub struct JsSourceWithLazyMap<'a> {
+  pub source: Either<&'a str, BufferSlice<'a>>,
   pub map: Option<JsSourceMap>,
 }
 
-impl From<&BoxSource> for JsSourceWithLazyMap {
-  fn from(source: &BoxSource) -> Self {
-    match source.source() {
-      SourceValue::String(string) => Self {
-        source: Either::A(string.into_owned()),
+impl JsSourceWithLazyMap<'_> {
+  pub fn to_js<'a>(env: &'a Env, source: &BoxSource) -> Result<Unknown<'a>> {
+    // Keep owned SourceValue content alive until N-API has copied the borrowed string.
+    let value = source.source();
+    let binding = match &value {
+      SourceValue::String(string) => JsSourceWithLazyMap {
+        source: Either::A(string.as_ref()),
         map: source
           .clone()
           .map_static(&ObjectPool::default(), &MapOptions::default())
           .map(|map| JsSourceMap { map }),
       },
-      SourceValue::Buffer(bytes) => Self {
-        source: Either::B(Buffer::from(bytes.to_vec())),
+      SourceValue::Buffer(bytes) => JsSourceWithLazyMap {
+        // JS buffers are mutable, so copy directly into JS-owned storage rather than
+        // sharing the source's immutable bytes or allocating an intermediate Vec.
+        source: Either::B(BufferSlice::copy_from(env, bytes)?),
         map: None,
       },
-    }
+    };
+    binding.into_unknown(env)
   }
 }
 

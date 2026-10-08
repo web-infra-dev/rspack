@@ -445,7 +445,7 @@ impl Module {
       return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
     }
 
-    let binding = JsSourceWithLazyMap::from(original_source);
+    let binding = JsSourceWithLazyMap::to_js(env, original_source)?;
     let mut one_shot_ref = OneShotRef::new(env.raw(), binding)?;
     let result = ToNapiValue::into_unknown(&mut one_shot_ref, env)?;
     self.original_source_ref = Some(OriginalSourceNapiRef {

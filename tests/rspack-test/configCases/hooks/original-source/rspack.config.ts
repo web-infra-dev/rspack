@@ -20,6 +20,7 @@ export default ([false, 'source-map'] as const).map((devtool) =>
         apply(compiler: Compiler) {
           let checkedText = false;
           let checkedBuffer = false;
+          let checkedEmptyBuffer = false;
           compiler.hooks.compilation.tap(
             'OriginalSourcePlugin',
             (compilation) => {
@@ -33,8 +34,13 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   const binding = module._originalSource()!;
                   const map = binding.map?.toJson();
                   if (Buffer.isBuffer(value)) {
-                    checkedBuffer = true;
-                    expect(value).toEqual(Buffer.from([0, 255, 97]));
+                    if (module.identifier().endsWith('base64,')) {
+                      checkedEmptyBuffer = true;
+                      expect(value).toEqual(Buffer.alloc(0));
+                    } else {
+                      checkedBuffer = true;
+                      expect(value).toEqual(Buffer.from([0, 255, 97]));
+                    }
                     expect(map).toBeUndefined();
                   } else {
                     checkedText = true;
@@ -92,6 +98,12 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                         }),
                       );
                     }
+                  }
+
+                  if (Buffer.isBuffer(value) && value.length > 0) {
+                    // The emitted data URL must still contain the original Rust source bytes.
+                    value[0] = 42;
+                    expect(source.buffer()[0]).toBe(42);
                   }
 
                   if (!binding.map) return;
@@ -173,6 +185,7 @@ export default ([false, 'source-map'] as const).map((devtool) =>
           compiler.hooks.done.tap('OriginalSourcePlugin', () => {
             expect(checkedText).toBe(true);
             expect(checkedBuffer).toBe(true);
+            expect(checkedEmptyBuffer).toBe(true);
           });
         },
       },
