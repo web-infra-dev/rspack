@@ -302,7 +302,7 @@ export declare class JsCompilation {
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsSource | null
-  get modules(): Array<Module>
+  get modules(): Modules
   get builtModules(): Array<Module>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   get chunks(): Chunks
@@ -422,18 +422,18 @@ export declare class JsLoaderCache {
 }
 
 export declare class JsModuleGraph {
-  getModule(dependency: Dependency): Module | null
-  getResolvedModule(dependency: Dependency): Module | null
+  getModule(dependency: Dependency | EntryDependency): Module | null
+  getResolvedModule(dependency: Dependency | EntryDependency): Module | null
   getUsedExports(module: Module, runtime: string | string[]): boolean | Array<string> | null
   getProvidedExports(module: Module): true | string[] | null
   getIssuer(module: Module): Module | null
   getExportsInfo(module: Module): JsExportsInfo
-  getConnection(dependency: Dependency): ModuleGraphConnection | null
+  getConnection(dependency: Dependency | EntryDependency): ModuleGraphConnection | null
   getOutgoingConnections(module: Module): ModuleGraphConnection[]
   getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[]
   getIncomingConnections(module: Module): ModuleGraphConnection[]
-  getParentModule(dependency: Dependency): Module | null
-  getParentBlockIndex(dependency: Dependency): number
+  getParentModule(dependency: Dependency | EntryDependency): Module | null
+  getParentBlockIndex(dependency: Dependency | EntryDependency): number
   isAsync(module: Module): boolean
 }
 
@@ -473,6 +473,13 @@ export declare class ModuleGraphConnection {
   get resolvedModule(): Module | null
   get originModule(): Module | null
   getActiveState(runtime: string | string[] | undefined): ConnectionState
+}
+
+/** Read-only operations on a compilation's module collection. */
+export declare class Modules {
+  size(): number
+  has(value: Module): boolean
+  values(): ReadonlyArray<Module>
 }
 
 export declare class NativeWatcher {
@@ -1085,9 +1092,6 @@ export interface JsResolveData {
   contextInfo: ContextInfo
   /** The import attributes of the dependency that triggered this resolution, read-only. */
   attributes?: Record<string, string>
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
   createData?: JsCreateData
 }
 
@@ -2836,6 +2840,7 @@ export interface RawNewCache {
   devtool: boolean
   loader: boolean
   minimize: boolean
+  resolver: boolean
 }
 
 export interface RawNodeOption {
@@ -3104,6 +3109,8 @@ export interface RawRstestPluginOptions {
    */
   injectImportMetaRstestOrigin?: boolean
 injectDynamicImportOrigin?: boolean | { functionName?: string }
+updateImportMockAPI?: boolean
+updateRequireMockAPI?: boolean
 injectRequireResolveOrigin?: boolean | { functionName?: string }
 }
 

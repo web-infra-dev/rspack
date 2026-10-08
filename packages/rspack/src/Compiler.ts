@@ -27,6 +27,7 @@ import { ContextModuleFactory } from './ContextModuleFactory';
 import { bindingHelpers } from './util/bindingHelpers';
 import type {
   EntryNormalized,
+  Falsy,
   OutputNormalized,
   RspackOptionsNormalized,
   RspackPluginInstance,
@@ -103,7 +104,7 @@ export type CompilerHooks = {
   normalModuleFactory: liteTapable.SyncHook<NormalModuleFactory>;
   contextModuleFactory: liteTapable.SyncHook<ContextModuleFactory>;
   initialize: liteTapable.SyncHook<[]>;
-  shouldEmit: liteTapable.SyncBailHook<[Compilation], boolean>;
+  shouldEmit: liteTapable.SyncBailHook<[Compilation], boolean | void>;
   /**
    * Called when infrastructure logging is triggered, allowing plugins to intercept, modify, or handle log messages.
    * If the hook returns `true`, the default infrastructure logging will be prevented.
@@ -713,7 +714,7 @@ class Compiler {
     compilerName: string,
     compilerIndex: number,
     outputOptions: OutputNormalized,
-    plugins: RspackPluginInstance[],
+    plugins?: (RspackPluginInstance | Falsy)[],
   ): Compiler {
     const options: RspackOptionsNormalized = {
       ...this.options,
