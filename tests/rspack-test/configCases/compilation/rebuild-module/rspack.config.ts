@@ -21,6 +21,7 @@ class Plugin {
             initial = false;
 
             const oldSource = oldModule.originalSource();
+            const oldMap = oldSource?.map();
             expect(oldModule.originalSource()?.source().includes('a = 1')).toBe(
               true,
             );
@@ -38,8 +39,12 @@ class Plugin {
             expect(newModule.originalSource()?.source().includes('a = 2')).toBe(
               true,
             );
-            // The retained source is still lazy when the module replaces its native source.
+            // Read the old map for the first time after the module replaces its native source.
             expect(oldSource?.source().includes('a = 1')).toBe(true);
+            expect(oldMap?.sourcesContent?.[0]).toContain('a = 1');
+            expect(
+              newModule.originalSource()?.map()?.sourcesContent?.[0],
+            ).toContain('a = 2');
           }
         },
       );
@@ -48,6 +53,7 @@ class Plugin {
 }
 
 export default defineConfig({
+  devtool: 'source-map',
   module: {
     rules: [
       {

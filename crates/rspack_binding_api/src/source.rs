@@ -101,48 +101,41 @@ impl From<JsSourceToJs> for BoxSource {
   }
 }
 
-/// Lazily materialized view over a binding source.
-///
-/// Reading `source` or `map` performs the same conversion `JsSourceToJs` does eagerly. Module
-/// `originalSource` is usually only asked for its text (`module.originalSource().source()`), while
-/// the source map JSON can be large; keeping both conversions lazy avoids materializing, and
-/// therefore retaining, the raw map JSON string per module in the JS heap.
-#[napi]
-pub struct JsSourceLazy {
-  source: BoxSource,
+#[napi(object, object_from_js = false)]
+pub struct JsSourceWithLazyMap {
+  pub source: Either<String, Buffer>,
+  pub map: Option<JsSourceMap>,
 }
 
-impl JsSourceLazy {
-  pub fn new(source: BoxSource) -> Self {
-    Self { source }
+impl From<&BoxSource> for JsSourceWithLazyMap {
+  fn from(source: &BoxSource) -> Self {
+    match source.source() {
+      SourceValue::String(string) => Self {
+        source: Either::A(string.into_owned()),
+        map: source
+          .clone()
+          .map_static(&ObjectPool::default(), &MapOptions::default())
+          .map(|map| JsSourceMap { map }),
+      },
+      SourceValue::Buffer(bytes) => Self {
+        source: Either::B(Buffer::from(bytes.to_vec())),
+        map: None,
+      },
+    }
   }
 }
 
+/// An immutable map snapshot whose backing data outlives module rebuilds and compiler close.
+/// JSON is only transferred when the JavaScript map proxy is first accessed.
 #[napi]
-impl JsSourceLazy {
-  /// Marker so the JavaScript adapter can tell this object apart from the eager `JsSource`.
-  #[napi(getter)]
-  pub fn lazy(&self) -> bool {
-    true
-  }
+pub struct JsSourceMap {
+  map: SourceMap<'static>,
+}
 
-  #[napi(getter, ts_return_type = "string | Buffer")]
-  pub fn source(&self) -> Either<String, Buffer> {
-    match self.source.source() {
-      SourceValue::String(string) => Either::A(string.into_owned()),
-      SourceValue::Buffer(bytes) => Either::B(Buffer::from(bytes.to_vec())),
-    }
-  }
-
-  #[napi(getter, ts_return_type = "string | undefined")]
-  pub fn map(&self) -> Either<String, ()> {
-    match self
-      .source
-      .map(&ObjectPool::default(), &MapOptions::default())
-    {
-      Some(map) => Either::A(map.to_json()),
-      // `Option::None` becomes `null`, but the adapter expects an absent map to be `undefined`.
-      None => Either::B(()),
-    }
+#[napi]
+impl JsSourceMap {
+  #[napi]
+  pub fn to_json(&self) -> String {
+    self.map.to_json()
   }
 }

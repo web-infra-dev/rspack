@@ -191,7 +191,7 @@ export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
   readableIdentifier(): string
-  _originalSource(): JsSourceLazy | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -202,7 +202,7 @@ export declare class ConcatenatedModule {
 
 export declare class ContextModule {
   readableIdentifier(): string
-  _originalSource(): JsSourceLazy | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -267,7 +267,7 @@ export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
   readableIdentifier(): string
-  _originalSource(): JsSourceLazy | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -448,18 +448,11 @@ export declare class JsResolverFactory {
 }
 
 /**
- * Lazily materialized view over a binding source.
- *
- * Reading `source` or `map` performs the same conversion `JsSourceToJs` does eagerly. Module
- * `originalSource` is usually only asked for its text (`module.originalSource().source()`), while
- * the source map JSON can be large; keeping both conversions lazy avoids materializing, and
- * therefore retaining, the raw map JSON string per module in the JS heap.
+ * An immutable map snapshot whose backing data outlives module rebuilds and compiler close.
+ * JSON is only transferred when the JavaScript map proxy is first accessed.
  */
-export declare class JsSourceLazy {
-  /** Marker so the JavaScript adapter can tell this object apart from the eager `JsSource`. */
-  get lazy(): boolean
-  get source(): string | Buffer
-  get map(): string | undefined
+export declare class JsSourceMap {
+  toJson(): string
 }
 
 export declare class JsStats {
@@ -473,7 +466,7 @@ export declare class KnownBuildInfo {
 
 export declare class Module {
   readableIdentifier(): string
-  _originalSource(): JsSourceLazy | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -1386,6 +1379,11 @@ export interface JsSourceFromJs {
 export interface JsSourceToJs {
   source: string | Buffer
   map?: string
+}
+
+export interface JsSourceWithLazyMap {
+  source: string | Buffer
+  map?: JsSourceMap
 }
 
 export interface JsStatsAsset {

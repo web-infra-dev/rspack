@@ -25,11 +25,13 @@ export default async function run() {
       context,
       entry: './index.js',
       mode: 'none',
+      devtool: 'source-map',
       cache: false,
       output: { path: path.join(context, 'dist') },
     });
     compiler.outputFileSystem = createFsFromVolume(new Volume());
     let entry, removed, info, stats;
+    let originalSource, originalMap;
     let generation = 0;
     const fileKey = Symbol.for('rspack.buildInfo.fileDependencies');
     let getContext, getFiles;
@@ -41,6 +43,8 @@ export default async function run() {
         entry = current;
         removed = modules.find((module) => module.resource === valuePath);
         assert(removed);
+        originalSource = removed.originalSource();
+        originalMap = originalSource.map();
         info = removed.buildInfo;
         getContext = Object.getOwnPropertyDescriptor(entry, 'context').get;
         getFiles = Object.getOwnPropertyDescriptor(info, fileKey).get;
@@ -102,6 +106,9 @@ export default async function run() {
     );
     info = null;
     await tracker.waitForCollection('build info');
+    // The unread map is an owned snapshot, even after module removal, close and owner GC.
+    assert.equal(originalSource.source(), 'export default 42;');
+    assert.deepEqual(originalMap.sourcesContent, ['export default 42;']);
     // Keeping the accessor functions alive must not retain any of those owners.
     assert.equal(typeof getContext, 'function');
     assert.equal(typeof getFiles, 'function');

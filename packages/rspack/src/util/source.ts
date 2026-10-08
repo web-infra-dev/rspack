@@ -1,149 +1,68 @@
-import type { JsSource, JsSourceLazy } from '@rspack/binding';
+import type {
+  JsSource,
+  JsSourceMap,
+  JsSourceWithLazyMap,
+} from '@rspack/binding';
 import {
-  type GeneratedSourceInfo,
-  type HashLike,
-  type MapOptions,
   RawSource,
   type RawSourceMap,
-  Source,
-  type SourceAndMap,
+  type Source,
   SourceMapSource,
-  type StreamChunksOptions,
 } from 'webpack-sources';
 
-type MaterializedSource = RawSource | SourceMapSource;
-
-function isLazySource(source: JsSource | JsSourceLazy): source is JsSourceLazy {
-  return (source as JsSourceLazy).lazy === true;
-}
-
-/**
- * A `Source` over a lazy binding source.
- *
- * Reading `originalSource` usually only needs the source text, while the source map can be much
- * larger than the source itself. Building the `SourceMapSource` eagerly for every module keeps
- * the raw map JSON string alive in the JS heap, so both the text and the map are only converted
- * when an API that needs them is used.
- */
-class LazySource extends Source {
-  #binding: JsSourceLazy;
-  #value: string | Buffer | undefined;
-  #materialized: MaterializedSource | undefined;
-
-  constructor(binding: JsSourceLazy) {
-    super();
-    this.#binding = binding;
-  }
-
-  #sourceValue(): string | Buffer {
-    if (this.#value === undefined) {
-      this.#value = this.#binding.source;
+function createLazySourceMap(binding: JsSourceMap): RawSourceMap {
+  let pending: JsSourceMap | undefined = binding;
+  const materialize = (target: RawSourceMap): RawSourceMap => {
+    if (pending !== undefined) {
+      // Populate the proxy target itself so descriptors, mutations and Object.freeze obey
+      // ordinary object semantics, including the proxy invariants for non-configurable keys.
+      Object.defineProperties(
+        target,
+        Object.getOwnPropertyDescriptors(JSON.parse(pending.toJson())),
+      );
+      pending = undefined;
     }
-    return this.#value;
-  }
+    return target;
+  };
 
-  /**
-   * The eager source this lazy source stands for. The binding source map is only read here, which
-   * is what `SourceAdapter.fromBinding` would have done up front for an eager source.
-   */
-  #delegate(): MaterializedSource {
-    if (this.#materialized === undefined) {
-      const value = this.#sourceValue();
-      if (Buffer.isBuffer(value)) {
-        this.#materialized = new RawSource(value);
-      } else {
-        const map = this.#binding.map;
-        this.#materialized =
-          map === undefined
-            ? new RawSource(value)
-            : new SourceMapSource(value, 'inmemory://from rust', map);
-      }
-    }
-    return this.#materialized;
-  }
-
-  source(): string | Buffer {
-    return this.#sourceValue();
-  }
-
-  buffer(): Buffer {
-    const value = this.#sourceValue();
-    return Buffer.isBuffer(value) ? value : Buffer.from(value, 'utf8');
-  }
-
-  size(): number {
-    const value = this.#sourceValue();
-    return Buffer.isBuffer(value)
-      ? value.length
-      : Buffer.byteLength(value, 'utf8');
-  }
-
-  map(options?: MapOptions): null | RawSourceMap {
-    return this.#delegate().map(options) ?? null;
-  }
-
-  sourceAndMap(options?: MapOptions): SourceAndMap {
-    return this.#delegate().sourceAndMap(options);
-  }
-
-  streamChunks(
-    options: StreamChunksOptions,
-    onChunk: (
-      chunk: undefined | string,
-      generatedLine: number,
-      generatedColumn: number,
-      sourceIndex: number,
-      originalLine: number,
-      originalColumn: number,
-      nameIndex: number,
-    ) => void,
-    onSource: (
-      sourceIndex: number,
-      source: null | string,
-      sourceContent?: string,
-    ) => void,
-    onName: (nameIndex: number, name: string) => void,
-  ): GeneratedSourceInfo {
-    return this.#delegate().streamChunks(options, onChunk, onSource, onName);
-  }
-
-  updateHash(hash: HashLike): void {
-    this.#delegate().updateHash(hash);
-  }
-
-  clearCache(
-    options?: { source?: boolean; maps?: boolean; parsedMap?: boolean },
-    visited?: WeakSet<Source>,
-  ): void {
-    if (visited !== undefined) {
-      if (visited.has(this)) {
-        return;
-      }
-      visited.add(this);
-    }
-    if (!options || options.source !== false) {
-      this.#value = undefined;
-    }
-    if (!options || options.maps !== false) {
-      this.#materialized = undefined;
-    }
-  }
+  return new Proxy({} as RawSourceMap, {
+    get(target, property, receiver) {
+      return Reflect.get(materialize(target), property, receiver);
+    },
+    set(target, property, value, receiver) {
+      return Reflect.set(materialize(target), property, value, receiver);
+    },
+    has(target, property) {
+      return Reflect.has(materialize(target), property);
+    },
+    ownKeys(target) {
+      return Reflect.ownKeys(materialize(target));
+    },
+    getOwnPropertyDescriptor(target, property) {
+      return Reflect.getOwnPropertyDescriptor(materialize(target), property);
+    },
+    defineProperty(target, property, descriptor) {
+      return Reflect.defineProperty(materialize(target), property, descriptor);
+    },
+    deleteProperty(target, property) {
+      return Reflect.deleteProperty(materialize(target), property);
+    },
+    preventExtensions(target) {
+      return Reflect.preventExtensions(materialize(target));
+    },
+  });
 }
 
 export class SourceAdapter {
-  static fromBinding(source: JsSource | JsSourceLazy): Source {
-    // Lazy binding sources know how to materialize their text and map on demand.
-    if (isLazySource(source)) {
-      return new LazySource(source);
-    }
-    if (!source.map) {
+  static fromBinding(source: JsSource | JsSourceWithLazyMap): Source {
+    const map = source.map;
+    if (!map) {
       return new RawSource(source.source);
     }
     return new SourceMapSource(
       source.source,
       'inmemory://from rust',
-      // see: https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/SourceMapSource.js#L30
-      source.map,
+      typeof map === 'string' ? map : createLazySourceMap(map),
     );
   }
 
