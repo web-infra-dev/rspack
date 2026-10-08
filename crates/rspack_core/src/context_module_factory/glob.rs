@@ -75,58 +75,65 @@ pub fn compile_context_module_glob_request(
   CompiledContextModuleGlobRequest { request, recursive }
 }
 
-/// Bare globs such as `@/dir/*.js` compile to `./@/dir/` so that they match
-/// relative to the importer. Returns the request without `./` when its prefix
-/// names a `resolve.alias` key, so the resolver can apply the alias.
-pub(super) fn bare_context_module_glob_alias_request<'a>(
-  patterns: &[String],
-  request: &'a str,
+pub(super) struct ContextModuleGlobAliasRequest {
+  pub request: String,
+  suffix: String,
+  negative: bool,
+}
+
+/// Recognize aliases in each original pattern, before common-base and
+/// case-insensitive scan-root calculations discard their literal prefixes.
+pub(super) fn context_module_glob_alias_request(
+  pattern: &str,
   resolve_options: &ResolveInnerOptions,
-) -> Option<&'a str> {
-  let bare = patterns
-    .iter()
-    .filter(|pattern| !pattern.starts_with('!'))
-    .all(|pattern| !pattern.starts_with('.') && !pattern.starts_with('/'));
-  if !bare {
+) -> Option<ContextModuleGlobAliasRequest> {
+  let (negative, path) = pattern
+    .strip_prefix('!')
+    .map_or((false, pattern), |path| (true, path));
+  if path.starts_with('.') || path.starts_with('/') {
     return None;
   }
-  let request = request.strip_prefix("./")?;
-  let path = parse_resource(request)?.path;
-  (!path.as_str().is_empty() && resolve_options.has_alias_for(path.as_str())).then_some(request)
+  let path = normalize_path_separators(path);
+  let base = unescape_glob_path(extract_glob_base_dir(&path));
+  let (key, exact) = resolve_options.alias_prefix(&base)?;
+  let escaped_key = escape_glob_pattern(key);
+  let suffix = path.strip_prefix(&escaped_key)?.trim_start_matches('/');
+  // Resolve the alias directory without resolving the suffix, whose directory
+  // names may need case-insensitive matching. The dot also avoids exact aliases
+  // for `key$` or `key/$` intercepting a longer subpath glob.
+  let request = if exact {
+    key.to_string()
+  } else {
+    format!("{key}/.")
+  };
+  Some(ContextModuleGlobAliasRequest {
+    request,
+    suffix: suffix.to_string(),
+    negative,
+  })
 }
 
 pub(super) fn resolve_context_module_glob_alias(
-  patterns: &[String],
-  request: &str,
+  alias: &ContextModuleGlobAliasRequest,
   resolved_base: &str,
   context: &str,
   compiler_context: &str,
-) -> Vec<String> {
-  let request = request.trim_end_matches('/');
-  patterns
-    .iter()
-    .map(|pattern| {
-      let (negative, path) = pattern
-        .strip_prefix('!')
-        .map_or(("", pattern.as_str()), |path| ("!", path));
-      let Some(suffix) = path
-        .strip_prefix(request)
-        .and_then(|path| path.strip_prefix('/'))
-      else {
-        return pattern.clone();
-      };
-      let resolved_pattern = Utf8Path::new(resolved_base)
-        .node_join_posix(suffix)
-        .node_normalize_posix();
-      let resolved_pattern = resolved_pattern.as_str();
-      let rewritten = if Utf8Path::new(resolved_pattern).starts_with(compiler_context) {
-        context_relative_glob_request(resolved_pattern, compiler_context, true)
-      } else {
-        context_relative_glob_request(resolved_pattern, context, false)
-      };
-      format!("{negative}{rewritten}")
-    })
-    .collect()
+) -> String {
+  let base = if Utf8Path::new(resolved_base).starts_with(compiler_context) {
+    context_relative_glob_request(resolved_base, compiler_context, true)
+  } else {
+    context_relative_glob_request(resolved_base, context, false)
+  };
+  // Only the filesystem path is literal. Keep the user's suffix as glob syntax.
+  let pattern = Utf8Path::new(&escape_glob_pattern(&base))
+    .node_join_posix(&alias.suffix)
+    .node_normalize_posix()
+    .to_string();
+  if alias.negative {
+    format!("!{pattern}")
+  } else {
+    pattern
+  }
 }
 
 fn case_insensitive_context_module_glob_base(

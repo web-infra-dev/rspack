@@ -89,21 +89,26 @@ impl ResolveInnerOptions<'_> {
     }
   }
 
-  /// Whether a `resolve.alias` key applies to `request`, using the resolver's
-  /// matching rules: `key$` matches exactly, other keys match `key` or `key/...`.
-  pub fn has_alias_for(&self, request: &str) -> bool {
+  /// The first nonempty alias entry matching a literal directory prefix.
+  /// Return the key without `$` and whether the match is exact.
+  pub(crate) fn alias_prefix<'a>(&'a self, request: &str) -> Option<(&'a str, bool)> {
     match self {
-      Self::RspackResolver(options) => {
-        options
-          .alias
-          .iter()
-          .any(|(key, _)| match key.strip_suffix('$') {
-            Some(key) => request == key,
-            None => request
-              .strip_prefix(key.as_str())
-              .is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', '\\'])),
-          })
-      }
+      Self::RspackResolver(options) => options.alias.iter().find_map(|(key, values)| {
+        if values.is_empty() {
+          return None;
+        }
+        let (key, exact) = key
+          .strip_suffix('$')
+          .map_or((key.as_str(), false), |key| (key, true));
+        let matches = if exact {
+          request == key
+        } else {
+          request
+            .strip_prefix(key)
+            .is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', '\\']))
+        };
+        matches.then_some((key, exact))
+      }),
     }
   }
 }

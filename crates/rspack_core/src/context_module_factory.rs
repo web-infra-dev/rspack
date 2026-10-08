@@ -7,20 +7,20 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rustc_hash::FxHashMap;
 use swc_core::common::util::take::Take;
 use tracing::instrument;
 
 pub use self::glob::{CompiledContextModuleGlobRequest, compile_context_module_glob_request};
 use self::glob::{
-  ContextModuleGlobMatcher, bare_context_module_glob_alias_request,
-  resolve_context_module_glob_alias,
+  ContextModuleGlobMatcher, context_module_glob_alias_request, resolve_context_module_glob_alias,
 };
 use crate::{
   CompilationId, ContextElementDependency, ContextMode, ContextModule, ContextModuleOptions,
   ContextModulePattern, DependencyCategory, DependencyId, DependencyRef, DependencyType, ModuleExt,
   ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, OverrideStrict, ResolveArgs,
   ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, resolve, walk_dir,
+  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, resolve_with_resolver, walk_dir,
 };
 
 mod glob;
@@ -294,26 +294,47 @@ impl ContextModuleFactory {
     };
 
     let context = before_resolve_data.context;
-    let recursive = before_resolve_data.recursive;
-    let is_glob = matches!(&before_resolve_data.pattern, ContextModulePattern::Glob(_));
-    let specifier = match &before_resolve_data.pattern {
-      ContextModulePattern::Glob(patterns) => {
-        let resolver = plugin_driver
-          .resolver_factory
-          .get(ResolveOptionsWithDependencyType {
-            resolve_options: data
-              .resolve_options
-              .clone()
-              .map(|r| Box::new(Arc::unwrap_or_clone(r))),
-            resolve_to_context: true,
-            dependency_category: *dependency.category(),
-          });
-        bare_context_module_glob_alias_request(patterns, &specifier, &resolver.options())
-          .map(str::to_string)
-          .unwrap_or(specifier)
-      }
-      _ => specifier,
-    };
+    let mut recursive = before_resolve_data.recursive;
+    let mut pattern = before_resolve_data.pattern;
+    let is_glob = matches!(&pattern, ContextModulePattern::Glob(_));
+    // Acquire the dependency's resolver once for both alias prefixes and the
+    // final scan directory. Relative globs never perform alias resolution.
+    let resolver = plugin_driver
+      .resolver_factory
+      .get(ResolveOptionsWithDependencyType {
+        resolve_options: data
+          .resolve_options
+          .clone()
+          .map(|r| Box::new(Arc::unwrap_or_clone(r))),
+        resolve_to_context: true,
+        dependency_category: *dependency.category(),
+      });
+    let mut specifier = specifier;
+    let mut glob_aliases_changed = false;
+    if let ContextModulePattern::Glob(patterns) = &pattern
+      && let Some(patterns) = self
+        .resolve_glob_aliases(data, patterns, &context, &resolver)
+        .await?
+    {
+      let dependency = data.dependencies[0]
+        .as_context_dependency()
+        .expect("should be context dependency");
+      let compiled = compile_context_module_glob_request(
+        &specifier,
+        &patterns,
+        &dependency.options().context,
+        &dependency.options().compiler_context,
+        recursive,
+        dependency.options().glob_case_sensitive,
+      );
+      specifier = compiled.request;
+      recursive = compiled.recursive;
+      pattern = ContextModulePattern::Glob(patterns);
+      glob_aliases_changed = true;
+    }
+    let dependency = data.dependencies[0]
+      .as_context_dependency()
+      .expect("should be context dependency");
     let resolve_args = ResolveArgs {
       context: context.clone().into(),
       importer: data.issuer_identifier.as_ref(),
@@ -327,7 +348,15 @@ impl ContextModuleFactory {
       optional: dependency.get_optional(),
     };
 
-    let (resource_data, resolve_dependencies) = resolve(resolve_args, plugin_driver).await;
+    let (resource_data, resolve_dependencies) = if glob_aliases_changed
+      && pattern
+        .glob_patterns()
+        .is_some_and(|patterns| patterns.iter().all(|pattern| pattern.starts_with('!')))
+    {
+      (Ok(ResolveResult::Ignored), Default::default())
+    } else {
+      resolve_with_resolver(resolve_args, plugin_driver, &resolver).await
+    };
     let file_dependencies = resolve_dependencies.file_dependencies;
     let missing_dependencies = resolve_dependencies.missing_dependencies;
 
@@ -336,22 +365,9 @@ impl ContextModuleFactory {
         let mut dependency_options = dependency.options().clone();
         dependency_options.request = hook_request.clone();
         dependency_options.recursive = recursive;
-        dependency_options.pattern = before_resolve_data.pattern.clone();
+        dependency_options.pattern = pattern.clone();
         if !is_glob {
           dependency_options.context = context.clone();
-        } else if !specifier.starts_with('.')
-          && !specifier.starts_with('/')
-          && let Some(request) = parse_resource(&specifier)
-          && let ContextModulePattern::Glob(patterns) = &dependency_options.pattern
-        {
-          dependency_options.pattern =
-            ContextModulePattern::Glob(resolve_context_module_glob_alias(
-              patterns,
-              request.path.as_str(),
-              resource.path.as_str(),
-              dependency_options.context.as_str(),
-              dependency_options.compiler_context.as_str(),
-            ));
         }
 
         let options = ContextModuleOptions {
@@ -377,7 +393,7 @@ impl ContextModuleFactory {
         let mut dependency_options = dependency.options().clone();
         dependency_options.request = hook_request;
         dependency_options.recursive = recursive;
-        dependency_options.pattern = before_resolve_data.pattern.clone();
+        dependency_options.pattern = pattern.clone();
         if !is_glob {
           dependency_options.context = context.clone();
         }
@@ -486,6 +502,73 @@ impl ContextModuleFactory {
         Ok(Some(ModuleFactoryResult::new_with_module(module)))
       }
     }
+  }
+
+  async fn resolve_glob_aliases(
+    &self,
+    data: &mut ModuleFactoryCreateData,
+    patterns: &[String],
+    resolve_context: &str,
+    resolver: &Resolver,
+  ) -> Result<Option<Vec<String>>> {
+    let mut rewritten: Option<Vec<String>> = None;
+    let mut resolved_aliases = FxHashMap::<String, Option<Utf8PathBuf>>::default();
+    for (index, pattern) in patterns.iter().enumerate() {
+      let Some(alias) = context_module_glob_alias_request(pattern, &resolver.options()) else {
+        if let Some(rewritten) = &mut rewritten {
+          rewritten.push(pattern.clone());
+        }
+        continue;
+      };
+      let rewritten = rewritten.get_or_insert_with(|| patterns[..index].to_vec());
+      let resource = if let Some(resource) = resolved_aliases.get(&alias.request) {
+        resource
+      } else {
+        let dependency = data.dependencies[0]
+          .as_context_dependency()
+          .expect("should be context dependency");
+        let args = ResolveArgs {
+          context: resolve_context.to_string().into(),
+          importer: data.issuer_identifier.as_ref(),
+          issuer: data.issuer.as_deref(),
+          specifier: &alias.request,
+          dependency_type: dependency.dependency_type(),
+          dependency_category: dependency.category(),
+          span: dependency.range(),
+          resolve_options: data.resolve_options.clone(),
+          resolve_to_context: true,
+          optional: dependency.get_optional(),
+        };
+        let (resource, dependencies) =
+          resolve_with_resolver(args, &self.plugin_driver, resolver).await;
+        data
+          .file_dependencies
+          .extend(dependencies.file_dependencies);
+        data
+          .missing_dependencies
+          .extend(dependencies.missing_dependencies);
+        let resource = match resource? {
+          ResolveResult::Resource(resource) => Some(resource.path),
+          ResolveResult::Ignored => None,
+        };
+        resolved_aliases
+          .entry(alias.request.clone())
+          .or_insert(resource)
+      };
+      if let Some(resource) = resource {
+        let options = data.dependencies[0]
+          .as_context_dependency()
+          .expect("should be context dependency")
+          .options();
+        rewritten.push(resolve_context_module_glob_alias(
+          &alias,
+          resource.as_str(),
+          &options.context,
+          &options.compiler_context,
+        ));
+      }
+    }
+    Ok(rewritten)
   }
 
   fn global_override_strict(&self) -> Option<bool> {
