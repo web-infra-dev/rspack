@@ -281,7 +281,7 @@ impl DependencyTemplate for DirectRequireHeaderDependencyTemplate {
 
     if let Some(kind) = direct_require_kind {
       let require = kind.render_callee(context.compilation, context.chunk_init_fragments());
-      source.replace_static(header_range.start, header_range.end, require, None);
+      source.replace(header_range.start, header_range.end, require, None);
     } else if let Some(template) = &self.template {
       template.render(dependency, source, context);
     }
