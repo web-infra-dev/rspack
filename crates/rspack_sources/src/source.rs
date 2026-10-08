@@ -24,6 +24,7 @@ pub type BoxSource = Arc<dyn Source>;
 /// it's originally stored as a string or raw bytes. This is particularly useful for
 /// build tools and bundlers that need to process various types of source files.
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub enum SourceValue<'a> {
   /// Text content stored as a UTF-8 string.
   String(Cow<'a, str>),
@@ -107,7 +108,9 @@ impl<'a> SourceValue<'a> {
 }
 
 /// [Source] abstraction, [webpack-sources docs](https://github.com/webpack/webpack-sources/#source).
-pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send {
+pub trait Source:
+  StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send + SourceAllocative
+{
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
 
@@ -138,6 +141,22 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   /// Writes the source into a writer, preferably a `std::io::BufWriter<std::io::Write>`.
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()>;
 }
+
+/// Allocative support for source trait objects in profiling builds.
+#[doc(hidden)]
+#[cfg(feature = "allocative")]
+pub trait SourceAllocative: allocative::Allocative {}
+
+#[cfg(feature = "allocative")]
+impl<T: allocative::Allocative + ?Sized> SourceAllocative for T {}
+
+/// No additional bound is needed in regular builds.
+#[doc(hidden)]
+#[cfg(not(feature = "allocative"))]
+pub trait SourceAllocative {}
+
+#[cfg(not(feature = "allocative"))]
+impl<T: ?Sized> SourceAllocative for T {}
 
 impl Source for BoxSource {
   #[inline]
@@ -265,6 +284,7 @@ impl<T: Source + 'static> SourceExt for T {
 
 /// Options for [Source::map].
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct MapOptions {
   /// Whether have columns info in generated [SourceMap] mappings.
   pub columns: bool,
@@ -300,6 +320,7 @@ fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
 
 /// The source map created by [Source::map].
 #[derive(Serialize)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub(crate) struct SourceMapFields<'a> {
   pub(crate) version: u8,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -387,12 +408,14 @@ impl Hash for SourceMapFields<'_> {
 }
 
 #[allow(dead_code)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 enum SourceMapOwner {
   Bytes(Vec<u8>),
   Source(BoxSource),
 }
 
 /// The source map created by [Source::map].
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct SourceMap<'a> {
   // Kept to retain data borrowed by `fields`; it is intentionally not read.
   #[allow(dead_code)]
@@ -811,6 +834,7 @@ fn optional_u32_array_field<'a>(
 
 /// Represent a [Mapping] information of source map.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct Mapping {
   /// Generated line.
   pub generated_line: u32,
@@ -822,6 +846,7 @@ pub struct Mapping {
 
 /// Represent original position information of a [Mapping].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct OriginalLocation {
   /// Source index.
   pub source_index: u32,

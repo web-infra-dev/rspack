@@ -35,6 +35,7 @@ pub fn encode_vlq(out: &mut Vec<u8>, a: u32, b: u32) {
   }
 }
 
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub(crate) enum MappingsEncoder {
   Full(FullMappingsEncoder),
   LinesOnly(LinesOnlyMappingsEncoder),
@@ -66,6 +67,7 @@ pub fn create_encoder(columns: bool) -> MappingsEncoder {
   }
 }
 
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub(crate) struct FullMappingsEncoder {
   current_line: u32,
   current_column: u32,
@@ -191,6 +193,7 @@ impl FullMappingsEncoder {
   }
 }
 
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub(crate) struct LinesOnlyMappingsEncoder {
   last_written_line: u32,
   current_line: u32,

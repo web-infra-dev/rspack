@@ -36,6 +36,7 @@ use crate::{
 /// );
 /// ```
 #[derive(Clone, Eq)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct OriginalSource {
   value: Box<str>,
   name: Box<str>,
