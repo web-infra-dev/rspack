@@ -1,5 +1,5 @@
 use std::{
-  cell::RefCell,
+  cell::{Cell, RefCell},
   fmt,
   rc::{Rc, Weak},
   sync::Arc,
@@ -15,6 +15,9 @@ use napi::{
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use slotmap::{DefaultKey, SlotMap};
+
+const COMPILER_CLOSED_MESSAGE: &str = "Rspack compiler has already been closed by `compiler.close()`. Do not call Rspack compiler APIs after close; create a new compiler instead.";
 
 thread_local! {
   // `FromNapiValue` does not accept extra context, so constructor-time parsing uses a
@@ -28,16 +31,23 @@ struct CompilerScopedTsFnContext {
   manager: Weak<CompilerScopedTsFnManagerInner>,
 }
 
-type Releaser = Box<dyn Fn()>;
+type Releaser = Box<dyn FnOnce()>;
 
 #[derive(Default)]
 struct CompilerScopedTsFnManagerInner {
-  releasers: RefCell<Vec<Releaser>>,
+  releasers: RefCell<SlotMap<DefaultKey, Releaser>>,
+  closed: Cell<bool>,
 }
 
 impl CompilerScopedTsFnManagerInner {
   fn release(&self) {
-    for releaser in self.releasers.borrow().iter() {
+    if self.closed.replace(true) {
+      return;
+    }
+    // Finalizers may unregister callbacks. Finish borrowing the registry before
+    // releasing TSFNs, and make repeated close/drop calls harmless.
+    let releasers = std::mem::take(&mut *self.releasers.borrow_mut());
+    for (_, releaser) in releasers {
       releaser();
     }
   }
@@ -45,9 +55,7 @@ impl CompilerScopedTsFnManagerInner {
 
 impl Drop for CompilerScopedTsFnManagerInner {
   fn drop(&mut self) {
-    for releaser in self.releasers.get_mut().iter() {
-      releaser();
-    }
+    self.release();
   }
 }
 
@@ -92,8 +100,24 @@ impl CompilerScopedTsFnManager {
       .and_then(|context| context.manager.upgrade().map(|inner| Self { inner }))
   }
 
-  fn register_releaser(&self, releaser: Releaser) {
-    self.inner.releasers.borrow_mut().push(releaser);
+  fn register_releaser(&self, releaser: Releaser) -> napi::Result<impl FnOnce() + 'static> {
+    if self.inner.closed.get() {
+      return Err(napi::Error::new(
+        Status::GenericFailure,
+        COMPILER_CLOSED_MESSAGE,
+      ));
+    }
+    let key = self.inner.releasers.borrow_mut().insert(releaser);
+
+    let manager = Rc::downgrade(&self.inner);
+    Ok(move || {
+      // TSFN finalization (including destruction of this Rc::Weak) runs on the
+      // owning JS thread, so the registry needs no cross-thread synchronization.
+      if let Some(manager) = manager.upgrade() {
+        let releaser = manager.releasers.borrow_mut().remove(key);
+        drop(releaser);
+      }
+    })
   }
 }
 
@@ -144,8 +168,8 @@ fn format_js_function(env: sys::napi_env, napi_val: sys::napi_value) -> String {
     )
 }
 
-// Call sites only keep this handle. It owns a TSFN slot whose lifetime is tied to the
-// owning compiler and is cleared when that compiler is closed or dropped.
+// Consumers own the TSFN slot; the compiler only weakly registers it for close/drop
+// cleanup. The last consumer can release its callback before the compiler closes.
 pub struct CompilerScopedTsFnHandle<T: 'static + JsValuesTupleIntoVec, R> {
   active_tsfn: SharedThreadsafeFunction<T, R>,
 }
@@ -167,11 +191,11 @@ impl<T: 'static + JsValuesTupleIntoVec, R> fmt::Debug for CompilerScopedTsFnHand
 
 impl<T: 'static + JsValuesTupleIntoVec, R> CompilerScopedTsFnHandle<T, R> {
   fn expect_active_tsfn(&self) -> rspack_error::Result<ThreadsafeFunction<T, R>> {
-    self.active_tsfn.borrow().clone().ok_or_else(|| {
-      error!(
-        "Rspack compiler has already been closed by `compiler.close()`. Do not call Rspack compiler APIs after close; create a new compiler instead."
-      )
-    })
+    self
+      .active_tsfn
+      .borrow()
+      .clone()
+      .ok_or_else(|| error!("{COMPILER_CLOSED_MESSAGE}"))
   }
 }
 
@@ -196,13 +220,16 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static> FromNapiValue
     let active_tsfn = Arc::new(AtomicRefCell::new(None));
 
     if let Some(manager) = CompilerScopedTsFnManager::current_context() {
-      let tsfn = unsafe { ThreadsafeFunction::from_napi_value(env, napi_val) }?;
+      let active_tsfn_for_releaser = Arc::downgrade(&active_tsfn);
+      let finalize = manager.register_releaser(Box::new(move || {
+        if let Some(active_tsfn) = active_tsfn_for_releaser.upgrade() {
+          let tsfn = active_tsfn.borrow_mut().take();
+          drop(tsfn);
+        }
+      }))?;
+      let tsfn =
+        unsafe { ThreadsafeFunction::from_napi_value_with_finalize(env, napi_val, finalize) }?;
       *active_tsfn.borrow_mut() = Some(tsfn);
-
-      let active_tsfn_for_releaser = active_tsfn.clone();
-      manager.register_releaser(Box::new(move || {
-        *active_tsfn_for_releaser.borrow_mut() = None;
-      }));
     } else {
       // Callbacks parsed outside a compiler construction scope fall back to eager TSFN behavior.
       // This should not happen in normal usage - report an error in debug builds to catch issues early.

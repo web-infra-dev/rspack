@@ -31,6 +31,7 @@ import type { ChunkGraph } from './ChunkGraph';
 import type { Compiler } from './Compiler';
 import type { ContextModuleFactory } from './ContextModuleFactory';
 import type {
+  Falsy,
   Filename,
   OutputNormalized,
   RspackOptionsNormalized,
@@ -59,6 +60,7 @@ import { StatsFactory } from './stats/StatsFactory';
 import { StatsPrinter } from './stats/StatsPrinter';
 import { AsyncTask } from './util/AsyncTask';
 import { createReadonlyMap } from './util/createReadonlyMap';
+import { createModules } from './Modules';
 import type { InputFileSystem } from './util/fs';
 import type Hash from './util/hash';
 import { SourceAdapter } from './util/source';
@@ -261,6 +263,7 @@ export class Compilation {
   #errors?: RspackError[];
   #warnings?: RspackError[];
   #chunks?: ReadonlySet<Chunk>;
+  #modules?: ReadonlySet<Module>;
   #assetsProxy?: Assets;
 
   hooks: Readonly<{
@@ -308,7 +311,7 @@ export class Compilation {
     runtimeModule: liteTapable.SyncHook<[RuntimeModule, Chunk]>;
     seal: liteTapable.SyncHook<[]>;
     afterSeal: liteTapable.AsyncSeriesHook<[], void>;
-    needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
+    needAdditionalPass: liteTapable.SyncBailHook<[], boolean | void>;
   }>;
   name?: string;
   startTime?: number;
@@ -567,7 +570,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   get modules(): ReadonlySet<Module> {
-    return new Set(this.#inner.modules);
+    if (!this.#modules) {
+      this.#modules = createModules(this.#inner.modules);
+    }
+    return this.#modules;
   }
 
   get builtModules(): ReadonlySet<Module> {
@@ -753,7 +759,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     return assets.map((asset) => this.#createAsset(asset));
   }
 
-  getAsset(name: string): Readonly<Asset> | void {
+  getAsset(name: string): Readonly<Asset> | undefined {
     const asset = this.#inner.getAsset(name);
     if (!asset) {
       return;
@@ -1007,7 +1013,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   createChildCompiler(
     name: string,
     outputOptions: OutputNormalized,
-    plugins: RspackPluginInstance[],
+    plugins?: (RspackPluginInstance | Falsy)[],
   ) {
     const idx = this.childrenCounters[name] || 0;
     this.childrenCounters[name] = idx + 1;

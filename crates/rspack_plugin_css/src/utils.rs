@@ -5,7 +5,6 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::OnceCell;
 use regex::Regex;
@@ -20,6 +19,7 @@ use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
 use rspack_util::{
   identifier::{make_paths_relative, split_at_query_mark},
   itoa, json_stringify_str,
+  placeholder::PlaceholderFinder,
 };
 use rustc_hash::{FxHashSet, FxHasher};
 
@@ -30,6 +30,10 @@ use crate::{
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 pub const CSS_MODULE_ID_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_MODULE_ID__";
+pub(crate) static AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(AUTO_PUBLIC_PATH_PLACEHOLDER));
+static CSS_MODULE_ID_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(CSS_MODULE_ID_PLACEHOLDER));
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((-?[0-9])|--)").expect("Invalid regexp"));
 
@@ -498,11 +502,11 @@ pub fn replace_css_module_id_placeholder_with_id<'a>(
   local_ident: &'a str,
   module_id: &str,
 ) -> Cow<'a, str> {
-  if !local_ident.contains(CSS_MODULE_ID_PLACEHOLDER) {
-    return Cow::Borrowed(local_ident);
-  }
-  let module_id = prepare_css_module_id(module_id);
-  let local_ident = local_ident.cow_replace(CSS_MODULE_ID_PLACEHOLDER, module_id.as_ref());
+  let local_ident =
+    CSS_MODULE_ID_MATCHER.replace_with(local_ident, || prepare_css_module_id(module_id));
+  let Cow::Owned(local_ident) = local_ident else {
+    return local_ident;
+  };
   Cow::Owned(
     LEADING_DIGIT_REGEX
       .replace(&local_ident, "_${1}")

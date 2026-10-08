@@ -20,7 +20,7 @@ it('should have shebang in entry chunk', async () => {
   const code = fs.readFileSync(path.join(__rspack_import_meta_dirname__, 'main.mjs'), 'utf-8')
 
   expect(code.startsWith('#!')).toBeTruthy()
-})
+});
 
 export {};
 

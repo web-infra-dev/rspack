@@ -5,7 +5,7 @@ const config = {
     definePlugin({
       apply(compiler) {
         compiler.hooks.make.tap('child', (base) => {
-          const child = base.createChildCompiler('child', {}, []);
+          const child = base.createChildCompiler('child', {});
           child.runAsChild(() => {});
         });
       },

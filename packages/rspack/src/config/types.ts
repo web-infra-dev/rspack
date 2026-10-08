@@ -911,12 +911,12 @@ export type RuleSetLoaderWithOptions = {
   options?: RuleSetLoaderOptions;
 };
 
-export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions;
+export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions | Falsy;
 
 export type RuleSetUse =
   | RuleSetUseItem
   | RuleSetUseItem[]
-  | ((data: RawFuncUseCtx) => RuleSetUseItem[]);
+  | ((data: RawFuncUseCtx) => RuleSetUseItem | RuleSetUseItem[]);
 
 export type RuleSetRuleUseAndLoader =
   | {
@@ -3213,6 +3213,8 @@ export type NewCache = {
   loader?: boolean;
   /** Enable the asset minimization cache. @default true */
   minimize?: boolean;
+  /** Enable the module and loader resolution cache. @default true */
+  resolver?: boolean;
 };
 
 export type NewCachePresets = boolean;

@@ -43,6 +43,22 @@ export default [
     },
   },
   {
+    name: "import-module",
+    description: "should collect importModule publicPath callbacks before compiler close",
+    async run() {
+      const { default: run } = await import("./import-module.mjs");
+      await run();
+    },
+  },
+  {
+    name: "runtime-module-multiple-builds",
+    description: "should collect old runtime modules while the compiler remains open",
+    async run() {
+      const { default: run } = await import("./runtime-module-multiple-builds.mjs");
+      await run();
+    },
+  },
+  {
     name: "runtime-module",
     description: "should collect custom runtime modules after compiler close",
     async run() {

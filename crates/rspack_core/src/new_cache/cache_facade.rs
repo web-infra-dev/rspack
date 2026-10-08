@@ -17,6 +17,10 @@ impl CacheFacade {
     Self { cache, name }
   }
 
+  pub(crate) fn get_child_cache(&self, name: &str) -> Self {
+    Self::new(Arc::clone(&self.cache), format!("{}|{name}", self.name))
+  }
+
   pub fn get_item_cache(&self, identifier: &str, etag: Option<Etag>) -> ItemCacheFacade {
     ItemCacheFacade {
       cache: self.cache.clone(),

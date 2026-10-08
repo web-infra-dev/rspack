@@ -12,7 +12,7 @@ exports.M = 2
 },
 });
 // ./foo.js
-const foo_foo = 1
+const foo_foo = 1;
 
 
 // ./index.js
@@ -22,7 +22,7 @@ it('should have correct output for entry re-exports', async () => {
 	const { foo, bar } = await import(/* webpackIgnore: true */ './main.mjs');
 	expect(foo).toBe(1);
 	expect(bar).toBe(2);
-})
+});
 
 const bar_0 = rspackRequire("./bar.js");
 var M = bar_0.M;

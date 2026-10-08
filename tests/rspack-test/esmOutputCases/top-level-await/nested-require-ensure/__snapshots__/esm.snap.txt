@@ -10,7 +10,7 @@ export { value } from "./lib_js.mjs";
 
 ```mjs title=lib_js.mjs
 // ./lib.js
-const value = () => 42
+const value = () => 42;
 export { value };
 
 ```

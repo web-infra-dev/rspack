@@ -9,7 +9,7 @@ it('should have access to the value from the same file', async () => {
 
 	expect(conflict).toBe(42)
 	expect(c).toBe(24)
-})
+});
 
 export {};
 
@@ -17,7 +17,7 @@ export {};
 
 ```mjs title=value.mjs
 // ./value.js
-const conflict = 24
+const conflict = 24;
 
 export { conflict };
 
