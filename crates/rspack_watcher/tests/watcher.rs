@@ -1197,3 +1197,225 @@ fn a_registered_link_below_a_context_still_deduplicates_repeated_events() {
     }
   }
 }
+
+/// An `ignored` predicate that records every path it is asked about, to see
+/// what a scan visited.
+fn recording_ignored() -> (
+  rspack_watcher::FsWatcherIgnored,
+  std::sync::Arc<std::sync::Mutex<Vec<String>>>,
+) {
+  let queried = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+  let log = std::sync::Arc::clone(&queried);
+  let ignored = rspack_watcher::FsWatcherIgnored::Function(std::sync::Arc::new(move |path| {
+    log.lock().expect("queried paths poisoned").push(path);
+    Box::pin(async { false })
+  }));
+  (ignored, queried)
+}
+
+/// Like watchpack's `setDirectory`, only a directory not seen before is
+/// scanned: an event on a known one (e.g. a `chmod`) leaves its subtree alone.
+#[test]
+fn an_event_on_a_known_directory_does_not_rescan_it() {
+  let (ignored, queried) = recording_ignored();
+  let mut helper = h!(
+    FsWatcherOptions {
+      aggregate_timeout: Some(100),
+      ..Default::default()
+    },
+    ignored
+  );
+  std::fs::create_dir_all(helper.join("ctx/sub")).unwrap();
+  helper.file("ctx/sub/inner");
+  helper.file("sibling");
+
+  let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+  queried.lock().unwrap().clear();
+
+  helper.trigger_event("ctx/sub", rspack_watcher::FsEventKind::Change);
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(context.as_str())
+  });
+
+  let inner = helper.join("ctx/sub/inner");
+  assert!(
+    !queried
+      .lock()
+      .unwrap()
+      .iter()
+      .any(|path| path == inner.as_str()),
+    "the known directory was scanned again"
+  );
+}
+
+/// A context whose parent is moved away goes with it in one event: it reads as
+/// null, and so does what its scan found, though neither had its own event.
+#[test]
+fn collect_time_info_entries_nulls_a_context_whose_parent_moved_away() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("parent/ctx")).unwrap();
+  helper.file("parent/ctx/found");
+  helper.file("sibling");
+
+  let rx = helper.watch(f!("sibling"), f!("parent/ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+  assert!(has_time_info_entry(
+    &helper,
+    &file_timestamps,
+    "parent/ctx/found"
+  ));
+
+  helper.tick(|| std::fs::rename(helper.join("parent"), helper.join("parent.moved")).unwrap());
+  std::thread::sleep(std::time::Duration::from_millis(500));
+
+  let (file_timestamps, directory_timestamps) = helper.collect_time_info_entries();
+  assert!(
+    !has_time_info_entry(&helper, &file_timestamps, "parent/ctx/found"),
+    "what the scan found went with the context"
+  );
+  assert_eq!(
+    *helper.time_info_entry(&directory_timestamps, "parent/ctx"),
+    TimeInfoEntry::Null,
+    "the context went with its parent"
+  );
+}
+
+/// A scan waiting on the `ignored` predicate when the next watch cycle
+/// unregisters its context does not, once it resumes, put back what that
+/// cycle forgot.
+#[test]
+fn a_scan_resuming_after_its_context_is_unregistered_records_nothing() {
+  use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  };
+  let blocked = Arc::new(AtomicBool::new(false));
+  let release = Arc::new(AtomicBool::new(false));
+  let moved_in = Arc::new(std::sync::Mutex::new(std::path::PathBuf::new()));
+  let ignored = {
+    let (blocked, release, moved_in) = (
+      Arc::clone(&blocked),
+      Arc::clone(&release),
+      Arc::clone(&moved_in),
+    );
+    rspack_watcher::FsWatcherIgnored::Function(Arc::new(move |path: String| {
+      let below_moved_in = {
+        let moved_in = moved_in.lock().unwrap();
+        let path = std::path::Path::new(&path);
+        path != *moved_in && path.starts_with(&*moved_in)
+      };
+      let hold = below_moved_in && !blocked.swap(true, Ordering::SeqCst);
+      let release = Arc::clone(&release);
+      Box::pin(async move {
+        while hold && !release.load(Ordering::SeqCst) {
+          tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        false
+      })
+    }))
+  };
+  let mut helper = h!(
+    FsWatcherOptions {
+      aggregate_timeout: Some(100),
+      ..Default::default()
+    },
+    ignored
+  );
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  std::fs::create_dir_all(helper.join("outside/moved")).unwrap();
+  helper.file("outside/moved/a");
+  helper.file("outside/moved/b");
+  helper.file("sibling");
+  *moved_in.lock().unwrap() = helper.join("ctx/moved").into_std_path_buf();
+
+  let _rx = helper.watch(f!("sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+
+  std::fs::rename(helper.join("outside/moved"), helper.join("ctx/moved")).unwrap();
+  let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+  while !blocked.load(Ordering::SeqCst) {
+    assert!(
+      std::time::Instant::now() < deadline,
+      "the scan never started"
+    );
+    std::thread::sleep(std::time::Duration::from_millis(10));
+  }
+  let _rx = helper.watch(
+    e!(),
+    (
+      std::iter::empty(),
+      vec![InternedPath::from("ctx")].into_iter(),
+    ),
+    e!(),
+  );
+  release.store(true, Ordering::SeqCst);
+  std::thread::sleep(std::time::Duration::from_millis(300));
+
+  let (file_timestamps, directory_timestamps) = helper.collect_time_info_entries();
+  for path in ["ctx/moved", "ctx/moved/a", "ctx/moved/b"] {
+    assert!(
+      !has_time_info_entry(&helper, &file_timestamps, path)
+        && !has_time_info_entry(&helper, &directory_timestamps, path),
+      "{path} was recorded after its context was unregistered"
+    );
+  }
+}
+
+/// Like watchpack's scan (`setFileTime(.., ignoreWhenEqual)`), a scan that
+/// finds a recorded file with another mtime records the new one.
+#[test]
+fn a_scan_updates_a_recorded_file_whose_mtime_moved_on() {
+  use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  };
+  let hide = Arc::new(AtomicBool::new(false));
+  let ignored = {
+    let hide = Arc::clone(&hide);
+    rspack_watcher::FsWatcherIgnored::Function(Arc::new(move |path: String| {
+      let ignored = hide.load(Ordering::SeqCst) && path.ends_with("found");
+      Box::pin(async move { ignored })
+    }))
+  };
+  let mut helper = h!(
+    FsWatcherOptions {
+      aggregate_timeout: Some(100),
+      ..Default::default()
+    },
+    ignored
+  );
+  std::fs::create_dir_all(helper.join("ctx/sub")).unwrap();
+  helper.file("ctx/sub/found");
+  helper.file("sibling");
+
+  let _rx = helper.watch(f!("sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+
+  // The change event is dropped, so only a scan can see the new mtime.
+  hide.store(true, Ordering::SeqCst);
+  let moved_on = std::time::SystemTime::now() - std::time::Duration::from_secs(1800);
+  set_modified(helper.join("ctx/sub/found").as_std_path(), moved_on).unwrap();
+  std::thread::sleep(std::time::Duration::from_millis(500));
+  hide.store(false, Ordering::SeqCst);
+
+  let _rx = helper.watch(e!(), f!("ctx/sub"), e!());
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+  let TimeInfoEntry::Entry { timestamp, .. } =
+    *helper.time_info_entry(&file_timestamps, "ctx/sub/found")
+  else {
+    panic!("ctx/sub/found is not a file entry");
+  };
+  let moved_on_millis = moved_on
+    .duration_since(std::time::UNIX_EPOCH)
+    .unwrap()
+    .as_millis() as u64;
+  assert_eq!(timestamp, moved_on_millis, "the scan kept the old mtime");
+}
