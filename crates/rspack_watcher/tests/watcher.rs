@@ -1419,3 +1419,56 @@ fn a_scan_updates_a_recorded_file_whose_mtime_moved_on() {
     .as_millis() as u64;
   assert_eq!(timestamp, moved_on_millis, "the scan kept the old mtime");
 }
+
+/// With `ctx` and `ctx/sub` both registered, a removed `ctx/sub` that is then
+/// unregistered is not reported by `ctx` as a directory still there, and when
+/// a populated directory moves back in, `ctx` scans it like any new one.
+#[test]
+fn an_unregistered_inner_context_removed_before_is_new_again_to_its_outer_one() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx/sub")).unwrap();
+  std::fs::create_dir_all(helper.join("outside/sub")).unwrap();
+  helper.file("outside/sub/found");
+  helper.file("sibling");
+
+  let rx = helper.watch(f!("sibling"), f!("ctx", "ctx/sub"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+
+  helper.tick(|| std::fs::remove_dir(helper.join("ctx/sub")).unwrap());
+  let sub = helper.join("ctx/sub");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.deleted_files.contains(sub.as_str())
+  });
+  let _rx = helper.watch(
+    e!(),
+    (
+      std::iter::empty(),
+      vec![InternedPath::from("ctx/sub")].into_iter(),
+    ),
+    e!(),
+  );
+
+  let (_, directory_timestamps) = helper.collect_time_info_entries();
+  assert!(
+    !has_time_info_entry(&helper, &directory_timestamps, "ctx/sub"),
+    "the removed directory is reported as present"
+  );
+
+  std::fs::rename(helper.join("outside/sub"), helper.join("ctx/sub")).unwrap();
+  let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+  loop {
+    let (file_timestamps, _) = helper.collect_time_info_entries();
+    if has_time_info_entry(&helper, &file_timestamps, "ctx/sub/found") {
+      break;
+    }
+    assert!(
+      std::time::Instant::now() < deadline,
+      "the directory moved back in was not scanned"
+    );
+    std::thread::sleep(std::time::Duration::from_millis(50));
+  }
+}

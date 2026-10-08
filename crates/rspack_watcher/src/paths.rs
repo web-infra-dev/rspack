@@ -649,10 +649,6 @@ impl PathManager {
         self.absent_directories.insert(dir.clone());
       }
     }
-    for dir in self.directories.removed.iter() {
-      self.absent_directories.remove(&*dir);
-    }
-
     let added: Vec<InternedPath> = self
       .files
       .added
@@ -696,9 +692,11 @@ impl PathManager {
     let removed_dirs: Vec<InternedPath> =
       self.directories.removed.iter().map(|p| p.clone()).collect();
     for dir in &removed_dirs {
-      // Still below a registered context: it stays reported, as a directory
-      // found there, and keeps its event clock.
-      if self.is_below_context(dir) {
+      // Still below a registered context and on disk: it stays reported, as a
+      // directory found there, and keeps its event clock. Absent, it is
+      // forgotten, so it is scanned as a new directory when it comes back.
+      let absent = self.absent_directories.remove(dir).is_some();
+      if !absent && self.is_below_context(dir) {
         self.context_directories.insert(dir.clone());
       } else {
         self.last_watch_events.remove(dir);
