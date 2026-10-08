@@ -52,10 +52,12 @@ impl MappingsEncoder {
 
   #[inline]
   pub fn drain(&mut self) -> String {
-    match self {
+    let mut mappings = match self {
       MappingsEncoder::Full(enc) => enc.drain(),
       MappingsEncoder::LinesOnly(enc) => enc.drain(),
-    }
+    };
+    mappings.shrink_to_fit();
+    mappings
   }
 }
 
