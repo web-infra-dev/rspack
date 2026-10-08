@@ -1,0 +1,45 @@
+button.LOCAL-root.LOCAL-hovered { color: red; }
+@media (hover: hover) {
+	.LOCAL-root.LOCAL-hovered { color: green; }
+	button.LOCAL-root.LOCAL-hovered { color: blue; }
+	div .LOCAL-descendant { color: blue; }
+	button.LOCAL-first, .LOCAL-second { color: blue; }
+	button.LOCAL-root.plain { color: blue; }
+	button.LOCAL-explicit { color: blue; }
+	button:hover.LOCAL-pseudo { color: blue; }
+	button:is(.LOCAL-functional, .plain) { color: blue; }
+	button#LOCAL-identifier { color: blue; }
+	button[data-value="{;}"] .LOCAL-attribute { color: blue; }
+	button/* comment */.LOCAL-commented { color: blue; }
+	svg|a.LOCAL-namespaced { color: blue; }
+	\62 utton.LOCAL-escaped { color: blue; }
+	按钮.LOCAL-unicode { color: blue; }
+	.LOCAL-after { color: green; }
+}
+@supports (display: grid) { button.LOCAL-supports { color: blue; } }
+@container (width > 100px) { button.LOCAL-container { color: blue; } }
+@layer base { button.LOCAL-layer { color: blue; } }
+.LOCAL-outer {
+	color:red;
+	--LOCAL-custom: { value: ".raw"; };
+	background:paint({ value: ".raw"; });
+	button.LOCAL-inner {
+		color:blue;
+		span.LOCAL-deep { color: blue; }
+		.LOCAL-nestedAfter { color: green; }
+	}
+	color:green;
+	button:hover.LOCAL-nestedPseudo { color: blue; }
+	button.global { color: blue; }
+	button.LOCAL-nestedLocal { color: blue; }
+	@media (hover: hover) { button.LOCAL-nestedMedia { color: blue; } }
+	color:blue
+}
+
+@media (hover: hover) {
+	button.raw.LOCAL-globalModeLocal { color: blue; }
+	button#LOCAL-globalModeId { color: blue; }
+	button.rawAfter { color: green; }
+}
+
+@media screen { button.LOCAL-small, .LOCAL-smallSecond { color:red } }
