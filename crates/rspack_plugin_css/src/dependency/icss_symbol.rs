@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyType,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyType, RuntimeSpec,
 };
+use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,6 +57,18 @@ impl Dependency for CssIcssSymbolDependency {
     rspack_core::AffectType::True
   }
 }
-impl AsDependencyCodeGeneration for CssIcssSymbolDependency {}
+#[cacheable_dyn]
+impl DependencyCodeGeneration for CssIcssSymbolDependency {
+  fn update_hash(
+    &self,
+    hasher: &mut RspackHasher,
+    compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    (self.range.start, self.range.end).hash(hasher);
+    (self.kind as u8).hash(hasher);
+    super::hash::hash_binding(compilation.get_module_graph(), self.target, hasher);
+  }
+}
 impl AsContextDependency for CssIcssSymbolDependency {}
 impl AsModuleDependency for CssIcssSymbolDependency {}
