@@ -13,13 +13,6 @@ use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_sources::SourceMap;
 use rspack_util::{base64, node_path::NodePath};
 use rustc_hash::FxHashSet;
-use swc_core::{
-  common::{BytePos, comments::SingleThreadedComments, input::StringInput},
-  ecma::{
-    ast::EsVersion,
-    parser::{EsSyntax, Parser, Syntax, lexer::Lexer},
-  },
-};
 
 /// Source map extractor result
 #[derive(Debug)]
@@ -52,31 +45,13 @@ pub fn get_source_mapping_url(code: &str) -> SourceMappingURL {
 
 // Retain the public result shape; only extraction needs the byte range.
 fn get_source_mapping_url_with_range(code: &str) -> (SourceMappingURL, Option<Range<usize>>) {
-  // Use captures_iter to find the last match, avoiding split and collect overhead
   let mut match_result = None;
   let mut replacement_string = String::new();
   let mut replacement_range = None;
 
-  // Avoid parsing sources that have no possible directive. For JavaScript,
-  // use comment locations from the existing parser to reject string contents,
-  // including nested template literals and regular expressions. Non-JavaScript
-  // inputs (for example CSS) retain the existing extraction behavior.
-  let comment_starts = SOURCE_MAPPING_URL_REGEX
-    .is_match(code)
-    .then(|| javascript_comment_starts(code))
-    .flatten();
-
-  // Find the last match from the end
-  if let Some(captures) = SOURCE_MAPPING_URL_REGEX
-    .captures_iter(code)
-    .filter(|captures| {
-      comment_starts.as_ref().is_none_or(|starts| {
-        captures
-          .get(0)
-          .is_some_and(|matched| starts.contains(&matched.start()))
-      })
-    })
-    .last()
+  if let Some(range) = trailing_source_mapping_url_range(code)
+    && let Some(captures) = SOURCE_MAPPING_URL_REGEX
+      .captures(code[range.clone()].trim_end_matches(is_source_map_whitespace))
   {
     match_result = captures
       .get(1)
@@ -84,8 +59,8 @@ fn get_source_mapping_url_with_range(code: &str) -> (SourceMappingURL, Option<Ra
       .map(|m| m.as_str());
 
     // Get the complete match string for replacement
-    replacement_string = captures.get(0).map_or("", |m| m.as_str()).to_string();
-    replacement_range = captures.get(0).map(|matched| matched.range());
+    replacement_string = code[range.clone()].to_string();
+    replacement_range = Some(range);
   }
 
   let source_mapping_url = match_result.unwrap_or("").to_string();
@@ -103,29 +78,81 @@ fn get_source_mapping_url_with_range(code: &str) -> (SourceMappingURL, Option<Ra
   (source_mapping_url, replacement_range)
 }
 
-fn javascript_comment_starts(code: &str) -> Option<FxHashSet<usize>> {
-  let comments = SingleThreadedComments::default();
-  let lexer = Lexer::new(
-    Syntax::Es(EsSyntax {
-      jsx: true,
-      decorators: true,
-      ..Default::default()
-    }),
-    EsVersion::latest(),
-    StringInput::new(code, BytePos(1), BytePos(code.len() as u32 + 1)),
-    Some(&comments),
-  );
-  Parser::new_from(lexer).parse_program().ok()?;
-  let (leading, trailing) = comments.take_all();
-  let leading = leading.borrow();
-  let trailing = trailing.borrow();
-  Some(
-    leading
-      .values()
-      .chain(trailing.values())
-      .flatten()
-      .map(|comment| comment.span.lo.0 as usize - 1)
-      .collect(),
+fn trailing_source_mapping_url_range(code: &str) -> Option<Range<usize>> {
+  // ECMA-426 JavaScriptExtractSourceMapURL (without parsing): examine only
+  // trailing comment lines, stopping at code or ambiguous literal delimiters.
+  // Keep block comments as an extension for existing JavaScript/CSS callers.
+  // Borrow slices rather than collecting lines or parsing the entire source.
+  let mut end = code.len();
+  while end > 0 {
+    let content_end = code[..end].trim_end_matches(is_source_map_whitespace).len();
+    if content_end == 0 {
+      return None;
+    }
+    let line_start = code[..content_end]
+      .rfind(['\n', '\r', '\u{2028}', '\u{2029}'])
+      .map_or(0, |position| {
+        position
+          + code[position..]
+            .chars()
+            .next()
+            .expect("line terminator")
+            .len_utf8()
+      });
+    let line = code[line_start..content_end].trim_start_matches(is_source_map_whitespace);
+    let start = content_end - line.len();
+    let (comment_start, comment_end) = if let Some(comment) = line.strip_prefix("//") {
+      if comment.contains(['\'', '"', '`']) || comment.contains("*/") {
+        return None;
+      }
+      (start, content_end)
+    } else if code[..content_end].ends_with("*/") {
+      let block_start = code[..content_end - 2].rfind("/*")?;
+      let body = &code[block_start + 2..content_end - 2];
+      // The first terminator closes the block. A later `*/` may instead be
+      // executable code (for example a regex), which must stop the tail scan.
+      if body.contains("*/") || body.contains(['\'', '"', '`']) {
+        return None;
+      }
+      // Block comments do not nest: the nearest opener can be comment text.
+      // Stop at this ambiguity rather than removing an inner directive and
+      // leaving an unterminated outer comment. Only borrow the delimiter suffix.
+      let prefix = &code[..block_start];
+      let boundary = prefix.rfind("*/").map_or(0, |position| position + 2);
+      if prefix[boundary..].contains("/*") {
+        return None;
+      }
+      (block_start, content_end)
+    } else {
+      return None;
+    };
+    let comment = &code[comment_start..comment_end];
+    if let Some(matched) = SOURCE_MAPPING_URL_REGEX.find(comment)
+      && matched.start() == 0
+      && matched.end() == comment.len()
+    {
+      return Some(comment_start..end);
+    }
+    end = comment_start;
+  }
+  None
+}
+
+fn is_source_map_whitespace(c: char) -> bool {
+  // ECMAScript WhiteSpace (including all Unicode Space_Separator characters)
+  // and LineTerminator, rather than Rust's broader Unicode White_Space set.
+  matches!(
+    c,
+    '\t' | '\u{000b}' | '\u{000c}' | ' ' | '\u{00a0}' | '\u{1680}' | '\u{2000}'
+      ..='\u{200a}'
+        | '\u{202f}'
+        | '\u{205f}'
+        | '\u{3000}'
+        | '\u{feff}'
+        | '\n'
+        | '\r'
+        | '\u{2028}'
+        | '\u{2029}'
   )
 }
 
@@ -512,10 +539,10 @@ mod tests {
         /*# sourceMappingURL=data:application/json;base64,"+btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap))))+" */";"#,
         "",
       ),
-      // JavaScript code snippet, expected to truncate at first variable reference
+      // Ambiguous quoted comment is rejected by the non-parsing extraction guard.
       (
         r#"// # sourceMappingURL=data:application/json;base64,"+btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap))))+"'"#,
-        "data:application/json;base64,",
+        "",
       ),
       // JavaScript code snippet with variable reference, expected to return empty string
       (
