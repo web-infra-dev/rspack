@@ -44,7 +44,7 @@ use crate::{
   ConcatenationContext, ConcatenationInterop, ConcatenationNameAllocator, ConcatenationScope,
   ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
   DependenciesBlock, DependenciesBlockData, Dependency, DependencyCodeGenerationRef, DependencyId,
-  DependencyType, ExportInfoData, ExportProvided, ExportsArgument, ExportsInfoArtifact,
+  DependencyType, ExportInfo, ExportInfoData, ExportProvided, ExportsArgument, ExportsInfoArtifact,
   FactoryMeta, FactoryMetaStore, FreezeLock, ImportedByDeferModulesArtifact, InitFragment,
   InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
@@ -60,6 +60,17 @@ use crate::{
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
+
+/// Queries share a fixed module graph and concatenation membership during code generation.
+/// Cache only completed queries; cycle detection remains local to each traversal.
+#[derive(Default)]
+struct MissingStarExportCache {
+  results: HashMap<(ModuleIdentifier, ExportInfo), bool>,
+  star_dependencies: IdentifierMap<HashSet<DependencyId>>,
+  pending: Vec<(ModuleIdentifier, Atom)>,
+  visited: HashSet<ExportInfo>,
+}
+
 define_hook!(ConcatenatedModuleExportsDefinitions: SeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
 define_hook!(ConcatenatedModuleConcatenatedInfo: Series(compilation: &Compilation, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>, info: &mut ConcatenatedModuleInfo, all_used_names: &mut HashSet<Atom>));
 
@@ -1287,6 +1298,7 @@ impl Module for ConcatenatedModule {
     let mut exports_map = IndexAtomMap::<String>::default();
     let mut unused_exports = IndexAtomSet::default();
     let mut inlined_exports = IndexAtomSet::default();
+    let mut missing_star_export_cache = MissingStarExportCache::default();
 
     let root_info = binding_resolver
       .module_to_info_map
@@ -1320,7 +1332,12 @@ impl Module for ConcatenatedModule {
         inlined_exports.insert(name);
         continue;
       };
-      if self.is_missing_star_export(&binding_resolver, &root_module_id, export_info) {
+      if self.is_missing_star_export(
+        &binding_resolver,
+        &root_module_id,
+        export_info,
+        &mut missing_star_export_cache,
+      ) {
         continue;
       }
       exports_map.insert(used_name.clone(), {
@@ -1480,7 +1497,12 @@ impl Module for ConcatenatedModule {
           continue;
         }
         if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) {
-          if self.is_missing_star_export(&binding_resolver, &module_info_id, export_info) {
+          if self.is_missing_star_export(
+            &binding_resolver,
+            &module_info_id,
+            export_info,
+            &mut missing_star_export_cache,
+          ) {
             continue;
           }
           let final_name = self.get_final_name(
@@ -2373,6 +2395,7 @@ impl ConcatenatedModule {
     binding_resolver: &ConcatenationBindingResolver,
     module_id: &ModuleIdentifier,
     export_info: &ExportInfoData,
+    cache: &mut MissingStarExportCache,
   ) -> bool {
     if matches!(export_info.provided(), Some(ExportProvided::Provided)) {
       return false;
@@ -2381,53 +2404,73 @@ impl ConcatenatedModule {
     let Some(name) = export_info.name() else {
       return false;
     };
-    let mut pending = vec![(*module_id, name.clone())];
-    let mut visited = HashSet::default();
-    let mut has_empty_target = false;
-    while let Some((module_id, name)) = pending.pop() {
-      let module = module_graph
-        .module_by_identifier(&module_id)
-        .expect("should have module");
-      if !module.build_meta().esm()
-        && module.build_info().module_exports_accessed == Some(false)
-        && matches!(
-          binding_resolver.module_to_info_map.get(&module_id),
-          Some(ModuleInfo::Concatenated(_))
-        )
-      {
-        has_empty_target = true;
-        continue;
-      }
-      let exports_info = binding_resolver
-        .context
-        .exports_info_artifact
-        .get_exports_info_data(&module_id);
-      let export_info = exports_info.get_export_info_without_mut_module_graph(&name);
-      if !visited.insert(export_info.id()) {
-        continue;
-      }
-      let targets = export_info.get_max_target();
-      if matches!(export_info.provided(), Some(ExportProvided::Provided)) || targets.is_empty() {
-        return false;
-      }
-      for target in targets.values() {
-        let Some(dependency) = target
-          .dependency
-          .filter(|dependency| module.build_info().all_star_exports.contains(dependency))
-        else {
-          // Explicit reexports create own properties, even when their value is undefined.
-          return false;
-        };
-        let Some([name]) = target.export.as_deref() else {
-          return false;
-        };
-        let Some(target) = module_graph.module_identifier_by_dependency_id(&dependency) else {
-          return false;
-        };
-        pending.push((*target, name.clone()));
-      }
-    }
-    has_empty_target
+    let MissingStarExportCache {
+      results,
+      star_dependencies,
+      pending,
+      visited,
+    } = cache;
+    *results
+      .entry((*module_id, export_info.id()))
+      .or_insert_with(|| {
+        pending.clear();
+        visited.clear();
+        pending.push((*module_id, name.clone()));
+        let mut has_empty_target = false;
+        while let Some((module_id, name)) = pending.pop() {
+          let module = module_graph
+            .module_by_identifier(&module_id)
+            .expect("should have module");
+          if !module.build_meta().esm()
+            && module.build_info().module_exports_accessed == Some(false)
+            && matches!(
+              binding_resolver.module_to_info_map.get(&module_id),
+              Some(ModuleInfo::Concatenated(_))
+            )
+          {
+            has_empty_target = true;
+            continue;
+          }
+          let exports_info = binding_resolver
+            .context
+            .exports_info_artifact
+            .get_exports_info_data(&module_id);
+          let export_info = exports_info.get_export_info_without_mut_module_graph(&name);
+          if !visited.insert(export_info.id()) {
+            continue;
+          }
+          let targets = export_info.get_max_target();
+          if matches!(export_info.provided(), Some(ExportProvided::Provided)) || targets.is_empty()
+          {
+            return false;
+          }
+          let dependencies = star_dependencies.entry(module_id).or_insert_with(|| {
+            module
+              .build_info()
+              .all_star_exports
+              .iter()
+              .copied()
+              .collect()
+          });
+          for target in targets.values() {
+            let Some(dependency) = target
+              .dependency
+              .filter(|dependency| dependencies.contains(dependency))
+            else {
+              // Explicit reexports create own properties, even when their value is undefined.
+              return false;
+            };
+            let Some([name]) = target.export.as_deref() else {
+              return false;
+            };
+            let Some(target) = module_graph.module_identifier_by_dependency_id(&dependency) else {
+              return false;
+            };
+            pending.push((*target, name.clone()));
+          }
+        }
+        has_empty_target
+      })
   }
 
   #[allow(clippy::too_many_arguments)]
