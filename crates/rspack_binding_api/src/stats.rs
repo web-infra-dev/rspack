@@ -1150,7 +1150,7 @@ impl JsStats {
         if let LogType::Cache { label, hit, total } = event {
           counters.push(JsStatsCacheCounter {
             logger: logger.to_string(),
-            label: *label,
+            label,
             hit: *hit,
             total: *total,
           });
