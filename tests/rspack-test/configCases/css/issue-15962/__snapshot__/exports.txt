@@ -35,4 +35,15 @@ Object {
     small: LOCAL-small,
     smallSecond: LOCAL-smallSecond,
   },
+  syntax: Object {
+    afterSyntax: LOCAL-afterSyntax,
+    attributeSyntax: LOCAL-attributeSyntax,
+    balancedSyntax: LOCAL-balancedSyntax,
+    commentSyntax: LOCAL-commentSyntax,
+    escaped: --LOCAL-escaped,
+    escaped;boundary: LOCAL-escaped;boundary,
+    functionalSyntax: LOCAL-functionalSyntax,
+    syntax: LOCAL-syntax,
+    tokens: --LOCAL-tokens,
+  },
 }

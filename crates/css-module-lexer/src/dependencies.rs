@@ -1509,9 +1509,8 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         self.is_next_rule_prelude = match token.kind {
           TokenKind::Ident => !stream.lexer().is_declaration_after_ident(
             token.range.end,
-            stream
-              .slice_trusted(token.range.start, token.range.end)
-              .starts_with("--"),
+            dashed_ident_name_start(stream.slice_trusted(token.range.start, token.range.end))
+              .is_some(),
           ),
           TokenKind::Function | TokenKind::RightCurlyBracket => false,
           _ => true,
@@ -1905,7 +1904,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     flags: TokenFlags,
     property_local_mode: bool,
   ) -> (PropertyKind, Option<GridPropertyKind>) {
-    if name.starts_with("--") {
+    if dashed_ident_name_start(name).is_some() {
       return if property_local_mode {
         (PropertyKind::CustomProperty, None)
       } else {
@@ -4015,7 +4014,11 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   ) -> Option<()> {
     if matches!(self.scope, Scope::InBlock)
       && self.scan_context != ScanContext::Selector
-      && !self.balanced.is_empty()
+      && (!self.balanced.is_empty()
+        || matches!(
+          self.scan_context,
+          ScanContext::GenericValue | ScanContext::SpecialValue(_)
+        ))
     {
       self.balanced.push(
         BalancedItem::new_curly(start, start + 1),
@@ -4122,16 +4125,6 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           Some(last) if matches!(last.kind, BalancedItemKind::Curly)
       ) {
         self.balanced.pop(self.mode_data.as_mut());
-        if self.block_nesting_level == 0 {
-          self.scope = Scope::TopLevel;
-          self.is_next_rule_prelude = true;
-          self.set_scan_context(stream, ScanContext::TopLevel);
-          if let Some(mode_data) = &mut self.mode_data {
-            mode_data.composes_local_classes.reset_to_initial();
-          }
-        } else {
-          self.set_scan_context(stream, ScanContext::BlockItem);
-        }
         return Some(());
       }
 

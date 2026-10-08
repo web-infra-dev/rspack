@@ -1,6 +1,7 @@
 import * as styles from "./style.modules.css";
 import * as globalStyles from "./style.global.css";
 import * as smallStyles from "./small.modules.css";
+import * as syntaxStyles from "./syntax.modules.css";
 
 it("localizes type-first selectors in nested rules", () => {
 	const fs = require("fs");
@@ -13,6 +14,7 @@ it("localizes type-first selectors in nested rules", () => {
 	expect({
 		local: styles,
 		global: globalStyles,
-		short: smallStyles
+		short: smallStyles,
+		syntax: syntaxStyles
 	}).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "exports.txt"));
 });
