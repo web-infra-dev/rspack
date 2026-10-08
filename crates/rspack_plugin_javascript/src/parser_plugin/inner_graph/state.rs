@@ -183,4 +183,5 @@ pub(crate) enum InnerGraphUsageOperation {
   PureExpression(usize),
   ESMImportSpecifier(usize),
   URLDependency(usize),
+  ImportMetaResolveDependency(usize),
 }

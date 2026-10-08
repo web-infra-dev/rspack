@@ -905,11 +905,22 @@ export default {
 
 让 JavaScript 解析器能够解析 `import.meta.resolve()` 语法。
 
-目前 `import.meta.resolve("./module")` 打包后的行为和 [`require.resolve("./module")`](/api/runtime-api/module-methods#requireresolve) 类似，会将模块打包进最终的 bundle 中，并且返回该模块的模块 ID。
+`import.meta.resolve("./asset.txt")` 返回资源产物的 URL 字符串，类似于 `new URL("./asset.txt", import.meta.url).href`。它使用 `url` 依赖类别，因此默认按资源规则处理目标文件。将 `module.parser.javascript.url` 设置为 `"relative"` 时，返回相对 URL。
+
+如果匹配的模块规则将目标类型设为 JavaScript，Rspack 会将其输出为独立的 JavaScript 入口，并返回入口 URL。解析 URL 不会执行该入口，例如可以将这个 URL 交给稍后加载脚本的 API。
+
+仅处理恰好有一个可静态求值的字符串参数的调用，其他调用会保留到运行时。
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
+    rules: [
+      {
+        test: /script\.js$/,
+        dependency: 'url',
+        type: 'javascript/auto',
+      },
+    ],
     parser: {
       javascript: {
         importMetaResolve: true,
@@ -917,6 +928,11 @@ export default {
     },
   },
 };
+```
+
+```js title="src/index.js"
+const assetUrl = import.meta.resolve('./asset.txt');
+const scriptUrl = import.meta.resolve('./script.js');
 ```
 
 :::warning

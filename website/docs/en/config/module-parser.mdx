@@ -906,11 +906,22 @@ This option is experimental in Rspack and may change or be removed.
 
 Allow the JavaScript parser to understand `import.meta.resolve()` syntax.
 
-Currently, `import.meta.resolve("./module")` behaves similarly to [`require.resolve("./module")`](/api/runtime-api/module-methods#requireresolve): it includes the module in the final bundle and returns the module ID.
+`import.meta.resolve("./asset.txt")` returns the emitted asset URL as a string, like `new URL("./asset.txt", import.meta.url).href`. It uses the `url` dependency category, so assets are handled by the default asset rules. Setting `module.parser.javascript.url` to `"relative"` produces a relative URL.
+
+If a matching module rule sets the target type to JavaScript, Rspack emits a standalone JavaScript entry and returns its URL. Resolving the URL does not execute that entry. For example, this can provide a script URL to an API that loads the script later.
+
+Only calls with one statically evaluable string argument are bundled. Other calls are preserved for the runtime.
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
+    rules: [
+      {
+        test: /script\.js$/,
+        dependency: 'url',
+        type: 'javascript/auto',
+      },
+    ],
     parser: {
       javascript: {
         importMetaResolve: true,
@@ -918,6 +929,11 @@ export default {
     },
   },
 };
+```
+
+```js title="src/index.js"
+const assetUrl = import.meta.resolve('./asset.txt');
+const scriptUrl = import.meta.resolve('./script.js');
 ```
 
 :::warning
