@@ -2,7 +2,6 @@
 // ./index.js
 it('should disable eval devtool', () => {});
 
-;
 export {};
 
 ```

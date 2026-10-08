@@ -10,7 +10,6 @@ it("should keep the first conflicting namespace export under a warning", async (
   expect(mod.default).toBe(1);
 });
 
-;
 export default index;
 
 ```

@@ -3,7 +3,6 @@
 const shared = 'from-b';
 const onlyB = 'only-b';
 
-;
 // ./index.js
 // Both a.js and b.js export 'shared'. Rspack resolves the ambiguity by
 // picking the first source (a.js) rather than excluding it per strict ES spec.
@@ -19,7 +18,6 @@ it('should handle ambiguous export star without crashing', async () => {
 	expect(mod.shared).toBe('from-a');
 });
 
-;
 var index_onlyA = (/* inlined export .onlyA */"only-a");
 var index_shared = (/* inlined export .shared */"from-a");
 export { index_onlyA as onlyA, index_shared as shared, onlyB };

@@ -191,7 +191,6 @@ it("should keep a single __webpack_require__ export on runtimeChunk false entry 
 
 
 
-;
 export { direct };
 
 ```

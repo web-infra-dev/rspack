@@ -10,7 +10,6 @@ __webpack_require__.d(bar_namespaceObject, {
 // ./bar.js
 const x = 123;
 
-;
 // ./index.js
 
 
@@ -20,7 +19,6 @@ it("should keep an exported namespace binding when reading a missing property", 
   expect(bar_namespaceObject.foo).toBeUndefined();
 });
 
-;
 export {};
 
 ```

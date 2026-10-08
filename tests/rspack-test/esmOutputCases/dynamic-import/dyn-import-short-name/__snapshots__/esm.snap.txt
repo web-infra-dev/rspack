@@ -1,17 +1,15 @@
 ```mjs title=app.mjs
 // ./src/app.js
-const value = 1
+const value = 1;
 
-;
 export { value };
 
 ```
 
 ```mjs title=lib.mjs
 // ./lib/index.js
-const value = 2
+const value = 2;
 
-;
 export { value };
 
 ```
@@ -23,9 +21,8 @@ it('should assign short names to dynamic import chunks', async () => {
 	const lib = await import("./lib.mjs")
 	expect(app.value).toBe(1)
 	expect(lib.value).toBe(2)
-})
+});
 
-;
 export {};
 
 ```

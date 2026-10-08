@@ -3,14 +3,11 @@ import * as __rspack_external_path from "path";
 
 // fs
 
-;
 // ./named.js
 
 
-;
 // path
 
-;
 // ./path-ns.js
 
 
@@ -18,7 +15,6 @@ const joinFn = Reflect.get(__rspack_external_path, "join");
 
 
 
-;
 // ./index.js
 
 
@@ -35,7 +31,6 @@ it("should deconflict concatenated namespace imports that match generated module
   expect(mod.joinFn).toBe(path.join);
 });
 
-;
 export { __rspack_external_path as pathNs, joinFn };
 export { readFile, readFileSync } from "fs";
 

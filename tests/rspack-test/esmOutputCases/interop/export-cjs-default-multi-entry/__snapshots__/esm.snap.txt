@@ -32,7 +32,6 @@ it('should re-export a CommonJS default from another entry', async () => {
   expect(value).toBe(42);
 });
 
-;
 const foo = __webpack_require__("./foo.cjs");
 var foo_default = /*#__PURE__*/__webpack_require__.n(foo);
 var foo_default_0 = foo_default();

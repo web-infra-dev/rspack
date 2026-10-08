@@ -19,7 +19,6 @@ module.exports = "dep";
 });
 // node:module
 const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
-;
 // ./only-require.js
 
 
@@ -27,7 +26,6 @@ const req = /* createRequire() */ undefined;
 
 const bundledValue = __webpack_require__(/*! ./dep.js */ "./dep.js");
 
-;
 // ./preserve-import-meta.js
 
 
@@ -39,7 +37,6 @@ const preservedResolved = preserve_import_meta_req.resolve("path");
 const preservedVarResolved = varReq.resolve("path");
 const preservedLetResolved = letReq.resolve("path");
 
-;
 // ./index.js
 
 
@@ -69,7 +66,6 @@ it("should delegate import.meta.url parsing when requireResolve is disabled", as
 	expect(bundledValue).toBe("dep");
 });
 
-;
 export { resolved };
 
 ```

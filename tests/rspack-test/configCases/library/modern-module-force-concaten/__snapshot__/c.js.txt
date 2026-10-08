@@ -1,4 +1,3 @@
-const c = 'c'
+const c = 'c';
 
-;
 export {};

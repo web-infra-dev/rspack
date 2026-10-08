@@ -12,7 +12,6 @@ __webpack_require__.d(foo_namespaceObject, {
 const foo = 123;
 
 
-;
 // ./index.js
 
 
@@ -23,7 +22,6 @@ it("should re-export a module that exports its own namespace", async () => {
   expect(mod.ns.foo).toBe(123);
 });
 
-;
 export { foo, foo_namespaceObject as ns };
 
 ```

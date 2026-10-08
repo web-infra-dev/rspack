@@ -17,11 +17,9 @@ __webpack_require__.d(foo_namespaceObject, {
 // ./bar.js
 const bar = 123;
 
-;
 // ./foo.js
 
 
-;
 // ./index.js
 
 
@@ -33,7 +31,6 @@ it("should import a module that exports another namespace", async () => {
   expect(mod.fooNs.barNs.bar).toBe(123);
 });
 
-;
 export { foo_namespaceObject as fooNs };
 
 ```

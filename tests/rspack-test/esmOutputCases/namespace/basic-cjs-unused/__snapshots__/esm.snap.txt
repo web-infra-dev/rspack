@@ -8,7 +8,6 @@ it("should tree-shake an unused CommonJS namespace import", () => {
   expect(value).toBe(234);
 });
 
-;
 export {};
 
 ```

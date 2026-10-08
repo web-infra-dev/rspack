@@ -1,13 +1,10 @@
 import "external1-alias";
 
 
-;
 
-const foo = 2
+const foo = 2;
 
-;
 
-const bar = 1
+const bar = 1;
 
-;
 export { bar, foo };

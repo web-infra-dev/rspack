@@ -31,7 +31,6 @@ it('should re-export a CommonJS default from another entry', async () => {
   expect(value).toBe(42);
 });
 
-;
 const foo = rspackRequire("./foo.cjs");
 var foo_default = /*#__PURE__*/compatGetDefaultExport(foo);
 var foo_default_0 = foo_default();

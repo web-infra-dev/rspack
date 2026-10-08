@@ -9,9 +9,8 @@ it('should have deconflicted symbol', () => {
 	expect((/* inlined export .value */42)).toBe(42)
 	expect(local).toBe('index')
 	expect(index_local).toBe('')
-})
+});
 
-;
 export {};
 
 ```

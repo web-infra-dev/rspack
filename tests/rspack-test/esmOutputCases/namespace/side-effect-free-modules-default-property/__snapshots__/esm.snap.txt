@@ -25,11 +25,9 @@ __webpack_require__.r(foo_no_side_effects_namespaceObject);
 // ./foo/no-side-effects.js
 console.log("js");
 
-;
 // ./foo/no-side-effects.mjs
 console.log("mjs");
 
-;
 // ./index.js
 const no_side_effects = __webpack_require__("./foo/no-side-effects.cjs");
 var no_side_effects_default = /*#__PURE__*/__webpack_require__.n(no_side_effects);
@@ -43,7 +41,6 @@ it("should keep default namespace semantics for side-effect-free modules", () =>
   expect(typeof (no_side_effects_default())).toBe("object");
 });
 
-;
 export {};
 
 ```

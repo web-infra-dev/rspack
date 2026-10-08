@@ -10,9 +10,8 @@ it('should keep namespace when both conflicting exports are used', async () => {
 	expect(bValue).toBe(2)
 	expect(foo).toBe('a-foo')
 	expect(bar).toBe('b-bar')
-})
+});
 
-;
 export {};
 
 ```
@@ -76,12 +75,10 @@ __webpack_require__.d(b_namespaceObject, {
 const value = 1;
 const foo = 'a-foo';
 
-;
 // ./b.js
 const b_value = 2;
 const bar = 'b-bar';
 
-;
 export { a_namespaceObject, b_namespaceObject };
 
 ```

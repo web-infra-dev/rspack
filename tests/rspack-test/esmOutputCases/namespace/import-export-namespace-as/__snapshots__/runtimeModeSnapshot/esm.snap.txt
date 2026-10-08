@@ -10,7 +10,6 @@ definePropertyGetters(foo_namespaceObject, {
 // ./foo.js
 const foo = 123;
 
-;
 // ./index.js
 
 
@@ -22,7 +21,6 @@ it("should export an imported local namespace", async () => {
   expect(mod.ns.foo).toBe(123);
 });
 
-;
 export { foo_namespaceObject as ns };
 
 ```

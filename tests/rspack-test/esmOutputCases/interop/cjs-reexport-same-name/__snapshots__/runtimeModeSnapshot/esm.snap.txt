@@ -36,7 +36,6 @@ it('should correctly handle two CJS modules with same-named exports', async () =
 	expect(mod.unique_b).toBe(200);
 });
 
-;
 const a = rspackRequire("./a.cjs");
 var G = a.G;
 var U = a.U;

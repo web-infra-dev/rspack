@@ -3,7 +3,6 @@
 // ./src/index.js
 
 
-;
 export { duplicatePackage } from "./rules/duplicate-package/index.mjs";
 
 ```
@@ -26,7 +25,6 @@ const { /* CheckVersionMap */J: CheckVersionMap } = types_namespaceObject;
 
 const value = CheckVersionMap.major;
 
-;
 export { duplicate_package_namespaceObject as duplicatePackage, value };
 
 ```
@@ -45,7 +43,6 @@ const CheckVersionMap = {
 	major: 1
 };
 
-;
 export { CheckVersionMap, types_namespaceObject };
 
 ```

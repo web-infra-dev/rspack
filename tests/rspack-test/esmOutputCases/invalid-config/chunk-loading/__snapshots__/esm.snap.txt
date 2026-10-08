@@ -1,8 +1,7 @@
 ```mjs title=foo.mjs
 // ./foo.js
-console.log.bind('foo')
+console.log.bind('foo');
 
-;
 export {};
 
 ```
@@ -11,9 +10,8 @@ export {};
 // ./index.js
 it('should import chunk', async () => {
 	await import("./foo.mjs")
-})
+});
 
-;
 export {};
 
 ```

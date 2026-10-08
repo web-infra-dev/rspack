@@ -10,7 +10,6 @@ module.exports = 'foo'
 
 
 
-;
 const foo = rspackRequire("547");
 var foo_default = /*#__PURE__*/compatGetDefaultExport(foo);
 var foo_default_0 = foo_default();

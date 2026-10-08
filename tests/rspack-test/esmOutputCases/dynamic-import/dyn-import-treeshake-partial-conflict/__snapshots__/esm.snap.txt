@@ -9,9 +9,8 @@ it('should skip namespace when tree-shaking removes one side of a conflict', asy
 	expect(value).toBe(1)
 	expect(foo).toBe('a-foo')
 	expect(bar).toBe('b-bar')
-})
+});
 
-;
 export {};
 
 ```
@@ -21,12 +20,10 @@ export {};
 const value = 1;
 const foo = 'a-foo';
 
-;
 // ./b.js
 const b_value = 2;
 const bar = 'b-bar';
 
-;
 export { bar, foo, value };
 
 ```

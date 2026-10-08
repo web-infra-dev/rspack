@@ -410,9 +410,7 @@ var {} = {{}};
         module_runtime_template,
       ));
       render_source.add(source);
-      // Module sources may omit a final semicolon or end in a line comment.
-      // Keep the next module from continuing the previous module's expression.
-      render_source.add(RawStringSource::from_static("\n;\n"));
+      render_source.add(RawStringSource::from_static("\n"));
 
       chunk_init_fragments.extend(info.chunk_init_fragments.clone());
 
@@ -827,6 +825,10 @@ var {} = {{}};
         };
         source.replace(ident.id.span.real_lo(), ident.id.span.real_hi(), name, None);
       }
+    }
+
+    if let Some(pos) = info.trailing_semicolon_position {
+      source.insert_static(pos, ";", None);
     }
 
     Ok(source)

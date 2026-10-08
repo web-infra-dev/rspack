@@ -1,16 +1,13 @@
 ```mjs title=main.mjs
 // fs?f23b
 
-;
 // ./module.js
 
 
-console.log.bind(console)
+console.log.bind(console);
 
-;
 // fs?771d
 
-;
 // ./index.js
 
 
@@ -20,11 +17,10 @@ it('should handle aliased external', async () => {
 
 	expect(f).toBe(fs.readFile)
 	expect(w).toBe(fs.writeFile)
-})
+});
 
 
 
-;
 export { readFile as f, writeFile as w } from "fs";
 
 ```

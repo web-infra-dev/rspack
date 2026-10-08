@@ -4,7 +4,6 @@ function foo() {
   return "foo";
 }
 
-;
 // ./index.js
 
 
@@ -20,7 +19,6 @@ it("should optimize repeated namespace lookups in one function", async () => {
   expect(mod.default).toBe("foo,foo");
 });
 
-;
 export default index;
 
 ```

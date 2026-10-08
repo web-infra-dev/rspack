@@ -40,25 +40,18 @@ export default defineConfig({
 						import "externals4";
 
 
-						;
 
-						;
 
-						;
 
-						;
 
-						;
 
-						;
 
 
 						(function Layout(props) {
 						  const { HomeLayout = external_externals0_HomeLayout } = props;
 						  call({ HomeLayout });
-						})()
+						})();
 
-						;
 						// re export
 
 
@@ -80,7 +73,6 @@ export default defineConfig({
 						externals2;
 						__rspack_external_externals3;
 
-						;
 						export { a };
 					`);
         });

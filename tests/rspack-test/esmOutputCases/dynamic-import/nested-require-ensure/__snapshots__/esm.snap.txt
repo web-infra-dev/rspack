@@ -18,7 +18,6 @@ it("should return each module namespace for imports nested in require.ensure", a
 	expect({ ...b }).toEqual({ default: "b", name: "module-b", id: 2 });
 });
 
-;
 export { load };
 
 ```
@@ -102,13 +101,11 @@ __webpack_require__.d(b_namespaceObject, {
 const a_name = 'module-a';
 const id = 1;
 
-;
 // ./b.js
 /* export default */ const b = ('b');
 const b_name = 'module-b';
 const b_id = 2;
 
-;
 export { a_namespaceObject, b_namespaceObject };
 
 ```

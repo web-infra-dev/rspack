@@ -2,7 +2,6 @@
 // ./index.js
 it('should fall back to a non-eval source map', () => {});
 
-;
 export {};
 
 //# sourceMappingURL=main.mjs.map

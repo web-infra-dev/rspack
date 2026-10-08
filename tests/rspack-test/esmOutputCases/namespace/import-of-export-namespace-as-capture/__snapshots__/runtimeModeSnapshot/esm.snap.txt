@@ -10,7 +10,6 @@ definePropertyGetters(foo_namespaceObject, {
 // ./foo.js
 const foo = 123;
 
-;
 // ./index.js
 
 
@@ -22,7 +21,6 @@ it("should keep an export-star-as namespace object when captured by the importer
   expect(value).toBe(234);
 });
 
-;
 export {};
 
 ```

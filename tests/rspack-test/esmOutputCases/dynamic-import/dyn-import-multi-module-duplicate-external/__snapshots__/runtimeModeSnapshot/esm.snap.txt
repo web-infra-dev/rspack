@@ -10,7 +10,6 @@ it("should merge duplicate externals inside a dynamic multi-module chunk", async
 	expect(modB.marker).toBe("b");
 });
 
-;
 export {};
 
 ```
@@ -71,21 +70,17 @@ definePropertyGetters(b_namespaceObject, {
 
 // fs?2aa6
 
-;
 // ./a.js
 
 
 
-;
 // fs?f4d4
 
-;
 // ./b.js
 
 
 const marker = "b";
 
-;
 export { a_namespaceObject, b_namespaceObject };
 
 ```

@@ -18,14 +18,12 @@ Object.keys(reexport_external_namespaceObject_starExports).forEach(function(key)
 
 // fs
 
-;
 // ./reexport-external.js
 
 
 const readFile = 42;
 const marker = "marker";
 
-;
 // ./index.js
 
 
@@ -37,7 +35,6 @@ it("should merge local exports with external star reexports inside exported name
   expect(mod.fsNs.marker).toBe("marker");
 });
 
-;
 export { reexport_external_namespaceObject as fsNs };
 
 ```

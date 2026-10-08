@@ -8,6 +8,8 @@ export default [false, true].map((minimize, index) =>
       jsonParse: './json-parse.js',
       array: './array.js',
       javascript: './javascript.js',
+      conditional: './conditional.js',
+      loop: './loop.js',
     },
     output: {
       filename: `[name]${index}.mjs`,

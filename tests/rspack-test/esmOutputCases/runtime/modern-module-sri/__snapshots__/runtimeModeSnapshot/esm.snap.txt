@@ -2,7 +2,6 @@
 // ./index.js
 const value = import("./value.mjs");
 
-;
 export { value };
 
 ```
@@ -14,7 +13,7 @@ export { rspackRequire };
 
 // rspack/runtime/sri_hash_variable
 
-          rspackRequire.sriHashes = {"value": "sha384-BAz702FXvEd7g9KiVk9kz6001Xw/YqhnM4G9n8Ti2wnt865PpW5SG9h8jRe4l0R6"};
+          rspackRequire.sriHashes = {"value": "sha384-n/vSaOHnKSkGM5h7v+v8wRPJlDOhVXbgjK6iYxj8/sWl7re7g0lRNVYd7Gs6mPAy"};
           ;
 
 
@@ -24,7 +23,6 @@ export { rspackRequire };
 // ./value.js
 /* export default */ const value = (42);
 
-;
 export default value;
 
 ```

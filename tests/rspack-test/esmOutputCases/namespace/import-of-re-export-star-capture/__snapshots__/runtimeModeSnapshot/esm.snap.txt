@@ -10,7 +10,6 @@ definePropertyGetters(bar_namespaceObject, {
 // ./bar.js
 
 
-;
 // ./index.js
 
 
@@ -22,7 +21,6 @@ it("should keep a namespace imported from a star re-export when captured", () =>
   expect(value).toBe(234);
 });
 
-;
 export {};
 
 ```

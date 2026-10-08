@@ -2,7 +2,6 @@
 // ./dynamic.js
 /* export default */ const dynamic = (42);
 
-;
 export default dynamic;
 
 ```
@@ -19,7 +18,6 @@ definePropertyGetters(dynamic1_namespaceObject, {
 // ./dynamic.js?1
 /* export default */ const dynamic1 = (42);
 
-;
 // ./index.js
 
 
@@ -30,9 +28,8 @@ it('should support dynamic import', async () => {
 	expect(value.default).toBe(42)
 	expect(dynamic1).toBe(42)
 	expect(value2.default).toBe(42)
-})
+});
 
-;
 export {};
 
 ```

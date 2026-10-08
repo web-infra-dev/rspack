@@ -9,7 +9,6 @@ function createWorker() {
 	);
 }
 
-;
 export { createWorker };
 
 ```
@@ -18,7 +17,6 @@ export { createWorker };
 // ./worker.js
 const workerValue = 42;
 
-;
 export { workerValue };
 
 ```

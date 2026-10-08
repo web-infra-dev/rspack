@@ -8,9 +8,8 @@ __webpack_require__.d(foo_namespaceObject, {
 
 
 // ./foo.js
-const foo = 123
+const foo = 123;
 
-;
 // ./index.js
 
 let index_foo = 234
@@ -19,10 +18,9 @@ it('should compile', () => {
 	expect(foo_namespaceObject).toHaveProperty('foo')
 	expect(foo).toBe(123)
 	expect(index_foo).toBe(234)
-})
+});
 
 
-;
 export {};
 
 ```

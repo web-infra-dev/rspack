@@ -10,7 +10,6 @@ __webpack_require__.d(foo_namespaceObject, {
 // ./foo.js
 const bar = 42;
 
-;
 // ./index.js
 
 
@@ -22,7 +21,6 @@ it("should keep namespace toStringTag visible for static resolution", () => {
   expect(Boolean(foo_namespaceObject.foo)).toBe(false);
 });
 
-;
 export { keep };
 
 ```

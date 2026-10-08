@@ -23,7 +23,6 @@ definePropertyGetters(exports, {
 var __nested_rspack_exports__ = 43;
 
 
-;
 // ./index.js
 const index_nested_rspack_exports_ = 42;
 
@@ -37,7 +36,6 @@ it("should preserve direct and deconflicted exports bindings", async () => {
 	expect(namespace.wrappedExports).toBe(44);
 });
 
-;
 const wrapped = rspackRequire("./wrapped.js");
 var A = wrapped.A;
 

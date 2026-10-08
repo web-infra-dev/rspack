@@ -4,7 +4,6 @@ function broken() {
   return "broken";
 }
 
-;
 export { broken };
 
 ```
@@ -29,7 +28,6 @@ it("should retrace namespace reexports through split chunks", async () => {
   expect(mod.default).toEqual(["broken", "other", "broken"]);
 });
 
-;
 export default index;
 
 ```
@@ -48,7 +46,6 @@ function callBrokenFromOther() {
   return broken();
 }
 
-;
 export { Other, callBrokenFromOther };
 
 ```

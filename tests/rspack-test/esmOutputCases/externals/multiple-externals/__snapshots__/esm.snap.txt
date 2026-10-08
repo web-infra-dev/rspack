@@ -3,15 +3,13 @@ import * as __rspack_external_fs from "fs";
 
 // fs?3cf4
 
-;
 // ./async.js
 
 
 // access namespace
-console.log.bind(__rspack_external_fs)
+console.log.bind(__rspack_external_fs);
 
 
-;
 export { __rspack_external_fs as ns };
 
 ```
@@ -21,23 +19,18 @@ import fs, { readFile } from "fs";
 
 // fs?771d
 
-;
 // fs?5ccf
 
-;
 // ./other.js
 
 /* export default */ const other = (fs);
 
 
-;
 // fs?22cf
 
-;
 // ./other2.js
 
 
-;
 // ./index.js
 
 
@@ -48,8 +41,7 @@ it('should render external correctly', async () => {
 
   expect(fs).toBe(other).toBe(fs).toBe(ns.default)
   expect(readFile).toBe(readFile).toBe(readFile).toBe(ns.readFile)
-})
-;
+});
 export {};
 
 ```

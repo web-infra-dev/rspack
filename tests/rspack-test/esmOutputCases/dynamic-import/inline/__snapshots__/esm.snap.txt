@@ -1,7 +1,6 @@
 ```mjs title=foo.mjs
 // ./foo.js
 
-;
 var foo_value = (/* inlined export .value */42);
 export { foo_value as value };
 
@@ -12,9 +11,8 @@ export { foo_value as value };
 it('should have correct inline export', async () => {
   const { value } = await import("./foo.mjs")
   expect(value).toBe(42)
-})
+});
 
-;
 export {};
 
 ```

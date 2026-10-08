@@ -4,7 +4,6 @@ function yar() {
   return "yar?";
 }
 
-;
 // ./index.js
 
 
@@ -18,7 +17,6 @@ it("should preserve namespace member access with whitespace around the dot", asy
   expect(mod.default).toBe("yar?");
 });
 
-;
 export default index;
 
 ```

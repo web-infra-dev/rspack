@@ -22,7 +22,6 @@ it("should export its own namespace via import-and-export", async () => {
   expect(mod.ns.foo).toBe(123);
 });
 
-;
 export { foo, index_namespaceObject as ns };
 
 ```

@@ -22,9 +22,8 @@
 
 it('should preserve modules with css-extract', () => {
   expect((/* inlined export .name */"button")).toBe('button')
-})
+});
 
-;
 export {};
 
 ```

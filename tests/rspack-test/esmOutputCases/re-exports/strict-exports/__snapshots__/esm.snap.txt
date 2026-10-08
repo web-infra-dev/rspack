@@ -9,7 +9,6 @@ const cjs = __webpack_require__("./cjs.js");
 
 cjs.p;
 
-;
 export {};
 
 ```
@@ -44,9 +43,8 @@ it('should only contains needed exports', async () => {
 	expect(value()()).toBe(42)
 })
 
-const index_value = () => cjs.p
+const index_value = () => cjs.p;
 
-;
 export { index_value as value };
 
 ```

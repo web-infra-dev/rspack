@@ -45,7 +45,6 @@ function createAsyncWorker() {
   return new Worker(new URL(/* worker import */__webpack_require__.p + __webpack_require__.u("worker-async"), __webpack_require__.b), { type: "module" });
 }
 
-;
 export { createAsyncWorker, createCommonJsWorker, createWorker };
 
 ```
@@ -315,7 +314,6 @@ export {};
 
 globalThis.__workerEntryExecuted = true;
 
-;
 export {};
 
 ```

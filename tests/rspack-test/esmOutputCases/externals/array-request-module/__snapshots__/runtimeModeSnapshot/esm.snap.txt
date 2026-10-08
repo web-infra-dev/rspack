@@ -4,7 +4,6 @@ import * as __rspack_external_fs from "fs";
 
 // fs-promises
 
-;
 
 var external_fs_promises_default = /*#__PURE__*/compatGetDefaultExport(__rspack_external_fs.promises);// ./index.js
 
@@ -12,9 +11,8 @@ var external_fs_promises_default = /*#__PURE__*/compatGetDefaultExport(__rspack_
 it('should support array-type module external with property access', async () => {
   const fs = await import(/* webpackIgnore: true */ 'node:fs')
   expect((external_fs_promises_default())).toBe(fs.promises)
-})
+});
 
-;
 export {};
 
 ```

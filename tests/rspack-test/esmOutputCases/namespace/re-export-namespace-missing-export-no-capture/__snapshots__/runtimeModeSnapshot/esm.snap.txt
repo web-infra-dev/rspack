@@ -8,7 +8,6 @@ makeNamespaceObject(bar_namespaceObject);
 // ./bar.js
 const x = 123;
 
-;
 // ./index.js
 
 
@@ -17,7 +16,6 @@ it("should render a missing property from an exported namespace binding without 
   expect(bar_namespaceObject.foo).toBeUndefined();
 });
 
-;
 export {};
 
 ```

@@ -18,7 +18,6 @@ module.exports = "loader";
 });
 // node:module
 const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
-;
 
 var external_node_module_default = /*#__PURE__*/compatGetDefaultExport(external_node_module_namespaceObject);// ./default-require.js
 
@@ -27,7 +26,6 @@ const defaultRequire = external_node_module_default().createRequire('<ROOT>/test
 
 const defaultUnknown = defaultRequire.unknown;
 
-;
 // ./exported-require.js
 
 
@@ -35,7 +33,6 @@ const exportedRequire = (0,external_node_module_namespaceObject.createRequire)('
 
 
 
-;
 // ./namespace-require.js
 
 
@@ -43,7 +40,6 @@ const namespaceRequire = external_node_module_namespaceObject.createRequire('<RO
 
 const namespaceUnknown = namespaceRequire.unknown;
 
-;
 // ./pre-declared-require.js
 
 
@@ -62,7 +58,6 @@ function getNestedRequire() {
 	return readRequire();
 }
 
-;
 // ./pre-declared-require-call.js
 
 
@@ -72,7 +67,6 @@ function pre_declared_require_call_load() {
 
 const pre_declared_require_call_req = /* createRequire() */ undefined;
 
-;
 // ./quote'require.js
 
 
@@ -80,7 +74,6 @@ const quotedRequire = (0,external_node_module_namespaceObject.createRequire)('<R
 
 const quotedUnknown = quotedRequire.unknown;
 
-;
 // ./index.js
 
 
@@ -127,7 +120,6 @@ it("should consume createRequire(import.meta.url) like webpack", async () => {
 	expect(quotedUnknown).toBe(undefined);
 });
 
-;
 export { index_value as value, loader, requireAsValueType, unknownMember };
 
 ```

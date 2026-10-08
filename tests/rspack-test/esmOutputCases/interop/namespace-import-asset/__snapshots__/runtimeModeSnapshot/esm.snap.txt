@@ -6,16 +6,14 @@ export default 42
 import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
 // ./foo.mjs
 import foo_namespaceObject from "./407a5f26e1107499.mjs";
-;
 var foo_namespaceObject2 = /*#__PURE__*/createFakeNamespaceObject(foo_namespaceObject);
 // ./index.js
 
 
 it('should have ns', () => {
 	expect(foo_namespaceObject2).toBeDefined()
-})
+});
 
-;
 export {};
 
 ```

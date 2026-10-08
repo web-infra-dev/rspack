@@ -3,7 +3,6 @@ import * as __rspack_external_fs from "fs";
 
 // fs
 
-;
 // ./index.js
 
 
@@ -14,7 +13,6 @@ it("should export an external module namespace with export-star-as syntax", asyn
   expect(typeof mod.out.readFileSync).toBe("function");
 });
 
-;
 export { __rspack_external_fs as out };
 
 ```

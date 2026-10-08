@@ -10,7 +10,6 @@ definePropertyGetters(foo_namespaceObject, {
 // ./foo.js
 const x = 123;
 
-;
 // ./index.js
 
 
@@ -20,7 +19,6 @@ it("should keep the namespace object when reading a missing local namespace prop
   expect(foo_namespaceObject.foo).toBeUndefined();
 });
 
-;
 export {};
 
 ```

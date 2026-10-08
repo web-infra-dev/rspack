@@ -1,7 +1,6 @@
 ```mjs title=bar.mjs
 // ./bar.js
-const v = () => 42
-;
+const v = () => 42;
 export { v };
 
 ```
@@ -12,9 +11,8 @@ import { v } from "./bar.mjs";
 // ./foo.js
 
 
-const value = () => v()
+const value = () => v();
 
-;
 export { value };
 
 ```
@@ -27,8 +25,7 @@ import { value } from "./foo.mjs";
 
 it('should have correct value', () => {
   expect(value()).toBe(42)
-})
-;
+});
 export {};
 
 ```

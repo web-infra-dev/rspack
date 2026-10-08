@@ -2,7 +2,6 @@
 import * as __rspack_external_fs from "fs";
 // fs
 
-;
 // ./index.js
 
 
@@ -17,7 +16,6 @@ it("should not count external namespace property access as a side effect", async
   expect(mod.default).toBe("main");
 });
 
-;
 export default index;
 
 ```

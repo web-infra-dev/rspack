@@ -40,7 +40,6 @@ function createAsyncWorker() {
   return new Worker(new URL(/* worker import */publicPath + getChunkScriptFilename("worker-async"), baseUri), { type: "module" });
 }
 
-;
 export { createAsyncWorker, createCommonJsWorker, createWorker };
 
 ```
@@ -299,7 +298,6 @@ export {};
 
 globalThis.__workerEntryExecuted = true;
 
-;
 export {};
 
 ```

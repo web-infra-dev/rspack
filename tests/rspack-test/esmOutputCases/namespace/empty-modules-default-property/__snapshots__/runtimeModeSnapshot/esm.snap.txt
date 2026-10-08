@@ -24,11 +24,9 @@ makeNamespaceObject(empty_namespaceObject_0);
 // ./empty.js
 
 
-;
 // ./empty.mjs
 
 
-;
 // ./index.js
 const empty = rspackRequire("./empty.cjs");
 var empty_default = /*#__PURE__*/compatGetDefaultExport(empty);
@@ -42,7 +40,6 @@ it("should keep default namespace semantics for empty modules", () => {
   expect(typeof (empty_default())).toBe("object");
 });
 
-;
 export {};
 
 ```

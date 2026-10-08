@@ -11,13 +11,11 @@ definePropertyGetters(exports_namespaceObject, {
 
 // webpack-sources
 const index_js_namespaceObject = __rspack_createRequire_require("webpack-sources/lib/index.js");
-;
 // ./exports.js
 
 
 
 
-;
 // ./index.js
 
 
@@ -33,7 +31,6 @@ it("should keep a node-commonjs external wrapper on the require path only", asyn
   expect(mod.exportsNS.sources.RawSource).toBe(mod.sources.RawSource);
 });
 
-;
 export { exports_namespaceObject as exportsNS, index_js_namespaceObject as sources };
 
 ```

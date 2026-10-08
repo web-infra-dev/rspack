@@ -1,6 +1,6 @@
 export default {
   findBundle(index) {
-    return ['main', 'jsonParse', 'array', 'javascript'].map(
+    return ['main', 'jsonParse', 'array', 'javascript', 'conditional', 'loop'].map(
       name => `${name}${index}.mjs`,
     );
   },

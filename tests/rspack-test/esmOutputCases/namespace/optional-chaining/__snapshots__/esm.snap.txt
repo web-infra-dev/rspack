@@ -10,7 +10,6 @@ __webpack_require__.d(util_namespaceObject, {
 // ./util.js
 const foo = { nullVal: null };
 
-;
 // ./index.js
 
 
@@ -28,7 +27,6 @@ it("should preserve optional chaining with namespace objects", async () => {
   expect(mod.namespaceChain).toBeUndefined();
 });
 
-;
 export { missingChain, missingValue, namespaceChain, presentNull };
 
 ```

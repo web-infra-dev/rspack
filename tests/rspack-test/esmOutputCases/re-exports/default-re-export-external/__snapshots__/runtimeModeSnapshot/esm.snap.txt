@@ -12,25 +12,20 @@ definePropertyGetters(file_namespaceObject, {
 
 // fs?42cb
 
-;
 // ./sharding.js
 
 
 const value = fs;
 
-;
 // fs?5257
 
-;
 // ./file.js
 
 
 
-;
 // ./index.js
 
 
-;
 export { file_namespaceObject as File };
 
 ```

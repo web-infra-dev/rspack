@@ -3,7 +3,6 @@ import * as __rspack_external_fs from "fs";
 
 // fs
 
-;
 // ./index.js
 
 
@@ -19,7 +18,6 @@ it("should distinguish external default and namespace imports", async () => {
   expect(typeof mod.fsNs.readFile).toBe("function");
 });
 
-;
 export { __rspack_external_fs as fsNs };
 export default index;
 

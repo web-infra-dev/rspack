@@ -24,7 +24,6 @@ it("should support self namespace imports", async () => {
   expect(mod.keys).toContain("p");
 });
 
-;
 export { keys, p };
 
 ```

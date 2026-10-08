@@ -17,16 +17,14 @@ import * as __rspack_external_fs from "fs";
 
 // fs
 
-;
 // ./lib.js
 // side effect
-console.log.bind(console)
+console.log.bind(console);
 
 
 // re-export star from unknown
 
 
-;
 // ./index.js
 // normal export
 const index_a = (() => 42)()
@@ -44,8 +42,7 @@ it('should have correct exports', async () => {
   expect(b).toBe(1)
 
   expect(typeof readFile).toBe('function')
-})
-;
+});
 export { index_a as a, index_b as b };
 
 ```

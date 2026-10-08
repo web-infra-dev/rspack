@@ -25,7 +25,6 @@ it("should keep a captured CommonJS namespace object", () => {
   expect(value).toBe(234);
 });
 
-;
 export {};
 
 ```

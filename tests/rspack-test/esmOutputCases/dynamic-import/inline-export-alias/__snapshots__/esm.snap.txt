@@ -10,7 +10,6 @@ call(x);
 
 
 
-;
 export { x as a, x as b };
 
 ```
@@ -25,7 +24,6 @@ it('should preserve aliases for reused inline export bindings', async () => {
 	expect(globalThis.__inlineExportAlias).toBe(1);
 });
 
-;
 export {};
 
 ```

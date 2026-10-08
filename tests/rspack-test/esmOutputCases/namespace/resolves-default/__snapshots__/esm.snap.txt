@@ -4,7 +4,6 @@
   return 42;
 }
 
-;
 // ./index.js
 
 
@@ -17,7 +16,6 @@ it("should expose the default export through a namespace object", async () => {
   expect(out.default).toBe(42);
 });
 
-;
 export default index;
 
 ```

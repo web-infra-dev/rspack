@@ -128,7 +128,6 @@ it("should wrap multi chunk context ensure calls", async () => {
 	]);
 });
 
-;
 export {};
 
 ```

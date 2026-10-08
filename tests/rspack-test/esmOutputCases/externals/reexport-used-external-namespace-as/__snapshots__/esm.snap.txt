@@ -4,10 +4,8 @@ import * as __rspack_external_path from "path";
 
 // fs
 
-;
 // path
 
-;
 // ./index.js
 
 
@@ -24,7 +22,6 @@ it("should re-export used external namespaces without duplicating semantics", as
   expect(mod.external2.resolve).toBe(__rspack_external_path.resolve);
 });
 
-;
 export { __rspack_external_fs as external1, __rspack_external_path as external2 };
 
 ```

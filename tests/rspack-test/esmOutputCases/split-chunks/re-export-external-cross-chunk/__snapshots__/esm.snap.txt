@@ -9,9 +9,8 @@ it('should have correct exports from cross-chunk external re-exports', async () 
 	const mod = await import(/*webpackIgnore: true*/ './main.mjs')
 	expect(mod.readFile).toBeDefined()
 	expect(mod.join).toBeDefined()
-})
+});
 
-;
 export { join, readFile } from "./wrapper-chunk.mjs";
 
 ```
@@ -19,15 +18,12 @@ export { join, readFile } from "./wrapper-chunk.mjs";
 ```mjs title=wrapper-chunk.mjs
 // fs
 
-;
 // path
 
-;
 // ./wrapper.js
 
 
 
-;
 export { readFile } from "fs";
 export { join } from "path";
 
