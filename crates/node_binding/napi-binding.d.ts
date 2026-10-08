@@ -1412,6 +1412,23 @@ export interface JsStatsAssetsByChunkName {
   files: Array<string>
 }
 
+export interface JsStatsCacheCounter {
+  logger: string
+  label: string
+  hit: number
+  total: number
+}
+
+export interface JsStatsCacheInfo {
+  mode: 'disabled' | 'memory' | 'persistent'
+  status?: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined
+  reason?: 'version' | 'buildDependencies' | 'recovery' | undefined
+  sessionStatus?: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined
+  sessionReason?: 'version' | 'buildDependencies' | 'recovery' | undefined
+  moduleBuilds?: JsStatsModuleBuilds
+  counters: Array<JsStatsCacheCounter>
+}
+
 export interface JsStatsChildGroupChildAssets {
   preload?: Array<string>
   prefetch?: Array<string>
@@ -1462,28 +1479,6 @@ export interface JsStatsChunkGroupChildren {
   prefetch?: Array<JsStatsChunkGroup>
 }
 
-export interface JsStatsCacheInfo {
-  mode: 'disabled' | 'memory' | 'persistent'
-  status?: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined
-  reason?: 'version' | 'buildDependencies' | 'recovery' | undefined
-  sessionStatus?: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined
-  sessionReason?: 'version' | 'buildDependencies' | 'recovery' | undefined
-  moduleBuilds?: JsStatsModuleBuilds
-  counters: Array<JsStatsCacheCounter>
-}
-
-export interface JsStatsCacheCounter {
-  logger: string
-  label: string
-  hit: number
-  total: number
-}
-
-export interface JsStatsModuleBuilds {
-  reused: number
-  total: number
-}
-
 export interface JsStatsCompilation {
   assets?: Array<JsStatsAsset>
   cacheInfo?: JsStatsCacheInfo
@@ -1525,6 +1520,11 @@ export interface JsStatsModule {
   issuerPath?: Array<JsStatsModuleIssuer>
   usedExports?: string | Array<string>
   modules?: Array<JsStatsModule>
+}
+
+export interface JsStatsModuleBuilds {
+  reused: number
+  total: number
 }
 
 export interface JsStatsModuleCommonAttributes {
