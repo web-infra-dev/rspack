@@ -20,6 +20,7 @@ pub struct FactorizeTask {
   pub original_module_source: Option<BoxSource>,
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
+  pub issuer_dependencies: Option<Arc<[DependencyRef]>>,
   pub issuer_layer: Option<ModuleLayer>,
   pub dependencies: Vec<DependencyRef>,
   pub resolve_options: Option<Arc<Resolve>>,
@@ -43,6 +44,7 @@ impl Task<TaskContext> for FactorizeTask {
       self.original_module_identifier,
       self.issuer_layer,
     );
+    create_data.issuer_dependencies = self.issuer_dependencies;
     let factory_result = match self.module_factory.create(&mut create_data).await {
       Ok(result) => Some(result),
       Err(mut e) => {

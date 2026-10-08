@@ -1,5 +1,4 @@
 it("should compile to lazy imported module", async () => {
-	const done = err => (err ? reject(err) : resolve());
 	let resolved;
 	const promise = import("./module").then(r => (resolved = r));
 	let generation = 0;

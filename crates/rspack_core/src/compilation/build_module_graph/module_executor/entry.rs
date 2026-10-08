@@ -68,6 +68,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
           original_module_identifier: None,
           original_module_source: None,
           issuer: None,
+          issuer_dependencies: Default::default(),
           issuer_layer: meta.layer.clone(),
           original_module_context: None,
           dependencies: vec![dep],
