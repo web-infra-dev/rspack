@@ -189,8 +189,9 @@ pub struct ChunkGroupInfo {
   pub min_available_modules: Arc<FixedBitSet>,
   pub min_available_modules_init: bool,
   pub available_modules_to_be_merged: Vec<Arc<FixedBitSet>>,
-  // Existing parents can grow too. These are candidates, not an unconditional union.
-  pub available_modules_to_be_added: Vec<Arc<FixedBitSet>>,
+  // Keep only the latest candidate from each existing parent. Growth still has
+  // to satisfy every incoming edge when the ordinary queues have settled.
+  pub available_modules_to_be_added: HashMap<CgiUkey, Arc<FixedBitSet>>,
 
   pub skipped_items: IdentifierIndexSet,
   pub skipped_module_connections: FxIndexSet<(ModuleIdentifier, ConnectionIdList)>,
@@ -1566,7 +1567,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .filter(|module| {
           let ordinal = self.ordinal_by_module[module] as usize;
           added.contains(ordinal)
-            && !artifact.chunk_graph.is_entry_module(module)
+            && !artifact
+              .chunk_graph
+              .get_chunk_entry_modules_with_chunk_group_iterable(&chunk)
+              .contains_key(module)
             && consumers.iter().all(|consumer| {
               let info = self.chunk_group_info(consumer);
               info.min_available_modules_init && info.min_available_modules.contains(ordinal)
@@ -2292,7 +2296,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           if !new_parent {
             target_cgi
               .available_modules_to_be_added
-              .push(resulting_available_modules.clone());
+              .insert(chunk_group_info_ukey, resulting_available_modules.clone());
             self.chunk_groups_with_pending_additions.insert(target_ukey);
           }
 
@@ -2447,36 +2451,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }
       }
 
-      let (children, available_children) = {
-        let cgi = self
-          .chunk_group_infos
-          .get(&chunk_group_info_ukey)
-          .unwrap_or_else(|| panic!("ChunkGroupInfo({chunk_group_info_ukey:?}) not found"));
-        let children = if cgi.children.is_empty() {
-          Vec::new()
-        } else {
-          cgi.children.iter().copied().collect_vec()
-        };
-        let available_children = if cgi.available_children.is_empty() {
-          Vec::new()
-        } else {
-          cgi.available_children.iter().copied().collect_vec()
-        };
-        (children, available_children)
-      };
-
-      // 3. Reconsider children chunk groups
-      if !children.is_empty() {
-        self.stat_child_chunk_groups_reconnected += children.len() as u32;
-
-        let connect_list = self.queue_connect.entry(chunk_group_info_ukey).or_default();
-        connect_list.extend(children.into_iter().map(|child| (child, None)));
-      }
-
-      // 4. Reconsider chunk groups for combining
-      for cgi in available_children {
-        self.chunk_groups_for_combining.insert(cgi);
-      }
+      self.reconnect_chunk_group_children(chunk_group_info_ukey);
 
       {
         let cgi = self
@@ -2491,6 +2466,24 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         self.outdated_order_index_chunk_groups.insert(cgi_ukey);
       }
     }
+  }
+
+  fn reconnect_chunk_group_children(&mut self, info_ukey: CgiUkey) {
+    let info = self
+      .chunk_group_infos
+      .get(&info_ukey)
+      .expect("chunk group info should exist");
+    if !info.children.is_empty() {
+      self.stat_child_chunk_groups_reconnected += info.children.len() as u32;
+      self
+        .queue_connect
+        .entry(info_ukey)
+        .or_default()
+        .extend(info.children.iter().map(|child| (*child, None)));
+    }
+    self
+      .chunk_groups_for_combining
+      .extend(info.available_children.iter().copied());
   }
 
   fn _debug_available_modules(&self, available_modules: &FixedBitSet) -> IdentifierSet {
@@ -2603,7 +2596,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     struct AdditionTask {
       info_ukey: CgiUkey,
       previous: Arc<FixedBitSet>,
-      additions: Vec<Arc<FixedBitSet>>,
+      additions: HashMap<CgiUkey, Arc<FixedBitSet>>,
       parents: Vec<Arc<FixedBitSet>>,
     }
 
@@ -2657,7 +2650,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let add_chunk_group = |task: AdditionTask| {
       let mut available = task.previous.as_ref().clone();
-      for modules in task.additions {
+      for modules in task.additions.into_values() {
         available.union_with(&modules);
       }
       for modules in task.parents {
@@ -2685,9 +2678,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     // Publish every consumer's availability before removing shared copies.
     for (info_ukey, available, _) in &changes {
       let info = self.chunk_group_info_mut(info_ukey);
+      let only_grew = info.min_available_modules.is_subset(available);
       info.min_available_modules = available.clone();
       info.invalidate_resulting_available_modules();
-      self.outdated_chunk_group_info.insert(*info_ukey);
+      if only_grew {
+        // Runtime changes and module restoration have already settled. Growth
+        // cannot reactivate skipped items or change connection activation.
+        self.reconnect_chunk_group_children(*info_ukey);
+      } else {
+        self.outdated_chunk_group_info.insert(*info_ukey);
+      }
     }
     for (info_ukey, _, added) in changes {
       self.remove_available_modules(info_ukey, &added, compilation);

@@ -20,6 +20,7 @@ const scenarios = [
   'late-worker-addition',
   'late-block-same-parent',
   'late-existing-module',
+  'unrelated-entry-module',
 ];
 export default scenarios.map((scenario, index) => {
   const retains = [
@@ -118,7 +119,9 @@ export default scenarios.map((scenario, index) => {
     entry:
       scenario === 'multiple-runtimes'
         ? { main: './index', extra: './extra' }
-        : { main: './index' },
+        : scenario === 'unrelated-entry-module'
+          ? { main: './index', standalone: './m' }
+          : { main: './index' },
     output: {
       filename: `[name]-${index}.js`,
       chunkFilename: `[name]-${index}.js`,
@@ -148,6 +151,27 @@ export default scenarios.map((scenario, index) => {
                     ])
                     .filter((m) => /[\\/]m\.js$/.test(m.identifier())).length;
                   assert.equal(count, retains ? 1 : 0, scenario);
+                  if (scenario === 'unrelated-entry-module') {
+                    const entry = compilation.namedChunks.get('standalone')!;
+                    assert.ok(
+                      [
+                        ...compilation.chunkGraph.getChunkEntryModulesIterable(
+                          entry,
+                        ),
+                      ].some((module) =>
+                        /[\\/]m\.js$/.test(module.identifier()),
+                      ),
+                    );
+                    assert.ok(
+                      [
+                        ...compilation.chunkGraph.getChunkModulesIterable(
+                          entry,
+                        ),
+                      ].some((module) =>
+                        /[\\/]m\.js$/.test(module.identifier()),
+                      ),
+                    );
+                  }
                   if (scenario === 'late-and-new-child') {
                     const next =
                       compilation.namedChunkGroups.get('next-child')!;
