@@ -4,6 +4,9 @@ use std::{
   ops::{Deref, DerefMut},
 };
 
+#[cfg(allocative)]
+use rspack_util::allocative;
+
 use crate::{
   ArtifactExt,
   incremental::{Incremental, IncrementalPasses},
@@ -15,6 +18,7 @@ use crate::{
 /// After stealing, any later read or write panics, which helps enforce phase
 /// boundaries in compilation.
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct StealCell<T>(Option<T>);
 
 impl<T> From<T> for StealCell<T> {

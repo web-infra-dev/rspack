@@ -327,6 +327,27 @@ pub struct Compilation {
   pub compiler_context: Arc<CompilerContext>,
 }
 
+#[cfg(allocative)]
+impl allocative::Allocative for Compilation {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(
+      allocative::ident_key!(build_module_graph_artifact),
+      &self.build_module_graph_artifact,
+    );
+    visitor.visit_field(
+      allocative::ident_key!(code_generation_results),
+      self.code_generation_results.as_ref(),
+    );
+    visitor.visit_field(
+      allocative::ident_key!(runtime_modules_code_generation_source),
+      &self.runtime_modules_code_generation_source,
+    );
+    visitor.visit_field(allocative::ident_key!(assets), &self.assets);
+    visitor.exit();
+  }
+}
+
 impl Compilation {
   pub const OPTIMIZE_CHUNKS_STAGE_BASIC: i32 = -10;
   pub const OPTIMIZE_CHUNKS_STAGE_ADVANCED: i32 = 10;
@@ -1323,6 +1344,15 @@ pub struct CompilationAsset {
   #[cacheable(with=AsOption<AsPreset>)]
   pub source: Option<BoxSource>,
   pub info: BindingCell<AssetInfo>,
+}
+
+#[cfg(allocative)]
+impl allocative::Allocative for CompilationAsset {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(allocative::ident_key!(source), &self.source);
+    visitor.exit();
+  }
 }
 
 impl From<BoxSource> for CompilationAsset {

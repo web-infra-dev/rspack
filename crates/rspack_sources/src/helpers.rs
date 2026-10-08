@@ -103,6 +103,7 @@ pub trait StreamChunks {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 enum AsciiHit {
   Ascii,
   NotAscii,
@@ -131,7 +132,9 @@ impl AsciiHit {
 
 /// A borrowed text span with ASCII metadata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct TextSpan<'a> {
+  #[cfg_attr(feature = "allocative", allocative(skip))]
   text: &'a str,
   ascii_hit: AsciiHit,
 }
@@ -331,6 +334,7 @@ pub(crate) fn stream_chunks_default_fields<'chunk, 'source>(
 
 /// `GeneratedSourceInfo` abstraction, see [webpack-sources GeneratedSourceInfo](https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/helpers/getGeneratedSourceInfo.js)
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct GeneratedInfo {
   /// Generated line
   pub generated_line: u32,
@@ -372,7 +376,9 @@ pub fn utf8_column_to_utf16_column(line: &str, utf8_column: usize) -> Option<usi
   line.get(..utf8_column).map(utf16_len)
 }
 
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct PotentialTokens<'a> {
+  #[cfg_attr(feature = "allocative", allocative(skip))]
   text: &'a str,
 }
 
@@ -423,7 +429,9 @@ pub fn split_into_potential_tokens<'a>(text: &'a str) -> PotentialTokens<'a> {
 ///
 /// Copied and modified from https://github.com/rust-lang/cargo/blob/30efe860c0e4adc1a6d7057ad223dc6e47d34edf/src/cargo/sources/registry/index.rs#L1048-L1072
 fn split(haystack: &str, needle: u8) -> impl Iterator<Item = &str> {
+  #[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
   struct Split<'a> {
+    #[cfg_attr(feature = "allocative", allocative(skip))]
     haystack: &'a str,
     needle: u8,
   }
@@ -910,6 +918,7 @@ fn stream_chunks_of_source_map_lines_full<'chunk, 'source>(
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 struct SourceMapLineData<'a> {
   pub mappings_data: Vec<i64>,
   pub chunks: Vec<TextSpan<'a>>,

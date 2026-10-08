@@ -5623,6 +5623,7 @@ dependencies = [
  "memchr",
  "regex",
  "rkyv 0.8.18",
+ "rspack-allocative",
  "rustc-hash",
  "serde",
  "simd-json",
