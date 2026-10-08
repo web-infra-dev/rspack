@@ -208,6 +208,8 @@ When enabled, the plugin emits both `mf-manifest.json` and `mf-stats.json` (you 
 - `mf-stats.json`: Contains full build statistics, including the asset lists for exposes/shared/remotes, `metaData` (plugin version, build info, `remoteEntry`, etc.), and extra asset analysis data, making it suitable for later aggregation or diagnostics.
 - `mf-manifest.json`: A runtime manifest distilled from the stats file. The structure stays stable and can be consumed by Module Federation clients when loading remote modules. The exposes/shared/remotes sections describe what is publicly exposed.
 
+Both files preserve an explicitly configured `singleton` value, including for subpaths matched by shared keys ending in `/`.
+
 `ManifestConfig` provides the following options:
 
 - `filePath`: Target directory for the manifest files. Applies to both manifest and stats outputs.
