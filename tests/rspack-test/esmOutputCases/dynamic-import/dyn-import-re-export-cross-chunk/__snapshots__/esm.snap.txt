@@ -10,6 +10,7 @@ it('should dynamically import module that re-exports from cross-chunk module', a
 	expect(mod.helper()).toBe(1)
 })
 
+;
 export {};
 
 ```
@@ -19,6 +20,7 @@ export {};
 const value = 42
 const helper = () => 1
 
+;
 export { helper };
 
 ```
@@ -28,6 +30,7 @@ export { helper };
 // ./wrapper.js
 
 
+;
 var wrapper_value = (/* inlined export .value */42);
 export { wrapper_value as value };
 export { helper } from "./shared-chunk.mjs";

@@ -6,6 +6,7 @@ it("should support namespace imports from sibling entry chunks", async () => {
   expect(other.default).toBe(42);
 });
 
+;
 export {};
 
 ```
@@ -18,6 +19,7 @@ import { p } from "./shared.mjs";
 
 /* export default */ const other = (p);
 
+;
 export default other;
 
 ```
@@ -26,6 +28,7 @@ export default other;
 // ./shared.js
 const p = 42;
 
+;
 export { p };
 
 ```

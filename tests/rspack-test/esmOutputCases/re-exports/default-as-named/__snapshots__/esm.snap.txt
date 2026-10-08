@@ -8,6 +8,7 @@ it('should re-export default as named through a chain', async () => {
 	expect(mod.named).toBe('hello');
 });
 
+;
 var index_named = (/* inlined export .named */"hello");
 var index_renamedDefault = (/* inlined export ["default"] */42);
 export { index_named as named, index_renamedDefault as renamedDefault };

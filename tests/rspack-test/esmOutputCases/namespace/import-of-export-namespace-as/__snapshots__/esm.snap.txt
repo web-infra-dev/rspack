@@ -10,6 +10,7 @@ it("should consume an export-star-as namespace binding without capturing the obj
   expect(value).toBe(234);
 });
 
+;
 export {};
 
 ```

@@ -121,6 +121,7 @@ it("should support lazy import.meta.glob", async () => {
 	expect(value.default).toBe("b");
 });
 
+;
 export {};
 
 ```

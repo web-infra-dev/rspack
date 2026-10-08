@@ -9,6 +9,7 @@ const feature = () => `feature:${util}`
 
 /* export default */ const src_feature = (feature);
 
+;
 var feature_answer = (/* inlined export .answer */42);
 export { feature_answer as answer };
 export default src_feature;
@@ -30,6 +31,7 @@ it('should preserve nested dynamic import modules and shared outside chunks', as
 	expect(feature.answer).toBe(42)
 })
 
+;
 export {};
 
 ```
@@ -42,6 +44,7 @@ import { outside } from "./outside_dep_js.mjs";
 
 const label = `entry:${outside}`
 
+;
 export { label };
 
 ```
@@ -52,6 +55,7 @@ const outside = 'outside'
 
 
 
+;
 export { outside };
 
 ```
@@ -67,6 +71,7 @@ const answer = 42
 
 
 
+;
 export { answer, util };
 
 ```

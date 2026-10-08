@@ -25,9 +25,11 @@ __webpack_require__.r(empty_namespaceObject_0);
 // ./empty.js
 
 
+;
 // ./empty.mjs
 
 
+;
 // ./index.js
 const empty = __webpack_require__("./empty.cjs");
 
@@ -40,6 +42,7 @@ it("should render missing namespace properties as undefined for empty modules", 
   expect(empty.nope).toBeUndefined();
 });
 
+;
 export {};
 
 ```

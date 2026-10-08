@@ -10,6 +10,7 @@ function neverUse() {
 }
 neverUse.bind(neverUse)
 
+;
 export {};
 
 ```

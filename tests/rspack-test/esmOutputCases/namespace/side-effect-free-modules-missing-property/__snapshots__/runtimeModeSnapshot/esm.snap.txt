@@ -24,9 +24,11 @@ makeNamespaceObject(foo_no_side_effects_namespaceObject);
 // ./foo/no-side-effects.js
 console.log("js");
 
+;
 // ./foo/no-side-effects.mjs
 console.log("mjs");
 
+;
 // ./index.js
 const no_side_effects = rspackRequire("./foo/no-side-effects.cjs");
 
@@ -39,6 +41,7 @@ it("should render missing namespace properties as undefined for side-effect-free
   expect(no_side_effects.nope).toBeUndefined();
 });
 
+;
 export {};
 
 ```

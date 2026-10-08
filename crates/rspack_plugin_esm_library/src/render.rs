@@ -410,7 +410,9 @@ var {} = {{}};
         module_runtime_template,
       ));
       render_source.add(source);
-      render_source.add(RawStringSource::from_static("\n"));
+      // Module sources may omit a final semicolon or end in a line comment.
+      // Keep the next module from continuing the previous module's expression.
+      render_source.add(RawStringSource::from_static("\n;\n"));
 
       chunk_init_fragments.extend(info.chunk_init_fragments.clone());
 

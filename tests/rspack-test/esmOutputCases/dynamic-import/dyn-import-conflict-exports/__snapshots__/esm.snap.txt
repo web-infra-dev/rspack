@@ -17,9 +17,11 @@ __webpack_require__.d(b_namespaceObject, {
 // ./a.js
 const value = 1
 
+;
 // ./b.js
 const b_value = 2
 
+;
 export { a_namespaceObject, b_namespaceObject, b_value, value };
 
 ```
@@ -42,6 +44,7 @@ it('should handle conflicting exports from multi-module chunk', async () => {
 	expect(modB.value).toBe(2)
 })
 
+;
 export {};
 
 ```

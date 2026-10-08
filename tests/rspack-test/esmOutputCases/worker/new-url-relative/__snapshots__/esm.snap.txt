@@ -8,6 +8,7 @@ function createWorker() {
   );
 }
 
+;
 export { createWorker };
 
 ```
@@ -20,6 +21,7 @@ export { createWorker };
 
 globalThis.__workerEntryExecuted = true;
 
+;
 export {};
 
 ```

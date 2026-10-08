@@ -43,6 +43,7 @@ it("should keep shadowed parameter names and rename top-level exports bindings c
 	expect(isFunctionBinding(() => {})).toBe(true);
 });
 
+;
 export { __nested_rspack_exports__ as exports, getCommonJsSyntheticModule, isFunctionBinding };
 
 ```

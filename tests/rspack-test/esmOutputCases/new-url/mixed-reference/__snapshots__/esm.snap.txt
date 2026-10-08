@@ -3,6 +3,7 @@ import { __webpack_require__ } from "./runtime.mjs";
 
 // ./asset.txt
 const asset_namespaceObject = __webpack_require__.p + "asset.txt";
+;
 // ./index.js
 
 
@@ -16,6 +17,7 @@ it('should reference the same asset through both `import` and `new URL`', () => 
 	expect(assetUrl.href.endsWith('asset.txt')).toBe(true)
 })
 
+;
 export {};
 
 ```

@@ -6,6 +6,7 @@ it('should dynamically import module that re-exports from external', async () =>
 	expect(mod.fsDefault).toBeDefined()
 })
 
+;
 export {};
 
 ```
@@ -13,10 +14,12 @@ export {};
 ```mjs title=wrapper.mjs
 // fs
 
+;
 // ./wrapper.js
 
 
 
+;
 export { default as fsDefault, readFile } from "fs";
 
 ```

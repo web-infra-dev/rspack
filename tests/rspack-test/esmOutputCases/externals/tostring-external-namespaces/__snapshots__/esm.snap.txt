@@ -4,8 +4,10 @@ import * as __rspack_external_path from "path";
 
 // fs
 
+;
 // path
 
+;
 // ./index.js
 
 
@@ -30,6 +32,7 @@ it("should preserve module toStringTag on external namespace imports", async () 
   });
 });
 
+;
 export default index;
 
 ```

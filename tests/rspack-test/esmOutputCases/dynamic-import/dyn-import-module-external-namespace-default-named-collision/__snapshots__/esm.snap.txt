@@ -17,6 +17,7 @@ it('should keep named reexports distinct from default imports in module-external
 	expect(b.namedFoo).not.toBe('default-foo')
 })
 
+;
 export {};
 
 ```
@@ -80,6 +81,7 @@ __webpack_require__.d(b_namespaceObject, {
 
 // ./foo-runtime.mjs?4fe1
 
+;
 // ./a.js
 
 
@@ -88,8 +90,10 @@ const shared = 'a'
 
 /* export default */ const a = (foo_runtime);
 
+;
 // ./foo-runtime.mjs?ee16
 
+;
 // ./b.js
 
 
@@ -97,6 +101,7 @@ const b_shared = 'b'
 
 
 
+;
 export { a_namespaceObject, b_namespaceObject };
 
 ```

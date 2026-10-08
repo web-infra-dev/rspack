@@ -10,6 +10,7 @@ definePropertyGetters(dep_namespaceObject, {
 // ./dep.js
 /* export default */ const dep = ("default");
 
+;
 // ./index.js
 
 
@@ -23,6 +24,7 @@ it("should materialize a namespace object for default-only modules", async () =>
   expect(mod.dep.default).toBe("default");
 });
 
+;
 export { dep_namespaceObject as dep };
 
 ```

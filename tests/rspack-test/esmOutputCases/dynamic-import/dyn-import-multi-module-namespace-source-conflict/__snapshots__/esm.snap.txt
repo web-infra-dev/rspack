@@ -10,6 +10,7 @@ it("should avoid namespace binding collisions across different external sources"
 	expect(modB.pathNs.resolve).toBeDefined();
 });
 
+;
 export {};
 
 ```
@@ -20,18 +21,22 @@ import * as __rspack_external_path from "path";
 
 // fs
 
+;
 // ./a.js
 
 
 
 
+;
 // path
 
+;
 // ./b.js
 
 
 
 
+;
 export { __rspack_external_fs as fsNs, __rspack_external_path as pathNs };
 
 ```

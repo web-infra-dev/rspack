@@ -43,6 +43,7 @@ it("should keep shadowed parameter names and rename top-level exports bindings c
 	expect(isFunctionBinding(() => {})).toBe(true);
 });
 
+;
 export { getCommonJsSyntheticModule, index_exports as exports, isFunctionBinding };
 
 ```

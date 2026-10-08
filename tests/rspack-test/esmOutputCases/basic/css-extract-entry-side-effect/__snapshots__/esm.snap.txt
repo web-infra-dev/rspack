@@ -2,6 +2,7 @@
 // ./style.css
 // extracted by css-extract-rspack-plugin
 
+;
 // ./index.js
 
 
@@ -9,6 +10,7 @@ it("should load css side effect", () => {
   expect(true).toBe(true);
 });
 
+;
 export {};
 
 ```

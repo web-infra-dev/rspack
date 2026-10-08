@@ -25,6 +25,7 @@ it("should not capture user require for commonjs dynamic external", async () => 
 
 
 
+;
 export { index_require as userRequire, loadPlatform };
 
 ```

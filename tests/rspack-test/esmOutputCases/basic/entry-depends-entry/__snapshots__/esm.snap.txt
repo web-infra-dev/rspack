@@ -6,6 +6,7 @@ import "./shared.mjs";
 
 const entry2 = "entry2"
 
+;
 export { entry2 };
 
 ```
@@ -18,6 +19,7 @@ import "./shared.mjs";
 
 const entry3 = "entry3"
 
+;
 export { entry3 };
 
 ```
@@ -34,6 +36,7 @@ it('should have all exports', async () => {
   expect(entry2).toBe('entry2')
   expect(entry3).toBe('entry3')
 })
+;
 export { entry2 } from "./entry2.mjs";
 export { entry3 } from "./entry3.mjs";
 
@@ -43,6 +46,7 @@ export { entry3 } from "./entry3.mjs";
 // ./shared.js
 // side effects
 console.log.bind()
+;
 export {};
 
 ```

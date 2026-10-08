@@ -4,8 +4,10 @@ import { __webpack_require__ } from "./runtime.mjs";
 
 // path
 
+;
 // fs
 
+;
 // ./index.js
 
 
@@ -25,6 +27,7 @@ it("should externalize node builtins with correct external types", async () => {
 	expect(dynamicOs.platform).toBeDefined();
 });
 
+;
 export { readFileSync } from "fs";
 
 ```

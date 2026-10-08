@@ -47,6 +47,7 @@ it("should split runtime for Promise.all with external and bundled async chunks"
 	expect(mod.value).toBe(42);
 });
 
+;
 export {};
 
 ```

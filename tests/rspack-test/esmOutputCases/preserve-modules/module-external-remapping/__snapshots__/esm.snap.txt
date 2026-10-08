@@ -7,6 +7,7 @@ import { once, EventEmitter } from "./node_events-node_events.mjs";
 const EventEmitterHoisted = EventEmitter;
 const onceHoisted = once;
 
+;
 export { EventEmitterHoisted, onceHoisted };
 
 ```
@@ -40,6 +41,7 @@ it('should keep module external exports correct for hoisted named imports and wr
   expect(wrapped.once).toBe(events.once);
 });
 
+;
 export {};
 
 ```
@@ -66,6 +68,7 @@ module.exports = __rspack_create_module_external_namespace_node_events_3969b2b3(
 });
 // node:events?41dc
 
+;
 export { EventEmitter, once } from "node:events";
 
 ```

@@ -10,6 +10,7 @@ __webpack_require__.d(foo_namespaceObject, {
 // ./foo.js
 const foo = 123
 
+;
 // ./index.js
 
 let index_foo = 234
@@ -21,6 +22,7 @@ it('should compile', () => {
 })
 
 
+;
 export {};
 
 ```

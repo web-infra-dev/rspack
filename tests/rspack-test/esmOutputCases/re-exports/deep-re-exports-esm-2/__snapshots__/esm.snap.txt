@@ -115,6 +115,7 @@ it('should re-export esm correctly', async () => {
 	expect(fs.readFile).toBe(readFile)
 })
 
+;
 const lib_0 = __webpack_require__("./lib.js");
 var lib_1 = lib_0.lib;
 var lib2_0 = lib_0.lib2;

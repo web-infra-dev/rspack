@@ -3,6 +3,7 @@
 const fromA = 'a';
 const shared = 'a-version';
 
+;
 // ./index.js
 
 
@@ -16,6 +17,7 @@ it('should handle export star combined with explicit named re-exports', async ()
 	expect(mod.sharedExplicit).toBe('a-version');
 });
 
+;
 var index_fromB = (/* inlined export .fromB */"b");
 export { fromA, index_fromB as fromB, shared, shared as sharedExplicit };
 

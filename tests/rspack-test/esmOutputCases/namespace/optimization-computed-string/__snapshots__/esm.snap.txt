@@ -8,6 +8,7 @@ function b() {
   return "b";
 }
 
+;
 // ./index.js
 
 
@@ -21,6 +22,7 @@ it("should optimize namespace lookup chains for computed string keys", async () 
   expect(mod.b).toBe("b");
 });
 
+;
 export { index_a as a, index_b as b };
 
 ```

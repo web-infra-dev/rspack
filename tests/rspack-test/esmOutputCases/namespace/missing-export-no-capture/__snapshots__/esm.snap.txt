@@ -8,6 +8,7 @@ __webpack_require__.r(foo_namespaceObject);
 // ./foo.js
 const x = 123;
 
+;
 // ./index.js
 
 
@@ -16,6 +17,7 @@ it("should render a missing local namespace property as undefined without captur
   expect(foo_namespaceObject.foo).toBeUndefined();
 });
 
+;
 export {};
 
 ```

@@ -3,6 +3,7 @@
 // ./index.js
 
 
+;
 export { ns1 as ns2 } from "./shared_js.mjs";
 
 ```
@@ -11,6 +12,7 @@ export { ns1 as ns2 } from "./shared_js.mjs";
 
 // ./main.js
 
+;
 export { ns1 } from "./shared_js.mjs";
 
 ```
@@ -61,6 +63,7 @@ definePropertyGetters(shared_namespaceObject, {
 // ./shared.js
 const a = () => 42
 const b = () => 42
+;
 export { shared_namespaceObject as ns1 };
 
 ```

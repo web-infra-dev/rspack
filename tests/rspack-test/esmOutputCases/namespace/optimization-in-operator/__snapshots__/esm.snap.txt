@@ -12,6 +12,7 @@ function c() {
   return "c";
 }
 
+;
 // ./index.js
 
 
@@ -27,6 +28,7 @@ it("should optimize namespace existence checks with the in operator", async () =
   expect(mod.hasC).toBe(true);
 });
 
+;
 export { hasC, missing, present };
 
 ```

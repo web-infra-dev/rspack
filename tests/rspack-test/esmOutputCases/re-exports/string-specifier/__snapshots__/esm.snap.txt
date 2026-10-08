@@ -3,6 +3,7 @@
 const foo = () => 42
 
 
+;
 export { foo as "b.c" };
 
 ```
@@ -22,6 +23,7 @@ it('should have correct export', async () => {
 
   expect(foo()).toBe(42)
 })
+;
 export { "b.c" } from "./lib-lib_js.mjs";
 
 ```

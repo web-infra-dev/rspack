@@ -6,6 +6,7 @@ function sharedDefault() {
 
 const answer = 42;
 
+;
 export { sharedDefault };
 
 ```
@@ -25,6 +26,7 @@ it("should forward default and named exports from an auto-extracted shared chunk
 
 
 
+;
 var index_answer = (/* inlined export .answer */42);
 export { index_answer as answer };
 export { sharedDefault } from "./a-chunk.mjs";

@@ -3,6 +3,7 @@ import * as __rspack_external_fs from "fs";
 
 // fs
 
+;
 // ./index.js
 
 
@@ -31,6 +32,7 @@ it("should allow local exports to override star reexports from externals", async
   expect(mod.c).toBe("defined");
 });
 
+;
 export { a, b, c, readFile, reassign };
 export * from "fs";
 

@@ -12,6 +12,7 @@ function foo() {
   return "foo";
 }
 
+;
 // ./index.js
 
 
@@ -30,6 +31,7 @@ it("should keep namespace object exports when tree shaking is disabled", async (
   expect(mod.b).toBe(2);
 });
 
+;
 export { a, b, namespace_namespaceObject as ns1, namespace_namespaceObject as ns2 };
 
 ```

@@ -4,12 +4,14 @@ function alt() {
   return "alt";
 }
 
+;
 // ./foo.js
 function foo() {
   console.log.bind({});
   return "foo";
 }
 
+;
 // ./index.js
 
 
@@ -213,6 +215,7 @@ it("should drop inactive ESM branch dependencies guarded by inlined booleans", (
   ]);
 });
 
+;
 export {};
 
 ```

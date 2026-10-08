@@ -71,6 +71,7 @@ it("should load entry a glob", async () => {
   expect(value.default).toBe("a");
 });
 
+;
 export {};
 
 ```
@@ -102,6 +103,7 @@ it("should load entry b glob", async () => {
   expect(value.default).toBe("b");
 });
 
+;
 export {};
 
 ```

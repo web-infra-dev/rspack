@@ -1,3 +1,4 @@
 const c = 'c'
 
+;
 export {};

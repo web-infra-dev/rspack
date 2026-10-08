@@ -10,6 +10,7 @@ it("should avoid namespace and named binding collisions for duplicate externals"
 	expect(modB.marker).toBe("b");
 });
 
+;
 export {};
 
 ```
@@ -69,18 +70,22 @@ definePropertyGetters(b_namespaceObject, {
 
 // path?2d49
 
+;
 // ./a.js
 
 
 
 
+;
 // path?2b46
 
+;
 // ./b.js
 
 
 const marker = "b";
 
+;
 export { a_namespaceObject, b_namespaceObject };
 
 ```

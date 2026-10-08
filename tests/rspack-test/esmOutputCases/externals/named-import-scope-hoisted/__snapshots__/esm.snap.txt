@@ -3,6 +3,7 @@ import { readFile } from "fs";
 
 // virtual-fs
 
+;
 // ./index.js
 
 
@@ -14,6 +15,7 @@ it('should scope-hoist remapped named imports from external modules', async () =
   expect(readFile).toBe(fs.readFile)
 })
 
+;
 export { readFile };
 
 ```

@@ -10,6 +10,7 @@ definePropertyGetters(foo_namespaceObject, {
 // ./foo.js
 const bar = 42;
 
+;
 // ./index.js
 
 
@@ -29,6 +30,7 @@ it("should preserve module toStringTag on local namespace objects", async () => 
   });
 });
 
+;
 export default index;
 
 ```

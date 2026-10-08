@@ -3,11 +3,13 @@ import * as __rspack_external_fs from "fs";
 
 // fs
 
+;
 // ./dep.js
 
 
 
 
+;
 // ./index.js
 
 
@@ -18,6 +20,7 @@ it("should re-export an imported external namespace through an intermediate modu
   expect(typeof mod.fsNs.readFileSync).toBe("function");
 });
 
+;
 export { __rspack_external_fs as fsNs };
 
 ```

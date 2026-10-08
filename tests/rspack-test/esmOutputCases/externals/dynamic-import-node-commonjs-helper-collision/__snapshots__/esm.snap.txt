@@ -24,6 +24,7 @@ it("should keep lazy node-commonjs helper names from colliding", async () => {
 	]);
 });
 
+;
 export { loadFs };
 
 ```

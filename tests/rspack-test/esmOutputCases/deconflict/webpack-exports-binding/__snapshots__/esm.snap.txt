@@ -8,6 +8,7 @@ it("should export a binding named __webpack_exports__", async () => {
 	expect(namespace.__webpack_exports__).toBe(45);
 });
 
+;
 export { __nested_rspack_exports__ as __webpack_exports__ };
 
 ```

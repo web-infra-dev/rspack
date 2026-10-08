@@ -10,6 +10,7 @@ call((/* inlined export .value */1));
 
 
 
+;
 var foo_a = (/* inlined export .value */1);
 var foo_b = (/* inlined export .value */1);
 export { foo_a as a, foo_b as b };
@@ -26,6 +27,7 @@ it('should preserve aliases for imported inline export bindings', async () => {
 	expect(globalThis.__inlineExportImportBinding).toBe(1);
 });
 
+;
 export {};
 
 ```

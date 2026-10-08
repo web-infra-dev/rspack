@@ -2,9 +2,11 @@
 // ./bar.js
 globalThis.bar = 'bar';
 
+;
 // ./foo.js
 globalThis.foo = 'foo';
 
+;
 // ./index.js
 
 
@@ -14,6 +16,7 @@ it('should have correct import', () => {
 	expect(globalThis.foo).toBe('foo');
 })
 
+;
 export {};
 
 ```

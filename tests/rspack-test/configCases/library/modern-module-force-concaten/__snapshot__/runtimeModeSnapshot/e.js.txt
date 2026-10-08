@@ -10,6 +10,7 @@ module.exports = 'bar'
 
 
 
+;
 const bar = rspackRequire("100");
 var bar_default = /*#__PURE__*/compatGetDefaultExport(bar);
 var bar_default_0 = bar_default();

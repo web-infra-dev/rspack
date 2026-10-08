@@ -13,6 +13,7 @@ it("should allow reexporting bindings from another entry", async () => {
   expect(typeof other.b).toBe("object");
 });
 
+;
 export { a, c } from "./other.mjs";
 
 ```
@@ -22,10 +23,12 @@ export { a, c } from "./other.mjs";
 const a = {};
 const b = {};
 
+;
 // ./other.js
 
 const c = {};
 
+;
 export { a, b, c };
 
 ```

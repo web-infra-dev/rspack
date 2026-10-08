@@ -27,6 +27,7 @@ import "./dynamic.mjs";
 
 // ./esm.js
 
+;
 const dynamic = rspackRequire("./dynamic.js");
 var value = dynamic.value;
 
@@ -46,6 +47,7 @@ it('should support dynamic import', async () => {
 
 
 
+;
 export {};
 
 ```

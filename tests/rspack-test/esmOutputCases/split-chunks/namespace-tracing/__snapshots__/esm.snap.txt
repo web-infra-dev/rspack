@@ -4,6 +4,7 @@ function broken() {
   return "broken";
 }
 
+;
 export { broken };
 
 ```
@@ -18,6 +19,7 @@ function foo() {
   return "foo";
 }
 
+;
 // ./bar.js
 
 
@@ -25,6 +27,7 @@ function bar() {
   return "bar";
 }
 
+;
 // ./index.js
 
 
@@ -37,6 +40,7 @@ it("should trace namespace reexports across split chunks", async () => {
   expect(mod.default).toEqual(["foo", "broken", "bar", "broken"]);
 });
 
+;
 export default index;
 
 ```

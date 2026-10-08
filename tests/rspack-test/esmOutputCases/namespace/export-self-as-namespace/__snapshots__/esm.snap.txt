@@ -19,6 +19,7 @@ it("should export its own namespace via export-star-as", async () => {
   expect(mod.ns.foo).toBe(123);
 });
 
+;
 export { foo, index_namespaceObject as ns };
 
 ```

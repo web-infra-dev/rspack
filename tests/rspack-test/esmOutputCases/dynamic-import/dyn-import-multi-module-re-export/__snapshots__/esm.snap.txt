@@ -1,20 +1,25 @@
 ```mjs title=ab-chunk.mjs
 // fs
 
+;
 // ./a.js
 
 
 
+;
 // ./shared.js
 const value = 42
 const helper = () => 1
 
+;
 // path
 
+;
 // ./b.js
 
 
 
+;
 export { helper, value };
 export { readFile } from "fs";
 export { join } from "path";
@@ -37,6 +42,7 @@ it('should dynamically import modules from multi-module chunk with mixed re-expo
 	expect(modB.join).toBeDefined()
 })
 
+;
 export {};
 
 ```

@@ -20,6 +20,7 @@ it("should import a CommonJS namespace without capturing the object", () => {
   expect(foo.p).toBe(123);
 });
 
+;
 export {};
 
 ```

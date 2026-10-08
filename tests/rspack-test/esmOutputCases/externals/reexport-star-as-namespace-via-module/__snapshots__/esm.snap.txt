@@ -15,9 +15,11 @@ Object.keys(reexport_external_namespaceObject_starExports).forEach(function(key)
 
 // fs
 
+;
 // ./reexport-external.js
 
 
+;
 // ./index.js
 
 
@@ -28,6 +30,7 @@ it("should export a namespace for an internal module that star-reexports an exte
   expect(typeof mod.fsNs.readFileSync).toBe("function");
 });
 
+;
 export { reexport_external_namespaceObject as fsNs };
 
 ```

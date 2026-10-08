@@ -4,6 +4,7 @@ import * as __rspack_external_fs from "fs";
 
 // fs-promises
 
+;
 
 var external_fs_promises_default = /*#__PURE__*/__webpack_require__.n(__rspack_external_fs.promises);// ./index.js
 
@@ -13,6 +14,7 @@ it('should support array-type module external with property access', async () =>
   expect((external_fs_promises_default())).toBe(fs.promises)
 })
 
+;
 export {};
 
 ```

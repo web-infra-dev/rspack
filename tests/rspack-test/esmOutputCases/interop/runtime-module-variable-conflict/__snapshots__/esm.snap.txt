@@ -67,6 +67,7 @@ __webpack_require__.r = (exports) => {
 
 // ./foo.mjs
 import foo_namespaceObject from "./1e4fa9a82c28fdb2.mjs";
+;
 var foo_namespaceObject2 = /*#__PURE__*/__webpack_require__.t(foo_namespaceObject);
 // ./index.js
 
@@ -96,6 +97,7 @@ it("should avoid conflicts with runtime module variables", () => {
 
 
 
+;
 export { __rspack_get_mini_css_chunk_filename, createFakeNamespaceObject, getProto, moduleCache, modules, rspackRequire };
 
 ```

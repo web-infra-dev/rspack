@@ -16,6 +16,7 @@ exports.M = 2
 const foo_foo = 1
 
 
+;
 // ./index.js
 
 
@@ -25,6 +26,7 @@ it('should have correct output for entry re-exports', async () => {
 	expect(bar).toBe(2);
 })
 
+;
 const bar_0 = __webpack_require__("./bar.js");
 var M = bar_0.M;
 

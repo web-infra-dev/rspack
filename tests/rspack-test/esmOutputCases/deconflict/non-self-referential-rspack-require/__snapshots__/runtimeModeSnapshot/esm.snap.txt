@@ -2,6 +2,7 @@
 // ./index.js
 function __nested_rspack_require_16_29__() {}
 
+;
 export { __nested_rspack_require_16_29__ as rspackRequire };
 
 ```

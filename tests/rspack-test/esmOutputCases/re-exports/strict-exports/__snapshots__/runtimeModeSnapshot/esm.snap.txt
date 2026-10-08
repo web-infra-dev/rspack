@@ -9,6 +9,7 @@ const cjs = rspackRequire("./cjs.js");
 
 cjs.p;
 
+;
 export {};
 
 ```
@@ -44,6 +45,7 @@ it('should only contains needed exports', async () => {
 
 const index_value = () => cjs.p
 
+;
 export { index_value as value };
 
 ```

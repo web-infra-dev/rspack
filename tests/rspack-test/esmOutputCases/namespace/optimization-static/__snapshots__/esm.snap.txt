@@ -4,6 +4,7 @@ function a() {
   return "a";
 }
 
+;
 // ./index.js
 
 
@@ -15,6 +16,7 @@ it("should optimize static namespace lookup chains", async () => {
   expect(mod.default).toBe("a");
 });
 
+;
 export default index;
 
 ```

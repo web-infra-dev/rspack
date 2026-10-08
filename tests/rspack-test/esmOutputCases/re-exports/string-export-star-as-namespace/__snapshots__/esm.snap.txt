@@ -14,6 +14,7 @@ const named = "hello";
 
 
 
+;
 // ./index.js
 
 
@@ -26,6 +27,7 @@ it("should support string export names on namespace re-exports", async () => {
   expect(mod["all the stuff"].named).toBe("hello");
 });
 
+;
 export { foo_namespaceObject as "all the stuff", someImport as "some export" };
 
 ```

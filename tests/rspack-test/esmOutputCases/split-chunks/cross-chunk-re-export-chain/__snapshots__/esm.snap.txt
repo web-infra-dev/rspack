@@ -3,6 +3,7 @@
 const value = 42
 const helper = () => 1
 
+;
 export { helper };
 
 ```
@@ -20,6 +21,7 @@ it('should have correct exports through cross-chunk re-export chain', async () =
 	expect(mod.helper()).toBe(1)
 })
 
+;
 var index_value = (/* inlined export .value */42);
 export { index_value as value };
 export { helper } from "./leaf-chunk.mjs";

@@ -1,13 +1,16 @@
 ```mjs title=main.mjs
 // fs?f23b
 
+;
 // ./module.js
 
 
 console.log.bind(console)
 
+;
 // fs?771d
 
+;
 // ./index.js
 
 
@@ -21,6 +24,7 @@ it('should handle aliased external', async () => {
 
 
 
+;
 export { readFile as f, writeFile as w } from "fs";
 
 ```

@@ -6,6 +6,7 @@ import { demo as other_demo } from "./other.mjs";
 
 const demo = () => 'demo'
 other_demo;
+;
 export { demo, demo as local };
 
 ```
@@ -19,6 +20,7 @@ const other_demo = () => 'otherDemo'
 	console.log.bind(demo)
 }
 
+;
 export { other_demo as demo };
 
 ```
@@ -41,6 +43,7 @@ it('should have strict export symbol', async () => {
 
 
 
+;
 export { local } from "./demo/index.mjs";
 
 ```

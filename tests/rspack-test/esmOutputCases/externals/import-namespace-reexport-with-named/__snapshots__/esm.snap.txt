@@ -4,8 +4,10 @@ import * as __rspack_external_fs from "fs";
 
 // path
 
+;
 // fs
 
+;
 // ./index.js
 
 
@@ -21,6 +23,7 @@ it("should combine a named external re-export with an imported external namespac
   expect(typeof mod.fsNs.readFile).toBe("function");
 });
 
+;
 export { __rspack_external_fs as fsNs, sep };
 
 ```

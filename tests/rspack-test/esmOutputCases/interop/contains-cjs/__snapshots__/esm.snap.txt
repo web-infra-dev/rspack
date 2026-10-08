@@ -41,8 +41,10 @@ it('should have correct import', () => {
 	expect((/* inlined export .value */"value")).toBe('value')
 })
 
+;
 // ./index.js
 
+;
 export {};
 
 ```

@@ -24,8 +24,10 @@ exports.g = nodeUrl.parse;
 });
 // node:fs
 
+;
 // node:url
 
+;
 // ./index.js
 const cjs_consumer = rspackRequire("./cjs-consumer.cjs");
 var g = cjs_consumer.g;
@@ -58,6 +60,7 @@ it("should use aliased external request with correct external type", async () =>
 
 
 
+;
 export { g as cjsParse, n as cjsResolve, parse, resolve };
 
 ```

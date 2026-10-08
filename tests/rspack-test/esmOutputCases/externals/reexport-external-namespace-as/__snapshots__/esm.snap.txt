@@ -3,6 +3,7 @@ import * as __rspack_external_fs from "fs";
 
 // fs
 
+;
 // ./index.js
 
 
@@ -17,6 +18,7 @@ it("should re-export the same external namespace through direct and indirect for
   expect(mod.external.readFile).toBe(mod.indirect.readFile);
 });
 
+;
 export { __rspack_external_fs as external, __rspack_external_fs as indirect };
 
 ```

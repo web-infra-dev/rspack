@@ -196,6 +196,7 @@ it("should keep prefetch and preload handlers for context chunks", async () => {
 	expect(preloadValue.default).toBe("b");
 });
 
+;
 
 ```
 

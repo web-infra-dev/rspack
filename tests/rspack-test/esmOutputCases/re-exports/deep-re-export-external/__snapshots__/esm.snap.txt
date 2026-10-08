@@ -18,11 +18,13 @@ Object.keys(externals_namespaceObject_starExports).forEach(function(key) {
 
 // fs
 
+;
 // ./externals.js
 
 
 
 
+;
 // ./index.js
 
 
@@ -37,6 +39,7 @@ it('should have exports', async () => {
 	expect(externalsNs).toBeDefined();
 });
 
+;
 var default_0 = __rspack_external_fs["default"];
 var externals_0 = __rspack_external_fs["default"];
 var readFile_0 = __rspack_external_fs.readFile;

@@ -27,17 +27,20 @@ exports.g = fs.readFileSync
 });
 // fs?fa25
 
+;
 // ./esm-consumer.js
 // ESM module importing fs namespace - will be scope-hoisted (Concatenated)
 
 
 
+;
 // ./cjs-bridge.js
 // ESM bridge that re-exports from a CJS module
 // This module is ESM but its dependency is CJS, so the CJS module
 // and its dependencies (including fs) won't be scope-hoisted
 
 
+;
 // ./index.js
 const cjs_consumer = rspackRequire("./cjs-consumer.cjs");
 
@@ -48,6 +51,7 @@ it('should not have duplicate import identifiers from mixed scope-hoisting', () 
 	expect(cjs_consumer.g).toBeDefined()
 })
 
+;
 export {};
 
 ```

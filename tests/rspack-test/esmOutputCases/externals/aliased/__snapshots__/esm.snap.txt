@@ -3,6 +3,7 @@ import * as __rspack_external_path from "path";
 
 // external
 
+;
 // ./index.js
 
 
@@ -13,6 +14,7 @@ it('should have correct exports', async () => {
 	expect(resolve).toBe(nodeResolve)
 });
 
+;
 export * from "path";
 
 ```

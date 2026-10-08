@@ -2,7 +2,9 @@ import { App2, app2Props } from "./App2";
 
 import * as __rspack_external__App1_8534127d from "./App1";
 
+;
 
+;
 
 
 
@@ -90,4 +92,5 @@ function Root() {
     </>;
 }
 
+;
 export default Root;

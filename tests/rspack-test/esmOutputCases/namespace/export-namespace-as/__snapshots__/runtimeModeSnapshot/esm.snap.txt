@@ -12,6 +12,7 @@ definePropertyGetters(dep_namespaceObject, {
 const foo = "foo1";
 const bar = "bar1";
 
+;
 // ./index.js
 
 
@@ -22,6 +23,7 @@ it("should export a local namespace with direct export-star-as syntax", async ()
   expect(mod.dep.bar).toBe("bar1");
 });
 
+;
 export { dep_namespaceObject as dep };
 
 ```

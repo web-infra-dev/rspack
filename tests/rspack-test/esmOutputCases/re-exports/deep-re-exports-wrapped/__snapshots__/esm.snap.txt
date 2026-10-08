@@ -4,12 +4,15 @@ import * as __rspack_external_path from "path";
 
 // fs
 
+;
 // ./lib3.js
 const v = 42
 
 
+;
 // path
 
+;
 // ./lib2.js
 
 
@@ -17,6 +20,7 @@ const lib2_v = 42
 
 
 
+;
 // ./lib.js
 
 
@@ -26,6 +30,7 @@ const lib_v = 42
 
 
 
+;
 // ./index.js
 
 
@@ -38,6 +43,7 @@ it('should re-export esm correctly', async () => {
 	expect(typeof readFile).toBe('function')
 })
 
+;
 export { __rspack_external_path as path, lib2_v as lib2, lib_v as lib, v as lib3 };
 export * from "fs";
 

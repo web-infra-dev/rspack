@@ -6,6 +6,7 @@ const demo = () => 'demo'
 ;
 /* export default */ const src_demo = (demo);
 
+;
 export default src_demo;
 
 ```
@@ -22,6 +23,7 @@ it('should preserve modules', () => {
   expect(src_demo()).toBe('demo')
 })
 
+;
 export {};
 
 ```
@@ -31,10 +33,12 @@ export {};
 // other2
 console.log.bind(console)
 
+;
 // ./other1/index.js
 // other1
 console.log.bind(console)
 
+;
 export {};
 
 ```

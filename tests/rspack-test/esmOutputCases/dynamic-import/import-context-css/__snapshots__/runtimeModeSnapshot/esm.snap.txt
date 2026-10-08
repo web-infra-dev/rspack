@@ -97,6 +97,7 @@ it("should preserve fetch priority for css loading", async () => {
 	expect(value.default).toBe("a");
 });
 
+;
 
 ```
 

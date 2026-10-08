@@ -32,5 +32,6 @@ it('should preserve modules with native css', () => {
   expect((/* inlined export .name */"button")).toBe('button')
 })
 
+;
 
 ```

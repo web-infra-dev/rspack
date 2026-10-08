@@ -22,6 +22,7 @@ it('should have shebang in entry chunk', async () => {
   expect(code.startsWith('#!')).toBeTruthy()
 })
 
+;
 export {};
 
 ```

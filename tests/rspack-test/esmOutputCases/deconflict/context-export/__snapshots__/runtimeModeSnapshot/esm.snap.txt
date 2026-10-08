@@ -8,6 +8,7 @@ it("should preserve an exported context binding", () => {
 	);
 });
 
+;
 export { index_context as context };
 
 ```

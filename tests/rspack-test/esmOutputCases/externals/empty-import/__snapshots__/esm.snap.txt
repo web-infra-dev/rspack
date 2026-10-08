@@ -3,8 +3,10 @@ import "fs";
 
 // fs
 
+;
 // ./index.js
 
+;
 export {};
 
 ```

@@ -15,9 +15,11 @@ __webpack_require__.d(foo_namespaceObject, {
 // ./bar.js
 const x = 123;
 
+;
 // ./foo.js
 
 
+;
 // ./index.js
 
 
@@ -26,6 +28,7 @@ it("should keep the namespace object for a module with an invalid named re-expor
   expect(bar_namespaceObject.foo).toBeUndefined();
 });
 
+;
 export {};
 
 ```

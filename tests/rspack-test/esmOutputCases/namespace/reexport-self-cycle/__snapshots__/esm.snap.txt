@@ -17,6 +17,7 @@ const bar = 2;
 
 
 
+;
 // ./index.js
 
 
@@ -28,6 +29,7 @@ it("should support modules that re-export their own namespace", async () => {
   expect(mod.other.other.foo).toBe(1);
 });
 
+;
 export { other_namespaceObject as other };
 
 ```

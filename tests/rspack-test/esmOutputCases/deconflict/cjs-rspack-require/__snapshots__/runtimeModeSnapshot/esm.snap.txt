@@ -32,6 +32,7 @@ it("should avoid a CJS rspackRequire factory parameter conflict", () => {
 	expect(value).toBe(42);
 });
 
+;
 export {};
 
 ```

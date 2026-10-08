@@ -2,6 +2,7 @@
 // ./empty.js
 // This module intentionally has no exports
 
+;
 export {};
 
 ```
@@ -14,6 +15,7 @@ it('should handle dynamic import of empty module', async () => {
 	expect(Object.keys(mod).filter(k => k !== '__esModule')).toHaveLength(0);
 });
 
+;
 export {};
 
 ```

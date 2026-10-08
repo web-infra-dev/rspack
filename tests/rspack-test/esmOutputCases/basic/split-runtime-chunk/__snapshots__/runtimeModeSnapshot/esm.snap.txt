@@ -9,6 +9,7 @@ scriptNonce || setScriptNonce('fallback')
 scriptNonce && setScriptNonce('nonce-updated')
 setPublicPath(publicPath + ('nested/'))
 
+;
 // ./index.js
 const other = rspackRequire("./other.js");
 
@@ -23,6 +24,7 @@ it('should have correct value', () => {
   expect(scriptNonce).toBe('nonce-updated')
 })
 
+;
 export {};
 
 ```

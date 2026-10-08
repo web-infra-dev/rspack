@@ -23,6 +23,7 @@ it("should export an imported CommonJS namespace", async () => {
   expect(mod.ns.foo).toBe(123);
 });
 
+;
 const foo = __webpack_require__("./foo.js");
 var foo_namespace = /*#__PURE__*/__webpack_require__.t(foo, 2);
 

@@ -8,6 +8,7 @@ it('should have correct export from module', async () => {
 	expect(value()).toBe(42)
 })
 
+;
 export {};
 
 ```
@@ -18,6 +19,7 @@ let value = () => 42;
 
 
 
+;
 export { value };
 
 ```

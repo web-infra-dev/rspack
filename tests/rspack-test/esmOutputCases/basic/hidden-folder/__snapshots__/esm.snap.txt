@@ -1,6 +1,7 @@
 ```mjs title=.hidden.mjs
 // ./.hidden/index.js
 const value = () => 42
+;
 export { value };
 
 ```
@@ -12,6 +13,7 @@ it("should render hidden folder", async () => {
 
   expect(value()).toBe(42)
 })
+;
 export {};
 
 ```

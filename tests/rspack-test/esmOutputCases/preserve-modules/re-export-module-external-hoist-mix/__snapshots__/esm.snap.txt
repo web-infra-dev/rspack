@@ -16,6 +16,7 @@ module.exports = __rspack_external_fs;
 });
 // fs?82ef
 
+;
 export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted } from "fs";
 
 ```
@@ -25,6 +26,7 @@ export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted } from
 // ./src/hoisted.js
 
 
+;
 export { readFileHoisted, readFileSyncHoisted } from "./fs-fs.mjs";
 
 ```
@@ -57,6 +59,7 @@ it('should preserve module externals reexports for hoisted and wrapped modules',
 	expect(wrapped.readFileWrapped).toBe(fs.readFile)
 })
 
+;
 export {};
 
 ```

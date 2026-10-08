@@ -4,6 +4,7 @@
 
 
 
+;
 export { value } from "./lib_js.mjs";
 
 ```
@@ -11,6 +12,7 @@ export { value } from "./lib_js.mjs";
 ```mjs title=lib_js.mjs
 // ./lib.js
 const value = () => 42
+;
 export { value };
 
 ```
@@ -27,6 +29,7 @@ it('should have correct value', () => {
   expect(value).toBe(valueAsync);
   expect(value()).toBe(42);
 })
+;
 export {};
 
 ```

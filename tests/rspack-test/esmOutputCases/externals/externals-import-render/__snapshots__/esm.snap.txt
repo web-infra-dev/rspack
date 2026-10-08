@@ -4,8 +4,10 @@ import { join, resolve } from "path";
 
 // fs
 
+;
 // path
 
+;
 // ./index.js
 
 
@@ -15,6 +17,7 @@ it('should compile', () => {
 	console.log.bind([fs, join, resolve])
 })
 
+;
 export {};
 
 ```

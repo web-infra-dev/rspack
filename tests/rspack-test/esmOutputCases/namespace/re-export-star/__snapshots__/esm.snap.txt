@@ -12,6 +12,7 @@ __webpack_require__.d(foo_namespaceObject, {
 const foo1 = 1
 const foo2 = 2
 
+;
 // ./bar.js
 
 
@@ -19,6 +20,7 @@ console.log; // side effect
 
 
 
+;
 // ./index.js
 
 
@@ -29,6 +31,7 @@ it('should import star export', () => {
 	expect(foo2).toBe(2)
 })
 
+;
 export {};
 
 ```

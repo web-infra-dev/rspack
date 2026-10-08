@@ -23,6 +23,7 @@ import "./fs.mjs";
 // ./src/hoisted.js
 
 
+;
 const external_fs_ = rspackRequire("fs");
 var readFile = external_fs_.readFile;
 var readFileSync = external_fs_.readFileSync;
@@ -62,6 +63,7 @@ it('should preserve node-commonjs externals reexports for hoisted and wrapped mo
 	expect(wrapped.readFileWrapped).toBe(fs.readFile)
 })
 
+;
 export {};
 
 ```

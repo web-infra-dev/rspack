@@ -8,6 +8,7 @@ makeNamespaceObject(foo_namespaceObject);
 // ./foo.js
 
 
+;
 // ./index.js
 
 
@@ -16,6 +17,7 @@ it("should render a missing namespace property through export-star without captu
   expect(foo_namespaceObject.foo).toBeUndefined();
 });
 
+;
 export {};
 
 ```

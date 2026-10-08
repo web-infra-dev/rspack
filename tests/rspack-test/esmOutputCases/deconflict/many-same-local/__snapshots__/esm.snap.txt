@@ -4,26 +4,31 @@ const value = 'a';
 const helper = value.toUpperCase();
 
 
+;
 // ./b.js
 const b_value = 'b';
 const b_helper = b_value.toUpperCase();
 
 
+;
 // ./c.js
 const c_value = 'c';
 const c_helper = c_value.toUpperCase();
 
 
+;
 // ./d.js
 const d_value = 'd';
 const d_helper = d_value.toUpperCase();
 
 
+;
 // ./e.js
 const e_value = 'e';
 const e_helper = e_value.toUpperCase();
 
 
+;
 // ./index.js
 
 
@@ -45,6 +50,7 @@ it('should deconflict many modules with same local variable names', async () => 
 	expect(mod.eHelper).toBe('E');
 });
 
+;
 export { b_helper as bHelper, b_value as bValue, c_helper as cHelper, c_value as cValue, d_helper as dHelper, d_value as dValue, e_helper as eHelper, e_value as eValue, helper as aHelper, value as aValue };
 
 ```

@@ -4,8 +4,10 @@ const v = () => 1
 
 // shared should be split into splitted chunk as well
 
+;
 // ./shared.js
 const shared = () => 42
+;
 export { shared, v };
 
 ```
@@ -25,6 +27,7 @@ it('should merge dependencies', async () => {
 
 
 
+;
 export { shared, v } from "./b-b_js-shared_js.mjs";
 
 ```

@@ -7,9 +7,11 @@ import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 // node:fs
 const external_node_fs_namespaceObject = __rspack_createRequire_require("node:fs");
+;
 
 var external_node_fs_default = /*#__PURE__*/__webpack_require__.n(external_node_fs_namespaceObject);// node:path
 const external_node_path_namespaceObject = __rspack_createRequire_require("node:path");
+;
 
 var external_node_path_default = /*#__PURE__*/__webpack_require__.n(external_node_path_namespaceObject);// ./index.js
 
@@ -31,6 +33,7 @@ it('should support dynamic import', async () => {
 	expect(value2).toHaveProperty('value', 2)
 })
 
+;
 export {};
 
 ```
@@ -106,10 +109,12 @@ __webpack_require__.d(m2_namespaceObject, {
 /* export default */ const m1 = (42);
 const value = 1
 
+;
 // ./m2.js
 /* export default */ const m2 = (42);
 const m2_value = 2
 
+;
 export { m1_namespaceObject, m2_namespaceObject };
 
 ```

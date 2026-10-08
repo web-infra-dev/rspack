@@ -20,6 +20,7 @@ console.log.bind(module);
 var before_export_exports = 43;
 
 
+;
 // ./index.js
 const index_exports = 42;
 
@@ -33,6 +34,7 @@ it("should preserve direct and deconflicted exports bindings", async () => {
 	expect(namespace.wrappedExports).toBe(44);
 });
 
+;
 var index_wrappedExports = (/* inlined export .exports */44);
 export { before_export_exports as beforeExport, index_exports as exports, index_wrappedExports as wrappedExports };
 

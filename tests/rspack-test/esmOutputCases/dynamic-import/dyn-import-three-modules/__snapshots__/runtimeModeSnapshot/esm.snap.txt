@@ -18,6 +18,7 @@ it('should handle three modules in one chunk with conflicting exports', async ()
 	expect(c).toHaveProperty('id', 3)
 })
 
+;
 export {};
 
 ```
@@ -56,16 +57,19 @@ definePropertyGetters(c_namespaceObject, {
 const a_name = 'module-a';
 const id = 1;
 
+;
 // ./b.js
 /* export default */ const b = ('b');
 const b_name = 'module-b';
 const b_id = 2;
 
+;
 // ./c.js
 /* export default */ const c = ('c');
 const c_name = 'module-c';
 const c_id = 3;
 
+;
 export { a_namespaceObject, b_namespaceObject, c_namespaceObject };
 
 ```

@@ -13,6 +13,7 @@ it('should have deconflicted symbol', async () => {
 	expect(v).toBe((/* inlined export .value */42))
 })
 
+;
 export {};
 
 ```
@@ -25,6 +26,7 @@ const local = 'other'
 
 const value = (/* inlined export .value */42)
 
+;
 export { value };
 
 ```

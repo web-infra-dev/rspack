@@ -18,6 +18,7 @@ module.exports = __rspack_createRequire_require("fs");
 });
 // node:module
 const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+;
 // ./index.js
 
 
@@ -48,6 +49,7 @@ it("should deconflict source bindings that already use the node-commonjs helper 
   );
 });
 
+;
 export { sourceCreateRequireRequire, sourceReadFile, sourceRequireReadFile };
 
 ```

@@ -16,6 +16,7 @@ it('should handle mixed: single-module chunk + multi-module chunk', async () => 
 	expect(m2).toHaveProperty('value', 2)
 })
 
+;
 export {};
 
 ```
@@ -75,10 +76,12 @@ definePropertyGetters(m2_namespaceObject, {
 /* export default */ const m1 = ('hello');
 const value = 1;
 
+;
 // ./m2.js
 /* export default */ const m2 = ('world');
 const m2_value = 2;
 
+;
 export { m1_namespaceObject, m2_namespaceObject };
 
 ```
@@ -88,6 +91,7 @@ export { m1_namespaceObject, m2_namespaceObject };
 /* export default */ const solo = ('solo');
 const value = 100;
 
+;
 export { value };
 export default solo;
 

@@ -2,6 +2,7 @@
 // ./empty.js
 
 
+;
 export {};
 
 ```
@@ -15,6 +16,7 @@ it("should keep an empty async chunk as ESM", async () => {
   expect(Object.keys(mod).filter((key) => key !== "__esModule")).toHaveLength(0);
 });
 
+;
 export {};
 
 ```

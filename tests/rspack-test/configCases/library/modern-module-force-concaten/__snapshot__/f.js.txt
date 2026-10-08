@@ -20,4 +20,5 @@ const value = (/* inlined export .foo */"foo") + (bar_default())
 
 
 
+;
 export { value };

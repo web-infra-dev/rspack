@@ -11,6 +11,7 @@ module.exports = 'bar'
 
 
 
+;
 const bar = __webpack_require__("100");
 var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
 var bar_default_0 = bar_default();
