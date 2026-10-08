@@ -1197,6 +1197,10 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
           if self.value.get(close) == Some(&C_RIGHT_PARENTHESIS) {
             return (TokenKind::Url, close + 1, content_start, content_end, flags);
           }
+          // CSS Syntax §4.3.6: EOF ends a url-token rather than making it bad.
+          if close == self.value.len() {
+            return (TokenKind::Url, close, content_start, content_end, flags);
+          }
           return self.scan_bad_url(start, close, content_start, flags);
         }
         if byte == 0 {
@@ -1238,7 +1242,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       }
       if end == self.value.len() {
         return (
-          TokenKind::BadUrl,
+          TokenKind::Url,
           self.value.len(),
           content_start,
           self.value.len(),
@@ -1271,7 +1275,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       end += close_rel;
       if close_rel == rest.len() {
         return (
-          TokenKind::BadUrl,
+          TokenKind::Url,
           self.value.len(),
           content_start,
           self.value.len(),
