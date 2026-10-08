@@ -1,0 +1,31 @@
+.recovery {
+	/* Invalid candidates synchronize without exporting names from their text. */
+	missingColon;
+	brokenString:"unterminated
+		.shouldNotExport;
+	brokenUrl:url(bad"url);
+	.afterInvalid { color: green; }
+
+	/* Semicolons in component values must not reset the declaration state. */
+	animation:{opaque; stillOpaque} !important;
+	animation:[opaque; stillOpaque] recoveryFade 1s;
+	animation:[opaque) ; stillOpaque} ] recoveryFade 1s;
+	color:{.opaque; :global(.opaqueGlobal)} !\69mportant;
+	color:{@import "not-a-file.css"; @property --opaque { syntax:"x"; }};
+	background:paint([{.opaque; .alsoOpaque}]);
+	--components:before{.opaque; stillOpaque}after;
+	--mismatched:paint([opaque) ; stillOpaque} ]);
+
+	/* Both prefixes are possible until the top-level curly block starts. */
+	button:where(:global(.globalCandidate[data-token=--components]), .localCandidate[data-token=--components]) {
+		color:var(--components);
+	}
+	/* The rule ends before the trailing text that invalidated the declaration. */
+	button:{color:red} trailing;
+	.afterTrailing { color: blue; }
+	.afterRecovery { animation: recoveryFade 1s; }
+}
+
+@keyframes recoveryFade {
+	to { opacity: 1; }
+}
