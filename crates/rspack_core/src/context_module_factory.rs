@@ -11,7 +11,10 @@ use swc_core::common::util::take::Take;
 use tracing::instrument;
 
 pub use self::glob::{CompiledContextModuleGlobRequest, compile_context_module_glob_request};
-use self::glob::{ContextModuleGlobMatcher, resolve_context_module_glob_alias};
+use self::glob::{
+  ContextModuleGlobMatcher, bare_context_module_glob_alias_request,
+  resolve_context_module_glob_alias,
+};
 use crate::{
   CompilationId, ContextElementDependency, ContextMode, ContextModule, ContextModuleOptions,
   ContextModulePattern, DependencyCategory, DependencyId, DependencyRef, DependencyType, ModuleExt,
@@ -293,6 +296,24 @@ impl ContextModuleFactory {
     let context = before_resolve_data.context;
     let recursive = before_resolve_data.recursive;
     let is_glob = matches!(&before_resolve_data.pattern, ContextModulePattern::Glob(_));
+    let specifier = match &before_resolve_data.pattern {
+      ContextModulePattern::Glob(patterns) => {
+        let resolver = plugin_driver
+          .resolver_factory
+          .get(ResolveOptionsWithDependencyType {
+            resolve_options: data
+              .resolve_options
+              .clone()
+              .map(|r| Box::new(Arc::unwrap_or_clone(r))),
+            resolve_to_context: true,
+            dependency_category: *dependency.category(),
+          });
+        bare_context_module_glob_alias_request(patterns, &specifier, &resolver.options())
+          .map(str::to_string)
+          .unwrap_or(specifier)
+      }
+      _ => specifier,
+    };
     let resolve_args = ResolveArgs {
       context: context.clone().into(),
       importer: data.issuer_identifier.as_ref(),
