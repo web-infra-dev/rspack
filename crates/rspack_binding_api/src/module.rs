@@ -31,6 +31,7 @@ use crate::{
   define_symbols,
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
+  shared_properties::define_shared_properties,
   source::{JsSourceFromJs, JsSourceToJs},
 };
 
@@ -215,38 +216,32 @@ pub(crate) fn define_module_properties(
         .with_utf8_name("type")?
         .with_value(&env.create_string(module.module_type().as_str())?),
     );
-    properties.push(
-      Property::new()
-        .with_utf8_name("context")?
-        .with_getter(module_context_getter),
-    );
-    properties.push(
-      Property::new()
-        .with_utf8_name("layer")?
-        .with_getter(module_layer_getter),
-    );
-    properties.push(
-      Property::new()
-        .with_utf8_name("useSourceMap")?
-        .with_getter(module_use_source_map_getter),
-    );
-    properties.push(
-      Property::new()
-        .with_utf8_name("useSimpleSourceMap")?
-        .with_getter(module_use_simple_source_map_getter),
-    );
-    properties.push(
-      Property::new()
-        .with_utf8_name("factoryMeta")?
-        .with_getter(module_factory_meta_getter)
-        .with_setter(module_factory_meta_setter),
-    );
-    properties.push(
-      Property::new()
-        .with_utf8_name("buildInfo")?
-        .with_getter(module_build_info_getter)
-        .with_setter(module_build_info_setter),
-    );
+    object.define_properties(properties)?;
+    properties.clear();
+    define_shared_properties::<Module>(env, *object, || {
+      Ok(vec![
+        Property::new()
+          .with_utf8_name("context")?
+          .with_getter(module_context_getter),
+        Property::new()
+          .with_utf8_name("layer")?
+          .with_getter(module_layer_getter),
+        Property::new()
+          .with_utf8_name("useSourceMap")?
+          .with_getter(module_use_source_map_getter),
+        Property::new()
+          .with_utf8_name("useSimpleSourceMap")?
+          .with_getter(module_use_simple_source_map_getter),
+        Property::new()
+          .with_utf8_name("factoryMeta")?
+          .with_getter(module_factory_meta_getter)
+          .with_setter(module_factory_meta_setter),
+        Property::new()
+          .with_utf8_name("buildInfo")?
+          .with_getter(module_build_info_getter)
+          .with_setter(module_build_info_setter),
+      ])
+    })?;
     properties.push(
       Property::new()
         .with_utf8_name("buildMeta")?
