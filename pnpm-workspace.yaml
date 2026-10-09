@@ -105,7 +105,7 @@ catalog:
   'javascript-stringify': '^2.1.0'
   'jest-diff': '^30.5.2'
   'jiti': '^2.7.0'
-  'jsdom': '^30.1.1'
+  'jsdom': '^30.1.2'
   'json-loader': '^0.5.7'
   'json5': '^2.2.3'
   'less': '4.9.1'
@@ -114,14 +114,14 @@ catalog:
   'lodash-es': '^4.18.1'
   'markdown-to-jsx': '^9.10.3'
   'memfs': '4.80.0'
-  'mermaid': '^12.0.0'
+  'mermaid': '^12.1.0'
   'mime-types': '^3.0.2'
   'mini-svg-data-uri': '^1.4.4'
   'node-polyfill-webpack-plugin': '^4.1.0'
   'open': '^11.0.4'
   'path-serializer': '0.7.0'
   'playwright': '1.63.0'
-  'postcss': '^8.5.28'
+  'postcss': '^8.5.29'
   'postcss-loader': '^8.2.1'
   'postcss-pxtorem': '^6.1.0'
   'preact': '^10.29.8'
@@ -150,7 +150,7 @@ catalog:
   'tailwindcss': '^4.3.3'
   'terser': '5.51.2'
   'terser-webpack-plugin': '^5.6.1'
-  'tinypool': '^2.1.2'
+  'tinypool': '^2.2.0'
   'toml': '^5.0.0'
   'ts-checker-rspack-plugin': '^1.6.2'
   'typescript': '^6.0.3'
@@ -158,9 +158,9 @@ catalog:
   'vue': '^3.5.43'
   'wast-loader': '^1.14.1'
   'watchpack': '2.5.2'
-  'webpack-sources': '3.5.3'
+  'webpack-sources': '3.6.0'
   'worker-rspack-loader': '^3.1.5'
-  'ws': '^8.21.3'
+  'ws': '^8.22.0'
   'xxhashjs': '^0.2.2'
   'yamljs': '^0.3.0'
   'zx': '8.8.5'
@@ -208,7 +208,7 @@ minimumReleaseAgeExclude:
   - mermaid@11.16.1
 
 patchedDependencies:
-  webpack-sources@3.5.3: patches/webpack-sources@3.5.3.patch
+  webpack-sources@3.6.0: patches/webpack-sources@3.6.0.patch
 
 # Prevent un-reviewed build scripts
 strictDepBuilds: true

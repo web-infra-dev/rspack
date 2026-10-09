@@ -8,7 +8,7 @@ definePropertyGetters(foo_namespaceObject, {
 
 
 // ./foo.js
-const foo = 123
+const foo = 123;
 
 // ./index.js
 
@@ -18,7 +18,7 @@ it('should compile', () => {
 	expect(foo_namespaceObject).toHaveProperty('foo')
 	expect(foo).toBe(123)
 	expect(index_foo).toBe(234)
-})
+});
 
 
 export {};

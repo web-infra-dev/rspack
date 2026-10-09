@@ -1,6 +1,6 @@
 ```mjs title=async.mjs
 // ./async.js
-const value = () => 42
+const value = () => 42;
 export { value };
 
 ```
@@ -16,7 +16,7 @@ const {value: value} = cb(mod);
 
 it('should have correct value', () => {
   expect(value()).toBe(42);
-})
+});
 
 export {};
 

@@ -1,5 +1,5 @@
 ---
-description: 'Please see prerequisites for setting up Rust and Node.js'
+description: 'Install repository dependencies and build Rspack Rust crates, Node.js packages, and WebAssembly artifacts from source.'
 ---
 
 # Building

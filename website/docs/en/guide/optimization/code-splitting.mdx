@@ -41,6 +41,12 @@ Building this project produces three chunks: `src_bar_js.js`, `src_foo_js.js`, a
 
 :::
 
+### Modules already available from parents
+
+When an async chunk needs a module that is guaranteed to be loaded on every path to that chunk, Rspack can omit the duplicate module. This happens during code splitting, even with `optimization.splitChunks: false`.
+
+For example, if a parent chunk contains `shared.js` and dynamically imports a child that also imports `shared.js`, the child can reuse the parent's module. Imports with the same `webpackChunkName` may add modules to that parent later during graph traversal; Rspack updates availability for its descendants as well. If another path reaches the child without loading `shared.js`, the child must retain its copy. Independent entries and workers have separate loading boundaries.
+
 ## Entry point
 
 This is the simplest and most intuitive way to split the code, but it requires manual configuration. Let's start by looking at how to create multiple Chunks from multiple entry points.

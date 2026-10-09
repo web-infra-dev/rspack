@@ -29,6 +29,7 @@ export default defineConfig((_, { testPath }) => ({
           );
           expect(content).toContain('sriHashes');
           expect(content).toContain('sriCssHashes');
+          expect(content).not.toContain('*-*-*-CHUNK-SRI-HASH-');
         });
       },
     }),

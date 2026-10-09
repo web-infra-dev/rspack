@@ -36,7 +36,7 @@ use crate::{
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
   runtime::CssLoadingRuntimeModule,
   utils::{
-    AUTO_PUBLIC_PATH_PLACEHOLDER, append_css_export_type_key, css_attribute_export_type,
+    AUTO_PUBLIC_PATH_MATCHER, append_css_export_type_key, css_attribute_export_type,
     css_dependency_export_type, css_dependency_meta, css_module_has_charset,
     css_module_is_import_dependency, css_module_resource, css_render_conditions_from_module,
   },
@@ -108,16 +108,12 @@ impl CssPlugin {
       Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules, &hooks).await?;
 
     let content = source.source().into_string_lossy();
-    let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
-    let auto_public_path_matches: Vec<_> = content
-      .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
-      .map(|(index, _)| (index, index + len))
-      .collect();
+    let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_MATCHER.find_iter(&content).collect();
     let source = if !auto_public_path_matches.is_empty() {
       let mut replace = ReplaceSource::new(source);
-      for (start, end) in auto_public_path_matches {
-        let relative = PublicPath::render_auto_public_path(compilation, output_path);
-        replace.replace(start as u32, end as u32, relative, None);
+      let relative = PublicPath::render_auto_public_path(compilation, output_path);
+      for range in auto_public_path_matches {
+        replace.replace(range.start as u32, range.end as u32, relative.clone(), None);
       }
       replace.boxed()
     } else {

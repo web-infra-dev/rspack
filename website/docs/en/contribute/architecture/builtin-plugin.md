@@ -1,5 +1,5 @@
 ---
-description: 'Builtin plugin introduction'
+description: 'Implement Rust built-in plugins with rspack_macros and register hook handlers using the plugin and plugin_hook macros.'
 ---
 
 # Builtin plugin

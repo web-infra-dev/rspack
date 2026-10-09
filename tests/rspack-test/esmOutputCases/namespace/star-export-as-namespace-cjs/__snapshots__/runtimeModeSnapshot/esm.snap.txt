@@ -21,7 +21,7 @@ it('should compile', () => {
 	expect(foo_0_namespace).toHaveProperty('foo')
 	expect(foo_0.foo).toBe(123)
 	expect(foo).toBe(234)
-})
+});
 
 
 export {};

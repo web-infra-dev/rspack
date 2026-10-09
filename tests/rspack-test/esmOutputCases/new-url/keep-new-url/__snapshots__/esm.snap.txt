@@ -8,7 +8,7 @@
 function neverUse() {
 	new URL("./ef46db3751d8e999.js", import.meta.url)(function foo() {})();
 }
-neverUse.bind(neverUse)
+neverUse.bind(neverUse);
 
 export {};
 

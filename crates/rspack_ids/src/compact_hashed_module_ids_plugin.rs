@@ -9,8 +9,8 @@ use rspack_hook::{plugin, plugin_hook};
 
 use crate::{
   compact_hashed_id::{
-    CompactHashedIdAssigner, FULL_IDENTIFIER_LENGTH, hash_identifier, normalize_min_length,
-    validate_min_length,
+    CompactHashedIdAssigner, FULL_IDENTIFIER_LENGTH, MAX_REHASH_ATTEMPTS, hash_identifier,
+    normalize_min_length, validate_min_length,
   },
   id_helpers::{
     compare_modules_by_pre_order_index_or_identifier, get_full_module_name,
@@ -81,19 +81,20 @@ async fn module_ids(
     .into_par_iter()
     .map(|module| {
       let name = get_full_module_name(module, context);
-      (module, hash_identifier(&name))
+      let hash = hash_identifier(&name);
+      (module, hash, name)
     })
     .collect::<Vec<_>>();
 
-  modules_with_hashes.sort_unstable_by(|(a, _), (b, _)| {
+  modules_with_hashes.sort_unstable_by(|(a, _, _), (b, _, _)| {
     compare_modules_by_pre_order_index_or_identifier(module_graph, &a.identifier(), &b.identifier())
   });
 
   let mut id_assigner = CompactHashedIdAssigner::new(self.min_length, used_ids);
-  for (module, hash) in modules_with_hashes {
-    let Some(module_id) = id_assigner.assign(&hash) else {
+  for (module, hash, name) in modules_with_hashes {
+    let Some(module_id) = id_assigner.assign(&name, hash, hash_identifier) else {
       return Err(error!(
-        "Unable to assign a unique compact-hashed id to module '{}' after using all {FULL_IDENTIFIER_LENGTH} hash characters",
+        "Unable to assign a unique compact-hashed id to module '{}' after {MAX_REHASH_ATTEMPTS} rehash attempts",
         module.identifier()
       ));
     };

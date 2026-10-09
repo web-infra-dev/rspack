@@ -68,7 +68,7 @@ jobs:
       - name: Install Dylint Toolchain
         run: rustup toolchain install "$DYLINT_TOOLCHAIN" -c rustc-dev -c llvm-tools-preview -c rust-src
 
-      - uses: cargo-bins/cargo-binstall@ead08b90bd7b2e6d81963fb9cf0b7239f66d5db4 # v1.21.0
+      - uses: cargo-bins/cargo-binstall@422f3094be6a0843857aa008b499caaf6bce0da8 # v1.24.0
 
       - name: Install cargo-dylint
         run: |

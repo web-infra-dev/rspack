@@ -1,5 +1,5 @@
 ---
-description: 'The old architecture is a quite simple version, which only supports loaders for normal stage'
+description: 'Understand Rspack loader execution across Rust and JavaScript, including pitching, option passing, and execution optimizations.'
 ---
 
 # Rspack loader

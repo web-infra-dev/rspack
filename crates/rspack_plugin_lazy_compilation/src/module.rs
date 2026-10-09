@@ -97,8 +97,13 @@ impl LazyCompilationProxyModule {
   ) -> Self {
     let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
 
+    let original_dependency = &create_data.dependencies[0];
     let dep_options = DependencyOptions {
       request: create_data.request.clone(),
+      phase: original_dependency.get_phase(),
+      attributes: original_dependency.get_attributes().cloned(),
+      issuer: create_data.issuer.clone(),
+      resolve_options: create_data.resolve_options.clone(),
       file_dependencies: create_data.file_dependencies.clone(),
       context_dependencies: create_data.context_dependencies.clone(),
       missing_dependencies: create_data.missing_dependencies.clone(),
@@ -129,6 +134,10 @@ impl LazyCompilationProxyModule {
     self
       .need_build
       .store(true, std::sync::atomic::Ordering::Relaxed);
+  }
+
+  pub fn is_active(&self) -> bool {
+    self.active
   }
 }
 

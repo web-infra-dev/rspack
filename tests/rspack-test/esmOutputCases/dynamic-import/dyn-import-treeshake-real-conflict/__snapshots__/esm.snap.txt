@@ -10,7 +10,7 @@ it('should keep namespace when both conflicting exports are used', async () => {
 	expect(bValue).toBe(2)
 	expect(foo).toBe('a-foo')
 	expect(bar).toBe('b-bar')
-})
+});
 
 export {};
 

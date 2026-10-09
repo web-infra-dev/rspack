@@ -27,7 +27,7 @@ export default {
 
 ### 排除 Vendor maps
 
-以下代码会排除 vendor.js bundle 内模块的 source map。
+以下代码会排除 `vendor.js` 输出资源，使其不生成 source map。
 
 ```js
 new rspack.SourceMapDevToolPlugin({
@@ -82,19 +82,21 @@ https://example.com/project/sourcemaps/bundle-[hash].js.map
 
 - **类型：** `string` `RegExp` `[string, RegExp]`
 
-根据模块扩展名，匹配的生成 source map（默认是 `.js`, `.mjs` 和 `.css`）。
+通过匹配输出资源的文件名，选择要生成 source map 的资源。未设置时，`test` 不会过滤输出资源。
 
 ### include
 
 - **类型：** `string` `RegExp` `[string, RegExp]`
 
-使路径与该值匹配的模块生成 source map。
+使输出文件名与该值匹配的资源生成 source map。
 
 ### exclude
 
 - **类型：** `string` `RegExp` `[string, RegExp]`
 
-使匹配该值的模块不生成 source map。
+使输出文件名与该值匹配的资源不生成 source map。
+
+`test`、`include` 和 `exclude` 匹配的是输出资源文件名，例如 `vendor.js`，而非 `src/index.js` 或 `node_modules/package/index.js` 这样的源模块路径。
 
 ### filename
 

@@ -9,7 +9,7 @@ it('should not confuse default and named bindings for module externals in shared
 	expect(b.namedReadFile).toBe(fs.readFile)
 	expect(b.namedReadFile).not.toBe(fs.default)
 	expect(b.marker).toBe('ok')
-})
+});
 
 export {};
 
@@ -23,14 +23,14 @@ import fs, { readFile } from "fs";
 // ./a.js
 
 
-const defaultImport = fs
+const defaultImport = fs;
 
 // fs?f4d4
 
 // ./b.js
 
 
-const marker = 'ok'
+const marker = 'ok';
 
 export { defaultImport, marker, readFile as namedReadFile };
 

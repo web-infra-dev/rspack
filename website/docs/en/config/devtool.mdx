@@ -145,6 +145,8 @@ Rspack validates modifier order. Values must match `[inline-|hidden-|eval-][noso
 
 ## Fine-grained control
 
+`devtool` only adds source maps to JavaScript and CSS output assets, that is, files whose names match `/\.((c|m)?js|css)($|\?)/i`, as in webpack. Other output assets, such as text assets emitted with [`generator.binary: false`](/config/module-generator#assetbinary), are not source mapped. To source map them, use [SourceMapDevToolPlugin](/plugins/source-map-dev-tool-plugin) with a matching [`test`](/plugins/source-map-dev-tool-plugin#test).
+
 For finer-grained control over source map generation, set `devtool` to `false` and use [SourceMapDevToolPlugin](/plugins/source-map-dev-tool-plugin) instead. For `eval`-based source maps, use [EvalSourceMapDevToolPlugin](/plugins/eval-source-map-dev-tool-plugin) instead.
 
 <Attribution url="https://webpack.js.org/configuration/devtool/" />

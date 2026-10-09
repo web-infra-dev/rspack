@@ -35,7 +35,7 @@ it('should compile and import success', async () => {
 	expect(readFileSync).toBeDefined()
 	expect(r).toBeDefined()
 	expect(readFile).toBeDefined()
-})
+});
 
 var default_0 = __rspack_external_fs["default"];
 var fs_0 = __rspack_external_fs["default"];

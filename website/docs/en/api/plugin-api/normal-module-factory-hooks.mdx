@@ -137,9 +137,11 @@ Returning module instance or `false` is not supported for now.
 
 ## `afterResolve`
 
-`AsyncSeriesBailHook<[ResolveData]>`
+`AsyncSeriesBailHook<[ResolveData], false | void>`
 
 Called after the module specifier is resolved.
+
+Return `false` to ignore the request and stop subsequent taps. Return `undefined` or omit the return value to continue.
 
 The `afterResolve` hook is used to further process or modify the results after the module has been resolved. It is called at the end of the module resolution process, which means that at this stage, the module's path, request information, etc., have already been determined.
 
@@ -148,6 +150,10 @@ compiler.hooks.compilation.tap(
   'MyPlugin',
   (compilation, { normalModuleFactory }) => {
     normalModuleFactory.hooks.afterResolve.tap('MyPlugin', (resolveData) => {
+      if (resolveData.request === './optional-module.js') {
+        return false;
+      }
+
       // access and modify the resolved module information
       console.log(JSON.stringify(resolveData, null, 2));
     });
@@ -185,11 +191,13 @@ compiler.hooks.compilation.tap(
 
 ## `resolveForScheme`
 
-`AsyncSeriesBailHook<[ResourceDataWithData]>`
+`HookMap<AsyncSeriesBailHook<[ResourceDataWithData], true | void>>`
 
 Called before a module specifier with scheme (URI) is resolved.
 
 The `resolveForScheme` is typically used to handle module specifiers that have a specific protocol, such as `file://`, `https://`, etc.
+
+Select a scheme with `.for(scheme)`, such as `.for('https')`, then register a tap on the returned hook. Return `true` when the resource has been handled to skip subsequent taps for that scheme. Return `undefined` or omit the return value to continue to the next tap.
 
 ```js
 compiler.hooks.compilation.tap(

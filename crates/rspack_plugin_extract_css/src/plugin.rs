@@ -26,6 +26,7 @@ use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
+use rspack_util::placeholder::PlaceholderFinder;
 use rustc_hash::{FxHashMap, FxHashSet};
 use ustr::Ustr;
 
@@ -51,6 +52,15 @@ pub static AUTO_PUBLIC_PATH: &str = "__css_extract_public_path_auto__";
 pub static SINGLE_DOT_PATH_SEGMENT: &str = "__css_extract_single_dot_path_segment__";
 pub(crate) const MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL: &str =
   "__rspack_get_mini_css_chunk_filename";
+
+static ABSOLUTE_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(ABSOLUTE_PUBLIC_PATH));
+static SINGLE_DOT_PATH_SEGMENT_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(SINGLE_DOT_PATH_SEGMENT));
+static AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(AUTO_PUBLIC_PATH));
+static BASE_URI_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(BASE_URI));
 
 static STARTS_WITH_AT_IMPORT: &str = "@import url";
 
@@ -475,11 +485,11 @@ despite it was not able to fulfill desired ordering with these modules:
           self.options.enforce_relative,
         );
 
-        let content = content.cow_replace(ABSOLUTE_PUBLIC_PATH, "");
-        let content = content.cow_replace(SINGLE_DOT_PATH_SEGMENT, ".");
-        let content = content.cow_replace(AUTO_PUBLIC_PATH, &undo_path);
-        let content = content.cow_replace(
-          BASE_URI,
+        let content = ABSOLUTE_PUBLIC_PATH_MATCHER.replace(&content, "");
+        let content = SINGLE_DOT_PATH_SEGMENT_MATCHER.replace(&content, ".");
+        let content = AUTO_PUBLIC_PATH_MATCHER.replace(&content, &undo_path);
+        let content = BASE_URI_MATCHER.replace(
+          &content,
           chunk
             .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
             .and_then(|entry_options| entry_options.base_uri.as_ref())

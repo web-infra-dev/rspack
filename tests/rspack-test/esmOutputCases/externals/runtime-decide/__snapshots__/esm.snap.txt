@@ -59,7 +59,7 @@ it('should have correct exports as its exports is decided at runtime', async () 
 
   expect(resolve).toBe(nodeResolve)
   expect(runtime_decide.readFile()).toBe(42)
-})
+});
 
 export {};
 

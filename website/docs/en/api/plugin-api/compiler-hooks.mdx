@@ -246,14 +246,11 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tapPromise(
-      'ExamplePlugin',
-      (compiler) => {
-        console.log('Build is about to start...');
+    compiler.hooks.beforeRun.tapPromise('ExamplePlugin', async (compiler) => {
+      console.log('Build is about to start...');
 
-        await someAsyncOperation();
-      },
-    );
+      await someAsyncOperation();
+    });
   }
 }
 ```
@@ -287,7 +284,7 @@ This hook is only triggered when calling [compiler.run()](/api/javascript-api/#c
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tap('ExamplePlugin', (compiler) => {
+    compiler.hooks.run.tap('ExamplePlugin', (compiler) => {
       console.log('Build start...');
     });
   }
@@ -299,14 +296,11 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tapPromise(
-      'ExamplePlugin',
-      (compiler) => {
-        console.log('Build start...');
+    compiler.hooks.run.tapPromise('ExamplePlugin', async (compiler) => {
+      console.log('Build start...');
 
-        await someAsyncOperation();
-      },
-    );
+      await someAsyncOperation();
+    });
   }
 }
 ```
@@ -360,7 +354,7 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.watchRun.tapPromise('ExamplePlugin', compiler => {
+    compiler.hooks.watchRun.tapPromise('ExamplePlugin', async (compiler) => {
       await someAsyncOperation();
     });
   }
@@ -371,13 +365,24 @@ class ExamplePlugin {
 
 Executes a plugin after compilation parameters are created.
 
-- **Type:** `AsyncSeriesHook<[]>`
+- **Type:** `AsyncSeriesHook<[CompilationParams]>`
+- **Arguments:**
+  - `params`: compilation parameters containing the [normal module factory](/api/plugin-api/normal-module-factory-hooks) and [context module factory](/api/plugin-api/context-module-factory-hooks).
+
+```ts
+type CompilationParams = {
+  normalModuleFactory: NormalModuleFactory;
+  contextModuleFactory: ContextModuleFactory;
+};
+```
 
 ## `compile`
 
 Called right after `beforeCompile`, before a new [compilation object](/api/javascript-api/compilation) is created.
 
-- **Type:** `SyncHook<[]>`
+- **Type:** `SyncHook<[CompilationParams]>`
+- **Arguments:**
+  - `params`: the same compilation parameters passed to [beforeCompile](#beforecompile).
 
 ## `thisCompilation`
 
@@ -385,9 +390,10 @@ Called while initializing the compilation, can be used to get the current compil
 
 You can use the `compilation` parameter to access the properties of the compilation object, or register [compilation hooks](/api/plugin-api/compilation-hooks).
 
-- **Type:** `SyncHook<[Compilation]>`
+- **Type:** `SyncHook<[Compilation, CompilationParams]>`
 - **Arguments:**
   - `compilation`: created [compilation](/api/javascript-api/compilation) object
+  - `params: CompilationParams`: module factories for this compilation, with `normalModuleFactory` and `contextModuleFactory` properties.
 
 <Collapse>
   <CollapsePanel
@@ -407,8 +413,8 @@ class ExamplePlugin {
     compiler.hooks.thisCompilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation created:', compilation);
 
-      compilation.hooks.make.tap('ExamplePlugin', (compilation) => {
-        console.log("compilation's make hook called:", compilation);
+      compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
+        console.log('Generated assets:', Object.keys(assets));
       });
     });
   }
@@ -423,9 +429,10 @@ You can use the `compilation` parameter to access the properties of the compilat
 
 `compilation` hook is called after the [thisCompilation](#thiscompilation) hook, and `thisCompilation` hook is not copied to child compiler, while `compilation` hook is copied to child compiler.
 
-- **Type:** `SyncHook<[Compilation]>`
+- **Type:** `SyncHook<[Compilation, CompilationParams]>`
 - **Arguments:**
   - `compilation`: created [compilation](/api/javascript-api/compilation) object
+  - `params: CompilationParams`: module factories for this compilation, with `normalModuleFactory` and `contextModuleFactory` properties.
 
 <Collapse>
   <CollapsePanel
@@ -443,8 +450,8 @@ class ExamplePlugin {
     compiler.hooks.compilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation created:', compilation);
 
-      compilation.hooks.make.tap('ExamplePlugin', (compilation) => {
-        console.log("compilation's make hook called:", compilation);
+      compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
+        console.log('Generated assets:', Object.keys(assets));
       });
     });
   }

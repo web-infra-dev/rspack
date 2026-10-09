@@ -9,7 +9,7 @@ it('should support dyn import with no conflicting exports', async () => {
 
 	expect(fooFn()).toBe(1)
 	expect(barFn()).toBe(2)
-})
+});
 
 export {};
 

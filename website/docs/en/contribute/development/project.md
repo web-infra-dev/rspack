@@ -1,5 +1,5 @@
 ---
-description: 'monorepo containing both Rust crates and JavaScript packages:'
+description: 'Navigate the Rspack monorepo, including Rust crates, JavaScript packages, test suites, and benchmark directories.'
 ---
 
 # Project architecture

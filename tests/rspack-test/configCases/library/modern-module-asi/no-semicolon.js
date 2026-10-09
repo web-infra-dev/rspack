@@ -1,0 +1,1 @@
+export const value = { version: '1.2.3' } // Intentionally no semicolon or final newline

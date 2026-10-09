@@ -16,7 +16,7 @@ it('should handle three modules in one chunk with conflicting exports', async ()
 	expect(c).toHaveProperty('default', 'c')
 	expect(c).toHaveProperty('name', 'module-c')
 	expect(c).toHaveProperty('id', 3)
-})
+});
 
 export {};
 

@@ -599,7 +599,7 @@ export default {
 
 ```js title="index.js"
 // will print hash of this compilation
-console.log(__webpack_require__.h);
+console.log(__webpack_require__.h());
 ```
 
 ## `runtimeRequirementInTree`
@@ -770,7 +770,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
       const newContent = oldContent + '\nconsole.log("hello world!")';
       const source = new RawSource(newContent);
 
-      compilation.updateAsset(assetName, source);
+      compilation.updateAsset('foo.js', source);
     },
   );
 });
@@ -915,22 +915,22 @@ Executed after setting up a child compiler.
 
 <Badge text="Read-only" type="info" />
 
-This hook is like a list of actions that gets triggered when a preset is used. It takes in an options object. When a plugin manages a preset, it should change settings in this object carefully without replacing existing ones.
+Plugins can use this hook to define a stats preset that groups multiple stats options into a set of defaults. Users can apply these defaults by specifying the preset name.
 
-- **Type:** `SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>`
+- **Type:** `HookMap<SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>>`
 - **Arguments:**
   - `Partial<StatsOptions>`: stats options
   - `CreateStatsOptionsContext`: stats context
 
-Here's an illustrative plugin example:
+For example, the following code defines a preset named `my-preset`. When a user configures `stats: 'my-preset'`, it sets `all` to `true` if that option has not been specified.
 
 ```js
 compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', (options) => {
-  if (options.all === undefined) options.all = true;
+  if (options.all === undefined) {
+    options.all = true;
+  }
 });
 ```
-
-This plugin ensures that for the preset `"my-preset"`, if the `all` option is undefined, it defaults to `true`.
 
 <Collapse>
   <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
@@ -963,7 +963,7 @@ Here's an illustrative plugin example:
 compilation.hooks.statsNormalize.tap('MyPlugin', (options) => {
   if (options.myOption === undefined) options.myOption = [];
 
-  if (!Array.isArray(options.myOption)) options.myOptions = [options.myOptions];
+  if (!Array.isArray(options.myOption)) options.myOption = [options.myOption];
 });
 ```
 

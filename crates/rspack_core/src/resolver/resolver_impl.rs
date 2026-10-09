@@ -88,6 +88,24 @@ impl ResolveInnerOptions<'_> {
       Self::RspackResolver(options) => options.modules.iter(),
     }
   }
+
+  /// Whether a `resolve.alias` key applies to `request`, using the resolver's
+  /// matching rules: `key$` matches exactly, other keys match `key` or `key/...`.
+  pub fn has_alias_for(&self, request: &str) -> bool {
+    match self {
+      Self::RspackResolver(options) => {
+        options
+          .alias
+          .iter()
+          .any(|(key, _)| match key.strip_suffix('$') {
+            Some(key) => request == key,
+            None => request
+              .strip_prefix(key.as_str())
+              .is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', '\\'])),
+          })
+      }
+    }
+  }
 }
 
 /// Proxy to [rspack_resolver::Resolver]
