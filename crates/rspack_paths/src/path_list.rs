@@ -18,13 +18,26 @@ use rustc_hash::{FxBuildHasher, FxHasher};
 
 use crate::InternedPath;
 
-/// Insertions between two cheap checks of whether the intern table grew enough
-/// to be worth sweeping.
-const PRUNE_CHECK_INTERVAL: usize = 1 << 12;
+/// Lists built between two cheap checks of whether the intern table is worth
+/// sweeping.
+const SWEEP_CHECK_INTERVAL: usize = 1 << 10;
 
 /// Entries below this count are never swept: the first sweep only starts once a
 /// single pass is small relative to the entries that created the table.
-const PRUNE_MIN_TABLE: usize = 1 << 16;
+const SWEEP_MIN_TABLE: usize = 1 << 16;
+
+/// Floor of the observed dead-slot count that triggers a churn sweep.
+const SWEEP_DEAD_SLOTS_MIN: usize = 1 << 10;
+
+/// Lists built between two cheap checks of whether the intern table is worth
+/// sweeping.
+static SWEEP_TICKS: AtomicUsize = AtomicUsize::new(0);
+
+/// Table size at which the next growth-driven sweep runs.
+static NEXT_GROWTH_SWEEP: AtomicUsize = AtomicUsize::new(SWEEP_MIN_TABLE);
+
+/// Slots observed to be dead since the last sweep.
+static DEAD_SLOTS: AtomicUsize = AtomicUsize::new(0);
 
 /// A content-interned, immutable list of [`InternedPath`]s.
 ///
@@ -34,8 +47,9 @@ const PRUNE_MIN_TABLE: usize = 1 << 16;
 /// list elements rather than path bytes; comparing a key hit compares elements
 /// by their already interned identity. An empty list shares a single allocation.
 ///
-/// The table holds weak references and is swept periodically, so an entry lives
-/// exactly as long as some list still refers to it.
+/// The table holds weak references and is swept when it grows or when enough
+/// slots were observed to be dead, so an entry lives exactly as long as some
+/// list still refers to it.
 #[cfg_attr(feature = "cacheable", cacheable(with = Custom))]
 #[derive(Clone)]
 pub struct InternedPathList(Arc<[InternedPath]>);
@@ -45,22 +59,26 @@ impl InternedPathList {
   pub fn new(items: &[InternedPath]) -> Self {
     let table = intern_table();
     let key = list_key(items);
-    if let Some(shared) = lookup(table, key, items) {
-      return Self(shared);
-    }
-    Self(intern(table, key, Arc::from(items)))
+    let list = match lookup(table, key, items) {
+      Some(shared) => Self(shared),
+      None => Self(intern(table, key, Arc::from(items))),
+    };
+    maybe_sweep(table);
+    list
   }
 
   /// Interns an owned list, reusing its allocation when the list is new.
   pub fn from_vec(items: Vec<InternedPath>) -> Self {
     let table = intern_table();
     let key = list_key(&items);
-    if let Some(shared) = lookup(table, key, &items) {
-      return Self(shared);
-    }
-    // Moving the vector hands its elements over to the shared allocation
-    // instead of cloning and dropping every handle.
-    Self(intern(table, key, Arc::from(items)))
+    let list = match lookup(table, key, &items) {
+      Some(shared) => Self(shared),
+      // Moving the vector hands its elements over to the shared allocation
+      // instead of cloning and dropping every handle.
+      None => Self(intern(table, key, Arc::from(items))),
+    };
+    maybe_sweep(table);
+    list
   }
 
   #[inline]
@@ -151,16 +169,23 @@ fn intern(
   key: ListKey,
   list: Arc<[InternedPath]>,
 ) -> Arc<[InternedPath]> {
-  let shared = match table.entry(key) {
-    // The write lock re-checks the entry so parallel interning of the same list
-    // converges on one allocation instead of keeping one payload per thread.
+  // The write lock re-checks the entry so parallel interning of the same list
+  // converges on one allocation instead of keeping one payload per thread.
+  match table.entry(key) {
     Entry::Occupied(mut entry) => {
       let existing = entry.get().upgrade();
       match existing {
         Some(existing) if existing.len() == list.len() && existing.iter().eq(list.iter()) => {
           existing
         }
-        _ => {
+        Some(_) => {
+          entry.insert(Arc::downgrade(&list));
+          list
+        }
+        None => {
+          // The previous list with this content is gone; replacing the slot
+          // releases its buffer right away.
+          record_dead_slot();
           entry.insert(Arc::downgrade(&list));
           list
         }
@@ -170,31 +195,41 @@ fn intern(
       entry.insert(Arc::downgrade(&list));
       list
     }
-  };
-  prune(table);
-  shared
+  }
 }
 
-fn prune(table: &DashMap<ListKey, Weak<[InternedPath]>, FxBuildHasher>) {
-  static INSERTS: AtomicUsize = AtomicUsize::new(0);
-  if !INSERTS
+/// Counts a slot whose list is gone but whose buffer is still held by the weak
+/// entry. A sweep frees it, and the count makes churn trigger a sweep even when
+/// the table is not growing.
+fn record_dead_slot() {
+  DEAD_SLOTS.fetch_add(1, Ordering::Relaxed);
+}
+
+fn maybe_sweep(table: &DashMap<ListKey, Weak<[InternedPath]>, FxBuildHasher>) {
+  if !SWEEP_TICKS
     .fetch_add(1, Ordering::Relaxed)
-    .is_multiple_of(PRUNE_CHECK_INTERVAL)
+    .is_multiple_of(SWEEP_CHECK_INTERVAL)
   {
     return;
   }
-  // Sweep only after the table doubled since the previous sweep, so the new
-  // entries pay for scanning the old ones and the total work stays
+  let entries = table.len();
+  // Sweep after the table doubled since the previous sweep, so the entries that
+  // grew it pay for scanning the older ones and the total work stays
   // `O(entries log entries)` instead of rescanning a mostly live table on a
-  // fixed interval. The threshold never drops, so a long session keeps sweeping
-  // as it grows while dead entries stay bounded by the live ones.
-  static NEXT_SWEEP: AtomicUsize = AtomicUsize::new(PRUNE_MIN_TABLE);
-  if table.len() < NEXT_SWEEP.load(Ordering::Relaxed) {
+  // fixed interval.
+  let grown = entries >= NEXT_GROWTH_SWEEP.load(Ordering::Relaxed);
+  // Also sweep on churn: a watch rebuild drops the previous build's lists, and
+  // slots whose content never comes back are only reachable by a sweep. Scale
+  // the trigger with the table so one sweep stays proportional to what a
+  // rebuild can have dropped.
+  let churned = DEAD_SLOTS.load(Ordering::Relaxed) >= (entries / 8).max(SWEEP_DEAD_SLOTS_MIN);
+  if !grown && !churned {
     return;
   }
   table.retain(|_, weak| weak.strong_count() > 0);
-  NEXT_SWEEP.store(
-    table.len().saturating_mul(2).max(PRUNE_MIN_TABLE),
+  DEAD_SLOTS.store(0, Ordering::Relaxed);
+  NEXT_GROWTH_SWEEP.store(
+    table.len().saturating_mul(2).max(SWEEP_MIN_TABLE),
     Ordering::Relaxed,
   );
 }
