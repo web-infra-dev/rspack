@@ -21,7 +21,6 @@ class Plugin {
             initial = false;
 
             const oldSource = oldModule.originalSource();
-            const oldMap = oldSource?.map();
             expect(oldModule.originalSource()?.source().includes('a = 1')).toBe(
               true,
             );
@@ -41,7 +40,7 @@ class Plugin {
             );
             // Read the old map for the first time after the module replaces its native source.
             expect(oldSource?.source().includes('a = 1')).toBe(true);
-            expect(oldMap?.sourcesContent?.[0]).toContain('a = 1');
+            expect(oldSource?.map()?.sourcesContent?.[0]).toContain('a = 1');
             expect(
               newModule.originalSource()?.map()?.sourcesContent?.[0],
             ).toContain('a = 2');

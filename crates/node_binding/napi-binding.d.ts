@@ -448,7 +448,7 @@ export declare class JsResolverFactory {
 }
 
 /**
- * An owned source snapshot that defers map generation until the JavaScript map proxy is read.
+ * An owned source snapshot that defers map generation until JavaScript reads its serialized map.
  * Sources whose map presence cannot be determined cheaply initialize the map eagerly.
  */
 export declare class JsSourceMap {

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { isProxy } from 'node:util/types';
 import { defineConfig } from '@rspack/cli';
 import { type Compiler, sources } from '@rspack/core';
 import type { RawSourceMap, Source } from 'webpack-sources';
@@ -62,6 +63,9 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   expect(Object.getPrototypeOf(source)).toBe(
                     Object.getPrototypeOf(eager),
                   );
+                  expect(isProxy(source)).toBe(false);
+                  expect(source.map).toBe(eager.map);
+                  expect(source.updateHash).toBe(eager.updateHash);
                   if (source instanceof sources.RawSource) {
                     expect(source.isBuffer()).toBe(Buffer.isBuffer(value));
                     expect(source.map()).toBeNull();
@@ -108,7 +112,7 @@ export default ([false, 'source-map'] as const).map((devtool) =>
 
                   if (!binding.map) return;
                   let transfers = 0;
-                  // Observe the JSON transfer boundary without inspecting the map proxy.
+                  // Observe the JSON transfer boundary without reading the source map.
                   const createSource = () =>
                     module.originalSource.call({
                       _originalSource: () => ({
@@ -126,11 +130,15 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   expect(lazy.source()).toEqual(value);
                   expect(lazy.buffer()).toEqual(eager.buffer());
                   expect(lazy.size()).toBe(eager.size());
+                  expect(transfers).toBe(0);
                   const lazyMap = lazy.map()!;
+                  expect(transfers).toBe(1);
+                  expect(isProxy(lazyMap)).toBe(false);
+                  expect(Object.getPrototypeOf(lazyMap)).toBe(Object.prototype);
                   expect(lazy.map()).toBe(lazyMap);
                   expect(lazy.map({ columns: false })).toBe(lazyMap);
                   expect(lazy.sourceAndMap().map).toBe(lazyMap);
-                  expect(transfers).toBe(0);
+                  expect(transfers).toBe(1);
                   expect(lazyMap.mappings).toBe(eager.map()!.mappings);
                   expect(transfers).toBe(1);
                   expect(lazy.map()).toBe(lazyMap);
@@ -141,6 +149,7 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   const operations: ((map: RawSourceMap) => unknown)[] = [
                     (map) => map.sourcesContent,
                     (map) => JSON.stringify(map),
+                    (map) => structuredClone(map),
                     (map) => Object.keys(map),
                     (map) => ({ ...map }),
                     (map) => 'mappings' in map,
@@ -160,9 +169,11 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   ];
                   for (const operation of operations) {
                     const previousTransfers = transfers;
-                    const actual = createSource().map()!;
-                    const expected = JSON.parse(map!);
+                    const actualSource = createSource();
                     expect(transfers).toBe(previousTransfers);
+                    const actual = actualSource.map()!;
+                    const expected = JSON.parse(map!);
+                    expect(transfers).toBe(previousTransfers + 1);
                     expect(operation(actual)).toEqual(operation(expected));
                     expect(actual).toEqual(expected);
                     expect(Object.getOwnPropertyDescriptors(actual)).toEqual(
@@ -178,6 +189,54 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   secondMap.sources.push('added.js');
                   expect(lazyMap.sources).not.toContain('added.js');
                   expect(transfers).toBe(operations.length + 2);
+
+                  const caching = sources.util.stringBufferUtils;
+                  const wasCaching = caching.isDualStringBufferCachingEnabled();
+                  try {
+                    for (const cacheBuffers of [true, false]) {
+                      if (cacheBuffers) caching.enableDualStringBufferCaching();
+                      else caching.disableDualStringBufferCaching();
+                      for (const readMapFirst of [false, true]) {
+                        const actual =
+                          createSource() as sources.SourceMapSource;
+                        const reference = new sources.SourceMapSource(
+                          value,
+                          'inmemory://from rust',
+                          map!,
+                        );
+                        const previousTransfers = transfers;
+                        if (readMapFirst) {
+                          actual.sourceAndMap().map!.sources[0] = 'changed.js';
+                          reference.sourceAndMap().map!.sources[0] =
+                            'changed.js';
+                          expect(transfers).toBe(previousTransfers + 1);
+                        }
+                        expect(hashSource(actual)).toBe(hashSource(reference));
+                        expect(actual.getArgsAsBuffers()).toEqual(
+                          reference.getArgsAsBuffers(),
+                        );
+                        expect(hashSource(actual)).toBe(hashSource(reference));
+                        expect(actual.map()).toEqual(reference.map());
+                        expect(transfers).toBe(previousTransfers + 1);
+                        for (const options of [
+                          undefined,
+                          { maps: false },
+                          { parsedMap: true },
+                        ]) {
+                          actual.clearCache(options);
+                          reference.clearCache(options);
+                          expect(hashSource(actual)).toBe(
+                            hashSource(reference),
+                          );
+                          expect(actual.map()).toEqual(reference.map());
+                        }
+                        expect(transfers).toBe(previousTransfers + 1);
+                      }
+                    }
+                  } finally {
+                    if (wasCaching) caching.enableDualStringBufferCaching();
+                    else caching.disableDualStringBufferCaching();
+                  }
                 },
               );
             },

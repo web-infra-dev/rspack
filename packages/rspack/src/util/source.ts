@@ -1,57 +1,5 @@
-import type {
-  JsSource,
-  JsSourceMap,
-  JsSourceWithLazyMap,
-} from '@rspack/binding';
-import {
-  RawSource,
-  type RawSourceMap,
-  type Source,
-  SourceMapSource,
-} from 'webpack-sources';
-
-function createLazySourceMap(binding: JsSourceMap): RawSourceMap {
-  let pending: JsSourceMap | undefined = binding;
-  const materialize = (target: RawSourceMap): RawSourceMap => {
-    if (pending !== undefined) {
-      // Populate the proxy target itself so descriptors, mutations and Object.freeze obey
-      // ordinary object semantics, including the proxy invariants for non-configurable keys.
-      Object.defineProperties(
-        target,
-        Object.getOwnPropertyDescriptors(JSON.parse(pending.toJson())),
-      );
-      pending = undefined;
-    }
-    return target;
-  };
-
-  return new Proxy({} as RawSourceMap, {
-    get(target, property, receiver) {
-      return Reflect.get(materialize(target), property, receiver);
-    },
-    set(target, property, value, receiver) {
-      return Reflect.set(materialize(target), property, value, receiver);
-    },
-    has(target, property) {
-      return Reflect.has(materialize(target), property);
-    },
-    ownKeys(target) {
-      return Reflect.ownKeys(materialize(target));
-    },
-    getOwnPropertyDescriptor(target, property) {
-      return Reflect.getOwnPropertyDescriptor(materialize(target), property);
-    },
-    defineProperty(target, property, descriptor) {
-      return Reflect.defineProperty(materialize(target), property, descriptor);
-    },
-    deleteProperty(target, property) {
-      return Reflect.deleteProperty(materialize(target), property);
-    },
-    preventExtensions(target) {
-      return Reflect.preventExtensions(materialize(target));
-    },
-  });
-}
+import type { JsSource, JsSourceWithLazyMap } from '@rspack/binding';
+import { RawSource, type Source, SourceMapSource } from 'webpack-sources';
 
 export class SourceAdapter {
   static fromBinding(source: JsSource | JsSourceWithLazyMap): Source {
@@ -59,11 +7,31 @@ export class SourceAdapter {
     if (!map) {
       return new RawSource(source.source);
     }
-    return new SourceMapSource(
+    const result = new SourceMapSource(
       source.source,
       'inmemory://from rust',
-      typeof map === 'string' ? map : createLazySourceMap(map),
+      typeof map === 'string' ? map : undefined,
     );
+    if (typeof map !== 'string') {
+      result._hasSourceMap = true;
+      // Start with the same JSON representation as an eager SourceMapSource, but obtain it
+      // from N-API only when webpack-sources reads it. Afterwards its normal caches apply.
+      Object.defineProperty(result, '_sourceMapAsString', {
+        configurable: true,
+        enumerable: true,
+        get() {
+          const json = map.toJson();
+          Object.defineProperty(this, '_sourceMapAsString', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: json,
+          });
+          return json;
+        },
+      });
+    }
+    return result;
   }
 
   static toBinding(source: Source): JsSource {

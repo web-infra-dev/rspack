@@ -51,7 +51,6 @@ export default async function run() {
         removed = modules.find((module) => module.resource === valuePath);
         assert(removed);
         originalSource = removed.originalSource();
-        originalMap = originalSource.map();
         const binaryModule = modules.find(
           (module) => module.resource === binaryRequest,
         );
@@ -120,6 +119,7 @@ export default async function run() {
     await tracker.waitForCollection('build info');
     // The unread map is an owned snapshot, even after module removal, close and owner GC.
     assert.equal(originalSource.source(), 'export default 42;');
+    originalMap = originalSource.map();
     assert.deepEqual(originalMap.sourcesContent, ['export default 42;']);
     assert.deepEqual(binarySource.source(), Buffer.from([0, 255, 97]));
     binarySource.source()[0] = 42;
