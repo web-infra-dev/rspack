@@ -1,0 +1,14 @@
+# Case renamed-async-chunk-restored-import: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: hooks.chunk.CURRENT_HASH.js
+- Bundle: page_js-policy_js.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

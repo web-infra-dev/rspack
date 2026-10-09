@@ -7,8 +7,8 @@
 ## Asset Files
 - Bundle: 10.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 51
-- Update: 1e1.LAST_HASH.hot-update.js, size: 269
+- Manifest: main.LAST_HASH.hot-update.json, size: 60
+- Update: 1e1.LAST_HASH.hot-update.js, size: 600
 - Update: main.LAST_HASH.hot-update.js, size: 583
 
 ## Manifest
@@ -16,7 +16,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["1e1","main"],"r":["1e1"],"m":["./chunk.js"]}
+{"c":["1e1","main"],"r":["1e1"],"m":["./chunk.js"],"f":[10]}
 ```
 
 
@@ -26,6 +26,7 @@
 ### 1e1.LAST_HASH.hot-update.js
 
 #### Changed Modules
+- ./chunk2.js
 - ./file.js
 
 #### Changed Runtime Modules
@@ -35,6 +36,18 @@
 ```js
 "use strict";
 self["rspackHotUpdate"]("1e1", {
+"./chunk2.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+/* import */ var _file__rspack_import_0 = __webpack_require__("./file.js");
+
+
+const value = _file__rspack_import_0.value + 0.5;
+
+
+},
 "./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {

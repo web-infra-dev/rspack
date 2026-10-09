@@ -390,6 +390,58 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           &compilation.build_chunk_graph_artifact.chunk_by_ukey,
         );
       if old_runtime == &new_runtime && runtimes.contains(&new_runtime) {
+        // The module outlives its removed chunk (e.g. a renamed chunk). The client
+        // must install the chunk groups that now own it to keep receiving updates,
+        // and gets their new modules in this update, since the module may re-run
+        // and import them before those chunks are loaded.
+        if current_chunk.is_none()
+          && let Some(owner_chunk) = compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .get_module_chunks(*module_identifier)
+            .iter()
+            .map(|ukey| {
+              compilation
+                .build_chunk_graph_artifact
+                .chunk_by_ukey
+                .expect_get(ukey)
+            })
+            .find(|chunk| chunk.runtime() == &new_runtime)
+        {
+          let owner_group_chunks = owner_chunk.groups().iter().flat_map(|group| {
+            &compilation
+              .build_chunk_graph_artifact
+              .chunk_group_by_ukey
+              .expect_get(group)
+              .chunks
+          });
+          for group_chunk in owner_group_chunks {
+            if let Some(group_chunk_id) = compilation
+              .build_chunk_graph_artifact
+              .chunk_by_ukey
+              .expect_get(group_chunk)
+              .id()
+            {
+              for runtime in new_runtime.iter() {
+                if let Some(content) = hot_update_main_content_by_runtime.get_mut(runtime) {
+                  content.force_load_chunk_ids.insert(group_chunk_id.clone());
+                }
+              }
+            }
+            for module in compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_chunk_modules_identifier(group_chunk)
+            {
+              let is_new_module =
+                ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
+                  .is_some_and(|module_id| !old_all_modules.contains_key(module_id));
+              if is_new_module && !new_modules.contains(module) {
+                new_modules.push(*module);
+              }
+            }
+          }
+        }
         let new_hash = compilation
           .code_generation_results
           .get_hash(module_identifier, Some(&new_runtime));
@@ -568,6 +620,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .extend(content.removed_chunk_ids);
         old_content.removed_modules.extend(content.removed_modules);
         old_content
+          .force_load_chunk_ids
+          .extend(content.force_load_chunk_ids);
+        old_content
           .css_updated_chunk_ids
           .extend(content.css_updated_chunk_ids);
         old_content
@@ -605,6 +660,10 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       "r": r,
       "m": m,
     });
+    if !content.force_load_chunk_ids.is_empty() {
+      let f: Vec<ChunkId> = content.force_load_chunk_ids.into_iter().collect();
+      manifest_json["f"] = serde_json::json!(f);
+    }
     if let Some(css) =
       css_manifest_json(content.css_updated_chunk_ids, content.css_removed_chunk_ids)
     {
@@ -720,6 +779,7 @@ struct HotUpdateContent {
   updated_chunk_ids: ChunkIdSet,
   removed_chunk_ids: ChunkIdSet,
   removed_modules: HashSet<ModuleId>,
+  force_load_chunk_ids: ChunkIdSet,
   css_updated_chunk_ids: ChunkIdSet,
   css_removed_chunk_ids: ChunkIdSet,
   mini_css_updated_chunk_ids: ChunkIdSet,

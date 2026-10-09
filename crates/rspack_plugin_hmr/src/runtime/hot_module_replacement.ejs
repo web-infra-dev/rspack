@@ -15,6 +15,7 @@
 
 // The update info
 <%- var("currentUpdateApplyHandlers") %>;
+<%- var("currentUpdateForceLoadChunks") %>;
 <%- var("queuedInvalidatedModules") %>;
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
@@ -262,6 +263,7 @@
 			return setStatus("prepare").then(function () {
 				var updatedModules = [];
 				currentUpdateApplyHandlers = [];
+				currentUpdateForceLoadChunks = update.f;
 
 				return Promise.all(
 					Object.keys(<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>).reduce(function (
@@ -357,17 +359,26 @@
 			});
 		}
 
-		if (queuedInvalidatedModules) {
-			return internalApply(options).then(function (list) {
-				outdatedModules.forEach(function (moduleId) {
-					if (list.indexOf(moduleId) < 0) list.push(moduleId);
+		// Loaded after apply so chunk filenames resolve with the updated full hash
+		var forceLoadChunks = currentUpdateForceLoadChunks || [];
+		currentUpdateForceLoadChunks = undefined;
+		return Promise.all(
+			forceLoadChunks.map(function (chunkId) {
+				return <%- weak(ENSURE_CHUNK) %> && <%- weak(ENSURE_CHUNK) %>(chunkId);
+			})
+		).then(function () {
+			if (queuedInvalidatedModules) {
+				return internalApply(options).then(function (list) {
+					outdatedModules.forEach(function (moduleId) {
+						if (list.indexOf(moduleId) < 0) list.push(moduleId);
+					});
+					return list;
 				});
-				return list;
-			});
-		}
+			}
 
-		return setStatus("idle").then(function () {
-			return outdatedModules;
+			return setStatus("idle").then(function () {
+				return outdatedModules;
+			});
 		});
 	});
 }
