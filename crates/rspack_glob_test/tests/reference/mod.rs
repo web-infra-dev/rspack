@@ -1,7 +1,3 @@
-// Ported from fast-glob 1.1.2: https://github.com/oxc-project/fast-glob.
-// Originally forked from https://github.com/devongovett/glob-match/blob/d5a6c67/src/lib.rs.
-// MIT Licensed; see the notice in rspack_glob/src/lib.rs.
-// Test-only compatibility oracle; production matching uses the instruction graph.
 use std::path::is_separator;
 
 use rspack_glob::validate;

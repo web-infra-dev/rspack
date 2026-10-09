@@ -1,6 +1,3 @@
-// Modified from fast-glob 1.1.2: https://github.com/oxc-project/fast-glob.
-// Originally forked from https://github.com/devongovett/glob-match/blob/d5a6c67/src/lib.rs.
-// MIT Licensed; see the notice in lib.rs.
 use std::{borrow::Cow, path::is_separator};
 
 use rustc_hash::FxHashMap;
