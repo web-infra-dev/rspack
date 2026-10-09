@@ -1,6 +1,6 @@
 use std::{
   fmt,
-  hash::Hasher,
+  hash::{BuildHasher, Hasher},
   ops::Deref,
   sync::{
     Arc, OnceLock, Weak,
@@ -29,6 +29,8 @@ use crate::InternedPath;
 /// The table holds weak references and a slot is removed as soon as its last
 /// handle drops, so an entry lives exactly as long as some list still refers to
 /// it and no sweeping is needed to reclaim a buffer whose list is gone.
+/// Sparse shards shrink during removal, including releasing their bucket
+/// allocation when empty, so the table does not retain its peak capacity.
 #[cfg_attr(feature = "cacheable", cacheable(with = Custom))]
 pub struct InternedPathList(Arc<ListStorage>);
 
@@ -236,19 +238,19 @@ fn intern(
 fn remove_slot(storage: &Arc<ListStorage>) {
   let table = intern_table();
   let key = (storage.hash, storage.ids.len());
-  if let Entry::Occupied(entry) = table.entry(key) {
-    if storage.handles.load(Ordering::Acquire) != 0 {
-      return;
-    }
-    let points_at_self = match entry.get().upgrade() {
-      Some(existing) => Arc::ptr_eq(&existing, storage),
-      // The slot is dead and can only hold a list that is on its way out;
-      // removing it releases the buffer together with the weak entry.
-      None => true,
-    };
-    if points_at_self {
-      entry.remove();
-    }
+  let hash = table.hasher().hash_one(key);
+  let mut shard = table.shards()[table.determine_shard(hash as usize)].write();
+  if storage.handles.load(Ordering::Acquire) != 0 {
+    return;
+  }
+  let removed = shard.remove_entry(hash, |(other_key, value)| {
+    *other_key == key && value.get().as_ptr() == Arc::as_ptr(storage)
+  });
+  // Reuse the removal lock and visit only this shard. Leaving headroom avoids
+  // repeatedly shrinking and growing when a workload hovers around a boundary.
+  if removed.is_some() && shard.len() * 4 < shard.capacity() {
+    let capacity = shard.len() * 2;
+    shard.shrink_to(capacity, |(key, _)| table.hasher().hash_one(key));
   }
 }
 
