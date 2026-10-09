@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  DependencyType, ImportAttributes, ImportPhase, ModuleDependency,
 };
 use rspack_error::Diagnostic;
 use rspack_paths::InternedPathSet;
@@ -10,6 +10,8 @@ use rspack_paths::InternedPathSet;
 #[derive(Debug, Clone)]
 pub struct DependencyOptions {
   pub request: String,
+  pub phase: ImportPhase,
+  pub attributes: Option<ImportAttributes>,
 
   pub file_dependencies: InternedPathSet,
   pub context_dependencies: InternedPathSet,
@@ -59,6 +61,14 @@ impl Dependency for LazyCompilationDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::LazyImport
+  }
+
+  fn get_phase(&self) -> ImportPhase {
+    self.options.phase
+  }
+
+  fn get_attributes(&self) -> Option<&ImportAttributes> {
+    self.options.attributes.as_ref()
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
