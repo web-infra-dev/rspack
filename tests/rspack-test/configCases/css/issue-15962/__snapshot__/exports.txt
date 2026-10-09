@@ -71,6 +71,8 @@ Object {
     rollbackCandidate: LOCAL-rollbackCandidate,
   },
   short: Object {
+    afterCommaRollback: LOCAL-afterCommaRollback,
+    commaRollback: LOCAL-commaRollback,
     small: LOCAL-small,
     smallSecond: LOCAL-smallSecond,
   },
