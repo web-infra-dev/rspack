@@ -1472,3 +1472,82 @@ fn an_unregistered_inner_context_removed_before_is_new_again_to_its_outer_one() 
     std::thread::sleep(std::time::Duration::from_millis(50));
   }
 }
+
+/// Poll until `name` has an entry in `fileTimestamps`, failing after `secs`.
+fn wait_for_file_entry(helper: &helpers::TestHelper, name: &str, secs: u64) -> TimeInfoEntry {
+  let deadline = std::time::Instant::now() + std::time::Duration::from_secs(secs);
+  loop {
+    let (file_timestamps, _) = helper.collect_time_info_entries();
+    if has_time_info_entry(helper, &file_timestamps, name) {
+      return helper.time_info_entry(&file_timestamps, name).clone();
+    }
+    assert!(
+      std::time::Instant::now() < deadline,
+      "{name} never reappeared"
+    );
+    std::thread::sleep(std::time::Duration::from_millis(50));
+  }
+}
+
+/// A context whose parent is moved away and back comes back with it, though
+/// only the parent has an event: it is scanned again.
+#[test]
+fn a_context_whose_parent_moved_back_is_scanned_again() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("parent/ctx")).unwrap();
+  helper.file("parent/ctx/found");
+  helper.file("sibling");
+
+  let _rx = helper.watch(f!("sibling"), f!("parent/ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+
+  helper.tick(|| std::fs::rename(helper.join("parent"), helper.join("parent.moved")).unwrap());
+  std::thread::sleep(std::time::Duration::from_millis(500));
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+  assert!(!has_time_info_entry(
+    &helper,
+    &file_timestamps,
+    "parent/ctx/found"
+  ));
+
+  helper.tick(|| std::fs::rename(helper.join("parent.moved"), helper.join("parent")).unwrap());
+  wait_for_file_entry(&helper, "parent/ctx/found", 3);
+}
+
+/// Like watchpack recovering a removed `DirectoryWatcher` with
+/// `doScan(false)`, a context that comes back gives the files directly in it
+/// the observation time: one changed while away may have kept its old mtime.
+#[test]
+fn a_context_that_comes_back_stamps_its_files_with_the_observed_time() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/found");
+  helper.file("sibling");
+
+  let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+
+  helper.tick(|| std::fs::rename(helper.join("ctx"), helper.join("ctx.moved")).unwrap());
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.deleted_files.contains(context.as_str())
+  });
+  let an_hour_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(3600);
+  set_modified(helper.join("ctx.moved/found").as_std_path(), an_hour_ago).unwrap();
+
+  let restored_at = now_millis();
+  std::fs::rename(helper.join("ctx.moved"), helper.join("ctx")).unwrap();
+  let found = wait_for_file_entry(&helper, "ctx/found", 3);
+  let safe_time = safe_time_of(&found);
+  assert!(
+    safe_time >= restored_at,
+    "safeTime {safe_time} predates the restore at {restored_at}"
+  );
+}

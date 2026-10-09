@@ -395,19 +395,24 @@ impl PathManager {
   /// live watch already observed with the same mtime keeps its record.
   pub async fn scan_contexts(&self) {
     let contexts: Vec<InternedPath> = self.directories.added.iter().map(|p| p.clone()).collect();
-    self.scan_below(contexts).await;
+    self.scan_below(contexts, false).await;
   }
 
   /// Index every file and subdirectory below `roots`, minus what `ignored`
-  /// excludes (watchpack's `DirectoryWatcher` initial scan).
-  async fn scan_below(&self, roots: Vec<InternedPath>) {
+  /// excludes (watchpack's `DirectoryWatcher` initial scan). Roots that are
+  /// `recovered` contexts coming back are rescanned like watchpack's
+  /// `doScan(false)`: the files directly in them are stamped with the
+  /// observation time, since one changed while away may have kept its mtime.
+  async fn scan_below(&self, roots: Vec<InternedPath>, recovered: bool) {
     let now = current_time();
     // Each directory carries the real paths of the directories above it: with
     // `followSymlinks`, a link back into its own ancestry is a loop, while two
     // links to one directory are two aliases, each scanned.
-    let mut pending: Vec<(InternedPath, Vec<PathBuf>)> =
-      roots.into_iter().map(|root| (root, Vec::new())).collect();
-    while let Some((dir, mut ancestry)) = pending.pop() {
+    let mut pending: Vec<(InternedPath, Vec<PathBuf>, bool)> = roots
+      .into_iter()
+      .map(|root| (root, Vec::new(), recovered))
+      .collect();
+    while let Some((dir, mut ancestry, observed)) = pending.pop() {
       if self.follow_symlinks {
         let Ok(real) = std::fs::canonicalize(&dir) else {
           continue;
@@ -434,14 +439,14 @@ impl PathManager {
           if self.forget_if_orphaned(&path) {
             break;
           }
-          pending.push((path, ancestry.clone()));
+          pending.push((path, ancestry.clone(), false));
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
           self.context_files.insert(path.clone());
           // A registered file or missing path's record is the event
           // deduplication baseline, kept by `Trigger` and the scanner; seeding
           // it here would make its own creation event look stale.
           if !self.files.all.contains(&path) && !self.missing.all.contains(&path) {
-            self.set_file_time(&path, mtime, true, true);
+            self.set_file_time(&path, mtime, !observed, true);
           }
           if self.forget_if_orphaned(&path) {
             break;
@@ -475,13 +480,25 @@ impl PathManager {
   /// scan would have (watchpack's `DirectoryWatcher.setFileTime` /
   /// `setDirectory` on a watch event). A file's record is always the live
   /// observation, even with an unchanged mtime: a second write inside one
-  /// timestamp tick still happened now. A directory is
-  /// scanned, since one moved in arrives as a single event with no events
-  /// for what it already contains; that includes a registered context
-  /// reappearing at its own path.
+  /// timestamp tick still happened now. A directory is scanned, since one
+  /// moved in arrives as a single event with no events for what it already
+  /// contains. Registered contexts absent until now that came back at or
+  /// below `path` are rescanned, even when only an ancestor had the event.
   pub async fn set_context_entry(&self, path: &InternedPath) {
-    let is_context = self.directories.all.contains(path);
-    if !is_context && !self.is_below_context(path) {
+    let recovered: Vec<InternedPath> = self
+      .absent_directories
+      .iter()
+      .filter(|context| context.starts_with(path.as_ref() as &Path) && context.is_dir())
+      .map(|context| context.clone())
+      .collect();
+    if !recovered.is_empty() {
+      for context in &recovered {
+        self.absent_directories.remove(context);
+      }
+      self.scan_below(recovered, true).await;
+    }
+
+    if self.directories.all.contains(path) || !self.is_below_context(path) {
       return;
     }
     let Ok(metadata) = self.entry_metadata(path) else {
@@ -490,22 +507,14 @@ impl PathManager {
     if metadata.is_dir() {
       // Like watchpack's `setDirectory`, only a directory not known before is
       // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
-      let appeared = if is_context {
-        self.absent_directories.remove(path).is_some()
-      } else {
-        self.context_directories.insert(path.clone())
-      };
-      if !appeared {
+      if !self.context_directories.insert(path.clone()) {
         return;
       }
       self
         .last_watch_events
         .entry(path.clone())
         .or_insert_with(current_time);
-      self.scan_below(vec![path.clone()]).await;
-      return;
-    }
-    if is_context {
+      self.scan_below(vec![path.clone()], false).await;
       return;
     }
     self.context_files.insert(path.clone());
