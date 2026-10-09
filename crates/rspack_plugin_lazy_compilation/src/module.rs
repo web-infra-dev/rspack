@@ -102,6 +102,8 @@ impl LazyCompilationProxyModule {
       request: create_data.request.clone(),
       phase: original_dependency.get_phase(),
       attributes: original_dependency.get_attributes().cloned(),
+      issuer: create_data.issuer.clone(),
+      resolve_options: create_data.resolve_options.clone(),
       file_dependencies: create_data.file_dependencies.clone(),
       context_dependencies: create_data.context_dependencies.clone(),
       missing_dependencies: create_data.missing_dependencies.clone(),

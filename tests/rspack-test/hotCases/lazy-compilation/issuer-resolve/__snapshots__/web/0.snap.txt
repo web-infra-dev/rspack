@@ -1,0 +1,14 @@
+# Case issuer-resolve: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: data_issuer_txt_lazy-compilation-proxy.chunk.CURRENT_HASH.js
+- Bundle: data_resolve_txt_lazy-compilation-proxy.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update
