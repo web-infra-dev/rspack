@@ -35,6 +35,9 @@ fn empty_lists_share_allocation() {
   assert!(same_allocation(&e1, &e2));
 }
 
+/// The crate depends on rspack_cacheable only through the optional, default-on
+/// cacheable feature, so the test target has to be gated the same way.
+#[cfg(feature = "cacheable")]
 #[test]
 fn cacheable_roundtrip() {
   let paths: Vec<InternedPath> = (0..20)
