@@ -18,8 +18,13 @@ use rustc_hash::{FxBuildHasher, FxHasher};
 
 use crate::InternedPath;
 
-/// Insertions between two sweeps of dead interned lists.
-const PRUNE_INTERVAL: usize = 1 << 15;
+/// Insertions between two cheap checks of whether the intern table grew enough
+/// to be worth sweeping.
+const PRUNE_CHECK_INTERVAL: usize = 1 << 12;
+
+/// Entries below this count are never swept: the first sweep only starts once a
+/// single pass is small relative to the entries that created the table.
+const PRUNE_MIN_TABLE: usize = 1 << 16;
 
 /// A content-interned, immutable list of [`InternedPath`]s.
 ///
@@ -170,11 +175,26 @@ fn intern(
 
 fn prune(table: &DashMap<ListKey, Weak<[InternedPath]>, FxBuildHasher>) {
   static INSERTS: AtomicUsize = AtomicUsize::new(0);
-  if INSERTS.fetch_add(1, Ordering::Relaxed) + 1 < PRUNE_INTERVAL {
+  if !INSERTS
+    .fetch_add(1, Ordering::Relaxed)
+    .is_multiple_of(PRUNE_CHECK_INTERVAL)
+  {
     return;
   }
-  INSERTS.store(0, Ordering::Relaxed);
+  // Sweep only after the table doubled since the previous sweep, so the new
+  // entries pay for scanning the old ones and the total work stays
+  // `O(entries log entries)` instead of rescanning a mostly live table on a
+  // fixed interval. The threshold never drops, so a long session keeps sweeping
+  // as it grows while dead entries stay bounded by the live ones.
+  static NEXT_SWEEP: AtomicUsize = AtomicUsize::new(PRUNE_MIN_TABLE);
+  if table.len() < NEXT_SWEEP.load(Ordering::Relaxed) {
+    return;
+  }
   table.retain(|_, weak| weak.strong_count() > 0);
+  NEXT_SWEEP.store(
+    table.len().saturating_mul(2).max(PRUNE_MIN_TABLE),
+    Ordering::Relaxed,
+  );
 }
 
 /// Persist the paths themselves; loading re-interns the list, so restored
