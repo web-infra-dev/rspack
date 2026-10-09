@@ -111,9 +111,12 @@ export class ModuleFederationPlugin {
       this._treeShakingSharedPlugin.apply(compiler);
     }
 
-    const asyncStartup = this._options.experiments?.asyncStartup ?? false;
+    // Only the explicit experiment is forwarded. Automatic async startup for
+    // ordered (array) share scopes is derived natively from the runtime's
+    // actual initial consumes, so unused, provide-only, or async-chunk-only
+    // ordered shares keep synchronous startup.
     const runtimeExperiments: ModuleFederationRuntimeExperimentsOptions = {
-      asyncStartup,
+      asyncStartup: this._options.experiments?.asyncStartup === true,
     };
     let runtimePluginApplied = false;
     compiler.hooks.beforeRun.tap(
