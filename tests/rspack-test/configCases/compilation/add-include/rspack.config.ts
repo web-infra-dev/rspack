@@ -21,6 +21,20 @@ class Plugin {
     expect(fooDependency instanceof EntryDependency).toBeTruthy();
 
     compiler.hooks.finishMake.tapPromise(PLUGIN_NAME, async (compilation) => {
+      // Rebuilding during make must leave the graph writable for addInclude.
+      const entryModule = [...compilation.modules].find(
+        (module) =>
+          module.nameForCondition() ===
+          path.resolve(import.meta.dirname, 'index.js'),
+      );
+      expect(entryModule).toBeDefined();
+      await new Promise<void>((resolve, reject) => {
+        compilation.rebuildModule(entryModule!, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
       const tasks = [];
       tasks.push(
         new Promise((resolve, reject) => {

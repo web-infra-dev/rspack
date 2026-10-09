@@ -10,24 +10,20 @@ use ustr::IdentityHasher;
 pub use self::resource_id::ResourceId;
 use crate::{DependencyId, utils::incremental_info::IncrementalInfo};
 
-/// Above this length a frozen set thaws back to the hash form when it is
-/// mutated: inserting into a long sorted list would move all following ids.
-const DEPENDENCY_THAW_THRESHOLD: usize = 64;
-
 /// The dependency ids that reference one path.
 ///
 /// While make adds files the ids live in a hash set for fast lookups. Once make
-/// stopped, [`FileCounter::freeze`] collapses the set into a sorted, exactly
+/// stopped, [`FileCounter::freeze`] collapses the set into an unsorted, exactly
 /// sized vector: a hash table keeps a control byte per bucket plus up to twice
 /// the live element count in growth slack, which dominates the reverse index of
-/// a large production build. Mutating a frozen list moves it back to the hash
-/// form, so later rebuilds keep working without paying sorted inserts.
+/// a large production build. Frozen lists only support iteration; a later make
+/// pass must thaw them back into hash sets before modifying them.
 #[derive(Debug, Default)]
 enum DependencyIds {
   #[default]
   Empty,
   Set(FxHashSet<DependencyId>),
-  /// Sorted, deduplicated, and sized close to `len`.
+  /// Unsorted, deduplicated, and sized close to `len`. Read-only until thawed.
   Frozen(Vec<DependencyId>),
 }
 
@@ -53,22 +49,7 @@ impl DependencyIds {
         true
       }
       DependencyIds::Set(set) => set.insert(id),
-      DependencyIds::Frozen(ids) => match ids.binary_search(&id) {
-        Ok(_) => false,
-        Err(pos) if ids.len() < DEPENDENCY_THAW_THRESHOLD => {
-          ids.insert(pos, id);
-          true
-        }
-        Err(_) => {
-          let DependencyIds::Frozen(ids) = std::mem::take(self) else {
-            unreachable!("frozen branch");
-          };
-          let mut set: FxHashSet<DependencyId> = ids.into_iter().collect();
-          let inserted = set.insert(id);
-          *self = DependencyIds::Set(set);
-          inserted
-        }
-      },
+      DependencyIds::Frozen(_) => unreachable!("dependency ids must be thawed before insertion"),
     }
   }
 
@@ -76,22 +57,13 @@ impl DependencyIds {
     match self {
       DependencyIds::Empty => false,
       DependencyIds::Set(set) => set.remove(id),
-      DependencyIds::Frozen(ids) => match ids.binary_search(id) {
-        Err(_) => false,
-        Ok(pos) if ids.len() < DEPENDENCY_THAW_THRESHOLD => {
-          ids.remove(pos);
-          true
-        }
-        Ok(_) => {
-          let DependencyIds::Frozen(ids) = std::mem::take(self) else {
-            unreachable!("frozen branch");
-          };
-          let mut set: FxHashSet<DependencyId> = ids.into_iter().collect();
-          let removed = set.remove(id);
-          *self = DependencyIds::Set(set);
-          removed
-        }
-      },
+      DependencyIds::Frozen(_) => unreachable!("dependency ids must be thawed before removal"),
+    }
+  }
+
+  fn thaw(&mut self) {
+    if let DependencyIds::Frozen(ids) = self {
+      *self = DependencyIds::Set(std::mem::take(ids).into_iter().collect());
     }
   }
 
@@ -108,18 +80,16 @@ impl DependencyIds {
     matches!(self, DependencyIds::Set(_))
   }
 
-  /// Collapses a working hash set into the dense sorted form. Idempotent.
+  /// Collapses a working hash set into the dense iteration-only form. Idempotent.
   fn freeze(&mut self) {
     if let DependencyIds::Set(set) = self {
-      let mut ids: Vec<DependencyId> = set.drain().collect();
-      ids.sort_unstable();
-      *self = DependencyIds::Frozen(ids);
+      *self = DependencyIds::Frozen(set.drain().collect());
     }
   }
 }
 
 /// Iterator over the dependency ids of one path. Yields owned ids because the
-/// storage may switch between the hash and the sorted representation.
+/// storage may switch between the hash and the dense representation.
 #[derive(Debug)]
 pub enum DependencyIdsIter<'a> {
   Empty,
@@ -162,14 +132,20 @@ impl PathResourceIds {
   fn insert(&mut self, resource_id: &ResourceId) -> bool {
     match resource_id {
       ResourceId::Module(module_id) => self.modules.insert(*module_id),
-      ResourceId::Dependency(dependency_id) => self.dependencies.insert(*dependency_id),
+      ResourceId::Dependency(dependency_id) => {
+        self.dependencies.thaw();
+        self.dependencies.insert(*dependency_id)
+      }
     }
   }
 
   fn remove(&mut self, resource_id: &ResourceId) -> bool {
     match resource_id {
       ResourceId::Module(module_id) => self.modules.remove(module_id),
-      ResourceId::Dependency(dependency_id) => self.dependencies.remove(dependency_id),
+      ResourceId::Dependency(dependency_id) => {
+        self.dependencies.thaw();
+        self.dependencies.remove(dependency_id)
+      }
     }
   }
 
@@ -182,7 +158,7 @@ impl PathResourceIds {
   }
 
   /// Iterates the dependency ids. The storage is a hash set while make builds
-  /// the index and a sorted slice once the counter has been frozen.
+  /// the index and an unsorted slice once the counter has been frozen.
   pub fn dependencies(&self) -> DependencyIdsIter<'_> {
     self.dependencies.iter()
   }
@@ -192,7 +168,7 @@ impl PathResourceIds {
     self.dependencies.is_hash_form()
   }
 
-  /// Collapses the working hash set into the dense sorted form.
+  /// Collapses the working hash set into the dense iteration-only form.
   fn freeze(&mut self) {
     self.dependencies.freeze();
   }
@@ -203,6 +179,9 @@ impl PathResourceIds {
 pub struct FileCounter {
   inner: InternedPathMap<PathResourceIds>,
   incremental_info: IncrementalInfo<InternedPath, BuildHasherDefault<IdentityHasher>>,
+  /// A frozen counter rejects mutations until make or an explicit module
+  /// rebuild thaws it.
+  frozen: bool,
   /// Paths whose dependency ids were put into the hash form during this make
   /// and therefore still need to be collapsed by [`FileCounter::freeze`]. The
   /// list is filled where a mutation creates or thaws a hash set, so freezing
@@ -214,16 +193,25 @@ impl FileCounter {
   /// Collapse the reverse index into its dense post-make form. While make
   /// builds the index it needs hash lookups; the retained hash tables then
   /// carry one control byte per bucket plus up to twice the live element count
-  /// in growth slack. Freezing at the end of make stores the ids sorted and
-  /// exactly sized instead. Only the paths a mutation put into the hash form
+  /// in growth slack. Freezing at the end of make stores the ids densely in
+  /// arbitrary order. Only the paths a mutation put into the hash form
   /// are visited, so a rebuild collapses just what it touched and later
-  /// rebuilds thaw only the sets they mutate.
+  /// rebuilds thaw only the sets they mutate. Adding or removing files is
+  /// rejected until [`FileCounter::thaw`] allows another graph update.
   pub fn freeze(&mut self) {
     for path in std::mem::take(&mut self.hash_form_paths) {
       if let Some(ids) = self.inner.get_mut(&path) {
         ids.freeze();
       }
     }
+    self.frozen = true;
+  }
+
+  /// Allows graph updates to modify the counter and returns whether it was
+  /// frozen. Dependency lists stay dense until a mutation needs to turn them
+  /// back into hash sets.
+  pub fn thaw(&mut self) -> bool {
+    std::mem::take(&mut self.frozen)
   }
 
   /// Add batch [`PathBuf`] to counter
@@ -234,6 +222,7 @@ impl FileCounter {
     resource_id: &ResourceId,
     paths: impl IntoIterator<Item = &'a InternedPath>,
   ) {
+    assert!(!self.frozen, "cannot add files to a frozen file counter");
     for path in paths {
       let list = self.inner.entry(path.clone()).or_default();
       if list.is_empty() {
@@ -259,6 +248,10 @@ impl FileCounter {
     resource_id: &ResourceId,
     paths: impl IntoIterator<Item = &'a InternedPath>,
   ) {
+    assert!(
+      !self.frozen,
+      "cannot remove files from a frozen file counter"
+    );
     for path in paths {
       let Some(list) = self.inner.get_mut(path) else {
         panic!("unable to remove untracked file {}", path.to_string_lossy());
