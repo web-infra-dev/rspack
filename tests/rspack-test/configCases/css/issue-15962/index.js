@@ -6,6 +6,7 @@ import * as recoveryStyles from "./recovery.modules.css";
 import * as pureRecoveryStyles from "./recovery.pure.modules.css";
 import * as eofStyles from "./eof.modules.css";
 import * as eofCurlyStyles from "./eof-curly.modules.css";
+import "./recovery.css";
 
 it("localizes type-first selectors in nested rules", () => {
 	const fs = require("fs");

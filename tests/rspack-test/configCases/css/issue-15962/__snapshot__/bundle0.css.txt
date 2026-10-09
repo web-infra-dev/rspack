@@ -76,6 +76,10 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 	brokenString:"unterminated
 		.shouldNotExport;
 	brokenUrl:url(bad"url);
+	/* Provisional URL dependencies and dashed names must be discarded. */
+	background:url("./must-not-resolve.svg") "unterminated
+		.shouldNotExportEither;
+	font-palette:--discardedPalette );
 	.LOCAL-afterInvalid { color: green; }
 
 	/* Semicolons in component values must not reset the declaration state. */
@@ -88,9 +92,19 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 	--LOCAL-components:before{.opaque; stillOpaque}after;
 	--LOCAL-mismatched:paint([opaque) ; stillOpaque} ]);
 
+	/* A known property name can still become a nested type selector. */
+	animation:hover .LOCAL-rollbackCandidate { color: green; }
+
 	/* Both prefixes are possible until the top-level curly block starts. */
 	button:where(.globalCandidate[data-token=--components], .LOCAL-localCandidate[data-token=--components]) {
 		color:var(--LOCAL-components);
+	}
+	/* Deferred function events keep selector nesting, modes and lookahead. */
+	button:is(:nth-child(2n + 1 of .LOCAL-eventSibling), .LOCAL-eventLocal, .eventGlobal) > .LOCAL-eventAfter {
+		background:linear-gradient(rgb(1, 2, 3), var(--LOCAL-components));
+	}
+	button:where(/* before class */ .LOCAL-eventCommented, .eventExternal) {
+		color:RGB(1, 2, 3);
 	}
 	/* The rule ends before the trailing text that invalidated the declaration. */
 	button:{color:red} trailing;
@@ -118,3 +132,16 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 .LOCAL-eofCurlyRecovery {
 	/* EOF closes the sole curly value without turning it into a rule body. */
 	color:{.opaqueAtEof
+
+.plainRecovery {
+	background:url("./must-not-resolve-plain.svg") "unterminated
+		.discarded;
+	button:hover { color: red; }
+
+	/* A sole curly value falls back to a rule when its contents are invalid. */
+	background:{
+		broken:url("./must-not-resolve-body.svg") "unterminated
+			.discardedInner;
+	}
+	.afterPlainRecovery { color: green; }
+}

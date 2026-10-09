@@ -23,6 +23,10 @@ export default defineConfig({
     },
     rules: [
       {
+        test: /recovery\.css$/,
+        type: 'css',
+      },
+      {
         test: /\.global\.css$/,
         type: 'css/global',
       },
