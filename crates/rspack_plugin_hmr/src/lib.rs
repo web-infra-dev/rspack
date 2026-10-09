@@ -450,9 +450,31 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       } else {
         for removed in removed_from_runtime.iter() {
-          if let Some(content) = hot_update_main_content_by_runtime.get_mut(removed) {
-            content.removed_modules.insert(old_module_id.clone());
+          let Some(content) = hot_update_main_content_by_runtime.get_mut(removed) else {
+            continue;
+          };
+          // Still in this runtime via another chunk: force-load one instead of
+          // disposing the module, so it keeps an installed owner.
+          if runtimes.values().any(|runtime| runtime.contains(removed)) {
+            if let Some(owner_chunk_id) = compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_module_chunks(*module_identifier)
+              .iter()
+              .map(|ukey| {
+                compilation
+                  .build_chunk_graph_artifact
+                  .chunk_by_ukey
+                  .expect_get(ukey)
+              })
+              .find(|chunk| chunk.runtime().contains(removed))
+              .and_then(|chunk| chunk.id())
+            {
+              content.force_load_chunk_ids.insert(owner_chunk_id.clone());
+            }
+            continue;
           }
+          content.removed_modules.insert(old_module_id.clone());
         }
       }
     }
