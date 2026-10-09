@@ -4,7 +4,7 @@ use std::{
   ops::Deref,
   sync::{
     Arc, OnceLock, Weak,
-    atomic::{AtomicUsize, Ordering},
+    atomic::{AtomicBool, AtomicUsize, Ordering},
   },
 };
 
@@ -38,6 +38,11 @@ static NEXT_GROWTH_SWEEP: AtomicUsize = AtomicUsize::new(SWEEP_MIN_TABLE);
 
 /// Lists whose last handle dropped since the last sweep.
 static DEAD_SLOTS: AtomicUsize = AtomicUsize::new(0);
+
+/// Gate that keeps one thread on the sweep path at a time, so concurrent
+/// checks do not run duplicate sweeps and the death accounting has a single
+/// consumer.
+static SWEEPING: AtomicBool = AtomicBool::new(false);
 
 /// A content-interned, immutable list of [`InternedPath`]s.
 ///
@@ -221,6 +226,7 @@ fn maybe_sweep(table: &DashMap<ListKey, Weak<[InternedPath]>, FxBuildHasher>) {
     return;
   }
   let entries = table.len();
+  let observed = DEAD_SLOTS.load(Ordering::Relaxed);
   // Sweep after the table doubled since the previous sweep. This keeps the
   // initial build's total work at `O(entries log entries)` and acts as a
   // backstop for slots whose last handle dropped while a concurrent lookup held
@@ -231,16 +237,28 @@ fn maybe_sweep(table: &DashMap<ListKey, Weak<[InternedPath]>, FxBuildHasher>) {
   // growing the table or re-interning the same content. Scale the trigger with
   // the table so one sweep stays proportional to what a rebuild can have
   // dropped.
-  let churned = DEAD_SLOTS.load(Ordering::Relaxed) >= (entries / 8).max(SWEEP_DEAD_SLOTS_MIN);
+  let churned = observed >= (entries / 8).max(SWEEP_DEAD_SLOTS_MIN);
   if !grown && !churned {
     return;
   }
+  if SWEEPING
+    .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
+    .is_err()
+  {
+    return;
+  }
   table.retain(|_, weak| weak.strong_count() > 0);
-  DEAD_SLOTS.store(0, Ordering::Relaxed);
+  // Only subtract the deaths that were observed before the sweep. A list can
+  // lose its last handle while `retain` runs; if that happens after its shard
+  // was visited, the sweep does not reclaim its slot, so its count has to stay.
+  let _ = DEAD_SLOTS.fetch_update(Ordering::AcqRel, Ordering::Relaxed, |dead| {
+    Some(dead.saturating_sub(observed))
+  });
   NEXT_GROWTH_SWEEP.store(
     table.len().saturating_mul(2).max(SWEEP_MIN_TABLE),
     Ordering::Relaxed,
   );
+  SWEEPING.store(false, Ordering::Release);
 }
 
 /// Persist the paths themselves; loading re-interns the list, so restored
