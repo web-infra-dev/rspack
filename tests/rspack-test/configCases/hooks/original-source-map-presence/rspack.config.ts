@@ -1,5 +1,5 @@
 import { defineConfig } from '@rspack/cli';
-import { sources } from '@rspack/core';
+import { type Compiler, sources } from '@rspack/core';
 
 const cases = ['empty', 'newlines', 'crlf', 'whitespace', 'unicode', 'mapped'];
 
@@ -11,7 +11,7 @@ export default ([false, 'source-map'] as const).map((devtool) =>
     },
     plugins: [
       {
-        apply(compiler) {
+        apply(compiler: Compiler) {
           const checked = new Set<string>();
           compiler.hooks.compilation.tap('MapPresence', (compilation) => {
             compilation.hooks.succeedModule.tap('MapPresence', (module) => {
