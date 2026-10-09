@@ -266,6 +266,19 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
   let mut to_invalidate: IdentifierSet = IdentifierSet::default();
   {
     let module_graph = compilation.build_module_graph_artifact.get_module_graph();
+    let entry_target = |dep_id: &DependencyId| {
+      let dep = module_graph.dependency_by_id(dep_id);
+      dep
+        .as_module_dependency()
+        .map(|module_dep| (dep.get_context(), module_dep.request()))
+    };
+    // A dynamic entry whose options changed gets a new dep id for the same
+    // context and request, so the proxy is not stale and must still be
+    // activated.
+    let current_entry_targets: FxHashSet<_> = current_entry_dep_ids
+      .iter()
+      .filter_map(entry_target)
+      .collect();
     for module_id in &newly_active_modules {
       let Some(active_module) = module_graph.module_by_identifier(module_id) else {
         continue;
@@ -287,6 +300,8 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
               .dependency_type(),
             DependencyType::Entry
           ) && !current_entry_dep_ids.contains(&con.dependency_id)
+            && entry_target(&con.dependency_id)
+              .is_none_or(|target| !current_entry_targets.contains(&target))
         });
 
       // A proxy created after the activation request already carries its lazy
