@@ -9,14 +9,9 @@ use rspack_util::node_path::NodePath;
 use crate::GlobPattern;
 
 impl GlobPattern<'_> {
-  fn directory_prefix(&self) -> Cow<'_, str> {
-    let prefix = self.literal_prefix();
+  fn scan_directory_prefix(&self) -> Cow<'_, str> {
     // A directory boundary is also a UTF-8 boundary for filesystem paths.
-    let end = prefix
-      .iter()
-      .rposition(|&byte| byte == b'/')
-      .map_or(0, |index| index + 1);
-    let prefix = String::from_utf8_lossy(&prefix[..end]);
+    let prefix = String::from_utf8_lossy(self.directory_prefix());
     if self.options.case_sensitive {
       return prefix;
     }
@@ -43,7 +38,7 @@ impl GlobPattern<'_> {
   /// The stable directory containing every match, for filesystem watching.
   /// `context` is a literal physical path and may contain glob metacharacters.
   pub fn scan_root(&self, context: &Utf8Path) -> Utf8PathBuf {
-    let prefix = self.directory_prefix();
+    let prefix = self.scan_directory_prefix();
     if Utf8Path::new(&prefix).is_absolute() {
       Utf8Path::new(&prefix).node_normalize_posix()
     } else {
@@ -61,7 +56,7 @@ impl GlobPattern<'_> {
     fs: Arc<dyn ReadableFileSystem>,
   ) -> Result<Vec<Utf8PathBuf>> {
     let root = self.scan_root(context);
-    let Some(remaining) = self.match_prefix(self.directory_prefix().as_bytes()) else {
+    let Some(remaining) = self.match_prefix(self.scan_directory_prefix().as_bytes()) else {
       return Ok(Vec::new());
     };
     remaining.walk(&root, fs).await

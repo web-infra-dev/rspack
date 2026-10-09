@@ -88,6 +88,33 @@ impl Program<'_> {
     }
   }
 
+  pub(super) fn is_recursive(&self, states: &States) -> bool {
+    if self.negated {
+      return true;
+    }
+    let mut pending = states.clone();
+    let mut seen: SmallVec<[bool; 16]> = smallvec::smallvec![false; self.instructions.len()];
+    while let Some(id) = pending.pop() {
+      if seen[id] {
+        continue;
+      }
+      seen[id] = true;
+      match &self.instructions[id] {
+        Instruction::Literal(byte, _, _, _) if is_separator(*byte as char) => return true,
+        Instruction::GlobStar
+        | Instruction::GlobStarDirectory { .. }
+        | Instruction::InsideGlobStar(_) => return true,
+        Instruction::Literal(_, next, _, _)
+        | Instruction::Any(next)
+        | Instruction::Star(next)
+        | Instruction::Class { next, .. } => pending.push(*next),
+        Instruction::Split(branches) => pending.extend(branches.iter().copied()),
+        Instruction::Accept => {}
+      }
+    }
+    false
+  }
+
   /// The common literal prefix of every active branch, already unescaped.
   pub(super) fn literal_prefix<'a>(
     &self,

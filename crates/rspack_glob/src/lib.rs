@@ -18,7 +18,6 @@
 //! # Ok::<(), rspack_glob::Error>(())
 //! ```
 
-mod path;
 mod program;
 mod syntax;
 #[cfg(feature = "fs")]
@@ -30,10 +29,6 @@ use std::{
 };
 
 use cow_utils::CowUtils;
-pub use path::{
-  extract_glob_base_dir, glob_base_dir_end, is_glob_metacharacter, normalize_path_separators,
-  normalize_path_separators_for_path, unescape_glob_path,
-};
 use program::{Instructions, Program, States};
 pub use syntax::{Error, ErrorKind, validate};
 
@@ -44,6 +39,10 @@ pub struct GlobOptions {
   pub case_sensitive: bool,
   /// Require an explicit leading `.` in each hidden path component.
   pub require_literal_leading_dot: bool,
+  /// Accept Windows-form patterns: outside character classes, a backslash is a
+  /// separator unless it escapes `*`, `?`, `[`, `]`, `{` or `}`. Standard glob
+  /// escaping remains the default, including `\n`, `\,` and `\\`.
+  pub windows_paths: bool,
 }
 
 impl Default for GlobOptions {
@@ -51,6 +50,7 @@ impl Default for GlobOptions {
     Self {
       case_sensitive: true,
       require_literal_leading_dot: false,
+      windows_paths: false,
     }
   }
 }
@@ -59,7 +59,7 @@ impl Default for GlobOptions {
 ///
 /// Cloning shares the compiled graph, source and cached prefix, and copies the
 /// active states so callers can independently traverse sibling directories.
-/// The source borrows the input unless case folding changes its bytes.
+/// The source borrows the input unless separator parsing or case folding changes it.
 /// Matching operates on bytes:
 /// `?` consumes one non-separator byte, including within UTF-8 strings.
 #[derive(Debug, Clone)]
@@ -81,8 +81,14 @@ impl<'a> GlobPattern<'a> {
 
   /// Compiles a pattern with case and hidden-component matching options.
   pub fn new_with_options(pattern: &'a [u8], options: GlobOptions) -> Result<Self, Error> {
-    validate(pattern)?;
-    let source = Arc::new(fold_case(pattern, options.case_sensitive));
+    let source = syntax::parse(pattern, options.windows_paths)?;
+    let source = Arc::new(match source {
+      Cow::Borrowed(bytes) => fold_case(bytes, options.case_sensitive),
+      Cow::Owned(bytes) => Cow::Owned(match fold_case(&bytes, options.case_sensitive) {
+        Cow::Borrowed(_) => bytes,
+        Cow::Owned(folded) => folded,
+      }),
+    });
     let (instructions, start, negated) = Program::compile(&source);
     let program = Program {
       instructions: &instructions,
@@ -109,6 +115,13 @@ impl<'a> GlobPattern<'a> {
     }
   }
 
+  /// The full parsed source, with path separators and case normalized according
+  /// to the options. Glob escapes remain intact. Prefix consumption does not
+  /// change this source; use [`Self::literal_prefix`] for the remaining literals.
+  pub fn source(&self) -> &[u8] {
+    &self.source
+  }
+
   /// The unescaped literal prefix shared by every remaining matching branch.
   /// Returns no prefix for a complemented pattern. Matching still operates on
   /// bytes, so the prefix may end inside a UTF-8 character.
@@ -118,6 +131,25 @@ impl<'a> GlobPattern<'a> {
     self
       .literal_prefix
       .get_or_init(|| Arc::new(self.view().literal_prefix(&self.states, &self.source)))
+  }
+
+  /// The common literal prefix ending at a directory boundary, already unescaped.
+  /// Returns an empty slice when no complete directory component is shared.
+  /// Case-insensitive patterns return folded bytes; filesystem scans only use
+  /// structural components for direct lookup to preserve the actual spelling.
+  pub fn directory_prefix(&self) -> &[u8] {
+    let prefix = self.literal_prefix();
+    let end = prefix
+      .iter()
+      .rposition(|&byte| byte == b'/')
+      .map_or(0, |index| index + 1);
+    &prefix[..end]
+  }
+
+  /// Whether the remaining pattern can match a path containing a separator.
+  /// Complemented patterns conservatively return true.
+  pub fn is_recursive(&self) -> bool {
+    self.view().is_recursive(&self.states)
   }
 
   /// Matches a path, applying any leading `!` negation.

@@ -16,6 +16,7 @@ default   = ["cacheable"]
 
 [dependencies]
 camino           = { workspace = true }
+cow-utils        = { workspace = true }
 dashmap          = { workspace = true }
 indexmap         = { workspace = true }
 rspack_cacheable = { workspace = true, optional = true }

@@ -6,7 +6,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
 use rspack_loader_runner::parse_resource;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{Utf8Path, Utf8PathBuf, normalize_path_separators};
 use rustc_hash::FxHashMap;
 use swc_core::common::util::take::Take;
 use tracing::instrument;
@@ -646,7 +646,7 @@ async fn visit_dirs(
       // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
       let relative_path = {
         let path_str = &path_str[ctx.len()..];
-        let p = path_str.cow_replace('\\', "/");
+        let p = normalize_path_separators(path_str);
         if p.as_ref().starts_with('/') {
           format!(".{p}")
         } else {
@@ -851,7 +851,7 @@ fn alternative_requests(
     // the default `^\./` matcher rejects it, so the file drops out of the map.
     let mut hide_original = false;
     for module in resolve_options.modules() {
-      let dir = module.cow_replace('\\', "/");
+      let dir = normalize_path_separators(module);
       if item.request.starts_with(&format!("./{dir}/")) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
