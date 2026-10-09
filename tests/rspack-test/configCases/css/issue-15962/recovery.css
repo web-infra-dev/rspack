@@ -1,0 +1,12 @@
+.plainRecovery {
+	background:url("./must-not-resolve-plain.svg") "unterminated
+		.discarded;
+	button:hover { color: red; }
+
+	/* A sole curly value falls back to a rule when its contents are invalid. */
+	background:{
+		broken:url("./must-not-resolve-body.svg") "unterminated
+			.discardedInner;
+	}
+	.afterPlainRecovery { color: green; }
+}
