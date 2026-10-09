@@ -86,6 +86,7 @@ jobs:
       binding_postfix: ${{ matrix.array.binding_postfix }}
       profile: ${{ matrix.array.profile || inputs.profile || 'release'}}
       test: ${{inputs.test || false}}
+      force-rebuild: ${{ contains(matrix.array.target, 'windows') }}
 
   release:
     name: Release Canary
