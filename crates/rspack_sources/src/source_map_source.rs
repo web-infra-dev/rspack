@@ -70,20 +70,9 @@ pub struct SourceMapSource {
   original_source: Option<Box<str>>,
   inner_source_map: Option<SourceMap<'static>>,
   remove_original_source: bool,
-  #[cfg(debug_assertions)]
-  value_released: bool,
 }
 
 impl SourceMapSource {
-  #[inline]
-  fn debug_assert_value_available(&self) {
-    #[cfg(debug_assertions)]
-    debug_assert!(
-      !self.value_released,
-      "SourceMapSource value was released by map_static"
-    );
-  }
-
   /// Create a [SourceMapSource] with [SourceMapSourceOptions].
   pub fn new<V, N, O>(options: O) -> Self
   where
@@ -99,14 +88,11 @@ impl SourceMapSource {
       original_source: options.original_source,
       inner_source_map: options.inner_source_map,
       remove_original_source: options.remove_original_source,
-      #[cfg(debug_assertions)]
-      value_released: false,
     }
   }
 
   /// Get the value as a shared string reference.
   pub fn value(&self) -> &str {
-    self.debug_assert_value_available();
     &self.value
   }
 
@@ -138,27 +124,22 @@ impl SourceMapSource {
 
 impl Source for SourceMapSource {
   fn source(&self) -> SourceValue<'_> {
-    self.debug_assert_value_available();
     SourceValue::String(Cow::Borrowed(&self.value))
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    self.debug_assert_value_available();
     on_chunk(&self.value)
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
-    self.debug_assert_value_available();
     Cow::Borrowed(self.value.as_bytes())
   }
 
   fn size(&self) -> usize {
-    self.debug_assert_value_available();
     self.value.len()
   }
 
   fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
-    self.debug_assert_value_available();
     if self.inner_source_map.is_none() {
       return Some(self.source_map.as_borrowed());
     }
@@ -171,7 +152,6 @@ impl Source for SourceMapSource {
     object_pool: &ObjectPool,
     options: &MapOptions,
   ) -> Option<SourceMap<'static>> {
-    self.debug_assert_value_available();
     match Arc::try_unwrap(self) {
       Ok(mut source) => {
         if source.inner_source_map.is_none() {
@@ -182,10 +162,6 @@ impl Source for SourceMapSource {
         // A combined map needs the generated value while calculating mappings,
         // but its resulting fields only borrow the remaining map-related data.
         let value = std::mem::take(&mut source.value);
-        #[cfg(debug_assertions)]
-        {
-          source.value_released = true;
-        }
         let source = Arc::new(source);
         let owner = source.clone();
         let chunks = SourceMapSourceChunks::new(source.as_ref(), &value);
@@ -204,7 +180,6 @@ impl Source for SourceMapSource {
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-    self.debug_assert_value_available();
     writer.write_all(self.value.as_bytes())
   }
 }
@@ -332,7 +307,6 @@ impl<'source, 'value> Chunks<'source> for SourceMapSourceChunks<'source, 'value>
 
 impl StreamChunks for SourceMapSource {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
-    self.debug_assert_value_available();
     Box::new(SourceMapSourceChunks::new(self, &self.value))
   }
 }
