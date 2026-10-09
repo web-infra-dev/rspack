@@ -68,14 +68,12 @@ export const lazyCompilationMiddleware = (
 
       const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
       options.prefix = `${prefix}__${i++}`;
-      const activeModules = new Set<string>();
       const newlyActiveModules = new Set<string>();
 
       middlewareByCompiler.set(
         options.prefix,
         lazyCompilationMiddlewareInternal(
           c,
-          activeModules,
           newlyActiveModules,
           options.prefix,
         ),
@@ -103,7 +101,6 @@ export const lazyCompilationMiddleware = (
     return noop;
   }
 
-  const activeModules: Set<string> = new Set();
   const newlyActiveModules: Set<string> = new Set();
 
   const options = {
@@ -115,7 +112,6 @@ export const lazyCompilationMiddleware = (
   const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
   return lazyCompilationMiddlewareInternal(
     compiler,
-    activeModules,
     newlyActiveModules,
     lazyCompilationPrefix,
   );
@@ -127,8 +123,8 @@ function applyPlugin(
   newlyActiveModules: Set<string>,
 ) {
   const plugin = new BuiltinLazyCompilationPlugin(
-    // Hand over only the modules activated since the last compilation; the
-    // native plugin keeps every activated module across compilations.
+    // Hand over the modules reported since the last compilation; the native
+    // plugin keeps every activated module and skips the ones already active.
     () => {
       const res = new Set(newlyActiveModules);
       newlyActiveModules.clear();
@@ -238,10 +234,6 @@ function readModuleIdsFromBody(
 
 const lazyCompilationMiddlewareInternal = (
   compiler: Compiler | MultiCompiler,
-  // Every module ever activated. Never cleared: the client re-sends its whole
-  // pending set whenever one of its proxies is disposed, and a re-sent module
-  // must not trigger another rebuild.
-  activeModules: Set<string>,
   newlyActiveModules: Set<string>,
   lazyCompilationPrefix: string,
 ): DevServerMiddlewareHandler => {
@@ -268,8 +260,7 @@ const lazyCompilationMiddlewareInternal = (
 
     const moduleActivated = [];
     for (const key of modules) {
-      if (!activeModules.has(key)) {
-        activeModules.add(key);
+      if (!newlyActiveModules.has(key)) {
         newlyActiveModules.add(key);
         logger.log(`${key} is now in use and will be compiled.`);
         moduleActivated.push(key);

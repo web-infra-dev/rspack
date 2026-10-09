@@ -3,18 +3,19 @@ const os = require("node:os");
 const path = require("node:path");
 const { lazyCompilationMiddleware } = require("@rspack/core");
 
-// After an HMR apply the client re-sends its whole active set. Re-reporting a
-// module that is already active must not rebuild its proxy, otherwise the
-// proxy emits a hot update and activation and HMR keep triggering each other.
-// https://github.com/web-infra-dev/rspack/issues/15062
+// A lazy entry removed in the compilation that consumes its first activation,
+// while a new import() of the same module is added, keeps its inactive proxy.
+// The client then re-sends the activation, which must still activate it.
+// https://github.com/web-infra-dev/rspack/pull/15134#discussion_r4227747529
 
 let root;
 let middleware;
+let entries = { main: "./src/main.js", feature: "./src/feature.js" };
 
-function write(filename, content) {
-	const file = path.join(root, filename);
-	fs.mkdirSync(path.dirname(file), { recursive: true });
-	fs.writeFileSync(file, content);
+function write(file, content) {
+	const target = path.join(root, file);
+	fs.mkdirSync(path.dirname(target), { recursive: true });
+	fs.writeFileSync(target, content);
 }
 
 function post(moduleId) {
@@ -33,24 +34,31 @@ function post(moduleId) {
 	});
 }
 
+function emitsPayload(compilation) {
+	return Object.keys(compilation.assets).some(name =>
+		compilation.getAsset(name).source.source().toString().includes("FEATURE_PAYLOAD")
+	);
+}
+
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [
 	{
 		description:
-			"should not rebuild the proxy when an already activated module is reported again",
+			"should activate a lazy entry that becomes an import() target before its first activation build",
 		options() {
-			root = fs.mkdtempSync(path.join(os.tmpdir(), "rspack-lazy-reactivate-"));
-			write("src/main.js", "import('./dyn.js');\n");
-			write("src/dyn.js", "globalThis.dyn = 'DYN_PAYLOAD';\n");
+			root = fs.mkdtempSync(path.join(os.tmpdir(), "rspack-lazy-entry-to-import-"));
+			write("src/main.js", "globalThis.main = true;\n");
+			write("src/main-import.js", "import('./feature.js');\n");
+			write("src/feature.js", "globalThis.feature = 'FEATURE_PAYLOAD';\n");
 
 			return {
 				context: root,
 				mode: "development",
 				target: "web",
 				devtool: false,
-				entry: { main: "./src/main.js" },
-				lazyCompilation: { entries: false, imports: true },
-				output: { filename: "main.js", chunkFilename: "[name].js" },
+				entry: async () => entries,
+				lazyCompilation: { entries: true, imports: true, test: /feature\.js$/ },
+				output: { chunkFilename: "[name].js" },
 				optimization: { minimize: false, moduleIds: "named", chunkIds: "named" }
 			};
 		},
@@ -89,34 +97,24 @@ module.exports = [
 			try {
 				const initial = await nextBuild();
 				expect(initial.error).toBeUndefined();
+				expect(emitsPayload(initial.stats.compilation)).toBe(false);
 
 				const moduleId = [...initial.stats.compilation.modules]
 					.map(module => module.identifier())
 					.find(identifier => identifier.includes("lazy-compilation-proxy"));
 				expect(moduleId).toBeDefined();
 
-				// First activation compiles the module behind the proxy.
+				entries = { main: "./src/main-import.js" };
 				await post(moduleId);
-				const activated = await nextBuild();
-				expect(activated.error).toBeUndefined();
-				const { compilation } = activated.stats;
-				expect(
-					Object.keys(compilation.assets).some(name =>
-						compilation
-							.getAsset(name)
-							.source.source()
-							.toString()
-							.includes("DYN_PAYLOAD")
-					)
-				).toBe(true);
+				const switched = await nextBuild();
+				expect(switched.error).toBeUndefined();
 
-				await post(moduleId);
-				const reported = await nextBuild();
-				expect(reported.error).toBeUndefined();
-				const proxy = reported.stats
-					.toJson({ all: false, modules: true, cachedModules: true })
-					.modules.find(module => module.identifier === moduleId);
-				expect(proxy.built).toBe(false);
+				if (!emitsPayload(switched.stats.compilation)) {
+					await post(moduleId);
+					const retried = await nextBuild();
+					expect(retried.error).toBeUndefined();
+					expect(emitsPayload(retried.stats.compilation)).toBe(true);
+				}
 			} finally {
 				await new Promise((resolve, reject) =>
 					watching.close(error => (error ? reject(error) : resolve()))
