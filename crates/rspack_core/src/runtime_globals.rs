@@ -312,6 +312,9 @@ define_runtime_globals! {
 
   // reexport
   const REEXPORT;
+
+  // Exports objects shared by deferred namespaces and the module bootstrap.
+  const DEFERRED_MODULE_EXPORTS;
 }
 
 impl Default for RuntimeGlobals {
@@ -350,6 +353,7 @@ pub static BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLoc
     | RuntimeGlobals::MODULE_FACTORIES
     | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
     | RuntimeGlobals::MODULE_CACHE
+    | RuntimeGlobals::DEFERRED_MODULE_EXPORTS
     | RuntimeGlobals::ON_CHUNKS_LOADED
     | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
     | RuntimeGlobals::STARTUP_ENTRYPOINT
@@ -376,6 +380,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::MODULE_ID => "id",
     RuntimeGlobals::MODULE_LOADED => "loaded",
     RuntimeGlobals::MODULE_CACHE => "c",
+    RuntimeGlobals::DEFERRED_MODULE_EXPORTS => "zD",
     RuntimeGlobals::ENSURE_CHUNK => "e",
     RuntimeGlobals::ENSURE_CHUNK_HANDLERS => "f",
     RuntimeGlobals::PUBLIC_PATH => "p",
