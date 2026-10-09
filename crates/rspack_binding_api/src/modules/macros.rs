@@ -37,14 +37,17 @@ macro_rules! impl_module_methods {
 
       #[napi(
         js_name = "_originalSource",
-        ts_return_type = "JsSourceWithLazyMap | undefined",
+        ts_generic_types = "T",
+        ts_args_type = "sourceMapSource: new (source: string | Buffer, name: string) => T",
+        ts_return_type = "JsSourceToJs | T | undefined",
         enumerable = false
       )]
       pub fn original_source<'a>(
         &mut self,
         env: &'a napi::Env,
-      ) -> napi::Result<napi::Either<napi::bindgen_prelude::Unknown<'a>, ()>> {
-        self.module.original_source(env)
+        constructor: $crate::source::SourceMapSourceConstructor<'a>,
+      ) -> napi::Result<napi::Either<$crate::source::JsOriginalSource<'a>, ()>> {
+        self.module.original_source(env, constructor)
       }
 
       #[napi]

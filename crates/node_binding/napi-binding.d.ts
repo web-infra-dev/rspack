@@ -191,7 +191,7 @@ export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
   readableIdentifier(): string
-  _originalSource(): JsSourceWithLazyMap | undefined
+  _originalSource<T>(sourceMapSource: new (source: string | Buffer, name: string) => T): JsSourceToJs | T | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -202,7 +202,7 @@ export declare class ConcatenatedModule {
 
 export declare class ContextModule {
   readableIdentifier(): string
-  _originalSource(): JsSourceWithLazyMap | undefined
+  _originalSource<T>(sourceMapSource: new (source: string | Buffer, name: string) => T): JsSourceToJs | T | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -267,7 +267,7 @@ export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
   readableIdentifier(): string
-  _originalSource(): JsSourceWithLazyMap | undefined
+  _originalSource<T>(sourceMapSource: new (source: string | Buffer, name: string) => T): JsSourceToJs | T | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -447,14 +447,6 @@ export declare class JsResolverFactory {
   get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
 }
 
-/**
- * An owned source snapshot that defers map generation until JavaScript reads its serialized map.
- * Sources whose map presence cannot be determined cheaply initialize the map eagerly.
- */
-export declare class JsSourceMap {
-  toJson(): string
-}
-
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
   getLogging(acceptedTypes: number): Array<JsLog>
@@ -466,7 +458,7 @@ export declare class KnownBuildInfo {
 
 export declare class Module {
   readableIdentifier(): string
-  _originalSource(): JsSourceWithLazyMap | undefined
+  _originalSource<T>(sourceMapSource: new (source: string | Buffer, name: string) => T): JsSourceToJs | T | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -1379,11 +1371,6 @@ export interface JsSourceFromJs {
 export interface JsSourceToJs {
   source: string | Buffer
   map?: string
-}
-
-export interface JsSourceWithLazyMap {
-  source: string | Buffer
-  map?: JsSourceMap
 }
 
 export interface JsStatsAsset {

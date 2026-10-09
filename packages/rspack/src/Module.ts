@@ -1,5 +1,5 @@
 import binding, { type AssetInfo } from '@rspack/binding';
-import type { Source } from 'webpack-sources';
+import { type Source, SourceMapSource } from 'webpack-sources';
 import type { ResourceData } from './Resolver';
 import { SourceAdapter } from './util/source';
 // patch buildInfo
@@ -180,7 +180,7 @@ Object.defineProperty(binding.Module.prototype, 'originalSource', {
   enumerable: true,
   configurable: true,
   value(this: binding.Module) {
-    const originalSource = this._originalSource();
+    const originalSource = this._originalSource(SourceMapSource);
     if (originalSource) {
       return SourceAdapter.fromBinding(originalSource);
     }

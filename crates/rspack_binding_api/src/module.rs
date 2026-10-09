@@ -14,9 +14,7 @@ use rspack_core::{
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
   RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
 };
-use rspack_napi::{
-  OneShotInstanceRef, OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
-};
+use rspack_napi::{OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
@@ -32,7 +30,9 @@ use crate::{
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
   shared_properties::define_shared_properties,
-  source::{JsSourceFromJs, JsSourceToJs, JsSourceWithLazyMap},
+  source::{
+    JsOriginalSource, JsSourceFromJs, JsSourceToJs, OriginalSourceCache, SourceMapSourceConstructor,
+  },
 };
 
 define_symbols! {
@@ -281,9 +281,9 @@ struct OriginalSourceNapiRef {
   // The JavaScript source owns its content and its lazy map retains the original Rust source.
   // This weak pointer compares identity and prevents allocation reuse while it is cached.
   related_source: Weak<dyn Source>,
-  // Keep the converted JavaScript object alive and return that exact object on cache hits. The
-  // reference is replaced on the next call after `module.source()` points to a different Source.
-  napi_ref: OneShotRef,
+  // Reuse transferred content and Rust map generation, but give each public Source its own caches.
+  // Replace this entry when `module.source()` points to a different Source.
+  cache: OriginalSourceCache,
 }
 
 #[napi]
@@ -399,10 +399,16 @@ impl Module {
 
   #[napi(
     js_name = "_originalSource",
-    ts_return_type = "JsSourceWithLazyMap | undefined",
+    ts_generic_types = "T",
+    ts_args_type = "sourceMapSource: new (source: string | Buffer, name: string) => T",
+    ts_return_type = "JsSourceToJs | T | undefined",
     enumerable = false
   )]
-  pub fn original_source<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Unknown<'a>, ()>> {
+  pub fn original_source<'a>(
+    &mut self,
+    env: &'a Env,
+    constructor: SourceMapSourceConstructor<'a>,
+  ) -> napi::Result<Either<JsOriginalSource<'a>, ()>> {
     let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
       let references = ref_cell.borrow();
       references.get(&self.compiler_id).cloned()
@@ -438,19 +444,18 @@ impl Module {
 
     if let Some(OriginalSourceNapiRef {
       related_source,
-      napi_ref,
+      cache,
     }) = &self.original_source_ref
       && (related_source.ptr_eq(&Arc::downgrade(original_source)))
     {
-      return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
+      return Ok(Either::A(cache.to_js(env, constructor)?));
     }
 
-    let binding = JsSourceWithLazyMap::to_js(env, original_source)?;
-    let mut one_shot_ref = OneShotRef::new(env.raw(), binding)?;
-    let result = ToNapiValue::into_unknown(&mut one_shot_ref, env)?;
+    let cache = OriginalSourceCache::new(env, original_source)?;
+    let result = cache.to_js(env, constructor)?;
     self.original_source_ref = Some(OriginalSourceNapiRef {
       related_source: Arc::downgrade(original_source),
-      napi_ref: one_shot_ref,
+      cache,
     });
 
     Ok(Either::A(result))

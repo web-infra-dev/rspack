@@ -41,7 +41,7 @@ export default async function run() {
     let originalSource, originalMap, binarySource;
     let generation = 0;
     const fileKey = Symbol.for('rspack.buildInfo.fileDependencies');
-    let getContext, getFiles;
+    let getContext, getFiles, getMap;
     compiler.hooks.done.tap('SharedAccessorsLifecycle', ({ compilation }) => {
       const modules = [...compilation.modules];
       const current = modules.find((module) => module.resource === entryPath);
@@ -51,6 +51,10 @@ export default async function run() {
         removed = modules.find((module) => module.resource === valuePath);
         assert(removed);
         originalSource = removed.originalSource();
+        getMap = Object.getOwnPropertyDescriptor(
+          originalSource,
+          '_sourceMapAsString',
+        ).get;
         const binaryModule = modules.find(
           (module) => module.resource === binaryRequest,
         );
@@ -121,12 +125,17 @@ export default async function run() {
     assert.equal(originalSource.source(), 'export default 42;');
     originalMap = originalSource.map();
     assert.deepEqual(originalMap.sourcesContent, ['export default 42;']);
+    assert.deepEqual(JSON.parse(getMap.call(originalSource)), originalMap);
+    tracker.track(originalSource, 'original source');
+    originalSource = null;
+    await tracker.waitForCollection('original source');
     assert.deepEqual(binarySource.source(), Buffer.from([0, 255, 97]));
     binarySource.source()[0] = 42;
     assert.deepEqual(binarySource.buffer(), Buffer.from([42, 255, 97]));
     // Keeping the accessor functions alive must not retain any of those owners.
     assert.equal(typeof getContext, 'function');
     assert.equal(typeof getFiles, 'function');
+    assert.equal(typeof getMap, 'function');
   } finally {
     fs.rmSync(context, { recursive: true, force: true });
   }

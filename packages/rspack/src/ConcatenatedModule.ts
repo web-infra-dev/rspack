@@ -1,5 +1,5 @@
 import binding from '@rspack/binding';
-import type { Source } from 'webpack-sources';
+import { type Source, SourceMapSource } from 'webpack-sources';
 import { SourceAdapter } from './util/source';
 
 Object.defineProperty(binding.ConcatenatedModule.prototype, 'identifier', {
@@ -14,7 +14,7 @@ Object.defineProperty(binding.ConcatenatedModule.prototype, 'originalSource', {
   enumerable: true,
   configurable: true,
   value(this: binding.ConcatenatedModule) {
-    const originalSource = this._originalSource();
+    const originalSource = this._originalSource(SourceMapSource);
     if (originalSource) {
       return SourceAdapter.fromBinding(originalSource);
     }

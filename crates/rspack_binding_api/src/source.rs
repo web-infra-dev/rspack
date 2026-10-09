@@ -3,15 +3,16 @@ use std::{
   sync::{Arc, OnceLock},
 };
 
+use napi::{JsValue, Property, PropertyAttributes};
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, ObjectPool, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, SourceValue,
   WithoutOriginalOptions,
 };
-use rspack_napi::napi::bindgen_prelude::*;
+use rspack_napi::{OneShotRef, napi::bindgen_prelude::*};
 
-use crate::error::RspackResultToNapiResultExt;
+use crate::{error::RspackResultToNapiResultExt, shared_properties::define_shared_properties};
 
 /// Zero copy `JsSourceFromJs` slice shared between Rust and Node.js if buffer is used.
 ///
@@ -104,29 +105,105 @@ impl From<JsSourceToJs> for BoxSource {
   }
 }
 
-#[napi(object, object_from_js = false)]
-pub struct JsSourceWithLazyMap<'a> {
-  pub source: Either<&'a str, BufferSlice<'a>>,
-  pub map: Option<JsSourceMap>,
+pub type SourceMapSourceConstructor<'a> = Function<'a, FnArgs<(Unknown<'a>, &'static str)>>;
+
+pub(crate) struct OriginalSourceCache {
+  content: OneShotRef,
+  map: Option<Arc<LazySourceMap>>,
 }
 
-impl JsSourceWithLazyMap<'_> {
-  pub fn to_js<'a>(env: &'a Env, source: &BoxSource) -> Result<Unknown<'a>> {
+impl OriginalSourceCache {
+  pub(crate) fn new(env: &Env, source: &BoxSource) -> Result<Self> {
     // Keep owned SourceValue content alive until N-API has copied the borrowed string.
     let value = source.source();
-    let binding = match &value {
-      SourceValue::String(string) => JsSourceWithLazyMap {
-        source: Either::A(string.as_ref()),
-        map: JsSourceMap::from_source(source),
-      },
-      SourceValue::Buffer(bytes) => JsSourceWithLazyMap {
+    let mut content = Object::new(env)?;
+    let map = match &value {
+      SourceValue::String(string) => {
+        content.set_named_property("source", string.as_ref())?;
+        LazySourceMap::from_source(source).map(Arc::new)
+      }
+      SourceValue::Buffer(bytes) => {
         // JS buffers are mutable, so copy directly into JS-owned storage rather than
         // sharing the source's immutable bytes or allocating an intermediate Vec.
-        source: Either::B(BufferSlice::copy_from(env, bytes)?),
-        map: None,
-      },
+        content.set_named_property("source", BufferSlice::copy_from(env, bytes)?)?;
+        None
+      }
     };
-    binding.into_unknown(env)
+    Ok(Self {
+      content: OneShotRef::new(env.raw(), content)?,
+      map,
+    })
+  }
+
+  pub(crate) fn to_js<'a>(
+    &self,
+    env: &'a Env,
+    constructor: SourceMapSourceConstructor<'a>,
+  ) -> Result<JsOriginalSource<'a>> {
+    Ok(JsOriginalSource {
+      content: (&self.content).into_unknown(env)?.coerce_to_object()?,
+      map: self.map.as_ref().map(Arc::clone),
+      constructor,
+    })
+  }
+}
+
+/// Construct the real JS SourceMapSource after the module method has released its Rust borrows.
+pub struct JsOriginalSource<'a> {
+  content: Object<'a>,
+  map: Option<Arc<LazySourceMap>>,
+  constructor: SourceMapSourceConstructor<'a>,
+}
+
+struct SourceMapSnapshot(Option<Arc<LazySourceMap>>);
+
+fn source_map_getter(env: Env, mut this: This) -> Result<napi::sys::napi_value> {
+  let map = this
+    .unwrap::<SourceMapSnapshot>()?
+    .0
+    .as_ref()
+    .map(Arc::clone);
+  let Some(map) = map else {
+    // An extracted getter can still be called after the accessor has become a data property.
+    return Ok(
+      this
+        .get_named_property::<Unknown>("_sourceMapAsString")?
+        .raw(),
+    );
+  };
+  let json = env.create_string(&map.to_json()?)?;
+  this.define_properties(&[Property::new()
+    .with_utf8_name("_sourceMapAsString")?
+    .with_value(&json)])?;
+  this.unwrap::<SourceMapSnapshot>()?.0 = None;
+  Ok(json.raw())
+}
+
+impl ToNapiValue for JsOriginalSource<'_> {
+  unsafe fn to_napi_value(env: napi::sys::napi_env, value: Self) -> Result<napi::sys::napi_value> {
+    let Some(map) = value.map else {
+      // Unmapped sources keep the existing RawSource adapter path.
+      return unsafe { Object::to_napi_value(env, value.content) };
+    };
+    let env = unsafe { Env::from_raw(env) };
+    let content: Unknown = value.content.get_named_property("source")?;
+    let instance = value
+      .constructor
+      .new_instance((content, "inmemory://from rust").into())?;
+    let mut object = instance.coerce_to_object()?;
+    object.set_named_property("_hasSourceMap", true)?;
+    object.wrap(SourceMapSnapshot(Some(map)), None)?;
+    define_shared_properties::<SourceMapSnapshot>(&env, object, || {
+      Ok(vec![
+        Property::new()
+          .with_utf8_name("_sourceMapAsString")?
+          .with_getter_closure(source_map_getter)
+          .with_property_attributes(
+            PropertyAttributes::Configurable | PropertyAttributes::Enumerable,
+          ),
+      ])
+    })?;
+    Ok(instance.raw())
   }
 }
 
@@ -153,13 +230,12 @@ fn has_map_without_generation(source: &dyn Source) -> Option<bool> {
 
 /// An owned source snapshot that defers map generation until JavaScript reads its serialized map.
 /// Sources whose map presence cannot be determined cheaply initialize the map eagerly.
-#[napi]
-pub struct JsSourceMap {
+struct LazySourceMap {
   source: BoxSource,
   map: OnceLock<Option<SourceMap<'static>>>,
 }
 
-impl JsSourceMap {
+impl LazySourceMap {
   fn from_source(source: &BoxSource) -> Option<Self> {
     let has_map = has_map_without_generation(source.as_ref());
     if has_map == Some(false) {
@@ -181,12 +257,8 @@ impl JsSourceMap {
       })
       .as_ref()
   }
-}
 
-#[napi]
-impl JsSourceMap {
-  #[napi]
-  pub fn to_json(&self) -> Result<String> {
+  fn to_json(&self) -> Result<String> {
     self
       .get_map()
       .map(SourceMap::to_json)

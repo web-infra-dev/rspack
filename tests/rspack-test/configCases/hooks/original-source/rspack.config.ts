@@ -32,8 +32,31 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   if (!source) return;
 
                   const value = source.source();
-                  const binding = module._originalSource()!;
-                  const map = binding.map?.toJson();
+                  const binding = module._originalSource(
+                    sources.SourceMapSource,
+                  )!;
+                  let map: string | undefined;
+                  let nativeGetter: (() => string) | undefined;
+                  if (binding instanceof sources.SourceMapSource) {
+                    // The binding already returned the actual SourceMapSource, with one shared
+                    // native accessor and no intermediate JsSourceMap object or JS getter closure.
+                    nativeGetter = Object.getOwnPropertyDescriptor(
+                      binding,
+                      '_sourceMapAsString',
+                    )!.get;
+                    expect(nativeGetter).toBeDefined();
+                    expect(
+                      Function.prototype.toString.call(nativeGetter),
+                    ).toContain('[native code]');
+                    expect(binding._sourceMapAsObject).toBeUndefined();
+                    expect(binding._sourceMapAsBuffer).toBeUndefined();
+                    expect(
+                      module.originalSource.call({
+                        _originalSource: () => binding,
+                      }),
+                    ).toBe(binding);
+                    map = binding._sourceMapAsString;
+                  }
                   if (Buffer.isBuffer(value)) {
                     if (module.identifier().endsWith('base64,')) {
                       checkedEmptyBuffer = true;
@@ -110,21 +133,25 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                     expect(source.buffer()[0]).toBe(42);
                   }
 
-                  if (!binding.map) return;
+                  if (!map) return;
                   let transfers = 0;
-                  // Observe the JSON transfer boundary without reading the source map.
-                  const createSource = () =>
-                    module.originalSource.call({
-                      _originalSource: () => ({
-                        source: binding.source,
-                        map: {
-                          toJson() {
-                            transfers++;
-                            return binding.map!.toJson();
-                          },
-                        },
-                      }),
-                    })!;
+                  // Count calls to the real native getter without reading its map data.
+                  const createSource = () => {
+                    const result = module.originalSource()!;
+                    const descriptor = Object.getOwnPropertyDescriptor(
+                      result,
+                      '_sourceMapAsString',
+                    )!;
+                    expect(descriptor.get).toBe(nativeGetter);
+                    Object.defineProperty(result, '_sourceMapAsString', {
+                      ...descriptor,
+                      get() {
+                        transfers++;
+                        return descriptor.get!.call(this);
+                      },
+                    });
+                    return result;
+                  };
                   const lazy = createSource();
                   expect(lazy).toBeInstanceOf(sources.SourceMapSource);
                   expect(lazy.source()).toEqual(value);

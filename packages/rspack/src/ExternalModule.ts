@@ -1,6 +1,6 @@
 import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
-import type { Source } from 'webpack-sources';
+import { type Source, SourceMapSource } from 'webpack-sources';
 import type { Chunk } from './Chunk';
 import { type Compilation, getOrCreateCompilationHooks } from './Compilation';
 import { SourceAdapter } from './util/source';
@@ -17,7 +17,7 @@ Object.defineProperty(binding.ExternalModule.prototype, 'originalSource', {
   enumerable: true,
   configurable: true,
   value(this: binding.ExternalModule) {
-    const originalSource = this._originalSource();
+    const originalSource = this._originalSource(SourceMapSource);
     if (originalSource) {
       return SourceAdapter.fromBinding(originalSource);
     }
