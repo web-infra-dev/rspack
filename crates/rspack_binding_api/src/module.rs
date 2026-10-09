@@ -284,30 +284,40 @@ impl DerivedModule for Module {
   }
 }
 
-impl Module {
-  fn original_source_snapshot(&self) -> napi::Result<Option<BoxSource>> {
-    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
-      let references = ref_cell.borrow();
-      references.get(&self.compiler_id).cloned()
-    });
-    let Some(compiler) = compiler_reference
-      .as_ref()
-      .and_then(|reference| reference.get())
-    else {
-      return Err(self.compiler_garbage_collected_error());
-    };
-    let compilation = &compiler.compiler.compilation;
-    let module = if let Some(module) = compilation.module_by_identifier(&self.identifier) {
-      module.as_ref()
-    } else if let Some(ptr) = self.ptr {
-      // This fallback is only valid inside the active hook/loader callback.
-      unsafe { ptr.as_ref() }
-    } else {
-      return Ok(None);
-    };
-    Ok(module.source().map(Arc::clone))
-  }
+fn original_source_snapshot(
+  compiler_id: CompilerId,
+  identifier: ModuleIdentifier,
+  ptr: Option<NonNull<dyn rspack_core::Module>>,
+) -> napi::Result<Option<BoxSource>> {
+  let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+    let references = ref_cell.borrow();
+    references.get(&compiler_id).cloned()
+  });
+  let Some(compiler) = compiler_reference
+    .as_ref()
+    .and_then(|reference| reference.get())
+  else {
+    return Err(compiler_garbage_collected_error(identifier));
+  };
+  let compilation = &compiler.compiler.compilation;
+  let module = if let Some(module) = compilation.module_by_identifier(&identifier) {
+    module.as_ref()
+  } else if let Some(ptr) = ptr {
+    // This fallback is only valid inside the active hook/loader callback.
+    unsafe { ptr.as_ref() }
+  } else {
+    return Ok(None);
+  };
+  Ok(module.source().map(Arc::clone))
+}
 
+fn compiler_garbage_collected_error(identifier: ModuleIdentifier) -> napi::Error {
+  napi::Error::from_reason(format!(
+    "Unable to access module with id = {identifier} now. The Compiler has been garbage collected by JavaScript."
+  ))
+}
+
+impl Module {
   pub(crate) fn into_module_instance(self, env: &Env) -> napi::Result<ClassInstance<'_, Self>> {
     let mut instance = self.into_instance(env)?;
     let mut object = instance.as_object(env);
@@ -319,13 +329,6 @@ impl Module {
     })?;
 
     Ok(instance)
-  }
-
-  fn compiler_garbage_collected_error(&self) -> napi::Error {
-    napi::Error::from_reason(format!(
-      "Unable to access module with id = {} now. The Compiler has been garbage collected by JavaScript.",
-      self.identifier
-    ))
   }
 
   fn module_removed_error(&self) -> napi::Error {
@@ -348,7 +351,7 @@ impl Module {
       .as_ref()
       .and_then(|compiler_reference| compiler_reference.get())
     else {
-      return Err(self.compiler_garbage_collected_error());
+      return Err(compiler_garbage_collected_error(self.identifier));
     };
 
     f(&this.compiler.compilation)
@@ -409,7 +412,11 @@ impl Module {
     enumerable = false
   )]
   pub fn original_source(&self) -> napi::Result<JsOriginalSource> {
-    Ok(JsOriginalSource(self.original_source_snapshot()?))
+    Ok(JsOriginalSource(original_source_snapshot(
+      self.compiler_id,
+      self.identifier,
+      self.ptr,
+    )?))
   }
 
   #[napi]
@@ -554,27 +561,13 @@ type ModuleInstanceRef<'a> = Either5<
 >;
 
 #[napi(ts_args_type = "module: Module, source: JsSourceWithLazyMap")]
-pub fn is_original_source(module: ModuleInstanceRef<'_>, source: Object<'_>) -> napi::Result<bool> {
-  let module = match module {
-    Either5::A(module) => &module.module,
-    Either5::B(module) => &module.module,
-    Either5::C(module) => &module.module,
-    Either5::D(module) => &module.module,
-    Either5::E(module) => module,
-  };
-  let Some(current) = module.original_source_snapshot()? else {
+pub fn is_original_source(module: ModuleObject, source: Object<'_>) -> napi::Result<bool> {
+  let Some(current) = original_source_snapshot(module.compiler_id, module.identifier, module.ptr)?
+  else {
     return Ok(false);
   };
   is_same_source(source, &current)
 }
-
-type ModuleInstanceMutRef<'a> = Either5<
-  &'a mut NormalModule,
-  &'a mut ConcatenatedModule,
-  &'a mut ContextModule,
-  &'a mut ExternalModule,
-  &'a mut Module,
->;
 
 type ModuleInstanceNapiRefs = IdentifierMap<ModuleInstanceNapiRef>;
 
@@ -742,7 +735,7 @@ impl ToNapiValue for ModuleObject {
 impl FromNapiValue for ModuleObject {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
     unsafe {
-      let instance: ModuleInstanceMutRef = FromNapiValue::from_napi_value(env, napi_val)?;
+      let instance: ModuleInstanceRef = FromNapiValue::from_napi_value(env, napi_val)?;
 
       Ok(match instance {
         Either5::A(normal_module) => Self {
