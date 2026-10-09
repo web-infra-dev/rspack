@@ -120,7 +120,7 @@ catalog:
   'node-polyfill-webpack-plugin': '^4.1.0'
   'open': '^11.0.4'
   'path-serializer': '0.7.0'
-  'playwright': '1.63.0'
+  'playwright': '1.64.0'
   'postcss': '^8.5.29'
   'postcss-loader': '^8.2.1'
   'postcss-pxtorem': '^6.1.0'

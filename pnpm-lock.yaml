@@ -308,8 +308,8 @@ catalogs:
       specifier: 0.7.0
       version: 0.7.0
     playwright:
-      specifier: 1.63.0
-      version: 1.63.0
+      specifier: 1.64.0
+      version: 1.64.0
     postcss:
       specifier: ^8.5.29
       version: 8.5.29
@@ -941,7 +941,7 @@ importers:
         version: 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(jsdom@30.1.2)
       '@rstest/playwright':
         specifier: 'catalog:'
-        version: 0.12.3(@rstest/core@0.12.3)(playwright@1.63.0)
+        version: 0.12.3(@rstest/core@0.12.3)(playwright@1.64.0)
       '@swc/helpers':
         specifier: 'catalog:'
         version: 0.5.23
@@ -962,7 +962,7 @@ importers:
         version: 11.4.1
       playwright:
         specifier: 'catalog:'
-        version: 1.63.0
+        version: 1.64.0
       postcss:
         specifier: 'catalog:'
         version: 8.5.29
@@ -1007,10 +1007,10 @@ importers:
         version: 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(jsdom@30.1.2)
       '@rstest/playwright':
         specifier: 'catalog:'
-        version: 0.12.3(@rstest/core@0.12.3)(playwright@1.63.0)
+        version: 0.12.3(@rstest/core@0.12.3)(playwright@1.64.0)
       playwright:
         specifier: 'catalog:'
-        version: 1.63.0
+        version: 1.64.0
       rstack:
         specifier: 'catalog:'
         version: 0.8.0(@microsoft/api-extractor@7.59.3)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.0.23)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.2)(typescript@6.0.3)
@@ -1906,15 +1906,6 @@ packages:
 
   '@epic-web/invariant@1.0.0':
     resolution: {integrity: sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA==}
-
-  '@exodus/bytes@1.15.1':
-    resolution: {integrity: sha512-S6mL0yNB/Abt9Ei4tq8gDhcczc4S3+vQ4ra7vxnAf+YHC02srtqxKKZghx2Dq6p0e66THKwR6r8N6P95wEty7Q==}
-    engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
-    peerDependencies:
-      '@noble/hashes': ^1.8.0 || ^2.0.0
-    peerDependenciesMeta:
-      '@noble/hashes':
-        optional: true
 
   '@exodus/bytes@1.16.0':
     resolution: {integrity: sha512-IcpW84uEn3N7ETtNZMlxKhfl6Pec8rUNGOTBtWbK1FKhJxIFAptZyVrvVRVBimAJxJCgc3PxepxkdWWG4DVzfA==}
@@ -6418,13 +6409,13 @@ packages:
     resolution: {integrity: sha512-NPE8TDbzl/3YQYY7CSS228s3g2ollTFnc+Qi3tqmqJp9Vg2ovUpixcJEo2HJScN2Ez+kEaal6y70c0ehqJBJeA==}
     engines: {node: '>=10'}
 
-  playwright-core@1.63.0:
-    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+  playwright-core@1.64.0:
+    resolution: {integrity: sha512-T9r+MZkTECl2+oUcZ26YgZzTrYidTsIhYYkJix+6iDOymOb1FB2RLLSOxRGnZGv5DStt+aduIVbt+E8WygXYpg==}
     engines: {node: '>=20'}
     hasBin: true
 
-  playwright@1.63.0:
-    resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
+  playwright@1.64.0:
+    resolution: {integrity: sha512-kVzTnYFYEyQ9RGzBjNCd2+yEqWmVbxl3AHPynv3qQ6JTjv4a+kwRcnqQwIpuP3NnrnIrE/Q6wWAIAvMfIE2/Yg==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -8349,8 +8340,6 @@ snapshots:
 
   '@epic-web/invariant@1.0.0': {}
 
-  '@exodus/bytes@1.15.1': {}
-
   '@exodus/bytes@1.16.0': {}
 
   '@iarna/toml@3.0.0': {}
@@ -9682,10 +9671,10 @@ snapshots:
       - '@module-federation/runtime-tools'
       - core-js
 
-  '@rstest/playwright@0.12.3(@rstest/core@0.12.3)(playwright@1.63.0)':
+  '@rstest/playwright@0.12.3(@rstest/core@0.12.3)(playwright@1.64.0)':
     dependencies:
       '@rstest/core': 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(jsdom@30.1.2)
-      playwright: 1.63.0
+      playwright: 1.64.0
 
   '@rushstack/node-core-library@5.25.0(@types/node@20.19.43)':
     dependencies:
@@ -10235,7 +10224,7 @@ snapshots:
       '@vue/shared': 3.5.43
       entities: 7.0.1
       estree-walker: 2.0.2
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
 
   '@vue/compiler-dom@3.5.43':
     dependencies:
@@ -10251,8 +10240,8 @@ snapshots:
       '@vue/shared': 3.5.43
       estree-walker: 2.0.2
       magic-string: 0.30.21
-      postcss: 8.5.28
-      source-map-js: 1.2.1
+      postcss: 8.5.29
+      source-map-js: 1.2.2
 
   '@vue/compiler-ssr@3.5.43':
     dependencies:
@@ -10917,7 +10906,7 @@ snapshots:
   css-tree@3.2.1:
     dependencies:
       mdn-data: 2.27.1
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
 
   cssesc@3.0.0: {}
 
@@ -11750,7 +11739,7 @@ snapshots:
 
   html-encoding-sniffer@7.0.0:
     dependencies:
-      '@exodus/bytes': 1.15.1
+      '@exodus/bytes': 1.16.0
     transitivePeerDependencies:
       - '@noble/hashes'
 
@@ -13032,11 +13021,11 @@ snapshots:
     dependencies:
       find-up: 5.0.0
 
-  playwright-core@1.63.0: {}
+  playwright-core@1.64.0: {}
 
-  playwright@1.63.0:
+  playwright@1.64.0:
     dependencies:
-      playwright-core: 1.63.0
+      playwright-core: 1.64.0
 
   points-on-curve@0.2.0: {}
 
@@ -13771,7 +13760,7 @@ snapshots:
     dependencies:
       chokidar: 5.0.0
       immutable: 5.1.9
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
     optionalDependencies:
       '@parcel/watcher': 2.6.0
     optional: true
