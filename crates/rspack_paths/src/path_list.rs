@@ -83,14 +83,24 @@ impl InternedPathList {
     }
   }
 
-  /// Wraps a shared list in a new handle. The first handle makes sure the slot
-  /// exists: the previous last drop may have removed it already, and a live
-  /// handle must not keep its list out of the table.
-  fn from_storage(storage: Arc<ListStorage>) -> Self {
-    if storage.handles.fetch_add(1, Ordering::AcqRel) == 0 {
-      register_slot(&storage);
+  /// Wraps a shared list in a new handle. The first handle registers or adopts
+  /// an interned list: the slot may have been removed while no handle existed,
+  /// or another equal list may have taken it since. A handle never keeps a list
+  /// that the table does not know about, and equal content stays on one buffer.
+  fn from_storage(mut storage: Arc<ListStorage>) -> Self {
+    loop {
+      if storage.handles.fetch_add(1, Ordering::AcqRel) != 0 {
+        return Self(storage);
+      }
+      let registered = register_slot(storage.clone());
+      if Arc::ptr_eq(&registered, &storage) {
+        return Self(storage);
+      }
+      // Another equal list won the slot while this one had no handle; keep the
+      // winner and let this buffer go.
+      storage.handles.fetch_sub(1, Ordering::AcqRel);
+      storage = registered;
     }
-    Self(storage)
   }
 
   #[inline]
@@ -227,22 +237,31 @@ fn intern(
   }
 }
 
-/// Makes sure some equal list occupies the slot of the storage. Runs under the
+/// Returns the list the slot should keep for the storage: an equal list that is
+/// already interned, or the storage itself after registering it. Runs under the
 /// entry lock, which serialises it against remove_slot: either it runs after
 /// the removal and re-inserts the slot, or the removal re-checks the handle
 /// count and leaves the slot in place.
-fn register_slot(storage: &Arc<ListStorage>) {
+fn register_slot(storage: Arc<ListStorage>) -> Arc<ListStorage> {
   let table = intern_table();
   let key = (storage.hash, storage.ids.len());
   match table.entry(key) {
-    Entry::Occupied(mut entry) => {
-      // An equal live list is already interned; nothing to insert.
-      if entry.get().upgrade().is_none() {
-        entry.insert(Arc::downgrade(storage));
+    Entry::Occupied(mut entry) => match entry.get().upgrade() {
+      // An equal list is already interned: keep it so the content stays on one
+      // buffer instead of leaving this one alive without a slot.
+      Some(existing) if !Arc::ptr_eq(&existing, &storage) && existing.ids == storage.ids => {
+        existing
       }
-    }
+      // This list itself, a colliding different list, or a dead slot: the slot
+      // becomes ours.
+      _ => {
+        entry.insert(Arc::downgrade(&storage));
+        storage
+      }
+    },
     Entry::Vacant(entry) => {
-      entry.insert(Arc::downgrade(storage));
+      entry.insert(Arc::downgrade(&storage));
+      storage
     }
   }
 }
