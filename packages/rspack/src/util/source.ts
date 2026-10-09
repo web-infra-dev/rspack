@@ -6,44 +6,66 @@ import binding, {
 import { RawSource, type Source, SourceMapSource } from 'webpack-sources';
 
 const sourceCacheSymbol = Symbol.for('rspack.originalSource');
-type ModuleWithSourceCache = Module & {
-  [sourceCacheSymbol]?: JsSourceWithLazyMap;
-};
+const moduleSourceCache = new WeakMap<Module, JsSourceWithLazyMap>();
+const sourceMapOverrides = new WeakMap<
+  SourceMapSource,
+  { value: string | undefined }
+>();
 type SourceWithCache = SourceMapSource & {
   [sourceCacheSymbol]?: JsSourceWithLazyMap;
 };
 
+function replaceSourceMap(source: SourceWithCache, value: string | undefined) {
+  if (
+    !Object.getOwnPropertyDescriptor(source, '_sourceMapAsString')?.configurable
+  ) {
+    return false;
+  }
+  Object.defineProperty(source, '_sourceMapAsString', {
+    value,
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
+  delete source[sourceCacheSymbol];
+  return true;
+}
+
+function setSourceMap(this: SourceWithCache, value: string | undefined) {
+  if (replaceSourceMap(this, value)) return;
+  if (Object.isFrozen(this)) {
+    throw new TypeError(
+      "Cannot assign to read only property '_sourceMapAsString'",
+    );
+  }
+  // A sealed source keeps the accessor; preserve its writable value for clearCache().
+  sourceMapOverrides.set(this, { value });
+}
+
 function getSourceMap(this: SourceWithCache): string | undefined {
+  const override = sourceMapOverrides.get(this);
+  if (override) return override.value;
   const cache = this[sourceCacheSymbol];
   // Preserve extracted getters after the instance has materialized its map.
   if (!cache) return this._sourceMapAsString;
   const map = cache.map;
   const json = typeof map === 'string' ? map : map!.takeJson();
   cache.map = json;
-  Object.defineProperty(this, '_sourceMapAsString', {
-    value: json,
-    writable: true,
-    configurable: true,
-    enumerable: true,
-  });
-  delete this[sourceCacheSymbol];
+  // Frozen/sealed sources can still read the shared JSON without changing their descriptors.
+  replaceSourceMap(this, json);
   return json;
 }
 
 export class SourceAdapter {
-  static fromModule(module: ModuleWithSourceCache): Source | null {
-    let cache = module[sourceCacheSymbol];
+  static fromModule(module: Module): Source | null {
+    let cache = moduleSourceCache.get(module);
     if (!cache || !binding.isOriginalSource(module, cache)) {
       cache = module._originalSource();
       if (!cache) {
-        delete module[sourceCacheSymbol];
+        moduleSourceCache.delete(module);
         return null;
       }
-      Object.defineProperty(module, sourceCacheSymbol, {
-        value: cache,
-        writable: true,
-        configurable: true,
-      });
+      moduleSourceCache.set(module, cache);
     }
     if (!cache.map) return new RawSource(cache.source);
     if (typeof cache.map === 'string') {
@@ -59,6 +81,7 @@ export class SourceAdapter {
       [sourceCacheSymbol]: { value: cache, configurable: true },
       _sourceMapAsString: {
         get: getSourceMap,
+        set: setSourceMap,
         configurable: true,
         enumerable: true,
       },

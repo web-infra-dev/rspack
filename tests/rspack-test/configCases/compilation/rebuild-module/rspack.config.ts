@@ -24,6 +24,7 @@ class Plugin {
             expect(oldModule.originalSource()?.source().includes('a = 1')).toBe(
               true,
             );
+            Object.freeze(oldModule);
 
             const newModule = await new Promise<Module>((res, rej) => {
               compilation.rebuildModule(oldModule, function (err, m) {

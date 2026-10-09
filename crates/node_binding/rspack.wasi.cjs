@@ -140,6 +140,7 @@ module.exports.JsExportsInfo = __napiModule.exports.JsExportsInfo
 module.exports.JsModuleGraph = __napiModule.exports.JsModuleGraph
 module.exports.JsResolver = __napiModule.exports.JsResolver
 module.exports.JsResolverFactory = __napiModule.exports.JsResolverFactory
+module.exports.JsSourceMap = __napiModule.exports.JsSourceMap
 module.exports.JsStats = __napiModule.exports.JsStats
 module.exports.KnownBuildInfo = __napiModule.exports.KnownBuildInfo
 module.exports.Module = __napiModule.exports.Module

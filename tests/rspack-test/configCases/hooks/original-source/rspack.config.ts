@@ -53,7 +53,8 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   let mapGetter: (() => string) | undefined;
                   if (binding instanceof sources.SourceMapSource) {
                     const cacheSymbol = Symbol.for('rspack.originalSource');
-                    const cache = Reflect.get(module, cacheSymbol);
+                    const cache = Reflect.get(source, cacheSymbol);
+                    expect(Reflect.has(module, cacheSymbol)).toBe(false);
                     expect(Reflect.get(binding, cacheSymbol)).toBe(cache);
                     expect(Reflect.get(source, cacheSymbol)).toBe(cache);
                     const nativeMap = cache.map;
