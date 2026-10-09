@@ -278,7 +278,7 @@ pub(crate) fn define_module_properties(
 // Raw pointer stored in napi module becomes None
 // Throw an Error to the JavaScript side
 struct OriginalSourceNapiRef {
-  // The JavaScript source owns its content and its map snapshot retains any borrowed Rust data.
+  // The JavaScript source owns its content and its lazy map retains the original Rust source.
   // This weak pointer compares identity and prevents allocation reuse while it is cached.
   related_source: Weak<dyn Source>,
   // Keep the converted JavaScript object alive and return that exact object on cache hits. The

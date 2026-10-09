@@ -448,8 +448,8 @@ export declare class JsResolverFactory {
 }
 
 /**
- * An immutable map snapshot whose backing data outlives module rebuilds and compiler close.
- * JSON is only transferred when the JavaScript map proxy is first accessed.
+ * An owned source snapshot that defers map generation until the JavaScript map proxy is read.
+ * Sources whose map presence cannot be determined cheaply initialize the map eagerly.
  */
 export declare class JsSourceMap {
   toJson(): string

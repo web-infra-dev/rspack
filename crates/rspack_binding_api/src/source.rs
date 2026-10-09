@@ -1,4 +1,7 @@
-use std::{hash::Hash, sync::Arc};
+use std::{
+  hash::Hash,
+  sync::{Arc, OnceLock},
+};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
@@ -114,10 +117,7 @@ impl JsSourceWithLazyMap<'_> {
     let binding = match &value {
       SourceValue::String(string) => JsSourceWithLazyMap {
         source: Either::A(string.as_ref()),
-        map: source
-          .clone()
-          .map_static(&ObjectPool::default(), &MapOptions::default())
-          .map(|map| JsSourceMap { map }),
+        map: JsSourceMap::from_source(source),
       },
       SourceValue::Buffer(bytes) => JsSourceWithLazyMap {
         // JS buffers are mutable, so copy directly into JS-owned storage rather than
@@ -130,17 +130,66 @@ impl JsSourceWithLazyMap<'_> {
   }
 }
 
-/// An immutable map snapshot whose backing data outlives module rebuilds and compiler close.
-/// JSON is only transferred when the JavaScript map proxy is first accessed.
+// Preserve map()'s Some/None result without generating a map for the common module sources.
+// Composite or custom sources can discard all mappings, so their presence is left unknown.
+fn has_map_without_generation(source: &dyn Source) -> Option<bool> {
+  let source = source.as_any();
+  if source.is::<RawStringSource>() || source.is::<RawBufferSource>() {
+    return Some(false);
+  }
+  if let Some(source) = source.downcast_ref::<OriginalSource>() {
+    // With columns enabled, OriginalSource maps every token except standalone newlines.
+    return Some(source.value().bytes().any(|byte| byte != b'\n'));
+  }
+  if let Some(source) = source.downcast_ref::<SourceMapSource>() {
+    // A directly supplied map is present even when its mappings are empty.
+    return source.inner_source_map().is_none().then_some(true);
+  }
+  if let Some(source) = source.downcast_ref::<CachedSource>() {
+    return has_map_without_generation(source.inner().as_ref());
+  }
+  None
+}
+
+/// An owned source snapshot that defers map generation until the JavaScript map proxy is read.
+/// Sources whose map presence cannot be determined cheaply initialize the map eagerly.
 #[napi]
 pub struct JsSourceMap {
-  map: SourceMap<'static>,
+  source: BoxSource,
+  map: OnceLock<Option<SourceMap<'static>>>,
+}
+
+impl JsSourceMap {
+  fn from_source(source: &BoxSource) -> Option<Self> {
+    let has_map = has_map_without_generation(source.as_ref());
+    if has_map == Some(false) {
+      return None;
+    }
+    let map = Self {
+      source: Arc::clone(source),
+      map: OnceLock::new(),
+    };
+    // Keep RawSource / SourceMapSource selection exact for sources without a cheap presence check.
+    (has_map == Some(true) || map.get_map().is_some()).then_some(map)
+  }
+
+  fn get_map(&self) -> Option<&SourceMap<'static>> {
+    self
+      .map
+      .get_or_init(|| {
+        Arc::clone(&self.source).map_static(&ObjectPool::default(), &MapOptions::default())
+      })
+      .as_ref()
+  }
 }
 
 #[napi]
 impl JsSourceMap {
   #[napi]
-  pub fn to_json(&self) -> String {
-    self.map.to_json()
+  pub fn to_json(&self) -> Result<String> {
+    self
+      .get_map()
+      .map(SourceMap::to_json)
+      .ok_or_else(|| napi::Error::from_reason("Source map is not available"))
   }
 }
