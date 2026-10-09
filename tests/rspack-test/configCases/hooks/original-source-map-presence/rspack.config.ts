@@ -49,7 +49,7 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                 });
                 const raw = module._originalSource()!;
                 expect(raw).not.toBeInstanceOf(sources.SourceMapSource);
-                expect(raw).toHaveProperty('map', undefined);
+                expect(raw.map).toBeUndefined();
               }
             });
           });

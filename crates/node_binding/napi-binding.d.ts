@@ -100,11 +100,6 @@ export interface JsSource {
 	map?: string
 }
 
-// @rspack/core augments this with the complete webpack-sources interface.
-export interface JsSourceMapSource {
-	source(): string | Buffer
-}
-
 export type CompilerId = void;
 /* -- banner.d.ts end -- */
 
@@ -196,7 +191,8 @@ export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
   readableIdentifier(): string
-  _originalSource(): JsSource | JsSourceMapSource | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
+  _isOriginalSource(source: JsSourceWithLazyMap): boolean
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -207,7 +203,8 @@ export declare class ConcatenatedModule {
 
 export declare class ContextModule {
   readableIdentifier(): string
-  _originalSource(): JsSource | JsSourceMapSource | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
+  _isOriginalSource(source: JsSourceWithLazyMap): boolean
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -272,7 +269,8 @@ export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
   readableIdentifier(): string
-  _originalSource(): JsSource | JsSourceMapSource | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
+  _isOriginalSource(source: JsSourceWithLazyMap): boolean
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -452,6 +450,11 @@ export declare class JsResolverFactory {
   get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
 }
 
+/** A one-use, owned snapshot. JavaScript caches the JSON after consuming it. */
+export declare class JsSourceMap {
+  takeJson(): string
+}
+
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
   getLogging(acceptedTypes: number): Array<JsLog>
@@ -463,7 +466,8 @@ export declare class KnownBuildInfo {
 
 export declare class Module {
   readableIdentifier(): string
-  _originalSource(): JsSource | JsSourceMapSource | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
+  _isOriginalSource(source: JsSourceWithLazyMap): boolean
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -908,7 +912,6 @@ export interface JsFactoryMeta {
 export interface JsHelpers {
   applyIndexedArrayUpdates: <T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void
   swapRemoveArrayElements: <T>(array: T[], removedIndices: Uint32Array) => void
-  sourceMapSource: new (source: string | Buffer, name: string, map?: string) => JsSourceMapSource
 }
 
 export interface JsHtmlPluginAssets {
@@ -1377,6 +1380,11 @@ export interface JsSourceFromJs {
 export interface JsSourceToJs {
   source: string | Buffer
   map?: string
+}
+
+export interface JsSourceWithLazyMap {
+  source: string | Buffer
+  map?: JsSourceMap | string
 }
 
 export interface JsStatsAsset {

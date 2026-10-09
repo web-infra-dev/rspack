@@ -32,24 +32,23 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   if (!source) return;
 
                   const value = source.source();
-                  const binding = module._originalSource()!;
+                  const binding = module.originalSource()!;
                   let map: string | undefined;
-                  let nativeGetter: (() => string) | undefined;
+                  let mapGetter: (() => string) | undefined;
                   if (binding instanceof sources.SourceMapSource) {
                     const cacheSymbol = Symbol.for('rspack.originalSource');
                     const cache = Reflect.get(module, cacheSymbol);
                     expect(Reflect.get(binding, cacheSymbol)).toBe(cache);
                     expect(Reflect.get(source, cacheSymbol)).toBe(cache);
-                    expect(cache.map).toBeUndefined();
-                    // The binding already returned the actual SourceMapSource, with one shared
-                    // native accessor and no intermediate JsSourceMap object or JS getter closure.
-                    nativeGetter = Object.getOwnPropertyDescriptor(
+                    expect(module._isOriginalSource(cache)).toBe(true);
+                    const nativeMap = cache.map;
+                    expect(typeof nativeMap.takeJson).toBe('function');
+                    // JavaScript constructs the real class and shares one getter across instances.
+                    mapGetter = Object.getOwnPropertyDescriptor(
                       binding,
                       '_sourceMapAsString',
                     )!.get;
-                    // WASM exposes N-API callbacks through a JS trampoline; verify sharing
-                    // and behavior instead of relying on Function.prototype.toString().
-                    expect(typeof nativeGetter).toBe('function');
+                    expect(typeof mapGetter).toBe('function');
                     expect(binding._sourceMapAsObject).toBeUndefined();
                     expect(binding._sourceMapAsBuffer).toBeUndefined();
                     expect(source.buffer()).toEqual(Buffer.from(value));
@@ -59,14 +58,13 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                         source,
                         '_sourceMapAsString',
                       )!.get,
-                    ).toBe(nativeGetter);
-                    expect(
-                      module.originalSource.call({
-                        _originalSource: () => binding,
-                      }),
-                    ).toBe(binding);
+                    ).toBe(mapGetter);
+                    expect(module.originalSource()).not.toBe(source);
                     map = binding._sourceMapAsString;
                     expect(cache.map).toBe(map);
+                    expect(() => nativeMap.takeJson()).toThrow(
+                      'Source map has already been consumed',
+                    );
                     expect(Reflect.has(binding, cacheSymbol)).toBe(false);
                     expect(
                       Object.getOwnPropertyDescriptor(
@@ -80,7 +78,7 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                       configurable: true,
                     });
                     // An instance created before the transfer reuses the shared JS JSON.
-                    expect(nativeGetter!.call(source)).toBe(map);
+                    expect(mapGetter!.call(source)).toBe(map);
                     expect(Reflect.has(source, cacheSymbol)).toBe(false);
                     expect(
                       Object.getOwnPropertyDescriptor(
@@ -88,10 +86,10 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                         '_sourceMapAsString',
                       )!.get,
                     ).toBeUndefined();
-                    expect(nativeGetter!.call(source)).toBe(map);
+                    expect(mapGetter!.call(source)).toBe(map);
                     // Instances created afterwards receive that JSON directly in their constructor.
                     const initialized =
-                      module._originalSource() as sources.SourceMapSource;
+                      module.originalSource() as sources.SourceMapSource;
                     expect(initialized._sourceMapAsString).toBe(map);
                     expect(Reflect.has(initialized, cacheSymbol)).toBe(false);
                     expect(
@@ -178,7 +176,7 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   }
 
                   if (!map) return;
-                  // Later instances have ordinary data properties and no native map getter.
+                  // Later instances have ordinary data properties and no map getter.
                   const createSource = () => {
                     const result = module.originalSource()!;
                     const descriptor = Object.getOwnPropertyDescriptor(

@@ -7,7 +7,7 @@ use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
-  RuntimeModuleStage, SourceType, internal,
+  RuntimeModuleStage, SourceType, internal, rspack_sources::BoxSource,
 };
 use rspack_napi::{OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -25,7 +25,7 @@ use crate::{
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
   shared_properties::define_shared_properties,
-  source::{JsOriginalSource, JsSourceFromJs, JsSourceToJs},
+  source::{JsOriginalSource, JsSourceFromJs, JsSourceToJs, is_same_source},
 };
 
 define_symbols! {
@@ -285,6 +285,29 @@ impl DerivedModule for Module {
 }
 
 impl Module {
+  fn original_source_snapshot(&self) -> napi::Result<Option<BoxSource>> {
+    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+      let references = ref_cell.borrow();
+      references.get(&self.compiler_id).cloned()
+    });
+    let Some(compiler) = compiler_reference
+      .as_ref()
+      .and_then(|reference| reference.get())
+    else {
+      return Err(self.compiler_garbage_collected_error());
+    };
+    let compilation = &compiler.compiler.compilation;
+    let module = if let Some(module) = compilation.module_by_identifier(&self.identifier) {
+      module.as_ref()
+    } else if let Some(ptr) = self.ptr {
+      // This fallback is only valid inside the active hook/loader callback.
+      unsafe { ptr.as_ref() }
+    } else {
+      return Ok(None);
+    };
+    Ok(module.source().map(Arc::clone))
+  }
+
   pub(crate) fn into_module_instance(self, env: &Env) -> napi::Result<ClassInstance<'_, Self>> {
     let mut instance = self.into_instance(env)?;
     let mut object = instance.as_object(env);
@@ -382,54 +405,23 @@ impl Module {
 
   #[napi(
     js_name = "_originalSource",
-    ts_return_type = "JsSource | JsSourceMapSource | undefined",
+    ts_return_type = "JsSourceWithLazyMap | undefined",
     enumerable = false
   )]
-  pub fn original_source<'a>(
-    &mut self,
-    env: &'a Env,
-    this: This<'a>,
-  ) -> napi::Result<JsOriginalSource<'a>> {
-    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
-      let references = ref_cell.borrow();
-      references.get(&self.compiler_id).cloned()
-    });
+  pub fn original_source(&self) -> napi::Result<JsOriginalSource> {
+    Ok(JsOriginalSource(self.original_source_snapshot()?))
+  }
 
-    let (compilation, constructor) = {
-      let Some(this) = compiler_reference
-        .as_ref()
-        .and_then(|compiler_reference| compiler_reference.get())
-      else {
-        return Err(self.compiler_garbage_collected_error());
-      };
-      (
-        &this.compiler.compilation,
-        this.js_helpers.source_map_source(env)?,
-      )
+  #[napi(
+    js_name = "_isOriginalSource",
+    ts_args_type = "source: JsSourceWithLazyMap",
+    enumerable = false
+  )]
+  pub fn is_original_source(&self, source: Object<'_>) -> napi::Result<bool> {
+    let Some(current) = self.original_source_snapshot()? else {
+      return Ok(false);
     };
-
-    let module = {
-      if let Some(module) = compilation.module_by_identifier(&self.identifier) {
-        module.as_ref()
-      } else if let Some(ptr) = self.ptr {
-        // SAFETY:
-        // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
-        // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
-        unsafe { ptr.as_ref() }
-      } else {
-        return Ok(JsOriginalSource {
-          module: this,
-          source: None,
-          constructor,
-        });
-      }
-    };
-
-    Ok(JsOriginalSource {
-      module: this,
-      source: module.source().map(Arc::clone),
-      constructor,
-    })
+    is_same_source(source, &current)
   }
 
   #[napi]

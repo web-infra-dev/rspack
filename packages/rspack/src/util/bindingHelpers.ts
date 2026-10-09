@@ -1,5 +1,4 @@
 import type { JsHelpers } from '@rspack/binding';
-import { SourceMapSource } from 'webpack-sources';
 
 // Internal synchronous binding protocol: fill or patch a target using source
 // indices. Do not retain arguments or invoke callbacks; indices are call-scoped.
@@ -41,5 +40,4 @@ function swapRemoveArrayElements<T>(
 export const bindingHelpers = {
   applyIndexedArrayUpdates,
   swapRemoveArrayElements,
-  sourceMapSource: SourceMapSource,
 } satisfies JsHelpers;

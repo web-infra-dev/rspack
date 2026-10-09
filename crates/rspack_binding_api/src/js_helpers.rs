@@ -1,18 +1,12 @@
 use napi::{Env, JsValue, bindgen_prelude::*};
 use rspack_napi::WeakRef;
 
-use crate::source::SourceMapSourceConstructor;
-
 #[napi(object)]
 pub struct JsHelpers<'env> {
   #[napi(ts_type = "<T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void")]
   pub apply_indexed_array_updates: Function<'env>,
   #[napi(ts_type = "<T>(array: T[], removedIndices: Uint32Array) => void")]
   pub swap_remove_array_elements: Function<'env>,
-  #[napi(
-    ts_type = "new (source: string | Buffer, name: string, map?: string) => JsSourceMapSource"
-  )]
-  pub source_map_source: SourceMapSourceConstructor<'env>,
 }
 
 /// Weak handles to JS-owned helper functions. Callers must pin the JS owner
@@ -20,7 +14,6 @@ pub struct JsHelpers<'env> {
 pub(crate) struct JsHelperRefs {
   apply_indexed_array_updates: WeakRef,
   swap_remove_array_elements: WeakRef,
-  source_map_source: WeakRef,
 }
 
 impl JsHelperRefs {
@@ -38,30 +31,12 @@ impl JsHelperRefs {
         env.raw(),
         &mut helpers.swap_remove_array_elements.coerce_to_object()?,
       )?,
-      source_map_source: WeakRef::new(
-        env.raw(),
-        &mut helpers.source_map_source.coerce_to_object()?,
-      )?,
     };
     owner.define_properties(&[Property::new()
       .with_name(env, env.create_symbol(Some("rspack.jsHelpers"))?)?
       .with_napi_value(env, helpers)?
       .with_property_attributes(PropertyAttributes::Default)])?;
     Ok(references)
-  }
-
-  pub(crate) fn source_map_source<'a>(
-    &self,
-    env: &'a Env,
-  ) -> napi::Result<SourceMapSourceConstructor<'a>> {
-    // The compiler's JS helper object owns this constructor. Resolve the handle while
-    // its owner is pinned, then invoke it after the module's Rust borrows are released.
-    unsafe {
-      SourceMapSourceConstructor::from_napi_value(
-        env.raw(),
-        ToNapiValue::to_napi_value(env.raw(), &self.source_map_source)?,
-      )
-    }
   }
 
   pub(crate) fn swap_remove_array_elements(

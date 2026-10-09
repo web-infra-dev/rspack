@@ -37,15 +37,20 @@ macro_rules! impl_module_methods {
 
       #[napi(
         js_name = "_originalSource",
-        ts_return_type = "JsSource | JsSourceMapSource | undefined",
+        ts_return_type = "JsSourceWithLazyMap | undefined",
         enumerable = false
       )]
-      pub fn original_source<'a>(
-        &mut self,
-        env: &'a napi::Env,
-        this: napi::bindgen_prelude::This<'a>,
-      ) -> napi::Result<$crate::source::JsOriginalSource<'a>> {
-        self.module.original_source(env, this)
+      pub fn original_source(&self) -> napi::Result<$crate::source::JsOriginalSource> {
+        self.module.original_source()
+      }
+
+      #[napi(
+        js_name = "_isOriginalSource",
+        ts_args_type = "source: JsSourceWithLazyMap",
+        enumerable = false
+      )]
+      pub fn is_original_source(&self, source: napi::bindgen_prelude::Object<'_>) -> napi::Result<bool> {
+        self.module.is_original_source(source)
       }
 
       #[napi]
