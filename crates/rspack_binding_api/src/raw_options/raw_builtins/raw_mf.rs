@@ -5,11 +5,12 @@ use napi_derive::napi;
 use rspack_plugin_mf::{
   ConsumeVersion, ContainerReferencePluginOptions, EnhancedCollectSharedEntryPluginOptions,
   EnhancedConsumeOptions, EnhancedConsumeSharedPluginOptions, EnhancedContainerPluginOptions,
-  EnhancedExposeOptions, EnhancedOptimizeSharedConfig, EnhancedProvideOptions,
-  EnhancedSharedContainerPluginOptions, EnhancedSharedUsedExportsOptimizerPluginOptions,
-  ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPluginOptions,
-  ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePluginOptions, ProvideVersion,
-  RemoteAliasTarget, RemoteOptions, ShareScope, StatsBuildInfo,
+  EnhancedExposeOptions, EnhancedManifestExposeOption, EnhancedManifestSharedOption,
+  EnhancedModuleFederationManifestPluginOptions, EnhancedOptimizeSharedConfig,
+  EnhancedProvideOptions, EnhancedSharedContainerPluginOptions,
+  EnhancedSharedUsedExportsOptimizerPluginOptions, ModuleFederationRuntimeExperimentsOptions,
+  ModuleFederationRuntimePluginOptions, ProvideVersion, RemoteAliasTarget, RemoteOptions,
+  ShareScope, StatsBuildInfo,
 };
 use rspack_util::fx_hash::FxHashMap as HashMap;
 
@@ -401,6 +402,7 @@ pub struct RawRemoteAliasTarget {
 pub struct RawManifestExposeOption {
   pub path: String,
   pub name: String,
+  pub layer: Option<String>,
 }
 
 #[derive(Debug)]
@@ -409,6 +411,8 @@ pub struct RawManifestSharedOption {
   pub name: String,
   pub version: Option<String>,
   pub required_version: Option<String>,
+  pub share_scope: Option<Either<String, Vec<String>>>,
+  pub layer: Option<String>,
   pub singleton: Option<bool>,
 }
 
@@ -438,9 +442,11 @@ pub struct RawModuleFederationManifestPluginOptions {
   pub build_info: Option<RawStatsBuildInfo>,
 }
 
-impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifestPluginOptions {
+impl From<RawModuleFederationManifestPluginOptions>
+  for EnhancedModuleFederationManifestPluginOptions
+{
   fn from(value: RawModuleFederationManifestPluginOptions) -> Self {
-    ModuleFederationManifestPluginOptions {
+    EnhancedModuleFederationManifestPluginOptions {
       name: value.name,
       global_name: value.global_name,
       stats_file_name: value.stats_file_name.unwrap_or_default(),
@@ -464,19 +470,25 @@ impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifest
         .exposes
         .unwrap_or_default()
         .into_iter()
-        .map(|expose| ManifestExposeOption {
+        .map(|expose| EnhancedManifestExposeOption {
           path: expose.path,
           name: expose.name,
+          layer: expose.layer,
         })
         .collect(),
       shared: value
         .shared
         .unwrap_or_default()
         .into_iter()
-        .map(|shared| ManifestSharedOption {
+        .map(|shared| EnhancedManifestSharedOption {
           name: shared.name,
           version: shared.version,
           required_version: shared.required_version,
+          share_scope: shared.share_scope.map_or_else(
+            || ShareScope::Single("default".to_string()),
+            into_share_scope,
+          ),
+          layer: shared.layer,
           singleton: shared.singleton,
         })
         .collect(),
