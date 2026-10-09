@@ -263,10 +263,12 @@ impl Module for LazyCompilationProxyModule {
     let block = self.get_blocks().first();
 
     let client = format!(
-      "var client = {}(\"{}\");\nvar data = {};",
+      "var client = {}({});\nvar data = {};",
       runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-      ChunkGraph::get_module_id(&compilation.module_ids_artifact, *client_module)
-        .expect("should have module id"),
+      json_stringify(
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, *client_module)
+          .expect("should have module id")
+      ),
       simd_json::to_string(&self.identifier).expect("should serialize identifier")
     );
 
