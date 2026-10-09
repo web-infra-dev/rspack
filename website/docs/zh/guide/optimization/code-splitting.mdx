@@ -41,6 +41,12 @@ console.log('bar.js');
 
 :::
 
+### 复用父级已经提供的模块
+
+如果到达某个异步 chunk 的每条路径都保证已加载它需要的模块，Rspack 可以省略重复副本。这发生在 code splitting 阶段，即使设置 `optimization.splitChunks: false` 也会生效。
+
+例如，父 chunk 包含 `shared.js`，并动态导入同样依赖 `shared.js` 的子 chunk，子 chunk 可以复用父级模块。带相同 `webpackChunkName` 的 import 可能在遍历后期才向父 chunk 加入模块，Rspack 也会更新后代的可用模块信息。如果另有一条路径能在未加载 `shared.js` 时到达子 chunk，子 chunk 就必须保留副本。独立入口与 worker 保持各自的加载边界。
+
 ## 分割入口起点（entry point）
 
 这是最简单直观分离代码的方式。但这种方式需要我们手动对 Rspack 进行配置。我们来看看如何从通过多个入口起点分割出多个 Chunk 。
