@@ -43,3 +43,21 @@
 @keyframes recoveryFade {
 	to { opacity: 1; }
 }
+
+.modeRollback {
+	/* Candidate replay must not leave implicit classes or ids in explicit mode. */
+	button:hover:global .rawModeClass { color: red; }
+	.implicitAfterGlobal, #implicitIdAfterGlobal { color: blue; }
+	button:hover:local .explicitModeClass { color: red; }
+	.implicitAfterLocal, #implicitIdAfterLocal { color: blue; }
+	button:where(:global(.rawModeFunction), :local(.explicitModeFunction)) {
+		color: green;
+	}
+	.implicitAfterFunction, #implicitIdAfterFunction { color: blue; }
+	/* Rejected candidates must not leave a mode behind either. */
+	button:where(:global(.discardedGlobalMode)) ) ;
+	button:where(:local(.discardedLocalMode)) ) ;
+	.implicitAfterInvalidMode, #implicitIdAfterInvalidMode { color: blue; }
+}
+
+.implicitOutsideRollback, #implicitIdOutsideRollback { color: green; }
