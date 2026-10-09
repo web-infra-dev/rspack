@@ -4,7 +4,7 @@ use std::{
   ops::Deref,
   sync::{
     Arc, OnceLock, Weak,
-    atomic::{AtomicBool, AtomicUsize, Ordering},
+    atomic::{AtomicUsize, Ordering},
   },
 };
 
@@ -18,87 +18,110 @@ use rustc_hash::{FxBuildHasher, FxHasher};
 
 use crate::InternedPath;
 
-/// Lists built between two cheap checks of whether the intern table is worth
-/// sweeping.
-const SWEEP_CHECK_INTERVAL: usize = 1 << 10;
-
-/// Entries below this count are never swept: the first sweep only starts once a
-/// single pass is small relative to the entries that created the table.
-const SWEEP_MIN_TABLE: usize = 1 << 16;
-
-/// Floor of the observed dead-slot count that triggers a churn sweep.
-const SWEEP_DEAD_SLOTS_MIN: usize = 1 << 10;
-
-/// Lists built between two cheap checks of whether the intern table is worth
-/// sweeping.
-static SWEEP_TICKS: AtomicUsize = AtomicUsize::new(0);
-
-/// Table size at which the next growth-driven sweep runs.
-static NEXT_GROWTH_SWEEP: AtomicUsize = AtomicUsize::new(SWEEP_MIN_TABLE);
-
-/// Lists whose last handle dropped since the last sweep.
-static DEAD_SLOTS: AtomicUsize = AtomicUsize::new(0);
-
-/// Gate that keeps one thread on the sweep path at a time, so concurrent
-/// checks do not run duplicate sweeps and the death accounting has a single
-/// consumer.
-static SWEEPING: AtomicBool = AtomicBool::new(false);
-
 /// A content-interned, immutable list of [`InternedPath`]s.
 ///
 /// Lists with equal elements share one allocation process-wide, so a repeated
-/// resolution result costs one handle instead of another element buffer.
+/// resolution result costs a handle instead of another element buffer.
 /// Interning keys on the elements' precomputed path hashes, so a lookup hashes
 /// list elements rather than path bytes; comparing a key hit compares elements
 /// by their already interned identity. An empty list shares a single allocation.
 ///
-/// The table holds weak references and is swept when it grows or when enough
-/// slots were observed to be dead, so an entry lives exactly as long as some
-/// list still refers to it.
+/// The table holds weak references and a slot is removed as soon as its last
+/// handle drops, so an entry lives exactly as long as some list still refers to
+/// it and no sweeping is needed to reclaim a buffer whose list is gone.
 #[cfg_attr(feature = "cacheable", cacheable(with = Custom))]
-#[derive(Clone)]
-pub struct InternedPathList(Arc<[InternedPath]>);
+pub struct InternedPathList(Arc<ListStorage>);
+
+/// The shared part of an interned list: its elements, the key that identifies
+/// them in the intern table, and the number of handles that keep it alive.
+struct ListStorage {
+  /// Fold of the elements' precomputed path hashes: the hash half of the key.
+  hash: u64,
+  ids: Box<[InternedPath]>,
+  /// Live handle count. Counting handles instead of inspecting the arc's
+  /// strong count stays exact when several handles drop at once: the contained
+  /// arc is only released after a handle's drop body returns.
+  handles: AtomicUsize,
+}
 
 impl InternedPathList {
   /// Interns `items`, returning the shared list when an equal one exists.
   pub fn new(items: &[InternedPath]) -> Self {
     let table = intern_table();
     let key = list_key(items);
-    let list = match lookup(table, key, items) {
-      Some(shared) => Self(shared),
-      None => Self(intern(table, key, Arc::from(items))),
-    };
-    maybe_sweep(table);
-    list
+    match lookup(table, key, items) {
+      Some(shared) => Self::from_storage(shared),
+      None => Self::from_storage(intern(
+        table,
+        key,
+        Arc::new(ListStorage {
+          hash: key.0,
+          ids: items.into(),
+          handles: AtomicUsize::new(0),
+        }),
+      )),
+    }
   }
 
   /// Interns an owned list, reusing its allocation when the list is new.
   pub fn from_vec(items: Vec<InternedPath>) -> Self {
     let table = intern_table();
     let key = list_key(&items);
-    let list = match lookup(table, key, &items) {
-      Some(shared) => Self(shared),
-      // Moving the vector hands its elements over to the shared allocation
-      // instead of cloning and dropping every handle.
-      None => Self(intern(table, key, Arc::from(items))),
-    };
-    maybe_sweep(table);
-    list
+    match lookup(table, key, &items) {
+      Some(shared) => Self::from_storage(shared),
+      None => Self::from_storage(intern(
+        table,
+        key,
+        // Moving the vector hands its elements over to the shared allocation
+        // instead of cloning and dropping every handle.
+        Arc::new(ListStorage {
+          hash: key.0,
+          ids: items.into_boxed_slice(),
+          handles: AtomicUsize::new(0),
+        }),
+      )),
+    }
+  }
+
+  /// Wraps a shared list in a new handle. The first handle makes sure the slot
+  /// exists: the previous last drop may have removed it already, and a live
+  /// handle must not keep its list out of the table.
+  fn from_storage(storage: Arc<ListStorage>) -> Self {
+    if storage.handles.fetch_add(1, Ordering::AcqRel) == 0 {
+      register_slot(&storage);
+    }
+    Self(storage)
   }
 
   #[inline]
   pub fn as_slice(&self) -> &[InternedPath] {
-    &self.0
+    &self.0.ids
   }
 
   #[inline]
   pub fn len(&self) -> usize {
-    self.0.len()
+    self.0.ids.len()
   }
 
   #[inline]
   pub fn is_empty(&self) -> bool {
-    self.0.is_empty()
+    self.0.ids.is_empty()
+  }
+}
+
+impl Clone for InternedPathList {
+  fn clone(&self) -> Self {
+    Self::from_storage(self.0.clone())
+  }
+}
+
+impl Drop for InternedPathList {
+  fn drop(&mut self) {
+    // The last handle removes the slot: from here on the weak entry would keep
+    // the buffer reserved for nobody.
+    if self.0.handles.fetch_sub(1, Ordering::AcqRel) == 1 {
+      remove_slot(&self.0);
+    }
   }
 }
 
@@ -107,41 +130,26 @@ impl Deref for InternedPathList {
 
   #[inline]
   fn deref(&self) -> &Self::Target {
-    &self.0
+    &self.0.ids
   }
 }
 
 impl AsRef<[InternedPath]> for InternedPathList {
   #[inline]
   fn as_ref(&self) -> &[InternedPath] {
-    &self.0
-  }
-}
-
-impl Drop for InternedPathList {
-  fn drop(&mut self) {
-    // The table only holds weak references, so this is the last handle: the
-    // slot is dead from now on and its buffer stays reserved until a sweep
-    // drops the weak entry. Counting the death here keeps sweeps driven by
-    // real churn instead of by re-interning the same content, so lists that
-    // never come back are still reclaimed. A concurrent `upgrade` can make the
-    // count miss, which is fine: that other handle counts its own death, and
-    // the growth trigger remains as a backstop.
-    if Arc::strong_count(&self.0) == 1 {
-      DEAD_SLOTS.fetch_add(1, Ordering::Relaxed);
-    }
+    &self.0.ids
   }
 }
 
 impl fmt::Debug for InternedPathList {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_list().entries(self.0.iter()).finish()
+    f.debug_list().entries(self.0.ids.iter()).finish()
   }
 }
 
 impl PartialEq for InternedPathList {
   fn eq(&self, other: &Self) -> bool {
-    Arc::ptr_eq(&self.0, &other.0) || self.0[..] == other.0[..]
+    Arc::ptr_eq(&self.0, &other.0) || self.0.ids == other.0.ids
   }
 }
 
@@ -158,8 +166,8 @@ impl FromIterator<InternedPath> for InternedPathList {
 /// a duplicate entry, never a wrong list.
 type ListKey = (u64, usize);
 
-fn intern_table() -> &'static DashMap<ListKey, Weak<[InternedPath]>, FxBuildHasher> {
-  static TABLE: OnceLock<DashMap<ListKey, Weak<[InternedPath]>, FxBuildHasher>> = OnceLock::new();
+fn intern_table() -> &'static DashMap<ListKey, Weak<ListStorage>, FxBuildHasher> {
+  static TABLE: OnceLock<DashMap<ListKey, Weak<ListStorage>, FxBuildHasher>> = OnceLock::new();
   TABLE.get_or_init(|| DashMap::with_hasher(FxBuildHasher))
 }
 
@@ -172,12 +180,12 @@ fn list_key(items: &[InternedPath]) -> ListKey {
 }
 
 fn lookup(
-  table: &DashMap<ListKey, Weak<[InternedPath]>, FxBuildHasher>,
+  table: &DashMap<ListKey, Weak<ListStorage>, FxBuildHasher>,
   key: ListKey,
   items: &[InternedPath],
-) -> Option<Arc<[InternedPath]>> {
+) -> Option<Arc<ListStorage>> {
   let existing = table.get(&key)?.value().upgrade()?;
-  if existing.len() == items.len() && existing.iter().eq(items.iter()) {
+  if existing.ids.len() == items.len() && existing.ids.iter().eq(items.iter()) {
     Some(existing)
   } else {
     None
@@ -185,17 +193,19 @@ fn lookup(
 }
 
 fn intern(
-  table: &DashMap<ListKey, Weak<[InternedPath]>, FxBuildHasher>,
+  table: &DashMap<ListKey, Weak<ListStorage>, FxBuildHasher>,
   key: ListKey,
-  list: Arc<[InternedPath]>,
-) -> Arc<[InternedPath]> {
+  list: Arc<ListStorage>,
+) -> Arc<ListStorage> {
   // The write lock re-checks the entry so parallel interning of the same list
   // converges on one allocation instead of keeping one payload per thread.
   match table.entry(key) {
     Entry::Occupied(mut entry) => {
       let existing = entry.get().upgrade();
       match existing {
-        Some(existing) if existing.len() == list.len() && existing.iter().eq(list.iter()) => {
+        Some(existing)
+          if existing.ids.len() == list.ids.len() && existing.ids.iter().eq(list.ids.iter()) =>
+        {
           existing
         }
         Some(_) => {
@@ -203,9 +213,8 @@ fn intern(
           list
         }
         None => {
-          // The previous list with this content is gone (its death was already
-          // counted when its last handle dropped); replacing the slot releases
-          // its buffer right away.
+          // The previous list with this content is gone; replacing the slot
+          // releases its buffer right away.
           entry.insert(Arc::downgrade(&list));
           list
         }
@@ -218,47 +227,47 @@ fn intern(
   }
 }
 
-fn maybe_sweep(table: &DashMap<ListKey, Weak<[InternedPath]>, FxBuildHasher>) {
-  if !SWEEP_TICKS
-    .fetch_add(1, Ordering::Relaxed)
-    .is_multiple_of(SWEEP_CHECK_INTERVAL)
-  {
-    return;
+/// Makes sure some equal list occupies the slot of the storage. Runs under the
+/// entry lock, which serialises it against remove_slot: either it runs after
+/// the removal and re-inserts the slot, or the removal re-checks the handle
+/// count and leaves the slot in place.
+fn register_slot(storage: &Arc<ListStorage>) {
+  let table = intern_table();
+  let key = (storage.hash, storage.ids.len());
+  match table.entry(key) {
+    Entry::Occupied(mut entry) => {
+      // An equal live list is already interned; nothing to insert.
+      if entry.get().upgrade().is_none() {
+        entry.insert(Arc::downgrade(storage));
+      }
+    }
+    Entry::Vacant(entry) => {
+      entry.insert(Arc::downgrade(storage));
+    }
   }
-  let entries = table.len();
-  let observed = DEAD_SLOTS.load(Ordering::Relaxed);
-  // Sweep after the table doubled since the previous sweep. This keeps the
-  // initial build's total work at `O(entries log entries)` and acts as a
-  // backstop for slots whose last handle dropped while a concurrent lookup held
-  // a transient reference.
-  let grown = entries >= NEXT_GROWTH_SWEEP.load(Ordering::Relaxed);
-  // Sweep on churn as well: the slots of lists whose last handle dropped are
-  // only reclaimed by a sweep, and a watch rebuild can drop many lists without
-  // growing the table or re-interning the same content. Scale the trigger with
-  // the table so one sweep stays proportional to what a rebuild can have
-  // dropped.
-  let churned = observed >= (entries / 8).max(SWEEP_DEAD_SLOTS_MIN);
-  if !grown && !churned {
-    return;
+}
+
+/// Removes the slot of the storage if it still belongs to it and no handle was
+/// created meanwhile. A newer list with the same content may have replaced the
+/// slot, and a handle may have been created while this drop was in flight; both
+/// keep the slot in place.
+fn remove_slot(storage: &Arc<ListStorage>) {
+  let table = intern_table();
+  let key = (storage.hash, storage.ids.len());
+  if let Entry::Occupied(entry) = table.entry(key) {
+    if storage.handles.load(Ordering::Acquire) != 0 {
+      return;
+    }
+    let points_at_self = match entry.get().upgrade() {
+      Some(existing) => Arc::ptr_eq(&existing, storage),
+      // The slot is dead and can only hold a list that is on its way out;
+      // removing it releases the buffer together with the weak entry.
+      None => true,
+    };
+    if points_at_self {
+      entry.remove();
+    }
   }
-  if SWEEPING
-    .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
-    .is_err()
-  {
-    return;
-  }
-  table.retain(|_, weak| weak.strong_count() > 0);
-  // Only subtract the deaths that were observed before the sweep. A list can
-  // lose its last handle while `retain` runs; if that happens after its shard
-  // was visited, the sweep does not reclaim its slot, so its count has to stay.
-  let _ = DEAD_SLOTS.fetch_update(Ordering::AcqRel, Ordering::Relaxed, |dead| {
-    Some(dead.saturating_sub(observed))
-  });
-  NEXT_GROWTH_SWEEP.store(
-    table.len().saturating_mul(2).max(SWEEP_MIN_TABLE),
-    Ordering::Relaxed,
-  );
-  SWEEPING.store(false, Ordering::Release);
 }
 
 /// Persist the paths themselves; loading re-interns the list, so restored
@@ -268,7 +277,7 @@ impl CustomConverter for InternedPathList {
   type Target = Vec<InternedPath>;
 
   fn serialize(&self, _guard: &ContextGuard) -> CacheableResult<Self::Target> {
-    Ok(self.0.to_vec())
+    Ok(self.0.ids.to_vec())
   }
 
   fn deserialize(data: Self::Target, _guard: &ContextGuard) -> CacheableResult<Self> {
