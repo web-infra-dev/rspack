@@ -9,6 +9,8 @@ it("should keep import attributes for lazy imported module", async () => {
 	);
 	const start = generation;
 	expect(resolved).toBe(undefined);
+	await new Promise(resolve => setTimeout(resolve, 1000));
+	expect(generation).toBe(start);
 	await NEXT_HMR();
 	const result = await promise;
 	expect(result.default).toEqual({ value: "a" });
@@ -23,6 +25,8 @@ it("should keep import attributes for lazy imported context element", async () =
 	);
 	const start = generation;
 	expect(resolved).toBe(undefined);
+	await new Promise(resolve => setTimeout(resolve, 1000));
+	expect(generation).toBe(start);
 	await NEXT_HMR();
 	const result = await promise;
 	expect(result.default).toEqual({ value: "b" });
