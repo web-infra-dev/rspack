@@ -464,11 +464,10 @@ fn set_modified(path: &std::path::Path, when: std::time::SystemTime) -> std::io:
   options.open(path)?.set_modified(when)
 }
 
-/// A context's safe time starts at the moment its watch became active: files
-/// inside it that changed before that (without bumping the directory mtime)
-/// are not covered by events, so the context must not read as older.
+/// Like watchpack, whose `lastWatchEvent` starts at 0, a context's safe time
+/// comes from the files inside it, not from when its watch became active.
 #[test]
-fn collect_time_info_entries_floors_a_context_at_its_watch_start() {
+fn collect_time_info_entries_derives_a_context_safe_time_from_its_files() {
   let mut helper = h!(FsWatcherOptions {
     aggregate_timeout: Some(100),
     ..Default::default()
@@ -485,9 +484,13 @@ fn collect_time_info_entries_floors_a_context_at_its_watch_start() {
   let _rx = helper.watch(e!(), f!("ctx"), e!());
 
   let ctx = safe_time_of(helper.time_info_entry(&helper.collect_time_info_entries().1, "ctx"));
+  let parked_at = parked
+    .duration_since(std::time::UNIX_EPOCH)
+    .unwrap()
+    .as_millis() as u64;
   assert!(
-    ctx >= watched_at,
-    "context safeTime {ctx} must not predate the watch start {watched_at}"
+    (parked_at..watched_at).contains(&ctx),
+    "context safeTime {ctx} is not its file's ({parked_at}), below the watch start {watched_at}"
   );
 }
 
@@ -1065,27 +1068,29 @@ fn a_missing_dependency_found_by_the_scan_still_reports_its_own_event() {
   });
 }
 
-fn park_and_watch_nested_contexts(helper: &mut helpers::TestHelper) -> u64 {
+/// Watch `ctx` and `ctx/sub`, then let an event inside `ctx/sub` advance both
+/// clocks; returns when that event happened.
+fn watch_nested_contexts_after_an_event(helper: &mut helpers::TestHelper) -> u64 {
   std::fs::create_dir_all(helper.join("ctx/sub")).expect("create ctx/sub");
-  set_modified(
-    helper.join("ctx/sub").as_std_path(),
-    std::time::SystemTime::now() - std::time::Duration::from_secs(3600),
-  )
-  .expect("park ctx/sub");
-  let watched_at = now_millis();
-  let _rx = helper.watch(e!(), f!("ctx", "ctx/sub"), e!());
-  watched_at
+  helper.file("ctx/sub/inner");
+  let rx = helper.watch(e!(), f!("ctx", "ctx/sub"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+  let event_at = now_millis();
+  helper.trigger_event("ctx/sub/inner", rspack_watcher::FsEventKind::Change);
+  wait_for_aggregated_ref(&rx, |_| true);
+  event_at
 }
 
-/// With `ctx` and `ctx/sub` both registered, unregistering `ctx` keeps
-/// `ctx/sub`'s watch-start floor: it is still registered itself.
+/// With `ctx` and `ctx/sub` both registered, unregistering `ctx` keeps the
+/// clock an event left on `ctx/sub`: it is still registered itself.
 #[test]
 fn unregistering_an_outer_context_keeps_a_registered_inner_ones_safe_time() {
   let mut helper = h!(FsWatcherOptions {
     aggregate_timeout: Some(100),
     ..Default::default()
   });
-  let watched_at = park_and_watch_nested_contexts(&mut helper);
+  let event_at = watch_nested_contexts_after_an_event(&mut helper);
   let _rx = helper.watch(
     e!(),
     (
@@ -1098,20 +1103,20 @@ fn unregistering_an_outer_context_keeps_a_registered_inner_ones_safe_time() {
   let (_, directory_timestamps) = helper.collect_time_info_entries();
   let sub = safe_time_of(helper.time_info_entry(&directory_timestamps, "ctx/sub"));
   assert!(
-    sub >= watched_at,
-    "safeTime {sub} fell below the watch start {watched_at}"
+    sub >= event_at,
+    "safeTime {sub} fell below the event at {event_at}"
   );
 }
 
-/// With `ctx` and `ctx/sub` both registered, unregistering `ctx/sub` keeps its
-/// watch-start floor: `ctx` still covers it.
+/// With `ctx` and `ctx/sub` both registered, unregistering `ctx/sub` keeps the
+/// clock an event left on it: `ctx` still covers it.
 #[test]
 fn unregistering_an_inner_context_keeps_its_safe_time_while_covered() {
   let mut helper = h!(FsWatcherOptions {
     aggregate_timeout: Some(100),
     ..Default::default()
   });
-  let watched_at = park_and_watch_nested_contexts(&mut helper);
+  let event_at = watch_nested_contexts_after_an_event(&mut helper);
   let _rx = helper.watch(
     e!(),
     (
@@ -1124,8 +1129,8 @@ fn unregistering_an_inner_context_keeps_its_safe_time_while_covered() {
   let (_, directory_timestamps) = helper.collect_time_info_entries();
   let sub = safe_time_of(helper.time_info_entry(&directory_timestamps, "ctx/sub"));
   assert!(
-    sub >= watched_at,
-    "safeTime {sub} fell below the watch start {watched_at}"
+    sub >= event_at,
+    "safeTime {sub} fell below the event at {event_at}"
   );
 }
 
@@ -1550,4 +1555,27 @@ fn a_context_that_comes_back_stamps_its_files_with_the_observed_time() {
     safe_time >= restored_at,
     "safeTime {safe_time} predates the restore at {restored_at}"
   );
+}
+
+/// Like watchpack's initial scan (`checkStartTime`), a newly registered
+/// context reports a file that changed since the watch's start time: no event
+/// will come for a change made before the watch was active.
+#[test]
+fn a_new_context_reports_a_file_changed_since_the_start_time() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/edited");
+  let after_start = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+  set_modified(helper.join("ctx/edited").as_std_path(), after_start).unwrap();
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch(e!(), f!("ctx"), e!());
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(context.as_str())
+  });
 }

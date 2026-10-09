@@ -424,8 +424,12 @@ impl FsWatcherInner {
 
     let watch_patterns = self.analyzer.analyze(self.path_manager.access());
     self.disk_watcher.watch(watch_patterns.into_iter())?;
-    self.path_manager.record_initial_last_watch_events();
-    self.path_manager.scan_contexts().await;
+    let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
+    if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
+      for path in &changed_in_contexts {
+        trigger.on_event(path, FsEventKind::Change);
+      }
+    }
 
     // Scan AFTER the disk watcher is registered, not before. notify's `watch()`
     // registers the underlying inotify/FSEvents watch synchronously, so once it

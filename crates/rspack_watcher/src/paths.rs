@@ -393,9 +393,15 @@ impl PathManager {
   /// registered contexts: index every file and subdirectory below them, so
   /// `collect_time_info_entries` reports them like watchpack does. A path the
   /// live watch already observed with the same mtime keeps its record.
-  pub async fn scan_contexts(&self) {
+  ///
+  /// Returns the files that changed since `start_time` (watchpack's
+  /// `checkStartTime`): they changed before the watch was active, so no event
+  /// will come for them.
+  pub async fn scan_contexts(&self, start_time: SystemTime) -> Vec<InternedPath> {
     let contexts: Vec<InternedPath> = self.directories.added.iter().map(|p| p.clone()).collect();
-    self.scan_below(contexts, false).await;
+    self
+      .scan_below(contexts, false, Some(system_time_to_millis(start_time)))
+      .await
   }
 
   /// Index every file and subdirectory below `roots`, minus what `ignored`
@@ -403,8 +409,14 @@ impl PathManager {
   /// `recovered` contexts coming back are rescanned like watchpack's
   /// `doScan(false)`: the files directly in them are stamped with the
   /// observation time, since one changed while away may have kept its mtime.
-  async fn scan_below(&self, roots: Vec<InternedPath>, recovered: bool) {
-    let now = current_time();
+  /// Returns the files whose safe time is at or after `changed_since`.
+  async fn scan_below(
+    &self,
+    roots: Vec<InternedPath>,
+    recovered: bool,
+    changed_since: Option<u64>,
+  ) -> Vec<InternedPath> {
+    let mut changed = Vec::new();
     // Each directory carries the real paths of the directories above it: with
     // `followSymlinks`, a link back into its own ancestry is a loop, while two
     // links to one directory are two aliases, each scanned.
@@ -435,7 +447,6 @@ impl PathManager {
         };
         if metadata.is_dir() {
           self.context_directories.insert(path.clone());
-          self.last_watch_events.entry(path.clone()).or_insert(now);
           if self.forget_if_orphaned(&path) {
             break;
           }
@@ -445,15 +456,23 @@ impl PathManager {
           // A registered file or missing path's record is the event
           // deduplication baseline, kept by `Trigger` and the scanner; seeding
           // it here would make its own creation event look stale.
-          if !self.files.all.contains(&path) && !self.missing.all.contains(&path) {
+          let registered = self.files.all.contains(&path) || self.missing.all.contains(&path);
+          if !registered {
             self.set_file_time(&path, mtime, !observed, true);
           }
           if self.forget_if_orphaned(&path) {
             break;
           }
+          if !registered
+            && changed_since
+              .is_some_and(|since| mtime_safe_time(system_time_to_millis(mtime)) >= since)
+          {
+            changed.push(path);
+          }
         }
       }
     }
+    changed
   }
 
   /// The scan awaits the `ignored` predicate, so it can outlive the context it
@@ -495,7 +514,7 @@ impl PathManager {
       for context in &recovered {
         self.absent_directories.remove(context);
       }
-      self.scan_below(recovered, true).await;
+      self.scan_below(recovered, true, None).await;
     }
 
     if self.directories.all.contains(path) || !self.is_below_context(path) {
@@ -510,11 +529,7 @@ impl PathManager {
       if !self.context_directories.insert(path.clone()) {
         return;
       }
-      self
-        .last_watch_events
-        .entry(path.clone())
-        .or_insert_with(current_time);
-      self.scan_below(vec![path.clone()], false).await;
+      self.scan_below(vec![path.clone()], false, None).await;
       return;
     }
     self.context_files.insert(path.clone());
@@ -581,16 +596,6 @@ impl PathManager {
     };
     self.file_times.insert(path.clone(), time);
     true
-  }
-
-  /// The watch over this cycle's newly registered contexts just became
-  /// active: nothing earlier is covered by events, so their `lastWatchEvent`
-  /// starts now (watchpack stamps it during the initial scan).
-  pub fn record_initial_last_watch_events(&self) {
-    let now = current_time();
-    for dir in self.directories.added.iter() {
-      self.last_watch_events.entry(dir.clone()).or_insert(now);
-    }
   }
 
   /// An event reached `path` or something below it: advance the
