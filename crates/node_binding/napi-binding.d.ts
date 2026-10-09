@@ -100,6 +100,11 @@ export interface JsSource {
 	map?: string
 }
 
+// @rspack/core augments this with the complete webpack-sources interface.
+export interface JsSourceMapSource {
+	source(): string | Buffer
+}
+
 export type CompilerId = void;
 /* -- banner.d.ts end -- */
 
@@ -191,7 +196,7 @@ export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
   readableIdentifier(): string
-  _originalSource<T>(sourceMapSource: new (source: string | Buffer, name: string) => T): JsSourceToJs | T | undefined
+  _originalSource(): JsSource | JsSourceMapSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -202,7 +207,7 @@ export declare class ConcatenatedModule {
 
 export declare class ContextModule {
   readableIdentifier(): string
-  _originalSource<T>(sourceMapSource: new (source: string | Buffer, name: string) => T): JsSourceToJs | T | undefined
+  _originalSource(): JsSource | JsSourceMapSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -267,7 +272,7 @@ export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
   readableIdentifier(): string
-  _originalSource<T>(sourceMapSource: new (source: string | Buffer, name: string) => T): JsSourceToJs | T | undefined
+  _originalSource(): JsSource | JsSourceMapSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -458,7 +463,7 @@ export declare class KnownBuildInfo {
 
 export declare class Module {
   readableIdentifier(): string
-  _originalSource<T>(sourceMapSource: new (source: string | Buffer, name: string) => T): JsSourceToJs | T | undefined
+  _originalSource(): JsSource | JsSourceMapSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -903,6 +908,7 @@ export interface JsFactoryMeta {
 export interface JsHelpers {
   applyIndexedArrayUpdates: <T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void
   swapRemoveArrayElements: <T>(array: T[], removedIndices: Uint32Array) => void
+  sourceMapSource: new (source: string | Buffer, name: string, map?: string) => JsSourceMapSource
 }
 
 export interface JsHtmlPluginAssets {

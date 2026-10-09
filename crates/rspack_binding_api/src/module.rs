@@ -1,10 +1,5 @@
 #![allow(deprecated)]
-use std::{
-  any::TypeId,
-  cell::RefCell,
-  ptr::NonNull,
-  sync::{Arc, Weak},
-};
+use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
 use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
 use napi_derive::napi;
@@ -12,7 +7,7 @@ use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
-  RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
+  RuntimeModuleStage, SourceType, internal,
 };
 use rspack_napi::{OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -30,9 +25,7 @@ use crate::{
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
   shared_properties::define_shared_properties,
-  source::{
-    JsOriginalSource, JsSourceFromJs, JsSourceToJs, OriginalSourceCache, SourceMapSourceConstructor,
-  },
+  source::{JsOriginalSource, JsSourceFromJs, JsSourceToJs},
 };
 
 define_symbols! {
@@ -277,21 +270,11 @@ pub(crate) fn define_module_properties(
 // module_identifier query in compilation.module_graph returns undefined
 // Raw pointer stored in napi module becomes None
 // Throw an Error to the JavaScript side
-struct OriginalSourceNapiRef {
-  // The JavaScript source owns its content and its lazy map retains the original Rust source.
-  // This weak pointer compares identity and prevents allocation reuse while it is cached.
-  related_source: Weak<dyn Source>,
-  // Reuse transferred content and Rust map generation, but give each public Source its own caches.
-  // Replace this entry when `module.source()` points to a different Source.
-  cache: OriginalSourceCache,
-}
-
 #[napi]
 pub struct Module {
   pub(crate) identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
-  original_source_ref: Option<OriginalSourceNapiRef>,
   pub(crate) build_info_ref: Option<WeakRef>,
 }
 
@@ -399,29 +382,30 @@ impl Module {
 
   #[napi(
     js_name = "_originalSource",
-    ts_generic_types = "T",
-    ts_args_type = "sourceMapSource: new (source: string | Buffer, name: string) => T",
-    ts_return_type = "JsSourceToJs | T | undefined",
+    ts_return_type = "JsSource | JsSourceMapSource | undefined",
     enumerable = false
   )]
   pub fn original_source<'a>(
     &mut self,
     env: &'a Env,
-    constructor: SourceMapSourceConstructor<'a>,
-  ) -> napi::Result<Either<JsOriginalSource<'a>, ()>> {
+    this: This<'a>,
+  ) -> napi::Result<JsOriginalSource<'a>> {
     let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
       let references = ref_cell.borrow();
       references.get(&self.compiler_id).cloned()
     });
 
-    let compilation = {
+    let (compilation, constructor) = {
       let Some(this) = compiler_reference
         .as_ref()
         .and_then(|compiler_reference| compiler_reference.get())
       else {
         return Err(self.compiler_garbage_collected_error());
       };
-      &this.compiler.compilation
+      (
+        &this.compiler.compilation,
+        this.js_helpers.source_map_source(env)?,
+      )
     };
 
     let module = {
@@ -433,32 +417,19 @@ impl Module {
         // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
         unsafe { ptr.as_ref() }
       } else {
-        return Ok(Either::B(()));
+        return Ok(JsOriginalSource {
+          module: this,
+          source: None,
+          constructor,
+        });
       }
     };
 
-    let Some(original_source) = module.source() else {
-      self.original_source_ref = None;
-      return Ok(Either::B(()));
-    };
-
-    if let Some(OriginalSourceNapiRef {
-      related_source,
-      cache,
-    }) = &self.original_source_ref
-      && (related_source.ptr_eq(&Arc::downgrade(original_source)))
-    {
-      return Ok(Either::A(cache.to_js(env, constructor)?));
-    }
-
-    let cache = OriginalSourceCache::new(env, original_source)?;
-    let result = cache.to_js(env, constructor)?;
-    self.original_source_ref = Some(OriginalSourceNapiRef {
-      related_source: Arc::downgrade(original_source),
-      cache,
-    });
-
-    Ok(Either::A(result))
+    Ok(JsOriginalSource {
+      module: this,
+      source: module.source().map(Arc::clone),
+      constructor,
+    })
   }
 
   #[napi]
@@ -726,7 +697,6 @@ impl ToNapiValue for ModuleObject {
               identifier: val.identifier,
               compiler_id: val.compiler_id,
               ptr: val.ptr,
-              original_source_ref: None,
               build_info_ref: Default::default(),
             };
             let env_wrapper = Env::from_raw(env);

@@ -100,6 +100,11 @@ export interface JsSource {
 	map?: string
 }
 
+// @rspack/core augments this with the complete webpack-sources interface.
+export interface JsSourceMapSource {
+	source(): string | Buffer
+}
+
 export type CompilerId = void;
 /* -- banner.d.ts end -- */
 

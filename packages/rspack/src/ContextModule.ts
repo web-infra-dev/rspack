@@ -1,5 +1,5 @@
 import binding from '@rspack/binding';
-import { type Source, SourceMapSource } from 'webpack-sources';
+import type { Source } from 'webpack-sources';
 import { SourceAdapter } from './util/source';
 
 Object.defineProperty(binding.ContextModule.prototype, 'identifier', {
@@ -14,7 +14,7 @@ Object.defineProperty(binding.ContextModule.prototype, 'originalSource', {
   enumerable: true,
   configurable: true,
   value(this: binding.ContextModule) {
-    const originalSource = this._originalSource(SourceMapSource);
+    const originalSource = this._originalSource();
     if (originalSource) {
       return SourceAdapter.fromBinding(originalSource);
     }

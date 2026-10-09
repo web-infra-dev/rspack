@@ -38,7 +38,7 @@ export default async function run() {
     });
     compiler.outputFileSystem = createFsFromVolume(new Volume());
     let entry, removed, info, stats;
-    let originalSource, originalMap, binarySource;
+    let originalSource, originalMap, binarySource, sharedSource;
     let generation = 0;
     const fileKey = Symbol.for('rspack.buildInfo.fileDependencies');
     let getContext, getFiles, getMap;
@@ -55,6 +55,11 @@ export default async function run() {
           originalSource,
           '_sourceMapAsString',
         ).get;
+        sharedSource = removed.originalSource();
+        tracker.track(
+          originalSource[Symbol.for('rspack.originalSource')],
+          'source cache',
+        );
         const binaryModule = modules.find(
           (module) => module.resource === binaryRequest,
         );
@@ -129,6 +134,17 @@ export default async function run() {
     tracker.track(originalSource, 'original source');
     originalSource = null;
     await tracker.waitForCollection('original source');
+    // Another unread instance keeps the shared JS JSON alive after the first instance is gone.
+    assert.equal(
+      Object.getOwnPropertyDescriptor(sharedSource, '_sourceMapAsString').get,
+      getMap,
+    );
+    assert.deepEqual(sharedSource.map(), originalMap);
+    assert.notEqual(sharedSource.map(), originalMap);
+    await tracker.waitForCollection('source cache');
+    tracker.track(sharedSource, 'shared source');
+    sharedSource = null;
+    await tracker.waitForCollection('shared source');
     assert.deepEqual(binarySource.source(), Buffer.from([0, 255, 97]));
     binarySource.source()[0] = 42;
     assert.deepEqual(binarySource.buffer(), Buffer.from([42, 255, 97]));

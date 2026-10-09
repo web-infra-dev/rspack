@@ -32,30 +32,74 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   if (!source) return;
 
                   const value = source.source();
-                  const binding = module._originalSource(
-                    sources.SourceMapSource,
-                  )!;
+                  const binding = module._originalSource()!;
                   let map: string | undefined;
                   let nativeGetter: (() => string) | undefined;
                   if (binding instanceof sources.SourceMapSource) {
+                    const cacheSymbol = Symbol.for('rspack.originalSource');
+                    const cache = Reflect.get(module, cacheSymbol);
+                    expect(Reflect.get(binding, cacheSymbol)).toBe(cache);
+                    expect(Reflect.get(source, cacheSymbol)).toBe(cache);
+                    expect(cache.map).toBeUndefined();
                     // The binding already returned the actual SourceMapSource, with one shared
                     // native accessor and no intermediate JsSourceMap object or JS getter closure.
                     nativeGetter = Object.getOwnPropertyDescriptor(
                       binding,
                       '_sourceMapAsString',
                     )!.get;
-                    expect(nativeGetter).toBeDefined();
-                    expect(
-                      Function.prototype.toString.call(nativeGetter),
-                    ).toContain('[native code]');
+                    // WASM exposes N-API callbacks through a JS trampoline; verify sharing
+                    // and behavior instead of relying on Function.prototype.toString().
+                    expect(typeof nativeGetter).toBe('function');
                     expect(binding._sourceMapAsObject).toBeUndefined();
                     expect(binding._sourceMapAsBuffer).toBeUndefined();
+                    expect(source.buffer()).toEqual(Buffer.from(value));
+                    expect(source.size()).toBe(Buffer.byteLength(value));
+                    expect(
+                      Object.getOwnPropertyDescriptor(
+                        source,
+                        '_sourceMapAsString',
+                      )!.get,
+                    ).toBe(nativeGetter);
                     expect(
                       module.originalSource.call({
                         _originalSource: () => binding,
                       }),
                     ).toBe(binding);
                     map = binding._sourceMapAsString;
+                    expect(cache.map).toBe(map);
+                    expect(Reflect.has(binding, cacheSymbol)).toBe(false);
+                    expect(
+                      Object.getOwnPropertyDescriptor(
+                        binding,
+                        '_sourceMapAsString',
+                      ),
+                    ).toEqual({
+                      value: map,
+                      writable: true,
+                      enumerable: true,
+                      configurable: true,
+                    });
+                    // An instance created before the transfer reuses the shared JS JSON.
+                    expect(nativeGetter!.call(source)).toBe(map);
+                    expect(Reflect.has(source, cacheSymbol)).toBe(false);
+                    expect(
+                      Object.getOwnPropertyDescriptor(
+                        source,
+                        '_sourceMapAsString',
+                      )!.get,
+                    ).toBeUndefined();
+                    expect(nativeGetter!.call(source)).toBe(map);
+                    // Instances created afterwards receive that JSON directly in their constructor.
+                    const initialized =
+                      module._originalSource() as sources.SourceMapSource;
+                    expect(initialized._sourceMapAsString).toBe(map);
+                    expect(Reflect.has(initialized, cacheSymbol)).toBe(false);
+                    expect(
+                      Object.getOwnPropertyDescriptor(
+                        initialized,
+                        '_sourceMapAsString',
+                      )!.get,
+                    ).toBeUndefined();
                   }
                   if (Buffer.isBuffer(value)) {
                     if (module.identifier().endsWith('base64,')) {
@@ -134,22 +178,15 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   }
 
                   if (!map) return;
-                  let transfers = 0;
-                  // Count calls to the real native getter without reading its map data.
+                  // Later instances have ordinary data properties and no native map getter.
                   const createSource = () => {
                     const result = module.originalSource()!;
                     const descriptor = Object.getOwnPropertyDescriptor(
                       result,
                       '_sourceMapAsString',
                     )!;
-                    expect(descriptor.get).toBe(nativeGetter);
-                    Object.defineProperty(result, '_sourceMapAsString', {
-                      ...descriptor,
-                      get() {
-                        transfers++;
-                        return descriptor.get!.call(this);
-                      },
-                    });
+                    expect(descriptor.get).toBeUndefined();
+                    expect(descriptor.value).toBe(map);
                     return result;
                   };
                   const lazy = createSource();
@@ -157,21 +194,16 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   expect(lazy.source()).toEqual(value);
                   expect(lazy.buffer()).toEqual(eager.buffer());
                   expect(lazy.size()).toBe(eager.size());
-                  expect(transfers).toBe(0);
                   const lazyMap = lazy.map()!;
-                  expect(transfers).toBe(1);
                   expect(isProxy(lazyMap)).toBe(false);
                   expect(Object.getPrototypeOf(lazyMap)).toBe(Object.prototype);
                   expect(lazy.map()).toBe(lazyMap);
                   expect(lazy.map({ columns: false })).toBe(lazyMap);
                   expect(lazy.sourceAndMap().map).toBe(lazyMap);
-                  expect(transfers).toBe(1);
                   expect(lazyMap.mappings).toBe(eager.map()!.mappings);
-                  expect(transfers).toBe(1);
                   expect(lazy.map()).toBe(lazyMap);
                   expect(lazy.sourceAndMap().map).toBe(lazyMap);
                   expect(JSON.stringify(lazyMap)).toBe(map);
-                  expect(transfers).toBe(1);
 
                   const operations: ((map: RawSourceMap) => unknown)[] = [
                     (map) => map.sourcesContent,
@@ -195,12 +227,9 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                     (map) => Object.preventExtensions(map),
                   ];
                   for (const operation of operations) {
-                    const previousTransfers = transfers;
                     const actualSource = createSource();
-                    expect(transfers).toBe(previousTransfers);
                     const actual = actualSource.map()!;
                     const expected = JSON.parse(map!);
-                    expect(transfers).toBe(previousTransfers + 1);
                     expect(operation(actual)).toEqual(operation(expected));
                     expect(actual).toEqual(expected);
                     expect(Object.getOwnPropertyDescriptors(actual)).toEqual(
@@ -209,13 +238,11 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                     expect(Object.isExtensible(actual)).toBe(
                       Object.isExtensible(expected),
                     );
-                    expect(transfers).toBe(previousTransfers + 1);
                   }
                   // Each public Source has its own mutable map, as with the eager JSON input.
                   const secondMap = createSource().map()!;
                   secondMap.sources.push('added.js');
                   expect(lazyMap.sources).not.toContain('added.js');
-                  expect(transfers).toBe(operations.length + 2);
 
                   const caching = sources.util.stringBufferUtils;
                   const wasCaching = caching.isDualStringBufferCachingEnabled();
@@ -231,12 +258,10 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                           'inmemory://from rust',
                           map!,
                         );
-                        const previousTransfers = transfers;
                         if (readMapFirst) {
                           actual.sourceAndMap().map!.sources[0] = 'changed.js';
                           reference.sourceAndMap().map!.sources[0] =
                             'changed.js';
-                          expect(transfers).toBe(previousTransfers + 1);
                         }
                         expect(hashSource(actual)).toBe(hashSource(reference));
                         expect(actual.getArgsAsBuffers()).toEqual(
@@ -244,7 +269,6 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                         );
                         expect(hashSource(actual)).toBe(hashSource(reference));
                         expect(actual.map()).toEqual(reference.map());
-                        expect(transfers).toBe(previousTransfers + 1);
                         for (const options of [
                           undefined,
                           { maps: false },
@@ -257,7 +281,6 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                           );
                           expect(actual.map()).toEqual(reference.map());
                         }
-                        expect(transfers).toBe(previousTransfers + 1);
                       }
                     }
                   } finally {

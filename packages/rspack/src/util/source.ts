@@ -4,11 +4,11 @@ import { RawSource, type Source, SourceMapSource } from 'webpack-sources';
 export class SourceAdapter {
   static fromBinding(source: JsSource | SourceMapSource): Source {
     if (source instanceof SourceMapSource) return source;
-    const map = source.map;
+    const { source: content, map } = source;
     if (!map) {
-      return new RawSource(source.source);
+      return new RawSource(content);
     }
-    return new SourceMapSource(source.source, 'inmemory://from rust', map);
+    return new SourceMapSource(content, 'inmemory://from rust', map);
   }
 
   static toBinding(source: Source): JsSource {

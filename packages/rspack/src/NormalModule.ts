@@ -1,6 +1,6 @@
 import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
-import { type Source, SourceMapSource } from 'webpack-sources';
+import type { Source } from 'webpack-sources';
 import { type Compilation, getOrCreateCompilationHooks } from './Compilation';
 import type { LoaderContext } from './config';
 import type { Module } from './Module';
@@ -18,7 +18,7 @@ Object.defineProperty(binding.NormalModule.prototype, 'originalSource', {
   enumerable: true,
   configurable: true,
   value(this: binding.NormalModule) {
-    const originalSource = this._originalSource(SourceMapSource);
+    const originalSource = this._originalSource();
     if (originalSource) {
       return SourceAdapter.fromBinding(originalSource);
     }

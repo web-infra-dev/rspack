@@ -1,5 +1,5 @@
 import binding, { type AssetInfo } from '@rspack/binding';
-import { type Source, SourceMapSource } from 'webpack-sources';
+import type { Source, SourceMapSource } from 'webpack-sources';
 import type { ResourceData } from './Resolver';
 import { SourceAdapter } from './util/source';
 // patch buildInfo
@@ -180,7 +180,7 @@ Object.defineProperty(binding.Module.prototype, 'originalSource', {
   enumerable: true,
   configurable: true,
   value(this: binding.Module) {
-    const originalSource = this._originalSource(SourceMapSource);
+    const originalSource = this._originalSource();
     if (originalSource) {
       return SourceAdapter.fromBinding(originalSource);
     }
@@ -201,6 +201,8 @@ Object.defineProperty(binding.Module.prototype, 'emitFile', {
 });
 
 declare module '@rspack/binding' {
+  interface JsSourceMapSource extends SourceMapSource {}
+
   interface Module {
     identifier(): string;
     originalSource(): Source | null;
