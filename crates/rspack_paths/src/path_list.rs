@@ -50,8 +50,8 @@ impl InternedPathList {
     let table = intern_table();
     let key = list_key(items);
     match lookup(table, key, items) {
-      Some(shared) => Self::from_storage(shared),
-      None => Self::from_storage(intern(
+      Some(shared) => shared,
+      None => intern(
         table,
         key,
         Arc::new(ListStorage {
@@ -59,7 +59,7 @@ impl InternedPathList {
           ids: items.into(),
           handles: AtomicUsize::new(0),
         }),
-      )),
+      ),
     }
   }
 
@@ -68,8 +68,8 @@ impl InternedPathList {
     let table = intern_table();
     let key = list_key(&items);
     match lookup(table, key, &items) {
-      Some(shared) => Self::from_storage(shared),
-      None => Self::from_storage(intern(
+      Some(shared) => shared,
+      None => intern(
         table,
         key,
         // Moving the vector hands its elements over to the shared allocation
@@ -79,28 +79,16 @@ impl InternedPathList {
           ids: items.into_boxed_slice(),
           handles: AtomicUsize::new(0),
         }),
-      )),
+      ),
     }
   }
 
-  /// Wraps a shared list in a new handle. The first handle registers or adopts
-  /// an interned list: the slot may have been removed while no handle existed,
-  /// or another equal list may have taken it since. A handle never keeps a list
-  /// that the table does not know about, and equal content stays on one buffer.
-  fn from_storage(mut storage: Arc<ListStorage>) -> Self {
-    loop {
-      if storage.handles.fetch_add(1, Ordering::AcqRel) != 0 {
-        return Self(storage);
-      }
-      let registered = register_slot(storage.clone());
-      if Arc::ptr_eq(&registered, &storage) {
-        return Self(storage);
-      }
-      // Another equal list won the slot while this one had no handle; keep the
-      // winner and let this buffer go.
-      storage.handles.fetch_sub(1, Ordering::AcqRel);
-      storage = registered;
-    }
+  /// Counts a handle before releasing the table's shard lock, so a concurrent
+  /// last drop cannot remove the slot between lookup and handle creation.
+  /// Cloning needs no lock because the source handle keeps the list alive.
+  fn from_storage(storage: Arc<ListStorage>) -> Self {
+    storage.handles.fetch_add(1, Ordering::AcqRel);
+    Self(storage)
   }
 
   #[inline]
@@ -193,10 +181,11 @@ fn lookup(
   table: &DashMap<ListKey, Weak<ListStorage>, FxBuildHasher>,
   key: ListKey,
   items: &[InternedPath],
-) -> Option<Arc<ListStorage>> {
-  let existing = table.get(&key)?.value().upgrade()?;
+) -> Option<InternedPathList> {
+  let entry = table.get(&key)?;
+  let existing = entry.value().upgrade()?;
   if existing.ids.len() == items.len() && existing.ids.iter().eq(items.iter()) {
-    Some(existing)
+    Some(InternedPathList::from_storage(existing))
   } else {
     None
   }
@@ -206,7 +195,7 @@ fn intern(
   table: &DashMap<ListKey, Weak<ListStorage>, FxBuildHasher>,
   key: ListKey,
   list: Arc<ListStorage>,
-) -> Arc<ListStorage> {
+) -> InternedPathList {
   // The write lock re-checks the entry so parallel interning of the same list
   // converges on one allocation instead of keeping one payload per thread.
   match table.entry(key) {
@@ -216,52 +205,26 @@ fn intern(
         Some(existing)
           if existing.ids.len() == list.ids.len() && existing.ids.iter().eq(list.ids.iter()) =>
         {
-          existing
+          InternedPathList::from_storage(existing)
         }
         Some(_) => {
           entry.insert(Arc::downgrade(&list));
-          list
+          InternedPathList::from_storage(list)
         }
         None => {
           // The previous list with this content is gone; replacing the slot
           // releases its buffer right away.
           entry.insert(Arc::downgrade(&list));
-          list
+          InternedPathList::from_storage(list)
         }
       }
     }
     Entry::Vacant(entry) => {
-      entry.insert(Arc::downgrade(&list));
+      // Inserting consumes the vacant entry and releases its lock. Count the
+      // first handle before publishing the weak slot.
+      let list = InternedPathList::from_storage(list);
+      entry.insert(Arc::downgrade(&list.0));
       list
-    }
-  }
-}
-
-/// Returns the list the slot should keep for the storage: an equal list that is
-/// already interned, or the storage itself after registering it. Runs under the
-/// entry lock, which serialises it against remove_slot: either it runs after
-/// the removal and re-inserts the slot, or the removal re-checks the handle
-/// count and leaves the slot in place.
-fn register_slot(storage: Arc<ListStorage>) -> Arc<ListStorage> {
-  let table = intern_table();
-  let key = (storage.hash, storage.ids.len());
-  match table.entry(key) {
-    Entry::Occupied(mut entry) => match entry.get().upgrade() {
-      // An equal list is already interned: keep it so the content stays on one
-      // buffer instead of leaving this one alive without a slot.
-      Some(existing) if !Arc::ptr_eq(&existing, &storage) && existing.ids == storage.ids => {
-        existing
-      }
-      // This list itself, a colliding different list, or a dead slot: the slot
-      // becomes ours.
-      _ => {
-        entry.insert(Arc::downgrade(&storage));
-        storage
-      }
-    },
-    Entry::Vacant(entry) => {
-      entry.insert(Arc::downgrade(&storage));
-      storage
     }
   }
 }
