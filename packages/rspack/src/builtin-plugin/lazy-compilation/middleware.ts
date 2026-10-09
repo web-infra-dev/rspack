@@ -78,17 +78,21 @@ export const lazyCompilationMiddleware = (
 
       const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
       options.prefix = `${prefix}__${i++}`;
-      const activeModules: LazyCompilationState = {
+      const newlyActiveModules: LazyCompilationState = {
         pending: new Set(),
         reserved: new Set(),
       };
 
       middlewareByCompiler.set(
         options.prefix,
-        lazyCompilationMiddlewareInternal(c, activeModules, options.prefix),
+        lazyCompilationMiddlewareInternal(
+          c,
+          newlyActiveModules,
+          options.prefix,
+        ),
       );
 
-      applyPlugin(c, options, activeModules);
+      applyPlugin(c, options, newlyActiveModules);
     }
 
     const keys = [...middlewareByCompiler.keys()];
@@ -110,7 +114,7 @@ export const lazyCompilationMiddleware = (
     return noop;
   }
 
-  const activeModules: LazyCompilationState = {
+  const newlyActiveModules: LazyCompilationState = {
     pending: new Set(),
     reserved: new Set(),
   };
@@ -119,12 +123,12 @@ export const lazyCompilationMiddleware = (
     ...compiler.options.lazyCompilation,
   };
 
-  applyPlugin(compiler, options, activeModules);
+  applyPlugin(compiler, options, newlyActiveModules);
 
   const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
   return lazyCompilationMiddlewareInternal(
     compiler,
-    activeModules,
+    newlyActiveModules,
     lazyCompilationPrefix,
   );
 };
@@ -132,28 +136,34 @@ export const lazyCompilationMiddleware = (
 function applyPlugin(
   compiler: Compiler,
   options: LazyCompilationOptions,
-  activeModules: LazyCompilationState,
+  newlyActiveModules: LazyCompilationState,
 ) {
   registerLazyCompilation(compiler, () => {
-    for (const key of activeModules.pending) activeModules.reserved.add(key);
-    activeModules.pending.clear();
+    for (const key of newlyActiveModules.pending)
+      newlyActiveModules.reserved.add(key);
+    newlyActiveModules.pending.clear();
   });
   compiler.hooks.watchClose.tap('LazyCompilation', () => {
-    activeModules.pending.clear();
-    activeModules.reserved.clear();
+    newlyActiveModules.pending.clear();
+    newlyActiveModules.reserved.clear();
   });
   const plugin = new BuiltinLazyCompilationPlugin(
+    // Hand over the modules reported since the last compilation; the native
+    // plugin keeps every activated module and skips the ones already active.
     () => {
       const res = compiler.watchMode
-        ? new Set(activeModules.reserved)
-        : new Set([...activeModules.reserved, ...activeModules.pending]);
+        ? new Set(newlyActiveModules.reserved)
+        : new Set([
+            ...newlyActiveModules.reserved,
+            ...newlyActiveModules.pending,
+          ]);
       consumeLazyKeys(
         compiler.watching,
         compiler.__internal__get_compilation(),
         [...res],
       );
-      activeModules.reserved.clear();
-      if (!compiler.watchMode) activeModules.pending.clear();
+      newlyActiveModules.reserved.clear();
+      if (!compiler.watchMode) newlyActiveModules.pending.clear();
       return res;
     },
     options.entries ?? true,
@@ -260,7 +270,7 @@ function readModuleIdsFromBody(
 
 const lazyCompilationMiddlewareInternal = (
   compiler: Compiler,
-  activeModules: LazyCompilationState,
+  newlyActiveModules: LazyCompilationState,
   lazyCompilationPrefix: string,
 ): DevServerMiddlewareHandler => {
   const logger = compiler.getInfrastructureLogger('LazyCompilation');
@@ -287,7 +297,8 @@ const lazyCompilationMiddlewareInternal = (
     const moduleActivated = [];
     for (const key of new Set(modules)) {
       const activated =
-        activeModules.pending.has(key) || activeModules.reserved.has(key);
+        newlyActiveModules.pending.has(key) ||
+        newlyActiveModules.reserved.has(key);
       if (!activated) {
         logger.log(`${key} is now in use and will be compiled.`);
         moduleActivated.push(key);
@@ -295,7 +306,7 @@ const lazyCompilationMiddlewareInternal = (
     }
 
     if (moduleActivated.length) {
-      for (const key of moduleActivated) activeModules.pending.add(key);
+      for (const key of moduleActivated) newlyActiveModules.pending.add(key);
       if (compiler.watching)
         invalidateLazyCompilation(compiler.watching, moduleActivated);
     }

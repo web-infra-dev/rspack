@@ -1,0 +1,137 @@
+# Case import-attributes: Step 2
+
+## Changed Files
+- generation.js
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: data_a_json.chunk.CURRENT_HASH.js
+- Bundle: data_a_json_lazy-compilation-proxy.chunk.CURRENT_HASH.js
+- Bundle: data_b_json.chunk.CURRENT_HASH.js
+- Bundle: data_b_json_lazy-compilation-proxy.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 65
+- Update: data_b_json_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1039
+- Update: main.LAST_HASH.hot-update.js, size: 470
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["data_b_json_lazy-compilation-proxy","main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### data_b_json_lazy-compilation-proxy.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./data/b.json!lazy-compilation-proxy
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("data_b_json_lazy-compilation-proxy", {
+"./data/b.json!lazy-compilation-proxy"(module, __unused_rspack_exports, __webpack_require__) {
+var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2F_rspack%2Flazy%2Ftrigger");
+var data = "lazy-compilation-proxy|json|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/data/b.json";
+        module.exports = __webpack_require__.e(/* import() */ "data_b_json").then(__webpack_require__.t.bind(__webpack_require__, "./data/b.json", 19));
+        if (module.hot) {
+          module.hot.accept();
+          module.hot.accept("./data/b.json", function() { module.hot.invalidate(); });
+          module.hot.dispose(function(data) { delete data.resolveSelf; });
+          if (module.hot.data && module.hot.data.resolveSelf)
+            module.hot.data.resolveSelf(module.exports);
+        }
+        
+
+},
+
+});
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./generation.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./generation.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (3);
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./data/a.json!lazy-compilation-proxy
+- ./generation.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./generation.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./data/a.json!lazy-compilation-proxy
+- ./generation.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./generation.js
+
+Disposed Callback:
+- ./data/a.json!lazy-compilation-proxy

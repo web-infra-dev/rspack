@@ -6,7 +6,7 @@ import { create } from '../base';
 export const BuiltinLazyCompilationPlugin = create(
   BuiltinPluginName.LazyCompilationPlugin,
   (
-    currentActiveModules: () => Set<string>,
+    takeNewlyActiveModules: () => Set<string>,
     entries: boolean,
     imports: boolean,
     client: string,
@@ -17,7 +17,7 @@ export const BuiltinLazyCompilationPlugin = create(
     entries,
     test,
     client,
-    currentActiveModules,
+    takeNewlyActiveModules,
     reservedExternals,
   }),
   'thisCompilation',

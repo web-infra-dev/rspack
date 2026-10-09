@@ -110,13 +110,13 @@ struct EventProcessor {
 /// It only buffers: the OS watcher callback hands an event over and returns
 /// immediately, and a dedicated thread drains the buffer one event at a time.
 pub struct Trigger {
-  pending: UnboundedSender<(InternedPath, FsEventKind)>,
+  pending: UnboundedSender<(InternedPath, FsEventKind, bool)>,
 }
 
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<EventBatch>) -> Self {
-    let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind)>();
+    let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, bool)>();
     let processor = EventProcessor { path_manager, tx };
 
     // One event at a time, in arrival order: the JS `ignored` predicate is
@@ -133,8 +133,8 @@ impl Trigger {
           .expect("create watcher event filter runtime");
 
         runtime.block_on(async move {
-          while let Some((path, kind)) = incoming.recv().await {
-            processor.process(&path, kind).await;
+          while let Some((path, kind, appeared)) = incoming.recv().await {
+            processor.process(&path, kind, appeared).await;
           }
         });
       })
@@ -146,7 +146,13 @@ impl Trigger {
   /// Hands a raw event to the filter thread. Never blocks — this runs straight
   /// from the OS watcher callback.
   pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
-    let _ = self.pending.send((path.clone(), kind));
+    self.on_disk_event(path, kind, kind == FsEventKind::Create);
+  }
+
+  /// Preserves whether an OS event created or renamed a path into place,
+  /// without treating ordinary directory changes as appearances.
+  pub(crate) fn on_disk_event(&self, path: &InternedPath, kind: FsEventKind, appeared: bool) {
+    let _ = self.pending.send((path.clone(), kind, appeared));
   }
 }
 
@@ -164,7 +170,7 @@ impl EventProcessor {
   /// If the file `/path/to/file.js` is changed, the trigger will send an event for the following paths:
   /// - `/path`
   /// - `/path/to`
-  async fn process(&self, path: &InternedPath, kind: FsEventKind) {
+  async fn process(&self, path: &InternedPath, kind: FsEventKind, appeared: bool) {
     // Drop events inside ignored subtrees. The recursive-root watch delivers
     // events for unregistered paths (e.g. the build-output dir); left through,
     // `find_associated_event` bubbles them to a registered parent and triggers
@@ -199,7 +205,50 @@ impl EventProcessor {
     }
 
     let finder = self.finder();
-    let associated_event = finder.find_associated_event(path, kind);
+    let mut associated_event = finder.find_associated_event(path, kind);
+
+    if appeared && path.is_dir() && !path.is_symlink() {
+      // On Linux, inotify adds a new directory's watch before emitting its
+      // Create event, so files written before that watch existed are already
+      // on disk; later writes produce their own events. On every backend, a
+      // directory moved into place reports only itself. Recover registered
+      // descendants here, off the OS reader thread. Duplicate events coalesce
+      // in the aggregate sets. Cost is proportional to the new subtree; on
+      // Linux it is comparable to notify's own add-watch walk.
+      let mut directories = vec![path.clone()];
+      while let Some(directory) = directories.pop() {
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+          continue;
+        };
+        for entry in entries.flatten() {
+          let Ok(file_type) = entry.file_type() else {
+            continue;
+          };
+          let entry_path = InternedPath::from(entry.path());
+          let is_registered = finder.contains_path(&entry_path);
+          if !file_type.is_dir() && !is_registered {
+            continue;
+          }
+          if self.path_manager.is_ignored_path(entry_path.as_ref()).await {
+            continue;
+          }
+
+          if is_registered {
+            if finder.files.contains(&entry_path)
+              && !self.path_manager.has_mtime_changed(&entry_path)
+            {
+              continue;
+            }
+            associated_event.extend(finder.find_associated_event(&entry_path, FsEventKind::Create));
+          }
+          // DirEntry::file_type does not follow symlinks.
+          if file_type.is_dir() {
+            directories.push(entry_path);
+          }
+        }
+      }
+    }
+
     self.trigger_events(associated_event);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.

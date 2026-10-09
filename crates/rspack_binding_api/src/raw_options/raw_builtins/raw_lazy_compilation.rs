@@ -87,7 +87,7 @@ pub struct RawModuleInfo {
 
 #[napi(object, object_to_js = false)]
 pub struct RawLazyCompilationOption {
-  pub current_active_modules: ThreadsafeFunction<(), HashSet<String>>,
+  pub take_newly_active_modules: ThreadsafeFunction<(), HashSet<String>>,
   pub test: Option<RawLazyCompilationTest>,
   pub entries: bool,
   pub imports: bool,
@@ -96,7 +96,7 @@ pub struct RawLazyCompilationOption {
 }
 
 pub(crate) struct JsBackend {
-  current_active_modules: ThreadsafeFunction<(), HashSet<String>>,
+  take_newly_active_modules: ThreadsafeFunction<(), HashSet<String>>,
 }
 
 impl std::fmt::Debug for JsBackend {
@@ -108,15 +108,15 @@ impl std::fmt::Debug for JsBackend {
 impl From<&RawLazyCompilationOption> for JsBackend {
   fn from(value: &RawLazyCompilationOption) -> Self {
     Self {
-      current_active_modules: value.current_active_modules.clone(),
+      take_newly_active_modules: value.take_newly_active_modules.clone(),
     }
   }
 }
 
 impl Backend for JsBackend {
-  async fn current_active_modules(&mut self) -> rspack_error::Result<IdentifierSet> {
+  async fn take_newly_active_modules(&mut self) -> rspack_error::Result<IdentifierSet> {
     let active_modules = self
-      .current_active_modules
+      .take_newly_active_modules
       .call_with_sync(())
       .await
       .expect("channel should have result");
