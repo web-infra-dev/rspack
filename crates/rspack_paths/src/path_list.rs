@@ -36,7 +36,7 @@ static SWEEP_TICKS: AtomicUsize = AtomicUsize::new(0);
 /// Table size at which the next growth-driven sweep runs.
 static NEXT_GROWTH_SWEEP: AtomicUsize = AtomicUsize::new(SWEEP_MIN_TABLE);
 
-/// Slots observed to be dead since the last sweep.
+/// Lists whose last handle dropped since the last sweep.
 static DEAD_SLOTS: AtomicUsize = AtomicUsize::new(0);
 
 /// A content-interned, immutable list of [`InternedPath`]s.
@@ -113,6 +113,21 @@ impl AsRef<[InternedPath]> for InternedPathList {
   }
 }
 
+impl Drop for InternedPathList {
+  fn drop(&mut self) {
+    // The table only holds weak references, so this is the last handle: the
+    // slot is dead from now on and its buffer stays reserved until a sweep
+    // drops the weak entry. Counting the death here keeps sweeps driven by
+    // real churn instead of by re-interning the same content, so lists that
+    // never come back are still reclaimed. A concurrent `upgrade` can make the
+    // count miss, which is fine: that other handle counts its own death, and
+    // the growth trigger remains as a backstop.
+    if Arc::strong_count(&self.0) == 1 {
+      DEAD_SLOTS.fetch_add(1, Ordering::Relaxed);
+    }
+  }
+}
+
 impl fmt::Debug for InternedPathList {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.debug_list().entries(self.0.iter()).finish()
@@ -183,9 +198,9 @@ fn intern(
           list
         }
         None => {
-          // The previous list with this content is gone; replacing the slot
-          // releases its buffer right away.
-          record_dead_slot();
+          // The previous list with this content is gone (its death was already
+          // counted when its last handle dropped); replacing the slot releases
+          // its buffer right away.
           entry.insert(Arc::downgrade(&list));
           list
         }
@@ -198,13 +213,6 @@ fn intern(
   }
 }
 
-/// Counts a slot whose list is gone but whose buffer is still held by the weak
-/// entry. A sweep frees it, and the count makes churn trigger a sweep even when
-/// the table is not growing.
-fn record_dead_slot() {
-  DEAD_SLOTS.fetch_add(1, Ordering::Relaxed);
-}
-
 fn maybe_sweep(table: &DashMap<ListKey, Weak<[InternedPath]>, FxBuildHasher>) {
   if !SWEEP_TICKS
     .fetch_add(1, Ordering::Relaxed)
@@ -213,15 +221,16 @@ fn maybe_sweep(table: &DashMap<ListKey, Weak<[InternedPath]>, FxBuildHasher>) {
     return;
   }
   let entries = table.len();
-  // Sweep after the table doubled since the previous sweep, so the entries that
-  // grew it pay for scanning the older ones and the total work stays
-  // `O(entries log entries)` instead of rescanning a mostly live table on a
-  // fixed interval.
+  // Sweep after the table doubled since the previous sweep. This keeps the
+  // initial build's total work at `O(entries log entries)` and acts as a
+  // backstop for slots whose last handle dropped while a concurrent lookup held
+  // a transient reference.
   let grown = entries >= NEXT_GROWTH_SWEEP.load(Ordering::Relaxed);
-  // Also sweep on churn: a watch rebuild drops the previous build's lists, and
-  // slots whose content never comes back are only reachable by a sweep. Scale
-  // the trigger with the table so one sweep stays proportional to what a
-  // rebuild can have dropped.
+  // Sweep on churn as well: the slots of lists whose last handle dropped are
+  // only reclaimed by a sweep, and a watch rebuild can drop many lists without
+  // growing the table or re-interning the same content. Scale the trigger with
+  // the table so one sweep stays proportional to what a rebuild can have
+  // dropped.
   let churned = DEAD_SLOTS.load(Ordering::Relaxed) >= (entries / 8).max(SWEEP_DEAD_SLOTS_MIN);
   if !grown && !churned {
     return;
