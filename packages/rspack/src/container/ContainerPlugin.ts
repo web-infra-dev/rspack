@@ -12,32 +12,68 @@ import type { EntryRuntime, FilenameTemplate, LibraryOptions } from '../config';
 import { parseOptions } from '../container/options';
 import { normalizeShareScope, type ShareScope } from '../sharing/SharePlugin';
 import { ShareRuntimePlugin } from '../sharing/ShareRuntimePlugin';
+import { validateLayer } from '../sharing/utils';
 
-export type ContainerPluginOptions = {
-  exposes: Exposes;
+type ContainerPluginBaseOptions<Enhanced extends boolean> = {
+  exposes: Exposes<Enhanced>;
   filename?: FilenameTemplate;
   library?: LibraryOptions;
   name: string;
   runtime?: EntryRuntime;
   shareScope?: ShareScope;
-  enhanced?: boolean;
 };
-export type Exposes = (ExposesItem | ExposesObject)[] | ExposesObject;
+export interface ContainerPluginOptions extends ContainerPluginBaseOptions<false> {
+  enhanced?: boolean;
+}
+
+export interface EnhancedContainerPluginOptions extends ContainerPluginBaseOptions<true> {
+  enhanced: true;
+}
+
+type ContainerPluginConstructorOptions<Enhanced extends boolean = boolean> = [
+  Enhanced,
+] extends [true]
+  ? EnhancedContainerPluginOptions
+  : [Enhanced] extends [false]
+    ? ContainerPluginBaseOptions<false> & { enhanced?: false }
+    : | (ContainerPluginBaseOptions<false> & { enhanced?: false })
+      | EnhancedContainerPluginOptions
+      | (ContainerPluginBaseOptions<false> & { enhanced: boolean });
+export type Exposes<Enhanced extends boolean = false> =
+  (ExposesItem | ExposesObject<Enhanced>)[] | ExposesObject<Enhanced>;
 export type ExposesItem = string;
 export type ExposesItems = ExposesItem[];
-export type ExposesObject = {
-  [k: string]: ExposesConfig | ExposesItem | ExposesItems;
+type ExposesObjectBase<Config> = {
+  [k: string]: Config | ExposesItem | ExposesItems;
 };
-export type ExposesConfig = {
+// Select concrete map shapes rather than nesting the conditional inside the
+// index signature: TypeScript otherwise treats the generic maps as assignable.
+export type ExposesObject<Enhanced extends boolean = false> = [
+  Enhanced,
+] extends [true]
+  ? ExposesObjectBase<ExposesConfig<true>>
+  : [Enhanced] extends [false]
+    ? ExposesObjectBase<ExposesConfig<false>>
+    : ExposesObjectBase<ExposesConfig<boolean>>;
+type ExposesBaseConfig = {
   import: ExposesItem | ExposesItems;
   name?: string;
 };
+export type ExposesConfig<Enhanced extends boolean = false> = [
+  Enhanced,
+] extends [true]
+  ? ExposesBaseConfig & { layer?: string }
+  : [Enhanced] extends [false]
+    ? ExposesBaseConfig & { layer?: never }
+    : ExposesBaseConfig & { layer?: string };
 
-export class ContainerPlugin extends RspackBuiltinPlugin {
+export class ContainerPlugin<
+  Enhanced extends boolean = boolean,
+> extends RspackBuiltinPlugin {
   name = BuiltinPluginName.ContainerPlugin;
   _options;
 
-  constructor(options: ContainerPluginOptions) {
+  constructor(options: ContainerPluginConstructorOptions<Enhanced>) {
     super();
 
     if (typeof options.name !== 'string') {
@@ -64,11 +100,19 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
         (item) => ({
           import: Array.isArray(item) ? item : [item],
           name: undefined,
+          layer: undefined,
         }),
-        (item) => ({
-          import: Array.isArray(item.import) ? item.import : [item.import],
-          name: item.name || undefined,
-        }),
+        (item) => {
+          if (!enhanced && item.layer !== undefined) {
+            throw new Error('[ContainerPlugin] layer requires enhanced=true');
+          }
+          validateLayer(item.layer, 'ContainerPlugin');
+          return {
+            import: Array.isArray(item.import) ? item.import : [item.import],
+            name: item.name || undefined,
+            layer: item.layer,
+          };
+        },
       ),
       enhanced,
     };

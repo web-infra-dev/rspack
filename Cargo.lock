@@ -5194,6 +5194,7 @@ dependencies = [
  "rspack_collections",
  "rspack_core",
  "rspack_plugin_mf",
+ "simd-json",
 ]
 
 [[package]]

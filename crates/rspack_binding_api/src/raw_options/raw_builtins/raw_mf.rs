@@ -3,11 +3,11 @@ use std::sync::Arc;
 use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_mf::{
-  ConsumeVersion, ContainerPluginOptions, ContainerReferencePluginOptions,
-  EnhancedCollectSharedEntryPluginOptions, EnhancedConsumeOptions,
-  EnhancedConsumeSharedPluginOptions, EnhancedOptimizeSharedConfig, EnhancedProvideOptions,
+  ConsumeVersion, ContainerReferencePluginOptions, EnhancedCollectSharedEntryPluginOptions,
+  EnhancedConsumeOptions, EnhancedConsumeSharedPluginOptions, EnhancedContainerPluginOptions,
+  EnhancedExposeOptions, EnhancedOptimizeSharedConfig, EnhancedProvideOptions,
   EnhancedSharedContainerPluginOptions, EnhancedSharedUsedExportsOptimizerPluginOptions,
-  ExposeOptions, ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPluginOptions,
+  ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPluginOptions,
   ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePluginOptions, ProvideVersion,
   RemoteAliasTarget, RemoteOptions, ShareScope, StatsBuildInfo,
 };
@@ -38,17 +38,17 @@ pub struct RawContainerPluginOptions {
   pub enhanced: bool,
 }
 
-impl From<RawContainerPluginOptions> for ContainerPluginOptions {
-  fn from(value: RawContainerPluginOptions) -> Self {
-    let share_scope = into_share_scope(value.share_scope);
-    Self {
-      name: value.name,
+impl RawContainerPluginOptions {
+  pub fn into_options(self) -> EnhancedContainerPluginOptions {
+    let share_scope = into_share_scope(self.share_scope);
+    EnhancedContainerPluginOptions {
+      name: self.name,
       share_scope,
-      library: value.library.into(),
-      runtime: value.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
-      filename: value.filename.map(|f| f.into()),
-      exposes: value.exposes.into_iter().map(|e| e.into()).collect(),
-      enhanced: value.enhanced,
+      library: self.library.into(),
+      runtime: self.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
+      filename: self.filename.map(|f| f.into()),
+      exposes: self.exposes.into_iter().map(|e| e.into()).collect(),
+      enhanced: self.enhanced,
     }
   }
 }
@@ -58,16 +58,18 @@ impl From<RawContainerPluginOptions> for ContainerPluginOptions {
 pub struct RawExposeOptions {
   pub key: String,
   pub name: Option<String>,
+  pub layer: Option<String>,
   pub import: Vec<String>,
 }
 
-impl From<RawExposeOptions> for (String, ExposeOptions) {
+impl From<RawExposeOptions> for (String, EnhancedExposeOptions) {
   fn from(value: RawExposeOptions) -> Self {
     (
       value.key,
-      ExposeOptions {
+      EnhancedExposeOptions {
         name: value.name,
         import: value.import,
+        layer: value.layer,
       },
     )
   }

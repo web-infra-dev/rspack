@@ -126,13 +126,13 @@ pub fn empty_assets_group() -> StatsAssetsGroup {
 }
 
 pub fn normalize_assets_group(group: &mut StatsAssetsGroup) {
-  group.js.sync.sort();
+  group.js.sync.sort_unstable();
   group.js.sync.dedup();
-  group.js.r#async.sort();
+  group.js.r#async.sort_unstable();
   group.js.r#async.dedup();
-  group.css.sync.sort();
+  group.css.sync.sort_unstable();
   group.css.sync.dedup();
-  group.css.r#async.sort();
+  group.css.r#async.sort_unstable();
   group.css.r#async.dedup();
 }
 
@@ -183,7 +183,7 @@ pub fn collect_usage_files_for_module(
     }
   }
   let mut collected: Vec<String> = files.into_iter().collect();
-  collected.sort();
+  collected.sort_unstable();
   collected
 }
 

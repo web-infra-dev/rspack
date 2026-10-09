@@ -12,6 +12,25 @@ import {
   type Remotes,
 } from './ContainerReferencePlugin';
 
+export interface ModuleFederationPluginV1BaseOptions<
+  Enhanced extends boolean = boolean,
+> {
+  exposes?: Exposes<Enhanced>;
+  filename?: string;
+  library?: LibraryOptions;
+  /**
+   * The container name. A non-empty string is required when exposing modules
+   * or enabling shared dependency tree shaking.
+   */
+  name?: string;
+  remoteType?: ExternalsType;
+  remotes?: Remotes;
+  runtime?: EntryRuntime;
+  shareScope?: ShareScope;
+  shared?: Shared;
+  enhanced?: Enhanced;
+}
+
 export interface ModuleFederationPluginV1Options {
   exposes?: Exposes;
   filename?: string;
@@ -29,8 +48,21 @@ export interface ModuleFederationPluginV1Options {
   enhanced?: boolean;
 }
 
+export type EnhancedModuleFederationPluginV1Options =
+  ModuleFederationPluginV1BaseOptions<true> & { enhanced: true };
+
 export class ModuleFederationPluginV1 {
-  constructor(private _options: ModuleFederationPluginV1Options) {}
+  private _options:
+    ModuleFederationPluginV1Options | EnhancedModuleFederationPluginV1Options;
+
+  constructor(options: EnhancedModuleFederationPluginV1Options);
+  constructor(options: ModuleFederationPluginV1Options);
+  constructor(
+    options:
+      ModuleFederationPluginV1Options | EnhancedModuleFederationPluginV1Options,
+  ) {
+    this._options = options;
+  }
 
   apply(compiler: Compiler) {
     const { _options: options } = this;
@@ -61,8 +93,9 @@ export class ModuleFederationPluginV1 {
           filename: options.filename,
           runtime: options.runtime,
           shareScope: options.shareScope,
-          exposes: options.exposes,
-          enhanced,
+          ...(options.enhanced
+            ? { exposes: options.exposes, enhanced: true }
+            : { exposes: options.exposes, enhanced: false }),
         }).apply(compiler);
       }
       if (

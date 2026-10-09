@@ -1,0 +1,11 @@
+{
+  "name": "3-layers-full",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "webpack --config=webpack.config.js"
+  },
+  "dependencies": {
+    "react": "0.1.2"
+  }
+}
