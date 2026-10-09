@@ -22,8 +22,4 @@ type Module = {
 };
 ```
 
-`module.originalSource()` 在没有 source map 时返回 `RawSource`，有 source map 时返回 `SourceMapSource`，模块没有源码时返回 `null`。通过 `map()` 或 `sourceAndMap()` 获取的 source map 是一个惰性 Proxy：首次读取属性、枚举、修改或进行 JSON 序列化时，才会从 Rust 侧传输数据，随后缓存在该 map 对象中。单独调用 `map()` 不会传输 map 数据。
-
-原生结构化克隆（包括 `structuredClone()` 和 worker 消息传递）不支持 Proxy 对象。使用这些 API 前，请先通过 `JSON.parse(JSON.stringify(map))` 将 map 转换为普通对象。
-
 </>

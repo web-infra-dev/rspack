@@ -22,8 +22,4 @@ type Module = {
 };
 ```
 
-`module.originalSource()` returns a `RawSource` when no source map is available, a `SourceMapSource` when a map is available, or `null` when the module has no source. The source map returned by `map()` or `sourceAndMap()` is a lazy Proxy: its data is transferred from Rust on the first property read, enumeration, mutation, or JSON serialization, then cached in that map object. Calling `map()` alone does not transfer the map data.
-
-Native structured cloning, including `structuredClone()` and worker messages, does not support Proxy objects. Convert the map to a plain object with `JSON.parse(JSON.stringify(map))` before using these APIs.
-
 </>
