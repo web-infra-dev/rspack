@@ -76,7 +76,8 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
   } else {
     String::from("**/") + trim_start
   };
-  fast_glob::glob_match(&normalized_glob, string.trim_start_matches("./"))
+  rspack_glob::GlobPattern::new(&normalized_glob)
+    .is_ok_and(|pattern| pattern.is_match(string.trim_start_matches("./")))
 }
 
 pub trait ClassExt<'a> {

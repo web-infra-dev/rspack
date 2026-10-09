@@ -618,6 +618,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           start: import_call_span.real_lo(),
           end: import_call_span.real_hi(),
           referenced_specifiers: None,
+          glob_alias: None,
           glob_import: None,
           glob_exhaustive: false,
           glob_case_sensitive: true,

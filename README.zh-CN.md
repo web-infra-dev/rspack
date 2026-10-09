@@ -113,6 +113,7 @@ Rspack 是 Rstack 的一员。Rstack 是为开发者与 Agent 打造的高性能
 - [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity) 项目（由 [@jscheid](https://github.com/jscheid) 创建），它启发了 Rspack 内的 SubresourceIntegrityPlugin 实现。
 - [circular-dependency-plugin](https://github.com/aackerman/circular-dependency-plugin) 项目（由 [@aackerman](https://github.com/aackerman) 创建），它启发 Rspack 中循环依赖插件的实现。
 - [tracing-chrome](https://github.com/thoren-d/tracing-chrome) 项目（由 [thoren-d](https://github.com/thoren-d) 创建），它启发 Rspack tracing 功能的实现。
+- [fast-glob](https://github.com/oxc-project/fast-glob) 项目，为 Rspack 的 glob 匹配实现提供了基础。
 
 ## License
 

@@ -3,10 +3,11 @@ use std::sync::Arc;
 
 use async_recursion::async_recursion;
 use cow_utils::CowUtils;
-use fast_glob::glob_match;
-use rspack_error::Result;
+use rspack_error::{Result, error};
 use rspack_fs::ReadableFileSystem;
+use rspack_glob::{GlobOptions, GlobPattern};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_util::node_path::NodePath;
 
 #[derive(Debug)]
 pub struct GlobMatchOptions {
@@ -33,72 +34,13 @@ impl fmt::Display for GlobMatchOptions {
   }
 }
 
-/// Escape special glob characters in a literal path string.
-/// Replaces `glob::Pattern::escape`.
-pub fn escape_glob_pattern(s: &str) -> String {
-  let mut result = String::with_capacity(s.len());
-  for c in s.chars() {
-    match c {
-      '*' | '?' | '[' | ']' | '{' | '}' => {
-        result.push('\\');
-        result.push(c);
-      }
-      _ => result.push(c),
+impl From<&GlobMatchOptions> for GlobOptions {
+  fn from(options: &GlobMatchOptions) -> Self {
+    Self {
+      case_sensitive: options.case_sensitive,
+      require_literal_leading_dot: options.require_literal_leading_dot,
     }
   }
-  result
-}
-
-/// Match a path against a glob pattern with options.
-pub fn glob_match_with_options(pattern: &str, path: &str, options: &GlobMatchOptions) -> bool {
-  if options.case_sensitive {
-    glob_match(pattern.as_bytes(), path.as_bytes())
-  } else {
-    let pattern = pattern.cow_to_lowercase();
-    let path = path.cow_to_lowercase();
-    glob_match(pattern.as_bytes(), path.as_bytes())
-  }
-}
-
-/// Match a path against a glob pattern while respecting the `require_literal_leading_dot` option.
-pub fn glob_match_with_explicit_dot(
-  pattern: &str,
-  path: &str,
-  base_dir: &str,
-  options: &GlobMatchOptions,
-) -> bool {
-  let normalized_pattern = normalize_path_separators(pattern);
-  let normalized_path = normalize_path_separators_for_path(path);
-  let normalized_base_dir = normalize_path_separators_for_path(base_dir);
-
-  glob_match_normalized_with_explicit_dot(
-    &normalized_pattern,
-    &normalized_path,
-    &normalized_base_dir,
-    options,
-  )
-}
-
-/// Match normalized path strings against a normalized glob pattern.
-pub(crate) fn glob_match_normalized_with_explicit_dot(
-  normalized_pattern: &str,
-  normalized_path: &str,
-  normalized_base_dir: &str,
-  options: &GlobMatchOptions,
-) -> bool {
-  if options.require_literal_leading_dot
-    && path_has_dot_component(normalized_path, normalized_base_dir)
-    && !pattern_has_explicit_dot_for(
-      normalized_pattern,
-      normalized_base_dir,
-      normalized_path,
-      options,
-    )
-  {
-    return false;
-  }
-
-  glob_match_with_options(normalized_pattern, normalized_path, options)
 }
 
 /// Return whether a character has special meaning in glob patterns.
@@ -233,394 +175,118 @@ pub(crate) async fn walk_dir(
   Ok(())
 }
 
-/// Find files matching a glob pattern by traversing the filesystem.
-/// Replaces `glob::glob_with`.
+/// A physical scan root and a compiled glob in coordinates relative to that root.
+/// Literal filesystem paths never become part of the glob's syntax.
+#[derive(Debug)]
+pub struct GlobScanPlan {
+  pub root: Utf8PathBuf,
+  pub pattern: GlobPattern,
+  literal_path: Option<Utf8PathBuf>,
+}
+
+impl GlobScanPlan {
+  /// Compile a glob relative to `context`, consuming its literal directory prefix.
+  pub fn new(pattern: &str, context: &Utf8Path, options: &GlobMatchOptions) -> Result<Self> {
+    let normalized = normalize_path_separators(pattern);
+    let end = if options.case_sensitive {
+      glob_base_dir_end(&normalized)
+    } else {
+      // Keep the real spelling of directory entries when matching case-insensitively.
+      normalized
+        .split_inclusive('/')
+        .enumerate()
+        .take_while(|(index, segment)| {
+          matches!(segment.trim_end_matches('/'), "" | "." | "..")
+            || (*index == 0 && segment.ends_with(":/"))
+        })
+        .map(|(_, segment)| segment.len())
+        .sum()
+    };
+    let prefix = unescape_glob_path(&normalized[..end]);
+    let join_literal = |path: &str| {
+      if Utf8Path::new(path).is_absolute() {
+        Utf8Path::new(path).node_normalize_posix()
+      } else {
+        context.node_join_posix(path).node_normalize_posix()
+      }
+    };
+    let root = join_literal(&prefix);
+    let compiled = GlobPattern::new_with_options(&normalized, options.into())
+      .map_err(|err| error!("Invalid glob pattern {pattern:?}: {err}"))?;
+    let remaining = compiled
+      .match_prefix(&prefix)
+      .ok_or_else(|| error!("Glob pattern {pattern:?} does not match its directory prefix"))?;
+    let literal_path = (options.case_sensitive
+      && first_glob_metacharacter_index(&normalized).is_none())
+    .then(|| join_literal(&unescape_glob_path(&normalized)));
+    Ok(Self {
+      root,
+      pattern: remaining,
+      literal_path,
+    })
+  }
+
+  /// Scan a directory with a pattern that is already relative to it.
+  pub fn from_directory(root: Utf8PathBuf, pattern: GlobPattern) -> Self {
+    Self {
+      root,
+      pattern,
+      literal_path: None,
+    }
+  }
+
+  /// Traverse only directories for which the pattern has a continuation.
+  pub async fn scan(&self, fs: Arc<dyn ReadableFileSystem>) -> Result<Vec<Utf8PathBuf>> {
+    if let Some(path) = &self.literal_path {
+      return Ok(
+        if fs.metadata(path).await.is_ok_and(|meta| !meta.is_directory)
+          && self.pattern.is_match(path.file_name().unwrap_or_default())
+        {
+          vec![path.clone()]
+        } else {
+          Vec::new()
+        },
+      );
+    }
+    let mut results = Vec::new();
+    scan_glob_dir(&self.root, &self.pattern, &fs, &mut results).await?;
+    Ok(results)
+  }
+}
+
+#[async_recursion]
+async fn scan_glob_dir(
+  root: &Utf8Path,
+  pattern: &GlobPattern,
+  fs: &Arc<dyn ReadableFileSystem>,
+  results: &mut Vec<Utf8PathBuf>,
+) -> Result<()> {
+  if !fs.metadata(root).await.is_ok_and(|meta| meta.is_directory) {
+    return Ok(());
+  }
+  for filename in fs.read_dir(root).await? {
+    let Some(remaining) = pattern.match_prefix(&filename) else {
+      continue;
+    };
+    let path = root.join(&filename);
+    if fs.metadata(&path).await.is_ok_and(|meta| meta.is_directory) {
+      if let Some(remaining) = remaining.match_prefix("/") {
+        scan_glob_dir(&path, &remaining, fs, results).await?;
+      }
+    } else if remaining.is_match("") {
+      results.push(path);
+    }
+  }
+  Ok(())
+}
+
+/// Find files matching a glob by advancing its states during directory traversal.
 pub async fn find_files_by_glob(
   pattern: &str,
   options: &GlobMatchOptions,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<Vec<Utf8PathBuf>> {
-  let normalized_pattern = normalize_path_separators(pattern);
-  let base_dir = extract_glob_base_dir(&normalized_pattern);
-  let unescaped_base_dir = unescape_glob_path(base_dir);
-  let base_dir_path = Utf8Path::new(&unescaped_base_dir);
-
-  // A pattern without metacharacters can only match itself, so walking its base directory is wasted
-  // work. Case-insensitive matching still needs the walk to find the real spelling on disk.
-  if options.case_sensitive && first_glob_metacharacter_index(&normalized_pattern).is_none() {
-    let path = Utf8PathBuf::from(unescape_glob_path(&normalized_pattern));
-    let matched = fs
-      .metadata(&path)
-      .await
-      .is_ok_and(|meta| !meta.is_directory)
-      && glob_match_normalized_with_explicit_dot(
-        &normalized_pattern,
-        path.as_str(),
-        base_dir_path.as_str(),
-        options,
-      );
-
-    return Ok(if matched { vec![path] } else { Vec::new() });
-  }
-
-  let mut results = Vec::new();
-  walk_dir(
-    base_dir_path,
-    fs,
-    true,  // always recursive for glob
-    false, // dotfile filtering handled in callback below
-    &mut |_path, _dirname| true,
-    &mut |path, _filename| {
-      if glob_match_with_explicit_dot(
-        &normalized_pattern,
-        path.as_str(),
-        base_dir_path.as_str(),
-        options,
-      ) {
-        results.push(path);
-      }
-    },
-  )
-  .await?;
-  Ok(results)
-}
-
-fn path_has_dot_component(path: &str, base_dir: &str) -> bool {
-  let relative = path.strip_prefix(base_dir).unwrap_or(path);
-  for component in relative.split('/').filter(|segment| !segment.is_empty()) {
-    if component.starts_with('.') {
-      return true;
-    }
-  }
-  false
-}
-
-/// Check whether the glob pattern has an explicit `.` for a given dot-file path.
-fn pattern_has_explicit_dot_for(
-  pattern: &str,
-  base_dir: &str,
-  path: &str,
-  options: &GlobMatchOptions,
-) -> bool {
-  let escaped_base_dir = escape_glob_pattern(base_dir);
-  let pattern_suffix = pattern
-    .strip_prefix(base_dir)
-    .or_else(|| pattern.strip_prefix(&escaped_base_dir))
-    .unwrap_or(pattern);
-
-  let relative = path.strip_prefix(base_dir).unwrap_or(path);
-  let pattern_segments = pattern_suffix
-    .split('/')
-    .filter(|segment| !segment.is_empty())
-    .collect::<Vec<_>>();
-  let path_segments = relative
-    .split('/')
-    .filter(|segment| !segment.is_empty())
-    .collect::<Vec<_>>();
-
-  fn matches_explicit_dot_segments(
-    patterns: &[&str],
-    paths: &[&str],
-    options: &GlobMatchOptions,
-  ) -> bool {
-    match (patterns.split_first(), paths.split_first()) {
-      (None, None) => true,
-      (None, Some(_)) => false,
-      (Some((&"**", pattern_rest)), _) => {
-        matches_explicit_dot_segments(pattern_rest, paths, options)
-          || matches!(
-            paths.split_first(),
-            Some((&path_head, path_rest))
-              if !path_head.starts_with('.') && matches_explicit_dot_segments(patterns, path_rest, options)
-          )
-      }
-      (Some((&pattern_head, pattern_rest)), Some((&path_head, path_rest))) => {
-        if path_head.starts_with('.') && !pattern_head.starts_with('.') {
-          return false;
-        }
-        glob_match_with_options(pattern_head, path_head, options)
-          && matches_explicit_dot_segments(pattern_rest, path_rest, options)
-      }
-      (Some(_), None) => false,
-    }
-  }
-
-  matches_explicit_dot_segments(&pattern_segments, &path_segments, options)
-}
-
-#[cfg(test)]
-mod tests {
-  use std::sync::atomic::{AtomicUsize, Ordering};
-
-  use rspack_fs::{FileMetadata, FilePermissions, MemoryFileSystem, WritableFileSystem};
-
-  use super::*;
-
-  #[derive(Debug, Default)]
-  struct ReadDirCountingFileSystem {
-    inner: MemoryFileSystem,
-    read_dir_count: AtomicUsize,
-  }
-
-  #[async_trait::async_trait]
-  impl ReadableFileSystem for ReadDirCountingFileSystem {
-    async fn read(&self, path: &Utf8Path) -> rspack_fs::Result<Vec<u8>> {
-      self.inner.read(path).await
-    }
-
-    fn read_sync(&self, path: &Utf8Path) -> rspack_fs::Result<Vec<u8>> {
-      self.inner.read_sync(path)
-    }
-
-    async fn metadata(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
-      self.inner.metadata(path).await
-    }
-
-    fn metadata_sync(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
-      self.inner.metadata_sync(path)
-    }
-
-    async fn symlink_metadata(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
-      self.inner.symlink_metadata(path).await
-    }
-
-    async fn read_link(&self, path: &Utf8Path) -> rspack_fs::Result<Utf8PathBuf> {
-      self.inner.read_link(path).await
-    }
-
-    async fn canonicalize(&self, path: &Utf8Path) -> rspack_fs::Result<Utf8PathBuf> {
-      self.inner.canonicalize(path).await
-    }
-
-    async fn read_dir(&self, dir: &Utf8Path) -> rspack_fs::Result<Vec<String>> {
-      self.read_dir_count.fetch_add(1, Ordering::Relaxed);
-      ReadableFileSystem::read_dir(&self.inner, dir).await
-    }
-
-    fn read_dir_sync(&self, dir: &Utf8Path) -> rspack_fs::Result<Vec<String>> {
-      self.read_dir_count.fetch_add(1, Ordering::Relaxed);
-      self.inner.read_dir_sync(dir)
-    }
-
-    async fn permissions(&self, path: &Utf8Path) -> rspack_fs::Result<Option<FilePermissions>> {
-      self.inner.permissions(path).await
-    }
-  }
-
-  #[tokio::test]
-  async fn literal_pattern_does_not_walk_its_base_directory() {
-    let fs = Arc::new(ReadDirCountingFileSystem::default());
-    fs.inner
-      .create_dir_all("/project/deps".into())
-      .await
-      .unwrap();
-    fs.inner
-      .write("/project/index.html".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-    fs.inner
-      .write("/project/deps/other.html".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-
-    let entries = find_files_by_glob(
-      "/project/index.html",
-      &GlobMatchOptions::default(),
-      fs.clone() as Arc<dyn ReadableFileSystem>,
-    )
+  GlobScanPlan::new(pattern, Utf8Path::new("."), options)?
+    .scan(fs)
     .await
-    .unwrap();
-
-    assert_eq!(entries, vec![Utf8PathBuf::from("/project/index.html")]);
-    assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 0);
-  }
-
-  #[tokio::test]
-  async fn literal_pattern_returns_nothing_when_the_file_is_missing() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/project".into()).await.unwrap();
-
-    let entries = find_files_by_glob(
-      "/project/index.html",
-      &GlobMatchOptions::default(),
-      fs as Arc<dyn ReadableFileSystem>,
-    )
-    .await
-    .unwrap();
-
-    assert!(entries.is_empty());
-  }
-
-  #[test]
-  fn extract_glob_base_dir_skips_escaped_metacharacters() {
-    assert_eq!(
-      extract_glob_base_dir("./fixtures/a\\[b\\]/file"),
-      "./fixtures/a\\[b\\]/"
-    );
-    assert_eq!(
-      extract_glob_base_dir("./fixtures/a\\[b\\]/**/*.js"),
-      "./fixtures/a\\[b\\]/"
-    );
-    assert_eq!(
-      extract_glob_base_dir("./fixtures/file\\*.js"),
-      "./fixtures/"
-    );
-    assert_eq!(
-      extract_glob_base_dir("./fixtures/directory\\?1/**/*.js"),
-      "./fixtures/directory\\?1/"
-    );
-  }
-
-  #[test]
-  fn normalize_path_separators_preserves_glob_escapes() {
-    assert_eq!(
-      normalize_path_separators("./fixtures/a\\[b\\]/**/*.js"),
-      "./fixtures/a\\[b\\]/**/*.js"
-    );
-    assert_eq!(
-      normalize_path_separators("./fixtures/file\\*.js"),
-      "./fixtures/file\\*.js"
-    );
-    assert_eq!(
-      normalize_path_separators("./fixtures/file\\?.js"),
-      "./fixtures/file\\?.js"
-    );
-    assert_eq!(
-      normalize_path_separators("C:\\fixtures\\a\\[b\\]\\file.js"),
-      "C:/fixtures/a\\[b\\]/file.js"
-    );
-    assert_eq!(
-      normalize_path_separators("C:\\repo\\src/*.js"),
-      "C:/repo/src/*.js"
-    );
-  }
-
-  #[test]
-  fn normalize_path_separators_for_path_treats_glob_chars_as_literals() {
-    assert_eq!(
-      normalize_path_separators_for_path("C:\\fixtures\\a\\[b]\\file.js"),
-      "C:/fixtures/a/[b]/file.js"
-    );
-    assert_eq!(
-      normalize_path_separators_for_path("C:\\fixtures\\a\\{b}\\file.js"),
-      "C:/fixtures/a/{b}/file.js"
-    );
-  }
-
-  #[test]
-  fn unescape_glob_path_restores_literal_path_segments() {
-    assert_eq!(
-      unescape_glob_path("./fixtures/a\\[b\\]/"),
-      "./fixtures/a[b]/"
-    );
-    assert_eq!(
-      unescape_glob_path("./fixtures/file\\*.js"),
-      "./fixtures/file*.js"
-    );
-    assert_eq!(
-      unescape_glob_path("./fixtures/directory\\?1/"),
-      "./fixtures/directory?1/"
-    );
-  }
-
-  #[test]
-  fn escaped_star_and_question_match_literal_path_segments() {
-    let options = GlobMatchOptions::default();
-
-    assert!(glob_match_with_options(
-      "./fixtures/file\\*.js",
-      "./fixtures/file*.js",
-      &options
-    ));
-    assert!(!glob_match_with_options(
-      "./fixtures/file\\*.js",
-      "./fixtures/file-a.js",
-      &options
-    ));
-    assert!(glob_match_with_options(
-      "./fixtures/directory\\?1/**/*.js",
-      "./fixtures/directory?1/index.js",
-      &options
-    ));
-    assert!(!glob_match_with_options(
-      "./fixtures/directory\\?1/**/*.js",
-      "./fixtures/directory-a1/index.js",
-      &options
-    ));
-  }
-
-  #[test]
-  fn explicit_dot_patterns_allow_wildcard_dot_segments() {
-    let base_dir = "./fixtures/";
-    let options = GlobMatchOptions::default();
-
-    assert!(pattern_has_explicit_dot_for(
-      "./fixtures/**/.*",
-      base_dir,
-      "./fixtures/.env",
-      &options
-    ));
-    assert!(pattern_has_explicit_dot_for(
-      "./fixtures/**/.*/index.js",
-      base_dir,
-      "./fixtures/.cache/index.js",
-      &options
-    ));
-    assert!(!pattern_has_explicit_dot_for(
-      "./fixtures/**/index.js",
-      base_dir,
-      "./fixtures/.cache/index.js",
-      &options
-    ));
-  }
-
-  #[test]
-  fn explicit_dot_patterns_respect_case_insensitive_matching() {
-    let base_dir = "./fixtures/";
-    let options = GlobMatchOptions {
-      case_sensitive: false,
-      ..Default::default()
-    };
-
-    assert!(pattern_has_explicit_dot_for(
-      "./fixtures/**/.ENV",
-      base_dir,
-      "./fixtures/.env",
-      &options
-    ));
-  }
-
-  #[test]
-  fn glob_match_with_explicit_dot_treats_windows_path_separators_as_separators() {
-    let options = GlobMatchOptions::default();
-    assert!(glob_match_with_explicit_dot(
-      "C:/repo/escape/**/glob.js",
-      "C:\\repo\\escape\\[brackets]\\glob.js",
-      "C:/repo/escape/",
-      &options
-    ));
-    assert!(glob_match_with_explicit_dot(
-      "C:/repo/escape/**/glob.js",
-      "C:\\repo\\escape\\{curlies}\\glob.js",
-      "C:/repo/escape/",
-      &options
-    ));
-  }
-
-  #[test]
-  fn glob_match_with_explicit_dot_requires_literal_dot_segments() {
-    let options = GlobMatchOptions::default();
-    assert!(glob_match_with_explicit_dot(
-      "./fixtures/.*.js",
-      "./fixtures/.hidden.js",
-      "./fixtures/",
-      &options
-    ));
-    assert!(!glob_match_with_explicit_dot(
-      "./fixtures/*.js",
-      "./fixtures/.hidden.js",
-      "./fixtures/",
-      &options
-    ));
-  }
 }

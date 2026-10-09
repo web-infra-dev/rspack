@@ -18,7 +18,6 @@ dashmap                    = { workspace = true, features = ["rayon"] }
 derive_more                = { workspace = true, features = ["debug"] }
 dyn-clone                  = { workspace = true }
 either                     = { workspace = true }
-fast-glob                  = { workspace = true }
 fixedbitset                = { workspace = true }
 futures                    = { workspace = true }
 hashlink                   = { workspace = true }
@@ -43,6 +42,7 @@ rspack_collections         = { workspace = true }
 rspack_dojang              = { workspace = true }
 rspack_error               = { workspace = true }
 rspack_fs                  = { workspace = true }
+rspack_glob                = { workspace = true }
 rspack_hash                = { workspace = true }
 rspack_hook                = { workspace = true }
 rspack_intern              = { workspace = true, features = ["swc"] }
