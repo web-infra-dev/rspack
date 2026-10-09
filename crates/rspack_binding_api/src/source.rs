@@ -130,10 +130,10 @@ pub(crate) fn is_same_source(snapshot: Object<'_>, source: &BoxSource) -> Result
 
 impl ToNapiValue for JsOriginalSource {
   unsafe fn to_napi_value(env: napi::sys::napi_env, value: Self) -> Result<napi::sys::napi_value> {
+    let env = Env::from_raw(env);
     let Some(source) = value.0 else {
-      return unsafe { <()>::to_napi_value(env, ()) };
+      return Ok(().into_unknown(&env)?.raw());
     };
-    let env = unsafe { Env::from_raw(env) };
     // Keep owned SourceValue content alive until N-API has copied the borrowed string.
     let value = source.source();
     let binding = match &value {
