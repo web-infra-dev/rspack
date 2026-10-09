@@ -76,8 +76,11 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
   } else {
     String::from("**/") + trim_start
   };
-  rspack_glob::GlobPattern::new(&normalized_glob)
-    .is_ok_and(|pattern| pattern.is_match(string.trim_start_matches("./")))
+  rspack_glob::GlobPattern::new(normalized_glob.as_bytes()).is_ok_and(|pattern| {
+    pattern
+      .match_path(string.trim_start_matches("./"))
+      .is_exact()
+  })
 }
 
 pub trait ClassExt<'a> {

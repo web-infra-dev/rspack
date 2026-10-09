@@ -1,11 +1,11 @@
 // Ported from fast-glob 1.1.2: https://github.com/oxc-project/fast-glob.
 // Originally forked from https://github.com/devongovett/glob-match/blob/d5a6c67/src/lib.rs.
-// MIT Licensed; see the notice in lib.rs.
+// MIT Licensed; see the notice in rspack_glob/src/lib.rs.
+// Test-only compatibility oracle; production matching uses the instruction graph.
 use std::path::is_separator;
 
+use rspack_glob::validate;
 use smallvec::SmallVec;
-
-use super::syntax::{skip_class, validate};
 
 const MAX_BRACE_GROUPS: usize = 10;
 
@@ -38,15 +38,15 @@ type BraceStack = SmallVec<[(u32, u32); MAX_BRACE_GROUPS]>;
 /// `!` negation, but the exact behavior may change between releases. Callers
 /// accepting user-written patterns should reject invalid ones up front with
 /// [`validate`].
-pub fn glob_match(glob: impl AsRef<[u8]>, path: impl AsRef<[u8]>) -> bool {
-  let (matched, invalid_pattern) = glob_match_internal(glob.as_ref(), path.as_ref());
+pub fn reference_match(glob: impl AsRef<[u8]>, path: impl AsRef<[u8]>) -> bool {
+  let (matched, invalid_pattern) = reference_match_internal(glob.as_ref(), path.as_ref());
   matched && !invalid_pattern
 }
 
 /// Returns the match result (with negation applied) alongside whether the
 /// pattern was detected as invalid, so tests can check the latter against
 /// [`validate`].
-fn glob_match_internal(glob: &[u8], path: &[u8]) -> (bool, bool) {
+fn reference_match_internal(glob: &[u8], path: &[u8]) -> (bool, bool) {
   let mut state = State::default();
 
   let mut negated = false;
@@ -58,7 +58,7 @@ fn glob_match_internal(glob: &[u8], path: &[u8]) -> (bool, bool) {
   let mut brace_stack = BraceStack::new();
   let mut invalid_pattern = false;
   let match_start = state.glob_index;
-  let matched = state.glob_match_from(
+  let matched = state.reference_match_from(
     glob,
     path,
     match_start,
@@ -196,7 +196,7 @@ impl State {
     branch_state.brace_depth = self.brace_depth + 1;
 
     let matched =
-      branch_state.glob_match_from(glob, path, branch_index, brace_stack, invalid_pattern);
+      branch_state.reference_match_from(glob, path, branch_index, brace_stack, invalid_pattern);
 
     brace_stack.pop();
 
@@ -277,7 +277,7 @@ impl State {
   }
 
   #[inline(always)]
-  fn glob_match_from(
+  fn reference_match_from(
     &mut self,
     glob: &[u8],
     path: &[u8],
@@ -448,5 +448,23 @@ impl State {
     }
 
     true
+  }
+}
+
+fn skip_class(glob: &[u8], index: usize) -> Option<usize> {
+  let mut index = index + 1;
+  if matches!(glob.get(index), Some(b'^' | b'!')) {
+    index += 1;
+  }
+
+  let mut first = true;
+  loop {
+    match glob.get(index)? {
+      b']' if !first => return Some(index + 1),
+      b'\\' => index += 1,
+      _ => {}
+    }
+    first = false;
+    index += 1;
   }
 }

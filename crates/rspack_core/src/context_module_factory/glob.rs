@@ -1,18 +1,17 @@
 use cow_utils::CowUtils;
-use rspack_glob::{GlobOptions, GlobPattern};
+use rspack_glob::{
+  GlobOptions, GlobPattern, extract_glob_base_dir, glob_base_dir_end, normalize_path_separators,
+  normalize_path_separators_for_path, unescape_glob_path,
+};
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::{identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
 
-use crate::{
-  ContextGlobAlias, ContextGlobScan, ContextModuleOptions, ResolveInnerOptions,
-  extract_glob_base_dir, glob_base_dir_end, normalize_path_separators,
-  normalize_path_separators_for_path, unescape_glob_path,
-};
+use crate::{ContextGlobAlias, ContextGlobScan, ContextModuleOptions, ResolveInnerOptions};
 
 #[derive(Debug)]
-struct ContextModuleGlobPattern {
+pub(super) struct ContextModuleGlobPattern {
   pattern: String,
   pattern_base: String,
   negative: bool,
@@ -303,8 +302,8 @@ fn parse_context_module_glob_pattern(pattern: &str) -> ContextModuleGlobPattern 
   }
 }
 
-struct CompiledGlobPattern {
-  matcher: GlobPattern,
+struct CompiledGlobPattern<'a> {
+  matcher: GlobPattern<'a>,
   negative: bool,
   root_relative: bool,
   alias: Option<Utf8PathBuf>,
@@ -314,23 +313,40 @@ struct CompiledGlobPattern {
 }
 
 pub(super) struct ContextModuleGlobMatcher<'a> {
-  patterns: Vec<CompiledGlobPattern>,
+  patterns: Vec<CompiledGlobPattern<'a>>,
   context: &'a str,
   compiler_context: &'a str,
   case_sensitive: bool,
 }
 
+pub(super) fn parse_context_module_glob_patterns(
+  options: &ContextModuleOptions,
+) -> Option<Vec<ContextModuleGlobPattern>> {
+  Some(
+    options
+      .context_options
+      .pattern
+      .glob_patterns()?
+      .iter()
+      .map(|pattern| parse_context_module_glob_pattern(pattern))
+      .collect(),
+  )
+}
+
 impl<'a> ContextModuleGlobMatcher<'a> {
-  pub(super) fn new(options: &'a ContextModuleOptions) -> Option<Self> {
+  pub(super) fn new(
+    options: &'a ContextModuleOptions,
+    sources: &'a [ContextModuleGlobPattern],
+  ) -> Option<Self> {
     let context_options = &options.context_options;
     let patterns = context_options
       .pattern
       .glob_patterns()?
       .iter()
-      .filter_map(|raw| {
-        let source = parse_context_module_glob_pattern(raw);
+      .zip(sources)
+      .filter_map(|(raw, source)| {
         let mut matcher = GlobPattern::new_with_options(
-          &source.pattern,
+          source.pattern.as_bytes(),
           GlobOptions {
             case_sensitive: context_options.glob_case_sensitive,
             require_literal_leading_dot: !context_options.glob_exhaustive,
@@ -362,7 +378,7 @@ impl<'a> ContextModuleGlobMatcher<'a> {
           (
             None,
             absolute_context_module_glob_pattern_base(
-              &source,
+              source,
               &context_options.context,
               &context_options.compiler_context,
             ),
@@ -403,7 +419,7 @@ impl<'a> ContextModuleGlobMatcher<'a> {
     self.patterns.is_empty()
   }
 
-  fn request(&self, pattern: &CompiledGlobPattern, path: &str) -> String {
+  fn request(&self, pattern: &CompiledGlobPattern<'_>, path: &str) -> String {
     context_relative_glob_request(
       path,
       if pattern.root_relative {
@@ -415,7 +431,7 @@ impl<'a> ContextModuleGlobMatcher<'a> {
     )
   }
 
-  fn matching_path(&self, pattern: &CompiledGlobPattern, path: &str) -> String {
+  fn matching_path(&self, pattern: &CompiledGlobPattern<'_>, path: &str) -> String {
     if let Some(root) = &pattern.alias {
       let relative = Utf8Path::new(path).as_std_path().relative(root);
       normalize_path_separators_for_path(&relative.to_string_lossy())
@@ -429,12 +445,22 @@ impl<'a> ContextModuleGlobMatcher<'a> {
       .patterns
       .iter()
       .filter(|pattern| !pattern.negative)
-      .find(|pattern| pattern.matcher.is_match(self.matching_path(pattern, path)))?;
+      .find(|pattern| {
+        pattern
+          .matcher
+          .match_path(self.matching_path(pattern, path))
+          .is_exact()
+      })?;
     if self
       .patterns
       .iter()
       .filter(|pattern| pattern.negative)
-      .any(|pattern| pattern.matcher.is_match(self.matching_path(pattern, path)))
+      .any(|pattern| {
+        pattern
+          .matcher
+          .match_path(self.matching_path(pattern, path))
+          .is_exact()
+      })
     {
       return None;
     }

@@ -13,7 +13,8 @@ use tracing::instrument;
 
 pub use self::glob::{CompiledContextModuleGlobRequest, compile_context_module_glob_request};
 use self::glob::{
-  ContextModuleGlobMatcher, compile_aliased_glob_request, context_module_glob_alias_request,
+  ContextModuleGlobMatcher, ContextModuleGlobPattern, compile_aliased_glob_request,
+  context_module_glob_alias_request, parse_context_module_glob_patterns,
 };
 use crate::{
   CompilationId, ContextElementDependency, ContextGlobAlias, ContextMode, ContextModule,
@@ -21,10 +22,12 @@ use crate::{
   DependencyType, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
   OverrideStrict, ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, Resource,
-  SharedPluginDriver, resolve_with_resolver, walk_dir,
+  SharedPluginDriver, resolve_with_resolver,
 };
 
 mod glob;
+mod walk;
+use walk::walk_dir;
 
 #[derive(Debug)]
 pub enum BeforeResolveResult {
@@ -596,7 +599,8 @@ async fn visit_dirs(
 ) -> Result<()> {
   let include = &options.context_options.include;
   let exclude = &options.context_options.exclude;
-  let matcher = ContextModuleMatcher::new(options);
+  let glob_patterns = parse_context_module_glob_patterns(options);
+  let matcher = ContextModuleMatcher::new(options, glob_patterns.as_deref());
   if matcher.is_empty() {
     return Ok(());
   }
@@ -729,13 +733,16 @@ struct ContextModuleMatcher<'a> {
 }
 
 impl<'a> ContextModuleMatcher<'a> {
-  fn new(options: &'a ContextModuleOptions) -> Self {
+  fn new(
+    options: &'a ContextModuleOptions,
+    glob_patterns: Option<&'a [ContextModuleGlobPattern]>,
+  ) -> Self {
     let context_options = &options.context_options;
     Self {
       pattern: &context_options.pattern,
       query: &options.resource_query,
       fragment: &options.resource_fragment,
-      glob: ContextModuleGlobMatcher::new(options),
+      glob: glob_patterns.and_then(|patterns| ContextModuleGlobMatcher::new(options, patterns)),
     }
   }
 
