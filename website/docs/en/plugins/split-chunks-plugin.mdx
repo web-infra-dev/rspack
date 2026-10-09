@@ -247,7 +247,7 @@ export default {
 ```
 
 :::warning
-Function `chunks` selectors incur cross-language communication overhead between Rust and JavaScript. During chunk-group preparation within an optimization pass, Rspack reuses each cache group's selection results for modules with the same chunk set. Results are not reused across rebuilds. Use pure selectors that do not depend on invocation counts or side effects. Prefer built-in filters (`'all'`, `'initial'`, `'async'`, or a regular expression) when they express the desired selection.
+Using the function type of `chunks` will significantly reduce build performance, as the function needs to be called for each module, resulting in huge cross-language communication overhead between Rust and JavaScript. Therefore, we do not recommend using the function type.
 :::
 
 You can configure `chunks` individually for each cacheGroup, for example:
