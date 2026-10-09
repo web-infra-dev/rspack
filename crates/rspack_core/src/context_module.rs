@@ -164,6 +164,30 @@ impl From<Option<RspackRegex>> for ContextModulePattern {
   }
 }
 
+/// Alias resolution retained per raw glob, including its resource suffix.
+/// Context options clone these small values for factory hooks and module creation.
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct ContextGlobAlias {
+  pub pattern: String,
+  pub prefix: String,
+  #[cacheable(with=AsPreset)]
+  pub resource: Utf8PathBuf,
+  pub query: String,
+  pub fragment: String,
+}
+
+/// Physical scan coordinates before hooks relocate the directory. Cloning copies
+/// the alias metadata with the context options; compiled programs stay ephemeral.
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct ContextGlobScan {
+  #[cacheable(with=AsPreset)]
+  pub root: Utf8PathBuf,
+  #[cacheable(with=AsVec<AsCacheable>)]
+  pub aliases: Vec<ContextGlobAlias>,
+}
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ContextOptions {
@@ -190,6 +214,9 @@ pub struct ContextOptions {
   pub end: u32,
   #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
   pub referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
+  /// Per-pattern alias coordinates, retained without rewriting glob syntax.
+  #[cacheable(with=AsOption<AsCacheable>)]
+  pub glob_alias: Option<ContextGlobScan>,
   pub glob_import: Option<String>,
   pub glob_exhaustive: bool,
   pub glob_case_sensitive: bool,
@@ -215,6 +242,7 @@ impl Default for ContextOptions {
       start: 0,
       end: 0,
       referenced_specifiers: None,
+      glob_alias: None,
       glob_import: None,
       glob_exhaustive: false,
       glob_case_sensitive: true,
@@ -1420,6 +1448,10 @@ impl Module for ContextModule {
         })
         .join(", ");
     }
+    if let Some(alias) = &self.options.context_options.glob_alias {
+      id += " globAlias: ";
+      id += &format!("{alias:?}");
+    }
     if let Some(import) = &self.options.context_options.glob_import {
       id += " globImport: ";
       id += import;
@@ -1674,6 +1706,10 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
         }
       })
       .join(", ");
+  }
+  if let Some(alias) = &options.context_options.glob_alias {
+    id += "|globAlias: ";
+    id += &format!("{alias:?}");
   }
   if let Some(import) = &options.context_options.glob_import {
     id += "|globImport: ";

@@ -9,12 +9,12 @@ version.workspace = true
 [dependencies]
 cow-utils       = { workspace = true }
 derive_more     = { workspace = true, features = ["debug"] }
-fast-glob       = { workspace = true }
 futures         = { workspace = true }
 pathdiff        = { workspace = true, features = ["camino"] }
 regex           = { workspace = true }
 rspack_core     = { workspace = true }
 rspack_error    = { workspace = true }
+rspack_glob     = { workspace = true }
 rspack_hash     = { workspace = true }
 rspack_hook     = { workspace = true }
 rspack_parallel = { workspace = true }

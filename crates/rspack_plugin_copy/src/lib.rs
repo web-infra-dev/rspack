@@ -9,17 +9,15 @@ use std::{
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
-use fast_glob::glob_match;
 use futures::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
 use regex::Regex;
 use rspack_core::{
   AssetInfo, AssetInfoRelated, CacheOptions, Compilation, CompilationAsset, CompilationLogger,
-  CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData, Plugin,
-  escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
+  CompilationProcessAssets, Filename, GlobMatchOptions, GlobScanPlan, Logger, PathData, Plugin,
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
-  unescape_glob_path,
 };
 use rspack_error::{Diagnostic, Error, Result, ToStringResultToRspackResultExt};
+use rspack_glob::GlobPattern;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -453,9 +451,8 @@ impl CopyRspackPlugin {
     // Enable copy files starts with dot
     let mut dot_enable = pattern.glob_options.dot;
 
-    let glob_query = match from_type {
+    match from_type {
       FromType::Dir => {
-        logger.debug(format!("added '{abs_from}' as a context dependency"));
         context_dependencies.insert(
           abs_from
             .clone()
@@ -464,16 +461,9 @@ impl CopyRspackPlugin {
             .into_owned(),
         );
         context = abs_from.as_path().into();
-
-        if dot_enable.is_none() {
-          dot_enable = Some(true);
-        }
-        let from = normalize_glob_path_separators(abs_from.as_str());
-        let escaped = escape_glob_pattern(&from);
-        format!("{}/**/*", escaped.trim_end_matches('/'))
+        dot_enable = Some(dot_enable.unwrap_or(true));
       }
       FromType::File => {
-        logger.debug(format!("added '{abs_from}' as a file dependency"));
         file_dependencies.insert(
           abs_from
             .clone()
@@ -482,83 +472,63 @@ impl CopyRspackPlugin {
             .into_owned(),
         );
         context = abs_from.parent().unwrap_or(Utf8Path::new("")).into();
-
-        if dot_enable.is_none() {
-          dot_enable = Some(true);
-        }
-
-        let from = normalize_glob_path_separators(abs_from.as_str());
-        escape_glob_pattern(&from)
+        dot_enable = Some(dot_enable.unwrap_or(true));
       }
-      FromType::Glob => {
-        let mut glob_query = if Path::new(orig_from).is_absolute() {
-          orig_from.into()
-        } else {
-          context.join(orig_from).as_str().to_string()
-        };
-        if cfg!(windows) {
-          glob_query = glob_query.cow_replace('\\', "/").into_owned();
-        }
-        // A glob pattern ending with /** should match all files within a directory, not just the directory itself.
-        // Since the standard glob only matches directories, we append /* to align with webpack's behavior.
-        if glob_query.ends_with("/**") {
-          format!("{glob_query}/*")
-        } else {
-          glob_query
-        }
-      }
-    };
-
-    if matches!(from_type, FromType::Glob) {
-      let glob_base_dir = unescape_glob_path(extract_glob_base_dir(&glob_query));
-      let glob_base_dir_exists = compilation
-        .input_filesystem
-        .metadata(Utf8Path::new(&glob_base_dir))
-        .await
-        .is_ok();
-      let glob_base_dir = PathBuf::from(glob_base_dir).normalize().into_owned();
-      // Align with copy-webpack-plugin: a glob base dir that does not exist yet is
-      // a missing dependency, not a context dependency. The watcher reports a
-      // registered context dependency absent from disk as removed, which forced a
-      // second compilation right after the first one.
-      // https://github.com/webpack/copy-webpack-plugin/issues/806
-      if glob_base_dir_exists {
-        logger.debug(format!(
-          "added '{}' as a context dependency",
-          glob_base_dir.display()
-        ));
-        context_dependencies.insert(glob_base_dir);
-      } else {
-        logger.debug(format!(
-          "added '{}' as a missing dependency",
-          glob_base_dir.display()
-        ));
-        missing_dependencies.insert(glob_base_dir);
-      }
+      FromType::Glob => {}
     }
-
-    logger.log(format!("begin globbing '{glob_query}'..."));
-
     let glob_match_options = GlobMatchOptions {
       case_sensitive: pattern.glob_options.case_sensitive_match.unwrap_or(true),
       require_literal_leading_dot: !dot_enable.unwrap_or(false),
     };
-
-    let glob_entries = find_files_by_glob(
-      &glob_query,
-      &glob_match_options,
-      compilation.input_filesystem.clone(),
-    )
-    .await;
+    logger.log(format!("begin globbing '{orig_from}'..."));
+    let glob_entries = match from_type {
+      FromType::File => Ok(vec![abs_from.clone()]),
+      FromType::Dir => {
+        let matcher = GlobPattern::new_with_options("**/*", (&glob_match_options).into())
+          .expect("valid directory glob");
+        GlobScanPlan::from_directory(abs_from.clone(), matcher)
+          .scan(compilation.input_filesystem.clone())
+          .await
+      }
+      FromType::Glob => {
+        let plan = GlobScanPlan::new(orig_from, &context, &glob_match_options)?;
+        let root_exists = compilation
+          .input_filesystem
+          .metadata(&plan.root)
+          .await
+          .is_ok();
+        let dependency = plan
+          .root
+          .clone()
+          .into_std_path_buf()
+          .normalize()
+          .into_owned();
+        // Missing roots must be registered as missing dependencies rather than
+        // context dependencies, otherwise the watcher forces another compilation.
+        // https://github.com/webpack/copy-webpack-plugin/issues/806
+        if root_exists {
+          context_dependencies.insert(dependency);
+        } else {
+          missing_dependencies.insert(dependency);
+        }
+        plan.scan(compilation.input_filesystem.clone()).await
+      }
+    };
 
     match glob_entries {
       Ok(mut entries) => {
+        let ignore = pattern
+          .glob_options
+          .ignore
+          .iter()
+          .flatten()
+          .filter_map(|pattern| GlobPattern::new(pattern).ok())
+          .collect::<Vec<_>>();
         entries.retain(|entry| {
-          pattern.glob_options.ignore.as_ref().is_none_or(|filters| {
-            filters
-              .iter()
-              .all(|filter| !glob_match(filter.as_bytes(), entry.as_str().as_bytes()))
-          })
+          let path = normalize_glob_path_separators(entry.as_str());
+          ignore
+            .iter()
+            .all(|pattern| !pattern.is_match(path.as_bytes()))
         });
 
         if entries.is_empty() {
@@ -574,7 +544,7 @@ impl CopyRspackPlugin {
             .expect("failed to obtain lock of `diagnostics`")
             .push(Diagnostic::error(
               "CopyRspackPlugin Error".into(),
-              format!("unable to locate '{glob_query}' glob"),
+              format!("unable to locate '{abs_from}' glob"),
             ));
           return Ok(None);
         }
@@ -638,7 +608,7 @@ impl CopyRspackPlugin {
             .expect("failed to obtain lock of `diagnostics`")
             .push(Diagnostic::error(
               "CopyRspackPlugin Error".into(),
-              format!("unable to locate '{glob_query}' glob"),
+              format!("unable to locate '{abs_from}' glob"),
             ));
           return Ok(None);
         }
