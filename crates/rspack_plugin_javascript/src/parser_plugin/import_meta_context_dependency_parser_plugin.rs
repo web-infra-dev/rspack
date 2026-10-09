@@ -2,9 +2,9 @@ use concat_string::concat_string;
 use rspack_core::{
   BoxDependency, ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions,
   DependencyCategory, ReferencedSpecifier, compile_context_module_glob_request, get_context,
-  normalize_path_separators, normalize_path_separators_for_path,
 };
 use rspack_error::{Error, Result, Severity};
+use rspack_glob::{normalize_path_separators, normalize_path_separators_for_path};
 use rspack_macros::AstObject;
 use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;

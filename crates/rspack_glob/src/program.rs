@@ -1,7 +1,7 @@
 // Modified from fast-glob 1.1.2: https://github.com/oxc-project/fast-glob.
 // Originally forked from https://github.com/devongovett/glob-match/blob/d5a6c67/src/lib.rs.
 // MIT Licensed; see the notice in lib.rs.
-use std::path::is_separator;
+use std::{borrow::Cow, path::is_separator};
 
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
@@ -13,7 +13,8 @@ pub(super) type States = SmallVec<[usize; 8]>;
 #[derive(Debug)]
 pub(super) enum Instruction {
   Accept,
-  Literal(u8, usize, bool),
+  // Byte, continuation, explicit leading dot, source byte offset.
+  Literal(u8, usize, bool, usize),
   Any(usize),
   Class {
     ranges: SmallVec<[(u8, u8); 4]>,
@@ -90,6 +91,99 @@ impl Program<'_> {
     }
   }
 
+  /// The common literal prefix of every active branch, already unescaped.
+  pub(super) fn literal_prefix<'a>(
+    &self,
+    initial: &States,
+    source: &Cow<'a, [u8]>,
+  ) -> Cow<'a, [u8]> {
+    if self.negated {
+      return Cow::Borrowed(&[]);
+    }
+    let mut states = initial.clone();
+    let mut scratch = Scratch::new(self.instructions.len());
+    let mut range = 0..0;
+    let mut decoded = None::<Vec<u8>>;
+    // Literal edges are acyclic. Stop at acceptance or any dynamic transition.
+    while let Some(&first) = states.first() {
+      let Instruction::Literal(byte, _, _, offset) = self.instructions[first] else {
+        break;
+      };
+      if !states.iter().all(
+        |&id| matches!(self.instructions[id], Instruction::Literal(value, _, _, _) if value == byte),
+      ) {
+        break;
+      }
+      if let Some(decoded) = &mut decoded {
+        decoded.push(byte);
+      } else {
+        if range.is_empty() {
+          range = offset..offset;
+        }
+        if source.get(range.end) == Some(&byte) {
+          range.end += 1;
+        } else {
+          let mut bytes = source[range.clone()].to_vec();
+          bytes.push(byte);
+          decoded = Some(bytes);
+        }
+      }
+      for &id in &states {
+        if let Instruction::Literal(_, next, _, _) = self.instructions[id] {
+          scratch.stack.push(next);
+        }
+      }
+      self.close(&mut scratch, &mut states);
+    }
+    match decoded {
+      Some(bytes) => Cow::Owned(bytes),
+      None => match source {
+        Cow::Borrowed(bytes) => Cow::Borrowed(&bytes[range]),
+        Cow::Owned(bytes) => Cow::Owned(bytes[range].to_vec()),
+      },
+    }
+  }
+
+  /// Enumerate literal next-component alternatives, or require a directory read.
+  #[cfg(feature = "fs")]
+  pub(super) fn next_components(&self, states: &States) -> Option<Vec<String>> {
+    if self.negated || !self.options.case_sensitive {
+      return None;
+    }
+    let mut pending = states
+      .iter()
+      .map(|&id| (id, Vec::new()))
+      .collect::<Vec<_>>();
+    let mut names = Vec::new();
+    let mut visited = 0;
+    while let Some((id, mut name)) = pending.pop() {
+      visited += 1;
+      // Large brace products fall back to matching directory entries instead
+      // of eagerly allocating every possible name.
+      if visited > 4096 || pending.len() + names.len() > 256 {
+        return None;
+      }
+      match &self.instructions[id] {
+        Instruction::Accept | Instruction::Literal(b'/', _, _, _) => {
+          if !name.is_empty() {
+            names.push(String::from_utf8(name).ok()?);
+          }
+        }
+        Instruction::Literal(byte, next, _, _) => {
+          name.push(*byte);
+          pending.push((*next, name));
+        }
+        Instruction::Split(branches) => {
+          pending.extend(branches.iter().map(|&next| (next, name.clone())));
+        }
+        _ => return None,
+      }
+    }
+    names.sort_unstable();
+    names.dedup();
+    Some(names)
+  }
+
   pub(super) fn consume(
     &self,
     initial: &States,
@@ -107,7 +201,7 @@ impl Program<'_> {
       let hidden = self.options.require_literal_leading_dot && component_start && byte == b'.';
       for &id in &states {
         let next = match &self.instructions[id] {
-          Instruction::Literal(literal, next, explicit_dot)
+          Instruction::Literal(literal, next, explicit_dot, _)
             if if *literal == b'/' {
               separator
             } else {
@@ -238,7 +332,7 @@ impl Compiler<'_> {
         if is_globstar {
           // Port of State::skip_globstars: collapse repeated /** segments.
           let mut index = position.index + 2;
-          while self.glob.get(index..index + 4) == Some(b"/**/") {
+          while self.glob.get(index..index + 4) == Some(b"/**/".as_slice()) {
             index += 3;
           }
           if &self.glob[index..] == b"/**" {
@@ -334,10 +428,11 @@ impl Compiler<'_> {
         Instruction::Split(branches)
       }
       _ => {
+        let offset = position.index + usize::from(self.glob[position.index] == b'\\');
         let literal = self.unescape(&mut position.index);
         let explicit_dot = position.component_start && literal == b'.';
         position.component_start = literal == b'/';
-        Instruction::Literal(literal, self.intern(position), explicit_dot)
+        Instruction::Literal(literal, self.intern(position), explicit_dot, offset)
       }
     }
   }

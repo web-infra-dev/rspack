@@ -9,10 +9,10 @@ version.workspace = true
 
 [dev-dependencies]
 async-trait  = { workspace = true }
-rspack_core  = { workspace = true }
 rspack_fs    = { workspace = true }
-rspack_glob  = { workspace = true }
+rspack_glob  = { workspace = true, features = ["fs"] }
 rspack_paths = { workspace = true }
+smallvec     = { workspace = true }
 tokio        = { workspace = true, features = ["macros"] }
 
 [lints]

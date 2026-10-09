@@ -13,11 +13,11 @@ use futures::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
 use regex::Regex;
 use rspack_core::{
   AssetInfo, AssetInfoRelated, CacheOptions, Compilation, CompilationAsset, CompilationLogger,
-  CompilationProcessAssets, Filename, GlobMatchOptions, GlobScanPlan, Logger, PathData, Plugin,
+  CompilationProcessAssets, Filename, Logger, PathData, Plugin,
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
 };
-use rspack_error::{Diagnostic, Error, Result, ToStringResultToRspackResultExt};
-use rspack_glob::GlobPattern;
+use rspack_error::{Diagnostic, Error, Result, ToStringResultToRspackResultExt, error};
+use rspack_glob::{GlobOptions, GlobPattern, normalize_path_separators};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -476,7 +476,7 @@ impl CopyRspackPlugin {
       }
       FromType::Glob => {}
     }
-    let glob_match_options = GlobMatchOptions {
+    let glob_match_options = GlobOptions {
       case_sensitive: pattern.glob_options.case_sensitive_match.unwrap_or(true),
       require_literal_leading_dot: !dot_enable.unwrap_or(false),
     };
@@ -484,25 +484,19 @@ impl CopyRspackPlugin {
     let glob_entries = match from_type {
       FromType::File => Ok(vec![abs_from.clone()]),
       FromType::Dir => {
-        let matcher = GlobPattern::new_with_options("**/*", (&glob_match_options).into())
-          .expect("valid directory glob");
-        GlobScanPlan::from_directory(abs_from.clone(), matcher)
-          .scan(compilation.input_filesystem.clone())
+        let matcher =
+          GlobPattern::new_with_options(b"**/*", glob_match_options).expect("valid directory glob");
+        matcher
+          .walk(&abs_from, compilation.input_filesystem.clone())
           .await
       }
       FromType::Glob => {
-        let plan = GlobScanPlan::new(orig_from, &context, &glob_match_options)?;
-        let root_exists = compilation
-          .input_filesystem
-          .metadata(&plan.root)
-          .await
-          .is_ok();
-        let dependency = plan
-          .root
-          .clone()
-          .into_std_path_buf()
-          .normalize()
-          .into_owned();
+        let normalized = normalize_path_separators(orig_from);
+        let matcher = GlobPattern::new_with_options(normalized.as_bytes(), glob_match_options)
+          .map_err(|err| error!("Invalid glob pattern {orig_from:?}: {err}"))?;
+        let root = matcher.scan_root(&context);
+        let root_exists = compilation.input_filesystem.metadata(&root).await.is_ok();
+        let dependency = root.clone().into_std_path_buf().normalize().into_owned();
         // Missing roots must be registered as missing dependencies rather than
         // context dependencies, otherwise the watcher forces another compilation.
         // https://github.com/webpack/copy-webpack-plugin/issues/806
@@ -511,7 +505,9 @@ impl CopyRspackPlugin {
         } else {
           missing_dependencies.insert(dependency);
         }
-        plan.scan(compilation.input_filesystem.clone()).await
+        matcher
+          .scan(&context, compilation.input_filesystem.clone())
+          .await
       }
     };
 
@@ -522,13 +518,13 @@ impl CopyRspackPlugin {
           .ignore
           .iter()
           .flatten()
-          .filter_map(|pattern| GlobPattern::new(pattern).ok())
+          .filter_map(|pattern| GlobPattern::new(pattern.as_bytes()).ok())
           .collect::<Vec<_>>();
         entries.retain(|entry| {
           let path = normalize_glob_path_separators(entry.as_str());
           ignore
             .iter()
-            .all(|pattern| !pattern.is_match(path.as_bytes()))
+            .all(|pattern| !pattern.match_path(path.as_bytes()).is_exact())
         });
 
         if entries.is_empty() {

@@ -3,28 +3,35 @@ use std::sync::{
   atomic::{AtomicUsize, Ordering},
 };
 
-use rspack_core::{
-  GlobMatchOptions, GlobScanPlan, extract_glob_base_dir, find_files_by_glob,
-  normalize_path_separators, normalize_path_separators_for_path, unescape_glob_path,
-};
 use rspack_fs::{
   FileMetadata, FilePermissions, MemoryFileSystem, ReadableFileSystem, WritableFileSystem,
 };
-use rspack_glob::GlobPattern;
+use rspack_glob::{
+  GlobOptions, GlobPattern, extract_glob_base_dir, normalize_path_separators,
+  normalize_path_separators_for_path, unescape_glob_path,
+};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
-fn glob_match_with_options(pattern: &str, path: &str, options: &GlobMatchOptions) -> bool {
-  GlobPattern::new_with_options(pattern, options.into())
-    .expect("valid glob")
-    .is_match(path)
+fn default_options() -> GlobOptions {
+  GlobOptions {
+    require_literal_leading_dot: true,
+    ..Default::default()
+  }
 }
-fn glob_match_with_explicit_dot(
+
+fn matches_with_options(pattern: &str, path: &str, options: &GlobOptions) -> bool {
+  GlobPattern::new_with_options(pattern.as_bytes(), *options)
+    .expect("valid glob")
+    .match_path(path)
+    .is_exact()
+}
+fn matches_with_explicit_dot(
   pattern: &str,
   path: &str,
   _base: &str,
-  options: &GlobMatchOptions,
+  options: &GlobOptions,
 ) -> bool {
-  glob_match_with_options(
+  matches_with_options(
     &normalize_path_separators(pattern),
     &normalize_path_separators_for_path(path),
     options,
@@ -34,9 +41,9 @@ fn pattern_has_explicit_dot_for(
   pattern: &str,
   _base: &str,
   path: &str,
-  options: &GlobMatchOptions,
+  options: &GlobOptions,
 ) -> bool {
-  glob_match_with_options(pattern, path, options)
+  matches_with_options(pattern, path, options)
 }
 
 #[derive(Debug, Default)]
@@ -117,13 +124,14 @@ async fn literal_pattern_does_not_walk_its_base_directory() {
     .await
     .unwrap();
 
-  let entries = find_files_by_glob(
-    "/project/index.html",
-    &GlobMatchOptions::default(),
-    fs.clone() as Arc<dyn ReadableFileSystem>,
-  )
-  .await
-  .unwrap();
+  let entries = GlobPattern::new_with_options("/project/index.html".as_bytes(), default_options())
+    .expect("valid glob")
+    .scan(
+      Utf8Path::new("."),
+      fs.clone() as Arc<dyn ReadableFileSystem>,
+    )
+    .await
+    .unwrap();
 
   assert_eq!(entries, vec![Utf8PathBuf::from("/project/index.html")]);
   assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 0);
@@ -134,13 +142,11 @@ async fn literal_pattern_returns_nothing_when_the_file_is_missing() {
   let fs = Arc::new(MemoryFileSystem::default());
   fs.create_dir_all("/project".into()).await.unwrap();
 
-  let entries = find_files_by_glob(
-    "/project/index.html",
-    &GlobMatchOptions::default(),
-    fs as Arc<dyn ReadableFileSystem>,
-  )
-  .await
-  .unwrap();
+  let entries = GlobPattern::new_with_options("/project/index.html".as_bytes(), default_options())
+    .expect("valid glob")
+    .scan(Utf8Path::new("."), fs as Arc<dyn ReadableFileSystem>)
+    .await
+    .unwrap();
 
   assert!(entries.is_empty());
 }
@@ -219,24 +225,24 @@ fn unescape_glob_path_restores_literal_path_segments() {
 
 #[test]
 fn escaped_star_and_question_match_literal_path_segments() {
-  let options = GlobMatchOptions::default();
+  let options = default_options();
 
-  assert!(glob_match_with_options(
+  assert!(matches_with_options(
     "./fixtures/file\\*.js",
     "./fixtures/file*.js",
     &options
   ));
-  assert!(!glob_match_with_options(
+  assert!(!matches_with_options(
     "./fixtures/file\\*.js",
     "./fixtures/file-a.js",
     &options
   ));
-  assert!(glob_match_with_options(
+  assert!(matches_with_options(
     "./fixtures/directory\\?1/**/*.js",
     "./fixtures/directory?1/index.js",
     &options
   ));
-  assert!(!glob_match_with_options(
+  assert!(!matches_with_options(
     "./fixtures/directory\\?1/**/*.js",
     "./fixtures/directory-a1/index.js",
     &options
@@ -246,7 +252,7 @@ fn escaped_star_and_question_match_literal_path_segments() {
 #[test]
 fn explicit_dot_patterns_allow_wildcard_dot_segments() {
   let base_dir = "./fixtures/";
-  let options = GlobMatchOptions::default();
+  let options = default_options();
 
   assert!(pattern_has_explicit_dot_for(
     "./fixtures/**/.*",
@@ -271,7 +277,7 @@ fn explicit_dot_patterns_allow_wildcard_dot_segments() {
 #[test]
 fn explicit_dot_patterns_respect_case_insensitive_matching() {
   let base_dir = "./fixtures/";
-  let options = GlobMatchOptions {
+  let options = GlobOptions {
     case_sensitive: false,
     ..Default::default()
   };
@@ -285,15 +291,15 @@ fn explicit_dot_patterns_respect_case_insensitive_matching() {
 }
 
 #[test]
-fn glob_match_with_explicit_dot_treats_windows_path_separators_as_separators() {
-  let options = GlobMatchOptions::default();
-  assert!(glob_match_with_explicit_dot(
+fn matches_with_explicit_dot_treats_windows_path_separators_as_separators() {
+  let options = default_options();
+  assert!(matches_with_explicit_dot(
     "C:/repo/escape/**/glob.js",
     "C:\\repo\\escape\\[brackets]\\glob.js",
     "C:/repo/escape/",
     &options
   ));
-  assert!(glob_match_with_explicit_dot(
+  assert!(matches_with_explicit_dot(
     "C:/repo/escape/**/glob.js",
     "C:\\repo\\escape\\{curlies}\\glob.js",
     "C:/repo/escape/",
@@ -302,15 +308,15 @@ fn glob_match_with_explicit_dot_treats_windows_path_separators_as_separators() {
 }
 
 #[test]
-fn glob_match_with_explicit_dot_requires_literal_dot_segments() {
-  let options = GlobMatchOptions::default();
-  assert!(glob_match_with_explicit_dot(
+fn matches_with_explicit_dot_requires_literal_dot_segments() {
+  let options = default_options();
+  assert!(matches_with_explicit_dot(
     "./fixtures/.*.js",
     "./fixtures/.hidden.js",
     "./fixtures/",
     &options
   ));
-  assert!(!glob_match_with_explicit_dot(
+  assert!(!matches_with_explicit_dot(
     "./fixtures/*.js",
     "./fixtures/.hidden.js",
     "./fixtures/",
@@ -330,9 +336,9 @@ async fn scan_keeps_physical_metacharacters_out_of_pattern_syntax() {
       .await
       .expect("write fixture");
   }
-  let plan =
-    GlobScanPlan::new("**/{*.js,.env}", root, &GlobMatchOptions::default()).expect("valid scan");
-  let mut files = plan.scan(fs).await.expect("scan");
+  let pattern = GlobPattern::new_with_options("**/{*.js,.env}".as_bytes(), default_options())
+    .expect("valid glob");
+  let mut files = pattern.scan(root, fs).await.expect("scan");
   files.sort();
   assert_eq!(files, vec![root.join(".env"), root.join("index.js")]);
 }
@@ -357,13 +363,13 @@ async fn scan_prunes_unrelated_directories_and_exhausted_patterns() {
       .await
       .expect("write fixture");
   }
-  let plan = GlobScanPlan::new(
-    "{components,widgets}/*.js",
-    Utf8Path::new("/project"),
-    &GlobMatchOptions::default(),
-  )
-  .expect("valid scan");
-  let mut files = plan.scan(fs.clone()).await.expect("scan");
+  let pattern =
+    GlobPattern::new_with_options("{components,widgets}/*.js".as_bytes(), default_options())
+      .expect("valid glob");
+  let mut files = pattern
+    .scan(Utf8Path::new("/project"), fs.clone())
+    .await
+    .expect("scan");
   files.sort();
   assert_eq!(
     files,
@@ -373,10 +379,64 @@ async fn scan_prunes_unrelated_directories_and_exhausted_patterns() {
     ]
   );
   let visited = fs.visited.lock().expect("visited directories lock");
+  assert_eq!(
+    visited.len(),
+    2,
+    "only the two dynamic filename directories are read"
+  );
+  assert!(!visited.iter().any(|path| path == Utf8Path::new("/project")));
   assert!(
     !visited
       .iter()
       .any(|path| path.ends_with("unrelated") || path.ends_with("nested"))
+  );
+}
+
+#[tokio::test]
+async fn scan_literal_branches_uses_no_directory_reads() {
+  let fs = Arc::new(ReadDirCountingFileSystem::default());
+  let root = Utf8Path::new("/project/[physical]");
+  fs.inner
+    .create_dir_all(root.join("src").as_path())
+    .await
+    .unwrap();
+  for name in ["one.js", "two.js", "other.js"] {
+    fs.inner
+      .write(root.join("src").join(name).as_path(), b"value")
+      .await
+      .unwrap();
+  }
+  let pattern = GlobPattern::new("{src/one.js,src/two.js,src/missing.js}".as_bytes()).unwrap();
+  assert_eq!(pattern.scan_root(root), root.join("src"));
+  let mut files = pattern.scan(root, fs.clone()).await.unwrap();
+  files.sort();
+  assert_eq!(
+    files,
+    vec![root.join("src/one.js"), root.join("src/two.js")]
+  );
+  assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 0);
+}
+
+#[tokio::test]
+async fn walk_keeps_globstar_continuations_after_exact_matches() {
+  let fs = Arc::new(MemoryFileSystem::default());
+  fs.create_dir_all("/project/nested".into()).await.unwrap();
+  fs.write("/project/value.js".into(), b"value")
+    .await
+    .unwrap();
+  fs.write("/project/nested/value.js".into(), b"value")
+    .await
+    .unwrap();
+  let pattern = GlobPattern::new("**".as_bytes()).unwrap();
+  assert!(pattern.match_path("nested").is_exact());
+  let mut files = pattern.walk(Utf8Path::new("/project"), fs).await.unwrap();
+  files.sort();
+  assert_eq!(
+    files,
+    vec![
+      Utf8PathBuf::from("/project/nested/value.js"),
+      Utf8PathBuf::from("/project/value.js")
+    ]
   );
 }
 
@@ -389,17 +449,19 @@ async fn scan_case_insensitively_preserves_filesystem_spelling() {
   fs.write("/project/assets/value.js".into(), b"value")
     .await
     .expect("write fixture");
-  let plan = GlobScanPlan::new(
-    "ASSETS/*.JS",
-    Utf8Path::new("/project"),
-    &GlobMatchOptions {
+  let pattern = GlobPattern::new_with_options(
+    "ASSETS/*.JS".as_bytes(),
+    GlobOptions {
       case_sensitive: false,
       ..Default::default()
     },
   )
   .expect("valid scan");
   assert_eq!(
-    plan.scan(fs).await.expect("scan"),
+    pattern
+      .scan(Utf8Path::new("/project"), fs)
+      .await
+      .expect("scan"),
     vec![Utf8PathBuf::from("/project/assets/value.js")]
   );
 }

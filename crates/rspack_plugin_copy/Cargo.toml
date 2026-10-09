@@ -14,7 +14,7 @@ pathdiff        = { workspace = true, features = ["camino"] }
 regex           = { workspace = true }
 rspack_core     = { workspace = true }
 rspack_error    = { workspace = true }
-rspack_glob     = { workspace = true }
+rspack_glob     = { workspace = true, features = ["fs"] }
 rspack_hash     = { workspace = true }
 rspack_hook     = { workspace = true }
 rspack_parallel = { workspace = true }

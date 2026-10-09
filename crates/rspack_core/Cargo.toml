@@ -42,7 +42,7 @@ rspack_collections         = { workspace = true }
 rspack_dojang              = { workspace = true }
 rspack_error               = { workspace = true }
 rspack_fs                  = { workspace = true }
-rspack_glob                = { workspace = true }
+rspack_glob                = { workspace = true, features = ["fs"] }
 rspack_hash                = { workspace = true }
 rspack_hook                = { workspace = true }
 rspack_intern              = { workspace = true, features = ["swc"] }

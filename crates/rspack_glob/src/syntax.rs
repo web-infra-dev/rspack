@@ -134,7 +134,7 @@ pub fn validate(glob: impl AsRef<[u8]>) -> Result<(), Error> {
 
 /// Returns the index just past the `]` closing the character class opened by
 /// the `[` at `index`, or `None` if the class is unclosed. Mirrors the class
-/// parsing in `glob_match_from`: an optional `^`/`!` prefix, then the first
+/// parsing in the compiler: an optional `^`/`!` prefix, then the first
 /// character is a literal member (so a leading `]` does not close the class),
 /// and `\` escapes the next character.
 pub(super) fn skip_class(glob: &[u8], index: usize) -> Option<usize> {

@@ -6,10 +6,19 @@ name              = "rspack_glob"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[features]
+default = []
+fs      = ["dep:async-recursion", "dep:rspack_error", "dep:rspack_fs", "dep:rspack_paths", "dep:rspack_util"]
+
 [dependencies]
-cow-utils  = { workspace = true }
-rustc-hash = { workspace = true, features = ["std"] }
-smallvec   = { workspace = true }
+async-recursion = { workspace = true, optional = true }
+cow-utils       = { workspace = true }
+rspack_error    = { workspace = true, optional = true }
+rspack_fs       = { workspace = true, optional = true }
+rspack_paths    = { workspace = true, optional = true }
+rspack_util     = { workspace = true, optional = true }
+rustc-hash      = { workspace = true, features = ["std"] }
+smallvec        = { workspace = true }
 
 [lints]
 workspace = true
