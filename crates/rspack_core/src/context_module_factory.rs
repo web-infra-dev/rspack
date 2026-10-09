@@ -20,7 +20,8 @@ use crate::{
   ContextModulePattern, DependencyCategory, DependencyId, DependencyRef, DependencyType, ModuleExt,
   ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, OverrideStrict, ResolveArgs,
   ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, resolve_with_resolver, walk_dir,
+  ResolveResult, Resolver, ResolverFactory, Resource, SharedPluginDriver, resolve_with_resolver,
+  walk_dir,
 };
 
 mod glob;
@@ -102,6 +103,12 @@ pub struct ContextModuleFactory {
 struct ContextModuleAfterResolveInput {
   options: ContextModuleOptions,
   resolve_context: String,
+}
+
+struct ResolvedContextModuleGlobAliases {
+  patterns: Vec<String>,
+  resource_query: String,
+  resource_fragment: String,
 }
 
 #[async_trait::async_trait]
@@ -311,8 +318,10 @@ impl ContextModuleFactory {
       });
     let mut specifier = specifier;
     let mut glob_aliases_changed = false;
+    let mut glob_alias_query = String::new();
+    let mut glob_alias_fragment = String::new();
     if let ContextModulePattern::Glob(patterns) = &pattern
-      && let Some(patterns) = self
+      && let Some(aliases) = self
         .resolve_glob_aliases(data, patterns, &context, &resolver)
         .await?
     {
@@ -321,7 +330,7 @@ impl ContextModuleFactory {
         .expect("should be context dependency");
       let compiled = compile_context_module_glob_request(
         &specifier,
-        &patterns,
+        &aliases.patterns,
         &dependency.options().context,
         &dependency.options().compiler_context,
         recursive,
@@ -329,7 +338,9 @@ impl ContextModuleFactory {
       );
       specifier = compiled.request;
       recursive = compiled.recursive;
-      pattern = ContextModulePattern::Glob(patterns);
+      pattern = ContextModulePattern::Glob(aliases.patterns);
+      glob_alias_query = aliases.resource_query;
+      glob_alias_fragment = aliases.resource_fragment;
       glob_aliases_changed = true;
     }
     let dependency = data.dependencies[0]
@@ -373,8 +384,17 @@ impl ContextModuleFactory {
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
           resource: resource.path,
-          resource_query: resource.query,
-          resource_fragment: resource.fragment,
+          // Alias suffixes override request suffixes, as in normal resolution.
+          resource_query: if glob_alias_query.is_empty() {
+            resource.query
+          } else {
+            glob_alias_query
+          },
+          resource_fragment: if glob_alias_fragment.is_empty() {
+            resource.fragment
+          } else {
+            glob_alias_fragment
+          },
           layer: data.issuer_layer.clone(),
           resolve_options: data.resolve_options.clone(),
           context_options: dependency_options,
@@ -510,11 +530,16 @@ impl ContextModuleFactory {
     patterns: &[String],
     resolve_context: &str,
     resolver: &Resolver,
-  ) -> Result<Option<Vec<String>>> {
+  ) -> Result<Option<ResolvedContextModuleGlobAliases>> {
     let mut rewritten: Option<Vec<String>> = None;
-    let mut resolved_aliases = FxHashMap::<String, Option<Utf8PathBuf>>::default();
+    let mut resolved_aliases = FxHashMap::<String, Option<Resource>>::default();
+    let mut common_suffix: Option<(String, String)> = None;
     for (index, pattern) in patterns.iter().enumerate() {
       let Some(alias) = context_module_glob_alias_request(pattern, &resolver.options()) else {
+        if !pattern.starts_with('!') {
+          // A local pattern has no alias suffix to apply to the shared context.
+          common_suffix = Some(Default::default());
+        }
         if let Some(rewritten) = &mut rewritten {
           rewritten.push(pattern.clone());
         }
@@ -548,7 +573,7 @@ impl ContextModuleFactory {
           .missing_dependencies
           .extend(dependencies.missing_dependencies);
         let resource = match resource? {
-          ResolveResult::Resource(resource) => Some(resource.path),
+          ResolveResult::Resource(resource) => Some(resource),
           ResolveResult::Ignored => None,
         };
         resolved_aliases
@@ -556,19 +581,40 @@ impl ContextModuleFactory {
           .or_insert(resource)
       };
       if let Some(resource) = resource {
+        if !pattern.starts_with('!') {
+          // Each context has one suffix shared by all its positive patterns.
+          // Only suffixes common to the selected files can be propagated.
+          if let Some((query, fragment)) = &mut common_suffix {
+            if *query != resource.query {
+              query.clear();
+            }
+            if *fragment != resource.fragment {
+              fragment.clear();
+            }
+          } else {
+            common_suffix = Some((resource.query.clone(), resource.fragment.clone()));
+          }
+        }
         let options = data.dependencies[0]
           .as_context_dependency()
           .expect("should be context dependency")
           .options();
         rewritten.push(resolve_context_module_glob_alias(
           &alias,
-          resource.as_str(),
+          resource.path.as_str(),
           &options.context,
           &options.compiler_context,
         ));
       }
     }
-    Ok(rewritten)
+    Ok(rewritten.map(|patterns| {
+      let (resource_query, resource_fragment) = common_suffix.unwrap_or_default();
+      ResolvedContextModuleGlobAliases {
+        patterns,
+        resource_query,
+        resource_fragment,
+      }
+    }))
   }
 
   fn global_override_strict(&self) -> Option<bool> {
