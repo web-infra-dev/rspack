@@ -59,6 +59,4 @@ interface WatchFileSystem {
 }
 ```
 
-`pause()` suppresses `callbackUndelayed` and `change`/`remove` notifications while buffering file events. With the native watcher, `getInfo()` consumes the pending changes and removals, so a second call returns empty sets unless new events have arrived. This also applies while the native watcher is active: consumed events will not trigger an aggregate rebuild. Calling `watch()` again on the native watcher delivers only unconsumed events. An aggregate already in flight when paused may still be delivered. Native timestamp maps remain empty.
-
 </>
