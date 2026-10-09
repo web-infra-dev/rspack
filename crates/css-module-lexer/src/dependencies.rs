@@ -1396,7 +1396,7 @@ struct BlockItemCheckpoint<'s> {
   mode: Option<ModeCheckpoint<'s>>,
 }
 
-/// Only these mode fields can change before a declaration is accepted.
+/// Mode flags restored separately from the balanced stack's nesting counters.
 #[derive(Debug)]
 struct ModeCheckpoint<'s> {
   current: Mode,
@@ -1926,7 +1926,11 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           .occurrences
           .truncate(checkpoint.dashed);
       }
-      self.balanced.0.truncate(checkpoint.balanced);
+      // Unwind speculative items through the stack so mode nesting counters
+      // are restored before selector events are replayed.
+      while self.balanced.len() > checkpoint.balanced {
+        self.balanced.pop(self.mode_data.as_mut());
+      }
       if let Some(checkpoint) = checkpoint.mode {
         let mode = self
           .mode_data

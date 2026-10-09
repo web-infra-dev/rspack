@@ -116,6 +116,24 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 	to { opacity: 1; }
 }
 
+.LOCAL-modeRollback {
+	/* Candidate replay must not leave implicit classes or ids in explicit mode. */
+	button:hover.rawModeClass { color: red; }
+	.LOCAL-implicitAfterGlobal, #LOCAL-implicitIdAfterGlobal { color: blue; }
+	button:hover.LOCAL-explicitModeClass { color: red; }
+	.LOCAL-implicitAfterLocal, #LOCAL-implicitIdAfterLocal { color: blue; }
+	button:where(.rawModeFunction, .LOCAL-explicitModeFunction) {
+		color: green;
+	}
+	.LOCAL-implicitAfterFunction, #LOCAL-implicitIdAfterFunction { color: blue; }
+	/* Rejected candidates must not leave a mode behind either. */
+	button:where(:global(.discardedGlobalMode)) ) ;
+	button:where(:local(.discardedLocalMode)) ) ;
+	.LOCAL-implicitAfterInvalidMode, #LOCAL-implicitIdAfterInvalidMode { color: blue; }
+}
+
+.LOCAL-implicitOutsideRollback, #LOCAL-implicitIdOutsideRollback { color: green; }
+
 .LOCAL-pureRecovery {
 	missingColon /* cssmodules-pure-ignore */;
 	color:{.opaquePure; :global(.opaqueGlobalPure)} !important;
