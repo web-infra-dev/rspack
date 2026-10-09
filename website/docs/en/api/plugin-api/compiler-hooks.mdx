@@ -103,7 +103,7 @@ Compile --> HookShouldEmit{<a href="#shouldemit">hooks.shouldEmit</a>}
 HookShouldEmit --> |true| HookEmit(<a href="#emit">hooks.emit</a>)
 HookShouldEmit --> |false| HookDone(<a href="#done">hooks.done</a>)
 HookEmit --> EmitAssets(Emit asset files)
-EmitAssets <--> HookAssetEmitted(<a href="#assetemitted">hooks.assetEmitted</a>)
+EmitAssets <--> HookAssetEmitted(hooks.assetEmitted)
 EmitAssets --> HookAfterEmit(<a href="#afteremit">hooks.afterEmit</a>)
 HookAfterEmit --> HookNeedAdditionalPass{hooks.needAdditionalPass}
 HookNeedAdditionalPass --> |true| HookAdditionalDone(hooks.done)
@@ -127,8 +127,8 @@ CloseCallback --> HookShutdown(<a href="#shutdown">hooks.shutdown</a>)
 class RunCompiler,WatchCompiler flow-start
 class Callback flow-end
 class Compile,EmitAssets,CollectFileChanges,CreateWatching,WatchingWatch flow-process
-class HookBeforeRun,HookRun,HookShouldEmit,HookEmit,HookAssetEmitted,HookAfterEmit,HookDone,HookFailed,HookAfterDone,HookWatchRun flow-hook
-class HookReadRecords,HookNeedAdditionalPass,HookAdditionPass,HookAdditionalDone,HookEmitRecords flow-hook-non-support
+class HookBeforeRun,HookRun,HookShouldEmit,HookEmit,HookAfterEmit,HookDone,HookFailed,HookAfterDone,HookWatchRun flow-hook
+class HookReadRecords,HookAssetEmitted,HookNeedAdditionalPass,HookAdditionPass,HookAdditionalDone,HookEmitRecords flow-hook-non-support
 
 class CloseCompile flow-start
 class CloseCallback flow-end
@@ -560,37 +560,6 @@ Called right before emitting assets to output dir.
     <CompilationType />
   </CollapsePanel>
 </Collapse>
-
-## `assetEmitted`
-
-Called for each asset after it has been emitted to the output directory, including when writing the file is skipped because it is immutable or unchanged. Unlike Rspack, webpack calls this hook only when the file is actually written.
-
-- **Type:** `AsyncSeriesHook<[string, AssetEmittedInfo]>`
-- **Arguments:**
-  - `filename`: emitted asset name, including any query string
-  - `info`: information about the emitted asset:
-    - `content`: a `Buffer` containing the asset bytes
-    - `source`: the asset's `Source` object
-    - `outputPath`: the output directory
-    - `targetPath`: the full path of the emitted file
-    - `compilation`: the current [compilation](/api/javascript-api/compilation) object
-
-`source` and `content` are materialized lazily on first read and cached per info object. Repeated reads return the same `Source` and `Buffer` instances, including across taps that share that info object. Taps registered in different stage ranges may receive separate info objects. The cache is not shared across different info objects or assets. Within one `assetEmitted` call, each property is materialized once for that info object, so later reads, including in later taps sharing the object, do not reflect asset updates made after the first read.
-
-Materializing `source`, directly or through `content`, transfers the whole asset into JavaScript; reading `content` also obtains its bytes as a `Buffer`. Filter by `filename` or `targetPath` before reading either property. If neither property is read, the asset is not transferred into JavaScript for this hook.
-
-If you only need the byte length after filtering, use `info.source.size()` instead of obtaining a `Buffer` solely for its length. Reading `source` still transfers the whole asset; it is not a metadata-only size lookup.
-
-- **Example:** Filter before reading content
-
-```js
-compiler.hooks.assetEmitted.tap('ExamplePlugin', (filename, info) => {
-  if (!filename.endsWith('.txt')) {
-    return;
-  }
-  console.log(info.targetPath, info.content.toString('utf8'));
-});
-```
 
 ## `afterEmit`
 

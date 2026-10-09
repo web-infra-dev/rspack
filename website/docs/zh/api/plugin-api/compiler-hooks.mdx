@@ -104,7 +104,7 @@ Compile --> HookShouldEmit{<a href="#shouldemit">hooks.shouldEmit</a>}
 HookShouldEmit --> |是| HookEmit(<a href="#emit">hooks.emit</a>)
 HookShouldEmit --> |否| HookDone(<a href="#done">hooks.done</a>)
 HookEmit --> EmitAssets(生成产物文件)
-EmitAssets <--> HookAssetEmitted(<a href="#assetemitted">hooks.assetEmitted</a>)
+EmitAssets <--> HookAssetEmitted(hooks.assetEmitted)
 EmitAssets --> HookAfterEmit(<a href="#afteremit">hooks.afterEmit</a>)
 HookAfterEmit --> HookNeedAdditionalPass{hooks.needAdditionalPass}
 HookNeedAdditionalPass --> |是| HookAdditionalDone(hooks.done)
@@ -128,8 +128,8 @@ CloseCallback --> HookShutdown(<a href="#shutdown">hooks.shutdown</a>)
 class RunCompiler,WatchCompiler flow-start
 class Callback flow-end
 class Compile,EmitAssets,CollectFileChanges,CreateWatching,WatchingWatch flow-process
-class HookBeforeRun,HookRun,HookShouldEmit,HookEmit,HookAssetEmitted,HookAfterEmit,HookDone,HookFailed,HookAfterDone,HookWatchRun flow-hook
-class HookReadRecords,HookNeedAdditionalPass,HookAdditionPass,HookAdditionalDone,HookEmitRecords flow-hook-non-support
+class HookBeforeRun,HookRun,HookShouldEmit,HookEmit,HookAfterEmit,HookDone,HookFailed,HookAfterDone,HookWatchRun flow-hook
+class HookReadRecords,HookAssetEmitted,HookNeedAdditionalPass,HookAdditionPass,HookAdditionalDone,HookEmitRecords flow-hook-non-support
 
 class CloseCompile flow-start
 class CloseCallback flow-end
@@ -548,37 +548,6 @@ compiler.hooks.shouldEmit.tap('MyPlugin', (compilation) => {
     <CompilationType />
   </CollapsePanel>
 </Collapse>
-
-## `assetEmitted`
-
-在每个资源输出到结果目录后调用，包括因资源不可变或内容未发生变化而跳过文件写入的情况。与 Rspack 不同，webpack 仅在实际写入文件时调用此钩子。
-
-- **类型：** `AsyncSeriesHook<[string, AssetEmittedInfo]>`
-- **参数：**
-  - `filename`: 输出的资源名称，包括可能存在的查询字符串
-  - `info`: 输出资源的相关信息：
-    - `content`: 包含资源字节的 `Buffer`
-    - `source`: 资源的 `Source` 对象
-    - `outputPath`: 输出目录
-    - `targetPath`: 输出文件的完整路径
-    - `compilation`: 当前 [compilation](/api/javascript-api/compilation) 对象
-
-`source` 和 `content` 在首次读取时才会生成，并按 info 对象缓存。重复读取会返回同一个 `Source` 和 `Buffer` 实例，共享同一 info 对象的 tap 之间也是如此。在不同 stage 范围内注册的 tap 可能会收到不同的 info 对象。不同的 info 对象或资源之间不共享缓存。在一次 `assetEmitted` 调用中，每个属性只会为该 info 对象生成一次，因此后续读取（包括共享该对象的后续 tap 中的读取）不会反映首次读取后对资源所做的更新。
-
-无论直接读取 `source`，还是通过 `content` 访问它，生成 `source` 都会将整个资源传输到 JavaScript 中；读取 `content` 还会获取以 `Buffer` 表示的资源字节。请先根据 `filename` 或 `targetPath` 进行过滤，再读取这些属性。如果两个属性都未被读取，则不会为此钩子将资源传输到 JavaScript 中。
-
-如果过滤后只需要获取字节长度，可以使用 `info.source.size()`，而不是仅为了获取长度而生成 `Buffer`。读取 `source` 仍然会传输整个资源，并不是只读取大小元数据。
-
-- **示例：** 在读取内容之前进行过滤
-
-```js
-compiler.hooks.assetEmitted.tap('ExamplePlugin', (filename, info) => {
-  if (!filename.endsWith('.txt')) {
-    return;
-  }
-  console.log(info.targetPath, info.content.toString('utf8'));
-});
-```
 
 ## `afterEmit`
 
