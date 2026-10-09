@@ -2626,7 +2626,7 @@ export interface RawJsonParserOptions {
 }
 
 export interface RawLazyCompilationOption {
-  currentActiveModules: ((err: Error | null, ) => Set<string>)
+  takeNewlyActiveModules: ((err: Error | null, ) => Set<string>)
   test?: RawLazyCompilationTest
   entries: boolean
   imports: boolean
