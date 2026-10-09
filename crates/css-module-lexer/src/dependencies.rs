@@ -1376,10 +1376,11 @@ struct BlockItemCheckpoint<'s> {
   mode: Option<ModeCheckpoint<'s>>,
 }
 
-/// Mode flags restored separately from the balanced stack's nesting counters.
+/// Mode state restored separately from the balanced stack's nesting counters.
 #[derive(Debug)]
 struct ModeCheckpoint<'s> {
   current: Mode,
+  resulting_global: Option<Pos>,
   pure_ignore_pending: bool,
   pure_global: Option<Pos>,
   composes: Option<ComposesLocalClasses<'s>>,
@@ -1593,6 +1594,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
               balanced: self.balanced.len(),
               mode: self.mode_data.as_ref().map(|mode| ModeCheckpoint {
                 current: mode.current,
+                resulting_global: mode.resulting_global,
                 pure_ignore_pending: mode.pure_ignore_pending,
                 pure_global: mode.pure_global,
                 composes: (property == PropertyKind::Composes)
@@ -1917,6 +1919,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           .as_mut()
           .expect("a mode checkpoint has mode data");
         mode.current = checkpoint.current;
+        mode.resulting_global = checkpoint.resulting_global;
         mode.pure_ignore_pending = checkpoint.pure_ignore_pending;
         mode.pure_global = checkpoint.pure_global;
         if let Some(composes) = checkpoint.composes {

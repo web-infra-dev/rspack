@@ -44,6 +44,11 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 
 @media screen { button.LOCAL-small, .LOCAL-smallSecond { color:red } }
 
+.LOCAL-commaRollback {
+	button:hover:global .discardedCommaMode, ) ;
+	.LOCAL-afterCommaRollback { color:green; }
+}
+
 .LOCAL-syntax {
 	/* A generic declaration may have a sole curly block as its value. */
 	color:{.opaque};
