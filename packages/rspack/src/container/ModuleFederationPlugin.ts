@@ -3,7 +3,10 @@ import { resolve } from 'node:path';
 import type { Compiler } from '../Compiler';
 import { createCompilerRuntimeGlobals } from '../RuntimeGlobals';
 import type { ExternalsType } from '../config';
-import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
+import type {
+  ShareFallback,
+  ShareFallbackVariants,
+} from '../sharing/IndependentSharedPlugin';
 import type { SharedConfig, ShareScope } from '../sharing/SharePlugin';
 import { TreeShakingSharedPlugin } from '../sharing/TreeShakingSharedPlugin';
 import { isRequiredVersion } from '../sharing/utils';
@@ -71,17 +74,31 @@ export class ModuleFederationPlugin {
         })
       : undefined;
     runtimeVirtualPlugin?.apply(compiler);
-    const updateRuntimeShareFallbacks = (buildAssets: ShareFallback) => {
+    const updateRuntimeShareFallbacks = (
+      _buildAssets: ShareFallback,
+      variants: ShareFallbackVariants,
+    ) => {
       if (!runtimeVirtualPath || !runtimeVirtualPlugin) {
         return;
       }
+      const runtimeBuildAssets = Object.fromEntries(
+        Object.entries(variants).map(([shareKey, entries]) => [
+          shareKey,
+          entries.map(({ entry, version, globalName }) => [
+            entry,
+            version,
+            globalName,
+          ]),
+        ]),
+      ) as ShareFallback;
       runtimeVirtualPlugin.writeModule(
         runtimeVirtualPath,
         getDefaultEntryRuntimeSource(
           paths,
           this._options,
           compiler,
-          buildAssets,
+          runtimeBuildAssets,
+          variants,
         ),
       );
     };
@@ -340,6 +357,7 @@ function getDefaultEntryRuntimeSource(
   options: ModuleFederationPluginOptions,
   compiler: Compiler,
   treeShakingShareFallbacks?: ShareFallback,
+  treeShakingShareFallbackVariants?: ShareFallbackVariants,
 ) {
   const runtimePlugins = getRuntimePlugins(options);
   const remoteInfos = getRemoteInfos(options);
@@ -408,6 +426,9 @@ function getDefaultEntryRuntimeSource(
     `const __module_federation_share_fallbacks__ = ${JSON.stringify(
       treeShakingShareFallbacks,
     )}`,
+    `const __module_federation_share_fallback_variants__ = ${JSON.stringify(
+      treeShakingShareFallbackVariants,
+    )}`,
     `const __module_federation_library_type__ = ${JSON.stringify(libraryType)}`,
     runtimeSource,
   ].join(';');
@@ -437,6 +458,7 @@ function getDefaultEntryRuntime(
   options: ModuleFederationPluginOptions,
   compiler: Compiler,
   treeShakingShareFallbacks?: ShareFallback,
+  treeShakingShareFallbackVariants?: ShareFallbackVariants,
 ) {
   return `${MF_RUNTIME_LOADER}!=!data:text/javascript,${encodeURIComponent(
     getDefaultEntryRuntimeSource(
@@ -444,6 +466,7 @@ function getDefaultEntryRuntime(
       options,
       compiler,
       treeShakingShareFallbacks,
+      treeShakingShareFallbackVariants,
     ),
   )}`;
 }
