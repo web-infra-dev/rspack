@@ -471,6 +471,8 @@ impl CopyRspackPlugin {
       case_sensitive: pattern.glob_options.case_sensitive_match.unwrap_or(true),
       require_literal_leading_dot: !dot_enable.unwrap_or(false),
       windows_paths: true,
+      // `from` accepts native paths such as path.join(context, "src", "*.txt").
+      backslash_escape: !cfg!(windows),
     };
     logger.log(format!("begin globbing '{orig_from}'..."));
     let glob_entries = match from_type {

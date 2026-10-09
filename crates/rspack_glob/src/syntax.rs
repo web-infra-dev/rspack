@@ -7,9 +7,13 @@ const MAX_BRACE_GROUPS: usize = 10;
 
 /// Parse path separators in their glob context before validating the syntax.
 /// Replacement keeps byte offsets intact; unchanged sources remain borrowed.
-pub(super) fn parse(glob: &[u8], windows_paths: bool) -> Result<Cow<'_, [u8]>, Error> {
+pub(super) fn parse(
+  glob: &[u8],
+  windows_paths: bool,
+  backslash_escape: bool,
+) -> Result<Cow<'_, [u8]>, Error> {
   let mut source = Cow::Borrowed(glob);
-  if windows_paths {
+  if windows_paths || !backslash_escape {
     let mut index = 0;
     while index < glob.len() {
       match glob[index] {
@@ -21,10 +25,12 @@ pub(super) fn parse(glob: &[u8], windows_paths: bool) -> Result<Cow<'_, [u8]>, E
           continue;
         }
         b'\\' => {
-          if matches!(
-            glob.get(index + 1),
-            Some(b'*' | b'?' | b'[' | b']' | b'{' | b'}')
-          ) {
+          if backslash_escape
+            && matches!(
+              glob.get(index + 1),
+              Some(b'*' | b'?' | b'[' | b']' | b'{' | b'}')
+            )
+          {
             index += 2;
             continue;
           }
