@@ -304,22 +304,17 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       if matches!(byte, C_LEFT_CURLY | C_SEMICOLON | C_RIGHT_CURLY) {
         return (byte != C_LEFT_CURLY).then_some(start + index);
       }
-      if matches!(
-        byte,
-        b'"' | b'\'' | b'/' | b'\\' | b'(' | b')' | b'[' | b']'
-      ) {
+      if is_non_flat_value_byte(byte) {
         return None;
       }
     }
     let boundary = memchr3(C_LEFT_CURLY, C_SEMICOLON, C_RIGHT_CURLY, &rest[short..])
       .map_or(rest.len(), |index| short + index);
     if rest.get(boundary) == Some(&C_LEFT_CURLY)
-      || rest[short..boundary].iter().any(|byte| {
-        matches!(
-          byte,
-          b'"' | b'\'' | b'/' | b'\\' | b'(' | b')' | b'[' | b']'
-        )
-      })
+      || rest[short..boundary]
+        .iter()
+        .copied()
+        .any(is_non_flat_value_byte)
     {
       return None;
     }
@@ -2771,6 +2766,21 @@ pub fn is_white_space(c: u8) -> bool {
 
 pub fn is_digit(c: u8) -> bool {
   c.is_ascii_digit()
+}
+
+#[inline]
+fn is_non_flat_value_byte(byte: u8) -> bool {
+  matches!(
+    byte,
+    C_QUOTATION_MARK
+      | C_APOSTROPHE
+      | C_SOLIDUS
+      | C_REVERSE_SOLIDUS
+      | C_LEFT_PARENTHESIS
+      | C_RIGHT_PARENTHESIS
+      | C_LEFT_SQUARE
+      | C_RIGHT_SQUARE
+  )
 }
 
 #[inline]
