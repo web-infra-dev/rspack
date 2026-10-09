@@ -192,7 +192,6 @@ export declare class ConcatenatedModule {
   get modules(): Module[]
   readableIdentifier(): string
   _originalSource(): JsSourceWithLazyMap | undefined
-  _isOriginalSource(source: JsSourceWithLazyMap): boolean
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -204,7 +203,6 @@ export declare class ConcatenatedModule {
 export declare class ContextModule {
   readableIdentifier(): string
   _originalSource(): JsSourceWithLazyMap | undefined
-  _isOriginalSource(source: JsSourceWithLazyMap): boolean
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -270,7 +268,6 @@ export type EntryOptionsDTO = EntryOptionsDto
 export declare class ExternalModule {
   readableIdentifier(): string
   _originalSource(): JsSourceWithLazyMap | undefined
-  _isOriginalSource(source: JsSourceWithLazyMap): boolean
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -467,7 +464,6 @@ export declare class KnownBuildInfo {
 export declare class Module {
   readableIdentifier(): string
   _originalSource(): JsSourceWithLazyMap | undefined
-  _isOriginalSource(source: JsSourceWithLazyMap): boolean
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -675,6 +671,8 @@ export declare enum EnforceExtension {
 export const EXPECTED_RSPACK_CORE_VERSION: string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
+
+export declare function isOriginalSource(module: Module, source: JsSourceWithLazyMap): boolean
 
 export interface JsAddingRuntimeModule {
   name: string

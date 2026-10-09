@@ -412,18 +412,6 @@ impl Module {
     Ok(JsOriginalSource(self.original_source_snapshot()?))
   }
 
-  #[napi(
-    js_name = "_isOriginalSource",
-    ts_args_type = "source: JsSourceWithLazyMap",
-    enumerable = false
-  )]
-  pub fn is_original_source(&self, source: Object<'_>) -> napi::Result<bool> {
-    let Some(current) = self.original_source_snapshot()? else {
-      return Ok(false);
-    };
-    is_same_source(source, &current)
-  }
-
   #[napi]
   pub fn name_for_condition(&mut self) -> napi::Result<Either<String, ()>> {
     self.with_ref(|_, module| {
@@ -564,6 +552,21 @@ type ModuleInstanceRef<'a> = Either5<
   &'a ExternalModule,
   &'a Module,
 >;
+
+#[napi(ts_args_type = "module: Module, source: JsSourceWithLazyMap")]
+pub fn is_original_source(module: ModuleInstanceRef<'_>, source: Object<'_>) -> napi::Result<bool> {
+  let module = match module {
+    Either5::A(module) => &module.module,
+    Either5::B(module) => &module.module,
+    Either5::C(module) => &module.module,
+    Either5::D(module) => &module.module,
+    Either5::E(module) => module,
+  };
+  let Some(current) = module.original_source_snapshot()? else {
+    return Ok(false);
+  };
+  is_same_source(source, &current)
+}
 
 type ModuleInstanceMutRef<'a> = Either5<
   &'a mut NormalModule,

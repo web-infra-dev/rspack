@@ -159,6 +159,7 @@ module.exports.cleanupGlobalTrace = __napiModule.exports.cleanupGlobalTrace
 module.exports.EnforceExtension = __napiModule.exports.EnforceExtension
 module.exports.EXPECTED_RSPACK_CORE_VERSION = __napiModule.exports.EXPECTED_RSPACK_CORE_VERSION
 module.exports.formatDiagnostic = __napiModule.exports.formatDiagnostic
+module.exports.isOriginalSource = __napiModule.exports.isOriginalSource
 module.exports.JsLoaderState = __napiModule.exports.JsLoaderState
 module.exports.JsRspackSeverity = __napiModule.exports.JsRspackSeverity
 module.exports.loadBrowserslist = __napiModule.exports.loadBrowserslist

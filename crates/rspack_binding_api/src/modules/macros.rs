@@ -44,15 +44,6 @@ macro_rules! impl_module_methods {
         self.module.original_source()
       }
 
-      #[napi(
-        js_name = "_isOriginalSource",
-        ts_args_type = "source: JsSourceWithLazyMap",
-        enumerable = false
-      )]
-      pub fn is_original_source(&self, source: napi::bindgen_prelude::Object<'_>) -> napi::Result<bool> {
-        self.module.is_original_source(source)
-      }
-
       #[napi]
       pub fn name_for_condition(&mut self) -> napi::Result<napi::Either<String, ()>> {
         self.module.name_for_condition()

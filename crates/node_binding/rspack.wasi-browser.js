@@ -119,6 +119,7 @@ export const cleanupGlobalTrace = __napiModule.exports.cleanupGlobalTrace
 export const EnforceExtension = __napiModule.exports.EnforceExtension
 export const EXPECTED_RSPACK_CORE_VERSION = __napiModule.exports.EXPECTED_RSPACK_CORE_VERSION
 export const formatDiagnostic = __napiModule.exports.formatDiagnostic
+export const isOriginalSource = __napiModule.exports.isOriginalSource
 export const JsLoaderState = __napiModule.exports.JsLoaderState
 export const JsRspackSeverity = __napiModule.exports.JsRspackSeverity
 export const loadBrowserslist = __napiModule.exports.loadBrowserslist

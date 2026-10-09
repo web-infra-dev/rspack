@@ -19,6 +19,22 @@ export default ([false, 'source-map'] as const).map((devtool) =>
     plugins: [
       {
         apply(compiler: Compiler) {
+          const {
+            Module,
+            NormalModule,
+            ConcatenatedModule,
+            ContextModule,
+            ExternalModule,
+          } = compiler.rspack;
+          for (const constructor of [
+            Module,
+            NormalModule,
+            ConcatenatedModule,
+            ContextModule,
+            ExternalModule,
+          ]) {
+            expect('_isOriginalSource' in constructor.prototype).toBe(false);
+          }
           let checkedText = false;
           let checkedBuffer = false;
           let checkedEmptyBuffer = false;
@@ -40,7 +56,6 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                     const cache = Reflect.get(module, cacheSymbol);
                     expect(Reflect.get(binding, cacheSymbol)).toBe(cache);
                     expect(Reflect.get(source, cacheSymbol)).toBe(cache);
-                    expect(module._isOriginalSource(cache)).toBe(true);
                     const nativeMap = cache.map;
                     expect(typeof nativeMap.takeJson).toBe('function');
                     // JavaScript constructs the real class and shares one getter across instances.

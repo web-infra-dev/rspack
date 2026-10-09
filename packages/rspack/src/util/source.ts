@@ -1,4 +1,8 @@
-import type { JsSource, JsSourceWithLazyMap, Module } from '@rspack/binding';
+import binding, {
+  type JsSource,
+  type JsSourceWithLazyMap,
+  type Module,
+} from '@rspack/binding';
 import { RawSource, type Source, SourceMapSource } from 'webpack-sources';
 
 const sourceCacheSymbol = Symbol.for('rspack.originalSource');
@@ -29,7 +33,7 @@ function getSourceMap(this: SourceWithCache): string | undefined {
 export class SourceAdapter {
   static fromModule(module: ModuleWithSourceCache): Source | null {
     let cache = module[sourceCacheSymbol];
-    if (!cache || !module._isOriginalSource(cache)) {
+    if (!cache || !binding.isOriginalSource(module, cache)) {
       cache = module._originalSource();
       if (!cache) {
         delete module[sourceCacheSymbol];
