@@ -334,7 +334,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     is_comment_candidate: C,
     icss_symbols: Option<&FxHashSet<&str>>,
     block_item: Option<BlockItemScan<'_>>,
-  ) -> Option<PrescannedToken>
+  ) -> Option<BufferedToken>
   where
     F: FnMut(&str) -> bool,
     C: FnMut(&str) -> bool,
@@ -368,7 +368,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     mut is_comment_candidate: C,
     icss_symbols: Option<&FxHashSet<&str>>,
     block_item: Option<BlockItemScan<'_>>,
-  ) -> Option<PrescannedToken>
+  ) -> Option<BufferedToken>
   where
     F: FnMut(&str) -> bool,
     C: FnMut(&str) -> bool,
@@ -504,24 +504,22 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
           let is_url = function == FunctionKind::Url;
           if !is_url {
             let token_end = if is_function { end + 1 } else { end };
-            candidate_token = Some(PrescannedToken {
-              start: position as Pos,
-              end: token_end as Pos,
-              value_end: end as Pos,
-              kind: if is_function {
-                TokenKind::Function
-              } else {
-                TokenKind::Ident
+            candidate_token = Some(BufferedToken::new(
+              TokenWithTrivia {
+                token: Token::with_flags(
+                  if is_function {
+                    TokenKind::Function
+                  } else {
+                    TokenKind::Ident
+                  },
+                  Range::new(position as Pos, token_end as Pos),
+                  Range::new(position as Pos, end as Pos),
+                  flags,
+                ),
+                leading,
               },
-              flags,
               function,
-              leading: Trivia {
-                range: Range::new(trivia_start as Pos, position as Pos),
-                end: position as Pos,
-                first_comment_start: trivia_comment,
-                has_white_space: trivia_whitespace,
-              },
-            });
+            ));
             position = token_end;
           }
           break;
@@ -1911,21 +1909,19 @@ pub(crate) struct TokenStream<'a, 's, V: LexerVisitor = ()> {
   lexer: &'a mut Lexer<'s, V>,
   consumed: Pos,
   buffered: VecDeque<BufferedToken>,
-  generic_value_state: GenericValueScanState,
+  value_state: GenericValueScanState,
   at_rule_state: GenericValueScanState,
-  special_value_state: GenericValueScanState,
   pub(crate) block_item: Option<BlockItemCandidates>,
-  rule_events: Vec<RuleEvent>,
+  rule_events: Vec<BufferedToken>,
   function_kind: FunctionKind,
   parsed_value_end: Option<Pos>,
-  flat_probe_start: Option<Pos>,
 }
 
 /// The raw scanner can save selector events without dispatching them through
 /// declaration semantics. Syntax still advances on the same component stack.
 struct BlockItemScan<'a> {
   candidate: &'a mut BlockItemCandidates,
-  events: &'a mut Vec<RuleEvent>,
+  events: &'a mut Vec<BufferedToken>,
 }
 
 impl std::ops::Deref for BlockItemScan<'_> {
@@ -2001,10 +1997,10 @@ fn observe_opaque_value(
     let token = Token::with_flags(kind, range, value_range, TokenFlags::ascii());
     candidate.observe(token, source);
     if candidate.preserve_selector_tokens() {
-      candidate.events.push(RuleEvent::new(BufferedToken {
-        item: TokenWithTrivia { token, leading },
+      candidate.events.push(BufferedToken::new(
+        TokenWithTrivia { token, leading },
         function,
-      }));
+      ));
     }
   }
 }
@@ -2019,17 +2015,6 @@ struct GenericValueScanOptions {
   property: Option<PropertyKind>,
   stop_at_top_level_left_curly: bool,
   allow_flat_scan: bool,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct PrescannedToken {
-  start: Pos,
-  end: Pos,
-  value_end: Pos,
-  kind: TokenKind,
-  flags: TokenFlags,
-  leading: Trivia,
-  function: FunctionKind,
 }
 
 /// Classification shared by tokenization, raw scanning and semantic parsing.
@@ -2077,63 +2062,41 @@ impl FunctionKind {
   }
 }
 
-/// Internal metadata travels with buffered tokens without changing public tokens.
+/// Compact metadata shared by lookahead, raw scanning and rule replay.
+/// Trivia endpoints coincide with the token start and are reconstructed on use.
 #[derive(Debug, Clone, Copy)]
 struct BufferedToken {
-  item: TokenWithTrivia,
-  function: FunctionKind,
-}
-
-impl std::ops::Deref for BufferedToken {
-  type Target = TokenWithTrivia;
-
-  fn deref(&self) -> &Self::Target {
-    &self.item
-  }
-}
-
-/// Compact rule events omit duplicate trivia endpoints. Inert selector atoms
-/// are omitted unless a selector helper needs them for immediate lookahead.
-#[derive(Debug, Clone, Copy)]
-struct RuleEvent {
-  range: Range,
-  value_range: Range,
+  token: Token,
   leading_start: Pos,
   first_comment_start: Pos,
-  kind: TokenKind,
-  flags: TokenFlags,
   has_whitespace: bool,
   function: FunctionKind,
 }
 
-impl RuleEvent {
-  fn new(item: BufferedToken) -> Self {
+impl BufferedToken {
+  fn new(item: TokenWithTrivia, function: FunctionKind) -> Self {
     debug_assert_eq!(item.leading.end, item.token.range.start);
+    debug_assert_eq!(item.leading.range.end, item.token.range.start);
     Self {
-      range: item.token.range,
-      value_range: item.token.value_range,
+      token: item.token,
       leading_start: item.leading.range.start,
       first_comment_start: item.leading.first_comment_start.unwrap_or(Pos::MAX),
-      kind: item.token.kind,
-      flags: item.token.flags,
       has_whitespace: item.leading.has_white_space,
-      function: item.function,
+      function,
     }
   }
 
-  fn into_token(self) -> BufferedToken {
-    BufferedToken {
-      item: TokenWithTrivia {
-        token: Token::with_flags(self.kind, self.range, self.value_range, self.flags),
-        leading: Trivia {
-          range: Range::new(self.leading_start, self.range.start),
-          end: self.range.start,
-          first_comment_start: (self.first_comment_start != Pos::MAX)
-            .then_some(self.first_comment_start),
-          has_white_space: self.has_whitespace,
-        },
+  #[inline]
+  fn into_item(self) -> TokenWithTrivia {
+    TokenWithTrivia {
+      token: self.token,
+      leading: Trivia {
+        range: Range::new(self.leading_start, self.token.range.start),
+        end: self.token.range.start,
+        first_comment_start: (self.first_comment_start != Pos::MAX)
+          .then_some(self.first_comment_start),
+        has_white_space: self.has_whitespace,
       },
-      function: self.function,
     }
   }
 }
@@ -2149,14 +2112,12 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       lexer,
       consumed: 0,
       buffered: VecDeque::new(),
-      generic_value_state: GenericValueScanState::default(),
+      value_state: GenericValueScanState::default(),
       at_rule_state: GenericValueScanState::default(),
-      special_value_state: GenericValueScanState::default(),
       block_item: None,
       rule_events: Vec::new(),
       function_kind: FunctionKind::Other,
       parsed_value_end: None,
-      flat_probe_start: None,
     }
   }
 
@@ -2178,7 +2139,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
     {
       candidate.observe(token.token, self.lexer.value);
       if candidate.retain_rule_event(token.token.kind) {
-        self.rule_events.push(RuleEvent::new(token));
+        self.rule_events.push(token);
       }
     }
     self.function_kind = token.function;
@@ -2192,7 +2153,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       self.consumed,
       self.lexer.scan_pos()
     );
-    token.item
+    token.into_item()
   }
 
   #[inline]
@@ -2219,50 +2180,58 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
 
   /// Resolve cheap prefixes with their semantic result. The validated range
   /// is consumed by the value parser, so it never scans this text again.
+  /// Return whether the declaration is prepared and, on failure, the attempted
+  /// flat scan's start so candidate parsing can avoid repeating it.
   pub(crate) fn prepare_declaration(
     &mut self,
     ident: Token,
     custom: bool,
     flat: bool,
     collect_dashed: bool,
-  ) -> bool {
-    self.flat_probe_start = None;
+  ) -> (bool, Option<Pos>) {
+    let mut flat_probe_start = None;
     if self.byte_at(ident.range.end) != Some(C_COLON) {
-      return false;
+      return (false, flat_probe_start);
     }
     if !custom && !flat {
-      return false;
+      return (false, flat_probe_start);
     }
     let end = if custom {
       None
     } else {
-      self.flat_probe_start = Some(ident.range.end + 1);
+      flat_probe_start = Some(ident.range.end + 1);
       let Some(end) = self.lexer.scan_flat_value(ident.range.end as usize + 1) else {
-        return false;
+        return (false, flat_probe_start);
       };
       if collect_dashed
         && self.lexer.value[ident.range.end as usize + 1..end]
           .windows(2)
           .any(|bytes| bytes == b"--")
       {
-        return false;
+        return (false, flat_probe_start);
       }
       Some(end as Pos)
     };
     // `peek` has already buffered the identifier. Its colon is read once too.
     if self.buffered.len() != 1 {
-      return false;
+      return (false, flat_probe_start);
     }
     let colon = self.read_significant(false);
     debug_assert_eq!(colon.token.kind, TokenKind::Colon);
     self.buffered.push_back(colon);
     self.parsed_value_end = end;
-    true
+    (true, None)
   }
 
-  pub(crate) fn begin_block_item(&mut self, custom: bool, has_mode: bool, collect_dashed: bool) {
+  pub(crate) fn begin_block_item(
+    &mut self,
+    custom: bool,
+    has_mode: bool,
+    collect_dashed: bool,
+    flat_probe_start: Option<Pos>,
+  ) {
     let mut candidate = BlockItemCandidates::new(custom, has_mode);
-    candidate.flat_probe_start = self.flat_probe_start.take();
+    candidate.flat_probe_start = flat_probe_start;
     candidate.collect_dashed = collect_dashed;
     self.block_item = Some(candidate);
   }
@@ -2281,10 +2250,11 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
           .rule_events
           .first()
           .expect("a rule has a prefix")
+          .token
           .range
           .start;
         for event in self.rule_events.drain(..).rev() {
-          self.buffered.push_front(event.into_token());
+          self.buffered.push_front(event);
         }
         self.reset_value_scan_states();
       }
@@ -2293,8 +2263,8 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
           .rule_events
           .last()
           .expect("an invalid item ends at a boundary");
-        self.consumed = boundary.range.start;
-        self.buffered.push_front(boundary.into_token());
+        self.consumed = boundary.token.range.start;
+        self.buffered.push_front(boundary);
         self.reset_value_scan_states();
       }
     }
@@ -2303,13 +2273,11 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   }
 
   pub(crate) fn reset_value_scan_states(&mut self) {
-    self.generic_value_state = GenericValueScanState::default();
-    self.special_value_state = GenericValueScanState::default();
+    self.value_state = GenericValueScanState::default();
   }
 
   pub(crate) fn value_is_nested(&self) -> bool {
-    self.generic_value_state.is_nested()
-      || self.special_value_state.is_nested()
+    self.value_state.is_nested()
       || self
         .block_item
         .as_ref()
@@ -2360,7 +2328,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       .buffered
       .front()
       .expect("peek must buffer an item before reading the front")
-      .item
+      .into_item()
   }
 
   /// Peek the next parser token (folding comments into its leading trivia)
@@ -2378,7 +2346,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
         let item = self.read_significant(true);
         self.buffered.push_back(item);
       }
-      let item = self.buffered[index];
+      let item = self.buffered[index].into_item();
       leading_start.get_or_insert(item.leading.range.start);
       has_white_space |= item.leading.has_whitespace();
       if matches!(item.token.kind, TokenKind::Comment | TokenKind::BadComment) {
@@ -2388,7 +2356,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       }
 
       let end = item.leading.end;
-      let mut result = item.item;
+      let mut result = item;
       result.leading = Trivia {
         range: Range::new(leading_start.unwrap_or(end), end),
         end,
@@ -2409,14 +2377,14 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
     self.peek(keep_comments);
     for item in &self.buffered {
       if !matches!(item.token.kind, TokenKind::Comment | TokenKind::BadComment) {
-        return item.item;
+        return item.into_item();
       }
     }
     loop {
       let item = self.read_significant(keep_comments);
       self.buffered.push_back(item);
       if !matches!(item.token.kind, TokenKind::Comment | TokenKind::BadComment) {
-        return item.item;
+        return item.into_item();
       }
     }
   }
@@ -2439,7 +2407,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       return;
     }
     let candidate = self.lexer.fast_forward_generic_value(
-      &mut self.generic_value_state,
+      &mut self.value_state,
       GenericValueScanOptions {
         keep_comments,
         preserve_strings,
@@ -2475,7 +2443,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       return;
     }
     let candidate = self.lexer.fast_forward_generic_value(
-      &mut self.generic_value_state,
+      &mut self.value_state,
       GenericValueScanOptions {
         keep_comments: false,
         preserve_strings,
@@ -2546,7 +2514,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       return;
     }
     let candidate = self.lexer.fast_forward_generic_value(
-      &mut self.special_value_state,
+      &mut self.value_state,
       GenericValueScanOptions {
         keep_comments,
         preserve_strings,
@@ -2567,26 +2535,14 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   }
 
   #[inline]
-  fn finish_value_fast_forward(&mut self, candidate: Option<PrescannedToken>) {
+  fn finish_value_fast_forward(&mut self, candidate: Option<BufferedToken>) {
     let Some(candidate) = candidate else {
       self.consumed = self.lexer.scan_pos();
       return;
     };
-    debug_assert_eq!(candidate.end, self.lexer.scan_pos());
-    self.consumed = candidate.start;
-    let range = Range::new(candidate.start, candidate.end);
-    self.buffered.push_back(BufferedToken {
-      item: TokenWithTrivia {
-        token: Token::with_flags(
-          candidate.kind,
-          range,
-          Range::new(candidate.start, candidate.value_end),
-          candidate.flags,
-        ),
-        leading: candidate.leading,
-      },
-      function: candidate.function,
-    });
+    debug_assert_eq!(candidate.token.range.end, self.lexer.scan_pos());
+    self.consumed = candidate.token.range.start;
+    self.buffered.push_back(candidate);
   }
 
   #[inline]
@@ -2734,10 +2690,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
         first_comment_start,
         has_white_space,
       };
-      return BufferedToken {
-        item: TokenWithTrivia { token, leading },
-        function: self.lexer.function_kind,
-      };
+      return BufferedToken::new(TokenWithTrivia { token, leading }, self.lexer.function_kind);
     }
   }
 }

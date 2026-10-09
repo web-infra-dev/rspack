@@ -335,17 +335,13 @@ struct BalancedItem {
 }
 
 impl BalancedItem {
-  pub fn new(name: &str, flags: TokenFlags, start: Pos, end: Pos) -> Self {
-    let mut normalized = [0; MAX_CSS_KEYWORD_LEN];
-    let kind = if flags.has_escape() {
-      decode_css_keyword(name, &mut normalized)
-        .map_or(BalancedItemKind::Other, BalancedItemKind::new)
-    } else {
-      lowercase_ascii_keyword(name, &mut normalized)
-        .map_or(BalancedItemKind::Other, BalancedItemKind::new)
-    };
+  pub fn new_mode_class(local: bool, start: Pos, end: Pos) -> Self {
     Self {
-      kind,
+      kind: if local {
+        BalancedItemKind::LocalClass
+      } else {
+        BalancedItemKind::GlobalClass
+      },
       range: Range::new(start, end),
       magic_comments: None,
     }
@@ -420,22 +416,6 @@ enum BalancedItemKind {
 }
 
 impl BalancedItemKind {
-  pub fn new(name: &str) -> Self {
-    match name {
-      "url(" => Self::Url,
-      "image-set(" => Self::ImageSet,
-      _ if strip_vendor_prefix(name) == Some("image-set(") => Self::ImageSet,
-      "layer(" => Self::Layer,
-      "supports(" => Self::Supports,
-      "palette-mix(" => Self::PaletteMix,
-      ":local(" => Self::LocalFn,
-      ":global(" => Self::GlobalFn,
-      ":local" => Self::LocalClass,
-      ":global" => Self::GlobalClass,
-      _ => Self::Other,
-    }
-  }
-
   pub fn is_mode_local(&self) -> bool {
     matches!(self, Self::LocalFn | Self::LocalClass)
   }
@@ -1600,7 +1580,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             first.flags,
             property_local,
           );
-          let prepared = stream.prepare_declaration(
+          let (prepared, flat_probe_start) = stream.prepare_declaration(
             first,
             custom,
             property == PropertyKind::Generic && self.icss_symbols.is_empty() && !keep_comments,
@@ -1620,7 +1600,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
               }),
             });
             self.handle_warning.deferred = true;
-            stream.begin_block_item(custom, has_mode, collect_dashed);
+            stream.begin_block_item(custom, has_mode, collect_dashed, flat_probe_start);
           }
           self.property_kind = property;
           self.pending_grid_property = pending_grid;
@@ -1793,7 +1773,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             result = if function {
               self.handle_pseudo_function(stream, token.range.start, end)
             } else {
-              self.handle_pseudo_class(stream, token.range.start, end, next.token.flags)
+              self.handle_pseudo_class(stream, token.range.start, end)
             };
           }
         }
@@ -2785,7 +2765,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       if pseudo_name.kind == TokenKind::Function {
         self.handle_pseudo_function(stream, pseudo_start, pseudo_end)?;
       } else if pseudo_name.kind == TokenKind::Ident {
-        self.handle_pseudo_class(stream, pseudo_start, pseudo_end, pseudo_name.flags)?;
+        self.handle_pseudo_class(stream, pseudo_start, pseudo_end)?;
       }
       let mode_data = self
         .mode_data
@@ -2984,7 +2964,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       if pseudo_name.kind == TokenKind::Function {
         self.handle_pseudo_function(stream, pseudo_start, pseudo_end)?;
       } else if pseudo_name.kind == TokenKind::Ident {
-        self.handle_pseudo_class(stream, pseudo_start, pseudo_end, pseudo_name.flags)?;
+        self.handle_pseudo_class(stream, pseudo_start, pseudo_end)?;
       }
       let mode_data = self
         .mode_data
@@ -4488,7 +4468,6 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     stream: &mut DependencyTokenStream<'_, 's>,
     start: Pos,
     end: Pos,
-    flags: TokenFlags,
   ) -> Option<()> {
     let Some(mode_data) = &mut self.mode_data else {
       return Some(());
@@ -4524,7 +4503,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         }
       }
       self.balanced.push(
-        BalancedItem::new(name, flags, start, end),
+        BalancedItem::new_mode_class(name.eq_ignore_ascii_case(":local"), start, end),
         self.mode_data.as_mut(),
       );
       self
