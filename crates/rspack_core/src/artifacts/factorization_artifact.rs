@@ -1,6 +1,8 @@
+use std::collections::hash_map::Entry;
+
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
-use rspack_paths::{InternedPath, InternedPathList, InternedPathSet};
+use rspack_paths::{InternedPath, InternedPathSet, SharedPathList};
 use rustc_hash::FxHashMap;
 
 use crate::DependencyId;
@@ -9,9 +11,9 @@ use crate::DependencyId;
 #[derive(Debug, Clone)]
 pub struct FactorizeInfo {
   related_dep_ids: Vec<DependencyId>,
-  file_dependencies: InternedPathList,
-  context_dependencies: InternedPathList,
-  missing_dependencies: InternedPathList,
+  file_dependencies: SharedPathList,
+  context_dependencies: SharedPathList,
+  missing_dependencies: SharedPathList,
   diagnostics: Vec<Diagnostic>,
 }
 
@@ -29,9 +31,9 @@ impl FactorizeInfo {
     );
     Self {
       related_dep_ids,
-      file_dependencies: InternedPathList::from_vec(file_dependencies.into_iter().collect()),
-      context_dependencies: InternedPathList::from_vec(context_dependencies.into_iter().collect()),
-      missing_dependencies: InternedPathList::from_vec(missing_dependencies.into_iter().collect()),
+      file_dependencies: file_dependencies.into_iter().collect(),
+      context_dependencies: context_dependencies.into_iter().collect(),
+      missing_dependencies: missing_dependencies.into_iter().collect(),
       diagnostics,
     }
   }
@@ -69,15 +71,36 @@ impl FactorizeInfo {
 pub(crate) struct FactorizationArtifact {
   infos: FxHashMap<DependencyId, FactorizeInfo>,
   dependency_owners: FxHashMap<DependencyId, DependencyId>,
+  /// Canonical lists and the number of fields in `infos` using each one.
+  /// Only serial insertion/revocation changes this index. Counts exclude
+  /// external clones, which keep their data alive independently through Arc.
+  path_lists: FxHashMap<SharedPathList, usize>,
 }
 
 impl FactorizationArtifact {
-  pub(crate) fn insert(&mut self, info: FactorizeInfo) {
+  pub(crate) fn insert(&mut self, mut info: FactorizeInfo) {
     let owner_dep_id = info.owner_dep_id();
 
-    if let Some(previous) = self.infos.remove(&owner_dep_id) {
-      for dep_id in previous.related_dep_ids() {
-        self.dependency_owners.remove(dep_id);
+    self.revoke(&owner_dep_id);
+
+    // Both background factorization and parallel cache decoding produce owned
+    // lists. Deduplicate only when their results reach this serial owner.
+    for paths in [
+      &mut info.file_dependencies,
+      &mut info.context_dependencies,
+      &mut info.missing_dependencies,
+    ] {
+      if paths.is_empty() {
+        continue;
+      }
+      match self.path_lists.entry(paths.clone()) {
+        Entry::Occupied(mut entry) => {
+          *entry.get_mut() += 1;
+          *paths = entry.key().clone();
+        }
+        Entry::Vacant(entry) => {
+          entry.insert(1);
+        }
       }
     }
 
@@ -108,6 +131,23 @@ impl FactorizationArtifact {
       .expect("factorization owner should have info");
     for related_dep_id in info.related_dep_ids() {
       self.dependency_owners.remove(related_dep_id);
+    }
+    for paths in [
+      &info.file_dependencies,
+      &info.context_dependencies,
+      &info.missing_dependencies,
+    ] {
+      if paths.is_empty() {
+        continue;
+      }
+      let references = self
+        .path_lists
+        .get_mut(paths)
+        .expect("factorization paths should be indexed");
+      *references -= 1;
+      if *references == 0 {
+        self.path_lists.remove(paths);
+      }
     }
     Some((owner_dep_id, info))
   }

@@ -1,265 +1,127 @@
 use std::{
   fmt,
-  hash::Hasher,
+  hash::{Hash, Hasher},
   ops::Deref,
-  sync::{
-    Arc, OnceLock, Weak,
-    atomic::{AtomicUsize, Ordering},
-  },
+  sync::Arc,
 };
 
-use dashmap::{DashMap, mapref::entry::Entry};
 #[cfg(feature = "cacheable")]
 use rspack_cacheable::{
   ContextGuard, Result as CacheableResult, cacheable,
   with::{Custom, CustomConverter},
 };
-use rustc_hash::{FxBuildHasher, FxHasher};
+use rustc_hash::FxHasher;
 
 use crate::InternedPath;
 
-/// A content-interned, immutable list of [`InternedPath`]s.
+/// An immutable path list whose clones share their element buffer.
 ///
-/// Lists with equal elements share one allocation process-wide, so a repeated
-/// resolution result costs a handle instead of another element buffer.
-/// Interning keys on the elements' precomputed path hashes, so a lookup hashes
-/// list elements rather than path bytes; comparing a key hit compares elements
-/// by their already interned identity. An empty list shares a single allocation.
+/// Construction and cache decoding do not access an intern table. An owner can
+/// deduplicate equal lists in its own collection using the precomputed hash and
+/// content equality. Dropping the last clone releases the data without calling
+/// back into that collection.
 ///
-/// The table holds weak references and a slot is removed as soon as its last
-/// handle drops, so an entry lives exactly as long as some list still refers to
-/// it and no sweeping is needed to reclaim a buffer whose list is gone.
+/// Empty lists need no allocation. Non-empty lists use a thin arc so a retained
+/// list costs one pointer, and their hash only reads the paths' cached hashes.
+#[derive(Clone, Default)]
 #[cfg_attr(feature = "cacheable", cacheable(with = Custom))]
-pub struct InternedPathList(Arc<ListStorage>);
+pub struct SharedPathList(Option<Arc<ListStorage>>);
 
-/// The shared part of an interned list: its elements, the key that identifies
-/// them in the intern table, and the number of handles that keep it alive.
 struct ListStorage {
-  /// Fold of the elements' precomputed path hashes: the hash half of the key.
   hash: u64,
   ids: Box<[InternedPath]>,
-  /// Live handle count. Counting handles instead of inspecting the arc's
-  /// strong count stays exact when several handles drop at once: the contained
-  /// arc is only released after a handle's drop body returns.
-  handles: AtomicUsize,
 }
 
-impl InternedPathList {
-  /// Interns `items`, returning the shared list when an equal one exists.
+impl SharedPathList {
   pub fn new(items: &[InternedPath]) -> Self {
-    let table = intern_table();
-    let key = list_key(items);
-    match lookup(table, key, items) {
-      Some(shared) => shared,
-      None => intern(
-        table,
-        key,
-        Arc::new(ListStorage {
-          hash: key.0,
-          ids: items.into(),
-          handles: AtomicUsize::new(0),
-        }),
-      ),
-    }
+    Self::from_vec(items.to_vec())
   }
 
-  /// Interns an owned list, reusing its allocation when the list is new.
+  /// Moves the elements into a shared list without cloning path handles.
   pub fn from_vec(items: Vec<InternedPath>) -> Self {
-    let table = intern_table();
-    let key = list_key(&items);
-    match lookup(table, key, &items) {
-      Some(shared) => shared,
-      None => intern(
-        table,
-        key,
-        // Moving the vector hands its elements over to the shared allocation
-        // instead of cloning and dropping every handle.
-        Arc::new(ListStorage {
-          hash: key.0,
-          ids: items.into_boxed_slice(),
-          handles: AtomicUsize::new(0),
-        }),
-      ),
+    if items.is_empty() {
+      return Self::default();
     }
-  }
-
-  /// Counts a handle before releasing the table's shard lock, so a concurrent
-  /// last drop cannot remove the slot between lookup and handle creation.
-  /// Cloning needs no lock because the source handle keeps the list alive.
-  fn from_storage(storage: Arc<ListStorage>) -> Self {
-    storage.handles.fetch_add(1, Ordering::AcqRel);
-    Self(storage)
+    let mut hasher = FxHasher::default();
+    for item in &items {
+      hasher.write_u64(item.precomputed_hash());
+    }
+    Self(Some(Arc::new(ListStorage {
+      hash: hasher.finish(),
+      ids: items.into_boxed_slice(),
+    })))
   }
 
   #[inline]
   pub fn as_slice(&self) -> &[InternedPath] {
-    &self.0.ids
+    self.0.as_ref().map_or(&[], |storage| &storage.ids)
   }
 
   #[inline]
   pub fn len(&self) -> usize {
-    self.0.ids.len()
+    self.as_slice().len()
   }
 
   #[inline]
   pub fn is_empty(&self) -> bool {
-    self.0.ids.is_empty()
+    self.0.is_none()
   }
 }
 
-impl Clone for InternedPathList {
-  fn clone(&self) -> Self {
-    Self::from_storage(self.0.clone())
-  }
-}
-
-impl Drop for InternedPathList {
-  fn drop(&mut self) {
-    // The last handle removes the slot: from here on the weak entry would keep
-    // the buffer reserved for nobody.
-    if self.0.handles.fetch_sub(1, Ordering::AcqRel) == 1 {
-      remove_slot(&self.0);
-    }
-  }
-}
-
-impl Deref for InternedPathList {
+impl Deref for SharedPathList {
   type Target = [InternedPath];
 
   #[inline]
   fn deref(&self) -> &Self::Target {
-    &self.0.ids
+    self.as_slice()
   }
 }
 
-impl AsRef<[InternedPath]> for InternedPathList {
+impl AsRef<[InternedPath]> for SharedPathList {
   #[inline]
   fn as_ref(&self) -> &[InternedPath] {
-    &self.0.ids
+    self.as_slice()
   }
 }
 
-impl fmt::Debug for InternedPathList {
+impl fmt::Debug for SharedPathList {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_list().entries(self.0.ids.iter()).finish()
+    f.debug_list().entries(self.as_slice().iter()).finish()
   }
 }
 
-impl PartialEq for InternedPathList {
+impl PartialEq for SharedPathList {
   fn eq(&self, other: &Self) -> bool {
-    Arc::ptr_eq(&self.0, &other.0) || self.0.ids == other.0.ids
+    match (&self.0, &other.0) {
+      (Some(a), Some(b)) => Arc::ptr_eq(a, b) || a.ids == b.ids,
+      (None, None) => true,
+      _ => false,
+    }
   }
 }
 
-impl Eq for InternedPathList {}
+impl Eq for SharedPathList {}
 
-impl FromIterator<InternedPath> for InternedPathList {
+impl Hash for SharedPathList {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    state.write_u64(self.0.as_ref().map_or(0, |storage| storage.hash));
+  }
+}
+
+impl FromIterator<InternedPath> for SharedPathList {
   fn from_iter<T: IntoIterator<Item = InternedPath>>(iter: T) -> Self {
     Self::from_vec(iter.into_iter().collect())
   }
 }
 
-/// Intern table key: the fold of the elements' precomputed path hashes plus the
-/// element count. A hit still compares elements, so a hash collision only costs
-/// a duplicate entry, never a wrong list.
-type ListKey = (u64, usize);
-
-fn intern_table() -> &'static DashMap<ListKey, Weak<ListStorage>, FxBuildHasher> {
-  static TABLE: OnceLock<DashMap<ListKey, Weak<ListStorage>, FxBuildHasher>> = OnceLock::new();
-  TABLE.get_or_init(|| DashMap::with_hasher(FxBuildHasher))
-}
-
-fn list_key(items: &[InternedPath]) -> ListKey {
-  let mut hasher = FxHasher::default();
-  for item in items {
-    hasher.write_u64(item.precomputed_hash());
-  }
-  (hasher.finish(), items.len())
-}
-
-fn lookup(
-  table: &DashMap<ListKey, Weak<ListStorage>, FxBuildHasher>,
-  key: ListKey,
-  items: &[InternedPath],
-) -> Option<InternedPathList> {
-  let entry = table.get(&key)?;
-  let existing = entry.value().upgrade()?;
-  if existing.ids.len() == items.len() && existing.ids.iter().eq(items.iter()) {
-    Some(InternedPathList::from_storage(existing))
-  } else {
-    None
-  }
-}
-
-fn intern(
-  table: &DashMap<ListKey, Weak<ListStorage>, FxBuildHasher>,
-  key: ListKey,
-  list: Arc<ListStorage>,
-) -> InternedPathList {
-  // The write lock re-checks the entry so parallel interning of the same list
-  // converges on one allocation instead of keeping one payload per thread.
-  match table.entry(key) {
-    Entry::Occupied(mut entry) => {
-      let existing = entry.get().upgrade();
-      match existing {
-        Some(existing)
-          if existing.ids.len() == list.ids.len() && existing.ids.iter().eq(list.ids.iter()) =>
-        {
-          InternedPathList::from_storage(existing)
-        }
-        Some(_) => {
-          entry.insert(Arc::downgrade(&list));
-          InternedPathList::from_storage(list)
-        }
-        None => {
-          // The previous list with this content is gone; replacing the slot
-          // releases its buffer right away.
-          entry.insert(Arc::downgrade(&list));
-          InternedPathList::from_storage(list)
-        }
-      }
-    }
-    Entry::Vacant(entry) => {
-      // Inserting consumes the vacant entry and releases its lock. Count the
-      // first handle before publishing the weak slot.
-      let list = InternedPathList::from_storage(list);
-      entry.insert(Arc::downgrade(&list.0));
-      list
-    }
-  }
-}
-
-/// Removes the slot of the storage if it still belongs to it and no handle was
-/// created meanwhile. A newer list with the same content may have replaced the
-/// slot, and a handle may have been created while this drop was in flight; both
-/// keep the slot in place.
-fn remove_slot(storage: &Arc<ListStorage>) {
-  let table = intern_table();
-  let key = (storage.hash, storage.ids.len());
-  if let Entry::Occupied(entry) = table.entry(key) {
-    if storage.handles.load(Ordering::Acquire) != 0 {
-      return;
-    }
-    let points_at_self = match entry.get().upgrade() {
-      Some(existing) => Arc::ptr_eq(&existing, storage),
-      // The slot is dead and can only hold a list that is on its way out;
-      // removing it releases the buffer together with the weak entry.
-      None => true,
-    };
-    if points_at_self {
-      entry.remove();
-    }
-  }
-}
-
-/// Persist the paths themselves; loading re-interns the list, so restored
-/// builds share lists with any equal list already alive.
+/// Persist only the paths. The owning artifact deduplicates decoded lists when
+/// inserting restored factorization results, just as it does for fresh ones.
 #[cfg(feature = "cacheable")]
-impl CustomConverter for InternedPathList {
+impl CustomConverter for SharedPathList {
   type Target = Vec<InternedPath>;
 
   fn serialize(&self, _guard: &ContextGuard) -> CacheableResult<Self::Target> {
-    Ok(self.0.ids.to_vec())
+    Ok(self.as_slice().to_vec())
   }
 
   fn deserialize(data: Self::Target, _guard: &ContextGuard) -> CacheableResult<Self> {
