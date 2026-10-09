@@ -94,8 +94,9 @@ pub(super) fn context_module_glob_alias_request(
     return None;
   }
   let path = normalize_path_separators(path);
-  let base = unescape_glob_path(extract_glob_base_dir(&path));
-  let (key, exact) = resolve_options.alias_prefix(&base)?;
+  let pattern_base = extract_glob_base_dir(&path);
+  let base = unescape_glob_path(pattern_base);
+  let (key, exact) = resolve_options.alias_prefix(&base, pattern_base == path)?;
   let escaped_key = escape_glob_pattern(key);
   let suffix = path.strip_prefix(&escaped_key)?.trim_start_matches('/');
   // Resolve the alias directory without resolving the suffix, whose directory

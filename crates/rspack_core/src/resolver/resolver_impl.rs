@@ -90,8 +90,13 @@ impl ResolveInnerOptions<'_> {
   }
 
   /// The first nonempty alias entry matching a literal directory prefix.
+  /// Exact aliases are eligible only when the prefix is the complete request.
   /// Return the key without `$` and whether the match is exact.
-  pub(crate) fn alias_prefix<'a>(&'a self, request: &str) -> Option<(&'a str, bool)> {
+  pub(crate) fn alias_prefix<'a>(
+    &'a self,
+    request: &str,
+    allow_exact: bool,
+  ) -> Option<(&'a str, bool)> {
     match self {
       Self::RspackResolver(options) => options.alias.iter().find_map(|(key, values)| {
         if values.is_empty() {
@@ -101,7 +106,7 @@ impl ResolveInnerOptions<'_> {
           .strip_suffix('$')
           .map_or((key.as_str(), false), |key| (key, true));
         let matches = if exact {
-          request == key
+          allow_exact && request == key
         } else {
           request
             .strip_prefix(key)
