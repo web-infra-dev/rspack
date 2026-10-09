@@ -103,6 +103,11 @@ impl DependencyIds {
     }
   }
 
+  /// Whether the ids are stored as a hash set, i.e. still need collapsing.
+  fn is_hash_form(&self) -> bool {
+    matches!(self, DependencyIds::Set(_))
+  }
+
   /// Collapses a working hash set into the dense sorted form. Idempotent.
   fn freeze(&mut self) {
     if let DependencyIds::Set(set) = self {
@@ -182,6 +187,11 @@ impl PathResourceIds {
     self.dependencies.iter()
   }
 
+  /// Whether the dependency ids are stored as a hash set.
+  fn dependencies_in_hash_form(&self) -> bool {
+    self.dependencies.is_hash_form()
+  }
+
   /// Collapses the working hash set into the dense sorted form.
   fn freeze(&mut self) {
     self.dependencies.freeze();
@@ -193,6 +203,11 @@ impl PathResourceIds {
 pub struct FileCounter {
   inner: InternedPathMap<PathResourceIds>,
   incremental_info: IncrementalInfo<InternedPath, BuildHasherDefault<IdentityHasher>>,
+  /// Paths whose dependency ids were put into the hash form during this make
+  /// and therefore still need to be collapsed by [`FileCounter::freeze`]. The
+  /// list is filled where a mutation creates or thaws a hash set, so freezing
+  /// never has to rescan a map whose entries are almost all already dense.
+  hash_form_paths: Vec<InternedPath>,
 }
 
 impl FileCounter {
@@ -200,10 +215,14 @@ impl FileCounter {
   /// builds the index it needs hash lookups; the retained hash tables then
   /// carry one control byte per bucket plus up to twice the live element count
   /// in growth slack. Freezing at the end of make stores the ids sorted and
-  /// exactly sized instead. Later rebuilds thaw only the sets they mutate.
+  /// exactly sized instead. Only the paths a mutation put into the hash form
+  /// are visited, so a rebuild collapses just what it touched and later
+  /// rebuilds thaw only the sets they mutate.
   pub fn freeze(&mut self) {
-    for ids in self.inner.values_mut() {
-      ids.freeze();
+    for path in std::mem::take(&mut self.hash_form_paths) {
+      if let Some(ids) = self.inner.get_mut(&path) {
+        ids.freeze();
+      }
     }
   }
 
@@ -220,8 +239,12 @@ impl FileCounter {
       if list.is_empty() {
         self.incremental_info.mark_as_add(path);
       }
+      let in_hash_form = list.dependencies_in_hash_form();
       // multiple additions are allowed without additional checks to see if the addition was successful
       list.insert(resource_id);
+      if !in_hash_form && list.dependencies_in_hash_form() {
+        self.hash_form_paths.push(path.clone());
+      }
     }
   }
 
@@ -240,12 +263,16 @@ impl FileCounter {
       let Some(list) = self.inner.get_mut(path) else {
         panic!("unable to remove untracked file {}", path.to_string_lossy());
       };
+      let in_hash_form = list.dependencies_in_hash_form();
       if !list.remove(resource_id) {
         panic!(
           "unable to remove path '{}' with resource_id '{:?}', it has not been added.",
           path.to_string_lossy(),
           resource_id,
         )
+      }
+      if !in_hash_form && list.dependencies_in_hash_form() {
+        self.hash_form_paths.push(path.clone());
       }
       if list.is_empty() {
         self.incremental_info.mark_as_remove(path);
