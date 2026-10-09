@@ -249,6 +249,70 @@ fn glob_parser_handles_windows_separators_and_glob_escapes() {
 }
 
 #[test]
+fn native_windows_patterns_keep_wildcards_after_backslash_separators() {
+  let options = GlobOptions {
+    backslash_escape: false,
+    ..Default::default()
+  };
+  for (source, parsed, path) in [
+    (
+      r"C:\repo\src\*.txt",
+      "C:/repo/src/*.txt",
+      "C:/repo/src/value.txt",
+    ),
+    (r"src\?\*.txt", "src/?/*.txt", "src/a/value.txt"),
+    (r"src\{a,b}\*.txt", "src/{a,b}/*.txt", "src/b/value.txt"),
+    (r"src\[ab]\*.txt", "src/[ab]/*.txt", "src/a/value.txt"),
+    (r"src\[\a\]]\*.txt", r"src/[\a\]]/*.txt", "src/]/value.txt"),
+    (
+      r"\\server\share\src\*.txt",
+      "//server/share/src/*.txt",
+      "//server/share/src/value.txt",
+    ),
+  ] {
+    let pattern = GlobPattern::new_with_options(source.as_bytes(), options).unwrap();
+    assert_eq!(pattern.source(), parsed.as_bytes(), "{source}");
+    assert!(pattern.match_path(path).is_exact(), "{source}");
+    let prefix = pattern.directory_prefix();
+    assert!(
+      pattern
+        .match_prefix(prefix)
+        .unwrap()
+        .match_path(path.as_bytes().strip_prefix(prefix).unwrap())
+        .is_exact()
+    );
+  }
+}
+
+#[tokio::test]
+async fn native_windows_patterns_scan_from_the_literal_directory_prefix() {
+  let fs = Arc::new(ReadDirCountingFileSystem::default());
+  let root = Utf8Path::new("/project");
+  fs.inner
+    .create_dir_all(root.join("src").as_path())
+    .await
+    .unwrap();
+  fs.inner
+    .write(root.join("src/value.txt").as_path(), b"value")
+    .await
+    .unwrap();
+  let pattern = GlobPattern::new_with_options(
+    br"src\*.txt",
+    GlobOptions {
+      backslash_escape: false,
+      ..Default::default()
+    },
+  )
+  .unwrap();
+  assert_eq!(pattern.scan_root(root), root.join("src"));
+  assert_eq!(
+    pattern.scan(root, fs.clone()).await.unwrap(),
+    vec![root.join("src/value.txt")]
+  );
+  assert_eq!(*fs.visited.lock().unwrap(), vec![root.join("src")]);
+}
+
+#[test]
 fn normalize_path_separators_treats_glob_chars_as_literals() {
   assert_eq!(
     normalize_path_separators("C:\\fixtures\\a\\[b]\\file.js"),

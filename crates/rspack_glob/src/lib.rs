@@ -43,6 +43,9 @@ pub struct GlobOptions {
   /// separator unless it escapes `*`, `?`, `[`, `]`, `{` or `}`. Standard glob
   /// escaping remains the default, including `\n`, `\,` and `\\`.
   pub windows_paths: bool,
+  /// Interpret backslashes as glob escapes. Disable for native Windows paths,
+  /// where every backslash outside a character class separates components.
+  pub backslash_escape: bool,
 }
 
 impl Default for GlobOptions {
@@ -51,6 +54,7 @@ impl Default for GlobOptions {
       case_sensitive: true,
       require_literal_leading_dot: false,
       windows_paths: false,
+      backslash_escape: true,
     }
   }
 }
@@ -81,7 +85,7 @@ impl<'a> GlobPattern<'a> {
 
   /// Compiles a pattern with case and hidden-component matching options.
   pub fn new_with_options(pattern: &'a [u8], options: GlobOptions) -> Result<Self, Error> {
-    let source = syntax::parse(pattern, options.windows_paths)?;
+    let source = syntax::parse(pattern, options.windows_paths, options.backslash_escape)?;
     let source = Arc::new(match source {
       Cow::Borrowed(bytes) => fold_case(bytes, options.case_sensitive),
       Cow::Owned(bytes) => Cow::Owned(match fold_case(&bytes, options.case_sensitive) {
@@ -158,7 +162,13 @@ impl<'a> GlobPattern<'a> {
   /// could also match (for example `**`). Use [`Self::match_prefix`] to retain
   /// continuations in that case. An empty path tests the already consumed prefix.
   pub fn match_path(&self, path: impl AsRef<[u8]>) -> GlobMatch<'a> {
-    let path = fold_case(path.as_ref(), self.options.case_sensitive);
+    self.match_bytes(path.as_ref())
+  }
+
+  // Share matching code across the public API's different AsRef input types.
+  #[inline(never)]
+  fn match_bytes(&self, path: &[u8]) -> GlobMatch<'a> {
+    let path = fold_case(path, self.options.case_sensitive);
     let program = self.view();
     let (states, component_start) = program.consume(&self.states, &path, self.component_start);
     if program.is_match(&states) {
@@ -190,7 +200,12 @@ impl<'a> GlobPattern<'a> {
   /// to test completed paths. A negated pattern whose positive states die still
   /// matches every suffix, so it must remain usable during traversal.
   pub fn match_prefix(&self, prefix: impl AsRef<[u8]>) -> Option<Self> {
-    let prefix = fold_case(prefix.as_ref(), self.options.case_sensitive);
+    self.consume_prefix(prefix.as_ref())
+  }
+
+  #[inline(never)]
+  fn consume_prefix(&self, prefix: &[u8]) -> Option<Self> {
+    let prefix = fold_case(prefix, self.options.case_sensitive);
     let program = self.view();
     let (states, component_start) = program.consume(&self.states, &prefix, self.component_start);
     if !program.can_match(&states) {

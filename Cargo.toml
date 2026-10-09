@@ -428,6 +428,9 @@ opt-level = "s"
 [profile.release.package.glob]
 opt-level = "s"
 
+[profile.release.package.rspack_glob]
+opt-level = "s"
+
 [profile.release.package.wasmparser]
 opt-level = "s"
 

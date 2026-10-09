@@ -131,8 +131,8 @@ pub(super) fn compile_aliased_glob_request(
       resolved.absolute_base = if case_sensitive {
         alias
           .resource
-          .node_join_posix(suffix)
-          .node_normalize_posix()
+          .node_join(suffix)
+          .node_normalize()
           .to_string()
       } else {
         alias.resource.to_string()
@@ -379,6 +379,7 @@ impl<'a> ContextModuleGlobMatcher<'a> {
             case_sensitive: context_options.glob_case_sensitive,
             require_literal_leading_dot: !context_options.glob_exhaustive,
             windows_paths: true,
+            ..Default::default()
           },
         )
         .ok()?;
@@ -395,13 +396,13 @@ impl<'a> ContextModuleGlobMatcher<'a> {
           let offset = alias.resource.as_std_path().relative(&scan.root);
           let root = options
             .resource
-            .node_join_posix(offset.to_string_lossy().as_ref())
-            .node_normalize_posix();
+            .node_join(offset.to_string_lossy().as_ref())
+            .node_normalize();
           let suffix = source
             .pattern_base
             .strip_prefix(&alias.prefix)
             .unwrap_or("");
-          let base = normalize_case_insensitive_path(root.node_join_posix(suffix).as_str());
+          let base = normalize_case_insensitive_path(root.node_join(suffix).as_str());
           (Some(root), base)
         } else {
           (

@@ -40,11 +40,9 @@ impl GlobPattern<'_> {
   pub fn scan_root(&self, context: &Utf8Path) -> Utf8PathBuf {
     let prefix = self.scan_directory_prefix();
     if Utf8Path::new(&prefix).is_absolute() {
-      Utf8Path::new(&prefix).node_normalize_posix()
+      Utf8Path::new(&prefix).node_normalize()
     } else {
-      context
-        .node_join_posix(prefix.as_ref())
-        .node_normalize_posix()
+      context.node_join(prefix.as_ref()).node_normalize()
     }
   }
 
