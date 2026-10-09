@@ -58,7 +58,9 @@ impl InternedPathList {
     if let Some(shared) = lookup(table, key, &items) {
       return Self(shared);
     }
-    Self(intern(table, key, Arc::from(items.as_slice())))
+    // Moving the vector hands its elements over to the shared allocation
+    // instead of cloning and dropping every handle.
+    Self(intern(table, key, Arc::from(items)))
   }
 
   #[inline]
