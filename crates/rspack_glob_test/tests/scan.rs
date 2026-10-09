@@ -1,16 +1,18 @@
-use std::sync::{
-  Arc, Mutex,
-  atomic::{AtomicUsize, Ordering},
+use std::{
+  borrow::Cow,
+  sync::{
+    Arc, Mutex,
+    atomic::{AtomicUsize, Ordering},
+  },
 };
 
 use rspack_fs::{
   FileMetadata, FilePermissions, MemoryFileSystem, ReadableFileSystem, WritableFileSystem,
 };
-use rspack_glob::{
-  GlobOptions, GlobPattern, extract_glob_base_dir, normalize_path_separators,
-  normalize_path_separators_for_path, unescape_glob_path,
+use rspack_glob::{GlobOptions, GlobPattern};
+use rspack_paths::{
+  Utf8Path, Utf8PathBuf, normalize_native_path_separators, normalize_path_separators,
 };
-use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 fn default_options() -> GlobOptions {
   GlobOptions {
@@ -31,11 +33,16 @@ fn matches_with_explicit_dot(
   _base: &str,
   options: &GlobOptions,
 ) -> bool {
-  matches_with_options(
-    &normalize_path_separators(pattern),
-    &normalize_path_separators_for_path(path),
-    options,
+  GlobPattern::new_with_options(
+    pattern.as_bytes(),
+    GlobOptions {
+      windows_paths: true,
+      ..*options
+    },
   )
+  .expect("valid path glob")
+  .match_path(normalize_path_separators(path).as_bytes())
+  .is_exact()
 }
 fn pattern_has_explicit_dot_for(
   pattern: &str,
@@ -152,75 +159,161 @@ async fn literal_pattern_returns_nothing_when_the_file_is_missing() {
 }
 
 #[test]
-fn extract_glob_base_dir_skips_escaped_metacharacters() {
-  assert_eq!(
-    extract_glob_base_dir("./fixtures/a\\[b\\]/file"),
-    "./fixtures/a\\[b\\]/"
-  );
-  assert_eq!(
-    extract_glob_base_dir("./fixtures/a\\[b\\]/**/*.js"),
-    "./fixtures/a\\[b\\]/"
-  );
-  assert_eq!(
-    extract_glob_base_dir("./fixtures/file\\*.js"),
-    "./fixtures/"
-  );
-  assert_eq!(
-    extract_glob_base_dir("./fixtures/directory\\?1/**/*.js"),
-    "./fixtures/directory\\?1/"
-  );
+fn directory_prefix_decodes_escapes_and_shared_branches() {
+  for (source, expected) in [
+    (r"./fixtures/a\[b\]/file", "./fixtures/a[b]/"),
+    (r"./fixtures/a\[b\]/**/*.js", "./fixtures/a[b]/"),
+    (r"./fixtures/file\*.js", "./fixtures/"),
+    (
+      r"./fixtures/directory\?1/**/*.js",
+      "./fixtures/directory?1/",
+    ),
+    ("{src/a,src/b}/*.js", "src/"),
+    ("./{src,src}/components/*.js", "./src/components/"),
+    ("{src,lib}/*.js", ""),
+    ("*.js", ""),
+    ("!src/**/*.js", ""),
+  ] {
+    let pattern = GlobPattern::new(source.as_bytes()).unwrap();
+    assert_eq!(pattern.directory_prefix(), expected.as_bytes(), "{source}");
+    assert!(
+      pattern.match_prefix(pattern.directory_prefix()).is_some(),
+      "{source}"
+    );
+  }
 }
 
 #[test]
-fn normalize_path_separators_preserves_glob_escapes() {
-  assert_eq!(
-    normalize_path_separators("./fixtures/a\\[b\\]/**/*.js"),
-    "./fixtures/a\\[b\\]/**/*.js"
-  );
-  assert_eq!(
-    normalize_path_separators("./fixtures/file\\*.js"),
-    "./fixtures/file\\*.js"
-  );
-  assert_eq!(
-    normalize_path_separators("./fixtures/file\\?.js"),
-    "./fixtures/file\\?.js"
-  );
-  assert_eq!(
-    normalize_path_separators("C:\\fixtures\\a\\[b\\]\\file.js"),
-    "C:/fixtures/a\\[b\\]/file.js"
-  );
-  assert_eq!(
-    normalize_path_separators("C:\\repo\\src/*.js"),
-    "C:/repo/src/*.js"
-  );
+fn directory_prefix_borrows_the_cached_literal_prefix() {
+  let source = b"./src/components/*.js";
+  let pattern = GlobPattern::new(source).unwrap();
+  assert_eq!(pattern.directory_prefix(), b"./src/components/");
+  assert_eq!(pattern.directory_prefix().as_ptr(), source.as_ptr());
+
+  let remaining = pattern.match_prefix(b"./src/").unwrap();
+  assert_eq!(remaining.directory_prefix(), b"components/");
+  assert_eq!(remaining.directory_prefix().as_ptr(), source[6..].as_ptr());
 }
 
 #[test]
-fn normalize_path_separators_for_path_treats_glob_chars_as_literals() {
+fn glob_parser_handles_windows_separators_and_glob_escapes() {
+  for (source, expected, path) in [
+    (
+      r"./fixtures/a\[b\]/*.js",
+      r"./fixtures/a\[b\]/*.js",
+      "./fixtures/a[b]/value.js",
+    ),
+    (
+      r"./fixtures/file\*.js",
+      r"./fixtures/file\*.js",
+      "./fixtures/file*.js",
+    ),
+    (
+      r"./fixtures/file\?.js",
+      r"./fixtures/file\?.js",
+      "./fixtures/file?.js",
+    ),
+    (
+      r"C:\fixtures\a\[b\]\file.js",
+      r"C:/fixtures/a\[b\]/file.js",
+      "C:/fixtures/a[b]/file.js",
+    ),
+    (
+      r"C:\repo\src/*.js",
+      "C:/repo/src/*.js",
+      "C:/repo/src/value.js",
+    ),
+    (
+      r"C:\目录\文件\[name\]/*.js",
+      r"C:/目录/文件\[name\]/*.js",
+      "C:/目录/文件[name]/value.js",
+    ),
+  ] {
+    let pattern = GlobPattern::new_with_options(
+      source.as_bytes(),
+      GlobOptions {
+        windows_paths: true,
+        ..Default::default()
+      },
+    )
+    .unwrap();
+    assert_eq!(pattern.source(), expected.as_bytes(), "{source}");
+    assert!(pattern.match_path(path).is_exact(), "{source}");
+    let remaining = pattern.match_prefix(pattern.directory_prefix()).unwrap();
+    let suffix = path
+      .as_bytes()
+      .strip_prefix(pattern.directory_prefix())
+      .unwrap();
+    assert!(remaining.match_path(suffix).is_exact(), "{source}");
+  }
+}
+
+#[test]
+fn normalize_path_separators_treats_glob_chars_as_literals() {
   assert_eq!(
-    normalize_path_separators_for_path("C:\\fixtures\\a\\[b]\\file.js"),
+    normalize_path_separators("C:\\fixtures\\a\\[b]\\file.js"),
     "C:/fixtures/a/[b]/file.js"
   );
   assert_eq!(
-    normalize_path_separators_for_path("C:\\fixtures\\a\\{b}\\file.js"),
+    normalize_path_separators("C:\\fixtures\\a\\{b}\\file.js"),
     "C:/fixtures/a/{b}/file.js"
   );
 }
 
 #[test]
-fn unescape_glob_path_restores_literal_path_segments() {
-  assert_eq!(
-    unescape_glob_path("./fixtures/a\\[b\\]/"),
-    "./fixtures/a[b]/"
-  );
-  assert_eq!(
-    unescape_glob_path("./fixtures/file\\*.js"),
-    "./fixtures/file*.js"
-  );
-  assert_eq!(
-    unescape_glob_path("./fixtures/directory\\?1/"),
-    "./fixtures/directory?1/"
-  );
+fn separator_normalization_borrows_unchanged_inputs() {
+  let path = "./src/目录/index.js";
+  let normalized = normalize_path_separators(path);
+  assert!(matches!(normalized, Cow::Borrowed(_)));
+  assert_eq!(normalized.as_ptr(), path.as_ptr());
+
+  let pattern = r"./src/目录/\[literal\]/file\*.js";
+  let parsed = GlobPattern::new_with_options(
+    pattern.as_bytes(),
+    GlobOptions {
+      windows_paths: true,
+      ..Default::default()
+    },
+  )
+  .unwrap();
+  assert_eq!(parsed.source(), pattern.as_bytes());
+  assert_eq!(parsed.source().as_ptr(), pattern.as_ptr());
+}
+
+#[test]
+fn native_separator_normalization_preserves_unix_filename_backslashes() {
+  let path = r"src\literal\*.js";
+  let normalized = normalize_native_path_separators(path);
+  if cfg!(windows) {
+    assert_eq!(normalized, "src/literal/*.js");
+  } else {
+    assert_eq!(normalized, path);
+    assert!(matches!(normalized, Cow::Borrowed(_)));
+  }
+}
+
+#[test]
+fn recursive_matching_uses_remaining_states() {
+  for (source, expected) in [
+    ("./src/*.js", false),
+    ("./src/value.js", false),
+    (r"./src/file\*\*.js", false),
+    ("./src/{a,b}.js", false),
+    ("./{src,src}/*.js", false),
+    ("./src/**/*.js", true),
+    ("./src/{a,b/nested}.js", true),
+    ("{src/a,src/b}/*.js", true),
+    ("!*.js", true),
+  ] {
+    let pattern = GlobPattern::new(source.as_bytes()).unwrap();
+    let remaining = pattern.match_prefix(pattern.directory_prefix()).unwrap();
+    assert_eq!(remaining.is_recursive(), expected, "{source}");
+  }
+
+  let pattern = GlobPattern::new(b"src/{a,b/nested}.js").unwrap();
+  let remaining = pattern.match_prefix(b"src/b/").unwrap();
+  assert!(!remaining.is_recursive());
+  assert!(remaining.match_path(b"nested.js").is_exact());
 }
 
 #[test]

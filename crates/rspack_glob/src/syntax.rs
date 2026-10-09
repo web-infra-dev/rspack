@@ -1,9 +1,43 @@
-use std::fmt;
+use std::{borrow::Cow, fmt};
 
 use smallvec::SmallVec;
 
 const MAX_BRACE_NESTING: usize = 10;
 const MAX_BRACE_GROUPS: usize = 10;
+
+/// Parse path separators in their glob context before validating the syntax.
+/// Replacement keeps byte offsets intact; unchanged sources remain borrowed.
+pub(super) fn parse(glob: &[u8], windows_paths: bool) -> Result<Cow<'_, [u8]>, Error> {
+  let mut source = Cow::Borrowed(glob);
+  if windows_paths {
+    let mut index = 0;
+    while index < glob.len() {
+      match glob[index] {
+        b'[' => {
+          index = skip_class(glob, index).ok_or(Error {
+            kind: ErrorKind::UnclosedBracket,
+            index,
+          })?;
+          continue;
+        }
+        b'\\' => {
+          if matches!(
+            glob.get(index + 1),
+            Some(b'*' | b'?' | b'[' | b']' | b'{' | b'}')
+          ) {
+            index += 2;
+            continue;
+          }
+          source.to_mut()[index] = b'/';
+        }
+        _ => {}
+      }
+      index += 1;
+    }
+  }
+  validate(&source)?;
+  Ok(source)
+}
 
 /// An error describing why a glob pattern is invalid, returned by [`validate`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

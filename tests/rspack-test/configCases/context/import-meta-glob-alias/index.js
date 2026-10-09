@@ -27,6 +27,33 @@ it("resolves an alias in import.meta.glob and honors exclusions", () => {
   expect(modules["/src/glob-imports/value.js"].default).toBe("resolved");
 });
 
+it("resolves aliases from the shared directory prefix of brace branches", () => {
+  const modules = import.meta.glob(
+    ["{@/glob-imports,@/glob-imports}/*.js", "!@/glob-imports/excluded.js"],
+    { eager: true, import: "default", query: "?shared-directory-prefix" },
+  );
+  expect(modules).toEqual({ "/src/glob-imports/value.js": "resolved" });
+
+  const escapedModules = import.meta.glob("@/\\[dir\\]/*.js", {
+    eager: true,
+    import: "default",
+  });
+  expect(escapedModules).toEqual({
+    "/src/[dir]/value.js": "metacharacter directory",
+  });
+});
+
+it("parses Windows separators in alias and relative patterns", () => {
+  const modules = import.meta.glob(
+    ["@\\glob-imports/*.js", ".\\local/*.js", "!@\\glob-imports/excluded.js"],
+    { eager: true, import: "default" },
+  );
+  expect(modules).toEqual({
+    "./local/value.js": "local",
+    "/src/glob-imports/value.js": "resolved",
+  });
+});
+
 it("applies exclusions rooted above the resolved glob directory", () => {
   expect(Object.keys(ancestorExcludedModules)).toEqual([
     "/src/glob-imports/value.js",

@@ -21,6 +21,12 @@ module.exports = {
           'RelocateGlobRoot',
           (factory) => {
             factory.hooks.afterResolve.tap('RelocateGlobRoot', (data) => {
+              if (data && data.request.includes('?shared-directory-prefix')) {
+                expect(data.resource).toBe(
+                  path.join(__dirname, 'src/glob-imports'),
+                );
+                expect(data.recursive).toBe(false);
+              }
               if (data && data.request.includes('@relocated')) {
                 data.resource = path.join(__dirname, 'src/[aliased]/{assets}');
               }

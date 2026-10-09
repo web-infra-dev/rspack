@@ -13,6 +13,11 @@ export default defineConfig({
           toType: 'dir',
         },
         {
+          from: 'assets\\glob/*/*.txt',
+          to: 'windows-copied',
+          toType: 'dir',
+        },
+        {
           from: 'assets/simple-template',
           to: 'template/[name][ext]',
         },

@@ -1,8 +1,8 @@
-use std::{borrow::Cow, fmt::Debug, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 
-use cow_utils::CowUtils;
 use futures::future::BoxFuture;
 use regex::Regex;
+use rspack_paths::normalize_path_separators;
 use rspack_regex::RspackRegex;
 
 pub type IgnoredFn = Arc<dyn Fn(String) -> BoxFuture<'static, bool> + Send + Sync>;
@@ -27,12 +27,6 @@ impl Debug for FsWatcherIgnored {
       FsWatcherIgnored::Function(_) => write!(f, "FsWatcherIgnored::Function"),
     }
   }
-}
-
-/// Normalize the path by replacing backslashes with forward slashes.
-/// Smooth out the differences in the system, specifically for Windows
-fn normalize_path<'a>(path: &'a str) -> Cow<'a, str> {
-  path.cow_replace("\\", "/")
 }
 
 /// Faithful port of watchpack's `lib/util/globToRegExp.js` (specialized for
@@ -140,7 +134,7 @@ impl IgnoredMatcher {
           // watchpack assumes forward-slash globs; rspack may hand us
           // Windows-form absolute paths, so normalize separators before
           // translating — `is_ignored` normalizes the haystack the same way.
-          let g = g.cow_replace('\\', "/");
+          let g = normalize_path_separators(g);
           format!("(?:^{}(?:$|/))", glob_to_regexp(&g))
         })
         .collect();
@@ -173,8 +167,8 @@ impl IgnoredMatcher {
   pub async fn is_ignored(&self, path: &str) -> bool {
     match self {
       IgnoredMatcher::None => false,
-      IgnoredMatcher::Globs(re) => re.is_match(&normalize_path(path)),
-      IgnoredMatcher::Regex(re) => re.test(&normalize_path(path)),
+      IgnoredMatcher::Globs(re) => re.is_match(&normalize_path_separators(path)),
+      IgnoredMatcher::Regex(re) => re.test(&normalize_path_separators(path)),
       // watchpack hands the arbitrary function the raw entry — it is the only
       // form whose path keeps the platform separators.
       IgnoredMatcher::Function(f) => f(path.to_owned()).await,

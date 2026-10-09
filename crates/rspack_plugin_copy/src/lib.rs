@@ -7,7 +7,6 @@ use std::{
   sync::{Arc, LazyLock, Mutex},
 };
 
-use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
 use regex::Regex;
@@ -17,10 +16,10 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, Result, ToStringResultToRspackResultExt, error};
-use rspack_glob::{GlobOptions, GlobPattern, normalize_path_separators};
+use rspack_glob::{GlobOptions, GlobPattern};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{Utf8Path, Utf8PathBuf, normalize_native_path_separators};
 use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
 
@@ -145,14 +144,6 @@ struct PendingPattern<'a> {
 
 static TEMPLATE_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\[\\*([\w:]+)\\*\]").expect("This never fail"));
-
-fn normalize_glob_path_separators(path: &str) -> Cow<'_, str> {
-  if cfg!(windows) {
-    path.cow_replace('\\', "/")
-  } else {
-    Cow::Borrowed(path)
-  }
-}
 
 fn order_pattern_results<T>(
   results_by_pattern: Vec<Option<Vec<T>>>,
@@ -375,7 +366,7 @@ impl CopyRspackPlugin {
     } else {
       filename.as_str().normalize().to_string_lossy().to_string()
     };
-    let filename = normalize_glob_path_separators(&filename).into_owned();
+    let filename = normalize_native_path_separators(&filename).into_owned();
 
     Ok(Some(RunPatternResult {
       source_filename,
@@ -479,6 +470,7 @@ impl CopyRspackPlugin {
     let glob_match_options = GlobOptions {
       case_sensitive: pattern.glob_options.case_sensitive_match.unwrap_or(true),
       require_literal_leading_dot: !dot_enable.unwrap_or(false),
+      windows_paths: true,
     };
     logger.log(format!("begin globbing '{orig_from}'..."));
     let glob_entries = match from_type {
@@ -491,8 +483,7 @@ impl CopyRspackPlugin {
           .await
       }
       FromType::Glob => {
-        let normalized = normalize_path_separators(orig_from);
-        let matcher = GlobPattern::new_with_options(normalized.as_bytes(), glob_match_options)
+        let matcher = GlobPattern::new_with_options(orig_from.as_bytes(), glob_match_options)
           .map_err(|err| error!("Invalid glob pattern {orig_from:?}: {err}"))?;
         let root = matcher.scan_root(&context);
         let root_exists = compilation.input_filesystem.metadata(&root).await.is_ok();
@@ -521,7 +512,7 @@ impl CopyRspackPlugin {
           .filter_map(|pattern| GlobPattern::new(pattern.as_bytes()).ok())
           .collect::<Vec<_>>();
         entries.retain(|entry| {
-          let path = normalize_glob_path_separators(entry.as_str());
+          let path = normalize_native_path_separators(entry.as_str());
           ignore
             .iter()
             .all(|pattern| !pattern.match_path(path.as_bytes()).is_exact())

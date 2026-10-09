@@ -227,6 +227,46 @@ fn test_validation_preserves_fast_glob_errors() {
 }
 
 #[test]
+fn test_path_parser_preserves_class_escapes_and_error_offsets() {
+  let options = rspack_glob::GlobOptions {
+    windows_paths: true,
+    ..Default::default()
+  };
+  let source = br"C:\repo/[\a\]]/*.js";
+  let pattern = GlobPattern::new_with_options(source, options).unwrap();
+  assert_eq!(pattern.source(), br"C:/repo/[\a\]]/*.js");
+  assert!(pattern.match_path("C:/repo/a/value.js").is_exact());
+  assert!(pattern.match_path("C:/repo/]/value.js").is_exact());
+
+  let source = "C:\\目录/{a,b";
+  assert_eq!(
+    GlobPattern::new_with_options(source.as_bytes(), options).unwrap_err(),
+    Error {
+      kind: ErrorKind::UnclosedBrace,
+      index: source.find('{').unwrap(),
+    }
+  );
+  let trailing = GlobPattern::new_with_options(br"C:\repo\", options).unwrap();
+  assert_eq!(trailing.directory_prefix(), b"C:/repo/");
+  assert!(trailing.match_path("C:/repo/").is_exact());
+
+  // Standard glob escaping is independent of Windows-form pattern parsing.
+  assert!(
+    GlobPattern::new(br"{a\,b,c}")
+      .unwrap()
+      .match_path("a,b")
+      .is_exact()
+  );
+  assert!(
+    GlobPattern::new(br"\n")
+      .unwrap()
+      .match_path(b"\n")
+      .is_exact()
+  );
+  assert!(GlobPattern::new(br"C:\repo\").is_err());
+}
+
+#[test]
 fn test_negated_terminal_globstar_can_prune_a_prefix() {
   assert!(
     GlobPattern::new("!**".as_bytes())
@@ -403,6 +443,7 @@ fn test_options_apply_to_every_prefix_continuation() {
   let options = GlobOptions {
     case_sensitive: false,
     require_literal_leading_dot: true,
+    ..Default::default()
   };
   let cases = [
     ("SRC/**/*.JS", "src/nested/value.js", true),
