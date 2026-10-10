@@ -215,3 +215,37 @@ fn should_emit_remove_when_a_watched_file_is_deleted() {
     },
   );
 }
+
+#[test]
+fn should_report_a_recreated_file_as_changed_only() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(1000),
+    ..Default::default()
+  });
+
+  helper.file("a");
+
+  let rx = watch!(helper, "a");
+
+  helper.tick(|| {
+    std::fs::remove_file(helper.join("a")).unwrap();
+    helper.file("a");
+  });
+
+  let aggregate_events = c!();
+  helper.collect_events(
+    rx,
+    |_, _| {},
+    |changes, abort| {
+      changes.assert_changed(helper.join("a"));
+      assert!(
+        !changes.deleted_files.contains(helper.join("a").as_str()),
+        "A recreated file must not be reported as removed: {:?}",
+        changes.deleted_files
+      );
+      add!(aggregate_events);
+      *abort = true;
+    },
+  );
+  assert!(load!(aggregate_events) > 0, "Expected an aggregated event");
+}
