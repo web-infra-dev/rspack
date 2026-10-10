@@ -7,6 +7,7 @@ import type {
   Watcher,
   WatchFileSystem,
 } from './util/fs';
+import { getInternalWatchCallbacks } from './util/watchTimeInfo';
 
 /**
  * The following code is modified based on
@@ -141,6 +142,10 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       throw new Error("Invalid arguments: 'callbackUndelayed'");
     }
 
+    const internalCallbacks = getInternalWatchCallbacks(
+      callback,
+      callbackUndelayed,
+    );
     const nativeWatcher = this.getNativeWatcher(options);
 
     // Fresh shim per cycle (see field comment). Events are emitted to both the
@@ -188,13 +193,18 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       },
       (event) => {
         if (event.kind === 'change') {
+          internalCallbacks?.onSource('change', event.path);
           // The native watcher reports paths without an mtime, so events are
           // stamped with their arrival time.
           const mtime = Date.now();
-          callbackUndelayed(event.path, mtime);
+          (internalCallbacks?.onUndelayed ?? callbackUndelayed)(
+            event.path,
+            mtime,
+          );
           this.#events.emit('change', event.path, mtime);
           watcher.emit('change', event.path, mtime);
         } else {
+          internalCallbacks?.onSource('remove', event.path);
           this.#events.emit('remove', event.path);
           watcher.emit('remove', event.path);
         }

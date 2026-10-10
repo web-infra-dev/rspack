@@ -650,6 +650,42 @@ Current [compiler object](/api/javascript-api/).
 
 The [Compilation hooks](/api/plugin-api/compilation-hooks).
 
+### rebuildOrigin
+
+A read-only getter for an immutable snapshot of the watch invalidations assigned to this exact JavaScript `Compilation` object.
+
+```ts
+interface RebuildOrigin {
+  readonly watchId: string;
+  readonly throughRevision: number;
+  readonly causes: readonly WatchInvalidation[];
+  readonly consumedLazyKeys: readonly string[];
+}
+
+interface Compilation {
+  readonly rebuildOrigin: RebuildOrigin | undefined;
+}
+```
+
+`RebuildOrigin` is exported from `@rspack/core`. `causes` contains the ordered invalidations coalesced into this compilation. `throughRevision` is the last included revision. The initial compilation contains an explicit `initial` cause at revision zero. Invalidations observed after this compilation begins remain pending for a successor.
+
+Rspack reserves the invalidation revision and the pending lazy key batch before `watchRun`. Requests arriving during asynchronous `watchRun` or `beforeCompile` hooks belong to the successor, even before the native compilation object exists.
+
+`consumedLazyKeys` contains only the opaque keys drained by this compilation's lazy backend. It can differ from the requested keys in `lazy` causes. Backend consumption replaces the snapshot returned by the getter. Previously returned snapshots and their nested arrays remain frozen. Read the getter again in `done` to obtain the completed receipt.
+
+Non-watch compilations and unclassified additional passes return `undefined`. An additional pass does not take pending invalidations from the next watch rebuild. Missing metadata, an empty cause list, or mixed causes do not establish a lazy-only rebuild. A compilation with errors can still have an origin.
+
+Receipts remain readable after the watcher closes and after later builds. A new watch lifetime receives a new `watchId`. The receipt identifies build inputs and backend consumption. It does not guarantee successful compilation or publication of an application's runtime.
+
+```ts
+compiler.hooks.done.tap('WatchObserver', (stats) => {
+  const origin = stats.compilation.rebuildOrigin;
+  if (origin) console.log(origin.throughRevision, origin.consumedLazyKeys);
+});
+```
+
+See [watchInvalidation](/api/plugin-api/compiler-hooks#watchinvalidation) for cause types and synchronous notifications.
+
 ### hash/fullHash
 
 **Type**: `Readonly<string | null>`

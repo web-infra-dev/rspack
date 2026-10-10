@@ -646,6 +646,42 @@ class MyPlugin {
 
 获取 [Compilation 钩子](/api/plugin-api/compilation-hooks)。
 
+### rebuildOrigin
+
+只读 getter，返回分配给当前 JavaScript `Compilation` 对象的 watch 失效事件的不可变快照。
+
+```ts
+interface RebuildOrigin {
+  readonly watchId: string;
+  readonly throughRevision: number;
+  readonly causes: readonly WatchInvalidation[];
+  readonly consumedLazyKeys: readonly string[];
+}
+
+interface Compilation {
+  readonly rebuildOrigin: RebuildOrigin | undefined;
+}
+```
+
+`RebuildOrigin` 从 `@rspack/core` 导出。`causes` 按顺序包含合并到此次编译的失效事件。`throughRevision` 表示最后包含的修订号。初次编译包含修订号为零的显式 `initial` 原因。此次编译开始之后观察到的失效事件保留给后续重构建。
+
+Rspack 在 `watchRun` 之前保留失效修订号和待处理懒编译键批次。在异步 `watchRun` 或 `beforeCompile` 钩子期间到达的请求属于后续重构建，即使此时原生编译对象尚未创建。
+
+`consumedLazyKeys` 仅包含此次编译的懒编译后端实际取走的、不透明的键。它可能与 `lazy` 原因中请求的键不同。后端消费这些键时会替换 getter 返回的快照。此前返回的快照及其嵌套数组保持冻结。在 `done` 中再次读取 getter 可获得完成后的记录。
+
+非 watch 编译和未分类的额外编译轮次返回 `undefined`。额外编译轮次不会取走下一次 watch 重构建的待处理失效事件。缺少元数据、空原因列表或混合原因均不能证明一次重构建仅由懒编译激活引起。包含错误的编译仍可具有来源记录。
+
+关闭 watcher 或执行后续编译后，来源记录仍可读取。新的 watch 生命周期具有新的 `watchId`。记录标识构建输入和后端消费信息，不保证编译成功，也不保证应用运行时已发布。
+
+```ts
+compiler.hooks.done.tap('WatchObserver', (stats) => {
+  const origin = stats.compilation.rebuildOrigin;
+  if (origin) console.log(origin.throughRevision, origin.consumedLazyKeys);
+});
+```
+
+原因类型和同步通知见 [watchInvalidation](/api/plugin-api/compiler-hooks#watchinvalidation)。
+
 ### hash/fullHash
 
 **类型：** `Readonly<string | null>`
