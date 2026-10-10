@@ -13,8 +13,8 @@
 //! Crate implements lightweight memory profiler which allows
 //! object traversal and size introspection.
 //!
-//! Explicit [`Allocative`] adapters describe enums, containers and custom field policies.
-//! [`Visit`] provides the common object-safe traversal interface. This crate
+//! Ordinary structs are introspected through [`Visit`] without derives. Explicit
+//! [`Allocative`] adapters handle enums, containers and custom field policies. This crate
 //! provides [`FlameGraphBuilder`] to build a flame graph of the object tree.
 //!
 //! ## Allocative overhead
@@ -29,7 +29,8 @@
 //!
 //! Here are some differences between allocative and call-stack malloc profiler:
 //!
-//! * Explicit [`Allocative`] adapters describe object ownership and field traversal
+//! * This Rspack fork reflects ordinary structs and uses explicit [`Allocative`]
+//!   adapters for ownership semantics that cannot be inferred from fields
 //! * Allocative flamegraph shows object by object tree, not by call stack
 //! * Allocative shows gaps in allocated memory,
 //!   e.g. spare capacity of collections or too large padding in structs or enums
@@ -37,7 +38,8 @@
 //!   (for example, measure the size of RPC response before serialization)
 
 #![feature(const_type_name, never_type)]
-#![feature(layout_for_ptr)]
+#![feature(type_info, ptr_metadata, core_intrinsics, layout_for_ptr)]
+#![allow(internal_features)]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![allow(clippy::empty_enums)]
 
@@ -46,21 +48,25 @@ mod flamegraph;
 mod global_root;
 mod impls;
 mod key;
+mod reflection;
 mod visitor;
 
 pub use allocative_derive::{Allocative, root};
 
 pub use crate::{
-  allocative_trait::{Allocative, Visit},
+  allocative_trait::Allocative,
   flamegraph::{FlameGraph, FlameGraphBuilder},
   global_root::register_root,
   key::Key,
+  reflection::Visit,
   visitor::Visitor,
 };
 
 #[doc(hidden)]
 pub mod __macro_refs {
   pub use ctor;
+
+  pub use crate::reflection::visit_enum_variant;
 }
 
 /// Create a `const` of type `Key` with the provided `ident` as the value and

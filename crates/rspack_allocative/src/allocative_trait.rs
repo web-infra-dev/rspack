@@ -10,7 +10,9 @@
 
 use crate::Visitor;
 
-/// Explicit ownership adapter for structs, containers, locks, enums and field policies.
+/// Explicit ownership adapter, preferred over automatic [`crate::Visit`] reflection.
+/// Ordinary structs do not need to implement this trait. Keep adapters for
+/// containers, locks, enums and custom field policies.
 ///
 /// # Proc macro
 ///
@@ -25,6 +27,13 @@ use crate::Visitor;
 ///   Text(String),
 /// }
 /// ```
+///
+/// Ordinary enum derives select the active variant and reflect its fields, requiring
+/// only `Self: 'static`. They add no per-parameter `Allocative` or `Visit` bounds.
+/// The derive also supports `skip`, `bound`, and `visit` field policies.
+/// Types with custom policies or lifetime/const parameters retain typed traversal.
+/// For generic typed adapters use `#[allocative(bound = "T: allocative::Visit")]`
+/// (and the required lifetime bounds) to traverse unannotated payloads through `Visit`.
 ///
 /// ## `#[allocative(skip)]`
 ///
@@ -134,15 +143,4 @@ use crate::Visitor;
 /// ```
 pub trait Allocative {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>);
-}
-
-/// Object-safe traversal interface for explicitly described object ownership.
-pub trait Visit {
-  fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>);
-}
-
-impl<T: Allocative + ?Sized> Visit for T {
-  fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
-    self.visit(visitor);
-  }
 }

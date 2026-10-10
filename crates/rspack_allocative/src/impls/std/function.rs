@@ -10,6 +10,8 @@
 
 use crate::{allocative_trait::Allocative, visitor::Visitor};
 
+// Unsized function objects need an explicit Visit bridge; the automatic
+// reflected implementation applies to sized concrete types only.
 macro_rules! impl_dyn_fn {
   (($($arg:ident),*) $($bound:ident),*) => {
     impl<R, $($arg),*> Allocative for dyn Fn($($arg),*) -> R $(+ $bound)* + '_ {
@@ -17,7 +19,11 @@ macro_rules! impl_dyn_fn {
         visitor.visit_opaque(self);
       }
     }
-
+    impl<R, $($arg),*> crate::Visit for dyn Fn($($arg),*) -> R $(+ $bound)* + '_ {
+      fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+        self.visit(visitor);
+      }
+    }
   };
 }
 
