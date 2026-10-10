@@ -17,11 +17,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
 use rspack_intern::{Atom, AtomSet, IndexAtomMap};
 use rspack_sources::BoxSource;
-use rspack_util::{
-  ext::AsAny,
-  fx_hash::{FxIndexMap, FxIndexSet},
-  source_map::ModuleSourceMapConfig,
-};
+use rspack_util::{ext::AsAny, fx_hash::FxIndexMap, source_map::ModuleSourceMapConfig};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 use smol_str::SmolStr;
@@ -141,20 +137,9 @@ impl CanonicalizedDataUrlOption {
   }
 }
 
-#[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CssExport {
-  #[cacheable(with=AsPreset)]
-  pub ident: SmolStr,
-  #[cacheable(with=AsOption<AsPreset>)]
-  pub from: Option<SmolStr>,
-  pub id: Option<DependencyId>,
-  #[cacheable(with=AsPreset)]
-  pub orig_name: SmolStr,
-}
-
-pub type CssExports = FxIndexMap<SmolStr, FxIndexSet<CssExport>>;
-pub type CssLocalNames = HashMap<SmolStr, SmolStr>;
+/// Index into the module graph; CSS export dependencies own the values.
+pub type CssExports = FxIndexMap<SmolStr, DependencyId>;
+pub type CssLocalNames = HashMap<SmolStr, DependencyId>;
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -237,9 +222,9 @@ pub struct CssBuildInfo {
   pub export_type: Option<CssExportType>,
   pub has_charset: bool,
   pub css_import_dependency: bool,
-  #[cacheable(with=AsMap<AsPreset, AsVec>)]
+  #[cacheable(with=AsMap<AsPreset>)]
   pub exports: CssExports,
-  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
+  #[cacheable(with=AsMap<AsPreset>)]
   pub local_names: CssLocalNames,
   /// Conditions inherited from parent CSS modules.
   ///

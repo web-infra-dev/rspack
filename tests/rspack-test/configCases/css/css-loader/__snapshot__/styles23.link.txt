@@ -1,0 +1,5 @@
+Object {
+  bar: #fff,
+  className: tilde_module_css-className,
+  foo: #000,
+}

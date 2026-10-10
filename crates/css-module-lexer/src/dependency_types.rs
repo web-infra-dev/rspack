@@ -297,6 +297,10 @@ pub enum Dependency<'s> {
   ICSSExportValue {
     prop: &'s str,
     value: &'s str,
+    /// Whether this defines an `@value` symbol rather than a plain `:export`.
+    is_at_value: bool,
+    /// Identifier token ranges relative to `value`, collected while scanning `@value`.
+    identifiers: DependencyListRange<Range>,
   },
   ICSSSymbol {
     name: &'s str,
@@ -318,6 +322,7 @@ pub struct DependencyContext<'s> {
   composes_local_classes: Vec<&'s str>,
   composes_names: Vec<&'s str>,
   value_at_rule_import_items: Vec<ValueAtRuleImportItem<'s>>,
+  value_at_rule_identifiers: Vec<Range>,
 }
 
 impl<'s> DependencyContext<'s> {
@@ -392,6 +397,44 @@ impl<'s> DependencyContext<'s> {
 
   pub fn value_at_rule_import_items(&self) -> &[ValueAtRuleImportItem<'s>] {
     &self.value_at_rule_import_items
+  }
+
+  pub fn value_at_rule_identifiers(&self, range: DependencyListRange<Range>) -> &[Range] {
+    &self.value_at_rule_identifiers[range.as_usize_range()]
+  }
+
+  pub(crate) fn value_at_rule_identifiers_checkpoint(&self) -> usize {
+    self.value_at_rule_identifiers.len()
+  }
+
+  pub(crate) fn push_value_at_rule_identifier(&mut self, range: Range) {
+    self.value_at_rule_identifiers.push(range);
+  }
+
+  pub(crate) fn truncate_value_at_rule_identifiers(&mut self, checkpoint: usize) {
+    self.value_at_rule_identifiers.truncate(checkpoint);
+  }
+
+  pub(crate) fn finish_value_at_rule_identifiers(
+    &mut self,
+    checkpoint: usize,
+    value_start: Pos,
+  ) -> DependencyListRange<Range> {
+    let ranges = &mut self.value_at_rule_identifiers;
+    // Discard identifiers belonging to the declaration name, then translate
+    // source offsets into offsets within the (possibly trimmed) value.
+    let first =
+      checkpoint + ranges[checkpoint..].partition_point(|range| range.start < value_start);
+    let end = checkpoint + ranges.len() - first;
+    if first != checkpoint {
+      ranges.copy_within(first.., checkpoint);
+    }
+    ranges.truncate(end);
+    for range in &mut ranges[checkpoint..] {
+      range.start -= value_start;
+      range.end -= value_start;
+    }
+    DependencyListRange::from_bounds(checkpoint, end)
   }
 
   pub(crate) fn push_dependency(&mut self, dependency: Dependency<'s>) {

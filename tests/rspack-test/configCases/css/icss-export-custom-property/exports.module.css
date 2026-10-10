@@ -1,0 +1,10 @@
+:export {
+  --color: red;
+  --color: blue;
+  --theme-color: red;
+  --theme-color: purple;
+}
+
+:export {
+  --theme-color: green;
+}

@@ -1,0 +1,11 @@
+:import("./missing-import.module.css") {
+	color: color;
+}
+
+:export {
+	color: color;
+}
+
+.local {
+	color: color;
+}

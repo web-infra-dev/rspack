@@ -1,0 +1,6 @@
+Object {
+  class-a: scope-at-rule_module_css-class-a,
+  class-b: scope-at-rule_module_css-class-b,
+  dark-scheme: scope-at-rule_module_css-dark-scheme,
+  light-scheme: scope-at-rule_module_css-light-scheme,
+}

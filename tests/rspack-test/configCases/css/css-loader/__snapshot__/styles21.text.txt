@@ -1,0 +1,4 @@
+Object {
+  backButton: dedup_module_css-backButton secondary-button_css-secondaryButton button_css-button,
+  nextButton: dedup_module_css-nextButton primary-button_css-primaryButton button_css-button,
+}

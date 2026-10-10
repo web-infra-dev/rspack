@@ -79,7 +79,7 @@
 .E3SnAT { color: red; }
 
 
-.E3SnAT { margin: calc(base * 2); }
+.E3SnAT { margin: calc(10px * 2); }
 
 
 .E3SnAT { content: "test-a" "test-b"; }

@@ -422,10 +422,8 @@ fn should_ignore_dependency_type(ty: DependencyType) -> bool {
     | DependencyType::CreateScriptUrl
     | DependencyType::CssUrl
     | DependencyType::CssImport
-    | DependencyType::CssCompose
-    | DependencyType::CssExport
-    | DependencyType::CssLocalIdent
-    | DependencyType::CssSelfReferenceLocalIdent
+    | DependencyType::CssIcssImport
+    | DependencyType::CssIcssExport
     | DependencyType::ExtractCSS
     // Build-time or metadata-only dependencies.
     | DependencyType::ExportInfoApi

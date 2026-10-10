@@ -7,11 +7,11 @@ use rspack_collections::IdentifierMap;
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey,
   Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
-  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleRule,
-  ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
-  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssExportType,
+  CssModuleRenderCondition, DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData,
+  ModuleGraph, ModuleRule, ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
+  NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SourceType,
   css_module_render_conditions_identifier, get_css_chunk_filename_template, is_source_equal,
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
@@ -25,20 +25,16 @@ use smol_str::SmolStr;
 
 use crate::{
   CssPlugin,
-  dependency::{
-    CssIcssSymbolDependencyTemplate, CssImportDependency, CssImportDependencyTemplate,
-    CssLocalIdentDependencyTemplate, CssSelfReferenceLocalIdentDependencyTemplate,
-    CssUrlDependencyTemplate,
-  },
+  dependency::{CssImportDependencyTemplate, CssUrlDependencyTemplate},
   parser_and_generator::{
     CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator, CssSourceBuilder,
   },
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
   runtime::CssLoadingRuntimeModule,
   utils::{
-    AUTO_PUBLIC_PATH_MATCHER, append_css_export_type_key, css_attribute_export_type,
-    css_dependency_export_type, css_dependency_meta, css_module_has_charset,
-    css_module_is_import_dependency, css_module_resource, css_render_conditions_from_module,
+    AUTO_PUBLIC_PATH_MATCHER, append_css_export_type_key, css_dependency_meta,
+    css_module_has_charset, css_module_is_import_dependency, css_module_resource,
+    css_render_conditions_from_module,
   },
 };
 
@@ -301,19 +297,16 @@ async fn normal_module_factory_after_resolve(
   data: &mut ModuleFactoryCreateData,
   create_data: &mut NormalModuleCreateData,
 ) -> Result<Option<bool>> {
-  let css_attribute_export_type = data
-    .dependencies
-    .iter()
-    .find_map(|dependency| css_attribute_export_type(dependency.get_attributes()));
+  let Some(dependency) = data.dependencies.first() else {
+    return Ok(None);
+  };
+  // Use the same dependency metadata as the module hook when constructing
+  // module identity.
+  let css_dependency_meta = css_dependency_meta(dependency.as_ref());
 
-  let css_import_dep = data
-    .dependencies
-    .first()
-    .and_then(|dependency| dependency.downcast_ref::<CssImportDependency>());
-
-  if let Some(css_import_dep) = css_import_dep {
+  if css_dependency_meta.is_css_import_dependency {
     let conditions_key =
-      css_module_render_conditions_identifier(css_import_dep.render_conditions())
+      css_module_render_conditions_identifier(css_dependency_meta.render_conditions.iter())
         .unwrap_or_default();
     if !conditions_key.is_empty() {
       create_data.request.push_str("|css-render-conditions|");
@@ -321,12 +314,17 @@ async fn normal_module_factory_after_resolve(
     }
   }
 
-  let css_dependency_export_type = data
-    .dependencies
-    .first()
-    .and_then(|dependency| css_dependency_export_type(dependency.as_ref()));
-
-  if let Some(export_type) = css_dependency_export_type.or(css_attribute_export_type) {
+  let configured_export_type = create_data
+    .module_options
+    .parser_options()
+    .and_then(|options| options.get_css_module())
+    .and_then(|options| options.export_type)
+    .unwrap_or(CssExportType::Link);
+  if let Some(export_type) = css_dependency_meta.export_type
+    // CSS @imports also have a distinct rendering role. Composition and JS
+    // imports can share an instance when their effective export types agree.
+    && (css_dependency_meta.is_css_import_dependency || export_type != configured_export_type)
+  {
     append_css_export_type_key(create_data, export_type);
   }
 
@@ -376,28 +374,12 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
-    DependencyType::CssCompose,
+    DependencyType::CssIcssImport,
     params.normal_module_factory.clone(),
-  );
-  compilation.set_dependency_factory(
-    DependencyType::CssSelfReferenceLocalIdent,
-    Arc::new(SelfModuleFactory {}),
   );
   compilation.set_dependency_template(
     CssImportDependencyTemplate::template_type(),
     Arc::new(CssImportDependencyTemplate::default()),
-  );
-  compilation.set_dependency_template(
-    CssLocalIdentDependencyTemplate::template_type(),
-    Arc::new(CssLocalIdentDependencyTemplate::default()),
-  );
-  compilation.set_dependency_template(
-    CssIcssSymbolDependencyTemplate::template_type(),
-    Arc::new(CssIcssSymbolDependencyTemplate),
-  );
-  compilation.set_dependency_template(
-    CssSelfReferenceLocalIdentDependencyTemplate::template_type(),
-    Arc::new(CssSelfReferenceLocalIdentDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     CssUrlDependencyTemplate::template_type(),

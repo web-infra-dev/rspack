@@ -1,0 +1,5 @@
+Object {
+  [/?<>\\:*|":]: path-placeholder_module_css-[/?<>\\:*|":],
+  foo: path-placeholder_module_css-foo,
+  foo/bar: path-placeholder_module_css-foo/bar,
+}

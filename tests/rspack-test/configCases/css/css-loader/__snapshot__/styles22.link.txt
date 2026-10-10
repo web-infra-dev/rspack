@@ -1,0 +1,3 @@
+Object {
+  bar: composes-from-less_module_css-bar foo_less-foo,
+}

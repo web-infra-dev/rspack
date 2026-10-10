@@ -1,0 +1,2 @@
+# These packages are copied resolver fixtures, not installed dependencies.
+!node_modules/

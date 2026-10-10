@@ -113,7 +113,7 @@ fn icss_export() {
 fn value_at_rule_export() {
   let input = indoc! {r#"
         @value primary: red;
-        @value spacing calc(10px * 2);
+        @value spacing calc(base * 2) "base" /* base */ base;
         .button {
           color: primary;
           margin: spacing;
@@ -123,17 +123,33 @@ fn value_at_rule_export() {
   assert!(warnings.is_empty());
   assert_icss_export_value_dependency(input, &dependencies[0], "primary", "red");
   assert_replace_dependency(input, &dependencies[1], "", "@value primary: red;");
-  assert_icss_export_value_dependency(input, &dependencies[2], "spacing", "calc(10px * 2)");
+  assert_icss_export_value_dependency(
+    input,
+    &dependencies[2],
+    "spacing",
+    r#"calc(base * 2) "base" /* base */ base"#,
+  );
   assert_replace_dependency(
     input,
     &dependencies[3],
     "",
-    "@value spacing calc(10px * 2);",
+    r#"@value spacing calc(base * 2) "base" /* base */ base;"#,
   );
   assert_local_class_dependency(input, &dependencies[4], ".button", false);
   assert_icss_symbol_dependency(input, &dependencies[5], "primary", "primary");
   assert_icss_symbol_dependency(input, &dependencies[6], "spacing", "spacing");
   assert_eq!(dependencies.len(), 7);
+  let Dependency::ICSSExportValue {
+    value, identifiers, ..
+  } = &dependencies[2]
+  else {
+    panic!("expected @value export");
+  };
+  assert_eq!(
+    dependencies.value_at_rule_identifiers(*identifiers),
+    &[Range::new(5, 9), Range::new(33, 37)]
+  );
+  assert_eq!(&value[33..37], "base");
 }
 
 #[test]
@@ -198,6 +214,13 @@ fn value_at_rule_preserves_unicode_byte_offsets() {
   assert!(warnings.is_empty());
   assert_icss_export_value_dependency(declaration, &dependencies[0], "café", "red");
   assert_eq!(dependencies.len(), 2);
+  let Dependency::ICSSExportValue { identifiers, .. } = &dependencies[0] else {
+    panic!("expected @value export");
+  };
+  assert_eq!(
+    dependencies.value_at_rule_identifiers(*identifiers),
+    &[Range::new(0, 3)]
+  );
 
   let import = r#"@value café from "./café.module.css";"#;
   let (dependencies, warnings) = collect_dependencies(import, Mode::Local);

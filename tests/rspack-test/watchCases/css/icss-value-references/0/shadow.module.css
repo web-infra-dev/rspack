@@ -1,0 +1,6 @@
+@value danger from "./colors.module.css";
+@value shadow: 0 0 danger, 0 0 danger;
+
+.uses-shadow {
+	box-shadow: shadow;
+}

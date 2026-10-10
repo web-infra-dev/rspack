@@ -529,6 +529,7 @@ pub(crate) fn assert_icss_export_value_dependency(
   let Dependency::ICSSExportValue {
     prop: actual_prop,
     value: actual_value,
+    ..
   } = dependency
   else {
     panic!("unexpected dependency");

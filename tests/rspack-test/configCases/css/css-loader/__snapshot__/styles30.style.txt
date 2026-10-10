@@ -1,0 +1,10 @@
+Object {
+  a: keyframes-leak-scope_module_css-a,
+  a-cls: keyframes-leak-scope_module_css-a-cls,
+  b: keyframes-leak-scope_module_css-b,
+  b-cls: keyframes-leak-scope_module_css-b-cls,
+  c: keyframes-leak-scope_module_css-c,
+  d: keyframes-leak-scope_module_css-d,
+  f: keyframes-leak-scope_module_css-f,
+  local-keyframe: keyframes-leak-scope_module_css-local-keyframe,
+}
