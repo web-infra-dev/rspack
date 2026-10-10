@@ -7,10 +7,8 @@ use rustc_hash::FxHashSet;
 use crate::{
   ArtifactExt, BuildDependency, DependencyId, DependencyRef, FactorizationArtifact, FactorizeInfo,
   ModuleGraph, ModuleIdentifier, SideEffectsStateArtifact,
-  compilation::build_module_graph::ModuleToLazyMake,
-  incremental::IncrementalPasses,
-  incremental_info::IncrementalInfo,
-  utils::{FileCounter, ResourceId},
+  compilation::build_module_graph::ModuleToLazyMake, incremental::IncrementalPasses,
+  incremental_info::IncrementalInfo, utils::FileCounter,
 };
 
 /// Make Artifact, including all side effects of the make stage.
@@ -116,16 +114,15 @@ impl BuildModuleGraphArtifact {
       self.make_failed_dependencies.insert(owner_dep_id);
     }
 
-    let resource_id = ResourceId::from(owner_dep_id);
     self
       .file_dependencies
-      .add_files(&resource_id, factorize_info.file_dependencies());
+      .add_dependency_files(owner_dep_id, factorize_info.file_dependencies());
     self
       .context_dependencies
-      .add_files(&resource_id, factorize_info.context_dependencies());
+      .add_dependency_files(owner_dep_id, factorize_info.context_dependencies());
     self
       .missing_dependencies
-      .add_files(&resource_id, factorize_info.missing_dependencies());
+      .add_dependency_files(owner_dep_id, factorize_info.missing_dependencies());
 
     self.factorization_artifact.insert(factorize_info);
   }
@@ -134,16 +131,15 @@ impl BuildModuleGraphArtifact {
     let (owner_dep_id, factorize_info) = self.factorization_artifact.revoke(dep_id)?;
     self.make_failed_dependencies.remove(&owner_dep_id);
 
-    let resource_id = ResourceId::from(owner_dep_id);
     self
       .file_dependencies
-      .remove_files(&resource_id, factorize_info.file_dependencies());
+      .remove_dependency_files(owner_dep_id, factorize_info.file_dependencies());
     self
       .context_dependencies
-      .remove_files(&resource_id, factorize_info.context_dependencies());
+      .remove_dependency_files(owner_dep_id, factorize_info.context_dependencies());
     self
       .missing_dependencies
-      .remove_files(&resource_id, factorize_info.missing_dependencies());
+      .remove_dependency_files(owner_dep_id, factorize_info.missing_dependencies());
 
     Some(factorize_info.related_dep_ids().to_vec())
   }
@@ -169,19 +165,18 @@ impl BuildModuleGraphArtifact {
       .expect("should have module");
     // clean module build info
     let build_info = module.build_info();
-    let resource_id = ResourceId::from(module_identifier);
     self
       .file_dependencies
-      .remove_files(&resource_id, &build_info.dependencies.file);
+      .remove_module_files(*module_identifier, &build_info.dependencies.file);
     self
       .context_dependencies
-      .remove_files(&resource_id, &build_info.dependencies.context);
+      .remove_module_files(*module_identifier, &build_info.dependencies.context);
     self
       .missing_dependencies
-      .remove_files(&resource_id, &build_info.dependencies.missing);
+      .remove_module_files(*module_identifier, &build_info.dependencies.missing);
     self
       .build_dependencies
-      .remove_files(&resource_id, &build_info.dependencies.build);
+      .remove_module_files(*module_identifier, &build_info.dependencies.build);
     drop(build_info);
     self.make_failed_module.remove(module_identifier);
 

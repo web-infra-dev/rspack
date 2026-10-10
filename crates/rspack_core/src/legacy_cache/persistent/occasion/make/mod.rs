@@ -10,9 +10,7 @@ use rustc_hash::FxHashSet;
 
 use super::{super::storage::Storage, Occasion};
 use crate::{
-  cache::CacheCodec,
-  compilation::build_module_graph::BuildModuleGraphArtifact,
-  utils::{FileCounter, ResourceId},
+  cache::CacheCodec, compilation::build_module_graph::BuildModuleGraphArtifact, utils::FileCounter,
 };
 
 /// Make Occasion persists the build module graph as a cache item.
@@ -98,11 +96,10 @@ impl Occasion for MakeOccasion {
     let mut build_dep = FileCounter::default();
     for (mid, module) in mg.modules() {
       let build_info = module.build_info();
-      let resource_id = ResourceId::from(*mid);
-      file_dep.add_files(&resource_id, &build_info.dependencies.file);
-      context_dep.add_files(&resource_id, &build_info.dependencies.context);
-      missing_dep.add_files(&resource_id, &build_info.dependencies.missing);
-      build_dep.add_files(&resource_id, &build_info.dependencies.build);
+      file_dep.add_module_files(*mid, &build_info.dependencies.file);
+      context_dep.add_module_files(*mid, &build_info.dependencies.context);
+      missing_dep.add_module_files(*mid, &build_info.dependencies.missing);
+      build_dep.add_module_files(*mid, &build_info.dependencies.build);
       if !module.diagnostics().is_empty() {
         make_failed_module.insert(*mid);
       }
@@ -114,10 +111,9 @@ impl Occasion for MakeOccasion {
       if !info.is_success() {
         make_failed_dependencies.insert(dep_id);
       }
-      let resource = dep_id.into();
-      file_dep.add_files(&resource, info.file_dependencies());
-      context_dep.add_files(&resource, info.context_dependencies());
-      missing_dep.add_files(&resource, info.missing_dependencies());
+      file_dep.add_dependency_files(dep_id, info.file_dependencies());
+      context_dep.add_dependency_files(dep_id, info.context_dependencies());
+      missing_dep.add_dependency_files(dep_id, info.missing_dependencies());
     }
 
     Ok(BuildModuleGraphArtifact {
