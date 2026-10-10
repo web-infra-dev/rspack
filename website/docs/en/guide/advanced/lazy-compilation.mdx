@@ -67,6 +67,8 @@ Only when corresponding entries and modules are executed will Rspack compile the
 
 ![image](https://assets.rspack.rs/rspack/assets/lazy-proxy-module.png)
 
+A module that uses `import('./feature.js')` can accept updates for the same request with `module.hot.accept('./feature.js', callback)` or `import.meta.webpackHot.accept('./feature.js', callback)`. The HMR dependency keeps the same identity when the lazy module activates, and later source edits reach the registered handler.
+
 ## Filtering modules
 
 In addition to the [`entries`](/config/lazy-compilation#entries) and [`imports`](/config/lazy-compilation#imports) options, you can use [`test`](/config/lazy-compilation#test) to filter which modules are lazily compiled.
