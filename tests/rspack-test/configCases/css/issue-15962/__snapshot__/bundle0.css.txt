@@ -160,6 +160,12 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 	background:url("./must-not-resolve-plain.svg") "unterminated
 		.discarded;
 	button:hover { color: red; }
+	/* Selector pseudo-functions must not create declaration URL dependencies. */
+	button:url("./must-not-resolve-selector.svg") {
+		background:url("selector-body.svg");
+	}
+	button:url(./must-not-resolve-unquoted-selector.svg) { color: red; }
+	button:image-set("./must-not-resolve-image-set-selector.svg" 1x) { color: red; }
 
 	/* A sole curly value falls back to a rule when its contents are invalid. */
 	background:{

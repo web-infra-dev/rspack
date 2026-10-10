@@ -23,6 +23,13 @@ export default defineConfig({
     },
     rules: [
       {
+        test: /\.svg$/,
+        type: 'asset/resource',
+        generator: {
+          filename: '[name][ext]',
+        },
+      },
+      {
         test: /recovery\.css$/,
         type: 'css',
       },
