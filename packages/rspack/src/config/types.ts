@@ -2301,6 +2301,8 @@ export type StatsOptions = {
    * Enables or disables the display of all stats.
    */
   all?: boolean;
+  /** Include structured cache information in JSON stats. */
+  cacheInfo?: boolean;
   /**
    * Sets the preset for stats or enables/disables them.
    */

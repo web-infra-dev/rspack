@@ -17,7 +17,7 @@ use super::{
   CacheKey, CacheValue, Etag, FileCacheStrategy,
   cache_value::{CacheValueData, ErasedCacheValue},
 };
-use crate::{InfrastructureLogger, Logger};
+use crate::{InfrastructureLogger, Logger, PersistentCacheState};
 
 const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE: Duration = Duration::from_secs(5);
@@ -155,6 +155,10 @@ pub struct IdleFileCache {
 }
 
 impl IdleFileCache {
+  pub(crate) fn initial_validation(&self) -> PersistentCacheState {
+    self.strategy.initial_validation()
+  }
+
   pub fn new(
     database_paths: (Utf8PathBuf, Utf8PathBuf),
     strategy: FileCacheStrategy,

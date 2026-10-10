@@ -6,6 +6,7 @@ use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
   cache_value::CacheValueData,
 };
+use crate::PersistentCacheState;
 
 /// Storage shared by all compiler-scoped cache views.
 #[derive(Debug)]
@@ -25,6 +26,17 @@ pub struct Cache {
 }
 
 impl Cache {
+  pub(crate) fn initial_validation(&self) -> PersistentCacheState {
+    self
+      .storage
+      .as_ref()
+      .and_then(|storage| storage.idle_file_cache.as_ref())
+      .map_or(
+        PersistentCacheState::Unknown,
+        IdleFileCache::initial_validation,
+      )
+  }
+
   /// Creates storage from the configured memory and filesystem caches.
   pub fn new(memory_cache: Option<MemoryCache>, idle_file_cache: Option<IdleFileCache>) -> Self {
     let storage = if memory_cache.is_some() || idle_file_cache.is_some() {

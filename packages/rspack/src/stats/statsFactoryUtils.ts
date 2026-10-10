@@ -252,6 +252,20 @@ export type KnownStatsChunkOrigin = {
 
 export type StatsChunkOrigin = KnownStatsChunkOrigin & Record<string, any>;
 
+export type StatsCacheInfo = {
+  mode: 'disabled' | 'memory' | 'persistent';
+  counters: { logger: string; label: string; hit: number; total: number }[];
+  persistentSessionInitialization: {
+    status: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown';
+    reason: 'version' | 'buildDependencies' | 'recovery' | null;
+  } | null;
+  persistent: {
+    status: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown';
+    reason: 'version' | 'buildDependencies' | 'recovery' | null;
+  } | null;
+  moduleBuilds: { reused: number; total: number } | null;
+};
+
 export type KnownStatsCompilation = {
   /**
    * webpack version.
@@ -262,6 +276,7 @@ export type KnownStatsCompilation = {
   rspackVersion?: string;
   name?: string;
   hash?: string;
+  cacheInfo?: StatsCacheInfo;
   env?: any;
   time?: number;
   builtAt?: number;

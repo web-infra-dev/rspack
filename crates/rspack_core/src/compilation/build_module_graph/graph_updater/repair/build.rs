@@ -94,6 +94,9 @@ impl Task<TaskContext> for BuildResultTask {
     } = *self;
     let module = match build_result {
       ModuleBuildResult::Built(mut module) => {
+        if let Some(reused) = &mut context.artifact.reused_module_builds {
+          reused.remove(&module.identifier());
+        }
         plugin_driver
           .compilation_hooks
           .succeed_module
@@ -106,6 +109,9 @@ impl Task<TaskContext> for BuildResultTask {
         ModuleRef::from(module)
       }
       ModuleBuildResult::Cached(module) => {
+        if let Some(reused) = &mut context.artifact.reused_module_builds {
+          reused.insert(module.identifier());
+        }
         plugin_driver
           .compilation_hooks
           .still_valid_module

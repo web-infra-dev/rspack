@@ -74,6 +74,30 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 按照[预设值](/config/stats#预设stats-presets)进行输出，这在[扩展信息输出行为](/config/stats#扩展信息输出行为)时很有用。
 
+### stats.cacheInfo
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+在 `stats.toJson()` 中输出 `cacheInfo`。该对象包含 `mode`（`disabled`、`memory` 或 `persistent`）和 `persistent`。非持久化缓存模式下，`persistent` 为 `null`。持久化缓存模式下，`persistent.status` 的值包括：
+
+- `cold`：未找到以前的缓存元数据。
+- `valid`：已有元数据的版本和跟踪的构建依赖通过验证。该状态不表示快照或缓存条目已恢复，也不表示任何工作已被复用。
+- `invalidated`：缓存未通过验证，`reason` 为 `version` 或 `buildDependencies`。
+- `error`：验证或恢复失败。快照或缓存条目恢复失败时，`reason` 为 `recovery`，否则为 `null`。
+- `unknown`：无法获得状态，包括使用新缓存后端和同一编译器的后续编译。
+
+没有可报告的原因时，`reason` 为 `null`。该状态描述缓存验证和恢复情况，不表示模块构建缓存命中率。
+
+使用新的文件系统缓存后端时，`cacheInfo.persistentSessionInitialization` 以相同的状态值报告共享缓存会话首次数据库验证的 `{ status, reason }`。这是创建编译时获取的快照；如果初始化尚未完成或后端无法报告，状态为 `unknown`。多个编译器和后续编译可能共享同一个会话，因此 `invalidated` 或 `cold` 不表示当前编译执行了该操作。`valid` 只表示初始版本和构建依赖检查通过，不表示缓存条目已恢复或使用。后续读取或写入错误不会改变该值。其他缓存后端的此字段为 `null`。
+
+`cacheInfo.counters` 包含详细编译日志中也有的缓存计数事件。每个事件包含 `logger`、`label`、`hit` 和 `total`；即使标签相同也会分别报告。`hit / total` 只表示对应计数器的比例：例如代码生成统计模块与运行时的任务，解析器统计解析请求。计数器可能同时包含内存和持久化缓存复用，有些计数器即使在缓存禁用时也会将不可缓存的工作计为未命中。缺少事件（包括空数组）不能说明未命中次数为零或没有缓存活动。不要将不同计数器合并为一个命中率。这些事件不包括基础设施诊断和计时信息。无需启用模块构建计数，调用 `stats.toJson({ cacheInfo: true })` 即可获取这些事件；提取过程会扫描编译日志。
+
+要收集模块构建复用计数，必须在创建编译器前显式配置 `stats: { cacheInfo: true }`。之后调用 `stats.toJson({ cacheInfo: true })` 无法启用收集，`stats: { all: true }` 和 `verbose` 预设也不会启用收集。收集过程会跟踪模块标识，因此会增加构建工作量和内存使用。
+
+可用时，`cacheInfo.moduleBuilds` 为 `{ reused, total }`。`total` 统计 `finishModules` 钩子结束后、封存和优化开始前主模块图中的不同模块数量，包括外部模块和不符合缓存条件的模块，但不包括运行时模块和独立的模块执行图。`reused` 统计其中最终生效的构建结果从旧版持久化模块图或新模块构建缓存恢复的模块。新缓存也可能从内存或等待写入的数据恢复模块，而非仅从磁盘恢复。这些计数表示模块图中被复用的模块比例，不是缓存查询命中率或磁盘命中次数。
+
+未启用收集、缓存不是持久化缓存、编译为增量重建、旧缓存的恢复状态未知或新缓存的模块缓存已禁用时，`moduleBuilds` 为 `null`。`finishModules` 完成前，或其后重新构建模块或添加入口时，也无法获取计数。
+
 ## 产物选项
 
 ### stats.assets

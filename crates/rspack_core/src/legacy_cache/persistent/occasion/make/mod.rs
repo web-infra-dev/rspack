@@ -51,6 +51,7 @@ impl Occasion for MakeOccasion {
       affected_modules,
       affected_dependencies,
       issuer_update_modules,
+      reused_module_builds: _,
       // skip
       entry_dependencies: _,
       file_dependencies: _,
@@ -126,6 +127,7 @@ impl Occasion for MakeOccasion {
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
+      reused_module_builds: None,
 
       side_effects_state_artifact: Default::default(),
       module_graph: mg,

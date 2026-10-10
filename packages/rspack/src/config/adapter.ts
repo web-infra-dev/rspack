@@ -1003,5 +1003,6 @@ function getRawStats(stats: StatsValue): RawOptions['stats'] {
       : Boolean(statsOptions.colors);
   return {
     colors,
+    cacheInfo: statsOptions.cacheInfo === true,
   };
 }

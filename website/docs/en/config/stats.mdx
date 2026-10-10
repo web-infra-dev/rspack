@@ -74,6 +74,30 @@ Enabling `stats.all` will lead to a large amount of data transmission between Ru
 
 Sets the [preset](/config/stats#stats-presets) for the type of information that gets displayed. It is useful for [extending stats behaviours](/config/stats#extending-stats-behaviours).
 
+### stats.cacheInfo
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Include `cacheInfo` in `stats.toJson()`. The object contains `mode` (`disabled`, `memory`, or `persistent`) and `persistent`, which is `null` outside persistent mode. In persistent mode, `persistent.status` is one of:
+
+- `cold`: no previous cache metadata was found.
+- `valid`: the existing metadata version and tracked build dependencies passed validation. This does not establish that snapshots or cache entries were restored, or that any work was reused.
+- `invalidated`: validation rejected the cache. `reason` is `version` or `buildDependencies`.
+- `error`: validation or recovery failed. `reason` is `recovery` for a failed snapshot or cache entry recovery, otherwise `null`.
+- `unknown`: the status is not available. This includes the new cache backend and subsequent compilations on the same compiler.
+
+`reason` is `null` when no reason is reported. The status describes cache validation and recovery, not a module-build hit rate.
+
+With the new filesystem cache backend, `cacheInfo.persistentSessionInitialization` reports `{ status, reason }` using the same values for the shared cache session's initial database validation. This is a snapshot taken when the compilation is created; it is `unknown` if initialization has not completed or the backend cannot report it. The same session can be shared across compilers and later compilations, so an `invalidated` or `cold` result does not mean that this particular compilation performed that operation. `valid` means only that the initial version and build-dependency checks passed, not that entries were restored or used. The value does not change after a later read or write error. It is `null` for other cache backends.
+
+`cacheInfo.counters` contains the cache counter events also available in verbose compilation logging. Each event has `logger`, `label`, `hit`, and `total`; events are reported separately, including repeated events with the same label. `hit / total` describes only that counter: for example, code generation counts module-runtime jobs, whereas the resolver counts requests. A counter may include memory as well as persistent-cache reuse, and some count uncacheable work as misses, even when caching is disabled. An absent event (including an empty array) does not establish that there were zero misses or zero cache activity. Do not combine counters into one hit rate. These events exclude infrastructure diagnostics and timings. They are available through `stats.toJson({ cacheInfo: true })` without enabling module-build collection; extracting them scans compilation logs.
+
+To collect module-build reuse counts, explicitly configure `stats: { cacheInfo: true }` before creating the compiler. A later `stats.toJson({ cacheInfo: true })` call cannot enable collection. `stats: { all: true }` and the `verbose` preset do not enable it either. Collection tracks module identifiers during the build and therefore adds work and memory use.
+
+When available, `cacheInfo.moduleBuilds` is `{ reused, total }`. `total` counts distinct modules in the main module graph after the `finishModules` hook and before sealing and optimization. It includes external modules and modules ineligible for caching, but excludes runtime modules and separate module-execution graphs. `reused` counts those modules whose final effective builds were restored from the legacy persistent graph or the new module-build cache. The new cache may restore from memory or pending writes as well as disk. These counts describe the fraction of graph modules reused, not a cache lookup hit rate or a disk-hit count.
+
+`moduleBuilds` is `null` when collection was not enabled, the cache is not persistent, the compilation is an incremental rebuild, the legacy cache recovery status is unknown, or the new cache's module cache is disabled. Counts are also unavailable before `finishModules` completes, or if a module is rebuilt or an entry is added afterward.
+
 ## Asset options
 
 ### stats.assets

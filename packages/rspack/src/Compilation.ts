@@ -176,6 +176,7 @@ export interface KnownNormalizedStatsOptions {
   assetsSort: string;
   ids: boolean;
   cachedAssets: boolean;
+  cacheInfo: boolean;
   groupAssetsByEmitStatus: boolean;
   groupAssetsByPath: boolean;
   groupAssetsByExtension: boolean;

@@ -27,6 +27,7 @@ struct Meta {
 pub enum CacheValidationResult {
   Valid {
     tracked_files: usize,
+    has_meta: bool,
   },
   InvalidVersion {
     message: &'static str,
@@ -129,10 +130,14 @@ impl CacheValidation {
       .await
     {
       Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
+        let has_meta = meta.is_some();
         if let Some(meta) = meta {
           Self::restore_meta(meta);
         }
-        CacheValidationResult::Valid { tracked_files }
+        CacheValidationResult::Valid {
+          tracked_files,
+          has_meta,
+        }
       }
       Ok(BuildDepsValidationResult::Invalid {
         modified_files,
