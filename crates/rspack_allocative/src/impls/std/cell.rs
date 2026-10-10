@@ -10,23 +10,33 @@
 
 use std::{
   borrow::Cow,
-  cell::{OnceCell, RefCell},
+  cell::{OnceCell, RefCell, UnsafeCell},
   sync::OnceLock,
 };
 
-use crate::{Allocative, Visitor, impls::common::DATA_NAME};
+use crate::{Allocative, Visit, Visitor, impls::common::DATA_NAME};
 
-impl<T: Allocative> Allocative for RefCell<T> {
+// The wrapper may be shared while its contents are mutating or uninitialized.
+// Only a higher-level adapter holding the appropriate guard may visit its data.
+impl<T: ?Sized> Allocative for UnsafeCell<T> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    visitor.visit_opaque(self);
+  }
+}
+
+impl<T: Visit> Allocative for RefCell<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     if let Ok(v) = self.try_borrow() {
       visitor.visit_field(DATA_NAME, &*v);
+    } else {
+      visitor.report_opaque::<Self>();
     }
     visitor.exit();
   }
 }
 
-impl<T: Allocative> Allocative for OnceCell<T> {
+impl<T: Visit> Allocative for OnceCell<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     if let Some(v) = self.get() {
@@ -36,7 +46,7 @@ impl<T: Allocative> Allocative for OnceCell<T> {
   }
 }
 
-impl<T: Allocative> Allocative for OnceLock<T> {
+impl<T: Visit> Allocative for OnceLock<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     if let Some(v) = self.get() {
@@ -48,14 +58,14 @@ impl<T: Allocative> Allocative for OnceLock<T> {
 
 impl<T> Allocative for Cow<'_, T>
 where
-  T: Allocative + ToOwned + ?Sized,
-  T::Owned: Allocative,
+  T: Visit + ToOwned + ?Sized,
+  T::Owned: Visit,
 {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     match self {
       Cow::Borrowed(_) => (),
-      Cow::Owned(v) => v.visit(&mut visitor),
+      Cow::Owned(v) => v.visit_memory(&mut visitor),
     }
     visitor.exit();
   }

@@ -11,7 +11,7 @@
 use std::mem;
 
 use crate::{
-  allocative_trait::Allocative,
+  Visit,
   impls::common::{CAPACITY_NAME, DATA_NAME, KEY_NAME, UNUSED_CAPACITY_NAME, VALUE_NAME},
   key::Key,
 };
@@ -21,6 +21,7 @@ use crate::{
 /// At the moment there's only one implementation, the one which generates flame graph,
 /// and this trait is crate-private. This may change in the future.
 pub(crate) trait VisitorImpl {
+  fn opaque_impl(&mut self, _name: &'static str) {}
   /// Enter simple field like `u32`.
   /// All sizes are in bytes.
   fn enter_inline_impl(&mut self, name: Key, size: usize, parent: NodeKind);
@@ -144,20 +145,20 @@ impl<'a> Visitor<'a> {
     self.enter_self_sized::<T>().exit();
   }
 
-  pub fn visit_field<'b, T: Allocative + ?Sized>(&'b mut self, name: Key, field: &T)
+  pub fn visit_field<'b, T: Visit + ?Sized>(&'b mut self, name: Key, field: &T)
   where
     'a: 'b,
   {
     self.visit_field_with(name, mem::size_of_val::<T>(field), |visitor| {
-      field.visit(visitor);
+      field.visit_memory(visitor);
     })
   }
 
-  /// Similar to `visit_field` but instead of calling [`Allocative::visit`] for
+  /// Similar to `visit_field` but instead of calling [`Visit::visit_memory`] for
   /// whichever is the field type, you can provide a custom closure to call
   /// instead.
   ///
-  /// Useful if the field type does not implement [`Allocative`].
+  /// Useful for a field with a custom ownership policy.
   pub fn visit_field_with<'b, F: for<'c, 'd> FnOnce(&'d mut Visitor<'c>)>(
     &'b mut self,
     name: Key,
@@ -169,17 +170,15 @@ impl<'a> Visitor<'a> {
     visitor.exit();
   }
 
-  pub fn visit_slice<'b, T: Allocative>(&'b mut self, slice: &[T])
+  pub fn visit_slice<'b, T: Visit>(&'b mut self, slice: &[T])
   where
     'a: 'b,
   {
     self.visit_iter(slice);
   }
 
-  pub fn visit_iter<'b, 'i, T: Allocative + 'i, I: IntoIterator<Item = &'i T>>(
-    &'b mut self,
-    iter: I,
-  ) where
+  pub fn visit_iter<'b, 'i, T: Visit + 'i, I: IntoIterator<Item = &'i T>>(&'b mut self, iter: I)
+  where
     'a: 'b,
   {
     if !mem::needs_drop::<T>() || mem::size_of::<T>() == 0 {
@@ -190,7 +189,7 @@ impl<'a> Visitor<'a> {
       );
     } else {
       for item in iter {
-        item.visit(self);
+        item.visit_memory(self);
       }
     }
   }
@@ -198,7 +197,7 @@ impl<'a> Visitor<'a> {
   pub fn visit_vec_like_body<'b, T>(&'b mut self, data: &[T], capacity: usize)
   where
     'a: 'b,
-    T: Allocative,
+    T: Visit,
   {
     self.visit_field_with(CAPACITY_NAME, mem::size_of::<T>() * capacity, |visitor| {
       visitor.visit_slice(data);
@@ -209,29 +208,49 @@ impl<'a> Visitor<'a> {
     })
   }
 
-  pub fn visit_generic_map_fields<'b, 'x, K: Allocative + 'x, V: Allocative + 'x>(
+  /// Record a coverage boundary whose nested allocations are inaccessible.
+  pub fn report_opaque<T: ?Sized>(&mut self) {
+    self.visitor.opaque_impl(std::any::type_name::<T>());
+  }
+
+  pub fn visit_opaque<T: ?Sized>(&mut self, value: &T) {
+    let size = mem::size_of_val(value);
+    let mut opaque = self.enter(Key::new("opaque"), size);
+    let mut value_visitor = opaque.enter_self(value);
+    if size != 0 {
+      value_visitor.report_opaque::<T>();
+    }
+    value_visitor.exit();
+    opaque.exit();
+  }
+
+  pub fn visit_generic_map_fields<'b, 'x, K: Visit + 'x, V: Visit + 'x>(
     &'b mut self,
     entries: impl IntoIterator<Item = (&'x K, &'x V)>,
   ) {
-    self.visit_field_with(DATA_NAME, mem::size_of::<*const ()>(), move |visitor| {
+    let mut visitor = self.enter_unique(DATA_NAME, mem::size_of::<*const ()>());
+    {
       for (k, v) in entries {
         visitor.visit_field(KEY_NAME, k);
         visitor.visit_field(VALUE_NAME, v);
       }
-    })
+    }
+    visitor.exit();
   }
 
-  pub fn visit_generic_set_fields<'b, 'x, K: Allocative + 'x>(
+  pub fn visit_generic_set_fields<'b, 'x, K: Visit + 'x>(
     &'b mut self,
     entries: impl IntoIterator<Item = &'x K>,
   ) where
     'a: 'b,
   {
-    self.visit_field_with(DATA_NAME, mem::size_of::<*const ()>(), |visitor| {
+    let mut visitor = self.enter_unique(DATA_NAME, mem::size_of::<*const ()>());
+    {
       for k in entries {
         visitor.visit_field(KEY_NAME, k);
       }
-    })
+    }
+    visitor.exit();
   }
 
   fn exit_impl(&mut self) {

@@ -18,14 +18,13 @@ use std::{
 use dashmap::{DashMap, DashSet};
 
 use crate::{
+  Visit,
   allocative_trait::Allocative,
   impls::common::{CAPACITY_NAME, DATA_NAME, KEY_NAME, PTR_NAME, UNUSED_CAPACITY_NAME, VALUE_NAME},
   visitor::Visitor,
 };
 
-impl<K: Allocative + Eq + Hash, V: Allocative, S: BuildHasher + Clone> Allocative
-  for DashMap<K, V, S>
-{
+impl<K: Visit + Eq + Hash, V: Visit, S: BuildHasher + Clone> Allocative for DashMap<K, V, S> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     let mut visitor2 = visitor.enter_unique(PTR_NAME, mem::size_of::<*const ()>());
@@ -47,7 +46,7 @@ impl<K: Allocative + Eq + Hash, V: Allocative, S: BuildHasher + Clone> Allocativ
   }
 }
 
-impl<T: Allocative + Eq + Hash, S: BuildHasher + Clone> Allocative for DashSet<T, S> {
+impl<T: Visit + Eq + Hash, S: BuildHasher + Clone> Allocative for DashSet<T, S> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     let mut visitor2 = visitor.enter_unique(PTR_NAME, mem::size_of::<*const ()>());

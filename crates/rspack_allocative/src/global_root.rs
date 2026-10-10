@@ -10,17 +10,23 @@
 
 use std::sync::Mutex;
 
-use crate::allocative_trait::Allocative;
+use crate::Visit;
 
-static ROOTS: Mutex<Vec<&'static (dyn Allocative + Sync + 'static)>> = Mutex::new(Vec::new());
+static ROOTS: Mutex<Vec<&'static (dyn Visit + Sync + 'static)>> = Mutex::new(Vec::new());
 
 /// Register global root which can be later traversed by profiler.
 ///
 /// [`root`](crate::root) macro can be used to register global root.
-pub fn register_root(root: &'static (dyn Allocative + Sync + 'static)) {
-  ROOTS.lock().expect("root registry lock").push(root);
+pub fn register_root(root: &'static (dyn Visit + Sync + 'static)) {
+  ROOTS
+    .lock()
+    .expect("global root registration lock must not be poisoned")
+    .push(root);
 }
 
-pub(crate) fn roots() -> Vec<&'static (dyn Allocative + Sync + 'static)> {
-  ROOTS.lock().expect("root registry lock").clone()
+pub(crate) fn roots() -> Vec<&'static (dyn Visit + Sync + 'static)> {
+  ROOTS
+    .lock()
+    .expect("global root registration lock must not be poisoned")
+    .clone()
 }

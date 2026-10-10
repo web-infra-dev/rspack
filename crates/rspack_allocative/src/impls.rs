@@ -15,15 +15,21 @@ mod camino;
 pub(crate) mod common;
 mod dashmap;
 mod either;
-pub(crate) mod hashbrown;
 pub(crate) mod hashbrown_util;
 mod indexmap;
 mod lock_api;
 mod once_cell;
 mod parking_lot;
+mod rspack;
 mod serde_json;
 mod smallvec;
 mod std;
 mod tokio;
 mod triomphe;
 mod ustr;
+
+#[cfg(feature = "napi")]
+mod napi;
+
+#[cfg(feature = "pnp")]
+mod pnp;

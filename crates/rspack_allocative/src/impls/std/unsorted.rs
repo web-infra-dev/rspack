@@ -22,13 +22,14 @@ use std::{
 };
 
 use crate::{
+  Visit,
   allocative_trait::Allocative,
   impls::common::{DATA_NAME, PTR_NAME, UNUSED_CAPACITY_NAME},
   key::Key,
   visitor::Visitor,
 };
 
-impl<T: Allocative + ?Sized> Allocative for &'static T {
+impl<T: Visit + ?Sized> Allocative for &'static T {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let _ = visitor;
   }
@@ -46,18 +47,18 @@ impl Allocative for OsStr {
   }
 }
 
-impl<T: Allocative + ?Sized> Allocative for Box<T> {
+impl<T: Visit + ?Sized> Allocative for Box<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     {
       let mut visitor = visitor.enter_unique(PTR_NAME, mem::size_of::<*const T>());
-      (**self).visit(&mut visitor);
+      (**self).visit_memory(&mut visitor);
     }
     visitor.exit();
   }
 }
 
-impl<T: Allocative, E: Allocative> Allocative for Result<T, E> {
+impl<T: Visit, E: Visit> Allocative for Result<T, E> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     match self {
@@ -67,7 +68,7 @@ impl<T: Allocative, E: Allocative> Allocative for Result<T, E> {
   }
 }
 
-impl<T: Allocative> Allocative for Option<T> {
+impl<T: Visit> Allocative for Option<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     if let Some(value) = self {
@@ -76,7 +77,7 @@ impl<T: Allocative> Allocative for Option<T> {
   }
 }
 
-impl<T: Allocative> Allocative for Vec<T> {
+impl<T: Visit> Allocative for Vec<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     if self.capacity() != 0 && mem::size_of::<T>() != 0 {
@@ -91,7 +92,7 @@ impl<T: Allocative> Allocative for Vec<T> {
   }
 }
 
-impl<T: Allocative> Allocative for VecDeque<T> {
+impl<T: Visit> Allocative for VecDeque<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     if self.capacity() != 0 && mem::size_of::<T>() != 0 {
@@ -206,14 +207,13 @@ impl Allocative for Infallible {
   }
 }
 
-#[cfg(rust_nightly)]
 impl Allocative for ! {
   fn visit<'a, 'b: 'a>(&self, _visitor: &'a mut Visitor<'b>) {
     match *self {}
   }
 }
 
-impl<T: Allocative> Allocative for [T] {
+impl<T: Visit> Allocative for [T] {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter(Key::for_type_name::<T>(), mem::size_of_val::<[T]>(self));
     for item in self {
@@ -224,8 +224,8 @@ impl<T: Allocative> Allocative for [T] {
   }
 }
 
-impl<T: Allocative, const N: usize> Allocative for [T; N] {
+impl<T: Visit, const N: usize> Allocative for [T; N] {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
-    self.as_slice().visit(visitor);
+    self.as_slice().visit_memory(visitor);
   }
 }

@@ -15,24 +15,28 @@ use std::mem;
 use indexmap::{IndexMap, IndexSet};
 
 use crate::{
+  Visit,
   allocative_trait::Allocative,
-  impls::{common::UNUSED_CAPACITY_NAME, hashbrown_util::raw_table_alloc_size_for_len},
+  impls::{common::UNUSED_CAPACITY_NAME, hashbrown_util::raw_table_alloc_size_for_capacity},
   key::Key,
   visitor::Visitor,
 };
 
 /// Add approximate allocations for hashbrown `RawTable`.
-fn add_raw_table_for_len<T>(visitor: &mut Visitor, len: usize) {
-  if len != 0 {
+fn add_raw_table_for_capacity<T>(visitor: &mut Visitor, capacity: usize) {
+  if capacity != 0 {
     // We don't depend on `RawTable`, so we don't know the size of `RawTable`.
     let size_of_raw_table = mem::size_of::<usize>();
     let mut visitor = visitor.enter_unique(Key::new("raw_table"), size_of_raw_table);
-    visitor.visit_simple(Key::new("alloc"), raw_table_alloc_size_for_len::<T>(len));
+    visitor.visit_simple(
+      Key::new("alloc"),
+      raw_table_alloc_size_for_capacity::<T>(capacity),
+    );
     visitor.exit();
   }
 }
 
-impl<T: Allocative, S> Allocative for IndexSet<T, S> {
+impl<T: Visit, S> Allocative for IndexSet<T, S> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     {
@@ -44,11 +48,11 @@ impl<T: Allocative, S> Allocative for IndexSet<T, S> {
       visitor.visit_simple(UNUSED_CAPACITY_NAME, unused_capacity * mem::size_of::<T>());
       visitor.exit();
     }
-    add_raw_table_for_len::<usize>(&mut visitor, self.len());
+    add_raw_table_for_capacity::<usize>(&mut visitor, self.capacity());
   }
 }
 
-impl<K: Allocative, V: Allocative, S> Allocative for IndexMap<K, V, S> {
+impl<K: Visit, V: Visit, S> Allocative for IndexMap<K, V, S> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     {
@@ -64,6 +68,6 @@ impl<K: Allocative, V: Allocative, S> Allocative for IndexMap<K, V, S> {
       );
       visitor.exit();
     }
-    add_raw_table_for_len::<usize>(&mut visitor, self.len());
+    add_raw_table_for_capacity::<usize>(&mut visitor, self.capacity());
   }
 }

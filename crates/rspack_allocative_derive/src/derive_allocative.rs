@@ -51,15 +51,19 @@ fn impl_generics(
       GenericParam::Type(tp) => {
         let mut tp = tp.clone();
         if attrs.bound.is_none() && !attrs.skip {
-          tp.bounds.push(syn::parse2(quote_spanned! { tp.span() =>
-              allocative::Allocative
-          })?);
+          tp.bounds.push(syn::parse2(
+            quote_spanned! { tp.span() => allocative::Allocative },
+          )?);
         }
         tp.default = None;
         tp.to_token_stream()
       }
       GenericParam::Lifetime(l) => l.to_token_stream(),
-      GenericParam::Const(c) => c.to_token_stream(),
+      GenericParam::Const(c) => {
+        let mut c = c.clone();
+        c.default = None;
+        c.to_token_stream()
+      }
     });
   }
   if impl_generics.is_empty() {
@@ -86,7 +90,7 @@ fn derive_allocative_impl(
     gen_visit_body(&input)?
   };
 
-  Ok(quote_spanned! {input.span()=>
+  let generated = quote_spanned! {input.span()=>
       impl #impl_generics allocative::Allocative for #name #type_generics #where_clause {
           #[allow(unused, warnings)]
           fn visit<'allocative_a, 'allocative_b: 'allocative_a>(
@@ -98,7 +102,31 @@ fn derive_allocative_impl(
               visitor.exit();
           }
       }
-  })
+  };
+  if let Some(path) = attrs.crate_path {
+    let mut implementation: syn::ItemImpl = syn::parse2(generated)?;
+    syn::visit_mut::VisitMut::visit_item_impl_mut(&mut CratePath(path), &mut implementation);
+    Ok(implementation.into_token_stream())
+  } else {
+    Ok(generated)
+  }
+}
+
+struct CratePath(Path);
+
+impl syn::visit_mut::VisitMut for CratePath {
+  fn visit_path_mut(&mut self, path: &mut Path) {
+    if path
+      .segments
+      .first()
+      .is_some_and(|segment| segment.ident == "allocative")
+    {
+      let tail = path.segments.iter().skip(1).cloned().collect::<Vec<_>>();
+      *path = self.0.clone();
+      path.segments.extend(tail);
+    }
+    syn::visit_mut::visit_path_mut(self, path);
+  }
 }
 
 fn gen_visit_body(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
@@ -289,6 +317,7 @@ struct AllocativeAttrs {
   skip: bool,
   bound: Option<String>,
   visit: Option<Path>,
+  crate_path: Option<Path>,
 }
 
 /// Parse an `#[allocative(...)]` annotation.
@@ -296,6 +325,7 @@ fn extract_attrs(attrs: &[Attribute]) -> syn::Result<AllocativeAttrs> {
   syn::custom_keyword!(skip);
   syn::custom_keyword!(bound);
   syn::custom_keyword!(visit);
+  syn::custom_keyword!(crate_path);
 
   let mut opts = AllocativeAttrs::default();
 
@@ -320,6 +350,13 @@ fn extract_attrs(attrs: &[Attribute]) -> syn::Result<AllocativeAttrs> {
             return Err(input.error("`bound` was set twice"));
           }
           opts.bound = Some(bound.value());
+        } else if input.parse::<crate_path>().is_ok() {
+          input.parse::<Token![=]>()?;
+          let value = input.parse::<LitStr>()?;
+          if opts.crate_path.is_some() {
+            return Err(input.error("`crate_path` was set twice"));
+          }
+          opts.crate_path = Some(value.parse()?);
         } else if input.parse::<visit>().is_ok() {
           input.parse::<Token![=]>()?;
           let visit = input.parse::<Path>()?;

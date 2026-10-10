@@ -13,11 +13,9 @@
 //! Crate implements lightweight memory profiler which allows
 //! object traversal and size introspection.
 //!
-//! An object implementing [`Allocative`] trait is introspectable, and this crate
-//! provides two utilities to work with such objects:
-//! * [`FlameGraphBuilder`] to build a flame graph of object tree
-//! * [`size_of_unique_allocated_data`] provides estimation
-//!   of how much allocated memory the value holds
+//! Explicit [`Allocative`] adapters describe enums, containers and custom field policies.
+//! [`Visit`] provides the common object-safe traversal interface. This crate
+//! provides [`FlameGraphBuilder`] to build a flame graph of the object tree.
 //!
 //! ## Allocative overhead
 //!
@@ -31,19 +29,15 @@
 //!
 //! Here are some differences between allocative and call-stack malloc profiler:
 //!
-//! * Allocative requires implementation of [`Allocative`] trait for each type
-//!   which needs to be measured, and some setup in the program to enable it
+//! * Explicit [`Allocative`] adapters describe object ownership and field traversal
 //! * Allocative flamegraph shows object by object tree, not by call stack
 //! * Allocative shows gaps in allocated memory,
 //!   e.g. spare capacity of collections or too large padding in structs or enums
-//! * Allocative allows profiling non-malloc allocations (for example, allocations within [bumpalo])
 //! * Allocative allows profiling of memory for subset of the process data
 //!   (for example, measure the size of RPC response before serialization)
-//!
-//! [bumpalo]: https://github.com/fitzgen/bumpalo
 
-#![cfg_attr(rust_nightly, feature(const_type_name))]
-#![cfg_attr(rust_nightly, feature(never_type))]
+#![feature(const_type_name, never_type)]
+#![feature(layout_for_ptr)]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![allow(clippy::empty_enums)]
 
@@ -52,18 +46,15 @@ mod flamegraph;
 mod global_root;
 mod impls;
 mod key;
-mod rc_str;
-mod size_of;
 mod visitor;
 
 pub use allocative_derive::{Allocative, root};
 
 pub use crate::{
-  allocative_trait::Allocative,
+  allocative_trait::{Allocative, Visit},
   flamegraph::{FlameGraph, FlameGraphBuilder},
   global_root::register_root,
   key::Key,
-  size_of::{size_of_unique, size_of_unique_allocated_data},
   visitor::Visitor,
 };
 

@@ -10,24 +10,21 @@
 
 use crate::Visitor;
 
-/// This trait allows traversal of object graph.
+/// Explicit ownership adapter for structs, containers, locks, enums and field policies.
 ///
 /// # Proc macro
 ///
-/// Typically implemented with proc macro. Like this:
+/// Derive an adapter when an active enum variant must be selected:
 ///
 /// ```
 /// use allocative::Allocative;
 ///
 /// #[derive(Allocative)]
-/// struct Foo {
-///   x: u32,
-///   y: String,
+/// enum Foo {
+///   Number(u32),
+///   Text(String),
 /// }
 /// ```
-///
-/// Proc macro supports two attributes: `#[allocative(skip)]` and
-/// `#[allocative(bound = "...")]`.
 ///
 /// ## `#[allocative(skip)]`
 ///
@@ -68,6 +65,7 @@ use crate::Visitor;
 /// #[derive(Allocative)]
 /// #[allocative(bound = "")]
 /// struct Baz<T> {
+///   #[allocative(skip)]
 ///   _marker: PhantomData<T>,
 /// }
 /// ```
@@ -136,4 +134,15 @@ use crate::Visitor;
 /// ```
 pub trait Allocative {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>);
+}
+
+/// Object-safe traversal interface for explicitly described object ownership.
+pub trait Visit {
+  fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>);
+}
+
+impl<T: Allocative + ?Sized> Visit for T {
+  fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    self.visit(visitor);
+  }
 }

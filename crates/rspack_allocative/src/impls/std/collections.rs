@@ -8,11 +8,14 @@
  * above-listed licenses.
  */
 
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::{
+  collections::{BTreeMap, BTreeSet, HashMap, HashSet},
+  mem::size_of,
+};
 
-use crate::{allocative_trait::Allocative, visitor::Visitor};
+use crate::{Key, Visit, allocative_trait::Allocative, visitor::Visitor};
 
-impl<K: Allocative, V: Allocative> Allocative for BTreeMap<K, V> {
+impl<K: Visit, V: Visit> Allocative for BTreeMap<K, V> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     visitor.visit_generic_map_fields(self);
@@ -20,7 +23,7 @@ impl<K: Allocative, V: Allocative> Allocative for BTreeMap<K, V> {
   }
 }
 
-impl<K: Allocative> Allocative for BTreeSet<K> {
+impl<K: Visit> Allocative for BTreeSet<K> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     visitor.visit_generic_set_fields(self);
@@ -28,20 +31,39 @@ impl<K: Allocative> Allocative for BTreeSet<K> {
   }
 }
 
-impl<K: Allocative, V: Allocative, S> Allocative for HashMap<K, V, S> {
+impl<K: Visit, V: Visit, S> Allocative for HashMap<K, V, S> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
-    // TODO: can do better extra capacity.
-    visitor.visit_generic_map_fields(self);
+    let mut allocation = visitor.enter_unique(Key::new("ptr"), size_of::<*const ()>());
+    let mut data = allocation.enter(Key::new("capacity"), self.capacity() * size_of::<(K, V)>());
+    for (key, value) in self {
+      data.visit_field(Key::new("key"), key);
+      data.visit_field(Key::new("value"), value);
+    }
+    data.visit_simple(
+      Key::new("unused_capacity"),
+      (self.capacity() - self.len()) * size_of::<(K, V)>(),
+    );
+    data.exit();
+    allocation.exit();
     visitor.exit();
   }
 }
 
-impl<K: Allocative, S> Allocative for HashSet<K, S> {
+impl<K: Visit, S> Allocative for HashSet<K, S> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
-    // TODO: can do better extra capacity.
-    visitor.visit_generic_set_fields(self);
+    let mut allocation = visitor.enter_unique(Key::new("ptr"), size_of::<*const ()>());
+    let mut data = allocation.enter(Key::new("capacity"), self.capacity() * size_of::<K>());
+    for key in self {
+      data.visit_field(Key::new("key"), key);
+    }
+    data.visit_simple(
+      Key::new("unused_capacity"),
+      (self.capacity() - self.len()) * size_of::<K>(),
+    );
+    data.exit();
+    allocation.exit();
     visitor.exit();
   }
 }

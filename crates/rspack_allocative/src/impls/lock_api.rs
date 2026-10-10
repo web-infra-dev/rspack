@@ -12,23 +12,27 @@
 
 use parking_lot::lock_api::{Mutex, RawMutex, RawRwLock, RwLock};
 
-use crate::{allocative_trait::Allocative, key::Key, visitor::Visitor};
+use crate::{Visit, allocative_trait::Allocative, key::Key, visitor::Visitor};
 
-impl<R: RawMutex + 'static, T: Allocative> Allocative for Mutex<R, T> {
+impl<R: RawMutex + 'static, T: Visit + ?Sized> Allocative for Mutex<R, T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
-    let mut visitor = visitor.enter_self_sized::<Self>();
+    let mut visitor = visitor.enter_self(self);
     if let Some(data) = self.try_lock() {
       visitor.visit_field(Key::new("data"), &*data);
+    } else {
+      visitor.report_opaque::<Self>();
     }
     visitor.exit();
   }
 }
 
-impl<R: RawRwLock + 'static, T: Allocative> Allocative for RwLock<R, T> {
+impl<R: RawRwLock + 'static, T: Visit + ?Sized> Allocative for RwLock<R, T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
-    let mut visitor = visitor.enter_self_sized::<Self>();
+    let mut visitor = visitor.enter_self(self);
     if let Some(data) = self.try_read() {
       visitor.visit_field(Key::new("data"), &*data);
+    } else {
+      visitor.report_opaque::<Self>();
     }
     visitor.exit();
   }

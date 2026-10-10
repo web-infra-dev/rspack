@@ -10,12 +10,12 @@
 
 use std::mem::ManuallyDrop;
 
-use crate::{Allocative, Key, Visitor};
+use crate::{Allocative, Visitor};
 
-impl<T: Allocative + ?Sized> Allocative for ManuallyDrop<T> {
+impl<T: ?Sized> Allocative for ManuallyDrop<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
-    let mut visitor = visitor.enter_self(self);
-    visitor.visit_field::<T>(Key::new("inner"), self);
-    visitor.exit();
+    // A live ManuallyDrop may already have had its payload dropped. Reflection
+    // cannot establish that it is still safe to access the nested allocation.
+    visitor.visit_opaque(self);
   }
 }

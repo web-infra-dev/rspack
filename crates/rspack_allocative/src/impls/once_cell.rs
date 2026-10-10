@@ -10,43 +10,43 @@
 
 #![cfg(feature = "once_cell")]
 
-use crate::{allocative_trait::Allocative, visitor::Visitor};
+use crate::{Visit, allocative_trait::Allocative, visitor::Visitor};
 
-impl<T: Allocative> Allocative for once_cell::sync::OnceCell<T> {
+impl<T: Visit> Allocative for once_cell::sync::OnceCell<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     if let Some(val) = self.get() {
-      val.visit(&mut visitor);
+      val.visit_memory(&mut visitor);
     }
     visitor.exit();
   }
 }
 
-impl<T: Allocative> Allocative for once_cell::sync::Lazy<T> {
+impl<T: Visit> Allocative for once_cell::sync::Lazy<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     if let Some(val) = once_cell::sync::Lazy::get(self) {
-      val.visit(&mut visitor);
+      val.visit_memory(&mut visitor);
     }
     visitor.exit();
   }
 }
 
-impl<T: Allocative> Allocative for once_cell::unsync::OnceCell<T> {
+impl<T: Visit> Allocative for once_cell::unsync::OnceCell<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     if let Some(val) = self.get() {
-      val.visit(&mut visitor);
+      val.visit_memory(&mut visitor);
     }
     visitor.exit();
   }
 }
 
-impl<T: Allocative> Allocative for once_cell::unsync::Lazy<T> {
+impl<T: Visit> Allocative for once_cell::unsync::Lazy<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     if let Some(val) = once_cell::unsync::Lazy::get(self) {
-      val.visit(&mut visitor);
+      val.visit_memory(&mut visitor);
     }
     visitor.exit();
   }
