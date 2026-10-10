@@ -12,10 +12,7 @@ use crate::{
   compilation::build_module_graph::{
     ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
   },
-  utils::{
-    ResourceId,
-    task_loop::{Task, TaskResult, TaskType},
-  },
+  utils::task_loop::{Task, TaskResult, TaskType},
 };
 
 #[derive(Debug)]
@@ -134,23 +131,22 @@ impl Task<TaskContext> for BuildResultTask {
       .module_graph
       .get_optimization_bailout_mut(&module.identifier())
       .extend_from_slice(&build_info.optimization_bailouts);
-    let resource_id = ResourceId::from(module.identifier());
     context
       .artifact
       .file_dependencies
-      .add_files(&resource_id, &build_info.dependencies.file);
+      .add_module_files(module.identifier(), &build_info.dependencies.file);
     context
       .artifact
       .context_dependencies
-      .add_files(&resource_id, &build_info.dependencies.context);
+      .add_module_files(module.identifier(), &build_info.dependencies.context);
     context
       .artifact
       .missing_dependencies
-      .add_files(&resource_id, &build_info.dependencies.missing);
+      .add_module_files(module.identifier(), &build_info.dependencies.missing);
     context
       .artifact
       .build_dependencies
-      .add_files(&resource_id, &build_info.dependencies.build);
+      .add_module_files(module.identifier(), &build_info.dependencies.build);
     drop(build_info);
 
     let module_graph = &mut context.artifact.module_graph;
