@@ -1891,23 +1891,21 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   }
 
   fn finish_block_item(&mut self, stream: &mut DependencyTokenStream<'_, 's>) -> BlockItemKind {
-    let (selected, reuse_effects) = stream.finish_block_item();
+    let selected = stream.finish_block_item();
     let checkpoint = self
       .block_item_checkpoint
       .take()
       .expect("candidate effects have a checkpoint");
-    self.handle_warning.finish(
-      selected == BlockItemKind::Declaration || (selected == BlockItemKind::Rule && reuse_effects),
-    );
+    self
+      .handle_warning
+      .finish(selected == BlockItemKind::Declaration);
     if selected != BlockItemKind::Declaration {
-      if selected == BlockItemKind::Invalid || !reuse_effects {
-        self.dependency_context.rollback(checkpoint.dependencies);
-        stream
-          .lexer_mut()
-          .visitor_mut()
-          .occurrences
-          .truncate(checkpoint.dashed);
-      }
+      self.dependency_context.rollback(checkpoint.dependencies);
+      stream
+        .lexer_mut()
+        .visitor_mut()
+        .occurrences
+        .truncate(checkpoint.dashed);
       // Unwind speculative items through the stack so mode nesting counters
       // are restored before selector events are replayed.
       while self.balanced.len() > checkpoint.balanced {

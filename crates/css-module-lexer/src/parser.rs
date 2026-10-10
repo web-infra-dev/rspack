@@ -200,7 +200,6 @@ pub(crate) struct BlockItemCandidates {
   retain_next_atom: bool,
   retain_current_atom: bool,
   preserve_next_ident: bool,
-  pub(crate) reuse_declaration_effects: bool,
   pub(crate) flat_probe_start: Option<Pos>,
   pub(crate) collect_dashed: bool,
 }
@@ -220,7 +219,6 @@ impl BlockItemCandidates {
       retain_next_atom: true,
       retain_current_atom: true,
       preserve_next_ident: false,
-      reuse_declaration_effects: !has_mode,
       flat_probe_start: None,
       collect_dashed: false,
     }
@@ -268,17 +266,6 @@ impl BlockItemCandidates {
       if self.declaration.components.is_nested() {
         return;
       }
-    }
-    if token.kind == TokenKind::LeftCurlyBracket
-      && !self.declaration.components.is_nested()
-      && matches!(
-        self.declaration.state,
-        DeclarationState::Value { has_value: false }
-      )
-    {
-      // A sole curly value may later become a rule body. Its contents then
-      // need block semantics rather than declaration-value semantics.
-      self.reuse_declaration_effects = false;
     }
     self
       .rule

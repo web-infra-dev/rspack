@@ -2238,7 +2238,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
 
   /// Select the semantic result without re-tokenizing the source. A declaration
   /// is already consumed; only a surviving rule alternative needs its events.
-  pub(crate) fn finish_block_item(&mut self) -> (BlockItemKind, bool) {
+  pub(crate) fn finish_block_item(&mut self) -> BlockItemKind {
     let candidate = self.block_item.take().expect("an active block item");
     let BlockItemProgress::Finished(selected) = candidate.progress else {
       unreachable!("the block item has been resolved");
@@ -2269,7 +2269,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       }
     }
     self.rule_events.clear();
-    (selected, candidate.reuse_declaration_effects)
+    selected
   }
 
   pub(crate) fn reset_value_scan_states(&mut self) {
