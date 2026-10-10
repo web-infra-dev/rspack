@@ -1,5 +1,5 @@
 ```css title=main.css
-.\.\/_style\.module_\.\/_foo--\/__8a645abe7d001191\<8a6 {
+.\.\/_style\.module_\.\/_foo--\/__5b36c1aa489eedea\<5b3 {
     color: hotpink;
 }
 
@@ -19,7 +19,7 @@ console.log(_style_module_css__rspack_import_0);
 },
 "./style.module.css"(module, __unused_rspack_exports, __webpack_require__) {
 var exports = {
-  "foo": "./_style.module_./_foo--/__8a645abe7d001191<8a6",
+  "foo": "./_style.module_./_foo--/__5b36c1aa489eedea<5b3",
 };
 
 __webpack_require__.r(module.exports = exports);

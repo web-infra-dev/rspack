@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyType, ExportNameOrSpec,
   ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RuntimeSpec,
 };
-use rspack_hash::{RspackHash, RspackHasher};
+use rspack_hash::{RspackHasher, rspack_hash_object};
 use smol_str::SmolStr;
 
 use crate::utils::{css_generator_options, export_locals_convention};
@@ -20,7 +20,7 @@ pub struct CssIcssReference {
 }
 
 /// One CSS definition and its composition relationships.
-/// `.button { composes: base from "./base.css" }` owns the generated button
+/// `.button { composes: base from "./base.css" }` owns the raw button
 /// identifier and the ID of the `base` import. `@value gap: 10px` instead owns
 /// the literal `10px`. Local compositions refer directly to local definitions.
 /// Aliases in BuildInfo point to this same dependency; they do not copy its value.
@@ -30,15 +30,23 @@ pub struct CssIcssExportDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   pub name: SmolStr,
+  /// Raw literal text or a raw local name; local names are generated in codegen.
   #[cacheable(with=AsPreset)]
   pub value: SmolStr,
   /// Substitutions within `value`, such as the `color` in `0 0 color`.
   pub references: Vec<CssIcssReference>,
   /// Space-separated values appended by `composes`; never copied definitions.
   pub composes: Vec<DependencyId>,
-  pub local_ident: bool,
+  pub local_ident: Option<CssLocalIdentKind>,
   /// `None` for definitions used internally without declaring a JS export.
   pub can_mangle: Option<bool>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CssLocalIdentKind {
+  Ident,
+  DashedIdent,
 }
 
 impl CssIcssExportDependency {
@@ -46,7 +54,7 @@ impl CssIcssExportDependency {
     name: SmolStr,
     value: SmolStr,
     references: Vec<CssIcssReference>,
-    local_ident: bool,
+    local_ident: Option<CssLocalIdentKind>,
     can_mangle: Option<bool>,
   ) -> Self {
     Self {
@@ -113,10 +121,26 @@ impl DependencyCodeGeneration for CssIcssExportDependency {
   fn update_hash(
     &self,
     hasher: &mut RspackHasher,
-    _compilation: &Compilation,
+    compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.value.hash(hasher);
+    rspack_hash_object!(hasher, {
+      "value" => &self.value,
+      "localIdent" => self.local_ident.map(|kind| kind as u8),
+      "name" => &self.name,
+      "canMangle" => self.can_mangle,
+      "referenceCount" => self.references.len(),
+      "composesCount" => self.composes.len(),
+    });
+    for reference in &self.references {
+      rspack_hash_object!(hasher, {
+        "range" => (reference.range.start, reference.range.end),
+      });
+      super::hash::hash_binding(compilation, reference.dependency_id, hasher);
+    }
+    for id in &self.composes {
+      super::hash::hash_binding(compilation, *id, hasher);
+    }
   }
 }
 impl AsContextDependency for CssIcssExportDependency {}

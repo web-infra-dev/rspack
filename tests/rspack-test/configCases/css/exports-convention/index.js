@@ -5,28 +5,18 @@ const prod = process.env.NODE_ENV === "production";
 const target = process.env.TARGET;
 
 it("concatenation and mangling should work", () => {
-	expect(styles1.class).toBe(prod ? "lOQLn3" : "style_module_css_camel-case_1-class");
-	expect(styles1["default"]).toBe(prod ? "Nbrg_B" : "style_module_css_camel-case_1-default");
-	expect(styles1.fooBar).toBe(prod ? "_8dq8cD" : "style_module_css_camel-case_1-foo_bar");
-	expect(styles1.foo_bar).toBe(prod ? "_8dq8cD" : "style_module_css_camel-case_1-foo_bar");
+	expect(styles1.fooBar).toBe(styles1.foo_bar);
 
 	if (prod) {
-		expect(styles2).toMatchObject({
-			'btn-info_is-disabled': '_9becks',
-			btnInfoIsDisabled: '_9becks',
-			'btn--info_is-disabled_1': 'rwFz5i',
-			btnInfoIsDisabled1: 'rwFz5i',
-			simple: 'lj1EFd',
-			foo: 'bar',
-			'my-btn-info_is-disabled': 'value',
-			myBtnInfoIsDisabled: 'value',
-			foo_bar: 'bLCREl',
-			fooBar: 'bLCREl',
-			class: 'Kdl_B5',
-			default: 'bSmOSH'
-		});
+		const suffix = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK ? "-rspack" : "";
+		expect(styles1).toMatchFileSnapshotSync(`${__SNAPSHOT__}/static-camel-case-1.${__STATS_I__}${suffix}.txt`);
+		expect(styles2).toMatchFileSnapshotSync(`${__SNAPSHOT__}/static-camel-case-2.${__STATS_I__}${suffix}.txt`);
 
 		expect(Object.keys(__webpack_modules__).length).toBe(target === "web" ? 8 : 1)
+	} else {
+		expect(styles1.class).toBe("style_module_css_camel-case_1-class");
+		expect(styles1["default"]).toBe("style_module_css_camel-case_1-default");
+		expect(styles1.fooBar).toBe("style_module_css_camel-case_1-foo_bar");
 	}
 });
 

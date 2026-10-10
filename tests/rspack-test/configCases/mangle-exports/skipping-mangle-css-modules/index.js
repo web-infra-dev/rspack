@@ -6,5 +6,6 @@ it("should not mangle css module", () => {
   // Using this to trigger a none provided export
   test.res;
 
-  expect(test.test).toBe("_64eQtf");
+  expect(Object.keys(test)).toEqual(["test"]);
+  expect(test.test).toMatchFileSnapshotSync(`${__SNAPSHOT__}/test.txt`);
 });

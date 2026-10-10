@@ -4,9 +4,10 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ModuleDependency, ModuleIdentifier, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ModuleDependency, ModuleIdentifier, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
+use rspack_hash::{RspackHasher, rspack_hash_object};
 use rspack_util::placeholder::PlaceholderFinder;
 
 use crate::{css_syntax::serialize_url_value, utils::AUTO_PUBLIC_PATH_PLACEHOLDER};
@@ -79,7 +80,9 @@ impl Dependency for CssUrlDependency {
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
-    rspack_core::AffectType::True
+    // A changed URL can also affect parents embedding this stylesheet, or
+    // composing identifiers whose module hash includes this asset's build hash.
+    rspack_core::AffectType::Transitive
   }
 }
 
@@ -96,6 +99,29 @@ impl ModuleDependency for CssUrlDependency {
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for CssUrlDependency {
+  fn update_hash(
+    &self,
+    hasher: &mut RspackHasher,
+    compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    rspack_hash_object!(hasher, {
+      "request" => &self.request,
+      "range" => (self.range.start, self.range.end),
+      "replaceFunction" => self.replace_function,
+    });
+    // The emitted URL can contain the asset's content hash. Its build hash is
+    // available before codegen, unlike the generated filename or runtime hash.
+    if let Some(module) = compilation
+      .get_module_graph()
+      .get_module_by_dependency_id(&self.id)
+    {
+      rspack_hash_object!(hasher, {
+        "buildHash" => &module.build_info().hash,
+      });
+    }
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CssUrlDependencyTemplate::template_type())
   }

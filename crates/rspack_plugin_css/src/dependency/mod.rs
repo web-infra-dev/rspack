@@ -1,3 +1,5 @@
+mod hash;
+pub(crate) use hash::hash_generator_options;
 mod icss_export;
 mod icss_import;
 mod icss_symbol;

@@ -1,9 +1,10 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, AsDependencyCodeGeneration, CssExportType, Dependency, DependencyCategory,
-  DependencyId, DependencyRange, DependencyType, ExportsInfoArtifact, ModuleDependency,
-  ReferencedExport, RuntimeSpec,
+  AsContextDependency, Compilation, CssExportType, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyType, ExportsInfoArtifact,
+  ModuleDependency, ReferencedExport, RuntimeSpec,
 };
+use rspack_hash::{RspackHasher, rspack_hash_object};
 use rspack_intern::Atom;
 use smol_str::SmolStr;
 
@@ -111,5 +112,22 @@ impl ModuleDependency for CssIcssImportDependency {
   }
 }
 
-impl AsDependencyCodeGeneration for CssIcssImportDependency {}
+#[cacheable_dyn]
+impl DependencyCodeGeneration for CssIcssImportDependency {
+  fn update_hash(
+    &self,
+    hasher: &mut RspackHasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) {
+    rspack_hash_object!(hasher, {
+      "request" => &self.request,
+      "importName" => self.import_name.as_str(),
+      "localName" => &self.local_name,
+      "range" => (self.range.start, self.range.end),
+      "exportType" => self.export_type,
+    });
+    super::hash::hash_css_import_target(self.id, hasher, compilation, runtime);
+  }
+}
 impl AsContextDependency for CssIcssImportDependency {}

@@ -1,11 +1,12 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, CssExportType, CssModuleRenderCondition, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ModuleDependency, ResourceIdentifier, TemplateContext,
-  TemplateReplaceSource, css_module_render_conditions_identifier,
+  AsContextDependency, Compilation, CssExportType, CssModuleRenderCondition, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ModuleDependency, ResourceIdentifier, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, css_module_render_conditions_identifier,
   iter_css_module_render_conditions, push_css_module_identifier_part,
 };
+use rspack_hash::{RspackHasher, rspack_hash_object};
 
 use crate::utils::source_order_to_i32;
 
@@ -62,6 +63,44 @@ impl CssImportDependency {
   pub fn export_type(&self) -> Option<CssExportType> {
     self.export_type
   }
+
+  pub(super) fn is_inlined(&self, compilation: &Compilation) -> bool {
+    let graph = compilation.get_module_graph();
+    let Some(parent) = graph
+      .get_parent_module(&self.id)
+      .and_then(|identifier| graph.module_by_identifier(identifier))
+    else {
+      return false;
+    };
+    match crate::utils::css_module_export_type(parent.as_ref()) {
+      Some(CssExportType::Text | CssExportType::CssStyleSheet) => true,
+      Some(CssExportType::Style) => {
+        let exports_only = parent
+          .as_normal_module()
+          .and_then(|module| module.get_generator_options())
+          .is_some_and(|options| match options {
+            rspack_core::GeneratorOptions::CssModule(options) => options.exports_only == Some(true),
+            rspack_core::GeneratorOptions::Css(options) => options.exports_only == Some(true),
+            _ => false,
+          });
+        if exports_only {
+          return false;
+        }
+        let parent_has_conditions = parent
+          .build_info()
+          .css
+          .as_deref()
+          .is_some_and(|css| css.has_render_conditions());
+        let target_is_style = graph
+          .get_module_by_dependency_id(&self.id)
+          .is_some_and(|module| {
+            crate::utils::css_module_export_type(module.as_ref()) == Some(CssExportType::Style)
+          });
+        parent_has_conditions || self.render_conditions().next().is_some() || !target_is_style
+      }
+      _ => false,
+    }
+  }
 }
 
 #[cacheable_dyn]
@@ -91,7 +130,8 @@ impl Dependency for CssImportDependency {
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
-    rspack_core::AffectType::True
+    // A stylesheet can be embedded through multiple levels of @import.
+    rspack_core::AffectType::Transitive
   }
 }
 
@@ -108,6 +148,21 @@ impl ModuleDependency for CssImportDependency {
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for CssImportDependency {
+  fn update_hash(
+    &self,
+    hasher: &mut RspackHasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) {
+    rspack_hash_object!(hasher, {
+      "resourceIdentifier" => &self.resource_identifier,
+      "range" => (self.range.start, self.range.end),
+    });
+    if self.is_inlined(compilation) {
+      super::hash::hash_css_import_target(self.id, hasher, compilation, runtime);
+    }
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CssImportDependencyTemplate::template_type())
   }
