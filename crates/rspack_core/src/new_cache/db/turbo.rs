@@ -191,6 +191,25 @@ pub struct TurboDatabase {
   readonly: bool,
 }
 
+// The pinned nightly emits duplicate drop symbols when creating a reflection
+// vtable for Inner's unevaluated const argument. Avoid that vtable while keeping
+// the other fields visible; this backend's nested allocations remain unobserved.
+#[cfg(allocative)]
+impl allocative::Allocative for TurboDatabase {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field_with(
+      allocative::ident_key!(inner),
+      std::mem::size_of_val(&self.inner),
+      |visitor| visitor.visit_opaque(&self.inner),
+    );
+    visitor.visit_field(allocative::ident_key!(base_path), &self.base_path);
+    visitor.visit_field(allocative::ident_key!(path), &self.path);
+    visitor.visit_field(allocative::ident_key!(readonly), &self.readonly);
+    visitor.exit();
+  }
+}
+
 impl fmt::Debug for TurboDatabase {
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
     formatter

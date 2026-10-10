@@ -18,6 +18,7 @@ use tokio::{
 #[derive(Debug)]
 pub struct CompilerContext {
   dependenc_id_generator: AtomicU32,
+  // Non-owning link; Compilation owns and visits the exports-info artifact.
   exports_info_artifact_ptr: AtomicPtr<c_void>,
 }
 

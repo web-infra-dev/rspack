@@ -157,20 +157,22 @@ fn run() -> io::Result<ExitCode> {
     .find(|arg| arg.ends_with(".rs"))
     .ok_or_else(|| io::Error::other("Cargo must pass a crate root source file"))?;
   let generated = env::var_os("OUT_DIR").map(PathBuf::from);
+  // Use rustc's crate name so integration targets cannot match a library's trait policy.
+  let crate_name = args
+    .windows(2)
+    .find(|pair| pair[0] == "--crate-name")
+    .map(|pair| pair[1].clone())
+    .ok_or_else(|| io::Error::other("Cargo must pass --crate-name"))?;
   let sources = rspack_allocative_driver::instrument_source_tree(
     Path::new(root),
     &package,
     generated.as_deref(),
     crate_path,
+    &crate_name,
   )?;
   let mut callbacks = Callbacks {
     package,
-    // Use rustc's crate name so integration targets cannot match a library's trait policy.
-    crate_name: args
-      .windows(2)
-      .find(|pair| pair[0] == "--crate-name")
-      .map(|pair| pair[1].clone())
-      .ok_or_else(|| io::Error::other("Cargo must pass --crate-name"))?,
+    crate_name,
     crate_path,
     sources,
   };

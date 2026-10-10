@@ -163,20 +163,6 @@ pub struct ModuleGraph {
   pub(super) inner: ModuleGraphData,
 }
 
-#[cfg(allocative)]
-impl rspack_util::allocative::Allocative for ModuleGraph {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_util::allocative::Visitor<'b>) {
-    use rspack_util::allocative::ident_key;
-
-    let mut visitor = visitor.enter_self(self);
-    visitor.visit_field_with(ident_key!(modules), 0, |visitor| {
-      for (_, module) in self.modules() {
-        module.visit(visitor);
-      }
-    });
-    visitor.exit();
-  }
-}
 impl ModuleGraph {
   // checkpoint
   pub fn checkpoint(&mut self) {

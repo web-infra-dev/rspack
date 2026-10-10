@@ -84,6 +84,7 @@ catalog:
   'cspell': '^10.3.6'
   'cspell-ban-words': '0.0.4'
   'css-loader': '^7.1.5'
+  'csv-stringify': '^6.9.0'
   'date-fns': '^4.4.0'
   'diff': '9.0.0'
   'emnapi': '1.11.3'

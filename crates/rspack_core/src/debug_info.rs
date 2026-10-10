@@ -5,7 +5,6 @@ use rspack_util::allocative;
 
 /// Debug info used when programs panics
 /// Only works with #[cfg(debug_assertions)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct DebugInfo {
   /// The base directory. See [options.context](https://webpack.js.org/configuration/entry-context/#context)
   pub(crate) context: Option<String>,

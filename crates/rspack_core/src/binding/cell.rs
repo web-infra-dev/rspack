@@ -177,7 +177,11 @@ mod napi_binding {
   }
 
   #[derive(Debug)]
+  #[cfg_attr(allocative, derive(allocative::Allocative))]
+  #[cfg_attr(allocative, allocative(bound = ""))]
   pub struct BindingCell<T: ?Sized> {
+    // Projection into heap.variant; the owning Arc is visited below.
+    #[cfg_attr(allocative, allocative(skip))]
     ptr: *mut T,
     heap: Arc<Heap>,
   }

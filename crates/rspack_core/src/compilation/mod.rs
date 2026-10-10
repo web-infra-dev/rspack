@@ -53,8 +53,6 @@ use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathSet};
 use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
-#[cfg(allocative)]
-use rspack_util::allocative;
 use rspack_util::{fx_hash::FxIndexMap, itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use smol_str::SmolStr;
@@ -192,7 +190,6 @@ pub struct CompilationHooks {
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompilationId(pub u32);
 
 impl CompilationId {
@@ -325,27 +322,6 @@ pub struct Compilation {
   /// Rebuild will include previous compilation data, so persistent cache will not recovery anything
   pub is_rebuild: bool,
   pub compiler_context: Arc<CompilerContext>,
-}
-
-#[cfg(allocative)]
-impl allocative::Allocative for Compilation {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
-    let mut visitor = visitor.enter_self(self);
-    visitor.visit_field(
-      allocative::ident_key!(build_module_graph_artifact),
-      &self.build_module_graph_artifact,
-    );
-    visitor.visit_field(
-      allocative::ident_key!(code_generation_results),
-      self.code_generation_results.as_ref(),
-    );
-    visitor.visit_field(
-      allocative::ident_key!(runtime_modules_code_generation_source),
-      &self.runtime_modules_code_generation_source,
-    );
-    visitor.visit_field(allocative::ident_key!(assets), &self.assets);
-    visitor.exit();
-  }
 }
 
 impl Compilation {
@@ -1344,15 +1320,6 @@ pub struct CompilationAsset {
   #[cacheable(with=AsOption<AsPreset>)]
   pub source: Option<BoxSource>,
   pub info: BindingCell<AssetInfo>,
-}
-
-#[cfg(allocative)]
-impl allocative::Allocative for CompilationAsset {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
-    let mut visitor = visitor.enter_self(self);
-    visitor.visit_field(allocative::ident_key!(source), &self.source);
-    visitor.exit();
-  }
 }
 
 impl From<BoxSource> for CompilationAsset {
