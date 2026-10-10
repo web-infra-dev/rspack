@@ -1,3 +1,3 @@
 Object {
-  class: HPWSr3,
+  class: IXsf6y,
 }

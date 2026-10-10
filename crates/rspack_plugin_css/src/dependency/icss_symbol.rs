@@ -67,7 +67,7 @@ impl DependencyCodeGeneration for CssIcssSymbolDependency {
   ) {
     (self.range.start, self.range.end).hash(hasher);
     (self.kind as u8).hash(hasher);
-    super::hash::hash_binding(compilation.get_module_graph(), self.target, hasher);
+    super::hash::hash_binding(compilation, self.target, hasher);
   }
 }
 impl AsContextDependency for CssIcssSymbolDependency {}

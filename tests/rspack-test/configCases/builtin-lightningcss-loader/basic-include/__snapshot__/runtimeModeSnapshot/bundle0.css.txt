@@ -1,5 +1,5 @@
 body {
-  & .CiYScg {
+  & ._5tnQHO {
     color: #00f;
   }
 }

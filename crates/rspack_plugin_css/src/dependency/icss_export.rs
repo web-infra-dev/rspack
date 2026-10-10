@@ -128,15 +128,14 @@ impl DependencyCodeGeneration for CssIcssExportDependency {
     self.local_ident.map(|kind| kind as u8).hash(hasher);
     super::hash::hash_field(&self.name, hasher);
     self.can_mangle.hash(hasher);
-    let graph = compilation.get_module_graph();
     hasher.write(b"|references:");
     for reference in &self.references {
       (reference.range.start, reference.range.end).hash(hasher);
-      super::hash::hash_binding(graph, reference.dependency_id, hasher);
+      super::hash::hash_binding(compilation, reference.dependency_id, hasher);
     }
     hasher.write(b"|composes:");
     for id in &self.composes {
-      super::hash::hash_binding(graph, *id, hasher);
+      super::hash::hash_binding(compilation, *id, hasher);
     }
   }
 }

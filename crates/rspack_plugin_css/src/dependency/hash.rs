@@ -1,6 +1,6 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  Compilation, DependencyCodeGeneration, DependencyId, GeneratorOptions, Module, ModuleGraph,
+  ChunkGraph, Compilation, DependencyCodeGeneration, DependencyId, GeneratorOptions, Module,
   RuntimeSpec,
 };
 use rspack_hash::{HashSalt, RspackHash, RspackHasher, write_u64_hex};
@@ -18,7 +18,8 @@ pub(super) fn hash_field(value: &str, hasher: &mut RspackHasher) {
 
 /// Hash the binding, not the allocation-dependent dependency ID. Two uses of
 /// the same name can refer to different definitions after a redefinition.
-pub(super) fn hash_binding(graph: &ModuleGraph, id: DependencyId, hasher: &mut RspackHasher) {
+pub(super) fn hash_binding(compilation: &Compilation, id: DependencyId, hasher: &mut RspackHasher) {
+  let graph = compilation.get_module_graph();
   let dependency = graph.dependency_by_id(&id);
   if let Some(export) = dependency.downcast_ref::<CssIcssExportDependency>() {
     hasher.write(b"export");
@@ -29,7 +30,7 @@ pub(super) fn hash_binding(graph: &ModuleGraph, id: DependencyId, hasher: &mut R
     hasher.write(b"import");
     hash_field(import.import_name(), hasher);
     if let Some(target) = graph.get_module_by_dependency_id(&id) {
-      hash_field(target.identifier().as_str(), hasher);
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, target.identifier()).hash(hasher);
     }
   }
 }
@@ -120,7 +121,6 @@ pub(super) fn hash_css_import_target(
     }
     if first_visit {
       hasher.write(b"|css-target:");
-      hash_field(module.identifier().as_str(), hasher);
       module.build_info().hash.hash(hasher);
       hasher.write(b"|graph:");
       write_u64_hex(

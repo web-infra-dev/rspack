@@ -1,4 +1,4 @@
 Object {
-  simple-bar: _2nXsRX EcXBL7,
-  simple-foo: Pc-j6j EcXBL7,
+  simple-bar: _6JbXEG _6WlrXN,
+  simple-foo: w4mUOn _6WlrXN,
 }
