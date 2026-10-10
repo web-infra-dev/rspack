@@ -1,8 +1,4 @@
-use std::{
-  borrow::Cow,
-  ops::{Deref, DerefMut},
-  sync::Arc,
-};
+use std::{borrow::Cow, sync::Arc};
 
 use derive_more::Debug;
 use rspack_cacheable::cacheable;
@@ -88,30 +84,6 @@ pub struct LoaderContext<Context: Send> {
   pub(crate) loader_chains: LoaderChains,
   #[debug(skip)]
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
-}
-
-/// Owns the context except while it is executing in a foreign loader runner.
-/// The runner must restore ownership before returning, including on errors.
-#[derive(Debug)]
-pub struct LoaderContextHandle<Context: Send>(pub Option<Box<LoaderContext<Context>>>);
-
-impl<Context: Send> Deref for LoaderContextHandle<Context> {
-  type Target = LoaderContext<Context>;
-  fn deref(&self) -> &Self::Target {
-    self
-      .0
-      .as_deref()
-      .expect("loader context must be returned by the foreign runner")
-  }
-}
-
-impl<Context: Send> DerefMut for LoaderContextHandle<Context> {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    self
-      .0
-      .as_deref_mut()
-      .expect("loader context must be returned by the foreign runner")
-  }
 }
 
 impl<Context: Send> LoaderContext<Context> {

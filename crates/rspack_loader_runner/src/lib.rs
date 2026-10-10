@@ -13,7 +13,7 @@ mod scheme;
 pub use content::{
   AdditionalData, Content, DescriptionData, ParseMeta, ParseMetaValue, ResourceData,
 };
-pub use context::{LoaderContext, LoaderContextHandle, LoaderDependencies, State};
+pub use context::{LoaderContext, LoaderDependencies, State};
 pub use loader::{
   DisplayWithSuffix, Loader, LoaderExecutionKind, LoaderItem, ResourceParsedData, parse_resource,
 };
