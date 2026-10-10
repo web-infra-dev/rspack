@@ -32,7 +32,7 @@ export default async function run() {
     let entry, removed, info, stats;
     let generation = 0;
     const fileKey = Symbol.for('rspack.buildInfo.fileDependencies');
-    let getContext, getFiles;
+    let getContext, getFiles, getMatchResource, setMatchResource, getError;
     compiler.hooks.done.tap('SharedAccessorsLifecycle', ({ compilation }) => {
       const modules = [...compilation.modules];
       const current = modules.find((module) => module.resource === entryPath);
@@ -44,6 +44,23 @@ export default async function run() {
         info = removed.buildInfo;
         getContext = Object.getOwnPropertyDescriptor(entry, 'context').get;
         getFiles = Object.getOwnPropertyDescriptor(info, fileKey).get;
+        ({ get: getMatchResource, set: setMatchResource } =
+          Object.getOwnPropertyDescriptor(entry, 'matchResource'));
+        getError = Object.getOwnPropertyDescriptor(entry, 'error').get;
+        assert.equal(
+          getMatchResource,
+          Object.getOwnPropertyDescriptor(removed, 'matchResource').get,
+        );
+        assert.equal(
+          setMatchResource,
+          Object.getOwnPropertyDescriptor(removed, 'matchResource').set,
+        );
+        assert.equal(
+          getError,
+          Object.getOwnPropertyDescriptor(removed, 'error').get,
+        );
+        assert.equal(getMatchResource.call(removed), undefined);
+        assert.equal(getError.call(removed), undefined);
         assert.equal(
           getContext,
           Object.getOwnPropertyDescriptor(removed, 'context').get,
@@ -54,6 +71,28 @@ export default async function run() {
         );
         assert(getFiles.call(info).includes(valuePath));
       } else {
+        assert.equal(
+          getMatchResource,
+          Object.getOwnPropertyDescriptor(current, 'matchResource').get,
+        );
+        assert.equal(
+          getError,
+          Object.getOwnPropertyDescriptor(current, 'error').get,
+        );
+        assert.equal(getMatchResource.call(current), undefined);
+        assert.equal(getError.call(current), undefined);
+        assert.throws(
+          () => getMatchResource.call(removed),
+          /removed on the Rust side/,
+        );
+        assert.throws(
+          () => getError.call(removed),
+          /removed on the Rust side/,
+        );
+        assert.throws(
+          () => setMatchResource.call(removed, 'removed.js'),
+          /only modify the module in the loader/,
+        );
         assert.equal(entry.context, context);
         assert.equal(getContext.call(current), context);
         assert.throws(() => removed.context, /removed on the Rust side/);
@@ -88,6 +127,18 @@ export default async function run() {
       () => getContext.call(entry),
       /Compiler has been garbage collected/,
     );
+    assert.throws(
+      () => getMatchResource.call(entry),
+      /Compiler has been garbage collected/,
+    );
+    assert.throws(
+      () => getError.call(entry),
+      /Compiler has been garbage collected/,
+    );
+    assert.throws(
+      () => setMatchResource.call(entry, 'closed.js'),
+      /only modify the module in the loader/,
+    );
     entry = null;
     removed = null;
     await tracker.waitForCollection('module');
@@ -105,6 +156,9 @@ export default async function run() {
     // Keeping the accessor functions alive must not retain any of those owners.
     assert.equal(typeof getContext, 'function');
     assert.equal(typeof getFiles, 'function');
+    assert.equal(typeof getMatchResource, 'function');
+    assert.equal(typeof setMatchResource, 'function');
+    assert.equal(typeof getError, 'function');
   } finally {
     fs.rmSync(context, { recursive: true, force: true });
   }

@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! impl_module_methods {
-  ($module:ident) => {
+  ($module:ident $(, $define_shared_properties:path)?) => {
     impl $crate::module::DerivedModule for $module {
       fn as_module(&mut self) -> &mut $crate::module::Module {
         &mut self.module
@@ -17,6 +17,13 @@ macro_rules! impl_module_methods {
 
         let mut instance = self.into_instance(env)?;
         let mut object = instance.as_object(env);
+        $(
+          // Keep derived own properties before the base Module properties,
+          // including when their accessor functions are shared between instances.
+          object.define_properties(properties)?;
+          properties.clear();
+          $define_shared_properties(env, object)?;
+        )?
         $crate::module::define_module_properties(
           env,
           &mut *instance,
