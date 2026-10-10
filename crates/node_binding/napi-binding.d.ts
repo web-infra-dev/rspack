@@ -289,6 +289,14 @@ export declare class FileSystemDependencies {
   addAll(values: Array<string>): void
 }
 
+/**
+ * Owned hook snapshot, independent of the compilation's size-only placeholder.
+ * Content is transferred only when JavaScript actually requests it.
+ */
+export declare class JsAssetEmittedSource {
+  takeSource(): JsSource
+}
+
 /** One shared cache, initialized from the first compiler that uses it. */
 export declare class JsCache {
   constructor()
@@ -298,10 +306,10 @@ export declare class JsCache {
 }
 
 export declare class JsCompilation {
-  updateAsset(filename: string, newSourceOrFunction: JsSource | ((source: JsSource) => JsSource), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
+  updateAsset(filename: string, newSourceOrFunction: JsSource | ((source: JsAssetSource) => JsSource), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
-  getAssetSource(name: string): JsSource | null
+  getAssetSource(name: string): JsAssetSource | null
   get modules(): Modules
   get builtModules(): Array<Module>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
@@ -726,6 +734,13 @@ export interface JsAssetEmittedArgs {
   filename: string
   outputPath: string
   targetPath: string
+  source: JsAssetEmittedSource
+}
+
+/** Rust-to-JavaScript asset snapshot. Emitted assets expose only their byte size. */
+export interface JsAssetSource {
+  source: string | Buffer | number
+  map?: string
 }
 
 export interface JsBannerContentFnCtx {

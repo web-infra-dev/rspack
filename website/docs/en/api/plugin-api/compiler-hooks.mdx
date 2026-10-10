@@ -572,6 +572,16 @@ Called right before emitting assets to output dir.
 
 Called after emitting assets to output directory.
 
+Emitted assets are represented by `SizeOnlySource`, as in webpack. Their `size()`
+and asset information remain available, but `source()`, `buffer()`, `map()` and
+`updateHash()` throw. Read or modify asset contents in `processAssets` or `emit`
+instead. The `assetEmitted` hook's `info.source` and `info.content` still provide
+the original emitted content. Replacing a compilation asset does not invalidate
+sources retained by caches or plugins.
+
+Rspack does not accept a `SizeOnlySource` as input to `emitAsset` or `updateAsset`;
+provide a source containing content instead.
+
 - **Type:** `AsyncSeriesHook<[Compilation]>`
 - **Arguments:**
   - `Compilation`: current [compilation](/api/javascript-api/compilation) object

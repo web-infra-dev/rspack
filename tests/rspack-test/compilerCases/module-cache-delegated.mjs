@@ -1,3 +1,4 @@
+import { readAsset } from "./_read-asset.cjs";
 import fs from "node:fs";
 import path from "node:path";
 import { DllReferencePlugin } from "@rspack/core";
@@ -178,7 +179,7 @@ export default ["persistent", "disabled"].map((cacheMode) => {
           "require",
           "module",
           "exports",
-          compilation.getAsset("main.js").source.source(),
+          readAsset(compilation, "main.js"),
         )(
           (request) => {
             expect(request).toBe(dllName);

@@ -206,7 +206,7 @@ export async function check(
   }
 }
 
-export function checkSnapshot(
+export async function checkSnapshot(
   env: ITestEnv,
   context: ITestContext,
   name: string,
@@ -258,19 +258,31 @@ export function checkSnapshot(
         (file.endsWith('.js') || file.endsWith('.mjs')) &&
         !file.includes('runtime.js'));
 
-    const fileContents = Object.entries(compilation.assets)
-      .filter(([file]) => snapshotFileFilter(file))
-      .map(([file, source]) => {
-        const tag = path.extname(file).slice(1) || 'txt';
-        let content = normalizePlaceholder(source.source().toString());
-        const testConfig = context.getTestConfig();
-        if (testConfig.snapshotContent) {
-          content = testConfig.snapshotContent(content);
-        }
-        const filePath = file.replaceAll(path.sep, '/');
+    const fileContents = await Promise.all(
+      Object.entries(compilation.assets)
+        .filter(([file]) => snapshotFileFilter(file))
+        .map(async ([file, source]) => {
+          const tag = path.extname(file).slice(1) || 'txt';
+          const emitted = source instanceof c.webpack.sources.SizeOnlySource;
+          const bytes = emitted
+            ? await new Promise<Buffer>((resolve, reject) => {
+                c.outputFileSystem!.readFile(
+                  path.join(c.outputPath, file.split('?')[0]),
+                  (error, content) =>
+                    error ? reject(error) : resolve(content as Buffer),
+                );
+              })
+            : source.source();
+          let content = normalizePlaceholder(bytes.toString());
+          const testConfig = context.getTestConfig();
+          if (testConfig.snapshotContent) {
+            content = testConfig.snapshotContent(content);
+          }
+          const filePath = file.replaceAll(path.sep, '/');
 
-        return `\`\`\`${tag} title=${filePath}\n${content}\n\`\`\``;
-      });
+          return `\`\`\`${tag} title=${filePath}\n${content}\n\`\`\``;
+        }),
+    );
     fileContents.sort();
     const content = fileContents.join('\n\n');
     const snapshotPath = path.isAbsolute(snapshot)

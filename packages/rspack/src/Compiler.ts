@@ -654,6 +654,16 @@ class Compiler {
       compilation?: Compilation,
     ) => any,
   ) {
+    // Unlike run(), webpack's runAsChild() compiles without emitting files.
+    // The parent still needs the child sources, not size-only placeholders.
+    if (
+      !this.hooks.shouldEmit.taps.some((tap) => tap.name === 'RspackRunAsChild')
+    ) {
+      this.hooks.shouldEmit.tap(
+        { name: 'RspackRunAsChild', stage: -Infinity },
+        () => false,
+      );
+    }
     const finalCallback = (
       err: Error | null,
       entries?: Chunk[],

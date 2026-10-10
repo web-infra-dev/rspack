@@ -148,8 +148,7 @@ export default defineConfig([
     plugins: [
       new ClientPlugin(),
       definePlugin((compiler) => {
-        compiler.hooks.done.tap('AssertServerCssChunking', (stats) => {
-          const { compilation } = stats;
+        compiler.hooks.emit.tap('AssertServerCssChunking', (compilation) => {
           const entrypoint = compilation.entrypoints.get('main')!;
           const entryCssFiles = entrypoint
             .getFiles()

@@ -17,7 +17,7 @@ export default defineConfig({
   plugins: [
     definePlugin({
       apply(compiler) {
-        compiler.hooks.afterEmit.tap('PLUGIN', (compilation) => {
+        compiler.hooks.emit.tap('PLUGIN', (compilation) => {
           const sourceMap = JSON.parse(
             compilation.assets['bundle0.js.map'].source().toString(),
           );

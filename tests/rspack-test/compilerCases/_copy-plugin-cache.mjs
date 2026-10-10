@@ -1,3 +1,4 @@
+import { readAsset } from "./_read-asset.cjs";
 import fs from "node:fs";
 import path from "node:path";
 import { CopyRspackPlugin, Stats } from "@rspack/core";
@@ -85,7 +86,7 @@ function rebuildAllowErrors(compiler, modifiedFiles = [], removedFiles = []) {
 }
 
 function asset(compilation, filename) {
-	return compilation.getAsset(filename)?.source.source().toString();
+	return readAsset(compilation, filename);
 }
 
 function reusedPatterns(compilation) {

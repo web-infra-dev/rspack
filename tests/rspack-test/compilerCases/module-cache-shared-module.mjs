@@ -1,3 +1,4 @@
+import { readAsset } from "./_read-asset.cjs";
 import { rspack } from "@rspack/core";
 
 const { RawSource } = rspack.sources;
@@ -82,7 +83,7 @@ export default ["memory", "persistent"].map(type => {
         }
         const stats = await context.getCompiler().build();
         expect(stats.hasErrors()).toBe(false);
-        expect(stats.compilation.getAsset("built.txt").source.source()).toBe(
+        expect(readAsset(stats.compilation, "built.txt")).toBe(
           "build output"
         );
       }

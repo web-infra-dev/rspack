@@ -1,8 +1,16 @@
-import type { JsSource } from '@rspack/binding';
-import { RawSource, type Source, SourceMapSource } from 'webpack-sources';
+import type { JsAssetSource, JsSource } from '@rspack/binding';
+import {
+  RawSource,
+  SizeOnlySource,
+  type Source,
+  SourceMapSource,
+} from 'webpack-sources';
 
 export class SourceAdapter {
-  static fromBinding(source: JsSource): Source {
+  static fromBinding(source: JsAssetSource): Source {
+    if (typeof source.source === 'number') {
+      return new SizeOnlySource(source.source);
+    }
     if (!source.map) {
       return new RawSource(source.source);
     }

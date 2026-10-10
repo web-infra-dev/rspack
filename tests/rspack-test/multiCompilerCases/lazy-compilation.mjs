@@ -1,3 +1,4 @@
+import { readAsset } from "../compilerCases/_read-asset.cjs";
 import { LazyCompilationTestPlugin } from "@rspack/test-tools";
 import { lazyCompilationMiddleware } from "@rspack/core";
 import path from "node:path";
@@ -138,10 +139,7 @@ export default [{
     try {
       const initial = await nextBuild();
       expect(initial.error).toBeUndefined();
-      const bundle = initial.stats.stats[1].compilation
-        .getAsset("main.js")
-        .source.source()
-        .toString();
+      const bundle = readAsset(initial.stats.stats[1].compilation, "main.js");
       const encoded = bundle.match(/var data = ("(?:[^"\\]|\\.)*")/)?.[1];
       expect(encoded).toBeDefined();
       const moduleId = JSON.parse(encoded);

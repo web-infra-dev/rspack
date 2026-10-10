@@ -3,8 +3,8 @@ use std::{hash::Hash, sync::Arc};
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, ObjectPool, OriginalSource, RawBufferSource,
-  RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, SourceValue,
-  WithoutOriginalOptions,
+  RawStringSource, ReplaceSource, SizeOnlySource, Source, SourceExt, SourceMap, SourceMapSource,
+  SourceValue, WithoutOriginalOptions,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
@@ -98,5 +98,52 @@ impl From<JsSourceToJs> for BoxSource {
       },
       Either::B(buffer) => RawBufferSource::from(buffer.to_vec()).boxed(),
     }
+  }
+}
+
+/// Rust-to-JavaScript asset snapshot. Emitted assets expose only their byte size.
+#[napi(object, object_from_js = false)]
+pub struct JsAssetSource {
+  pub source: Either3<String, Buffer, f64>,
+  pub map: Option<String>,
+}
+
+impl TryFrom<&BoxSource> for JsAssetSource {
+  type Error = napi::Error;
+
+  fn try_from(value: &BoxSource) -> Result<Self> {
+    if let Some(source) = value.as_ref().as_any().downcast_ref::<SizeOnlySource>() {
+      return Ok(Self {
+        source: Either3::C(source.size() as f64),
+        map: None,
+      });
+    }
+    let source = JsSourceToJs::try_from(value)?;
+    Ok(Self {
+      source: match source.source {
+        Either::A(string) => Either3::A(string),
+        Either::B(buffer) => Either3::B(buffer),
+      },
+      map: source.map,
+    })
+  }
+}
+
+/// Owned hook snapshot, independent of the compilation's size-only placeholder.
+/// Content is transferred only when JavaScript actually requests it.
+#[napi]
+pub struct JsAssetEmittedSource {
+  pub(crate) source: Option<BoxSource>,
+}
+
+#[napi]
+impl JsAssetEmittedSource {
+  #[napi(ts_return_type = "JsSource")]
+  pub fn take_source(&mut self) -> Result<JsSourceToJs> {
+    let source = self
+      .source
+      .take()
+      .ok_or_else(|| napi::Error::from_reason("Asset source has already been consumed"))?;
+    JsSourceToJs::try_from(&source)
   }
 }

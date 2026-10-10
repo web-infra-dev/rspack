@@ -558,6 +558,15 @@ compiler.hooks.shouldEmit.tap('MyPlugin', (compilation) => {
 
 ## `afterEmit`
 
+与 webpack 一致，已输出的资源会替换为 `SizeOnlySource`。仍可读取 `size()` 和资源信息，
+但调用 `source()`、`buffer()`、`map()` 或 `updateHash()` 会抛出错误。
+如需读取或修改资源内容，请使用 `processAssets` 或 `emit` 钩子。
+`assetEmitted` 钩子的 `info.source` 和 `info.content` 仍提供原始输出内容。
+替换 compilation 中的资源不会使缓存或插件持有的 Source 失效。
+
+Rspack 不支持将 `SizeOnlySource` 作为 `emitAsset` 或 `updateAsset` 的输入；
+请传入包含实际内容的 Source。
+
 输出产物到结果目录后执行。
 
 - **类型：** `AsyncSeriesHook<[Compilation]>`

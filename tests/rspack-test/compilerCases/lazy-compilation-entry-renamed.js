@@ -1,3 +1,4 @@
+const { readAsset } = require("./_read-asset.cjs");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -37,7 +38,7 @@ function post(moduleId) {
 
 function emitsPayload(compilation) {
 	return Object.keys(compilation.assets).some(name =>
-		compilation.getAsset(name).source.source().toString().includes("MAIN_PAYLOAD")
+		readAsset(compilation, name).includes("MAIN_PAYLOAD")
 	);
 }
 

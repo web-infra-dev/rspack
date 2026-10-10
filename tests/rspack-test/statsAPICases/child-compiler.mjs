@@ -28,7 +28,8 @@ class TestPlugin {
 			statsJson = stats.toJson({
 				all: false,
 				children: true,
-				assets: true
+				assets: true,
+				cachedAssets: true
 			});
 		});
 	}

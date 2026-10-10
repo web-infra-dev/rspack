@@ -3,7 +3,7 @@
 
 use crate::{
   BoxSource, CachedSource, ConcatSource, OriginalSource, RawBufferSource, RawStringSource,
-  ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap, SourceMapSource,
+  ReplaceSource, ReplacementEnforce, SizeOnlySource, Source, SourceExt, SourceMap, SourceMapSource,
   SourceMapSourceOptions,
 };
 
@@ -34,6 +34,11 @@ pub struct CacheableReplacement {
   __C: rkyv::validation::ArchiveContext + rkyv::rancor::Fallible
 )))]
 pub enum CacheableSource {
+  /// [`SizeOnlySource`]
+  SizeOnly {
+    /// The emitted byte length.
+    size: usize,
+  },
   /// [`RawBufferSource`]
   RawBuffer {
     /// The raw buffer.
@@ -90,6 +95,9 @@ pub enum CacheableSource {
 
 /// Convert a [`Source`] trait object into a serializable [`CacheableSource`].
 pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
+  if let Some(s) = source.as_any().downcast_ref::<SizeOnlySource>() {
+    return CacheableSource::SizeOnly { size: s.size() };
+  }
   if let Some(s) = source.as_any().downcast_ref::<CachedSource>() {
     return CacheableSource::Cached {
       inner: Box::new(to_cacheable(s.inner().as_ref())),
@@ -166,6 +174,7 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
 /// Convert a [`CacheableSource`] back into a [`BoxSource`].
 pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
   match cacheable {
+    CacheableSource::SizeOnly { size } => SizeOnlySource::new(size).boxed(),
     CacheableSource::RawBuffer { buffer } => RawBufferSource::from(buffer).boxed(),
     CacheableSource::RawString { value } => RawStringSource::from(value).boxed(),
     CacheableSource::Original { value, name } => OriginalSource::new(value, name).boxed(),
