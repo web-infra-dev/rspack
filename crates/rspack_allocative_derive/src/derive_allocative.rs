@@ -36,6 +36,7 @@ pub(crate) fn derive_allocative(input: proc_macro::TokenStream) -> proc_macro::T
 fn impl_generics(
   generics: &Generics,
   attrs: &AllocativeAttrs,
+  reflected_enum: bool,
 ) -> syn::Result<proc_macro2::TokenStream> {
   if let Some(bound) = &attrs.bound
     && !bound.is_empty()
@@ -50,16 +51,20 @@ fn impl_generics(
     impl_generics.push(match p {
       GenericParam::Type(tp) => {
         let mut tp = tp.clone();
-        if attrs.bound.is_none() && !attrs.skip {
-          tp.bounds.push(syn::parse2(quote_spanned! { tp.span() =>
-              allocative::Allocative
-          })?);
+        if attrs.bound.is_none() && !attrs.skip && !reflected_enum {
+          tp.bounds.push(syn::parse2(
+            quote_spanned! { tp.span() => allocative::Allocative },
+          )?);
         }
         tp.default = None;
         tp.to_token_stream()
       }
       GenericParam::Lifetime(l) => l.to_token_stream(),
-      GenericParam::Const(c) => c.to_token_stream(),
+      GenericParam::Const(c) => {
+        let mut c = c.clone();
+        c.default = None;
+        c.to_token_stream()
+      }
     });
   }
   if impl_generics.is_empty() {
@@ -74,19 +79,33 @@ fn derive_allocative_impl(
 ) -> syn::Result<proc_macro2::TokenStream> {
   let input: DeriveInput = syn::parse2(input)?;
   let name = &input.ident;
-  let (_impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
+  let (_impl_generics, type_generics, _) = input.generics.split_for_impl();
 
   let attrs = extract_attrs(&input.attrs)?;
-  let impl_generics = impl_generics(&input.generics, &attrs)?;
+  let reflected_enum = uses_enum_reflection(&input, &attrs)?;
+  let impl_generics = impl_generics(&input.generics, &attrs, reflected_enum)?;
+  let mut generics = input.generics.clone();
+  if reflected_enum {
+    generics
+      .make_where_clause()
+      .predicates
+      .push(syn::parse_quote!(Self: 'static));
+  }
+  let where_clause = &generics.where_clause;
 
   let body = if attrs.skip {
     quote_spanned! { input.span() =>
     }
+  } else if reflected_enum {
+    let Data::Enum(data) = &input.data else {
+      unreachable!()
+    };
+    gen_reflected_enum(data)
   } else {
     gen_visit_body(&input)?
   };
 
-  Ok(quote_spanned! {input.span()=>
+  let generated = quote_spanned! {input.span()=>
       impl #impl_generics allocative::Allocative for #name #type_generics #where_clause {
           #[allow(unused, warnings)]
           fn visit<'allocative_a, 'allocative_b: 'allocative_a>(
@@ -98,7 +117,94 @@ fn derive_allocative_impl(
               visitor.exit();
           }
       }
-  })
+  };
+  if let Some(path) = attrs.crate_path {
+    let mut implementation: syn::ItemImpl = syn::parse2(generated)?;
+    syn::visit_mut::VisitMut::visit_item_impl_mut(&mut CratePath(path), &mut implementation);
+    Ok(implementation.into_token_stream())
+  } else {
+    Ok(generated)
+  }
+}
+
+struct CratePath(Path);
+
+impl syn::visit_mut::VisitMut for CratePath {
+  fn visit_path_mut(&mut self, path: &mut Path) {
+    if path
+      .segments
+      .first()
+      .is_some_and(|segment| segment.ident == "allocative")
+    {
+      let tail = path.segments.iter().skip(1).cloned().collect::<Vec<_>>();
+      *path = self.0.clone();
+      path.segments.extend(tail);
+    }
+    syn::visit_mut::visit_path_mut(self, path);
+  }
+}
+
+fn uses_enum_reflection(input: &DeriveInput, attrs: &AllocativeAttrs) -> syn::Result<bool> {
+  if attrs.skip || input.generics.lifetimes().next().is_some() {
+    return Ok(false);
+  }
+  let Data::Enum(data) = &input.data else {
+    return Ok(false);
+  };
+  // Preserve typed traversal for the pinned compiler's unevaluated-array limitation.
+  if input.generics.const_params().next().is_some() {
+    return Ok(false);
+  }
+  for variant in &data.variants {
+    let attrs = extract_attrs(&variant.attrs)?;
+    if attrs.skip || attrs.visit.is_some() {
+      return Ok(false);
+    }
+    for field in &variant.fields {
+      let attrs = extract_attrs(&field.attrs)?;
+      if attrs.skip || attrs.visit.is_some() {
+        return Ok(false);
+      }
+      let mut arrays = NonliteralArrays(false);
+      syn::visit::Visit::visit_type(&mut arrays, &field.ty);
+      if arrays.0 {
+        return Ok(false);
+      }
+    }
+  }
+  Ok(true)
+}
+
+struct NonliteralArrays(bool);
+
+impl<'ast> syn::visit::Visit<'ast> for NonliteralArrays {
+  fn visit_type_array(&mut self, array: &'ast syn::TypeArray) {
+    self.0 |= !matches!(array.len, syn::Expr::Lit(_));
+    syn::visit::visit_type_array(self, array);
+  }
+}
+
+fn gen_reflected_enum(input: &DataEnum) -> proc_macro2::TokenStream {
+  if input.variants.is_empty() {
+    return quote_spanned! { input.variants.span() => };
+  }
+  let cases = input.variants.iter().enumerate().map(|(index, variant)| {
+    let name = &variant.ident;
+    let pattern = match variant.fields {
+      Fields::Unit => return quote_spanned! { variant.span() => Self::#name => {}, },
+      Fields::Named(_) => quote_spanned! { variant.span() => Self::#name { .. } },
+      Fields::Unnamed(_) => quote_spanned! { variant.span() => Self::#name(..) },
+    };
+    quote_spanned! { variant.span() =>
+        #pattern => {
+            // SAFETY: This match arm proves the active variant's declaration-order index.
+            unsafe {
+                allocative::__macro_refs::visit_enum_variant::<Self, #index>(self, &mut visitor);
+            }
+        },
+    }
+  });
+  quote_spanned! { input.variants.span() => match self { #(#cases)* } }
 }
 
 fn gen_visit_body(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
@@ -289,6 +395,7 @@ struct AllocativeAttrs {
   skip: bool,
   bound: Option<String>,
   visit: Option<Path>,
+  crate_path: Option<Path>,
 }
 
 /// Parse an `#[allocative(...)]` annotation.
@@ -296,6 +403,7 @@ fn extract_attrs(attrs: &[Attribute]) -> syn::Result<AllocativeAttrs> {
   syn::custom_keyword!(skip);
   syn::custom_keyword!(bound);
   syn::custom_keyword!(visit);
+  syn::custom_keyword!(crate_path);
 
   let mut opts = AllocativeAttrs::default();
 
@@ -320,6 +428,13 @@ fn extract_attrs(attrs: &[Attribute]) -> syn::Result<AllocativeAttrs> {
             return Err(input.error("`bound` was set twice"));
           }
           opts.bound = Some(bound.value());
+        } else if input.parse::<crate_path>().is_ok() {
+          input.parse::<Token![=]>()?;
+          let value = input.parse::<LitStr>()?;
+          if opts.crate_path.is_some() {
+            return Err(input.error("`crate_path` was set twice"));
+          }
+          opts.crate_path = Some(value.parse()?);
         } else if input.parse::<visit>().is_ok() {
           input.parse::<Token![=]>()?;
           let visit = input.parse::<Path>()?;

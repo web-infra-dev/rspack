@@ -8,7 +8,7 @@
  * above-listed licenses.
  */
 
-use crate::{allocative_trait::Allocative, key::Key, visitor::Visitor};
+use crate::{Visit, allocative_trait::Allocative, key::Key, visitor::Visitor};
 
 impl Allocative for () {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
@@ -16,14 +16,14 @@ impl Allocative for () {
   }
 }
 
-impl<A: Allocative> Allocative for (A,) {
+impl<A: Visit> Allocative for (A,) {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     visitor.visit_field(Key::new("0"), &self.0);
   }
 }
 
-impl<A: Allocative, B: Allocative> Allocative for (A, B) {
+impl<A: Visit, B: Visit> Allocative for (A, B) {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     visitor.visit_field(Key::new("0"), &self.0);
@@ -31,7 +31,7 @@ impl<A: Allocative, B: Allocative> Allocative for (A, B) {
   }
 }
 
-impl<A: Allocative, B: Allocative, C: Allocative> Allocative for (A, B, C) {
+impl<A: Visit, B: Visit, C: Visit> Allocative for (A, B, C) {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     visitor.visit_field(Key::new("0"), &self.0);
@@ -40,7 +40,7 @@ impl<A: Allocative, B: Allocative, C: Allocative> Allocative for (A, B, C) {
   }
 }
 
-impl<A: Allocative, B: Allocative, C: Allocative, D: Allocative> Allocative for (A, B, C, D) {
+impl<A: Visit, B: Visit, C: Visit, D: Visit> Allocative for (A, B, C, D) {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     visitor.visit_field(Key::new("0"), &self.0);
@@ -50,9 +50,7 @@ impl<A: Allocative, B: Allocative, C: Allocative, D: Allocative> Allocative for 
   }
 }
 
-impl<A: Allocative, B: Allocative, C: Allocative, D: Allocative, E: Allocative> Allocative
-  for (A, B, C, D, E)
-{
+impl<A: Visit, B: Visit, C: Visit, D: Visit, E: Visit> Allocative for (A, B, C, D, E) {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     visitor.visit_field(Key::new("0"), &self.0);

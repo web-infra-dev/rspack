@@ -12,23 +12,52 @@
 
 use tokio::sync::{Mutex, RwLock};
 
-use crate::{Allocative, Key, Visitor};
+use crate::{Allocative, Key, Visit, Visitor};
 
-impl<T: Allocative> Allocative for RwLock<T> {
+impl<T: Visit + ?Sized> Allocative for RwLock<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
-    let mut visitor = visitor.enter_self_sized::<Self>();
+    let mut visitor = visitor.enter_self(self);
     if let Ok(data) = self.try_read() {
       visitor.visit_field::<T>(Key::new("data"), &*data);
+    } else {
+      visitor.report_opaque::<Self>();
     }
     visitor.exit();
   }
 }
 
-impl<T: Allocative> Allocative for Mutex<T> {
+impl<T: Visit + ?Sized> Allocative for Mutex<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
-    let mut visitor = visitor.enter_self_sized::<Self>();
+    let mut visitor = visitor.enter_self(self);
     if let Ok(data) = self.try_lock() {
       visitor.visit_field::<T>(Key::new("data"), &*data);
+    } else {
+      visitor.report_opaque::<Self>();
+    }
+    visitor.exit();
+  }
+}
+
+impl<T> Allocative for tokio::sync::mpsc::UnboundedSender<T> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    visitor.visit_opaque(self);
+  }
+}
+impl<T> Allocative for tokio::sync::oneshot::Receiver<T> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    visitor.visit_opaque(self);
+  }
+}
+impl Allocative for tokio::sync::Notify {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    visitor.visit_opaque(self);
+  }
+}
+impl<T: Visit> Allocative for tokio::sync::OnceCell<T> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    if let Some(value) = self.get() {
+      visitor.visit_field(Key::new("data"), value);
     }
     visitor.exit();
   }

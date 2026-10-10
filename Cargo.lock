@@ -3930,11 +3930,11 @@ dependencies = [
  "ctor 0.1.26",
  "dashmap",
  "either",
- "hashbrown 0.14.5",
  "indexmap",
  "once_cell",
  "parking_lot",
  "rspack-allocative_derive",
+ "rustc-hash",
  "serde_json",
  "smallvec",
  "tokio",
@@ -3979,6 +3979,27 @@ dependencies = [
  "tracing",
  "xxhash-rust",
  "zerocopy",
+]
+
+[[package]]
+name = "rspack_allocative_driver"
+version = "0.102.8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "rustc-hash",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "rspack_allocative_testing"
+version = "0.102.8"
+dependencies = [
+ "cow-utils",
+ "indexmap",
+ "rspack-allocative",
+ "rspack_allocative_driver",
+ "smallvec",
 ]
 
 [[package]]

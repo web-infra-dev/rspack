@@ -13,11 +13,9 @@
 //! Crate implements lightweight memory profiler which allows
 //! object traversal and size introspection.
 //!
-//! An object implementing [`Allocative`] trait is introspectable, and this crate
-//! provides two utilities to work with such objects:
-//! * [`FlameGraphBuilder`] to build a flame graph of object tree
-//! * [`size_of_unique_allocated_data`] provides estimation
-//!   of how much allocated memory the value holds
+//! Ordinary structs are introspected through [`Visit`] without derives. Explicit
+//! [`Allocative`] adapters handle enums, containers and custom field policies. This crate
+//! provides [`FlameGraphBuilder`] to build a flame graph of the object tree.
 //!
 //! ## Allocative overhead
 //!
@@ -31,19 +29,17 @@
 //!
 //! Here are some differences between allocative and call-stack malloc profiler:
 //!
-//! * Allocative requires implementation of [`Allocative`] trait for each type
-//!   which needs to be measured, and some setup in the program to enable it
+//! * This Rspack fork reflects ordinary structs and uses explicit [`Allocative`]
+//!   adapters for ownership semantics that cannot be inferred from fields
 //! * Allocative flamegraph shows object by object tree, not by call stack
 //! * Allocative shows gaps in allocated memory,
 //!   e.g. spare capacity of collections or too large padding in structs or enums
-//! * Allocative allows profiling non-malloc allocations (for example, allocations within [bumpalo])
 //! * Allocative allows profiling of memory for subset of the process data
 //!   (for example, measure the size of RPC response before serialization)
-//!
-//! [bumpalo]: https://github.com/fitzgen/bumpalo
 
-#![cfg_attr(rust_nightly, feature(const_type_name))]
-#![cfg_attr(rust_nightly, feature(never_type))]
+#![feature(const_type_name, never_type)]
+#![feature(type_info, ptr_metadata, core_intrinsics, layout_for_ptr)]
+#![allow(internal_features)]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![allow(clippy::empty_enums)]
 
@@ -52,8 +48,7 @@ mod flamegraph;
 mod global_root;
 mod impls;
 mod key;
-mod rc_str;
-mod size_of;
+mod reflection;
 mod visitor;
 
 pub use allocative_derive::{Allocative, root};
@@ -63,13 +58,15 @@ pub use crate::{
   flamegraph::{FlameGraph, FlameGraphBuilder},
   global_root::register_root,
   key::Key,
-  size_of::{size_of_unique, size_of_unique_allocated_data},
+  reflection::Visit,
   visitor::Visitor,
 };
 
 #[doc(hidden)]
 pub mod __macro_refs {
   pub use ctor;
+
+  pub use crate::reflection::visit_enum_variant;
 }
 
 /// Create a `const` of type `Key` with the provided `ident` as the value and

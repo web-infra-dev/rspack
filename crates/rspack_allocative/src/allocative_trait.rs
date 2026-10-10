@@ -10,24 +10,30 @@
 
 use crate::Visitor;
 
-/// This trait allows traversal of object graph.
+/// Explicit ownership adapter, preferred over automatic [`crate::Visit`] reflection.
+/// Ordinary structs do not need to implement this trait. Keep adapters for
+/// containers, locks, enums and custom field policies.
 ///
 /// # Proc macro
 ///
-/// Typically implemented with proc macro. Like this:
+/// Derive an adapter when an active enum variant must be selected:
 ///
 /// ```
 /// use allocative::Allocative;
 ///
 /// #[derive(Allocative)]
-/// struct Foo {
-///   x: u32,
-///   y: String,
+/// enum Foo {
+///   Number(u32),
+///   Text(String),
 /// }
 /// ```
 ///
-/// Proc macro supports two attributes: `#[allocative(skip)]` and
-/// `#[allocative(bound = "...")]`.
+/// Ordinary enum derives select the active variant and reflect its fields, requiring
+/// only `Self: 'static`. They add no per-parameter `Allocative` or `Visit` bounds.
+/// The derive also supports `skip`, `bound`, and `visit` field policies.
+/// Types with custom policies or lifetime/const parameters retain typed traversal.
+/// For generic typed adapters use `#[allocative(bound = "T: allocative::Visit")]`
+/// (and the required lifetime bounds) to traverse unannotated payloads through `Visit`.
 ///
 /// ## `#[allocative(skip)]`
 ///
@@ -68,6 +74,7 @@ use crate::Visitor;
 /// #[derive(Allocative)]
 /// #[allocative(bound = "")]
 /// struct Baz<T> {
+///   #[allocative(skip)]
 ///   _marker: PhantomData<T>,
 /// }
 /// ```

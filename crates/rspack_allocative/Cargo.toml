@@ -20,11 +20,11 @@ camino            = { workspace = true, optional = true }
 ctor              = "0.1.26"
 dashmap           = { workspace = true, optional = true }
 either            = { workspace = true, optional = true }
-hashbrown         = { version = "0.14.5", features = ["raw"], optional = true }
 indexmap          = { workspace = true, optional = true, features = ["std"] }
 once_cell         = { workspace = true, optional = true, features = ["std"] }
 parking_lot       = { workspace = true, optional = true }
-serde_json        = { workspace = true, optional = true }
+rustc-hash        = { workspace = true, features = ["std"] }
+serde_json        = { workspace = true }
 smallvec          = { workspace = true, optional = true }
 tokio             = { workspace = true, optional = true, features = ["sync"] }
 triomphe          = { workspace = true, optional = true }

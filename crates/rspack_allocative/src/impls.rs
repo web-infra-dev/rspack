@@ -15,7 +15,6 @@ mod camino;
 pub(crate) mod common;
 mod dashmap;
 mod either;
-pub(crate) mod hashbrown;
 pub(crate) mod hashbrown_util;
 mod indexmap;
 mod lock_api;

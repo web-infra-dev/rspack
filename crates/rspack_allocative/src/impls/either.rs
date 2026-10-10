@@ -12,9 +12,9 @@
 
 use either::Either;
 
-use crate::{allocative_trait::Allocative, key::Key, visitor::Visitor};
+use crate::{Visit, allocative_trait::Allocative, key::Key, visitor::Visitor};
 
-impl<A: Allocative, B: Allocative> Allocative for Either<A, B> {
+impl<A: Visit, B: Visit> Allocative for Either<A, B> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     match self {

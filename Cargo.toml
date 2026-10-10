@@ -137,7 +137,7 @@ wasmparser          = { version = "0.236.1", default-features = false }
 winnow              = { version = "1.0.4", default-features = false, features = ["std", "simd", "ascii"] }
 xxhash-rust         = { version = "0.8.19", default-features = false }
 
-allocative = { package = "rspack-allocative", path = "crates/rspack_allocative", version = "0.3.5", default-features = false, features = ["camino", "dashmap", "hashbrown", "indexmap", "tokio", "once_cell", "ustr", "atomic_refcell"] }
+allocative = { package = "rspack-allocative", path = "crates/rspack_allocative", version = "0.3.5", default-features = false, features = ["camino", "dashmap", "indexmap", "tokio", "once_cell", "ustr", "atomic_refcell"] }
 
 # Pinned
 napi        = { version = "3.10.5", default-features = false }
@@ -174,6 +174,7 @@ wasmtime     = { version = "36.0.17", default-features = false }
 # all rspack workspace dependencies
 css-module-lexer                       = { version = "=0.102.8", path = "crates/css-module-lexer", default-features = false }
 rspack                                 = { version = "=0.102.8", path = "crates/rspack", default-features = false }
+rspack_allocative_driver               = { version = "=0.102.8", path = "crates/rspack_allocative_driver", default-features = false }
 rspack_allocator                       = { version = "=0.102.8", path = "crates/rspack_allocator", default-features = false }
 rspack_binding_api                     = { version = "=0.102.8", path = "crates/rspack_binding_api", default-features = false }
 rspack_binding_build                   = { version = "=0.102.8", path = "crates/rspack_binding_build", default-features = false }
@@ -287,6 +288,13 @@ codegen-units = 16
 inherits      = "dev"
 opt-level     = 3
 strip         = "debuginfo"
+
+# The host compiler driver links rustc_private libraries built with unwinding.
+[profile.allocative-driver]
+debug       = false
+incremental = false
+inherits    = "dev"
+panic       = "unwind"
 
 # This is for release build for users
 [profile.release]

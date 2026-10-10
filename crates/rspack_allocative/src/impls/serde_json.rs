@@ -8,8 +8,6 @@
  * above-listed licenses.
  */
 
-#![cfg(feature = "serde_json")]
-
 use std::mem;
 
 use crate::{Allocative, Key, Visitor};

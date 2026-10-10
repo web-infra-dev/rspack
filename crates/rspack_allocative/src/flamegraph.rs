@@ -9,25 +9,49 @@
  */
 
 use std::{
-  collections::{HashMap, HashSet, hash_map},
+  borrow::Cow,
+  collections::hash_map,
   fmt::Write as _,
   mem,
   ops::{Index, IndexMut},
 };
 
+use rustc_hash::{FxHashMap, FxHashSet};
+
 use crate::{
-  Allocative,
+  Visit,
   global_root::roots,
   key::Key,
   visitor::{NodeKind, Visitor, VisitorImpl},
 };
+
+// Folded stacks have no quoting syntax: a semicolon separates frames and a
+// newline separates samples. Escape percent signs too so distinct keys remain
+// distinct (for example, `;` and the literal `%3B`). Preserve readable type names.
+fn folded_frame_name(name: &str) -> Cow<'_, str> {
+  if !name
+    .bytes()
+    .any(|byte| byte == b';' || byte == b'%' || byte.is_ascii_control())
+  {
+    return Cow::Borrowed(name);
+  }
+  let mut escaped = String::with_capacity(name.len());
+  for ch in name.chars() {
+    if ch == ';' || ch == '%' || ch.is_ascii_control() {
+      write!(escaped, "%{:02X}", ch as u32).expect("writing to a String cannot fail");
+    } else {
+      escaped.push(ch);
+    }
+  }
+  Cow::Owned(escaped)
+}
 
 /// Node in flamegraph tree.
 ///
 /// Can be written to flamegraph format with [`write`](FlameGraph::write).
 #[derive(Debug, Default, Clone)]
 pub struct FlameGraph {
-  children: HashMap<Key, FlameGraph>,
+  children: FxHashMap<Key, FlameGraph>,
   /// Total size of all children, cached.
   children_size: usize,
   /// Node size excluding children.
@@ -65,7 +89,7 @@ impl FlameGraph {
     self.node_size += size;
   }
 
-  fn write_flame_graph_impl(&self, stack: &[&str], w: &mut String) {
+  fn write_flame_graph_impl<'a>(&'a self, stack: &mut Vec<Cow<'a, str>>, w: &mut String) {
     if self.node_size != 0 {
       if !stack.is_empty() {
         writeln!(w, "{} {}", stack.join(";"), self.node_size)
@@ -74,12 +98,11 @@ impl FlameGraph {
         // Don't care.
       }
     }
-    let mut stack = stack.to_vec();
     let mut children = self.children.iter().collect::<Vec<_>>();
     children.sort_by_key(|(key, _)| *key);
     for (key, child) in children {
-      stack.push(key);
-      child.write_flame_graph_impl(&stack, w);
+      stack.push(folded_frame_name(key));
+      child.write_flame_graph_impl(stack, w);
       stack.pop().expect("the traversal just pushed a child");
     }
   }
@@ -90,7 +113,7 @@ impl FlameGraph {
   /// [inferno]: https://github.com/jonhoo/inferno
   pub fn write(&self) -> String {
     let mut r = String::new();
-    self.write_flame_graph_impl(&[], &mut r);
+    self.write_flame_graph_impl(&mut Vec::new(), &mut r);
     r
   }
 }
@@ -124,7 +147,7 @@ struct TreeData {
   /// Whether this node is `Box` something.
   unique: bool,
   /// Child nodes.
-  children: HashMap<Key, TreeId>,
+  children: FxHashMap<Key, TreeId>,
 }
 
 impl TreeData {
@@ -232,7 +255,7 @@ impl IndexMut<TreeId> for Trees {
 
 #[derive(Clone, Debug)]
 struct TreeStack {
-  stack: Vec<TreeId>,
+  stack: Vec<(TreeId, Key)>,
   tree: TreeId,
 }
 
@@ -247,7 +270,7 @@ impl<'t> TreeStackRef<'t, '_> {
   }
 
   fn down(&mut self, key: Key) {
-    self.stack.stack.push(self.stack.tree);
+    self.stack.stack.push((self.stack.tree, key.clone()));
     let next_tree_id = TreeId(self.trees.trees.len());
     let child = match self.trees[self.stack.tree].children.entry(key) {
       hash_map::Entry::Occupied(e) => *e.get(),
@@ -263,7 +286,7 @@ impl<'t> TreeStackRef<'t, '_> {
 
   #[must_use]
   fn up(&mut self) -> bool {
-    if let Some(pop) = self.stack.stack.pop() {
+    if let Some((pop, _)) = self.stack.stack.pop() {
       self.stack.tree = pop;
       true
     } else {
@@ -307,8 +330,10 @@ unsafe impl Send for VisitedSharedPointer {}
 /// [inferno]: https://github.com/jonhoo/inferno
 #[derive(Debug)]
 pub struct FlameGraphBuilder {
+  shared_under_first_owner: bool,
+  opaque: std::collections::BTreeSet<(&'static str, Vec<Key>)>,
   /// Visited shared pointers.
-  visited_shared: HashSet<VisitedSharedPointer>,
+  visited_shared: FxHashSet<VisitedSharedPointer>,
   /// Tree data storage.
   trees: Trees,
   /// Current node we are processing in `Visitor`.
@@ -332,7 +357,7 @@ impl Default for FlameGraphBuilder {
     let root = trees.new_tree();
     FlameGraphBuilder {
       trees,
-      visited_shared: HashSet::new(),
+      visited_shared: FxHashSet::default(),
       current: TreeStack {
         stack: Vec::new(),
         tree: root,
@@ -340,11 +365,22 @@ impl Default for FlameGraphBuilder {
       shared: Vec::new(),
       root,
       entered_root_visitor: false,
+      shared_under_first_owner: false,
+      opaque: Default::default(),
     }
   }
 }
 
 impl FlameGraphBuilder {
+  /// Attribute each shared allocation to the first owning edge encountered.
+  /// Subsequent owners contribute only their pointer, including cycles.
+  pub fn with_shared_ownership() -> Self {
+    Self {
+      shared_under_first_owner: true,
+      ..Self::default()
+    }
+  }
+
   pub fn root_visitor(&mut self) -> Visitor<'_> {
     assert!(!self.entered_root_visitor);
     self.entered_root_visitor = true;
@@ -355,9 +391,9 @@ impl FlameGraphBuilder {
   }
 
   /// Collect tree sizes starting from given root.
-  pub fn visit_root(&mut self, root: &dyn Allocative) {
+  pub fn visit_root<T: Visit + ?Sized>(&mut self, root: &T) {
     let mut visitor = self.root_visitor();
-    root.visit(&mut visitor);
+    root.visit_memory(&mut visitor);
     visitor.exit();
   }
 
@@ -382,8 +418,17 @@ impl FlameGraphBuilder {
 
   /// Finish building the flamegraph.
   pub fn finish(self) -> FlameGraphOutput {
+    let opaque = self
+      .opaque
+      .iter()
+      .map(|(name, path)| {
+        let path = path.iter().map(|key| &**key).collect::<Vec<_>>().join(";");
+        format!("Unobserved nested allocations: {name} (path: {path})\n")
+      })
+      .collect::<String>();
     let tree = self.finish_impl();
-    let (flamegraph, warnings) = tree.to_flame_graph();
+    let (flamegraph, mut warnings) = tree.to_flame_graph();
+    warnings.push_str(&opaque);
     FlameGraphOutput {
       flamegraph,
       warnings,
@@ -439,6 +484,18 @@ impl FlameGraphBuilder {
 }
 
 impl VisitorImpl for FlameGraphBuilder {
+  fn opaque_impl(&mut self, name: &'static str) {
+    // Include the owning edges even when the legacy shared-allocation mode
+    // relocates the payload to a separate flamegraph root.
+    let path = self
+      .shared
+      .iter()
+      .chain(std::iter::once(&self.current))
+      .flat_map(|stack| stack.stack.iter().map(|(_, key)| key.clone()))
+      .collect();
+    self.opaque.insert((name, path));
+  }
+
   fn enter_inline_impl(&mut self, name: Key, size: usize, _parent: NodeKind) {
     self.current().down(name);
     self.current().current_data().size += size;
@@ -467,6 +524,10 @@ impl VisitorImpl for FlameGraphBuilder {
       return false;
     }
 
+    if self.shared_under_first_owner {
+      self.current().current_data().unique = true;
+      return true;
+    }
     self.shared.push(mem::replace(
       &mut self.current,
       TreeStack {
