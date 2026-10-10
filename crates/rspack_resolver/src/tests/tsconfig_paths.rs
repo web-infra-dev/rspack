@@ -2,7 +2,7 @@
 //!
 //! Fixtures copied from <https://github.com/parcel-bundler/parcel/tree/v2/packages/utils/node-resolver-core/test/fixture/tsconfig>.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::{
   JSONError, ResolveError, ResolveOptions, Resolver, TsConfig, TsconfigOptions, TsconfigReferences,
@@ -605,4 +605,44 @@ mod windows_test {
       );
     }
   }
+}
+
+/// `extends` a package whose own `extends` is only reachable from the symlink
+/// target, i.e. the pnpm layout: `node_modules/shared-config` points into a
+/// store directory where its `@tsconfig/base` dependency sits next to it, and
+/// is absent from the project's own `node_modules`.
+/// <https://github.com/web-infra-dev/rspack/issues/15717>
+#[tokio::test]
+async fn extends_through_symlinked_package() {
+  use super::symlink::{FileType, symlink};
+
+  let f = super::fixture_root().join("tsconfig/cases/extends-symlink");
+  let node_modules = f.join("node_modules");
+  let link = node_modules.join("shared-config");
+  if !link.exists() {
+    std::fs::create_dir_all(&node_modules).unwrap();
+    // Requires admin privileges on Windows; skip when unavailable.
+    if symlink(
+      Path::new("../store/node_modules/shared-config"),
+      &link,
+      FileType::Dir,
+    )
+    .is_err()
+    {
+      return;
+    }
+  }
+
+  let resolver = Resolver::new(ResolveOptions {
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+  let resolved_path = resolver.resolve(&f, "foo").await.map(|r| r.full_path());
+  assert_eq!(
+    resolved_path,
+    Ok(f.join("store/node_modules/@tsconfig/base/foo.js"))
+  );
 }
