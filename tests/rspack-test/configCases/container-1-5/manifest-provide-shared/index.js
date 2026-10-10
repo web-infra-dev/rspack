@@ -14,6 +14,11 @@ for (const suffix of ['', '-stats']) {
     expect(expose.assets.js.async).not.toContain(exposeFile);
     expect(expose.assets.css.sync).toEqual([`${CASE_INDEX}-${chunkName}.css`]);
 
+    if (PROVIDED_REQUEST) {
+      const shared = data.shared.find(item => item.name === PROVIDED_REQUEST);
+      expect(shared.singleton).toBe(CASE_INDEX >= 3 || PROVIDED_REQUEST === './static.js');
+    }
+
     if (PROVIDED_REQUEST === './static.js') {
       const shared = data.shared.find(item => item.name === PROVIDED_REQUEST);
       // The same file can contain both a local import and a provided module.

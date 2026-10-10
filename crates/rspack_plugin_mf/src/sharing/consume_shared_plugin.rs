@@ -403,7 +403,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   for (prefix, options) in &consumes.prefixed {
     if request.starts_with(prefix) {
       let remainder = &request[prefix.len()..];
-      let module = self
+      let mut module = self
         .create_consume_shared_module(
           &data.context,
           request,
@@ -423,6 +423,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
           |d| data.diagnostics.push(d),
         )
         .await;
+      module.set_configured_share_key(options.share_key.clone());
       return Ok(Some(module.boxed()));
     }
   }

@@ -35,7 +35,12 @@ use utils::{
   parse_consume_shared_identifier, parse_provide_shared_identifier, record_shared_usage, strip_ext,
 };
 
-use crate::container::{container_entry_module::ContainerEntryModule, remote_module::RemoteModule};
+use crate::{
+  container::{container_entry_module::ContainerEntryModule, remote_module::RemoteModule},
+  sharing::{
+    consume_shared_module::ConsumeSharedModule, provide_shared_module::ProvideSharedModule,
+  },
+};
 
 #[plugin]
 #[derive(Debug)]
@@ -286,6 +291,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut expose_fallback_chunk_keys: HashMap<String, rspack_core::ChunkUkey> =
       HashMap::default();
     let mut shared_map: HashMap<String, StatsShared> = HashMap::default();
+    let mut consumed_singletons: HashMap<String, bool> = HashMap::default();
     let mut shared_usage_links: Vec<(String, String)> = Vec::new();
     let mut shared_module_targets: HashMap<String, IdentifierSet> = HashMap::default();
     let mut module_ids_by_name: HashMap<String, ModuleIdentifier> = HashMap::default();
@@ -403,17 +409,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         remote_module_ids.push(module_identifier);
       }
 
-      if matches!(module_type, ModuleType::ProvideShared) {
+      if let Some(provide_shared) = module.as_any().downcast_ref::<ProvideSharedModule>() {
         if let Some((pkg, ver)) = parse_provide_shared_identifier(&identifier) {
           let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
           if entry.version.is_empty() {
             entry.version = ver;
           }
-          // overlay user-configured shared options (singleton/requiredVersion/version)
+          entry.singleton = Some(provide_shared.singleton().unwrap_or(true));
+          // overlay user-configured shared version options
           if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
-            if let Some(singleton) = opt.singleton {
-              entry.singleton = Some(singleton);
-            }
             if entry.requiredVersion.is_none() {
               entry.requiredVersion = opt.required_version.clone();
             }
@@ -443,7 +447,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       }
 
-      if matches!(module_type, ModuleType::ConsumeShared)
+      if let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>()
         && let Some((pkg, required)) = parse_consume_shared_identifier(&identifier)
       {
         let mut target_ids: IdentifierSet = IdentifierSet::default();
@@ -467,9 +471,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         // overlay user-configured shared options
         if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
-          if let Some(singleton) = opt.singleton {
-            entry.singleton = Some(singleton);
-          }
           // prefer parsed requiredVersion but fill from config if still None
           if entry.requiredVersion.is_none() {
             entry.requiredVersion = opt.required_version.clone();
@@ -485,6 +486,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           module_graph,
           compilation,
         );
+        // Read the original configuration so an omitted singleton retains the manifest default.
+        let singleton = self
+          .options
+          .shared
+          .iter()
+          .find(|s| s.name == consume_shared.configured_share_key())
+          .and_then(|s| s.singleton)
+          .unwrap_or(true);
+        consumed_singletons.insert(pkg, singleton);
       }
     }
 
@@ -697,6 +707,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let shared = shared_map
       .into_values()
       .map(|mut v| {
+        // Consumer options take precedence regardless of module traversal order.
+        if let Some(singleton) = consumed_singletons.get(&v.name) {
+          v.singleton = Some(*singleton);
+        }
         v.usedIn.sort();
         v.usedIn.dedup();
         v
