@@ -34,6 +34,13 @@
 	 */
 	var cssRemovedChunkIds = (miniCss && miniCss.r) || [];
 	var cssChunkIds = (miniCss && miniCss.c) || [];
+	/**
+		`miniCss.f` maps each changed chunk to the filename this update emitted for it.
+		The chunk filename runtime module is only re-applied once this update is applied,
+		so inside this download handler `miniCssF` still returns the previous (stale)
+		name for a content-hashed filename; the fresh one comes from the manifest.
+	 */
+	var cssFreshFilenames = (miniCss && miniCss.f) || {};
 	var seen = {};
 	cssRemovedChunkIds.forEach(function (chunkId) {
 		var href = <%- _get_chunk_css_filename %>(chunkId);
@@ -42,12 +49,15 @@
 		if (oldTag) extractCssOldTags.push(oldTag);
 	});
 	cssChunkIds.forEach(function (chunkId) {
-		var href = <%- _get_chunk_css_filename %>(chunkId);
+		// `miniCssF` still names the currently installed stylesheet (it was refreshed
+		// when the previous update was applied), so it is what the old tag is found by.
+		var installedHref = <%- _get_chunk_css_filename %>(chunkId);
+		var href = cssFreshFilenames[chunkId] || installedHref;
 		if (!href) return;
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (seen[fullhref]) return;
 		seen[fullhref] = true;
-		var oldTag = extractCssFindStylesheet(href, fullhref);
+		var oldTag = extractCssFindStylesheet(installedHref, <%- PUBLIC_PATH %> + installedHref);
 		// The manifest is computed from the compilation and also lists chunks this
 		// page never loaded. A missing tag is legitimate only for a chunk that is
 		// actually on the page: an initial chunk gaining its first stylesheet, or
