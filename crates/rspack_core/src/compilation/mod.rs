@@ -1120,18 +1120,24 @@ impl Compilation {
     exports_info_artifact: &mut ExportsInfoArtifact,
     f: impl Fn(Vec<&crate::ModuleRef>) -> T,
   ) -> Result<T> {
-    let artifact = self.build_module_graph_artifact.steal();
+    let mut artifact = self.build_module_graph_artifact.steal();
+    // finishModules can rebuild after make has frozen the counters. Preserve
+    // their original phase so a rebuild during make leaves them mutable.
+    let was_frozen = artifact.thaw_file_counters();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    let (artifact, updated_exports_info_artifact) = update_module_graph(
+    let (mut artifact, updated_exports_info_artifact) = update_module_graph(
       self,
       artifact,
       std::mem::take(exports_info_artifact),
       vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
+    if was_frozen {
+      artifact.freeze_file_counters();
+    }
     *exports_info_artifact = updated_exports_info_artifact;
     self.build_module_graph_artifact = artifact.into();
 

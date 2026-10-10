@@ -268,6 +268,7 @@ impl BuildModuleGraphArtifact {
   }
 
   pub fn reset_temporary_data(&mut self) {
+    self.thaw_file_counters();
     self.affected_modules.reset();
     self.affected_dependencies.reset();
     self.issuer_update_modules.clear();
@@ -277,6 +278,27 @@ impl BuildModuleGraphArtifact {
     self.context_dependencies.reset_incremental_info();
     self.missing_dependencies.reset_incremental_info();
     self.build_dependencies.reset_incremental_info();
+  }
+
+  /// Collapses the file counters into their dense post-make form once make
+  /// stopped adding files, so seal and emit do not carry hash-table growth
+  /// slack; a later rebuild thaws the sets it mutates.
+  pub fn freeze_file_counters(&mut self) {
+    self.file_dependencies.freeze();
+    self.context_dependencies.freeze();
+    self.missing_dependencies.freeze();
+    self.build_dependencies.freeze();
+  }
+
+  /// Allows graph updates without resetting incremental data. Returns whether
+  /// the counters were frozen so a temporary update can restore their phase.
+  pub(crate) fn thaw_file_counters(&mut self) -> bool {
+    // All four counters enter and leave the frozen phase together.
+    let was_frozen = self.file_dependencies.thaw();
+    self.context_dependencies.thaw();
+    self.missing_dependencies.thaw();
+    self.build_dependencies.thaw();
+    was_frozen
   }
 
   pub fn built_modules(&self) -> impl Iterator<Item = &ModuleIdentifier> {
@@ -292,6 +314,8 @@ impl ArtifactExt for BuildModuleGraphArtifact {
   fn recover(incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
     if incremental.mutations_readable(Self::PASS) {
       std::mem::swap(new, old);
+      // Make hooks may replace entry dependencies before temporary data resets.
+      new.thaw_file_counters();
       new.get_module_graph_mut().reset();
       new.side_effects_state_artifact = Default::default();
     }
