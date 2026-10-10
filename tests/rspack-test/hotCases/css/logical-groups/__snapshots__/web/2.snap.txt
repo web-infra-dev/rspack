@@ -1,0 +1,234 @@
+# Case logical-groups: Step 2
+
+## Changed Files
+- trigger.js
+
+## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.HASH_0.js
+- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.LAST_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.unloaded.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.unloaded.chunk.HASH_0.js
+- Bundle: CHUNK_HASH.hot-chunk.unloaded.chunk.LAST_HASH.js
+- Bundle: bundle.js
+- Bundle: loaded.chunk.CURRENT_HASH.js
+- Bundle: unloaded.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 492
+- Update: CHUNK_HASH.hot-chunk.shared-loaded-1.HASH_0.hot-update.js, size: 61
+- Update: CHUNK_HASH.hot-chunk.shared-loaded-2.LAST_HASH.hot-update.js, size: 61
+- Update: CHUNK_HASH.hot-chunk.shared-unloaded-1.HASH_0.hot-update.js, size: 63
+- Update: CHUNK_HASH.hot-chunk.shared-unloaded-2.LAST_HASH.hot-update.js, size: 63
+- Update: main.LAST_HASH.hot-update.js, size: 1468
+- Update: shared-loaded-2.LAST_HASH.hot-update.js, size: 61
+- Update: shared-unloaded-2.LAST_HASH.hot-update.js, size: 63
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":["shared-loaded-1","shared-unloaded-1"],"m":[],"groups":{"63e8eb4b1ea5f8ad":["shared-loaded-2"],"ebe2e51c6c8bc7ce":["shared-unloaded-2"]},"unchanged":["./shared-unloaded.css","./shared-loaded.css"],"css":{"c":["shared-loaded-2","shared-unloaded-2"],"r":["shared-loaded-1","shared-unloaded-1"],"f":{"shared-loaded-2":"shared-loaded-2.css","shared-unloaded-2":"shared-unloaded-2.css"},"o":{"shared-loaded-1":"shared-loaded-1.css","shared-unloaded-1":"shared-unloaded-1.css"}}}
+```
+
+
+## Update
+
+
+### CHUNK_HASH.hot-chunk.shared-loaded-1.HASH_0.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared-loaded-1", {});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.shared-loaded-2.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared-loaded-2", {});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.shared-unloaded-1.HASH_0.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared-unloaded-1", {});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.shared-unloaded-2.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared-unloaded-2", {});
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./trigger.js
+
+#### Changed Runtime Modules
+- webpack/runtime/ensure_chunk
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./trigger.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+module.hot.accept();
+const value = 2;
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/ensure_chunk
+(() => {
+__webpack_require__.f = __webpack_require__.f || {};
+// Preserve activated load sites across updates of their physical loading plans.
+var groupState = __webpack_require__.e && __webpack_require__.e.s || Object.create(null);
+var groupHandlers = __webpack_require__.e && __webpack_require__.e.h || [];
+__webpack_require__.e = (id, fetchPriority, isGroup) => {
+	isGroup = isGroup === true;
+	var promises = [];
+	var chunks = isGroup ? __webpack_require__.e.g[id] || [] : [id];
+	if (isGroup) {
+		__webpack_require__.e.s[id] = true;
+		__webpack_require__.e.h.forEach((handler) => { handler(id, promises); });
+	}
+	chunks.forEach((chunkId) => {
+		Object.keys(__webpack_require__.f).forEach((key) => {
+			__webpack_require__.f[key](chunkId, promises, fetchPriority);
+		});
+	});
+	return Promise.all(promises);
+};
+__webpack_require__.e.g = {"63e8eb4b1ea5f8ad":["shared-loaded-2","loaded"],"ebe2e51c6c8bc7ce":["shared-unloaded-2","unloaded"]};
+__webpack_require__.e.s = groupState;
+__webpack_require__.e.h = groupHandlers;
+
+})();
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+### shared-loaded-2.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared-loaded-2", {});
+```
+
+
+
+### shared-unloaded-2.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared-unloaded-2", {});
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./trigger.js
+
+
+Outdated Dependencies:
+```json
+{}
+```
+
+#### Updated
+
+Updated Modules:
+- ./trigger.js
+
+Updated Runtime:
+- `__webpack_require__.e`
+- `__webpack_require__.f`
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+
+
+Disposed Callback:

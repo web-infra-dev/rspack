@@ -1060,6 +1060,24 @@ impl ModuleCodeTemplate {
         block,
         &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       );
+    if compilation.hot_module_replacement {
+      let mg = compilation.get_module_graph();
+      let block = mg.block_by_id_expect(block);
+      let fetch_priority = chunk_group
+        .and_then(|group| group.kind.get_normal_options())
+        .and_then(|options| options.fetch_priority);
+      if fetch_priority.is_some() {
+        self
+          .runtime_requirements
+          .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
+      }
+      return format!(
+        "{}({}, {}, true)",
+        self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+        json!(block.runtime_id(compilation)),
+        fetch_priority.map_or_else(|| "0".to_string(), |priority| format!("\"{priority}\"")),
+      );
+    }
     let Some(chunk_group) = chunk_group else {
       let comment = self.comment(CommentOptions {
         request: None,

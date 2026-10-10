@@ -4,6 +4,8 @@
 
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.async-module_js.chunk.mjs
+- Bundle: CHUNK_HASH.hot-chunk.lazy-module_js.chunk.mjs
 - Bundle: async-module_js.chunk.mjs
 - Bundle: lazy-module_js.chunk.mjs
 - Bundle: main.mjs

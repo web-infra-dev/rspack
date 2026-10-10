@@ -4,6 +4,7 @@
 
 
 ## Asset Files
+- Bundle: async/CHUNK_HASH.hot-chunk.initial_js.js
 - Bundle: async/initial_js.js
 - Bundle: main.CURRENT_HASH.js
 

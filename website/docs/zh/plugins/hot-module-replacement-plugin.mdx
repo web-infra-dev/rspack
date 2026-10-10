@@ -27,6 +27,10 @@ export default {
 
 详见 [模块热替换 API](/api/runtime-api/hmr)。
 
+启用 HMR 后，动态导入会在运行时查询当前需要加载的 chunk。仅改变未修改模块所属的 chunk，不会使已有模块实例失效，也不会向导入方传播更新。已加载组新增的 JavaScript 和 CSS 依赖会在应用更新前准备好，尚未请求的组仍保持懒加载。模块代码发生变化时，仍然需要 HMR 接受边界。
+
+异步 JavaScript chunk 请求使用带版本的开发快照，防止正在应用较早更新的客户端意外加载到后续编译的 chunk。这些额外的 `.hot-chunk.` 资源会保留至编译器会话结束，即使启用了 `output.clean`。配置指定文件名的资源也会正常输出。
+
 ## React Fast Refresh
 
 为了在 React 项目中启用 Fast Refresh 能力，你还需要使用 [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) 插件。

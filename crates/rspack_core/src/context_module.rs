@@ -819,25 +819,31 @@ impl ContextModule {
 
     let mut items = block_and_first_dependency_list
       .filter_map(|(b, dependency)| {
-        let chunks: Vec<_> = compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_block_chunk_group(
-            &b.identifier(),
-            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-          )
-          .expect("should have block chunk group")
-          .chunks
-          .iter()
-          .map(|c| {
-            compilation
-              .build_chunk_graph_artifact
-              .chunk_by_ukey
-              .expect_get(c)
-              .id()
-              .expect("should have chunk id in code generation")
-          })
-          .collect();
+        let chunks: Vec<_> = if compilation.hot_module_replacement {
+          vec![serde_json::json!(b.runtime_id(compilation))]
+        } else {
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .get_block_chunk_group(
+              &b.identifier(),
+              &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+            )
+            .expect("should have block chunk group")
+            .chunks
+            .iter()
+            .map(|c| {
+              serde_json::json!(
+                compilation
+                  .build_chunk_graph_artifact
+                  .chunk_by_ukey
+                  .expect_get(c)
+                  .id()
+                  .expect("should have chunk id in code generation")
+              )
+            })
+            .collect()
+        };
         if !chunks.is_empty() {
           has_no_chunk = false;
         }
@@ -908,7 +914,13 @@ impl ContextModule {
         .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
     }
 
-    let request_prefix = if has_no_chunk {
+    let request_prefix = if compilation.hot_module_replacement {
+      format!(
+        "{}(ids[{chunks_position}][0], {}, true)",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+        fetch_priority.map_or_else(|| "0".to_string(), |priority| format!("\"{priority}\""))
+      )
+    } else if has_no_chunk {
       "Promise.resolve()".to_string()
     } else if has_multiple_or_no_chunks {
       let ensure_chunk = runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK);

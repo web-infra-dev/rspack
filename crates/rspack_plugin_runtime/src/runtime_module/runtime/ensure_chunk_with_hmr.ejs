@@ -1,0 +1,22 @@
+<%- define(ENSURE_CHUNK_HANDLERS) %> = <%- REQUIRE_SCOPE %>.f || {};
+// Preserve activated load sites across updates of their physical loading plans.
+var groupState = <%- REQUIRE_SCOPE %>.e && <%- REQUIRE_SCOPE %>.e.s || Object.create(null);
+var groupHandlers = <%- REQUIRE_SCOPE %>.e && <%- REQUIRE_SCOPE %>.e.h || [];
+<%- define(ENSURE_CHUNK) %> = <%- basicFunction("id, fetchPriority, isGroup") %> {
+	isGroup = isGroup === true;
+	var promises = [];
+	var chunks = isGroup ? <%- ENSURE_CHUNK %>.g[id] || [] : [id];
+	if (isGroup) {
+		<%- ENSURE_CHUNK %>.s[id] = true;
+		<%- ENSURE_CHUNK %>.h.forEach(<%- basicFunction("handler") %> { handler(id, promises); });
+	}
+	chunks.forEach(<%- basicFunction("chunkId") %> {
+		Object.keys(<%- ENSURE_CHUNK_HANDLERS %>).forEach(<%- basicFunction("key") %> {
+			<%- ENSURE_CHUNK_HANDLERS %>[key](chunkId, promises, fetchPriority);
+		});
+	});
+	return Promise.all(promises);
+};
+<%- ENSURE_CHUNK %>.g = <%- _groups %>;
+<%- ENSURE_CHUNK %>.s = groupState;
+<%- ENSURE_CHUNK %>.h = groupHandlers;

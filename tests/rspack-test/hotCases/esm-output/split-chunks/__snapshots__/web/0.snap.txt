@@ -4,6 +4,8 @@
 
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.common.chunk.mjs
+- Bundle: CHUNK_HASH.hot-chunk.vendor.chunk.mjs
 - Bundle: common.chunk.mjs
 - Bundle: main.mjs
 - Bundle: vendor.chunk.mjs

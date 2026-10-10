@@ -19,6 +19,26 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::runtime_module::is_enabled_for_chunk;
 
+/// Normal chunk requests must keep using the version matching the installed HMR runtime.
+pub fn get_hmr_chunk_snapshot_hash(chunk: &Chunk, compilation: &Compilation) -> Option<String> {
+  let groups = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+  if !compilation.hot_module_replacement
+    || chunk.has_runtime(groups)
+    || !chunk
+      .groups()
+      .iter()
+      .any(|group| !groups.expect_get(group).is_initial())
+  {
+    return None;
+  }
+  // Keep version URLs independent of user-selected digest encoding/truncation.
+  let mut hasher = RspackHasher::new(&rspack_hash::HashFunction::Xxhash64);
+  chunk
+    .hash(&compilation.chunk_hashes_artifact)?
+    .hash(&mut hasher);
+  Some(format!("{:016x}", hasher.finish()))
+}
+
 pub fn should_export_webpack_require_for_module_chunk_loading(
   chunk_ukey: &ChunkUkey,
   compilation: &Compilation,

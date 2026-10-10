@@ -1,0 +1,16 @@
+# Case versioned-loading: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.before.js
+- Bundle: CHUNK_HASH.hot-chunk.loaded.js
+- Bundle: before.js
+- Bundle: bundle.js
+- Bundle: loaded.js
+
+## Manifest
+
+
+## Update

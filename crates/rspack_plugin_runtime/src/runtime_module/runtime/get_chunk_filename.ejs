@@ -1,7 +1,15 @@
 // This function allow to reference chunks
 <%- _global %> = <%- basicFunction("chunkId") %> {
-  // return url for filenames not based on template
+<% if (_versions) { %>  var filename = (function() {
+<% } %>  // return url for filenames not based on template
   <%- _static_urls %>
   // return url for filenames based on template
   return <%- _dynamic_url %>
-}
+<% if (_versions) { %>  })();
+  var version = (<%- _versions %>)[chunkId];
+  if (!version) return filename;
+  var query = filename.search(/[?#]/);
+  var path = query < 0 ? filename : filename.slice(0, query);
+  var directory = path.lastIndexOf("/") + 1;
+  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
+<% } %>}

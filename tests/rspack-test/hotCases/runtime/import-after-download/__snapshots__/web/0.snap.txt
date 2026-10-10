@@ -4,6 +4,8 @@
 
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.chunk_js.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.unaffected-chunk_js.CURRENT_HASH.js
 - Bundle: bundle.js
 - Bundle: chunk_js.CURRENT_HASH.js
 - Bundle: unaffected-chunk_js.CURRENT_HASH.js

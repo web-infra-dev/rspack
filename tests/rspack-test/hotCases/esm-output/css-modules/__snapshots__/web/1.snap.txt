@@ -5,10 +5,13 @@
 - style2.module.css
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.style2_module_css.chunk.mjs
+- Bundle: CHUNK_HASH.hot-chunk.style2_module_css.chunk.mjs
 - Bundle: main.mjs
 - Bundle: style2_module_css.chunk.mjs
 - Manifest: main.LAST_HASH.hot-update.json.mjs, size: 253
-- Update: main.LAST_HASH.hot-update.mjs, size: 815
+- Update: CHUNK_HASH.hot-chunk.style2_module_css.LAST_HASH.hot-update.mjs, size: 659
+- Update: main.LAST_HASH.hot-update.mjs, size: 1555
 - Update: style2_module_css.LAST_HASH.hot-update.mjs, size: 659
 
 ## Manifest
@@ -21,6 +24,42 @@
 
 
 ## Update
+
+
+### CHUNK_HASH.hot-chunk.style2_module_css.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./style2.module.css
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_id = "style2_module_css";
+export const __rspack_esm_ids = ["style2_module_css"];
+export const __webpack_modules__ = {
+"./style2.module.css"(module, __unused_rspack_exports, __webpack_require__) {
+var exports = {
+  "bar": "style2_module_css-bar",
+};
+// only invalidate when locals change
+var stringified_exports = JSON.stringify(exports);
+if (module.hot.data && module.hot.data.exports && module.hot.data.exports != stringified_exports) {
+  module.hot.invalidate();
+} else {
+  module.hot.accept();
+}
+module.hot.dispose(function(data) { data.exports = stringified_exports; });
+__webpack_require__.r(module.exports = exports);
+
+
+},
+
+};
+
+```
+
 
 
 ### main.LAST_HASH.hot-update.mjs
@@ -55,6 +94,25 @@ __webpack_require__.r(module.exports = exports);
 
 };
 export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  var filename = (function() {
+  // return url for filenames not based on template
+  if (chunkId === "main") return "main.mjs";
+  // return url for filenames based on template
+  return "" + chunkId + ".chunk.mjs"
+  })();
+  var version = ({"style2_module_css":"CHUNK_HASH"})[chunkId];
+  if (!version) return filename;
+  var query = filename.search(/[?#]/);
+  var path = query < 0 ? filename : filename.slice(0, query);
+  var directory = path.lastIndexOf("/") + 1;
+  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
+}
+
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

@@ -4,6 +4,8 @@
 - file.js
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.main_async_js.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.main_async_js.chunk.LAST_HASH.js
 - Bundle: a.js
 - Bundle: b.js
 - Bundle: main.js

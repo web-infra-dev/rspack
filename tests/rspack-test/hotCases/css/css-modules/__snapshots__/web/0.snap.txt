@@ -4,6 +4,7 @@
 
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.style2_module_css.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 - Bundle: style2_module_css.chunk.CURRENT_HASH.js
 

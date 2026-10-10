@@ -7,6 +7,14 @@
 - moduleBs.js
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.shared.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.shared.chunk.HASH_0.js
+- Bundle: CHUNK_HASH.hot-chunk.shared.chunk.HASH_1.js
+- Bundle: CHUNK_HASH.hot-chunk.shared.chunk.HASH_2.js
+- Bundle: CHUNK_HASH.hot-chunk.shared.chunk.HASH_3.js
+- Bundle: CHUNK_HASH.hot-chunk.shared.chunk.HASH_4.js
+- Bundle: CHUNK_HASH.hot-chunk.shared.chunk.HASH_5.js
+- Bundle: CHUNK_HASH.hot-chunk.shared.chunk.LAST_HASH.js
 - Bundle: main.CURRENT_HASH.js
 - Bundle: shared.chunk.CURRENT_HASH.js
 - Bundle: workerA_js.chunk.CURRENT_HASH.js
@@ -14,10 +22,17 @@
 - Manifest: [runtime of workerA_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: CHUNK_HASH.hot-chunk.shared.HASH_0.hot-update.js, size: 624
+- Update: CHUNK_HASH.hot-chunk.shared.HASH_1.hot-update.js, size: 624
+- Update: CHUNK_HASH.hot-chunk.shared.HASH_2.hot-update.js, size: 624
+- Update: CHUNK_HASH.hot-chunk.shared.HASH_3.hot-update.js, size: 624
+- Update: CHUNK_HASH.hot-chunk.shared.HASH_4.hot-update.js, size: 624
+- Update: CHUNK_HASH.hot-chunk.shared.HASH_5.hot-update.js, size: 624
+- Update: CHUNK_HASH.hot-chunk.shared.LAST_HASH.hot-update.js, size: 624
 - Update: main.LAST_HASH.hot-update.js, size: 181
 - Update: shared.LAST_HASH.hot-update.js, size: 624
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 473
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 473
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 1191
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 1191
 
 ## Manifest
 
@@ -45,6 +60,259 @@
 
 
 ## Update
+
+
+### CHUNK_HASH.hot-chunk.shared.HASH_0.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared", {
+"./moduleAs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (1);
+
+
+},
+"./moduleBs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (1);
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.shared.HASH_1.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared", {
+"./moduleAs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (2);
+
+
+},
+"./moduleBs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (2);
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.shared.HASH_2.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared", {
+"./moduleAs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (3);
+
+
+},
+"./moduleBs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (3);
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.shared.HASH_3.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared", {
+"./moduleAs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (4);
+
+
+},
+"./moduleBs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (4);
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.shared.HASH_4.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared", {
+"./moduleAs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (5);
+
+
+},
+"./moduleBs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (5);
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.shared.HASH_5.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared", {
+"./moduleAs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (6);
+
+
+},
+"./moduleBs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (6);
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.shared.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./moduleAs.js
+- ./moduleBs.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared", {
+"./moduleAs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (7);
+
+
+},
+"./moduleBs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (7);
+
+
+},
+
+});
+```
+
 
 
 ### main.LAST_HASH.hot-update.js
@@ -130,6 +398,25 @@ __webpack_require__.d(__webpack_exports__, {
 },
 
 },function(__webpack_require__) {
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  var filename = (function() {
+  // return url for filenames not based on template
+  
+  // return url for filenames based on template
+  return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js"
+  })();
+  var version = ({"shared":"CHUNK_HASH"})[chunkId];
+  if (!version) return filename;
+  var query = filename.search(/[?#]/);
+  var path = query < 0 ? filename : filename.slice(0, query);
+  var directory = path.lastIndexOf("/") + 1;
+  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
+}
+
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -164,6 +451,25 @@ __webpack_require__.d(__webpack_exports__, {
 },
 
 },function(__webpack_require__) {
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  var filename = (function() {
+  // return url for filenames not based on template
+  
+  // return url for filenames based on template
+  return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js"
+  })();
+  var version = ({"shared":"CHUNK_HASH"})[chunkId];
+  if (!version) return filename;
+  var query = filename.search(/[?#]/);
+  var path = query < 0 ? filename : filename.slice(0, query);
+  var directory = path.lastIndexOf("/") + 1;
+  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
+}
+
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

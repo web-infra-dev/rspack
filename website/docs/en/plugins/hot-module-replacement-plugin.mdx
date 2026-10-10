@@ -27,6 +27,10 @@ When you register the `HotModuleReplacementPlugin` plugin, Rspack will inject HM
 
 See [HMR API](/api/runtime-api/hmr) for more details.
 
+During HMR, dynamic imports look up their current chunks in the runtime. Changing which chunks contain an unchanged module does not invalidate its existing instance or propagate an update to its importers. New JavaScript and CSS dependencies of an already loaded group are prepared before the update is applied; groups that have not been requested remain lazy. Changes to module code still require an HMR acceptance boundary.
+
+Asynchronous JavaScript chunk requests use versioned development snapshots so a client applying an earlier update cannot accidentally load a later compilation's chunk. These additional `.hot-chunk.` assets are retained for the compiler session, including when `output.clean` is enabled. Assets using the configured filenames are still emitted.
+
 ## React Fast Refresh
 
 To enable Fast Refresh in React projects, you also need to use the [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) plugin.

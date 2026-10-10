@@ -4,6 +4,7 @@ it('honors explicit invalidation during an initial chunk migration', async () =>
   let accepted = 0;
   module.hot.accept('./shared', () => accepted++);
   for (const phase of ['prepare', 'check', 'ready']) {
+    const hash = __webpack_hash__;
     const before = instance;
     const previousAccepted = accepted;
     if (phase === 'ready') {
@@ -29,6 +30,10 @@ it('honors explicit invalidation during an initial chunk migration', async () =>
       accepted: previousAccepted + 1,
       sameInstance: false,
     });
+    const manifest = readUpdateManifest(hash);
+    expect(manifest.load.main).toContain('shared');
+    expect(manifest.c).not.toContain('shared');
+    expect(manifest).not.toHaveProperty('initial');
     if (phase !== 'ready') {
       // Merge back so the next phase can exercise a new initial dependency.
       await NEXT_HMR();

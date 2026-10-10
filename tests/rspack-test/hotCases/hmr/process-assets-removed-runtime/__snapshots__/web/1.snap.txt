@@ -4,6 +4,7 @@
 - a.js
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.shared.js
 - Bundle: a.js
 - Bundle: b.js
 - Bundle: shared.js

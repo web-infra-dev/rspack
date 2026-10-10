@@ -23,7 +23,7 @@
 <%- var("cssChunkIsLoaded") %> = <%- basicFunction("chunkId") %> {
 	return typeof <%- _js_state_expression %> !== "undefined" && <%- _js_state_expression %> && <%- _js_state_expression %>[chunkId] === 0;
 };
-<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, initial") %> {
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, load, unchanged, groups") %> {
 	if (typeof document === 'undefined') return;
 	applyHandlers.push(cssApplyHandler);
 	// `css` is the hot-update manifest's css namespace (aligned with webpack):
@@ -36,8 +36,8 @@
 	var files = (css && css.f) || {};
 	var oldFiles = (css && css.o) || {};
 	var requiredCssChunks = Object.create(null);
-	if (initial) Object.keys(initial).forEach(<%- basicFunction("entryId") %> {
-		if (cssChunkIsLoaded(entryId)) initial[entryId].forEach(<%- basicFunction("id") %> {
+	if (load) Object.keys(load).forEach(<%- basicFunction("entryId") %> {
+		if (cssChunkIsLoaded(entryId)) load[entryId].forEach(<%- basicFunction("id") %> {
 			requiredCssChunks[id] = true;
 			if (files[id] && cssChunkIds.indexOf(id) < 0) cssChunkIds.push(id);
 		});
@@ -49,14 +49,13 @@
 		var oldTag = cssLoadStylesheet(chunkId, <%- PUBLIC_PATH %> + filename);
 		if (oldTag) cssOldTags.push(oldTag);
 	});
-	cssChunkIds.forEach(<%- basicFunction("chunkId") %> {
+	var prepareCss = <%- basicFunction("chunkId, promises") %> {
 		var filename = files[chunkId] || <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
 		if (!filename) return;
 		var url = <%- PUBLIC_PATH %> + filename;
 		if (seen[url]) {
 			return;
 		}
-		seen[url] = true;
 		var oldFilename = oldFiles[chunkId] || <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
 		var oldTag = oldFilename && cssLoadStylesheet(chunkId, <%- PUBLIC_PATH %> + oldFilename);
 		// The manifest is computed from the compilation and also lists chunks this
@@ -64,6 +63,7 @@
 		// actually on the page: an initial chunk gaining its first stylesheet, or
 		// a loaded async chunk whose stylesheet was removed by an earlier update.
 		if (!oldTag && !requiredCssChunks[chunkId] && !cssInitialChunkIds[chunkId] && !cssChunkIsLoaded(chunkId)) return;
+		seen[url] = true;
 		promises.push(
 			new Promise(<%- basicFunction("resolve, reject") %> {
 				var link = cssLoadStylesheet(
@@ -97,5 +97,16 @@
 				);
 			})
 		);
-	});
+	};
+	cssChunkIds.forEach(function (id) { prepareCss(id, promises); });
+	if (groups && <%- weak(ENSURE_CHUNK) %>) {
+		var ensureGroup = function (groupId, promises) {
+			(groups[groupId] || []).forEach(function (id) {
+				requiredCssChunks[id] = true;
+				if (files[id]) prepareCss(id, promises);
+			});
+		};
+		<%- weak(ENSURE_CHUNK) %>.h.push(ensureGroup);
+		Object.keys(<%- weak(ENSURE_CHUNK) %>.s || {}).forEach(function (id) { ensureGroup(id, promises); });
+	}
 };

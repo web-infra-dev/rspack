@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cmp::Ordering, fmt};
+use std::{borrow::Cow, cmp::Ordering, collections::BTreeMap, fmt};
 
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
@@ -12,7 +12,9 @@ use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::FxHashMap;
 
 use super::{stringify_dynamic_chunk_map, stringify_static_chunk_map};
-use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
+use crate::{
+  get_chunk_runtime_requirements, get_hmr_chunk_snapshot_hash, runtime_module::unquoted_stringify,
+};
 
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
 type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send>;
@@ -425,7 +427,23 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       self.global.clone()
     };
 
+    let versions = (compilation.hot_module_replacement
+      && self.source_type == SourceType::JavaScript)
+      .then(|| {
+        let versions: BTreeMap<_, _> = chunk_map
+          .values()
+          .filter_map(|chunk| {
+            Some((
+              chunk.expect_id(),
+              get_hmr_chunk_snapshot_hash(chunk, compilation)?,
+            ))
+          })
+          .collect();
+        rspack_util::json_stringify(&versions)
+      });
+
     let source = runtime_template.render(self.id(), Some(serde_json::json!({
+      "_versions": versions,
       "_global": match self.source_type {
         SourceType::JavaScript => runtime_template
           .render_runtime_global_definition(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),

@@ -1,0 +1,16 @@
+# Case logical-groups: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.unloaded.chunk.CURRENT_HASH.js
+- Bundle: bundle.js
+- Bundle: loaded.chunk.CURRENT_HASH.js
+- Bundle: unloaded.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

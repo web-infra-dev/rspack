@@ -1,0 +1,234 @@
+# Case logical-group-dependency: Step 2
+
+## Changed Files
+- dependency.js
+- loaded.js
+
+## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.dependency.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.dependency.chunk.HASH_0.js
+- Bundle: CHUNK_HASH.hot-chunk.dependency.chunk.LAST_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.HASH_0.js
+- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.LAST_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.other.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.other.chunk.HASH_0.js
+- Bundle: CHUNK_HASH.hot-chunk.other.chunk.LAST_HASH.js
+- Bundle: bundle.js
+- Bundle: dependency.chunk.CURRENT_HASH.js
+- Bundle: loaded.chunk.CURRENT_HASH.js
+- Bundle: other.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 41
+- Update: CHUNK_HASH.hot-chunk.dependency.HASH_0.hot-update.js, size: 293
+- Update: CHUNK_HASH.hot-chunk.dependency.LAST_HASH.hot-update.js, size: 301
+- Update: CHUNK_HASH.hot-chunk.loaded.HASH_0.hot-update.js, size: 400
+- Update: dependency.LAST_HASH.hot-update.js, size: 301
+- Update: main.LAST_HASH.hot-update.js, size: 989
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["dependency","main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### CHUNK_HASH.hot-chunk.dependency.HASH_0.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("dependency", {
+"./dependency.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+const value = 'dependency';
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.dependency.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./dependency.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("dependency", {
+"./dependency.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+const value = 'updated dependency';
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.loaded.HASH_0.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("loaded", {
+"./loaded.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (/* reexport safe */ _dependency__rspack_import_0.value)
+});
+/* import */ var _dependency__rspack_import_0 = __webpack_require__("./dependency.js");
+module.hot.accept();
+
+
+
+},
+
+});
+```
+
+
+
+### dependency.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./dependency.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("dependency", {
+"./dependency.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+const value = 'updated dependency';
+
+
+},
+
+});
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  var filename = (function() {
+  // return url for filenames not based on template
+  if (chunkId === "main") return "bundle.js";
+  // return url for filenames based on template
+  return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js"
+  })();
+  var version = ({"dependency":"CHUNK_HASH","loaded":"CHUNK_HASH","other":"CHUNK_HASH"})[chunkId];
+  if (!version) return filename;
+  var query = filename.search(/[?#]/);
+  var path = query < 0 ? filename : filename.slice(0, query);
+  var directory = path.lastIndexOf("/") + 1;
+  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
+}
+
+})();
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./dependency.js
+- ./loaded.js
+
+
+Outdated Dependencies:
+```json
+{}
+```
+
+#### Updated
+
+Updated Modules:
+- ./dependency.js
+- ./loaded.js
+
+Updated Runtime:
+- `__webpack_require__.e`
+- `__webpack_require__.f`
+- `__webpack_require__.h`
+- `__webpack_require__.u`
+
+
+#### Callback
+
+Accepted Callback:
+
+
+Disposed Callback:

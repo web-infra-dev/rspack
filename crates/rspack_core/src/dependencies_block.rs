@@ -168,6 +168,17 @@ pub struct AsyncDependenciesBlock {
 }
 
 impl AsyncDependenciesBlock {
+  /// A load site keeps its identity when splitChunks changes its physical chunks.
+  pub fn runtime_id(&self, compilation: &Compilation) -> String {
+    let mut hasher = RspackHasher::new(&rspack_hash::HashFunction::Xxhash64);
+    rspack_util::identifier::make_paths_relative(
+      compilation.options.context.as_str(),
+      self.id.0.as_str(),
+    )
+    .hash(&mut hasher);
+    format!("{:016x}", hasher.finish())
+  }
+
   /// modifier should be Dependency.span in most of time
   pub fn new(
     parent: ModuleIdentifier,
@@ -290,13 +301,19 @@ impl AsyncDependenciesBlock {
     runtime: Option<&RuntimeSpec>,
   ) {
     self.group_options.hash(hasher);
-    if let Some(chunk_group) = compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_block_chunk_group(
-        &self.id,
-        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-      )
+    if compilation.hot_module_replacement {
+      "hmr chunk groups".hash(hasher);
+      self.runtime_id(compilation).hash(hasher);
+    }
+    if (!compilation.hot_module_replacement
+      || matches!(self.group_options, Some(GroupOptions::Entrypoint(_))))
+      && let Some(chunk_group) = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_block_chunk_group(
+          &self.id,
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        )
     {
       chunk_group.id(compilation).hash(hasher);
     }

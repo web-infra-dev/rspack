@@ -4,6 +4,8 @@
 - module.js
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.lazy_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.lazy_js_lazy-compilation-proxy.chunk.LAST_HASH.js
 - Bundle: bundle.js
 - Bundle: lazy_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28

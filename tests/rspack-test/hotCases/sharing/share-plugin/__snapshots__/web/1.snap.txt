@@ -4,10 +4,12 @@
 - module.js
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.common_js_2.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.common_js_2.chunk.LAST_HASH.js
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 42687
+- Update: main.LAST_HASH.hot-update.js, size: 44415
 
 ## Manifest
 
@@ -28,6 +30,7 @@
 
 #### Changed Runtime Modules
 - webpack/runtime/consumes_loading
+- webpack/runtime/ensure_chunk
 - webpack/runtime/get_full_hash
 - webpack/runtime/jsonp_chunk_loading
 
@@ -44,12 +47,38 @@ __webpack_require__.d(__webpack_exports__, {
 /* import */ var common__rspack_import_0 = __webpack_require__("webpack/sharing/consume/default/common/./common?1");
 
 
-const getValue = () => __webpack_require__.e(/* import() */ "webpack_sharing_consume_default_common2_common_2").then(__webpack_require__.bind(__webpack_require__, "webpack/sharing/consume/default/common2/./common?2"));
+const getValue = () => __webpack_require__.e("ac347e81fd7ecbf1", 0, true).then(__webpack_require__.bind(__webpack_require__, "webpack/sharing/consume/default/common2/./common?2"));
 
 
 },
 
 },function(__webpack_require__) {
+// webpack/runtime/ensure_chunk
+(() => {
+__webpack_require__.f = __webpack_require__.f || {};
+// Preserve activated load sites across updates of their physical loading plans.
+var groupState = __webpack_require__.e && __webpack_require__.e.s || Object.create(null);
+var groupHandlers = __webpack_require__.e && __webpack_require__.e.h || [];
+__webpack_require__.e = (id, fetchPriority, isGroup) => {
+	isGroup = isGroup === true;
+	var promises = [];
+	var chunks = isGroup ? __webpack_require__.e.g[id] || [] : [id];
+	if (isGroup) {
+		__webpack_require__.e.s[id] = true;
+		__webpack_require__.e.h.forEach((handler) => { handler(id, promises); });
+	}
+	chunks.forEach((chunkId) => {
+		Object.keys(__webpack_require__.f).forEach((key) => {
+			__webpack_require__.f[key](chunkId, promises, fetchPriority);
+		});
+	});
+	return Promise.all(promises);
+};
+__webpack_require__.e.g = {"31d83f6b3a7e93bf":["common_js_2"],"7960f3c1656b6077":["common_js_2"],"ac347e81fd7ecbf1":["webpack_sharing_consume_default_common2_common_2"]};
+__webpack_require__.e.s = groupState;
+__webpack_require__.e.h = groupHandlers;
+
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -57,7 +86,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 // webpack/runtime/consumes_loading
 (() => {
 
-__webpack_require__.consumesLoadingData = { chunkMapping: {"main":["webpack/sharing/consume/default/common/./common?1"],"webpack_sharing_consume_default_common2_common_2":["webpack/sharing/consume/default/common2/./common?2"]}, moduleIdToConsumeDataMapping: {"webpack/sharing/consume/default/common/./common?1": { shareScope: "default", shareKey: "common", import: "./common?1", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: true, fallback: () => (() => (__webpack_require__("./common.js?1"))), treeShakingMode: null }, "webpack/sharing/consume/default/common2/./common?2": { shareScope: "default", shareKey: "common2", import: "./common?2", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: false, fallback: () => (__webpack_require__.e("common_js_2").then(() => (() => (__webpack_require__("./common.js?2"))))), treeShakingMode: null }}, initialConsumes: ["webpack/sharing/consume/default/common/./common?1"] };
+__webpack_require__.consumesLoadingData = { chunkMapping: {"main":["webpack/sharing/consume/default/common/./common?1"],"webpack_sharing_consume_default_common2_common_2":["webpack/sharing/consume/default/common2/./common?2"]}, moduleIdToConsumeDataMapping: {"webpack/sharing/consume/default/common/./common?1": { shareScope: "default", shareKey: "common", import: "./common?1", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: true, fallback: () => (() => (__webpack_require__("./common.js?1"))), treeShakingMode: null }, "webpack/sharing/consume/default/common2/./common?2": { shareScope: "default", shareKey: "common2", import: "./common?2", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: false, fallback: () => (__webpack_require__.e("7960f3c1656b6077", 0, true).then(() => (() => (__webpack_require__("./common.js?2"))))), treeShakingMode: null }}, initialConsumes: ["webpack/sharing/consume/default/common/./common?1"] };
 var splitAndConvert = function(str) {
   return str.split(".").map(function(item) {
     return +item == item ? +item : item;
@@ -733,14 +762,14 @@ var hotCurrentUpdateChunks;
 var hotCurrentUpdate;
 var hotCurrentUpdateRemovedChunks;
 var hotCurrentUpdateRuntime;
-var hotCurrentUpdateInitialChunks;
+var hotCurrentUpdateLoadChunks;
 var hotCurrentUpdateUnchangedModules;
 function hotApplyHandler(options) {
 	if (__webpack_require__.f) delete __webpack_require__.f.jsonpHmr;
 	hotCurrentUpdateChunks = undefined;
-	var initialChunks = hotCurrentUpdateInitialChunks || {};
+	var loadChunks = hotCurrentUpdateLoadChunks || {};
 	var unchangedModules = hotCurrentUpdateUnchangedModules || {};
-	hotCurrentUpdateInitialChunks = undefined;
+	hotCurrentUpdateLoadChunks = undefined;
 	hotCurrentUpdateUnchangedModules = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
 		var outdatedModules = [updateModuleId];
@@ -840,7 +869,7 @@ function hotApplyHandler(options) {
 
 	for (var moduleId in hotCurrentUpdate) {
 		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {
-			// A complete initial-chunk payload also contains unchanged factories.
+			// A complete supplemental payload also contains unchanged factories.
 			// Preserve existing instances on movement unless explicitly invalidated.
 			if (unchangedModules[moduleId] && __webpack_require__.o(__webpack_require__.m, moduleId)) {
 				var cachedModule = __webpack_require__.c[moduleId];
@@ -1037,7 +1066,7 @@ function hotApplyHandler(options) {
 
 			// A full payload has now installed the chunk's factories. Keep the
 			// loading state in sync so subsequent edits download its hot updates.
-			for (var chunkId in initialChunks) {
+			for (var chunkId in loadChunks) {
 				var installed = jsonpInstalledChunks[chunkId];
 				if (installed && typeof installed[0] === "function") installed[0]();
 				jsonpInstalledChunks[chunkId] = 0;
@@ -1180,8 +1209,9 @@ __webpack_require__.hmrC.jsonp = function (
 	updatedModulesList,
 	css,
 	miniCss,
-	initial,
-	unchanged
+	load,
+	unchanged,
+	groups
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -1191,31 +1221,47 @@ __webpack_require__.hmrC.jsonp = function (
 		return obj;
 	}, {});
 	hotCurrentUpdateRuntime = [];
-	hotCurrentUpdateInitialChunks = Object.create(null);
+	hotCurrentUpdateLoadChunks = Object.create(null);
 	hotCurrentUpdateUnchangedModules = Object.create(null);
 	(unchanged || []).forEach(function (id) { hotCurrentUpdateUnchangedModules[id] = true; });
-	var requiredInitialChunks = Object.create(null);
-	if (initial) {
-		Object.keys(initial).forEach(function (entryId) {
-			if (__webpack_require__.o(jsonpInstalledChunks, entryId) && jsonpInstalledChunks[entryId] === 0) {
-				initial[entryId].forEach(function (id) { requiredInitialChunks[id] = true; });
-			}
-		});
-	}
 	chunkIds.forEach(function (chunkId) {
 		if (
-			requiredInitialChunks[chunkId] || (
-				__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
-				jsonpInstalledChunks[chunkId] !== undefined
-			)
+			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
+			jsonpInstalledChunks[chunkId] !== undefined
 		) {
-			if (requiredInitialChunks[chunkId]) hotCurrentUpdateInitialChunks[chunkId] = true;
 			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
 			hotCurrentUpdateChunks[chunkId] = true;
 		} else {
 			hotCurrentUpdateChunks[chunkId] = false;
 		}
 	});
+	if (load) {
+		Object.keys(load).forEach(function (entryId) {
+			var entryIsLoaded = __webpack_require__.o(jsonpInstalledChunks, entryId) && jsonpInstalledChunks[entryId] === 0;
+			load[entryId].forEach(function (chunkId) {
+				if (!__webpack_require__.o(hotCurrentUpdateChunks, chunkId)) hotCurrentUpdateChunks[chunkId] = false;
+				if (!entryIsLoaded) return;
+				hotCurrentUpdateLoadChunks[chunkId] = true;
+				if (!hotCurrentUpdateChunks[chunkId]) {
+					promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
+					hotCurrentUpdateChunks[chunkId] = true;
+				}
+			});
+		});
+	}
+	if (groups && __webpack_require__.e) {
+		var ensureGroup = function (groupId, promises) {
+			(groups[groupId] || []).forEach(function (chunkId) {
+				hotCurrentUpdateLoadChunks[chunkId] = true;
+				if (!hotCurrentUpdateChunks[chunkId]) {
+					promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
+					hotCurrentUpdateChunks[chunkId] = true;
+				}
+			});
+		};
+		__webpack_require__.e.h.push(ensureGroup);
+		Object.keys(__webpack_require__.e.s || {}).forEach(function (id) { ensureGroup(id, promises); });
+	}
 	if (__webpack_require__.f) {
 		__webpack_require__.f.jsonpHmr = function (chunkId, promises) {
 			if (

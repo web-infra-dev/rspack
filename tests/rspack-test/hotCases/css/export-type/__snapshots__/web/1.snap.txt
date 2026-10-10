@@ -4,11 +4,16 @@
 - imported.css
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.hi_txt.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.hi_txt.chunk.LAST_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.stylesheet_css.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.stylesheet_css.chunk.LAST_HASH.js
 - Bundle: bundle.js
 - Bundle: hi_txt.chunk.CURRENT_HASH.js
 - Bundle: stylesheet_css.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 45
-- Update: main.LAST_HASH.hot-update.js, size: 397
+- Update: CHUNK_HASH.hot-chunk.stylesheet_css.LAST_HASH.hot-update.js, size: 344
+- Update: main.LAST_HASH.hot-update.js, size: 1188
 - Update: stylesheet_css.LAST_HASH.hot-update.js, size: 344
 
 ## Manifest
@@ -21,6 +26,32 @@
 
 
 ## Update
+
+
+### CHUNK_HASH.hot-chunk.stylesheet_css.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./imported.css?4c2a
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("stylesheet_css", {
+"./imported.css?4c2a"(module, __unused_rspack_exports, __webpack_require__) {
+var __css_style_sheet = __webpack_require__.css(".imported-class-updated {\n\tcolor: purple;\n\tfont-style: italic;\n}\n");
+__webpack_require__.r(module.exports = {
+	"default": __css_style_sheet
+});
+
+
+},
+
+});
+```
+
 
 
 ### main.LAST_HASH.hot-update.js
@@ -44,6 +75,25 @@ __webpack_require__.r(module.exports = {
 },
 
 },function(__webpack_require__) {
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  var filename = (function() {
+  // return url for filenames not based on template
+  if (chunkId === "main") return "bundle.js";
+  // return url for filenames based on template
+  return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js"
+  })();
+  var version = ({"hi_txt":"CHUNK_HASH","stylesheet_css":"CHUNK_HASH"})[chunkId];
+  if (!version) return filename;
+  var query = filename.search(/[?#]/);
+  var path = query < 0 ? filename : filename.slice(0, query);
+  var directory = path.lastIndexOf("/") + 1;
+  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
+}
+
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

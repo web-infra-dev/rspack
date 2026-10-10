@@ -5,12 +5,18 @@
 - node_modules/vendor-lib.js
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.common.chunk.mjs
+- Bundle: CHUNK_HASH.hot-chunk.common.chunk.mjs
+- Bundle: CHUNK_HASH.hot-chunk.vendor.chunk.mjs
+- Bundle: CHUNK_HASH.hot-chunk.vendor.chunk.mjs
 - Bundle: common.chunk.mjs
 - Bundle: main.mjs
 - Bundle: vendor.chunk.mjs
 - Manifest: main.LAST_HASH.hot-update.json.mjs, size: 62
+- Update: CHUNK_HASH.hot-chunk.common.LAST_HASH.hot-update.mjs, size: 523
+- Update: CHUNK_HASH.hot-chunk.vendor.LAST_HASH.hot-update.mjs, size: 544
 - Update: common.LAST_HASH.hot-update.mjs, size: 523
-- Update: main.LAST_HASH.hot-update.mjs, size: 288
+- Update: main.LAST_HASH.hot-update.mjs, size: 1039
 - Update: vendor.LAST_HASH.hot-update.mjs, size: 544
 
 ## Manifest
@@ -23,6 +29,79 @@
 
 
 ## Update
+
+
+### CHUNK_HASH.hot-chunk.common.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./common/shared.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_id = "common";
+export const __rspack_esm_ids = ["common"];
+export const __webpack_modules__ = {
+"./common/shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  commonData: () => (commonData),
+  commonFunction: () => (commonFunction)
+});
+function commonFunction(input) {
+	return `Updated common function: ${input}`;
+}
+
+const commonData = {
+	shared: true,
+	updated: true
+};
+
+
+},
+
+};
+
+```
+
+
+
+### CHUNK_HASH.hot-chunk.vendor.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./node_modules/vendor-lib.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_id = "vendor";
+export const __rspack_esm_ids = ["vendor"];
+export const __webpack_modules__ = {
+"./node_modules/vendor-lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+const vendorLib = {
+	version: "2.0.0",
+	init: function() {
+		console.log("Vendor lib initialized v2");
+	}
+};
+
+/* export default */ const __rspack_default_export = (vendorLib);
+
+
+},
+
+};
+
+```
+
 
 
 ### common.LAST_HASH.hot-update.mjs
@@ -76,6 +155,25 @@ export const __rspack_esm_id = "main";
 export const __rspack_esm_ids = ["main"];
 export const __webpack_modules__ = {};
 export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  var filename = (function() {
+  // return url for filenames not based on template
+  if (chunkId === "main") return "main.mjs";
+  // return url for filenames based on template
+  return "" + chunkId + ".chunk.mjs"
+  })();
+  var version = ({"common":"CHUNK_HASH","vendor":"CHUNK_HASH"})[chunkId];
+  if (!version) return filename;
+  var query = filename.search(/[?#]/);
+  var path = query < 0 ? filename : filename.slice(0, query);
+  var directory = path.lastIndexOf("/") + 1;
+  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
+}
+
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

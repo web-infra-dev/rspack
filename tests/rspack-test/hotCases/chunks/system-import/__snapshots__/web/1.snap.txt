@@ -5,13 +5,19 @@
 - file2.js
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.chunk2_js.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.chunk2_js.chunk.LAST_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.chunk_js.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.chunk_js.chunk.LAST_HASH.js
 - Bundle: bundle.js
 - Bundle: chunk2_js.chunk.CURRENT_HASH.js
 - Bundle: chunk_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 51
+- Update: CHUNK_HASH.hot-chunk.chunk2_js.LAST_HASH.hot-update.js, size: 490
+- Update: CHUNK_HASH.hot-chunk.chunk_js.LAST_HASH.hot-update.js, size: 489
 - Update: chunk2_js.LAST_HASH.hot-update.js, size: 490
 - Update: chunk_js.LAST_HASH.hot-update.js, size: 489
-- Update: main.LAST_HASH.hot-update.js, size: 181
+- Update: main.LAST_HASH.hot-update.js, size: 969
 
 ## Manifest
 
@@ -23,6 +29,80 @@
 
 
 ## Update
+
+
+### CHUNK_HASH.hot-chunk.chunk2_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./file.js
+- ./file2.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("chunk2_js", {
+"./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+var value = 2;
+
+
+},
+"./file2.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+var value = 4;
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.chunk_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./file.js
+- ./file2.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("chunk_js", {
+"./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+var value = 2;
+
+
+},
+"./file2.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+var value = 4;
+
+
+},
+
+});
+```
+
 
 
 ### chunk2_js.LAST_HASH.hot-update.js
@@ -111,6 +191,25 @@ var value = 4;
 ```js
 "use strict";
 self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  var filename = (function() {
+  // return url for filenames not based on template
+  if (chunkId === "main") return "bundle.js";
+  // return url for filenames based on template
+  return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js"
+  })();
+  var version = ({"chunk2_js":"CHUNK_HASH","chunk_js":"CHUNK_HASH"})[chunkId];
+  if (!version) return filename;
+  var query = filename.search(/[?#]/);
+  var path = query < 0 ? filename : filename.slice(0, query);
+  var directory = path.lastIndexOf("/") + 1;
+  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
+}
+
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

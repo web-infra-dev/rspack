@@ -104,9 +104,17 @@ function createHotStepProcessor(
     changedFiles.sort();
 
     const resultHashes: Record<string, string> = {
+      ...Object.fromEntries(
+        hashes.map((hash, index) => [hash, `HASH_${index}`]),
+      ),
       [lastHash || 'LAST_HASH']: 'LAST_HASH',
       [stats.hash!]: 'CURRENT_HASH',
     };
+    // Lazy compilation's random port also participates in chunk snapshot hashes.
+    for (const asset of stats.assets!) {
+      const match = /(?:^|\/)([a-f0-9]{16})\.hot-chunk\./.exec(asset.name);
+      if (match) resultHashes[match[1]] = 'CHUNK_HASH';
+    }
 
     // TODO: find a better way
     // replace [runtime] to [runtime of id] to prevent worker hash

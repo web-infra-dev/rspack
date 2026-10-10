@@ -6,13 +6,15 @@
 - node_modules/vendor.js
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.chunk_js.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.chunk_js.chunk.LAST_HASH.js
 - Bundle: chunk_js.chunk.CURRENT_HASH.js
 - Bundle: main.js
 - Bundle: runtime~main.js
 - Bundle: vendors-node_modules_vendor_js.js
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 76
-- Update: main.LAST_HASH.hot-update.js, size: 633
-- Update: runtime~main.LAST_HASH.hot-update.js, size: 189
+- Update: main.LAST_HASH.hot-update.js, size: 635
+- Update: runtime~main.LAST_HASH.hot-update.js, size: 1180
 - Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 374
 
 ## Manifest
@@ -43,7 +45,7 @@ self["rspackHotUpdate"]("main", {
 __webpack_require__.r(__webpack_exports__);
 /* import */ var vendor__rspack_import_0 = __webpack_require__("./node_modules/vendor.js");
 
-module.hot.data.loadChunk = () => __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
+module.hot.data.loadChunk = () => __webpack_require__.e("bd5ead330e995a5f", 0, true).then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
 globalThis.__UPDATE_CHUNK_LOADING_RUNTIME_DATA__ = module.hot.data;
 module.hot.data.test = () => {
 	expect(vendor__rspack_import_0["default"]).toBe(3);
@@ -65,12 +67,39 @@ module.hot.accept();
 
 
 #### Changed Runtime Modules
+- webpack/runtime/ensure_chunk
 - webpack/runtime/get_full_hash
 
 #### Changed Content
 ```js
 "use strict";
 self["rspackHotUpdate"]("runtime~main", {},function(__webpack_require__) {
+// webpack/runtime/ensure_chunk
+(() => {
+__webpack_require__.f = __webpack_require__.f || {};
+// Preserve activated load sites across updates of their physical loading plans.
+var groupState = __webpack_require__.e && __webpack_require__.e.s || Object.create(null);
+var groupHandlers = __webpack_require__.e && __webpack_require__.e.h || [];
+__webpack_require__.e = (id, fetchPriority, isGroup) => {
+	isGroup = isGroup === true;
+	var promises = [];
+	var chunks = isGroup ? __webpack_require__.e.g[id] || [] : [id];
+	if (isGroup) {
+		__webpack_require__.e.s[id] = true;
+		__webpack_require__.e.h.forEach((handler) => { handler(id, promises); });
+	}
+	chunks.forEach((chunkId) => {
+		Object.keys(__webpack_require__.f).forEach((key) => {
+			__webpack_require__.f[key](chunkId, promises, fetchPriority);
+		});
+	});
+	return Promise.all(promises);
+};
+__webpack_require__.e.g = {"bd5ead330e995a5f":["chunk_js"]};
+__webpack_require__.e.s = groupState;
+__webpack_require__.e.h = groupHandlers;
+
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

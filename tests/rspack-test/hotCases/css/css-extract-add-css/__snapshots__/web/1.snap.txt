@@ -4,11 +4,14 @@
 - lazy.js
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.lazy.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.lazy.chunk.LAST_HASH.js
 - Bundle: bundle.js
 - Bundle: lazy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 84
+- Update: CHUNK_HASH.hot-chunk.lazy.LAST_HASH.hot-update.js, size: 1223
 - Update: lazy.LAST_HASH.hot-update.js, size: 1223
-- Update: main.LAST_HASH.hot-update.js, size: 7082
+- Update: main.LAST_HASH.hot-update.js, size: 8303
 
 ## Manifest
 
@@ -20,6 +23,63 @@
 
 
 ## Update
+
+
+### CHUNK_HASH.hot-chunk.lazy.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./lazy.css
+- ./lazy.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("lazy", {
+"./lazy.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* import */ var _lazy_css__rspack_import_0 = __webpack_require__("./lazy.css");
+
+/* export default */ const __rspack_default_export = (2);
+
+
+},
+"./lazy.css"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+// extracted by css-extract-rspack-plugin
+
+    if(true) {
+      (function() {
+        var localsJsonString = undefined;
+        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
+    }
+  
+
+},
+
+});
+```
+
 
 
 ### lazy.LAST_HASH.hot-update.js
@@ -91,6 +151,25 @@ __webpack_require__.r(__webpack_exports__);
 ```js
 "use strict";
 self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  var filename = (function() {
+  // return url for filenames not based on template
+  if (chunkId === "main") return "bundle.js";
+  // return url for filenames based on template
+  return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js"
+  })();
+  var version = ({"lazy":"CHUNK_HASH"})[chunkId];
+  if (!version) return filename;
+  var query = filename.search(/[?#]/);
+  var path = query < 0 ? filename : filename.slice(0, query);
+  var directory = path.lastIndexOf("/") + 1;
+  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
+}
+
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -214,7 +293,7 @@ var extractCssInitialChunkIds = {"main": 1,};
 var extractCssChunkIsLoaded = function (chunkId) {
 	return typeof __webpack_require__.hmrS_jsonp !== "undefined" && __webpack_require__.hmrS_jsonp && __webpack_require__.hmrS_jsonp[chunkId] === 0;
 };
-__webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, initial) {
+__webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, load, unchanged, groups) {
 	applyHandlers.push(extractCssApplyHandler);
 	/**
 		`miniCss` is the hot-update manifest's namespace for extracted CSS:
@@ -231,8 +310,8 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 	var files = (miniCss && miniCss.f) || {};
 	var oldFiles = (miniCss && miniCss.o) || {};
 	var requiredCssChunks = Object.create(null);
-	if (initial) Object.keys(initial).forEach(function (entryId) {
-		if (extractCssChunkIsLoaded(entryId)) initial[entryId].forEach(function (id) {
+	if (load) Object.keys(load).forEach(function (entryId) {
+		if (extractCssChunkIsLoaded(entryId)) load[entryId].forEach(function (id) {
 			requiredCssChunks[id] = true;
 			if (files[id] && cssChunkIds.indexOf(id) < 0) cssChunkIds.push(id);
 		});
@@ -244,12 +323,11 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 		var oldTag = extractCssFindStylesheet(href, __webpack_require__.p + href);
 		if (oldTag) extractCssOldTags.push(oldTag);
 	});
-	cssChunkIds.forEach(function (chunkId) {
+	var prepareCss = function (chunkId, promises) {
 		var href = files[chunkId] || __webpack_require__.miniCssF(chunkId);
 		if (!href) return;
 		var fullhref = __webpack_require__.p + href;
 		if (seen[fullhref]) return;
-		seen[fullhref] = true;
 		var oldHref = oldFiles[chunkId] || __webpack_require__.miniCssF(chunkId);
 		var oldTag = oldHref && extractCssFindStylesheet(oldHref, __webpack_require__.p + oldHref);
 		// The manifest is computed from the compilation and also lists chunks this
@@ -257,6 +335,7 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 		// actually on the page: an initial chunk gaining its first stylesheet, or
 		// a loaded async chunk whose stylesheet was removed by an earlier update.
 		if (!oldTag && !requiredCssChunks[chunkId] && !extractCssInitialChunkIds[chunkId] && !extractCssChunkIsLoaded(chunkId)) return;
+		seen[fullhref] = true;
 		promises.push(new Promise(function (resolve, reject) {
 			var tag = extractCssCreateStylesheet(
 				chunkId,
@@ -279,8 +358,19 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 				reject
 			);
 		}))
-	});
-}
+	};
+	cssChunkIds.forEach(function (id) { prepareCss(id, promises); });
+	if (groups && __webpack_require__.e) {
+		var ensureGroup = function (groupId, promises) {
+			(groups[groupId] || []).forEach(function (id) {
+				requiredCssChunks[id] = true;
+				if (files[id]) prepareCss(id, promises);
+			});
+		};
+		__webpack_require__.e.h.push(ensureGroup);
+		Object.keys(__webpack_require__.e.s || {}).forEach(function (id) { ensureGroup(id, promises); });
+	}
+};
 
 // no prefetch
 // no preload

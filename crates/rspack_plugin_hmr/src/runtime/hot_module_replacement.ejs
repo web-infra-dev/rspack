@@ -80,8 +80,8 @@
 		}
 	}
 
-	fn.e = function (chunkId, fetchPriority) {
-		return trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority));
+	fn.e = function (chunkId, fetchPriority, isGroup) {
+		return trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority, isGroup));
 	};
 
 	return fn;
@@ -139,6 +139,7 @@
 			switch (currentStatus) {
 				case "idle":
 					currentUpdateApplyHandlers = [];
+					if (<%- weak(ENSURE_CHUNK) %>) <%- weak(ENSURE_CHUNK) %>.h = [];
 					Object.keys(<%- HMR_INVALIDATE_MODULE_HANDLERS %>).forEach(function (key) {
 						<%- HMR_INVALIDATE_MODULE_HANDLERS %>[key](moduleId, currentUpdateApplyHandlers);
 					});
@@ -277,8 +278,9 @@
 							updatedModules,
 							update.css,
 							update.miniCss,
-							update.initial,
-							update.unchanged
+							update.load,
+							update.unchanged,
+							update.groups
 						);
 						return promises;
 					},
@@ -320,6 +322,8 @@
 			return r.error;
 		})
 		.filter(Boolean);
+
+	if (<%- weak(ENSURE_CHUNK) %>) <%- weak(ENSURE_CHUNK) %>.h = [];
 
 	if (errors.length > 0) {
 		return setStatus("abort").then(function () {

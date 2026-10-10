@@ -1,0 +1,214 @@
+# Case logical-group-dependency: Step 1
+
+## Changed Files
+- dependency.js
+- loaded.js
+
+## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.dependency.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.dependency.chunk.LAST_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.LAST_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.other.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.other.chunk.LAST_HASH.js
+- Bundle: bundle.js
+- Bundle: dependency.chunk.CURRENT_HASH.js
+- Bundle: loaded.chunk.CURRENT_HASH.js
+- Bundle: other.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 114
+- Update: CHUNK_HASH.hot-chunk.dependency.LAST_HASH.hot-update.js, size: 293
+- Update: CHUNK_HASH.hot-chunk.loaded.LAST_HASH.hot-update.js, size: 400
+- Update: dependency.LAST_HASH.hot-update.js, size: 293
+- Update: loaded.LAST_HASH.hot-update.js, size: 400
+- Update: main.LAST_HASH.hot-update.js, size: 2033
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["loaded","main"],"r":[],"m":[],"groups":{"82811dfb31409478":["dependency"]},"unchanged":["./dependency.js"]}
+```
+
+
+## Update
+
+
+### CHUNK_HASH.hot-chunk.dependency.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./dependency.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("dependency", {
+"./dependency.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+const value = 'dependency';
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.loaded.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./loaded.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("loaded", {
+"./loaded.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (/* reexport safe */ _dependency__rspack_import_0.value)
+});
+/* import */ var _dependency__rspack_import_0 = __webpack_require__("./dependency.js");
+module.hot.accept();
+
+
+
+},
+
+});
+```
+
+
+
+### dependency.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./dependency.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("dependency", {
+"./dependency.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+const value = 'dependency';
+
+
+},
+
+});
+```
+
+
+
+### loaded.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./loaded.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("loaded", {
+"./loaded.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (/* reexport safe */ _dependency__rspack_import_0.value)
+});
+/* import */ var _dependency__rspack_import_0 = __webpack_require__("./dependency.js");
+module.hot.accept();
+
+
+
+},
+
+});
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/ensure_chunk
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/ensure_chunk
+(() => {
+__webpack_require__.f = __webpack_require__.f || {};
+// Preserve activated load sites across updates of their physical loading plans.
+var groupState = __webpack_require__.e && __webpack_require__.e.s || Object.create(null);
+var groupHandlers = __webpack_require__.e && __webpack_require__.e.h || [];
+__webpack_require__.e = (id, fetchPriority, isGroup) => {
+	isGroup = isGroup === true;
+	var promises = [];
+	var chunks = isGroup ? __webpack_require__.e.g[id] || [] : [id];
+	if (isGroup) {
+		__webpack_require__.e.s[id] = true;
+		__webpack_require__.e.h.forEach((handler) => { handler(id, promises); });
+	}
+	chunks.forEach((chunkId) => {
+		Object.keys(__webpack_require__.f).forEach((key) => {
+			__webpack_require__.f[key](chunkId, promises, fetchPriority);
+		});
+	});
+	return Promise.all(promises);
+};
+__webpack_require__.e.g = {"797efd204ef30644":["dependency","other"],"82811dfb31409478":["dependency","loaded"]};
+__webpack_require__.e.s = groupState;
+__webpack_require__.e.h = groupHandlers;
+
+})();
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  var filename = (function() {
+  // return url for filenames not based on template
+  if (chunkId === "main") return "bundle.js";
+  // return url for filenames based on template
+  return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js"
+  })();
+  var version = ({"dependency":"CHUNK_HASH","loaded":"CHUNK_HASH","other":"CHUNK_HASH"})[chunkId];
+  if (!version) return filename;
+  var query = filename.search(/[?#]/);
+  var path = query < 0 ? filename : filename.slice(0, query);
+  var directory = path.lastIndexOf("/") + 1;
+  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
+}
+
+})();
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```

@@ -1,0 +1,318 @@
+# Case versioned-loading: Step 2
+
+## Changed Files
+- loaded.js
+
+## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.after.js
+- Bundle: CHUNK_HASH.hot-chunk.before.js
+- Bundle: CHUNK_HASH.hot-chunk.latest.js
+- Bundle: CHUNK_HASH.hot-chunk.loaded.js
+- Bundle: CHUNK_HASH.hot-chunk.loaded.js
+- Bundle: CHUNK_HASH.hot-chunk.loaded.js
+- Bundle: bundle.js
+- Bundle: latest.js
+- Bundle: loaded.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 97
+- Update: CHUNK_HASH.hot-chunk.after.HASH_0.hot-update.js, size: 278
+- Update: CHUNK_HASH.hot-chunk.latest.LAST_HASH.hot-update.js, size: 281
+- Update: CHUNK_HASH.hot-chunk.loaded.HASH_0.hot-update.js, size: 385
+- Update: CHUNK_HASH.hot-chunk.loaded.LAST_HASH.hot-update.js, size: 388
+- Update: latest.LAST_HASH.hot-update.js, size: 281
+- Update: loaded.LAST_HASH.hot-update.js, size: 388
+- Update: main.LAST_HASH.hot-update.js, size: 1924
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["loaded","main"],"r":["after"],"m":["./after.js"],"groups":{"82811dfb31409478":["latest"]}}
+```
+
+
+## Update
+
+
+### CHUNK_HASH.hot-chunk.after.HASH_0.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("after", {
+"./after.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+const value = 'after';
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.latest.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./latest.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("latest", {
+"./latest.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+const value = 'latest';
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.loaded.HASH_0.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("loaded", {
+"./loaded.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (/* reexport safe */ _after__rspack_import_0.value)
+});
+/* import */ var _after__rspack_import_0 = __webpack_require__("./after.js");
+
+module.hot.accept();
+
+
+},
+
+});
+```
+
+
+
+### CHUNK_HASH.hot-chunk.loaded.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./loaded.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("loaded", {
+"./loaded.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (/* reexport safe */ _latest__rspack_import_0.value)
+});
+/* import */ var _latest__rspack_import_0 = __webpack_require__("./latest.js");
+
+module.hot.accept();
+
+
+},
+
+});
+```
+
+
+
+### latest.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./latest.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("latest", {
+"./latest.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+const value = 'latest';
+
+
+},
+
+});
+```
+
+
+
+### loaded.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./loaded.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("loaded", {
+"./loaded.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (/* reexport safe */ _latest__rspack_import_0.value)
+});
+/* import */ var _latest__rspack_import_0 = __webpack_require__("./latest.js");
+
+module.hot.accept();
+
+
+},
+
+});
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/ensure_chunk
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/ensure_chunk
+(() => {
+__webpack_require__.f = __webpack_require__.f || {};
+// Preserve activated load sites across updates of their physical loading plans.
+var groupState = __webpack_require__.e && __webpack_require__.e.s || Object.create(null);
+var groupHandlers = __webpack_require__.e && __webpack_require__.e.h || [];
+__webpack_require__.e = (id, fetchPriority, isGroup) => {
+	isGroup = isGroup === true;
+	var promises = [];
+	var chunks = isGroup ? __webpack_require__.e.g[id] || [] : [id];
+	if (isGroup) {
+		__webpack_require__.e.s[id] = true;
+		__webpack_require__.e.h.forEach((handler) => { handler(id, promises); });
+	}
+	chunks.forEach((chunkId) => {
+		Object.keys(__webpack_require__.f).forEach((key) => {
+			__webpack_require__.f[key](chunkId, promises, fetchPriority);
+		});
+	});
+	return Promise.all(promises);
+};
+__webpack_require__.e.g = {"82811dfb31409478":["latest","loaded"]};
+__webpack_require__.e.s = groupState;
+__webpack_require__.e.h = groupHandlers;
+
+})();
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  var filename = (function() {
+  // return url for filenames not based on template
+  if (chunkId === "main") return "bundle.js";
+  // return url for filenames based on template
+  return "" + chunkId + ".js"
+  })();
+  var version = ({"latest":"CHUNK_HASH","loaded":"CHUNK_HASH"})[chunkId];
+  if (!version) return filename;
+  var query = filename.search(/[?#]/);
+  var path = query < 0 ? filename : filename.slice(0, query);
+  var directory = path.lastIndexOf("/") + 1;
+  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
+}
+
+})();
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./after.js
+- ./before.js
+- ./loaded.js
+
+
+Outdated Dependencies:
+```json
+{}
+```
+
+#### Updated
+
+Updated Modules:
+- ./after.js
+- ./before.js
+- ./loaded.js
+
+Updated Runtime:
+- `__webpack_require__.e`
+- `__webpack_require__.f`
+- `__webpack_require__.h`
+- `__webpack_require__.u`
+
+
+#### Callback
+
+Accepted Callback:
+
+
+Disposed Callback:

@@ -5,6 +5,7 @@
 
 ## Asset Files
 - Bundle: 1e1.chunk.CURRENT_HASH.js
+- Bundle: CHUNK_HASH.hot-chunk.1e1.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 
 ## Manifest

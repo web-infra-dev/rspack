@@ -7,17 +7,17 @@
 - Bundle: main.js
 - Bundle: other.js
 - Bundle: runtime.js
-- Manifest: runtime.LAST_HASH.hot-update.json, size: 54
+- Manifest: runtime.LAST_HASH.hot-update.json, size: 82
 - Update: main.LAST_HASH.hot-update.js, size: 350
 - Update: other.LAST_HASH.hot-update.js, size: 335
-- Update: runtime.LAST_HASH.hot-update.js, size: 6252
+- Update: runtime.LAST_HASH.hot-update.js, size: 6713
 
 ## Manifest
 
 ### runtime.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main","other","runtime"],"r":["shared"],"m":[]}
+{"c":["main","other","runtime"],"r":["shared"],"m":[],"unchanged":["./shared.js"]}
 ```
 
 
@@ -194,7 +194,7 @@ var cssInitialChunkIds = {"main": 1,"other": 1,"runtime": 1,};
 var cssChunkIsLoaded = (chunkId) => {
 	return typeof __webpack_require__.hmrS_jsonp !== "undefined" && __webpack_require__.hmrS_jsonp && __webpack_require__.hmrS_jsonp[chunkId] === 0;
 };
-__webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, initial) => {
+__webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, load, unchanged, groups) => {
 	if (typeof document === 'undefined') return;
 	applyHandlers.push(cssApplyHandler);
 	// `css` is the hot-update manifest's css namespace (aligned with webpack):
@@ -207,8 +207,8 @@ __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promise
 	var files = (css && css.f) || {};
 	var oldFiles = (css && css.o) || {};
 	var requiredCssChunks = Object.create(null);
-	if (initial) Object.keys(initial).forEach((entryId) => {
-		if (cssChunkIsLoaded(entryId)) initial[entryId].forEach((id) => {
+	if (load) Object.keys(load).forEach((entryId) => {
+		if (cssChunkIsLoaded(entryId)) load[entryId].forEach((id) => {
 			requiredCssChunks[id] = true;
 			if (files[id] && cssChunkIds.indexOf(id) < 0) cssChunkIds.push(id);
 		});
@@ -220,14 +220,13 @@ __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promise
 		var oldTag = cssLoadStylesheet(chunkId, __webpack_require__.p + filename);
 		if (oldTag) cssOldTags.push(oldTag);
 	});
-	cssChunkIds.forEach((chunkId) => {
+	var prepareCss = (chunkId, promises) => {
 		var filename = files[chunkId] || __webpack_require__.k(chunkId);
 		if (!filename) return;
 		var url = __webpack_require__.p + filename;
 		if (seen[url]) {
 			return;
 		}
-		seen[url] = true;
 		var oldFilename = oldFiles[chunkId] || __webpack_require__.k(chunkId);
 		var oldTag = oldFilename && cssLoadStylesheet(chunkId, __webpack_require__.p + oldFilename);
 		// The manifest is computed from the compilation and also lists chunks this
@@ -235,6 +234,7 @@ __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promise
 		// actually on the page: an initial chunk gaining its first stylesheet, or
 		// a loaded async chunk whose stylesheet was removed by an earlier update.
 		if (!oldTag && !requiredCssChunks[chunkId] && !cssInitialChunkIds[chunkId] && !cssChunkIsLoaded(chunkId)) return;
+		seen[url] = true;
 		promises.push(
 			new Promise((resolve, reject) => {
 				var link = cssLoadStylesheet(
@@ -268,7 +268,18 @@ __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promise
 				);
 			})
 		);
-	});
+	};
+	cssChunkIds.forEach(function (id) { prepareCss(id, promises); });
+	if (groups && __webpack_require__.e) {
+		var ensureGroup = function (groupId, promises) {
+			(groups[groupId] || []).forEach(function (id) {
+				requiredCssChunks[id] = true;
+				if (files[id]) prepareCss(id, promises);
+			});
+		};
+		__webpack_require__.e.h.push(ensureGroup);
+		Object.keys(__webpack_require__.e.s || {}).forEach(function (id) { ensureGroup(id, promises); });
+	}
 };
 
 })();

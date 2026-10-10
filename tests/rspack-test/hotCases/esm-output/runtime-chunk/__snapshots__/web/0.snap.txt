@@ -4,6 +4,7 @@
 
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.async-shared_js.chunk.mjs
 - Bundle: async-shared_js.chunk.mjs
 - Bundle: main.mjs
 - Bundle: runtime.mjs

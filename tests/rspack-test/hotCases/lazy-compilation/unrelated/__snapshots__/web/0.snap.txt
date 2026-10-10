@@ -4,6 +4,7 @@
 
 
 ## Asset Files
+- Bundle: CHUNK_HASH.hot-chunk.lazy_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 - Bundle: lazy_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 
