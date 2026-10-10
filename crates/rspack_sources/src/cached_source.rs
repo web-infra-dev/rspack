@@ -223,24 +223,12 @@ impl<'source> CachedSourceChunks<'source> {
   }
 
   fn get_or_init_source(&self) -> TextSpan<'_> {
-    let source = self.source.get_or_init(|| {
-      // Keep binary decoding temporary, just as in source(), instead of making
-      // RawBufferSource::rope() retain a lossy text copy of the binary payload.
-      if let Some(buffer_source) = self
-        .cache_source
-        .inner
-        .as_ref()
-        .as_any()
-        .downcast_ref::<RawBufferSource>()
-      {
-        return buffer_source.source().into_string_lossy();
-      }
-      let mut source = String::with_capacity(self.cache_source.size());
-      // The flat text is needed only while replaying this map. In particular,
-      // do not call source(), which would also populate the persistent chunks.
-      self.cache_source.rope(&mut |chunk| source.push_str(chunk));
-      Cow::Owned(source)
-    });
+    // A cached map marks a directly requested result. Cache its chunk index too,
+    // so new Chunks handles do not reevaluate replacements on every replay.
+    // The flat text (including lossy binary decoding) stays local to this handle.
+    let source = self
+      .source
+      .get_or_init(|| self.cache_source.source().into_string_lossy());
     let is_ascii = *self
       .cache_source
       .cache

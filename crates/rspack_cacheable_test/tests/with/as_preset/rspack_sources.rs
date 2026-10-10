@@ -4,7 +4,7 @@ use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, to_bytes, with
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, ObjectPool, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
-  WithoutOriginalOptions,
+  WithoutOriginalOptions, stream_chunks::StreamChunks,
 };
 use rustc_hash::FxHasher;
 
@@ -141,6 +141,52 @@ fn test_cached_source_streaming_does_not_retain_intermediate_maps() {
     drop(module);
     drop(original);
     assert_eq!(owner.sources_content()[0], "a();\nb();\n");
+  }
+}
+
+#[test]
+fn test_cached_source_replays_map_before_reading_source() {
+  for columns in [true, false] {
+    for (code, expected) in [
+      ("const value = 'text';\n", "const renamed = 'text';\n"),
+      ("const value = '中文😀';\n", "const renamed = '中文😀';\n"),
+    ] {
+      let pool = ObjectPool::default();
+      let options = MapOptions::new(columns);
+      let mut replaced =
+        ReplaceSource::new(CachedSource::new(OriginalSource::new(code, "module.js")));
+      replaced.replace_static(6, 11, "renamed", Some("value"));
+      let source = CachedSource::new(replaced);
+      let map = source.map(&pool, &options).expect("cached map");
+      for _ in 0..3 {
+        // Do not warm the source cache before replay. Each new handle must still
+        // produce the same text while sharing the cached result across clones.
+        let cloned = source.clone();
+        let chunks = cloned.stream_chunks();
+        let mut text = String::new();
+        chunks.stream(
+          &pool,
+          &options,
+          &mut |chunk, _| {
+            if let Some(chunk) = chunk {
+              text.push_str(chunk.as_str());
+            }
+          },
+          &mut |_, _, _| {},
+          &mut |_, _| {},
+        );
+        assert_eq!(text, expected);
+        assert_eq!(
+          cloned
+            .map(&pool, &options)
+            .expect("reused map")
+            .mappings()
+            .as_ptr(),
+          map.mappings().as_ptr()
+        );
+      }
+      assert_eq!(source.source().as_bytes(), expected.as_bytes());
+    }
   }
 }
 
