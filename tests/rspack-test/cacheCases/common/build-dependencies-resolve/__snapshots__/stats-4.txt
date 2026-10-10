@@ -1,15 +1,15 @@
 DEBUG LOG from rspack.persistentCache
-<i> persistent cache enabled
-<i> build dependencies are valid (4 tracked)
+    persistent cache enabled
+    build dependencies are valid (4 tracked)
 <t> validate build dependencies: xx ms
-<i> meta persistent cache recovery succeeded
+    meta persistent cache recovery succeeded
 <t> read meta from persistent cache: xx ms
 <t> read snapshot from persistent cache: xx ms
-<i> snapshot restored with no changed dependencies
-<i> make persistent cache recovery succeeded
+    snapshot restored with no changed dependencies
+    make persistent cache recovery succeeded
 <t> read make from persistent cache: xx ms
 <t> write make to persistent cache: xx ms
-<i> minimize persistent cache recovery succeeded
+    minimize persistent cache recovery succeeded
 <t> read minimize from persistent cache: xx ms
 <t> write minimize to persistent cache: xx ms
 <t> write meta to persistent cache: xx ms
