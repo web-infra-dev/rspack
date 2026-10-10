@@ -343,6 +343,24 @@ impl<'s> DependencyContext<'s> {
     );
   }
 
+  pub(crate) fn checkpoint(&self) -> [usize; 5] {
+    [
+      self.dependencies.len(),
+      self.import_attributes.len(),
+      self.composes_local_classes.len(),
+      self.composes_names.len(),
+      self.value_at_rule_import_items.len(),
+    ]
+  }
+
+  pub(crate) fn rollback(&mut self, checkpoint: [usize; 5]) {
+    self.dependencies.truncate(checkpoint[0]);
+    self.import_attributes.truncate(checkpoint[1]);
+    self.composes_local_classes.truncate(checkpoint[2]);
+    self.composes_names.truncate(checkpoint[3]);
+    self.value_at_rule_import_items.truncate(checkpoint[4]);
+  }
+
   pub fn len(&self) -> usize {
     self.dependencies.len()
   }

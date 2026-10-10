@@ -1,0 +1,176 @@
+button.LOCAL-root.LOCAL-hovered { color: red; }
+@media (hover: hover) {
+	.LOCAL-root.LOCAL-hovered { color: green; }
+	button.LOCAL-root.LOCAL-hovered { color: blue; }
+	div .LOCAL-descendant { color: blue; }
+	button.LOCAL-first, .LOCAL-second { color: blue; }
+	button.LOCAL-root.plain { color: blue; }
+	button.LOCAL-explicit { color: blue; }
+	button:hover.LOCAL-pseudo { color: blue; }
+	button:is(.LOCAL-functional, .plain) { color: blue; }
+	button#LOCAL-identifier { color: blue; }
+	button[data-value="{;}"] .LOCAL-attribute { color: blue; }
+	button/* comment */.LOCAL-commented { color: blue; }
+	svg|a.LOCAL-namespaced { color: blue; }
+	\62 utton.LOCAL-escaped { color: blue; }
+	按钮.LOCAL-unicode { color: blue; }
+	.LOCAL-after { color: green; }
+}
+@supports (display: grid) { button.LOCAL-supports { color: blue; } }
+@container (width > 100px) { button.LOCAL-container { color: blue; } }
+@layer base { button.LOCAL-layer { color: blue; } }
+.LOCAL-outer {
+	color:red;
+	--LOCAL-custom: { value: ".raw"; };
+	background:paint({ value: ".raw"; });
+	button.LOCAL-inner {
+		color:blue;
+		span.LOCAL-deep { color: blue; }
+		.LOCAL-nestedAfter { color: green; }
+	}
+	color:green;
+	button:hover.LOCAL-nestedPseudo { color: blue; }
+	button.global { color: blue; }
+	button.LOCAL-nestedLocal { color: blue; }
+	@media (hover: hover) { button.LOCAL-nestedMedia { color: blue; } }
+	color:blue
+}
+
+@media (hover: hover) {
+	button.raw.LOCAL-globalModeLocal { color: blue; }
+	button#LOCAL-globalModeId { color: blue; }
+	button.rawAfter { color: green; }
+}
+
+@media screen { button.LOCAL-small, .LOCAL-smallSecond { color:red } }
+
+.LOCAL-commaRollback {
+	button:hover:global .discardedCommaMode, ) ;
+	.LOCAL-afterCommaRollback { color:green; }
+}
+
+.LOCAL-syntax {
+	/* A generic declaration may have a sole curly block as its value. */
+	color:{.opaque};
+	color: /* { ; } */ {.commentOpaque} /* } */ ! IMPORTANT;
+	color:{.escapedImportant} !\69mportant;
+	animation:{literal} !important;
+
+	/* Custom properties may mix curly blocks with other component values. */
+	--LOCAL-tokens:before{.customOpaque}after;
+	--LOCAL-escaped:before{.escapedCustomOpaque}after;
+
+	/* Component values keep their own delimiters and terminators. */
+	background:paint([{.functionOpaque;}]);
+	background-image:url("data:text/plain,foo{bar");
+	content:"a quote: \" and delimiters: ; { }";
+	font-family:alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon phi chi psi omega;
+
+	/* Other values followed by a curly block must fall back to a rule. */
+	button:where(.LOCAL-functionalSyntax) { color: red; }
+	button /* comment */ .LOCAL-commentSyntax { color: blue; }
+	button[data-value=";{}"].LOCAL-attributeSyntax { color: blue; }
+	button:is([data-value="}"], .LOCAL-balancedSyntax) { color: blue; }
+	button.LOCAL-escaped\;boundary { color: blue; }
+	.LOCAL-afterSyntax { color: green; }
+}
+
+.LOCAL-recovery {
+	/* Invalid candidates synchronize without exporting names from their text. */
+	missingColon;
+	brokenString:"unterminated
+		.shouldNotExport;
+	brokenUrl:url(bad"url);
+	/* Provisional URL dependencies and dashed names must be discarded. */
+	background:url("./must-not-resolve.svg") "unterminated
+		.shouldNotExportEither;
+	font-palette:--discardedPalette );
+	.LOCAL-afterInvalid { color: green; }
+
+	/* Semicolons in component values must not reset the declaration state. */
+	animation:{opaque; stillOpaque} !important;
+	animation:[opaque; stillOpaque] LOCAL-recoveryFade Xs;
+	animation:[opaque) ; stillOpaque} ] LOCAL-recoveryFade Xs;
+	color:{.opaque; :global(.opaqueGlobal)} !\69mportant;
+	color:{@import "not-a-file.css"; @property --opaque { syntax:"x"; }};
+	background:paint([{.opaque; .alsoOpaque}]);
+	--LOCAL-components:before{.opaque; stillOpaque}after;
+	--LOCAL-mismatched:paint([opaque) ; stillOpaque} ]);
+
+	/* A known property name can still become a nested type selector. */
+	animation:hover .LOCAL-rollbackCandidate { color: green; }
+
+	/* Both prefixes are possible until the top-level curly block starts. */
+	button:where(.globalCandidate[data-token=--components], .LOCAL-localCandidate[data-token=--components]) {
+		color:var(--LOCAL-components);
+	}
+	/* Deferred function events keep selector nesting, modes and lookahead. */
+	button:is(:nth-child(2n + 1 of .LOCAL-eventSibling), .LOCAL-eventLocal, .eventGlobal) > .LOCAL-eventAfter {
+		background:linear-gradient(rgb(1, 2, 3), var(--LOCAL-components));
+	}
+	button:where(/* before class */ .LOCAL-eventCommented, .eventExternal) {
+		color:RGB(1, 2, 3);
+	}
+	/* The rule ends before the trailing text that invalidated the declaration. */
+	button:{color:red} trailing;
+	.LOCAL-afterTrailing { color: blue; }
+	.LOCAL-afterRecovery { animation: LOCAL-recoveryFade Xs; }
+}
+
+@keyframes LOCAL-recoveryFade {
+	to { opacity: 1; }
+}
+
+.LOCAL-modeRollback {
+	/* Candidate replay must not leave implicit classes or ids in explicit mode. */
+	button:hover.rawModeClass { color: red; }
+	.LOCAL-implicitAfterGlobal, #LOCAL-implicitIdAfterGlobal { color: blue; }
+	button:hover.LOCAL-explicitModeClass { color: red; }
+	.LOCAL-implicitAfterLocal, #LOCAL-implicitIdAfterLocal { color: blue; }
+	button:where(.rawModeFunction, .LOCAL-explicitModeFunction) {
+		color: green;
+	}
+	.LOCAL-implicitAfterFunction, #LOCAL-implicitIdAfterFunction { color: blue; }
+	/* Rejected candidates must not leave a mode behind either. */
+	button:where(:global(.discardedGlobalMode)) ) ;
+	button:where(:local(.discardedLocalMode)) ) ;
+	.LOCAL-implicitAfterInvalidMode, #LOCAL-implicitIdAfterInvalidMode { color: blue; }
+}
+
+.LOCAL-implicitOutsideRollback, #LOCAL-implicitIdOutsideRollback { color: green; }
+
+.LOCAL-pureRecovery {
+	missingColon /* cssmodules-pure-ignore */;
+	color:{.opaquePure; :global(.opaqueGlobalPure)} !important;
+	button:where(.pureGlobal, .LOCAL-pureLocal) {
+		color:red;
+	}
+	.LOCAL-afterPureRecovery { color:green; }
+}
+
+.LOCAL-eofRecovery {
+	/* EOF implicitly closes the unfinished function and square block. */
+	color:paint([opaque;
+
+.LOCAL-eofCurlyRecovery {
+	/* EOF closes the sole curly value without turning it into a rule body. */
+	color:{.opaqueAtEof
+
+.plainRecovery {
+	background:url("./must-not-resolve-plain.svg") "unterminated
+		.discarded;
+	button:hover { color: red; }
+	/* Selector pseudo-functions must not create declaration URL dependencies. */
+	button:url("./must-not-resolve-selector.svg") {
+		background:url("selector-body.svg");
+	}
+	button:url(./must-not-resolve-unquoted-selector.svg) { color: red; }
+	button:image-set("./must-not-resolve-image-set-selector.svg" 1x) { color: red; }
+
+	/* A sole curly value falls back to a rule when its contents are invalid. */
+	background:{
+		broken:url("./must-not-resolve-body.svg") "unterminated
+			.discardedInner;
+	}
+	.afterPlainRecovery { color: green; }
+}

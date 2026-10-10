@@ -12,6 +12,9 @@ use crate::{
     lowercase_ascii_keyword, strip_vendor_prefix,
   },
   dependencies::{PropertyKind, special_value_is_candidate},
+  parser::{
+    BlockItemCandidates, BlockItemKind, BlockItemProgress, ComponentValues, RecoveryBoundary,
+  },
 };
 
 const fn build_plain_ascii_name_byte_table() -> [bool; 256] {
@@ -245,6 +248,7 @@ pub struct Lexer<'s, V: LexerVisitor = ()> {
   value: &'s [u8],
   scan_pos: Pos,
   visitor: V,
+  function_kind: FunctionKind,
 }
 
 impl<'s, V: LexerVisitor> Lexer<'s, V> {
@@ -254,6 +258,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       value: value.as_bytes(),
       scan_pos: 0,
       visitor,
+      function_kind: FunctionKind::Other,
     }
   }
 
@@ -290,6 +295,32 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     })
   }
 
+  /// A flat run has no semantic value events. Check short runs in one pass;
+  /// use memchr for long runs, retaining the validated endpoint for the caller.
+  fn scan_flat_value(&self, start: usize) -> Option<usize> {
+    let rest = &self.value[start..];
+    let short = rest.len().min(32);
+    for (index, byte) in rest[..short].iter().copied().enumerate() {
+      if matches!(byte, C_LEFT_CURLY | C_SEMICOLON | C_RIGHT_CURLY) {
+        return (byte != C_LEFT_CURLY).then_some(start + index);
+      }
+      if is_non_flat_value_byte(byte) {
+        return None;
+      }
+    }
+    let boundary = memchr3(C_LEFT_CURLY, C_SEMICOLON, C_RIGHT_CURLY, &rest[short..])
+      .map_or(rest.len(), |index| short + index);
+    if rest.get(boundary) == Some(&C_LEFT_CURLY)
+      || rest[short..boundary]
+        .iter()
+        .copied()
+        .any(is_non_flat_value_byte)
+    {
+      return None;
+    }
+    Some(start + boundary)
+  }
+
   /// Skip value text that cannot produce a dependency or change the block
   /// structure. Delimiters of ordinary functions are tracked without
   /// manufacturing tokens, and the scanner stops before dependency-bearing
@@ -299,21 +330,98 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     &mut self,
     state: &mut GenericValueScanState,
     options: GenericValueScanOptions,
-    stop_at_top_level_left_curly: bool,
-    mut is_candidate: F,
-    mut is_comment_candidate: C,
+    is_candidate: F,
+    is_comment_candidate: C,
     icss_symbols: Option<&FxHashSet<&str>>,
-  ) -> Option<PrescannedIdent>
+    block_item: Option<BlockItemScan<'_>>,
+  ) -> Option<BufferedToken>
   where
     F: FnMut(&str) -> bool,
     C: FnMut(&str) -> bool,
   {
+    if let Some(candidate) = block_item {
+      self.scan_value::<true, _, _>(
+        state,
+        options,
+        is_candidate,
+        is_comment_candidate,
+        icss_symbols,
+        Some(candidate),
+      )
+    } else {
+      self.scan_value::<false, _, _>(
+        state,
+        options,
+        is_candidate,
+        is_comment_candidate,
+        icss_symbols,
+        None,
+      )
+    }
+  }
+
+  fn scan_value<const CHECK_SYNTAX: bool, F, C>(
+    &mut self,
+    state: &mut GenericValueScanState,
+    options: GenericValueScanOptions,
+    mut is_candidate: F,
+    mut is_comment_candidate: C,
+    icss_symbols: Option<&FxHashSet<&str>>,
+    block_item: Option<BlockItemScan<'_>>,
+  ) -> Option<BufferedToken>
+  where
+    F: FnMut(&str) -> bool,
+    C: FnMut(&str) -> bool,
+  {
+    let mut block_item = if CHECK_SYNTAX { block_item } else { None };
     let mut position = self.scan_pos as usize;
     let scan_start = position;
     let mut candidate_token = None;
+    if block_item
+      .as_ref()
+      .is_some_and(|candidate| !candidate.can_scan_value())
+    {
+      return None;
+    }
+    // Each suffix gets at most one flat-value proof. A failed prefix proof
+    // from prepare_declaration is carried here, rather than being repeated.
+    if options.allow_flat_scan
+      && !options.keep_comments
+      && !options.preserve_strings
+      && !options.preserve_delimiters
+      && !value_is_nested::<CHECK_SYNTAX>(state, &block_item)
+      && let Some(candidate) = block_item.as_mut()
+      && candidate.flat_probe_start != Some(position as Pos)
+    {
+      candidate.flat_probe_start = Some(position as Pos);
+      if let Some(end) = self.scan_flat_value(position)
+        && (!candidate.collect_dashed
+          || !self.value[position..end]
+            .windows(2)
+            .any(|bytes| bytes == b"--"))
+      {
+        if end > position {
+          note_opaque_value(&mut block_item);
+        }
+        self.scan_pos = end as Pos;
+        return None;
+      }
+    }
+    let preserve_selector = block_item
+      .as_ref()
+      .is_some_and(|candidate| candidate.preserve_selector_tokens());
+    let defer_rule_events =
+      preserve_selector && options.property.is_none() && !options.preserve_delimiters;
+    let preserve_delimiters =
+      options.preserve_delimiters || (preserve_selector && !defer_rule_events);
+    let validating = block_item.is_some();
+    let mut trivia_start = position;
+    let mut trivia_comment = None;
+    let mut trivia_whitespace = false;
     while position < self.value.len() {
       let byte = self.value[position];
       if is_white_space(byte) {
+        trivia_whitespace = true;
         position += 1;
         continue;
       }
@@ -333,15 +441,31 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
             }
           }
         }
+        trivia_comment.get_or_insert(position as Pos);
         position = end;
         continue;
       }
 
+      let leading = Trivia {
+        range: Range::new(trivia_start as Pos, position as Pos),
+        end: position as Pos,
+        first_comment_start: trivia_comment,
+        has_white_space: trivia_whitespace,
+      };
       if matches!(byte, C_QUOTATION_MARK | C_APOSTROPHE) {
         if options.preserve_strings {
           break;
         }
-        position = self.scan_string(position, byte).1;
+        let (kind, end, _, _, _) = self.scan_string(position, byte);
+        if kind == TokenKind::BadString && block_item.is_some() {
+          break;
+        }
+
+        note_opaque_value(&mut block_item);
+        position = end;
+        trivia_start = position;
+        trivia_comment = None;
+        trivia_whitespace = false;
         continue;
       }
 
@@ -357,35 +481,76 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
         let flags = TokenFlags::ascii();
         let name = unsafe { str::from_utf8_unchecked(&self.value[position..end]) };
         let is_function = self.value.get(end) == Some(&C_LEFT_PARENTHESIS);
+        let function = if is_function {
+          FunctionKind::classify(name, flags)
+        } else {
+          FunctionKind::Other
+        };
         let is_candidate = !flags.has_escape()
           && (is_candidate(name)
             || options
               .property
               .is_some_and(|property| special_value_is_candidate(property, name, icss_symbols)));
-        if flags.has_escape()
+        if block_item.as_ref().is_some_and(|candidate| {
+          candidate.preserve_selector_tokens()
+            && ((is_function && !defer_rule_events)
+              || name.starts_with("--")
+              || (!is_function && candidate.preserve_ident()))
+        }) || flags.has_escape()
           || is_candidate
-          || (is_function && is_dependency_value_function(name))
-          || (is_function && options.preserve_delimiters)
+          || (is_function && function.is_dependency())
+          || (is_function && preserve_delimiters)
         {
-          if is_candidate && !is_function && flags.is_ascii() && !flags.has_null() {
-            candidate_token = Some(PrescannedIdent {
-              start: position as Pos,
-              end: end as Pos,
-              flags,
-            });
-            position = end;
+          let is_url = function == FunctionKind::Url;
+          if !is_url {
+            let token_end = if is_function { end + 1 } else { end };
+            candidate_token = Some(BufferedToken::new(
+              TokenWithTrivia {
+                token: Token::with_flags(
+                  if is_function {
+                    TokenKind::Function
+                  } else {
+                    TokenKind::Ident
+                  },
+                  Range::new(position as Pos, token_end as Pos),
+                  Range::new(position as Pos, end as Pos),
+                  flags,
+                ),
+                leading,
+              },
+              function,
+            ));
+            position = token_end;
           }
           break;
+        }
+        if is_function {
+          observe_opaque_value(
+            &mut block_item,
+            TokenKind::Function,
+            position,
+            end + 1,
+            self.value,
+            leading,
+            function,
+          );
+        } else {
+          note_opaque_value(&mut block_item);
         }
         self
           .visitor
           .visit_ident(name, Range::new(position as Pos, end as Pos));
         if is_function {
-          state.parentheses += 1;
+          if !CHECK_SYNTAX {
+            state.consume(TokenKind::LeftParenthesis);
+          }
           position = end + 1;
         } else {
           position = end;
         }
+        trivia_start = position;
+        trivia_comment = None;
+        trivia_whitespace = false;
         continue;
       }
 
@@ -398,12 +563,26 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
         let Some(end) = self.scan_raw_numeric_end(position) else {
           break;
         };
+        note_opaque_value(&mut block_item);
         position = end;
+        trivia_start = position;
+        trivia_comment = None;
+        trivia_whitespace = false;
         continue;
       }
 
+      if preserve_selector && matches!(byte, C_NUMBER_SIGN | C_FULL_STOP | C_COLON | C_AT_SIGN) {
+        break;
+      }
+      if validating
+        && matches!(byte, C_LEFT_CURLY | C_RIGHT_PARENTHESIS | C_RIGHT_SQUARE)
+        && !value_is_nested::<CHECK_SYNTAX>(state, &block_item)
+      {
+        break;
+      }
       match byte {
         C_NUMBER_SIGN => {
+          note_opaque_value(&mut block_item);
           let name_start = position + 1;
           if self.starts_ident_at(name_start)
             || self
@@ -421,49 +600,153 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
           }
         }
         C_LEFT_PARENTHESIS => {
-          if options.preserve_delimiters {
+          if preserve_delimiters {
             break;
           }
-          state.parentheses += 1;
+          observe_opaque_value(
+            &mut block_item,
+            TokenKind::LeftParenthesis,
+            position,
+            position + 1,
+            self.value,
+            leading,
+            FunctionKind::Other,
+          );
+          if !CHECK_SYNTAX {
+            state.consume(TokenKind::LeftParenthesis);
+          }
           position += 1;
         }
         C_RIGHT_PARENTHESIS => {
-          if options.preserve_delimiters {
+          if preserve_delimiters {
             break;
           }
-          state.parentheses = state.parentheses.saturating_sub(1);
+          observe_opaque_value(
+            &mut block_item,
+            TokenKind::RightParenthesis,
+            position,
+            position + 1,
+            self.value,
+            leading,
+            FunctionKind::Other,
+          );
+          if !CHECK_SYNTAX {
+            state.consume(TokenKind::RightParenthesis);
+          }
           position += 1;
         }
         C_LEFT_SQUARE => {
-          if options.preserve_delimiters {
+          if preserve_delimiters {
             break;
           }
-          state.squares += 1;
+          observe_opaque_value(
+            &mut block_item,
+            TokenKind::LeftSquareBracket,
+            position,
+            position + 1,
+            self.value,
+            leading,
+            FunctionKind::Other,
+          );
+          if !CHECK_SYNTAX {
+            state.consume(TokenKind::LeftSquareBracket);
+          }
           position += 1;
         }
         C_RIGHT_SQUARE => {
-          if options.preserve_delimiters {
+          if preserve_delimiters {
             break;
           }
-          state.squares = state.squares.saturating_sub(1);
+          observe_opaque_value(
+            &mut block_item,
+            TokenKind::RightSquareBracket,
+            position,
+            position + 1,
+            self.value,
+            leading,
+            FunctionKind::Other,
+          );
+          if !CHECK_SYNTAX {
+            state.consume(TokenKind::RightSquareBracket);
+          }
           position += 1;
         }
-        C_LEFT_CURLY if stop_at_top_level_left_curly && !state.is_nested() => break,
+        C_LEFT_CURLY
+          if options.stop_at_top_level_left_curly
+            && !value_is_nested::<CHECK_SYNTAX>(state, &block_item) =>
+        {
+          break;
+        }
         C_LEFT_CURLY => {
-          if options.preserve_delimiters {
+          if preserve_delimiters {
             break;
           }
-          state.curlies += 1;
+          observe_opaque_value(
+            &mut block_item,
+            TokenKind::LeftCurlyBracket,
+            position,
+            position + 1,
+            self.value,
+            leading,
+            FunctionKind::Other,
+          );
+          if !CHECK_SYNTAX {
+            state.consume(TokenKind::LeftCurlyBracket);
+          }
           position += 1;
         }
-        C_RIGHT_CURLY if state.curlies > 0 && !options.preserve_delimiters => {
-          state.curlies -= 1;
+        C_RIGHT_CURLY
+          if value_expects::<CHECK_SYNTAX>(state, &block_item, TokenKind::RightCurlyBracket)
+            && !preserve_delimiters =>
+        {
+          observe_opaque_value(
+            &mut block_item,
+            TokenKind::RightCurlyBracket,
+            position,
+            position + 1,
+            self.value,
+            leading,
+            FunctionKind::Other,
+          );
+          if !CHECK_SYNTAX {
+            state.consume(TokenKind::RightCurlyBracket);
+          }
+          position += 1;
+          if block_item
+            .as_ref()
+            .is_some_and(|candidate| !candidate.can_scan_value())
+          {
+            break;
+          }
+        }
+        C_RIGHT_CURLY
+          if preserve_delimiters || !value_is_nested::<CHECK_SYNTAX>(state, &block_item) =>
+        {
+          break;
+        }
+        C_RIGHT_CURLY => position += 1,
+        C_SEMICOLON
+          if RecoveryBoundary::at(
+            TokenKind::Semicolon,
+            value_is_nested::<CHECK_SYNTAX>(state, &block_item),
+          )
+          .is_some() =>
+        {
+          break;
+        }
+        _ => {
+          note_opaque_value(&mut block_item);
           position += 1;
         }
-        C_RIGHT_CURLY => break,
-        C_SEMICOLON if !state.is_nested() => break,
-        _ => position += 1,
       }
+      trivia_start = position;
+      trivia_comment = None;
+      trivia_whitespace = false;
+    }
+    // A surviving selector uses this trivia for :local/:global whitespace
+    // validation. It has not been tokenized, so leave it to the next token.
+    if preserve_selector && candidate_token.is_none() && position < self.value.len() {
+      position = trivia_start;
     }
     self.scan_pos = position as Pos;
     debug_assert!(
@@ -782,6 +1065,13 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
   /// `Bad*` token kinds, so EOF and tokenizer errors are never conflated.
   #[inline]
   pub fn next_token(&mut self) -> Token {
+    let token = self.next_token_without_visit();
+    self.visit_ident(token.kind, token.value_range);
+    token
+  }
+
+  fn next_token_without_visit(&mut self) -> Token {
+    self.function_kind = FunctionKind::Other;
     let start = self.scan_pos as usize;
     let len = self.value.len();
     if start >= len {
@@ -1019,14 +1309,12 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       "scan_pos moved backward from {start} to {}",
       self.scan_pos
     );
-    let token = Token::with_flags(
+    Token::with_flags(
       kind,
       Range::new(start as Pos, end as Pos),
       Range::new(value_start as Pos, value_end as Pos),
       flags,
-    );
-    self.visit_ident(token.kind, token.value_range);
-    token
+    )
   }
 
   #[inline]
@@ -1143,7 +1431,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     }
   }
 
-  fn scan_ident_like(&self, start: usize) -> (TokenKind, usize, usize, usize, TokenFlags) {
+  fn scan_ident_like(&mut self, start: usize) -> (TokenKind, usize, usize, usize, TokenFlags) {
     let (name_end, name_flags) = self.scan_name_with_flags(start);
     if self.value.get(name_end) != Some(&C_LEFT_PARENTHESIS) {
       return (TokenKind::Ident, name_end, start, name_end, name_flags);
@@ -1153,13 +1441,8 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     let name = &self.value[start..name_end];
     // SAFETY: a scanned name starts and ends on UTF-8 boundaries.
     let name = unsafe { str::from_utf8_unchecked(name) };
-    let mut normalized = [0; MAX_CSS_KEYWORD_LEN];
-    let normalized = if name_flags.has_escape() {
-      decode_css_keyword(name, &mut normalized)
-    } else {
-      lowercase_ascii_keyword(name, &mut normalized)
-    };
-    let is_url = normalized == Some("url");
+    self.function_kind = FunctionKind::classify(name, name_flags);
+    let is_url = self.function_kind == FunctionKind::Url;
     if is_url {
       let content_start = self.skip_white_space(open_end);
       if !matches!(
@@ -1608,38 +1891,125 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
 
 /// The single forward stream used by dependency extraction.
 ///
-/// The stream owns the main scanner state and gives the dependency scanner one
-/// token of lookahead without cloning the lexer for every decision. Special
+/// The stream owns the scanner, buffered lookahead, and the rule alternative
+/// events without cloning the lexer for every decision. Special
 /// parsers use the same stream through `next_parser_token`, so consuming a
 /// subgrammar never creates a second scanner over the source.
 ///
-/// The cursor is strictly one-directional:
+/// The source cursor is strictly one-directional:
 ///
 /// ```text
 /// Lexer::scan_pos         farthest tokenized position, only advances
-/// TokenStream::consumed   farthest semantically consumed position, only advances
+/// TokenStream::consumed   semantic position of the currently selected grammar
 /// buffered lookahead      tokens scanned but not yet consumed
 /// ```
 ///
 /// `next` consumes from the buffer first and only calls `lexer.next_token`
 /// when the buffer is empty; it never moves the scanner backwards, so every
-/// source range is tokenized at most once and every token is consumed at most
-/// once.
+/// source range is tokenized at most once. A speculative declaration consumes
+/// tokens immediately; a surviving rule can replay its saved semantic events
+/// after declaration effects are rolled back. The source scanner never rewinds.
 pub(crate) struct TokenStream<'a, 's, V: LexerVisitor = ()> {
   lexer: &'a mut Lexer<'s, V>,
   consumed: Pos,
-  buffered: VecDeque<TokenWithTrivia>,
-  generic_value_state: GenericValueScanState,
+  buffered: VecDeque<BufferedToken>,
+  value_state: GenericValueScanState,
   at_rule_state: GenericValueScanState,
-  special_value_state: GenericValueScanState,
+  pub(crate) block_item: Option<BlockItemCandidates>,
+  rule_events: Vec<BufferedToken>,
+  function_kind: FunctionKind,
+  parsed_value_end: Option<Pos>,
 }
 
-#[derive(Debug, Default)]
-pub(crate) struct GenericValueScanState {
-  parentheses: u32,
-  squares: u32,
-  curlies: u32,
+/// The raw scanner can save selector events without dispatching them through
+/// declaration semantics. Syntax still advances on the same component stack.
+struct BlockItemScan<'a> {
+  candidate: &'a mut BlockItemCandidates,
+  events: &'a mut Vec<BufferedToken>,
 }
+
+impl std::ops::Deref for BlockItemScan<'_> {
+  type Target = BlockItemCandidates;
+
+  fn deref(&self) -> &Self::Target {
+    self.candidate
+  }
+}
+
+impl std::ops::DerefMut for BlockItemScan<'_> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    self.candidate
+  }
+}
+
+/// While ambiguous, syntax and raw value scanning use the same component stack.
+#[inline]
+fn value_is_nested<const CHECK_SYNTAX: bool>(
+  state: &ComponentValues,
+  candidate: &Option<BlockItemScan<'_>>,
+) -> bool {
+  if CHECK_SYNTAX {
+    candidate
+      .as_ref()
+      .expect("syntax scanning has candidates")
+      .is_nested()
+  } else {
+    state.is_nested()
+  }
+}
+
+#[inline]
+fn value_expects<const CHECK_SYNTAX: bool>(
+  state: &ComponentValues,
+  candidate: &Option<BlockItemScan<'_>>,
+  kind: TokenKind,
+) -> bool {
+  if CHECK_SYNTAX {
+    candidate
+      .as_ref()
+      .expect("syntax scanning has candidates")
+      .expects(kind)
+  } else {
+    state.expects(kind)
+  }
+}
+
+#[inline]
+fn note_opaque_value(candidate: &mut Option<BlockItemScan<'_>>) {
+  if let Some(candidate) = candidate {
+    candidate.opaque_value();
+  }
+}
+
+#[inline]
+fn observe_opaque_value(
+  candidate: &mut Option<BlockItemScan<'_>>,
+  kind: TokenKind,
+  start: usize,
+  end: usize,
+  source: &[u8],
+  leading: Trivia,
+  function: FunctionKind,
+) {
+  if let Some(candidate) = candidate {
+    let range = Range::new(start as Pos, end as Pos);
+    let value_range = if kind == TokenKind::Function {
+      Range::new(start as Pos, end as Pos - 1)
+    } else {
+      range
+    };
+    let token = Token::with_flags(kind, range, value_range, TokenFlags::ascii());
+    candidate.observe(token, source);
+    if candidate.preserve_selector_tokens() {
+      candidate.events.push(BufferedToken::new(
+        TokenWithTrivia { token, leading },
+        function,
+      ));
+    }
+  }
+}
+
+pub(crate) type GenericValueScanState = ComponentValues;
 
 #[derive(Debug, Clone, Copy)]
 struct GenericValueScanOptions {
@@ -1647,31 +2017,92 @@ struct GenericValueScanOptions {
   preserve_strings: bool,
   preserve_delimiters: bool,
   property: Option<PropertyKind>,
+  stop_at_top_level_left_curly: bool,
+  allow_flat_scan: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
-struct PrescannedIdent {
-  start: Pos,
-  end: Pos,
-  flags: TokenFlags,
+/// Classification shared by tokenization, raw scanning and semantic parsing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum FunctionKind {
+  Other,
+  Url,
+  ImageSet,
+  Layer,
+  Supports,
+  PaletteMix,
+  Var,
+  Local,
+  Global,
+  Dashed,
 }
 
-impl GenericValueScanState {
+impl FunctionKind {
   #[inline]
-  fn is_nested(&self) -> bool {
-    self.parentheses != 0 || self.squares != 0 || self.curlies != 0
+  fn classify(name: &str, flags: TokenFlags) -> Self {
+    let mut lowercase = [0; MAX_CSS_KEYWORD_LEN];
+    let normalized = if flags.has_escape() {
+      decode_css_keyword(name, &mut lowercase)
+    } else {
+      lowercase_ascii_keyword(name, &mut lowercase)
+    };
+    match normalized {
+      Some("url") => Self::Url,
+      Some("image-set") => Self::ImageSet,
+      Some("layer") => Self::Layer,
+      Some("supports") => Self::Supports,
+      Some("palette-mix") => Self::PaletteMix,
+      Some("var") => Self::Var,
+      Some("local") => Self::Local,
+      Some("global") => Self::Global,
+      Some(name) if strip_vendor_prefix(name) == Some("image-set") => Self::ImageSet,
+      _ if name.starts_with("--") => Self::Dashed,
+      _ => Self::Other,
+    }
+  }
+
+  #[inline]
+  fn is_dependency(self) -> bool {
+    matches!(self, Self::Url | Self::ImageSet | Self::Var | Self::Dashed)
   }
 }
 
-#[inline]
-fn is_dependency_value_function(name: &str) -> bool {
-  let mut lowercase = [0; MAX_CSS_KEYWORD_LEN];
-  let Some(name) = lowercase_ascii_keyword(name, &mut lowercase) else {
-    return name.starts_with("--");
-  };
-  matches!(name, "url" | "var" | "image-set")
-    || strip_vendor_prefix(name) == Some("image-set")
-    || name.starts_with("--")
+/// Compact metadata shared by lookahead, raw scanning and rule replay.
+/// Trivia endpoints coincide with the token start and are reconstructed on use.
+#[derive(Debug, Clone, Copy)]
+struct BufferedToken {
+  token: Token,
+  leading_start: Pos,
+  first_comment_start: Pos,
+  has_whitespace: bool,
+  function: FunctionKind,
+}
+
+impl BufferedToken {
+  fn new(item: TokenWithTrivia, function: FunctionKind) -> Self {
+    debug_assert_eq!(item.leading.end, item.token.range.start);
+    debug_assert_eq!(item.leading.range.end, item.token.range.start);
+    Self {
+      token: item.token,
+      leading_start: item.leading.range.start,
+      first_comment_start: item.leading.first_comment_start.unwrap_or(Pos::MAX),
+      has_whitespace: item.leading.has_white_space,
+      function,
+    }
+  }
+
+  #[inline]
+  fn into_item(self) -> TokenWithTrivia {
+    TokenWithTrivia {
+      token: self.token,
+      leading: Trivia {
+        range: Range::new(self.leading_start, self.token.range.start),
+        end: self.token.range.start,
+        first_comment_start: (self.first_comment_start != Pos::MAX)
+          .then_some(self.first_comment_start),
+        has_white_space: self.has_whitespace,
+      },
+    }
+  }
 }
 
 #[inline(always)]
@@ -1685,9 +2116,12 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       lexer,
       consumed: 0,
       buffered: VecDeque::new(),
-      generic_value_state: GenericValueScanState::default(),
+      value_state: GenericValueScanState::default(),
       at_rule_state: GenericValueScanState::default(),
-      special_value_state: GenericValueScanState::default(),
+      block_item: None,
+      rule_events: Vec::new(),
+      function_kind: FunctionKind::Other,
+      parsed_value_end: None,
     }
   }
 
@@ -1704,20 +2138,154 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       token.token.range,
       self.consumed
     );
-    self.consumed = token.token.range.end;
-    if matches!(
-      token.token.kind,
-      TokenKind::Semicolon | TokenKind::RightCurlyBracket
-    ) {
-      self.generic_value_state = GenericValueScanState::default();
+    if let Some(candidate) = &mut self.block_item
+      && !matches!(candidate.progress, BlockItemProgress::Finished(_))
+    {
+      candidate.observe(token.token, self.lexer.value);
+      if candidate.retain_rule_event(token.token.kind) {
+        self.rule_events.push(token);
+      }
     }
+    self.function_kind = token.function;
+    self
+      .lexer
+      .visit_ident(token.token.kind, token.token.value_range);
+    self.consumed = token.token.range.end;
     debug_assert!(
       self.consumed <= self.lexer.scan_pos(),
       "consumed_pos ({}) exceeded scan_pos ({})",
       self.consumed,
       self.lexer.scan_pos()
     );
-    token
+    token.into_item()
+  }
+
+  #[inline]
+  pub(crate) fn function_kind(&self) -> FunctionKind {
+    self.function_kind
+  }
+
+  #[inline(always)]
+  pub(crate) fn next_with_progress(
+    &mut self,
+    keep_comments: bool,
+  ) -> (TokenWithTrivia, BlockItemProgress) {
+    let token = self.next(keep_comments);
+    (token, self.block_item_progress())
+  }
+
+  #[inline(always)]
+  pub(crate) fn block_item_progress(&self) -> BlockItemProgress {
+    self
+      .block_item
+      .as_ref()
+      .map_or(BlockItemProgress::Continue, |candidate| candidate.progress)
+  }
+
+  /// Resolve cheap prefixes with their semantic result. The validated range
+  /// is consumed by the value parser, so it never scans this text again.
+  /// Return whether the declaration is prepared and, on failure, the attempted
+  /// flat scan's start so candidate parsing can avoid repeating it.
+  pub(crate) fn prepare_declaration(
+    &mut self,
+    ident: Token,
+    custom: bool,
+    flat: bool,
+    collect_dashed: bool,
+  ) -> (bool, Option<Pos>) {
+    let mut flat_probe_start = None;
+    if self.byte_at(ident.range.end) != Some(C_COLON) {
+      return (false, flat_probe_start);
+    }
+    if !custom && !flat {
+      return (false, flat_probe_start);
+    }
+    let end = if custom {
+      None
+    } else {
+      flat_probe_start = Some(ident.range.end + 1);
+      let Some(end) = self.lexer.scan_flat_value(ident.range.end as usize + 1) else {
+        return (false, flat_probe_start);
+      };
+      if collect_dashed
+        && self.lexer.value[ident.range.end as usize + 1..end]
+          .windows(2)
+          .any(|bytes| bytes == b"--")
+      {
+        return (false, flat_probe_start);
+      }
+      Some(end as Pos)
+    };
+    // `peek` has already buffered the identifier. Its colon is read once too.
+    if self.buffered.len() != 1 {
+      return (false, flat_probe_start);
+    }
+    let colon = self.read_significant(false);
+    debug_assert_eq!(colon.token.kind, TokenKind::Colon);
+    self.buffered.push_back(colon);
+    self.parsed_value_end = end;
+    (true, None)
+  }
+
+  pub(crate) fn begin_block_item(
+    &mut self,
+    custom: bool,
+    has_mode: bool,
+    collect_dashed: bool,
+    flat_probe_start: Option<Pos>,
+  ) {
+    let mut candidate = BlockItemCandidates::new(custom, has_mode);
+    candidate.flat_probe_start = flat_probe_start;
+    candidate.collect_dashed = collect_dashed;
+    self.block_item = Some(candidate);
+  }
+
+  /// Select the semantic result without re-tokenizing the source. A declaration
+  /// is already consumed; only a surviving rule alternative needs its events.
+  pub(crate) fn finish_block_item(&mut self) -> BlockItemKind {
+    let candidate = self.block_item.take().expect("an active block item");
+    let BlockItemProgress::Finished(selected) = candidate.progress else {
+      unreachable!("the block item has been resolved");
+    };
+    match selected {
+      BlockItemKind::Declaration => {}
+      BlockItemKind::Rule => {
+        self.consumed = self
+          .rule_events
+          .first()
+          .expect("a rule has a prefix")
+          .token
+          .range
+          .start;
+        for event in self.rule_events.drain(..).rev() {
+          self.buffered.push_front(event);
+        }
+        self.reset_value_scan_states();
+      }
+      BlockItemKind::Invalid => {
+        let boundary = *self
+          .rule_events
+          .last()
+          .expect("an invalid item ends at a boundary");
+        self.consumed = boundary.token.range.start;
+        self.buffered.push_front(boundary);
+        self.reset_value_scan_states();
+      }
+    }
+    self.rule_events.clear();
+    selected
+  }
+
+  pub(crate) fn reset_value_scan_states(&mut self) {
+    self.value_state = GenericValueScanState::default();
+  }
+
+  pub(crate) fn value_is_nested(&self) -> bool {
+    self.value_state.is_nested()
+      || self
+        .block_item
+        .as_ref()
+        .is_some_and(BlockItemCandidates::is_nested)
   }
 
   /// Consume the next parser token while folding comments into its leading
@@ -1760,10 +2328,11 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       let item = self.read_significant(keep_comments);
       self.buffered.push_back(item);
     }
-    *self
+    self
       .buffered
       .front()
       .expect("peek must buffer an item before reading the front")
+      .into_item()
   }
 
   /// Peek the next parser token (folding comments into its leading trivia)
@@ -1781,7 +2350,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
         let item = self.read_significant(true);
         self.buffered.push_back(item);
       }
-      let item = self.buffered[index];
+      let item = self.buffered[index].into_item();
       leading_start.get_or_insert(item.leading.range.start);
       has_white_space |= item.leading.has_whitespace();
       if matches!(item.token.kind, TokenKind::Comment | TokenKind::BadComment) {
@@ -1812,14 +2381,14 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
     self.peek(keep_comments);
     for item in &self.buffered {
       if !matches!(item.token.kind, TokenKind::Comment | TokenKind::BadComment) {
-        return *item;
+        return item.into_item();
       }
     }
     loop {
       let item = self.read_significant(keep_comments);
       self.buffered.push_back(item);
       if !matches!(item.token.kind, TokenKind::Comment | TokenKind::BadComment) {
-        return item;
+        return item.into_item();
       }
     }
   }
@@ -1842,17 +2411,22 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       return;
     }
     let candidate = self.lexer.fast_forward_generic_value(
-      &mut self.generic_value_state,
+      &mut self.value_state,
       GenericValueScanOptions {
         keep_comments,
         preserve_strings,
         preserve_delimiters,
         property: None,
+        stop_at_top_level_left_curly: false,
+        allow_flat_scan: false,
       },
-      false,
       &mut is_candidate,
       &mut is_comment_candidate,
       None,
+      self.block_item.as_mut().map(|candidate| BlockItemScan {
+        candidate,
+        events: &mut self.rule_events,
+      }),
     );
     self.finish_value_fast_forward(candidate);
   }
@@ -1866,18 +2440,29 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
     if !self.buffered.is_empty() {
       return;
     }
+    if let Some(end) = self.parsed_value_end.take() {
+      debug_assert!(self.lexer.scan_pos() <= end);
+      self.lexer.scan_pos = end;
+      self.consumed = end;
+      return;
+    }
     let candidate = self.lexer.fast_forward_generic_value(
-      &mut self.generic_value_state,
+      &mut self.value_state,
       GenericValueScanOptions {
         keep_comments: false,
         preserve_strings,
         preserve_delimiters,
         property: None,
+        stop_at_top_level_left_curly: false,
+        allow_flat_scan: true,
       },
-      false,
       never_fast_forward_candidate,
       never_fast_forward_candidate,
       None,
+      self.block_item.as_mut().map(|candidate| BlockItemScan {
+        candidate,
+        events: &mut self.rule_events,
+      }),
     );
     self.finish_value_fast_forward(candidate);
   }
@@ -1904,10 +2489,12 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
         preserve_strings,
         preserve_delimiters,
         property: None,
+        stop_at_top_level_left_curly: true,
+        allow_flat_scan: false,
       },
-      true,
       &mut is_candidate,
       &mut is_comment_candidate,
+      None,
       None,
     );
     self.finish_value_fast_forward(candidate);
@@ -1931,44 +2518,35 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       return;
     }
     let candidate = self.lexer.fast_forward_generic_value(
-      &mut self.special_value_state,
+      &mut self.value_state,
       GenericValueScanOptions {
         keep_comments,
         preserve_strings,
         preserve_delimiters,
         property: Some(property),
+        stop_at_top_level_left_curly: false,
+        allow_flat_scan: false,
       },
-      false,
       never_fast_forward_candidate,
       is_css_modules_pure_magic_comment,
       icss_symbols,
+      self.block_item.as_mut().map(|candidate| BlockItemScan {
+        candidate,
+        events: &mut self.rule_events,
+      }),
     );
     self.finish_value_fast_forward(candidate);
   }
 
   #[inline]
-  fn finish_value_fast_forward(&mut self, candidate: Option<PrescannedIdent>) {
+  fn finish_value_fast_forward(&mut self, candidate: Option<BufferedToken>) {
     let Some(candidate) = candidate else {
       self.consumed = self.lexer.scan_pos();
       return;
     };
-    debug_assert_eq!(candidate.end, self.lexer.scan_pos());
-    self.consumed = candidate.start;
-    let range = Range::new(candidate.start, candidate.end);
-    self.buffered.push_back(TokenWithTrivia {
-      token: Token::with_flags(TokenKind::Ident, range, range, candidate.flags),
-      leading: Trivia {
-        range: Range::new(candidate.start, candidate.start),
-        end: candidate.start,
-        first_comment_start: None,
-        has_white_space: false,
-      },
-    });
-  }
-
-  #[inline]
-  pub(crate) fn reset_special_value_scan_state(&mut self) {
-    self.special_value_state = GenericValueScanState::default();
+    debug_assert_eq!(candidate.token.range.end, self.lexer.scan_pos());
+    self.consumed = candidate.token.range.start;
+    self.buffered.push_back(candidate);
   }
 
   #[inline]
@@ -2041,10 +2619,9 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   /// the full range is returned. On failure (`None`) the lexer position is
   /// unchanged so the caller can re-tokenize the region normally.
   pub(crate) fn fast_forward(&mut self, end: TokenKind) -> Option<Range> {
-    debug_assert!(
-      self.buffered.is_empty(),
-      "fast_forward requires an empty lookahead buffer"
-    );
+    if !self.buffered.is_empty() {
+      return None;
+    }
     let old_scan_pos = self.lexer.scan_pos();
     let old_consumed = self.consumed;
     let range = self.lexer.fast_forward(end)?;
@@ -2093,13 +2670,13 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   }
 
   #[inline(always)]
-  fn read_significant(&mut self, keep_comments: bool) -> TokenWithTrivia {
+  fn read_significant(&mut self, keep_comments: bool) -> BufferedToken {
     let start = self.lexer.scan_pos();
     let mut end = start;
     let mut first_comment_start = None;
     let mut has_white_space = false;
     loop {
-      let token = self.lexer.next_token();
+      let token = self.lexer.next_token_without_visit();
       debug_assert!(token.range.start >= end);
       if token.kind == TokenKind::WhiteSpace {
         has_white_space = true;
@@ -2117,7 +2694,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
         first_comment_start,
         has_white_space,
       };
-      return TokenWithTrivia { token, leading };
+      return BufferedToken::new(TokenWithTrivia { token, leading }, self.lexer.function_kind);
     }
   }
 }
@@ -2146,6 +2723,21 @@ pub fn is_white_space(c: u8) -> bool {
 
 pub fn is_digit(c: u8) -> bool {
   c.is_ascii_digit()
+}
+
+#[inline]
+fn is_non_flat_value_byte(byte: u8) -> bool {
+  matches!(
+    byte,
+    C_QUOTATION_MARK
+      | C_APOSTROPHE
+      | C_SOLIDUS
+      | C_REVERSE_SOLIDUS
+      | C_LEFT_PARENTHESIS
+      | C_RIGHT_PARENTHESIS
+      | C_LEFT_SQUARE
+      | C_RIGHT_SQUARE
+  )
 }
 
 #[inline]

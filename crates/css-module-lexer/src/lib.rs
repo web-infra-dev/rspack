@@ -2,6 +2,7 @@ mod css_syntax;
 mod dependencies;
 mod dependency_types;
 mod lexer;
+mod parser;
 
 pub use dependencies::{DashedIdentCollector, LexDependencies, ModeData};
 pub use dependency_types::{
