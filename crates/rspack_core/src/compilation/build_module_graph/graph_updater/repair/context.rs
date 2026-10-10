@@ -25,7 +25,7 @@ pub struct TaskContext {
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub(crate) cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
-  pub value_cache_versions: ValueCacheVersions,
+  pub value_cache_versions: Arc<ValueCacheVersions>,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -59,7 +59,7 @@ impl TaskContext {
       output_fs: compilation.output_filesystem.clone(),
       module_build_cache: compilation.module_build_cache.clone(),
       cache: compilation.cache.clone(),
-      value_cache_versions: compilation.value_cache_versions.clone(),
+      value_cache_versions: Arc::new(compilation.value_cache_versions.clone()),
       artifact,
       exports_info_artifact,
     }
