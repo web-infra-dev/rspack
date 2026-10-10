@@ -3924,27 +3924,29 @@ dependencies = [
 [[package]]
 name = "rspack-allocative"
 version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "942dd788eb5b967d155baa21e4699e4a164e2b217a236ded02f22d86564730a4"
 dependencies = [
  "atomic_refcell",
  "camino",
  "ctor 0.1.26",
  "dashmap",
+ "either",
  "hashbrown 0.14.5",
  "indexmap",
  "once_cell",
+ "parking_lot",
  "rspack-allocative_derive",
+ "serde_json",
+ "smallvec",
  "tokio",
+ "triomphe",
  "ustr-fxhash",
 ]
 
 [[package]]
 name = "rspack-allocative_derive"
 version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "125d6c4fea52a20e2baaa381c122e111a825ac4c3cccdbb50605805f025d7197"
 dependencies = [
+ "cow-utils",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
