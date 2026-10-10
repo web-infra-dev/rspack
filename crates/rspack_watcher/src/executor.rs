@@ -1,5 +1,5 @@
 use std::sync::{
-  Arc,
+  Arc, Mutex as SyncMutex,
   atomic::{AtomicBool, Ordering},
 };
 
@@ -16,12 +16,17 @@ type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
 
 #[derive(Debug, Default)]
-struct FilesData {
+pub(crate) struct FilesData {
   changed: HashSet<String>,
   deleted: HashSet<String>,
 }
 
 impl FilesData {
+  pub(crate) fn take_aggregated(&mut self) -> (HashSet<String>, HashSet<String>) {
+    let files = std::mem::take(self);
+    (files.changed, files.deleted)
+  }
+
   fn is_empty(&self) -> bool {
     self.changed.is_empty() && self.deleted.is_empty()
   }
@@ -34,7 +39,7 @@ impl FilesData {
 pub struct Executor {
   aggregate_timeout: u32,
   rx: ThreadSafetyReceiver<EventBatch>,
-  files_data: ThreadSafety<FilesData>,
+  files_data: Arc<SyncMutex<FilesData>>,
   exec_aggregate_tx: UnboundedSender<ExecAggregateEvent>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
   exec_tx: UnboundedSender<ExecEvent>,
@@ -72,6 +77,7 @@ impl Executor {
     rx: UnboundedReceiver<EventBatch>,
     aggregate_timeout: Option<u32>,
     paused: Arc<AtomicBool>,
+    files_data: Arc<SyncMutex<FilesData>>,
   ) -> Self {
     let (exec_aggregate_tx, exec_aggregate_rx) = mpsc::unbounded_channel::<ExecAggregateEvent>();
     let (exec_tx, exec_rx) = mpsc::unbounded_channel::<ExecEvent>();
@@ -81,7 +87,7 @@ impl Executor {
       aggregate_running: Arc::new(AtomicBool::new(false)),
       paused,
       rx: Arc::new(Mutex::new(rx)),
-      files_data: Default::default(),
+      files_data,
       exec_aggregate_tx,
       exec_aggregate_rx: Arc::new(Mutex::new(exec_aggregate_rx)),
       exec_rx: Arc::new(Mutex::new(exec_rx)),
@@ -139,13 +145,25 @@ impl Executor {
             let path = event.path.to_string_lossy().to_string();
             match event.kind {
               FsEventKind::Change => {
-                files_data.lock().await.changed.insert(path);
+                files_data
+                  .lock()
+                  .expect("should lock files data")
+                  .changed
+                  .insert(path);
               }
               FsEventKind::Remove => {
-                files_data.lock().await.deleted.insert(path);
+                files_data
+                  .lock()
+                  .expect("should lock files data")
+                  .deleted
+                  .insert(path);
               }
               FsEventKind::Create => {
-                files_data.lock().await.changed.insert(path);
+                files_data
+                  .lock()
+                  .expect("should lock files data")
+                  .changed
+                  .insert(path);
               }
             }
           }
@@ -176,7 +194,12 @@ impl Executor {
     // indefinitely — the event loop already processed them (added to files_data)
     // but skipped sending Execute because paused was true. No future OS event
     // will re-deliver them, so we must kick the aggregate task ourselves.
-    if !self.files_data.lock().await.is_empty() {
+    if !self
+      .files_data
+      .lock()
+      .expect("should lock files data")
+      .is_empty()
+    {
       let _ = self.exec_aggregate_tx.send(ExecAggregateEvent::Execute);
     }
   }
@@ -238,7 +261,7 @@ fn create_execute_task(
 fn create_execute_aggregate_task(
   event_handler: Box<dyn EventAggregateHandler + Send>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
-  files: ThreadSafety<FilesData>,
+  files: Arc<SyncMutex<FilesData>>,
   aggregate_timeout: u64,
   running: Arc<AtomicBool>,
 ) -> tokio::task::JoinHandle<()> {
@@ -260,17 +283,17 @@ fn create_execute_aggregate_task(
         tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
 
         // Get the files to process
-        let files = {
-          let mut files = files.lock().await;
+        let (changed, deleted) = {
+          let mut files = files.lock().expect("should lock files data");
           if files.is_empty() {
             running.store(false, Ordering::Relaxed);
             continue;
           }
-          std::mem::take(&mut *files)
+          files.take_aggregated()
         };
 
         // Call the event handler with the changed and deleted files
-        event_handler.on_event_handle(files.changed, files.deleted);
+        event_handler.on_event_handle(changed, deleted);
         running.store(false, Ordering::Relaxed);
       }
     }
