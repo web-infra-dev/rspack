@@ -145,8 +145,8 @@ impl Tracer for StdoutTracer {
                 })
               });
 
-              // Convert relative microsecond timestamp to absolute ISO 8601 format
-              let absolute_ts_micros = self.begin_ts + begin_event.ts;
+              // Convert relative nanosecond timestamp to absolute ISO 8601 format
+              let absolute_ts_micros = self.begin_ts + begin_event.ts / 1_000;
               let timestamp_iso = format_timestamp_iso8601(absolute_ts_micros);
 
               // Build JSON in Rust trace format
