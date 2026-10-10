@@ -46,7 +46,6 @@ dunce               = { version = "1.0.5", default-features = false }
 dyn-clone           = { version = "1.0.20", default-features = false }
 either              = { version = "1.18.0", default-features = false }
 enum-tag            = { version = "0.3.0", default-features = false }
-fast-glob           = { version = "1.1.2", default-features = false }
 fixedbitset         = { version = "0.5.7", default-features = false }
 form_urlencoded     = { version = "1.2.2", default-features = false }
 fs-err              = { version = "3.3.2", default-features = false }
@@ -187,6 +186,7 @@ rspack_core                            = { version = "=0.102.8", path = "crates/
 rspack_dojang                          = { version = "=0.102.8", path = "crates/rspack_dojang", default-features = false }
 rspack_error                           = { version = "=0.102.8", path = "crates/rspack_error", default-features = false }
 rspack_fs                              = { version = "=0.102.8", path = "crates/rspack_fs", default-features = false }
+rspack_glob                            = { version = "=0.102.8", path = "crates/rspack_glob", default-features = false }
 rspack_hash                            = { version = "=0.102.8", path = "crates/rspack_hash", default-features = false }
 rspack_hook                            = { version = "=0.102.8", path = "crates/rspack_hook", default-features = false }
 rspack_ids                             = { version = "=0.102.8", path = "crates/rspack_ids", default-features = false }
@@ -426,6 +426,9 @@ opt-level = "s"
 opt-level = "s"
 
 [profile.release.package.glob]
+opt-level = "s"
+
+[profile.release.package.rspack_glob]
 opt-level = "s"
 
 [profile.release.package.wasmparser]

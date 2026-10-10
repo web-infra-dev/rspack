@@ -6,6 +6,7 @@ it("should emit copied assets with POSIX keys", () => {
 	expect(assetNames).toEqual(
 		expect.arrayContaining([
 			"copied/assets/glob/nested/one.txt",
+			"windows-copied/assets/glob/nested/one.txt",
 			"template/simple.txt",
 			"template/deep/two.txt"
 		])

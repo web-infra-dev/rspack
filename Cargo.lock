@@ -1465,15 +1465,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
 
 [[package]]
-name = "fast-glob"
-version = "1.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a044ed96eb57253e806d08b74260638af189687e583f04947a5e11e75e0b0d1"
-dependencies = [
- "arrayvec",
-]
-
-[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4260,7 +4251,6 @@ dependencies = [
  "derive_more",
  "dyn-clone",
  "either",
- "fast-glob",
  "fixedbitset",
  "futures",
  "hashlink",
@@ -4287,6 +4277,7 @@ dependencies = [
  "rspack_dojang",
  "rspack_error",
  "rspack_fs",
+ "rspack_glob",
  "rspack_hash",
  "rspack_hook",
  "rspack_intern",
@@ -4368,6 +4359,32 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "rspack_glob"
+version = "0.102.8"
+dependencies = [
+ "async-recursion",
+ "cow-utils",
+ "rspack_error",
+ "rspack_fs",
+ "rspack_paths",
+ "rspack_util",
+ "rustc-hash",
+ "smallvec",
+]
+
+[[package]]
+name = "rspack_glob_test"
+version = "0.102.8"
+dependencies = [
+ "async-trait",
+ "rspack_fs",
+ "rspack_glob",
+ "rspack_paths",
+ "smallvec",
+ "tokio",
 ]
 
 [[package]]
@@ -4661,6 +4678,7 @@ name = "rspack_paths"
 version = "0.102.8"
 dependencies = [
  "camino",
+ "cow-utils",
  "dashmap",
  "indexmap",
  "rspack_cacheable",
@@ -4735,14 +4753,13 @@ dependencies = [
 name = "rspack_plugin_copy"
 version = "0.102.8"
 dependencies = [
- "cow-utils",
  "derive_more",
- "fast-glob",
  "futures",
  "pathdiff",
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_glob",
  "rspack_hash",
  "rspack_hook",
  "rspack_parallel",
@@ -5026,7 +5043,6 @@ dependencies = [
  "concat-string",
  "cow-utils",
  "either",
- "fast-glob",
  "form_urlencoded",
  "indexmap",
  "itertools 0.14.0",
@@ -5040,6 +5056,7 @@ dependencies = [
  "rspack_collections",
  "rspack_core",
  "rspack_error",
+ "rspack_glob",
  "rspack_hash",
  "rspack_hook",
  "rspack_ids",
@@ -5759,7 +5776,6 @@ dependencies = [
 name = "rspack_watcher"
 version = "0.102.8"
 dependencies = [
- "cow-utils",
  "dashmap",
  "futures",
  "notify",
