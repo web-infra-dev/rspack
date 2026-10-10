@@ -93,7 +93,7 @@ export default defineConfig({
               ...moduleKeys,
               'buildMeta',
             ]);
-            for (const key of moduleKeys) {
+            for (const key of ['matchResource', 'error', ...moduleKeys]) {
               expect(Object.hasOwn(module, key)).toBe(true);
               const descriptor = Object.getOwnPropertyDescriptor(module, key)!;
               const firstDescriptor = Object.getOwnPropertyDescriptor(
@@ -105,12 +105,26 @@ export default defineConfig({
               expect(descriptor.get).toBe(firstDescriptor.get);
               expect(descriptor.set).toBe(firstDescriptor.set);
               expect(typeof descriptor.set).toBe(
-                key === 'factoryMeta' || key === 'buildInfo'
+                key === 'factoryMeta' ||
+                  key === 'buildInfo' ||
+                  key === 'matchResource'
                   ? 'function'
                   : 'undefined',
               );
               expect(() => descriptor.get!.call({})).toThrow();
             }
+            expect(module.matchResource).toBe(`${module.resource}?shared#test`);
+            expect(module.error).toBeUndefined();
+            expect(Reflect.set(module, 'error', 'ignored')).toBe(false);
+            const matchResource = Object.getOwnPropertyDescriptor(
+              first,
+              'matchResource',
+            )!;
+            expect(matchResource.get!.call(module)).toBe(module.matchResource);
+            expect(() => matchResource.set!.call({}, 'ignored')).toThrow();
+            expect(() => matchResource.set!.call(module, 'ignored')).toThrow(
+              /only modify the module in the loader/,
+            );
             expect(module.context).toBe(import.meta.dirname);
             expect(module.factoryMeta.sideEffectFree).toBe(false);
             expect(Reflect.set(module, 'context', 'ignored')).toBe(false);
@@ -129,6 +143,12 @@ export default defineConfig({
             buildInfoKeys[1],
           )!.get!;
           expect(getFiles.call(second.buildInfo)).toContain(second.resource);
+          Object.defineProperty(first, 'matchResource', {
+            value: 'overridden',
+          });
+          Object.defineProperty(first, 'error', { value: 'overridden' });
+          expect(second.matchResource).toBe(`${second.resource}?shared#test`);
+          expect(second.error).toBeUndefined();
           const assetsKey = buildInfoKeys[0];
           Object.defineProperty(first.buildInfo, assetsKey, {
             value: 'overridden',

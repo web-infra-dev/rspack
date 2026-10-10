@@ -2,6 +2,13 @@ import { runNodeCase } from '@rspack/test-tools/helper/node-case';
 
 export default [
   {
+    description:
+      'resolves shared NormalModule errors against the receiver and current build',
+    async run() {
+      await runNodeCase(new URL('./errors.mjs', import.meta.url));
+    },
+  },
+  {
     description: 'keeps shared accessors valid across rebuild, close and GC',
     async run() {
       await runNodeCase(new URL('./lifecycle.mjs', import.meta.url));
