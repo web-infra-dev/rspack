@@ -1,17 +1,95 @@
-import type { JsSource } from '@rspack/binding';
+import type { JsSource, JsSourceWithLazyMap } from '@rspack/binding';
 import { RawSource, type Source, SourceMapSource } from 'webpack-sources';
 
-export class SourceAdapter {
-  static fromBinding(source: JsSource): Source {
-    if (!source.map) {
-      return new RawSource(source.source);
-    }
-    return new SourceMapSource(
-      source.source,
-      'inmemory://from rust',
-      // see: https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/SourceMapSource.js#L30
-      source.map,
+const sourceCacheSymbol = Symbol.for('rspack.originalSource');
+const sourceMapOverrides = new WeakMap<
+  SourceMapSource,
+  { value: string | undefined }
+>();
+type SourceWithCache = SourceMapSource & {
+  [sourceCacheSymbol]?: JsSourceWithLazyMap;
+};
+
+function replaceSourceMap(source: SourceWithCache, value: string | undefined) {
+  if (
+    !Object.getOwnPropertyDescriptor(source, '_sourceMapAsString')?.configurable
+  ) {
+    return false;
+  }
+  Object.defineProperty(source, '_sourceMapAsString', {
+    value,
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
+  delete source[sourceCacheSymbol];
+  return true;
+}
+
+function setSourceMap(this: SourceWithCache, value: string | undefined) {
+  if (replaceSourceMap(this, value)) return;
+  if (Object.isFrozen(this)) {
+    throw new TypeError(
+      "Cannot assign to read only property '_sourceMapAsString'",
     );
+  }
+  // A sealed source keeps the accessor; preserve its writable value for clearCache().
+  sourceMapOverrides.set(this, { value });
+}
+
+function getSourceMap(this: SourceWithCache): string | undefined {
+  const override = sourceMapOverrides.get(this);
+  if (override) return override.value;
+  const cache = this[sourceCacheSymbol];
+  // Preserve extracted getters after the instance has materialized its map.
+  if (!cache) return this._sourceMapAsString;
+  const map = cache.map;
+  const json = typeof map === 'string' ? map : map!();
+  cache.map = json;
+  // Frozen/sealed sources can still read the shared JSON without changing their descriptors.
+  replaceSourceMap(this, json);
+  return json;
+}
+
+function clearSourceCache(
+  this: SourceWithCache,
+  options?: Source.ClearCacheOptions,
+  visited?: WeakSet<Source>,
+) {
+  // An unread native map has no JS map caches to release. Avoid probing its getter.
+  if (typeof this[sourceCacheSymbol]?.map === 'function') {
+    options = { ...options, maps: false };
+  }
+  SourceMapSource.prototype.clearCache.call(this, options, visited);
+}
+
+export class SourceAdapter {
+  static fromBinding(cache: JsSource | JsSourceWithLazyMap): Source {
+    if (!cache.map) return new RawSource(cache.source);
+    if (typeof cache.map === 'string') {
+      return new SourceMapSource(
+        cache.source,
+        'inmemory://from rust',
+        cache.map,
+      );
+    }
+    const source = new SourceMapSource(cache.source, 'inmemory://from rust');
+    source._hasSourceMap = true;
+    Object.defineProperties(source, {
+      [sourceCacheSymbol]: { value: cache, configurable: true },
+      clearCache: {
+        value: clearSourceCache,
+        writable: true,
+        configurable: true,
+      },
+      _sourceMapAsString: {
+        get: getSourceMap,
+        set: setSourceMap,
+        configurable: true,
+        enumerable: true,
+      },
+    });
+    return source;
   }
 
   static toBinding(source: Source): JsSource {
