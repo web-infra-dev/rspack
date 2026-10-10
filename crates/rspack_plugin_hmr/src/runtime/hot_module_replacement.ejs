@@ -379,6 +379,10 @@
 			return setStatus("idle").then(function () {
 				return outdatedModules;
 			});
+		}, function (err) {
+			return setStatus("fail").then(function () {
+				throw err;
+			});
 		});
 	});
 }

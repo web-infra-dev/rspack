@@ -1,0 +1,17 @@
+# Case renamed-async-chunk-shared-runtime: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: hooks.chunk.CURRENT_HASH.js
+- Bundle: main.js
+- Bundle: other-page_js.chunk.CURRENT_HASH.js
+- Bundle: other.js
+- Bundle: page_js-policy_js.chunk.CURRENT_HASH.js
+- Bundle: shared.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update
