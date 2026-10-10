@@ -1,18 +1,27 @@
 #![cfg(allocative)]
 
 use std::{
+  borrow::Cow,
   cell::UnsafeCell,
   collections::HashMap,
   mem::{ManuallyDrop, MaybeUninit, size_of},
   sync::{
-    Arc, LazyLock, Mutex,
-    atomic::{AtomicBool, Ordering},
+    Arc, LazyLock, Mutex, OnceLock,
+    atomic::{AtomicBool, AtomicPtr, Ordering},
   },
 };
 
 use allocative::{Allocative, FlameGraph, FlameGraphBuilder, Key, Visit, Visitor};
+use hashlink::{LinkedHashMap, LinkedHashSet};
 use indexmap::{IndexMap, IndexSet};
+use rspack_sources::{BoxSource, CachedSource, RawStringSource, SourceExt, SourceValue};
+use rspack_tasks::CompilerContext;
 use smallvec::SmallVec;
+use smol_str::SmolStr;
+use swc_core::base::config::{JscConfig, Options};
+
+#[path = "../../rspack_core/src/utils/allocative_count_labels.rs"]
+mod count_labels;
 
 #[path = "support/driver_enums.rs"]
 mod driver_enums;
@@ -138,6 +147,16 @@ fn strong_cycles_terminate_and_deduplicate() {
 }
 
 #[test]
+fn shared_smol_strings_are_not_counted_twice() {
+  let value = SmolStr::new("x".repeat(4096));
+  assert!(value.is_heap_allocated());
+  let single = capture(&value).0;
+  let (total, _, warnings) = capture(&(value.clone(), value));
+  assert_eq!(total, single + size_of::<SmolStr>());
+  assert!(warnings.is_empty(), "{warnings}");
+}
+
+#[test]
 fn profiling_does_not_initialize_lazy_values() {
   static INITIALIZED: AtomicBool = AtomicBool::new(false);
   let value: LazyLock<Vec<u8>> = LazyLock::new(|| {
@@ -147,6 +166,24 @@ fn profiling_does_not_initialize_lazy_values() {
   let (total, _, warnings) = capture(&value);
   assert!(!INITIALIZED.load(Ordering::Relaxed));
   assert_eq!(total, size_of_val(&value));
+  assert!(warnings.is_empty(), "{warnings}");
+}
+
+#[test]
+fn cached_sources_follow_the_owned_source_without_rendering_it() {
+  let raw: BoxSource = RawStringSource::from("x".repeat(4096)).boxed();
+  let cache = CachedSource::new(raw.clone());
+  let single = capture(&raw).0;
+  assert!(
+    single >= size_of::<BoxSource>() + size_of::<RawStringSource>() + 4096,
+    "driver-injected Source traversal omitted the owned text: {single}"
+  );
+  let (total, _, warnings) = capture(&(raw, cache));
+  assert!(total >= single);
+  assert!(
+    total < single + 2048,
+    "source text was copied or counted twice: {total}"
+  );
   assert!(warnings.is_empty(), "{warnings}");
 }
 
@@ -400,6 +437,20 @@ fn enum_field_and_variant_policies_keep_typed_traversal() {
   assert!(warnings.contains(";Data;external;opaque;"), "{warnings}");
   let (total, _, warnings) = capture(&Value::Skipped(String::with_capacity(4096)));
   assert_eq!(total, size_of::<Value>());
+  assert!(warnings.is_empty(), "{warnings}");
+}
+
+#[test]
+fn temporary_borrowed_sources_use_typed_adapters_without_following_borrows() {
+  let text = String::from("temporary source");
+  let borrowed = SourceValue::String(Cow::Borrowed(&text));
+  let (total, _, warnings) = capture_with(|visitor| borrowed.visit(visitor));
+  assert_eq!(total, size_of_val(&borrowed));
+  assert!(warnings.is_empty(), "{warnings}");
+
+  let owned = SourceValue::String(Cow::Owned(String::with_capacity(4096)));
+  let (total, _, warnings) = capture_with(|visitor| owned.visit(visitor));
+  assert_eq!(total, size_of_val(&owned) + 4096);
   assert!(warnings.is_empty(), "{warnings}");
 }
 
@@ -726,6 +777,76 @@ fn unknown_trait_objects_in_box_rc_and_arc_use_the_generic_opaque_fallback() {
 }
 
 #[test]
+fn swc_options_owned_buffers_are_reflected_without_field_policies() {
+  let mut options = Options::default();
+  let baseline = capture(&options).0;
+  options.filename = String::with_capacity(4096);
+  options.config.jsc.output.preamble = String::with_capacity(1024);
+  let (total, folded, _) = capture(&options);
+  assert_eq!(
+    total,
+    baseline + options.filename.capacity() + options.config.jsc.output.preamble.capacity()
+  );
+  assert!(folded.contains(";filename;"), "{folded}");
+  assert!(folded.contains(";output;"), "{folded}");
+  assert!(folded.contains(";preamble;"), "{folded}");
+}
+
+#[test]
+fn swc_config_cache_is_not_initialized_and_visits_only_live_config() {
+  struct Cache {
+    jsc: OnceLock<JscConfig>,
+  }
+  let cache = Cache {
+    jsc: OnceLock::new(),
+  };
+  let (total, _, warnings) = capture(&cache);
+  assert_eq!(total, size_of_val(&cache));
+  assert!(cache.jsc.get().is_none());
+  assert!(warnings.is_empty(), "{warnings}");
+
+  let mut config = JscConfig::default();
+  let baseline = capture(&config).0;
+  config.output.preamble = String::with_capacity(4096);
+  let capacity = config.output.preamble.capacity();
+  cache.jsc.set(config).expect("empty cache");
+  let (total, folded, warnings) = capture(&cache);
+  assert_eq!(
+    total,
+    size_of_val(&cache) + baseline - size_of::<JscConfig>() + capacity
+  );
+  assert!(folded.contains(";jsc;"), "{folded}");
+  assert!(folded.contains(";preamble;"), "{folded}");
+  assert!(
+    !warnings.contains("Unobserved nested allocations: swc::config::JscConfig ("),
+    "{warnings}"
+  );
+}
+
+#[test]
+fn compiler_context_atomic_pointer_is_only_a_non_owning_leaf() {
+  let context = CompilerContext::new();
+  let mut text = String::with_capacity(8192);
+  for pointer in [
+    None,
+    Some(std::ptr::from_mut(&mut text).cast()),
+    Some(std::ptr::dangling_mut()),
+  ] {
+    context.set_exports_info_artifact_ptr(pointer);
+    let (total, folded, warnings) = capture(&context);
+    assert_eq!(total, size_of_val(&context));
+    assert!(folded.contains(";exports_info_artifact_ptr;"), "{folded}");
+    assert!(warnings.is_empty(), "{warnings}");
+    assert_eq!(context.exports_info_artifact_ptr(), pointer);
+  }
+
+  let pointer = AtomicPtr::<String>::new(std::ptr::dangling_mut());
+  let (total, _, warnings) = capture(&pointer);
+  assert_eq!(total, size_of_val(&pointer));
+  assert!(warnings.is_empty(), "{warnings}");
+}
+
+#[test]
 fn ordered_collections_retain_index_allocations_when_empty_or_sparse() {
   let mut map: IndexMap<u64, String> = IndexMap::with_capacity(100_000);
   let (empty, folded, warnings) = capture(&map);
@@ -961,5 +1082,82 @@ fn empty_weak_pointers_do_not_invent_backing_allocations() {
     assert_eq!(total, size_of_val(value));
     assert!(!folded.contains(";retained "), "{folded}");
     assert!(warnings.is_empty(), "{warnings}");
+  }
+}
+
+#[test]
+fn linked_hash_collections_keep_reserved_table_capacity_separate_from_payloads() {
+  let mut map: LinkedHashMap<u64, String> = LinkedHashMap::with_capacity(100_000);
+  let capacity = map.capacity();
+  let (empty, folded, warnings) = capture(&map);
+  assert!(empty > size_of_val(&map) + capacity * size_of::<usize>());
+  assert!(folded.contains(";raw_table;alloc "), "{folded}");
+  assert!(warnings.is_empty(), "{warnings}");
+  let text = String::with_capacity(4096);
+  let heap = text.capacity();
+  map.insert(1, text);
+  assert_eq!(
+    capture(&map).0,
+    empty + size_of::<u64>() + size_of::<String>() + heap
+  );
+  map.clear();
+  assert_eq!(map.capacity(), capacity);
+  assert_eq!(capture(&map).0, empty);
+
+  let mut set: LinkedHashSet<String> = LinkedHashSet::with_capacity(100_000);
+  let capacity = set.capacity();
+  let (empty, folded, warnings) = capture(&set);
+  assert!(empty > size_of_val(&set) + capacity * size_of::<usize>());
+  assert!(folded.contains(";raw_table;alloc "), "{folded}");
+  assert!(warnings.is_empty(), "{warnings}");
+  let text = String::with_capacity(8192);
+  let heap = text.capacity();
+  set.insert(text);
+  assert_eq!(capture(&set).0, empty + size_of::<String>() + heap);
+  set.clear();
+  assert_eq!(set.capacity(), capacity);
+  assert_eq!(capture(&set).0, empty);
+
+  let map: LinkedHashMap<u64, String> = LinkedHashMap::new();
+  let set: LinkedHashSet<String> = LinkedHashSet::new();
+  for value in [&map as &dyn Visit, &set] {
+    let (total, folded, warnings) = capture(value);
+    assert_eq!(total, size_of_val(value));
+    assert!(!folded.contains(";raw_table;"), "{folded}");
+    assert!(warnings.is_empty(), "{warnings}");
+  }
+}
+
+#[test]
+fn custom_module_count_labels_are_reversible_valid_and_distinct() {
+  let names = [
+    "javascript/auto",
+    "css/mini-extract",
+    "semi;colon",
+    "tab\tname",
+    "line\nname",
+    "carriage\rreturn",
+    " leading ",
+    "",
+    "\u{feff}",
+    "semi%3Bcolon",
+    "custom:semi;colon",
+    "中文类型",
+  ];
+  let mut labels = std::collections::HashSet::new();
+  for name in names {
+    let label = count_labels::custom_module_type_label(name);
+    assert!(!label.is_empty());
+    assert_eq!(label.trim(), label);
+    assert!(!label.contains([';', '\r', '\n', '\t']));
+    assert_eq!(
+      urlencoding::decode(label.strip_prefix("custom:").expect("custom prefix"))
+        .expect("valid encoded label"),
+      name
+    );
+    assert!(
+      labels.insert(label),
+      "distinct names must not merge: {name}"
+    );
   }
 }

@@ -17,6 +17,8 @@ const INLINE_CAPACITY: usize = 4;
 pub struct SsoHashSet<T>(Storage<T>);
 
 #[derive(Debug, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, allocative(bound = "T: allocative::Visit + 'static"))]
 enum Storage<T> {
   Inline(SmallVec<[T; INLINE_CAPACITY]>),
   Heap(FxHashSet<T>),

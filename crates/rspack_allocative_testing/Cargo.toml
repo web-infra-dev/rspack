@@ -6,13 +6,19 @@ publish           = false
 version.workspace = true
 
 [features]
-allocative = ["dep:allocative", "dep:indexmap", "dep:smallvec", "allocative/smallvec"]
+allocative = ["dep:allocative", "dep:rspack_sources", "rspack_sources/allocative", "dep:smol_str", "dep:swc_core", "dep:rspack_tasks", "dep:indexmap", "dep:smallvec", "dep:urlencoding", "allocative/smallvec", "dep:hashlink"]
 default    = []
 
 [dependencies]
-allocative = { workspace = true, optional = true }
-indexmap   = { workspace = true, optional = true }
-smallvec   = { workspace = true, optional = true }
+allocative     = { workspace = true, optional = true }
+hashlink       = { workspace = true, optional = true }
+indexmap       = { workspace = true, optional = true }
+rspack_sources = { workspace = true, optional = true }
+rspack_tasks   = { workspace = true, optional = true }
+smallvec       = { workspace = true, optional = true }
+smol_str       = { workspace = true, optional = true }
+swc_core       = { workspace = true, optional = true, features = ["base"] }
+urlencoding    = { workspace = true, optional = true }
 
 [dev-dependencies]
 cow-utils                = { workspace = true }

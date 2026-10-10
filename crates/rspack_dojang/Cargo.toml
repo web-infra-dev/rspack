@@ -11,6 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
+allocative  = { workspace = true, optional = true }
 html-escape = { workspace = true }
 rustc-hash  = { workspace = true, features = ["std"] }
 serde_json  = { workspace = true }

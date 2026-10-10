@@ -18,8 +18,6 @@ use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMet
 use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
-#[cfg(allocative)]
-use rspack_util::allocative;
 pub use rspack_workspace::rspack_swc_core_version;
 use sugar_path::SugarPath;
 use swc_config::{merge::Merge, types::MergingOption};
@@ -36,10 +34,8 @@ use crate::{
 
 #[cacheable]
 #[derive(Debug)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SwcLoader {
   identifier: Identifier,
-  #[cfg_attr(allocative, allocative(skip))]
   options_with_additional: SwcCompilerOptionsWithAdditional,
 }
 

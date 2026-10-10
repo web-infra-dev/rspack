@@ -186,7 +186,6 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RuntimeCondition {
   Boolean(bool),
   Spec(RuntimeSpec),

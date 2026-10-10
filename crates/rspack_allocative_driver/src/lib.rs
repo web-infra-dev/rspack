@@ -20,8 +20,31 @@ pub fn instrument_with_path(source: &str, crate_path: &str) -> syn::Result<Strin
 
 /// Instrument the ownership interfaces of a workspace package as well as its enums.
 pub fn instrument_crate(source: &str, crate_path: &str, crate_name: &str) -> syn::Result<String> {
-  let _ = crate_name;
-  instrument_with_path(source, crate_path)
+  let traits: &[&str] = match crate_name {
+    "rspack_core" => &[
+      "Module",
+      "ModuleFactory",
+      "ParserAndGenerator",
+      "Plugin",
+      "Dependency",
+      "DependencyConditionFn",
+      "DependencyCodeGeneration",
+      "DependencyTemplate",
+      "InitFragment",
+      "CodeGenerationDataItem",
+      "Cache",
+      "CacheValueObject",
+    ],
+    "rspack_sources" => &["Source"],
+    "rspack_storage" => &["Storage"],
+    "rspack_fs" => &["ReadableFileSystem", "WritableFileSystem"],
+    "rspack_loader_runner" => &["Loader", "ParseMetaValue"],
+    "rspack_binding_api" => &["VirtualFileStore"],
+    "rspack_plugin_lazy_compilation" => &["Backend", "LazyCompilationTestCheck"],
+    "rspack_plugin_javascript" => &["JavascriptParserPlugin"],
+    _ => &[],
+  };
+  instrument_with_traits(source, crate_path, traits)
 }
 
 fn instrument_with_traits(source: &str, crate_path: &str, traits: &[&str]) -> syn::Result<String> {

@@ -19,6 +19,7 @@ doctest = false
 workspace = true
 
 [dependencies]
+allocative = { workspace = true, optional = true }
 dashmap    = { workspace = true }
 serde      = { workspace = true, features = ["derive"] }            # derive for Deserialize from package.json
 serde_json = { workspace = true, features = ["preserve_order"] }    # preserve_order: package_json.exports requires order such as `["require", "import", "default"]`
@@ -56,7 +57,8 @@ regex          = { workspace = true }
 vfs            = { workspace = true } # for testing with in memory file system
 
 [features]
-default = ["yarn_pnp"]
+allocative = ["dep:allocative", "allocative/pnp"]
+default    = ["yarn_pnp"]
 ## Enables the [PackageJson::raw_json] API,
 ## which returns the `package.json` with `serde_json::Value`.
 package_json_raw_json_api = []
