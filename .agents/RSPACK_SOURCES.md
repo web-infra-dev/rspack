@@ -231,7 +231,13 @@ Important implementation details:
 - `ReplaceSource` ranges are half-open byte ranges. Edits are ordered by
   `(start, end, enforce, insertion_order)`; ordered producers get the append fast path. Mapping
   repair uses lazy source-content identity checks.
-- `CachedSource` shares hash, size, ASCII, rope, full-map, and line-map caches across clones.
+- `CachedSource` shares hash, size, ASCII, rope, full-map, and line-map caches across clones. Direct `source()`
+  and `map()`/`map_static()` requests populate the corresponding result cache. `rope()` and
+  `stream_chunks()` reuse existing caches but do not populate cold chunk/map caches: a parent
+  only needs their streamed output to build its final result. Replaying an existing map uses
+  temporary flat text owned by the `Chunks` handle, without warming the persistent chunk index.
+  This avoids retaining intermediate maps and chunk indices at every nested cache boundary;
+  repeated streaming without a direct result request may instead repeat the underlying work.
 
 ### Cache placement and the `ReplaceSource` cost model
 
