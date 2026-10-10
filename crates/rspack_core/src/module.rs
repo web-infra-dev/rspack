@@ -299,6 +299,9 @@ pub struct BuildInfo {
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub mutated_bindings: HashSet<Atom>,
+  pub has_direct_eval: bool,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   /// Whether parsing observed access to the current CommonJS factory's export surface or an
@@ -344,6 +347,8 @@ impl Default for BuildInfo {
       snapshot: None,
       value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
+      mutated_bindings: HashSet::default(),
+      has_direct_eval: false,
       all_star_exports: Vec::default(),
       need_create_require: false,
       module_exports_accessed: None,

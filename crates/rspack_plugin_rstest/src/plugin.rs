@@ -8,11 +8,12 @@ use cow_utils::CowUtils;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
-  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, Dependency,
-  DependencyRef, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData,
-  ModuleIdentifier, ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, Plugin, PluginExt, ResolveOptionsWithDependencyType,
-  ResolveResult, RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
+  CompilationProcessAssets, CompilationRuntimeModule, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, Dependency, DependencyRef, DependencyType, ExportsInfoArtifact, FactoryMeta,
+  ModuleFactoryCreateData, ModuleIdentifier, ModuleType, NormalModuleFactoryBeforeResolve,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PluginExt,
+  ResolveOptionsWithDependencyType, ResolveResult, RuntimeGlobals, RuntimeModule, RuntimeVariable,
+  SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
   resolver::ResolveInnerError,
@@ -141,6 +142,24 @@ async fn runtime_module(
   Ok(())
 }
 
+#[plugin_hook(CompilationRuntimeRequirementInTree for RstestRuntimePlugin)]
+async fn runtime_requirements_in_tree(
+  &self,
+  _compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
+  _runtime_requirements: &RuntimeGlobals,
+  runtime_requirements_mut: &mut RuntimeGlobals,
+  _runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
+) -> Result<Option<()>> {
+  // Rstest injects mock module factories that call `__webpack_require__.d` at
+  // runtime. When every ESM export in a bundle is value-bound, no generated
+  // module source references the `.d` runtime global and it can be tree-shaken
+  // away, so keep it available unconditionally.
+  runtime_requirements_mut.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+  Ok(None)
+}
+
 impl Plugin for RstestRuntimePlugin {
   fn name(&self) -> &'static str {
     "rstest runtime"
@@ -151,6 +170,10 @@ impl Plugin for RstestRuntimePlugin {
       .compilation_hooks
       .runtime_module
       .tap(runtime_module::new(self));
+    ctx
+      .compilation_hooks
+      .runtime_requirement_in_tree
+      .tap(runtime_requirements_in_tree::new(self));
 
     Ok(())
   }
