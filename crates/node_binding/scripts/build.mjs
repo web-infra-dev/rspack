@@ -2,6 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
 import { readFileSync, writeFileSync, renameSync, appendFileSync } from "node:fs";
 import { parseArgs } from "node:util";
+import { prepareAllocativeDriver } from "../../../scripts/allocative-driver.mjs";
 
 const { values, positionals } = parseArgs({
 	args: process.argv.slice(2),
@@ -21,6 +22,7 @@ const watch = process.argv.includes("--watch");
 
 const measureFresh = process.env.MEASURE_CARGO_FRESH === "1" && !watch;
 const isReleaseProfile = values.profile === "release" || values.profile === "release-wasi";
+const useAllocative = Boolean(process.env.ALLOCATIVE) || values.profile === "release-debug" || values.profile === "profiling";
 
 build().then((value) => {
 	// Regarding cargo's non-zero exit code as an error.
@@ -33,6 +35,7 @@ build().then((value) => {
 });
 
 async function build() {
+	const buildEnvironment = useAllocative ? await prepareAllocativeDriver() : process.env;
 	return new Promise((resolve, reject) => {
 		const args = [
 			"build",
@@ -47,7 +50,7 @@ async function build() {
 		];
 		const rustflags = []
 		const features = [];
-		const envs = { ...process.env };
+		const envs = { ...buildEnvironment };
 		const use_build_std = values.profile === "release"
 			|| values.profile === "release-debug"
 			|| values.profile === "release-wasi"
@@ -90,7 +93,9 @@ async function build() {
 			features.push("sftrace-setup");
 			rustflags.push("-Zinstrument-xray=always");
 		}
-		if (process.env.ALLOCATIVE) {
+		// Diagnostic builds support memory snapshots without a custom rebuild.
+		// Collection remains opt-in through RSPACK_ALLOCATIVE_DIR at runtime.
+		if (useAllocative) {
 			features.push("allocative");
 			rustflags.push("--cfg=allocative");
 		}
