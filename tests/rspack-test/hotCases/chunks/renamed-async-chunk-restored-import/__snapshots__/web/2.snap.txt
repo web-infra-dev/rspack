@@ -1,0 +1,156 @@
+# Case renamed-async-chunk-restored-import: Step 2
+
+## Changed Files
+- page.js
+- policy.js
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: hooks.chunk.CURRENT_HASH.js
+- Bundle: page_js-policy_js.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 81
+- Update: main.LAST_HASH.hot-update.js, size: 579
+- Update: page_js.LAST_HASH.hot-update.js, size: 947
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main","page_js"],"r":["page_js"],"m":[],"f":["hooks","page_js-policy_js"]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./loader.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./loader.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  load: () => (load)
+});
+const load = () => Promise.all(/* import() */ [__webpack_require__.e("hooks"), __webpack_require__.e("page_js-policy_js")]).then(__webpack_require__.bind(__webpack_require__, "./page.js"));
+module.hot.accept();
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+### page_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./hooks.js
+- ./page.js
+- ./policy.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("page_js", {
+"./hooks.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  policy: () => (/* reexport safe */ _policy__rspack_import_0.policy)
+});
+/* import */ var _policy__rspack_import_0 = __webpack_require__("./policy.js");
+
+
+
+},
+"./page.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+/* import */ var _hooks__rspack_import_0 = __webpack_require__("./hooks.js");
+
+const value = "v3-" + _hooks__rspack_import_0.policy;
+module.hot.accept();
+
+
+},
+"./policy.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  policy: () => (policy)
+});
+const policy = 1;
+
+
+},
+
+});
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./hooks.js
+- ./loader.js
+- ./page.js
+- ./policy.js
+
+
+Outdated Dependencies:
+```json
+{}
+```
+
+#### Updated
+
+Updated Modules:
+- ./hooks.js
+- ./loader.js
+- ./page.js
+- ./policy.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+
+
+Disposed Callback:
