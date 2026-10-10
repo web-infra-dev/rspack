@@ -1,0 +1,25 @@
+[package]
+edition.workspace = true
+license.workspace = true
+name              = "rspack_allocative_driver"
+publish           = false
+version.workspace = true
+
+[features]
+default = []
+driver  = []
+
+[[bin]]
+name              = "rspack-allocative-driver"
+path              = "src/main.rs"
+required-features = ["driver"]
+test              = false
+
+[dependencies]
+proc-macro2 = { workspace = true, features = ["span-locations"] }
+quote       = { workspace = true }
+rustc-hash  = { workspace = true, features = ["std"] }
+syn         = { workspace = true, features = ["full", "visit", "parsing", "printing", "clone-impls"] }
+
+[lints]
+workspace = true

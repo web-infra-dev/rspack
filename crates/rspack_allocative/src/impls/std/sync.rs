@@ -22,8 +22,23 @@ use std::{
 };
 
 use crate::{
-  Visit, allocative_trait::Allocative, impls::common::PTR_NAME, key::Key, visitor::Visitor,
+  Visit, allocative_trait::Allocative, impls::common::PTR_NAME, key::Key,
+  reflection::try_visit_inner, visitor::Visitor,
 };
+
+impl<T: Visit + ?Sized> crate::reflection::VisitInner for Arc<T> {
+  fn visit_inner<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    let value: &T = self;
+    value.visit_memory(visitor);
+  }
+}
+
+impl<T: Visit + ?Sized> crate::reflection::VisitInner for Rc<T> {
+  fn visit_inner<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    let value: &T = self;
+    value.visit_memory(visitor);
+  }
+}
 
 impl<T: Visit, F: FnOnce() -> T> Allocative for LazyLock<T, F> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
@@ -101,7 +116,7 @@ fn visit_retained_weak<T: ?Sized>(
   }
 }
 
-impl<T: Visit + ?Sized> Allocative for Arc<T> {
+impl<T: 'static + ?Sized> Allocative for Arc<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);
     {
@@ -117,7 +132,9 @@ impl<T: Visit + ?Sized> Allocative for Arc<T> {
         {
           let val: &T = self;
           let mut visitor = visitor.enter(Key::new("ArcInner"), RcBox::layout(val).size());
-          val.visit_memory(&mut visitor);
+          if !try_visit_inner(self, &mut visitor) {
+            visitor.visit_opaque(val);
+          }
           visitor.exit();
         }
         visitor.exit();
@@ -127,7 +144,7 @@ impl<T: Visit + ?Sized> Allocative for Arc<T> {
   }
 }
 
-impl<T: Visit + ?Sized> Allocative for Weak<T> {
+impl<T: 'static + ?Sized> Allocative for Weak<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);
     {
@@ -146,7 +163,7 @@ impl<T: Visit + ?Sized> Allocative for Weak<T> {
   }
 }
 
-impl<T: Visit + ?Sized> Allocative for Rc<T> {
+impl<T: 'static + ?Sized> Allocative for Rc<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);
     {
@@ -162,7 +179,9 @@ impl<T: Visit + ?Sized> Allocative for Rc<T> {
         {
           let val: &T = self;
           let mut visitor = visitor.enter(Key::new("RcInner"), RcBox::layout(val).size());
-          val.visit_memory(&mut visitor);
+          if !try_visit_inner(self, &mut visitor) {
+            visitor.visit_opaque(val);
+          }
           visitor.exit();
         }
         visitor.exit();
@@ -172,7 +191,7 @@ impl<T: Visit + ?Sized> Allocative for Rc<T> {
   }
 }
 
-impl<T: Visit + ?Sized> Allocative for rc::Weak<T> {
+impl<T: 'static + ?Sized> Allocative for rc::Weak<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);
     {
