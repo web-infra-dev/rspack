@@ -2100,9 +2100,9 @@ dependencies = [
 
 [[package]]
 name = "indoc"
-version = "2.0.7"
+version = "2.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79cf5c93f93228cf8efb3ba362535fb11199ac548a09ce117c9b1adc3030d706"
+checksum = "a37b2691796cffeb8a8cd305ac66e65841559f147f4e63231d0eafa4db5384d1"
 dependencies = [
  "rustversion",
 ]
@@ -3209,9 +3209,9 @@ checksum = "915a1e146535de9163f3987b8944ed8cf49a18bb0056bcebcdcece385cece4ff"
 
 [[package]]
 name = "pnp"
-version = "0.12.11"
+version = "0.12.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e57281b9cdf635e68b57fc347e213b413f099d57cdd708182d5e759418d41485"
+checksum = "5a0e591607db15df65036bd424bd57782296da9963d823da5a139ed451f615b5"
 dependencies = [
  "byteorder",
  "concurrent_lru",
@@ -3220,7 +3220,7 @@ dependencies = [
  "nodejs-built-in-modules",
  "pathdiff",
  "radix_trie",
- "regress",
+ "regress 0.12.0",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -3785,6 +3785,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "158a764437582235e3501f683b93a0a6f8d825d04a789dbe5ed30b8799b8908a"
 dependencies = [
  "hashbrown 0.16.1",
+ "memchr",
+]
+
+[[package]]
+name = "regress"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32eef8b209c3c1c15dbad02c1f30f9539f00dc7253e0cbcdaae442a50a09d7c1"
+dependencies = [
  "memchr",
 ]
 
@@ -5035,7 +5044,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "regex",
- "regress",
+ "regress 0.11.1",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -5582,7 +5591,7 @@ dependencies = [
  "napi",
  "regex",
  "regex-syntax",
- "regress",
+ "regress 0.11.1",
  "rspack_cacheable",
  "rspack_error",
  "swc_core",
@@ -6455,7 +6464,7 @@ dependencies = [
  "indexmap",
  "once_cell",
  "regex",
- "regress",
+ "regress 0.11.1",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -8002,9 +8011,9 @@ dependencies = [
 
 [[package]]
 name = "trybuild"
-version = "1.0.121"
+version = "1.0.122"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0cabaa10be1917331a313866bd94526343e03c77bcf69144b62b072ad35d47c"
+checksum = "62db9c92d704393fbf2132041720cc80b689f2d3f28521015c2ac866223c11b8"
 dependencies = [
  "dissimilar",
  "glob",
