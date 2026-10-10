@@ -57,7 +57,7 @@ export default {
 
 ### watchOptions.ignored
 
-- **类型：** `RegExp | string | string[] | ((entry: string) => boolean)`
+- **类型：** `RegExp | string | (string | RegExp)[] | ((entry: string) => boolean)`
 - **默认值：** `/[\\/](?:\.git|node_modules)[\\/]/`
 
 使用 `watchOptions.ignored` 可以从监听范围中排除匹配的文件和目录。忽略不需要监听的目录有助于降低 CPU 和内存占用。
@@ -90,6 +90,16 @@ export default {
 export default {
   watchOptions: {
     ignored: ['**/files/**/*.js', '**/.git', '**/node_modules'],
+  },
+};
+```
+
+数组中可以混合使用 glob 匹配和正则表达式：
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    ignored: [/\.git/, '**/node_modules', '**/.cache'],
   },
 };
 ```
