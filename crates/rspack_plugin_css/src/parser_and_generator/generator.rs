@@ -28,7 +28,10 @@ use crate::{
   parser_and_generator::{
     CssExportsRef, CssSourceBuilder, get_unused_local_ident, get_used_exports,
   },
-  utils::{css_generator_options, css_module_export_type, replace_css_module_id_placeholder},
+  utils::{
+    RUNTIME_PUBLIC_PATH_PLACEHOLDER, css_generator_options, css_module_export_type,
+    replace_css_module_id_placeholder,
+  },
 };
 
 fn css_javascript_source_map_module_name(module: &dyn Module, context: &Context) -> String {
@@ -417,7 +420,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn css_text_expr(
-    &self,
+    &mut self,
     css_source: BoxSource,
     render_conditions: &[CssModuleRenderCondition],
   ) -> String {
@@ -427,7 +430,20 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       render_conditions,
       self.css_build_info.has_charset,
     );
-    json_stringify_str(&builder.into_css_text())
+    let css_text = builder.into_css_text();
+    if !css_text.contains(RUNTIME_PUBLIC_PATH_PLACEHOLDER) {
+      return json_stringify_str(&css_text);
+    }
+
+    let public_path = self
+      .generate_context
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
+    css_text
+      .split(RUNTIME_PUBLIC_PATH_PLACEHOLDER)
+      .map(json_stringify_str)
+      .collect::<Vec<_>>()
+      .join(&format!(" + {public_path} + "))
   }
 
   fn css_source_builder(&self, with_charset: bool) -> CssSourceBuilder {
