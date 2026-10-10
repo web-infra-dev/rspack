@@ -76,4 +76,94 @@ export default [{
 		expect(source.source()).toBe("kept");
 		expect(stats.logs.writeFile).toHaveLength(0);
 	}
+}, {
+	description: "should preserve immutable on-disk sizes across no-op incremental builds",
+	options(context) {
+		return {
+			context: context.getSource(),
+			entry: "./d",
+			mode: "development",
+			devtool: false,
+			cache: true,
+			incremental: { emitAssets: true },
+			output: { path: "/out", filename: "[name].[contenthash].js", clean: false },
+			plugins: [{
+				apply(compiler) {
+					let firstBuild = true;
+					compiler.hooks.emit.tap("ImmutableDiskSize", compilation => {
+						const [asset] = compilation.getAssets();
+						expect(asset.info.immutable).toBe(true);
+						expect(asset.source.size()).toBeGreaterThan(3);
+						if (firstBuild) {
+							compiler.outputFileSystem.mkdirSync("/out", { recursive: true });
+							compiler.outputFileSystem.writeFileSync(`/out/${asset.name}`, "old");
+							firstBuild = false;
+						}
+					});
+				}
+			}]
+		};
+	},
+	compiler(_context, compiler) {
+		compiler.outputFileSystem = createFsFromVolume(new Volume());
+	},
+	async build(context, compiler) {
+		let filename;
+		for (let build = 0; build < 3; build++) {
+			const stats = await context.getCompiler().build();
+			expect(stats.hasErrors()).toBe(false);
+			const [asset] = stats.compilation.getAssets();
+			filename ??= asset.name;
+			expect(asset.name).toBe(filename);
+			expect(asset.source).toBeInstanceOf(compiler.rspack.sources.SizeOnlySource);
+			expect(asset.source.size()).toBe(3);
+			expect(asset.info.size).toBe(3);
+			expect(stats.toJson({ all: false, assets: true, cachedAssets: true }).assets[0].size).toBe(3);
+			expect(compiler.outputFileSystem.readFileSync(`/out/${filename}`, "utf8")).toBe("old");
+		}
+	}
+}, {
+	description: "should clean a stale file after its source-less asset disappears",
+	options(context) {
+		return {
+			context: context.getSource(),
+			entry: "./d",
+			mode: "development",
+			devtool: false,
+			cache: true,
+			incremental: { emitAssets: true },
+			output: { path: "/out", clean: true },
+			plugins: [{
+				apply(compiler) {
+					let generation = 0;
+					compiler.hooks.thisCompilation.tap("SourceLessAsset", compilation => {
+						const current = generation++;
+						compilation.hooks.processAssets.tap("SourceLessAsset", () => {
+							if (current < 2) {
+								compilation.emitAsset("stale.txt", new compiler.rspack.sources.RawSource("stale"));
+								if (current === 1) delete compilation.assets["stale.txt"];
+							}
+						});
+					});
+				}
+			}]
+		};
+	},
+	compiler(_context, compiler) {
+		compiler.outputFileSystem = createFsFromVolume(new Volume());
+	},
+	async build(context, compiler) {
+		for (let build = 0; build < 3; build++) {
+			const stats = await context.getCompiler().build();
+			expect(stats.hasErrors()).toBe(false);
+			const asset = stats.compilation.getAsset("stale.txt");
+			if (build === 1) {
+				expect(asset).toBeDefined();
+				expect(asset.source).toBeUndefined();
+			} else if (build === 2) {
+				expect(asset).toBeUndefined();
+			}
+			expect(compiler.outputFileSystem.existsSync("/out/stale.txt")).toBe(build < 2);
+		}
+	}
 }];
