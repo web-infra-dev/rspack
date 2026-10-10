@@ -1723,6 +1723,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       .expect("ESMExportImportedSpecifierDependencyTemplate should only be used for ESMExportImportedSpecifierDependency");
     let TemplateContext {
       compilation,
+      module,
       runtime,
       concatenation_scope,
       ..
@@ -1731,7 +1732,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
     let exports_info_artifact = &compilation.exports_info_artifact;
-    let mode = dep.get_mode(
+    let mut mode = dep.get_mode(
       module_graph,
       *runtime,
       module_graph_cache,
@@ -1747,6 +1748,44 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       };
 
       return;
+    }
+
+    if let ExportMode::NormalReexport(reexport) = &mut mode
+      && compilation
+        .build_module_graph_artifact
+        .module_to_lazy_make
+        .get_lazy_dependencies(&module.identifier())
+        .is_some_and(|lazy| lazy.all_lazy_dependencies().any(|id| id == dep.id))
+    {
+      // Resolving a lazy reexport can redirect its consumers to the defining
+      // module. Only consumers that still reference this module need getters.
+      let mut names = HashSet::default();
+      let mut exports_object_referenced = false;
+      for connection in module_graph.get_incoming_connections(&module.identifier()) {
+        let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+        for export in dependency.get_referenced_exports(
+          module_graph,
+          module_graph_cache,
+          exports_info_artifact,
+          *runtime,
+        ) {
+          if let Some(name) = export.name.first() {
+            names.insert(name.clone());
+          } else {
+            exports_object_referenced = true;
+            break;
+          }
+        }
+        if exports_object_referenced {
+          break;
+        }
+      }
+      if !exports_object_referenced {
+        reexport.items.retain(|item| names.contains(&item.name));
+        if reexport.items.iter().all(|item| item.hidden) {
+          return;
+        }
+      }
     }
 
     if !matches!(
