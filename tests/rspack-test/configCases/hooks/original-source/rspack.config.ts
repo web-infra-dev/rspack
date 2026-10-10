@@ -86,6 +86,46 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                     // Compare identity without the assertion formatter inspecting lazy getters.
                     expect(module.originalSource() === source).toBe(false);
                     expect(mapCalls).toBe(0);
+
+                    // Clearing caches before the first map read must not transfer the map.
+                    const clearedSources: sources.SourceMapSource[] = [];
+                    for (const options of [
+                      undefined,
+                      { maps: true },
+                      { maps: false },
+                      { source: false },
+                      { parsedMap: true },
+                    ]) {
+                      const pending =
+                        module.originalSource() as sources.SourceMapSource;
+                      const reference = new sources.SourceMapSource(
+                        value,
+                        'inmemory://from rust',
+                      );
+                      pending.buffer();
+                      reference.buffer();
+                      const visited = new WeakSet<Source>();
+                      pending.clearCache(options, visited);
+                      reference.clearCache(options);
+                      expect(mapCalls).toBe(0);
+                      expect(visited.has(pending)).toBe(true);
+                      expect(pending._valueAsString).toBe(
+                        reference._valueAsString,
+                      );
+                      expect(pending._valueAsBuffer).toEqual(
+                        reference._valueAsBuffer,
+                      );
+                      expect(pending.source()).toBe(value);
+                      // A repeated visit must preserve the restored source string.
+                      pending.clearCache({ parsedMap: true }, visited);
+                      expect(pending._valueAsString).toBe(value);
+                      clearedSources.push(pending);
+                    }
+                    new sources.ConcatSource(...clearedSources).clearCache({
+                      parsedMap: true,
+                    });
+                    expect(mapCalls).toBe(0);
+
                     map = binding._sourceMapAsString;
                     expect(mapCalls).toBe(1);
                     expect(typeof map).toBe('string');
@@ -107,6 +147,10 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                       enumerable: true,
                       configurable: true,
                     });
+                    for (const cleared of clearedSources) {
+                      expect(cleared.map()).toEqual(JSON.parse(map!));
+                    }
+                    expect(mapCalls).toBe(1);
                     // An instance created before the transfer reuses the shared JS JSON.
                     expect(mapGetter!.call(source)).toBe(map);
                     expect(Reflect.has(source, cacheSymbol)).toBe(false);

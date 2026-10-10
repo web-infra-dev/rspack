@@ -51,6 +51,18 @@ function getSourceMap(this: SourceWithCache): string | undefined {
   return json;
 }
 
+function clearSourceCache(
+  this: SourceWithCache,
+  options?: Source.ClearCacheOptions,
+  visited?: WeakSet<Source>,
+) {
+  // An unread native map has no JS map caches to release. Avoid probing its getter.
+  if (typeof this[sourceCacheSymbol]?.map === 'function') {
+    options = { ...options, maps: false };
+  }
+  SourceMapSource.prototype.clearCache.call(this, options, visited);
+}
+
 export class SourceAdapter {
   static fromBinding(cache: JsSource | JsSourceWithLazyMap): Source {
     if (!cache.map) return new RawSource(cache.source);
@@ -65,6 +77,11 @@ export class SourceAdapter {
     source._hasSourceMap = true;
     Object.defineProperties(source, {
       [sourceCacheSymbol]: { value: cache, configurable: true },
+      clearCache: {
+        value: clearSourceCache,
+        writable: true,
+        configurable: true,
+      },
       _sourceMapAsString: {
         get: getSourceMap,
         set: setSourceMap,
