@@ -1,10 +1,9 @@
-use napi::bindgen_prelude::{Either3, JsValuesTupleIntoVec};
-use rspack_core::{AdditionalData, LoaderContext, NormalModuleLoaderStartYielding, RunnerContext};
+use rspack_core::{NormalModuleLoaderStartYielding, RunnerContext};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
-use rspack_loader_runner::State as LoaderState;
+use rspack_loader_runner::{LoaderContextHandle, State as LoaderState};
 
-use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
 impl JsLoaderRspackPlugin {
   async fn update_loaders_without_pitch(&self, list: Vec<String>) {
@@ -18,7 +17,7 @@ impl JsLoaderRspackPlugin {
 #[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn loader_yield(
   &self,
-  loader_context: &mut LoaderContext<RunnerContext>,
+  loader_context: &mut LoaderContextHandle<RunnerContext>,
 ) -> Result<()> {
   // Skip a JavaScript execution span when no remaining loader needs pitching.
   if loader_context.state() == LoaderState::Pitching {
@@ -54,98 +53,52 @@ pub(crate) async fn loader_yield(
     .await
     .to_rspack_result()?;
 
-  let new_cx = runner
-    .call_async(loader_context.try_into()?)
-    .await
-    .to_rspack_result()?
-    .await
-    .to_rspack_result()?;
-
-  if loader_context.state() == LoaderState::Pitching {
-    let list = collect_loaders_without_pitch(loader_context, &new_cx);
-    if !list.is_empty() {
-      self.update_loaders_without_pitch(list).await;
-    }
+  let id = loader_context.id();
+  let pitching = loader_context.state() == LoaderState::Pitching;
+  let context = loader_context
+    .0
+    .take()
+    .expect("loader context must be owned before yielding");
+  let pending = std::sync::Arc::new(std::sync::Mutex::new(Some(context)));
+  let transfer_guard =
+    super::context::LoaderContextTransferGuard::new(id, std::sync::Arc::clone(&pending));
+  let result = async {
+    runner
+      .call_async(super::context::JsLoaderContextTransfer(
+        std::sync::Arc::clone(&pending),
+      ))
+      .await?
+      .await
   }
-
-  merge_loader_context(loader_context, new_cx)?;
-
-  Ok(())
-}
-
-pub(crate) fn merge_loader_context(
-  to: &mut LoaderContext<RunnerContext>,
-  mut from: JsLoaderContext,
-) -> Result<()> {
-  to.cacheable = from.cacheable;
-  to.replace_dependencies(
-    from.dependencies.into(),
-    from.added_dependencies.into(),
-    from.removed_dependencies.into(),
-  );
-
-  if let Some(error) = from.error {
-    if let Some(diagnostic) = error.rust_diagnostic.as_ref() {
-      return Err(diagnostic.error.clone());
+  .await;
+  let (new_cx, runner_error) = match result {
+    Ok(context) => (context, None),
+    Err(error) => {
+      let context = pending.lock().expect("pending loader context lock").take();
+      if let Some(context) = context {
+        loader_context.0 = Some(context);
+        transfer_guard.disarm();
+        return Err(error).to_rspack_result();
+      }
+      (
+        self.runner_getter.reclaim(id).await.to_rspack_result()?,
+        Some(error),
+      )
     }
-    return Err(error.with_parent_error_name("ModuleBuildError").into());
-  }
-
-  let content = match from.content {
-    Either3::A(content) => Some(rspack_core::Content::String(content)),
-    Either3::B(content) => Some(rspack_core::Content::Buffer(content.into())),
-    Either3::C(_) => None,
   };
-  let source_map = from
-    .source_map
-    .map(|buffer| rspack_core::rspack_sources::SourceMap::from_bytes(buffer.into()))
-    .transpose()
-    .to_rspack_result()?;
-  let additional_data = from.additional_data.take().map(|data| {
-    let mut additional = AdditionalData::default();
-    additional.insert(data);
-    additional
-  });
-  to.__finish_with((content, source_map, additional_data));
-
-  // update loader status
-  to.loader_items = to
-    .loader_items
-    .drain(..)
-    .zip(from.loader_items.drain(..))
-    .map(|(mut to, from)| {
-      if from.normal_executed {
-        to.set_normal_executed()
-      }
-      if from.pitch_executed {
-        to.set_pitch_executed()
-      }
-      to.set_data(from.data);
-      // JS loader should always be considered as finished
-      to.set_finish_called();
-      to
-    })
-    .collect();
-  to.loader_index = from.loader_index;
-  to.parse_meta.extend(
-    from
-      .parse_meta
-      .into_iter()
-      .map(|(k, v)| (k, Box::new(v) as _)),
-  );
-
-  Ok(())
-}
-
-fn collect_loaders_without_pitch(
-  ctx: &LoaderContext<RunnerContext>,
-  js_ctx: &JsLoaderContext,
-) -> Vec<String> {
-  let mut list = Vec::new();
-  for (js_loader_item, loader_item) in js_ctx.loader_items.iter().zip(ctx.loader_items.iter()) {
-    if js_loader_item.no_pitch {
-      list.push(loader_item.path().to_string());
+  loader_context.0 = Some(new_cx.context);
+  transfer_guard.disarm();
+  if let Some(error) = runner_error {
+    return Err(error).to_rspack_result();
+  }
+  let updates = new_cx.updates.to_rspack_result()?;
+  if pitching {
+    let loaders_without_pitch = updates.collect_loaders_without_pitch(loader_context);
+    if !loaders_without_pitch.is_empty() {
+      self
+        .update_loaders_without_pitch(loaders_without_pitch)
+        .await;
     }
   }
-  list
+  updates.merge(loader_context)
 }

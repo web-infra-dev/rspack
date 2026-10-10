@@ -416,6 +416,31 @@ export declare class JsExportsInfo {
   getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
+export declare class JsLoaderContext {
+  get resource(): string
+  get hot(): boolean
+  get _module(): Module
+  get content(): string | Buffer | null
+  set content(value: string | Buffer | null)
+  get cacheable(): boolean
+  set cacheable(value: boolean)
+  get loaderIndex(): number
+  set loaderIndex(value: number)
+  get loaderState(): JsLoaderState
+  get loaderChainStart(): number
+  get loaderChainEnd(): number
+  get __internal__error(): RspackError | undefined
+  set __internal__error(value: RspackError | undefined | null)
+  get id(): number
+  get dependencies(): JsLoaderDependencies
+  get addedDependencies(): JsLoaderDependencies
+  get removedDependencies(): JsLoaderDependencies
+  get loaderItems(): Array<JsLoaderItem>
+  get sourceMap(): Buffer | undefined
+  get additionalData(): any
+  get __internal__parseMeta(): Record<string, string>
+}
+
 export declare class JsModuleGraph {
   getModule(dependency: Dependency | EntryDependency): Module | null
   getResolvedModule(dependency: Dependency | EntryDependency): Module | null
@@ -970,27 +995,6 @@ export interface JsLinkPrefetchData {
 export interface JsLinkPreloadData {
   code: string
   chunk: Chunk
-}
-
-export interface JsLoaderContext {
-  resource: string
-  _module: Module
-  hot: Readonly<boolean>
-  /** Content maybe empty in pitching stage */
-  content: string | Buffer | null
-  additionalData?: any
-  __internal__parseMeta: Record<string, string>
-  sourceMap?: Buffer
-  cacheable: boolean
-  dependencies: JsLoaderDependencies
-  addedDependencies: JsLoaderDependencies
-  removedDependencies: JsLoaderDependencies
-  loaderItems: Array<JsLoaderItem>
-  loaderIndex: number
-  loaderState: Readonly<JsLoaderState>
-  loaderChainStart: number
-  loaderChainEnd: number
-  __internal__error?: RspackError
 }
 
 export interface JsLoaderDependencies {

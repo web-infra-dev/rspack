@@ -741,6 +741,7 @@ fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
 
   rspack_napi::runtime::ensure_runtime(&env)?;
   node_init(exports, env)?;
+  plugins::js_loader::context::init_loader_context_registry(&env)?;
   module::export_symbols(exports, env)?;
   build_info::export_symbols(exports, env)?;
   error::export_symbols(exports, env)?;

@@ -6,7 +6,7 @@ use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
 use crate::{
-  LoaderContext,
+  LoaderContext, LoaderContextHandle,
   content::{Content, ResourceData},
 };
 
@@ -22,11 +22,11 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     Ok(())
   }
 
-  async fn start_yielding(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn start_yielding(&self, _context: &mut LoaderContextHandle<Self::Context>) -> Result<()> {
     Ok(())
   }
 
-  async fn run_normal_chain(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn run_normal_chain(&self, context: &mut LoaderContextHandle<Self::Context>) -> Result<()> {
     context.run_normal_chain().await
   }
 

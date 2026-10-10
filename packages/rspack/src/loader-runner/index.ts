@@ -58,6 +58,7 @@ import {
 import { memoize } from '../util/memoize';
 import { ModuleError, ModuleWarning } from './ModuleError';
 import { LoaderDependenciesState } from './dependencies';
+import { JsLoaderContextWrapper } from './context';
 import * as pool from './service';
 import { type HandleIncomingRequest, RequestType } from './service';
 import {
@@ -229,8 +230,29 @@ function getCurrentLoader(
 
 export async function runLoaders(
   compiler: Compiler,
-  context: JsLoaderContext,
+  binding: JsLoaderContext,
 ): Promise<JsLoaderContext> {
+  const context = JsLoaderContextWrapper.from(binding);
+  try {
+    await runLoadersImpl(compiler, context);
+  } catch (error) {
+    context.__internal__error =
+      typeof error === 'object' && error !== null
+        ? (error as RspackError)
+        : Object.assign(
+            new Error(
+              `(Emitted value instead of an instance of Error) ${error}`,
+            ),
+            { name: 'NonErrorEmittedError' },
+          );
+  }
+  return context.finish();
+}
+
+async function runLoadersImpl(
+  compiler: Compiler,
+  context: JsLoaderContextWrapper,
+): Promise<void> {
   const loaderState = context.loaderState;
   const loaderChainStart = context.loaderChainStart;
   const loaderChainEnd = context.loaderChainEnd;
@@ -1226,5 +1248,4 @@ export async function runLoaders(
 
   context.addedDependencies = dependencies.added;
   context.removedDependencies = dependencies.removed;
-  return context;
 }

@@ -10,12 +10,12 @@ use crate::{
   LoaderExecutionKind, LoaderRunnerOptions, ParseMeta,
   chain::LoaderChains,
   content::{AdditionalData, Content, ResourceData},
-  context::{LoaderContext, LoaderDependencies, State},
+  context::{LoaderContext, LoaderContextHandle, LoaderDependencies, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
 };
 
-impl<Context: Send> LoaderContext<Context> {
+impl<Context: Send> LoaderContextHandle<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
     if self.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
       && let Some(plugin) = &self.plugin
@@ -28,7 +28,7 @@ impl<Context: Send> LoaderContext<Context> {
 }
 
 async fn run_pitch_chain<Context: Send>(
-  cx: &mut LoaderContext<Context>,
+  cx: &mut LoaderContextHandle<Context>,
   resource: &str,
 ) -> Result<()> {
   let chain = cx
@@ -76,7 +76,7 @@ async fn run_pitch_chain<Context: Send>(
   .await
 }
 
-impl<Context: Send> LoaderContext<Context> {
+impl<Context: Send> LoaderContextHandle<Context> {
   /// Execute the current root chain's normal loaders without consulting the loader cache.
   pub async fn run_normal_chain(&mut self) -> Result<()> {
     let cx = self;
@@ -166,7 +166,7 @@ fn create_loader_context<Context: Send>(
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
-) -> LoaderContext<Context> {
+) -> LoaderContextHandle<Context> {
   let mut dependencies = LoaderDependencies::default();
   if let Some(resource_path) = resource_data.path()
     && resource_path.is_absolute()
@@ -174,7 +174,8 @@ fn create_loader_context<Context: Send>(
     dependencies.file.insert(resource_path.into());
   }
 
-  LoaderContext {
+  LoaderContextHandle(Some(Box::new(LoaderContext {
+    lifetime: crate::registry::LoaderContextLifetime::new(),
     hot: false,
     cacheable: true,
     parse_meta: Default::default(),
@@ -192,7 +193,7 @@ fn create_loader_context<Context: Send>(
     plugin,
     resource_data,
     diagnostics: vec![],
-  }
+  })))
 }
 
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
@@ -220,11 +221,14 @@ pub async fn run_loaders<Context: Send>(
   };
   let mut cx = create_loader_context(loaders, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
-  (LoaderResult::new(cx), result.err())
+  (
+    LoaderResult::new(*cx.0.take().expect("loader context must be restored")),
+    result.err(),
+  )
 }
 
 async fn run_loaders_impl<Context: Send>(
-  cx: &mut LoaderContext<Context>,
+  cx: &mut LoaderContextHandle<Context>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
   if let Some(plugin) = cx.plugin.clone() {

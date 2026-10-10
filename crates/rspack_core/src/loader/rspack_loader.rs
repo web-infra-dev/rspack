@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
-use rspack_loader_runner::{Content, LoaderContext, LoaderRunnerPlugin, ResourceData};
+use rspack_loader_runner::{
+  Content, LoaderContext, LoaderContextHandle, LoaderRunnerPlugin, ResourceData,
+};
 use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
@@ -98,7 +100,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     Ok(None)
   }
 
-  async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn start_yielding(&self, context: &mut LoaderContextHandle<Self::Context>) -> Result<()> {
     self
       .plugin_driver
       .normal_module_hooks
@@ -107,7 +109,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       .await
   }
 
-  async fn run_normal_chain(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn run_normal_chain(&self, context: &mut LoaderContextHandle<Self::Context>) -> Result<()> {
     let chain = context
       .current_root_chain()
       .expect("normal execution requires a current root chain");
