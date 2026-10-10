@@ -275,7 +275,7 @@ pub fn compare_chunks_with_graph(
 }
 
 #[cfg(allocative)]
-pub fn snapshot_allocative(name: &str) {
+pub fn snapshot_allocative(name: &str, compilation: &crate::Compilation) {
   use std::{
     path::PathBuf,
     sync::{
@@ -299,6 +299,7 @@ pub fn snapshot_allocative(name: &str) {
   if let Some(dir) = ENABLE.as_deref() {
     let mut builder = allocative::FlameGraphBuilder::default();
     builder.visit_global_roots();
+    builder.visit_root(compilation);
     let buf = builder.finish_and_write_flame_graph();
     let count = COUNT.fetch_add(1, atomic::Ordering::Relaxed);
     let path = dir.join(format!("{}-{}.allocative", count, name));

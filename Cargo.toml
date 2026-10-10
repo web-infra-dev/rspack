@@ -21,12 +21,12 @@ aho-corasick    = { version = "1.1.5", default-features = false }
 anyhow          = { version = "1.0.104", default-features = false, features = ["backtrace", "std"] }
 anymap          = { package = "anymap3", version = "1.1.0", default-features = false, features = ["std"] }
 arc-swap        = { version = "1.9.2", default-features = false }
-async-recursion = { version = "1.1.1", default-features = false }
+async-recursion = { version = "1.2.0", default-features = false }
 async-trait     = { version = "0.1.92", default-features = false }
 atomic_refcell  = { version = "0.1.14", default-features = false }
 base64-simd     = { version = "0.8.0", default-features = false, features = ["alloc"] }
 bitflags        = { version = "2.13.2", default-features = false }
-browserslist-rs = { version = "0.20.0", default-features = false }
+browserslist-rs = { version = "0.21.2", default-features = false, features = ["deflate"] }
 bytes           = { version = "1.12.1", default-features = false }
 camino          = { version = "1.2.6", default-features = false }
 cargo_toml      = { version = "1.0.1", default-features = false }
@@ -150,13 +150,13 @@ rkyv      = { version = "=0.8.18", default-features = false, features = ["std", 
 
 # Must be pinned with the same swc versions
 pnp                 = { version = "0.12.11", default-features = false }
-swc                 = { version = "=77.0.0", default-features = false }
+swc                 = { version = "=80.0.0", default-features = false }
 swc_config          = { version = "6.0.1", default-features = false }
-swc_core            = { version = "=79.0.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "61.0.9", default-features = false }
+swc_core            = { version = "=82.0.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "63.0.0", default-features = false }
 swc_error_reporters = { version = "28.0.0", default-features = false }
 swc_html            = { version = "38.0.0", default-features = false }
-swc_html_minifier   = { version = "61.0.0", default-features = false }
+swc_html_minifier   = { version = "63.0.0", default-features = false }
 swc_plugin_runner   = { version = "34.0.0", default-features = false }
 swc_typescript      = { version = "34.0.1", default-features = false }
 

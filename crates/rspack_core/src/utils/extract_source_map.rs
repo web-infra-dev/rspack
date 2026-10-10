@@ -3,9 +3,8 @@
   Author Natsu @xiaoxiaojx
 */
 
-use std::{borrow::Cow, path::PathBuf, sync::Arc};
+use std::{borrow::Cow, ops::Range, path::PathBuf, sync::Arc};
 
-use cow_utils::CowUtils;
 use futures::stream::{FuturesOrdered, StreamExt};
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -41,24 +40,32 @@ static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
 
 /// Extract source mapping URL from code comments
 pub fn get_source_mapping_url(code: &str) -> SourceMappingURL {
-  // Use captures_iter to find the last match, avoiding split and collect overhead
+  get_source_mapping_url_with_range(code).0
+}
+
+// Retain the public result shape; only extraction needs the byte range.
+fn get_source_mapping_url_with_range(code: &str) -> (SourceMappingURL, Option<Range<usize>>) {
   let mut match_result = None;
   let mut replacement_string = String::new();
+  let mut replacement_range = None;
 
-  // Find the last match from the end
-  if let Some(captures) = SOURCE_MAPPING_URL_REGEX.captures_iter(code).last() {
+  if let Some(range) = trailing_source_mapping_url_range(code)
+    && let Some(captures) = SOURCE_MAPPING_URL_REGEX
+      .captures(code[range.clone()].trim_end_matches(is_source_map_whitespace))
+  {
     match_result = captures
       .get(1)
       .or_else(|| captures.get(2))
       .map(|m| m.as_str());
 
     // Get the complete match string for replacement
-    replacement_string = captures.get(0).map_or("", |m| m.as_str()).to_string();
+    replacement_string = code[range.clone()].to_string();
+    replacement_range = Some(range);
   }
 
   let source_mapping_url = match_result.unwrap_or("").to_string();
 
-  SourceMappingURL {
+  let source_mapping_url = SourceMappingURL {
     source_mapping_url: if !source_mapping_url.is_empty() {
       urlencoding::decode(&source_mapping_url)
         .unwrap_or(Cow::Borrowed(&source_mapping_url))
@@ -67,7 +74,86 @@ pub fn get_source_mapping_url(code: &str) -> SourceMappingURL {
       source_mapping_url
     },
     replacement_string,
+  };
+  (source_mapping_url, replacement_range)
+}
+
+fn trailing_source_mapping_url_range(code: &str) -> Option<Range<usize>> {
+  // ECMA-426 JavaScriptExtractSourceMapURL (without parsing): examine only
+  // trailing comment lines, stopping at code or ambiguous literal delimiters.
+  // Keep block comments as an extension for existing JavaScript/CSS callers.
+  // Borrow slices rather than collecting lines or parsing the entire source.
+  let mut end = code.len();
+  while end > 0 {
+    let content_end = code[..end].trim_end_matches(is_source_map_whitespace).len();
+    if content_end == 0 {
+      return None;
+    }
+    let line_start = code[..content_end]
+      .rfind(['\n', '\r', '\u{2028}', '\u{2029}'])
+      .map_or(0, |position| {
+        position
+          + code[position..]
+            .chars()
+            .next()
+            .expect("line terminator")
+            .len_utf8()
+      });
+    let line = code[line_start..content_end].trim_start_matches(is_source_map_whitespace);
+    let start = content_end - line.len();
+    let (comment_start, comment_end) = if let Some(comment) = line.strip_prefix("//") {
+      if comment.contains(['\'', '"', '`']) || comment.contains("*/") {
+        return None;
+      }
+      (start, content_end)
+    } else if code[..content_end].ends_with("*/") {
+      let block_start = code[..content_end - 2].rfind("/*")?;
+      let body = &code[block_start + 2..content_end - 2];
+      // The first terminator closes the block. A later `*/` may instead be
+      // executable code (for example a regex), which must stop the tail scan.
+      if body.contains("*/") || body.contains(['\'', '"', '`']) {
+        return None;
+      }
+      // Block comments do not nest: the nearest opener can be comment text.
+      // Stop at this ambiguity rather than removing an inner directive and
+      // leaving an unterminated outer comment. Only borrow the delimiter suffix.
+      let prefix = &code[..block_start];
+      let boundary = prefix.rfind("*/").map_or(0, |position| position + 2);
+      if prefix[boundary..].contains("/*") {
+        return None;
+      }
+      (block_start, content_end)
+    } else {
+      return None;
+    };
+    let comment = &code[comment_start..comment_end];
+    if let Some(matched) = SOURCE_MAPPING_URL_REGEX.find(comment)
+      && matched.start() == 0
+      && matched.end() == comment.len()
+    {
+      return Some(comment_start..end);
+    }
+    end = comment_start;
   }
+  None
+}
+
+fn is_source_map_whitespace(c: char) -> bool {
+  // ECMAScript WhiteSpace (including all Unicode Space_Separator characters)
+  // and LineTerminator, rather than Rust's broader Unicode White_Space set.
+  matches!(
+    c,
+    '\t' | '\u{000b}' | '\u{000c}' | ' ' | '\u{00a0}' | '\u{1680}' | '\u{2000}'
+      ..='\u{200a}'
+        | '\u{202f}'
+        | '\u{205f}'
+        | '\u{3000}'
+        | '\u{feff}'
+        | '\n'
+        | '\r'
+        | '\u{2028}'
+        | '\u{2029}'
+  )
 }
 
 /// Check if value is a URL
@@ -248,10 +334,12 @@ pub async fn extract_source_map(
   input: &str,
   resource_path: &str,
 ) -> Result<ExtractSourceMapResult, String> {
-  let SourceMappingURL {
-    source_mapping_url,
-    replacement_string,
-  } = get_source_mapping_url(input);
+  let (
+    SourceMappingURL {
+      source_mapping_url, ..
+    },
+    replacement_range,
+  ) = get_source_mapping_url_with_range(input);
 
   if source_mapping_url.is_empty() {
     return Ok(ExtractSourceMapResult {
@@ -370,11 +458,10 @@ pub async fn extract_source_map(
   source_map.set_source_root(None);
 
   // Optimize string replacement to avoid unnecessary cloning
-  let new_source = if replacement_string.is_empty() {
-    input.to_string()
-  } else {
-    input.cow_replace(&replacement_string, "").into_owned()
-  };
+  let mut new_source = input.to_string();
+  if let Some(range) = replacement_range {
+    new_source.replace_range(range, "");
+  }
 
   Ok(ExtractSourceMapResult {
     source: new_source,
@@ -452,10 +539,10 @@ mod tests {
         /*# sourceMappingURL=data:application/json;base64,"+btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap))))+" */";"#,
         "",
       ),
-      // JavaScript code snippet, expected to truncate at first variable reference
+      // Ambiguous quoted comment is rejected by the non-parsing extraction guard.
       (
         r#"// # sourceMappingURL=data:application/json;base64,"+btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap))))+"'"#,
-        "data:application/json;base64,",
+        "",
       ),
       // JavaScript code snippet with variable reference, expected to return empty string
       (

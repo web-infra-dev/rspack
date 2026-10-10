@@ -55,6 +55,18 @@ pub struct BuildModuleGraphArtifact {
   pub build_dependencies: FileCounter,
 }
 
+#[cfg(allocative)]
+impl rspack_util::allocative::Allocative for BuildModuleGraphArtifact {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_util::allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(
+      rspack_util::allocative::ident_key!(module_graph),
+      &self.module_graph,
+    );
+    visitor.exit();
+  }
+}
+
 impl BuildModuleGraphArtifact {
   #[allow(clippy::new_without_default)]
   pub fn new() -> Self {
