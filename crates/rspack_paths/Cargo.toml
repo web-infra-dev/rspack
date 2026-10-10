@@ -16,7 +16,7 @@ default   = ["cacheable"]
 
 [dependencies]
 camino           = { workspace = true }
-dashmap          = { workspace = true }
+dashmap          = { workspace = true, features = ["raw-api"] }
 indexmap         = { workspace = true }
 rspack_cacheable = { workspace = true, optional = true }
 rspack_intern    = { workspace = true }

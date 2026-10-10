@@ -13,18 +13,45 @@
 use std::{
   fmt::{self, Debug},
   hash::{Hash, Hasher},
-  sync::OnceLock,
+  sync::{
+    OnceLock,
+    atomic::{AtomicUsize, Ordering},
+  },
 };
 
 use dashmap::{DashMap, SharedValue};
 use rustc_hash::FxBuildHasher;
 use triomphe::ThinArc;
 
-type InternMap<T> =
-  DashMap<ThinArc<<T as SliceInternable>::Header, <T as SliceInternable>::Item>, (), FxBuildHasher>;
+type InternMap<T> = DashMap<
+  ThinArc<SliceHeader<<T as SliceInternable>::Header>, <T as SliceInternable>::Item>,
+  (),
+  FxBuildHasher,
+>;
+
+struct SliceHeader<H> {
+  value: H,
+  /// User handles, excluding the map's reference and handles whose drop body
+  /// has run but whose ThinArc field has not yet been released.
+  handles: AtomicUsize,
+}
+
+impl<H: PartialEq> PartialEq for SliceHeader<H> {
+  fn eq(&self, other: &Self) -> bool {
+    self.value == other.value
+  }
+}
+
+impl<H: Eq> Eq for SliceHeader<H> {}
+
+impl<H: Hash> Hash for SliceHeader<H> {
+  fn hash<S: Hasher>(&self, state: &mut S) {
+    self.value.hash(state);
+  }
+}
 
 pub struct InternedSlice<T: SliceInternable> {
-  arc: ThinArc<T::Header, T::Item>,
+  arc: ThinArc<SliceHeader<T::Header>, T::Item>,
 }
 
 impl<T: SliceInternable> InternedSlice<T> {
@@ -41,11 +68,7 @@ impl<T: SliceInternable> InternedSlice<T> {
       let shard = shard.read();
       if let Some(bucket) = shard.find(hash, |(other, _)| T::eq(&other.slice, items)) {
         // SAFETY: We just found this bucket and still hold the shard lock.
-        return unsafe {
-          Self {
-            arc: bucket.as_ref().0.clone(),
-          }
-        };
+        return Self::from_arc(unsafe { bucket.as_ref().0.clone() });
       }
     }
 
@@ -55,7 +78,7 @@ impl<T: SliceInternable> InternedSlice<T> {
     let bucket = match shard.find_or_find_insert_slot(
       hash,
       |(other, _)| T::eq(&other.slice, items),
-      |(other, _)| T::hash(&other.header.header, &other.slice),
+      |(other, _)| T::hash(&other.header.header.value, &other.slice),
     ) {
       Ok(bucket) => bucket,
       // SAFETY: The slot came from `find_or_find_insert_slot()`, and the table wasn't modified since then.
@@ -64,23 +87,33 @@ impl<T: SliceInternable> InternedSlice<T> {
           hash,
           insert_slot,
           (
-            ThinArc::from_header_and_slice(header, items),
+            ThinArc::from_header_and_slice(
+              SliceHeader {
+                value: header,
+                handles: AtomicUsize::new(0),
+              },
+              items,
+            ),
             SharedValue::new(()),
           ),
         )
       },
     };
     // SAFETY: We just retrieved/inserted this bucket.
-    unsafe {
-      Self {
-        arc: bucket.as_ref().0.clone(),
-      }
-    }
+    Self::from_arc(unsafe { bucket.as_ref().0.clone() })
+  }
+
+  /// Count an interned handle while holding the shard lock. Cloning an existing
+  /// handle needs no lock because the source keeps the value registered.
+  #[inline]
+  fn from_arc(arc: ThinArc<SliceHeader<T::Header>, T::Item>) -> Self {
+    arc.header.header.handles.fetch_add(1, Ordering::Relaxed);
+    Self { arc }
   }
 
   #[inline]
   pub fn header(&self) -> &T::Header {
-    &self.arc.header.header
+    &self.arc.header.header.value
   }
 
   #[inline]
@@ -94,7 +127,7 @@ impl<T: SliceInternable> InternedSlice<T> {
     let hash = T::hash(self.header(), self.items());
     let mut shard = storage.shards()[storage.determine_shard(hash as usize)].write();
 
-    if ThinArc::strong_count(&self.arc) != 2 {
+    if self.arc.header.header.handles.load(Ordering::Acquire) != 0 {
       // Another thread has interned another copy.
       return;
     }
@@ -108,7 +141,7 @@ impl<T: SliceInternable> InternedSlice<T> {
     if shard.len() * 2 < shard.capacity() {
       let len = shard.len();
       shard.shrink_to(len, |(other, _)| {
-        T::hash(&other.header.header, &other.slice)
+        T::hash(&other.header.header.value, &other.slice)
       });
     }
   }
@@ -117,9 +150,17 @@ impl<T: SliceInternable> InternedSlice<T> {
 impl<T: SliceInternable> Drop for InternedSlice<T> {
   #[inline]
   fn drop(&mut self) {
-    // When the last handle is dropped, remove the value from the global map.
-    if ThinArc::strong_count(&self.arc) == 2 {
-      // Only `self` and the global map point to the value.
+    // Elect exactly one final handle even when several Drop bodies run before
+    // any of their ThinArc fields are released. Sampling strong_count here can
+    // miss the last handle and leave the map's reference alive indefinitely.
+    if self
+      .arc
+      .header
+      .header
+      .handles
+      .fetch_sub(1, Ordering::AcqRel)
+      == 1
+    {
       self.drop_slow();
     }
   }
@@ -147,9 +188,7 @@ impl<T: SliceInternable> Hash for InternedSlice<T> {
 impl<T: SliceInternable> Clone for InternedSlice<T> {
   #[inline]
   fn clone(&self) -> Self {
-    Self {
-      arc: self.arc.clone(),
-    }
+    Self::from_arc(self.arc.clone())
   }
 }
 
