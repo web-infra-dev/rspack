@@ -154,6 +154,7 @@ type ThreadsafeUse = ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>;
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawModuleRule {
+  pub r#as: Option<String>,
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
   ///   This is a custom matching rule not initially designed by webpack.
@@ -1104,6 +1105,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       .unwrap_or_default();
 
     Ok(ModuleRule {
+      r#as: value.r#as,
       rspack_resource: value
         .rspack_resource
         .map(|raw| raw.try_into())
