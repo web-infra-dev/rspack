@@ -7,7 +7,7 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ModuleDependency, ModuleIdentifier, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
-use rspack_hash::{RspackHash, RspackHasher};
+use rspack_hash::{RspackHasher, rspack_hash_object};
 use rspack_util::placeholder::PlaceholderFinder;
 
 use crate::{css_syntax::serialize_url_value, utils::AUTO_PUBLIC_PATH_PLACEHOLDER};
@@ -105,16 +105,20 @@ impl DependencyCodeGeneration for CssUrlDependency {
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    super::hash::hash_field(&self.request, hasher);
-    (self.range.start, self.range.end).hash(hasher);
-    self.replace_function.hash(hasher);
+    rspack_hash_object!(hasher, {
+      "request" => &self.request,
+      "range" => (self.range.start, self.range.end),
+      "replaceFunction" => self.replace_function,
+    });
     // The emitted URL can contain the asset's content hash. Its build hash is
     // available before codegen, unlike the generated filename or runtime hash.
     if let Some(module) = compilation
       .get_module_graph()
       .get_module_by_dependency_id(&self.id)
     {
-      module.build_info().hash.hash(hasher);
+      rspack_hash_object!(hasher, {
+        "buildHash" => &module.build_info().hash,
+      });
     }
   }
 

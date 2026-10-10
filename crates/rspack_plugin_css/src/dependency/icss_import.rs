@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyType, ExportsInfoArtifact,
   ModuleDependency, ReferencedExport, RuntimeSpec,
 };
-use rspack_hash::{RspackHash, RspackHasher};
+use rspack_hash::{RspackHasher, rspack_hash_object};
 use rspack_intern::Atom;
 use smol_str::SmolStr;
 
@@ -120,11 +120,13 @@ impl DependencyCodeGeneration for CssIcssImportDependency {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) {
-    super::hash::hash_field(&self.request, hasher);
-    super::hash::hash_field(&self.import_name, hasher);
-    super::hash::hash_field(&self.local_name, hasher);
-    (self.range.start, self.range.end).hash(hasher);
-    self.export_type.hash(hasher);
+    rspack_hash_object!(hasher, {
+      "request" => &self.request,
+      "importName" => self.import_name.as_str(),
+      "localName" => &self.local_name,
+      "range" => (self.range.start, self.range.end),
+      "exportType" => self.export_type,
+    });
     super::hash::hash_css_import_target(self.id, hasher, compilation, runtime);
   }
 }

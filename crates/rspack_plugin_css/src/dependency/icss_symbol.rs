@@ -3,7 +3,7 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyType, RuntimeSpec,
 };
-use rspack_hash::{RspackHash, RspackHasher};
+use rspack_hash::{RspackHasher, rspack_hash_object};
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -65,8 +65,10 @@ impl DependencyCodeGeneration for CssIcssSymbolDependency {
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    (self.range.start, self.range.end).hash(hasher);
-    (self.kind as u8).hash(hasher);
+    rspack_hash_object!(hasher, {
+      "range" => (self.range.start, self.range.end),
+      "kind" => self.kind as u8,
+    });
     super::hash::hash_binding(compilation, self.target, hasher);
   }
 }

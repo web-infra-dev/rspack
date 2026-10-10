@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyType, ExportNameOrSpec,
   ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RuntimeSpec,
 };
-use rspack_hash::{RspackHash, RspackHasher};
+use rspack_hash::{RspackHasher, rspack_hash_object};
 use smol_str::SmolStr;
 
 use crate::utils::{css_generator_options, export_locals_convention};
@@ -124,16 +124,20 @@ impl DependencyCodeGeneration for CssIcssExportDependency {
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.value.hash(hasher);
-    self.local_ident.map(|kind| kind as u8).hash(hasher);
-    super::hash::hash_field(&self.name, hasher);
-    self.can_mangle.hash(hasher);
-    hasher.write(b"|references:");
+    rspack_hash_object!(hasher, {
+      "value" => &self.value,
+      "localIdent" => self.local_ident.map(|kind| kind as u8),
+      "name" => &self.name,
+      "canMangle" => self.can_mangle,
+      "referenceCount" => self.references.len(),
+      "composesCount" => self.composes.len(),
+    });
     for reference in &self.references {
-      (reference.range.start, reference.range.end).hash(hasher);
+      rspack_hash_object!(hasher, {
+        "range" => (reference.range.start, reference.range.end),
+      });
       super::hash::hash_binding(compilation, reference.dependency_id, hasher);
     }
-    hasher.write(b"|composes:");
     for id in &self.composes {
       super::hash::hash_binding(compilation, *id, hasher);
     }

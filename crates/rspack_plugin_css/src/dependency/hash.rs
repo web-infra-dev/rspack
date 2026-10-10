@@ -3,18 +3,12 @@ use rspack_core::{
   ChunkGraph, Compilation, DependencyCodeGeneration, DependencyId, GeneratorOptions, Module,
   RuntimeSpec,
 };
-use rspack_hash::{HashSalt, RspackHash, RspackHasher, write_u64_hex};
+use rspack_hash::{HashSalt, RspackHasher, rspack_hash_object};
 
 use super::{
   CssIcssExportDependency, CssIcssImportDependency, CssImportDependency, CssUrlDependency,
 };
 use crate::utils::css_module_export_type;
-
-pub(super) fn hash_field(value: &str, hasher: &mut RspackHasher) {
-  value.len().hash(hasher);
-  hasher.write(b":");
-  value.hash(hasher);
-}
 
 /// Hash the binding, not the allocation-dependent dependency ID. Two uses of
 /// the same name can refer to different definitions after a redefinition.
@@ -22,16 +16,21 @@ pub(super) fn hash_binding(compilation: &Compilation, id: DependencyId, hasher: 
   let graph = compilation.get_module_graph();
   let dependency = graph.dependency_by_id(&id);
   if let Some(export) = dependency.downcast_ref::<CssIcssExportDependency>() {
-    hasher.write(b"export");
-    hash_field(&export.name, hasher);
-    hash_field(&export.value, hasher);
-    export.local_ident.map(|kind| kind as u8).hash(hasher);
+    rspack_hash_object!(hasher, {
+      "type" => "export",
+      "name" => &export.name,
+      "value" => &export.value,
+      "localIdent" => export.local_ident.map(|kind| kind as u8),
+    });
   } else if let Some(import) = dependency.downcast_ref::<CssIcssImportDependency>() {
-    hasher.write(b"import");
-    hash_field(import.import_name(), hasher);
-    if let Some(target) = graph.get_module_by_dependency_id(&id) {
-      ChunkGraph::get_module_id(&compilation.module_ids_artifact, target.identifier()).hash(hasher);
-    }
+    let module_id = graph.get_module_by_dependency_id(&id).and_then(|target| {
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, target.identifier())
+    });
+    rspack_hash_object!(hasher, {
+      "type" => "import",
+      "importName" => import.import_name(),
+      "moduleId" => module_id,
+    });
   }
 }
 
@@ -42,45 +41,33 @@ pub(crate) fn hash_generator_options(module: &dyn Module, hasher: &mut RspackHas
   match options {
     Some(GeneratorOptions::CssModule(options)) => {
       let convention = options.exports_convention.unwrap_or_default();
-      [
-        convention.as_is(),
-        convention.camel_case(),
-        convention.dashes(),
-      ]
-      .hash(hasher);
-      options
-        .local_ident_name
-        .as_ref()
-        .map(|name| &name.template)
-        .hash(hasher);
-      hasher.write(b"|function:");
-      options
-        .local_ident_hash_function
-        .map(|value| value as u8)
-        .hash(hasher);
-      hasher.write(b"|digest:");
-      options
-        .local_ident_hash_digest
-        .map(|value| value as u8)
-        .hash(hasher);
-      hasher.write(b"|length:");
-      options.local_ident_hash_digest_length.hash(hasher);
-      hasher.write(b"|salt:");
-      match &options.local_ident_hash_salt {
-        HashSalt::None => hasher.write(b"none"),
-        HashSalt::Salt(salt) => {
-          hasher.write(b"some");
-          hash_field(salt, hasher);
-        }
-      }
-      (options.exports_only, options.es_module).hash(hasher);
+      // Keep an absent salt distinct from a configured empty string.
+      let salt = match &options.local_ident_hash_salt {
+        HashSalt::None => (false, ""),
+        HashSalt::Salt(salt) => (true, salt.as_str()),
+      };
+      rspack_hash_object!(hasher, {
+        "exportsConvention" => [convention.as_is(), convention.camel_case(), convention.dashes()],
+        "localIdentName" => options.local_ident_name.as_ref().map(|name| &name.template),
+        "localIdentHashFunction" => options.local_ident_hash_function.map(|value| value as u8),
+        "localIdentHashDigest" => options.local_ident_hash_digest.map(|value| value as u8),
+        "localIdentHashDigestLength" => options.local_ident_hash_digest_length,
+        "localIdentHashSalt" => salt,
+        "exportsOnly" => options.exports_only,
+        "esModule" => options.es_module,
+      });
     }
     Some(GeneratorOptions::Css(options)) => {
-      (options.exports_only, options.es_module).hash(hasher);
+      rspack_hash_object!(hasher, {
+        "exportsOnly" => options.exports_only,
+        "esModule" => options.es_module,
+      });
     }
     _ => {}
   }
-  css_module_export_type(module).hash(hasher);
+  rspack_hash_object!(hasher, {
+    "exportType" => css_module_export_type(module),
+  });
 }
 
 /// CSS values and generated identifiers are copied into the importing module.
@@ -120,16 +107,13 @@ pub(super) fn hash_css_import_target(
       continue;
     }
     if first_visit {
-      hasher.write(b"|css-target:");
-      module.build_info().hash.hash(hasher);
-      hasher.write(b"|graph:");
-      write_u64_hex(
-        compilation
+      rspack_hash_object!(hasher, {
+        "buildHash" => &module.build_info().hash,
+        "graphHash" => compilation
           .build_chunk_graph_artifact
           .chunk_graph
           .get_module_graph_hash(module.as_ref(), compilation, runtime),
-        hasher,
-      );
+      });
       hash_generator_options(module.as_ref(), hasher);
       if let Some(dependencies) = module.get_presentational_dependencies() {
         for dependency in dependencies {

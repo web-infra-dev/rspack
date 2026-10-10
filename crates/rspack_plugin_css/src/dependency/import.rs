@@ -6,7 +6,7 @@ use rspack_core::{
   TemplateContext, TemplateReplaceSource, css_module_render_conditions_identifier,
   iter_css_module_render_conditions, push_css_module_identifier_part,
 };
-use rspack_hash::{RspackHash, RspackHasher};
+use rspack_hash::{RspackHasher, rspack_hash_object};
 
 use crate::utils::source_order_to_i32;
 
@@ -154,8 +154,10 @@ impl DependencyCodeGeneration for CssImportDependency {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) {
-    super::hash::hash_field(&self.resource_identifier, hasher);
-    (self.range.start, self.range.end).hash(hasher);
+    rspack_hash_object!(hasher, {
+      "resourceIdentifier" => &self.resource_identifier,
+      "range" => (self.range.start, self.range.end),
+    });
     if self.is_inlined(compilation) {
       super::hash::hash_css_import_target(self.id, hasher, compilation, runtime);
     }
