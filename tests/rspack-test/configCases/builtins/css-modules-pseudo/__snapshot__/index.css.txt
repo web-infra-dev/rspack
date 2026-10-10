@@ -1,9 +1,9 @@
 Object {
-  bar: VPxvxc,
-  bav: T79XH4,
-  foo: TLKUEJ,
-  four: krUfN1,
-  one: BxQ6Dy,
-  three: crizAs,
-  two: z4y4tw,
+  bar: FeEgSd,
+  bav: yop9FY,
+  foo: -Vx2ql,
+  four: JKgN0A,
+  one: o6wchM,
+  three: WZCoVU,
+  two: TzcfnG,
 }

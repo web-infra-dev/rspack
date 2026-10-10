@@ -1,9 +1,9 @@
 Object {
-  btn--info_is-disabled_1: hPnyve,
-  btn-info_is-disabled: YYvZJK,
-  btnInfoIsDisabled: YYvZJK,
-  btnInfoIsDisabled1: hPnyve,
-  fooBar: iXMHqP,
-  foo_bar: iXMHqP,
-  simple: WXrWDY,
+  btn--info_is-disabled_1: -BQ6aw,
+  btn-info_is-disabled: XLIMfx,
+  btnInfoIsDisabled: XLIMfx,
+  btnInfoIsDisabled1: -BQ6aw,
+  fooBar: E6RB1Y,
+  foo_bar: E6RB1Y,
+  simple: MHPjLl,
 }

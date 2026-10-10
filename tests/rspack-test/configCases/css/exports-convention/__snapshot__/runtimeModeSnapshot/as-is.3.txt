@@ -1,10 +1,10 @@
 Object {
-  btn--info_is-disabled_1: _8WfhGQ,
-  btn-info_is-disabled: wuwshF,
-  class: Of56XB,
-  default: t0QB0t,
+  btn--info_is-disabled_1: pWrbmY,
+  btn-info_is-disabled: Y9FGry,
+  class: BpR-1Y,
+  default: wnYogL,
   foo: bar,
-  foo_bar: BJIFuv,
+  foo_bar: _29vxvX,
   my-btn-info_is-disabled: value,
-  simple: wfGSSB,
+  simple: uFwPXE,
 }

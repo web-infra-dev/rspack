@@ -1,9 +1,9 @@
 Object {
-  btn--info_is-disabled_1: ArLnes-btn--info_is-disabled_1,
-  btn-info_is-disabled: zhU_IJ-btn-info_is-disabled,
-  color-red: --ATJADY-color-red,
+  btn--info_is-disabled_1: FNPk3B-btn--info_is-disabled_1,
+  btn-info_is-disabled: f2Ito5-btn-info_is-disabled,
+  color-red: --fI2ubg-color-red,
   foo: bar,
-  foo_bar: XWSMcN-foo_bar,
+  foo_bar: VGi7lP-foo_bar,
   my-btn-info_is-disabled: value,
-  simple: wvVIMT-simple,
+  simple: qJWYaj-simple,
 }

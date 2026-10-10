@@ -1,10 +1,10 @@
 Object {
-  btn-info-is-disabled: vW__K6,
-  btn-info-is-disabled-1: HAkxur,
-  class: EKGRp4,
-  default: mcp-Lv,
+  btn-info-is-disabled: ByEsJi,
+  btn-info-is-disabled-1: ENeYMx,
+  class: P8_p0w,
+  default: zExpPC,
   foo: bar,
-  foo-bar: CDz5KB,
+  foo-bar: Rjnqxf,
   my-btn-info-is-disabled: value,
-  simple: SGXxv4,
+  simple: ajlWpn,
 }

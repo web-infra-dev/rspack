@@ -1,10 +1,10 @@
 Object {
-  btnInfoIsDisabled: XUQMRf,
-  btnInfoIsDisabled1: _8FC5HE,
-  class: KPMXQl,
-  default: aLnzX7,
+  btnInfoIsDisabled: Sz7EaN,
+  btnInfoIsDisabled1: OJfo7p,
+  class: pFsLwR,
+  default: _0ek9nf,
   foo: bar,
-  fooBar: ABzQth,
+  fooBar: UcBoha,
   myBtnInfoIsDisabled: value,
-  simple: _554TZO,
+  simple: _0LFBUo,
 }

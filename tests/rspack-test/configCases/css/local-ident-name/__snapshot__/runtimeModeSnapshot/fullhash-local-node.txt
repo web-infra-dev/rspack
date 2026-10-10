@@ -1,9 +1,9 @@
 Object {
-  btn--info_is-disabled_1: BSnMNH-btn--info_is-disabled_1,
-  btn-info_is-disabled: _9dTcp--btn-info_is-disabled,
-  color-red: --mHbfmE-color-red,
+  btn--info_is-disabled_1: lSd3Dy-btn--info_is-disabled_1,
+  btn-info_is-disabled: WFotRg-btn-info_is-disabled,
+  color-red: --SXpgM9-color-red,
   foo: bar,
-  foo_bar: fYUXcI-foo_bar,
+  foo_bar: _99xkhk-foo_bar,
   my-btn-info_is-disabled: value,
-  simple: F68rN1-simple,
+  simple: _6i0uSD-simple,
 }

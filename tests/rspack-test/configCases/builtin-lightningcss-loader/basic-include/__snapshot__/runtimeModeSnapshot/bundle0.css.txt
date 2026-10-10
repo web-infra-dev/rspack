@@ -1,5 +1,5 @@
 body {
-  & ._5tnQHO {
+  & ._04J172 {
     color: #00f;
   }
 }
