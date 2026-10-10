@@ -166,4 +166,96 @@ export default [{
 			expect(compiler.outputFileSystem.existsSync("/out/stale.txt")).toBe(build < 2);
 		}
 	}
+}, {
+	description: "should cache emitted snapshots per info without reading size-only compilation assets",
+	options(context) {
+		return {
+			context: context.getSource(),
+			entry: "./d",
+			mode: "development",
+			devtool: false,
+			cache: true,
+			output: { path: "/out", clean: false, compareBeforeEmit: false },
+			plugins: [{
+				apply(compiler) {
+					const { RawSource, SourceMapSource, SizeOnlySource, util } = compiler.rspack.sources;
+					const builds = [];
+					context.setValue("emittedSnapshots", builds);
+					compiler.hooks.emit.tap("EmittedSnapshots", compilation => {
+						builds.push(new Map());
+						const content = `build ${builds.length}`;
+						compilation.emitAsset("cached.txt", new RawSource(content));
+						compilation.emitAsset("empty.txt", new RawSource(""));
+						compilation.emitAsset("lazy.txt", new SourceMapSource(content, "original.txt", {
+							version: 3,
+							sources: ["original.txt"],
+							sourcesContent: [content],
+							names: [],
+							mappings: "AAAA"
+						}));
+					});
+					compiler.hooks.assetEmitted.tap("CacheEmittedSnapshot", (name, info) => {
+						if (!["cached.txt", "empty.txt", "lazy.txt"].includes(name)) return;
+						expect(info.compilation.getAsset(name).source).toBeInstanceOf(SizeOnlySource);
+						builds.at(-1).set(name, info);
+						// Leave the mapped source unread until after a rebuild and compiler.close().
+						if (name === "lazy.txt") return;
+						const caching = util.stringBufferUtils;
+						const wasEnabled = caching.isDualStringBufferCachingEnabled();
+						try {
+							caching.disableDualStringBufferCaching();
+							const source = info.source;
+							const content = info.content;
+							expect(info.source).toBe(source);
+							expect(info.content).toBe(content);
+							expect(content.toString()).toBe(name === "empty.txt" ? "" : `build ${builds.length}`);
+							if (content.length) content[0] = 66; // "build" -> "Build"
+							source.clearCache();
+							expect(info.content).toBe(content);
+						} finally {
+							if (wasEnabled) caching.enableDualStringBufferCaching();
+						}
+					});
+					compiler.hooks.assetEmitted.tap("ReadCachedSnapshot", (name, info) => {
+						if (name !== "cached.txt" && name !== "empty.txt") return;
+						const previous = builds.at(-1).get(name);
+						expect(info).toBe(previous);
+						expect(info.source).toBe(previous.source);
+						expect(info.content).toBe(previous.content);
+						expect(info.content.toString()).toBe(name === "empty.txt" ? "" : `Build ${builds.length}`);
+					});
+				}
+			}]
+		};
+	},
+	compiler(_context, compiler) {
+		compiler.outputFileSystem = createFsFromVolume(new Volume());
+	},
+	async build(context, compiler) {
+		for (let build = 1; build <= 2; build++) {
+			const stats = await context.getCompiler().build();
+			expect(stats.hasErrors()).toBe(false);
+			// Sharing and mutating the hook's Buffer cannot change the already written file.
+			expect(compiler.outputFileSystem.readFileSync("/out/cached.txt", "utf8")).toBe(`build ${build}`);
+		}
+		await context.closeCompiler();
+		const [first, second] = context.getValue("emittedSnapshots");
+		for (const name of ["cached.txt", "empty.txt", "lazy.txt"]) {
+			expect(first.get(name)).not.toBe(second.get(name));
+			expect(first.get(name).source).not.toBe(second.get(name).source);
+			expect(first.get(name).content).not.toBe(second.get(name).content);
+		}
+		for (const [index, infos] of [first, second].entries()) {
+			const info = infos.get("lazy.txt");
+			const content = `build ${index + 1}`;
+			expect(info.source.source()).toBe(content);
+			expect(info.content.toString()).toBe(content);
+			expect(info.source.map()).toMatchObject({
+				sources: ["original.txt"], sourcesContent: [content], mappings: "AAAA"
+			});
+			expect(info.source.sourceAndMap().source).toBe(content);
+			expect(info.source).toBe(info.source);
+			expect(info.content).toBe(info.content);
+		}
+	}
 }];

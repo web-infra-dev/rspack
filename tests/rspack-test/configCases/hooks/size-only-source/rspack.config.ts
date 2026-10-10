@@ -11,6 +11,11 @@ export default defineConfig(
       definePlugin({
         apply(compiler) {
           const { RawSource, SizeOnlySource } = compiler.rspack.sources;
+          // Both compilers share an output directory. Do not let one skip writes
+          // because the other compiler has already emitted the same custom asset.
+          const prefix = compareBeforeEmit ? 'compare/' : 'write/';
+          const textName = `${prefix}text.txt`;
+          const binaryName = `${prefix}binary.bin`;
           const sizes = new Map<string, number>();
           const emitted = new Map<
             string,
@@ -20,14 +25,14 @@ export default defineConfig(
             'SizeOnlySource',
             (compilation) => {
               compilation.hooks.processAssets.tap('SizeOnlySource', () => {
-                compilation.emitAsset('text.txt', new RawSource('你好🌍'), {
+                compilation.emitAsset(textName, new RawSource('你好🌍'), {
                   custom: 'kept',
                 });
                 compilation.emitAsset(
-                  'binary.bin',
+                  binaryName,
                   new RawSource(Buffer.from([0, 255, 128, 10])),
                 );
-                compilation.emitAsset('empty.txt', new RawSource(''));
+                compilation.emitAsset(`${prefix}empty.txt`, new RawSource(''));
               });
             },
           );
@@ -69,19 +74,19 @@ export default defineConfig(
               expect(original.content.length).toBe(sizes.get(name));
               expect(original.source).toBe(original.source);
             }
-            expect(compilation.getAsset('text.txt')!.info.custom).toBe('kept');
-            expect(emitted.get('text.txt')!.source.source()).toBe('你好🌍');
-            expect(emitted.get('binary.bin')!.content).toEqual(
+            expect(compilation.getAsset(textName)!.info.custom).toBe('kept');
+            expect(emitted.get(textName)!.source.source()).toBe('你好🌍');
+            expect(emitted.get(binaryName)!.content).toEqual(
               Buffer.from([0, 255, 128, 10]),
             );
             // Size-only snapshots cannot be sent back to Rust as source content.
-            const sizeOnly = compilation.getAsset('text.txt')!.source;
+            const sizeOnly = compilation.getAsset(textName)!.source;
             expect(() =>
               compilation.emitAsset('size-only.txt', sizeOnly),
             ).toThrow(
               'Content and Map of this Source is not available (only size() is supported)',
             );
-            expect(() => compilation.updateAsset('text.txt', sizeOnly)).toThrow(
+            expect(() => compilation.updateAsset(textName, sizeOnly)).toThrow(
               'Content and Map of this Source is not available (only size() is supported)',
             );
             expect(() => {
@@ -92,10 +97,10 @@ export default defineConfig(
             }).toThrow();
             expect(compilation.getAsset('size-only.txt')).toBeUndefined();
             expect(compilation.getAsset('numeric.txt')).toBeUndefined();
-            expect(compilation.getAsset('text.txt')!.source.size()).toBe(
-              sizes.get('text.txt'),
+            expect(compilation.getAsset(textName)!.source.size()).toBe(
+              sizes.get(textName),
             );
-            expect(compilation.getAsset('text.txt')!.info.custom).toBe('kept');
+            expect(compilation.getAsset(textName)!.info.custom).toBe('kept');
             emitted.clear();
           });
           compiler.hooks.done.tap('SizeOnlySource', (stats) => {

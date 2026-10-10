@@ -564,6 +564,11 @@ compiler.hooks.shouldEmit.tap('MyPlugin', (compilation) => {
 `assetEmitted` 钩子的 `info.source` 和 `info.content` 仍提供原始输出内容。
 替换 compilation 中的资源不会使缓存或插件持有的 Source 失效。
 
+`assetEmitted` 的 info 对象会惰性缓存 `source` 和 `content`。重复读取同一个 info
+对象会返回相同的 `Source` 和 `Buffer`，即使首次读取发生在输出完成之后。
+这些值来自原始输出 Source 的快照，而不是当前 compilation 中的资源。
+保留 info 对象也会延长该快照或已转换的 JavaScript 内容的生命周期。
+
 Rspack 不支持将 `SizeOnlySource` 作为 `emitAsset` 或 `updateAsset` 的输入；
 请传入包含实际内容的 Source。
 

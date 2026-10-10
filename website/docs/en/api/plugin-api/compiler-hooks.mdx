@@ -579,6 +579,12 @@ instead. The `assetEmitted` hook's `info.source` and `info.content` still provid
 the original emitted content. Replacing a compilation asset does not invalidate
 sources retained by caches or plugins.
 
+The `assetEmitted` info object lazily caches its `source` and `content`. Repeated
+reads on the same info object return the same `Source` and `Buffer`, including
+when the first read happens after emission. These values come from the original
+emitted source snapshot, not the current compilation asset. Keeping the info
+object also keeps that snapshot or its materialized JavaScript content alive.
+
 Rspack does not accept a `SizeOnlySource` as input to `emitAsset` or `updateAsset`;
 provide a source containing content instead.
 
