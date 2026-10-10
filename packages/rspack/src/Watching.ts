@@ -12,8 +12,17 @@ import type { Callback } from '@rspack/lite-tapable';
 import type { Compilation, Compiler } from '.';
 import { Stats } from '.';
 import type { WatchOptions } from './config';
-import type { FileSystemInfoEntry, Watcher } from './util/fs';
-import { markInternalCallback } from './util/watchTimeInfo';
+import type {
+  ExistenceOnlyTimeEntry,
+  FileSystemInfoEntry,
+  TimeInfoEntries,
+  Watcher,
+} from './util/fs';
+import {
+  type ConsumableWatcher,
+  consumeWatcherInfo,
+  markInternalCallback,
+} from './util/watchTimeInfo';
 
 type PendingWatchDelta = { added: Set<string>; removed: Set<string> };
 
@@ -249,8 +258,8 @@ export class Watching {
   }
 
   #invalidate(
-    fileTimeInfoEntries?: Map<string, FileSystemInfoEntry | 'ignore'>,
-    contextTimeInfoEntries?: Map<string, FileSystemInfoEntry | 'ignore'>,
+    fileTimeInfoEntries?: TimeInfoEntries,
+    contextTimeInfoEntries?: TimeInfoEntries,
     changedFiles?: Set<string>,
     removedFiles?: Set<string>,
   ) {
@@ -273,10 +282,13 @@ export class Watching {
   }
 
   #go(
-    fileTimeInfoEntries?: ReadonlyMap<string, FileSystemInfoEntry | 'ignore'>,
+    fileTimeInfoEntries?: ReadonlyMap<
+      string,
+      FileSystemInfoEntry | ExistenceOnlyTimeEntry | 'ignore' | null
+    >,
     contextTimeInfoEntries?: ReadonlyMap<
       string,
-      FileSystemInfoEntry | 'ignore'
+      FileSystemInfoEntry | ExistenceOnlyTimeEntry | 'ignore' | null
     >,
     changedFiles?: ReadonlySet<string>,
     removedFiles?: ReadonlySet<string>,
@@ -303,8 +315,9 @@ export class Watching {
       this.compiler.fileTimestamps = fileTimeInfoEntries;
       this.compiler.contextTimestamps = contextTimeInfoEntries;
     } else if (this.pausedWatcher) {
+      const watcher: ConsumableWatcher = this.pausedWatcher;
       const { changes, removals, fileTimeInfoEntries, contextTimeInfoEntries } =
-        this.pausedWatcher.getInfo();
+        watcher[consumeWatcherInfo]?.() ?? watcher.getInfo();
       this.#mergeWithCollected(changes, removals);
       this.compiler.fileTimestamps = fileTimeInfoEntries;
       this.compiler.contextTimestamps = contextTimeInfoEntries;
