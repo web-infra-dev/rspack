@@ -44,7 +44,7 @@ function getSourceMap(this: SourceWithCache): string | undefined {
   // Preserve extracted getters after the instance has materialized its map.
   if (!cache) return this._sourceMapAsString;
   const map = cache.map;
-  const json = typeof map === 'string' ? map : map!.takeJson();
+  const json = typeof map === 'string' ? map : map!();
   cache.map = json;
   // Frozen/sealed sources can still read the shared JSON without changing their descriptors.
   replaceSourceMap(this, json);

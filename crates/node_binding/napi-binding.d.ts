@@ -447,11 +447,6 @@ export declare class JsResolverFactory {
   get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
 }
 
-/** A one-use, owned snapshot. JavaScript caches the JSON after consuming it. */
-export declare class JsSourceMap {
-  takeJson(): string
-}
-
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
   getLogging(acceptedTypes: number): Array<JsLog>
@@ -1380,7 +1375,7 @@ export interface JsSourceToJs {
 
 export interface JsSourceWithLazyMap {
   source: string | Buffer
-  map?: JsSourceMap | string
+  map?: string | (() => string)
 }
 
 export interface JsStatsAsset {

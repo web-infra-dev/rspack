@@ -1,4 +1,4 @@
-use std::{hash::Hash, sync::Arc};
+use std::{cell::Cell, hash::Hash, sync::Arc};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
@@ -104,8 +104,8 @@ impl From<JsSourceToJs> for BoxSource {
 #[napi(object, object_from_js = false)]
 pub struct JsSourceWithLazyMap<'a> {
   pub source: Either<&'a str, BufferSlice<'a>>,
-  #[napi(ts_type = "JsSourceMap | string")]
-  pub map: Option<JsSourceMap>,
+  #[napi(ts_type = "string | (() => string)")]
+  pub map: Option<Function<'a, (), String>>,
 }
 
 impl JsSourceWithLazyMap<'_> {
@@ -115,9 +115,18 @@ impl JsSourceWithLazyMap<'_> {
     let binding = match &value {
       SourceValue::String(string) => JsSourceWithLazyMap {
         source: Either::A(string.as_ref()),
-        map: LazySourceMap::from_source(source).map(|pending| JsSourceMap {
-          pending: Some(pending),
-        }),
+        map: LazySourceMap::from_source(source)
+          .map(|map| {
+            // The callback owns the snapshot until its first call or JavaScript GC.
+            let pending = Cell::new(Some(map));
+            env.create_function_from_closure("map", move |_| {
+              pending
+                .take()
+                .ok_or_else(|| napi::Error::from_reason("Source map has already been consumed"))?
+                .to_json()
+            })
+          })
+          .transpose()?,
       },
       SourceValue::Buffer(bytes) => JsSourceWithLazyMap {
         // JS buffers are mutable, so copy directly into JS-owned storage rather than
@@ -127,24 +136,6 @@ impl JsSourceWithLazyMap<'_> {
       },
     };
     binding.into_unknown(env)
-  }
-}
-
-/// A one-use, owned snapshot. JavaScript caches the JSON after consuming it.
-#[napi]
-pub struct JsSourceMap {
-  pending: Option<LazySourceMap>,
-}
-
-#[napi]
-impl JsSourceMap {
-  #[napi]
-  pub fn take_json(&mut self) -> Result<String> {
-    self
-      .pending
-      .take()
-      .ok_or_else(|| napi::Error::from_reason("Source map has already been consumed"))?
-      .to_json()
   }
 }
 

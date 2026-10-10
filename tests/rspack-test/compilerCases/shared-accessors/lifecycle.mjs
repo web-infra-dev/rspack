@@ -60,6 +60,10 @@ export default async function run() {
           originalSource[Symbol.for('rspack.originalSource')],
           'source cache',
         );
+        tracker.track(
+          originalSource[Symbol.for('rspack.originalSource')].map,
+          'map callback',
+        );
         const binaryModule = modules.find(
           (module) => module.resource === binaryRequest,
         );
@@ -182,6 +186,7 @@ export default async function run() {
     originalMap = originalSource.map();
     assert.deepEqual(originalMap.sourcesContent, ['export default 42;']);
     assert.deepEqual(JSON.parse(getMap.call(originalSource)), originalMap);
+    await tracker.waitForCollection('map callback');
     tracker.track(originalSource, 'original source');
     originalSource = null;
     await tracker.waitForCollection('original source');

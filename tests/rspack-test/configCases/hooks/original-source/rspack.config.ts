@@ -61,7 +61,12 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                     expect(Reflect.get(binding, cacheSymbol)).toBe(cache);
                     expect(Reflect.get(source, cacheSymbol)).toBe(cache);
                     const nativeMap = cache.map;
-                    expect(typeof nativeMap.takeJson).toBe('function');
+                    expect(typeof nativeMap).toBe('function');
+                    let mapCalls = 0;
+                    cache.map = () => {
+                      mapCalls++;
+                      return nativeMap();
+                    };
                     // JavaScript constructs the real class and shares one getter across instances.
                     mapGetter = Object.getOwnPropertyDescriptor(
                       binding,
@@ -78,12 +83,16 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                         '_sourceMapAsString',
                       )!.get,
                     ).toBe(mapGetter);
-                    expect(module.originalSource()).not.toBe(source);
+                    // Compare identity without the assertion formatter inspecting lazy getters.
+                    expect(module.originalSource() === source).toBe(false);
+                    expect(mapCalls).toBe(0);
                     map = binding._sourceMapAsString;
+                    expect(mapCalls).toBe(1);
+                    expect(typeof map).toBe('string');
                     expect(cache.map).toBe(map);
                     expect(module._originalSource()).toBe(cachedBinding);
                     expect(module._originalSource()!.map).toBe(map);
-                    expect(() => nativeMap.takeJson()).toThrow(
+                    expect(() => nativeMap()).toThrow(
                       'Source map has already been consumed',
                     );
                     expect(Reflect.has(binding, cacheSymbol)).toBe(false);
@@ -119,6 +128,7 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                         '_sourceMapAsString',
                       )!.get,
                     ).toBeUndefined();
+                    expect(mapCalls).toBe(1);
                   }
                   if (Buffer.isBuffer(value)) {
                     if (module.identifier().endsWith('base64,')) {
