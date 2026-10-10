@@ -83,6 +83,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
 
     let runtime_template = context.runtime_template;
     let runtime_require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let extract_css_source_type = SourceType::Custom("css/mini-extract".into());
     let source_types = vec![
       (
         SourceType::JavaScript,
@@ -93,11 +94,8 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
         get_hash_variable(&runtime_require_name, SourceType::Css),
       ),
       (
-        SourceType::Custom("css/mini-extract".into()),
-        get_hash_variable(
-          &runtime_require_name,
-          SourceType::Custom("css/mini-extract".into()),
-        ),
+        extract_css_source_type,
+        get_hash_variable(&runtime_require_name, extract_css_source_type),
       ),
     ];
 
@@ -110,6 +108,15 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
           .get_chunk_modules(c, module_graph)
           .iter()
           .any(|m| {
+            // `css/mini-extract` modules deliberately generate no code: their content is
+            // emitted as a standalone css asset. A chunk holding them is not empty, so it
+            // must not be judged by its code generation result.
+            if m
+              .source_types(module_graph)
+              .contains(&extract_css_source_type)
+            {
+              return true;
+            }
             let result = compilation.code_generation_results.get_one(&m.identifier());
             result.sources().values().any(|v| v.size() != 0)
           })
