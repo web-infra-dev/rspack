@@ -14,6 +14,7 @@ import type {
   Dependency,
   ExternalObject,
   JsAsset,
+  JsAssetSource,
   JsCompilation,
   JsPathData,
   JsSource,
@@ -712,10 +713,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     assetInfoUpdateOrFunction?:
       AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined),
   ) {
-    let compatNewSourceOrFunction: JsSource | ((source: JsSource) => JsSource);
+    let compatNewSourceOrFunction:
+      JsSource | ((source: JsAssetSource) => JsSource);
 
     if (typeof newSourceOrFunction === 'function') {
-      compatNewSourceOrFunction = function newSourceFunction(source: JsSource) {
+      compatNewSourceOrFunction = function newSourceFunction(
+        source: JsAssetSource,
+      ) {
         return SourceAdapter.toBinding(
           newSourceOrFunction(SourceAdapter.fromBinding(source)),
         );

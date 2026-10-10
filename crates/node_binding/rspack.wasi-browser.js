@@ -100,6 +100,7 @@ export const JsExportsInfo = __napiModule.exports.JsExportsInfo
 export const JsModuleGraph = __napiModule.exports.JsModuleGraph
 export const JsResolver = __napiModule.exports.JsResolver
 export const JsResolverFactory = __napiModule.exports.JsResolverFactory
+export const JsAssetEmittedSource = __napiModule.exports.JsAssetEmittedSource
 export const JsStats = __napiModule.exports.JsStats
 export const KnownBuildInfo = __napiModule.exports.KnownBuildInfo
 export const Module = __napiModule.exports.Module

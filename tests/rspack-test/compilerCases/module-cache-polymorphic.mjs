@@ -1,3 +1,4 @@
+import { readAsset } from "./_read-asset.cjs";
 import fs from "node:fs";
 import path from "node:path";
 import { DllPlugin } from "@rspack/core";
@@ -129,7 +130,7 @@ export default {
         "require",
         "module",
         "exports",
-        stats.compilation.getAsset("dll.js").source.source(),
+        readAsset(stats.compilation, "dll.js"),
       )(
         (request) => {
           expect(request).toBe("external");

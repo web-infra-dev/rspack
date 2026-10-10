@@ -26,6 +26,7 @@ mod object_pool;
 mod original_source;
 mod raw_source;
 mod replace_source;
+mod size_only_source;
 mod source;
 mod source_content_lines;
 mod source_map_source;
@@ -41,6 +42,7 @@ pub use error::{Error, Result};
 pub use original_source::OriginalSource;
 pub use raw_source::{RawBufferSource, RawStringSource};
 pub use replace_source::{ReplaceSource, Replacement, ReplacementEnforce};
+pub use size_only_source::SizeOnlySource;
 pub(crate) use source::SourceMapFields;
 pub use source::{
   BoxSource, MapOptions, Mapping, OriginalLocation, Source, SourceExt, SourceMap, SourceValue,

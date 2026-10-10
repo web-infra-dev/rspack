@@ -214,64 +214,65 @@ export default defineConfig([
     plugins: [
       new ClientPlugin(),
       definePlugin((compiler) => {
-        compiler.hooks.done.tap('AssertRscClientChunkGrouping', (stats) => {
-          const { compilation } = stats;
+        compiler.hooks.emit.tap(
+          'AssertRscClientChunkGrouping',
+          (compilation) => {
+            const pageOneCssFile = findCssAsset(
+              compilation,
+              'page-one-server-css',
+            );
+            const pageOneCss = readAsset(compilation, pageOneCssFile);
+            expect(pageOneCss).toContain('page-one-client-a-css');
+            expect(pageOneCss).toContain('page-one-client-b-css');
+            expect(pageOneCss).not.toContain('page-one-dynamic-client-css');
+            expect(pageOneCss).not.toContain('shared-server-child-client-css');
+            expect(pageOneCss).not.toContain('page-two-client-css');
+            expect(pageOneCss).not.toContain('shared-across-pages-client-css');
 
-          const pageOneCssFile = findCssAsset(
-            compilation,
-            'page-one-server-css',
-          );
-          const pageOneCss = readAsset(compilation, pageOneCssFile);
-          expect(pageOneCss).toContain('page-one-client-a-css');
-          expect(pageOneCss).toContain('page-one-client-b-css');
-          expect(pageOneCss).not.toContain('page-one-dynamic-client-css');
-          expect(pageOneCss).not.toContain('shared-server-child-client-css');
-          expect(pageOneCss).not.toContain('page-two-client-css');
-          expect(pageOneCss).not.toContain('shared-across-pages-client-css');
+            const pageOneDynamicCssFile = findCssAsset(
+              compilation,
+              'page-one-dynamic-client-css',
+            );
+            expect(pageOneDynamicCssFile).not.toBe(pageOneCssFile);
 
-          const pageOneDynamicCssFile = findCssAsset(
-            compilation,
-            'page-one-dynamic-client-css',
-          );
-          expect(pageOneDynamicCssFile).not.toBe(pageOneCssFile);
+            const sharedServerChildCssFile = findCssAsset(
+              compilation,
+              'shared-server-child-client-css',
+            );
+            expect(sharedServerChildCssFile).not.toBe(pageOneCssFile);
 
-          const sharedServerChildCssFile = findCssAsset(
-            compilation,
-            'shared-server-child-client-css',
-          );
-          expect(sharedServerChildCssFile).not.toBe(pageOneCssFile);
+            const pageTwoCssFile = findCssAsset(
+              compilation,
+              'page-two-server-css',
+            );
+            const pageTwoCss = readAsset(compilation, pageTwoCssFile);
+            expect(pageTwoCssFile).not.toBe(pageOneCssFile);
+            expect(pageTwoCss).toContain('page-two-client-css');
+            expect(pageTwoCss).not.toContain('page-one-client-a-css');
+            expect(pageTwoCss).not.toContain('shared-across-pages-client-css');
 
-          const pageTwoCssFile = findCssAsset(
-            compilation,
-            'page-two-server-css',
-          );
-          const pageTwoCss = readAsset(compilation, pageTwoCssFile);
-          expect(pageTwoCssFile).not.toBe(pageOneCssFile);
-          expect(pageTwoCss).toContain('page-two-client-css');
-          expect(pageTwoCss).not.toContain('page-one-client-a-css');
-          expect(pageTwoCss).not.toContain('shared-across-pages-client-css');
+            const rootCssFile = findCssAsset(compilation, 'root-client-a-css');
+            const rootCss = readAsset(compilation, rootCssFile);
+            expect(rootCssFile).not.toBe(pageOneCssFile);
+            expect(rootCssFile).not.toBe(pageTwoCssFile);
+            expect(rootCss).toContain('root-client-b-css');
+            expect(rootCss).not.toContain('page-one-server-css');
 
-          const rootCssFile = findCssAsset(compilation, 'root-client-a-css');
-          const rootCss = readAsset(compilation, rootCssFile);
-          expect(rootCssFile).not.toBe(pageOneCssFile);
-          expect(rootCssFile).not.toBe(pageTwoCssFile);
-          expect(rootCss).toContain('root-client-b-css');
-          expect(rootCss).not.toContain('page-one-server-css');
+            const sharedAcrossPagesCssFile = findCssAsset(
+              compilation,
+              'shared-across-pages-client-css',
+            );
+            expect(sharedAcrossPagesCssFile).not.toBe(pageOneCssFile);
+            expect(sharedAcrossPagesCssFile).not.toBe(pageTwoCssFile);
 
-          const sharedAcrossPagesCssFile = findCssAsset(
-            compilation,
-            'shared-across-pages-client-css',
-          );
-          expect(sharedAcrossPagesCssFile).not.toBe(pageOneCssFile);
-          expect(sharedAcrossPagesCssFile).not.toBe(pageTwoCssFile);
-
-          const sharedRootAndPageCssFile = findCssAsset(
-            compilation,
-            'shared-root-page-client-css',
-          );
-          expect(sharedRootAndPageCssFile).not.toBe(rootCssFile);
-          expect(sharedRootAndPageCssFile).not.toBe(pageOneCssFile);
-        });
+            const sharedRootAndPageCssFile = findCssAsset(
+              compilation,
+              'shared-root-page-client-css',
+            );
+            expect(sharedRootAndPageCssFile).not.toBe(rootCssFile);
+            expect(sharedRootAndPageCssFile).not.toBe(pageOneCssFile);
+          },
+        );
       }),
     ],
     optimization: {

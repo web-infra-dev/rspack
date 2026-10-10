@@ -153,8 +153,7 @@ export default defineConfig([
     plugins: [
       new ClientPlugin(),
       definePlugin((compiler) => {
-        compiler.hooks.done.tap('AssertInlinedServerCss', (stats) => {
-          const { compilation } = stats;
+        compiler.hooks.emit.tap('AssertInlinedServerCss', (compilation) => {
           const entrypoint = compilation.entrypoints.get('main')!;
           const entryCssFiles = entrypoint
             .getFiles()

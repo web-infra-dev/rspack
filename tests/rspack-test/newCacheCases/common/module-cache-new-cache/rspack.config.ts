@@ -58,11 +58,9 @@ export default defineConfig({
             }
           });
         });
-        compiler.hooks.done.tap('ModuleCacheTest', (stats) => {
+        compiler.hooks.emit.tap('ModuleCacheTest', (compilation) => {
           expect(
-            stats.compilation
-              .getAsset('from-succeed-module.txt')
-              ?.source.source(),
+            compilation.getAsset('from-succeed-module.txt')?.source.source(),
           ).toBe('from succeedModule');
           const builtModules = loaderOptions.builtModules
             .map((resource) => path.basename(resource))

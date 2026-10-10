@@ -18,7 +18,7 @@ export default defineConfig({
     }),
     definePlugin({
       apply(compiler) {
-        compiler.hooks.afterEmit.tap('TestPlugin::SourceMap', (compilation) => {
+        compiler.hooks.emit.tap('TestPlugin::SourceMap', (compilation) => {
           const assets = compilation.getAssets();
 
           // Check if each JS and CSS asset has a source map
@@ -40,7 +40,7 @@ export default defineConfig({
     }),
     definePlugin({
       apply(compiler) {
-        compiler.hooks.afterEmit.tap('TestPlugin::CheapOnly', (compilation) => {
+        compiler.hooks.emit.tap('TestPlugin::CheapOnly', (compilation) => {
           const assets = compilation.getAssets();
           const jsCssAssets = assets.filter(
             (asset) =>

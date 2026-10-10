@@ -113,6 +113,14 @@ pub type BoxSource = Arc<dyn Source>;
 
 For every implementation:
 
+`SizeOnlySource` is the deliberate exception to the content invariants below: it
+represents an emitted asset after the compilation releases its content. Only its
+byte size is available. Content and map access through JavaScript throws, without
+calling the unsupported Rust methods. Emission hooks retain a separate original
+source snapshot; cache-owned source graphs are not mutated by replacement.
+Size-only binding snapshots travel only from Rust to JavaScript. JavaScript inputs
+and runtime modules must provide string or buffer content.
+
 - `size() == buffer().len() == bytes written by to_writer()`;
 - text returned by `source()` must agree with `rope()`;
 - mappings must describe the same generated content;

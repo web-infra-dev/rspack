@@ -1,3 +1,4 @@
+import { readAsset } from "./_read-asset.cjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -111,10 +112,7 @@ function createContextCacheCase(method, hook, request) {
 			try {
 				const compilation = await run(compiler);
 				const modules = moduleIdentifiers(compilation).join("\n");
-				const source = compilation
-					.getAsset("main.js")
-					.source.source()
-					.toString();
+				const source = readAsset(compilation, "main.js");
 
 				expect(modules).toContain(path.join("a", request));
 				expect(modules).toContain(path.join("b", request));
@@ -227,10 +225,7 @@ export default [
 			try {
 				const compilation = await result;
 				const modules = moduleIdentifiers(compilation);
-				const source = compilation
-					.getAsset("main.js")
-					.source.source()
-					.toString();
+				const source = readAsset(compilation, "main.js");
 				const isProxyFor = filename =>
 					modules.some(
 						identifier =>

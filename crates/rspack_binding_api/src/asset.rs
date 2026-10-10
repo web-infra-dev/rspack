@@ -256,9 +256,10 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsAssetEmittedArgs {
   pub filename: String,
   pub output_path: String,
   pub target_path: String,
+  pub source: crate::source::JsAssetEmittedSource,
 }

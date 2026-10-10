@@ -80,10 +80,16 @@ function createCompilerProcessor(
           files[name] = content.toString('utf-8');
           callback();
         },
+        readFileSync(name: string, encoding?: BufferEncoding) {
+          if (!(name in files)) throw new Error(`ENOENT: ${name}`);
+          return encoding ? files[name] : Buffer.from(files[name]);
+        },
         stat(path, callback) {
           callback(new Error('ENOENT'));
         },
-      } as OutputFileSystem;
+      } as OutputFileSystem & {
+        readFileSync(name: string, encoding?: BufferEncoding): string | Buffer;
+      };
       c.hooks.compilation.tap(
         'CompilerTest',
         (compilation) => ((compilation as any).bail = true),

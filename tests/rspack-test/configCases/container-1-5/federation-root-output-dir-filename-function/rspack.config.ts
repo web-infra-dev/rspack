@@ -12,10 +12,10 @@ function filename(pathData: PathData) {
 
 class Plugin {
   apply(compiler: Compiler) {
-    compiler.hooks.done.tap(
+    compiler.hooks.emit.tap(
       'federation-root-output-dir-filename-function',
-      (stats) => {
-        const assets = stats.compilation.getAssets();
+      (compilation) => {
+        const assets = compilation.getAssets();
         const runtimeAssets = assets.filter((asset) =>
           String(asset.source.source()).includes('rootOutputDir'),
         );

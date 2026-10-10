@@ -7,7 +7,7 @@ use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
-use rspack_sources::BoxSource;
+use rspack_sources::{BoxSource, SizeOnlySource, SourceExt};
 use rspack_tasks::{CompilerContext, within_compiler_context};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
@@ -97,6 +97,13 @@ impl CompilerId {
 const EMIT_ASSETS_CONCURRENCY_LIMIT: usize = 15;
 
 #[derive(Debug)]
+pub struct EmittedAssetVersion {
+  pub version: String,
+  /// The on-disk byte size, if a source has been emitted for this version.
+  pub size: Option<usize>,
+}
+
+#[derive(Debug)]
 pub struct Compiler {
   id: CompilerId,
   pub compiler_path: Arc<str>,
@@ -112,9 +119,8 @@ pub struct Compiler {
   pub cache: Box<dyn LegacyCache>,
   incremental_artifacts: IncrementalArtifacts,
   new_cache: CompilerCache,
-  /// emitted asset versions
-  /// the key of HashMap is filename, the value of HashMap is version
-  pub emitted_asset_versions: HashMap<String, String>,
+  /// Asset versions and known on-disk sizes from the previous emit, keyed by filename.
+  pub emitted_asset_versions: HashMap<String, EmittedAssetVersion>,
   pub platform: Arc<CompilerPlatform>,
   compiler_context: Arc<CompilerContext>,
   last_records: Option<Arc<CompilationRecords>>,
@@ -444,43 +450,83 @@ impl Compiler {
       .incremental
       .passes_enabled(IncrementalPasses::EMIT_ASSETS);
 
+    // Emission jobs own the original sources; the compilation only keeps their
+    // sizes. Never mutate the shared source itself: caches may still need it.
+    // Preparing the snapshots before spawning also keeps assetEmitted hooks from
+    // racing with mutations of the asset map.
+    let assets: Vec<_> = self
+      .compilation
+      .assets_mut()
+      .iter_mut()
+      .filter_map(|(filename, asset)| {
+        let previous_size = if emit_assets_incremental {
+          self
+            .emitted_asset_versions
+            .get(filename)
+            .filter(|previous| {
+              !previous.version.is_empty() && previous.version == asset.info.version
+            })
+            .and_then(|previous| previous.size)
+        } else {
+          None
+        };
+        let size = asset
+          .get_source()
+          .map(|source| previous_size.unwrap_or_else(|| source.size()));
+        // Source-less assets must remain tracked so output.clean can remove their
+        // old files when the asset records disappear on a later rebuild.
+        if emit_assets_incremental {
+          new_emitted_asset_versions.insert(
+            filename.clone(),
+            EmittedAssetVersion {
+              version: asset.info.version.clone(),
+              size: size.or(previous_size),
+            },
+          );
+        }
+        let size = size?;
+        let emitting_asset = previous_size.is_none().then(|| asset.clone());
+        asset.set_source(Some(SizeOnlySource::new(size).boxed()));
+        asset.info.extras.insert("size".into(), size.into());
+        emitting_asset.map(|asset| (filename.clone(), asset))
+      })
+      .collect();
+
     let emit_limit = Arc::new(Semaphore::new(EMIT_ASSETS_CONCURRENCY_LIMIT));
     let emit_results = rspack_parallel::scope(|token| {
-      self
-        .compilation
-        .assets()
-        .iter()
-        .for_each(|(filename, asset)| {
-          // collect version info to new_emitted_asset_versions
-          if emit_assets_incremental {
-            new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
-          }
+      assets.into_iter().for_each(|(filename, asset)| {
+        // SAFETY: await immediately and trust caller to poll future entirely
+        let s = unsafe { token.used((&self, output_path)) };
 
-          if emit_assets_incremental
-            && let Some(old_version) = self.emitted_asset_versions.get(filename)
-            && old_version.as_str() == asset.info.version
-            && !old_version.is_empty()
-          {
-            return;
-          }
-
-          // SAFETY: await immediately and trust caller to poll future entirely
-          let s = unsafe { token.used((&self, filename, asset, output_path)) };
-
-          let emit_limit = emit_limit.clone();
-          s.spawn(|(this, filename, asset, output_path)| async move {
-            let _permit = emit_limit
-              .acquire()
-              .await
-              .expect("emit limit semaphore should not be closed");
-            this.emit_asset(output_path, filename, asset).await
-          });
-        })
+        let emit_limit = emit_limit.clone();
+        s.spawn(move |(this, output_path)| async move {
+          let _permit = emit_limit
+            .acquire()
+            .await
+            .expect("emit limit semaphore should not be closed");
+          let size = this.emit_asset(output_path, &filename, &asset).await?;
+          Ok::<_, rspack_error::Error>((filename, size))
+        });
+      })
     })
     .await;
 
     for result in emit_results {
-      result.map_err(|error| rspack_error::error!("Emit asset failed: {error}"))??;
+      let (filename, size) =
+        result.map_err(|error| rspack_error::error!("Emit asset failed: {error}"))??;
+      if let Some(previous) = new_emitted_asset_versions.get_mut(&filename) {
+        previous.size = size;
+      }
+      // Existing immutable files use the on-disk size, just like webpack.
+      if let Some(size) = size
+        && let Some(asset) = self.compilation.assets_mut().get_mut(&filename)
+        && asset
+          .get_source()
+          .is_some_and(|source| source.as_ref().as_any().is::<SizeOnlySource>())
+      {
+        asset.set_source(Some(SizeOnlySource::new(size).boxed()));
+        asset.info.extras.insert("size".into(), size.into());
+      }
     }
 
     self.emitted_asset_versions = new_emitted_asset_versions;
@@ -497,8 +543,13 @@ impl Compiler {
     output_path: &Utf8Path,
     filename: &str,
     asset: &CompilationAsset,
-  ) -> Result<()> {
+  ) -> Result<Option<usize>> {
     if let Some(source) = asset.get_source() {
+      if source.as_ref().as_any().is::<SizeOnlySource>() {
+        return Err(rspack_error::error!(
+          "Content and Map of this Source is not available (only size() is supported)"
+        ));
+      }
       let (target_file, query) = filename.split_once('?').unwrap_or((filename, ""));
       let file_path = output_path.node_join(target_file);
       self
@@ -558,21 +609,25 @@ impl Compiler {
       if need_write {
         self.output_filesystem.write(&file_path, &content).await?;
         self.compilation.emitted_assets.insert(filename.to_string());
+        let info = AssetEmittedInfo {
+          output_path: output_path.to_owned(),
+          source: Arc::clone(source),
+          target_path: file_path,
+        };
+        self
+          .plugin_driver
+          .compiler_hooks
+          .asset_emitted
+          .call(&self.compilation, filename, &info)
+          .await?;
       }
-
-      let info = AssetEmittedInfo {
-        output_path: output_path.to_owned(),
-        source: source.clone(),
-        target_path: file_path,
-      };
-      self
-        .plugin_driver
-        .compiler_hooks
-        .asset_emitted
-        .call(&self.compilation, filename, &info)
-        .await?;
+      return Ok(Some(if !need_write && immutable {
+        stat.expect("an existing immutable file has metadata").size as usize
+      } else {
+        content.len()
+      }));
     }
-    Ok(())
+    Ok(None)
   }
 
   async fn run_clean_options(&mut self, output_path: &Utf8Path) -> Result<()> {

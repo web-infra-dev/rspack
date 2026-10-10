@@ -1,3 +1,4 @@
+const { readAsset } = require("./_read-asset.cjs");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -102,10 +103,7 @@ module.exports = [
 				const { compilation } = activated.stats;
 				expect(
 					Object.keys(compilation.assets).some(name =>
-						compilation
-							.getAsset(name)
-							.source.source()
-							.toString()
+						readAsset(compilation, name)
 							.includes("DYN_PAYLOAD")
 					)
 				).toBe(true);

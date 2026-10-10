@@ -1,5 +1,6 @@
 import binding from '@rspack/binding';
 import type { Source } from 'webpack-sources';
+import { SourceAdapter } from '../util/source';
 import type { CreatePartialRegisters } from './types';
 
 export const createCompilerHooksRegisters: CreatePartialRegisters<
@@ -129,6 +130,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
           filename,
           targetPath,
           outputPath,
+          source: originalSource,
         }: binding.JsAssetEmittedArgs) {
           let source: Source | undefined;
           let content: Buffer | undefined;
@@ -137,16 +139,10 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
             targetPath,
             outputPath,
             get source() {
-              if (source === undefined) {
-                const assetSource = getCompiler()
-                  .__internal__get_compilation()!
-                  .getAsset(filename)?.source;
-                if (!assetSource) {
-                  throw new Error(`Asset ${filename} not found`);
-                }
-                source = assetSource;
-              }
-              return source;
+              // The compilation now holds SizeOnlySource; read the emitted snapshot.
+              return (source ??= SourceAdapter.fromBinding(
+                originalSource.takeSource(),
+              ));
             },
             get content() {
               return (content ??= this.source.buffer());

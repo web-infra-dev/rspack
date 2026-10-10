@@ -39,7 +39,7 @@ use crate::{
   module_graph::JsModuleGraph,
   options::entry::JsEntryOptions,
   path_data::{JsPathData, PathWithInfo},
-  source::{JsSourceFromJs, JsSourceToJs},
+  source::{JsAssetSource, JsSourceFromJs},
   stats::{JsStats, JsStatsOptimizationBailout, create_stats_warnings},
   utils::callbackify,
   with_compilation,
@@ -120,13 +120,13 @@ fn with_module_graph<R>(
 #[napi]
 impl JsCompilation {
   #[napi(
-    ts_args_type = r#"filename: string, newSourceOrFunction: JsSource | ((source: JsSource) => JsSource), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)"#
+    ts_args_type = r#"filename: string, newSourceOrFunction: JsSource | ((source: JsAssetSource) => JsSource), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)"#
   )]
   pub fn update_asset(
     &mut self,
     env: &Env,
     filename: String,
-    new_source_or_function: Either<JsSourceFromJs, Function<'_, JsSourceToJs, JsSourceFromJs>>,
+    new_source_or_function: Either<JsSourceFromJs, Function<'_, JsAssetSource, JsSourceFromJs>>,
     asset_info_update_or_function: Option<Either<Object, Function<'_, Reflector, Option<Object>>>>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
@@ -138,7 +138,7 @@ impl JsCompilation {
             Either::A(new_source) => new_source.try_into()?,
             Either::B(new_source_fn) => {
               let js_compat_source =
-                new_source_fn.call(JsSourceToJs::try_from(&original_source)?)?;
+                new_source_fn.call(JsAssetSource::try_from(&original_source)?)?;
               js_compat_source.try_into()?
             }
           };
@@ -218,14 +218,14 @@ impl JsCompilation {
     }
   }
 
-  #[napi(ts_return_type = "JsSource | null")]
-  pub fn get_asset_source(&self, env: &Env, name: String) -> Result<Option<JsSourceToJs>> {
+  #[napi(ts_return_type = "JsAssetSource | null")]
+  pub fn get_asset_source(&self, env: &Env, name: String) -> Result<Option<JsAssetSource>> {
     let compilation = self.as_ref()?;
 
     compilation
       .assets()
       .get(&name)
-      .and_then(|v| v.source.as_ref().map(JsSourceToJs::try_from))
+      .and_then(|v| v.source.as_ref().map(JsAssetSource::try_from))
       .transpose()
   }
 

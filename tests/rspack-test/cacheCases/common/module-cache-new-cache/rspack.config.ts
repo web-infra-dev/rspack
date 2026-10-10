@@ -62,8 +62,8 @@ export default defineConfig({
             }
           });
         });
-        compiler.hooks.done.tap('ModuleCacheTest', (stats) => {
-          const { modules } = stats.toJson({
+        compiler.hooks.emit.tap('ModuleCacheTest', (compilation) => {
+          const { modules } = compilation.getStats().toJson({
             all: false,
             modules: true,
             cachedModules: true,
@@ -85,9 +85,7 @@ export default defineConfig({
               : [],
           );
           expect(
-            stats.compilation
-              .getAsset('from-succeed-module.txt')
-              ?.source.source(),
+            compilation.getAsset('from-succeed-module.txt')?.source.source(),
           ).toBe('from succeedModule');
           const builtModules = loaderOptions.builtModules
             .map((resource) => path.basename(resource))
