@@ -672,8 +672,6 @@ export const EXPECTED_RSPACK_CORE_VERSION: string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
-export declare function isOriginalSource(module: Module, source: JsSourceWithLazyMap): boolean
-
 export interface JsAddingRuntimeModule {
   name: string
   generator: () => String

@@ -40,8 +40,11 @@ macro_rules! impl_module_methods {
         ts_return_type = "JsSourceWithLazyMap | undefined",
         enumerable = false
       )]
-      pub fn original_source(&self) -> napi::Result<$crate::source::JsOriginalSource> {
-        self.module.original_source()
+      pub fn original_source<'a>(
+        &mut self,
+        env: &'a napi::Env,
+      ) -> napi::Result<napi::Either<napi::bindgen_prelude::Unknown<'a>, ()>> {
+        self.module.original_source(env)
       }
 
       #[napi]

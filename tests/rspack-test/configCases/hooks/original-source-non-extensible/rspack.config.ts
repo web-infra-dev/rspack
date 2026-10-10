@@ -45,12 +45,12 @@ export default ([false, 'source-map'] as const).flatMap((devtool) =>
               })),
             );
             const value = original.source();
-            // Use a separate native snapshot as the reference, leaving the shared lazy map unread.
-            const binding = module._originalSource()!;
+            // Materialize the shared map through a restricted instance for the first time.
+            restrictModule(original);
             const json =
-              typeof binding.map === 'string'
-                ? binding.map
-                : binding.map?.takeJson();
+              original instanceof sources.SourceMapSource
+                ? original._sourceMapAsString
+                : undefined;
             const caching = sources.util.stringBufferUtils;
             const wasCaching = caching.isDualStringBufferCachingEnabled();
             try {
@@ -105,9 +105,10 @@ export default ([false, 'source-map'] as const).flatMap((devtool) =>
               else caching.disableDualStringBufferCaching();
             }
             expect(Reflect.ownKeys(module)).toEqual(moduleKeys);
-            expect(module.originalSource()!.sourceAndMap()).toEqual(
-              original.sourceAndMap(),
-            );
+            expect(module.originalSource()!.sourceAndMap()).toEqual({
+              source: value,
+              map: json ? JSON.parse(json) : null,
+            });
           });
         },
       ],

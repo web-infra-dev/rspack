@@ -1,9 +1,5 @@
-use std::{
-  hash::Hash,
-  sync::{Arc, Weak},
-};
+use std::{hash::Hash, sync::Arc};
 
-use napi::JsValue;
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, ObjectPool, OriginalSource, RawBufferSource,
@@ -112,47 +108,25 @@ pub struct JsSourceWithLazyMap<'a> {
   pub map: Option<JsSourceMap>,
 }
 
-/// Convert owned source data after the module method has released its Rust borrows.
-pub struct JsOriginalSource(pub(crate) Option<BoxSource>);
-
-// Keep only a weak identity token after transferring source content and consuming the map.
-// It prevents allocation reuse from making JavaScript accept a stale cache after a rebuild.
-struct SourceIdentity(Weak<dyn Source>);
-
-pub(crate) fn is_same_source(snapshot: Object<'_>, source: &BoxSource) -> Result<bool> {
-  Ok(
-    snapshot
-      .unwrap::<SourceIdentity>()?
-      .0
-      .ptr_eq(&Arc::downgrade(source)),
-  )
-}
-
-impl ToNapiValue for JsOriginalSource {
-  unsafe fn to_napi_value(env: napi::sys::napi_env, value: Self) -> Result<napi::sys::napi_value> {
-    let env = Env::from_raw(env);
-    let Some(source) = value.0 else {
-      return Ok(().into_unknown(&env)?.raw());
-    };
+impl JsSourceWithLazyMap<'_> {
+  pub fn to_js<'a>(env: &'a Env, source: &BoxSource) -> Result<Unknown<'a>> {
     // Keep owned SourceValue content alive until N-API has copied the borrowed string.
     let value = source.source();
     let binding = match &value {
       SourceValue::String(string) => JsSourceWithLazyMap {
         source: Either::A(string.as_ref()),
-        map: LazySourceMap::from_source(&source).map(|pending| JsSourceMap {
+        map: LazySourceMap::from_source(source).map(|pending| JsSourceMap {
           pending: Some(pending),
         }),
       },
       SourceValue::Buffer(bytes) => JsSourceWithLazyMap {
         // JS buffers are mutable, so copy directly into JS-owned storage rather than
         // sharing the source's immutable bytes or allocating an intermediate Vec.
-        source: Either::B(BufferSlice::copy_from(&env, bytes)?),
+        source: Either::B(BufferSlice::copy_from(env, bytes)?),
         map: None,
       },
     };
-    let mut object = binding.into_unknown(&env)?.coerce_to_object()?;
-    object.wrap(SourceIdentity(Arc::downgrade(&source)), None)?;
-    Ok(object.raw())
+    binding.into_unknown(env)
   }
 }
 

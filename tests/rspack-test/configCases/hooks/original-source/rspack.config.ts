@@ -47,6 +47,8 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   const source = module.originalSource();
                   if (!source) return;
 
+                  const cachedBinding = module._originalSource();
+                  expect(module._originalSource()).toBe(cachedBinding);
                   const value = source.source();
                   const binding = module.originalSource()!;
                   let map: string | undefined;
@@ -54,6 +56,7 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   if (binding instanceof sources.SourceMapSource) {
                     const cacheSymbol = Symbol.for('rspack.originalSource');
                     const cache = Reflect.get(source, cacheSymbol);
+                    expect(cache).toBe(cachedBinding);
                     expect(Reflect.has(module, cacheSymbol)).toBe(false);
                     expect(Reflect.get(binding, cacheSymbol)).toBe(cache);
                     expect(Reflect.get(source, cacheSymbol)).toBe(cache);
@@ -78,6 +81,8 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                     expect(module.originalSource()).not.toBe(source);
                     map = binding._sourceMapAsString;
                     expect(cache.map).toBe(map);
+                    expect(module._originalSource()).toBe(cachedBinding);
+                    expect(module._originalSource()!.map).toBe(map);
                     expect(() => nativeMap.takeJson()).toThrow(
                       'Source map has already been consumed',
                     );

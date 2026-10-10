@@ -1,5 +1,10 @@
 #![allow(deprecated)]
-use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
+use std::{
+  any::TypeId,
+  cell::RefCell,
+  ptr::NonNull,
+  sync::{Arc, Weak},
+};
 
 use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
 use napi_derive::napi;
@@ -7,9 +12,11 @@ use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
-  RuntimeModuleStage, SourceType, internal, rspack_sources::BoxSource,
+  RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
 };
-use rspack_napi::{OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt};
+use rspack_napi::{
+  OneShotInstanceRef, OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
+};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
@@ -25,7 +32,7 @@ use crate::{
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
   shared_properties::define_shared_properties,
-  source::{JsOriginalSource, JsSourceFromJs, JsSourceToJs, is_same_source},
+  source::{JsSourceFromJs, JsSourceToJs, JsSourceWithLazyMap},
 };
 
 define_symbols! {
@@ -270,11 +277,23 @@ pub(crate) fn define_module_properties(
 // module_identifier query in compilation.module_graph returns undefined
 // Raw pointer stored in napi module becomes None
 // Throw an Error to the JavaScript side
+struct OriginalSourceNapiRef {
+  // Only retain a weak pointer for identity comparison. Holding another BoxSource here would
+  // increment its Arc strong count and keep the native source alive after the Module replaces it.
+  // The Weak pointer lets the Source and its owned buffers drop with the Module while also keeping
+  // the old Arc allocation unavailable for pointer reuse, so identity comparisons remain reliable.
+  related_source: Weak<dyn Source>,
+  // Keep the converted JavaScript object alive and return that exact object on cache hits. The
+  // reference is replaced on the next call after `module.source()` points to a different Source.
+  napi_ref: OneShotRef,
+}
+
 #[napi]
 pub struct Module {
   pub(crate) identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
+  original_source_ref: Option<OriginalSourceNapiRef>,
   pub(crate) build_info_ref: Option<WeakRef>,
 }
 
@@ -282,39 +301,6 @@ impl DerivedModule for Module {
   fn as_module(&mut self) -> &mut Module {
     self
   }
-}
-
-fn original_source_snapshot(
-  compiler_id: CompilerId,
-  identifier: ModuleIdentifier,
-  ptr: Option<NonNull<dyn rspack_core::Module>>,
-) -> napi::Result<Option<BoxSource>> {
-  let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
-    let references = ref_cell.borrow();
-    references.get(&compiler_id).cloned()
-  });
-  let Some(compiler) = compiler_reference
-    .as_ref()
-    .and_then(|reference| reference.get())
-  else {
-    return Err(compiler_garbage_collected_error(identifier));
-  };
-  let compilation = &compiler.compiler.compilation;
-  let module = if let Some(module) = compilation.module_by_identifier(&identifier) {
-    module.as_ref()
-  } else if let Some(ptr) = ptr {
-    // This fallback is only valid inside the active hook/loader callback.
-    unsafe { ptr.as_ref() }
-  } else {
-    return Ok(None);
-  };
-  Ok(module.source().map(Arc::clone))
-}
-
-fn compiler_garbage_collected_error(identifier: ModuleIdentifier) -> napi::Error {
-  napi::Error::from_reason(format!(
-    "Unable to access module with id = {identifier} now. The Compiler has been garbage collected by JavaScript."
-  ))
 }
 
 impl Module {
@@ -329,6 +315,13 @@ impl Module {
     })?;
 
     Ok(instance)
+  }
+
+  fn compiler_garbage_collected_error(&self) -> napi::Error {
+    napi::Error::from_reason(format!(
+      "Unable to access module with id = {} now. The Compiler has been garbage collected by JavaScript.",
+      self.identifier
+    ))
   }
 
   fn module_removed_error(&self) -> napi::Error {
@@ -351,7 +344,7 @@ impl Module {
       .as_ref()
       .and_then(|compiler_reference| compiler_reference.get())
     else {
-      return Err(compiler_garbage_collected_error(self.identifier));
+      return Err(self.compiler_garbage_collected_error());
     };
 
     f(&this.compiler.compilation)
@@ -411,12 +404,58 @@ impl Module {
     ts_return_type = "JsSourceWithLazyMap | undefined",
     enumerable = false
   )]
-  pub fn original_source(&self) -> napi::Result<JsOriginalSource> {
-    Ok(JsOriginalSource(original_source_snapshot(
-      self.compiler_id,
-      self.identifier,
-      self.ptr,
-    )?))
+  pub fn original_source<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Unknown<'a>, ()>> {
+    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+      let references = ref_cell.borrow();
+      references.get(&self.compiler_id).cloned()
+    });
+
+    let compilation = {
+      let Some(this) = compiler_reference
+        .as_ref()
+        .and_then(|compiler_reference| compiler_reference.get())
+      else {
+        return Err(self.compiler_garbage_collected_error());
+      };
+      &this.compiler.compilation
+    };
+
+    let module = {
+      if let Some(module) = compilation.module_by_identifier(&self.identifier) {
+        module.as_ref()
+      } else if let Some(ptr) = self.ptr {
+        // SAFETY:
+        // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
+        // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
+        unsafe { ptr.as_ref() }
+      } else {
+        return Ok(Either::B(()));
+      }
+    };
+
+    let Some(original_source) = module.source() else {
+      self.original_source_ref = None;
+      return Ok(Either::B(()));
+    };
+
+    if let Some(OriginalSourceNapiRef {
+      related_source,
+      napi_ref,
+    }) = &self.original_source_ref
+      && (related_source.ptr_eq(&Arc::downgrade(original_source)))
+    {
+      return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
+    }
+
+    let binding = JsSourceWithLazyMap::to_js(env, original_source)?;
+    let mut one_shot_ref = OneShotRef::new(env.raw(), binding)?;
+    let result = ToNapiValue::into_unknown(&mut one_shot_ref, env)?;
+    self.original_source_ref = Some(OriginalSourceNapiRef {
+      related_source: Arc::downgrade(original_source),
+      napi_ref: one_shot_ref,
+    });
+
+    Ok(Either::A(result))
   }
 
   #[napi]
@@ -560,14 +599,13 @@ type ModuleInstanceRef<'a> = Either5<
   &'a Module,
 >;
 
-#[napi(ts_args_type = "module: Module, source: JsSourceWithLazyMap")]
-pub fn is_original_source(module: ModuleObject, source: Object<'_>) -> napi::Result<bool> {
-  let Some(current) = original_source_snapshot(module.compiler_id, module.identifier, module.ptr)?
-  else {
-    return Ok(false);
-  };
-  is_same_source(source, &current)
-}
+type ModuleInstanceMutRef<'a> = Either5<
+  &'a mut NormalModule,
+  &'a mut ConcatenatedModule,
+  &'a mut ContextModule,
+  &'a mut ExternalModule,
+  &'a mut Module,
+>;
 
 type ModuleInstanceNapiRefs = IdentifierMap<ModuleInstanceNapiRef>;
 
@@ -685,6 +723,7 @@ impl ToNapiValue for ModuleObject {
               identifier: val.identifier,
               compiler_id: val.compiler_id,
               ptr: val.ptr,
+              original_source_ref: None,
               build_info_ref: Default::default(),
             };
             let env_wrapper = Env::from_raw(env);
@@ -735,7 +774,7 @@ impl ToNapiValue for ModuleObject {
 impl FromNapiValue for ModuleObject {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
     unsafe {
-      let instance: ModuleInstanceRef = FromNapiValue::from_napi_value(env, napi_val)?;
+      let instance: ModuleInstanceMutRef = FromNapiValue::from_napi_value(env, napi_val)?;
 
       Ok(match instance {
         Either5::A(normal_module) => Self {

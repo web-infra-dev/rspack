@@ -1,12 +1,7 @@
-import binding, {
-  type JsSource,
-  type JsSourceWithLazyMap,
-  type Module,
-} from '@rspack/binding';
+import type { JsSource, JsSourceWithLazyMap } from '@rspack/binding';
 import { RawSource, type Source, SourceMapSource } from 'webpack-sources';
 
 const sourceCacheSymbol = Symbol.for('rspack.originalSource');
-const moduleSourceCache = new WeakMap<Module, JsSourceWithLazyMap>();
 const sourceMapOverrides = new WeakMap<
   SourceMapSource,
   { value: string | undefined }
@@ -57,16 +52,7 @@ function getSourceMap(this: SourceWithCache): string | undefined {
 }
 
 export class SourceAdapter {
-  static fromModule(module: Module): Source | null {
-    let cache = moduleSourceCache.get(module);
-    if (!cache || !binding.isOriginalSource(module, cache)) {
-      cache = module._originalSource();
-      if (!cache) {
-        moduleSourceCache.delete(module);
-        return null;
-      }
-      moduleSourceCache.set(module, cache);
-    }
+  static fromBinding(cache: JsSource | JsSourceWithLazyMap): Source {
     if (!cache.map) return new RawSource(cache.source);
     if (typeof cache.map === 'string') {
       return new SourceMapSource(
@@ -87,14 +73,6 @@ export class SourceAdapter {
       },
     });
     return source;
-  }
-
-  static fromBinding(source: JsSource): Source {
-    const { source: content, map } = source;
-    if (!map) {
-      return new RawSource(content);
-    }
-    return new SourceMapSource(content, 'inmemory://from rust', map);
   }
 
   static toBinding(source: Source): JsSource {
