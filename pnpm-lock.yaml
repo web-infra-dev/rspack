@@ -199,6 +199,9 @@ catalogs:
     css-loader:
       specifier: ^7.1.5
       version: 7.1.5
+    csv-stringify:
+      specifier: ^6.9.0
+      version: 6.9.0
     date-fns:
       specifier: ^4.4.0
       version: 4.4.0
@@ -479,6 +482,15 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
+      zx:
+        specifier: 'catalog:'
+        version: 8.8.5
+
+  .agents/skills/rspack-allocative:
+    devDependencies:
+      csv-stringify:
+        specifier: 'catalog:'
+        version: 6.9.0
       zx:
         specifier: 'catalog:'
         version: 8.8.5
@@ -4660,6 +4672,9 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  csv-stringify@6.9.0:
+    resolution: {integrity: sha512-6b3e29CILFfSQ2nDRuZMRROzQOpPuJ+s8zPB5H7eK5ncXBbFOyVuRLU5Sx/zAUmVri3Ly49GyC8NEme4SVSAbA==}
 
   cuint@0.2.2:
     resolution: {integrity: sha512-d4ZVpCW31eWwCMe1YT3ur7mUDnTXbgwyzaL320DrcRT45rfjYxkt5QWLrmOJ+/UEAI2+fQgKe/fCjR8l4TpRgw==}
@@ -10922,6 +10937,8 @@ snapshots:
   cssesc@3.0.0: {}
 
   csstype@3.2.3: {}
+
+  csv-stringify@6.9.0: {}
 
   cuint@0.2.2: {}
 

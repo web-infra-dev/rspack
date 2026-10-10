@@ -2,7 +2,6 @@ use std::borrow::Cow;
 
 use crate::{helpers::split_into_lines, object_pool::ObjectPool, with_utf16::WithUtf16};
 
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct SourceContentLines<'object_pool, 'source> {
   text: Cow<'source, str>,
   // Self-referential data structure: lines borrow from the text.
