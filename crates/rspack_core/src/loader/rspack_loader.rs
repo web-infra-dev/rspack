@@ -98,7 +98,10 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     Ok(None)
   }
 
-  async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn start_yielding(
+    &self,
+    context: Box<LoaderContext<Self::Context>>,
+  ) -> (Box<LoaderContext<Self::Context>>, Result<()>) {
     self
       .plugin_driver
       .normal_module_hooks
@@ -107,13 +110,19 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       .await
   }
 
-  async fn run_normal_chain(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn run_normal_chain(
+    &self,
+    mut context: Box<LoaderContext<Self::Context>>,
+  ) -> (Box<LoaderContext<Self::Context>>, Result<()>) {
     let chain = context
       .current_root_chain()
       .expect("normal execution requires a current root chain");
     let range = chain.range();
     let cache_action = if chain.is_cache() && context.loader_index == chain.end() as i32 - 1 {
-      before_normal_chain(context).await?
+      match before_normal_chain(&mut context).await {
+        Ok(action) => action,
+        Err(error) => return (context, Err(error)),
+      }
     } else {
       LoaderCacheAction::Disabled
     };
@@ -125,13 +134,17 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       }
       context.loader_index = i32::from(range.start) - 1;
       context.merge_dependency_changes();
-      return Ok(());
+      return (context, Ok(()));
     }
 
-    context.run_normal_chain().await?;
-    if let LoaderCacheAction::Miss(state) = cache_action {
-      after_normal_chain(context, &state).await;
+    let result;
+    (context, result) = context.run_normal_chain().await;
+    if result.is_err() {
+      return (context, result);
     }
-    Ok(())
+    if let LoaderCacheAction::Miss(state) = cache_action {
+      after_normal_chain(&context, &state).await;
+    }
+    (context, Ok(()))
   }
 }

@@ -22,11 +22,18 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     Ok(())
   }
 
-  async fn start_yielding(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
-    Ok(())
+  /// Transfers ownership to the foreign runner and returns it, including on errors.
+  async fn start_yielding(
+    &self,
+    context: Box<LoaderContext<Self::Context>>,
+  ) -> (Box<LoaderContext<Self::Context>>, Result<()>) {
+    (context, Ok(()))
   }
 
-  async fn run_normal_chain(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn run_normal_chain(
+    &self,
+    context: Box<LoaderContext<Self::Context>>,
+  ) -> (Box<LoaderContext<Self::Context>>, Result<()>) {
     context.run_normal_chain().await
   }
 

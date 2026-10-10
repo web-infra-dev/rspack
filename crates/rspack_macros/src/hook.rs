@@ -42,7 +42,7 @@ impl Parse for DefineHookInput {
       "SeriesBail" => ExecKind::SeriesBail {
         ret: ExecKind::parse_ret(input)?,
       },
-      "SeriesWaterfall" => {
+      "SeriesWaterfall" | "SeriesWaterfallWithResult" => {
         let ret = match ExecKind::parse_ret(input)? {
           Some(t) => t,
           None => {
@@ -52,7 +52,11 @@ impl Parse for DefineHookInput {
             ));
           }
         };
-        ExecKind::SeriesWaterfall { ret }
+        if kind == "SeriesWaterfallWithResult" {
+          ExecKind::SeriesWaterfallWithResult { ret }
+        } else {
+          ExecKind::SeriesWaterfall { ret }
+        }
       }
       "Series" => ExecKind::Series,
       "Sync" => ExecKind::Sync,
@@ -233,6 +237,8 @@ enum ExecKind {
   Sync,
   SeriesBail { ret: Option<TypePath> },
   SeriesWaterfall { ret: TypePath },
+  // Return owned data alongside errors so a failed tap cannot discard it.
+  SeriesWaterfallWithResult { ret: TypePath },
   Parallel,
 }
 
@@ -263,13 +269,18 @@ impl ExecKind {
       Self::SeriesWaterfall { ret } => {
         quote! { ::rspack_hook::__macro_helper::Result<#ret> }
       }
+      Self::SeriesWaterfallWithResult { ret } => {
+        quote! { (#ret, ::rspack_hook::__macro_helper::Result<()>) }
+      }
       _ => quote! { ::rspack_hook::__macro_helper::Result<()> },
     }
   }
 
   fn replace_inferred_lifetimes(&mut self, replacer: &mut InferredLifetimeReplacer) {
     match self {
-      Self::SeriesBail { ret: Some(ret) } | Self::SeriesWaterfall { ret } => {
+      Self::SeriesBail { ret: Some(ret) }
+      | Self::SeriesWaterfall { ret }
+      | Self::SeriesWaterfallWithResult { ret } => {
         replacer.visit_type_path_mut(ret);
       }
       _ => {}
@@ -358,7 +369,7 @@ impl ExecKind {
           Ok(None)
         }
       }
-      Self::SeriesWaterfall { .. } => {
+      Self::SeriesWaterfall { .. } | Self::SeriesWaterfallWithResult { .. } => {
         let args = args.iter().copied().collect::<Vec<_>>();
         let data_arg = args
           .iter()
@@ -376,6 +387,42 @@ impl ExecKind {
             }
           })
           .collect::<Vec<_>>();
+        if matches!(self, Self::SeriesWaterfallWithResult { .. }) {
+          return quote! {
+            let mut data = #data_arg;
+            if self.common.interceptor_count() == 0 {
+              for tap in &self.taps {
+                let result;
+                (data, result) = tap.run(#(#tap_args),*).await;
+                if result.is_err() {
+                  return (data, result);
+                }
+              }
+              return (data, Ok(()));
+            }
+
+            let mut additional_taps = std::vec::Vec::new();
+            for interceptor in &self.interceptors {
+              match interceptor.call(self).await {
+                Ok(taps) => additional_taps.extend(taps),
+                Err(error) => return (data, Err(error)),
+              }
+            }
+            let additional_stages: std::vec::Vec<_> = additional_taps.iter().map(|tap| tap.stage()).collect();
+            for index in ::rspack_hook::merged_tap_indices_by_stage(self.common.tap_stages(), &additional_stages) {
+              let result;
+              (data, result) = if index.is_tap() {
+                self.taps[index.index()].run(#(#tap_args),*).await
+              } else {
+                additional_taps[index.index()].run(#(#tap_args),*).await
+              };
+              if result.is_err() {
+                return (data, result);
+              }
+            }
+            (data, Ok(()))
+          };
+        }
         quote! {
           let mut data = #data_arg;
           if self.common.interceptor_count() == 0 {

@@ -16,21 +16,24 @@ use crate::{
 };
 
 impl<Context: Send> LoaderContext<Context> {
-  async fn start_yielding(&mut self) -> Result<bool> {
-    if self.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
-      && let Some(plugin) = &self.plugin
-    {
-      plugin.clone().start_yielding(self).await?;
-      return Ok(true);
-    }
-    Ok(false)
+  fn should_yield(&self) -> bool {
+    self.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
+      && self.plugin.is_some()
+  }
+
+  async fn start_yielding(self: Box<Self>) -> (Box<Self>, Result<()>) {
+    let plugin = self
+      .plugin
+      .clone()
+      .expect("yielding requires a runner plugin");
+    plugin.start_yielding(self).await
   }
 }
 
 async fn run_pitch_chain<Context: Send>(
-  cx: &mut LoaderContext<Context>,
+  mut cx: Box<LoaderContext<Context>>,
   resource: &str,
-) -> Result<()> {
+) -> (Box<LoaderContext<Context>>, Result<()>) {
   let chain = cx
     .current_chain()
     .expect("pitching requires a current loader chain");
@@ -46,8 +49,13 @@ async fn run_pitch_chain<Context: Send>(
 
   async {
     while cx.loader_index < chain_end {
-      let yield_span = info_span!("run_loader:pitch:yield_to_js", resource);
-      if cx.start_yielding().instrument(yield_span).await? {
+      if cx.should_yield() {
+        let yield_span = info_span!("run_loader:pitch:yield_to_js", resource);
+        let result;
+        (cx, result) = cx.start_yielding().instrument(yield_span).await;
+        if result.is_err() {
+          return (cx, result);
+        }
         if cx.content.is_some() {
           break;
         }
@@ -63,14 +71,16 @@ async fn run_pitch_chain<Context: Send>(
       let loader = cx.current_loader().loader().clone();
       let loader_span = info_span!("run_loader:pitch", resource);
       cx.reset_dependency_changes();
-      let result = loader.pitch(cx).instrument(loader_span).await;
+      let result = loader.pitch(&mut cx).instrument(loader_span).await;
       cx.merge_dependency_changes();
-      result?;
+      if result.is_err() {
+        return (cx, result);
+      }
       if cx.content.is_some() {
         break;
       }
     }
-    Ok::<(), Error>(())
+    (cx, Ok(()))
   }
   .instrument(span)
   .await
@@ -78,8 +88,9 @@ async fn run_pitch_chain<Context: Send>(
 
 impl<Context: Send> LoaderContext<Context> {
   /// Execute the current root chain's normal loaders without consulting the loader cache.
-  pub async fn run_normal_chain(&mut self) -> Result<()> {
-    let cx = self;
+  /// Ownership is returned even when a loader fails.
+  pub async fn run_normal_chain(self: Box<Self>) -> (Box<Self>, Result<()>) {
+    let mut cx = self;
     let chain = cx
       .current_root_chain()
       .expect("normal execution requires a current root chain");
@@ -95,8 +106,13 @@ impl<Context: Send> LoaderContext<Context> {
 
     async {
       while cx.loader_index >= chain_start {
-        let yield_span = info_span!("run_loader:yield_to_js", resource = cx.resource());
-        if cx.start_yielding().instrument(yield_span).await? {
+        if cx.should_yield() {
+          let yield_span = info_span!("run_loader:yield_to_js", resource = cx.resource());
+          let result;
+          (cx, result) = cx.start_yielding().instrument(yield_span).await;
+          if result.is_err() {
+            return (cx, result);
+          }
           continue;
         }
 
@@ -108,16 +124,18 @@ impl<Context: Send> LoaderContext<Context> {
         cx.current_loader().set_normal_executed();
         let loader = cx.current_loader().loader().clone();
         let loader_span = info_span!("run_loader:normal", resource = cx.resource());
-        let result = loader.run(cx).instrument(loader_span).await;
+        let result = loader.run(&mut cx).instrument(loader_span).await;
         if result.is_ok() && !cx.current_loader().finish_called() {
           // If nothing is returned from this loader, set every output to None
           // to match webpack loader-runner behavior.
           cx.finish_with_empty();
         }
         cx.merge_dependency_changes();
-        result?;
+        if result.is_err() {
+          return (cx, result);
+        }
       }
-      Ok::<(), Error>(())
+      (cx, Ok(()))
     }
     .instrument(span)
     .await
@@ -166,7 +184,7 @@ fn create_loader_context<Context: Send>(
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
-) -> LoaderContext<Context> {
+) -> Box<LoaderContext<Context>> {
   let mut dependencies = LoaderDependencies::default();
   if let Some(resource_path) = resource_data.path()
     && resource_path.is_absolute()
@@ -174,7 +192,8 @@ fn create_loader_context<Context: Send>(
     dependencies.file.insert(resource_path.into());
   }
 
-  LoaderContext {
+  Box::new(LoaderContext {
+    lifetime: crate::registry::LoaderContextLifetime::new(),
     hot: false,
     cacheable: true,
     parse_meta: Default::default(),
@@ -192,7 +211,7 @@ fn create_loader_context<Context: Send>(
     plugin,
     resource_data,
     diagnostics: vec![],
-  }
+  })
 }
 
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
@@ -218,17 +237,20 @@ pub async fn run_loaders<Context: Send>(
   } else {
     loaders.into_iter().map(LoaderItem::from).collect()
   };
-  let mut cx = create_loader_context(loaders, resource_data, plugin, context);
-  let result = run_loaders_impl(&mut cx, fs).await;
-  (LoaderResult::new(cx), result.err())
+  let cx = create_loader_context(loaders, resource_data, plugin, context);
+  let (cx, result) = run_loaders_impl(cx, fs).await;
+  (LoaderResult::new(*cx), result.err())
 }
 
 async fn run_loaders_impl<Context: Send>(
-  cx: &mut LoaderContext<Context>,
+  mut cx: Box<LoaderContext<Context>>,
   fs: Arc<dyn ReadableFileSystem>,
-) -> Result<()> {
+) -> (Box<LoaderContext<Context>>, Result<()>) {
   if let Some(plugin) = cx.plugin.clone() {
-    plugin.before_all(cx).await?;
+    let result = plugin.before_all(&mut cx).await;
+    if result.is_err() {
+      return (cx, result);
+    }
   }
   let resource = cx.resource().to_owned();
   let resource = resource.as_str();
@@ -242,7 +264,11 @@ async fn run_loaders_impl<Context: Send>(
           cx.state.transition(State::ProcessResource);
           continue;
         }
-        run_pitch_chain(cx, resource).await?;
+        let result;
+        (cx, result) = run_pitch_chain(cx, resource).await;
+        if result.is_err() {
+          return (cx, result);
+        }
         if cx.content.is_some() {
           cx.state.transition(State::Normal);
           cx.loader_index -= 1;
@@ -250,7 +276,10 @@ async fn run_loaders_impl<Context: Send>(
       }
       State::ProcessResource => {
         let span = info_span!("run_loader:process_resource", resource);
-        process_resource(cx, fs.clone()).instrument(span).await?;
+        let result = process_resource(&mut cx, fs.clone()).instrument(span).await;
+        if result.is_err() {
+          return (cx, result);
+        }
         cx.loader_index = cx.loader_items.len() as i32 - 1;
         cx.state.transition(State::Normal);
       }
@@ -261,10 +290,14 @@ async fn run_loaders_impl<Context: Send>(
         }
 
         cx.reset_dependency_changes();
-        if let Some(plugin) = cx.plugin.clone() {
-          plugin.run_normal_chain(cx).await?;
+        let result;
+        (cx, result) = if let Some(plugin) = cx.plugin.clone() {
+          plugin.run_normal_chain(cx).await
         } else {
-          cx.run_normal_chain().await?;
+          cx.run_normal_chain().await
+        };
+        if result.is_err() {
+          return (cx, result);
         }
         cx.reset_dependency_changes();
       }
@@ -275,15 +308,18 @@ async fn run_loaders_impl<Context: Send>(
   if cx.content.is_none() {
     if !cx.loader_items.is_empty() {
       let loader = cx.loader_items[0].to_string();
-      return Err(error!(
-        "Final loader({loader}) didn't return a Buffer or String"
-      ));
+      return (
+        cx,
+        Err(error!(
+          "Final loader({loader}) didn't return a Buffer or String"
+        )),
+      );
     } else {
       panic!("content should be available");
     }
   }
 
-  Ok(())
+  (cx, Ok(()))
 }
 
 #[derive(Debug)]

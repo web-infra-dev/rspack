@@ -53,6 +53,7 @@ impl LoaderDependencies {
 
 #[derive(Debug)]
 pub struct LoaderContext<Context: Send> {
+  pub(crate) lifetime: crate::registry::LoaderContextLifetime,
   pub hot: bool,
   pub resource_data: Arc<ResourceData>,
   #[debug(skip)]
@@ -86,6 +87,10 @@ pub struct LoaderContext<Context: Send> {
 }
 
 impl<Context: Send> LoaderContext<Context> {
+  pub fn id(&self) -> crate::LoaderContextId {
+    self.lifetime.id()
+  }
+
   #[inline]
   pub fn current_root_chain(&self) -> Option<&LoaderChain> {
     self
