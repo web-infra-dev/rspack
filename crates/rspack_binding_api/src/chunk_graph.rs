@@ -3,9 +3,9 @@ use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, ModuleId, SourceType};
 
 use crate::{
-  async_dependency_block::AsyncDependenciesBlock,
+  async_dependency_block::{AsyncDependenciesBlock, AsyncDependenciesBlockWrapper},
   chunk::{Chunk, ChunkWrapper},
-  chunk_group::ChunkGroupWrapper,
+  chunk_group::{ChunkGroup, ChunkGroupWrapper},
   module::{ModuleObject, ModuleObjectRef},
   runtime::JsRuntimeSpec,
   with_compilation,
@@ -228,6 +228,43 @@ impl ChunkGraph {
             &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
           )
           .map(|chunk_group| ChunkGroupWrapper::new(chunk_group.ukey, compilation)),
+      )
+    })
+  }
+
+  #[napi(
+    ts_args_type = "chunkGroup: ChunkGroup",
+    ts_return_type = "AsyncDependenciesBlock[]"
+  )]
+  pub fn get_chunk_group_blocks(
+    &self,
+    js_chunk_group: &ChunkGroup,
+  ) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
+    self.with_compilation(|compilation| {
+      let chunk_group_ukey = js_chunk_group.chunk_group_ukey;
+      if !compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .contains(&chunk_group_ukey)
+      {
+        return Err(napi::Error::from_reason(format!(
+          "Unable to access chunk_group with id = {chunk_group_ukey:?} now. The chunk group has been removed on the Rust side."
+        )));
+      }
+
+      let module_graph = compilation.get_module_graph();
+      Ok(
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_group_blocks(chunk_group_ukey)
+          .into_iter()
+          .filter_map(|block_id| {
+            module_graph
+              .block_by_id(&block_id)
+              .map(|block| AsyncDependenciesBlockWrapper::new(block, compilation))
+          })
+          .collect::<Vec<_>>(),
       )
     })
   }
