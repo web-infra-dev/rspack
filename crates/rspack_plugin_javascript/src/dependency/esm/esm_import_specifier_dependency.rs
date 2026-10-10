@@ -596,10 +596,10 @@ impl ESMImportSpecifierDependencyTemplate {
     };
     match value {
       Some(ExportProvided::Provided) => {
-        source.replace_static(dep.range.start, dep.range.end, " true", None);
+        source.replace(dep.range.start, dep.range.end, " true", None);
       }
       Some(ExportProvided::NotProvided) => {
-        source.replace_static(dep.range.start, dep.range.end, " false", None)
+        source.replace(dep.range.start, dep.range.end, " false", None)
       }
       _ => {
         let used_name_ids = if matches!(exports_type, ExportsType::DefaultWithNamed)

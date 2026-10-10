@@ -5,6 +5,7 @@ use std::{
   sync::Arc,
 };
 
+use rspack_intern::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -27,11 +28,11 @@ use crate::{
 /// let code = "hello world\n";
 /// let mut source = ReplaceSource::new(OriginalSource::new(code, "file.txt"));
 ///
-/// source.insert_static(0, "start1\n", None);
-/// source.replace_static(0, 0, "start2\n", None);
-/// source.replace_static(999, 10000, "end2", None);
-/// source.insert_static(888, "end1\n", None);
-/// source.replace_static(0, 999, "replaced!\n", Some("whole"));
+/// source.insert(0, "start1\n", None);
+/// source.replace(0, 0, "start2\n", None);
+/// source.replace(999, 10000, "end2", None);
+/// source.insert(888, "end1\n", None);
+/// source.replace(0, 999, "replaced!\n", Some("whole".to_owned()));
 ///
 /// assert_eq!(
 ///   source.source().into_string_lossy(),
@@ -63,8 +64,10 @@ pub enum ReplacementEnforce {
 pub struct Replacement {
   start: u32,
   end: u32,
-  content: Cow<'static, str>,
-  name: Option<Cow<'static, str>>,
+  #[cfg_attr(feature = "allocative", allocative(skip))]
+  content: Atom,
+  #[cfg_attr(feature = "allocative", allocative(skip))]
+  name: Option<Atom>,
   enforce: ReplacementEnforce,
   insertion_order: u32,
 }
@@ -137,105 +140,24 @@ impl ReplaceSource {
   }
 
   /// Insert a content at start.
-  pub fn insert(&mut self, start: u32, content: String, name: Option<String>) {
+  pub fn insert(&mut self, start: u32, content: impl Into<Atom>, name: Option<String>) {
     self.replace(start, start, content, name)
-  }
-
-  /// Insert a static string content at start.
-  ///
-  /// This method is optimized for `&'static str` inputs, avoiding unnecessary
-  /// heap allocations by using `Cow::Borrowed` internally. Use this when you
-  /// have string literals or other static strings that don't need to be owned.
-  ///
-  /// # Performance
-  ///
-  /// Prefer this over `insert()` when working with string literals, as it
-  /// avoids cloning the string content.
-  ///
-  /// # Example
-  ///
-  /// ```no_run
-  /// use rspack_sources::{OriginalSource, ReplaceSource};
-  ///
-  /// let mut source = ReplaceSource::new(OriginalSource::new("hello", "file.txt"));
-  /// source.insert_static(0, "prefix: ", None);
-  /// ```
-  pub fn insert_static(&mut self, start: u32, content: &'static str, name: Option<&'static str>) {
-    self.replace_static_with_enforce(start, start, content, name, ReplacementEnforce::Normal)
   }
 
   /// Insert a content at start, with ReplacementEnforce.
   pub fn insert_with_enforce(
     &mut self,
     start: u32,
-    content: String,
+    content: impl Into<Atom>,
     name: Option<String>,
     enforce: ReplacementEnforce,
   ) {
     self.replace_with_enforce(start, start, content, name, enforce)
   }
 
-  /// Insert a static string content at start, with ReplacementEnforce.
-  ///
-  /// This method is optimized for `&'static str` inputs, avoiding unnecessary
-  /// heap allocations by using `Cow::Borrowed` internally. Use this when you
-  /// have string literals or other static strings that don't need to be owned.
-  ///
-  /// # Performance
-  ///
-  /// Prefer this over `insert_with_enforce()` when working with string literals,
-  /// as it avoids cloning the string content.
-  ///
-  /// # Example
-  ///
-  /// ```no_run
-  /// use rspack_sources::{OriginalSource, ReplaceSource, ReplacementEnforce};
-  ///
-  /// let mut source = ReplaceSource::new(OriginalSource::new("hello", "file.txt"));
-  /// source.insert_static_with_enforce(0, "prefix: ", None, ReplacementEnforce::Pre);
-  /// ```
-  pub fn insert_static_with_enforce(
-    &mut self,
-    start: u32,
-    content: &'static str,
-    name: Option<&'static str>,
-    enforce: ReplacementEnforce,
-  ) {
-    self.replace_static_with_enforce(start, start, content, name, enforce)
-  }
-
   /// Create a replacement with content at `[start, end)`.
-  pub fn replace(&mut self, start: u32, end: u32, content: String, name: Option<String>) {
+  pub fn replace(&mut self, start: u32, end: u32, content: impl Into<Atom>, name: Option<String>) {
     self.replace_with_enforce(start, end, content, name, ReplacementEnforce::Normal);
-  }
-
-  /// Create a replacement with static string content at `[start, end)`.
-  ///
-  /// This method is optimized for `&'static str` inputs, avoiding unnecessary
-  /// heap allocations by using `Cow::Borrowed` internally. Use this when you
-  /// have string literals or other static strings that don't need to be owned.
-  ///
-  /// # Performance
-  ///
-  /// Prefer this over `replace()` when working with string literals, as it
-  /// avoids cloning the string content.
-  ///
-  /// # Example
-  ///
-  /// ```no_run
-  /// use rspack_sources::{OriginalSource, ReplaceSource};
-  ///
-  /// let mut source = ReplaceSource::new(OriginalSource::new("hello world", "file.txt"));
-  /// source.replace_static(0, 5, "hi", None);
-  /// ```
-  pub fn replace_static(
-    &mut self,
-    start: u32,
-    end: u32,
-    content: &'static str,
-    name: Option<&'static str>,
-  ) {
-    self.replace_static_with_enforce(start, end, content, name, ReplacementEnforce::Normal)
   }
 
   /// Create a replacement with content at `[start, end)`, with ReplacementEnforce.
@@ -243,7 +165,7 @@ impl ReplaceSource {
     &mut self,
     start: u32,
     end: u32,
-    content: String,
+    content: impl Into<Atom>,
     name: Option<String>,
     enforce: ReplacementEnforce,
   ) {
@@ -252,43 +174,6 @@ impl ReplaceSource {
       end,
       content: content.into(),
       name: name.map(Into::into),
-      enforce,
-      insertion_order: self.replacements.len() as u32,
-    });
-  }
-
-  /// Create a replacement with static string content at `[start, end)`, with ReplacementEnforce.
-  ///
-  /// This method is optimized for `&'static str` inputs, avoiding unnecessary
-  /// heap allocations by using `Cow::Borrowed` internally. Use this when you
-  /// have string literals or other static strings that don't need to be owned.
-  ///
-  /// # Performance
-  ///
-  /// Prefer this over `replace_with_enforce()` when working with string literals,
-  /// as it avoids cloning the string content.
-  ///
-  /// # Example
-  ///
-  /// ```no_run
-  /// use rspack_sources::{OriginalSource, ReplaceSource, ReplacementEnforce};
-  ///
-  /// let mut source = ReplaceSource::new(OriginalSource::new("hello world", "file.txt"));
-  /// source.replace_static_with_enforce(0, 5, "hi", None, ReplacementEnforce::Pre);
-  /// ```
-  pub fn replace_static_with_enforce(
-    &mut self,
-    start: u32,
-    end: u32,
-    content: &'static str,
-    name: Option<&'static str>,
-    enforce: ReplacementEnforce,
-  ) {
-    self.add_replacement(Replacement {
-      start,
-      end,
-      content: Cow::Borrowed(content),
-      name: name.map(Cow::Borrowed),
       enforce,
       insertion_order: self.replacements.len() as u32,
     });
@@ -1065,8 +950,8 @@ impl Hash for ReplaceSource {
     for repl in &self.replacements {
       repl.start.hash(state);
       repl.end.hash(state);
-      repl.content.hash(state);
-      repl.name.hash(state);
+      repl.content.as_str().hash(state);
+      repl.name.as_ref().map(Atom::as_str).hash(state);
     }
     self.inner.hash(state);
   }
@@ -1144,12 +1029,12 @@ mod tests {
 
     let start_line3 = (line1.len() + line2.len() + 2) as u32;
     let start_line6 = (start_line3 as usize + line3.len() + line4.len() + line5.len() + 3) as u32;
-    source.replace_static(start_line3, start_line6, "", None);
-    source.replace_static(1, 5, "i ", None);
-    source.replace_static(1, 5, "bye", None);
-    source.replace_static(7, 8, "0000", None);
-    source.insert_static((line1.len() + 2) as u32, "\n Multi Line\n", None);
-    source.replace_static(start_line6 + 4, start_line6 + 5, " ", None);
+    source.replace(start_line3, start_line6, "", None);
+    source.replace(1, 5, "i ", None);
+    source.replace(1, 5, "bye", None);
+    source.replace(7, 8, "0000", None);
+    source.insert((line1.len() + 2) as u32, "\n Multi Line\n", None);
+    source.replace(start_line6 + 4, start_line6 + 5, " ", None);
 
     let result = source.source();
     let result_map = source
@@ -1208,8 +1093,8 @@ Last Line"#
       "file.txt",
     ));
     let original_code = source.source().into_string_lossy().into_owned();
-    source.insert_static(0, "Message: ", None);
-    source.replace_static(2, (line1.len() + 5) as u32, "y A", None);
+    source.insert(0, "Message: ", None);
+    source.replace(2, (line1.len() + 5) as u32, "y A", None);
     let result_text = source.source();
     let result_map = source
       .map(&ObjectPool::default(), &MapOptions::default())
@@ -1241,8 +1126,8 @@ World!"#
   #[test]
   fn should_prepend_items_correctly() {
     let mut source = ReplaceSource::new(OriginalSource::new("Line 1", "file.txt"));
-    source.insert_static(0, "Line -1\n", None);
-    source.insert_static(0, "Line 0\n", None);
+    source.insert(0, "Line -1\n", None);
+    source.insert(0, "Line 0\n", None);
 
     let result_text = source.source();
     let result_map = source
@@ -1275,8 +1160,8 @@ World!"#
       ["Line 1", "Line 2"].join("\n").as_str(),
       "file.txt",
     ));
-    source.insert_static(0, "Line 0\n", None);
-    source.replace_static(0, 6, "Hello", None);
+    source.insert(0, "Line 0\n", None);
+    source.replace(0, 6, "Hello", None);
     let result_text = source.source();
     let result_map = source
       .map(&ObjectPool::default(), &MapOptions::default())
@@ -1305,7 +1190,7 @@ Line 2"#
   fn should_append_items_correctly() {
     let line1 = "Line 1\n";
     let mut source = ReplaceSource::new(OriginalSource::new(line1, "file.txt"));
-    source.insert_static((line1.len() + 1) as u32, "Line 2\n", None);
+    source.insert((line1.len() + 1) as u32, "Line 2\n", None);
     let result_text = source.source();
     let result_map = source
       .map(&ObjectPool::default(), &MapOptions::default())
@@ -1329,8 +1214,8 @@ Line 2"#
   fn should_produce_correct_source_map() {
     let bootstrap_code = "   var hello\n   var world\n";
     let mut source = ReplaceSource::new(OriginalSource::new(bootstrap_code, "file.js"));
-    source.replace_static(7, 12, "h", Some("hello"));
-    source.replace_static(20, 25, "w", Some("world"));
+    source.replace(7, 12, "h", Some("hello".to_owned()));
+    source.replace(20, 25, "w", Some("world".to_owned()));
     let result_map = source
       .map(&ObjectPool::default(), &MapOptions::default())
       .expect("failed");
@@ -1386,10 +1271,10 @@ export default function StaticPage(_ref) {
       name: "source.js",
       source_map: map,
     }));
-    source.replace_static(0, 48, "", None);
-    source.replace_static(49, 56, "", None);
-    source.replace_static(76, 91, "", None);
-    source.replace_static(
+    source.replace(0, 48, "", None);
+    source.replace(49, 56, "", None);
+    source.replace(76, 91, "", None);
+    source.replace(
       165,
       169,
       "(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)",
@@ -1445,8 +1330,8 @@ return <div>{data.foo}</div>
 }"#,
       "document.js",
     ));
-    source.replace_static(4, 9, "false", None);
-    source.replace_static(12, 24, "", None);
+    source.replace(4, 9, "false", None);
+    source.replace(12, 24, "", None);
 
     let target_code = source.source();
     let source_map = source
@@ -1470,11 +1355,11 @@ return <div>{data.foo}</div>
     let line1 = "hello world\n";
     let mut source = ReplaceSource::new(OriginalSource::new(line1, "file.txt"));
 
-    source.insert_static(0, "start1\n", None);
-    source.replace_static(0, 0, "start2\n", None);
-    source.replace_static(999, 10000, "end2", None);
-    source.insert_static(888, "end1\n", None);
-    source.replace_static(0, 999, "replaced!\n", Some("whole"));
+    source.insert(0, "start1\n", None);
+    source.replace(0, 0, "start2\n", None);
+    source.replace(999, 10000, "end2", None);
+    source.insert(888, "end1\n", None);
+    source.replace(0, 999, "replaced!\n", Some("whole".to_owned()));
 
     let result_text = source.source();
     let result_map = source
@@ -1497,7 +1382,7 @@ return <div>{data.foo}</div>
   #[test]
   fn replace_source_over_a_box_source() {
     let mut source = ReplaceSource::new(RawStringSource::from("boxed").boxed());
-    source.replace_static(3, 5, "", None);
+    source.replace(3, 5, "", None);
     assert_eq!(source.size(), 3);
     assert_eq!(source.source().into_string_lossy(), "box");
     assert_eq!(
@@ -1523,7 +1408,7 @@ return <div>{data.foo}</div>
       .unwrap()
       .find_iter(content)
     {
-      source.replace_static(mat.start() as u32, mat.end() as u32, "../", None);
+      source.replace(mat.start() as u32, mat.end() as u32, "../", None);
     }
     assert_eq!(
       source.source().into_string_lossy(),
@@ -1549,15 +1434,15 @@ return <div>{data.foo}</div>
     // Enforce sort HarmonyExportExpressionDependency after PureExpressionDependency, to generate valid code
     let mut source = ReplaceSource::new(RawStringSource::from("export default foo;aaa").boxed());
     let mut source2 = source.clone();
-    source.replace_static(18, 19, ");", None);
-    source.replace_static(18, 19, "))", None);
+    source.replace(18, 19, ");", None);
+    source.replace(18, 19, "))", None);
     assert_eq!(
       source.source().into_string_lossy(),
       "export default foo);))aaa"
     );
 
-    source2.replace_static_with_enforce(18, 19, ");", None, ReplacementEnforce::Post);
-    source2.replace_static(18, 19, "))", None);
+    source2.replace_with_enforce(18, 19, ");", None, ReplacementEnforce::Post);
+    source2.replace(18, 19, "))", None);
     assert_eq!(
       source2.source().into_string_lossy(),
       "export default foo)));aaa"
@@ -1567,8 +1452,8 @@ return <div>{data.foo}</div>
   #[test]
   fn test_debug_output() {
     let mut source = ReplaceSource::new(OriginalSource::new("hello", "file.txt").boxed());
-    source.replace_static(0, 0, "println!(\"", None);
-    source.replace_static(5, 5, "\")", None);
+    source.replace(0, 0, "println!(\"", None);
+    source.replace(5, 5, "\")", None);
     assert_eq!(
       format!("{:?}", source),
       r#"{
@@ -1590,84 +1475,84 @@ return <div>{data.foo}</div>
     let mut source = ReplaceSource::new(
       RawStringSource::from_static("import { jsx as _jsx, jsxs as _jsxs } from \"react/jsx-runtime\";\nimport React from 'react';\nimport Component__0 from './d0/f0.jsx';\n// import Component__1 from './d0/f1.jsx'\n// import Component__2 from './d0/f2.jsx'\n// import Component__3 from './d0/f3.jsx'\n// import Component__4 from './d0/f4.jsx'\n// import Component__5 from './d0/f5.jsx'\n// import Component__6 from './d0/f6.jsx'\n// import Component__7 from './d0/f7.jsx'\n// import Component__8 from './d0/f8.jsx'\nfunction Navbar(param) {\n    var show = param.show;\n    return /*#__PURE__*/ _jsxs(\"div\", {\n        children: [\n            /*#__PURE__*/ _jsx(Component__0, {}),\n            /*#__PURE__*/ _jsx(Component__1, {}),\n            /*#__PURE__*/ _jsx(Component__2, {}),\n            /*#__PURE__*/ _jsx(Component__3, {}),\n            /*#__PURE__*/ _jsx(Component__4, {}),\n            /*#__PURE__*/ _jsx(Component__5, {}),\n            /*#__PURE__*/ _jsx(Component__6, {}),\n            /*#__PURE__*/ _jsx(Component__7, {}),\n            /*#__PURE__*/ _jsx(Component__8, {})\n        ]\n    });\n}\nexport default Navbar;\n").boxed()
     );
-    source.replace_static(0, 63, "", None);
-    source.replace_static(64, 90, "", None);
-    source.replace_static(91, 130, "", None);
-    source.replace_static(
+    source.replace(0, 63, "", None);
+    source.replace(64, 90, "", None);
+    source.replace(91, 130, "", None);
+    source.replace(
       544,
       549,
       "(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)",
       None,
     );
-    source.replace_static(
+    source.replace(
       605,
       609,
       "(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)",
       None,
     );
-    source.replace_static(
+    source.replace(
       610,
       622,
       "_d0_f0_jsx__WEBPACK_IMPORTED_MODULE_2__[\"default\"]",
       None,
     );
-    source.replace_static(
+    source.replace(
       655,
       659,
       "(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)",
       None,
     );
-    source.replace_static(
+    source.replace(
       705,
       709,
       "(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)",
       None,
     );
-    source.replace_static(
+    source.replace(
       755,
       759,
       "(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)",
       None,
     );
-    source.replace_static(
+    source.replace(
       805,
       809,
       "(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)",
       None,
     );
-    source.replace_static(
+    source.replace(
       855,
       859,
       "(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)",
       None,
     );
-    source.replace_static(
+    source.replace(
       905,
       909,
       "(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)",
       None,
     );
-    source.replace_static(
+    source.replace(
       955,
       959,
       "(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)",
       None,
     );
-    source.replace_static(
+    source.replace(
       1005,
       1009,
       "(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)",
       None,
     );
-    source.replace_static(
+    source.replace(
       1048,
       1063,
       "/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (",
       None,
     );
-    source.replace_static(1048, 1063, "", None);
-    source.replace_static_with_enforce(1069, 1070, ");", None, ReplacementEnforce::Post);
-    source.replace_static(10000000, 20000000, "// end line", None);
+    source.replace(1048, 1063, "", None);
+    source.replace_with_enforce(1069, 1070, ");", None, ReplacementEnforce::Post);
+    source.replace(10000000, 20000000, "// end line", None);
 
     assert_eq!(source.size(), source.source().into_string_lossy().len());
   }
@@ -1675,12 +1560,12 @@ return <div>{data.foo}</div>
   #[test]
   fn replace_source_hash_is_order_independent() {
     let mut source1 = ReplaceSource::new(RawStringSource::from_static("hello, world!").boxed());
-    source1.replace_static(0, 5, "你好", None);
-    source1.replace_static(6, 11, "世界", None);
+    source1.replace(0, 5, "你好", None);
+    source1.replace(6, 11, "世界", None);
 
     let mut source2 = ReplaceSource::new(RawStringSource::from_static("hello, world!").boxed());
-    source2.replace_static(6, 11, "世界", None);
-    source2.replace_static(0, 5, "你好", None);
+    source2.replace(6, 11, "世界", None);
+    source2.replace(0, 5, "你好", None);
 
     assert_eq!(source1.source(), source2.source());
 
@@ -1703,7 +1588,7 @@ return <div>{data.foo}</div>
           remove_original_source: false,
         }).boxed()
       );
-    source.replace_static(140, 188, "", None);
+    source.replace(140, 188, "", None);
 
     assert_eq!(
       source.source().into_string_lossy(),
@@ -1723,11 +1608,11 @@ return <div>{data.foo}</div>
   #[test]
   fn test_replace_source_handle_remaining_replacements() {
     let mut source = ReplaceSource::new(OriginalSource::new("สวัสดี ชาวโลก!", "test.txt"));
-    source.replace_static(0, 19, "hello, ", None);
-    source.replace_static(19, 38, "world!", None);
-    source.replace_static(100, 200, "\n", None);
-    source.replace_static(200, 300, "你好，世界！\n", None);
-    source.replace_static(300, 400, "こんにちは、世界！\n안녕하세요, 세계! \n", None);
+    source.replace(0, 19, "hello, ", None);
+    source.replace(19, 38, "world!", None);
+    source.replace(100, 200, "\n", None);
+    source.replace(200, 300, "你好，世界！\n", None);
+    source.replace(300, 400, "こんにちは、世界！\n안녕하세요, 세계! \n", None);
 
     assert_eq!(
       source.source().into_string_lossy(),

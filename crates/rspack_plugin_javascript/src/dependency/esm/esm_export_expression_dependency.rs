@@ -285,7 +285,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         format!("{}({}", content, dep.prefix),
         None,
       );
-      source.replace_static_with_enforce(
+      source.replace_with_enforce(
         dep.range.end,
         dep.range_stmt.end,
         ");",

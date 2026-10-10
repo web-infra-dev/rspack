@@ -496,7 +496,7 @@ mod tests {
   fn hash_should_different_when_map_are_different() {
     let hash1 = {
       let mut source = ReplaceSource::new(OriginalSource::new("Hello", "hello.txt").boxed());
-      source.insert_static(5, " world", None);
+      source.insert(5, " world", None);
       let cache = CachedSource::new(source);
       let mut hasher = FxHasher::default();
       cache.hash(&mut hasher);

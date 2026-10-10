@@ -425,7 +425,7 @@ mod tests {
     });
     let sources = [a, b, c].into_iter().map(|s| {
       let mut r = ReplaceSource::new(s);
-      r.replace_static(1, 5, "i", None);
+      r.replace(1, 5, "i", None);
       r
     });
     let source = ConcatSource::new(sources);
