@@ -231,6 +231,16 @@ fn round_trip(snapshot: &Snapshot) -> Snapshot {
   from_bytes(&bytes, &()).expect("deserialize snapshot")
 }
 
+fn snapshot_content<T>(snapshot: &Snapshot, get: fn(&Snapshot) -> Option<&T>) -> Option<&T> {
+  get(snapshot).or_else(|| {
+    snapshot
+      .children
+      .as_ref()?
+      .iter()
+      .find_map(|child| snapshot_content(child, get))
+  })
+}
+
 // webpack: expectSnapshotState (L234), including direct and serialized reuse.
 async fn expect_snapshot_state(fs: Arc<TestFileSystem>, snapshot: &Snapshot, expected: bool) {
   let fs_info = create_fs_info(fs);
@@ -394,16 +404,28 @@ mod path_classification_cache {
       &*cache.get(&InternedPath::from("/path/node_modules/package/file.txt")).expect("classified"),
       PathClassification::Managed(item) if *item == InternedPath::from("/path/node_modules/package")
     ));
-    let managed = first.managed_files.as_ref().expect("managed files");
+    let managed = snapshot_content(&first, |s| s.managed_files.as_ref()).expect("managed files");
     assert!(managed.contains(&InternedPath::from("/path/node_modules/package/file.txt")));
     assert!(managed.contains(&InternedPath::from("/path/cache/package-1234/file.txt")));
     let cache_size = cache.len();
     let second = snapshot(&fs_info, SnapshotStrategyOptions::timestamp()).await;
     assert_eq!(cache.len(), cache_size);
-    assert_eq!(first.file_timestamps, second.file_timestamps);
-    assert_eq!(first.managed_files, second.managed_files);
-    assert_eq!(first.managed_contexts, second.managed_contexts);
-    assert_eq!(first.managed_missing, second.managed_missing);
+    assert_eq!(
+      snapshot_content(&first, |s| s.file_timestamps.as_ref()),
+      snapshot_content(&second, |s| s.file_timestamps.as_ref()),
+    );
+    assert_eq!(
+      snapshot_content(&first, |s| s.managed_files.as_ref()),
+      snapshot_content(&second, |s| s.managed_files.as_ref()),
+    );
+    assert_eq!(
+      snapshot_content(&first, |s| s.managed_contexts.as_ref()),
+      snapshot_content(&second, |s| s.managed_contexts.as_ref()),
+    );
+    assert_eq!(
+      snapshot_content(&first, |s| s.managed_missing.as_ref()),
+      snapshot_content(&second, |s| s.managed_missing.as_ref()),
+    );
     todo!(
       "webpack L574-L586: remaining assertions need Snapshot's file/context/missing iterables and FileSystemInfo.clear() to verify capture completeness and classification-cache reset"
     );
@@ -913,7 +935,6 @@ mod snapshot_optimization {
   use super::*;
 
   #[tokio::test]
-  #[should_panic] // We don't support snapshot optimization yet
   async fn reuses_a_whole_shared_snapshot_and_splits_it_on_partial_overlap() {
     let fs = create_fs();
     let fs_info = create_fs_info(fs.clone());
@@ -922,7 +943,6 @@ mod snapshot_optimization {
     snapshot_paths(&fs_info, FILES, &[], &[], mode).await;
     let third = snapshot_paths(&fs_info, FILES, &[], &[], mode).await;
     // Observe the shared child itself instead of webpack's JS-only counters.
-    // Keep this assertion red until SnapshotOptimization is implemented.
     assert!(
       third
         .children
@@ -1334,22 +1354,29 @@ mod serialization_and_iteration {
     base.managed_files = Some(paths(&["/mf"]));
     base.managed_contexts = Some(paths(&["/mc"]));
     base.managed_missing = Some(paths(&["/mm"]));
-    base.children = Some(vec![child_a, child_b]);
+    let child_count = base.children.as_ref().map_or(0, |children| children.len()) + 2;
+    base
+      .children
+      .get_or_insert_default()
+      .extend([child_a.into(), child_b.into()]);
     let restored = round_trip(&base);
     assert_fields_equal(&base, &restored);
     assert!(restored.start_time.is_some());
     assert!(restored.file_timestamps.is_some());
     assert!(restored.file_hashes.is_some());
-    assert!(restored.file_timestamp_hashes.is_some());
+    assert!(snapshot_content(&restored, |s| s.file_timestamp_hashes.as_ref()).is_some());
     assert!(restored.context_timestamps.is_some());
     assert!(restored.context_hashes.is_some());
-    assert!(restored.context_timestamp_hashes.is_some());
-    assert!(restored.missing_existence.is_some());
+    assert!(snapshot_content(&restored, |s| s.context_timestamp_hashes.as_ref()).is_some());
+    assert!(snapshot_content(&restored, |s| s.missing_existence.as_ref()).is_some());
     assert!(restored.managed_item_info.is_some());
     assert!(restored.managed_files.is_some());
     assert!(restored.managed_contexts.is_some());
     assert!(restored.managed_missing.is_some());
-    assert_eq!(restored.children.as_ref().expect("children").len(), 2);
+    assert_eq!(
+      restored.children.as_ref().expect("children").len(),
+      child_count
+    );
     todo!(
       "webpack L1913-L1926: remaining assertions need Snapshot file/context/missing iterables across multiple children and the single-child shortcut; serialization assertions above already exercise every Rust field"
     );

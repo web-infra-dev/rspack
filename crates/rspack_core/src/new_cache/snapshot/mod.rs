@@ -1,8 +1,16 @@
 mod file_system_info;
+mod snapshot_optimization;
+
+use std::{
+  hash::{Hash, Hasher},
+  ops::Deref,
+  sync::Arc,
+};
 
 use rspack_cacheable::cacheable;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::{InternedPathMap, InternedPathSet};
+use smallvec::SmallVec;
 
 pub use self::file_system_info::{FileSystemInfo, SnapshotValidationResult};
 
@@ -54,9 +62,9 @@ pub struct ContextTimestampAndHash {
 /// Serializable filesystem state captured by [`FileSystemInfo`].
 ///
 /// The optional maps follow webpack's `Snapshot` layout: a snapshot allocates
-/// only the collections required by its strategy. Children are reserved for
-/// shared snapshots; ordinary build-dependency merges combine their maps
-/// directly.
+/// only the collections required by its strategy. Common collections live in
+/// immutable shared children. Cloning copies the small unshared collections and
+/// shares the children; ordinary build-dependency merges move their maps.
 ///
 /// See webpack's `Snapshot` data structure:
 /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L303-L665
@@ -76,10 +84,14 @@ pub struct Snapshot {
   pub(super) managed_contexts: Option<InternedPathSet>,
   pub(super) managed_missing: Option<InternedPathSet>,
   #[cacheable(omit_bounds)]
-  pub(super) children: Option<Vec<Snapshot>>,
+  pub(super) children: Option<SmallVec<[SharedSnapshot; 2]>>,
 }
 
 impl Snapshot {
+  fn add_child(&mut self, child: SharedSnapshot) {
+    self.children.get_or_insert_default().push(child);
+  }
+
   /// See webpack's snapshot merge implementation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L3081-L3166
   pub(super) fn merge(&mut self, other: Self) {
@@ -103,8 +115,47 @@ impl Snapshot {
     merge_sets(&mut self.managed_missing, other.managed_missing);
 
     if let Some(children) = other.children {
-      self.children.get_or_insert_default().extend(children);
+      if let Some(target) = &mut self.children {
+        target.extend(children);
+      } else {
+        self.children = Some(children);
+      }
     }
+  }
+}
+
+/// Object identity, like webpack's Snapshot references, without allocating IDs.
+/// The Arc also keeps identity stable while an optimization or validation cache
+/// refers to the snapshot. Serialization preserves sharing within an archive.
+#[cacheable]
+#[derive(Debug, Clone)]
+pub(super) struct SharedSnapshot(#[cacheable(omit_bounds)] Arc<Snapshot>);
+
+impl From<Snapshot> for SharedSnapshot {
+  fn from(snapshot: Snapshot) -> Self {
+    Self(Arc::new(snapshot))
+  }
+}
+
+impl Deref for SharedSnapshot {
+  type Target = Snapshot;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl PartialEq for SharedSnapshot {
+  fn eq(&self, other: &Self) -> bool {
+    Arc::ptr_eq(&self.0, &other.0)
+  }
+}
+
+impl Eq for SharedSnapshot {}
+
+impl Hash for SharedSnapshot {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    std::ptr::hash(Arc::as_ptr(&self.0), state);
   }
 }
 
@@ -112,12 +163,20 @@ fn merge_maps<T>(target: &mut Option<InternedPathMap<T>>, source: Option<Interne
   let Some(source) = source else {
     return;
   };
-  target.get_or_insert_default().extend(source);
+  if let Some(target) = target {
+    target.extend(source);
+  } else {
+    *target = Some(source);
+  }
 }
 
 fn merge_sets(target: &mut Option<InternedPathSet>, source: Option<InternedPathSet>) {
   let Some(source) = source else {
     return;
   };
-  target.get_or_insert_default().extend(source);
+  if let Some(target) = target {
+    target.extend(source);
+  } else {
+    *target = Some(source);
+  }
 }
