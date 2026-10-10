@@ -1345,6 +1345,12 @@ export type JavascriptParserOptions = {
   url?: 'relative' | 'new-url-relative' | boolean;
 
   /**
+   * Enable parsing of dynamic requests in new URL().
+   * @default true
+   */
+  dynamicUrl?: boolean;
+
+  /**
    * Enable warnings for full dynamic dependencies
    * @default true
    * */

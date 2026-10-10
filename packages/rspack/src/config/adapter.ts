@@ -680,6 +680,7 @@ function getRawJavascriptParserOptions(
     dynamicImportFetchPriority: parser.dynamicImportFetchPriority,
     importMeta: getRawImportMeta(parser.importMeta),
     url: parser.url?.toString(),
+    dynamicUrl: parser.dynamicUrl,
     exprContextCritical: parser.exprContextCritical,
     unknownContextCritical: parser.unknownContextCritical,
     wrappedContextCritical: parser.wrappedContextCritical,
