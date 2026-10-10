@@ -10,8 +10,8 @@ use rustc_hash::FxHasher;
 use crate::{
   BoxSource, MapOptions, RawBufferSource, Source, SourceExt, SourceMap,
   helpers::{
-    Chunks, GeneratedInfo, StreamChunks, TextSpan, stream_and_get_source_and_map,
-    stream_chunks_of_raw_source, stream_chunks_of_source_map,
+    Chunks, GeneratedInfo, StreamChunks, TextSpan, stream_chunks_of_raw_source,
+    stream_chunks_of_source_map,
   },
   object_pool::ObjectPool,
   source::SourceValue,
@@ -104,15 +104,6 @@ impl CachedSource {
     })
   }
 
-  fn is_ascii(&self) -> bool {
-    *self.cache.is_ascii.get_or_init(|| {
-      if let Some(chunks) = self.cache.chunks.get() {
-        return chunks.iter().all(|chunk| chunk.is_ascii());
-      }
-      self.inner.source().as_bytes().is_ascii()
-    })
-  }
-
   fn map_cache(&self, options: &MapOptions) -> &OnceLock<Option<SourceMap<'static>>> {
     if options.columns {
       &self.cache.columns_map
@@ -164,8 +155,13 @@ impl Source for CachedSource {
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    let chunks = self.get_or_init_chunks();
-    chunks.iter().for_each(|chunk| on_chunk(chunk));
+    if let Some(chunks) = self.cache.chunks.get() {
+      chunks.iter().for_each(|chunk| on_chunk(chunk));
+    } else {
+      // A parent may only need these spans to build its own result. Do not retain
+      // another copy of the chunk index at every CachedSource in that graph.
+      self.inner.rope(on_chunk);
+    }
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
@@ -227,10 +223,17 @@ impl<'source> CachedSourceChunks<'source> {
   }
 
   fn get_or_init_source(&self) -> TextSpan<'_> {
+    // A cached map marks a directly requested result. Cache its chunk index too,
+    // so new Chunks handles do not reevaluate replacements on every replay.
+    // The flat text (including lossy binary decoding) stays local to this handle.
     let source = self
       .source
       .get_or_init(|| self.cache_source.source().into_string_lossy());
-    let is_ascii = self.cache_source.is_ascii();
+    let is_ascii = *self
+      .cache_source
+      .cache
+      .is_ascii
+      .get_or_init(|| source.is_ascii());
     TextSpan::with_known(source.as_ref(), is_ascii)
   }
 }
@@ -266,20 +269,11 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
           stream_chunks_of_raw_source(source, options, on_chunk, on_source, on_name)
         }
       }
-      None => {
-        let (generated_info, map) = stream_and_get_source_and_map(
-          options,
-          object_pool,
-          self.get_or_init_chunks(),
-          on_chunk,
-          on_source,
-          on_name,
-        );
-        cell.get_or_init(|| {
-          map.map(|map| SourceMap::from_fields(map).into_static(self.cache_source.inner.clone()))
-        });
-        generated_info
-      }
+      // Streaming is an intermediate operation: let the caller encode/cache its
+      // final map instead of encoding and retaining a map at every nested level.
+      None => self
+        .get_or_init_chunks()
+        .stream(object_pool, options, on_chunk, on_source, on_name),
     }
   }
 }

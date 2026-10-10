@@ -1379,69 +1379,6 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
   )
 }
 
-pub fn stream_and_get_source_and_map<'source, 'chunk>(
-  options: &MapOptions,
-  object_pool: &ObjectPool,
-  chunks: &'chunk dyn Chunks<'source>,
-  on_chunk: OnChunk<'_, 'chunk>,
-  on_source: OnSource<'_, 'source>,
-  on_name: OnName<'_, 'source>,
-) -> (GeneratedInfo, Option<SourceMapFields<'source>>) {
-  let mut mappings_encoder = create_encoder(options.columns);
-  let mut sources: Vec<Cow<'source, str>> = Vec::new();
-  let mut sources_content: Vec<Cow<'source, str>> = Vec::new();
-  let mut names: Vec<Cow<'source, str>> = Vec::new();
-
-  let generated_info = chunks.stream(
-    object_pool,
-    options,
-    &mut |chunk, mapping| {
-      mappings_encoder.encode(&mapping);
-      on_chunk(chunk, mapping);
-    },
-    &mut |source_index, source, source_content| {
-      let source_index2 = source_index as usize;
-      while sources.len() <= source_index2 {
-        sources.push(Cow::Borrowed(""));
-      }
-      sources[source_index2] = source.clone();
-      if let Some(source_content) = source_content {
-        while sources_content.len() <= source_index2 {
-          sources_content.push(Cow::Borrowed(""));
-        }
-        sources_content[source_index2] = Cow::Borrowed(source_content);
-      }
-      on_source(source_index, source, source_content);
-    },
-    &mut |name_index, name| {
-      let name_index2 = name_index as usize;
-      while names.len() <= name_index2 {
-        names.push(Cow::Borrowed(""));
-      }
-      names[name_index2] = name.clone();
-      on_name(name_index, name);
-    },
-  );
-
-  let mappings = mappings_encoder.drain();
-  let map = if mappings.is_empty() {
-    None
-  } else {
-    Some(SourceMapFields {
-      version: 3,
-      file: None,
-      mappings: Cow::Owned(mappings),
-      sources: Cow::Owned(sources),
-      sources_content: Cow::Owned(sources_content),
-      names: Cow::Owned(names),
-      source_root: None,
-      debug_id: None,
-      ignore_list: None,
-    })
-  };
-  (generated_info, map)
-}
-
 #[cfg(test)]
 mod tests {
   use std::sync::LazyLock;
