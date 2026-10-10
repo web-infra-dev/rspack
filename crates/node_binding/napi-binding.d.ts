@@ -365,6 +365,8 @@ export declare class JsCompiler {
   /** Rebuild with the given option passed to the constructor */
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
   close(): Promise<void>
+  /** Release the last compilation's heavy Rust state after Stats have been consumed. */
+  releaseCompilation(): void
   getVirtualFileStore(): VirtualFileStore | null
   getCompilerId(): ExternalObject<CompilerId>
 }
