@@ -5485,6 +5485,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "smallvec",
+ "tokio",
  "tracing",
 ]
 
