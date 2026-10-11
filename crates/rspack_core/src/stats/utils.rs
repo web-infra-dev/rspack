@@ -47,6 +47,7 @@ pub fn sort_modules(modules: &mut [StatsModule]) {
               .map(|id| id.as_str())
               .cmp(&b.identifier.as_ref().map(|id| id.as_str()))
               .then_with(|| a.chunks.cmp(&b.chunks))
+              .then_with(|| a.build_time_executed.cmp(&b.build_time_executed))
               .then_with(|| a.size.total_cmp(&b.size))
           } else {
             Ordering::Equal
