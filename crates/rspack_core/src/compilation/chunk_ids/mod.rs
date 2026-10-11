@@ -100,54 +100,43 @@ impl PassExt for ChunkIdsPass {
         .iter()
         .map(|(ukey, identity, _)| (*ukey, identity))
         .collect::<FxHashMap<_, _>>();
-      let groups = compilation
+      let mut pending_groups = BTreeMap::new();
+      let mut mutations = compilation.incremental.mutations_write();
+      for group in compilation
         .build_chunk_graph_artifact
         .chunk_group_by_ukey
         .values()
-        .map(|group| {
-          (
-            ChunkGroupIdIdentity::new(group),
-            group
-              .chunks
-              .iter()
-              .filter_map(|ukey| identities.get(ukey).map(|identity| Arc::clone(identity)))
-              .collect::<Vec<_>>(),
-            group,
-          )
-        })
-        .collect::<Vec<_>>();
-      let mut unique_groups = BTreeMap::new();
-      for (identity, _, _) in &groups {
-        unique_groups
-          .entry(identity)
-          .and_modify(|unique| *unique = false)
-          .or_insert(true);
-      }
-      let mut mutations = compilation.incremental.mutations_write();
-      for (identity, members, group) in &groups {
-        if !unique_groups.get(identity).copied().unwrap_or(false)
-          || compilation
-            .chunk_ids_diff_artifact
-            .previous_groups
-            .get(identity)
-            .and_then(Option::as_ref)
-            != Some(members)
-        {
-          // Async block hashes consume this ordered list. Select origins directly:
-          // a group that loses its last chunk has no member to reach them through.
+      {
+        let identity = ChunkGroupIdIdentity::new(group);
+        let members = group
+          .chunks
+          .iter()
+          .filter_map(|ukey| identities.get(ukey).map(|identity| Arc::clone(identity)))
+          .collect::<Vec<_>>();
+        let mut changed = compilation
+          .chunk_ids_diff_artifact
+          .previous_groups
+          .get(&identity)
+          .and_then(Option::as_ref)
+          != Some(&members);
+        match pending_groups.entry(identity) {
+          std::collections::btree_map::Entry::Occupied(mut entry) => {
+            entry.insert(None);
+            changed = true;
+          }
+          std::collections::btree_map::Entry::Vacant(entry) => {
+            entry.insert(Some(members));
+          }
+        }
+        if changed {
+          // Equal identities include equal origins, so a duplicate selects the
+          // origins of every matching group while marking correspondence ambiguous.
+          // Groups without chunks still select their importers directly.
           compilation
             .chunk_ids_diff_artifact
             .changed_group_origins
             .extend(group.origins().iter().filter_map(|origin| origin.module));
         }
-      }
-      drop(unique_groups);
-      let mut pending_groups = BTreeMap::new();
-      for (identity, members, _) in groups {
-        pending_groups
-          .entry(identity)
-          .and_modify(|members| *members = None)
-          .or_insert(Some(members));
       }
       compilation.chunk_ids_diff_artifact.pending_groups = pending_groups;
       drop(identities);
