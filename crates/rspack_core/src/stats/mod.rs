@@ -513,18 +513,11 @@ impl Stats<'_> {
       })
       .collect::<Result<_>>()?;
 
-    let mut runtime_modules = self
+    let runtime_modules = self
       .runtime_modules()
       .par_iter()
       .map(|(identifier, module)| self.get_runtime_module(identifier, module, options))
       .collect::<Result<Vec<_>>>()?;
-    runtime_modules.sort_unstable_by(|a, b| {
-      a.identifier
-        .as_ref()
-        .map(|id| id.as_str())
-        .cmp(&b.identifier.as_ref().map(|id| id.as_str()))
-        .then_with(|| a.chunks.cmp(&b.chunks))
-    });
     modules.extend(runtime_modules);
 
     let executor_module_graph = self.module_executor_module_graph();
