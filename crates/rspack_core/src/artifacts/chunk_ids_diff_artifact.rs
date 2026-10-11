@@ -1,5 +1,7 @@
 use std::{
+  cmp::Ordering,
   collections::BTreeMap,
+  hash::{Hash, Hasher},
   mem,
   sync::{Arc, Mutex, atomic::AtomicBool},
 };
@@ -14,12 +16,32 @@ use crate::{
 
 /// Correspondence across chunk graph reconstruction. Ambiguous identities are
 /// never reused. Membership is included: equal root names alone are insufficient.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Eq)]
 pub struct ChunkIdIdentity {
   name: Option<String>,
   facade: bool,
   runtime: RuntimeKey,
   modules: Vec<Identifier>,
+}
+
+impl PartialEq for ChunkIdIdentity {
+  #[inline(never)]
+  fn eq(&self, other: &Self) -> bool {
+    self.name == other.name
+      && self.facade == other.facade
+      && self.runtime == other.runtime
+      && self.modules == other.modules
+  }
+}
+
+impl Hash for ChunkIdIdentity {
+  #[inline(never)]
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.name.hash(state);
+    self.facade.hash(state);
+    self.runtime.hash(state);
+    self.modules.hash(state);
+  }
 }
 
 impl ChunkIdIdentity {
@@ -35,7 +57,7 @@ impl ChunkIdIdentity {
 
 /// Stable group correspondence, independent of reconstructed group Ukeys.
 /// Duplicate keys are treated as ambiguous rather than choosing an arbitrary group.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Eq)]
 pub struct ChunkGroupIdIdentity {
   name: Option<String>,
   origins: Vec<(
@@ -43,6 +65,28 @@ pub struct ChunkGroupIdIdentity {
     Option<DependencyLocation>,
     Option<String>,
   )>,
+}
+
+impl Ord for ChunkGroupIdIdentity {
+  #[inline(never)]
+  fn cmp(&self, other: &Self) -> Ordering {
+    self
+      .name
+      .cmp(&other.name)
+      .then_with(|| self.origins.cmp(&other.origins))
+  }
+}
+
+impl PartialOrd for ChunkGroupIdIdentity {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl PartialEq for ChunkGroupIdIdentity {
+  fn eq(&self, other: &Self) -> bool {
+    self.cmp(other).is_eq()
+  }
 }
 
 impl ChunkGroupIdIdentity {
@@ -63,13 +107,24 @@ impl ChunkGroupIdIdentity {
 pub type ChunkGroupIds = BTreeMap<ChunkGroupIdIdentity, Option<Vec<Arc<ChunkIdIdentity>>>>;
 
 /// Exact allocation domain in natural-comparator order, including reservations.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Eq)]
 pub struct DeterministicChunkIdsInputs {
   pub candidates: Vec<(Arc<ChunkIdIdentity>, String)>,
   pub reserved_ids: Vec<ChunkId>,
   pub context: String,
   pub delimiter: String,
   pub range: usize,
+}
+
+impl PartialEq for DeterministicChunkIdsInputs {
+  #[inline(never)]
+  fn eq(&self, other: &Self) -> bool {
+    self.candidates == other.candidates
+      && self.reserved_ids == other.reserved_ids
+      && self.context == other.context
+      && self.delimiter == other.delimiter
+      && self.range == other.range
+  }
 }
 
 /// CHUNK_IDS-owned effective IDs, ordered group members and allocation proof.
