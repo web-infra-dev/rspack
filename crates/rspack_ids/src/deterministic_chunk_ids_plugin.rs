@@ -41,6 +41,17 @@ async fn chunk_ids(
   _named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> rspack_error::Result<()> {
+  assign_chunk_ids(self, compilation, chunk_by_ukey, diagnostics)
+}
+
+// This hook does not suspend. Keep allocation outside the instrumented future.
+#[inline(never)]
+fn assign_chunk_ids(
+  plugin: &DeterministicChunkIdsPlugin,
+  compilation: &rspack_core::Compilation,
+  chunk_by_ukey: &mut ChunkByUkey,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   let track_ids = compilation
     .incremental
     .passes_enabled(IncrementalPasses::MODULES_HASHES);
@@ -72,7 +83,7 @@ async fn chunk_ids(
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
-  let context = self
+  let context = plugin
     .context
     .clone()
     .unwrap_or_else(|| compilation.options.context.as_str().to_string());
@@ -159,7 +170,7 @@ async fn chunk_ids(
         .collect(),
       reserved_ids,
       context: context.clone(),
-      delimiter: self.delimiter.clone(),
+      delimiter: plugin.delimiter.clone(),
       range: get_deterministic_id_range(
         chunks.len(),
         &INITIAL_ID_RANGES,
