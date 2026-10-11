@@ -1,7 +1,4 @@
-use std::{
-  collections::BTreeMap,
-  sync::{Arc, atomic::Ordering::Relaxed},
-};
+use std::sync::{Arc, atomic::Ordering::Relaxed};
 
 use async_trait::async_trait;
 use rustc_hash::FxHashMap;
@@ -111,7 +108,7 @@ fn update_chunk_id_diff(compilation: &mut Compilation, chunk_by_ukey: &ChunkByUk
       .iter()
       .map(|(ukey, identity, _)| (*ukey, identity))
       .collect::<FxHashMap<_, _>>();
-    let mut pending_groups = BTreeMap::new();
+    let mut pending_groups = FxHashMap::default();
     let mut mutations = compilation.incremental.mutations_write();
     for group in compilation
       .build_chunk_graph_artifact
@@ -124,25 +121,28 @@ fn update_chunk_id_diff(compilation: &mut Compilation, chunk_by_ukey: &ChunkByUk
         .iter()
         .filter_map(|ukey| identities.get(ukey).map(|identity| Arc::clone(identity)))
         .collect::<Vec<_>>();
-      let mut changed = compilation
-        .chunk_ids_diff_artifact
-        .previous_groups
-        .get(&identity)
-        .and_then(Option::as_ref)
-        != Some(&members);
-      match pending_groups.entry(identity) {
-        std::collections::btree_map::Entry::Occupied(mut entry) => {
-          entry.insert(None);
-          changed = true;
-        }
-        std::collections::btree_map::Entry::Vacant(entry) => {
-          entry.insert(Some(members));
-        }
-      }
+      pending_groups
+        .entry(identity)
+        .and_modify(|members| *members = None)
+        .or_insert(Some(members));
+    }
+    for group in compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .values()
+    {
+      let identity = ChunkGroupIdIdentity::new(group);
+      let current_members = pending_groups.get(&identity).and_then(Option::as_ref);
+      let changed = current_members.is_none()
+        || compilation
+          .chunk_ids_diff_artifact
+          .previous_groups
+          .get(&identity)
+          .and_then(Option::as_ref)
+          != current_members;
       if changed {
-        // Equal identities include equal origins, so a duplicate selects the
-        // origins of every matching group while marking correspondence ambiguous.
-        // Groups without chunks still select their importers directly.
+        // Check after all insertions so even a digest collision selects every
+        // ambiguous group's origins, including groups without chunks.
         compilation
           .chunk_ids_diff_artifact
           .changed_group_origins

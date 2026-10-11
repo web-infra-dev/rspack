@@ -1,18 +1,37 @@
 use std::{
-  cmp::Ordering,
-  collections::BTreeMap,
   hash::{Hash, Hasher},
   mem,
   sync::{Arc, Mutex, atomic::AtomicBool},
 };
 
-use rspack_collections::{Identifier, IdentifierSet};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rspack_collections::IdentifierSet;
+use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 
 use crate::{
   ArtifactExt, Chunk, ChunkGraph, ChunkGroup, ChunkKind, ChunkUkey, DependencyLocation, RuntimeKey,
   chunk_graph_chunk::ChunkId, get_runtime_key, incremental::IncrementalPasses,
 };
+
+/// Order-independent membership summary; multiplicity is retained for group origins.
+#[derive(Debug, Default, PartialEq, Eq, Hash)]
+struct MembershipDigest {
+  sums: [u64; 2],
+  count: usize,
+}
+
+impl MembershipDigest {
+  fn add(&mut self, hash: u64) {
+    self.sums[0] = self.sums[0].wrapping_add(mix_identity_hash(hash ^ 0x243f_6a88_85a3_08d3));
+    self.sums[1] = self.sums[1].wrapping_add(mix_identity_hash(hash ^ 0x1319_8a2e_0370_7344));
+    self.count += 1;
+  }
+}
+
+fn mix_identity_hash(mut hash: u64) -> u64 {
+  hash = (hash ^ (hash >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+  hash = (hash ^ (hash >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+  hash ^ (hash >> 31)
+}
 
 /// Correspondence across chunk graph reconstruction. Ambiguous identities are
 /// never reused. Membership is included: equal root names alone are insufficient.
@@ -21,7 +40,7 @@ pub struct ChunkIdIdentity {
   name: Option<String>,
   facade: bool,
   runtime: RuntimeKey,
-  modules: Vec<Identifier>,
+  modules: MembershipDigest,
 }
 
 impl PartialEq for ChunkIdIdentity {
@@ -46,11 +65,16 @@ impl Hash for ChunkIdIdentity {
 
 impl ChunkIdIdentity {
   pub fn new(chunk: &Chunk, chunk_graph: &ChunkGraph) -> Self {
+    let mut modules = MembershipDigest::default();
+    for module in chunk_graph.get_chunk_modules_identifier(&chunk.ukey()) {
+      modules.add(module.precomputed_hash());
+    }
+    // Across builds, a changed identity colliding at 128 bits is negligible; incremental caches already use 64-bit content hashes.
     Self {
       name: chunk.name().map(ToOwned::to_owned),
       facade: chunk.kind() == ChunkKind::Facade,
       runtime: get_runtime_key(chunk.runtime()).clone(),
-      modules: chunk_graph.get_ordered_chunk_modules_identifier(&chunk.ukey()),
+      modules,
     }
   }
 }
@@ -60,60 +84,51 @@ impl ChunkIdIdentity {
 #[derive(Debug, Eq)]
 pub struct ChunkGroupIdIdentity {
   name: Option<String>,
-  origins: Vec<(
-    Option<Identifier>,
-    Option<DependencyLocation>,
-    Option<String>,
-  )>,
-}
-
-impl Ord for ChunkGroupIdIdentity {
-  #[inline(never)]
-  fn cmp(&self, other: &Self) -> Ordering {
-    self
-      .name
-      .cmp(&other.name)
-      .then_with(|| self.origins.cmp(&other.origins))
-  }
-}
-
-impl PartialOrd for ChunkGroupIdIdentity {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    Some(self.cmp(other))
-  }
+  origins: MembershipDigest,
 }
 
 impl PartialEq for ChunkGroupIdIdentity {
+  #[inline(never)]
   fn eq(&self, other: &Self) -> bool {
-    self.cmp(other).is_eq()
+    self.name == other.name && self.origins == other.origins
   }
 }
 
-// Keep the lexicographic origin comparison out of every sort specialization.
-#[inline(never)]
-fn compare_group_origins(
-  a: &(
-    Option<Identifier>,
-    Option<DependencyLocation>,
-    Option<String>,
-  ),
-  b: &(
-    Option<Identifier>,
-    Option<DependencyLocation>,
-    Option<String>,
-  ),
-) -> Ordering {
-  a.cmp(b)
+impl Hash for ChunkGroupIdIdentity {
+  #[inline(never)]
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.name.hash(state);
+    self.origins.hash(state);
+  }
+}
+
+// DependencyLocation intentionally has no shared Hash implementation.
+fn hash_origin_location(location: Option<&DependencyLocation>, state: &mut FxHasher) {
+  match location {
+    None => 0u8.hash(state),
+    Some(DependencyLocation::Real(location)) => {
+      1u8.hash(state);
+      location.start.line.hash(state);
+      location.start.column.hash(state);
+      location.end.map(|end| (end.line, end.column)).hash(state);
+    }
+    Some(DependencyLocation::Synthetic(location)) => {
+      2u8.hash(state);
+      location.name.hash(state);
+    }
+  }
 }
 
 impl ChunkGroupIdIdentity {
   pub fn new(group: &ChunkGroup) -> Self {
-    let mut origins = group
-      .origins()
-      .iter()
-      .map(|origin| (origin.module, origin.loc.clone(), origin.request.clone()))
-      .collect::<Vec<_>>();
-    origins.sort_unstable_by(compare_group_origins);
+    let mut origins = MembershipDigest::default();
+    for origin in group.origins() {
+      let mut state = FxHasher::default();
+      origin.module.hash(&mut state);
+      hash_origin_location(origin.loc.as_ref(), &mut state);
+      origin.request.hash(&mut state);
+      origins.add(state.finish());
+    }
     Self {
       name: group.name().map(ToOwned::to_owned),
       origins,
@@ -121,7 +136,7 @@ impl ChunkGroupIdIdentity {
   }
 }
 
-pub type ChunkGroupIds = BTreeMap<ChunkGroupIdIdentity, Option<Vec<Arc<ChunkIdIdentity>>>>;
+pub type ChunkGroupIds = FxHashMap<ChunkGroupIdIdentity, Option<Vec<Arc<ChunkIdIdentity>>>>;
 
 /// Exact allocation domain in natural-comparator order, including reservations.
 #[derive(Debug, Eq)]
