@@ -76,7 +76,24 @@ impl Hash for ChunkGroupIdIdentity {
   #[inline(never)]
   fn hash<H: Hasher>(&self, state: &mut H) {
     self.name.hash(state);
-    self.origins.hash(state);
+    self.origins.len().hash(state);
+    for (module, location, request) in &self.origins {
+      module.hash(state);
+      match location {
+        None => 0u8.hash(state),
+        Some(DependencyLocation::Real(location)) => {
+          1u8.hash(state);
+          location.start.line.hash(state);
+          location.start.column.hash(state);
+          location.end.map(|end| (end.line, end.column)).hash(state);
+        }
+        Some(DependencyLocation::Synthetic(location)) => {
+          2u8.hash(state);
+          location.name.hash(state);
+        }
+      }
+      request.hash(state);
+    }
   }
 }
 
