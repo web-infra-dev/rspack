@@ -89,6 +89,23 @@ impl PartialEq for ChunkGroupIdIdentity {
   }
 }
 
+// Keep the lexicographic origin comparison out of every sort specialization.
+#[inline(never)]
+fn compare_group_origins(
+  a: &(
+    Option<Identifier>,
+    Option<DependencyLocation>,
+    Option<String>,
+  ),
+  b: &(
+    Option<Identifier>,
+    Option<DependencyLocation>,
+    Option<String>,
+  ),
+) -> Ordering {
+  a.cmp(b)
+}
+
 impl ChunkGroupIdIdentity {
   pub fn new(group: &ChunkGroup) -> Self {
     let mut origins = group
@@ -96,7 +113,7 @@ impl ChunkGroupIdIdentity {
       .iter()
       .map(|origin| (origin.module, origin.loc.clone(), origin.request.clone()))
       .collect::<Vec<_>>();
-    origins.sort_unstable();
+    origins.sort_unstable_by(compare_group_origins);
     Self {
       name: group.name().map(ToOwned::to_owned),
       origins,

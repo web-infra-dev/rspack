@@ -23,6 +23,11 @@ pub struct DeterministicChunkIdsPlugin {
 
 const INITIAL_ID_RANGES: [usize; 1] = [1000];
 
+#[inline(never)]
+fn compare_reserved_ids(a: &rspack_core::ChunkId, b: &rspack_core::ChunkId) -> std::cmp::Ordering {
+  a.cmp(b)
+}
+
 impl DeterministicChunkIdsPlugin {}
 
 #[plugin_hook(CompilationChunkIds for DeterministicChunkIdsPlugin)]
@@ -131,7 +136,7 @@ async fn chunk_ids(
       .iter()
       .map(|id| id.as_str().into())
       .collect::<Vec<_>>();
-    reserved_ids.sort_unstable();
+    reserved_ids.sort_unstable_by(compare_reserved_ids);
     DeterministicChunkIdsInputs {
       candidates: chunks
         .iter()
