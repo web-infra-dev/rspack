@@ -23,6 +23,9 @@ type ResolverCache = {
 
 const EMPTY_RESOLVE_OPTIONS: ResolveOptionsWithDependencyType = {};
 
+const keepRegExpInCacheKey = (_key: string, value: unknown) =>
+  value instanceof RegExp ? { regexp: String(value) } : value;
+
 export class ResolverFactory {
   #binding: binding.JsResolverFactory;
   #cache: Map<string, ResolverCache> = new Map();
@@ -92,7 +95,7 @@ export class ResolverFactory {
     if (cachedResolver) {
       return cachedResolver;
     }
-    const ident = JSON.stringify(resolveOptions);
+    const ident = JSON.stringify(resolveOptions, keepRegExpInCacheKey);
     const resolver = typedCaches.stringified.get(ident);
     if (resolver) {
       typedCaches.direct.set(resolveOptions, resolver);
