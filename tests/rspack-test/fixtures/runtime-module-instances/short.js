@@ -1,1 +1,1 @@
-import(/* webpackChunkName: "short" */ "./a");
+import(/* webpackChunkName: "short_async" */ "./a");
