@@ -36,7 +36,14 @@ pub fn sort_modules(modules: &mut [StatsModule]) {
     {
       a_name.len().cmp(&b_name.len())
     } else {
-      a.name.cmp(&b.name)
+      a.name.cmp(&b.name).then_with(|| {
+        // Keep instances of the same runtime module ordered by their chunk IDs.
+        if a.module_type.as_str() == "runtime" && b.module_type.as_str() == "runtime" {
+          a.chunks.cmp(&b.chunks)
+        } else {
+          Ordering::Equal
+        }
+      })
     }
   });
 }
