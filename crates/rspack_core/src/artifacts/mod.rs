@@ -96,7 +96,7 @@ pub use cgm_runtime_requirement_artifact::*;
 pub use chunk_hashes_artifact::*;
 pub use chunk_ids_artifact::*;
 pub use chunk_ids_diff_artifact::{
-  ChunkIdIdentity, ChunkIdsDiffArtifact, DeterministicChunkIdsInputs,
+  ChunkGroupIdIdentity, ChunkIdIdentity, ChunkIdsDiffArtifact, DeterministicChunkIdsInputs,
 };
 pub use chunk_render_artifact::ChunkRenderArtifact;
 pub use chunk_render_cache_artifact::ChunkRenderCacheArtifact;

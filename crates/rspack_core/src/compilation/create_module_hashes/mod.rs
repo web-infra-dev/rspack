@@ -17,15 +17,8 @@ impl PassExt for CreateModuleHashesPass {
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     create_module_hashes_pass_impl(compilation).await?;
-    // Advance only after hashes have consumed these IDs successfully.
-    compilation.chunk_ids_diff_artifact.previous_ids =
-      mem::take(&mut compilation.chunk_ids_diff_artifact.pending_ids);
-    compilation.chunk_ids_diff_artifact.deterministic_inputs = compilation
-      .chunk_ids_diff_artifact
-      .pending_inputs
-      .get_mut()
-      .expect("Mutex poisoned: deterministic chunk ID inputs")
-      .take();
+    // The CHUNK_IDS artifact's baseline must correspond to completed hashes.
+    compilation.chunk_ids_diff_artifact.advance_hash_baseline();
     Ok(())
   }
 }

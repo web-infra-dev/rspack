@@ -1,3 +1,5 @@
+use std::sync::{Arc, atomic::Ordering::Relaxed};
+
 use rayon::prelude::*;
 use rspack_core::{
   ChunkByUkey, ChunkIdIdentity, ChunkNamedIdArtifact, CompilationChunkIds,
@@ -8,7 +10,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use crate::id_helpers::{
-  NaturalChunkCompareCache, assign_deterministic_ids, compare_chunks_natural,
+  NaturalChunkCompareCache, assign_deterministic_ids_sorted, compare_chunks_natural,
   get_deterministic_id_range, get_full_chunk_name, get_used_chunk_ids,
 };
 
@@ -29,11 +31,13 @@ async fn chunk_ids(
   _named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> rspack_error::Result<()> {
-  let track_ids = compilation.incremental.enabled();
+  let track_ids = compilation
+    .incremental
+    .passes_enabled(IncrementalPasses::MODULES_HASHES);
   compilation
     .chunk_ids_diff_artifact
     .track_effective_ids
-    .store(track_ids, std::sync::atomic::Ordering::Relaxed);
+    .store(track_ids, Relaxed);
   let hooks = &compilation.plugin_driver.compilation_hooks;
   let can_reuse = hooks.chunk_ids.tap_stages().len() == 1
     && !hooks.chunk_ids.has_interceptors()
@@ -67,7 +71,22 @@ async fn chunk_ids(
   let expand_factor = 10;
   let salt = 10;
 
-  let chunks = chunk_by_ukey
+  // Only a single known tap may share pre-hook identities with the final diff.
+  // Opaque chains build them after all taps, conservatively covering mutations.
+  let identities = if track_ids && can_reuse {
+    chunk_by_ukey
+      .values()
+      .map(|chunk| {
+        (
+          chunk.ukey(),
+          Arc::new(ChunkIdIdentity::new(chunk, chunk_graph)),
+        )
+      })
+      .collect::<FxHashMap<_, _>>()
+  } else {
+    FxHashMap::default()
+  };
+  let mut chunks = chunk_by_ukey
     .values()
     .filter(|chunk| chunk.id().is_none())
     .collect::<Vec<_>>();
@@ -96,35 +115,32 @@ async fn chunk_ids(
     .collect::<Result<FxHashMap<_, _>>>()?;
 
   let mut chunk_compare_cache = NaturalChunkCompareCache::default();
-  let mut ordered = if can_reuse {
-    chunks.clone()
-  } else {
-    Vec::new()
-  };
-  if can_reuse {
-    ordered.sort_unstable_by(|a, b| {
-      compare_chunks_natural(
-        chunk_graph,
-        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-        &compilation.module_ids_artifact,
-        a,
-        b,
-        &mut chunk_compare_cache,
-      )
-    });
-  }
-  let inputs = can_reuse.then(|| {
+  chunks.sort_unstable_by(|a, b| {
+    compare_chunks_natural(
+      chunk_graph,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      &compilation.module_ids_artifact,
+      a,
+      b,
+      &mut chunk_compare_cache,
+    )
+  });
+  let inputs = (track_ids && can_reuse).then(|| {
     let mut reserved_ids = used_ids
       .iter()
       .map(|id| id.as_str().into())
       .collect::<Vec<_>>();
     reserved_ids.sort_unstable();
     DeterministicChunkIdsInputs {
-      candidates: ordered
+      candidates: chunks
         .iter()
         .map(|chunk| {
           (
-            ChunkIdIdentity::new(chunk, chunk_graph),
+            Arc::clone(
+              identities
+                .get(&chunk.ukey())
+                .expect("should have chunk identity"),
+            ),
             chunk_names
               .get(&chunk.ukey())
               .expect("should have full chunk name")
@@ -158,7 +174,7 @@ async fn chunk_ids(
     inputs
       .candidates
       .iter()
-      .zip(&ordered)
+      .zip(&chunks)
       .map(|((identity, _), chunk)| {
         ids
           .get(identity)
@@ -170,6 +186,13 @@ async fn chunk_ids(
   } else {
     None
   };
+  if track_ids {
+    *compilation
+      .chunk_ids_diff_artifact
+      .pending_identities
+      .lock()
+      .expect("Mutex poisoned: chunk ID identities") = identities;
+  }
   if let Some(reused_ids) = reused_ids {
     for (ukey, id) in reused_ids {
       chunk_by_ukey.expect_get_mut(&ukey).set_id(id);
@@ -182,23 +205,13 @@ async fn chunk_ids(
     return Ok(());
   }
 
-  assign_deterministic_ids(
+  assign_deterministic_ids_sorted(
     chunks,
     |chunk| {
       chunk_names
         .get(&chunk.ukey())
         .expect("should have generated full chunk name")
         .as_str()
-    },
-    |a, b| {
-      compare_chunks_natural(
-        chunk_graph,
-        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-        &compilation.module_ids_artifact,
-        a,
-        b,
-        &mut chunk_compare_cache,
-      )
     },
     |chunk, id| {
       let size = used_ids.len();

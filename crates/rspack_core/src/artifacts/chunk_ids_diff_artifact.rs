@@ -1,10 +1,15 @@
-use std::sync::Mutex;
+use std::{
+  collections::BTreeMap,
+  mem,
+  sync::{Arc, Mutex, atomic::AtomicBool},
+};
 
 use rspack_collections::Identifier;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  ArtifactExt, Chunk, ChunkGraph, ChunkUkey, RuntimeKey, chunk_graph_chunk::ChunkId,
-  get_runtime_key, incremental::IncrementalPasses,
+  ArtifactExt, Chunk, ChunkGraph, ChunkGroup, ChunkKind, ChunkUkey, DependencyLocation, RuntimeKey,
+  chunk_graph_chunk::ChunkId, get_runtime_key, incremental::IncrementalPasses,
 };
 
 /// Correspondence across chunk graph reconstruction. Ambiguous identities are
@@ -21,37 +26,86 @@ impl ChunkIdIdentity {
   pub fn new(chunk: &Chunk, chunk_graph: &ChunkGraph) -> Self {
     Self {
       name: chunk.name().map(ToOwned::to_owned),
-      facade: chunk.kind() == crate::ChunkKind::Facade,
+      facade: chunk.kind() == ChunkKind::Facade,
       runtime: get_runtime_key(chunk.runtime()).clone(),
       modules: chunk_graph.get_ordered_chunk_modules_identifier(&chunk.ukey()),
     }
   }
 }
 
+/// Stable group correspondence, independent of reconstructed group Ukeys.
+/// Duplicate keys are treated as ambiguous rather than choosing an arbitrary group.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ChunkGroupIdIdentity {
+  name: Option<String>,
+  origins: Vec<(
+    Option<Identifier>,
+    Option<DependencyLocation>,
+    Option<String>,
+  )>,
+}
+
+impl ChunkGroupIdIdentity {
+  pub fn new(group: &ChunkGroup) -> Self {
+    let mut origins = group
+      .origins()
+      .iter()
+      .map(|origin| (origin.module, origin.loc.clone(), origin.request.clone()))
+      .collect::<Vec<_>>();
+    origins.sort_unstable();
+    Self {
+      name: group.name().map(ToOwned::to_owned),
+      origins,
+    }
+  }
+}
+
+pub type ChunkGroupIds = BTreeMap<ChunkGroupIdIdentity, Option<Vec<Arc<ChunkIdIdentity>>>>;
+
 /// Exact allocation domain in natural-comparator order, including reservations.
 #[derive(Debug, PartialEq, Eq)]
 pub struct DeterministicChunkIdsInputs {
-  pub candidates: Vec<(ChunkIdIdentity, String)>,
+  pub candidates: Vec<(Arc<ChunkIdIdentity>, String)>,
   pub reserved_ids: Vec<ChunkId>,
   pub context: String,
   pub delimiter: String,
   pub range: usize,
 }
 
-/// Pass-owned effective IDs and the proof for unchanged deterministic allocation.
+/// CHUNK_IDS-owned effective IDs, ordered group members and allocation proof.
+/// Mutations uses the correspondence to suppress only reconstructed ChunkAdd
+/// member-wide rehashing. Final ID and group-list differences emit ChunkSetId to
+/// select import origins, because async block hashes consume the ordered group IDs.
+/// MODULES_HASHES advances all baselines together only after hashing succeeds;
+/// this artifact is never owned or persisted by Cache.
 #[derive(Debug, Default)]
 pub struct ChunkIdsDiffArtifact {
-  /// Corresponds to downstream hashes. Only advanced after hashing succeeds.
-  pub previous_ids: Vec<(ChunkIdIdentity, ChunkId)>,
-  pub pending_ids: Vec<(ChunkIdIdentity, ChunkId)>,
+  pub previous_ids: Vec<(Arc<ChunkIdIdentity>, ChunkId)>,
+  pub pending_ids: Vec<(Arc<ChunkIdIdentity>, ChunkId)>,
+  pub previous_groups: ChunkGroupIds,
+  pub pending_groups: ChunkGroupIds,
   /// Reconstructed chunks with identical membership. Their ChunkAdd mutations
-  /// still invalidate chunk artifacts, but need not re-hash every member.
-  pub matched_membership: rustc_hash::FxHashSet<ChunkUkey>,
+  /// still invalidate chunk artifacts; final ID and group diffs cover hash consumers.
+  pub matched_membership: FxHashSet<ChunkUkey>,
+  /// Single-tap allocation shares identities with final-ID and group snapshots.
   /// No lock is held across a hook, await, or allocation.
+  pub pending_identities: Mutex<FxHashMap<ChunkUkey, Arc<ChunkIdIdentity>>>,
   pub deterministic_inputs: Option<DeterministicChunkIdsInputs>,
   pub pending_inputs: Mutex<Option<DeterministicChunkIdsInputs>>,
-  /// Opt in only for deterministic allocation; other ID plugins keep their paths.
-  pub track_effective_ids: std::sync::atomic::AtomicBool,
+  /// Opt in only for deterministic allocation with MODULES_HASHES enabled.
+  pub track_effective_ids: AtomicBool,
+}
+
+impl ChunkIdsDiffArtifact {
+  pub fn advance_hash_baseline(&mut self) {
+    self.previous_ids = mem::take(&mut self.pending_ids);
+    self.previous_groups = mem::take(&mut self.pending_groups);
+    self.deterministic_inputs = self
+      .pending_inputs
+      .get_mut()
+      .expect("Mutex poisoned: deterministic chunk ID inputs")
+      .take();
+  }
 }
 
 impl ArtifactExt for ChunkIdsDiffArtifact {

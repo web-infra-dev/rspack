@@ -214,6 +214,25 @@ pub fn assign_deterministic_ids<T>(
   );
 }
 
+/// Allocate an already comparator-ordered domain without sorting it again.
+pub(crate) fn assign_deterministic_ids_sorted<T>(
+  items: Vec<T>,
+  get_name: impl for<'b> Fn(&'b T) -> &'b str,
+  assign_id: impl FnMut(&T, usize) -> bool,
+  ranges: &[usize],
+  expand_factor: usize,
+  extra_space: usize,
+  salt: usize,
+) {
+  let range = get_deterministic_id_range(items.len(), ranges, expand_factor, extra_space);
+  assign_deterministic_ids_in_order(
+    items,
+    assign_id,
+    |item, suffix| get_number_hash_combined(get_name(item), suffix, range),
+    salt,
+  );
+}
+
 pub(crate) fn get_deterministic_id_range(
   item_count: usize,
   ranges: &[usize],
@@ -240,12 +259,20 @@ pub(crate) fn get_deterministic_id_range(
 pub(crate) fn assign_deterministic_ids_with_hash<T>(
   mut items: Vec<T>,
   comparator: impl FnMut(&T, &T) -> Ordering,
+  assign_id: impl FnMut(&T, usize) -> bool,
+  get_id: impl FnMut(&T, usize) -> usize,
+  salt: usize,
+) {
+  items.sort_unstable_by(comparator);
+  assign_deterministic_ids_in_order(items, assign_id, get_id, salt);
+}
+
+fn assign_deterministic_ids_in_order<T>(
+  items: Vec<T>,
   mut assign_id: impl FnMut(&T, usize) -> bool,
   mut get_id: impl FnMut(&T, usize) -> usize,
   salt: usize,
 ) {
-  items.sort_unstable_by(comparator);
-
   for item in items {
     let mut i = salt;
     let mut id = get_id(&item, i);
