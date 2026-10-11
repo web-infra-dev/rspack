@@ -24,7 +24,10 @@ pub struct DeterministicChunkIdsPlugin {
 const INITIAL_ID_RANGES: [usize; 1] = [1000];
 
 #[inline(never)]
-fn compare_reserved_ids(a: &rspack_core::ChunkId, b: &rspack_core::ChunkId) -> std::cmp::Ordering {
+fn compare_reserved_ids(
+  a: &rspack_core::chunk_graph_chunk::ChunkId,
+  b: &rspack_core::chunk_graph_chunk::ChunkId,
+) -> std::cmp::Ordering {
   a.cmp(b)
 }
 
