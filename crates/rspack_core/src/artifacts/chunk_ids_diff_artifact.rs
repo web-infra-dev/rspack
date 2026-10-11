@@ -1,6 +1,4 @@
 use std::{
-  cmp::Ordering,
-  collections::BTreeMap,
   hash::{Hash, Hasher},
   mem,
   sync::{Arc, Mutex, atomic::AtomicBool},
@@ -67,25 +65,18 @@ pub struct ChunkGroupIdIdentity {
   )>,
 }
 
-impl Ord for ChunkGroupIdIdentity {
-  #[inline(never)]
-  fn cmp(&self, other: &Self) -> Ordering {
-    self
-      .name
-      .cmp(&other.name)
-      .then_with(|| self.origins.cmp(&other.origins))
-  }
-}
-
-impl PartialOrd for ChunkGroupIdIdentity {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    Some(self.cmp(other))
-  }
-}
-
 impl PartialEq for ChunkGroupIdIdentity {
+  #[inline(never)]
   fn eq(&self, other: &Self) -> bool {
-    self.cmp(other).is_eq()
+    self.name == other.name && self.origins == other.origins
+  }
+}
+
+impl Hash for ChunkGroupIdIdentity {
+  #[inline(never)]
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.name.hash(state);
+    self.origins.hash(state);
   }
 }
 
@@ -104,7 +95,7 @@ impl ChunkGroupIdIdentity {
   }
 }
 
-pub type ChunkGroupIds = BTreeMap<ChunkGroupIdIdentity, Option<Vec<Arc<ChunkIdIdentity>>>>;
+pub type ChunkGroupIds = FxHashMap<ChunkGroupIdIdentity, Option<Vec<Arc<ChunkIdIdentity>>>>;
 
 /// Exact allocation domain in natural-comparator order, including reservations.
 #[derive(Debug, Eq)]

@@ -1,7 +1,4 @@
-use std::{
-  collections::BTreeMap,
-  sync::{Arc, atomic::Ordering::Relaxed},
-};
+use std::sync::{Arc, atomic::Ordering::Relaxed};
 
 use async_trait::async_trait;
 use rustc_hash::FxHashMap;
@@ -100,7 +97,7 @@ impl PassExt for ChunkIdsPass {
         .iter()
         .map(|(ukey, identity, _)| (*ukey, identity))
         .collect::<FxHashMap<_, _>>();
-      let mut pending_groups = BTreeMap::new();
+      let mut pending_groups = FxHashMap::default();
       let mut mutations = compilation.incremental.mutations_write();
       for group in compilation
         .build_chunk_graph_artifact
@@ -120,11 +117,11 @@ impl PassExt for ChunkIdsPass {
           .and_then(Option::as_ref)
           != Some(&members);
         match pending_groups.entry(identity) {
-          std::collections::btree_map::Entry::Occupied(mut entry) => {
+          std::collections::hash_map::Entry::Occupied(mut entry) => {
             entry.insert(None);
             changed = true;
           }
-          std::collections::btree_map::Entry::Vacant(entry) => {
+          std::collections::hash_map::Entry::Vacant(entry) => {
             entry.insert(Some(members));
           }
         }
