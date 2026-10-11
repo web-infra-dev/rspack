@@ -93,23 +93,36 @@ fn assign_chunk_ids(
 
   // Only a single known tap may share pre-hook identities with the final diff.
   // Opaque chains build them after all taps, conservatively covering mutations.
+  let mut chunks = chunk_by_ukey
+    .values()
+    .filter(|chunk| chunk.id().is_none())
+    .collect::<Vec<_>>();
   let identities = if track_ids && can_reuse {
-    chunk_by_ukey
-      .values()
+    // Reuse the allocator's candidate list to summarize independent module sets.
+    let mut identities = chunks
+      .par_iter()
       .map(|chunk| {
         (
           chunk.ukey(),
           Arc::new(ChunkIdIdentity::new(chunk, chunk_graph)),
         )
       })
-      .collect::<FxHashMap<_, _>>()
+      .collect::<FxHashMap<_, _>>();
+    identities.extend(
+      chunk_by_ukey
+        .values()
+        .filter(|chunk| chunk.id().is_some())
+        .map(|chunk| {
+          (
+            chunk.ukey(),
+            Arc::new(ChunkIdIdentity::new(chunk, chunk_graph)),
+          )
+        }),
+    );
+    identities
   } else {
     FxHashMap::default()
   };
-  let mut chunks = chunk_by_ukey
-    .values()
-    .filter(|chunk| chunk.id().is_none())
-    .collect::<Vec<_>>();
   let mut chunk_key_to_id =
     FxHashMap::with_capacity_and_hasher(chunks.len(), FxBuildHasher::default());
 
