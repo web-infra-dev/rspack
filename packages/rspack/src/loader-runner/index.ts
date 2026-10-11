@@ -1250,7 +1250,12 @@ export async function runLoaders(
     });
   }
 
-  if (compiler.options?.cache) {
+  if (
+    compiler.options?.cache &&
+    Object.hasOwn(context._module, Symbol.for('rspack.module.buildInfo'))
+  ) {
+    // Untouched native extras need no JS round trip. Both buildInfo accessors
+    // pin their object under this symbol, including replacement objects.
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 
