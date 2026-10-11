@@ -74,8 +74,9 @@ pub struct DeterministicChunkIdsInputs {
 
 /// CHUNK_IDS-owned effective IDs, ordered group members and allocation proof.
 /// Mutations uses the correspondence to suppress only reconstructed ChunkAdd
-/// member-wide rehashing. Final ID and group-list differences emit ChunkSetId to
-/// select import origins, because async block hashes consume the ordered group IDs.
+/// member-wide rehashing. Final ID differences emit ChunkSetId; group-list
+/// differences select import origins directly, including groups with no chunks.
+/// Async block hashes consume the ordered group IDs.
 /// MODULES_HASHES advances all baselines together only after hashing succeeds;
 /// this artifact is never owned or persisted by Cache.
 #[derive(Debug, Default)]
@@ -87,6 +88,9 @@ pub struct ChunkIdsDiffArtifact {
   /// Reconstructed chunks with identical membership. Their ChunkAdd mutations
   /// still invalidate chunk artifacts; final ID and group diffs cover hash consumers.
   pub matched_membership: FxHashSet<ChunkUkey>,
+  /// Importers of changed, new or ambiguous groups, selected for module hashing
+  /// without relying on a surviving member chunk. Cleared on every chunk-ID pass.
+  pub changed_group_origins: FxHashSet<Identifier>,
   /// Single-tap allocation shares identities with final-ID and group snapshots.
   /// No lock is held across a hook, await, or allocation.
   pub pending_identities: Mutex<FxHashMap<ChunkUkey, Arc<ChunkIdIdentity>>>,

@@ -45,6 +45,14 @@ impl PassExt for ChunkIdsPass {
       )
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkIds"))?;
+    compilation
+      .chunk_ids_diff_artifact
+      .matched_membership
+      .clear();
+    compilation
+      .chunk_ids_diff_artifact
+      .changed_group_origins
+      .clear();
     // Compare final hook-chain IDs and group lists before chunk-aware mutation
     // selectors are consumed. Ukeys may change on graph reconstruction.
     if compilation
@@ -102,7 +110,7 @@ impl PassExt for ChunkIdsPass {
             group
               .chunks
               .iter()
-              .map(|ukey| Arc::clone(identities.get(ukey).expect("should have chunk identity")))
+              .filter_map(|ukey| identities.get(ukey).map(|identity| Arc::clone(identity)))
               .collect::<Vec<_>>(),
             group,
           )
@@ -117,20 +125,20 @@ impl PassExt for ChunkIdsPass {
       }
       let mut mutations = compilation.incremental.mutations_write();
       for (identity, members, group) in &groups {
-        if (!unique_groups.get(identity).copied().unwrap_or(false)
+        if !unique_groups.get(identity).copied().unwrap_or(false)
           || compilation
             .chunk_ids_diff_artifact
             .previous_groups
             .get(identity)
             .and_then(Option::as_ref)
-            != Some(members))
-          && let Some(mutations) = &mut mutations
+            != Some(members)
         {
-          // Async block hashes consume this ordered list. Current member chunks
-          // reach its origins even when another member has left the group.
-          for chunk in &group.chunks {
-            mutations.add(Mutation::ChunkSetId { chunk: *chunk });
-          }
+          // Async block hashes consume this ordered list. Select origins directly:
+          // a group that loses its last chunk has no member to reach them through.
+          compilation
+            .chunk_ids_diff_artifact
+            .changed_group_origins
+            .extend(group.origins().iter().filter_map(|origin| origin.module));
         }
       }
       drop(unique_groups);
@@ -143,10 +151,6 @@ impl PassExt for ChunkIdsPass {
       }
       compilation.chunk_ids_diff_artifact.pending_groups = pending_groups;
       drop(identities);
-      compilation
-        .chunk_ids_diff_artifact
-        .matched_membership
-        .clear();
       for (ukey, identity, id) in &current {
         if unique.get(identity).copied().unwrap_or(false)
           && previous.get(identity).copied().flatten().is_some()

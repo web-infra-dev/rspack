@@ -6,6 +6,7 @@ export default defineConfig({
   incremental: 'advance',
   ignoreWarnings: [/is not friendly for incremental/],
   devtool: false,
+  output: { clean: true },
   optimization: {
     moduleIds: 'named',
     chunkIds: 'deterministic',

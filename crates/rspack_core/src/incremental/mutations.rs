@@ -152,6 +152,13 @@ impl Mutations {
       .get_or_init(|| {
         let mg = compilation.get_module_graph();
         let mut modules = self.get_affected_modules_with_module_graph(mg);
+        modules.extend(
+          compilation
+            .chunk_ids_diff_artifact
+            .changed_group_origins
+            .iter()
+            .copied(),
+        );
         let mut chunks = FxHashSet::default();
         for mutation in self.iter() {
           match mutation {
@@ -166,9 +173,9 @@ impl Mutations {
               );
             }
             // A rebuilt chunk can be new by Ukey but identical by membership.
-            // Keep ChunkAdd for chunk artifacts; the CHUNK_IDS artifact emits
-            // ChunkSetId for final ID and ordered group-member changes. Together
-            // with module updates, these select the matched chunk's hash consumers.
+            // Keep ChunkAdd for chunk artifacts. The CHUNK_IDS artifact emits
+            // ChunkSetId for final ID changes and selects changed-group origins
+            // directly. Together with module updates, these cover hash consumers.
             Mutation::ChunkAdd { chunk }
               if !compilation
                 .chunk_ids_diff_artifact

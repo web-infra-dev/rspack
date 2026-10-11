@@ -21,6 +21,8 @@ pub struct DeterministicChunkIdsPlugin {
   pub context: Option<String>,
 }
 
+const INITIAL_ID_RANGES: [usize; 1] = [1000];
+
 impl DeterministicChunkIdsPlugin {}
 
 #[plugin_hook(CompilationChunkIds for DeterministicChunkIdsPlugin)]
@@ -67,7 +69,6 @@ async fn chunk_ids(
     .clone()
     .unwrap_or_else(|| compilation.options.context.as_str().to_string());
 
-  let max_length = 3;
   let expand_factor = 10;
   let salt = 10;
 
@@ -151,7 +152,12 @@ async fn chunk_ids(
       reserved_ids,
       context: context.clone(),
       delimiter: self.delimiter.clone(),
-      range: get_deterministic_id_range(chunks.len(), &[1000], expand_factor, used_ids_len),
+      range: get_deterministic_id_range(
+        chunks.len(),
+        &INITIAL_ID_RANGES,
+        expand_factor,
+        used_ids_len,
+      ),
     }
   });
   let reused_ids = if let Some(inputs) = &inputs
@@ -223,7 +229,7 @@ async fn chunk_ids(
       chunk_key_to_id.insert(chunk.ukey(), id);
       true
     },
-    &[usize::pow(10, max_length)],
+    &INITIAL_ID_RANGES,
     expand_factor,
     used_ids_len,
     salt,
