@@ -73,6 +73,8 @@ const LOADER_PROCESS_NAME = 'Loader Analysis';
 
 type LoaderObjectOptions = string | (object & { ident?: unknown }) | null;
 
+const MODULE_BUILD_INFO_SYMBOL = Symbol.for('rspack.module.buildInfo');
+
 function stringifyLoaderRequest(path: string, query: string, fragment: string) {
   return (
     path.replace(/#/g, '\u200b#') + query.replace(/#/g, '\u200b#') + fragment
@@ -1252,7 +1254,7 @@ export async function runLoaders(
 
   if (
     compiler.options?.cache &&
-    Object.hasOwn(context._module, Symbol.for('rspack.module.buildInfo'))
+    Object.hasOwn(context._module, MODULE_BUILD_INFO_SYMBOL)
   ) {
     // Untouched native extras need no JS round trip. Both buildInfo accessors
     // pin their object under this symbol, including replacement objects.
