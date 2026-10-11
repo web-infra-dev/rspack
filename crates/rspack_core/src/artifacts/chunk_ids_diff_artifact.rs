@@ -4,7 +4,7 @@ use std::{
   sync::{Arc, Mutex, atomic::AtomicBool},
 };
 
-use rspack_collections::Identifier;
+use rspack_collections::{Identifier, IdentifierSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
@@ -90,7 +90,7 @@ pub struct ChunkIdsDiffArtifact {
   pub matched_membership: FxHashSet<ChunkUkey>,
   /// Importers of changed, new or ambiguous groups, selected for module hashing
   /// without relying on a surviving member chunk. Cleared on every chunk-ID pass.
-  pub changed_group_origins: FxHashSet<Identifier>,
+  pub changed_group_origins: IdentifierSet,
   /// Single-tap allocation shares identities with final-ID and group snapshots.
   /// No lock is held across a hook, await, or allocation.
   pub pending_identities: Mutex<FxHashMap<ChunkUkey, Arc<ChunkIdIdentity>>>,
