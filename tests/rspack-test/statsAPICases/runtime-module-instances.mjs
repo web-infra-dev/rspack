@@ -36,7 +36,7 @@ export default {
 		const entryChunks = json.chunks.filter(chunk => chunk.entry);
 		expect(filenameModules).toHaveLength(2);
 		expect(entryChunks).toHaveLength(2);
-		expect(filenameModules.map(module => module.chunks[0]).sort()).toEqual(
+		expect(filenameModules.map(module => module.chunks[0])).toEqual(
 			entryChunks.map(chunk => chunk.id).sort()
 		);
 		expect(new Set(filenameModules.map(module => module.size)).size).toBe(2);
