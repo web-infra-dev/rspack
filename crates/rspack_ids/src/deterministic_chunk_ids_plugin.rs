@@ -97,16 +97,38 @@ fn assign_chunk_ids(
     .values()
     .filter(|chunk| chunk.id().is_none())
     .collect::<Vec<_>>();
-  let identities = if track_ids && can_reuse {
-    // Reuse the allocator's candidate list to summarize independent module sets.
-    let mut identities = chunks
-      .par_iter()
-      .map(|chunk| {
+  let mut chunk_key_to_id =
+    FxHashMap::with_capacity_and_hasher(chunks.len(), FxBuildHasher::default());
+
+  let mut chunk_names = chunks
+    .par_iter()
+    .map(|chunk| -> Result<_> {
+      Ok((
+        chunk.ukey(),
         (
-          chunk.ukey(),
-          Arc::new(ChunkIdIdentity::new(chunk, chunk_graph)),
-        )
-      })
+          get_full_chunk_name(
+            chunk,
+            chunk_graph,
+            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+            module_graph,
+            module_graph_cache,
+            &compilation
+              .build_module_graph_artifact
+              .side_effects_state_artifact,
+            &context,
+            &compilation.exports_info_artifact,
+          )?,
+          (track_ids && can_reuse).then(|| Arc::new(ChunkIdIdentity::new(chunk, chunk_graph))),
+        ),
+      ))
+    })
+    .collect::<Result<FxHashMap<_, _>>>()?;
+
+  // Names and membership summaries share one parallel traversal and scheduling round.
+  let identities = if track_ids && can_reuse {
+    let mut identities = chunk_names
+      .iter_mut()
+      .filter_map(|(ukey, (_, identity))| identity.take().map(|identity| (*ukey, identity)))
       .collect::<FxHashMap<_, _>>();
     identities.extend(
       chunk_by_ukey
@@ -123,29 +145,6 @@ fn assign_chunk_ids(
   } else {
     FxHashMap::default()
   };
-  let mut chunk_key_to_id =
-    FxHashMap::with_capacity_and_hasher(chunks.len(), FxBuildHasher::default());
-
-  let chunk_names = chunks
-    .par_iter()
-    .map(|chunk| -> Result<_> {
-      Ok((
-        chunk.ukey(),
-        get_full_chunk_name(
-          chunk,
-          chunk_graph,
-          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-          module_graph,
-          module_graph_cache,
-          &compilation
-            .build_module_graph_artifact
-            .side_effects_state_artifact,
-          &context,
-          &compilation.exports_info_artifact,
-        )?,
-      ))
-    })
-    .collect::<Result<FxHashMap<_, _>>>()?;
 
   let mut chunk_compare_cache = NaturalChunkCompareCache::default();
   chunks.sort_unstable_by(|a, b| {
@@ -177,6 +176,7 @@ fn assign_chunk_ids(
             chunk_names
               .get(&chunk.ukey())
               .expect("should have full chunk name")
+              .0
               .clone(),
           )
         })
@@ -249,6 +249,7 @@ fn assign_chunk_ids(
       chunk_names
         .get(&chunk.ukey())
         .expect("should have generated full chunk name")
+        .0
         .as_str()
     },
     |chunk, id| {
