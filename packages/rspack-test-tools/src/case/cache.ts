@@ -311,7 +311,14 @@ function enableNewCache(context: ITestContext, temp: string) {
   ).entries()) {
     config.experiments = {
       ...config.experiments,
-      newCache: config.experiments?.newCache || true,
+      newCache: config.experiments?.newCache ?? {
+        codeGeneration: true,
+        module: true,
+        devtool: true,
+        loader: true,
+        minimize: true,
+        resolver: true,
+      },
     };
     const cache =
       typeof config.cache === 'object' && config.cache.type === 'persistent'
