@@ -4012,6 +4012,7 @@ dependencies = [
  "indexmap",
  "rspack-allocative",
  "rspack_allocative_driver",
+ "rspack_sources",
  "smallvec",
 ]
 

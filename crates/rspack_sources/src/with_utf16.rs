@@ -3,15 +3,12 @@ use std::cell::OnceCell;
 use crate::object_pool::{ObjectPool, Pooled};
 
 #[derive(Debug)]
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct WithUtf16<'object_pool, 'text> {
   /// line is a string reference
-  #[cfg_attr(feature = "allocative", allocative(skip))]
   pub line: &'text str,
   /// the byte position of each `char` in `line` string slice .
   pub utf16_byte_indices: OnceCell<Option<Pooled<'object_pool>>>,
   is_ascii: bool,
-  #[cfg_attr(feature = "allocative", allocative(skip))]
   object_pool: &'object_pool ObjectPool,
 }
 

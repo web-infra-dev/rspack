@@ -12,6 +12,7 @@ use std::{
 
 use allocative::{Allocative, FlameGraph, FlameGraphBuilder, Key, Visit, Visitor};
 use indexmap::{IndexMap, IndexSet};
+use rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use smallvec::SmallVec;
 
 #[path = "support/driver_enums.rs"]
@@ -51,6 +52,26 @@ fn capture_in(
     })
     .sum();
   (total, folded, output.warnings())
+}
+
+#[test]
+fn boxed_sources_preserve_owned_buffers_and_nested_sources() {
+  let source = RawStringSource::from("x".repeat(4096)).boxed();
+  let (total, folded, warnings) = capture(&source);
+  assert!(total >= 4096, "owned source buffer is missing: {folded}");
+  assert!(folded.contains("RawStringSource"), "{folded}");
+  assert!(warnings.is_empty(), "{warnings}");
+
+  let concat = ConcatSource::new([source.clone(), source]).boxed();
+  let (total, folded, warnings) = capture(&concat);
+  assert!(total >= 4096, "nested source buffer is missing: {folded}");
+  assert!(
+    total < 8192,
+    "shared source buffer is counted twice: {folded}"
+  );
+  assert!(folded.contains("ConcatSource"), "{folded}");
+  assert!(folded.contains("RawStringSource"), "{folded}");
+  assert!(warnings.is_empty(), "{warnings}");
 }
 
 #[test]

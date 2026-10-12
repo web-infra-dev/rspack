@@ -15,7 +15,6 @@ use crate::{
 
 /// Options for [SourceMapSource::new].
 #[derive(Debug)]
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct SourceMapSourceOptions<V, N> {
   /// The source code.
   pub value: V,
@@ -34,7 +33,6 @@ pub struct SourceMapSourceOptions<V, N> {
 /// An convenient options for [SourceMapSourceOptions], `original_source` and
 /// `inner_source_map` will be `None`, `remove_original_source` will be false.
 #[derive(Debug)]
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct WithoutOriginalOptions<V, N> {
   /// The source code.
   pub value: V,

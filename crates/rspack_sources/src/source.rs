@@ -27,9 +27,15 @@ pub type BoxSource = Arc<dyn Source>;
 #[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub enum SourceValue<'a> {
   /// Text content stored as a UTF-8 string.
-  String(Cow<'a, str>),
+  String(
+    #[cfg_attr(feature = "allocative", allocative(visit = allocative::Allocative::visit))]
+    Cow<'a, str>,
+  ),
   /// Binary content stored as raw bytes.
-  Buffer(Cow<'a, [u8]>),
+  Buffer(
+    #[cfg_attr(feature = "allocative", allocative(visit = allocative::Allocative::visit))]
+    Cow<'a, [u8]>,
+  ),
 }
 
 impl<'a> SourceValue<'a> {
@@ -149,6 +155,13 @@ pub trait SourceAllocative: allocative::Allocative {}
 
 #[cfg(feature = "allocative")]
 impl<T: allocative::Allocative + ?Sized> SourceAllocative for T {}
+
+#[cfg(feature = "allocative")]
+impl allocative::Visit for dyn Source {
+  fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    allocative::Allocative::visit(self, visitor);
+  }
+}
 
 /// No additional bound is needed in regular builds.
 #[doc(hidden)]
@@ -320,7 +333,6 @@ fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
 
 /// The source map created by [Source::map].
 #[derive(Serialize)]
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub(crate) struct SourceMapFields<'a> {
   pub(crate) version: u8,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -415,7 +427,6 @@ enum SourceMapOwner {
 }
 
 /// The source map created by [Source::map].
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct SourceMap<'a> {
   // Kept to retain data borrowed by `fields`; it is intentionally not read.
   #[allow(dead_code)]
