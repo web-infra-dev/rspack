@@ -1,6 +1,6 @@
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
-use rspack_paths::{InternedPath, InternedPathList, InternedPathSet};
+use rspack_paths::{InternedPathList, InternedPathSet};
 use rustc_hash::FxHashMap;
 
 use crate::DependencyId;
@@ -48,16 +48,16 @@ impl FactorizeInfo {
     &self.related_dep_ids
   }
 
-  pub fn file_dependencies(&self) -> &[InternedPath] {
-    self.file_dependencies.as_slice()
+  pub fn file_dependencies(&self) -> &InternedPathList {
+    &self.file_dependencies
   }
 
-  pub fn context_dependencies(&self) -> &[InternedPath] {
-    self.context_dependencies.as_slice()
+  pub fn context_dependencies(&self) -> &InternedPathList {
+    &self.context_dependencies
   }
 
-  pub fn missing_dependencies(&self) -> &[InternedPath] {
-    self.missing_dependencies.as_slice()
+  pub fn missing_dependencies(&self) -> &InternedPathList {
+    &self.missing_dependencies
   }
 
   pub fn diagnostics(&self) -> &[Diagnostic] {

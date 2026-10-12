@@ -1,6 +1,6 @@
 use std::{
   fmt,
-  hash::{BuildHasher, Hasher},
+  hash::{BuildHasher, Hash, Hasher},
   ops::Deref,
   sync::{
     Arc, OnceLock, Weak,
@@ -149,11 +149,25 @@ impl fmt::Debug for InternedPathList {
 
 impl PartialEq for InternedPathList {
   fn eq(&self, other: &Self) -> bool {
-    Arc::ptr_eq(&self.0, &other.0) || self.0.ids == other.0.ids
+    // Reject different lists before scanning a potentially long common prefix.
+    // Equal hashes still need a content comparison to handle collisions.
+    Arc::ptr_eq(&self.0, &other.0) || (self.0.hash == other.0.hash && self.0.ids == other.0.ids)
   }
 }
 
 impl Eq for InternedPathList {}
+
+impl Hash for InternedPathList {
+  /// Hashes by content like [`PartialEq`]: the interned fold of the elements
+  /// plus the element count. Equal lists share the fold whether they are equal
+  /// through their handle or through their elements, so hashing stays
+  /// consistent with equality when a list keys a map.
+  #[inline]
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    state.write_u64(self.0.hash);
+    state.write_usize(self.0.ids.len());
+  }
+}
 
 impl FromIterator<InternedPath> for InternedPathList {
   fn from_iter<T: IntoIterator<Item = InternedPath>>(iter: T) -> Self {
