@@ -38,7 +38,7 @@ impl<T: Visit + ?Sized> crate::reflection::VisitInner for Box<T> {
 
 impl<T: Visit + ?Sized> Allocative for &'static T {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
-    let _ = visitor;
+    visitor.enter_self_sized::<Self>().exit();
   }
 }
 

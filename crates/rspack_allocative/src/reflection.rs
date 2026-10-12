@@ -192,7 +192,7 @@ fn visit_fields<T>(value: &T, fields: &[FieldVisitor], visitor: &mut Visitor<'_>
 }
 
 impl<T: 'static> Visit for T {
-  fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+  default fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     // Borrow promoted metadata rather than copying a descriptor onto the stack
     // for every live object. Only immediate fields are stored, not the graph.
     let plan = const { &Plan::new::<T>() };
@@ -212,6 +212,14 @@ impl<T: 'static> Visit for T {
       Plan::Leaf => visitor.enter_self(self).exit(),
       Plan::Opaque => visitor.visit_opaque(self),
     }
+  }
+}
+
+// Forward through the actual trait bound rather than a lifetime-erased vtable.
+// This also covers temporary borrows and keeps typed container adapters composable.
+impl<T: Allocative> Visit for T {
+  fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    self.visit(visitor);
   }
 }
 

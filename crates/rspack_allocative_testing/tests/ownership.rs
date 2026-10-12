@@ -1,6 +1,7 @@
 #![cfg(allocative)]
 
 use std::{
+  borrow::Cow,
   cell::UnsafeCell,
   collections::HashMap,
   mem::{ManuallyDrop, MaybeUninit, size_of},
@@ -325,6 +326,87 @@ fn reflected_niche_enum_visits_only_the_active_recursive_payload() {
   assert!(warnings.is_empty(), "{warnings}");
   let (total, _, warnings) = capture(&Value::Empty);
   assert_eq!(total, size_of::<Value>());
+  assert!(warnings.is_empty(), "{warnings}");
+}
+
+#[test]
+fn borrowed_cow_in_a_container_excludes_the_borrowed_owners_heap() {
+  let owner = "x".repeat(65536);
+  let owned = String::with_capacity(4096);
+  let capacity = owned.capacity();
+  let value = vec![Cow::Borrowed(owner.as_str()), Cow::Owned(owned)];
+  let (total, _, warnings) = capture_with(|visitor| value.visit_memory(visitor));
+  assert_eq!(
+    total,
+    size_of_val(&value) + value.capacity() * size_of::<Cow<'_, str>>() + capacity
+  );
+  assert!(warnings.is_empty(), "{warnings}");
+}
+
+#[test]
+fn borrowed_references_keep_inline_storage_without_following_the_owner() {
+  static TEXT: LazyLock<String> = LazyLock::new(|| String::with_capacity(4096));
+  let value: &'static String = &TEXT;
+  let (total, _, warnings) = capture(&value);
+  assert_eq!(total, size_of_val(&value));
+  assert!(warnings.is_empty(), "{warnings}");
+}
+
+#[test]
+fn borrowed_derived_adapters_compose_through_nested_containers() {
+  #[derive(Allocative)]
+  struct Borrowed<'a> {
+    #[allocative(skip)]
+    borrowed: &'a str,
+    text: String,
+  }
+  #[derive(Allocative)]
+  enum Value<'a> {
+    Data(Borrowed<'a>),
+  }
+
+  let text = String::from("temporary borrow");
+  let borrowed = Borrowed {
+    borrowed: &text,
+    text: String::with_capacity(4096),
+  };
+  assert_eq!(borrowed.borrowed, text);
+  let capacity = borrowed.text.capacity();
+  let values = vec![Value::Data(borrowed)];
+  let allocation = values.capacity() * size_of::<Value<'_>>();
+  let value: Result<Option<Vec<Value<'_>>>, String> = Ok(Some(values));
+  let (total, folded, warnings) = capture_with(|visitor| value.visit_memory(visitor));
+  assert_eq!(total, size_of_val(&value) + allocation + capacity);
+  assert!(folded.contains(";Data;0;"), "{folded}");
+  assert!(warnings.is_empty(), "{warnings}");
+}
+
+#[test]
+fn borrowed_manual_adapters_compose_through_nested_containers() {
+  struct Borrowed<'a> {
+    borrowed: &'a str,
+    text: String,
+  }
+  impl Allocative for Borrowed<'_> {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+      let mut visitor = visitor.enter_self(self);
+      visitor.visit_field(Key::new("text"), &self.text);
+      visitor.exit();
+    }
+  }
+
+  let text = String::from("temporary borrow");
+  let borrowed = Borrowed {
+    borrowed: &text,
+    text: String::with_capacity(8192),
+  };
+  assert_eq!(borrowed.borrowed, text);
+  let capacity = borrowed.text.capacity();
+  let values = vec![borrowed];
+  let allocation = values.capacity() * size_of::<Borrowed<'_>>();
+  let value: Result<Option<Vec<Borrowed<'_>>>, String> = Ok(Some(values));
+  let (total, _, warnings) = capture_with(|visitor| value.visit_memory(visitor));
+  assert_eq!(total, size_of_val(&value) + allocation + capacity);
   assert!(warnings.is_empty(), "{warnings}");
 }
 

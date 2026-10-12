@@ -39,6 +39,8 @@
 
 #![feature(const_type_name, never_type)]
 #![feature(type_info, ptr_metadata, core_intrinsics, layout_for_ptr)]
+#![feature(specialization)]
+#![allow(incomplete_features)]
 #![allow(internal_features)]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![allow(clippy::empty_enums)]
