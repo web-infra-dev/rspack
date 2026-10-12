@@ -935,6 +935,11 @@ impl Module for ConcatenatedModule {
     // populate root inline_exports
     self.build_info.get_mut().inline_exports = root_module.build_info().inline_exports;
 
+    // Deferred purity checks follow connections redirected to this module. Preserve
+    // the root's pure exports so concatenation cannot reactivate unused imports.
+    self.build_info.get_mut().side_effects_free =
+      root_module.build_info().side_effects_free.clone();
+
     let dependency_parts = self
       .modules
       .par_iter()
