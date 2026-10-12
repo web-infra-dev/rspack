@@ -41,13 +41,7 @@ import { NormalModule } from '../NormalModule';
 import type { ResolveContext } from '../Resolver';
 import { NonErrorEmittedError, type RspackError } from '../RspackError';
 import { JavaScriptTracer } from '../trace';
-import {
-  isNil,
-  serializeObject,
-  stringifyLoaderObject,
-  toBuffer,
-  toObject,
-} from '../util';
+import { isNil, stringifyLoaderObject, toBuffer } from '../util';
 import { createHash } from '../util/createHash';
 import {
   absolutify,
@@ -62,6 +56,7 @@ import { LoaderCache, type LoaderCacheEntry } from './cache';
 import { LoaderDependenciesState } from './dependencies';
 import * as pool from './service';
 import { type HandleIncomingRequest, RequestType } from './service';
+import { SourceMapAdapter } from './sourceMap';
 import {
   convertArgs,
   extractLoaderName,
@@ -192,16 +187,6 @@ export class LoaderObject {
 
   static __to_binding(loader: LoaderObject): JsLoaderItem {
     return loader.loaderItem;
-  }
-}
-
-class JsSourceMap {
-  static __from_binding(map?: Uint8Array) {
-    return isNil(map) ? undefined : toObject(map);
-  }
-
-  static __to_binding(map?: string | object | null) {
-    return serializeObject(map);
   }
 }
 
@@ -826,7 +811,9 @@ export async function runLoaders(
     return workerLoaderContext;
   };
 
-  const getWorkerLoaderHandlers = function (): {
+  const getWorkerLoaderHandlers = function (
+    inputSourceMap?: string | object | null,
+  ): {
     handleIncomingRequest: HandleIncomingRequest;
   } {
     return {
@@ -921,6 +908,8 @@ export async function runLoaders(
             loaderContext.emitFile(name, content, sourceMap, assetInfo);
             break;
           }
+          case RequestType.GetSourceMap:
+            return SourceMapAdapter.toSerialized(inputSourceMap);
           case RequestType.EmitDiagnostic: {
             const diagnostic = args[0];
             loaderContext.experiments.emitDiagnostic(diagnostic);
@@ -1049,19 +1038,31 @@ export async function runLoaders(
 
     let result: any;
     if (parallelism) {
-      result =
-        (await pool.run(
-          loaderName!,
-          {
-            loaderContext: getWorkerLoaderContext(),
-            loaderState,
-            args,
-          },
-          getWorkerLoaderHandlers(),
-          typeof currentLoaderObject?.parallel === 'object'
-            ? currentLoaderObject.parallel
-            : undefined,
-        )) || [];
+      const sourceMapIsLazy =
+        loaderState === JsLoaderState.Normal &&
+        typeof args[1] === 'object' &&
+        args[1] !== null;
+      const workerResult = await pool.run(
+        loaderName!,
+        {
+          loaderContext: getWorkerLoaderContext(),
+          loaderState,
+          sourceMapIsLazy,
+          args: sourceMapIsLazy ? [args[0], undefined, args[2]] : args,
+        },
+        getWorkerLoaderHandlers(
+          loaderState === JsLoaderState.Normal ? args[1] : undefined,
+        ),
+        typeof currentLoaderObject?.parallel === 'object'
+          ? currentLoaderObject.parallel
+          : undefined,
+      );
+      result = workerResult.args;
+      result[1] = workerResult.sourceMapUnchanged
+        ? args[1]
+        : typeof result[1] === 'string'
+          ? result[1]
+          : SourceMapAdapter.fromBinding(result[1]);
     } else {
       if (loaderState === JsLoaderState.Normal)
         convertArgs(args, !!currentLoaderObject?.raw);
@@ -1125,7 +1126,7 @@ export async function runLoaders(
               : typeof content === 'string'
                 ? content
                 : toBuffer(content);
-            context.sourceMap = serializeObject(sourceMap);
+            context.sourceMap = SourceMapAdapter.toBinding(sourceMap);
             context.additionalData = additionalData || undefined;
             break;
           }
@@ -1167,7 +1168,7 @@ export async function runLoaders(
             if (cached) {
               currentLoaderObject.normalExecuted = true;
               content = cached.content;
-              sourceMap = JsSourceMap.__from_binding(cached.sourceMap);
+              sourceMap = SourceMapAdapter.fromBinding(cached.sourceMap);
               sourceMapParsed = true;
               loaderContext.loaderIndex--;
               continue;
@@ -1182,9 +1183,9 @@ export async function runLoaders(
             }
             if (!fn) continue;
 
-            // Parse source map lazily only when a JavaScript loader consumes it.
+            // Passing a map to a loader does not materialize it. Its first field access does.
             if (!sourceMapParsed) {
-              sourceMap = JsSourceMap.__from_binding(rawSourceMap);
+              sourceMap = SourceMapAdapter.fromBinding(rawSourceMap);
               sourceMapParsed = true;
             }
 
@@ -1198,7 +1199,7 @@ export async function runLoaders(
               await loaderCache?.store(
                 loaderContext.loaderIndex,
                 content,
-                JsSourceMap.__to_binding(sourceMap),
+                SourceMapAdapter.toSerialized(sourceMap),
                 additionalData,
               );
             }
@@ -1213,7 +1214,7 @@ export async function runLoaders(
             ? content
             : toBuffer(content);
         context.sourceMap = sourceMapParsed
-          ? JsSourceMap.__to_binding(sourceMap)
+          ? SourceMapAdapter.toBinding(sourceMap)
           : rawSourceMap;
         // Rust has no consumer after the chain finishes; avoid creating an unused JS reference.
         context.additionalData =

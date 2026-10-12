@@ -2,6 +2,7 @@ mod cache;
 mod context;
 mod resolver;
 mod scheduler;
+mod source_map;
 
 use std::{
   fmt::Debug,
@@ -21,6 +22,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
+pub use source_map::JsSourceMap;
 use tokio::sync::{OnceCell, RwLock};
 
 use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};

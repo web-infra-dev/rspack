@@ -55,6 +55,7 @@ export interface WorkerResponseErrorMessage {
 interface WorkerDoneMessage {
   type: 'done';
   data: WorkerArgs;
+  sourceMapUnchanged: boolean;
 }
 
 interface WorkerDoneErrorMessage {
@@ -139,6 +140,7 @@ export enum RequestType {
   EmitError = 'EmitError',
   EmitWarning = 'EmitWarning',
   EmitFile = 'EmitFile',
+  GetSourceMap = 'GetSourceMap',
   EmitDiagnostic = 'EmitDiagnostic',
   SetCacheable = 'SetCacheable',
   ImportModule = 'ImportModule',
@@ -163,6 +165,11 @@ export type HandleIncomingRequest = (
 
 // content, sourceMap, additionalData
 type WorkerArgs = any[];
+
+export interface WorkerResult {
+  args: WorkerArgs;
+  sourceMapUnchanged: boolean;
+}
 
 type SerializedAggregateErrorMember =
   | {
@@ -340,7 +347,7 @@ export const run = async (
     // Synchronous requests share the regular request channel to preserve message
     // ordering. This channel only carries their responses back to workers.
     const { port1: mainSyncPort, port2: workerSyncPort } = new MessageChannel();
-    return new Promise<WorkerArgs>((resolve, reject) => {
+    return new Promise<WorkerResult>((resolve, reject) => {
       const handleError = (error: any) => {
         mainPort.close();
         mainSyncPort.close();
@@ -352,7 +359,10 @@ export const run = async (
           Promise.allSettled(pendingRequests.values()).then(() => {
             mainPort.close();
             mainSyncPort.close();
-            resolve(message.data);
+            resolve({
+              args: message.data,
+              sourceMapUnchanged: message.sourceMapUnchanged,
+            });
           });
         } else if (isWorkerDoneErrorMessage(message)) {
           Promise.allSettled(pendingRequests.values()).then(() => {

@@ -9,7 +9,7 @@ use rspack_loader_runner::State as LoaderState;
 use rspack_napi::ThreadsafeOneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::cache::JsLoaderCacheObject;
+use super::{cache::JsLoaderCacheObject, source_map::JsSourceMapObject};
 use crate::{error::RspackError, module::ModuleObject};
 
 #[napi(object)]
@@ -183,7 +183,8 @@ pub struct JsLoaderContext {
   pub additional_data: Option<ThreadsafeOneShotRef>,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
-  pub source_map: Option<Buffer>,
+  #[napi(ts_type = "JsSourceMap")]
+  pub source_map: Option<JsSourceMapObject>,
   pub cacheable: bool,
   pub dependencies: JsLoaderDependencies,
 
@@ -214,6 +215,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
     let additional_data = cx
       .take_additional_data()
       .and_then(|mut data| data.remove::<ThreadsafeOneShotRef>());
+    let source_map = cx.take_source_map().map(Into::into);
 
     let module = &cx.context.module;
 
@@ -230,10 +232,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       // set values from js side to rust side.
       parse_meta: Default::default(),
       additional_data,
-      source_map: cx
-        .source_map()
-        .map(|v| v.to_json())
-        .map(|v| v.into_bytes().into()),
+      source_map,
       cacheable: cx.cacheable,
       dependencies: cx.dependencies().as_ref().into(),
 

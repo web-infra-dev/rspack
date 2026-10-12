@@ -447,6 +447,12 @@ export declare class JsResolverFactory {
   get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
 }
 
+/** An owned map snapshot. Creating or returning the class does not serialize its map. */
+export declare class JsSourceMap {
+  constructor(json: string)
+  toJson(): string
+}
+
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
   getLogging(acceptedTypes: number): Array<JsLog>
@@ -993,7 +999,7 @@ export interface JsLoaderContext {
   content: string | Buffer | null
   additionalData?: any
   __internal__parseMeta: Record<string, string>
-  sourceMap?: Buffer
+  sourceMap?: JsSourceMap
   cacheable: boolean
   dependencies: JsLoaderDependencies
   loaderItems: Array<JsLoaderItem>

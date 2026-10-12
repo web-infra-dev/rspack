@@ -319,7 +319,7 @@ fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
 }
 
 /// The source map created by [Source::map].
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 #[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub(crate) struct SourceMapFields<'a> {
   pub(crate) version: u8,
@@ -408,13 +408,21 @@ impl Hash for SourceMapFields<'_> {
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
 #[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 enum SourceMapOwner {
-  Bytes(Vec<u8>),
+  // Keep the parser's Vec allocation stable; Arc<[u8]> would copy the JSON buffer.
+  #[allow(clippy::rc_buffer)]
+  Bytes(Arc<Vec<u8>>),
   Source(BoxSource),
+  Map(Arc<SourceMap<'static>>),
 }
 
 /// The source map created by [Source::map].
+/// Cloning shares retained owners and borrowed fields, but copies owned fields.
+/// Use [SourceMap::into_shared] before cloning snapshots across the JS boundary
+/// to avoid copying the mapping string and source arrays.
+#[derive(Clone)]
 #[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct SourceMap<'a> {
   // Kept to retain data borrowed by `fields`; it is intentionally not read.
@@ -458,6 +466,23 @@ impl<'a> SourceMap<'a> {
 }
 
 impl SourceMap<'static> {
+  /// Retain this map behind a shared owner so snapshots can clone its fields without copying data.
+  pub fn into_shared(self) -> Self {
+    let owner = Arc::new(self);
+    #[allow(unsafe_code)]
+    // SAFETY: All fields borrow from the immutable map in `owner`, which is retained
+    // by the returned snapshot and every clone of it.
+    let fields = unsafe {
+      std::mem::transmute::<SourceMapFields<'_>, SourceMapFields<'static>>(
+        owner.fields.as_borrowed(),
+      )
+    };
+    Self {
+      owner: Some(SourceMapOwner::Map(owner)),
+      fields,
+    }
+  }
+
   /// Create a [SourceMap].
   pub fn new(
     mappings: impl Into<Cow<'static, str>>,
@@ -495,7 +520,7 @@ impl SourceMap<'static> {
       }
     };
     Ok(Self {
-      owner: Some(SourceMapOwner::Bytes(bytes)),
+      owner: Some(SourceMapOwner::Bytes(Arc::new(bytes))),
       fields,
     })
   }

@@ -82,11 +82,7 @@ pub(crate) fn merge_loader_context(
     Either3::B(content) => Some(rspack_core::Content::Buffer(content.into())),
     Either3::C(_) => None,
   };
-  let source_map = from
-    .source_map
-    .map(|buffer| rspack_core::rspack_sources::SourceMap::from_bytes(buffer.into()))
-    .transpose()
-    .to_rspack_result()?;
+  let source_map = from.source_map.map(|map| map.into_map());
   let additional_data = from.additional_data.take().map(|data| {
     let mut additional = AdditionalData::default();
     additional.insert(data);

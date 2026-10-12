@@ -8,7 +8,6 @@ import type { LoaderContext } from '../config';
 import type { ResolveCallback } from '../config/adapterRuleUse';
 import type { ResolveRequest } from '../Resolver';
 import * as swc from '../swc';
-import { serializeObject, toObject } from '../util';
 import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
 import { absolutify, contextify } from '../util/identifier';
@@ -30,12 +29,14 @@ import {
   type WorkerResponseMessage,
 } from './service';
 import { convertArgs, runSyncOrAsync } from './utils';
+import { SourceMapAdapter } from './sourceMap';
 
 const BUILTIN_LOADER_PREFIX = 'builtin:';
 
 interface WorkerOptions {
   loaderContext: LoaderContext;
   loaderState: JsLoaderState;
+  sourceMapIsLazy: boolean;
   args: any[];
 
   workerData?: {
@@ -63,11 +64,16 @@ function dirname(path: string) {
 }
 
 async function loaderImpl(
-  { args, loaderContext, loaderState }: WorkerOptions,
+  { args, loaderContext, loaderState, sourceMapIsLazy }: WorkerOptions,
   sendRequest: SendRequestFunction,
   waitForPendingRequest: WaitForPendingRequestFunction,
 ) {
-  //
+  const inputSourceMap = sourceMapIsLazy
+    ? SourceMapAdapter.fromBinding(() =>
+        sendRequest<Uint8Array>(RequestType.GetSourceMap).wait(),
+      )
+    : args[1];
+  if (sourceMapIsLazy) args[1] = inputSourceMap;
   const resourcePath = loaderContext.resourcePath;
   const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
@@ -251,7 +257,14 @@ async function loaderImpl(
     sourceMap,
     assetInfo,
   ) {
-    sendRequest(RequestType.EmitFile, name, content, sourceMap, assetInfo);
+    const map = SourceMapAdapter.toSerialized(sourceMap);
+    sendRequest(
+      RequestType.EmitFile,
+      name,
+      content,
+      map && Buffer.from(map).toString('utf8'),
+      assetInfo,
+    );
   };
   loaderContext.experiments = {
     emitDiagnostic(diagnostic) {
@@ -568,9 +581,7 @@ async function loaderImpl(
                 typeof entry.content === 'string'
                   ? entry.content
                   : entry.content && Buffer.from(entry.content),
-                entry.sourceMap
-                  ? toObject(Buffer.from(entry.sourceMap))
-                  : undefined,
+                SourceMapAdapter.fromBinding(entry.sourceMap),
                 undefined,
               ];
               continue;
@@ -589,7 +600,7 @@ async function loaderImpl(
               RequestType.LoaderCacheStore,
               loaderContext.loaderIndex,
               args[0],
-              serializeObject(args[1]),
+              SourceMapAdapter.toSerialized(args[1]),
               args[2],
             );
           }
@@ -615,7 +626,16 @@ async function loaderImpl(
 
   sendRequest(RequestType.UpdateBuildInfo, buildInfo);
 
-  return args;
+  const sourceMapUnchanged =
+    loaderState === JsLoaderState.Normal &&
+    args[1] === inputSourceMap &&
+    SourceMapAdapter.isUnmodified(args[1]);
+  args[1] = sourceMapUnchanged
+    ? undefined
+    : typeof args[1] === 'string'
+      ? args[1]
+      : SourceMapAdapter.toSerialized(args[1]);
+  return { args, sourceMapUnchanged };
 }
 
 let nextId = 0;
@@ -771,8 +791,12 @@ function worker(workerOptions: WorkerOptions) {
   const waitFor = createWaitForPendingRequest(sendRequest);
 
   loaderImpl(workerOptions, sendRequest, waitFor)
-    .then((data) => {
-      workerData.workerPort.postMessage({ type: 'done', data });
+    .then(({ args, sourceMapUnchanged }) => {
+      workerData.workerPort.postMessage({
+        type: 'done',
+        data: args,
+        sourceMapUnchanged,
+      });
     })
     .catch((err) => {
       workerData.workerPort.postMessage({
