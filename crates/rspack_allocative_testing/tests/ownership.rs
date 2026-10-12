@@ -389,6 +389,125 @@ fn borrowed_manual_adapters_compose_through_nested_containers() {
   assert!(warnings.is_empty(), "{warnings}");
 }
 
+#[derive(Allocative)]
+struct BorrowedPointerPayload<'a> {
+  #[allocative(skip)]
+  borrowed: &'a str,
+  text: String,
+}
+
+fn shared_allocation_size<T: ?Sized>(value: &T) -> usize {
+  std::alloc::Layout::new::<[usize; 2]>()
+    .extend(std::alloc::Layout::for_value(value))
+    .expect("shared payload layout")
+    .0
+    .pad_to_align()
+    .size()
+}
+
+#[test]
+fn borrowed_adapters_compose_through_box_fields_and_slices() {
+  #[derive(Allocative)]
+  struct Owner<'a> {
+    value: Box<BorrowedPointerPayload<'a>>,
+  }
+
+  let borrowed = "x".repeat(65536);
+  let text = String::with_capacity(4096);
+  let capacity = text.capacity();
+  let value = Owner {
+    value: Box::new(BorrowedPointerPayload {
+      borrowed: &borrowed,
+      text,
+    }),
+  };
+  assert_eq!(value.value.borrowed, borrowed);
+  let (total, _, warnings) = capture_with(|visitor| value.visit_memory(visitor));
+  assert_eq!(
+    total,
+    size_of_val(&value) + size_of_val(&*value.value) + capacity
+  );
+  assert!(warnings.is_empty(), "{warnings}");
+
+  let text = String::with_capacity(8192);
+  let capacity = text.capacity();
+  let value: Box<[Cow<'_, str>]> = vec![Cow::Borrowed(borrowed.as_str()), Cow::Owned(text)].into();
+  let (total, _, warnings) = capture_with(|visitor| value.visit_memory(visitor));
+  assert_eq!(total, size_of_val(&value) + size_of_val(&*value) + capacity);
+  assert!(warnings.is_empty(), "{warnings}");
+}
+
+#[test]
+fn borrowed_adapters_compose_through_shared_and_weak_owners() {
+  let borrowed = "x".repeat(65536);
+  let payload = || BorrowedPointerPayload {
+    borrowed: borrowed.as_str(),
+    text: String::with_capacity(4096),
+  };
+
+  let arc = Arc::new(payload());
+  let capacity = arc.text.capacity();
+  let allocation = shared_allocation_size(&*arc);
+  let weak = Arc::downgrade(&arc);
+  let live = (weak.clone(), arc.clone(), arc);
+  let (total, _, warnings) = capture_with(|visitor| live.visit_memory(visitor));
+  assert_eq!(total, size_of_val(&live) + allocation + capacity);
+  assert!(warnings.is_empty(), "{warnings}");
+  drop(live);
+  assert!(weak.upgrade().is_none());
+  let pair = (weak.clone(), weak);
+  assert_retained_weak(&pair, size_of_val(&pair) + allocation);
+
+  let rc = std::rc::Rc::new(payload());
+  let capacity = rc.text.capacity();
+  let allocation = shared_allocation_size(&*rc);
+  let weak = std::rc::Rc::downgrade(&rc);
+  let live = (rc.clone(), weak.clone(), rc);
+  let (total, _, warnings) = capture_with(|visitor| live.visit_memory(visitor));
+  assert_eq!(total, size_of_val(&live) + allocation + capacity);
+  assert!(warnings.is_empty(), "{warnings}");
+  drop(live);
+  assert!(weak.upgrade().is_none());
+  let pair = (weak.clone(), weak);
+  assert_retained_weak(&pair, size_of_val(&pair) + allocation);
+}
+
+#[test]
+fn borrowed_trait_objects_keep_typed_owned_pointer_traversal() {
+  let borrowed = "x".repeat(65536);
+  let payload = || BorrowedPointerPayload {
+    borrowed: borrowed.as_str(),
+    text: String::with_capacity(4096),
+  };
+  let value = payload();
+  let inline = size_of_val(&value);
+  let capacity = value.text.capacity();
+  let boxed: Box<dyn Visit + '_> = Box::new(value);
+  let (total, _, warnings) = capture_with(|visitor| boxed.visit_memory(visitor));
+  assert_eq!(total, size_of_val(&boxed) + inline + capacity);
+  assert!(warnings.is_empty(), "{warnings}");
+
+  let arc: Arc<dyn Visit + '_> = Arc::new(payload());
+  let allocation = shared_allocation_size(&*arc);
+  let weak = Arc::downgrade(&arc);
+  let live = (arc, weak.clone());
+  let (total, _, warnings) = capture_with(|visitor| live.visit_memory(visitor));
+  assert_eq!(total, size_of_val(&live) + allocation + capacity);
+  assert!(warnings.is_empty(), "{warnings}");
+  drop(live);
+  assert_retained_weak(&weak, size_of_val(&weak) + allocation);
+
+  let rc: std::rc::Rc<dyn Visit + '_> = std::rc::Rc::new(payload());
+  let allocation = shared_allocation_size(&*rc);
+  let weak = std::rc::Rc::downgrade(&rc);
+  let live = (weak.clone(), rc);
+  let (total, _, warnings) = capture_with(|visitor| live.visit_memory(visitor));
+  assert_eq!(total, size_of_val(&live) + allocation + capacity);
+  assert!(warnings.is_empty(), "{warnings}");
+  drop(live);
+  assert_retained_weak(&weak, size_of_val(&weak) + allocation);
+}
+
 #[test]
 fn typed_generic_struct_derives_visit_unannotated_payloads_and_containers() {
   struct Payload {
@@ -508,6 +627,42 @@ fn const_generic_enum_keeps_typed_array_traversal() {
   assert_eq!(total, expected);
   assert!(warnings.is_empty(), "{warnings}");
   assert_eq!(capture(&Value::<0>::Empty).0, size_of::<Value<0>>());
+}
+
+#[test]
+fn driver_injected_const_array_enums_visit_the_active_owned_storage() {
+  use driver_enums::{ConstArray, INLINE_CAPACITY, Storage};
+
+  let value = Storage::Inline(SmallVec::from_vec(vec![String::with_capacity(4096)]));
+  let (total, folded, warnings) = capture(&value);
+  assert_eq!(total, size_of_val(&value) + 4096);
+  assert!(folded.contains(";Inline;"), "{folded}");
+  assert!(warnings.is_empty(), "{warnings}");
+
+  let mut set = std::collections::HashSet::<String>::with_capacity(1024);
+  let baseline = capture(&set).0 - size_of_val(&set);
+  set.insert(String::with_capacity(8192));
+  let value = Storage::Heap(set);
+  let (total, folded, warnings) = capture(&value);
+  assert_eq!(total, size_of_val(&value) + baseline + 8192);
+  assert!(folded.contains(";Heap;"), "{folded}");
+  assert!(warnings.is_empty(), "{warnings}");
+
+  let value = ConstArray::Data(std::array::from_fn(|_| String::with_capacity(1024)));
+  let (total, _, warnings) = capture(&value);
+  assert_eq!(total, size_of_val(&value) + INLINE_CAPACITY * 1024);
+  assert!(warnings.is_empty(), "{warnings}");
+
+  let array = std::array::from_fn(|_| String::with_capacity(1024));
+  let values = vec![array];
+  let capacity = values.capacity() * size_of::<[String; INLINE_CAPACITY + 1]>();
+  let value = ConstArray::Nested(values);
+  let (total, _, warnings) = capture(&value);
+  assert_eq!(
+    total,
+    size_of_val(&value) + capacity + (INLINE_CAPACITY + 1) * 1024
+  );
+  assert!(warnings.is_empty(), "{warnings}");
 }
 
 #[test]

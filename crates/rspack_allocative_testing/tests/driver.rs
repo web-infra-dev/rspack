@@ -35,11 +35,30 @@ impl allocative::Allocative for Manual {
 }
 enum Borrowed<'a> { Text(&'a str) }
 enum Array<const N: usize> { Data([String; N]) }
-enum Unevaluated { Data([String; CAPACITY]) }
 "#;
   assert_eq!(
     instrument(source).expect("explicit adapters are preserved"),
     source
+  );
+}
+
+#[test]
+fn enums_with_const_sized_array_fields_are_instrumented() {
+  let source = r#"
+enum Storage<T> { Inline(SmallVec<[T; CAPACITY]>), Heap(HashSet<T>) }
+enum Unevaluated { Data([String; CAPACITY]), Nested(Vec<[String; CAPACITY + 1]>) }
+"#;
+  let output = instrument(source).expect("const-sized arrays use typed derives");
+  assert_eq!(
+    output
+      .matches("#[derive(::allocative::Allocative)]")
+      .count(),
+    2
+  );
+  assert_eq!(output.lines().count(), source.lines().count());
+  assert_eq!(
+    instrument(&output).expect("instrumentation is idempotent"),
+    output
   );
 }
 

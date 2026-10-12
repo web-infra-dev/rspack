@@ -26,11 +26,17 @@ use crate::{
   allocative_trait::Allocative,
   impls::common::{DATA_NAME, PTR_NAME, UNUSED_CAPACITY_NAME},
   key::Key,
-  reflection::try_visit_inner,
+  reflection::VisitInner,
   visitor::Visitor,
 };
 
-impl<T: Visit + ?Sized> crate::reflection::VisitInner for Box<T> {
+impl<T: 'static + ?Sized> VisitInner for Box<T> {
+  default fn visit_inner<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    visitor.visit_opaque(&**self);
+  }
+}
+
+impl<T: Visit + ?Sized> VisitInner for Box<T> {
   fn visit_inner<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     (**self).visit_memory(visitor);
   }
@@ -54,14 +60,15 @@ impl Allocative for OsStr {
   }
 }
 
-impl<T: 'static + ?Sized> Allocative for Box<T> {
+impl<T: ?Sized> Allocative for Box<T>
+where
+  Self: VisitInner,
+{
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self_sized::<Self>();
     {
       let mut visitor = visitor.enter_unique(PTR_NAME, mem::size_of::<*const T>());
-      if !try_visit_inner(self, &mut visitor) {
-        visitor.visit_opaque(&**self);
-      }
+      self.visit_inner(&mut visitor);
     }
     visitor.exit();
   }

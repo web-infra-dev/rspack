@@ -20,23 +20,10 @@ pub trait Visit {
   fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>);
 }
 
-/// Typed forwarding implemented only when the container's payload supports Visit.
-/// Query the sized container instead of trying to fabricate a vtable for a DST.
+/// Owned pointer traversal: forward visitable payloads through their actual trait
+/// bound, and keep unknown static trait objects opaque.
 pub(crate) trait VisitInner {
   fn visit_inner<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>);
-}
-
-pub(crate) fn try_visit_inner<T: 'static>(value: &T, visitor: &mut Visitor<'_>) -> bool {
-  let metadata = const { vtable::<dyn VisitInner>(TypeId::of::<T>()) };
-  let Some(metadata) = metadata else {
-    return false;
-  };
-  let forwarder =
-    ptr::from_raw_parts::<dyn VisitInner>(ptr::from_ref(value).cast::<()>(), metadata);
-  // SAFETY: T is a static, sized container, and this vtable implements forwarding
-  // for precisely T. The typed implementation borrows its payload through its API.
-  unsafe { (&*forwarder).visit_inner(visitor) };
-  true
 }
 
 // Classify pointers without requesting their layout metadata. In particular,

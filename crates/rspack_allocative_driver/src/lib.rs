@@ -79,15 +79,12 @@ impl<'ast> Visit<'ast> for Instrumentation<'_> {
       .attrs
       .iter()
       .any(|attr| contains_allocative(attr.meta.to_token_stream()));
-    // Borrowed and const-array enums retain their explicit typed adapters. Ordinary enum
-    // fields use reflection, which does not require third-party payloads to implement Allocative.
-    let mut arrays = NonliteralArrays(false);
-    arrays.visit_item_enum(item);
+    // Borrowed and const-generic enums retain their explicit typed adapters.
+    // The derive itself selects typed traversal for nonliteral array lengths.
     if !explicit
       && !self.manual.contains(&item.ident.to_string())
       && item.generics.lifetimes().next().is_none()
       && item.generics.const_params().next().is_none()
-      && !arrays.0
     {
       self.insertions.push((
         item.span().byte_range().start,
@@ -132,13 +129,4 @@ fn contains_allocative(tokens: TokenStream) -> bool {
     TokenTree::Group(group) => contains_allocative(group.stream()),
     _ => false,
   })
-}
-
-struct NonliteralArrays(bool);
-
-impl<'ast> Visit<'ast> for NonliteralArrays {
-  fn visit_type_array(&mut self, array: &'ast syn::TypeArray) {
-    self.0 |= !matches!(array.len, syn::Expr::Lit(_));
-    syn::visit::visit_type_array(self, array);
-  }
 }

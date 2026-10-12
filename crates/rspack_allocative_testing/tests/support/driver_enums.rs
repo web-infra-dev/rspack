@@ -19,3 +19,15 @@ macro_rules! generated_enum {
 }
 
 generated_enum!();
+
+pub const INLINE_CAPACITY: usize = 4;
+
+pub enum Storage<T> {
+  Inline(smallvec::SmallVec<[T; INLINE_CAPACITY]>),
+  Heap(std::collections::HashSet<T>),
+}
+
+pub enum ConstArray {
+  Data([String; INLINE_CAPACITY]),
+  Nested(Vec<[String; INLINE_CAPACITY + 1]>),
+}
