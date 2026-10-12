@@ -3995,6 +3995,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_allocative_driver"
+version = "0.102.8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "rustc-hash",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "rspack_allocative_testing"
+version = "0.102.8"
+dependencies = [
+ "cow-utils",
+ "indexmap",
+ "rspack-allocative",
+ "rspack_allocative_driver",
+ "smallvec",
+]
+
+[[package]]
 name = "rspack_allocator"
 version = "0.102.8"
 dependencies = [
