@@ -43,6 +43,31 @@ enum Array<const N: usize> { Data([String; N]) }
 }
 
 #[test]
+fn manual_adapters_match_qualified_paths_and_import_aliases() {
+  let source = r#"
+mod model {
+  pub enum Direct { Text(String) }
+  pub enum Parent { Text(String) }
+  pub enum Aliased { Text(String) }
+}
+mod adapters {
+  use crate::model::{Aliased as OwnedValue};
+  impl allocative::Allocative for crate::model::Direct {}
+  impl allocative::Allocative for super::model::Parent {}
+  impl allocative::Allocative for OwnedValue {}
+}
+mod unrelated { pub enum Aliased { Text(String) } }
+"#;
+  let output = instrument(source).expect("manual adapter paths are resolved");
+  assert_eq!(
+    output
+      .matches("#[derive(::allocative::Allocative)]")
+      .count(),
+    1
+  );
+  assert!(output.contains("mod unrelated { #[derive(::allocative::Allocative)]"));
+}
+#[test]
 fn enums_with_const_sized_array_fields_are_instrumented() {
   let source = r#"
 enum Storage<T> { Inline(SmallVec<[T; CAPACITY]>), Heap(HashSet<T>) }

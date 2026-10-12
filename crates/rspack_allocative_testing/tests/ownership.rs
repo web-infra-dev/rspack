@@ -18,6 +18,11 @@ use smallvec::SmallVec;
 #[path = "support/driver_enums.rs"]
 mod driver_enums;
 
+#[path = "support/manual_adapter_impl.rs"]
+mod manual_adapter_impl;
+#[path = "support/manual_adapter_model.rs"]
+mod manual_adapter_model;
+
 // Custom field policies can deliberately exclude an otherwise supported payload.
 fn exclude_payload<T: ?Sized>(value: &T, visitor: &mut Visitor<'_>) {
   visitor.visit_opaque(value);
@@ -510,6 +515,84 @@ fn borrowed_trait_objects_keep_typed_owned_pointer_traversal() {
   assert!(warnings.is_empty(), "{warnings}");
   drop(live);
   assert_retained_weak(&weak, size_of_val(&weak) + allocation);
+}
+
+#[test]
+fn allocative_trait_objects_preserve_auto_traits_and_borrowed_payloads() {
+  let borrowed = "x".repeat(65536);
+  let payload = || BorrowedPointerPayload {
+    borrowed: &borrowed,
+    text: String::with_capacity(4096),
+  };
+  macro_rules! check {
+    ($ty:ty) => {{
+      let boxed: Box<$ty> = Box::new(payload());
+      let (total, _, warnings) = capture(&boxed);
+      assert_eq!(total, size_of_val(&boxed) + size_of_val(&*boxed) + 4096);
+      assert!(warnings.is_empty(), "{warnings}");
+
+      let arc: Arc<$ty> = Arc::new(payload());
+      let (total, _, warnings) = capture(&arc);
+      assert_eq!(
+        total,
+        size_of_val(&arc) + shared_allocation_size(&*arc) + 4096
+      );
+      assert!(warnings.is_empty(), "{warnings}");
+
+      let rc: std::rc::Rc<$ty> = std::rc::Rc::new(payload());
+      let (total, _, warnings) = capture(&rc);
+      assert_eq!(
+        total,
+        size_of_val(&rc) + shared_allocation_size(&*rc) + 4096
+      );
+      assert!(warnings.is_empty(), "{warnings}");
+    }};
+  }
+  check!(dyn Allocative + '_);
+  check!(dyn Allocative + Send + '_);
+  check!(dyn Allocative + Sync + '_);
+  check!(dyn Allocative + Send + Sync + '_);
+}
+
+#[test]
+fn explicit_enum_bounds_preserve_borrows_carried_by_generic_payloads() {
+  #[derive(Allocative)]
+  #[allocative(bound = "T: allocative::Visit")]
+  enum Value<T> {
+    Data(T),
+  }
+
+  let owner = "x".repeat(65536);
+  for payload in [
+    Cow::Borrowed(owner.as_str()),
+    Cow::Owned(String::with_capacity(8192)),
+  ] {
+    let heap = match &payload {
+      Cow::Borrowed(_) => 0,
+      Cow::Owned(text) => text.capacity(),
+    };
+    let value = Value::Data(payload);
+    let (total, _, warnings) = capture_with(|visitor| value.visit_memory(visitor));
+    assert_eq!(total, size_of_val(&value) + heap);
+    assert!(warnings.is_empty(), "{warnings}");
+  }
+}
+
+#[test]
+fn cross_file_manual_adapters_are_preserved_without_suppressing_other_enums() {
+  let value = manual_adapter_model::Value::Text(String::with_capacity(4096));
+  let (total, folded, warnings) = capture(&value);
+  assert_eq!(total, size_of_val(&value) + 4096);
+  assert!(folded.contains(";manual_text;"), "{folded}");
+  assert!(warnings.is_empty(), "{warnings}");
+
+  let value = driver_enums::Value::Text(String::with_capacity(8192));
+  let driver_enums::Value::Text(text) = &value;
+  assert_eq!(text.capacity(), 8192);
+  let (total, folded, warnings) = capture(&value);
+  assert_eq!(total, size_of_val(&value) + 8192);
+  assert!(folded.contains(";Text;"), "{folded}");
+  assert!(warnings.is_empty(), "{warnings}");
 }
 
 #[test]

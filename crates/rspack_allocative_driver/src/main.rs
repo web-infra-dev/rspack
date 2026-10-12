@@ -11,6 +11,7 @@ use std::{
   sync::Arc,
 };
 
+use rustc_hash::FxHashMap;
 use rustc_span::source_map::{FileLoader, RealFileLoader};
 
 struct SourceLoader {
@@ -18,6 +19,7 @@ struct SourceLoader {
   crate_name: String,
   crate_path: &'static str,
   generated: Option<PathBuf>,
+  sources: FxHashMap<PathBuf, String>,
 }
 
 impl FileLoader for SourceLoader {
@@ -35,6 +37,9 @@ impl FileLoader for SourceLoader {
         .as_ref()
         .is_some_and(|directory| path.starts_with(directory))
     {
+      if let Some(source) = self.sources.get(&path.canonicalize()?) {
+        return Ok(source.clone());
+      }
       rspack_allocative_driver::instrument_crate(&source, self.crate_path, &self.crate_name)
         .map_err(|error| {
           io::Error::other(format!(
@@ -60,6 +65,7 @@ struct Callbacks {
   package: PathBuf,
   crate_name: String,
   crate_path: &'static str,
+  sources: FxHashMap<PathBuf, String>,
 }
 
 impl rustc_driver::Callbacks for Callbacks {
@@ -69,6 +75,7 @@ impl rustc_driver::Callbacks for Callbacks {
       crate_name: self.crate_name.clone(),
       crate_path: self.crate_path,
       generated: env::var_os("OUT_DIR").map(PathBuf::from),
+      sources: std::mem::take(&mut self.sources),
     }));
   }
 }
@@ -143,8 +150,21 @@ fn run() -> io::Result<ExitCode> {
         .to_owned(),
     );
   }
+  let package = PathBuf::from(package).canonicalize()?;
+  let root = args
+    .iter()
+    .skip(1)
+    .find(|arg| arg.ends_with(".rs"))
+    .ok_or_else(|| io::Error::other("Cargo must pass a crate root source file"))?;
+  let generated = env::var_os("OUT_DIR").map(PathBuf::from);
+  let sources = rspack_allocative_driver::instrument_source_tree(
+    Path::new(root),
+    &package,
+    generated.as_deref(),
+    crate_path,
+  )?;
   let mut callbacks = Callbacks {
-    package: PathBuf::from(package).canonicalize()?,
+    package,
     // Use rustc's crate name so integration targets cannot match a library's trait policy.
     crate_name: args
       .windows(2)
@@ -152,6 +172,7 @@ fn run() -> io::Result<ExitCode> {
       .map(|pair| pair[1].clone())
       .ok_or_else(|| io::Error::other("Cargo must pass --crate-name"))?,
     crate_path,
+    sources,
   };
   Ok(rustc_driver::catch_with_exit_code(|| {
     rustc_driver::run_compiler(&args, &mut callbacks)

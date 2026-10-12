@@ -170,7 +170,7 @@ impl syn::visit_mut::VisitMut for CratePath {
 }
 
 fn uses_enum_reflection(input: &DeriveInput, attrs: &AllocativeAttrs) -> syn::Result<bool> {
-  if attrs.skip || input.generics.lifetimes().next().is_some() {
+  if attrs.skip || attrs.bound.is_some() || input.generics.lifetimes().next().is_some() {
     return Ok(false);
   }
   let Data::Enum(data) = &input.data else {

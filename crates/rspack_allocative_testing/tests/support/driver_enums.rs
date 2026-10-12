@@ -22,6 +22,10 @@ generated_enum!();
 
 pub const INLINE_CAPACITY: usize = 4;
 
+pub enum Value {
+  Text(String),
+}
+
 pub enum Storage<T> {
   Inline(smallvec::SmallVec<[T; INLINE_CAPACITY]>),
   Heap(std::collections::HashSet<T>),

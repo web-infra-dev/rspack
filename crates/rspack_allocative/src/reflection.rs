@@ -242,3 +242,18 @@ impl Visit for dyn Allocative + '_ {
     self.visit(visitor);
   }
 }
+impl Visit for dyn Allocative + Send + '_ {
+  fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    self.visit(visitor);
+  }
+}
+impl Visit for dyn Allocative + Sync + '_ {
+  fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    self.visit(visitor);
+  }
+}
+impl Visit for dyn Allocative + Send + Sync + '_ {
+  fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    self.visit(visitor);
+  }
+}
