@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, AsDependencyCodeGeneration, CssExportType, Dependency, DependencyCategory,
-  DependencyId, DependencyRange, DependencyType, ExportsInfoArtifact, ModuleDependency,
-  ReferencedExport, RuntimeSpec,
+  AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
+  DependencyRange, DependencyType, ExportsInfoArtifact, ModuleDependency, ReferencedExport,
+  RuntimeSpec,
 };
 use rspack_intern::Atom;
 use smol_str::SmolStr;
@@ -22,7 +22,6 @@ pub struct CssIcssImportDependency {
   local_name: SmolStr,
   range: DependencyRange,
   source_order: Option<i32>,
-  export_type: Option<CssExportType>,
 }
 
 impl CssIcssImportDependency {
@@ -31,7 +30,6 @@ impl CssIcssImportDependency {
     import_name: Atom,
     local_name: SmolStr,
     range: DependencyRange,
-    export_type: Option<CssExportType>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -40,7 +38,6 @@ impl CssIcssImportDependency {
       local_name,
       range,
       source_order: None,
-      export_type,
     }
   }
 
@@ -50,10 +47,6 @@ impl CssIcssImportDependency {
 
   pub fn set_source_order(&mut self, source_order: i32) {
     self.source_order = Some(source_order);
-  }
-
-  pub fn export_type(&self) -> Option<CssExportType> {
-    self.export_type
   }
 }
 

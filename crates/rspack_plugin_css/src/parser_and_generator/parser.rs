@@ -1647,7 +1647,6 @@ impl<'context> CssModuleParser<'context> {
           name.as_ref().into(),
           name.as_ref().into(),
           (range.start, range.end).into(),
-          self.export_type(),
         );
         let id = *dep.id();
         self
@@ -1811,13 +1810,7 @@ impl<'context> CssModuleParser<'context> {
     let Some(request) = self.current_icss_import_from.clone() else {
       return;
     };
-    let dep = CssIcssImportDependency::new(
-      request,
-      value.into(),
-      prop.into(),
-      (0, 0).into(),
-      self.export_type(),
-    );
+    let dep = CssIcssImportDependency::new(request, value.into(), prop.into(), (0, 0).into());
     let id = *dep.id();
     self.add_dependency(dep);
     self.bind_icss(prop, id, IcssInterpolation::Identifier);

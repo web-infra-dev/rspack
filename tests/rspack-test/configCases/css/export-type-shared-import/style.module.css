@@ -1,0 +1,3 @@
+@import "./shared.module.css";
+.btn { composes: shared from "./shared.module.css"; }
+.mixed { composes: target from "./target.module.css"; }

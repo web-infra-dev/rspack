@@ -7,12 +7,12 @@ use rspack_collections::IdentifierMap;
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey,
   Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssExportType,
-  CssModuleRenderCondition, DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData,
-  ModuleGraph, ModuleRule, ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
-  NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SourceType,
-  css_module_render_conditions_identifier, get_css_chunk_filename_template, is_source_equal,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
+  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleRule,
+  ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
+  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleExt, SourceType, css_module_render_conditions_identifier,
+  get_css_chunk_filename_template, is_source_equal,
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -318,13 +318,10 @@ async fn normal_module_factory_after_resolve(
     .module_options
     .parser_options()
     .and_then(|options| options.get_css_module())
-    .and_then(|options| options.export_type)
-    .unwrap_or(CssExportType::Link);
-  if let Some(export_type) = css_dependency_meta.export_type
-    // CSS @imports also have a distinct rendering role. Composition and JS
-    // imports can share an instance when their effective export types agree.
-    && (css_dependency_meta.is_css_import_dependency || export_type != configured_export_type)
-  {
+    .and_then(|options| options.export_type);
+  // Match the module's effective export type for every incoming dependency so
+  // unconditional CSS imports, compositions and JS imports share an instance.
+  if let Some(export_type) = css_dependency_meta.export_type.or(configured_export_type) {
     append_css_export_type_key(create_data, export_type);
   }
 

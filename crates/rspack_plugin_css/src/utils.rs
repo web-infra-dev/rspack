@@ -118,11 +118,6 @@ pub(crate) fn css_dependency_export_type(dependency: &dyn Dependency) -> Option<
   dependency
     .downcast_ref::<CssImportDependency>()
     .and_then(|dep| dep.export_type())
-    .or_else(|| {
-      dependency
-        .downcast_ref::<CssIcssImportDependency>()
-        .and_then(|dep| dep.export_type())
-    })
 }
 
 pub(crate) struct CssDependencyMeta {
