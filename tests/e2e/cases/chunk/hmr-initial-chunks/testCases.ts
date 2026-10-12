@@ -1,4 +1,7 @@
-import { test, expect } from '@/fixtures';
+import fs from 'node:fs';
+import path from 'node:path';
+import { test as base, expect } from '@/fixtures';
+import { calcPathInfo } from '@/fixtures/pathInfo';
 
 type MigrationWindow = Window & {
   sharedInstance: { count: number };
@@ -6,8 +9,25 @@ type MigrationWindow = Window & {
   sharedExecutions: number;
 };
 
-export function testInitialChunks() {
-  test('loads initial chunks after splitting without repeating an import', async ({
+export function testInitialChunks(mode: 'extract' | 'native' | 'esm') {
+  const test = base.extend({
+    pathInfo: async ({ task }, use) => {
+      const pathInfo = await calcPathInfo(
+        task.filepath!,
+        process.env.RSTEST_WORKER_ID!,
+      );
+      fs.writeFileSync(
+        path.join(pathInfo.tempProjectDir, 'mode.json'),
+        JSON.stringify(mode),
+      );
+      try {
+        await use(pathInfo);
+      } finally {
+        fs.rmSync(pathInfo.tempProjectDir, { recursive: true, force: true });
+      }
+    },
+  });
+  test(`[${mode}] loads initial chunks after splitting without repeating an import`, async ({
     page,
     context,
     rspack,
@@ -82,7 +102,7 @@ export function testInitialChunks() {
     });
   });
 
-  test('installs a new initial factory before executing the updated entry', async ({
+  test(`[${mode}] installs a new initial factory before executing the updated entry`, async ({
     page,
     fileAction,
   }) => {
@@ -105,7 +125,7 @@ export function testInitialChunks() {
     await expect(page.locator('#root')).toHaveText('added-v2');
   });
 
-  test('loads an existing chunk when it becomes an initial dependency', async ({
+  test(`[${mode}] loads an existing chunk when it becomes an initial dependency`, async ({
     page,
     context,
     rspack,
@@ -144,7 +164,7 @@ export function testInitialChunks() {
     expect(requests.some((url) => /added\..*hot-update/.test(url))).toBe(true);
   });
 
-  test('loads a CSS-only initial chunk and follows later CSS and JS updates', async ({
+  test(`[${mode}] loads a CSS-only initial chunk and follows later CSS and JS updates`, async ({
     page,
     fileAction,
   }) => {

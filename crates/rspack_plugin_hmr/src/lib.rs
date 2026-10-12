@@ -36,6 +36,12 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 type AsyncChunkGroups = BTreeMap<String, Vec<ChunkId>>;
 
+#[derive(Debug, Default)]
+struct ChunkLoadingPlans {
+  entries: EntryChunks,
+  groups: AsyncChunkGroups,
+}
+
 /// Safety with [atomic_refcell::AtomicRefCell]:
 ///
 /// The baseline snapshots are only touched from the processAssets hook, which
@@ -57,14 +63,12 @@ pub struct HotModuleReplacementPlugin {
   previous_css_files: AtomicRefCell<Arc<ChunkIdMap<ChunkCssFiles>>>,
   // Keep the last recorded build and the current candidate. A failed build
   // may not advance CompilationRecords, so key these snapshots by its hash.
-  entry_chunks: AtomicRefCell<HashMap<RspackHashDigest, Arc<EntryChunks>>>,
-  async_chunks: AtomicRefCell<HashMap<RspackHashDigest, Arc<AsyncChunkGroups>>>,
+  chunk_loading_plans: AtomicRefCell<HashMap<RspackHashDigest, Arc<ChunkLoadingPlans>>>,
 }
 
 impl Default for HotModuleReplacementPlugin {
   fn default() -> Self {
     Self::new_inner(
-      Default::default(),
       Default::default(),
       Default::default(),
       Default::default(),
@@ -229,42 +233,26 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     Arc::clone(&current_css_files),
   );
 
-  let current_entries = Arc::new(collect_entry_chunks(compilation));
-  let current_groups = Arc::new(
-    compilation
+  let current_plans = Arc::new(ChunkLoadingPlans {
+    entries: collect_entry_chunks(compilation),
+    groups: compilation
       .build_chunk_graph_artifact
       .chunk_graph
       .get_async_chunk_groups(compilation, None),
-  );
-  let old_groups = {
+  });
+  let old_plans = {
     let old_hash = compilation
       .records
       .as_ref()
       .and_then(|records| records.hash.as_ref());
-    let mut snapshots = self.async_chunks.borrow_mut();
+    let mut snapshots = self.chunk_loading_plans.borrow_mut();
     snapshots.retain(|hash, _| Some(hash) == old_hash);
     let previous = old_hash
       .and_then(|hash| snapshots.get(hash))
       .cloned()
       .unwrap_or_default();
     if let Some(hash) = &compilation.hash {
-      snapshots.insert(hash.clone(), Arc::clone(&current_groups));
-    }
-    previous
-  };
-  let old_entries = {
-    let old_hash = compilation
-      .records
-      .as_ref()
-      .and_then(|records| records.hash.as_ref());
-    let mut snapshots = self.entry_chunks.borrow_mut();
-    snapshots.retain(|hash, _| Some(hash) == old_hash);
-    let previous = old_hash
-      .and_then(|hash| snapshots.get(hash))
-      .cloned()
-      .unwrap_or_default();
-    if let Some(hash) = &compilation.hash {
-      snapshots.insert(hash.clone(), Arc::clone(&current_entries));
+      snapshots.insert(hash.clone(), Arc::clone(&current_plans));
     }
     previous
   };
@@ -346,11 +334,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // entry chunk as the loaded-page anchor, rather than treating every initial
   // chunk in the compilation as a dependency of every page.
   let mut initial_chunks = ChunkIdSet::default();
-  let mut entry_names = current_entries.keys().collect::<Vec<_>>();
+  let mut entry_names = current_plans.entries.keys().collect::<Vec<_>>();
   entry_names.sort_unstable();
   for name in entry_names {
-    let (entry_id, dependencies) = &current_entries[name];
-    let Some((old_entry_id, old_dependencies)) = old_entries.get(name) else {
+    let (entry_id, dependencies) = &current_plans.entries[name];
+    let Some((old_entry_id, old_dependencies)) = old_plans.entries.get(name) else {
       continue;
     };
     let Some(entry_ukey) = current_chunk_ukeys.get(entry_id) else {
@@ -375,8 +363,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
   }
-  for (id, chunks) in current_groups.iter() {
-    let Some(old) = old_groups.get(id) else {
+  for (id, chunks) in &current_plans.groups {
+    let Some(old) = old_plans.groups.get(id) else {
       continue;
     };
     let added: Vec<_> = chunks

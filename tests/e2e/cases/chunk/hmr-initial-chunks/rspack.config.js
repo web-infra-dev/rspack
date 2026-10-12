@@ -1,4 +1,11 @@
+import fs from 'node:fs';
 import { rspack } from '@rspack/core';
+
+const mode = JSON.parse(
+  fs.readFileSync(new URL('./mode.json', import.meta.url), 'utf8'),
+);
+const nativeCss = mode === 'native';
+const esm = mode === 'esm';
 
 export default {
   mode: 'development',
@@ -7,9 +14,13 @@ export default {
     trigger: './src/trigger.js',
     unrelated: './src/unrelated.js',
   },
+  experiments: { outputModule: esm },
   output: {
-    filename: 'initial/[name].[fullhash].js',
+    ...(esm && { module: true, chunkFormat: 'module', chunkLoading: 'import' }),
+    filename: esm ? 'initial/[name].js' : 'initial/[name].[fullhash].js',
     chunkFilename: 'async/[name].[contenthash].js',
+    cssFilename: 'styles/[name].[contenthash].css',
+    cssChunkFilename: 'async/[name].[contenthash].css',
   },
   lazyCompilation: { entries: false, imports: true },
   optimization: {
@@ -30,11 +41,13 @@ export default {
   },
   module: {
     rules: [
-      {
-        test: /\.css$/,
-        type: 'javascript/auto',
-        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
-      },
+      nativeCss
+        ? { test: /\.css$/, type: 'css' }
+        : {
+            test: /\.css$/,
+            type: 'javascript/auto',
+            use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+          },
     ],
   },
   plugins: [
@@ -43,13 +56,18 @@ export default {
         new rspack.HtmlRspackPlugin({
           filename: entry === 'app' ? 'index.html' : `${entry}.html`,
           chunks: [entry],
+          scriptLoading: esm ? 'module' : 'defer',
           template: './src/index.html',
         }),
     ),
-    new rspack.CssExtractRspackPlugin({
-      filename: 'styles/[name].[contenthash].css',
-      chunkFilename: 'async/[name].[contenthash].css',
-    }),
+    ...(nativeCss
+      ? []
+      : [
+          new rspack.CssExtractRspackPlugin({
+            filename: 'styles/[name].[contenthash].css',
+            chunkFilename: 'async/[name].[contenthash].css',
+          }),
+        ]),
   ],
   devServer: { hot: true, liveReload: false },
 };
