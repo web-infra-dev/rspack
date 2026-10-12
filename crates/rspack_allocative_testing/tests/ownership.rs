@@ -329,6 +329,109 @@ fn reflected_niche_enum_visits_only_the_active_recursive_payload() {
 }
 
 #[test]
+fn typed_generic_struct_derives_visit_unannotated_payloads_and_containers() {
+  struct Payload {
+    text: String,
+  }
+  #[derive(Allocative)]
+  struct Wrapper<T>(T);
+  #[derive(Allocative)]
+  struct Nested<T> {
+    values: Vec<T>,
+  }
+
+  let value = Wrapper(Payload {
+    text: String::with_capacity(4096),
+  });
+  let (total, _, warnings) = capture(&value);
+  assert_eq!(total, size_of_val(&value) + value.0.text.capacity());
+  assert!(warnings.is_empty(), "{warnings}");
+
+  let value = Nested {
+    values: vec![Payload {
+      text: String::with_capacity(8192),
+    }],
+  };
+  let (total, _, warnings) = capture(&value);
+  assert_eq!(
+    total,
+    size_of_val(&value)
+      + value.values.capacity() * size_of::<Payload>()
+      + value.values[0].text.capacity()
+  );
+  assert!(warnings.is_empty(), "{warnings}");
+}
+
+#[test]
+fn typed_generic_enum_derives_support_lifetimes_and_const_arrays() {
+  struct Payload {
+    text: String,
+  }
+  #[derive(Allocative)]
+  enum Borrowed<'a, T> {
+    Owned(T),
+    #[allocative(skip)]
+    Borrowed(&'a str),
+  }
+  #[derive(Allocative)]
+  enum Array<T, const N: usize> {
+    Values([T; N]),
+  }
+
+  let borrowed = String::from("borrowed storage belongs to its owner");
+  for value in [
+    Borrowed::Owned(Payload {
+      text: String::with_capacity(4096),
+    }),
+    Borrowed::Borrowed(borrowed.as_str()),
+  ] {
+    let expected = size_of_val(&value)
+      + match &value {
+        Borrowed::Owned(payload) => payload.text.capacity(),
+        Borrowed::Borrowed(text) => {
+          assert_eq!(*text, borrowed);
+          0
+        }
+      };
+    let (total, _, warnings) = capture_with(|visitor| value.visit(visitor));
+    assert_eq!(total, expected);
+    assert!(warnings.is_empty(), "{warnings}");
+  }
+
+  let value = Array::Values([Payload {
+    text: String::with_capacity(8192),
+  }]);
+  let Array::Values(values) = &value;
+  let (total, _, warnings) = capture(&value);
+  assert_eq!(total, size_of_val(&value) + values[0].text.capacity());
+  assert!(warnings.is_empty(), "{warnings}");
+}
+
+#[test]
+fn typed_generic_field_policies_do_not_require_visit_for_excluded_fields() {
+  #[derive(Allocative)]
+  struct Policies<T, U> {
+    #[allocative(skip)]
+    ignored: T,
+    #[allocative(visit = exclude_payload)]
+    excluded: U,
+    text: String,
+  }
+
+  let borrowed = String::from("borrowed storage");
+  let value = Policies {
+    ignored: borrowed.as_str(),
+    excluded: borrowed.as_str(),
+    text: String::with_capacity(4096),
+  };
+  assert_eq!(value.ignored, borrowed);
+  let (total, _, warnings) = capture_with(|visitor| value.visit(visitor));
+  assert_eq!(total, size_of_val(&value) + value.text.capacity());
+  assert_eq!(warnings.lines().count(), 1, "{warnings}");
+  assert!(warnings.contains(";excluded;opaque;"), "{warnings}");
+}
+
+#[test]
 fn const_generic_enum_keeps_typed_array_traversal() {
   #[derive(Allocative)]
   enum Value<const N: usize = 2> {

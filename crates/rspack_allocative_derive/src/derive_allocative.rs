@@ -36,7 +36,6 @@ pub(crate) fn derive_allocative(input: proc_macro::TokenStream) -> proc_macro::T
 fn impl_generics(
   generics: &Generics,
   attrs: &AllocativeAttrs,
-  reflected_enum: bool,
 ) -> syn::Result<proc_macro2::TokenStream> {
   if let Some(bound) = &attrs.bound
     && !bound.is_empty()
@@ -51,11 +50,6 @@ fn impl_generics(
     impl_generics.push(match p {
       GenericParam::Type(tp) => {
         let mut tp = tp.clone();
-        if attrs.bound.is_none() && !attrs.skip && !reflected_enum {
-          tp.bounds.push(syn::parse2(
-            quote_spanned! { tp.span() => allocative::Allocative },
-          )?);
-        }
         tp.default = None;
         tp.to_token_stream()
       }
@@ -83,13 +77,18 @@ fn derive_allocative_impl(
 
   let attrs = extract_attrs(&input.attrs)?;
   let reflected_enum = uses_enum_reflection(&input, &attrs)?;
-  let impl_generics = impl_generics(&input.generics, &attrs, reflected_enum)?;
+  let impl_generics = impl_generics(&input.generics, &attrs)?;
   let mut generics = input.generics.clone();
   if reflected_enum {
     generics
       .make_where_clause()
       .predicates
       .push(syn::parse_quote!(Self: 'static));
+  } else if !input.generics.params.is_empty() && !attrs.skip && attrs.bound.is_none() {
+    let bounds = typed_field_bounds(&input.data)?;
+    if !bounds.is_empty() {
+      generics.make_where_clause().predicates.extend(bounds);
+    }
   }
   let where_clause = &generics.where_clause;
 
@@ -125,6 +124,32 @@ fn derive_allocative_impl(
   } else {
     Ok(generated)
   }
+}
+
+fn typed_field_bounds(data: &Data) -> syn::Result<Vec<syn::WherePredicate>> {
+  let mut bounds = Vec::new();
+  let mut add_fields = |fields: &Fields| -> syn::Result<()> {
+    for field in fields {
+      let attrs = extract_attrs(&field.attrs)?;
+      if !attrs.skip && attrs.visit.is_none() {
+        let ty = &field.ty;
+        bounds.push(syn::parse_quote_spanned! { field.span() => #ty: allocative::Visit });
+      }
+    }
+    Ok(())
+  };
+  match data {
+    Data::Struct(data) => add_fields(&data.fields)?,
+    Data::Enum(data) => {
+      for variant in &data.variants {
+        if !extract_attrs(&variant.attrs)?.skip {
+          add_fields(&variant.fields)?;
+        }
+      }
+    }
+    Data::Union(_) => {}
+  }
+  Ok(bounds)
 }
 
 struct CratePath(Path);
