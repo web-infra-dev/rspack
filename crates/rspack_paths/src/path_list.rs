@@ -149,7 +149,9 @@ impl fmt::Debug for InternedPathList {
 
 impl PartialEq for InternedPathList {
   fn eq(&self, other: &Self) -> bool {
-    Arc::ptr_eq(&self.0, &other.0) || self.0.ids == other.0.ids
+    // Reject different lists before scanning a potentially long common prefix.
+    // Equal hashes still need a content comparison to handle collisions.
+    Arc::ptr_eq(&self.0, &other.0) || (self.0.hash == other.0.hash && self.0.ids == other.0.ids)
   }
 }
 
