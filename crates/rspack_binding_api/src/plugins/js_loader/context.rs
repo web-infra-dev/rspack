@@ -1,7 +1,7 @@
 use std::{
   cell::RefCell,
   ptr::NonNull,
-  sync::{Arc, Mutex},
+  sync::{Arc, Mutex, Weak},
 };
 
 use napi::bindgen_prelude::*;
@@ -171,12 +171,12 @@ thread_local! {
 
 #[napi]
 pub struct JsLoaderContext {
-  inner: Option<Box<LoaderContext<RunnerContext>>>,
+  inner: Option<Weak<LoaderContext<RunnerContext>>>,
 }
 
 impl JsLoaderContext {
-  fn context(&self) -> napi::Result<&LoaderContext<RunnerContext>> {
-    self.inner.as_deref().ok_or_else(|| {
+  fn context(&self) -> napi::Result<Arc<LoaderContext<RunnerContext>>> {
+    self.inner.as_ref().and_then(Weak::upgrade).ok_or_else(|| {
       napi::Error::from_reason(
         "Loader context is unavailable outside the active JavaScript loader invocation",
       )
@@ -221,28 +221,20 @@ impl JsLoaderContext {
     Ok(self.context()?.cacheable)
   }
   #[napi(setter)]
-  pub fn set_cacheable(&mut self, value: bool) -> napi::Result<()> {
-    self.context()?;
-    self
-      .inner
-      .as_mut()
-      .expect("active loader context")
-      .cacheable = value;
-    Ok(())
+  pub fn set_cacheable(&mut self, _value: bool) -> napi::Result<()> {
+    Err(napi::Error::from_reason(
+      "Loader context cacheable must remain an own data property",
+    ))
   }
   #[napi(getter)]
   pub fn get_loader_index(&self) -> napi::Result<i32> {
     Ok(self.context()?.loader_index)
   }
   #[napi(setter)]
-  pub fn set_loader_index(&mut self, value: i32) -> napi::Result<()> {
-    self.context()?;
-    self
-      .inner
-      .as_mut()
-      .expect("active loader context")
-      .loader_index = value;
-    Ok(())
+  pub fn set_loader_index(&mut self, _value: i32) -> napi::Result<()> {
+    Err(napi::Error::from_reason(
+      "Loader context loaderIndex must remain an own data property",
+    ))
   }
   #[napi(getter)]
   pub fn get_loader_state(&self) -> napi::Result<JsLoaderState> {
@@ -337,39 +329,9 @@ impl JsLoaderContext {
   }
 }
 
-pub type PendingLoaderContext = Arc<Mutex<Option<Box<LoaderContext<RunnerContext>>>>>;
-pub struct JsLoaderContextTransfer(pub PendingLoaderContext);
-
-/// An abandoned Rust future must release the strong JS cache reference. JS may
-/// still finish the active invocation; its own reference keeps the class alive.
-pub struct LoaderContextTransferGuard {
-  id: Option<LoaderContextId>,
-  pending: PendingLoaderContext,
-}
-impl LoaderContextTransferGuard {
-  pub fn new(id: LoaderContextId, pending: PendingLoaderContext) -> Self {
-    Self {
-      id: Some(id),
-      pending,
-    }
-  }
-  pub fn disarm(mut self) {
-    self.id = None;
-  }
-}
-impl Drop for LoaderContextTransferGuard {
-  fn drop(&mut self) {
-    if let Some(id) = self.id {
-      // Cancellation may precede argument conversion on the JS thread.
-      let context = self
-        .pending
-        .lock()
-        .expect("pending loader context lock")
-        .take();
-      drop(context);
-      rspack_loader_runner::notify_loader_context_drop(id);
-    }
-  }
+pub struct JsLoaderContextTransfer {
+  pub context: Weak<LoaderContext<RunnerContext>>,
+  pub content: Option<Content>,
 }
 
 fn define_data_property<T: ToNapiValue>(
@@ -406,10 +368,10 @@ fn assign_data_property<T: ToNapiValue>(
 impl ToNapiValue for JsLoaderContextTransfer {
   unsafe fn to_napi_value(raw_env: sys::napi_env, val: Self) -> napi::Result<sys::napi_value> {
     let env = Env::from(raw_env);
-    let mut pending = val.0.lock().expect("pending loader context lock");
-    let cx = pending
-      .as_ref()
-      .ok_or_else(|| napi::Error::from_reason("Loader context transfer was cancelled"))?;
+    let cx = val
+      .context
+      .upgrade()
+      .ok_or_else(|| napi::Error::from_reason("Loader context invocation was cancelled"))?;
     let id = cx.id();
     let execution_span = cx
       .current_chain()
@@ -419,7 +381,6 @@ impl ToNapiValue for JsLoaderContextTransfer {
       let (reference, is_new) = match refs.entry(id) {
         std::collections::hash_map::Entry::Occupied(entry) => (entry.into_mut(), false),
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let cx = pending.as_ref().expect("pending loader context");
           let module = &cx.context.module;
           let class = JsLoaderContext { inner: None };
           let resource = cx.resource_data.resource().to_owned();
@@ -443,9 +404,7 @@ impl ToNapiValue for JsLoaderContextTransfer {
       };
       let value = unsafe { ToNapiValue::to_napi_value(raw_env, reference.clone(env)?)? };
       let mut object = unsafe { Object::from_napi_value(raw_env, value)? };
-      // Move ownership before any further fallible conversion. Recovery can now
-      // reclaim the context even if setting a JS property fails.
-      reference.inner = pending.take();
+      reference.inner = Some(val.context);
       ACTIVE_CONTEXT_IDS.with(|ids| {
         ids
           .borrow()
@@ -453,8 +412,7 @@ impl ToNapiValue for JsLoaderContextTransfer {
           .expect("active loader contexts lock")
           .insert(id)
       });
-      let cx = reference.inner.as_mut().expect("active loader context");
-      let content = match cx.take_content() {
+      let content = match val.content {
         Some(Content::String(content)) => Either3::A(content),
         Some(Content::Buffer(content)) => Either3::B(Buffer::from(content)),
         None => Either3::C(Null),
@@ -498,13 +456,6 @@ const LAZY_FIELDS: &[&str] = &[
   "additionalData",
   "__internal__parseMeta",
 ];
-
-/// Takes ownership back on the JS thread, before sending the result to Rust.
-/// Conversion errors travel alongside the owned context so it is always restored.
-pub struct JsLoaderContextResult {
-  pub context: Box<LoaderContext<RunnerContext>>,
-  pub updates: napi::Result<JsLoaderContextUpdates>,
-}
 
 // N-API conversion only copies JS-owned values. Source map parsing, interning
 // dependencies and merging loader state stay on the Rust runner's worker.
@@ -624,11 +575,11 @@ impl JsLoaderContextUpdates {
   }
 }
 
-impl FromNapiValue for JsLoaderContextResult {
+impl FromNapiValue for JsLoaderContextUpdates {
   unsafe fn from_napi_value(env: sys::napi_env, value: sys::napi_value) -> napi::Result<Self> {
     let mut reference: Reference<JsLoaderContext> =
       unsafe { Reference::from_napi_value(env, value)? };
-    let context = reference.inner.take().ok_or_else(|| {
+    reference.inner.take().ok_or_else(|| {
       napi::Error::from_reason("Loader context has already been returned to Rust")
     })?;
     let mut object = unsafe { Object::from_napi_value(env, value)? };
@@ -638,10 +589,7 @@ impl FromNapiValue for JsLoaderContextResult {
     let cleanup = LAZY_FIELDS
       .iter()
       .try_for_each(|name| object.delete_named_property(name).map(|_| ()));
-    Ok(Self {
-      context,
-      updates: updates.and_then(|updates| cleanup.map(|_| updates)),
-    })
+    updates.and_then(|updates| cleanup.map(|_| updates))
   }
 }
 
@@ -653,17 +601,20 @@ fn own_property<T: FromNapiValue>(object: &Object, name: &str) -> napi::Result<O
   }
 }
 
-pub struct CachedJsLoaderContext(pub LoaderContextId);
-impl ToNapiValue for CachedJsLoaderContext {
-  unsafe fn to_napi_value(env: sys::napi_env, value: Self) -> napi::Result<sys::napi_value> {
-    LOADER_CONTEXT_REFS.with(|cell| {
-      let refs = cell.borrow();
-      let reference = refs
-        .get(&value.0)
-        .ok_or_else(|| napi::Error::from_reason("Loader context is no longer cached"))?;
-      unsafe { ToNapiValue::to_napi_value(env, reference.clone(Env::from(env))?) }
-    })
-  }
+pub fn revoke_loader_context(env: &Env, id: LoaderContextId) -> napi::Result<()> {
+  LOADER_CONTEXT_REFS.with(|cell| {
+    let mut refs = cell.borrow_mut();
+    let Some(reference) = refs.get_mut(&id) else {
+      // Argument conversion can fail before the class is cached.
+      return Ok(());
+    };
+    reference.inner = None;
+    let value = unsafe { ToNapiValue::to_napi_value(env.raw(), reference.clone(*env)?)? };
+    let mut object = unsafe { Object::from_napi_value(env.raw(), value)? };
+    LAZY_FIELDS
+      .iter()
+      .try_for_each(|name| object.delete_named_property(name).map(|_| ()))
+  })
 }
 
 pub fn init_loader_context_registry(env: &Env) -> napi::Result<()> {

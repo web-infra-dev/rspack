@@ -8,7 +8,7 @@ use std::{
 };
 
 pub use context::{JsLoaderContext, JsLoaderDependencies, JsLoaderItem};
-use context::{JsLoaderContextResult, JsLoaderContextTransfer};
+use context::{JsLoaderContextTransfer, JsLoaderContextUpdates};
 use napi::{
   bindgen_prelude::*,
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
@@ -26,7 +26,7 @@ use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
 
 pub type JsLoaderRunner = ThreadsafeFunction<
   JsLoaderContextTransfer,
-  Promise<JsLoaderContextResult>,
+  Promise<JsLoaderContextUpdates>,
   JsLoaderContextTransfer,
   Status,
   false,
@@ -43,12 +43,11 @@ type JsLoaderRunnerGetterTsfn = ThreadsafeFunction<
   true,
 >;
 
-type JsLoaderContextReclaimTsfn =
-  ThreadsafeFunction<u32, JsLoaderContextResult, u32, Status, false, true, 0>;
+type JsLoaderContextRevokeTsfn = ThreadsafeFunction<u32, (), u32, Status, false, true, 0>;
 
 pub struct JsLoaderRunnerGetter {
   ts_fn: Mutex<Option<JsLoaderRunnerGetterTsfn>>,
-  reclaim: Mutex<Option<Arc<JsLoaderContextReclaimTsfn>>>,
+  revoke: Mutex<Option<Arc<JsLoaderContextRevokeTsfn>>>,
 }
 
 impl JsLoaderRunnerGetter {
@@ -77,17 +76,18 @@ impl JsLoaderRunnerGetter {
       .weak::<true>()
       .callee_handled::<false>()
       .build()?;
-    let reclaim: Function<u32, context::CachedJsLoaderContext> =
-      env.create_function_from_closure("reclaim_loader_context", |ctx| {
-        Ok(context::CachedJsLoaderContext(
+    let revoke: Function<u32, ()> =
+      env.create_function_from_closure("revoke_loader_context", |ctx| {
+        context::revoke_loader_context(
+          ctx.env,
           rspack_loader_runner::LoaderContextId(ctx.get::<u32>(0)?),
-        ))
+        )
       })?;
-    let reclaim: JsLoaderContextReclaimTsfn =
-      unsafe { FromNapiValue::from_napi_value(env.raw(), reclaim.raw())? };
+    let revoke: JsLoaderContextRevokeTsfn =
+      unsafe { FromNapiValue::from_napi_value(env.raw(), revoke.raw())? };
     Ok(Self {
       ts_fn: Mutex::new(Some(ts_fn)),
-      reclaim: Mutex::new(Some(Arc::new(reclaim))),
+      revoke: Mutex::new(Some(Arc::new(revoke))),
     })
   }
 
@@ -116,23 +116,20 @@ impl JsLoaderRunnerGetter {
     rx.await.to_napi_result()?
   }
 
-  pub async fn reclaim(
-    &self,
-    id: rspack_loader_runner::LoaderContextId,
-  ) -> napi::Result<JsLoaderContextResult> {
-    let reclaim = self
-      .reclaim
+  pub async fn revoke(&self, id: rspack_loader_runner::LoaderContextId) -> napi::Result<()> {
+    let revoke = self
+      .revoke
       .lock()
-      .expect("loader reclaim lock")
+      .expect("loader revoke lock")
       .as_ref()
       .cloned()
       .ok_or_else(|| napi::Error::from_reason("Loader runner getter has already been closed"))?;
-    reclaim.call_async(id.0).await
+    revoke.call_async(id.0).await
   }
 
   pub fn close(&self) {
     self.ts_fn.lock().expect("should get lock").take();
-    self.reclaim.lock().expect("loader reclaim lock").take();
+    self.revoke.lock().expect("loader revoke lock").take();
   }
 }
 

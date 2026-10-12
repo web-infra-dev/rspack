@@ -52,9 +52,8 @@ impl LoaderContextLifetime {
     self.0
   }
 }
-/// Notifies foreign runners that a context can no longer be retained. This also
-/// allows an abandoned ownership transfer to release its foreign references.
-pub fn notify_loader_context_drop(id: LoaderContextId) {
+// Notify foreign runners after the context is destroyed or consumed.
+fn notify_loader_context_drop(id: LoaderContextId) {
   let listeners: Vec<_> = LISTENERS
     .read()
     .expect("loader context registry lock")

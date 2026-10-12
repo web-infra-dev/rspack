@@ -19,8 +19,7 @@ pub use loader::{
 };
 pub use plugin::LoaderRunnerPlugin;
 pub use registry::{
-  LoaderContextDropRegistration, LoaderContextId, notify_loader_context_drop,
-  register_loader_context_drop_listener,
+  LoaderContextDropRegistration, LoaderContextId, register_loader_context_drop_listener,
 };
 pub use rspack_collections::{Identifiable, Identifier};
 pub use runner::{LoaderResult, run_loaders};

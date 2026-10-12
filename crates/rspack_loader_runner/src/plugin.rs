@@ -12,7 +12,7 @@ use crate::{
 
 #[async_trait::async_trait]
 pub trait LoaderRunnerPlugin: Send + Sync {
-  type Context: Send;
+  type Context: Send + Sync;
 
   fn name(&self) -> &'static str {
     "unknown"
@@ -22,18 +22,18 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     Ok(())
   }
 
-  /// Transfers ownership to the foreign runner and returns it, including on errors.
+  /// Runs foreign loaders and returns the context alongside their result.
   async fn start_yielding(
     &self,
-    context: Box<LoaderContext<Self::Context>>,
-  ) -> (Box<LoaderContext<Self::Context>>, Result<()>) {
+    context: Arc<LoaderContext<Self::Context>>,
+  ) -> (Arc<LoaderContext<Self::Context>>, Result<()>) {
     (context, Ok(()))
   }
 
   async fn run_normal_chain(
     &self,
-    context: Box<LoaderContext<Self::Context>>,
-  ) -> (Box<LoaderContext<Self::Context>>, Result<()>) {
+    context: Arc<LoaderContext<Self::Context>>,
+  ) -> (Arc<LoaderContext<Self::Context>>, Result<()>) {
     context.run_normal_chain().await
   }
 

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::{NormalModuleLoaderStartYielding, RunnerContext};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
@@ -17,8 +19,8 @@ impl JsLoaderRspackPlugin {
 #[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn loader_yield(
   &self,
-  mut loader_context: Box<LoaderContext<RunnerContext>>,
-) -> (Box<LoaderContext<RunnerContext>>, Result<()>) {
+  mut loader_context: Arc<LoaderContext<RunnerContext>>,
+) -> (Arc<LoaderContext<RunnerContext>>, Result<()>) {
   // Skip a JavaScript execution span when no remaining loader needs pitching.
   if loader_context.state() == LoaderState::Pitching {
     let loaders_without_pitch = self.loaders_without_pitch.read().await;
@@ -35,10 +37,12 @@ pub(crate) async fn loader_yield(
           && !loaders_without_pitch.contains(loader.path().as_str())
       });
     if !needs_pitch {
+      let context =
+        Arc::get_mut(&mut loader_context).expect("native loader context must be exclusive");
       for index in start..end {
-        loader_context.loader_items[index].set_pitch_executed();
+        context.loader_items[index].set_pitch_executed();
       }
-      loader_context.loader_index = end as i32;
+      context.loader_index = end as i32;
       return (loader_context, Ok(()));
     }
   }
@@ -59,44 +63,29 @@ pub(crate) async fn loader_yield(
 
   let id = loader_context.id();
   let pitching = loader_context.state() == LoaderState::Pitching;
-  let pending = std::sync::Arc::new(std::sync::Mutex::new(Some(loader_context)));
-  let transfer_guard =
-    super::context::LoaderContextTransferGuard::new(id, std::sync::Arc::clone(&pending));
+  let content = Arc::get_mut(&mut loader_context)
+    .expect("native loader context must be exclusive")
+    .take_content();
   let result = async {
     runner
-      .call_async(super::context::JsLoaderContextTransfer(
-        std::sync::Arc::clone(&pending),
-      ))
+      .call_async(super::context::JsLoaderContextTransfer {
+        context: Arc::downgrade(&loader_context),
+        content,
+      })
       .await?
       .await
   }
   .await;
-  let (new_cx, runner_error) = match result {
-    Ok(context) => (context, None),
-    Err(error) => {
-      let context = pending.lock().expect("pending loader context lock").take();
-      if let Some(context) = context {
-        transfer_guard.disarm();
-        return (context, Err(error).to_rspack_result());
-      }
-      (
-        self
-          .runner_getter
-          .reclaim(id)
-          .await
-          .expect("a rejected loader runner must return its owned context"),
-        Some(error),
-      )
-    }
-  };
-  loader_context = new_cx.context;
-  transfer_guard.disarm();
-  if let Some(error) = runner_error {
-    return (loader_context, Err(error).to_rspack_result());
-  }
-  let updates = match new_cx.updates.to_rspack_result() {
+  let updates = match result {
     Ok(updates) => updates,
-    Err(error) => return (loader_context, Err(error)),
+    Err(error) => {
+      // Rejections and conversion errors bypass the normal return conversion.
+      // Release the class's Weak before any subsequent native mutation.
+      if let Err(cleanup_error) = self.runner_getter.revoke(id).await.to_rspack_result() {
+        return (loader_context, Err(cleanup_error));
+      }
+      return (loader_context, Err(error).to_rspack_result());
+    }
   };
   if pitching {
     let loaders_without_pitch = updates.collect_loaders_without_pitch(&loader_context);
@@ -106,6 +95,9 @@ pub(crate) async fn loader_yield(
         .await;
     }
   }
-  let result = updates.merge(&mut loader_context);
+  let result = updates.merge(
+    Arc::get_mut(&mut loader_context)
+      .expect("JavaScript must release the loader context before returning"),
+  );
   (loader_context, result)
 }

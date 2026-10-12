@@ -15,13 +15,13 @@ use crate::{
   plugin::LoaderRunnerPlugin,
 };
 
-impl<Context: Send> LoaderContext<Context> {
+impl<Context: Send + Sync> LoaderContext<Context> {
   fn should_yield(&self) -> bool {
     self.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
       && self.plugin.is_some()
   }
 
-  async fn start_yielding(self: Box<Self>) -> (Box<Self>, Result<()>) {
+  async fn start_yielding(self: Arc<Self>) -> (Arc<Self>, Result<()>) {
     let plugin = self
       .plugin
       .clone()
@@ -30,10 +30,10 @@ impl<Context: Send> LoaderContext<Context> {
   }
 }
 
-async fn run_pitch_chain<Context: Send>(
-  mut cx: Box<LoaderContext<Context>>,
+async fn run_pitch_chain<Context: Send + Sync>(
+  mut cx: Arc<LoaderContext<Context>>,
   resource: &str,
-) -> (Box<LoaderContext<Context>>, Result<()>) {
+) -> (Arc<LoaderContext<Context>>, Result<()>) {
   let chain = cx
     .current_chain()
     .expect("pitching requires a current loader chain");
@@ -63,16 +63,19 @@ async fn run_pitch_chain<Context: Send>(
       }
 
       if cx.current_loader().pitch_executed() {
-        cx.loader_index += 1;
+        Arc::get_mut(&mut cx)
+          .expect("native loader context must be exclusive")
+          .loader_index += 1;
         continue;
       }
 
       cx.current_loader().set_pitch_executed();
       let loader = cx.current_loader().loader().clone();
       let loader_span = info_span!("run_loader:pitch", resource);
-      cx.reset_dependency_changes();
-      let result = loader.pitch(&mut cx).instrument(loader_span).await;
-      cx.merge_dependency_changes();
+      let context = Arc::get_mut(&mut cx).expect("native loader context must be exclusive");
+      context.reset_dependency_changes();
+      let result = loader.pitch(context).instrument(loader_span).await;
+      context.merge_dependency_changes();
       if result.is_err() {
         return (cx, result);
       }
@@ -86,10 +89,10 @@ async fn run_pitch_chain<Context: Send>(
   .await
 }
 
-impl<Context: Send> LoaderContext<Context> {
+impl<Context: Send + Sync> LoaderContext<Context> {
   /// Execute the current root chain's normal loaders without consulting the loader cache.
   /// Ownership is returned even when a loader fails.
-  pub async fn run_normal_chain(self: Box<Self>) -> (Box<Self>, Result<()>) {
+  pub async fn run_normal_chain(self: Arc<Self>) -> (Arc<Self>, Result<()>) {
     let mut cx = self;
     let chain = cx
       .current_root_chain()
@@ -117,20 +120,23 @@ impl<Context: Send> LoaderContext<Context> {
         }
 
         if cx.current_loader().normal_executed() {
-          cx.loader_index -= 1;
+          Arc::get_mut(&mut cx)
+            .expect("native loader context must be exclusive")
+            .loader_index -= 1;
           continue;
         }
 
         cx.current_loader().set_normal_executed();
         let loader = cx.current_loader().loader().clone();
         let loader_span = info_span!("run_loader:normal", resource = cx.resource());
-        let result = loader.run(&mut cx).instrument(loader_span).await;
-        if result.is_ok() && !cx.current_loader().finish_called() {
+        let context = Arc::get_mut(&mut cx).expect("native loader context must be exclusive");
+        let result = loader.run(context).instrument(loader_span).await;
+        if result.is_ok() && !context.current_loader().finish_called() {
           // If nothing is returned from this loader, set every output to None
           // to match webpack loader-runner behavior.
-          cx.finish_with_empty();
+          context.finish_with_empty();
         }
-        cx.merge_dependency_changes();
+        context.merge_dependency_changes();
         if result.is_err() {
           return (cx, result);
         }
@@ -146,7 +152,7 @@ impl<Context: Send> LoaderContext<Context> {
   skip_all,
   fields(resource = loader_context.resource_data.resource())
 )]
-async fn process_resource<Context: Send>(
+async fn process_resource<Context: Send + Sync>(
   loader_context: &mut LoaderContext<Context>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
@@ -179,12 +185,12 @@ You may need an additional plugin to handle "{scheme}:" URIs."#
   ))
 }
 
-fn create_loader_context<Context: Send>(
+fn create_loader_context<Context: Send + Sync>(
   loader_items: Vec<LoaderItem<Context>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
-) -> Box<LoaderContext<Context>> {
+) -> Arc<LoaderContext<Context>> {
   let mut dependencies = LoaderDependencies::default();
   if let Some(resource_path) = resource_data.path()
     && resource_path.is_absolute()
@@ -192,7 +198,7 @@ fn create_loader_context<Context: Send>(
     dependencies.file.insert(resource_path.into());
   }
 
-  Box::new(LoaderContext {
+  Arc::new(LoaderContext {
     lifetime: crate::registry::LoaderContextLifetime::new(),
     hot: false,
     cacheable: true,
@@ -215,7 +221,7 @@ fn create_loader_context<Context: Send>(
 }
 
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
-pub async fn run_loaders<Context: Send>(
+pub async fn run_loaders<Context: Send + Sync>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
   loader_options: Option<Vec<LoaderRunnerOptions>>,
   resource_data: Arc<ResourceData>,
@@ -239,15 +245,20 @@ pub async fn run_loaders<Context: Send>(
   };
   let cx = create_loader_context(loaders, resource_data, plugin, context);
   let (cx, result) = run_loaders_impl(cx, fs).await;
-  (LoaderResult::new(*cx), result.err())
+  (
+    LoaderResult::new(Arc::into_inner(cx).expect("finished loader context must be exclusive")),
+    result.err(),
+  )
 }
 
-async fn run_loaders_impl<Context: Send>(
-  mut cx: Box<LoaderContext<Context>>,
+async fn run_loaders_impl<Context: Send + Sync>(
+  mut cx: Arc<LoaderContext<Context>>,
   fs: Arc<dyn ReadableFileSystem>,
-) -> (Box<LoaderContext<Context>>, Result<()>) {
+) -> (Arc<LoaderContext<Context>>, Result<()>) {
   if let Some(plugin) = cx.plugin.clone() {
-    let result = plugin.before_all(&mut cx).await;
+    let result = plugin
+      .before_all(Arc::get_mut(&mut cx).expect("native loader context must be exclusive"))
+      .await;
     if result.is_err() {
       return (cx, result);
     }
@@ -257,11 +268,17 @@ async fn run_loaders_impl<Context: Send>(
   loop {
     match cx.state {
       State::Init => {
-        cx.state.transition(State::Pitching);
+        Arc::get_mut(&mut cx)
+          .expect("native loader context must be exclusive")
+          .state
+          .transition(State::Pitching);
       }
       State::Pitching => {
         if cx.loader_index >= cx.loader_items.len() as i32 {
-          cx.state.transition(State::ProcessResource);
+          Arc::get_mut(&mut cx)
+            .expect("native loader context must be exclusive")
+            .state
+            .transition(State::ProcessResource);
           continue;
         }
         let result;
@@ -270,26 +287,42 @@ async fn run_loaders_impl<Context: Send>(
           return (cx, result);
         }
         if cx.content.is_some() {
-          cx.state.transition(State::Normal);
-          cx.loader_index -= 1;
+          Arc::get_mut(&mut cx)
+            .expect("native loader context must be exclusive")
+            .state
+            .transition(State::Normal);
+          Arc::get_mut(&mut cx)
+            .expect("native loader context must be exclusive")
+            .loader_index -= 1;
         }
       }
       State::ProcessResource => {
         let span = info_span!("run_loader:process_resource", resource);
-        let result = process_resource(&mut cx, fs.clone()).instrument(span).await;
+        let result = process_resource(
+          Arc::get_mut(&mut cx).expect("native loader context must be exclusive"),
+          fs.clone(),
+        )
+        .instrument(span)
+        .await;
         if result.is_err() {
           return (cx, result);
         }
-        cx.loader_index = cx.loader_items.len() as i32 - 1;
-        cx.state.transition(State::Normal);
+        let context = Arc::get_mut(&mut cx).expect("native loader context must be exclusive");
+        context.loader_index = context.loader_items.len() as i32 - 1;
+        context.state.transition(State::Normal);
       }
       State::Normal => {
         if cx.loader_index < 0 {
-          cx.state.transition(State::Finished);
+          Arc::get_mut(&mut cx)
+            .expect("native loader context must be exclusive")
+            .state
+            .transition(State::Finished);
           continue;
         }
 
-        cx.reset_dependency_changes();
+        Arc::get_mut(&mut cx)
+          .expect("native loader context must be exclusive")
+          .reset_dependency_changes();
         let result;
         (cx, result) = if let Some(plugin) = cx.plugin.clone() {
           plugin.run_normal_chain(cx).await
@@ -299,7 +332,9 @@ async fn run_loaders_impl<Context: Send>(
         if result.is_err() {
           return (cx, result);
         }
-        cx.reset_dependency_changes();
+        Arc::get_mut(&mut cx)
+          .expect("native loader context must be exclusive")
+          .reset_dependency_changes();
       }
       State::Finished => break,
     }
