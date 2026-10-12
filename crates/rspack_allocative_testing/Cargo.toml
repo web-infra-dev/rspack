@@ -6,17 +6,17 @@ publish           = false
 version.workspace = true
 
 [features]
-allocative = ["dep:allocative", "dep:indexmap", "dep:smallvec", "allocative/smallvec"]
+allocative = ["dep:allocative", "allocative/smallvec"]
 default    = []
 
 [dependencies]
 allocative = { workspace = true, optional = true }
-indexmap   = { workspace = true, optional = true }
-smallvec   = { workspace = true, optional = true }
 
 [dev-dependencies]
 cow-utils                = { workspace = true }
+indexmap                 = { workspace = true }
 rspack_allocative_driver = { workspace = true }
+smallvec                 = { workspace = true }
 
 [[test]]
 name              = "ownership"
