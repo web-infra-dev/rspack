@@ -26,9 +26,14 @@ export default defineConfig({
         };
         compiler.hooks.afterCompile.tap('LoaderContextRejection', () => {
           assert.ok(rejected);
-          assert.equal(Object.hasOwn(rejected, 'loaderItems'), false);
+          // A rejected result can retain JS-owned snapshots; its native getter
+          // must still reject access after the Rust run has ended.
+          const getter = Object.getOwnPropertyDescriptor(
+            Object.getPrototypeOf(rejected),
+            'loaderItems',
+          )!.get!;
           assert.throws(
-            () => rejected.loaderItems,
+            () => getter.call(rejected),
             /outside the active JavaScript loader invocation/,
           );
         });

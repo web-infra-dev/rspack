@@ -31,9 +31,14 @@ export default defineConfig({
         };
         compiler.hooks.afterCompile.tap('LoaderContextConversionError', () => {
           assert.ok(invalid);
-          assert.equal(Object.hasOwn(invalid, 'loaderItems'), false);
+          // Conversion failure can leave JS-owned snapshots on the result.
+          // Accessing the native getter must fail after the invocation ends.
+          const getter = Object.getOwnPropertyDescriptor(
+            Object.getPrototypeOf(invalid),
+            'loaderItems',
+          )!.get!;
           assert.throws(
-            () => invalid.loaderItems,
+            () => getter.call(invalid),
             /outside the active JavaScript loader invocation/,
           );
         });

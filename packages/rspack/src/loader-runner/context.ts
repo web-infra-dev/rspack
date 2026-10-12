@@ -11,6 +11,7 @@ type LazyFields = Pick<
   | '__internal__parseMeta'
 >;
 
+// Cache wrappers without retaining their binding instances after an invocation.
 const wrappers = new WeakMap<JsLoaderContext, JsLoaderContextWrapper>();
 
 /** Keeps lazy native snapshots local to one invocation of the JS runner. */

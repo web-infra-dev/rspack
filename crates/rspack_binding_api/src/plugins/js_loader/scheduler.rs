@@ -61,7 +61,6 @@ pub(crate) async fn loader_yield(
     Err(error) => return (loader_context, Err(error)),
   };
 
-  let id = loader_context.id();
   let pitching = loader_context.state() == LoaderState::Pitching;
   let content = Arc::get_mut(&mut loader_context)
     .expect("native loader context must be exclusive")
@@ -78,14 +77,8 @@ pub(crate) async fn loader_yield(
   .await;
   let updates = match result {
     Ok(updates) => updates,
-    Err(error) => {
-      // Rejections and conversion errors bypass the normal return conversion.
-      // Release the class's Weak before any subsequent native mutation.
-      if let Err(cleanup_error) = self.runner_getter.revoke(id).await.to_rspack_result() {
-        return (loader_context, Err(cleanup_error));
-      }
-      return (loader_context, Err(error).to_rspack_result());
-    }
+    // Errors stop the run; consuming its Arc invalidates any retained JS Weak.
+    Err(error) => return (loader_context, Err(error).to_rspack_result()),
   };
   if pitching {
     let loaders_without_pitch = updates.collect_loaders_without_pitch(&loader_context);

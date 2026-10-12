@@ -1,16 +1,15 @@
 use std::{
-  cell::RefCell,
   ptr::NonNull,
-  sync::{Arc, Mutex, Weak},
+  sync::{Arc, Weak},
 };
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
-use rspack_loader_runner::{LoaderContextId, State as LoaderState};
+use rspack_loader_runner::State as LoaderState;
 use rspack_napi::ThreadsafeOneShotRef;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{error::RspackError, module::ModuleObject};
 
@@ -162,13 +161,6 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
   }
 }
 
-// Strong references preserve class identity between yields. The loader runner's
-// drop registry releases them on the owning JS thread when the run finishes.
-thread_local! {
-  static ACTIVE_CONTEXT_IDS: RefCell<Arc<Mutex<FxHashSet<LoaderContextId>>>> = Default::default();
-  static LOADER_CONTEXT_REFS: RefCell<HashMap<LoaderContextId, Reference<JsLoaderContext>>> = Default::default();
-}
-
 #[napi]
 pub struct JsLoaderContext {
   inner: Option<Weak<LoaderContext<RunnerContext>>>,
@@ -260,20 +252,6 @@ fn define_data_property<T: ToNapiValue>(
     )])
 }
 
-fn assign_data_property<T: ToNapiValue>(
-  env: &Env,
-  object: &mut Object,
-  is_new: bool,
-  name: &str,
-  value: T,
-) -> napi::Result<()> {
-  if is_new {
-    define_data_property(env, object, name, value)
-  } else {
-    object.set_named_property(name, value)
-  }
-}
-
 impl ToNapiValue for JsLoaderContextTransfer {
   unsafe fn to_napi_value(raw_env: sys::napi_env, val: Self) -> napi::Result<sys::napi_value> {
     let env = Env::from(raw_env);
@@ -281,78 +259,50 @@ impl ToNapiValue for JsLoaderContextTransfer {
       .context
       .upgrade()
       .ok_or_else(|| napi::Error::from_reason("Loader context invocation was cancelled"))?;
-    let id = cx.id();
     let execution_span = cx
       .current_chain()
       .map_or(0..cx.loader_items.len(), |chain| chain.start()..chain.end());
-    LOADER_CONTEXT_REFS.with(|cell| {
-      let mut refs = cell.borrow_mut();
-      let (reference, is_new) = match refs.entry(id) {
-        std::collections::hash_map::Entry::Occupied(entry) => (entry.into_mut(), false),
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let module = &cx.context.module;
-          let class = JsLoaderContext { inner: None };
-          let resource = cx.resource_data.resource().to_owned();
-          let hot = cx.hot;
-          // Install static data once, including the module wrapper.
-          let module = ModuleObject::with_ptr(
-            NonNull::from(module.as_ref() as &dyn Module),
-            cx.context.compiler_id,
-          );
-          let value = unsafe { JsLoaderContext::to_napi_value(raw_env, class)? };
-          let mut object = unsafe { Object::from_napi_value(raw_env, value)? };
-          define_data_property(&env, &mut object, "id", id.0)?;
-          define_data_property(&env, &mut object, "resource", resource)?;
-          define_data_property(&env, &mut object, "hot", hot)?;
-          define_data_property(&env, &mut object, "_module", module)?;
-          (
-            entry.insert(unsafe { Reference::from_napi_value(raw_env, value)? }),
-            true,
-          )
-        }
-      };
-      let value = unsafe { ToNapiValue::to_napi_value(raw_env, reference.clone(env)?)? };
-      let mut object = unsafe { Object::from_napi_value(raw_env, value)? };
-      reference.inner = Some(val.context);
-      ACTIVE_CONTEXT_IDS.with(|ids| {
-        ids
-          .borrow()
-          .lock()
-          .expect("active loader contexts lock")
-          .insert(id)
-      });
-      let content = match val.content {
-        Some(Content::String(content)) => Either3::A(content),
-        Some(Content::Buffer(content)) => Either3::B(Buffer::from(content)),
-        None => Either3::C(Null),
-      };
-      assign_data_property(&env, &mut object, is_new, "content", content)?;
-      assign_data_property(&env, &mut object, is_new, "cacheable", cx.cacheable)?;
-      assign_data_property(&env, &mut object, is_new, "loaderIndex", cx.loader_index)?;
-      assign_data_property(
-        &env,
-        &mut object,
-        is_new,
-        "loaderState",
-        JsLoaderState::from(cx.state()),
-      )?;
-      assign_data_property(
-        &env,
-        &mut object,
-        is_new,
-        "loaderChainStart",
-        execution_span.start as u32,
-      )?;
-      assign_data_property(
-        &env,
-        &mut object,
-        is_new,
-        "loaderChainEnd",
-        execution_span.end as u32,
-      )?;
-      assign_data_property(&env, &mut object, is_new, "__internal__error", ())?;
-      Ok(value)
-    })
+    let module = ModuleObject::with_ptr(
+      NonNull::from(cx.context.module.as_ref() as &dyn Module),
+      cx.context.compiler_id,
+    );
+    let class = JsLoaderContext {
+      inner: Some(val.context),
+    };
+    let value = unsafe { JsLoaderContext::to_napi_value(raw_env, class)? };
+    let mut object = unsafe { Object::from_napi_value(raw_env, value)? };
+    define_data_property(&env, &mut object, "id", cx.id().0)?;
+    define_data_property(&env, &mut object, "resource", cx.resource())?;
+    define_data_property(&env, &mut object, "hot", cx.hot)?;
+    define_data_property(&env, &mut object, "_module", module)?;
+    let content = match val.content {
+      Some(Content::String(content)) => Either3::A(content),
+      Some(Content::Buffer(content)) => Either3::B(Buffer::from(content)),
+      None => Either3::C(Null),
+    };
+    define_data_property(&env, &mut object, "content", content)?;
+    define_data_property(&env, &mut object, "cacheable", cx.cacheable)?;
+    define_data_property(&env, &mut object, "loaderIndex", cx.loader_index)?;
+    define_data_property(
+      &env,
+      &mut object,
+      "loaderState",
+      JsLoaderState::from(cx.state()),
+    )?;
+    define_data_property(
+      &env,
+      &mut object,
+      "loaderChainStart",
+      execution_span.start as u32,
+    )?;
+    define_data_property(
+      &env,
+      &mut object,
+      "loaderChainEnd",
+      execution_span.end as u32,
+    )?;
+    define_data_property(&env, &mut object, "__internal__error", ())?;
+    Ok(value)
   }
 }
 
@@ -493,8 +443,8 @@ impl FromNapiValue for JsLoaderContextUpdates {
     })?;
     let mut object = unsafe { Object::from_napi_value(env, value)? };
     let updates = JsLoaderContextUpdates::from_object(&object);
-    // Remove snapshots before the next invocation. The class remains in the id
-    // cache, but its getters are revoked while Rust owns the context.
+    // Remove returned snapshots after revoking the getters. JS only weakly
+    // caches the wrapper, so retaining the class cannot keep the native run alive.
     let cleanup = LAZY_FIELDS
       .iter()
       .try_for_each(|name| object.delete_named_property(name).map(|_| ()));
@@ -508,54 +458,4 @@ fn own_property<T: FromNapiValue>(object: &Object, name: &str) -> napi::Result<O
   } else {
     Ok(None)
   }
-}
-
-pub fn revoke_loader_context(env: &Env, id: LoaderContextId) -> napi::Result<()> {
-  LOADER_CONTEXT_REFS.with(|cell| {
-    let mut refs = cell.borrow_mut();
-    let Some(reference) = refs.get_mut(&id) else {
-      // Argument conversion can fail before the class is cached.
-      return Ok(());
-    };
-    reference.inner = None;
-    let value = unsafe { ToNapiValue::to_napi_value(env.raw(), reference.clone(*env)?)? };
-    let mut object = unsafe { Object::from_napi_value(env.raw(), value)? };
-    LAZY_FIELDS
-      .iter()
-      .try_for_each(|name| object.delete_named_property(name).map(|_| ()))
-  })
-}
-
-pub fn init_loader_context_registry(env: &Env) -> napi::Result<()> {
-  use napi::threadsafe_function::ThreadsafeFunctionCallMode;
-  let callback: Function<u32, ()> =
-    env.create_function_from_closure("drop_loader_context", |ctx| {
-      let id = LoaderContextId(ctx.get::<u32>(0)?);
-      // Drop the reference outside the RefCell borrow: finalization can itself drop
-      // a context and notify the registry during cancellation or shutdown.
-      let reference = LOADER_CONTEXT_REFS.with(|cell| cell.borrow_mut().remove(&id));
-      drop(reference);
-      Ok(())
-    })?;
-  let callback = callback
-    .build_threadsafe_function::<u32>()
-    .weak::<true>()
-    .callee_handled::<false>()
-    .build()?;
-  let active_ids = ACTIVE_CONTEXT_IDS.with(|ids| Arc::clone(&ids.borrow()));
-  let listener = rspack_loader_runner::register_loader_context_drop_listener(move |id| {
-    if active_ids
-      .lock()
-      .expect("active loader contexts lock")
-      .remove(&id)
-    {
-      callback.call(id.0, ThreadsafeFunctionCallMode::NonBlocking);
-    }
-  });
-  env.add_env_cleanup_hook(listener, |listener| {
-    drop(listener);
-    let refs = LOADER_CONTEXT_REFS.with(|cell| std::mem::take(&mut *cell.borrow_mut()));
-    drop(refs);
-  })?;
-  Ok(())
 }
