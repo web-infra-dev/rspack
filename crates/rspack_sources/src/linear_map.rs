@@ -1,3 +1,4 @@
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct LinearMap<V: Default> {
   inner: Vec<V>,
 }

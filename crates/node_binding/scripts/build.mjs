@@ -2,7 +2,6 @@ import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
 import { readFileSync, writeFileSync, renameSync, appendFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { prepareAllocativeDriver } from "../../../scripts/allocative-driver.mjs";
 
 const { values, positionals } = parseArgs({
 	args: process.argv.slice(2),
@@ -34,9 +33,6 @@ build().then((value) => {
 });
 
 async function build() {
-	const environment = process.env.ALLOCATIVE
-		? await prepareAllocativeDriver()
-		: process.env;
 	return new Promise((resolve, reject) => {
 		const args = [
 			"build",
@@ -51,7 +47,7 @@ async function build() {
 		];
 		const rustflags = []
 		const features = [];
-		const envs = { ...environment };
+		const envs = { ...process.env };
 		const use_build_std = values.profile === "release"
 			|| values.profile === "release-debug"
 			|| values.profile === "release-wasi"

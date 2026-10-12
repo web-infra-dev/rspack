@@ -918,6 +918,7 @@ fn stream_chunks_of_source_map_lines_full<'chunk, 'source>(
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 struct SourceMapLineData<'a> {
   pub mappings_data: Vec<i64>,
   pub chunks: Vec<TextSpan<'a>>,
