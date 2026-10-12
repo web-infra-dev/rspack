@@ -54,6 +54,41 @@ pub struct InternedSlice<T: SliceInternable> {
   arc: ThinArc<SliceHeader<T::Header>, T::Item>,
 }
 
+// Avoid reflecting ThinArc's private layout: the pinned nightly emits duplicate
+// drop symbols for that field. Traverse the live allocation through its API.
+#[cfg(allocative)]
+impl<T: SliceInternable> allocative::Allocative for InternedSlice<T>
+where
+  T::Header: allocative::Visit,
+  T::Item: allocative::Visit,
+{
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+    use std::{alloc::Layout, mem::size_of};
+
+    use allocative::Key;
+
+    let mut visitor = visitor.enter_self(self);
+    if let Some(mut shared) = visitor.enter_shared(
+      Key::new("ptr"),
+      size_of::<*const ()>(),
+      self.arc.heap_ptr().cast(),
+    ) {
+      // triomphe::ArcInner is repr(C): refcount followed by the DST data.
+      let layout = Layout::new::<AtomicUsize>()
+        .extend(Layout::for_value(&*self.arc))
+        .expect("a live interned slice must have a valid allocation layout")
+        .0
+        .pad_to_align();
+      let mut allocation = shared.enter(Key::new("ThinArcInner"), layout.size());
+      allocation.visit_field(Key::new("header"), self.header());
+      allocation.visit_slice(self.items());
+      allocation.exit();
+      shared.exit();
+    }
+    visitor.exit();
+  }
+}
+
 impl<T: SliceInternable> InternedSlice<T> {
   pub fn new(header: T::Header, items: &[T::Item]) -> Self {
     let storage = T::storage().get();
