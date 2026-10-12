@@ -40,6 +40,22 @@ interface KnownBuildInfo {
 
 export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
+// Assigned directly as own properties; lazy fields are generated from Rust getters.
+export interface JsLoaderContext {
+	readonly id: number;
+	readonly resource: string;
+	readonly _module: Module;
+	readonly hot: boolean;
+	content: string | Buffer | null;
+	cacheable: boolean;
+	loaderIndex: number;
+	readonly loaderState: JsLoaderState;
+	readonly loaderChainStart: number;
+	readonly loaderChainEnd: number;
+	get __internal__error(): RspackError | undefined;
+	set __internal__error(value: RspackError | undefined | null);
+}
+
 export interface Module {
 	readonly type: string;
 	get context(): string | undefined;
