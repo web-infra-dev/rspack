@@ -124,9 +124,19 @@ async function build() {
 			args.push("--");
 
 			if (rustflags.length > 0) {
-				const flag = rustflags.map(f => `\\"${f}\\"`).join(",");
-				args.push("--config");
-				args.push(`"target.'cfg(all())'.rustflags = [${flag}]"`)
+				if (useAllocative && (envs.CARGO_ENCODED_RUSTFLAGS !== undefined || envs.RUSTFLAGS !== undefined)) {
+					// Environment flags override target config. Preserve their precedence
+					// and encoded argument boundaries, then append the required build flags.
+					const inherited = envs.CARGO_ENCODED_RUSTFLAGS !== undefined
+						? (envs.CARGO_ENCODED_RUSTFLAGS ? envs.CARGO_ENCODED_RUSTFLAGS.split("\x1f") : [])
+						: envs.RUSTFLAGS.split(/\s+/).filter(Boolean);
+					envs.CARGO_ENCODED_RUSTFLAGS = [...inherited, ...rustflags].join("\x1f");
+					delete envs.RUSTFLAGS;
+				} else {
+					const flag = rustflags.map(f => `\\"${f}\\"`).join(",");
+					args.push("--config");
+					args.push(`"target.'cfg(all())'.rustflags = [${flag}]"`)
+				}
 			}
 
 			if (use_build_std) {
