@@ -95,6 +95,7 @@ pub(crate) async fn loader_yield(
         .await;
     }
   }
+  // TODO: Prefer Arc::into_unique here once Rust implements it.
   let result = updates.merge(
     Arc::get_mut(&mut loader_context)
       .expect("JavaScript must release the loader context before returning"),
