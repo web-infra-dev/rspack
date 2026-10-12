@@ -1,4 +1,4 @@
-use std::{hash::Hash, sync::Arc};
+use std::{cell::Cell, hash::Hash, sync::Arc};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
@@ -97,6 +97,95 @@ impl From<JsSourceToJs> for BoxSource {
         None => RawStringSource::from(string).boxed(),
       },
       Either::B(buffer) => RawBufferSource::from(buffer.to_vec()).boxed(),
+    }
+  }
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsSourceWithLazyMap<'a> {
+  pub source: Either<&'a str, BufferSlice<'a>>,
+  #[napi(ts_type = "string | (() => string)")]
+  pub map: Option<Function<'a, (), String>>,
+}
+
+impl JsSourceWithLazyMap<'_> {
+  pub fn to_js<'a>(env: &'a Env, source: &BoxSource) -> Result<Unknown<'a>> {
+    // Keep owned SourceValue content alive until N-API has copied the borrowed string.
+    let value = source.source();
+    let binding = match &value {
+      SourceValue::String(string) => JsSourceWithLazyMap {
+        source: Either::A(string.as_ref()),
+        map: LazySourceMap::from_source(source)
+          .map(|map| {
+            // The callback owns the snapshot until its first call or JavaScript GC.
+            let pending = Cell::new(Some(map));
+            env.create_function_from_closure("map", move |_| {
+              pending
+                .take()
+                .ok_or_else(|| napi::Error::from_reason("Source map has already been consumed"))?
+                .to_json()
+            })
+          })
+          .transpose()?,
+      },
+      SourceValue::Buffer(bytes) => JsSourceWithLazyMap {
+        // JS buffers are mutable, so copy directly into JS-owned storage rather than
+        // sharing the source's immutable bytes or allocating an intermediate Vec.
+        source: Either::B(BufferSlice::copy_from(env, bytes)?),
+        map: None,
+      },
+    };
+    binding.into_unknown(env)
+  }
+}
+
+// Preserve map()'s Some/None result without generating a map for the common module sources.
+// Composite or custom sources can discard all mappings, so their presence is left unknown.
+fn has_map_without_generation(source: &dyn Source) -> Option<bool> {
+  let source = source.as_any();
+  if source.is::<RawStringSource>() || source.is::<RawBufferSource>() {
+    return Some(false);
+  }
+  if let Some(source) = source.downcast_ref::<OriginalSource>() {
+    // With columns enabled, OriginalSource maps every token except standalone newlines.
+    return Some(source.value().bytes().any(|byte| byte != b'\n'));
+  }
+  if let Some(source) = source.downcast_ref::<SourceMapSource>() {
+    // A directly supplied map is present even when its mappings are empty.
+    return source.inner_source_map().is_none().then_some(true);
+  }
+  if let Some(source) = source.downcast_ref::<CachedSource>() {
+    return has_map_without_generation(source.inner().as_ref());
+  }
+  None
+}
+
+/// An owned source snapshot that defers map generation until JavaScript reads its serialized map.
+/// Sources whose map presence cannot be determined cheaply initialize the map eagerly.
+enum LazySourceMap {
+  Source(BoxSource),
+  Map(Box<SourceMap<'static>>),
+}
+
+impl LazySourceMap {
+  fn from_source(source: &BoxSource) -> Option<Self> {
+    match has_map_without_generation(source.as_ref()) {
+      Some(false) => None,
+      Some(true) => Some(Self::Source(Arc::clone(source))),
+      // Keep RawSource / SourceMapSource selection exact for sources without a cheap presence check.
+      None => Arc::clone(source)
+        .map_static(&ObjectPool::default(), &MapOptions::default())
+        .map(|map| Self::Map(Box::new(map))),
+    }
+  }
+
+  fn to_json(&self) -> Result<String> {
+    match self {
+      Self::Source(source) => Arc::clone(source)
+        .map_static(&ObjectPool::default(), &MapOptions::default())
+        .map(|map| map.to_json())
+        .ok_or_else(|| napi::Error::from_reason("Source map is not available")),
+      Self::Map(map) => Ok(map.to_json()),
     }
   }
 }
