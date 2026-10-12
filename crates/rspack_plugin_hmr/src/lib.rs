@@ -32,7 +32,6 @@ use rspack_plugin_javascript::{
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_plugin_runtime::get_hmr_chunk_snapshot_hash;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 type AsyncChunkGroups = BTreeMap<String, Vec<ChunkId>>;
@@ -60,14 +59,11 @@ pub struct HotModuleReplacementPlugin {
   // may not advance CompilationRecords, so key these snapshots by its hash.
   entry_chunks: AtomicRefCell<HashMap<RspackHashDigest, Arc<EntryChunks>>>,
   async_chunks: AtomicRefCell<HashMap<RspackHashDigest, Arc<AsyncChunkGroups>>>,
-  // Retain immutable normal-chunk versions while clients catch up with HMR.
-  chunk_snapshots: AtomicRefCell<HashMap<String, CompilationAsset>>,
 }
 
 impl Default for HotModuleReplacementPlugin {
   fn default() -> Self {
     Self::new_inner(
-      Default::default(),
       Default::default(),
       Default::default(),
       Default::default(),
@@ -955,47 +951,6 @@ async fn additional_tree_runtime_requirements(
   Ok(())
 }
 
-#[plugin_hook(CompilationProcessAssets for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
-async fn chunk_snapshots(&self, compilation: &mut Compilation) -> Result<()> {
-  let mut snapshots = self.chunk_snapshots.borrow_mut();
-  for chunk in compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .values()
-  {
-    let Some(hash) = get_hmr_chunk_snapshot_hash(chunk, compilation) else {
-      continue;
-    };
-    for filename in chunk.files() {
-      let Some(asset) = compilation.assets().get(filename) else {
-        continue;
-      };
-      if asset.info.asset_type != ManifestAssetType::JavaScript {
-        continue;
-      }
-      let end = filename.find(['?', '#']).unwrap_or(filename.len());
-      let directory = filename[..end].rfind('/').map_or(0, |index| index + 1);
-      let snapshot_filename = format!(
-        "{}{}.hot-chunk.{}",
-        &filename[..directory],
-        hash,
-        &filename[directory..]
-      );
-      snapshots.entry(snapshot_filename).or_insert_with(|| {
-        let mut info = asset.get_info().clone();
-        info.immutable = Some(true);
-        info.development = Some(true);
-        info.hot_module_replacement = Some(true);
-        CompilationAsset::new(asset.source.clone(), info)
-      });
-    }
-  }
-  for (filename, asset) in snapshots.iter() {
-    compilation.emit_asset(filename.clone(), asset.clone());
-  }
-  Ok(())
-}
-
 impl Plugin for HotModuleReplacementPlugin {
   fn name(&self) -> &'static str {
     "rspack.HotModuleReplacementPlugin"
@@ -1011,10 +966,6 @@ impl Plugin for HotModuleReplacementPlugin {
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
-    ctx
-      .compilation_hooks
-      .process_assets
-      .tap(chunk_snapshots::new(self));
     ctx
       .normal_module_hooks
       .loader

@@ -6,8 +6,6 @@
 - node_modules/vendor.js
 
 ## Asset Files
-- Bundle: CHUNK_HASH.hot-chunk.chunk_js.chunk.CURRENT_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.chunk_js.chunk.LAST_HASH.js
 - Bundle: chunk_js.chunk.CURRENT_HASH.js
 - Bundle: main.js
 - Bundle: runtime~main.js

@@ -4,8 +4,6 @@
 - file.js
 
 ## Asset Files
-- Bundle: CHUNK_HASH.hot-chunk.lib_a_js.chunk.CURRENT_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.lib_a_js.chunk.LAST_HASH.js
 - Bundle: bundle.js
 - Bundle: lib_a_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 87

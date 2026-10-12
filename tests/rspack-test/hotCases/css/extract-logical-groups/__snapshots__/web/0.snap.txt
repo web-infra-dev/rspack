@@ -4,10 +4,6 @@
 
 
 ## Asset Files
-- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.CURRENT_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.shared-loaded-0.chunk.CURRENT_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.shared-unloaded-0.chunk.CURRENT_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.unloaded.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 - Bundle: loaded.chunk.CURRENT_HASH.js
 - Bundle: shared-loaded-0.chunk.CURRENT_HASH.js

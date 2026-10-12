@@ -5,18 +5,13 @@
 - initial.js
 
 ## Asset Files
-- Bundle: CHUNK_HASH.hot-chunk.lib.CURRENT_HASH.js
-- Bundle: async/CHUNK_HASH.hot-chunk.initial_js.js
-- Bundle: async/CHUNK_HASH.hot-chunk.initial_js.js
 - Bundle: async/initial_js.js
 - Bundle: lib.CURRENT_HASH.js
 - Bundle: main.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 108
-- Update: CHUNK_HASH.hot-chunk.initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: CHUNK_HASH.hot-chunk.lib.LAST_HASH.hot-update.js, size: 1600
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
 - Update: lib.LAST_HASH.hot-update.js, size: 1600
-- Update: main.LAST_HASH.hot-update.js, size: 30746
+- Update: main.LAST_HASH.hot-update.js, size: 29947
 
 ## Manifest
 
@@ -28,71 +23,6 @@
 
 
 ## Update
-
-
-### CHUNK_HASH.hot-chunk.initial_js.LAST_HASH.hot-update.js
-
-#### Changed Modules
-- ./initial.js
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-"use strict";
-self["rspackHotUpdate"]("initial_js", {
-"./initial.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  value: () => (value)
-});
-__webpack_require__("./node_modules/lib-js/b.js");
-const value = "b";
-
-
-},
-
-});
-```
-
-
-
-### CHUNK_HASH.hot-chunk.lib.LAST_HASH.hot-update.js
-
-#### Changed Modules
-- ./node_modules/lib-js/a.js
-- ./node_modules/lib-js/b.js
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-"use strict";
-self["rspackHotUpdate"]("lib", {
-"./node_modules/lib-js/a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  a: () => (a)
-});
-const a = "a";
-
-
-},
-"./node_modules/lib-js/b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  b: () => (b)
-});
-const b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-
-
-},
-
-});
-```
-
 
 
 ### initial_js.LAST_HASH.hot-update.js
@@ -215,25 +145,6 @@ __webpack_require__.e = (id, fetchPriority, isGroup) => {
 __webpack_require__.e.g = {"584e78d43acd0c4b":["lib","initial_js"]};
 __webpack_require__.e.s = groupState;
 __webpack_require__.e.h = groupHandlers;
-
-})();
-// webpack/runtime/get javascript chunk filename
-(() => {
-// This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  var filename = (function() {
-  // return url for filenames not based on template
-  if (chunkId === "initial_js") return "async/" + chunkId + ".js";
-  // return url for filenames based on template
-  return "" + chunkId + "." + __webpack_require__.h() + ".js"
-  })();
-  var version = ({"initial_js":"CHUNK_HASH","lib":"CHUNK_HASH"})[chunkId];
-  if (!version) return filename;
-  var query = filename.search(/[?#]/);
-  var path = query < 0 ? filename : filename.slice(0, query);
-  var directory = path.lastIndexOf("/") + 1;
-  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
-}
 
 })();
 // webpack/runtime/get_full_hash

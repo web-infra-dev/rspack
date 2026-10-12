@@ -5,16 +5,13 @@
 - shared.js
 
 ## Asset Files
-- Bundle: CHUNK_HASH.hot-chunk.other.chunk.CURRENT_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.other.chunk.LAST_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.shared.chunk.LAST_HASH.js
 - Bundle: main.js
 - Bundle: other.chunk.CURRENT_HASH.js
 - Bundle: runtime.js
 - Bundle: shared.js
 - Manifest: runtime.LAST_HASH.hot-update.json, size: 74
 - Update: main.LAST_HASH.hot-update.js, size: 474
-- Update: runtime.LAST_HASH.hot-update.js, size: 8472
+- Update: runtime.LAST_HASH.hot-update.js, size: 8074
 - Update: shared.LAST_HASH.hot-update.js, size: 280
 
 ## Manifest
@@ -101,20 +98,11 @@ __webpack_require__.e.h = groupHandlers;
 (() => {
 // This function allow to reference chunks
 __webpack_require__.u = (chunkId) => {
-  var filename = (function() {
   // return url for filenames not based on template
   if (chunkId === "other") return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js";
   // return url for filenames based on template
   return "" + chunkId + ".js"
-  })();
-  var version = ({"other":"CHUNK_HASH"})[chunkId];
-  if (!version) return filename;
-  var query = filename.search(/[?#]/);
-  var path = query < 0 ? filename : filename.slice(0, query);
-  var directory = path.lastIndexOf("/") + 1;
-  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
 }
-
 })();
 // webpack/runtime/get_full_hash
 (() => {

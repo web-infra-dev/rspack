@@ -4,23 +4,13 @@
 - trigger.js
 
 ## Asset Files
-- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.CURRENT_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.LAST_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.shared-loaded-0.chunk.LAST_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.shared-loaded-1.chunk.CURRENT_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.shared-unloaded-0.chunk.LAST_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.shared-unloaded-1.chunk.CURRENT_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.unloaded.chunk.CURRENT_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.unloaded.chunk.LAST_HASH.js
 - Bundle: bundle.js
 - Bundle: loaded.chunk.CURRENT_HASH.js
 - Bundle: shared-loaded-1.chunk.CURRENT_HASH.js
 - Bundle: shared-unloaded-1.chunk.CURRENT_HASH.js
 - Bundle: unloaded.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 496
-- Update: CHUNK_HASH.hot-chunk.shared-loaded-1.LAST_HASH.hot-update.js, size: 880
-- Update: CHUNK_HASH.hot-chunk.shared-unloaded-1.LAST_HASH.hot-update.js, size: 884
-- Update: main.LAST_HASH.hot-update.js, size: 9715
+- Update: main.LAST_HASH.hot-update.js, size: 8866
 - Update: shared-loaded-1.LAST_HASH.hot-update.js, size: 880
 - Update: shared-unloaded-1.LAST_HASH.hot-update.js, size: 884
 
@@ -34,96 +24,6 @@
 
 
 ## Update
-
-
-### CHUNK_HASH.hot-chunk.shared-loaded-1.LAST_HASH.hot-update.js
-
-#### Changed Modules
-- ./shared-loaded.css
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-"use strict";
-self["rspackHotUpdate"]("shared-loaded-1", {
-"./shared-loaded.css"(module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-// extracted by css-extract-rspack-plugin
-
-    if(true) {
-      (function() {
-        var localsJsonString = undefined;
-        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
-        // only invalidate when locals change
-        if (
-          module.hot.data &&
-          module.hot.data.value &&
-          module.hot.data.value !== localsJsonString
-        ) {
-          module.hot.invalidate();
-        } else {
-          module.hot.accept();
-        }
-        module.hot.dispose(function(data) {
-          data.value = localsJsonString;
-          cssReload();
-        });
-      })();
-    }
-  
-
-},
-
-});
-```
-
-
-
-### CHUNK_HASH.hot-chunk.shared-unloaded-1.LAST_HASH.hot-update.js
-
-#### Changed Modules
-- ./shared-unloaded.css
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-"use strict";
-self["rspackHotUpdate"]("shared-unloaded-1", {
-"./shared-unloaded.css"(module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-// extracted by css-extract-rspack-plugin
-
-    if(true) {
-      (function() {
-        var localsJsonString = undefined;
-        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
-        // only invalidate when locals change
-        if (
-          module.hot.data &&
-          module.hot.data.value &&
-          module.hot.data.value !== localsJsonString
-        ) {
-          module.hot.invalidate();
-        } else {
-          module.hot.accept();
-        }
-        module.hot.dispose(function(data) {
-          data.value = localsJsonString;
-          cssReload();
-        });
-      })();
-    }
-  
-
-},
-
-});
-```
-
 
 
 ### main.LAST_HASH.hot-update.js
@@ -175,25 +75,6 @@ __webpack_require__.e = (id, fetchPriority, isGroup) => {
 __webpack_require__.e.g = {"63e8eb4b1ea5f8ad":["shared-loaded-1","loaded"],"ebe2e51c6c8bc7ce":["shared-unloaded-1","unloaded"]};
 __webpack_require__.e.s = groupState;
 __webpack_require__.e.h = groupHandlers;
-
-})();
-// webpack/runtime/get javascript chunk filename
-(() => {
-// This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  var filename = (function() {
-  // return url for filenames not based on template
-  if (chunkId === "main") return "bundle.js";
-  // return url for filenames based on template
-  return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js"
-  })();
-  var version = ({"loaded":"CHUNK_HASH","shared-loaded-1":"CHUNK_HASH","shared-unloaded-1":"CHUNK_HASH","unloaded":"CHUNK_HASH"})[chunkId];
-  if (!version) return filename;
-  var query = filename.search(/[?#]/);
-  var path = query < 0 ? filename : filename.slice(0, query);
-  var directory = path.lastIndexOf("/") + 1;
-  return path.slice(0, directory) + version + ".hot-chunk." + path.slice(directory) + (query < 0 ? "" : filename.slice(query));
-}
 
 })();
 // webpack/runtime/get_full_hash

@@ -4,16 +4,10 @@
 - trigger.js
 
 ## Asset Files
-- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.CURRENT_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.loaded.chunk.LAST_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.unloaded.chunk.CURRENT_HASH.js
-- Bundle: CHUNK_HASH.hot-chunk.unloaded.chunk.LAST_HASH.js
 - Bundle: bundle.js
 - Bundle: loaded.chunk.CURRENT_HASH.js
 - Bundle: unloaded.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 492
-- Update: CHUNK_HASH.hot-chunk.shared-loaded-1.LAST_HASH.hot-update.js, size: 61
-- Update: CHUNK_HASH.hot-chunk.shared-unloaded-1.LAST_HASH.hot-update.js, size: 63
 - Update: main.LAST_HASH.hot-update.js, size: 1468
 - Update: shared-loaded-1.LAST_HASH.hot-update.js, size: 61
 - Update: shared-unloaded-1.LAST_HASH.hot-update.js, size: 63
@@ -28,38 +22,6 @@
 
 
 ## Update
-
-
-### CHUNK_HASH.hot-chunk.shared-loaded-1.LAST_HASH.hot-update.js
-
-#### Changed Modules
-
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-"use strict";
-self["rspackHotUpdate"]("shared-loaded-1", {});
-```
-
-
-
-### CHUNK_HASH.hot-chunk.shared-unloaded-1.LAST_HASH.hot-update.js
-
-#### Changed Modules
-
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-"use strict";
-self["rspackHotUpdate"]("shared-unloaded-1", {});
-```
-
 
 
 ### main.LAST_HASH.hot-update.js

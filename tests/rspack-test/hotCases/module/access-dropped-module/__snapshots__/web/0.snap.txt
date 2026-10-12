@@ -4,7 +4,6 @@
 
 
 ## Asset Files
-- Bundle: CHUNK_HASH.hot-chunk.b_js.chunk.CURRENT_HASH.js
 - Bundle: b_js.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 
