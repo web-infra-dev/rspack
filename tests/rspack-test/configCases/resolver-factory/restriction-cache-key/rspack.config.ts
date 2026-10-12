@@ -2,7 +2,7 @@ import { defineConfig } from '@rspack/cli';
 import type { Compiler } from '@rspack/core';
 import path from 'node:path';
 
-const options = (restrictions: (string | RegExp)[]) => ({
+const restrictionsTo = (restrictions: (string | RegExp)[]) => ({
   extensions: ['.css'],
   mainFields: ['main'],
   restrictions,
@@ -17,11 +17,11 @@ class Plugin {
     {
       const cssResolver = compiler.resolverFactory.get(
         'normal',
-        options([/\.css$/]),
+        restrictionsTo([/\.css$/]),
       );
       const jsResolver = compiler.resolverFactory.get(
         'normal',
-        options([/\.js$/]),
+        restrictionsTo([/\.js$/]),
       );
       expect(cssResolver).not.toBe(jsResolver);
       expect(cssResolver.resolveSync({}, context, 'style')).toBe(css);
@@ -31,11 +31,11 @@ class Plugin {
     {
       const caseSensitive = compiler.resolverFactory.get(
         'normal',
-        options([/\.CSS$/]),
+        restrictionsTo([/\.CSS$/]),
       );
       const caseInsensitive = compiler.resolverFactory.get(
         'normal',
-        options([/\.CSS$/i]),
+        restrictionsTo([/\.CSS$/i]),
       );
       expect(caseSensitive).not.toBe(caseInsensitive);
       expect(caseInsensitive.resolveSync({}, context, 'style')).toBe(css);
@@ -44,18 +44,21 @@ class Plugin {
 
     {
       const base = compiler.resolverFactory.get('normal');
-      const cssResolver = base.withOptions(options([/\.css$/]));
-      const jsResolver = base.withOptions(options([/\.js$/]));
+      const cssResolver = base.withOptions(restrictionsTo([/\.css$/]));
+      const jsResolver = base.withOptions(restrictionsTo([/\.js$/]));
       expect(cssResolver).not.toBe(jsResolver);
       expect(cssResolver.resolveSync({}, context, 'style')).toBe(css);
       expect(jsResolver.resolveSync({}, context, 'style')).toBe(js);
     }
 
     {
-      const first = compiler.resolverFactory.get('normal', options([/\.css$/]));
+      const first = compiler.resolverFactory.get(
+        'normal',
+        restrictionsTo([/\.css$/]),
+      );
       const second = compiler.resolverFactory.get(
         'normal',
-        options([/\.css$/]),
+        restrictionsTo([/\.css$/]),
       );
       expect(first).toBe(second);
     }
