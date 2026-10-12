@@ -157,16 +157,13 @@ where
   }
 }
 
-impl<T: ?Sized> Allocative for Weak<T>
-where
-  Arc<T>: VisitInner,
-{
+impl<T: ?Sized> Allocative for Weak<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);
     {
-      if let Some(arc) = self.upgrade() {
-        arc.visit(&mut visitor);
-      } else {
+      // A live target belongs to its strong owners. Only account for the
+      // allocation retained by weak pointers after the payload is dropped.
+      if self.upgrade().is_none() {
         visit_retained_weak(
           self.as_ptr(),
           Weak::<()>::new().as_ptr().cast(),
@@ -208,16 +205,11 @@ where
   }
 }
 
-impl<T: ?Sized> Allocative for rc::Weak<T>
-where
-  Rc<T>: VisitInner,
-{
+impl<T: ?Sized> Allocative for rc::Weak<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);
     {
-      if let Some(rc) = self.upgrade() {
-        rc.visit(&mut visitor);
-      } else {
+      if self.upgrade().is_none() {
         visit_retained_weak(
           self.as_ptr(),
           rc::Weak::<()>::new().as_ptr().cast(),

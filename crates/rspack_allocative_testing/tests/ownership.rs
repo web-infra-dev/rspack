@@ -449,6 +449,7 @@ fn borrowed_adapters_compose_through_shared_and_weak_owners() {
   let capacity = arc.text.capacity();
   let allocation = shared_allocation_size(&*arc);
   let weak = Arc::downgrade(&arc);
+  assert_live_weak(&weak);
   let live = (weak.clone(), arc.clone(), arc);
   let (total, _, warnings) = capture_with(|visitor| live.visit_memory(visitor));
   assert_eq!(total, size_of_val(&live) + allocation + capacity);
@@ -462,6 +463,7 @@ fn borrowed_adapters_compose_through_shared_and_weak_owners() {
   let capacity = rc.text.capacity();
   let allocation = shared_allocation_size(&*rc);
   let weak = std::rc::Rc::downgrade(&rc);
+  assert_live_weak(&weak);
   let live = (rc.clone(), weak.clone(), rc);
   let (total, _, warnings) = capture_with(|visitor| live.visit_memory(visitor));
   assert_eq!(total, size_of_val(&live) + allocation + capacity);
@@ -490,6 +492,7 @@ fn borrowed_trait_objects_keep_typed_owned_pointer_traversal() {
   let arc: Arc<dyn Visit + '_> = Arc::new(payload());
   let allocation = shared_allocation_size(&*arc);
   let weak = Arc::downgrade(&arc);
+  assert_live_weak(&weak);
   let live = (arc, weak.clone());
   let (total, _, warnings) = capture_with(|visitor| live.visit_memory(visitor));
   assert_eq!(total, size_of_val(&live) + allocation + capacity);
@@ -500,6 +503,7 @@ fn borrowed_trait_objects_keep_typed_owned_pointer_traversal() {
   let rc: std::rc::Rc<dyn Visit + '_> = std::rc::Rc::new(payload());
   let allocation = shared_allocation_size(&*rc);
   let weak = std::rc::Rc::downgrade(&rc);
+  assert_live_weak(&weak);
   let live = (weak.clone(), rc);
   let (total, _, warnings) = capture_with(|visitor| live.visit_memory(visitor));
   assert_eq!(total, size_of_val(&live) + allocation + capacity);
@@ -1197,6 +1201,61 @@ fn small_vector_array_type_names_stay_in_one_folded_frame() {
     );
   }
   assert!(warnings.is_empty(), "{warnings}");
+}
+
+fn assert_live_weak(value: &dyn Visit) {
+  for builder in [
+    FlameGraphBuilder::default(),
+    FlameGraphBuilder::with_shared_ownership(),
+  ] {
+    let (total, folded, warnings) = capture_in(builder, |visitor| value.visit_memory(visitor));
+    assert_eq!(total, size_of_val(value), "{folded}");
+    assert!(!folded.contains("ArcInner"), "{folded}");
+    assert!(!folded.contains("RcInner"), "{folded}");
+    assert!(warnings.is_empty(), "{warnings}");
+  }
+}
+
+#[test]
+#[allow(clippy::rc_buffer)]
+fn live_weak_roots_skip_targets_owned_outside_the_snapshot() {
+  let arc = Arc::new(String::with_capacity(8192));
+  let weak = Arc::downgrade(&arc);
+  assert_live_weak(&weak);
+  assert_live_weak(&(weak.clone(), weak));
+
+  let rc = std::rc::Rc::new(String::with_capacity(8192));
+  let weak = std::rc::Rc::downgrade(&rc);
+  assert_live_weak(&weak);
+  assert_live_weak(&(weak.clone(), weak));
+
+  let arc: Arc<[u64]> = Arc::from(vec![0; 128]);
+  assert_live_weak(&Arc::downgrade(&arc));
+  let rc: std::rc::Rc<str> = std::rc::Rc::from("x".repeat(4096));
+  assert_live_weak(&std::rc::Rc::downgrade(&rc));
+}
+
+#[test]
+fn weak_pointers_do_not_require_a_payload_adapter() {
+  use rspack_allocative_testing::StaticOnlyBorrowed;
+
+  // This payload only implements Allocative for 'static. Neither the live nor
+  // the retained-allocation path may invoke that adapter for a temporary borrow.
+  let text = "x".repeat(65536);
+  let arc = Arc::new(StaticOnlyBorrowed(&text));
+  assert_eq!(arc.0, text);
+  let allocation = shared_allocation_size(&*arc);
+  let weak = Arc::downgrade(&arc);
+  assert_live_weak(&weak);
+  drop(arc);
+  assert_retained_weak(&weak, size_of_val(&weak) + allocation);
+
+  let rc = std::rc::Rc::new(StaticOnlyBorrowed(&text));
+  let allocation = shared_allocation_size(&*rc);
+  let weak = std::rc::Rc::downgrade(&rc);
+  assert_live_weak(&weak);
+  drop(rc);
+  assert_retained_weak(&weak, size_of_val(&weak) + allocation);
 }
 
 fn assert_retained_weak(value: &dyn Visit, expected: usize) {
