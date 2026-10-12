@@ -35,7 +35,7 @@ export default defineConfig({
             plugin.name === binding.BuiltinPluginName.JsLoaderRspackPlugin,
         )!;
         const run = plugin.options as Runner;
-        const instances = new Map<number, Set<JsLoaderContext>>();
+        const instances = new Map<number, JsLoaderContext>();
         const invocations = new Map<number, number>();
         const reads = new WeakMap<JsLoaderContext, Map<string, number>>();
         let descriptors: Map<string, PropertyDescriptor> | undefined;
@@ -46,13 +46,9 @@ export default defineConfig({
             'JsLoaderContext',
           );
           const id = context.id;
-          let contexts = instances.get(id);
-          if (!contexts) {
-            contexts = new Set();
-            instances.set(id, contexts);
-          }
-          assert.equal(contexts.has(context), false);
-          contexts.add(context);
+          const previous = instances.get(id);
+          if (previous) assert.equal(context, previous);
+          else instances.set(id, context);
           invocations.set(id, (invocations.get(id) ?? 0) + 1);
           for (const field of [
             'id',
@@ -104,9 +100,7 @@ export default defineConfig({
         compiler.hooks.afterCompile.tap('LoaderContextClass', () => {
           assert.equal(instances.size, 1);
           assert.equal([...invocations.values()][0], 4);
-          const contexts = [...instances.values()][0];
-          assert.equal(contexts.size, 4);
-          for (const context of contexts) {
+          for (const context of instances.values()) {
             for (const field of lazyFields) {
               assert.equal(Object.hasOwn(context, field), false);
               assert.throws(

@@ -27,7 +27,7 @@ use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
 pub type JsLoaderRunner = ThreadsafeFunction<
   JsLoaderContextTransfer,
   Promise<JsLoaderContextUpdates>,
-  JsLoaderContextTransfer,
+  Reference<JsLoaderContext>,
   Status,
   false,
   true,
@@ -90,8 +90,19 @@ impl JsLoaderRunnerGetter {
         ThreadsafeFunctionCallMode::NonBlocking,
         move |result, env| {
           // Convert on the owning JS thread, before sending the runner to Rust.
-          let result = result
-            .and_then(|value| unsafe { JsLoaderRunner::from_napi_value(env.raw(), value.raw()) });
+          let result = result.and_then(|value| {
+            let function = unsafe {
+              Function::<Reference<JsLoaderContext>, Promise<JsLoaderContextUpdates>>::from_napi_value(
+                env.raw(),
+                value.raw(),
+              )?
+            };
+            function
+              .build_threadsafe_function::<JsLoaderContextTransfer>()
+              .callee_handled::<false>()
+              .weak::<true>()
+              .build_callback(|ctx| ctx.value.into_reference(&ctx.env))
+          });
           let _ = tx.send(result);
           Ok(())
         },

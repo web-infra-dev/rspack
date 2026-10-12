@@ -1,4 +1,5 @@
 use std::{
+  cell::RefCell,
   ptr::NonNull,
   sync::{Arc, Weak},
 };
@@ -7,7 +8,7 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
-use rspack_loader_runner::State as LoaderState;
+use rspack_loader_runner::{LoaderContextId, State as LoaderState};
 use rspack_napi::ThreadsafeOneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -161,9 +162,32 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
   }
 }
 
+thread_local! {
+  static LOADER_CONTEXT_REFS: RefCell<HashMap<LoaderContextId, (usize, WeakReference<JsLoaderContext>)>> = Default::default();
+}
+
 #[napi]
 pub struct JsLoaderContext {
+  id: LoaderContextId,
+  // Identity only: napi-rs moves the class before running its destructor.
+  instance: usize,
   inner: Option<Weak<LoaderContext<RunnerContext>>>,
+}
+
+impl Drop for JsLoaderContext {
+  fn drop(&mut self) {
+    // JS finalization removes the weak cache entry without a Rust runner notification.
+    let _ = LOADER_CONTEXT_REFS.try_with(|refs| {
+      let mut refs = refs.borrow_mut();
+      // A collected object's finalizer can run after a new class was cached for this id.
+      if refs
+        .get(&self.id)
+        .is_some_and(|(instance, _)| *instance == self.instance)
+      {
+        refs.remove(&self.id);
+      }
+    });
+  }
 }
 
 impl JsLoaderContext {
@@ -235,74 +259,76 @@ pub struct JsLoaderContextTransfer {
   pub content: Option<Content>,
 }
 
-fn define_data_property<T: ToNapiValue>(
-  env: &Env,
-  object: &mut Object,
-  name: &str,
-  value: T,
-) -> napi::Result<()> {
-  let value = unsafe { Unknown::from_napi_value(env.raw(), T::to_napi_value(env.raw(), value)?)? };
-  object.define_properties(&[Property::new()
-    .with_utf8_name(name)?
-    .with_value(&value)
-    .with_property_attributes(
-      napi::PropertyAttributes::Writable
-        | napi::PropertyAttributes::Enumerable
-        | napi::PropertyAttributes::Configurable,
-    )])
-}
-
-impl ToNapiValue for JsLoaderContextTransfer {
-  unsafe fn to_napi_value(raw_env: sys::napi_env, val: Self) -> napi::Result<sys::napi_value> {
-    let env = Env::from(raw_env);
-    let cx = val
+impl JsLoaderContextTransfer {
+  pub fn into_reference(self, env: &Env) -> napi::Result<Reference<JsLoaderContext>> {
+    let cx = self
       .context
       .upgrade()
       .ok_or_else(|| napi::Error::from_reason("Loader context invocation was cancelled"))?;
     let execution_span = cx
       .current_chain()
       .map_or(0..cx.loader_items.len(), |chain| chain.start()..chain.end());
-    let module = ModuleObject::with_ptr(
-      NonNull::from(cx.context.module.as_ref() as &dyn Module),
-      cx.context.compiler_id,
-    );
-    let class = JsLoaderContext {
-      inner: Some(val.context),
+    // Do not hold a cache borrow across N-API calls, which can run GC finalizers.
+    let cached = LOADER_CONTEXT_REFS.with(|refs| {
+      refs
+        .borrow()
+        .get(&cx.id())
+        .map(|(_, reference)| reference.clone())
+    });
+    let reference = match cached {
+      Some(reference) if reference.get().is_some() => {
+        // N-API can clear the weak handle before running the class's finalizer.
+        if reference.clone().into_unknown(env)?.raw().is_null() {
+          None
+        } else {
+          reference.upgrade(*env)?
+        }
+      }
+      _ => None,
     };
-    let value = unsafe { JsLoaderContext::to_napi_value(raw_env, class)? };
-    let mut object = unsafe { Object::from_napi_value(raw_env, value)? };
-    define_data_property(&env, &mut object, "id", cx.id().0)?;
-    define_data_property(&env, &mut object, "resource", cx.resource())?;
-    define_data_property(&env, &mut object, "hot", cx.hot)?;
-    define_data_property(&env, &mut object, "_module", module)?;
-    let content = match val.content {
+    let is_new = reference.is_none();
+    let mut reference = match reference {
+      Some(reference) => reference,
+      None => JsLoaderContext {
+        id: cx.id(),
+        instance: 0,
+        inner: None,
+      }
+      .into_reference(*env)?,
+    };
+    reference.inner = Some(self.context);
+    if is_new {
+      reference.instance = std::ptr::from_ref(&*reference) as usize;
+      LOADER_CONTEXT_REFS.with(|refs| {
+        refs
+          .borrow_mut()
+          .insert(cx.id(), (reference.instance, reference.downgrade()));
+      });
+    }
+    let mut object = unsafe { reference.clone(*env)?.into_unknown(env)?.cast::<Object>()? };
+    if is_new {
+      let module = ModuleObject::with_ptr(
+        NonNull::from(cx.context.module.as_ref() as &dyn Module),
+        cx.context.compiler_id,
+      );
+      object.set_named_property("id", cx.id().0)?;
+      object.set_named_property("resource", cx.resource())?;
+      object.set_named_property("hot", cx.hot)?;
+      object.set_named_property("_module", module)?;
+    }
+    let content = match self.content {
       Some(Content::String(content)) => Either3::A(content),
       Some(Content::Buffer(content)) => Either3::B(Buffer::from(content)),
       None => Either3::C(Null),
     };
-    define_data_property(&env, &mut object, "content", content)?;
-    define_data_property(&env, &mut object, "cacheable", cx.cacheable)?;
-    define_data_property(&env, &mut object, "loaderIndex", cx.loader_index)?;
-    define_data_property(
-      &env,
-      &mut object,
-      "loaderState",
-      JsLoaderState::from(cx.state()),
-    )?;
-    define_data_property(
-      &env,
-      &mut object,
-      "loaderChainStart",
-      execution_span.start as u32,
-    )?;
-    define_data_property(
-      &env,
-      &mut object,
-      "loaderChainEnd",
-      execution_span.end as u32,
-    )?;
-    define_data_property(&env, &mut object, "__internal__error", ())?;
-    Ok(value)
+    object.set_named_property("content", content)?;
+    object.set_named_property("cacheable", cx.cacheable)?;
+    object.set_named_property("loaderIndex", cx.loader_index)?;
+    object.set_named_property("loaderState", JsLoaderState::from(cx.state()))?;
+    object.set_named_property("loaderChainStart", execution_span.start as u32)?;
+    object.set_named_property("loaderChainEnd", execution_span.end as u32)?;
+    object.set_named_property("__internal__error", ())?;
+    Ok(reference)
   }
 }
 
