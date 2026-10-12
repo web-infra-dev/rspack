@@ -77,6 +77,8 @@ fn assign_chunk_ids(
     diagnostics.push(diagnostic);
   }
 
+  let build_identities = track_ids && can_reuse;
+
   let mut used_ids = get_used_chunk_ids(chunk_by_ukey);
   let used_ids_len = used_ids.len();
 
@@ -118,14 +120,14 @@ fn assign_chunk_ids(
             &context,
             &compilation.exports_info_artifact,
           )?,
-          (track_ids && can_reuse).then(|| Arc::new(ChunkIdIdentity::new(chunk, chunk_graph))),
+          build_identities.then(|| Arc::new(ChunkIdIdentity::new(chunk, chunk_graph))),
         ),
       ))
     })
     .collect::<Result<FxHashMap<_, _>>>()?;
 
   // Names and membership summaries share one parallel traversal and scheduling round.
-  let identities = if track_ids && can_reuse {
+  let identities = if build_identities {
     let mut identities = chunk_names
       .iter_mut()
       .filter_map(|(ukey, (_, identity))| identity.take().map(|identity| (*ukey, identity)))
@@ -157,7 +159,7 @@ fn assign_chunk_ids(
       &mut chunk_compare_cache,
     )
   });
-  let inputs = (track_ids && can_reuse).then(|| {
+  let inputs = build_identities.then(|| {
     let mut reserved_ids = used_ids
       .iter()
       .map(|id| id.as_str().into())

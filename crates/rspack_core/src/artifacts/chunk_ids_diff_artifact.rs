@@ -1,11 +1,11 @@
 use std::{
-  hash::{Hash, Hasher},
+  hash::{DefaultHasher, Hash, Hasher},
   mem,
   sync::{Arc, Mutex, atomic::AtomicBool},
 };
 
 use rspack_collections::IdentifierSet;
-use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   ArtifactExt, Chunk, ChunkGraph, ChunkGroup, ChunkKind, ChunkUkey, DependencyLocation, RuntimeKey,
@@ -65,11 +65,14 @@ impl Hash for ChunkIdIdentity {
 
 impl ChunkIdIdentity {
   pub fn new(chunk: &Chunk, chunk_graph: &ChunkGraph) -> Self {
+    // Membership elements are exact process-local keys: interned identifiers are never freed, and
+    // this artifact is never persisted. Only the two 64-bit sums can collide. A cross-build digest
+    // collision can only narrow module rehashing for one rebuild; chunk-id reuse is gated on exact
+    // names in allocation order (DeterministicChunkIdsInputs).
     let mut modules = MembershipDigest::default();
     for module in chunk_graph.get_chunk_modules_identifier(&chunk.ukey()) {
-      modules.add(module.precomputed_hash());
+      modules.add(module.as_char_ptr() as usize as u64);
     }
-    // Across builds, a changed identity colliding at 128 bits is negligible; incremental caches already use 64-bit content hashes.
     Self {
       name: chunk.name().map(ToOwned::to_owned),
       facade: chunk.kind() == ChunkKind::Facade,
@@ -103,7 +106,7 @@ impl Hash for ChunkGroupIdIdentity {
 }
 
 // DependencyLocation intentionally has no shared Hash implementation.
-fn hash_origin_location(location: Option<&DependencyLocation>, state: &mut FxHasher) {
+fn hash_origin_location(location: Option<&DependencyLocation>, state: &mut DefaultHasher) {
   match location {
     None => 0u8.hash(state),
     Some(DependencyLocation::Real(location)) => {
@@ -123,8 +126,11 @@ impl ChunkGroupIdIdentity {
   pub fn new(group: &ChunkGroup) -> Self {
     let mut origins = MembershipDigest::default();
     for origin in group.origins() {
-      let mut state = FxHasher::default();
-      origin.module.hash(&mut state);
+      let mut state = DefaultHasher::new();
+      origin
+        .module
+        .map(|module| module.as_char_ptr() as usize as u64)
+        .hash(&mut state);
       hash_origin_location(origin.loc.as_ref(), &mut state);
       origin.request.hash(&mut state);
       origins.add(state.finish());
@@ -189,6 +195,8 @@ pub struct ChunkIdsDiffArtifact {
 
 impl ChunkIdsDiffArtifact {
   pub fn advance_hash_baseline(&mut self) {
+    self.matched_membership.clear();
+    self.changed_group_origins.clear();
     self.previous_ids = mem::take(&mut self.pending_ids);
     self.previous_groups = mem::take(&mut self.pending_groups);
     self.deterministic_inputs = self
