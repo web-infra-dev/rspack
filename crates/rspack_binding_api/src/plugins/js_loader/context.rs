@@ -634,7 +634,7 @@ pub fn init_loader_context_registry(env: &Env) -> napi::Result<()> {
     .callee_handled::<false>()
     .build()?;
   let active_ids = ACTIVE_CONTEXT_IDS.with(|ids| Arc::clone(&ids.borrow()));
-  let registration = rspack_loader_runner::register_loader_context_drop_listener(move |id| {
+  let listener = rspack_loader_runner::register_loader_context_drop_listener(move |id| {
     if active_ids
       .lock()
       .expect("active loader contexts lock")
@@ -643,8 +643,8 @@ pub fn init_loader_context_registry(env: &Env) -> napi::Result<()> {
       callback.call(id.0, ThreadsafeFunctionCallMode::NonBlocking);
     }
   });
-  env.add_env_cleanup_hook(registration, |registration| {
-    drop(registration);
+  env.add_env_cleanup_hook(listener, |listener| {
+    drop(listener);
     let refs = LOADER_CONTEXT_REFS.with(|cell| std::mem::take(&mut *cell.borrow_mut()));
     drop(refs);
   })?;

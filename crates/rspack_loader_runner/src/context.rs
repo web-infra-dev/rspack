@@ -1,4 +1,10 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{
+    Arc,
+    atomic::{AtomicU32, Ordering},
+  },
+};
 
 use derive_more::Debug;
 use rspack_cacheable::cacheable;
@@ -10,6 +16,35 @@ use crate::{
   AdditionalData, Content, LoaderChain, LoaderItem, LoaderRunnerPlugin, ParseMeta, ResourceData,
   chain::LoaderChains, loader::LoaderItemList,
 };
+
+/// Process-wide identity of a single loader run, including all its JS yields.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct LoaderContextId(pub u32);
+
+static NEXT_CONTEXT_ID: AtomicU32 = AtomicU32::new(0);
+
+// The owning field notifies listeners without preventing LoaderResult from
+// moving the other context fields. Copied IDs do not notify listeners.
+#[derive(Debug)]
+pub(crate) struct LoaderContextLifetime(LoaderContextId);
+
+impl LoaderContextLifetime {
+  pub(crate) fn new() -> Self {
+    let id = NEXT_CONTEXT_ID
+      .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1))
+      .expect("loader context id exhausted");
+    Self(LoaderContextId(id))
+  }
+  pub(crate) fn id(&self) -> LoaderContextId {
+    self.0
+  }
+}
+
+impl Drop for LoaderContextLifetime {
+  fn drop(&mut self) {
+    crate::registry::notify_loader_context_drop(self.0);
+  }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum State {
@@ -53,7 +88,7 @@ impl LoaderDependencies {
 
 #[derive(Debug)]
 pub struct LoaderContext<Context: Send> {
-  pub(crate) lifetime: crate::registry::LoaderContextLifetime,
+  pub(crate) lifetime: LoaderContextLifetime,
   pub hot: bool,
   pub resource_data: Arc<ResourceData>,
   #[debug(skip)]
@@ -87,7 +122,7 @@ pub struct LoaderContext<Context: Send> {
 }
 
 impl<Context: Send> LoaderContext<Context> {
-  pub fn id(&self) -> crate::LoaderContextId {
+  pub fn id(&self) -> LoaderContextId {
     self.lifetime.id()
   }
 

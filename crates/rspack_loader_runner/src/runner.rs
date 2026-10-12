@@ -199,7 +199,7 @@ fn create_loader_context<Context: Send + Sync>(
   }
 
   Arc::new(LoaderContext {
-    lifetime: crate::registry::LoaderContextLifetime::new(),
+    lifetime: crate::context::LoaderContextLifetime::new(),
     hot: false,
     cacheable: true,
     parse_meta: Default::default(),

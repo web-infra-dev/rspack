@@ -13,14 +13,12 @@ mod scheme;
 pub use content::{
   AdditionalData, Content, DescriptionData, ParseMeta, ParseMetaValue, ResourceData,
 };
-pub use context::{LoaderContext, LoaderDependencies, State};
+pub use context::{LoaderContext, LoaderContextId, LoaderDependencies, State};
 pub use loader::{
   DisplayWithSuffix, Loader, LoaderExecutionKind, LoaderItem, ResourceParsedData, parse_resource,
 };
 pub use plugin::LoaderRunnerPlugin;
-pub use registry::{
-  LoaderContextDropRegistration, LoaderContextId, register_loader_context_drop_listener,
-};
+pub use registry::register_loader_context_drop_listener;
 pub use rspack_collections::{Identifiable, Identifier};
 pub use runner::{LoaderResult, run_loaders};
 pub use scheme::{Scheme, get_scheme};
