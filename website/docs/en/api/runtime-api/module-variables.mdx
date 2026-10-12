@@ -260,7 +260,7 @@ function glob(
 ```
 
 - **Parameters:**
-  - `pattern`: A glob pattern string, or an array of glob pattern strings, to match files (e.g., `'./dir/*.js'`). Supports `*`, `?`, `[abc]`, `{a,b}`, and `**` for recursive matching. Array patterns can also include negative patterns such as `'!**/bar.js'`.
+  - `pattern`: A glob pattern string, or an array of glob pattern strings, to match files (e.g., `'./dir/*.js'`). Supports `*`, `?`, `[abc]`, `{a,b}`, and `**` for recursive matching. Bare patterns can use `resolve.alias` (e.g., `'@/pages/*.js'`); for files inside the project root, returned keys use root-relative resolved paths. Array patterns can also include negative patterns such as `'!**/bar.js'`.
   - `options.eager`: When set to `true`, modules are included directly in the bundle and loaded synchronously. By default (`false`), modules are lazily loaded and each value is a thunk function that returns a `Promise` resolving to the module.
   - `options.import`: Import only the specified export from each matched module. For example, use `'default'` to get default exports, or a named export such as `'setup'`.
   - `options.query`: Append a query to each matched module request. It can be a query string such as `'?raw'`, or an object that is serialized as a URL query string. The keys returned from `import.meta.glob()` do not include the query.

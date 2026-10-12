@@ -6,9 +6,6 @@ let compilerIndex = 0;
 
 export default defineConfig({
   context: import.meta.dirname,
-  experiments: {
-    newCache: true,
-  },
   cache: {
     type: 'persistent',
     buildDependencies: [buildDependency],

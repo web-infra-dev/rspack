@@ -7,15 +7,6 @@ let builtErrorModules: string[] = [];
 
 export default defineConfig({
   context: import.meta.dirname,
-  experiments: {
-    newCache: {
-      codeGeneration: false,
-      devtool: false,
-      loader: false,
-      minimize: false,
-      module: true,
-    },
-  },
   optimization: {
     minimize: false,
   },

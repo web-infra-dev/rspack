@@ -1,6 +1,6 @@
 ```mjs title=main.mjs
 // ./index.js
-const assetUrl = new URL("./asset.txt", import.meta.url)
+const assetUrl = new URL("./asset.txt", import.meta.url);
 
 export { assetUrl };
 

@@ -22,6 +22,13 @@ export const ABSOLUTE_PUBLIC_PATH = `${BASE_URI}/css-extract-plugin/`;
 export const SINGLE_DOT_PATH_SEGMENT =
   '__css_extract_single_dot_path_segment__';
 
+// Give css-loader's new URL() an absolute public path and protect relative dot
+// segments until the CSS extraction plugin removes these markers.
+const getPublicPathForExtract = (publicPath: string) =>
+  /^[a-zA-Z][a-zA-Z\d+\-.]*?:/.test(publicPath)
+    ? publicPath
+    : `${ABSOLUTE_PUBLIC_PATH}${publicPath.replace(/\./g, SINGLE_DOT_PATH_SEGMENT)}`;
+
 interface DependencyDescription {
   identifier: string;
   content: string;
@@ -143,14 +150,12 @@ export const pitch: LoaderDefinition['pitch'] = function (request) {
   let publicPathForExtract: Filename | undefined;
 
   if (typeof publicPath === 'string') {
-    const isAbsolutePublicPath = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/.test(publicPath);
-
-    publicPathForExtract = isAbsolutePublicPath
-      ? publicPath
-      : `${ABSOLUTE_PUBLIC_PATH}${publicPath.replace(
-          /\./g,
-          SINGLE_DOT_PATH_SEGMENT,
-        )}`;
+    publicPathForExtract = getPublicPathForExtract(publicPath);
+  } else if (typeof publicPath === 'function') {
+    // Protect callback results too, without evaluating them before Rspack
+    // provides the path data and asset info.
+    publicPathForExtract = (pathData, assetInfo) =>
+      getPublicPathForExtract(publicPath(pathData, assetInfo));
   } else {
     publicPathForExtract = publicPath;
   }

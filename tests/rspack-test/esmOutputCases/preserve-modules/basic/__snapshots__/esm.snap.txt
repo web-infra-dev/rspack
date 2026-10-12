@@ -20,7 +20,7 @@ import "./other1_index_js-other2_index_js.mjs";
 
 it('should preserve modules', () => {
   expect(src_demo()).toBe('demo')
-})
+});
 
 export {};
 
@@ -29,11 +29,11 @@ export {};
 ```mjs title=other1_index_js-other2_index_js.mjs
 // ./other2/index.js
 // other2
-console.log.bind(console)
+console.log.bind(console);
 
 // ./other1/index.js
 // other1
-console.log.bind(console)
+console.log.bind(console);
 
 export {};
 

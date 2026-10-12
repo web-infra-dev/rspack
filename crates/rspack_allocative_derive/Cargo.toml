@@ -1,0 +1,23 @@
+[package]
+authors           = ["Meta"]
+description       = "Ownership adapters and active enum variant selection for Rspack allocative"
+edition.workspace = true
+license           = "MIT OR Apache-2.0"
+name              = "rspack-allocative_derive"
+publish           = false
+repository        = "https://github.com/facebookexperimental/allocative"
+version           = "0.3.3"
+
+[lib]
+doctest    = false
+proc-macro = true
+test       = false
+
+[dependencies]
+cow-utils   = { workspace = true }
+proc-macro2 = { workspace = true, features = ["proc-macro"] }
+quote       = { workspace = true, features = ["proc-macro"] }
+syn         = { workspace = true, features = ["derive", "full", "visit", "visit-mut", "printing", "parsing", "clone-impls", "proc-macro"] }
+
+[lints]
+workspace = true

@@ -1,18 +1,17 @@
 use rspack_core::{BoxPlugin, ExternalItem, PluginExt};
-use rspack_regex::RspackRegex;
 
-use crate::{ExternalsPlugin, node_builtins::NODE_BUILTINS};
+use crate::{ExternalsPlugin, node_builtins::is_node_builtin};
+
+fn is_node_external(request: &str) -> bool {
+  // Yarn PnP adds pnpapi as "builtin"
+  is_node_builtin(request) || request == "pnpapi"
+}
 
 pub fn node_target_plugin() -> BoxPlugin {
-  let mut externals: Vec<ExternalItem> = NODE_BUILTINS
-    .iter()
-    .map(|s| ExternalItem::from(s.to_string()))
-    .collect();
-  externals.push(ExternalItem::from(
-    RspackRegex::new("^node:").expect("Invalid regexp"),
-  ));
-  // Yarn PnP adds pnpapi as "builtin"
-  externals.push(ExternalItem::from("pnpapi".to_string()));
-
-  ExternalsPlugin::new("node-commonjs".to_string(), externals, false).boxed()
+  ExternalsPlugin::new(
+    "node-commonjs".to_string(),
+    vec![ExternalItem::RequestPredicate(is_node_external)],
+    false,
+  )
+  .boxed()
 }

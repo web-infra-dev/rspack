@@ -11,7 +11,7 @@ use rspack_util::{
 };
 use swc_core::common::SyntaxContext;
 use swc_experimental_allocator::Allocator;
-use swc_experimental_ecma_ast::{EsVersion, Program};
+use swc_experimental_ecma_ast::{Decl, EsVersion, GetSpan, ModuleDecl, ModuleItem, Program, Stmt};
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::resolver;
 
@@ -549,6 +549,22 @@ impl ConcatenationNameAllocator {
   }
 }
 
+fn statement_needs_semicolon(stmt: &Stmt<'_>) -> bool {
+  // An unbraced control-flow body can also continue into the next module.
+  match stmt {
+    Stmt::Block(_) | Stmt::Empty(_) | Stmt::Switch(_) | Stmt::Try(_) => false,
+    Stmt::Decl(decl) => matches!(decl.as_ref(), Decl::Var(_) | Decl::Using(_)),
+    Stmt::If(stmt) => statement_needs_semicolon(stmt.alt.as_ref().unwrap_or(&stmt.cons)),
+    Stmt::Labeled(stmt) => statement_needs_semicolon(&stmt.body),
+    Stmt::With(stmt) => statement_needs_semicolon(&stmt.body),
+    Stmt::While(stmt) => statement_needs_semicolon(&stmt.body),
+    Stmt::For(stmt) => statement_needs_semicolon(&stmt.body),
+    Stmt::ForIn(stmt) => statement_needs_semicolon(&stmt.body),
+    Stmt::ForOf(stmt) => statement_needs_semicolon(&stmt.body),
+    _ => true,
+  }
+}
+
 pub fn analyze_module_scope(
   source: &str,
   jsx: bool,
@@ -575,6 +591,19 @@ pub fn analyze_module_scope(
       error.kind().msg().to_string(),
     )
   })?;
+  // Use the statement's end so the separator precedes trailing comments.
+  module_info.trailing_semicolon_position = parsed_module.body.last().and_then(|item| {
+    let needs_semicolon = match item {
+      ModuleItem::Stmt(stmt) => statement_needs_semicolon(stmt),
+      ModuleItem::ModuleDecl(decl) => match decl.as_ref() {
+        ModuleDecl::ExportDefaultExpr(_) => true,
+        ModuleDecl::ExportDecl(decl) => matches!(decl.decl, Decl::Var(_) | Decl::Using(_)),
+        _ => false,
+      },
+    };
+    let end = item.span().real_hi();
+    (needs_semicolon && source.as_bytes()[end as usize - 1] != b';').then_some(end)
+  });
   let program = Program::Module(allocator.boxed(parsed_module));
   let semantic = resolver(&program);
   let identifiers = collect_ident(&allocator, &program);

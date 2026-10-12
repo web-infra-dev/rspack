@@ -25,6 +25,7 @@ rspack_regex       = { workspace = true }
 rspack_util        = { workspace = true }
 rustc-hash         = { workspace = true }
 smallvec           = { workspace = true }
+tokio              = { workspace = true, features = ["sync"] }
 tracing            = { workspace = true }
 
 [lints]

@@ -44,7 +44,7 @@ const lib = rspackRequire("./lib.js");
 
 it('should have correct value', () => {
   expect(lib.U).toBe(42)
-})
+});
 
 export {};
 

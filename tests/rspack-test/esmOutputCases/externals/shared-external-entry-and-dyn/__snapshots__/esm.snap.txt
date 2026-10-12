@@ -3,7 +3,7 @@
 
 // ./async.js
 
-const asyncValue = 'async'
+const asyncValue = 'async';
 
 export { readFile } from "fs";
 
@@ -24,7 +24,7 @@ it('should handle external used in both entry and dynamic import', async () => {
 	expect(mod.readFile).toBeDefined()
 	expect(readFile).toBeDefined()
 	expect(mod.readFile).toBe(readFile)
-})
+});
 
 export { readFile };
 

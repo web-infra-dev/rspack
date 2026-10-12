@@ -12,6 +12,7 @@ use crate::{
   module::{MODULE_PROPERTIES_BUFFER, Module},
   plugins::JsLoaderItem,
   resource_data::ReadonlyResourceDataWrapper,
+  shared_properties::define_shared_properties,
 };
 
 #[napi]
@@ -63,6 +64,45 @@ impl NormalModule {
         ))
       })?;
 
+    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
+      let mut properties = ref_cell.borrow_mut();
+      properties.clear();
+
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("resource")?
+          .with_value(&resource),
+      );
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("request")?
+          .with_value(&request),
+      );
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("userRequest")?
+          .with_value(&user_request),
+      );
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("rawRequest")?
+          .with_value(&raw_request),
+      );
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("resourceResolveData")?
+          .with_value(&resource_resolve_data),
+      );
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("loaders")?
+          .with_value(&loaders),
+      );
+      Self::new_inherited(self, env, &mut properties)
+    })
+  }
+
+  fn define_shared_properties(env: &napi::Env, object: Object<'_>) -> napi::Result<()> {
     #[js_function]
     pub fn match_resource_getter(ctx: CallContext<'_>) -> napi::Result<Either<JsString<'_>, ()>> {
       let this = ctx.this_unchecked::<JsObject>();
@@ -118,53 +158,16 @@ impl NormalModule {
       })
     }
 
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
-      properties.clear();
-
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("resource")?
-          .with_value(&resource),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("request")?
-          .with_value(&request),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("userRequest")?
-          .with_value(&user_request),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("rawRequest")?
-          .with_value(&raw_request),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("resourceResolveData")?
-          .with_value(&resource_resolve_data),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("loaders")?
-          .with_value(&loaders),
-      );
-      properties.push(
+    define_shared_properties::<Self>(env, object, || {
+      Ok(vec![
         napi::Property::new()
           .with_utf8_name("matchResource")?
           .with_getter(match_resource_getter)
           .with_setter(match_resource_setter),
-      );
-      // Info from Build
-      properties.push(
         napi::Property::new()
           .with_utf8_name("error")?
           .with_getter(error_getter),
-      );
-      Self::new_inherited(self, env, &mut properties)
+      ])
     })
   }
 
@@ -195,4 +198,4 @@ impl NormalModule {
   }
 }
 
-impl_module_methods!(NormalModule);
+impl_module_methods!(NormalModule, NormalModule::define_shared_properties);

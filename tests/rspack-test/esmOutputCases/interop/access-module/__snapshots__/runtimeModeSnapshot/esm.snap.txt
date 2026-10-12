@@ -23,7 +23,7 @@ var cjs_default = /*#__PURE__*/compatGetDefaultExport(cjs);
 
 it('should have correct runtime interop', () => {
   expect((cjs_default())).toBe(42)
-})
+});
 export {};
 
 ```

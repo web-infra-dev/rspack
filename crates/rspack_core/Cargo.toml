@@ -93,6 +93,7 @@ pretty_assertions = { workspace = true }
 workspace = true
 
 [features]
+allocative = ["rspack_sources/allocative", "rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative"]
 codspeed   = ["rspack_parallel/codspeed"]
 debug_tool = ["rspack_util/debug_tool"]
 default    = []

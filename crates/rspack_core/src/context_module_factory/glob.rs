@@ -5,8 +5,8 @@ use rspack_util::{identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
 
 use crate::{
-  ContextModuleOptions, GlobMatchOptions, escape_glob_pattern, extract_glob_base_dir,
-  glob_match_normalized_with_explicit_dot, normalize_path_separators,
+  ContextModuleOptions, GlobMatchOptions, ResolveInnerOptions, escape_glob_pattern,
+  extract_glob_base_dir, glob_match_normalized_with_explicit_dot, normalize_path_separators,
   normalize_path_separators_for_path, unescape_glob_path,
 };
 
@@ -73,6 +73,60 @@ pub fn compile_context_module_glob_request(
     request.push_str(&fragment);
   }
   CompiledContextModuleGlobRequest { request, recursive }
+}
+
+/// Bare globs such as `@/dir/*.js` compile to `./@/dir/` so that they match
+/// relative to the importer. Returns the request without `./` when its prefix
+/// names a `resolve.alias` key, so the resolver can apply the alias.
+pub(super) fn bare_context_module_glob_alias_request<'a>(
+  patterns: &[String],
+  request: &'a str,
+  resolve_options: &ResolveInnerOptions,
+) -> Option<&'a str> {
+  let bare = patterns
+    .iter()
+    .filter(|pattern| !pattern.starts_with('!'))
+    .all(|pattern| !pattern.starts_with('.') && !pattern.starts_with('/'));
+  if !bare {
+    return None;
+  }
+  let request = request.strip_prefix("./")?;
+  let path = parse_resource(request)?.path;
+  (!path.as_str().is_empty() && resolve_options.has_alias_for(path.as_str())).then_some(request)
+}
+
+pub(super) fn resolve_context_module_glob_alias(
+  patterns: &[String],
+  request: &str,
+  resolved_base: &str,
+  context: &str,
+  compiler_context: &str,
+) -> Vec<String> {
+  let request = request.trim_end_matches('/');
+  patterns
+    .iter()
+    .map(|pattern| {
+      let (negative, path) = pattern
+        .strip_prefix('!')
+        .map_or(("", pattern.as_str()), |path| ("!", path));
+      let Some(suffix) = path
+        .strip_prefix(request)
+        .and_then(|path| path.strip_prefix('/'))
+      else {
+        return pattern.clone();
+      };
+      let resolved_pattern = Utf8Path::new(resolved_base)
+        .node_join_posix(suffix)
+        .node_normalize_posix();
+      let resolved_pattern = resolved_pattern.as_str();
+      let rewritten = if Utf8Path::new(resolved_pattern).starts_with(compiler_context) {
+        context_relative_glob_request(resolved_pattern, compiler_context, true)
+      } else {
+        context_relative_glob_request(resolved_pattern, context, false)
+      };
+      format!("{negative}{rewritten}")
+    })
+    .collect()
 }
 
 fn case_insensitive_context_module_glob_base(

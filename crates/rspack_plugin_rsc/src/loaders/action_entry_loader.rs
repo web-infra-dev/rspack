@@ -5,6 +5,8 @@ use rspack_collections::Identifier;
 use rspack_core::RunnerContext;
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::{Loader, LoaderContext};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use serde::{Deserialize, Serialize};
 use simd_json::base::{ValueAsArray, ValueAsObject, ValueAsScalar};
 

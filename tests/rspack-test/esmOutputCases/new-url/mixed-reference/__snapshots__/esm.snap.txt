@@ -14,7 +14,7 @@ const assetUrl = new URL("./asset.txt", import.meta.url)
 it('should reference the same asset through both `import` and `new URL`', () => {
 	expect(asset_namespaceObject.endsWith('asset.txt')).toBe(true)
 	expect(assetUrl.href.endsWith('asset.txt')).toBe(true)
-})
+});
 
 export {};
 

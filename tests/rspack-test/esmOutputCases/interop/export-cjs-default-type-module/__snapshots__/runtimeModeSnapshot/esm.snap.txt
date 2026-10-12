@@ -26,7 +26,7 @@ defExports(module)
 it('should have correct interop for cjs', async () => {
   const { value } = await import(/*webpackIgnore: true*/ './main.mjs')
   expect(value).toBe(42)
-})
+});
 const foo = rspackRequire("./foo.cjs");
 
 export { foo as value };

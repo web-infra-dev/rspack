@@ -1,5 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{BuildMetaExportsType, DependencyId, DependencyType};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashSet as HashSet;
 
 pub type ConnectionUkey = i32;
@@ -73,6 +75,7 @@ pub struct RsdoctorDependency {
 }
 
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RsdoctorExportUsageDependency {
   pub dependency_id: DependencyId,
   pub origin_module_identifier: Identifier,

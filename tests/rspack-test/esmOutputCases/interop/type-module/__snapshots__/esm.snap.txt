@@ -32,7 +32,7 @@ it('should have correct re-export', async () => {
 	expect(foo()).toBe('foo')
 	expect(bar()).toBe('bar')
 	expect(defaultV.bar()).toBe('bar')
-})
+});
 
 const cjs_unknown = __webpack_require__("./cjs-unknown.cjs");
 var bar_0 = cjs_unknown.bar;

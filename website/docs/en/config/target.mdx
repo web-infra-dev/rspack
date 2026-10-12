@@ -18,6 +18,15 @@ type Target = false | string | string[];
 
 - **Default:** `browserslist` when the project includes a standard Browserslist configuration; otherwise `web`
 
+## Default behavior \{#default-behavior}
+
+When `target` is not set, Rspack looks for a [Browserslist configuration](#browserslist) starting from [`context`](/config/context):
+
+- If found, `target` defaults to `browserslist` and uses that configuration.
+- Otherwise, it defaults to `web`, which selects a browser environment without specifying browser versions or an ECMAScript version.
+
+Explicitly setting `target: 'browserslist'` requires a Browserslist configuration or the `BROWSERSLIST` environment variable; otherwise, Rspack reports an error.
+
 ## Recommended configurations
 
 ### Browsers

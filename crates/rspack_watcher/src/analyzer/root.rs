@@ -2,7 +2,7 @@
 use std::ops::Deref;
 
 use dashmap::DashSet as HashSet;
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet};
+use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
 use rspack_util::fx_hash::FxDashMap as HashMap;
 
 use super::{Analyzer, WatchPattern};
@@ -127,7 +127,7 @@ impl PathTree {
     // its own set (a no-op), leaving a stale child reference on the parent that
     // could later surface as a tree node that no longer exists.
     if let Some(parent) = path.parent().map(InternedPath::from)
-      && let Some(parent_node) = self.inner.get(&parent)
+      && let Some(mut parent_node) = self.inner.get_mut(&parent)
     {
       parent_node.children.remove(path);
     }
@@ -158,11 +158,11 @@ impl PathTree {
   fn add_path_recursive(&self, path: &InternedPath) {
     let tree = &self.inner;
     if let Some(parent) = path.parent() {
-      if let Some(node) = tree.get_mut(&InternedPath::from(parent)) {
+      if let Some(mut node) = tree.get_mut(&InternedPath::from(parent)) {
         node.add_child(path.clone());
         return;
       }
-      let parent_node = TreeNode::default();
+      let mut parent_node = TreeNode::default();
       parent_node.add_child(path.clone());
       tree.insert(InternedPath::from(parent), parent_node);
       self.add_path_recursive(&InternedPath::from(parent))
@@ -172,17 +172,17 @@ impl PathTree {
 
 #[derive(Debug, Default)]
 struct TreeNode {
-  children: InternedPathDashSet,
+  children: InternedPathSet,
 }
 
 impl TreeNode {
-  fn add_child(&self, child: InternedPath) {
+  fn add_child(&mut self, child: InternedPath) {
     self.children.insert(child);
   }
 
   fn only_child(&self) -> Option<InternedPath> {
     if self.children.len() == 1 {
-      self.children.iter().next().map(|c| c.key().clone())
+      self.children.iter().next().cloned()
     } else {
       None
     }

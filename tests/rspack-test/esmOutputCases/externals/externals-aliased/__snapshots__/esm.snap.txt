@@ -4,7 +4,7 @@
 // ./module.js
 
 
-console.log.bind(console)
+console.log.bind(console);
 
 // fs?771d
 
@@ -17,7 +17,7 @@ it('should handle aliased external', async () => {
 
 	expect(f).toBe(fs.readFile)
 	expect(w).toBe(fs.writeFile)
-})
+});
 
 
 

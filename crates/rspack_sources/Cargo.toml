@@ -13,10 +13,12 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
+allocative       = ["dep:allocative"]
 codspeed         = []
 rspack_cacheable = ["dep:rkyv"]
 
 [dependencies]
+allocative        = { workspace = true, optional = true }
 memchr            = { workspace = true, features = ["std"] }
 rkyv              = { workspace = true, optional = true }
 rustc-hash        = { workspace = true, features = ["std"] }

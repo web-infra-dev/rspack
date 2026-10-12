@@ -7,7 +7,7 @@ __webpack_require__.p = ('/assets/')
 __webpack_require__.nc ??= 'nonce'
 __webpack_require__.nc ||= 'fallback'
 __webpack_require__.nc &&= 'nonce-updated'
-__webpack_require__.p += ('nested/')
+__webpack_require__.p += ('nested/');
 
 // ./index.js
 const other = __webpack_require__("./other.js");
@@ -21,7 +21,7 @@ it('should have correct value', () => {
   expect(rspackPublicPath).toBe('/assets/nested/')
   expect(__webpack_require__.custom).toBeUndefined()
   expect(__webpack_require__.nc).toBe('nonce-updated')
-})
+});
 
 export {};
 

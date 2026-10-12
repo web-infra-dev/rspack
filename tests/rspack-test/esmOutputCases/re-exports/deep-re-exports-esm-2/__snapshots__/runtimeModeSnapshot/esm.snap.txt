@@ -112,7 +112,7 @@ it('should re-export esm correctly', async () => {
 	expect(typeof readFile).toBe('function')
 	expect(typeof resolve).toBe('function')
 	expect(fs.readFile).toBe(readFile)
-})
+});
 
 const lib_0 = rspackRequire("./lib.js");
 var lib_1 = lib_0.lib;

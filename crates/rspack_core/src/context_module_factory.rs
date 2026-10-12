@@ -10,8 +10,11 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use swc_core::common::util::take::Take;
 use tracing::instrument;
 
-use self::glob::ContextModuleGlobMatcher;
 pub use self::glob::{CompiledContextModuleGlobRequest, compile_context_module_glob_request};
+use self::glob::{
+  ContextModuleGlobMatcher, bare_context_module_glob_alias_request,
+  resolve_context_module_glob_alias,
+};
 use crate::{
   CompilationId, ContextElementDependency, ContextMode, ContextModule, ContextModuleOptions,
   ContextModulePattern, DependencyCategory, DependencyId, DependencyRef, DependencyType, ModuleExt,
@@ -293,6 +296,24 @@ impl ContextModuleFactory {
     let context = before_resolve_data.context;
     let recursive = before_resolve_data.recursive;
     let is_glob = matches!(&before_resolve_data.pattern, ContextModulePattern::Glob(_));
+    let specifier = match &before_resolve_data.pattern {
+      ContextModulePattern::Glob(patterns) => {
+        let resolver = plugin_driver
+          .resolver_factory
+          .get(ResolveOptionsWithDependencyType {
+            resolve_options: data
+              .resolve_options
+              .clone()
+              .map(|r| Box::new(Arc::unwrap_or_clone(r))),
+            resolve_to_context: true,
+            dependency_category: *dependency.category(),
+          });
+        bare_context_module_glob_alias_request(patterns, &specifier, &resolver.options())
+          .map(str::to_string)
+          .unwrap_or(specifier)
+      }
+      _ => specifier,
+    };
     let resolve_args = ResolveArgs {
       context: context.clone().into(),
       importer: data.issuer_identifier.as_ref(),
@@ -318,6 +339,19 @@ impl ContextModuleFactory {
         dependency_options.pattern = before_resolve_data.pattern.clone();
         if !is_glob {
           dependency_options.context = context.clone();
+        } else if !specifier.starts_with('.')
+          && !specifier.starts_with('/')
+          && let Some(request) = parse_resource(&specifier)
+          && let ContextModulePattern::Glob(patterns) = &dependency_options.pattern
+        {
+          dependency_options.pattern =
+            ContextModulePattern::Glob(resolve_context_module_glob_alias(
+              patterns,
+              request.path.as_str(),
+              resource.path.as_str(),
+              dependency_options.context.as_str(),
+              dependency_options.compiler_context.as_str(),
+            ));
         }
 
         let options = ContextModuleOptions {

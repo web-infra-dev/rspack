@@ -6,7 +6,7 @@ import { value } from "./module-module_js.mjs";
 
 it('should have correct export from module', async () => {
 	expect(value()).toBe(42)
-})
+});
 
 export {};
 

@@ -141,6 +141,7 @@ struct PendingPattern<'a> {
   cacheable: bool,
   file_dependencies: FxDashSet<PathBuf>,
   context_dependencies: FxDashSet<PathBuf>,
+  missing_dependencies: FxDashSet<PathBuf>,
   diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
 }
 
@@ -392,13 +393,19 @@ impl CopyRspackPlugin {
 
   async fn run_pattern(
     compilation: &Compilation,
-    pattern: &CopyPattern,
-    index: usize,
-    file_dependencies: &FxDashSet<PathBuf>,
-    context_dependencies: &FxDashSet<PathBuf>,
-    diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
+    pending: &PendingPattern<'_>,
     logger: &CompilationLogger,
   ) -> Result<Option<Vec<RunPatternResult>>> {
+    let PendingPattern {
+      index,
+      pattern,
+      file_dependencies,
+      context_dependencies,
+      missing_dependencies,
+      diagnostics,
+      ..
+    } = pending;
+    let index = *index;
     let orig_from = &pattern.from;
     let normalized_orig_from = Utf8PathBuf::from(orig_from);
 
@@ -504,7 +511,30 @@ impl CopyRspackPlugin {
 
     if matches!(from_type, FromType::Glob) {
       let glob_base_dir = unescape_glob_path(extract_glob_base_dir(&glob_query));
-      context_dependencies.insert(PathBuf::from(glob_base_dir).normalize().into_owned());
+      let glob_base_dir_exists = compilation
+        .input_filesystem
+        .metadata(Utf8Path::new(&glob_base_dir))
+        .await
+        .is_ok();
+      let glob_base_dir = PathBuf::from(glob_base_dir).normalize().into_owned();
+      // Align with copy-webpack-plugin: a glob base dir that does not exist yet is
+      // a missing dependency, not a context dependency. The watcher reports a
+      // registered context dependency absent from disk as removed, which forced a
+      // second compilation right after the first one.
+      // https://github.com/webpack/copy-webpack-plugin/issues/806
+      if glob_base_dir_exists {
+        logger.debug(format!(
+          "added '{}' as a context dependency",
+          glob_base_dir.display()
+        ));
+        context_dependencies.insert(glob_base_dir);
+      } else {
+        logger.debug(format!(
+          "added '{}' as a missing dependency",
+          glob_base_dir.display()
+        ));
+        missing_dependencies.insert(glob_base_dir);
+      }
     }
 
     logger.log(format!("begin globbing '{glob_query}'..."));
@@ -705,6 +735,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("run pattern");
   let mut file_dependencies = Vec::new();
   let mut context_dependencies = Vec::new();
+  let mut missing_dependencies = Vec::new();
   let mut diagnostics = Vec::new();
   let cache_counter = logger.cache("copy pattern cache");
   let pattern_cache_enabled = !matches!(&compilation.options.cache, CacheOptions::Disabled);
@@ -747,6 +778,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         cacheable,
         file_dependencies: FxDashSet::default(),
         context_dependencies: FxDashSet::default(),
+        missing_dependencies: FxDashSet::default(),
         diagnostics: Arc::new(Mutex::new(Vec::new())),
       });
     }
@@ -754,17 +786,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   logger.cache_end(cache_counter);
   let pending_results = pending_patterns
     .iter()
-    .map(|pending| {
-      CopyRspackPlugin::run_pattern(
-        compilation,
-        pending.pattern,
-        pending.index,
-        &pending.file_dependencies,
-        &pending.context_dependencies,
-        pending.diagnostics.clone(),
-        &logger,
-      )
-    })
+    .map(|pending| CopyRspackPlugin::run_pattern(compilation, pending, &logger))
     .collect::<FuturesOrdered<_>>()
     .collect::<Vec<_>>()
     .await;
@@ -799,6 +821,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let has_diagnostics = !pattern_diagnostics.is_empty();
       file_dependencies.extend(pattern_file_dependencies.iter().cloned());
       context_dependencies.extend(pattern_context_dependencies.iter().cloned());
+      missing_dependencies.extend(pending.missing_dependencies);
       diagnostics.extend(pattern_diagnostics);
 
       if pending.cacheable
@@ -836,6 +859,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   compilation
     .context_dependencies
     .extend(context_dependencies.into_iter().map(Into::into));
+  compilation
+    .missing_dependencies
+    .extend(missing_dependencies.into_iter().map(Into::into));
   compilation.extend_diagnostics(diagnostics);
 
   let permission_copies = self.emit_pattern_results(compilation, results_by_pattern);

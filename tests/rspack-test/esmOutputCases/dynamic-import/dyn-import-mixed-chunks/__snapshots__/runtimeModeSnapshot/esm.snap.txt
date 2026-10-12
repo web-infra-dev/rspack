@@ -14,7 +14,7 @@ it('should handle mixed: single-module chunk + multi-module chunk', async () => 
 	expect(m1).toHaveProperty('value', 1)
 	expect(m2).toHaveProperty('default', 'world')
 	expect(m2).toHaveProperty('value', 2)
-})
+});
 
 export {};
 

@@ -210,9 +210,6 @@ impl CodeSplitter {
           }
         };
 
-        // remove mask
-        self.mask_by_chunk.remove(chunk_ukey);
-
         // try to remove runtime chunk, runtime chunk is also included by chunk_group.chunks
         self.runtime_chunks.remove(chunk_ukey);
 
@@ -460,11 +457,7 @@ impl CodeSplitter {
 
     let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
     for module in &cache_result.modules {
-      let ordinal = self.get_module_ordinal(*module);
       chunk_graph.connect_chunk_and_module(chunk, *module);
-
-      let mask = self.mask_by_chunk.entry(chunk).or_default();
-      mask.insert(ordinal as usize);
     }
 
     let group = compilation
@@ -518,18 +511,6 @@ impl CodeSplitter {
           ordinal_by_module.insert(*m, ordinal_by_module.len() as u64);
         }
       }
-    }
-    for chunk in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
-      let mut mask = FixedBitSet::with_capacity(self.ordinal_by_module.len());
-      for module_id in compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_chunk_modules_identifier(chunk)
-      {
-        let module_ordinal = self.get_module_ordinal(*module_id);
-        mask.insert(module_ordinal as usize);
-      }
-      self.mask_by_chunk.insert(*chunk, mask);
     }
 
     self.stat_invalidated_chunk_group = 0;

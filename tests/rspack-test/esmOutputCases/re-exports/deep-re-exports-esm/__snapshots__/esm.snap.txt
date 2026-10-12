@@ -2,12 +2,12 @@
 // ./lib2.js
 
 
-const lib2_lib2 = 42
+const lib2_lib2 = 42;
 
 // ./lib.js
 
 
-const lib_lib = 42
+const lib_lib = 42;
 
 // ./index.js
 
@@ -18,7 +18,7 @@ it('should re-export esm correctly', async () => {
 	expect(lib2).toBe(42)
 	expect(lib3).toBe(42)
 	expect(lib4).toBe(24)
-})
+});
 
 var index_lib3 = (/* inlined export .lib3 */42);
 var index_lib4 = (/* inlined export .lib4 */24);
