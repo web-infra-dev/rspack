@@ -7,7 +7,9 @@ use rspack_benchmark::Criterion;
 use rspack_core::{
   Cache, Compilation, Compiler, CompilerCache, ModuleOptions, ModuleRule, ModuleRuleEffect,
   ModuleRuleUse, ModuleRuleUseLoader, Optimization, RuleSetCondition, build_chunk_graph,
-  build_module_graph::{build_module_graph_pass, finish_build_module_graph},
+  build_module_graph::{
+    ModuleGraphUpdateResult, build_module_graph_pass, finish_build_module_graph,
+  },
   fast_set,
   incremental::{Incremental, IncrementalOptions},
 };
@@ -188,12 +190,15 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     // Finalize build module graph (clean entry deps, finalize artifacts)
     let make_artifact = compiler.compilation.build_module_graph_artifact.steal();
     let exports_info_artifact = compiler.compilation.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) =
-      finish_build_module_graph(&compiler.compilation, make_artifact, exports_info_artifact)
-        .await
-        .unwrap();
+    let ModuleGraphUpdateResult {
+      artifact: make_artifact,
+      exports_info_artifact,
+      result,
+    } =
+      finish_build_module_graph(&compiler.compilation, make_artifact, exports_info_artifact).await;
     compiler.compilation.build_module_graph_artifact = make_artifact.into();
     compiler.compilation.exports_info_artifact = exports_info_artifact.into();
+    result.expect("build_chunk_graph benchmark should finalize the module graph");
   });
 
   assert_no_compilation_errors(&compiler.compilation, "build_chunk_graph benchmark setup");
