@@ -268,7 +268,7 @@ pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
         .as_any()
         .downcast_ref::<MappingSource>()
         .expect("edited mapping source must retain a mapping source")
-        .with_replacements(replacements)
+        .with_replacements(replacements, inner.size())
         .boxed()
     }
     CacheableSource::RawBuffer { buffer } => RawBufferSource::from(buffer).boxed(),

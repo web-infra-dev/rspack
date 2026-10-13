@@ -30,9 +30,10 @@ impl<'a, F: FnMut(Match)> StreamingMatcher<'a, F> {
     }
   }
 
-  /// Resolve pending matches at the end of the input.
-  pub fn finish(mut self) {
+  /// Resolve pending matches and return the complete input byte length.
+  pub fn finish(mut self) -> usize {
     self.scan(true);
+    self.offset
   }
 
   fn scan(&mut self, final_chunk: bool) {

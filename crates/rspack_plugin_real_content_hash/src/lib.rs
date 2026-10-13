@@ -338,6 +338,7 @@ struct AssetData<'a> {
   content: Option<Cow<'a, str>>,
   #[debug(skip)]
   mapping_matches: Vec<Match>,
+  mapping_size: usize,
   #[debug(skip)]
   new_source: OnceCell<BoxSource>,
   #[debug(skip)]
@@ -367,13 +368,14 @@ impl<'a> AssetData<'a> {
       mapping
         .to_writer(&mut matcher)
         .expect("scan source map JSON");
-      matcher.finish();
+      let mapping_size = matcher.finish();
       return Self {
         own_hashes,
         referenced_hashes,
         old_source: source,
         content: None,
         mapping_matches,
+        mapping_size,
         new_source: OnceCell::new(),
         new_source_without_own: OnceCell::new(),
       };
@@ -401,6 +403,7 @@ impl<'a> AssetData<'a> {
       old_source: source,
       content,
       mapping_matches: Vec::new(),
+      mapping_size: 0,
       new_source: OnceCell::new(),
       new_source_without_own: OnceCell::new(),
     }
@@ -437,7 +440,9 @@ impl<'a> AssetData<'a> {
         return if replacements.is_empty() {
           Arc::clone(self.old_source)
         } else {
-          mapping.with_replacements(replacements).boxed()
+          mapping
+            .with_replacements(replacements, self.mapping_size)
+            .boxed()
         };
       }
       if let Some(content) = &self.content

@@ -86,14 +86,20 @@ impl MappingSource {
 
   /// Return an immutable view with sorted, non-overlapping UTF-8 byte edits.
   /// Coordinates refer to this view's serialized JSON, including earlier edits.
-  pub fn with_replacements(&self, replacements: Vec<(usize, usize, String)>) -> Self {
+  /// `source_size` must equal this view's serialized byte length. Reuse the
+  /// scan count when available to avoid serializing the input again.
+  pub fn with_replacements(
+    &self,
+    replacements: Vec<(usize, usize, String)>,
+    source_size: usize,
+  ) -> Self {
     if replacements.is_empty() {
       return self.clone();
     }
     let mut end = 0;
-    let mut size = self.size();
+    let mut size = source_size;
     for (start, next_end, content) in &replacements {
-      assert!(end <= *start && start <= next_end && *next_end <= self.size());
+      assert!(end <= *start && start <= next_end && *next_end <= source_size);
       size = size - (next_end - start) + content.len();
       end = *next_end;
     }
