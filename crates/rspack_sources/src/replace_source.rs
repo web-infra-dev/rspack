@@ -64,6 +64,9 @@ pub enum ReplacementEnforce {
 pub struct Replacement {
   start: u32,
   end: u32,
+  /// Cached byte length of `content`, so hot size computations do not need
+  /// to decode the atom representation.
+  content_len: u32,
   #[cfg_attr(feature = "allocative", allocative(skip))]
   content: Atom,
   #[cfg_attr(feature = "allocative", allocative(skip))]
@@ -169,10 +172,12 @@ impl ReplaceSource {
     name: Option<String>,
     enforce: ReplacementEnforce,
   ) {
+    let content: Atom = content.into();
     self.add_replacement(Replacement {
       start,
       end,
-      content: content.into(),
+      content_len: content.len() as u32,
+      content,
       name: name.map(Into::into),
       enforce,
       insertion_order: self.replacements.len() as u32,
@@ -332,7 +337,7 @@ impl Source for ReplaceSource {
         // This content is already counted in inner_source_size, so no change needed
       }
       if replacement.start as usize >= inner_source_size {
-        size += replacement.content.len();
+        size += replacement.content_len as usize;
         continue;
       }
 
@@ -340,7 +345,7 @@ impl Source for ReplaceSource {
       let original_length = replacement
         .end
         .saturating_sub(replacement.start.max(inner_pos)) as usize;
-      let replacement_length = replacement.content.len();
+      let replacement_length = replacement.content_len as usize;
 
       // Subtract original content length and add replacement content length
       size = size
