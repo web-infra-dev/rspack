@@ -208,6 +208,7 @@ minimumReleaseAgeExclude:
   - mermaid@11.16.1
 
 patchedDependencies:
+  watchpack@2.5.2: patches/watchpack@2.5.2.patch
   webpack-sources@3.6.0: patches/webpack-sources@3.6.0.patch
 
 # Prevent un-reviewed build scripts

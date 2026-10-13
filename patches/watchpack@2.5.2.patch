@@ -1,0 +1,12 @@
+diff --git a/lib/util/globToRegExp.js b/lib/util/globToRegExp.js
+--- a/lib/util/globToRegExp.js
++++ b/lib/util/globToRegExp.js
+@@ -23,6 +23,8 @@ module.exports = (glob) => {
+ 	if (typeof glob !== "string") {
+ 		throw new TypeError("Expected a string");
+ 	}
++
++	glob = glob.replace(/\\/g, "/");
+ 
+ 	const len = glob.length;
+ 	let reStr = "";

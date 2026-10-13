@@ -449,6 +449,7 @@ catalogs:
       version: 7.0.2
 
 patchedDependencies:
+  watchpack@2.5.2: 3ef1e4d629beae689f791170f096d3b84db2fd8c71b8c284c133b6ec90df617f
   webpack-sources@3.6.0: 15bf81e827f2fd8c3e411c5d75b3e27b3ad7aff67e7bdee559e6253e9bf6b5d7
 
 importers:
@@ -754,7 +755,7 @@ importers:
         version: 6.0.3
       watchpack:
         specifier: 'catalog:'
-        version: 2.5.2
+        version: 2.5.2(patch_hash=3ef1e4d629beae689f791170f096d3b84db2fd8c71b8c284c133b6ec90df617f)
       webpack-sources:
         specifier: 'catalog:'
         version: 3.6.0(patch_hash=15bf81e827f2fd8c3e411c5d75b3e27b3ad7aff67e7bdee559e6253e9bf6b5d7)
@@ -14139,7 +14140,7 @@ snapshots:
     dependencies:
       wabt: 1.0.0-nightly.20180421
 
-  watchpack@2.5.2:
+  watchpack@2.5.2(patch_hash=3ef1e4d629beae689f791170f096d3b84db2fd8c71b8c284c133b6ec90df617f):
     dependencies:
       graceful-fs: 4.2.11
 
