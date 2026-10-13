@@ -62,15 +62,20 @@ policy before dereferencing native data. Current binding classes do not share on
 - Some callback-scoped wrappers also carry a direct pointer for access during the active hook or
   loader. That pointer is not a cross-build fallback and must not be used after the callback's
   supported execution window.
+- `Dependency` owns a shared reference to its Rust dependency. Its intrinsic getters and
+  `critical` setter remain safe after the hook or compilation ends, but graph-derived getters
+  still resolve against the original compilation. A late `critical` change may not affect results
+  already produced by the build.
 - A class whose policy revokes access must fail with a clear error once its target is unavailable.
 
-A setter must additionally verify that mutation is allowed in the current compilation phase.
+A setter must ensure the target remains valid for the mutation. A setter that modifies an owned
+dependency through internal synchronization does not require a live module graph.
 
 - Every native-backed class needs a Rust owner, stable identity, valid access window, permitted
   operations, and an explicit policy for rebuild, removal, compiler close, and owner drop.
-- Treat the underlying `Compilation`, `Module`, `Chunk`, graph, dependency, and block data as
-  compilation-scoped. A JavaScript wrapper may have a longer compatibility lifetime only when its
-  re-resolution behavior is deliberate and documented.
+- Treat graph relationships and the underlying `Compilation`, `Module`, `Chunk`, and block data as
+  compilation-scoped. A JavaScript wrapper may have a longer lifetime when it owns its target or
+  its re-resolution behavior is deliberate and documented.
 - After a rebuild or target removal, follow the class's documented re-resolution or revocation
   policy. Keep direct-pointer access inside its callback-scoped execution window. After compiler
   close or owner drop, never dereference a dangling native pointer.
@@ -80,10 +85,10 @@ A setter must additionally verify that mutation is allowed in the current compil
 Rspack deliberately does not emulate Rust's shared and exclusive borrow checking for native-backed
 JavaScript classes. Checking every getter, mutation, and callback would add overhead to hot APIs and
 would not match the object model expected by webpack-compatible plugins. The current contract
-instead relies on hook phases and loader conventions: read and mutate binding-backed class
-instances only while the Rspack-invoked hook or loader is active, and only through operations valid
-for that phase. Being inside the access window is necessary, but does not make every mutation valid
-in every hook.
+instead relies on hook phases and loader conventions: unless an API documents a longer access
+window, read and mutate binding-backed class instances only while the Rspack-invoked hook or loader
+is active, and only through operations valid for that phase. Being inside the access window is
+necessary, but does not make every mutation valid in every hook.
 
 The execution window depends on how Rspack invokes JavaScript:
 
