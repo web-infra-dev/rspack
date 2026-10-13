@@ -70,7 +70,7 @@ impl Cutout {
             .flatten()
             {
               force_build_modules.extend(resource_ids.modules().iter().copied());
-              force_build_deps.extend(resource_ids.dependencies().iter().copied());
+              force_build_deps.extend(resource_ids.dependencies());
             }
           }
         }

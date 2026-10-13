@@ -283,7 +283,7 @@ var {} = {{}};
 
   if context
     .runtime_requirements
-    .contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT)
+    .contains(RuntimeGlobals::DEFERRED_MODULE_EXPORTS)
   {
     // The deferred namespace and require runtimes share the exports object
     // before the module factory executes, just as in the normal JS bootstrap.
@@ -347,6 +347,10 @@ fn render_runtime_global_definition(
         "// expose the module cache\n{definition} = {module_cache};\n"
       ))
     }
+  } else if runtime_global == RuntimeGlobals::DEFERRED_MODULE_EXPORTS {
+    RawStringSource::from(format!(
+      "// expose the deferred module exports\n{definition} = __rspack_deferred_exports;\n"
+    ))
   } else {
     debug_assert_eq!(runtime_global, RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
     RawStringSource::from(format!(
@@ -363,6 +367,7 @@ fn render_runtime_global_definitions(
   for runtime_global in [
     RuntimeGlobals::MODULE_FACTORIES,
     RuntimeGlobals::MODULE_CACHE,
+    RuntimeGlobals::DEFERRED_MODULE_EXPORTS,
     RuntimeGlobals::INTERCEPT_MODULE_EXECUTION,
   ] {
     if !context.runtime_requirements.contains(runtime_global) {

@@ -23,6 +23,7 @@ import kuaishouLogo from './assets/kuaishou.svg';
 import microsoftLogo from './assets/microsoft.svg';
 import miroLogo from './assets/miro.svg';
 import nioLogo from './assets/nio.svg';
+import romeosLogo from './assets/romeos.svg';
 import sequoiaLogo from './assets/sequoia.svg';
 import snapLogo from './assets/snap.svg';
 import tiktokLogo from './assets/tiktok.svg';
@@ -68,6 +69,13 @@ const companyList: Company[] = [
     logo: googleLogo,
     url: 'https://google.com',
     width: 110,
+  },
+  {
+    name: 'RomeOS',
+    logo: romeosLogo,
+    text: 'RomeOS',
+    url: 'https://romeos.cc/',
+    width: 36,
   },
   {
     name: 'GitHub',

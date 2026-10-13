@@ -19,20 +19,29 @@ export default async function run() {
   try {
     const entryPath = path.join(context, 'index.js');
     const valuePath = path.join(context, 'value.js');
-    fs.writeFileSync(entryPath, "import './value.js';");
+    const binaryRequest = 'data:application/octet-stream;base64,AP9h';
+    fs.writeFileSync(
+      entryPath,
+      `import './value.js'; import '${binaryRequest}';`,
+    );
     fs.writeFileSync(valuePath, 'export default 42;');
     let compiler = rspack({
       context,
       entry: './index.js',
       mode: 'none',
+      devtool: 'source-map',
+      module: {
+        rules: [{ mimetype: 'application/octet-stream', type: 'asset/inline' }],
+      },
       cache: false,
       output: { path: path.join(context, 'dist') },
     });
     compiler.outputFileSystem = createFsFromVolume(new Volume());
     let entry, removed, info, stats;
+    let originalSource, originalMap, binarySource, sharedSource;
     let generation = 0;
     const fileKey = Symbol.for('rspack.buildInfo.fileDependencies');
-    let getContext, getFiles;
+    let getContext, getFiles, getMap, getMatchResource, setMatchResource, getError;
     compiler.hooks.done.tap('SharedAccessorsLifecycle', ({ compilation }) => {
       const modules = [...compilation.modules];
       const current = modules.find((module) => module.resource === entryPath);
@@ -41,9 +50,45 @@ export default async function run() {
         entry = current;
         removed = modules.find((module) => module.resource === valuePath);
         assert(removed);
+        originalSource = removed.originalSource();
+        getMap = Object.getOwnPropertyDescriptor(
+          originalSource,
+          '_sourceMapAsString',
+        ).get;
+        sharedSource = removed.originalSource();
+        tracker.track(
+          originalSource[Symbol.for('rspack.originalSource')],
+          'source cache',
+        );
+        tracker.track(
+          originalSource[Symbol.for('rspack.originalSource')].map,
+          'map callback',
+        );
+        const binaryModule = modules.find(
+          (module) => module.resource === binaryRequest,
+        );
+        assert(binaryModule);
+        binarySource = binaryModule.originalSource();
         info = removed.buildInfo;
         getContext = Object.getOwnPropertyDescriptor(entry, 'context').get;
         getFiles = Object.getOwnPropertyDescriptor(info, fileKey).get;
+        ({ get: getMatchResource, set: setMatchResource } =
+          Object.getOwnPropertyDescriptor(entry, 'matchResource'));
+        getError = Object.getOwnPropertyDescriptor(entry, 'error').get;
+        assert.equal(
+          getMatchResource,
+          Object.getOwnPropertyDescriptor(removed, 'matchResource').get,
+        );
+        assert.equal(
+          setMatchResource,
+          Object.getOwnPropertyDescriptor(removed, 'matchResource').set,
+        );
+        assert.equal(
+          getError,
+          Object.getOwnPropertyDescriptor(removed, 'error').get,
+        );
+        assert.equal(getMatchResource.call(removed), undefined);
+        assert.equal(getError.call(removed), undefined);
         assert.equal(
           getContext,
           Object.getOwnPropertyDescriptor(removed, 'context').get,
@@ -54,6 +99,28 @@ export default async function run() {
         );
         assert(getFiles.call(info).includes(valuePath));
       } else {
+        assert.equal(
+          getMatchResource,
+          Object.getOwnPropertyDescriptor(current, 'matchResource').get,
+        );
+        assert.equal(
+          getError,
+          Object.getOwnPropertyDescriptor(current, 'error').get,
+        );
+        assert.equal(getMatchResource.call(current), undefined);
+        assert.equal(getError.call(current), undefined);
+        assert.throws(
+          () => getMatchResource.call(removed),
+          /removed on the Rust side/,
+        );
+        assert.throws(
+          () => getError.call(removed),
+          /removed on the Rust side/,
+        );
+        assert.throws(
+          () => setMatchResource.call(removed, 'removed.js'),
+          /only modify the module in the loader/,
+        );
         assert.equal(entry.context, context);
         assert.equal(getContext.call(current), context);
         assert.throws(() => removed.context, /removed on the Rust side/);
@@ -88,6 +155,18 @@ export default async function run() {
       () => getContext.call(entry),
       /Compiler has been garbage collected/,
     );
+    assert.throws(
+      () => getMatchResource.call(entry),
+      /Compiler has been garbage collected/,
+    );
+    assert.throws(
+      () => getError.call(entry),
+      /Compiler has been garbage collected/,
+    );
+    assert.throws(
+      () => setMatchResource.call(entry, 'closed.js'),
+      /only modify the module in the loader/,
+    );
     entry = null;
     removed = null;
     await tracker.waitForCollection('module');
@@ -102,9 +181,36 @@ export default async function run() {
     );
     info = null;
     await tracker.waitForCollection('build info');
+    // The unread map is an owned snapshot, even after module removal, close and owner GC.
+    assert.equal(originalSource.source(), 'export default 42;');
+    originalMap = originalSource.map();
+    assert.deepEqual(originalMap.sourcesContent, ['export default 42;']);
+    assert.deepEqual(JSON.parse(getMap.call(originalSource)), originalMap);
+    await tracker.waitForCollection('map callback');
+    tracker.track(originalSource, 'original source');
+    originalSource = null;
+    await tracker.waitForCollection('original source');
+    // Another unread instance keeps the shared JS JSON alive after the first instance is gone.
+    assert.equal(
+      Object.getOwnPropertyDescriptor(sharedSource, '_sourceMapAsString').get,
+      getMap,
+    );
+    assert.deepEqual(sharedSource.map(), originalMap);
+    assert.notEqual(sharedSource.map(), originalMap);
+    await tracker.waitForCollection('source cache');
+    tracker.track(sharedSource, 'shared source');
+    sharedSource = null;
+    await tracker.waitForCollection('shared source');
+    assert.deepEqual(binarySource.source(), Buffer.from([0, 255, 97]));
+    binarySource.source()[0] = 42;
+    assert.deepEqual(binarySource.buffer(), Buffer.from([42, 255, 97]));
     // Keeping the accessor functions alive must not retain any of those owners.
     assert.equal(typeof getContext, 'function');
     assert.equal(typeof getFiles, 'function');
+    assert.equal(typeof getMap, 'function');
+    assert.equal(typeof getMatchResource, 'function');
+    assert.equal(typeof setMatchResource, 'function');
+    assert.equal(typeof getError, 'function');
   } finally {
     fs.rmSync(context, { recursive: true, force: true });
   }

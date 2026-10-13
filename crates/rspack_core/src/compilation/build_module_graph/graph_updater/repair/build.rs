@@ -8,14 +8,11 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlockRef, BoxModule, BuildContext, DependenciesBlock, DependencyParents,
-  DependencyRef, ModuleRef, SharedPluginDriver,
+  DependencyRef, ModuleRef, SharedPluginDriver, ValueCacheVersions,
   compilation::build_module_graph::{
     ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
   },
-  utils::{
-    ResourceId,
-    task_loop::{Task, TaskResult, TaskType},
-  },
+  utils::task_loop::{Task, TaskResult, TaskType},
 };
 
 #[derive(Debug)]
@@ -24,6 +21,7 @@ pub struct BuildTask {
   pub module: BoxModule,
   pub forwarded_ids: ForwardedIdSet,
   pub module_build_cache: Option<ModuleBuildCache>,
+  pub value_cache_versions: Arc<ValueCacheVersions>,
 }
 
 #[async_trait::async_trait]
@@ -37,8 +35,25 @@ impl Task<TaskContext> for BuildTask {
       mut module,
       forwarded_ids,
       module_build_cache,
+      value_cache_versions,
     } = *self;
     let plugin_driver = build_context.plugin_driver.clone();
+
+    if let Some(module_build_cache) = &module_build_cache
+      && let Some(cached_module) = module_build_cache
+        .restore(
+          &module,
+          &build_context.file_system_info,
+          &value_cache_versions,
+        )
+        .await?
+    {
+      return Ok(vec![Box::new(BuildResultTask {
+        build_result: ModuleBuildResult::Cached(cached_module),
+        plugin_driver,
+        forwarded_ids,
+      })]);
+    }
 
     let build_start_time = module_build_cache.as_ref().map(|_| current_time());
 
@@ -134,23 +149,22 @@ impl Task<TaskContext> for BuildResultTask {
       .module_graph
       .get_optimization_bailout_mut(&module.identifier())
       .extend_from_slice(&build_info.optimization_bailouts);
-    let resource_id = ResourceId::from(module.identifier());
     context
       .artifact
       .file_dependencies
-      .add_files(&resource_id, &build_info.dependencies.file);
+      .add_module_files(module.identifier(), &build_info.dependencies.file);
     context
       .artifact
       .context_dependencies
-      .add_files(&resource_id, &build_info.dependencies.context);
+      .add_module_files(module.identifier(), &build_info.dependencies.context);
     context
       .artifact
       .missing_dependencies
-      .add_files(&resource_id, &build_info.dependencies.missing);
+      .add_module_files(module.identifier(), &build_info.dependencies.missing);
     context
       .artifact
       .build_dependencies
-      .add_files(&resource_id, &build_info.dependencies.build);
+      .add_module_files(module.identifier(), &build_info.dependencies.build);
     drop(build_info);
 
     let module_graph = &mut context.artifact.module_graph;

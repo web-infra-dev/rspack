@@ -3,7 +3,6 @@ import { defineConfig } from '@rspack/cli';
 
 export default defineConfig({
   context: import.meta.dirname,
-  experiments: { newCache: { module: true, loader: false } },
   cache: {
     type: 'persistent',
     snapshot: {

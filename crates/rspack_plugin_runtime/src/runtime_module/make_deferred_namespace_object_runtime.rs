@@ -1,6 +1,6 @@
 use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeTemplate, RuntimeVariable, impl_runtime_module,
+  RuntimeTemplate, impl_runtime_module,
 };
 
 use crate::get_chunk_runtime_requirements;
@@ -44,7 +44,6 @@ impl RuntimeModule for MakeDeferredNamespaceObjectRuntimeModule {
     let source = runtime_template.render(
       self.id(),
       Some(serde_json::json!({
-        "_module_cache": runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
         "_has_async": has_async,
       })),
     )?;
@@ -57,6 +56,7 @@ impl RuntimeModule for MakeDeferredNamespaceObjectRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     let mut dependencies = RuntimeGlobals::REQUIRE
       | RuntimeGlobals::MODULE_CACHE
+      | RuntimeGlobals::DEFERRED_MODULE_EXPORTS
       | RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT;
     if get_chunk_runtime_requirements(compilation, &self.chunk_ukey)
       .contains(RuntimeGlobals::ASYNC_MODULE)

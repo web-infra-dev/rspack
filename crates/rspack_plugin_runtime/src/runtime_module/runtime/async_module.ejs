@@ -8,7 +8,7 @@
 <%- var("rspackDefer") %> = <%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>;<% } else { %><%- var("rspackDefer") %> = <%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";<% } %>
 <%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES) %> = <%- basicFunction("asyncDeps") %> {
 	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
-		var cache = <%- _module_cache %>[id];
+		var cache = <%- MODULE_CACHE %>[id];
 		return !cache || cache[rspackDone] === false;
 	});
 	if (hasUnresolvedAsyncSubgraph) {

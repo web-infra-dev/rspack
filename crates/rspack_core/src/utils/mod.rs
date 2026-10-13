@@ -48,23 +48,10 @@ pub use steal_cell::StealCell;
 #[cfg(feature = "codspeed")]
 pub use self::codspeed::*;
 pub use self::{
-  comment::*,
-  extract_source_map::*,
-  extract_url_and_global::*,
-  fast_actions::*,
-  file_counter::{FileCounter, ResourceId},
-  find_graph_roots::*,
-  identifier::*,
-  module_rules::*,
-  property_access::*,
-  property_name::*,
-  remove_bom::*,
-  runtime::*,
-  source::*,
-  source_size_cache::*,
-  template::*,
-  to_path::to_path,
-  topological_sort::*,
+  comment::*, extract_source_map::*, extract_url_and_global::*, fast_actions::*,
+  file_counter::FileCounter, find_graph_roots::*, identifier::*, module_rules::*,
+  property_access::*, property_name::*, remove_bom::*, runtime::*, source::*, source_size_cache::*,
+  template::*, to_path::to_path, topological_sort::*,
 };
 
 /// join string component in a more human readable way

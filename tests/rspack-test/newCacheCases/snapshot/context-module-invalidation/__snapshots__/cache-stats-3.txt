@@ -1,8 +1,16 @@
 [
   {
+    "minimize persistent cache": {
+      "hits": 0,
+      "total": 3
+    },
     "module build cache": {
       "hits": 3,
       "total": 4
+    },
+    "module code generation cache": {
+      "hits": 5,
+      "total": 6
     },
     "resolver cache": {
       "hits": 9,

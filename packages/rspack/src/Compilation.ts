@@ -143,6 +143,26 @@ export interface LogEntry {
   trace?: string[];
 }
 
+const logEntryTraceDescriptor = Object.getOwnPropertyDescriptor(
+  {
+    get trace() {
+      return cutOffLoaderExecution(new Error('Trace').stack!)
+        .split('\n')
+        .slice(3);
+    },
+  },
+  'trace',
+)!;
+
+const logEntryNoTraceDescriptor = Object.getOwnPropertyDescriptor(
+  {
+    get trace() {
+      return undefined;
+    },
+  },
+  'trace',
+)!;
+
 export interface CompilationParams {
   normalModuleFactory: NormalModuleFactory;
   contextModuleFactory: ContextModuleFactory;
@@ -888,19 +908,18 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
           time: Date.now(),
           type,
           args,
-          get trace() {
-            switch (type) {
-              case LogType.warn:
-              case LogType.error:
-              case LogType.trace:
-                return cutOffLoaderExecution(new Error('Trace').stack!)
-                  .split('\n')
-                  .slice(3);
-              default:
-                return undefined;
-            }
-          },
         };
+        // Share the accessor and object shape without capturing each log call.
+        // Select by the original type: hooks can subsequently change logEntry.type.
+        Object.defineProperty(
+          logEntry,
+          'trace',
+          type === LogType.warn ||
+            type === LogType.error ||
+            type === LogType.trace
+            ? logEntryTraceDescriptor
+            : logEntryNoTraceDescriptor,
+        );
 
         if (this.hooks.log.call(logName, logEntry) === undefined) {
           if (logEntry.type === LogType.profileEnd) {

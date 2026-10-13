@@ -1,6 +1,6 @@
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
-use rspack_paths::{InternedPath, InternedPathSet};
+use rspack_paths::{InternedPathList, InternedPathSet};
 use rustc_hash::FxHashMap;
 
 use crate::DependencyId;
@@ -9,9 +9,9 @@ use crate::DependencyId;
 #[derive(Debug, Clone)]
 pub struct FactorizeInfo {
   related_dep_ids: Vec<DependencyId>,
-  file_dependencies: Box<[InternedPath]>,
-  context_dependencies: Box<[InternedPath]>,
-  missing_dependencies: Box<[InternedPath]>,
+  file_dependencies: InternedPathList,
+  context_dependencies: InternedPathList,
+  missing_dependencies: InternedPathList,
   diagnostics: Vec<Diagnostic>,
 }
 
@@ -29,9 +29,9 @@ impl FactorizeInfo {
     );
     Self {
       related_dep_ids,
-      file_dependencies: file_dependencies.into_iter().collect(),
-      context_dependencies: context_dependencies.into_iter().collect(),
-      missing_dependencies: missing_dependencies.into_iter().collect(),
+      file_dependencies: InternedPathList::from_vec(file_dependencies.into_iter().collect()),
+      context_dependencies: InternedPathList::from_vec(context_dependencies.into_iter().collect()),
+      missing_dependencies: InternedPathList::from_vec(missing_dependencies.into_iter().collect()),
       diagnostics,
     }
   }
@@ -48,15 +48,15 @@ impl FactorizeInfo {
     &self.related_dep_ids
   }
 
-  pub fn file_dependencies(&self) -> &[InternedPath] {
+  pub fn file_dependencies(&self) -> &InternedPathList {
     &self.file_dependencies
   }
 
-  pub fn context_dependencies(&self) -> &[InternedPath] {
+  pub fn context_dependencies(&self) -> &InternedPathList {
     &self.context_dependencies
   }
 
-  pub fn missing_dependencies(&self) -> &[InternedPath] {
+  pub fn missing_dependencies(&self) -> &InternedPathList {
     &self.missing_dependencies
   }
 

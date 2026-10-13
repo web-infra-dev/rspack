@@ -86,7 +86,7 @@ var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
 var rspackDefer = __webpack_require__.zS = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
 __webpack_require__.zT = (asyncDeps) => {
 	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
-		var cache = __webpack_module_cache__[id];
+		var cache = __webpack_require__.c[id];
 		return !cache || cache[rspackDone] === false;
 	});
 	if (hasUnresolvedAsyncSubgraph) {

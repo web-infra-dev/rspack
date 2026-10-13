@@ -97,6 +97,48 @@ fn should_watch_a_single_file() {
   );
 }
 
+#[test]
+fn should_report_registered_files_inside_a_directory_moved_into_place() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(1000),
+    ..Default::default()
+  });
+
+  std::fs::create_dir(helper.join("parent")).unwrap();
+
+  // All missing probes share `parent` as their deepest existing ancestor.
+  // Stage outside that watched subtree, on the same filesystem.
+  let staging = tempfile::tempdir_in(helper.join("")).unwrap();
+  std::fs::create_dir(staging.path().join("dir")).unwrap();
+  std::fs::write(staging.path().join("dir/a.js"), "module.exports = 7;").unwrap();
+
+  let rx = watch!(
+    missing @ helper,
+    "parent/dir/a",
+    "parent/dir/a.js",
+    "parent/dir/a.json"
+  );
+
+  helper.tick(|| {
+    std::fs::rename(staging.path().join("dir"), helper.join("parent/dir")).unwrap();
+  });
+
+  let mut reported = false;
+  helper.collect_events(
+    rx,
+    |_, _| {},
+    |changes, abort| {
+      changes.assert_changed(helper.join("parent/dir/a.js"));
+      reported = true;
+      *abort = true;
+    },
+  );
+  assert!(
+    reported,
+    "Expected an aggregate event for the moved-in file"
+  );
+}
+
 #[tokio::test]
 async fn should_report_error_when_watching_after_close() {
   use rspack_watcher::{EventAggregateHandler, EventHandler};
@@ -172,4 +214,38 @@ fn should_emit_remove_when_a_watched_file_is_deleted() {
       *abort = true;
     },
   );
+}
+
+#[test]
+fn should_report_a_recreated_file_as_changed_only() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(1000),
+    ..Default::default()
+  });
+
+  helper.file("a");
+
+  let rx = watch!(helper, "a");
+
+  helper.tick(|| {
+    std::fs::remove_file(helper.join("a")).unwrap();
+    helper.file("a");
+  });
+
+  let aggregate_events = c!();
+  helper.collect_events(
+    rx,
+    |_, _| {},
+    |changes, abort| {
+      changes.assert_changed(helper.join("a"));
+      assert!(
+        !changes.deleted_files.contains(helper.join("a").as_str()),
+        "A recreated file must not be reported as removed: {:?}",
+        changes.deleted_files
+      );
+      add!(aggregate_events);
+      *abort = true;
+    },
+  );
+  assert!(load!(aggregate_events) > 0, "Expected an aggregated event");
 }

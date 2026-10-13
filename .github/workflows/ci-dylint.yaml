@@ -36,10 +36,15 @@ jobs:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       DYLINT_RUSTFLAGS: '-D warnings'
-      DYLINT_TOOLCHAIN: nightly-2025-10-31
       DYLINT_VERSION: 6.0.4
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Read project toolchain
+        run: |
+          toolchain=$(sed -nE 's/^[[:space:]]*channel[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' rust-toolchain.toml)
+          test -n "$toolchain"
+          echo "DYLINT_TOOLCHAIN=$toolchain" >> "$GITHUB_ENV"
 
       - name: Restore Dylint cache
         id: dylint-cache
@@ -52,7 +57,7 @@ jobs:
             ~/.cargo/git/checkouts/
             ~/.dylint_drivers/
             target/dylint/
-          key: dylint-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.DYLINT_VERSION }}-${{ env.DYLINT_TOOLCHAIN }}-${{ hashFiles('linting/**/Cargo.toml', 'linting/**/Cargo.lock', 'linting/**/rust-toolchain*', 'linting/**/.cargo/*.toml', 'linting/**/src/**/*.rs') }}
+          key: dylint-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.DYLINT_VERSION }}-${{ env.DYLINT_TOOLCHAIN }}-${{ hashFiles('rust-toolchain.toml', 'linting/**/Cargo.toml', 'linting/**/Cargo.lock', 'linting/**/.cargo/*.toml', 'linting/**/src/**/*.rs') }}
           restore-keys: |
             dylint-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.DYLINT_VERSION }}-${{ env.DYLINT_TOOLCHAIN }}-
 
@@ -65,8 +70,8 @@ jobs:
       - name: Run Cargo codegen
         run: cargo codegen
 
-      - name: Install Dylint Toolchain
-        run: rustup toolchain install "$DYLINT_TOOLCHAIN" -c rustc-dev -c llvm-tools-preview -c rust-src
+      - name: Install Dylint components
+        run: rustup component add --toolchain "$DYLINT_TOOLCHAIN" rustc-dev llvm-tools-preview rust-src
 
       - uses: cargo-bins/cargo-binstall@422f3094be6a0843857aa008b499caaf6bce0da8 # v1.24.0
 
@@ -89,4 +94,4 @@ jobs:
             ~/.cargo/git/checkouts/
             ~/.dylint_drivers/
             target/dylint/
-          key: dylint-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.DYLINT_VERSION }}-${{ env.DYLINT_TOOLCHAIN }}-${{ hashFiles('linting/**/Cargo.toml', 'linting/**/Cargo.lock', 'linting/**/rust-toolchain*', 'linting/**/.cargo/*.toml', 'linting/**/src/**/*.rs') }}
+          key: dylint-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.DYLINT_VERSION }}-${{ env.DYLINT_TOOLCHAIN }}-${{ hashFiles('rust-toolchain.toml', 'linting/**/Cargo.toml', 'linting/**/Cargo.lock', 'linting/**/.cargo/*.toml', 'linting/**/src/**/*.rs') }}

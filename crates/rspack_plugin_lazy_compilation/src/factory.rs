@@ -29,6 +29,8 @@ impl ModuleFactory for LazyCompilationDependencyFactory {
       .expect("should be lazy compile dependency");
     let options = dep.options();
 
+    data.issuer = options.issuer.clone();
+    data.resolve_options = options.resolve_options.clone();
     data
       .file_dependencies
       .extend(options.file_dependencies.iter().cloned());

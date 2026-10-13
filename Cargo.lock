@@ -214,13 +214,13 @@ dependencies = [
 
 [[package]]
 name = "async-recursion"
-version = "1.1.1"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b43422f69d8ff38f95f1b2bb76517c91589a924d1559a0e935d7c8ce0274c11"
+checksum = "4f8abc12baad266b1c8cec146854c195b5864b4221d4b2ca7296a7ae82d9e451"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.119",
+ "syn 3.0.3",
 ]
 
 [[package]]
@@ -3923,27 +3923,42 @@ dependencies = [
 [[package]]
 name = "rspack-allocative"
 version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "942dd788eb5b967d155baa21e4699e4a164e2b217a236ded02f22d86564730a4"
 dependencies = [
+ "arc-swap",
  "atomic_refcell",
  "camino",
  "ctor 0.1.26",
  "dashmap",
- "hashbrown 0.14.5",
+ "either",
+ "fixedbitset",
+ "halfbrown",
+ "hashlink",
+ "hstr",
  "indexmap",
+ "json",
+ "napi",
  "once_cell",
+ "parking_lot",
+ "pnp",
  "rspack-allocative_derive",
+ "rustc-hash",
+ "serde_json",
+ "simd-json",
+ "smallvec",
+ "smol_str",
+ "swc_config",
+ "swc_core",
+ "swc_ecma_minifier",
  "tokio",
+ "triomphe",
  "ustr-fxhash",
 ]
 
 [[package]]
 name = "rspack-allocative_derive"
 version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "125d6c4fea52a20e2baaa381c122e111a825ac4c3cccdbb50605805f025d7197"
 dependencies = [
+ "cow-utils",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -3976,6 +3991,27 @@ dependencies = [
  "tracing",
  "xxhash-rust",
  "zerocopy",
+]
+
+[[package]]
+name = "rspack_allocative_driver"
+version = "0.102.8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "rustc-hash",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "rspack_allocative_testing"
+version = "0.102.8"
+dependencies = [
+ "cow-utils",
+ "indexmap",
+ "rspack-allocative",
+ "rspack_allocative_driver",
+ "smallvec",
 ]
 
 [[package]]
@@ -5484,6 +5520,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "smallvec",
+ "tokio",
  "tracing",
 ]
 
