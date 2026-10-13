@@ -31,6 +31,8 @@ use std::{
 use cow_utils::CowUtils;
 use program::{Instructions, Program, States};
 pub use syntax::{Error, ErrorKind, validate};
+#[cfg(feature = "fs")]
+pub use walk::walk_dir;
 
 /// Options applied while compiling and consuming a glob.
 #[derive(Debug, Clone, Copy)]

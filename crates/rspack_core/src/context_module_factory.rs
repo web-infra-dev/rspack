@@ -4,6 +4,7 @@ use cow_utils::CowUtils;
 use derive_more::Debug;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_fs::ReadableFileSystem;
+use rspack_glob::walk_dir;
 use rspack_hook::define_hook;
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf, normalize_path_separators};
@@ -26,8 +27,6 @@ use crate::{
 };
 
 mod glob;
-mod walk;
-use walk::walk_dir;
 
 #[derive(Debug)]
 pub enum BeforeResolveResult {

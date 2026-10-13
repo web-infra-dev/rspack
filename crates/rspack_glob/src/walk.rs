@@ -7,6 +7,48 @@ use rspack_util::node_path::NodePath;
 
 use crate::GlobPattern;
 
+/// Walk a directory tree depth-first, calling `on_file` for each file found.
+///
+/// - `root`: starting directory
+/// - `recursive`: whether to descend into subdirectories
+/// - `skip_dotfiles`: whether to skip files whose name starts with `.`
+/// - `should_enter_dir`: called with (full_path, dirname) for each directory before descending
+/// - `on_file`: called with (full_path, filename) for each file
+pub async fn walk_dir(
+  root: &Utf8Path,
+  fs: Arc<dyn ReadableFileSystem>,
+  recursive: bool,
+  skip_dotfiles: bool,
+  should_enter_dir: &mut (impl FnMut(&Utf8Path, &str) -> bool + Send),
+  on_file: &mut (impl FnMut(Utf8PathBuf, String) + Send),
+) -> Result<()> {
+  if !fs.metadata(root).await.is_ok_and(|m| m.is_directory) {
+    return Ok(());
+  }
+  let filenames = fs.read_dir(root).await?;
+  // Keep each directory's iterator suspended while visiting its children, so
+  // callbacks retain the depth-first order without recursive boxed futures.
+  let mut stack = vec![(root.to_path_buf(), filenames.into_iter())];
+  while let Some((root, filenames)) = stack.last_mut() {
+    let Some(filename) = filenames.next() else {
+      stack.pop();
+      continue;
+    };
+    let path = root.join(&filename);
+    if fs.metadata(&path).await.is_ok_and(|m| m.is_directory) {
+      if recursive && should_enter_dir(&path, &filename) {
+        let filenames = fs.read_dir(&path).await?;
+        stack.push((path, filenames.into_iter()));
+      }
+    } else if skip_dotfiles && filename.starts_with('.') {
+      // skip dotfiles
+    } else {
+      on_file(path, filename);
+    }
+  }
+  Ok(())
+}
+
 impl GlobPattern<'_> {
   fn scan_directory_prefix(&self) -> Cow<'_, str> {
     // A directory boundary is also a UTF-8 boundary for filesystem paths.
