@@ -2,7 +2,7 @@ use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
   io::{self, Write},
-  sync::Arc,
+  sync::{Arc, OnceLock},
 };
 
 use crate::{
@@ -11,12 +11,25 @@ use crate::{
 };
 
 #[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
-#[derive(PartialEq, Eq, Hash)]
 pub(crate) struct MapData {
   pub(crate) map: SourceMap<'static>,
   version: String,
   ignore_list: Option<String>,
-  size: usize,
+  size: OnceLock<usize>,
+}
+
+// The serialized length is a cache, not part of the source's identity.
+impl PartialEq for MapData {
+  fn eq(&self, other: &Self) -> bool {
+    self.map == other.map
+  }
+}
+impl Eq for MapData {}
+
+impl Hash for MapData {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.map.hash(state);
+  }
 }
 
 #[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
@@ -47,18 +60,12 @@ impl MappingSource {
     let ignore_list = map
       .ignore_list()
       .map(|list| simd_json::to_string(list).expect("serialize ignoreList"));
-    let mut data = MapData {
+    let data = MapData {
       map,
       version,
       ignore_list,
-      size: 0,
+      size: OnceLock::new(),
     };
-    let mut size = 0;
-    data.visit(&mut |part| match part {
-      Part::Raw(s) => size += s.len(),
-      Part::String(s) => json_string_rope(s, &mut |s| size += s.len()),
-    });
-    data.size = size;
     Self(Arc::new(Data::Map(Box::new(data))))
   }
 
@@ -153,6 +160,19 @@ struct CompareWriter<'a> {
 
 struct HashWriter<'a>(&'a mut dyn Hasher);
 
+struct SizeWriter(usize);
+
+impl Write for SizeWriter {
+  fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+    self.0 += bytes.len();
+    Ok(bytes.len())
+  }
+
+  fn flush(&mut self) -> io::Result<()> {
+    Ok(())
+  }
+}
+
 impl Write for HashWriter<'_> {
   fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
     self.0.write(bytes);
@@ -196,6 +216,22 @@ enum Part<'a> {
 }
 
 impl MapData {
+  fn to_json(&self) -> String {
+    // Reuse the capacity estimate and concrete Vec writer so emission needs
+    // only one SIMD serialization pass. Retain the length, never the JSON.
+    let json = self.map.to_json();
+    let _ = self.size.set(json.len());
+    json
+  }
+
+  fn size(&self) -> usize {
+    *self.size.get_or_init(|| {
+      let mut writer = SizeWriter(0);
+      simd_json::to_writer(&mut writer, self.map.fields()).expect("count map JSON bytes");
+      writer.0
+    })
+  }
+
   fn visit<'a>(&'a self, visit: &mut impl FnMut(Part<'a>)) {
     let fields = self.map.fields();
     visit(Part::Raw("{\"version\":"));
@@ -285,7 +321,7 @@ fn json_string_rope<'a>(value: &'a str, visit: &mut dyn FnMut(&'a str)) {
 impl Source for MappingSource {
   fn source(&self) -> SourceValue<'_> {
     let value = match self.0.as_ref() {
-      Data::Map(data) => data.map.to_json(),
+      Data::Map(data) => data.to_json(),
       Data::Edited { .. } => {
         let mut value = String::with_capacity(self.size());
         self.rope(&mut |chunk| value.push_str(chunk));
@@ -336,14 +372,20 @@ impl Source for MappingSource {
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
-    let mut buffer = Vec::with_capacity(self.size());
-    self.to_writer(&mut buffer).expect("write JSON to Vec");
+    let buffer = match self.0.as_ref() {
+      Data::Map(data) => data.to_json().into_bytes(),
+      Data::Edited { size, .. } => {
+        let mut buffer = Vec::with_capacity(*size);
+        self.to_writer(&mut buffer).expect("write JSON to Vec");
+        buffer
+      }
+    };
     Cow::Owned(buffer)
   }
 
   fn size(&self) -> usize {
     match self.0.as_ref() {
-      Data::Map(data) => data.size,
+      Data::Map(data) => data.size(),
       Data::Edited { size, .. } => *size,
     }
   }

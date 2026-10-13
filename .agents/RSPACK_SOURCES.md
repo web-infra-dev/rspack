@@ -217,7 +217,7 @@ representation optimizations.
 | `RawBufferSource` | binary leaf          | exact bytes; lazy lossy rope view                                   |
 | `OriginalSource`  | mapped text leaf     | lazily creates token-like or line mappings                          |
 | `SourceMapSource` | existing/nested map  | directly borrows one map or composes outer and inner maps           |
-| `MappingSource`   | external map JSON   | retains the original map and serializes JSON on demand |
+| `MappingSource`   | external map JSON    | retains the original map and serializes JSON on demand              |
 | `ConcatSource`    | ordered composition  | flattens nested concats, merges adjacent raw strings, remaps tables |
 | `ReplaceSource`   | byte-range transform | maintains sorted edits and repairs mappings                         |
 | `CachedSource`    | memoization wrapper  | owns cross-call memoized state                                      |
@@ -229,8 +229,10 @@ Important implementation details:
   preceding segment. Avoid cloning maps or eagerly splitting all `sourcesContent`.
 - `MappingSource` is the JSON asset itself, so `map()` returns `None`. It retains the original
   `SourceMap` and its owner without interning, deduplicating, or rewriting `sourcesContent`.
-  Unedited `source()` uses the existing `SourceMap::to_json()` serializer on demand. All streaming
-  APIs expose borrowed JSON fragments, including splits at escapes. RCH scans serialized bytes
+  Unedited `source()` and `buffer()` use the existing `SourceMap::to_json()` serializer on demand
+  and cache only its byte length. Construction must not scan the map to compute its exact JSON
+  size; `size()` computes it lazily if needed, and this cache must not affect equality or hashing.
+  Rope APIs expose borrowed JSON fragments, including splits at escapes. RCH scans serialized bytes
   with bounded buffering and retains edits in another `MappingSource`, including custom digests
   and maps participating in content-hash groups. Content hashing and equality consume the exact
   rendered bytes; structural Source hashing remains separate. Persistent cache stores map fields
