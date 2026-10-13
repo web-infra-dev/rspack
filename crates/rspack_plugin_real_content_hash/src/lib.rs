@@ -6,7 +6,7 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use aho_corasick::{AhoCorasick, AhoCorasickKind, MatchKind};
+use aho_corasick::{AhoCorasick, AhoCorasickKind, Match, MatchKind};
 use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 pub use drive::*;
@@ -193,8 +193,12 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
     let batch_sources = batch_source_tasks
       .into_par_iter()
       .map(|(hash, name, data)| {
-        let new_source =
-          data.compute_new_source(data.own_hashes.contains(hash), &hash_to_new_hash, &hash_ac);
+        let new_source = data.compute_new_source(
+          data.own_hashes.contains(hash),
+          &hash_to_new_hash,
+          &hash_ac,
+          &hash_patterns,
+        );
         ((hash, name), new_source)
       })
       .collect::<HashMap<_, _>>();
@@ -276,7 +280,8 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   let updates: Vec<_> = assets_data
     .into_par_iter()
     .filter_map(|(name, data)| {
-      let new_source = data.compute_new_source(false, &hash_to_new_hash, &hash_ac);
+      let new_source = data.compute_new_source(false, &hash_to_new_hash, &hash_ac, &hash_patterns);
+      drop(data);
       let mut new_name = String::with_capacity(name.len());
       hash_ac.replace_all_with(name, &mut new_name, |_, hash, dst| {
         let replace_to = hash_to_new_hash
@@ -325,14 +330,14 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
 
 #[derive(Debug)]
 struct AssetData<'a> {
-  own_hashes: HashSet<String>,
-  referenced_hashes: HashSet<String>,
+  own_hashes: HashSet<&'a str>,
+  referenced_hashes: HashSet<&'a str>,
   #[debug(skip)]
   old_source: &'a BoxSource,
   #[debug(skip)]
   content: Option<Cow<'a, str>>,
   #[debug(skip)]
-  mapping_matches: Vec<(usize, usize, String)>,
+  mapping_matches: Vec<Match>,
   #[debug(skip)]
   new_source: OnceCell<BoxSource>,
   #[debug(skip)]
@@ -344,7 +349,7 @@ impl<'a> AssetData<'a> {
     source: &'a BoxSource,
     info: &AssetInfo,
     hash_ac: &AhoCorasick,
-    hash_patterns: &[&str],
+    hash_patterns: &[&'a str],
   ) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
@@ -353,11 +358,11 @@ impl<'a> AssetData<'a> {
       let mut matcher = StreamingMatcher::new(hash_ac, |found| {
         let hash = hash_patterns[found.pattern().as_usize()];
         if info.content_hash.contains(hash) {
-          own_hashes.insert(hash.to_owned());
+          own_hashes.insert(hash);
         } else {
-          referenced_hashes.insert(hash.to_owned());
+          referenced_hashes.insert(hash);
         }
-        mapping_matches.push((found.start(), found.end(), hash.to_owned()));
+        mapping_matches.push(found);
       });
       mapping
         .to_writer(&mut matcher)
@@ -374,13 +379,13 @@ impl<'a> AssetData<'a> {
       };
     }
     let content = if let SourceValue::String(content) = source.source() {
-      for hash in hash_ac.find_iter(content.as_ref()) {
-        let hash = &content[hash.range()];
+      for found in hash_ac.find_iter(content.as_ref()) {
+        let hash = hash_patterns[found.pattern().as_usize()];
         if info.content_hash.contains(hash) {
-          own_hashes.insert(hash.to_string());
+          own_hashes.insert(hash);
           continue;
         }
-        referenced_hashes.insert(hash.to_string());
+        referenced_hashes.insert(hash);
       }
       // Borrow contiguous sources instead of copying them for the entire pass.
       // Sources without hash matches will never need replacement, so discard
@@ -406,6 +411,7 @@ impl<'a> AssetData<'a> {
     without_own: bool,
     hash_to_new_hash: &HashMap<String, String>,
     hash_ac: &AhoCorasick,
+    hash_patterns: &[&str],
   ) -> BoxSource {
     (if without_own {
       &self.new_source_without_own
@@ -415,7 +421,8 @@ impl<'a> AssetData<'a> {
     .get_or_init(|| {
       if let Some(mapping) = self.old_source.as_any().downcast_ref::<MappingSource>() {
         let mut replacements = Vec::new();
-        for (start, end, hash) in &self.mapping_matches {
+        for found in &self.mapping_matches {
+          let hash = hash_patterns[found.pattern().as_usize()];
           let replacement = if without_own && self.own_hashes.contains(hash) {
             ""
           } else {
@@ -424,7 +431,7 @@ impl<'a> AssetData<'a> {
               .expect("RealContentHashPlugin: should have new hash")
           };
           if replacement != hash {
-            replacements.push((*start, *end, replacement.to_owned()));
+            replacements.push((found.start(), found.end(), replacement.to_owned()));
           }
         }
         return if replacements.is_empty() {
@@ -438,7 +445,7 @@ impl<'a> AssetData<'a> {
           || self
             .referenced_hashes
             .iter()
-            .any(|hash| matches!(hash_to_new_hash.get(hash.as_str()), Some(h) if h != hash)))
+            .any(|&hash| matches!(hash_to_new_hash.get(hash), Some(h) if h != hash)))
       {
         let mut new_content = String::with_capacity(content.len());
         hash_ac.replace_all_with(content, &mut new_content, |_, hash, dst| {
@@ -521,11 +528,11 @@ impl OrderedHashesBuilder<'_> {
       if let Some(asset_hash) = self.assets_data.get(name) {
         if !asset_hash.own_hashes.contains(hash) {
           for hash in &asset_hash.own_hashes {
-            hashes.insert(hash.as_str());
+            hashes.insert(*hash);
           }
         }
         for hash in &asset_hash.referenced_hashes {
-          hashes.insert(hash.as_str());
+          hashes.insert(*hash);
         }
       }
     }

@@ -571,6 +571,40 @@ impl<'a> SourceMap<'a> {
     self.fields.sources_content = Cow::Owned(sources_content);
   }
 
+  /// Remove source contents without retaining the source or JSON buffer that owned them.
+  ///
+  /// Borrowed metadata is copied before releasing its owner; owned fields are reused.
+  #[doc(hidden)]
+  pub fn remove_sources_content(&mut self) {
+    self.fields.sources_content = Cow::Owned(Vec::new());
+    if self.owner.is_none() {
+      return;
+    }
+
+    // Clearing sourcesContent alone leaves the owner alive for the remaining borrows.
+    // Own every remaining field before releasing that source graph or parsed JSON buffer.
+    if let Some(file) = &mut self.fields.file {
+      file.to_mut();
+    }
+    for source in self.fields.sources.to_mut() {
+      source.to_mut();
+    }
+    for name in self.fields.names.to_mut() {
+      name.to_mut();
+    }
+    self.fields.mappings.to_mut();
+    if let Some(source_root) = &mut self.fields.source_root {
+      source_root.to_mut();
+    }
+    if let Some(debug_id) = &mut self.fields.debug_id {
+      debug_id.to_mut();
+    }
+    if let Some(ignore_list) = &mut self.fields.ignore_list {
+      ignore_list.to_mut();
+    }
+    self.owner = None;
+  }
+
   /// Get the source content by index from sourcesContent field in [SourceMap].
   pub fn get_source_content(&self, index: usize) -> Option<&Cow<'_, str>> {
     self.fields.sources_content.get(index)

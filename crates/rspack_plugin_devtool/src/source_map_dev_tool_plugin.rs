@@ -1023,16 +1023,20 @@ impl SourceMapDevToolPlugin {
       source_map.set_ignore_list(Some(Cow::Owned(ignore_list)));
     }
 
-    if self.no_sources {
-      source_map.set_sources_content(vec![]);
-    }
-
     if let Some(source_root) = &self.source_root {
       source_map.set_source_root(Some(Cow::Owned(source_root.to_string())));
     }
 
     if let Some(debug_id) = debug_id {
       source_map.set_debug_id(Some(Cow::Owned(debug_id.to_owned())));
+    }
+
+    if self.no_sources {
+      if self.source_map_filename.is_some() {
+        source_map.remove_sources_content();
+      } else {
+        source_map.set_sources_content(vec![]);
+      }
     }
   }
 

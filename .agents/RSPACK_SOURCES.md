@@ -234,11 +234,16 @@ Important implementation details:
   size; `size()` computes it lazily if needed, and this cache must not affect equality or hashing.
   Rope APIs expose borrowed JSON fragments, including splits at escapes. RCH scans serialized bytes
   with bounded buffering and retains edits in another `MappingSource`, including custom digests
-  and maps participating in content-hash groups. Content hashing and equality consume the exact
-  rendered bytes; structural Source hashing remains separate. Persistent cache stores map fields
-  and edit layers directly, preserving empty fields without JSON encoding or parsing. Do not retain
-  the whole JSON in either the map asset or its replacement result. JS binding content requests
-  remain an explicit materialization boundary.
+  and maps participating in content-hash groups. Edited writers apply byte ranges to the original
+  SIMD serializer's output; do not route them through the scalar rope escaper. SRI computes all
+  requested digests in one serialization pass. Content equality retains field references and
+  advances through escapes lazily, rather than retaining a reference per escaped fragment.
+  Content hashing and equality consume the exact rendered bytes; structural Source hashing remains
+  separate. Persistent cache stores map fields and edit layers directly, preserving empty fields
+  without JSON encoding or parsing. Its map record is boxed so other cached source nodes do not
+  grow. For external `noSources` maps, own the remaining borrowed metadata before releasing the
+  owner of the removed contents. Do not retain the whole JSON in either the map asset or its
+  replacement result. JS binding content requests remain an explicit materialization boundary.
 - `ConcatSource::add` uses `&mut self` and `Mutex::get_mut`; reads lazily optimize children. Mapping
   shifts generated positions and remaps child-local indices into global deduplicated tables.
 - `ReplaceSource` ranges are half-open byte ranges. Edits are ordered by

@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-  MapOptions, ObjectPool, Source, SourceMap, SourceValue,
+  MapOptions, ObjectPool, RawBufferSource, RawStringSource, Source, SourceMap, SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, stream_chunks_of_raw_rope},
 };
 
@@ -104,29 +104,56 @@ impl MappingSource {
     }))
   }
 
-  /// Compare rendered bytes without allocating the complete JSON. Only borrowed
-  /// fragment references are retained while the other source writes its bytes.
+  /// Compare rendered bytes without allocating the complete JSON or collecting
+  /// a fragment reference for every escaped character.
   pub fn content_eq(&self, other: &dyn Source) -> bool {
-    if self.size() != other.size() {
-      return false;
-    }
     if let Some(other) = other.as_any().downcast_ref::<Self>()
       && self == other
     {
       return true;
     }
-    let mut chunks = Vec::new();
-    self.rope(&mut |chunk| {
-      if !chunk.is_empty() {
-        chunks.push(chunk.as_bytes());
-      }
-    });
+    if self.size() != other.size() {
+      return false;
+    }
+    if other.as_any().is::<RawStringSource>() || other.as_any().is::<RawBufferSource>() {
+      let buffer = other.buffer();
+      let mut writer = CompareWriter {
+        chunks: None,
+        chunk: buffer.as_ref(),
+      };
+      return self.to_writer(&mut writer).is_ok() && writer.is_finished();
+    }
     let mut writer = CompareWriter {
-      chunks,
-      index: 0,
-      offset: 0,
+      chunks: Some(self.json_chunks_iter()),
+      chunk: &[],
     };
-    other.to_writer(&mut writer).is_ok() && writer.index == writer.chunks.len()
+    other.to_writer(&mut writer).is_ok() && writer.is_finished()
+  }
+
+  fn json_chunks_iter(&self) -> Box<dyn Iterator<Item = &[u8]> + '_> {
+    match self.0.as_ref() {
+      Data::Map(data) => {
+        // Keep one reference per field rather than per escape. The string
+        // cursor scans each field only as the comparison needs its bytes.
+        let mut parts = Vec::new();
+        data.visit(&mut |part| parts.push(part));
+        Box::new(JsonChunks {
+          parts: parts.into_iter(),
+          string: None,
+        })
+      }
+      Data::Edited {
+        inner,
+        replacements,
+        ..
+      } => Box::new(EditedJsonChunks {
+        inner: inner.json_chunks_iter(),
+        replacements,
+        chunk: &[],
+        position: 0,
+        skip_until: 0,
+      }),
+    }
   }
 
   /// Visit the original, unescaped source contents without copying them.
@@ -153,9 +180,66 @@ impl MappingSource {
 }
 
 struct CompareWriter<'a> {
-  chunks: Vec<&'a [u8]>,
-  index: usize,
-  offset: usize,
+  chunks: Option<Box<dyn Iterator<Item = &'a [u8]> + 'a>>,
+  chunk: &'a [u8],
+}
+
+impl CompareWriter<'_> {
+  fn is_finished(&mut self) -> bool {
+    self.chunk.is_empty()
+      && self
+        .chunks
+        .as_mut()
+        .is_none_or(|chunks| chunks.all(|chunk| chunk.is_empty()))
+  }
+}
+
+struct ReplacementWriter<'a> {
+  writer: &'a mut dyn Write,
+  replacements: &'a [(usize, usize, String)],
+  position: usize,
+  consumed: usize,
+}
+
+impl ReplacementWriter<'_> {
+  fn finish(self) -> io::Result<()> {
+    // A fully deleted inner view may never call write, including for an
+    // insertion at its end. Emit any remaining zero-width edits here.
+    for (_, _, content) in self.replacements {
+      self.writer.write_all(content.as_bytes())?;
+    }
+    Ok(())
+  }
+}
+
+impl Write for ReplacementWriter<'_> {
+  fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+    let end = self.position + bytes.len();
+    while let Some((start, stop, content)) = self.replacements.first()
+      && *start <= end
+    {
+      if *start > self.consumed.max(self.position) {
+        self.writer.write_all(
+          &bytes[self.consumed.max(self.position) - self.position..start - self.position],
+        )?;
+      }
+      self.writer.write_all(content.as_bytes())?;
+      self.consumed = *stop;
+      self.replacements = &self.replacements[1..];
+    }
+    if self.consumed < end {
+      self
+        .writer
+        .write_all(&bytes[self.consumed.max(self.position) - self.position..])?;
+      self.consumed = end;
+    }
+    self.position = end;
+    Ok(bytes.len())
+  }
+
+  fn flush(&mut self) -> io::Result<()> {
+    self.writer.flush()
+  }
 }
 
 struct HashWriter<'a>(&'a mut dyn Hasher);
@@ -188,18 +272,18 @@ impl Write for CompareWriter<'_> {
   fn write(&mut self, mut bytes: &[u8]) -> io::Result<usize> {
     let len = bytes.len();
     while !bytes.is_empty() {
-      let Some(chunk) = self.chunks.get(self.index) else {
-        return Err(io::Error::other("source contents differ"));
-      };
-      let n = bytes.len().min(chunk.len() - self.offset);
-      if bytes[..n] != chunk[self.offset..self.offset + n] {
+      while self.chunk.is_empty() {
+        self.chunk = self
+          .chunks
+          .as_mut()
+          .and_then(|chunks| chunks.next())
+          .ok_or_else(|| io::Error::other("source contents differ"))?;
+      }
+      let n = bytes.len().min(self.chunk.len());
+      if bytes[..n] != self.chunk[..n] {
         return Err(io::Error::other("source contents differ"));
       }
-      self.offset += n;
-      if self.offset == chunk.len() {
-        self.index += 1;
-        self.offset = 0;
-      }
+      self.chunk = &self.chunk[n..];
       bytes = &bytes[n..];
     }
     Ok(len)
@@ -215,6 +299,72 @@ enum Part<'a> {
   String(&'a str),
 }
 
+struct JsonChunks<'a> {
+  parts: std::vec::IntoIter<Part<'a>>,
+  string: Option<JsonStringChunks<'a>>,
+}
+
+impl<'a> Iterator for JsonChunks<'a> {
+  type Item = &'a [u8];
+
+  fn next(&mut self) -> Option<Self::Item> {
+    loop {
+      if let Some(string) = &mut self.string {
+        if let Some(chunk) = string.next() {
+          return Some(chunk.as_bytes());
+        }
+        self.string = None;
+      }
+      match self.parts.next()? {
+        Part::Raw(chunk) => return Some(chunk.as_bytes()),
+        Part::String(value) => self.string = Some(JsonStringChunks::new(value)),
+      }
+    }
+  }
+}
+
+struct EditedJsonChunks<'a> {
+  inner: Box<dyn Iterator<Item = &'a [u8]> + 'a>,
+  replacements: &'a [(usize, usize, String)],
+  chunk: &'a [u8],
+  position: usize,
+  skip_until: usize,
+}
+
+impl<'a> Iterator for EditedJsonChunks<'a> {
+  type Item = &'a [u8];
+
+  fn next(&mut self) -> Option<Self::Item> {
+    loop {
+      if self.position >= self.skip_until
+        && let Some((start, stop, content)) = self.replacements.first()
+        && *start == self.position
+      {
+        self.skip_until = *stop;
+        self.replacements = &self.replacements[1..];
+        return Some(content.as_bytes());
+      }
+      if self.chunk.is_empty() {
+        self.chunk = self.inner.next()?;
+        continue;
+      }
+      if self.position < self.skip_until {
+        let len = self.chunk.len().min(self.skip_until - self.position);
+        self.chunk = &self.chunk[len..];
+        self.position += len;
+        continue;
+      }
+      let len = self.replacements.first().map_or(self.chunk.len(), |edit| {
+        self.chunk.len().min(edit.0 - self.position)
+      });
+      let chunk = &self.chunk[..len];
+      self.chunk = &self.chunk[len..];
+      self.position += len;
+      return Some(chunk);
+    }
+  }
+}
+
 impl MapData {
   fn to_json(&self) -> String {
     // Reuse the capacity estimate and concrete Vec writer so emission needs
@@ -227,7 +377,8 @@ impl MapData {
   fn size(&self) -> usize {
     *self.size.get_or_init(|| {
       let mut writer = SizeWriter(0);
-      simd_json::to_writer(&mut writer, self.map.fields()).expect("count map JSON bytes");
+      simd_json::to_writer(&mut writer as &mut dyn Write, self.map.fields())
+        .expect("count map JSON bytes");
       writer.0
     })
   }
@@ -287,35 +438,70 @@ impl MapData {
   }
 }
 
-// These spellings match simd_json's compact serializer, including lowercase hex
-// for control characters. Every emitted slice borrows the immutable input or a
-// static escape, so rope callers may retain the slices for the source lifetime.
-fn json_string_rope<'a>(value: &'a str, visit: &mut dyn FnMut(&'a str)) {
-  const CONTROLS: [&str; 32] = [
-    "\\u0000", "\\u0001", "\\u0002", "\\u0003", "\\u0004", "\\u0005", "\\u0006", "\\u0007", "\\b",
-    "\\t", "\\n", "\\u000b", "\\f", "\\r", "\\u000e", "\\u000f", "\\u0010", "\\u0011", "\\u0012",
-    "\\u0013", "\\u0014", "\\u0015", "\\u0016", "\\u0017", "\\u0018", "\\u0019", "\\u001a",
-    "\\u001b", "\\u001c", "\\u001d", "\\u001e", "\\u001f",
-  ];
-  visit("\"");
-  let mut start = 0;
-  for (i, byte) in value.bytes().enumerate() {
-    let escaped = match byte {
-      b'"' => "\\\"",
-      b'\\' => "\\\\",
-      0..=31 => CONTROLS[usize::from(byte)],
-      _ => continue,
-    };
-    if start < i {
-      visit(&value[start..i]);
+struct JsonStringChunks<'a> {
+  remaining: &'a str,
+  pending: Option<&'static str>,
+  finished: bool,
+}
+
+impl<'a> JsonStringChunks<'a> {
+  fn new(value: &'a str) -> Self {
+    Self {
+      remaining: value,
+      pending: Some("\""),
+      finished: false,
     }
-    visit(escaped);
-    start = i + 1;
   }
-  if start < value.len() {
-    visit(&value[start..]);
+}
+
+impl<'a> Iterator for JsonStringChunks<'a> {
+  type Item = &'a str;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    // These spellings match simd_json's compact serializer. Every slice
+    // borrows the immutable input or a static escape, including for rope().
+    const CONTROLS: [&str; 32] = [
+      "\\u0000", "\\u0001", "\\u0002", "\\u0003", "\\u0004", "\\u0005", "\\u0006", "\\u0007",
+      "\\b", "\\t", "\\n", "\\u000b", "\\f", "\\r", "\\u000e", "\\u000f", "\\u0010", "\\u0011",
+      "\\u0012", "\\u0013", "\\u0014", "\\u0015", "\\u0016", "\\u0017", "\\u0018", "\\u0019",
+      "\\u001a", "\\u001b", "\\u001c", "\\u001d", "\\u001e", "\\u001f",
+    ];
+    if let Some(chunk) = self.pending.take() {
+      return Some(chunk);
+    }
+    if self.finished {
+      return None;
+    }
+    let value = self.remaining;
+    for (i, byte) in value.bytes().enumerate() {
+      let escaped = match byte {
+        b'"' => "\\\"",
+        b'\\' => "\\\\",
+        0..=31 => CONTROLS[usize::from(byte)],
+        _ => continue,
+      };
+      self.remaining = &value[i + 1..];
+      if i == 0 {
+        return Some(escaped);
+      }
+      self.pending = Some(escaped);
+      return Some(&value[..i]);
+    }
+    self.remaining = "";
+    self.finished = true;
+    if value.is_empty() {
+      Some("\"")
+    } else {
+      self.pending = Some("\"");
+      Some(value)
+    }
   }
-  visit("\"");
+}
+
+fn json_string_rope<'a>(value: &'a str, visit: &mut dyn FnMut(&'a str)) {
+  for chunk in JsonStringChunks::new(value) {
+    visit(chunk);
+  }
 }
 
 impl Source for MappingSource {
@@ -323,9 +509,7 @@ impl Source for MappingSource {
     let value = match self.0.as_ref() {
       Data::Map(data) => data.to_json(),
       Data::Edited { .. } => {
-        let mut value = String::with_capacity(self.size());
-        self.rope(&mut |chunk| value.push_str(chunk));
-        value
+        String::from_utf8(self.buffer().into_owned()).expect("map JSON must contain valid UTF-8")
       }
     };
     SourceValue::String(Cow::Owned(value))
@@ -401,14 +585,19 @@ impl Source for MappingSource {
   fn to_writer(&self, writer: &mut dyn Write) -> io::Result<()> {
     match self.0.as_ref() {
       Data::Map(data) => simd_json::to_writer(writer, data.map.fields()).map_err(io::Error::other),
-      Data::Edited { .. } => {
-        let mut result = Ok(());
-        self.rope(&mut |chunk| {
-          if result.is_ok() {
-            result = writer.write_all(chunk.as_bytes());
-          }
-        });
-        result
+      Data::Edited {
+        inner,
+        replacements,
+        ..
+      } => {
+        let mut writer = ReplacementWriter {
+          writer,
+          replacements,
+          position: 0,
+          consumed: 0,
+        };
+        inner.to_writer(&mut writer)?;
+        writer.finish()
       }
     }
   }

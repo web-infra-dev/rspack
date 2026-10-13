@@ -153,7 +153,10 @@ pub enum CacheableSource {
     inner: Box<CacheableSource>,
   },
   /// [`MappingSource`], preserving every field, including omitted empty arrays.
-  Mapping { map: CacheableSourceMap },
+  Mapping {
+    /// Keep map metadata from enlarging every cached source node.
+    map: Box<CacheableSourceMap>,
+  },
   /// An edited [`MappingSource`] remains a structural view of its input.
   EditedMapping {
     #[rkyv(omit_bounds)]
@@ -167,7 +170,7 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
   if let Some(s) = source.as_any().downcast_ref::<MappingSource>() {
     return match s.data() {
       Data::Map(data) => CacheableSource::Mapping {
-        map: (&data.map).into(),
+        map: Box::new((&data.map).into()),
       },
       Data::Edited {
         inner,
@@ -255,7 +258,7 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
 /// Convert a [`CacheableSource`] back into a [`BoxSource`].
 pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
   match cacheable {
-    CacheableSource::Mapping { map } => MappingSource::new(map.into()).boxed(),
+    CacheableSource::Mapping { map } => MappingSource::new((*map).into()).boxed(),
     CacheableSource::EditedMapping {
       inner,
       replacements,
