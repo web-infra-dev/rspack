@@ -330,3 +330,62 @@ async fn cyclic_references() {
     .map(|p| p.full_path());
   assert_eq!(resolved_path, Ok(f.join("b/src/index.ts")));
 }
+
+// A referenced tsconfig in the same directory as the root config, without
+// `paths` of its own, must not shadow the root config's `paths` for files
+// next to them (#16057). Matches `enhanced-resolve`, which only registers
+// references that declare `paths`.
+#[tokio::test]
+async fn same_dir_reference_without_paths() {
+  let f = super::fixture_root().join("tsconfig/cases/references-same-dir");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let resolved_path = resolver
+    .resolve(&f.join("src"), "@src/config/settings")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("src/config/settings.ts")));
+}
+
+// The deepest config containing the requesting file wins regardless of
+// declaration order, matching `enhanced-resolve`'s longest-prefix context
+// selection. The root config takes part too, so a reference to an
+// ancestor directory does not shadow it.
+#[tokio::test]
+async fn nested_references_longest_match() {
+  let f = super::fixture_root().join("tsconfig/cases/references-longest-match");
+
+  let resolver = Resolver::new(ResolveOptions {
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("app"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let cases = [
+    (f.clone(), f.join("aliased/index.ts")),
+    (f.join("app"), f.join("app/aliased/index.ts")),
+    (f.join("outer"), f.join("outer/aliased/index.ts")),
+    (
+      f.join("outer/inner"),
+      f.join("outer/inner/aliased/index.ts"),
+    ),
+  ];
+
+  for (path, expected) in cases {
+    let resolved_path = resolver
+      .resolve(&path, "@/index.ts")
+      .await
+      .map(|p| p.full_path());
+    assert_eq!(resolved_path, Ok(expected), "from {path:?}");
+  }
+}

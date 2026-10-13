@@ -180,13 +180,25 @@ impl TsConfig {
       .extend(other_config.file_dependencies.iter().cloned());
   }
 
+  /// Picks the config whose base path is the longest prefix of `path`, like
+  /// `enhanced-resolve`: references without `paths` are skipped, and a
+  /// reference wins a tie with the root config.
   pub fn resolve(&self, path: &Utf8Path, specifier: &str) -> Vec<Utf8PathBuf> {
-    for tsconfig in &self.flattened_references {
-      if path.starts_with(tsconfig.base_path()) {
-        return tsconfig.resolve_path_alias(specifier);
-      }
-    }
-    self.resolve_path_alias(specifier)
+    let root_base_path_len = path
+      .starts_with(self.base_path())
+      .then(|| self.base_path().as_str().len());
+    self
+      .flattened_references
+      .iter()
+      .filter(|reference| {
+        reference.compiler_options.paths.is_some() && path.starts_with(reference.base_path())
+      })
+      .max_by_key(|reference| reference.base_path().as_str().len())
+      .filter(|reference| {
+        root_base_path_len.is_none_or(|len| reference.base_path().as_str().len() >= len)
+      })
+      .map_or(self, |reference| reference.as_ref())
+      .resolve_path_alias(specifier)
   }
 
   // Copied from parcel

@@ -1,0 +1,1 @@
+{"compilerOptions":{"paths":{"@/*":["./aliased/*"]}},"references":[{"path":".."},{"path":"../outer"},{"path":"../outer/inner"}]}
