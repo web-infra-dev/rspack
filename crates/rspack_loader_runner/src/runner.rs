@@ -185,6 +185,11 @@ async fn run_loaders_impl<Context: Send>(
           cx.state.transition(State::Finished);
           continue;
         }
+        if cx.current_loader().should_skip_normal(cx.content.as_ref()) {
+          cx.current_loader().set_normal_executed();
+          cx.loader_index -= 1;
+          continue;
+        }
         let span = info_span!("run_loader:yield_to_js", resource);
         if cx.start_yielding().instrument(span).await? {
           continue;

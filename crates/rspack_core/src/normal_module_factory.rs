@@ -12,16 +12,16 @@ use winnow::prelude::*;
 
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
-  CompilerOptions, Context, CssAutoOrModuleParserOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx,
-  GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
-  ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
-  ResolveResult, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
-  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource,
+  CodeFilteredLoader, CompilerOptions, Context, CssAutoOrModuleParserOptions,
+  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
+  DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, MatchContext, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType,
+  NormalModule, ParserAndGenerator, ParserOptions, ParserOptionsMap, RawModule, Resolve,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, ResolvedModuleOptions,
+  ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory, ResourceData, ResourceParsedData,
+  RunnerContext, RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency,
+  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -856,6 +856,7 @@ impl NormalModuleFactory {
             }),
             cache: false,
             options_cache_key: String::new(),
+            filter: None,
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -1412,6 +1413,11 @@ async fn resolve_each_with_options(
     data,
   )
   .await?;
+  let resolved: BoxLoader = if let Some(filter) = loader.filter.clone() {
+    Arc::new(CodeFilteredLoader::new(resolved, filter))
+  } else {
+    resolved
+  };
   if !loader.cache {
     return Ok(ResolvedLoader::uncached(resolved));
   }

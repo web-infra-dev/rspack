@@ -15,8 +15,8 @@ use regex::Regex;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
-  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
-  CssAutoOrModuleParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
+  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, CodeFilter,
+  CodeFilterPattern, CssAutoOrModuleParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
   DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
   GeneratorOptions, GeneratorOptionsMap, ImportMeta, ImportMetaOptions,
@@ -51,6 +51,50 @@ pub struct RawModuleRuleUse {
   pub options: Option<String>,
   pub cache: bool,
   pub options_cache_key: String,
+  pub filter: Option<RawRuleSetLoaderFilter>,
+}
+
+type RawRuleSetLoaderCodePattern = Either<String, RspackRegex>;
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct RawRuleSetLoaderCodeFilter {
+  #[napi(ts_type = "Array<string | RegExp> | undefined")]
+  pub include: Option<Vec<RawRuleSetLoaderCodePattern>>,
+  #[napi(ts_type = "Array<string | RegExp>")]
+  pub exclude: Vec<RawRuleSetLoaderCodePattern>,
+}
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct RawRuleSetLoaderFilter {
+  pub code: RawRuleSetLoaderCodeFilter,
+}
+
+fn normalize_loader_code_pattern(value: RawRuleSetLoaderCodePattern) -> CodeFilterPattern {
+  match value {
+    Either::A(value) => CodeFilterPattern::String(value),
+    Either::B(value) => CodeFilterPattern::RegExp(value),
+  }
+}
+
+impl From<RawRuleSetLoaderFilter> for CodeFilter {
+  fn from(value: RawRuleSetLoaderFilter) -> Self {
+    Self::new(
+      value.code.include.map(|patterns| {
+        patterns
+          .into_iter()
+          .map(normalize_loader_code_pattern)
+          .collect()
+      }),
+      value
+        .code
+        .exclude
+        .into_iter()
+        .map(normalize_loader_code_pattern)
+        .collect(),
+    )
+  }
 }
 
 #[rspack_napi_macros::tagged_union]
@@ -1025,6 +1069,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
             options: rule_use.options,
             cache: rule_use.cache,
             options_cache_key: rule_use.options_cache_key,
+            filter: rule_use.filter.map(|filter| Arc::new(filter.into())),
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -1041,6 +1086,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
                   options: rule_use.options,
                   cache: rule_use.cache,
                   options_cache_key: rule_use.options_cache_key,
+                  filter: rule_use.filter.map(|filter| Arc::new(filter.into())),
                 })
                 .collect::<Vec<_>>()
             })

@@ -3,7 +3,7 @@ use std::{
   ops::Deref,
   sync::{
     Arc,
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicU8, Ordering},
   },
 };
 
@@ -15,7 +15,11 @@ use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
-use super::{LoaderContext, LoaderRunnerOptions};
+use super::{CodeFilter, Content, LoaderContext, LoaderRunnerOptions};
+
+const CODE_FILTER_NOT_EVALUATED: u8 = 0;
+const CODE_FILTER_MATCHED: u8 = 1;
+const CODE_FILTER_SKIPPED: u8 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoaderExecutionKind {
@@ -48,6 +52,7 @@ pub struct LoaderItem<Context: Send> {
   execution_kind: LoaderExecutionKind,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
+  code_filter_state: AtomicU8,
   /// Whether loader was called with [LoaderContext::finish_with].
   ///
   /// Indicates that the loader has finished its work,
@@ -145,6 +150,37 @@ impl<C: Send> LoaderItem<C> {
   }
 
   #[inline]
+  pub fn code_filter(&self) -> Option<&CodeFilter> {
+    self.loader.code_filter()
+  }
+
+  #[inline]
+  pub fn code_filter_evaluated(&self) -> bool {
+    self.code_filter_state.load(Ordering::Relaxed) != CODE_FILTER_NOT_EVALUATED
+  }
+
+  #[inline]
+  pub fn code_filter_matched(&self) -> bool {
+    self.code_filter_state.load(Ordering::Relaxed) == CODE_FILTER_MATCHED
+  }
+
+  #[inline]
+  pub fn should_skip_normal(&self, content: Option<&Content>) -> bool {
+    let Some(filter) = self.code_filter() else {
+      return false;
+    };
+    match self.code_filter_state.load(Ordering::Relaxed) {
+      CODE_FILTER_MATCHED => false,
+      CODE_FILTER_SKIPPED => true,
+      _ => {
+        let matched = filter.matches(content);
+        self.set_code_filter_result(matched);
+        !matched
+      }
+    }
+  }
+
+  #[inline]
   #[doc(hidden)]
   pub fn finish_called(&self) -> bool {
     self.finish_called.load(Ordering::Relaxed)
@@ -160,6 +196,19 @@ impl<C: Send> LoaderItem<C> {
   #[doc(hidden)]
   pub fn set_normal_executed(&self) {
     self.normal_executed.store(true, Ordering::Relaxed)
+  }
+
+  #[inline]
+  #[doc(hidden)]
+  pub fn set_code_filter_result(&self, matched: bool) {
+    self.code_filter_state.store(
+      if matched {
+        CODE_FILTER_MATCHED
+      } else {
+        CODE_FILTER_SKIPPED
+      },
+      Ordering::Relaxed,
+    )
   }
 
   #[inline]
@@ -253,6 +302,11 @@ where
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::Native
   }
+
+  /// Returns a precondition for running the normal loader handler.
+  fn code_filter(&self) -> Option<&CodeFilter> {
+    None
+  }
 }
 
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
@@ -285,6 +339,7 @@ impl<C: Send> LoaderItem<C> {
         execution_kind,
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
+        code_filter_state: AtomicU8::new(CODE_FILTER_NOT_EVALUATED),
         finish_called: AtomicBool::new(false),
       };
     }
@@ -306,6 +361,7 @@ impl<C: Send> LoaderItem<C> {
       execution_kind,
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
+      code_filter_state: AtomicU8::new(CODE_FILTER_NOT_EVALUATED),
       finish_called: AtomicBool::new(false),
     }
   }

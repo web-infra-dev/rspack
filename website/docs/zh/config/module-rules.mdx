@@ -769,11 +769,25 @@ type RuleSetUse =
 
 type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
 
+type RuleSetLoaderCodePattern = string | RegExp;
+
+type RuleSetLoaderCodeFilter =
+  | RuleSetLoaderCodePattern
+  | RuleSetLoaderCodePattern[]
+  | {
+      include?: RuleSetLoaderCodePattern | RuleSetLoaderCodePattern[];
+      exclude?: RuleSetLoaderCodePattern | RuleSetLoaderCodePattern[];
+    };
+
 type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
   parallel?: boolean | { maxWorkers?: number };
+  cache?: boolean;
+  filter?: {
+    code: RuleSetLoaderCodeFilter;
+  };
 };
 ```
 
@@ -827,6 +841,51 @@ export default {
   },
 };
 ```
+
+## rules[].use.filter
+
+<ApiMeta stability={Stability.Experimental} />
+
+- **类型：** `{ code: RuleSetLoaderCodeFilter }`
+- **默认值：** `undefined`
+
+当 loader 的当前输入代码不匹配时，跳过其 normal 函数。它适用于仅在模块包含特定语法时才需要执行的转换：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './transform-loader.js',
+            filter: {
+              code: {
+                include: ['createServerFn', /\bcreateMiddleware\b/],
+                exclude: /generated code/,
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+code filter 会在该 loader 的 normal 函数执行前立即求值，因此可以看到其右侧 loader 的输出。loader 的 pitch 函数不会被过滤，并保持原有行为。
+
+匹配规则如下：
+
+- 字符串执行子串匹配，而不是 glob 匹配。
+- `RegExp` 每次都从 `lastIndex = 0` 开始匹配。
+- 数组中的任意一个 pattern 匹配即视为匹配。
+- `exclude` 的优先级高于 `include`。未设置 `include` 时，默认包含输入。
+- `include: []` 永不匹配，`exclude: []` 不排除任何输入。
+- 字符串输入和包含有效 UTF-8 的 buffer 可以参与匹配。输入不存在或 buffer 包含非法 UTF-8 时不匹配。
+
+未命中时，Rspack 不会改变当前 content、source map、additional data 和 dependencies，也不会调用 normal loader 函数或查询其 loader cache。filter 属于执行元数据：它不会传入 loader options，也不会改变 loader request 或模块 identifier。
 
 ## rules[].use.ident
 

@@ -6,12 +6,13 @@ name              = "rspack_loader_runner"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 [dependencies]
-anymap      = { workspace = true }
-async-trait = { workspace = true }
-derive_more = { workspace = true, features = ["debug"] }
-memchr      = { workspace = true }
-rustc-hash  = { workspace = true }
-tokio       = { workspace = true, features = ["test-util"] }
+aho-corasick = { workspace = true }
+anymap       = { workspace = true }
+async-trait  = { workspace = true }
+derive_more  = { workspace = true, features = ["debug"] }
+memchr       = { workspace = true }
+rustc-hash   = { workspace = true }
+tokio        = { workspace = true, features = ["test-util"] }
 
 once_cell          = { workspace = true }
 rspack_cacheable   = { workspace = true }
@@ -20,6 +21,7 @@ rspack_error       = { workspace = true }
 rspack_fs          = { workspace = true }
 rspack_hash        = { workspace = true }
 rspack_paths       = { workspace = true, features = ["cacheable"] }
+rspack_regex       = { workspace = true }
 rspack_sources     = { workspace = true }
 rspack_util        = { workspace = true }
 serde_json         = { workspace = true }

@@ -1,6 +1,7 @@
 #![feature(string_from_utf8_lossy_owned)]
 
 mod cache;
+mod code_filter;
 mod content;
 mod context;
 mod loader;
@@ -8,6 +9,7 @@ mod plugin;
 mod runner;
 mod scheme;
 
+pub use code_filter::{CodeFilter, CodeFilterPattern};
 pub use content::{
   AdditionalData, Content, DescriptionData, ParseMeta, ParseMetaValue, ResourceData,
 };

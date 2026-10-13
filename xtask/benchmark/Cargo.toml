@@ -33,6 +33,7 @@ rspack_error                          = { workspace = true }
 rspack_fs                             = { workspace = true }
 rspack_hash                           = { workspace = true }
 rspack_javascript_compiler            = { workspace = true, features = ["codspeed"] }
+rspack_loader_runner                  = { workspace = true }
 rspack_plugin_javascript              = { workspace = true }
 rspack_plugin_split_chunks            = { workspace = true }
 rspack_regex                          = { workspace = true }

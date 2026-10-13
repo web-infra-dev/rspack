@@ -770,11 +770,25 @@ type RuleSetUse =
 
 type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
 
+type RuleSetLoaderCodePattern = string | RegExp;
+
+type RuleSetLoaderCodeFilter =
+  | RuleSetLoaderCodePattern
+  | RuleSetLoaderCodePattern[]
+  | {
+      include?: RuleSetLoaderCodePattern | RuleSetLoaderCodePattern[];
+      exclude?: RuleSetLoaderCodePattern | RuleSetLoaderCodePattern[];
+    };
+
 type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
   parallel?: boolean | { maxWorkers?: number };
+  cache?: boolean;
+  filter?: {
+    code: RuleSetLoaderCodeFilter;
+  };
 };
 ```
 
@@ -829,6 +843,51 @@ export default {
   },
 };
 ```
+
+## rules[].use.filter
+
+<ApiMeta stability={Stability.Experimental} />
+
+- **Type:** `{ code: RuleSetLoaderCodeFilter }`
+- **Default:** `undefined`
+
+Skips a loader's normal function when its current input code does not match. This is useful for transforms that only apply to modules containing specific syntax:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './transform-loader.js',
+            filter: {
+              code: {
+                include: ['createServerFn', /\bcreateMiddleware\b/],
+                exclude: /generated code/,
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+The code filter is evaluated immediately before this loader's normal function. It therefore sees the output of loaders to its right. The loader's pitch function is not filtered and keeps its existing behavior.
+
+Matching follows these rules:
+
+- A string performs a substring match, not a glob match.
+- A `RegExp` is tested from `lastIndex = 0` each time.
+- An array matches when any pattern matches.
+- `exclude` takes precedence over `include`. If `include` is omitted, the input is included by default.
+- `include: []` never matches, while `exclude: []` excludes nothing.
+- String input and buffers containing valid UTF-8 can match. Missing input and buffers containing invalid UTF-8 do not match.
+
+On a miss, Rspack leaves the current content, source map, additional data, and dependencies unchanged, and does not call the normal loader function or consult its loader cache. The filter is execution metadata: it is not passed to loader options and does not change loader requests or module identifiers.
 
 ## rules[].use.ident
 

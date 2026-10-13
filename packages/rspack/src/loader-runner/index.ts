@@ -59,6 +59,11 @@ import {
 import { memoize } from '../util/memoize';
 import { ModuleError, ModuleWarning } from './ModuleError';
 import { LoaderCache, type LoaderCacheEntry } from './cache';
+import {
+  createCodeFilterTextCache,
+  invalidateCodeFilterTextCache,
+  matchesCodeFilter,
+} from './codeFilter';
 import { LoaderDependenciesState } from './dependencies';
 import * as pool from './service';
 import { type HandleIncomingRequest, RequestType } from './service';
@@ -181,6 +186,23 @@ export class LoaderObject {
 
   shouldYield() {
     return this.request.startsWith(BUILTIN_LOADER_PREFIX);
+  }
+
+  shouldSkipNormal(
+    content: unknown,
+    cache: ReturnType<typeof createCodeFilterTextCache>,
+  ) {
+    const { codeFilter } = this.loaderItem;
+    if (!codeFilter) return false;
+    if (!this.loaderItem.codeFilterEvaluated) {
+      this.loaderItem.codeFilterMatched = matchesCodeFilter(
+        codeFilter,
+        content,
+        cache,
+      );
+      this.loaderItem.codeFilterEvaluated = true;
+    }
+    return !this.loaderItem.codeFilterMatched;
   }
 
   static __from_binding(
@@ -945,6 +967,10 @@ export async function runLoaders(
               if (update.normalExecuted) {
                 item.normalExecuted = true;
               }
+              if (update.codeFilterEvaluated) {
+                item.loaderItem.codeFilterEvaluated = true;
+                item.loaderItem.codeFilterMatched = update.codeFilterMatched;
+              }
               return item;
             });
             break;
@@ -1140,17 +1166,25 @@ export async function runLoaders(
         let sourceMap: string | object | undefined;
         let sourceMapParsed = false;
         let additionalData = context.additionalData;
+        const codeFilterTextCache = createCodeFilterTextCache();
 
         while (loaderContext.loaderIndex >= 0) {
           const currentLoaderObject =
             loaderContext.loaders[loaderContext.loaderIndex];
-          const parallelism = enableParallelism(currentLoaderObject);
-
-          if (currentLoaderObject.shouldYield()) break;
           if (currentLoaderObject.normalExecuted) {
             loaderContext.loaderIndex--;
             continue;
           }
+          if (
+            currentLoaderObject.shouldSkipNormal(content, codeFilterTextCache)
+          ) {
+            currentLoaderObject.normalExecuted = true;
+            loaderContext.loaderIndex--;
+            continue;
+          }
+
+          const parallelism = enableParallelism(currentLoaderObject);
+          if (currentLoaderObject.shouldYield()) break;
 
           dependencies.resetChanges();
           try {
@@ -1193,6 +1227,7 @@ export async function runLoaders(
               sourceMap,
               additionalData,
             ]);
+            invalidateCodeFilterTextCache(codeFilterTextCache);
 
             if (cached === null) {
               await loaderCache?.store(

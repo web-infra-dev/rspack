@@ -14,6 +14,11 @@ import { createHash } from '../util/createHash';
 import { absolutify, contextify } from '../util/identifier';
 import { memoize } from '../util/memoize';
 import type { WorkerCacheResult } from './cache';
+import {
+  createCodeFilterTextCache,
+  invalidateCodeFilterTextCache,
+  matchesCodeFilter,
+} from './codeFilter';
 import loadLoader from './loadLoader';
 import {
   deserializeError,
@@ -536,16 +541,32 @@ async function loaderImpl(
       break;
     }
     case JsLoaderState.Normal: {
+      const codeFilterTextCache = createCodeFilterTextCache();
       while (loaderContext.loaderIndex >= 0) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
         let cacheResult: WorkerCacheResult | undefined;
 
-        if (shouldYieldToMainThread(currentLoaderObject)) break;
         if (currentLoaderObject.normalExecuted) {
           loaderContext.loaderIndex--;
           continue;
         }
+        const { loaderItem } = currentLoaderObject;
+        if (loaderItem.codeFilter && !loaderItem.codeFilterEvaluated) {
+          loaderItem.codeFilterMatched = matchesCodeFilter(
+            loaderItem.codeFilter,
+            args[0],
+            codeFilterTextCache,
+          );
+          loaderItem.codeFilterEvaluated = true;
+        }
+        if (loaderItem.codeFilter && !loaderItem.codeFilterMatched) {
+          currentLoaderObject.normalExecuted = true;
+          loaderContext.loaderIndex--;
+          continue;
+        }
+
+        if (shouldYieldToMainThread(currentLoaderObject)) break;
 
         const trackDependencies = currentLoaderObject.loaderItem.cache;
         if (trackDependencies) {
@@ -583,6 +604,7 @@ async function loaderImpl(
           if (!fn) continue;
           convertArgs(args, !!currentLoaderObject.raw);
           args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+          invalidateCodeFilterTextCache(codeFilterTextCache);
           if (cacheResult?.type === 'miss') {
             waitForPendingRequest(pendingDependencyRequest);
             await sendRequest(
@@ -609,6 +631,8 @@ async function loaderImpl(
         data: item.loaderItem.data,
         normalExecuted: item.normalExecuted,
         pitchExecuted: item.pitchExecuted,
+        codeFilterEvaluated: item.loaderItem.codeFilterEvaluated,
+        codeFilterMatched: item.loaderItem.codeFilterMatched,
       };
     }),
   );

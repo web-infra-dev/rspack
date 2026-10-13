@@ -3,6 +3,7 @@ pub mod bundle;
 pub mod compilation_stages;
 pub mod diagnostics;
 pub mod javascript_compiler_source_map;
+pub mod loader_code_filter;
 pub mod module_graph_api;
 pub mod persistent_cache;
 pub mod scan_dependencies;

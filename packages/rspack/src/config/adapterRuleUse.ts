@@ -1,4 +1,10 @@
-import type { AssetInfo, RawModuleRuleUse, RawOptions } from '@rspack/binding';
+import type {
+  AssetInfo,
+  RawModuleRuleUse,
+  RawOptions,
+  RawRuleSetLoaderCodeFilter,
+  RawRuleSetLoaderFilter,
+} from '@rspack/binding';
 import { getLightningcssLoaderOptions } from '../builtin-loader/lightningcss';
 import { getSwcLoaderOptions } from '../builtin-loader/swc';
 import type { Compilation } from '../Compilation';
@@ -19,6 +25,8 @@ import type {
   PublicPath,
   Resolve,
   RuleSetLoaderWithOptions,
+  RuleSetLoaderCodeFilter,
+  RuleSetLoaderCodePattern,
   RuleSetUseItem,
   Target,
 } from './types';
@@ -567,8 +575,73 @@ function createRawModuleRuleUsesImpl(
       optionsCacheKey: use.cache
         ? (JSON.stringify(fingerprintOptions) ?? '')
         : '',
+      filter: use.filter
+        ? createRawRuleSetLoaderFilter(
+            use.filter.code,
+            `${path}[${index}].filter.code`,
+          )
+        : undefined,
     };
   });
+}
+
+function normalizeCodeFilterPatterns(
+  value: RuleSetLoaderCodePattern | RuleSetLoaderCodePattern[],
+  path: string,
+): RuleSetLoaderCodePattern[] {
+  const patterns = Array.isArray(value) ? value : [value];
+  for (const [index, pattern] of patterns.entries()) {
+    if (typeof pattern !== 'string' && !(pattern instanceof RegExp)) {
+      throw new Error(
+        `Expected a string or RegExp at \`${path}[${index}]\`, but received ${String(pattern)}.`,
+      );
+    }
+  }
+  return patterns;
+}
+
+function createRawRuleSetLoaderCodeFilter(
+  filter: RuleSetLoaderCodeFilter,
+  path: string,
+): RawRuleSetLoaderCodeFilter {
+  if (typeof filter === 'string' || filter instanceof RegExp) {
+    return { include: [filter], exclude: [] };
+  }
+  if (Array.isArray(filter)) {
+    return {
+      include: normalizeCodeFilterPatterns(filter, path),
+      exclude: [],
+    };
+  }
+  if (!filter || typeof filter !== 'object') {
+    throw new Error(
+      `Expected a code filter at \`${path}\`, but received ${String(filter)}.`,
+    );
+  }
+  for (const key of Object.keys(filter)) {
+    if (key !== 'include' && key !== 'exclude') {
+      throw new Error(
+        `Unexpected property \`${path}.${key}\`. Code filters only support \`include\` and \`exclude\`.`,
+      );
+    }
+  }
+  return {
+    include:
+      filter.include === undefined
+        ? undefined
+        : normalizeCodeFilterPatterns(filter.include, `${path}.include`),
+    exclude:
+      filter.exclude === undefined
+        ? []
+        : normalizeCodeFilterPatterns(filter.exclude, `${path}.exclude`),
+  };
+}
+
+function createRawRuleSetLoaderFilter(
+  filter: RuleSetLoaderCodeFilter,
+  path: string,
+): RawRuleSetLoaderFilter {
+  return { code: createRawRuleSetLoaderCodeFilter(filter, path) };
 }
 
 function resolveStringifyLoaders(
