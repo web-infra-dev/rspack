@@ -1,10 +1,13 @@
-import { $ } from 'zx';
-import { constants, copyFileSync, readFileSync } from 'node:fs';
+import { execFile, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { once } from 'node:events';
+import { constants, copyFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
 
 const root = path.resolve(import.meta.dirname, '..');
+const execute = promisify(execFile);
 
 /** Build the host compiler driver before starting an allocative-enabled Cargo invocation. */
 export async function prepareAllocativeDriver(environment = process.env) {
@@ -26,20 +29,38 @@ export async function prepareAllocativeDriver(environment = process.env) {
     RUSTFLAGS: '',
     CARGO_ENCODED_RUSTFLAGS: '',
   };
-  const run = $({ cwd: root, env: buildEnv, verbose: false });
-  await run`rustup component add rustc-dev --toolchain ${toolchain}`;
-  const version = await run`rustc -vV`;
+  const options = { cwd: root, env: buildEnv };
+  await execute(
+    'rustup',
+    ['component', 'add', 'rustc-dev', '--toolchain', toolchain],
+    options,
+  );
+  const version = await execute('rustc', ['-vV'], options);
   const host = version.stdout.match(/^host: (.+)$/m)?.[1];
   if (!host) throw new Error('rustc did not report its host');
-  const sysroot = (await run`rustc --print sysroot`).stdout.trim();
+  const sysroot = (
+    await execute('rustc', ['--print', 'sysroot'], options)
+  ).stdout.trim();
   const flags = ['-Crpath', `-Lnative=${path.join(sysroot, 'lib')}`];
-  const compile = $({
-    cwd: root,
-    env: { ...buildEnv, CARGO_ENCODED_RUSTFLAGS: flags.join('\x1f') },
-    verbose: false,
-  });
-  const build =
-    await compile`cargo build -p rspack_allocative_driver --features driver --profile allocative-driver --target ${host} --message-format=json-render-diagnostics`;
+  const build = await execute(
+    'cargo',
+    [
+      'build',
+      '-p',
+      'rspack_allocative_driver',
+      '--features',
+      'driver',
+      '--profile',
+      'allocative-driver',
+      '--target',
+      host,
+      '--message-format=json-render-diagnostics',
+    ],
+    {
+      ...options,
+      env: { ...buildEnv, CARGO_ENCODED_RUSTFLAGS: flags.join('\x1f') },
+    },
+  );
   const artifacts = build.stdout
     .trim()
     .split('\n')
@@ -86,10 +107,11 @@ if (scriptIndex > 0) {
     );
   }
   const env = await prepareAllocativeDriver();
-  await $({
+  const child = spawn(command[0], command.slice(1), {
     cwd: process.cwd(),
     env,
     stdio: 'inherit',
-    verbose: false,
-  })`${command}`;
+  });
+  const [code] = await once(child, 'close');
+  process.exitCode = code ?? 1;
 }
