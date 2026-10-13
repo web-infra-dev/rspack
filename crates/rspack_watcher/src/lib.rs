@@ -192,12 +192,12 @@ impl FsWatcher {
   /// arrived since the last aggregated batch, typically while paused. Read,
   /// not drained, so a caller peeking at them cannot swallow the batch they
   /// are about to be delivered in.
-  pub fn aggregated(&self) -> (HashSet<String>, HashSet<String>) {
+  pub fn peek_aggregated(&self) -> (HashSet<String>, HashSet<String>) {
     let files = self.aggregated.lock().expect("aggregated sets poisoned");
     (files.changed.clone(), files.deleted.clone())
   }
 
-  /// [`Self::aggregated`], drained: for the build that folds these events in,
+  /// [`Self::peek_aggregated`], drained: for the build that folds these events in,
   /// so they are not delivered again as a batch of their own on resume.
   /// Events arriving afterwards are kept.
   pub fn take_aggregated(&self) -> (HashSet<String>, HashSet<String>) {

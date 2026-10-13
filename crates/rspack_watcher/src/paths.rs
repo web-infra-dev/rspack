@@ -501,6 +501,15 @@ impl PathManager {
           if self.forget_if_orphaned(&path) {
             break;
           }
+          // watchpack's initial `setDirectory` checks the birthtime.
+          if changed_since.is_some_and(|since| {
+            metadata
+              .created()
+              .or_else(|_| metadata.modified())
+              .is_ok_and(|birthtime| mtime_safe_time(system_time_to_millis(birthtime)) >= since)
+          }) {
+            changed.push(path.clone());
+          }
           pending.push((path, ancestry.clone(), false));
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
           self.context_files.insert(path.clone());
@@ -960,6 +969,9 @@ impl PathManager {
       FxHashMap::with_capacity_and_hasher(dir_paths.len(), Default::default());
     for dir in &dir_paths {
       let last_watch_event = self.last_watch_events.get(dir).map(|time| *time);
+      // An absent registered context reads null, where watchpack reports `{}`
+      // or `{ safeTime: 0 }`: webpack then sees it as missing and rebuilds
+      // once it appears, instead of trusting a time for a directory not there.
       let safe_time = if self.absent_directories.contains(dir) {
         Self::stat_mtime_ms(dir)
           .map(mtime_safe_time)

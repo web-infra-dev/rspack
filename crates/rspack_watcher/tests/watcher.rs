@@ -627,7 +627,7 @@ fn aggregated_reports_the_paused_events_without_consuming_them() {
 
   let edited = helper.join("a");
   for _ in 0..2 {
-    let (changed, deleted) = helper.aggregated();
+    let (changed, deleted) = helper.peek_aggregated();
     assert!(
       changed.contains(edited.as_str()),
       "the paused-period edit is pending: {changed:?}"
@@ -1840,5 +1840,38 @@ fn an_edit_to_a_registered_file_below_a_context_is_reported() {
   let f = helper.join("ctx/f");
   wait_for_aggregated(&helper, rx, |batch| {
     batch.changed_files.contains(f.as_str())
+  });
+}
+
+/// Like watchpack's initial scan (`setDirectory(.., initial)` checks the
+/// directory's birthtime against the start time), a new context reports a
+/// directory created since the start time, even an empty one whose parent's
+/// mtime says nothing.
+#[test]
+fn a_new_context_reports_a_directory_created_since_the_start_time() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  let now = std::time::SystemTime::now();
+  std::fs::create_dir_all(helper.join("ctx/created")).unwrap();
+  // The context itself predates the start: only its new subdirectory does not.
+  set_modified(
+    helper.join("ctx").as_std_path(),
+    now - std::time::Duration::from_secs(60),
+  )
+  .unwrap();
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch_since(
+    e!(),
+    f!("ctx"),
+    e!(),
+    now - std::time::Duration::from_secs(5),
+  );
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(context.as_str())
   });
 }

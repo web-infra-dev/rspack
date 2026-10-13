@@ -315,8 +315,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         nativeWatcher.pause();
       },
 
-      getInfo: () => info(nativeWatcher.getAggregated()),
-      [consumeWatcherInfo]: () => info(nativeWatcher.takeAggregated()),
+      getInfo: () => info(nativeWatcher.peekAggregated()),
+      [consumeWatcherInfo]: () => info(nativeWatcher.getAggregated()),
     };
     return handle;
   }
@@ -379,11 +379,20 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     const { fileTimeInfoEntries, contextTimeInfoEntries } = this.#fetchTimeInfo(
       this.#inner,
     );
+    // Like watchpack, an entry that only says a path is absent, or a context
+    // only that it exists, never replaces what the caller already has.
     for (const [path, entry] of fileTimeInfoEntries) {
-      fileTimestamps.set(path, entry);
+      if (entry !== null || !fileTimestamps.has(path)) {
+        fileTimestamps.set(path, entry);
+      }
     }
     for (const [path, entry] of contextTimeInfoEntries) {
-      directoryTimestamps.set(path, entry);
+      if (
+        (entry !== null && entry !== EXISTENCE_ONLY_TIME_ENTRY) ||
+        !directoryTimestamps.has(path)
+      ) {
+        directoryTimestamps.set(path, entry);
+      }
     }
   }
 

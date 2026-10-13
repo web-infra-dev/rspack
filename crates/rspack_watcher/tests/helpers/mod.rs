@@ -207,11 +207,11 @@ impl TestHelper {
   }
 
   /// watchpack's `aggregatedChanges` / `aggregatedRemovals`.
-  pub fn aggregated(&self) -> (FxHashSet<String>, FxHashSet<String>) {
-    TOKIO_RUNTIME.block_on(async { self.watcher.read().await.aggregated() })
+  pub fn peek_aggregated(&self) -> (FxHashSet<String>, FxHashSet<String>) {
+    TOKIO_RUNTIME.block_on(async { self.watcher.read().await.peek_aggregated() })
   }
 
-  /// [`Self::aggregated`], drained.
+  /// [`Self::peek_aggregated`], drained.
   pub fn take_aggregated(&self) -> (FxHashSet<String>, FxHashSet<String>) {
     TOKIO_RUNTIME.block_on(async { self.watcher.read().await.take_aggregated() })
   }
