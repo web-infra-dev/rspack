@@ -224,6 +224,8 @@ export default {
 
 ## 选项
 
+`builtin:swc-loader` 不读取 `.swcrc` 文件。请在 Rspack 配置中通过 loader 的 `options` 配置 SWC。
+
 下面是部分 SWC 配置以及 Rspack 特有配置的介绍，完整选项请参考 [SWC 配置](https://swc.rs/docs/configuration/swcrc)。
 
 ### detectSyntax
@@ -261,6 +263,12 @@ export default {
   },
 };
 ```
+
+### jsc.transform.react
+
+配置 JSX 转换时，如果未显式指定 `jsc.transform.react.development`，它会根据 Rspack 的 [`mode`](/config/mode) 自动设置。
+
+配置步骤请参考 [React 集成指南](/guide/integrations/react)和 [Fast Refresh 配置](/guide/integrations/react#fast-refresh)。
 
 ### jsc.transform.reactCompiler
 
@@ -492,6 +500,17 @@ Rspack 内置的实验性功能。
 :::warning
 `rspackExperiments.import` 已迁移至顶层 [`transformImport`](#transformimport) 选项。`rspackExperiments.import` 选项已废弃，将在未来版本中移除。
 :::
+
+#### rspackExperiments.reactServerComponents
+
+<ApiMeta stability={Stability.Experimental} />
+
+- 类型：`boolean | object`
+- 默认值：`false`
+
+启用 Rspack 的 React Server Components 转换，包括处理 `"use client"`、`"use server"` 和 `"use server-entry"` 指令。设置为 `true` 可启用转换，也可以传入包含 `disableClientApiChecks: true` 的对象，同时禁用对服务器组件中导入客户端专用 React API 的编译时检查。`disableClientApiChecks` 默认为 `false`。
+
+所需插件和配置示例请参考 [React Server Components 指南](/guide/integrations/rsc)。
 
 ### collectTypeScriptInfo
 
