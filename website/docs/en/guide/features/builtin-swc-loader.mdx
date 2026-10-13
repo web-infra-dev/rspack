@@ -262,6 +262,17 @@ export default {
 };
 ```
 
+### jsc.transform.reactCompiler
+
+<ApiMeta addedVersion="2.1.0" />
+
+- Type: `boolean | object`
+- Default: `false`
+
+Enables React Compiler to automatically optimize React code. Set it to `true` to use the default configuration, or pass an object to customize options such as `target` and `compilationMode`.
+
+See [React Compiler with builtin:swc-loader](/guide/integrations/react#using-builtinswc-loader) for setup instructions and configuration examples.
+
 ### jsc.experimental.plugins
 
 <ApiMeta stability={Stability.Experimental} />

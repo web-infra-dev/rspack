@@ -262,6 +262,17 @@ export default {
 };
 ```
 
+### jsc.transform.reactCompiler
+
+<ApiMeta addedVersion="2.1.0" />
+
+- 类型：`boolean | object`
+- 默认值：`false`
+
+启用 React Compiler，自动优化 React 代码。设置为 `true` 时使用默认配置，也可以传入对象来自定义 `target`、`compilationMode` 等选项。
+
+配置步骤和示例请参考[通过 builtin:swc-loader 使用 React Compiler](/guide/integrations/react#using-builtinswc-loader)。
+
 ### jsc.experimental.plugins
 
 <ApiMeta stability={Stability.Experimental} />
