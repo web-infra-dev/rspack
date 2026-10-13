@@ -10,6 +10,7 @@ import * as mutatedVarExports from "./mutated-var-export";
 import * as defaultFnExports from "./default-fn-export";
 import * as mutatedDefaultFnExports from "./mutated-default-fn-export";
 import * as renameAssignExports from "./rename-assign-export";
+import * as evalAliasExports from "./eval-alias-export";
 
 it("should bind const exports as readonly values", () => {
 	expectValueDescriptor(constExports, "literal", "literal");
@@ -61,6 +62,13 @@ it("should keep exports mutated via rename-assignment as getters", () => {
 	expect(renameAssignExports.current).toBe(null);
 	renameAssignExports.init();
 	expect(renameAssignExports.current).toBe(URL);
+});
+
+it("should keep exports in modules with direct eval as getters", () => {
+	expectGetterDescriptor(evalAliasExports, "current");
+	expect(evalAliasExports.current).toBe(URL);
+	evalAliasExports.reset();
+	expect(evalAliasExports.current).toBe(null);
 });
 
 it("should keep const exports in circular modules as getters", () => {
