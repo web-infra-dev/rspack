@@ -180,8 +180,18 @@ impl SplitChunksPlugin {
     logger.time_end(start);
 
     let start = logger.time("process cache groups");
+    let stages = priority_cache_groups
+      .iter()
+      .map(|(_, groups)| groups.as_slice())
+      .collect::<Vec<_>>();
+    let native_matches =
+      self.prepare_native_cache_group_matches(&all_modules, &stages, compilation);
     let priority_len = priority_cache_groups.len();
-    for (index, (_, cache_groups)) in priority_cache_groups.into_iter().enumerate() {
+    for (index, ((_, cache_groups), native_matches)) in priority_cache_groups
+      .into_iter()
+      .zip(native_matches)
+      .enumerate()
+    {
       for (module, removed) in removed_module_chunks.drain() {
         let remaining = &mut module_chunks[module_indices[&module]];
         for chunk in removed {
@@ -271,6 +281,7 @@ impl SplitChunksPlugin {
           &combinator,
           &all_modules,
           cache_groups,
+          native_matches,
           compilation,
           available_module_chunks,
           &chunk_index_map,
