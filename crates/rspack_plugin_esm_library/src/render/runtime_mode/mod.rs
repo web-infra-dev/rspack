@@ -58,6 +58,17 @@ pub(super) struct RuntimeRenderContext<'a> {
 pub(super) trait RuntimeModeRenderer: Sync {
   fn render_module_registration_ident(&self, runtime_template: &RuntimeCodeTemplate) -> String;
 
+  fn render_module_registration_import(
+    &self,
+    runtime_template: &RuntimeCodeTemplate,
+    local: &str,
+  ) -> (String, String) {
+    (
+      self.render_module_registration_ident(runtime_template),
+      local.to_string(),
+    )
+  }
+
   fn render_runtime_imports(&self, context: RuntimeImportRenderContext<'_>) -> ConcatSource;
 
   fn render_direct_runtime_export(

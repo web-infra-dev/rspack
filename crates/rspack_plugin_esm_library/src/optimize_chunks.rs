@@ -2,11 +2,11 @@ use std::{collections::VecDeque, sync::Arc};
 
 use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierIndexMap, IdentifierMap, IdentifierSet};
 use rspack_core::{
   ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation, ConcatenationNameAllocator, DependenciesBlock,
-  DependencyType, ExportProvided, ModuleIdentifier, UsageState, get_cached_readable_identifier,
-  incremental::Mutation, split_readable_identifier,
+  DependencyType, ExportProvided, ModuleIdentifier, ModuleInfo, UsageState,
+  get_cached_readable_identifier, incremental::Mutation, split_readable_identifier,
 };
 use rspack_intern::Atom;
 use rspack_util::{
@@ -416,17 +416,26 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
 }
 
 /// For each entrypoint, if the runtime chunk is the same as the entry chunk
-/// and either this chunk has async chunks or any initial ChunkGroup containing
+/// and either this chunk has async chunks or any entrypoint ChunkGroup containing
 /// this chunk has multiple chunks,
 /// split the runtime into a separate runtime chunk.
 ///
 /// This must run AFTER SplitChunksPlugin and RemoveDuplicateModulesPlugin
 /// to inspect the final chunk graph topology.
-pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
+pub(crate) fn optimize_runtime_chunks(
+  compilation: &mut Compilation,
+  module_info: &IdentifierIndexMap<ModuleInfo>,
+) {
   // Phase 1: Collect entrypoints that need runtime splitting
   let entrypoints_to_split: Vec<ChunkGroupUkey> = compilation
     .entrypoints()
     .values()
+    .chain(
+      compilation
+        .build_chunk_graph_artifact
+        .async_entrypoints
+        .iter(),
+    )
     .copied()
     .filter(|entrypoint_ukey| {
       let entrypoint = compilation
@@ -448,17 +457,36 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
         .chunk_by_ukey
         .expect_get(&runtime_chunk_ukey);
 
+      // Pure ESM workers need no factory registration. Keep their empty startup
+      // facades instead of creating module-less runtime chunks for them.
+      if !entrypoint.is_initial()
+        && !chunk
+          .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+          .iter()
+          .any(|chunk| {
+            compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_chunk_modules_identifier(chunk)
+              .iter()
+              .any(|module| module_info.get(module).is_some_and(ModuleInfo::is_external))
+          })
+      {
+        return false;
+      }
+
       if chunk.has_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
         return true;
       }
 
-      // Check if any initial ChunkGroup containing this chunk has multiple chunks
+      // Shared chunks import each consuming runtime to register their factories.
+      // Worker runtimes must also be separate so this never imports worker startup.
       chunk.groups().iter().any(|group_ukey| {
         let group = compilation
           .build_chunk_graph_artifact
           .chunk_group_by_ukey
           .expect_get(group_ukey);
-        group.is_initial() && group.chunks.len() > 1
+        group.kind.is_entrypoint() && group.chunks.len() > 1
       })
     })
     .collect();
