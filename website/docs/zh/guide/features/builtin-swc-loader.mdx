@@ -224,9 +224,7 @@ export default {
 
 ## 选项
 
-`builtin:swc-loader` 不读取 `.swcrc` 文件。请在 Rspack 配置中通过 loader 的 `options` 配置 SWC。
-
-下面是部分 SWC 配置以及 Rspack 特有配置的介绍，完整选项请参考 [SWC 配置](https://swc.rs/docs/configuration/swcrc)。
+`builtin:swc-loader` 不读取 `.swcrc` 文件，而是通过 Rspack 配置中的 loader `options` 配置 SWC。下面介绍常用的 SWC 选项和 Rspack 特有选项，完整的 SWC 选项请参考 [SWC 配置](https://swc.rs/docs/configuration/swcrc)。
 
 ### detectSyntax
 
@@ -508,7 +506,7 @@ Rspack 内置的实验性功能。
 - 类型：`boolean | object`
 - 默认值：`false`
 
-启用 Rspack 的 React Server Components 转换，包括处理 `"use client"`、`"use server"` 和 `"use server-entry"` 指令。设置为 `true` 可启用转换，也可以传入包含 `disableClientApiChecks: true` 的对象，同时禁用对服务器组件中导入客户端专用 React API 的编译时检查。`disableClientApiChecks` 默认为 `false`。
+设置为 `true` 可启用 React Server Components 转换。传入 `{ disableClientApiChecks: true }` 还可关闭对服务器组件导入客户端专用 React API 的检查，该检查默认开启。
 
 所需插件和配置示例请参考 [React Server Components 指南](/guide/integrations/rsc)。
 

@@ -224,9 +224,7 @@ export default {
 
 ## Options
 
-`builtin:swc-loader` does not read `.swcrc` files. Configure SWC through the loader's `options` in your Rspack configuration.
-
-The following is an introduction to some SWC configurations and Rspack specific configurations. Please refer to the [SWC Configurations](https://swc.rs/docs/configuration/swcrc) for the complete options.
+`builtin:swc-loader` is configured through loader `options` in your Rspack configuration and does not read `.swcrc` files. The sections below cover common SWC options and Rspack-specific options. For the full list of SWC options, see [SWC configuration](https://swc.rs/docs/configuration/swcrc).
 
 ### detectSyntax
 
@@ -506,7 +504,7 @@ Experimental features provided by rspack.
 - Type: `boolean | object`
 - Default: `false`
 
-Enables Rspack's React Server Components transforms, including handling `"use client"`, `"use server"`, and `"use server-entry"` directives. Set it to `true` to enable the transforms, or pass an object with `disableClientApiChecks: true` to also disable compile-time checks for client-only React APIs imported in server components. `disableClientApiChecks` defaults to `false`.
+Set to `true` to enable React Server Components transforms. Passing `{ disableClientApiChecks: true }` also disables checks for server components importing client-only React APIs. These checks are enabled by default.
 
 See the [React Server Components guide](/guide/integrations/rsc) for the required plugins and configuration examples.
 
