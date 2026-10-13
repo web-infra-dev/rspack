@@ -9,6 +9,7 @@
  */
 import type { Abortable } from 'node:events';
 import path from 'node:path';
+import type { AssetSource } from './AssetSource';
 
 import type { WatchOptions } from '../config';
 
@@ -108,6 +109,14 @@ export type CreateReadStream = (
 ) => NodeJS.ReadableStream;
 
 export interface OutputFileSystem {
+  /** Optional final-asset write that can consume the decompression stream. */
+  writeAsset?: (
+    path: string,
+    source: AssetSource,
+    callback: (error?: NodeJS.ErrnoException | null) => void,
+  ) => void;
+  compareAsset?: (path: string, source: AssetSource) => Promise<boolean>;
+  createWriteStream?: (path: string) => NodeJS.WritableStream;
   writeFile: (
     arg0: string | number,
     arg1: string | Buffer,
@@ -260,12 +269,17 @@ export type ReadFileSync = {
   (
     path: PathOrFileDescriptor,
     options?:
-      (ObjectEncodingOptions & { flag?: string }) | BufferEncoding | null,
+      | (ObjectEncodingOptions & { flag?: string })
+      | BufferEncoding
+      | null,
   ): string | Buffer;
 };
 
 export type EncodingOption =
-  ObjectEncodingOptions | BufferEncoding | undefined | null;
+  | ObjectEncodingOptions
+  | BufferEncoding
+  | undefined
+  | null;
 
 export type BufferEncodingOption = 'buffer' | { encoding: 'buffer' };
 

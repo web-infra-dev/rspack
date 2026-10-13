@@ -39,7 +39,7 @@ use crate::{
   module_graph::JsModuleGraph,
   options::entry::JsEntryOptions,
   path_data::{JsPathData, PathWithInfo},
-  source::{JsSourceFromJs, JsSourceToJs},
+  source::{JsAssetSource, JsSourceFromJs, JsSourceToJs},
   stats::{JsStats, JsStatsOptimizationBailout, create_stats_warnings},
   utils::callbackify,
   with_compilation,
@@ -218,14 +218,30 @@ impl JsCompilation {
     }
   }
 
-  #[napi(ts_return_type = "JsSource | null")]
-  pub fn get_asset_source(&self, env: &Env, name: String) -> Result<Option<JsSourceToJs>> {
+  #[napi(ts_return_type = "JsSource | JsAssetSource | null")]
+  pub fn get_asset_source(
+    &self,
+    env: &Env,
+    name: String,
+  ) -> Result<Option<Either<JsSourceToJs, JsAssetSource>>> {
     let compilation = self.as_ref()?;
 
     compilation
       .assets()
       .get(&name)
-      .and_then(|v| v.source.as_ref().map(JsSourceToJs::try_from))
+      .and_then(|v| {
+        v.source.as_ref().map(|source| {
+          if let Some(asset) = source
+            .as_ref()
+            .as_any()
+            .downcast_ref::<rspack_core::rspack_sources::AssetSource>()
+          {
+            Ok(Either::B(JsAssetSource::new(asset)))
+          } else {
+            JsSourceToJs::try_from(source).map(Either::A)
+          }
+        })
+      })
       .transpose()
   }
 

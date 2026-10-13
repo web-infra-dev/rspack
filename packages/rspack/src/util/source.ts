@@ -1,5 +1,10 @@
-import type { JsSource, JsSourceWithLazyMap } from '@rspack/binding';
+import type {
+  JsAssetSource,
+  JsSource,
+  JsSourceWithLazyMap,
+} from '@rspack/binding';
 import { RawSource, type Source, SourceMapSource } from 'webpack-sources';
+import { AssetSource } from './AssetSource';
 
 const sourceCacheSymbol = Symbol.for('rspack.originalSource');
 const sourceMapOverrides = new WeakMap<
@@ -64,7 +69,10 @@ function clearSourceCache(
 }
 
 export class SourceAdapter {
-  static fromBinding(cache: JsSource | JsSourceWithLazyMap): Source {
+  static fromBinding(
+    cache: JsSource | JsSourceWithLazyMap | JsAssetSource,
+  ): Source {
+    if ('compressedBuffer' in cache) return new AssetSource(cache);
     if (!cache.map) return new RawSource(cache.source);
     if (typeof cache.map === 'string') {
       return new SourceMapSource(

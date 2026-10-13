@@ -289,6 +289,22 @@ export declare class FileSystemDependencies {
   addAll(values: Array<string>): void
 }
 
+/** An owned snapshot of a compressed final asset. It remains valid across rebuilds. */
+export declare class JsAssetSource {
+  get compressedBuffer(): Buffer
+  get contentHash(): string
+  size(): number
+  source(): string
+  buffer(): Buffer
+  reader(): JsAssetSourceReader
+}
+
+/** An independent decoder used by Node readable streams, released at EOF or cancellation. */
+export declare class JsAssetSourceReader {
+  read(size: number): Buffer | null
+  close(): void
+}
+
 /** One shared cache, initialized from the first compiler that uses it. */
 export declare class JsCache {
   constructor()
@@ -301,7 +317,7 @@ export declare class JsCompilation {
   updateAsset(filename: string, newSourceOrFunction: JsSource | ((source: JsSource) => JsSource), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
-  getAssetSource(name: string): JsSource | null
+  getAssetSource(name: string): JsSource | JsAssetSource | null
   get modules(): Modules
   get builtModules(): Array<Module>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
@@ -3451,6 +3467,8 @@ export interface SyntheticDependencyLocation {
 
 export interface ThreadsafeNodeFS {
   writeFile: (name: string, content: Buffer) => Promise<void>
+  writeAsset?: (name: string, source: JsAssetSource) => Promise<void>
+  compareAsset?: (name: string, source: JsAssetSource) => Promise<boolean>
   removeFile: (name: string) => Promise<void>
   mkdir: (name: string) => Promise<void>
   mkdirp: (name: string) => Promise<string | void>

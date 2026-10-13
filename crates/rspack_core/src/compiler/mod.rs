@@ -7,7 +7,7 @@ use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
-use rspack_sources::BoxSource;
+use rspack_sources::{AssetSource, BoxSource};
 use rspack_tasks::{CompilerContext, within_compiler_context};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
@@ -510,7 +510,8 @@ impl Compiler {
         )
         .await?;
 
-      let content = source.buffer();
+      let compressed_asset = source.as_ref().as_any().downcast_ref::<AssetSource>();
+      let content = compressed_asset.is_none().then(|| source.buffer());
 
       let mut immutable = asset.info.immutable.unwrap_or(false);
       if !query.is_empty() {
@@ -539,16 +540,30 @@ impl Compiler {
       } else if immutable {
         // do not write when asset is immutable and the file exists
         false
-      } else if (content.len() as u64) == stat.as_ref().unwrap_or_else(|| unreachable!()).size {
-        match self
-          .output_filesystem
-          .read_file(file_path.as_path().as_ref())
-          .await
-        {
-          // write when content is different
-          Ok(c) => content != c,
-          // write when file can not be read
-          Err(_) => true,
+      } else if (source.size() as u64) == stat.as_ref().unwrap_or_else(|| unreachable!()).size {
+        if let Some(source) = compressed_asset {
+          !self
+            .output_filesystem
+            .compare_asset(&file_path, source)
+            .await
+            .unwrap_or(false)
+        } else {
+          match self
+            .output_filesystem
+            .read_file(file_path.as_path().as_ref())
+            .await
+          {
+            // write when content is different
+            Ok(c) => {
+              content
+                .as_ref()
+                .expect("ordinary source has a buffer")
+                .as_ref()
+                != c
+            }
+            // write when file can not be read
+            Err(_) => true,
+          }
         }
       } else {
         // write if content length is different
@@ -556,7 +571,20 @@ impl Compiler {
       };
 
       if need_write {
-        self.output_filesystem.write(&file_path, &content).await?;
+        if let Some(source) = compressed_asset {
+          self
+            .output_filesystem
+            .write_asset(&file_path, source)
+            .await?;
+        } else {
+          self
+            .output_filesystem
+            .write(
+              &file_path,
+              content.as_ref().expect("ordinary source has a buffer"),
+            )
+            .await?;
+        }
         self.compilation.emitted_assets.insert(filename.to_string());
       }
 

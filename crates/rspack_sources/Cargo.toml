@@ -26,6 +26,8 @@ serde             = { workspace = true, features = ["rc", "std"] }
 simd-json         = { workspace = true, features = ["runtime-detection", "serde_impl", "swar-number-parsing"] }
 simd-utf16-len    = { workspace = true }
 static_assertions = { workspace = true }
+xxhash-rust       = { workspace = true, features = ["xxh3"] }
+zstd              = { workspace = true }
 
 [dev-dependencies]
 regex     = { workspace = true }

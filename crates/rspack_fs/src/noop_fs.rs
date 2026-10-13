@@ -18,6 +18,13 @@ impl WritableFileSystem for NoopFileSystem {
   async fn write(&self, _file: &Utf8Path, _data: &[u8]) -> Result<()> {
     Ok(())
   }
+  async fn write_asset(
+    &self,
+    _file: &Utf8Path,
+    _source: &rspack_sources::AssetSource,
+  ) -> Result<()> {
+    Ok(())
+  }
 
   async fn remove_file(&self, _file: &Utf8Path) -> Result<()> {
     Ok(())
