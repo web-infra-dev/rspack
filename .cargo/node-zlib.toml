@@ -1,0 +1,48 @@
+# Only pass this configuration to native Node addon builds. Skip libz-sys's
+# discovery/build script so zlib references resolve against the host Node.js.
+# Ordinary cargo builds/tests retain their normal standalone zlib linkage.
+
+[target.x86_64-apple-darwin.z]
+rustc-link-lib = []
+
+[target.x86_64-pc-windows-msvc.z]
+rustc-link-lib = []
+
+[target.x86_64-unknown-linux-gnu.z]
+rustc-link-lib = []
+
+[target.x86_64-unknown-linux-musl.z]
+rustc-link-lib = []
+
+[target.x86_64-unknown-freebsd.z]
+rustc-link-lib = []
+
+[target.i686-pc-windows-msvc.z]
+rustc-link-lib = []
+
+[target.armv7-unknown-linux-gnueabihf.z]
+rustc-link-lib = []
+
+[target.aarch64-unknown-linux-gnu.z]
+rustc-link-lib = []
+
+[target.aarch64-apple-darwin.z]
+rustc-link-lib = []
+
+[target.aarch64-unknown-linux-musl.z]
+rustc-link-lib = []
+
+[target.aarch64-pc-windows-msvc.z]
+rustc-link-lib = []
+
+[target.riscv64gc-unknown-linux-gnu.z]
+rustc-link-lib = []
+
+[target.riscv64gc-unknown-linux-musl.z]
+rustc-link-lib = []
+
+[target.powerpc64le-unknown-linux-gnu.z]
+rustc-link-lib = []
+
+[target.s390x-unknown-linux-gnu.z]
+rustc-link-lib = []

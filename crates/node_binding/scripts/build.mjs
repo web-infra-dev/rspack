@@ -51,6 +51,12 @@ async function build() {
 		const rustflags = []
 		const features = [];
 		const envs = { ...buildEnvironment };
+		const rustTarget = process.env.RUST_TARGET || spawnSync("rustc", ["-vV"], {
+			encoding: "utf8"
+		}).stdout?.match(/^host: (.+)$/m)?.[1];
+		if (!rustTarget) throw new Error("Unable to determine the Rust target");
+		const useNodeZlib = !rustTarget.startsWith("wasm");
+		if (useNodeZlib) envs.RSPACK_NODE_ZLIB = "1";
 		const use_build_std = values.profile === "release"
 			|| values.profile === "release-debug"
 			|| values.profile === "release-wasi"
@@ -119,9 +125,13 @@ async function build() {
 			args.push(`--features ${features.join(",")}`);
 		}
 
-		if (positionals.length > 0 || rustflags.length > 0 || use_build_std || measureFresh) {
+		if (positionals.length > 0 || rustflags.length > 0 || use_build_std || measureFresh || useNodeZlib) {
 			// napi need `--` to separate options and positional arguments.
 			args.push("--");
+
+			if (useNodeZlib) {
+				args.push("--config", `"${path.resolve(import.meta.dirname, "../../../.cargo/node-zlib.toml")}"`);
+			}
 
 			if (rustflags.length > 0) {
 				if (useAllocative && (envs.CARGO_ENCODED_RUSTFLAGS !== undefined || envs.RUSTFLAGS !== undefined)) {

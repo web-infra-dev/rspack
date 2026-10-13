@@ -26,6 +26,15 @@ serde             = { workspace = true, features = ["rc", "std"] }
 simd-json         = { workspace = true, features = ["runtime-detection", "serde_impl", "swar-number-parsing"] }
 simd-utf16-len    = { workspace = true }
 static_assertions = { workspace = true }
+xxhash-rust       = { workspace = true, features = ["xxh3"] }
+
+# Native bindings use the host Node.js zlib. Standalone Rust builds use libz-sys discovery.
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+flate2 = { workspace = true, features = ["zlib"] }
+
+# WASM cannot resolve symbols from the native Node.js executable.
+[target.'cfg(target_family = "wasm")'.dependencies]
+flate2 = { workspace = true, features = ["rust_backend"] }
 
 [dev-dependencies]
 regex     = { workspace = true }

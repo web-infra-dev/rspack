@@ -16,8 +16,8 @@ use rspack_core::{
   cache::CachedSourceMapDevToolPluginEntry,
   legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, MappingSource, RawBufferSource, RawStringSource, Source,
-    SourceExt, SourceMap, SourceValue,
+    AssetSource, BoxSource, ConcatSource, MapOptions, MappingSource, RawBufferSource,
+    RawStringSource, Source, SourceExt, SourceMap, SourceValue,
   },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -1074,6 +1074,16 @@ impl SourceMapDevToolPlugin {
     if let Some(source_map_filename_config) = &plugin.source_map_filename {
       let mapping_source = MappingSource::new(source_map);
       let chunk = file_to_chunk.get(asset_filename.as_ref());
+      let mut content_hasher = (chunk.is_some()
+        && source_map_filename_config.has_content_hash_placeholder())
+      .then(|| RspackHasher::from(&compilation.options.output));
+      let source_map_asset_source =
+        AssetSource::from_source_with_observer(&mapping_source, |bytes| {
+          if let Some(hasher) = &mut content_hasher {
+            hasher.write(bytes);
+          }
+        })
+        .map_err(|err| error!("Failed to compress source map for {asset_filename}: {err}"))?;
       let filename = match &plugin.file_context {
         Some(file_context) => Cow::Owned(
           Path::new(asset_filename.as_ref())
@@ -1084,15 +1094,9 @@ impl SourceMapDevToolPlugin {
         None => Cow::Borrowed(asset_filename.as_ref()),
       };
 
+      // Hash the same JSON bytes that are streamed into the compressor.
       let content_hash_digest =
-        if chunk.is_some() && source_map_filename_config.has_content_hash_placeholder() {
-          let mut hasher = RspackHasher::from(&compilation.options.output);
-          mapping_source.update_content_hash(&mut hasher);
-          let digest = hasher.digest(&compilation.options.output.hash_digest);
-          Some(digest)
-        } else {
-          None
-        };
+        content_hasher.map(|hasher| hasher.digest(&compilation.options.output.hash_digest));
 
       let data = PathData::default().filename(&filename);
       let data = match chunk {
@@ -1178,7 +1182,7 @@ impl SourceMapDevToolPlugin {
         source_map_asset_info.version = asset.info.version.clone();
       }
       let source_map_asset =
-        CompilationAsset::new(Some(mapping_source.boxed()), source_map_asset_info);
+        CompilationAsset::new(Some(source_map_asset_source.boxed()), source_map_asset_info);
       Ok(MappedAsset {
         asset: (asset_filename, asset),
         source_map: Some((source_map_filename.clone(), source_map_asset)),
