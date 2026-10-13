@@ -110,13 +110,23 @@ struct EventProcessor {
 /// It only buffers: the OS watcher callback hands an event over and returns
 /// immediately, and a dedicated thread drains the buffer one event at a time.
 pub struct Trigger {
-  pending: UnboundedSender<(InternedPath, FsEventKind, bool)>,
+  pending: UnboundedSender<(InternedPath, FsEventKind, Origin)>,
+}
+
+/// Where an event comes from.
+#[derive(Clone, Copy)]
+enum Origin {
+  /// The OS watcher; `appeared` when it created or renamed the path into place.
+  Disk { appeared: bool },
+  /// A context's initial scan, for a file that changed since the start time
+  /// before the watch was active.
+  Scan,
 }
 
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<EventBatch>) -> Self {
-    let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, bool)>();
+    let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
     let processor = EventProcessor { path_manager, tx };
 
     // One event at a time, in arrival order: the JS `ignored` predicate is
@@ -133,8 +143,8 @@ impl Trigger {
           .expect("create watcher event filter runtime");
 
         runtime.block_on(async move {
-          while let Some((path, kind, appeared)) = incoming.recv().await {
-            processor.process(&path, kind, appeared).await;
+          while let Some((path, kind, origin)) = incoming.recv().await {
+            processor.process(&path, kind, origin).await;
           }
         });
       })
@@ -152,7 +162,18 @@ impl Trigger {
   /// Preserves whether an OS event created or renamed a path into place,
   /// without treating ordinary directory changes as appearances.
   pub(crate) fn on_disk_event(&self, path: &InternedPath, kind: FsEventKind, appeared: bool) {
-    let _ = self.pending.send((path.clone(), kind, appeared));
+    let _ = self
+      .pending
+      .send((path.clone(), kind, Origin::Disk { appeared }));
+  }
+
+  /// A context's initial scan found `path` changed since the start time, while
+  /// the watch was not active yet: like watchpack's initial scan, it is
+  /// reported as found, never taken for an attribute-only event.
+  pub(crate) fn on_scanned_change(&self, path: &InternedPath) {
+    let _ = self
+      .pending
+      .send((path.clone(), FsEventKind::Change, Origin::Scan));
   }
 }
 
@@ -170,7 +191,8 @@ impl EventProcessor {
   /// If the file `/path/to/file.js` is changed, the trigger will send an event for the following paths:
   /// - `/path`
   /// - `/path/to`
-  async fn process(&self, path: &InternedPath, kind: FsEventKind, appeared: bool) {
+  async fn process(&self, path: &InternedPath, kind: FsEventKind, origin: Origin) {
+    let appeared = matches!(origin, Origin::Disk { appeared: true });
     // Drop events inside ignored subtrees. The recursive-root watch delivers
     // events for unregistered paths (e.g. the build-output dir); left through,
     // `find_associated_event` bubbles them to a registered parent and triggers
@@ -185,10 +207,15 @@ impl EventProcessor {
     // path is gone into a `Remove`, keeping the event kind consistent with
     // inotify (which already reports `Remove`). Done before the stale-event
     // filter below, which only applies to `Change`/`Create`.
-    let kind = if kind == FsEventKind::Change && std::fs::symlink_metadata(path).is_err() {
-      FsEventKind::Remove
-    } else {
-      kind
+    // The reverse holds too: a removal of a path back on disk (unlinked and
+    // re-created) ends as the path's final state, like watchpack's lstat on
+    // each event. Its records still go, so it is taken as new.
+    let removed = kind == FsEventKind::Remove;
+    let exists = std::fs::symlink_metadata(path).is_ok();
+    let kind = match kind {
+      FsEventKind::Change if !exists => FsEventKind::Remove,
+      FsEventKind::Remove if exists => FsEventKind::Change,
+      kind => kind,
     };
 
     let accessor = self.path_manager.access();
@@ -198,7 +225,7 @@ impl EventProcessor {
     // directory moved or deleted as a whole is one event with no per-file
     // removals, so its descendants' records go with it. Only a path that can
     // hold records is swept, so deleting many unrelated files stays cheap.
-    if kind == FsEventKind::Remove {
+    if removed || kind == FsEventKind::Remove {
       let may_contain_records = self.path_manager.may_contain_records(path);
       self.path_manager.remove_file_time(path);
       if may_contain_records {
@@ -218,7 +245,12 @@ impl EventProcessor {
       return;
     }
 
-    if kind != FsEventKind::Remove && !self.path_manager.set_context_entry(path).await {
+    if kind != FsEventKind::Remove
+      && !self
+        .path_manager
+        .set_context_entry(path, matches!(origin, Origin::Scan))
+        .await
+    {
       return;
     }
     self.path_manager.set_last_watch_events(path);

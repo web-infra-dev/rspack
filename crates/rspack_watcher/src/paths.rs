@@ -551,7 +551,8 @@ impl PathManager {
   /// since one moved in arrives as a single event with no events for what it
   /// already contains. Registered contexts absent until now that came back at
   /// or below `path` are rescanned, even when only an ancestor had the event.
-  pub async fn set_context_entry(&self, path: &InternedPath) -> bool {
+  /// A file `scanned` as changed since the start time keeps the scan's record.
+  pub async fn set_context_entry(&self, path: &InternedPath, scanned: bool) -> bool {
     let recovered: Vec<InternedPath> = self
       .absent_directories
       .iter()
@@ -585,6 +586,9 @@ impl PathManager {
     let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
       return true;
     };
+    if scanned {
+      return true;
+    }
     let mtime_ms = system_time_to_millis(mtime);
     let untouched = self.file_times.get(path).is_some_and(|old| {
       old.mtime == mtime && mtime_ms + mtime_accuracy(mtime_ms) < current_time()
@@ -816,34 +820,29 @@ impl PathManager {
   /// A context was unregistered: forget what its scan found below it, except
   /// what another still-registered context also covers.
   fn forget_context_entries_under(&self, dir: &InternedPath) {
-    let orphaned = |path: &InternedPath| {
-      path.starts_with(dir.as_ref() as &Path)
-        && !self.is_below_context(path)
-        && !self.directories.all.contains(path)
-    };
-    let files: Vec<InternedPath> = self
-      .context_files
-      .iter()
-      .filter(|path| orphaned(path))
-      .map(|path| path.clone())
-      .collect();
-    for path in &files {
-      self.context_files.remove(path);
-      if !self.files.all.contains(path) && !self.missing.all.contains(path) {
+    let mut subtree = Vec::new();
+    let mut pending = vec![dir.clone()];
+    while let Some(path) = pending.pop() {
+      if let Some(children) = self.recorded_children.get(&path) {
+        pending.extend(children.iter().map(|child| child.clone()));
+      }
+      subtree.push(path);
+    }
+    for path in &subtree {
+      if self.is_below_context(path) || self.directories.all.contains(path) {
+        continue;
+      }
+      if self.context_files.remove(path).is_some()
+        && !self.files.all.contains(path)
+        && !self.missing.all.contains(path)
+      {
         self.file_times.remove(path);
         self.unindex_record(path);
       }
-    }
-    let directories: Vec<InternedPath> = self
-      .context_directories
-      .iter()
-      .filter(|path| orphaned(path))
-      .map(|path| path.clone())
-      .collect();
-    for path in &directories {
-      self.context_directories.remove(path);
-      self.last_watch_events.remove(path);
-      self.unindex_record(path);
+      if self.context_directories.remove(path).is_some() {
+        self.last_watch_events.remove(path);
+        self.unindex_record(path);
+      }
     }
   }
 

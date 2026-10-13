@@ -1744,3 +1744,68 @@ fn an_attribute_only_event_on_a_context_file_is_dropped() {
   let after = safe_time_of(helper.time_info_entry(&file_timestamps, "ctx/old"));
   assert_eq!(after, before, "the attribute-only event restamped the file");
 }
+
+/// The same, with the real timing: the file changed after the start time but
+/// before the watch, longer ago than the filesystem accuracy. The scan's own
+/// record carries that mtime, so the reported change must not be taken for
+/// an attribute-only event.
+#[test]
+fn a_new_context_reports_a_file_changed_between_the_start_time_and_the_watch() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/edited");
+  let now = std::time::SystemTime::now();
+  set_modified(
+    helper.join("ctx/edited").as_std_path(),
+    now - std::time::Duration::from_secs(2),
+  )
+  .unwrap();
+  // The directory itself predates the start: only the file changed since.
+  set_modified(
+    helper.join("ctx").as_std_path(),
+    now - std::time::Duration::from_secs(60),
+  )
+  .unwrap();
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch_since(
+    e!(),
+    f!("ctx"),
+    e!(),
+    now - std::time::Duration::from_secs(5),
+  );
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(context.as_str())
+  });
+}
+
+/// A removal reported for a path that is back on disk (unlinked and
+/// re-created) is reported by the path's final state, like watchpack's lstat
+/// on each event: changed, not deleted.
+#[test]
+fn a_removal_of_a_path_back_on_disk_is_reported_as_a_change() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  helper.file("a");
+
+  let rx = helper.watch(f!("a"), e!(), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+
+  helper.trigger_event("a", rspack_watcher::FsEventKind::Remove);
+  let a = helper.join("a");
+  wait_for_aggregated(&helper, rx, |batch| {
+    assert!(
+      !batch.deleted_files.contains(a.as_str()),
+      "a path still on disk was reported as deleted: {batch:?}"
+    );
+    batch.changed_files.contains(a.as_str())
+  });
+}

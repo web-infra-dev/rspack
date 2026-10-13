@@ -252,6 +252,27 @@ impl TestHelper {
       impl Iterator<Item = InternedPath>,
     ),
   ) -> Receiver<Event> {
+    self.watch_since(files, directories, missing, SystemTime::now())
+  }
+
+  /// [`Self::watch`] with the start time of the build it follows: changes
+  /// since then that the watch was not active for are reported.
+  pub fn watch_since(
+    &mut self,
+    files: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    directories: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    missing: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    start_time: SystemTime,
+  ) -> Receiver<Event> {
     let (tx, rx) = std::sync::mpsc::channel();
 
     #[derive(Default)]
@@ -298,7 +319,7 @@ impl TestHelper {
               paths_to_iter!(files),
               paths_to_iter!(directories),
               paths_to_iter!(missing),
-              SystemTime::now(),
+              start_time,
               Box::new(AggregateHandler(tx.clone())),
               Box::new(ChangeHandler(tx)),
             )
