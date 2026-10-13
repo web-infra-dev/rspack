@@ -31,8 +31,9 @@ export default {
 
 ## 开启 isolatedModules
 
-`builtin:swc-loader` 会为每一个模块分开转译，这需要开启 [`isolatedModules`](https://www.typescriptlang.org/tsconfig#isolatedModules) 保证 tsc 对源代码的类型校验。
-而某一些功能，如 [const enums](https://www.typescriptlang.org/docs/handbook/enums.html#const-enums) 则是依赖了对整个项目的分析，因此，这些功能将无法使用。推荐显式地在 `tsconfig.json` 中开启这个选项，以使得 Rspack 的模块处理行为与 IDE 提示或类型检查中保持一致。
+`builtin:swc-loader` 会独立转译每个模块。建议在 `tsconfig.json` 中开启 [`isolatedModules`](https://www.typescriptlang.org/tsconfig#isolatedModules)，让 TypeScript 检查无法安全地进行单文件转译的代码。
+
+例如，不能引用通过 `declare const enum` 声明的枚举成员，但普通的 `const enum` 声明可以正常使用。
 
 ```json title="tsconfig.json"
 {

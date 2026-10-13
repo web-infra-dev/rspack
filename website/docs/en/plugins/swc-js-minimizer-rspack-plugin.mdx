@@ -40,13 +40,13 @@ When `optimization.minimizer` is set, the default minimizers are disabled, so we
 - **Type:** `string | RegExp | Array<string | RegExp>`
 - **Default:** `\.[cm]?js(\?.*)?$`
 
-Specify the files to be minimized. You can use regular expressions or file path strings, and only the files that match will be minimized.
+Specify the files to be minimized. You can use regular expressions or file path strings, and only the files that match will be minimized. `test`, `include`, and `exclude` match asset names relative to [`output.path`](/config/output#outputpath).
 
-For example, the build generates `/dist/foo.[hash].js` and some other JS files, we only minify `foo.js`:
+For example, if the output directory is `dist`, match `foo.[contenthash].js` without the `dist/` prefix to minify only this asset:
 
 ```js
 new rspack.SwcJsMinimizerRspackPlugin({
-  test: /dist\/foo\.\w+\.js$/,
+  test: /^foo\.\w+\.js$/,
 });
 ```
 
@@ -59,7 +59,7 @@ Same as `test`, specify the files to be minimized.
 
 ```js
 new rspack.SwcJsMinimizerRspackPlugin({
-  include: /dist\/foo\.\w+\.js$/,
+  include: /^foo\.\w+\.js$/,
 });
 ```
 
@@ -70,11 +70,11 @@ new rspack.SwcJsMinimizerRspackPlugin({
 
 Specify the files to be excluded. You can use regular expressions or file path strings, and the files that match will not be minimized.
 
-For example, the build generates `/dist/foo.[hash].js` and some other JS files, we exclude the minimization of `foo.js`:
+For example, exclude `foo.[contenthash].js` from minification:
 
 ```js
 new rspack.SwcJsMinimizerRspackPlugin({
-  exclude: /dist\/foo\.\w+\.js$/,
+  exclude: /^foo\.\w+\.js$/,
 });
 ```
 
