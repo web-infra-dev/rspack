@@ -74,13 +74,13 @@ When a compiler is no longer needed, call `close()` and wait for its callback. T
 
 Every build, including each watch rebuild, creates a new `Compilation`. Objects such as `Module`, `Chunk`, and graph objects obtained from a `Compilation` do not copy all of their data into JavaScript. Reading some properties or calling some methods still requires Rspack to retrieve data from the current Rust compilation through Node-API.
 
-A `Dependency` is an exception for properties stored on the dependency itself. Its JavaScript wrapper keeps the Rust dependency alive, so properties such as `type`, `request`, `loc`, and `critical` remain accessible after the hook or compilation ends. Setting `critical` is also safe, although a late change cannot affect work the build has already completed. Retaining a `Dependency` does not retain its `Compilation` or make it part of a later build: graph-derived properties such as `ids` and `_parentModule` still require the original compilation and may throw after it becomes unavailable. Before a dependency enters the graph, these graph-derived properties are unavailable.
+A `Dependency` is an exception for properties stored on the dependency itself. Its JavaScript wrapper keeps the Rust dependency alive, so properties such as `type`, `request`, `loc`, and `critical` remain readable after the hook or compilation ends. This longer read lifetime does not extend the mutation window: set `critical` only while a Rspack-invoked hook that permits the change is active. Do not change it from detached callbacks or after the hook completes; a late write can race with diagnostic collection and change which warnings appear. Retaining a `Dependency` does not retain its `Compilation` or make it part of a later build: graph-derived properties such as `ids` and `_parentModule` still require the original compilation and may throw after it becomes unavailable. Before a dependency enters the graph, these graph-derived properties are unavailable.
 
 Follow these rules:
 
 - Use a `Compilation` and its `Module`, `Chunk`, graph, and block objects only in hooks and callbacks for the current build.
 - Unless the API documentation explicitly promises a longer lifetime, do not retain these objects after the hook finishes or into the next build.
-- If you retain a `Dependency` beyond its original compilation, use only its own properties; obtain a dependency from the current build when you need graph relationships.
+- If you retain a `Dependency` beyond its hook or original compilation, read only its own properties; obtain a dependency from the current build when you need graph relationships.
 - If information is needed later, save JavaScript-owned strings or numbers such as identifiers, names, paths, and hashes, or convert the data into an ordinary JavaScript object.
 - After a watch rebuild, obtain compilation-scoped objects again from the new `Compilation` instead of reusing objects saved from the previous build.
 
