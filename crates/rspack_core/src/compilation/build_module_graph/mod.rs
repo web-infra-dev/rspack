@@ -11,7 +11,7 @@ use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use tracing::instrument;
 
 pub use self::{
-  graph_updater::{UpdateParam, update_module_graph},
+  graph_updater::{ModuleGraphUpdateResult, UpdateParam, update_module_graph},
   lazy_barrel_artifact::{
     ForwardId, ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil, ModuleToLazyMake,
   },
@@ -30,18 +30,21 @@ pub async fn do_build_module_graph(compilation: &mut Compilation) -> Result<()> 
   // run module_executor
   if let Some(module_executor) = &mut compilation.module_executor {
     let mut module_executor = std::mem::take(module_executor);
-    module_executor
-      .before_build_module_graph(compilation)
-      .await?;
+    let result = module_executor.before_build_module_graph(compilation).await;
     compilation.module_executor = Some(module_executor);
+    result?;
   }
 
   let artifact = compilation.build_module_graph_artifact.steal();
   let exports_info_artifact = compilation.exports_info_artifact.steal();
-  let (artifact, exports_info_artifact) =
-    build_module_graph(compilation, artifact, exports_info_artifact).await?;
+  let ModuleGraphUpdateResult {
+    artifact,
+    exports_info_artifact,
+    result,
+  } = build_module_graph(compilation, artifact, exports_info_artifact).await;
   compilation.build_module_graph_artifact = artifact.into();
   compilation.exports_info_artifact = exports_info_artifact.into();
+  result?;
 
   compilation.in_finish_make.store(true, Ordering::Release);
 
@@ -56,7 +59,7 @@ pub async fn build_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> ModuleGraphUpdateResult {
   let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {
@@ -82,8 +85,7 @@ pub async fn build_module_graph(
 
   // reset temporary data
   artifact.reset_temporary_data();
-  let artifacts = update_module_graph(compilation, artifact, exports_info_artifact, params).await?;
-  Ok(artifacts)
+  update_module_graph(compilation, artifact, exports_info_artifact, params).await
 }
 
 /// Clean up module graph when finish make.
@@ -97,7 +99,7 @@ pub async fn finish_build_module_graph(
   compilation: &Compilation,
   artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> ModuleGraphUpdateResult {
   update_module_graph(
     compilation,
     artifact,

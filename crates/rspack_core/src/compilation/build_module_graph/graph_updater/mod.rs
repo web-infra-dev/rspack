@@ -29,32 +29,59 @@ pub enum UpdateParam {
   ForceBuildModules(IdentifierSet),
 }
 
-/// Update module graph through `UpdateParam`
+/// Updated artifacts, retained even on failure so callers can restore them before
+/// propagating the error.
+#[derive(Debug)]
+pub struct ModuleGraphUpdateResult {
+  pub artifact: BuildModuleGraphArtifact,
+  pub exports_info_artifact: ExportsInfoArtifact,
+  pub result: Result<()>,
+}
+
+/// Update module graph through `UpdateParam`.
 pub async fn update_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
-  mut exports_info_artifact: ExportsInfoArtifact,
+  exports_info_artifact: ExportsInfoArtifact,
   params: Vec<UpdateParam>,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> ModuleGraphUpdateResult {
   let mut cutout = Cutout::default();
 
   let build_dependencies = cutout.cutout_artifact(compilation, &mut artifact, params);
 
   let revoked_modules = artifact.revoked_modules().copied().collect();
-  compilation
+  let result = compilation
     .plugin_driver
     .compilation_hooks
     .revoked_modules
     .call(compilation, &revoked_modules)
-    .await?;
+    .await;
+  if result.is_err() {
+    return ModuleGraphUpdateResult {
+      artifact,
+      exports_info_artifact,
+      result,
+    };
+  }
 
-  (artifact, exports_info_artifact) = repair(
+  let ModuleGraphUpdateResult {
+    mut artifact,
+    exports_info_artifact,
+    result,
+  } = repair(
     compilation,
     artifact,
     exports_info_artifact,
     build_dependencies,
   )
-  .await?;
+  .await;
+  if result.is_err() {
+    return ModuleGraphUpdateResult {
+      artifact,
+      exports_info_artifact,
+      result,
+    };
+  }
   cutout.fix_artifact(&mut artifact);
   let module_graph = artifact.get_module_graph();
   for id in artifact.affected_modules.active() {
@@ -62,5 +89,9 @@ pub async fn update_module_graph(
       module.freeze_build_meta();
     }
   }
-  Ok((artifact, exports_info_artifact))
+  ModuleGraphUpdateResult {
+    artifact,
+    exports_info_artifact,
+    result: Ok(()),
+  }
 }
