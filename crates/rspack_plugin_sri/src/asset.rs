@@ -20,7 +20,7 @@ use tokio::sync::RwLock;
 use crate::{
   IntegrityCallbackData, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
   config::IntegrityHtmlPlugin,
-  integrity::{SubresourceIntegrityHashFunction, compute_integrity},
+  integrity::{SubresourceIntegrityHashFunction, compute_integrity, compute_source_integrity},
   util::{PLACEHOLDER_PREFIX, make_placeholder, placeholder_len, use_any_hash},
 };
 
@@ -264,8 +264,7 @@ async fn add_minssing_integrities(
           return None;
         }
         asset.source.as_ref().map(|s| {
-          let content = s.source().into_string_lossy();
-          let integrity = compute_integrity(hash_func_names, &content);
+          let integrity = compute_source_integrity(hash_func_names, s.as_ref());
           (src.clone(), integrity)
         })
       })
@@ -356,8 +355,7 @@ pub async fn update_hash(
     .iter()
     .find_map(|(k, v)| if v == old_hash { Some(k.clone()) } else { None });
   if let (Some(key), Some(asset)) = (key, assets.first()) {
-    let content = asset.source().into_string_lossy();
-    let new_integrity = compute_integrity(&self.options.hash_func_names, content.as_ref());
+    let new_integrity = compute_source_integrity(&self.options.hash_func_names, asset.as_ref());
     compilation_integrities
       .write()
       .await

@@ -217,6 +217,7 @@ representation optimizations.
 | `RawBufferSource` | binary leaf          | exact bytes; lazy lossy rope view                                   |
 | `OriginalSource`  | mapped text leaf     | lazily creates token-like or line mappings                          |
 | `SourceMapSource` | existing/nested map  | directly borrows one map or composes outer and inner maps           |
+| `MappingSource`   | external map JSON   | retains the original map and serializes JSON on demand |
 | `ConcatSource`    | ordered composition  | flattens nested concats, merges adjacent raw strings, remaps tables |
 | `ReplaceSource`   | byte-range transform | maintains sorted edits and repairs mappings                         |
 | `CachedSource`    | memoization wrapper  | owns cross-call memoized state                                      |
@@ -226,6 +227,16 @@ Important implementation details:
 - `OriginalSource` splits potential JavaScript tokens with `memchr`; it is not an AST tokenizer.
 - `SourceMapSource` composition indexes inner mappings by line and binary-searches the closest
   preceding segment. Avoid cloning maps or eagerly splitting all `sourcesContent`.
+- `MappingSource` is the JSON asset itself, so `map()` returns `None`. It retains the original
+  `SourceMap` and its owner without interning, deduplicating, or rewriting `sourcesContent`.
+  Unedited `source()` uses the existing `SourceMap::to_json()` serializer on demand. All streaming
+  APIs expose borrowed JSON fragments, including splits at escapes. RCH scans serialized bytes
+  with bounded buffering and retains edits in another `MappingSource`, including custom digests
+  and maps participating in content-hash groups. Content hashing and equality consume the exact
+  rendered bytes; structural Source hashing remains separate. Persistent cache stores map fields
+  and edit layers directly, preserving empty fields without JSON encoding or parsing. Do not retain
+  the whole JSON in either the map asset or its replacement result. JS binding content requests
+  remain an explicit materialization boundary.
 - `ConcatSource::add` uses `&mut self` and `Mutex::get_mut`; reads lazily optimize children. Mapping
   shifts generated positions and remaps child-local indices into global deduplicated tables.
 - `ReplaceSource` ranges are half-open byte ranges. Edits are ordered by

@@ -16,12 +16,12 @@ use rspack_core::{
   cache::CachedSourceMapDevToolPluginEntry,
   legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, ObjectPool, RawBufferSource, RawStringSource, Source,
-    SourceExt, SourceMap, SourceValue,
+    BoxSource, ConcatSource, MapOptions, MappingSource, ObjectPool, RawBufferSource,
+    RawStringSource, Source, SourceExt, SourceMap, SourceValue,
   },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
-use rspack_hash::{RspackHash, RspackHasher};
+use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::{
@@ -985,17 +985,17 @@ impl SourceMapDevToolPlugin {
     mapped_assets.into_iter().collect::<Result<Vec<_>>>()
   }
 
-  fn source_map_to_json<'a>(
-    &'a self,
-    mut source_map: SourceMap<'a>,
-    reference_to_source_name_mapping: &'a ReferenceToSourceNameMapping,
-    asset_filename: &'a str,
-    source_map_path: Option<&'a Utf8Path>,
-    source_references: &'a [SourceReference],
-    debug_id: Option<&'a str>,
-  ) -> String {
+  fn update_source_map(
+    &self,
+    source_map: &mut SourceMap<'static>,
+    reference_to_source_name_mapping: &ReferenceToSourceNameMapping,
+    asset_filename: &str,
+    source_map_path: Option<&Utf8Path>,
+    source_references: &[SourceReference],
+    debug_id: Option<&str>,
+  ) {
     // Update source_map with deduplicated source names
-    source_map.set_file(Some(Cow::Borrowed(asset_filename)));
+    source_map.set_file(Some(Cow::Owned(asset_filename.to_owned())));
     source_map.set_sources(source_references.iter().map(|source_reference| {
       reference_to_source_name_mapping
         .get(source_reference)
@@ -1028,14 +1028,12 @@ impl SourceMapDevToolPlugin {
     }
 
     if let Some(source_root) = &self.source_root {
-      source_map.set_source_root(Some(Cow::Borrowed(source_root.as_ref())));
+      source_map.set_source_root(Some(Cow::Owned(source_root.to_string())));
     }
 
     if let Some(debug_id) = debug_id {
-      source_map.set_debug_id(Some(Cow::Borrowed(debug_id)));
+      source_map.set_debug_id(Some(Cow::Owned(debug_id.to_owned())));
     }
-
-    source_map.to_json()
   }
 
   /// Create a single MappedAsset: update the source map and emit asset + optional source map file.
@@ -1047,7 +1045,7 @@ impl SourceMapDevToolPlugin {
     reference_to_source_name_mapping: &ReferenceToSourceNameMapping,
     asset_filename: Arc<str>,
     source: BoxSource,
-    source_map: SourceMap<'static>,
+    mut source_map: SourceMap<'static>,
     unresolved_source_map_path: Option<Utf8PathBuf>,
     source_references: Vec<SourceReference>,
   ) -> Result<MappedAsset> {
@@ -1057,8 +1055,8 @@ impl SourceMapDevToolPlugin {
       .then(|| generate_debug_id(&asset_filename, &source.buffer()));
     let asset_filename_ref = asset_filename.as_ref();
 
-    let source_map_json = plugin.source_map_to_json(
-      source_map.as_borrowed(),
+    plugin.update_source_map(
+      &mut source_map,
       reference_to_source_name_mapping,
       asset_filename_ref,
       unresolved_source_map_path.as_ref().map(|p| p.as_path()),
@@ -1092,6 +1090,7 @@ impl SourceMapDevToolPlugin {
     };
 
     if let Some(source_map_filename_config) = &plugin.source_map_filename {
+      let mapping_source = MappingSource::new(source_map);
       let chunk = file_to_chunk.get(asset_filename.as_ref());
       let filename = match &plugin.file_context {
         Some(file_context) => Cow::Owned(
@@ -1106,7 +1105,7 @@ impl SourceMapDevToolPlugin {
       let content_hash_digest =
         if chunk.is_some() && source_map_filename_config.has_content_hash_placeholder() {
           let mut hasher = RspackHasher::from(&compilation.options.output);
-          source_map_json.hash(&mut hasher);
+          mapping_source.update_content_hash(&mut hasher);
           let digest = hasher.digest(&compilation.options.output.hash_digest);
           Some(digest)
         } else {
@@ -1196,10 +1195,8 @@ impl SourceMapDevToolPlugin {
         // set source map asset version to be the same as the target asset
         source_map_asset_info.version = asset.info.version.clone();
       }
-      let source_map_asset = CompilationAsset::new(
-        Some(RawStringSource::from(source_map_json).boxed()),
-        source_map_asset_info,
-      );
+      let source_map_asset =
+        CompilationAsset::new(Some(mapping_source.boxed()), source_map_asset_info);
       Ok(MappedAsset {
         asset: (asset_filename, asset),
         source_map: Some((source_map_filename.clone(), source_map_asset)),
@@ -1216,6 +1213,7 @@ impl SourceMapDevToolPlugin {
           ));
         }
       };
+      let source_map_json = source_map.to_json();
       let base64 = base64::encode_to_string(source_map_json.as_bytes());
       let append = current_source_mapping_url_comment
         .cow_replace(

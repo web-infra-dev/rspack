@@ -14,12 +14,12 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt, SourceValue},
+  rspack_sources::{BoxSource, MappingSource, RawStringSource, Source, SourceExt, SourceValue},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::FxDashMap;
+use rspack_util::{fx_hash::FxDashMap, streaming_matcher::StreamingMatcher};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
@@ -106,10 +106,11 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   // automaton so pathological hash counts don't pay the DFA build cost
   const DFA_PATTERN_BYTES_CAP: usize = 128 * 1024;
   let total_pattern_bytes: usize = hash_to_asset_names.keys().map(|s| s.len()).sum();
+  let hash_patterns = hash_to_asset_names.keys().copied().collect::<Vec<_>>();
   let hash_ac = AhoCorasick::builder()
     .match_kind(MatchKind::LeftmostLongest)
     .kind((total_pattern_bytes <= DFA_PATTERN_BYTES_CAP).then_some(AhoCorasickKind::DFA))
-    .build(hash_to_asset_names.keys().map(|s| s.as_bytes()))
+    .build(&hash_patterns)
     .expect("Invalid patterns");
   logger.time_end(start);
 
@@ -121,7 +122,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       asset.get_source().map(|source| {
         (
           name.as_str(),
-          AssetData::new(source, asset.get_info(), &hash_ac),
+          AssetData::new(source, asset.get_info(), &hash_ac, &hash_patterns),
         )
       })
     })
@@ -217,7 +218,18 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
                 .cloned()
                 .collect::<Vec<_>>();
-              asset_contents.dedup();
+              asset_contents.dedup_by(|a, b| {
+                if let Some(mapping) = a.as_any().downcast_ref::<MappingSource>() {
+                  // External maps previously used RawStringSource. Preserve
+                  // type-sensitive equality for all other source kinds.
+                  (b.as_any().is::<MappingSource>() || b.as_any().is::<RawStringSource>())
+                    && mapping.content_eq(b.as_ref())
+                } else if let Some(mapping) = b.as_any().downcast_ref::<MappingSource>() {
+                  a.as_any().is::<RawStringSource>() && mapping.content_eq(a.as_ref())
+                } else {
+                  a == b
+                }
+              });
               let updated_hash = hooks
                 .borrow()
                 .update_hash
@@ -229,7 +241,11 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
               } else {
                 let mut hasher = RspackHasher::from(&compilation.options.output);
                 for asset_content in asset_contents {
-                  hasher.write(&asset_content.buffer());
+                  if let Some(mapping) = asset_content.as_any().downcast_ref::<MappingSource>() {
+                    mapping.update_content_hash(&mut hasher);
+                  } else {
+                    hasher.write(&asset_content.buffer());
+                  }
                 }
                 let new_hash = hasher.digest(&compilation.options.output.hash_digest);
 
@@ -316,15 +332,47 @@ struct AssetData<'a> {
   #[debug(skip)]
   content: Option<Cow<'a, str>>,
   #[debug(skip)]
+  mapping_matches: Vec<(usize, usize, String)>,
+  #[debug(skip)]
   new_source: OnceCell<BoxSource>,
   #[debug(skip)]
   new_source_without_own: OnceCell<BoxSource>,
 }
 
 impl<'a> AssetData<'a> {
-  pub fn new(source: &'a BoxSource, info: &AssetInfo, hash_ac: &AhoCorasick) -> Self {
+  pub fn new(
+    source: &'a BoxSource,
+    info: &AssetInfo,
+    hash_ac: &AhoCorasick,
+    hash_patterns: &[&str],
+  ) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
+    if let Some(mapping) = source.as_any().downcast_ref::<MappingSource>() {
+      let mut mapping_matches = Vec::new();
+      let mut matcher = StreamingMatcher::new(hash_ac, |found| {
+        let hash = hash_patterns[found.pattern().as_usize()];
+        if info.content_hash.contains(hash) {
+          own_hashes.insert(hash.to_owned());
+        } else {
+          referenced_hashes.insert(hash.to_owned());
+        }
+        mapping_matches.push((found.start(), found.end(), hash.to_owned()));
+      });
+      mapping
+        .to_writer(&mut matcher)
+        .expect("scan source map JSON");
+      matcher.finish();
+      return Self {
+        own_hashes,
+        referenced_hashes,
+        old_source: source,
+        content: None,
+        mapping_matches,
+        new_source: OnceCell::new(),
+        new_source_without_own: OnceCell::new(),
+      };
+    }
     let content = if let SourceValue::String(content) = source.source() {
       for hash in hash_ac.find_iter(content.as_ref()) {
         let hash = &content[hash.range()];
@@ -347,6 +395,7 @@ impl<'a> AssetData<'a> {
       referenced_hashes,
       old_source: source,
       content,
+      mapping_matches: Vec::new(),
       new_source: OnceCell::new(),
       new_source_without_own: OnceCell::new(),
     }
@@ -364,6 +413,26 @@ impl<'a> AssetData<'a> {
       &self.new_source
     })
     .get_or_init(|| {
+      if let Some(mapping) = self.old_source.as_any().downcast_ref::<MappingSource>() {
+        let mut replacements = Vec::new();
+        for (start, end, hash) in &self.mapping_matches {
+          let replacement = if without_own && self.own_hashes.contains(hash) {
+            ""
+          } else {
+            hash_to_new_hash
+              .get(hash)
+              .expect("RealContentHashPlugin: should have new hash")
+          };
+          if replacement != hash {
+            replacements.push((*start, *end, replacement.to_owned()));
+          }
+        }
+        return if replacements.is_empty() {
+          Arc::clone(self.old_source)
+        } else {
+          mapping.with_replacements(replacements).boxed()
+        };
+      }
       if let Some(content) = &self.content
         && (!self.own_hashes.is_empty()
           || self

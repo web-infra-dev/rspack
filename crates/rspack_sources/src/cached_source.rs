@@ -11,7 +11,7 @@ use crate::{
   BoxSource, MapOptions, RawBufferSource, Source, SourceExt, SourceMap,
   helpers::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, stream_and_get_source_and_map,
-    stream_chunks_of_raw_source, stream_chunks_of_source_map,
+    stream_chunks_of_raw_rope, stream_chunks_of_source_map,
   },
   object_pool::ObjectPool,
   source::SourceValue,
@@ -109,7 +109,9 @@ impl CachedSource {
       if let Some(chunks) = self.cache.chunks.get() {
         return chunks.iter().all(|chunk| chunk.is_ascii());
       }
-      self.inner.source().as_bytes().is_ascii()
+      let mut is_ascii = true;
+      self.inner.rope(&mut |chunk| is_ascii &= chunk.is_ascii());
+      is_ascii
     })
   }
 
@@ -250,22 +252,19 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
       &self.cache_source.cache.line_only_map
     };
     match cell.get() {
-      Some(map) => {
+      Some(Some(map)) => {
         let source = self.get_or_init_source();
-        if let Some(map) = map {
-          stream_chunks_of_source_map(
-            options,
-            object_pool,
-            source,
-            map.fields(),
-            on_chunk,
-            on_source,
-            on_name,
-          )
-        } else {
-          stream_chunks_of_raw_source(source, options, on_chunk, on_source, on_name)
-        }
+        stream_chunks_of_source_map(
+          options,
+          object_pool,
+          source,
+          map.fields(),
+          on_chunk,
+          on_source,
+          on_name,
+        )
       }
+      Some(None) => stream_chunks_of_raw_rope(self.cache_source.inner.as_ref(), options, on_chunk),
       None => {
         let (generated_info, map) = stream_and_get_source_and_map(
           options,

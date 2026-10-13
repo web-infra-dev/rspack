@@ -2,10 +2,76 @@
 #![allow(missing_docs)]
 
 use crate::{
-  BoxSource, CachedSource, ConcatSource, OriginalSource, RawBufferSource, RawStringSource,
-  ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap, SourceMapSource,
-  SourceMapSourceOptions,
+  BoxSource, CachedSource, ConcatSource, MappingSource, OriginalSource, RawBufferSource,
+  RawStringSource, ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap,
+  SourceMapFields, SourceMapSource, SourceMapSourceOptions, mapping_source::Data,
 };
+
+/// Source map fields stored without an intermediate JSON representation.
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+pub struct CacheableSourceMap {
+  version: u8,
+  file: Option<String>,
+  sources: Vec<String>,
+  sources_content: Vec<String>,
+  names: Vec<String>,
+  mappings: String,
+  source_root: Option<String>,
+  debug_id: Option<String>,
+  ignore_list: Option<Vec<u32>>,
+}
+
+impl From<&SourceMap<'_>> for CacheableSourceMap {
+  fn from(map: &SourceMap<'_>) -> Self {
+    let fields = map.fields();
+    Self {
+      version: fields.version,
+      file: fields.file.as_deref().map(str::to_owned),
+      sources: fields.sources.iter().map(ToString::to_string).collect(),
+      sources_content: fields
+        .sources_content
+        .iter()
+        .map(ToString::to_string)
+        .collect(),
+      names: fields.names.iter().map(ToString::to_string).collect(),
+      mappings: fields.mappings.to_string(),
+      source_root: fields.source_root.as_deref().map(str::to_owned),
+      debug_id: fields.debug_id.as_deref().map(str::to_owned),
+      ignore_list: fields.ignore_list.as_deref().map(<[u32]>::to_vec),
+    }
+  }
+}
+
+impl From<CacheableSourceMap> for SourceMap<'static> {
+  fn from(map: CacheableSourceMap) -> Self {
+    SourceMap::from_fields(SourceMapFields {
+      version: map.version,
+      file: map.file.map(Into::into),
+      sources: map
+        .sources
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>()
+        .into(),
+      sources_content: map
+        .sources_content
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>()
+        .into(),
+      names: map
+        .names
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>()
+        .into(),
+      mappings: map.mappings.into(),
+      source_root: map.source_root.map(Into::into),
+      debug_id: map.debug_id.map(Into::into),
+      ignore_list: map.ignore_list.map(Into::into),
+    })
+  }
+}
 
 /// Serializable representation of a [`Replacement`](crate::Replacement).
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
@@ -86,10 +152,33 @@ pub enum CacheableSource {
     #[rkyv(omit_bounds)]
     inner: Box<CacheableSource>,
   },
+  /// [`MappingSource`], preserving every field, including omitted empty arrays.
+  Mapping { map: CacheableSourceMap },
+  /// An edited [`MappingSource`] remains a structural view of its input.
+  EditedMapping {
+    #[rkyv(omit_bounds)]
+    inner: Box<CacheableSource>,
+    replacements: Vec<(usize, usize, String)>,
+  },
 }
 
 /// Convert a [`Source`] trait object into a serializable [`CacheableSource`].
 pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
+  if let Some(s) = source.as_any().downcast_ref::<MappingSource>() {
+    return match s.data() {
+      Data::Map(data) => CacheableSource::Mapping {
+        map: (&data.map).into(),
+      },
+      Data::Edited {
+        inner,
+        replacements,
+        ..
+      } => CacheableSource::EditedMapping {
+        inner: Box::new(to_cacheable(inner)),
+        replacements: replacements.clone(),
+      },
+    };
+  }
   if let Some(s) = source.as_any().downcast_ref::<CachedSource>() {
     return CacheableSource::Cached {
       inner: Box::new(to_cacheable(s.inner().as_ref())),
@@ -166,6 +255,19 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
 /// Convert a [`CacheableSource`] back into a [`BoxSource`].
 pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
   match cacheable {
+    CacheableSource::Mapping { map } => MappingSource::new(map.into()).boxed(),
+    CacheableSource::EditedMapping {
+      inner,
+      replacements,
+    } => {
+      let inner = from_cacheable(*inner);
+      inner
+        .as_any()
+        .downcast_ref::<MappingSource>()
+        .expect("edited mapping source must retain a mapping source")
+        .with_replacements(replacements)
+        .boxed()
+    }
     CacheableSource::RawBuffer { buffer } => RawBufferSource::from(buffer).boxed(),
     CacheableSource::RawString { value } => RawStringSource::from(value).boxed(),
     CacheableSource::Original { value, name } => OriginalSource::new(value, name).boxed(),
