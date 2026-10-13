@@ -191,7 +191,7 @@ export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
   readableIdentifier(): string
-  _originalSource(): JsSource | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -202,7 +202,7 @@ export declare class ConcatenatedModule {
 
 export declare class ContextModule {
   readableIdentifier(): string
-  _originalSource(): JsSource | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -267,7 +267,7 @@ export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
   readableIdentifier(): string
-  _originalSource(): JsSource | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -302,7 +302,7 @@ export declare class JsCompilation {
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsSource | null
-  get modules(): Array<Module>
+  get modules(): Modules
   get builtModules(): Array<Module>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   get chunks(): Chunks
@@ -458,7 +458,7 @@ export declare class KnownBuildInfo {
 
 export declare class Module {
   readableIdentifier(): string
-  _originalSource(): JsSource | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -473,6 +473,13 @@ export declare class ModuleGraphConnection {
   get resolvedModule(): Module | null
   get originModule(): Module | null
   getActiveState(runtime: string | string[] | undefined): ConnectionState
+}
+
+/** Read-only operations on a compilation's module collection. */
+export declare class Modules {
+  size(): number
+  has(value: Module): boolean
+  values(): ReadonlyArray<Module>
 }
 
 export declare class NativeWatcher {
@@ -1076,9 +1083,6 @@ export interface JsResolveData {
   contextInfo: ContextInfo
   /** The import attributes of the dependency that triggered this resolution, read-only. */
   attributes?: Record<string, string>
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
   createData?: JsCreateData
 }
 
@@ -1367,6 +1371,11 @@ export interface JsSourceFromJs {
 export interface JsSourceToJs {
   source: string | Buffer
   map?: string
+}
+
+export interface JsSourceWithLazyMap {
+  source: string | Buffer
+  map?: string | (() => string)
 }
 
 export interface JsStatsAsset {
@@ -2622,7 +2631,7 @@ export interface RawJsonParserOptions {
 }
 
 export interface RawLazyCompilationOption {
-  currentActiveModules: ((err: Error | null, ) => Set<string>)
+  takeNewlyActiveModules: ((err: Error | null, ) => Set<string>)
   test?: RawLazyCompilationTest
   entries: boolean
   imports: boolean

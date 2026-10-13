@@ -61,8 +61,16 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
   }
   fn runtime_requirements(
     &self,
-    _compilation: &Compilation,
+    compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    *HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
+    let mut requirements = *HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS;
+    if compilation.options.experiments.defer_import {
+      // Hot updates can introduce deferred namespaces after the bootstrap has
+      // already run, so require must support their shared exports from the start.
+      requirements
+        .dependencies
+        .insert(RuntimeGlobals::DEFERRED_MODULE_EXPORTS);
+    }
+    requirements
   }
 }

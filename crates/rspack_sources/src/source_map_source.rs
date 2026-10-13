@@ -15,6 +15,7 @@ use crate::{
 
 /// Options for [SourceMapSource::new].
 #[derive(Debug)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct SourceMapSourceOptions<V, N> {
   /// The source code.
   pub value: V,
@@ -33,6 +34,7 @@ pub struct SourceMapSourceOptions<V, N> {
 /// An convenient options for [SourceMapSourceOptions], `original_source` and
 /// `inner_source_map` will be `None`, `remove_original_source` will be false.
 #[derive(Debug)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct WithoutOriginalOptions<V, N> {
   /// The source code.
   pub value: V,
@@ -60,6 +62,7 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 ///
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#sourcemapsource).
 #[derive(Eq)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct SourceMapSource {
   value: Box<str>,
   name: Box<str>,
@@ -149,11 +152,31 @@ impl Source for SourceMapSource {
     object_pool: &ObjectPool,
     options: &MapOptions,
   ) -> Option<SourceMap<'static>> {
-    let owner = self.clone();
-    self
-      .as_ref()
-      .map(object_pool, options)
-      .map(|map| map.into_static(owner))
+    match Arc::try_unwrap(self) {
+      Ok(mut source) => {
+        if source.inner_source_map.is_none() {
+          // The supplied map already owns its data.
+          return Some(source.source_map);
+        }
+
+        // A combined map needs the generated value while calculating mappings,
+        // but its resulting fields only borrow the remaining map-related data.
+        let value = std::mem::take(&mut source.value);
+        let source = Arc::new(source);
+        let owner = source.clone();
+        let chunks = SourceMapSourceChunks::new(source.as_ref(), &value);
+        get_map(object_pool, &chunks, options)
+          .map(SourceMap::from_fields)
+          .map(|map| map.into_static(owner))
+      }
+      Err(source) => {
+        let owner = source.clone();
+        source
+          .as_ref()
+          .map(object_pool, options)
+          .map(|map| map.into_static(owner))
+      }
+    }
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -223,9 +246,29 @@ impl std::fmt::Debug for SourceMapSource {
   }
 }
 
-struct SourceMapSourceChunks<'source>(&'source SourceMapSource);
+struct SourceMapSourceChunks<'source, 'value> {
+  value: &'value str,
+  name: &'source str,
+  source_map: &'source SourceMap<'static>,
+  original_source: Option<&'source str>,
+  inner_source_map: Option<&'source SourceMap<'static>>,
+  remove_original_source: bool,
+}
 
-impl<'source> Chunks<'source> for SourceMapSourceChunks<'source> {
+impl<'source, 'value> SourceMapSourceChunks<'source, 'value> {
+  fn new(source: &'source SourceMapSource, value: &'value str) -> Self {
+    Self {
+      value,
+      name: &source.name,
+      source_map: &source.source_map,
+      original_source: source.original_source.as_deref(),
+      inner_source_map: source.inner_source_map.as_ref(),
+      remove_original_source: source.remove_original_source,
+    }
+  }
+}
+
+impl<'source, 'value> Chunks<'source> for SourceMapSourceChunks<'source, 'value> {
   fn stream<'chunk>(
     &'chunk self,
     object_pool: &ObjectPool,
@@ -234,16 +277,16 @@ impl<'source> Chunks<'source> for SourceMapSourceChunks<'source> {
     on_source: crate::helpers::OnSource<'_, 'source>,
     on_name: crate::helpers::OnName<'_, 'source>,
   ) -> crate::helpers::GeneratedInfo {
-    if let Some(inner_source_map) = &self.0.inner_source_map {
+    if let Some(inner_source_map) = self.inner_source_map {
       stream_chunks_of_combined_source_map(
         options,
         object_pool,
-        &self.0.value,
-        self.0.source_map.fields(),
-        &self.0.name,
-        self.0.original_source.as_deref(),
+        self.value,
+        self.source_map.fields(),
+        self.name,
+        self.original_source,
         inner_source_map.fields(),
-        self.0.remove_original_source,
+        self.remove_original_source,
         on_chunk,
         on_source,
         on_name,
@@ -252,8 +295,8 @@ impl<'source> Chunks<'source> for SourceMapSourceChunks<'source> {
       stream_chunks_of_source_map(
         options,
         object_pool,
-        TextSpan::new(self.0.value.as_ref()),
-        self.0.source_map.fields(),
+        TextSpan::new(self.value),
+        self.source_map.fields(),
         on_chunk,
         on_source,
         on_name,
@@ -264,7 +307,7 @@ impl<'source> Chunks<'source> for SourceMapSourceChunks<'source> {
 
 impl StreamChunks for SourceMapSource {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
-    Box::new(SourceMapSourceChunks(self))
+    Box::new(SourceMapSourceChunks::new(self, &self.value))
   }
 }
 

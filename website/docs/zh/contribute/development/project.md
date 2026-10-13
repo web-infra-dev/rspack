@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、JavaScript packages、测试目录与核心组件分布。'
+description: '了解 Rspack monorepo 的目录结构，查找 Rust crate、JavaScript 包、测试套件和基准测试。'
 ---
 
 # 项目结构

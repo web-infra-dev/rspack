@@ -30,7 +30,8 @@ use crate::{
   define_symbols,
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
-  source::{JsSourceFromJs, JsSourceToJs},
+  shared_properties::define_shared_properties,
+  source::{JsSourceFromJs, JsSourceToJs, JsSourceWithLazyMap},
 };
 
 define_symbols! {
@@ -214,38 +215,32 @@ pub(crate) fn define_module_properties(
         .with_utf8_name("type")?
         .with_value(&env.create_string(module.module_type().as_str())?),
     );
-    properties.push(
-      Property::new()
-        .with_utf8_name("context")?
-        .with_getter(module_context_getter),
-    );
-    properties.push(
-      Property::new()
-        .with_utf8_name("layer")?
-        .with_getter(module_layer_getter),
-    );
-    properties.push(
-      Property::new()
-        .with_utf8_name("useSourceMap")?
-        .with_getter(module_use_source_map_getter),
-    );
-    properties.push(
-      Property::new()
-        .with_utf8_name("useSimpleSourceMap")?
-        .with_getter(module_use_simple_source_map_getter),
-    );
-    properties.push(
-      Property::new()
-        .with_utf8_name("factoryMeta")?
-        .with_getter(module_factory_meta_getter)
-        .with_setter(module_factory_meta_setter),
-    );
-    properties.push(
-      Property::new()
-        .with_utf8_name("buildInfo")?
-        .with_getter(module_build_info_getter)
-        .with_setter(module_build_info_setter),
-    );
+    object.define_properties(properties)?;
+    properties.clear();
+    define_shared_properties::<Module>(env, *object, || {
+      Ok(vec![
+        Property::new()
+          .with_utf8_name("context")?
+          .with_getter(module_context_getter),
+        Property::new()
+          .with_utf8_name("layer")?
+          .with_getter(module_layer_getter),
+        Property::new()
+          .with_utf8_name("useSourceMap")?
+          .with_getter(module_use_source_map_getter),
+        Property::new()
+          .with_utf8_name("useSimpleSourceMap")?
+          .with_getter(module_use_simple_source_map_getter),
+        Property::new()
+          .with_utf8_name("factoryMeta")?
+          .with_getter(module_factory_meta_getter)
+          .with_setter(module_factory_meta_setter),
+        Property::new()
+          .with_utf8_name("buildInfo")?
+          .with_getter(module_build_info_getter)
+          .with_setter(module_build_info_setter),
+      ])
+    })?;
     properties.push(
       Property::new()
         .with_utf8_name("buildMeta")?
@@ -387,7 +382,7 @@ impl Module {
 
   #[napi(
     js_name = "_originalSource",
-    ts_return_type = "JsSource | undefined",
+    ts_return_type = "JsSourceWithLazyMap | undefined",
     enumerable = false
   )]
   pub fn original_source<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Unknown<'a>, ()>> {
@@ -420,7 +415,7 @@ impl Module {
       return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
     }
 
-    let binding = JsSourceToJs::try_from(original_source)?;
+    let binding = JsSourceWithLazyMap::to_js(env, original_source)?;
     let mut one_shot_ref = OneShotRef::new(env.raw(), binding)?;
     let result = ToNapiValue::into_unknown(&mut one_shot_ref, env)?;
     self.original_source_ref = Some(OriginalSourceNapiRef {
@@ -480,13 +475,8 @@ impl Module {
       Ok(
         dependencies
           .filter_map(|dependency_id| {
-            internal::try_dependency_by_id(module_graph, dependency_id).map(|dep| {
-              DependencyWrapper::new(
-                dep,
-                compilation.id(),
-                Some(compilation),
-              )
-            })
+            internal::try_dependency_ref_by_id(module_graph, dependency_id)
+              .map(|dep| DependencyWrapper::from_graph(dep, compilation.id()))
           })
           .collect::<Vec<_>>(),
       )
@@ -787,6 +777,7 @@ impl FromNapiValue for ModuleObject {
 
 pub struct ModuleObjectRef {
   pub(crate) identifier: ModuleIdentifier,
+  pub(crate) compiler_id: CompilerId,
 }
 
 impl FromNapiValue for ModuleObjectRef {
@@ -797,18 +788,23 @@ impl FromNapiValue for ModuleObjectRef {
       Ok(match instance {
         Either5::A(normal_module) => Self {
           identifier: normal_module.module.identifier,
+          compiler_id: normal_module.module.compiler_id,
         },
         Either5::B(concatenated_module) => Self {
           identifier: concatenated_module.module.identifier,
+          compiler_id: concatenated_module.module.compiler_id,
         },
         Either5::C(context_module) => Self {
           identifier: context_module.module.identifier,
+          compiler_id: context_module.module.compiler_id,
         },
         Either5::D(external_module) => Self {
           identifier: external_module.module.identifier,
+          compiler_id: external_module.module.compiler_id,
         },
         Either5::E(module) => Self {
           identifier: module.identifier,
+          compiler_id: module.compiler_id,
         },
       })
     }

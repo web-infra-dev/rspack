@@ -9,8 +9,8 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::{
   compact_hashed_id::{
-    CompactHashedIdAssigner, FULL_LOWERCASE_ALPHANUMERIC_LENGTH, hash_lowercase_alphanumeric,
-    normalize_min_length, validate_min_length,
+    CompactHashedIdAssigner, FULL_LOWERCASE_ALPHANUMERIC_LENGTH, MAX_REHASH_ATTEMPTS,
+    hash_lowercase_alphanumeric, normalize_min_length, validate_min_length,
   },
   id_helpers::{
     NaturalChunkCompareCache, compare_chunks_natural, get_full_chunk_name, get_used_chunk_ids,
@@ -101,12 +101,12 @@ async fn chunk_ids(
         context,
         &compilation.exports_info_artifact,
       )?;
-      Ok((chunk, hash_lowercase_alphanumeric(&name)))
+      Ok((chunk, hash_lowercase_alphanumeric(&name), name))
     })
     .collect::<Result<Vec<_>>>()?;
 
   let mut chunk_compare_cache = NaturalChunkCompareCache::default();
-  chunks_with_hashes.sort_unstable_by(|(a, _), (b, _)| {
+  chunks_with_hashes.sort_unstable_by(|(a, _, _), (b, _, _)| {
     compare_chunks_natural(
       chunk_graph,
       &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
@@ -120,10 +120,10 @@ async fn chunk_ids(
   let mut chunk_key_to_id =
     FxHashMap::with_capacity_and_hasher(chunks_with_hashes.len(), FxBuildHasher::default());
   let mut id_assigner = CompactHashedIdAssigner::new(self.min_length, used_ids);
-  for (chunk, hash) in chunks_with_hashes {
-    let Some(chunk_id) = id_assigner.assign(&hash) else {
+  for (chunk, hash, name) in chunks_with_hashes {
+    let Some(chunk_id) = id_assigner.assign(&name, hash, hash_lowercase_alphanumeric) else {
       return Err(error!(
-        "Unable to assign a unique compact-hashed id to chunk '{:?}' after using all {FULL_LOWERCASE_ALPHANUMERIC_LENGTH} hash characters",
+        "Unable to assign a unique compact-hashed id to chunk '{:?}' after {MAX_REHASH_ATTEMPTS} rehash attempts",
         chunk.ukey()
       ));
     };

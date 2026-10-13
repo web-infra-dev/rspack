@@ -11,7 +11,7 @@ var external_fs_promises_default = /*#__PURE__*/__webpack_require__.n(__rspack_e
 it('should support array-type module external with property access', async () => {
   const fs = await import(/* webpackIgnore: true */ 'node:fs')
   expect((external_fs_promises_default())).toBe(fs.promises)
-})
+});
 
 export {};
 

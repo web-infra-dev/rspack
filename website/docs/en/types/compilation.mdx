@@ -14,7 +14,7 @@ type Compilation = {
   renameAsset(filename: string, newFilename: string): void; // rename the asset
   deleteAsset(filename: string): void; // delete an existing asset
   getAssets(): readonly Asset[]; // get all assets
-  getAsset(name: string): Readonly<Asset> | void; // get asset from name
+  getAsset(name: string): Readonly<Asset> | undefined; // get asset from name
   getPath(filename: string, data?: PathData): string; // generate path from template
   getPathWithInfo(filename: string, data?: PathData): PathWithInfo; // generate path and asset info from template
   getStats(): Stats; // get stats object

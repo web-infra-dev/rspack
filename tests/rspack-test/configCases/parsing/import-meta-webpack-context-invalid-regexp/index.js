@@ -1,4 +1,4 @@
-const contextRequire = import.meta.webpackContext(".", {
+const contextRequire = import.meta.webpackContext("./fixtures", {
 	regExp: /(?<name>a)(?<name>b)/,
 	recursive: false
 });

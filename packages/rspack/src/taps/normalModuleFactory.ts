@@ -1,5 +1,8 @@
 import binding from '@rspack/binding';
-import type { NormalModuleCreateData } from '../NormalModuleFactory';
+import {
+  createResolveData,
+  type NormalModuleCreateData,
+} from '../NormalModuleFactory';
 import type { CreatePartialRegisters } from './types';
 
 export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
@@ -16,7 +19,7 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function (resolveData: binding.JsResolveData) {
-          const ret = await queried.promise(resolveData);
+          const ret = await queried.promise(createResolveData(resolveData));
           return [ret, resolveData];
         };
       },
@@ -31,7 +34,7 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function (resolveData: binding.JsResolveData) {
-          await queried.promise(resolveData);
+          await queried.promise(createResolveData(resolveData));
           return resolveData;
         };
       },
@@ -46,7 +49,7 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function (resolveData: binding.JsResolveData) {
-          await queried.promise(resolveData);
+          await queried.promise(createResolveData(resolveData));
           return resolveData;
         };
       },
@@ -76,7 +79,7 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function (resolveData: binding.JsResolveData) {
-          const ret = await queried.promise(resolveData);
+          const ret = await queried.promise(createResolveData(resolveData));
           return [ret, resolveData];
         };
       },

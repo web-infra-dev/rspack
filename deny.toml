@@ -212,6 +212,13 @@ deny = [
 # Certain crates/versions that will be skipped when doing duplicate detection.
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
+  { crate = "miniz_oxide@0.8.9", reason = "backtrace requires 0.8 while browserslist-data requires 0.9" },
+  # cssparser 0.37 uses phf 0.13, while parcel_selectors and SWC still use phf 0.11.
+  { crate = "phf@0.11.2", reason = "required by parcel_selectors and SWC" },
+  { crate = "phf_generator@0.11.2", reason = "required by phf 0.11" },
+  { crate = "phf_macros@0.11.2", reason = "required by phf 0.11" },
+  { crate = "phf_shared@0.11.2", reason = "required by phf 0.11" },
+  { crate = "siphasher@0.3.11", reason = "required by phf 0.11 and swc_common" },
   { crate = "ahash", reason = "external dependency" },
   { crate = "base64-simd", reason = "external dependency" },
   { crate = "convert_case", reason = "external dependency" },

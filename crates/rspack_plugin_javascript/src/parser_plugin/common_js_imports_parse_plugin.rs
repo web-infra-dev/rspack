@@ -1533,7 +1533,11 @@ impl CommonJsImportsParserPlugin {
       return false;
     };
 
-    if parser.get_variable_info(&ident.sym).is_some() {
+    // A tag on an otherwise free name is not shadowing. Keep local bindings and aliases on
+    // their existing path, but allow observers to attach metadata to the original `require`.
+    if parser.get_variable_info(&ident.sym).is_some_and(|info| {
+      !info.is_free() || info.name.as_ref().is_none_or(|name| name != &ident.sym)
+    }) {
       return false;
     }
 

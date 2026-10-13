@@ -64,7 +64,7 @@ __webpack_require__.d(shared_namespaceObject, {
 
 // ./shared.js
 const a = () => 42
-const b = () => 42
+const b = () => 42;
 export { shared_namespaceObject as ns1 };
 
 ```

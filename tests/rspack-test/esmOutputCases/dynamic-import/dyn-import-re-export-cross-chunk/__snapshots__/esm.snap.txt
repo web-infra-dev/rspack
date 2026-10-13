@@ -8,7 +8,7 @@ it('should dynamically import module that re-exports from cross-chunk module', a
 	const mod = await import("./wrapper.mjs")
 	expect(mod.value).toBe(42)
 	expect(mod.helper()).toBe(1)
-})
+});
 
 export {};
 
@@ -17,7 +17,7 @@ export {};
 ```mjs title=shared-chunk.mjs
 // ./shared.js
 const value = 42
-const helper = () => 1
+const helper = () => 1;
 
 export { helper };
 

@@ -31,6 +31,7 @@ static BOOTSTRAP_EXPORT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
     | RuntimeGlobals::REQUIRE_SCOPE
     | RuntimeGlobals::MODULE_FACTORIES
     | RuntimeGlobals::MODULE_CACHE
+    | RuntimeGlobals::DEFERRED_MODULE_EXPORTS
     | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
 });
 
@@ -253,6 +254,8 @@ fn render_runtime_chunk_runtime_modules_sync(
       Some(format!(
         "typeof {module_cache} !== \"undefined\" ? {module_cache} : {{}}"
       ))
+    } else if runtime_global == RuntimeGlobals::DEFERRED_MODULE_EXPORTS {
+      Some("__rspack_deferred_exports".to_string())
     } else if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext
       && runtime_global.intersects(RuntimeGlobals::STARTUP | RuntimeGlobals::STARTUP_ENTRYPOINT)
     {

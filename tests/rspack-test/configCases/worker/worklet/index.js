@@ -5,7 +5,7 @@ it("should allow to create a paintWorklet worklet", async () => {
 	let pseudoWorklet = await CSS.paintWorklet.addModule(new URL("./worklet.js", import.meta.url));
 	pseudoWorklet = new pseudoWorklet();
 
-	expect(pseudoWorklet.url).not.toContain("asset-");
+	expect(pseudoWorklet.url.href).not.toContain("asset-");
 
 	pseudoWorklet.postMessage("ok");
 
@@ -24,7 +24,7 @@ it("should allow to create a layoutWorklet worklet", async () => {
 
 	pseudoWorklet = new pseudoWorklet();
 
-	expect(pseudoWorklet.url).not.toContain("asset-");
+	expect(pseudoWorklet.url.href).not.toContain("asset-");
 
 	pseudoWorklet.postMessage("ok");
 
@@ -43,7 +43,7 @@ it("should allow to create a animationWorklet worklet", async () => {
 
 	pseudoWorklet = new pseudoWorklet();
 
-	expect(pseudoWorklet.url).not.toContain("asset-");
+	expect(pseudoWorklet.url.href).not.toContain("asset-");
 
 	pseudoWorklet.postMessage("ok");
 
@@ -63,7 +63,7 @@ it("should allow to create a audioWorklet worklet", async () => {
 
 	pseudoWorklet = new pseudoWorklet();
 
-	expect(pseudoWorklet.url).not.toContain("asset-");
+	expect(pseudoWorklet.url.href).not.toContain("asset-");
 
 	pseudoWorklet.postMessage("ok");
 
@@ -82,7 +82,7 @@ it("should allow to create a paintWorklet worklet using '?.'", async () => {
 
 	pseudoWorklet = new pseudoWorklet();
 
-	expect(pseudoWorklet.url).not.toContain("asset-");
+	expect(pseudoWorklet.url.href).not.toContain("asset-");
 
 	pseudoWorklet.postMessage("ok");
 
@@ -102,7 +102,7 @@ it("should allow to create a audioWorklet worklet #2", async () => {
 
 	pseudoWorklet = new pseudoWorklet();
 
-	expect(pseudoWorklet.url).not.toContain("asset-");
+	expect(pseudoWorklet.url.href).not.toContain("asset-");
 
 	pseudoWorklet.postMessage("ok");
 
@@ -126,7 +126,7 @@ it("should allow to create a audioWorklet worklet #3", async () => {
 
 	pseudoWorklet = new pseudoWorklet();
 
-	expect(pseudoWorklet.url).not.toContain("asset-");
+	expect(pseudoWorklet.url.href).not.toContain("asset-");
 
 	pseudoWorklet.postMessage("ok");
 
@@ -146,7 +146,7 @@ it("should allow to create a audioWorklet worklet using '?.'", async () => {
 
 	pseudoWorklet = new pseudoWorklet();
 
-	expect(pseudoWorklet.url).not.toContain("asset-");
+	expect(pseudoWorklet.url.href).not.toContain("asset-");
 
 	pseudoWorklet.postMessage("ok");
 

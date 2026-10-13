@@ -99,6 +99,7 @@ mod rslib;
 mod rspack_resolver;
 mod rstest;
 mod runtime;
+mod shared_properties;
 mod source;
 mod stats;
 mod swc;

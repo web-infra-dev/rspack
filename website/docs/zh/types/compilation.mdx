@@ -14,7 +14,7 @@ type Compilation = {
   renameAsset(filename: string, newFilename: string): void; // 更改产物名称
   deleteAsset(filename: string): void; // 移除产物
   getAssets(): readonly Asset[]; // 获得所有产物信息
-  getAsset(name: string): Readonly<Asset> | void; // 获得产物信息
+  getAsset(name: string): Readonly<Asset> | undefined; // 获得产物信息
   getPath(filename: string, data?: PathData): string; // 从模板生成路径
   getPathWithInfo(filename: string, data?: PathData): PathWithInfo; // 从模板生成路径和资源信息
   getStats(): Stats; // 获取 stats 对象
