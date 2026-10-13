@@ -42,7 +42,7 @@ When `optimization.minimizer` is set, the default minimizers are disabled, so we
 
 Specify the files to be minimized. You can use regular expressions or file path strings, and only the files that match will be minimized. `test`, `include`, and `exclude` match asset names relative to [`output.path`](/config/output#outputpath).
 
-For example, if the output directory is `dist`, match `foo.[contenthash].js` without the `dist/` prefix to minify only this asset:
+For example, the following configuration only minifies assets named `foo.[contenthash].js`:
 
 ```js
 new rspack.SwcJsMinimizerRspackPlugin({

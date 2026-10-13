@@ -42,7 +42,7 @@ export default {
 
 指定需要被压缩的产物文件。可以使用正则表达式或者文件路径字符串，只有匹配的文件会被压缩。`test`、`include` 和 `exclude` 匹配的是相对于 [`output.path`](/config/output#outputpath) 的产物名称。
 
-例如，当输出目录为 `dist` 时，匹配 `foo.[contenthash].js` 无需包含 `dist/` 前缀，以下配置仅压缩该产物：
+例如，以下配置仅压缩名称为 `foo.[contenthash].js` 的产物：
 
 ```js
 new rspack.SwcJsMinimizerRspackPlugin({
