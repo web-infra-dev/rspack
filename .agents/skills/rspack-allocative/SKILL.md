@@ -7,6 +7,21 @@ description: Capture local Rspack allocative snapshots for Speedscope and measur
 
 Produce inspectable local artifacts: a raw `.allocative` snapshot and, when requested, measured population counts with a CSV table and a separate count-weighted folded file. Use Speedscope to view flamegraphs. Explain the capture phase and coverage with every result.
 
+## Project directory argument
+
+Accept `--project-dir <path>` in the skill request, for example:
+
+```text
+$rspack-allocative --project-dir /path/to/my-app
+$rspack-allocative --project-dir "../my app" production build with sourcemap
+```
+
+These are request arguments interpreted by the agent, not options passed to the Rspack CLI or the report helper. Also accept a project directory stated in natural language.
+
+Resolve `PROJECT_DIR` from `--project-dir` first, then the project explicitly named in the request, otherwise the initial working directory. Resolve relative paths against that initial working directory, preserve paths containing spaces, and check that the directory exists before building. Use its configuration and requested build mode; do not substitute a built-in benchmark for an explicitly selected project.
+
+Keep `RSPACK_ROOT` separate: it is the selected Rspack checkout used to build the local binding and JS packages, and defaults to the current Rspack worktree when available. An external `PROJECT_DIR` does not change the checkout. If the request names a config, resolve a relative `CONFIG_PATH` against `PROJECT_DIR`; otherwise inspect that project's scripts and configuration to select its actual build configuration.
+
 ## Establish coverage
 
 Use the user's selected checkout or current Rspack worktree. When invoked outside a checkout, locate the requested Rspack repository before building. Resolve paths; do not assume another checkout's binding matches the selected revision.
@@ -35,9 +50,10 @@ pnpm run build:js
 
 For large workloads, `pnpm run build:binding:profiling` is an alternative if appropriate for the installed toolchain. Both `build:binding:debug` (`release-debug`) and `build:binding:profiling` include allocative automatically. Confirm the build log enables **both** the Cargo feature and cfg. Dev, CI, and release binding builds remain opt-in through `ALLOCATIVE`. Do not use `ALLOCATIVE=0` to disable it: the existing JavaScript build script checks truthiness. Unset it for ordinary builds. In all profiles, leave `RSPACK_ALLOCATIVE_DIR` unset to disable snapshot collection.
 
-Run from the target project's working directory with its real configuration. Set `PROFILE_DIR` to an absolute, fresh directory for each process/run:
+Run from `PROJECT_DIR` with its real configuration. Set `CONFIG_PATH` to the resolved absolute config path and `PROFILE_DIR` to an absolute, fresh directory for each process/run:
 
 ```sh
+cd "$PROJECT_DIR"
 RSPACK_ALLOCATIVE_DIR="$PROFILE_DIR" \
   node "$RSPACK_ROOT/packages/rspack-cli/bin/rspack.js" \
   build --config "$CONFIG_PATH"
@@ -47,9 +63,10 @@ Verify the workload loads the newly built local binding, including config/plugin
 
 Snapshots typically start at `0-build.allocative` and increment within a process. Separate processes can overwrite those names if they share a directory. Check exit status, nonempty outputs, and capture phase. For watch/rebuild workloads, inspect the rebuild path instead of assuming every rebuild emits a snapshot.
 
-For a standalone Rust benchmark, `ALLOCATIVE=1` alone does nothing: the Node build script consumes it. Build with both the feature and cfg, then run one existing case per fresh directory. For the walltime benchmark:
+For a standalone Rust benchmark, run Cargo and the benchmark from `RSPACK_ROOT`; `BENCHCASES_DIR` selects its fixtures. `ALLOCATIVE=1` alone does nothing: the Node build script consumes it. Build with both the feature and cfg, then run one existing case per fresh directory. For the walltime benchmark:
 
 ```sh
+cd "$RSPACK_ROOT"
 pnpm exec zx scripts/allocative-driver.mjs cargo bench -p rspack_benchmark --bench walltime --profile codspeed \
   --features allocative \
   --config 'target."cfg(all())".rustflags=["--cfg=allocative"]' --no-run
@@ -103,6 +120,6 @@ For comparisons, match input, phase, profile, roots, units, and counting methods
 
 Compile changed Rust instrumentation before executing it. Run the requested workload and prepare its artifacts for Speedscope. Explain unobserved populations and report collection/build failures. Synthetic helper tests are not Rspack measurements.
 
-Return raw snapshots, count-weighted folded files and the counts table when collected, and findings with units, phase, and coverage. Mention the selected local binding and any instrumentation changes. Preserve artifacts for inspection. Profiling does not imply permission to publish data or update a PR.
+Return raw snapshots, count-weighted folded files and the counts table when collected, and findings with units, phase, and coverage. Mention the workload project directory, resolved configuration, selected local binding, and any instrumentation changes. Preserve artifacts for inspection. Profiling does not imply permission to publish data or update a PR.
 
 After each run that produces snapshots, include a clickable absolute link to the directory containing the `.allocative` files and identify the snapshot filenames. Tell the user to open [Speedscope](https://www.speedscope.app/) and drag in a `.allocative` file to explore it with search, zoom, and the **Left Heavy** view. Explain that the weights are bytes and the paths represent ownership; the folded file does not carry a unit, and **Time Order** does not represent a timeline for these snapshots. If no snapshot was produced, report that explicitly instead of linking an expected output path.
