@@ -13,7 +13,6 @@ bitflags                              = { workspace = true }
 concat-string                         = { workspace = true }
 cow-utils                             = { workspace = true }
 either                                = { workspace = true }
-fast-glob                             = { workspace = true }
 form_urlencoded                       = { workspace = true }
 indexmap                              = { workspace = true }
 itertools                             = { workspace = true }
@@ -27,6 +26,7 @@ rspack_cacheable                      = { workspace = true }
 rspack_collections                    = { workspace = true }
 rspack_core                           = { workspace = true }
 rspack_error                          = { workspace = true }
+rspack_glob                           = { workspace = true }
 rspack_hash                           = { workspace = true }
 rspack_hook                           = { workspace = true }
 rspack_ids                            = { workspace = true }
