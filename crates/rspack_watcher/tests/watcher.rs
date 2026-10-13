@@ -1875,3 +1875,279 @@ fn a_new_context_reports_a_directory_created_since_the_start_time() {
     batch.changed_files.contains(context.as_str())
   });
 }
+
+/// Like watchpack, whose live events `lstat` the path and take a link for a
+/// file, a link created in a context after the watch started is recorded as
+/// itself even with `followSymlinks`: a link back to its own context is not
+/// descended.
+#[cfg(unix)]
+#[test]
+fn a_link_created_after_the_watch_is_recorded_as_itself_with_follow_symlinks() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    follow_symlinks: true,
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/inside");
+  helper.file("sibling");
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+
+  std::os::unix::fs::symlink(helper.join("ctx"), helper.join("ctx/loop")).unwrap();
+  helper.trigger_event("ctx/loop", rspack_watcher::FsEventKind::Create);
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(context.as_str())
+  });
+
+  let (file_timestamps, directory_timestamps) = helper.collect_time_info_entries();
+  assert!(
+    !has_time_info_entry(&helper, &file_timestamps, "ctx/loop/inside"),
+    "the link is not descended"
+  );
+  assert!(
+    !has_time_info_entry(&helper, &directory_timestamps, "ctx/loop"),
+    "the link is not a context"
+  );
+  let link = helper.time_info_entry(&file_timestamps, "ctx/loop");
+  assert!(
+    matches!(link, TimeInfoEntry::Entry { .. }),
+    "the link itself is a file entry: {link:?}"
+  );
+}
+
+/// The scan's removal of a registered file goes through the same queue as live
+/// events and ends as the file's state when it is processed, like watchpack's
+/// lstat on each event: a file back on disk by then is a change, never a
+/// removal that would override the change reported for it.
+#[test]
+fn a_scanned_removal_of_a_file_back_on_disk_is_reported_as_a_change() {
+  use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  };
+  let blocking = Arc::new(AtomicBool::new(false));
+  let release = Arc::new(AtomicBool::new(false));
+  let ignored = {
+    let (blocking, release) = (Arc::clone(&blocking), Arc::clone(&release));
+    rspack_watcher::FsWatcherIgnored::Function(Arc::new(move |path: String| {
+      let hold = path.ends_with("blocker");
+      if hold {
+        blocking.store(true, Ordering::SeqCst);
+      }
+      let release = Arc::clone(&release);
+      Box::pin(async move {
+        while hold && !release.load(Ordering::SeqCst) {
+          tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        false
+      })
+    }))
+  };
+  let mut helper = h!(
+    FsWatcherOptions {
+      aggregate_timeout: Some(100),
+      ..Default::default()
+    },
+    ignored
+  );
+  helper.file("sibling");
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  // Hold the event queue, so the scan's removal waits behind this event.
+  helper.trigger_event("blocker", rspack_watcher::FsEventKind::Change);
+  while !blocking.load(Ordering::SeqCst) {
+    std::thread::sleep(std::time::Duration::from_millis(10));
+  }
+  let rx = helper.watch(f!("restored.js", "sibling"), e!(), e!());
+  // Give the scan time to queue its removal.
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  helper.file("restored.js");
+  release.store(true, Ordering::SeqCst);
+
+  let restored = helper.join("restored.js");
+  let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+  loop {
+    let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+    match rx.recv_timeout(remaining) {
+      Ok(helpers::Event::Aggregated(batch)) => {
+        assert!(
+          !batch.deleted_files.contains(restored.as_str()),
+          "a file back on disk is not reported removed: {batch:?}"
+        );
+        if batch.changed_files.contains(restored.as_str()) {
+          return;
+        }
+      }
+      Ok(_) => {}
+      Err(_) => panic!("no aggregated change for the restored file"),
+    }
+  }
+}
+
+/// Files and missing paths registered across many directories and then
+/// unregistered leave the indexes over recorded and registered paths as they
+/// were: they follow what is watched, not every path ever watched.
+#[test]
+fn unregistered_paths_leave_no_index_behind() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  helper.file("base");
+  let _rx = helper.watch(f!("base"), e!(), e!());
+  let baseline = helper.index_sizes();
+
+  for round in 0..3 {
+    let mut files = Vec::new();
+    let mut missing = Vec::new();
+    for dir in 0..5 {
+      let dir = format!("churn/{round}/{dir}");
+      std::fs::create_dir_all(helper.join(&dir)).unwrap();
+      helper.file(&format!("{dir}/a.js"));
+      // Older than the watch start, so the scan does not record it on its own.
+      set_modified(
+        helper.join(&format!("{dir}/a.js")).as_std_path(),
+        std::time::SystemTime::now() - std::time::Duration::from_secs(60),
+      )
+      .unwrap();
+      files.push(InternedPath::from(
+        helper.join(&format!("{dir}/a.js")).as_std_path(),
+      ));
+      missing.push(InternedPath::from(
+        helper.join(&format!("{dir}/m.js")).as_std_path(),
+      ));
+    }
+    let _rx = helper.watch(
+      (files.clone().into_iter(), std::iter::empty()),
+      e!(),
+      (missing.clone().into_iter(), std::iter::empty()),
+    );
+    assert_ne!(
+      helper.index_sizes(),
+      baseline,
+      "round {round} indexes its paths"
+    );
+    let _rx = helper.watch(
+      (std::iter::empty(), files.into_iter()),
+      e!(),
+      (std::iter::empty(), missing.into_iter()),
+    );
+    assert_eq!(
+      helper.index_sizes(),
+      baseline,
+      "round {round} leaves no index behind"
+    );
+  }
+}
+
+/// A registered file the scan finds gone is also a change to the context
+/// above it, like a live removal: rspack invalidates a context module only by
+/// the paths reported, where webpack also checks its context timestamps.
+#[test]
+fn a_registered_file_the_scan_finds_gone_changes_its_context() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  set_modified(
+    helper.join("ctx").as_std_path(),
+    std::time::SystemTime::now() - std::time::Duration::from_secs(60),
+  )
+  .unwrap();
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch(f!("ctx/gone.js"), f!("ctx"), e!());
+  let gone = helper.join("ctx/gone.js");
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.deleted_files.contains(gone.as_str()) && batch.changed_files.contains(context.as_str())
+  });
+}
+
+/// A file the context scan found changed was already checked against
+/// `ignored` by the scan; reporting it does not ask again.
+#[test]
+fn a_scanned_change_is_checked_against_ignored_once() {
+  let (ignored, queried) = recording_ignored();
+  let mut helper = h!(
+    FsWatcherOptions {
+      aggregate_timeout: Some(100),
+      ..Default::default()
+    },
+    ignored
+  );
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/new.js");
+  set_modified(
+    helper.join("ctx").as_std_path(),
+    std::time::SystemTime::now() - std::time::Duration::from_secs(60),
+  )
+  .unwrap();
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch_since(
+    e!(),
+    f!("ctx"),
+    e!(),
+    std::time::SystemTime::now() - std::time::Duration::from_secs(5),
+  );
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(context.as_str())
+  });
+
+  let file = helper.join("ctx/new.js");
+  let queries = queried
+    .lock()
+    .unwrap()
+    .iter()
+    .filter(|path| path.as_str() == file.as_str())
+    .count();
+  assert_eq!(
+    queries, 1,
+    "the scanned file is checked against ignored once"
+  );
+}
+
+/// With `followSymlinks`, watchpack records a link to a file with the link's
+/// own mtime: a link made since the start time is a change even when the file
+/// it points to is old.
+#[cfg(unix)]
+#[test]
+fn a_new_link_to_an_old_file_is_a_change_with_follow_symlinks() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    follow_symlinks: true,
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  std::fs::create_dir_all(helper.join("outside")).unwrap();
+  helper.file("outside/old.js");
+  let a_minute_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(60);
+  set_modified(helper.join("outside/old.js").as_std_path(), a_minute_ago).unwrap();
+  std::os::unix::fs::symlink(helper.join("outside/old.js"), helper.join("ctx/link.js")).unwrap();
+  set_modified(helper.join("ctx").as_std_path(), a_minute_ago).unwrap();
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch_since(
+    e!(),
+    f!("ctx"),
+    e!(),
+    std::time::SystemTime::now() - std::time::Duration::from_secs(5),
+  );
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(context.as_str())
+  });
+}

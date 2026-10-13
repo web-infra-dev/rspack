@@ -199,26 +199,30 @@ impl TestHelper {
   /// Deliver `kind` for `name` as if the OS had reported it.
   pub fn trigger_event(&self, name: &str, kind: rspack_watcher::FsEventKind) {
     let path = InternedPath::from(self.canonicalized_temp_dir.join(name));
-    TOKIO_RUNTIME.block_on(async { self.watcher.read().await.trigger_event(&path, kind) });
+    self.watcher.blocking_read().trigger_event(&path, kind);
   }
 
   pub fn pause(&self) {
-    TOKIO_RUNTIME.block_on(async { self.watcher.read().await.pause().unwrap() });
+    self.watcher.blocking_read().pause().unwrap();
   }
 
   /// watchpack's `aggregatedChanges` / `aggregatedRemovals`.
   pub fn peek_aggregated(&self) -> (FxHashSet<String>, FxHashSet<String>) {
-    TOKIO_RUNTIME.block_on(async { self.watcher.read().await.peek_aggregated() })
+    self.watcher.blocking_read().peek_aggregated()
   }
 
   /// [`Self::peek_aggregated`], drained.
   pub fn take_aggregated(&self) -> (FxHashSet<String>, FxHashSet<String>) {
-    TOKIO_RUNTIME.block_on(async { self.watcher.read().await.take_aggregated() })
+    self.watcher.blocking_read().take_aggregated()
+  }
+
+  pub fn index_sizes(&self) -> (usize, usize) {
+    self.watcher.blocking_read().index_sizes()
   }
 
   /// watchpack's `collectTimeInfoEntries`, as `(fileTimestamps, directoryTimestamps)`.
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
-    TOKIO_RUNTIME.block_on(async { self.watcher.read().await.collect_time_info_entries() })
+    self.watcher.blocking_read().collect_time_info_entries()
   }
 
   /// The entry recorded for `name` (relative to the temporary directory) in

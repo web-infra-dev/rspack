@@ -7,7 +7,7 @@ use std::{
 
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet};
+use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
 use rspack_util::{
   fx_hash::FxHashMap,
   time::{current_time, fs_accuracy, mtime_accuracy, mtime_safe_time, system_time_to_millis},
@@ -137,10 +137,17 @@ where
 }
 
 impl PathUpdater {
-  /// Update the paths in the given set.
-  async fn update(self, watch_tracker: &PathTracker, ignored: &IgnoredMatcher) -> Result<()> {
+  /// Update the paths in the given set. Returns the paths it newly holds and
+  /// those it no longer does.
+  async fn update(
+    self,
+    watch_tracker: &PathTracker,
+    ignored: &IgnoredMatcher,
+  ) -> Result<(Vec<InternedPath>, Vec<InternedPath>)> {
     let added_paths = self.added;
     let removed_paths = self.removed;
+    let mut registered = Vec::new();
+    let mut unregistered = Vec::new();
 
     for added in added_paths {
       // Absolutize before the ignored check so registration filters on the
@@ -159,20 +166,22 @@ impl PathUpdater {
         continue;
       }
 
-      watch_tracker.add(added);
+      if watch_tracker.add(added.clone()) {
+        registered.push(added);
+      }
     }
 
     for removed in removed_paths {
-      if removed.is_absolute() {
-        watch_tracker.remove(removed);
-        continue;
+      let removed = if removed.is_absolute() {
+        removed
+      } else {
+        InternedPath::from(self.base_dir.join(removed.as_ref()))
+      };
+      if watch_tracker.remove(removed.clone()) {
+        unregistered.push(removed);
       }
-
-      let removed_absolute_path = self.base_dir.join(removed.as_ref());
-
-      watch_tracker.remove(InternedPath::from(removed_absolute_path));
     }
-    Ok(())
+    Ok((registered, unregistered))
   }
 }
 
@@ -198,16 +207,17 @@ impl PathTracker {
     self.removed.clear();
   }
 
-  /// Adds a path to the tracker.
-  fn add(&self, path: InternedPath) {
+  /// Adds a path to the tracker; whether it was not tracked before.
+  fn add(&self, path: InternedPath) -> bool {
     self.added.insert(path.clone());
-    self.all.insert(path);
+    self.all.insert(path)
   }
 
-  /// Removes a path from the tracker.
-  fn remove(&self, path: InternedPath) {
-    self.all.remove(&path);
+  /// Removes a path from the tracker; whether it was tracked.
+  fn remove(&self, path: InternedPath) -> bool {
+    let tracked = self.all.remove(&path).is_some();
     self.removed.insert(path);
+    tracked
   }
 }
 
@@ -292,15 +302,21 @@ pub(crate) struct PathManager {
   /// watchpack's nested `DirectoryWatcher.directories`: every subdirectory
   /// found below a registered context.
   context_directories: InternedPathDashSet,
-  /// Every directory above a registered path, ever: a removal of one of them
-  /// may have taken registered records, or a registered context, with it. Only grows; a
-  /// stale entry just costs an unneeded sweep.
-  registered_ancestors: InternedPathDashSet,
+  /// Every directory above a registered path: a removal of one of them may
+  /// have taken registered records, or a registered context, with it. Each
+  /// counts the registrations directly in it plus its subdirectories here,
+  /// and goes once that count is back to zero.
+  registered_ancestors: InternedPathDashMap<usize>,
   /// Every path holding a record (in `file_times`, the context sets or
   /// `last_watch_events`) under its parent directory, ancestors included up
   /// to the first one already indexed: a removed directory's records are
-  /// found by walking its subtree, not by scanning every map.
-  recorded_children: InternedPathDashMap<InternedPathDashSet>,
+  /// found by walking its subtree, not by scanning every map. A directory
+  /// left with no children and no record of its own is dropped.
+  recorded_children: InternedPathDashMap<InternedPathSet>,
+  /// Serializes changes to `recorded_children`'s links: a walk taking a
+  /// directory out on one thread must not interleave with a walk linking it
+  /// in on another, or a linked subtree is left cut off from its parent.
+  index_lock: std::sync::Mutex<()>,
   /// Registered contexts known to be absent from disk: absent when registered,
   /// or removed since. The only directories `collect_time_info_entries`
   /// stats, to see one that came back without an event of its own.
@@ -323,9 +339,10 @@ impl PathManager {
       last_watch_events: InternedPathDashMap::default(),
       context_files: InternedPathDashSet::default(),
       context_directories: InternedPathDashSet::default(),
-      registered_ancestors: InternedPathDashSet::default(),
+      registered_ancestors: InternedPathDashMap::default(),
       absent_directories: InternedPathDashSet::default(),
       recorded_children: InternedPathDashMap::default(),
+      index_lock: std::sync::Mutex::default(),
       follow_symlinks: false,
     }
   }
@@ -363,12 +380,12 @@ impl PathManager {
   /// Use `has_mtime_changed` (which atomically reads-and-updates the
   /// baseline) to advance the recorded mtime in response to real events.
   pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
-    self.index_record(&path);
     self.baselines.entry(path.clone()).or_insert(mtime);
     self
       .file_times
-      .entry(path)
+      .entry(path.clone())
       .or_insert_with(|| FileTime::initial(mtime));
+    self.index_record(&path);
   }
 
   /// The scanner reported `path` as changed: the build will know this mtime,
@@ -393,6 +410,7 @@ impl PathManager {
   /// Drop the records of every path inside the directory `dir` (watchpack's
   /// `onDirectoryRemoved` marks them all missing), walking only its subtree.
   pub fn remove_file_times_under(&self, dir: &InternedPath) {
+    let _index = self.lock_index();
     let mut pending = vec![dir.clone()];
     while let Some(path) = pending.pop() {
       if let Some((_, children)) = self.recorded_children.remove(&path) {
@@ -406,7 +424,7 @@ impl PathManager {
         self.last_watch_events.remove(&path);
       }
     }
-    self.unindex_record(dir);
+    self.unlink_unrecorded(dir);
     for context in self.directories.all.iter() {
       if context.starts_with(dir.as_ref() as &Path) {
         self.absent_directories.insert(context.clone());
@@ -416,6 +434,7 @@ impl PathManager {
 
   /// `path` now holds a record: index it, and its ancestors not indexed yet.
   fn index_record(&self, path: &InternedPath) {
+    let _index = self.lock_index();
     let mut child = path.clone();
     while let Some(parent) = child.parent().map(InternedPath::from) {
       let indexed = !self
@@ -430,12 +449,87 @@ impl PathManager {
     }
   }
 
-  /// `path` no longer holds a record of its own.
+  /// `path` may no longer hold a record of its own: once it holds none and
+  /// has nothing indexed below it, it leaves its parent, and so on up.
   fn unindex_record(&self, path: &InternedPath) {
-    if let Some(parent) = path.parent().map(InternedPath::from)
-      && let Some(siblings) = self.recorded_children.get(&parent)
-    {
-      siblings.remove(path);
+    let _index = self.lock_index();
+    self.unlink_unrecorded(path);
+  }
+
+  /// [`Self::unindex_record`] under the index lock already held.
+  fn unlink_unrecorded(&self, path: &InternedPath) {
+    let mut child = path.clone();
+    while !self.holds_record(&child) && !self.recorded_children.contains_key(&child) {
+      let Some(parent) = child.parent().map(InternedPath::from) else {
+        return;
+      };
+      let emptied = match self.recorded_children.get_mut(&parent) {
+        Some(mut siblings) => siblings.remove(&child) && siblings.is_empty(),
+        None => false,
+      };
+      if !emptied {
+        return;
+      }
+      self
+        .recorded_children
+        .remove_if(&parent, |_, siblings| siblings.is_empty());
+      child = parent;
+    }
+  }
+
+  pub fn index_sizes(&self) -> (usize, usize) {
+    let recorded = self
+      .recorded_children
+      .iter()
+      .map(|children| 1 + children.len())
+      .sum();
+    (recorded, self.registered_ancestors.len())
+  }
+
+  fn lock_index(&self) -> std::sync::MutexGuard<'_, ()> {
+    self.index_lock.lock().expect("record index lock poisoned")
+  }
+
+  fn holds_record(&self, path: &InternedPath) -> bool {
+    self.file_times.contains_key(path)
+      || self.context_files.contains(path)
+      || self.context_directories.contains(path)
+      || self.last_watch_events.contains_key(path)
+  }
+
+  /// `path` was registered: count it in its directory, and each directory
+  /// above that is new here in its own parent.
+  fn retain_registered_ancestors(&self, path: &InternedPath) {
+    let mut child = path.clone();
+    while let Some(parent) = child.parent().map(InternedPath::from) {
+      let mut count = self.registered_ancestors.entry(parent.clone()).or_default();
+      *count += 1;
+      if *count > 1 {
+        return;
+      }
+      drop(count);
+      child = parent;
+    }
+  }
+
+  /// `path` was unregistered: the reverse of [`Self::retain_registered_ancestors`].
+  fn release_registered_ancestors(&self, path: &InternedPath) {
+    let mut child = path.clone();
+    while let Some(parent) = child.parent().map(InternedPath::from) {
+      let released = self
+        .registered_ancestors
+        .get_mut(&parent)
+        .is_some_and(|mut count| {
+          *count -= 1;
+          *count == 0
+        });
+      if !released {
+        return;
+      }
+      self
+        .registered_ancestors
+        .remove_if(&parent, |_, count| *count == 0);
+      child = parent;
     }
   }
 
@@ -580,7 +674,9 @@ impl PathManager {
     if self.directories.all.contains(path) || !self.is_below_context(path) {
       return true;
     }
-    let Ok(metadata) = self.entry_metadata(path) else {
+    // Like watchpack's live events, `lstat`: a link is a file entry here even
+    // with `followSymlinks`; only the scan descends into links.
+    let Ok(metadata) = std::fs::symlink_metadata(path) else {
       return true;
     };
     if metadata.is_dir() {
@@ -634,17 +730,11 @@ impl PathManager {
     if into_own_directory || above_itself {
       return Ok(own);
     }
-    std::fs::metadata(&target).or(Ok(own))
-  }
-
-  /// A path's metadata as the context scan sees it: through a symlink only
-  /// with `followSymlinks`, otherwise the link itself (watchpack's `lstat`).
-  /// A dangling link is the link itself either way.
-  fn entry_metadata(&self, path: &InternedPath) -> std::io::Result<std::fs::Metadata> {
-    if self.follow_symlinks {
-      std::fs::metadata(path).or_else(|_| std::fs::symlink_metadata(path))
-    } else {
-      std::fs::symlink_metadata(path)
+    // Like watchpack, only a link to a directory takes the target's metadata;
+    // a link to a file keeps its own mtime.
+    match std::fs::metadata(&target) {
+      Ok(metadata) if metadata.is_dir() => Ok(metadata),
+      _ => Ok(own),
     }
   }
 
@@ -654,7 +744,7 @@ impl PathManager {
   pub fn may_contain_records(&self, path: &InternedPath) -> bool {
     self.directories.all.contains(path)
       || self.context_directories.contains(path)
-      || self.registered_ancestors.contains(path)
+      || self.registered_ancestors.contains_key(path)
   }
 
   fn is_below_context(&self, path: &InternedPath) -> bool {
@@ -689,8 +779,8 @@ impl PathManager {
     } else {
       FileTime::observed(mtime)
     };
-    self.index_record(path);
     self.file_times.insert(path.clone(), time);
+    self.index_record(path);
     true
   }
 
@@ -745,15 +835,23 @@ impl PathManager {
       impl Iterator<Item = InternedPath>,
     ),
   ) -> Result<()> {
-    PathUpdater::from(files)
-      .update(&self.files, &self.ignored)
-      .await?;
-    PathUpdater::from(directories)
-      .update(&self.directories, &self.ignored)
-      .await?;
-    PathUpdater::from(missing)
-      .update(&self.missing, &self.ignored)
-      .await?;
+    let mut registered = Vec::new();
+    let mut unregistered = Vec::new();
+    for (paths, tracker) in [
+      (PathUpdater::from(files), &self.files),
+      (PathUpdater::from(directories), &self.directories),
+      (PathUpdater::from(missing), &self.missing),
+    ] {
+      let (added, removed) = paths.update(tracker, &self.ignored).await?;
+      registered.extend(added);
+      unregistered.extend(removed);
+    }
+    for path in &registered {
+      self.retain_registered_ancestors(path);
+    }
+    for path in &unregistered {
+      self.release_registered_ancestors(path);
+    }
 
     for dir in self.directories.added.iter() {
       if dir.exists() {
@@ -762,25 +860,6 @@ impl PathManager {
         self.absent_directories.insert(dir.clone());
       }
     }
-    let added: Vec<InternedPath> = self
-      .files
-      .added
-      .iter()
-      .chain(self.missing.added.iter())
-      .chain(self.directories.added.iter())
-      .map(|p| p.clone())
-      .collect();
-    for path in &added {
-      for ancestor in path.ancestors().skip(1) {
-        if !self
-          .registered_ancestors
-          .insert(InternedPath::from(ancestor))
-        {
-          break;
-        }
-      }
-    }
-
     // Prune per-path state for paths no longer being watched so the maps do
     // not grow unboundedly across `watch()` cycles. `reset()` has already
     // cleared the `removed` sets at the start of this `watch()` call, so what
@@ -836,11 +915,12 @@ impl PathManager {
   /// A context was unregistered: forget what its scan found below it, except
   /// what another still-registered context also covers.
   fn forget_context_entries_under(&self, dir: &InternedPath) {
+    let _index = self.lock_index();
     let mut subtree = Vec::new();
     let mut pending = vec![dir.clone()];
     while let Some(path) = pending.pop() {
       if let Some(children) = self.recorded_children.get(&path) {
-        pending.extend(children.iter().map(|child| child.clone()));
+        pending.extend(children.iter().cloned());
       }
       subtree.push(path);
     }
@@ -853,11 +933,11 @@ impl PathManager {
         && !self.missing.all.contains(path)
       {
         self.file_times.remove(path);
-        self.unindex_record(path);
+        self.unlink_unrecorded(path);
       }
       if self.context_directories.remove(path).is_some() {
         self.last_watch_events.remove(path);
-        self.unindex_record(path);
+        self.unlink_unrecorded(path);
       }
     }
   }

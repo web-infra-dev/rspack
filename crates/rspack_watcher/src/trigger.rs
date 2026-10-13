@@ -118,8 +118,10 @@ pub struct Trigger {
 enum Origin {
   /// The OS watcher; `appeared` when it created or renamed the path into place.
   Disk { appeared: bool },
-  /// A context's initial scan, for a file that changed since the start time
-  /// before the watch was active.
+  /// A scan, for what changed while the watch was not active yet: a file a
+  /// context's initial scan found changed since the start time, or a
+  /// registered path the scanner backfills. Already judged a change, it is
+  /// never dropped as a duplicate or as attribute-only.
   Scan,
 }
 
@@ -175,6 +177,25 @@ impl Trigger {
       .pending
       .send((path.clone(), FsEventKind::Change, Origin::Scan));
   }
+
+  /// A sender for the scanner's backfilled events. They queue with the live
+  /// ones, so whichever is processed last for a path ends as its state on
+  /// disk: a removal backfilled for a file back on disk by then is a change.
+  pub(crate) fn backfill_sender(&self) -> UnboundedSender<EventBatch> {
+    let (tx, mut batches) = unbounded_channel::<EventBatch>();
+    let pending = self.pending.clone();
+    std::thread::Builder::new()
+      .name("rspack-fs-scan-backfill".to_string())
+      .spawn(move || {
+        while let Some(batch) = batches.blocking_recv() {
+          for event in batch {
+            let _ = pending.send((event.path, event.kind, Origin::Scan));
+          }
+        }
+      })
+      .expect("spawn watcher scan backfill thread");
+    tx
+  }
 }
 
 impl EventProcessor {
@@ -197,7 +218,8 @@ impl EventProcessor {
     // events for unregistered paths (e.g. the build-output dir); left through,
     // `find_associated_event` bubbles them to a registered parent and triggers
     // a spurious rebuild.
-    if self.path_manager.is_ignored_path(path.as_ref()).await {
+    // A scan's event was filtered when the scan found the path.
+    if !matches!(origin, Origin::Scan) && self.path_manager.is_ignored_path(path.as_ref()).await {
       return;
     }
 
@@ -241,6 +263,7 @@ impl EventProcessor {
     // A registered-missing path takes its first record here, once it exists.
     if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_watched_path))
       && !self.path_manager.has_mtime_changed(path)
+      && !matches!(origin, Origin::Scan)
     {
       return;
     }

@@ -158,7 +158,7 @@ impl FsWatcher {
 
     let path_manager =
       Arc::new(PathManager::new(ignored).with_follow_symlinks(options.follow_symlinks));
-    let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx.clone()));
+    let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx));
     let disk_watcher = DiskWatcher::new(
       options.follow_symlinks,
       options.poll_interval,
@@ -167,7 +167,7 @@ impl FsWatcher {
     let paused = Arc::new(AtomicBool::new(false));
     let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
     let aggregated = executor.aggregated();
-    let scanner = Scanner::new(tx, Arc::clone(&path_manager));
+    let scanner = Scanner::new(trigger.backfill_sender(), Arc::clone(&path_manager));
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
     let inner = FsWatcherInner {
@@ -208,6 +208,13 @@ impl FsWatcher {
   /// watchpack's `collectTimeInfoEntries`, as `(fileTimestamps, directoryTimestamps)`.
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
     self.path_manager.collect_time_info_entries()
+  }
+
+  /// How many directories index recorded paths (with their entries), and how
+  /// many index registered ones, so tests can check they are reclaimed.
+  #[doc(hidden)]
+  pub fn index_sizes(&self) -> (usize, usize) {
+    self.path_manager.index_sizes()
   }
 
   /// Starts the file system watcher.

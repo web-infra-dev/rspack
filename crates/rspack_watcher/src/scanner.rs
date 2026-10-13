@@ -49,13 +49,9 @@ impl Scanner {
           .filter(|p| changed_since(p, start_time))
           .cloned()
           .collect::<Vec<_>>();
-        // These backfills bypass `Trigger`, which is what normally keeps the
-        // file-time records in step with delivered events: a `Remove` drops
-        // the record, a `Change` re-reads it if the mtime moved on since it
-        // was seeded.
-        for path in &removed {
-          files_path_manager.remove_file_time(path);
-        }
+        // A `Change` is judged here, not by `Trigger`'s baseline check: the
+        // record is re-read now, in case the mtime moved on since it was
+        // seeded.
         for path in &changed {
           if let Some(mtime) = disk_mtime(path) {
             files_path_manager.set_reported_file_time(path, mtime);
@@ -96,10 +92,10 @@ impl Scanner {
         .collect::<Vec<_>>();
       let path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
-        // This backfill bypasses `Trigger`, so record the file time of every
-        // one found on disk and, like watchpack's initial scan, notify only
-        // those changed since `start_time`. A record for one not notified is
-        // time info only: it must not deduplicate that path's own event.
+        // Record the file time of every one found on disk and, like
+        // watchpack's initial scan, notify only those changed since
+        // `start_time`. A record for one not notified is time info only: it
+        // must not deduplicate that path's own event.
         let mut created = Vec::new();
         for path in missing_added {
           let Some(mtime) = disk_mtime(&path) else {
