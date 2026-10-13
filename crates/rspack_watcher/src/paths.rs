@@ -280,10 +280,10 @@ pub(crate) struct PathManager {
   /// `file_times` is time info only and anything may write it.
   baselines: InternedPathDashMap<SystemTime>,
   /// watchpack's per-`DirectoryWatcher` `lastWatchEvent`: when an event last
-  /// reached each registered context (its own or a descendant's), in epoch
-  /// millis, seeded with the moment its watch became active. An edit inside a
-  /// directory does not bump its mtime, so this is the floor for the
-  /// context's safe time.
+  /// reached each registered or discovered context (its own or a
+  /// descendant's), in epoch millis. Like watchpack it starts at 0 (absent)
+  /// and only events advance it; a context's safe time is the max of it and
+  /// the safe times of the files below.
   last_watch_events: InternedPathDashMap<u64>,
   /// watchpack's `DirectoryWatcher.files`: every file found below a registered
   /// context by its initial scan or reported there by an event. Their records
@@ -551,8 +551,10 @@ impl PathManager {
   /// since one moved in arrives as a single event with no events for what it
   /// already contains. Registered contexts absent until now that came back at
   /// or below `path` are rescanned, even when only an ancestor had the event.
-  /// A file `scanned` as changed since the start time keeps the scan's record.
-  pub async fn set_context_entry(&self, path: &InternedPath, scanned: bool) -> bool {
+  /// An event already `judged` a change — a file the scan found changed since
+  /// the start time, or a registered path past its baseline check — skips the
+  /// attribute-only check and keeps the record already written for it.
+  pub async fn set_context_entry(&self, path: &InternedPath, judged: bool) -> bool {
     let recovered: Vec<InternedPath> = self
       .absent_directories
       .iter()
@@ -586,7 +588,7 @@ impl PathManager {
     let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
       return true;
     };
-    if scanned {
+    if judged {
       return true;
     }
     let mtime_ms = system_time_to_millis(mtime);

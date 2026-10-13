@@ -248,7 +248,7 @@ impl EventProcessor {
     if kind != FsEventKind::Remove
       && !self
         .path_manager
-        .set_context_entry(path, matches!(origin, Origin::Scan))
+        .set_context_entry(path, matches!(origin, Origin::Scan) || is_watched_path)
         .await
     {
       return;

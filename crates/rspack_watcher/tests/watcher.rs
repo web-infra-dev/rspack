@@ -1809,3 +1809,36 @@ fn a_removal_of_a_path_back_on_disk_is_reported_as_a_change() {
     batch.changed_files.contains(a.as_str())
   });
 }
+
+/// A file that is both registered and below a registered context is
+/// deduplicated by its baseline only: once that judged its event a change, the
+/// attribute-only check for context files must not compare against the record
+/// the baseline check just wrote, or every edit to it would be dropped.
+#[test]
+fn an_edit_to_a_registered_file_below_a_context_is_reported() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/f");
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch(f!("ctx/f"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+
+  // A new mtime already past the filesystem accuracy when the event is
+  // processed, like a copy that keeps its source's time (`cp -p`).
+  set_modified(
+    helper.join("ctx/f").as_std_path(),
+    std::time::SystemTime::now() - std::time::Duration::from_secs(10),
+  )
+  .unwrap();
+  helper.trigger_event("ctx/f", rspack_watcher::FsEventKind::Change);
+  let f = helper.join("ctx/f");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.changed_files.contains(f.as_str())
+  });
+}
