@@ -44,7 +44,8 @@ async fn chunk_ids(
   assign_chunk_ids(self, compilation, chunk_by_ukey, diagnostics)
 }
 
-// This hook does not suspend. Keep allocation outside the instrumented future.
+// Nothing here awaits, so keep the work in a plain function, out of the
+// hook's future.
 #[inline(never)]
 fn assign_chunk_ids(
   plugin: &DeterministicChunkIdsPlugin,
@@ -65,8 +66,9 @@ fn assign_chunk_ids(
     && compilation
       .incremental
       .passes_enabled(IncrementalPasses::CHUNK_IDS);
-  // Other taps may alter reservations or allocation order. Keep their replay,
-  // but final ID differences still drive module hashing in ChunkIdsPass.
+  // Other plugins on this hook can change reserved ids or the order, so assign
+  // from scratch. ChunkIdsPass still diffs the final ids, so module hashing
+  // stays incremental.
   if !can_reuse
     && let Some(Some(diagnostic)) = compilation.incremental.disable_passes(
       IncrementalPasses::CHUNK_IDS,
@@ -77,6 +79,8 @@ fn assign_chunk_ids(
     diagnostics.push(diagnostic);
   }
 
+  // ChunkIdsPass reuses the identities built here only when this plugin is the
+  // only tap. Otherwise it builds them itself after all plugins ran.
   let build_identities = track_ids && can_reuse;
 
   let mut used_ids = get_used_chunk_ids(chunk_by_ukey);
@@ -93,8 +97,6 @@ fn assign_chunk_ids(
   let expand_factor = 10;
   let salt = 10;
 
-  // Only a single known tap may share pre-hook identities with the final diff.
-  // Opaque chains build them after all taps, conservatively covering mutations.
   let mut chunks = chunk_by_ukey
     .values()
     .filter(|chunk| chunk.id().is_none())
@@ -126,7 +128,7 @@ fn assign_chunk_ids(
     })
     .collect::<Result<FxHashMap<_, _>>>()?;
 
-  // Names and membership summaries share one parallel traversal and scheduling round.
+  // The identities were built with the names above; collect them here.
   let identities = if build_identities {
     let mut identities = chunk_names
       .iter_mut()

@@ -513,8 +513,8 @@ async fn module_ids(
   self.sealing_hooks_report("assign module ids", 16).await
 }
 
-// There is no native before_chunk_ids hook. record_modules is the nearest
-// preceding hook and keeps this observation out of the allocation hook chain.
+// Report from recordModules, the closest hook before chunk ids (there is no
+// beforeChunkIds). Tapping chunkIds would stop deterministic ids from being reused.
 #[plugin_hook(CompilationRecordModules for ProgressPlugin)]
 async fn record_modules(
   &self,

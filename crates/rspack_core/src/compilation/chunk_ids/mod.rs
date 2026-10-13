@@ -50,7 +50,7 @@ impl PassExt for ChunkIdsPass {
   }
 }
 
-// Snapshot construction is synchronous and does not need to live in the pass future.
+// Synchronous work, kept out of the async pass's future.
 #[inline(never)]
 fn update_chunk_id_diff(compilation: &mut Compilation, chunk_by_ukey: &ChunkByUkey) {
   compilation
@@ -61,8 +61,9 @@ fn update_chunk_id_diff(compilation: &mut Compilation, chunk_by_ukey: &ChunkByUk
     .chunk_ids_diff_artifact
     .changed_group_origins
     .clear();
-  // Compare final hook-chain IDs and group lists before chunk-aware mutation
-  // selectors are consumed. Ukeys may change on graph reconstruction.
+  // Compare the final chunk ids and group lists with the last build's before
+  // anything reads the chunk mutations. Match by identity: ukeys change when
+  // the chunk graph is rebuilt.
   if compilation
     .chunk_ids_diff_artifact
     .track_effective_ids
@@ -141,8 +142,8 @@ fn update_chunk_id_diff(compilation: &mut Compilation, chunk_by_ukey: &ChunkByUk
           .and_then(Option::as_ref)
           != current_members;
       if changed {
-        // Check after all insertions so even a digest collision selects every
-        // ambiguous group's origins, including groups without chunks.
+        // pending_groups is complete here, so groups that share an identity
+        // count as changed, including groups without chunks.
         compilation
           .chunk_ids_diff_artifact
           .changed_group_origins

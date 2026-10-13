@@ -12,7 +12,8 @@ use crate::{
   chunk_graph_chunk::ChunkId, get_runtime_key, incremental::IncrementalPasses,
 };
 
-/// Order-independent membership summary; multiplicity is retained for group origins.
+/// An order-independent summary of a set of items. Duplicates count, which
+/// group origins need.
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
 struct MembershipDigest {
   sums: [u64; 2],
@@ -33,8 +34,9 @@ fn mix_identity_hash(mut hash: u64) -> u64 {
   hash ^ (hash >> 31)
 }
 
-/// Correspondence across chunk graph reconstruction. Ambiguous identities are
-/// never reused. Membership is included: equal root names alone are insufficient.
+/// Matches a chunk with its counterpart from the last build, since rebuilding
+/// the chunk graph creates new ukeys. Includes the modules because a name alone
+/// isn't unique. Identities shared by several chunks are never reused.
 #[derive(Debug, Eq)]
 pub struct ChunkIdIdentity {
   name: Option<String>,
@@ -65,10 +67,10 @@ impl Hash for ChunkIdIdentity {
 
 impl ChunkIdIdentity {
   pub fn new(chunk: &Chunk, chunk_graph: &ChunkGraph) -> Self {
-    // Membership elements are exact process-local keys: interned identifiers are never freed, and
-    // this artifact is never persisted. Only the two 64-bit sums can collide. A cross-build digest
-    // collision can only narrow module rehashing for one rebuild; chunk-id reuse is gated on exact
-    // names in allocation order (DeterministicChunkIdsInputs).
+    // Module identifiers are interned and never freed, so their pointers are
+    // stable for the whole process, and this state is never saved. A collision
+    // of the two sums could at worst skip some rehashing for one rebuild:
+    // reusing chunk ids also needs exact names (DeterministicChunkIdsInputs).
     let mut modules = MembershipDigest::default();
     for module in chunk_graph.get_chunk_modules_identifier(&chunk.ukey()) {
       modules.add(module.as_char_ptr() as usize as u64);
@@ -82,8 +84,8 @@ impl ChunkIdIdentity {
   }
 }
 
-/// Stable group correspondence, independent of reconstructed group Ukeys.
-/// Duplicate keys are treated as ambiguous rather than choosing an arbitrary group.
+/// Matches a chunk group with its counterpart from the last build, by name and
+/// by where it is imported from. If several groups match, none is reused.
 #[derive(Debug, Eq)]
 pub struct ChunkGroupIdIdentity {
   name: Option<String>,
@@ -105,7 +107,7 @@ impl Hash for ChunkGroupIdIdentity {
   }
 }
 
-// DependencyLocation intentionally has no shared Hash implementation.
+// DependencyLocation doesn't implement Hash, so hash its fields here.
 fn hash_origin_location(location: Option<&DependencyLocation>, state: &mut DefaultHasher) {
   match location {
     None => 0u8.hash(state),
@@ -144,7 +146,8 @@ impl ChunkGroupIdIdentity {
 
 pub type ChunkGroupIds = FxHashMap<ChunkGroupIdIdentity, Option<Vec<Arc<ChunkIdIdentity>>>>;
 
-/// Exact allocation domain in natural-comparator order, including reservations.
+/// Everything deterministic chunk ids depend on, in assignment order. Equal
+/// inputs on a rebuild mean the previous ids are still correct.
 #[derive(Debug, Eq)]
 pub struct DeterministicChunkIdsInputs {
   pub candidates: Vec<(Arc<ChunkIdIdentity>, String)>,
@@ -165,31 +168,28 @@ impl PartialEq for DeterministicChunkIdsInputs {
   }
 }
 
-/// CHUNK_IDS-owned effective IDs, ordered group members and allocation proof.
-/// Mutations uses the correspondence to suppress only reconstructed ChunkAdd
-/// member-wide rehashing. Final ID differences emit ChunkSetId; group-list
-/// differences select import origins directly, including groups with no chunks.
-/// Async block hashes consume the ordered group IDs.
-/// MODULES_HASHES advances all baselines together only after hashing succeeds;
-/// this artifact is never owned or persisted by Cache.
+/// Lets rebuilds avoid rehashing every module of a re-created chunk. Only
+/// chunks whose final id changed, and modules importing a group whose chunk
+/// list changed, are rehashed (async import hashes include chunk ids). The
+/// pending values become the baseline after module hashing succeeds.
 #[derive(Debug, Default)]
 pub struct ChunkIdsDiffArtifact {
   pub previous_ids: Vec<(Arc<ChunkIdIdentity>, ChunkId)>,
   pub pending_ids: Vec<(Arc<ChunkIdIdentity>, ChunkId)>,
   pub previous_groups: ChunkGroupIds,
   pub pending_groups: ChunkGroupIds,
-  /// Reconstructed chunks with identical membership. Their ChunkAdd mutations
-  /// still invalidate chunk artifacts; final ID and group diffs cover hash consumers.
+  /// Re-created chunks whose modules didn't change. Their ChunkAdd still
+  /// invalidates chunk artifacts but doesn't trigger module rehashing.
   pub matched_membership: FxHashSet<ChunkUkey>,
-  /// Importers of changed, new or ambiguous groups, selected for module hashing
-  /// without relying on a surviving member chunk. Cleared on every chunk-ID pass.
+  /// Modules that import a changed, new or ambiguous chunk group. They are
+  /// rehashed even if the group has no chunks. Reset on every pass.
   pub changed_group_origins: IdentifierSet,
-  /// Single-tap allocation shares identities with final-ID and group snapshots.
-  /// No lock is held across a hook, await, or allocation.
+  /// Identities computed while assigning ids, reused when recording the final
+  /// ids. A Mutex because the chunk ids hook only gets `&Compilation`.
   pub pending_identities: Mutex<FxHashMap<ChunkUkey, Arc<ChunkIdIdentity>>>,
   pub deterministic_inputs: Option<DeterministicChunkIdsInputs>,
   pub pending_inputs: Mutex<Option<DeterministicChunkIdsInputs>>,
-  /// Opt in only for deterministic allocation with MODULES_HASHES enabled.
+  /// Set only for deterministic chunk ids with incremental module hashing on.
   pub track_effective_ids: AtomicBool,
 }
 

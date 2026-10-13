@@ -17,7 +17,7 @@ impl PassExt for CreateModuleHashesPass {
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     create_module_hashes_pass_impl(compilation).await?;
-    // The CHUNK_IDS artifact's baseline must correspond to completed hashes.
+    // Module hashes now reflect the current chunk ids; make them the baseline.
     compilation.chunk_ids_diff_artifact.advance_hash_baseline();
     Ok(())
   }

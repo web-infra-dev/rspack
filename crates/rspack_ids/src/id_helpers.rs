@@ -214,7 +214,7 @@ pub fn assign_deterministic_ids<T>(
   );
 }
 
-/// Allocate an already comparator-ordered domain without sorting it again.
+/// Same as `assign_deterministic_ids`, for items that are already sorted.
 pub(crate) fn assign_deterministic_ids_sorted<T>(
   items: Vec<T>,
   get_name: impl for<'b> Fn(&'b T) -> &'b str,

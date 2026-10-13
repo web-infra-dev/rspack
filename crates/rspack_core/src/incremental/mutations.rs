@@ -172,10 +172,9 @@ impl Mutations {
                   .filter_map(|c| c.original_module_identifier),
               );
             }
-            // A rebuilt chunk can be new by Ukey but identical by membership.
-            // Keep ChunkAdd for chunk artifacts. The CHUNK_IDS artifact emits
-            // ChunkSetId for final ID changes and selects changed-group origins
-            // directly. Together with module updates, these cover hash consumers.
+            // Re-created chunks with unchanged modules get a new ukey but don't
+            // need their modules rehashed. The chunk ids pass reports id and
+            // group changes, and ChunkAdd still reaches chunk artifacts.
             Mutation::ChunkAdd { chunk }
               if !compilation
                 .chunk_ids_diff_artifact
