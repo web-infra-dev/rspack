@@ -65,6 +65,7 @@ The enabling of the [Preact Refresh](https://github.com/preactjs/prefresh) is di
   - Use `babel-loader` and add official [babel plugin](https://github.com/preactjs/prefresh/tree/main/packages/babel) of prefresh.
 
 ```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 import PreactRefreshPlugin from '@rspack/plugin-preact-refresh';
 
 const isDev = process.env.NODE_ENV === 'development';
