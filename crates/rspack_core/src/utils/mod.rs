@@ -358,6 +358,15 @@ pub fn snapshot_allocative(name: &str, compiler: &crate::Compiler) -> rspack_err
       ])
       .or_default() += 1;
   }
+  // An empty graph is a measured zero, not an unavailable population report.
+  if populations.is_empty() {
+    for population in ["modules", "dependencies"] {
+      populations.insert(
+        vec!["Compiler".into(), "Compilation".into(), population.into()],
+        0,
+      );
+    }
+  }
   let counts: Vec<_> = populations.into_iter().map(|(path, count)| serde_json::json!({
     "path": path, "count": count, "basis": "live entries in the current compilation module graph"
   })).collect();
