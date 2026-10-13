@@ -5,6 +5,10 @@ name              = "rspack_allocative_driver"
 publish           = false
 version.workspace = true
 
+[lib]
+doctest = false
+test    = false
+
 [features]
 default = []
 driver  = []

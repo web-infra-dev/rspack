@@ -4711,7 +4711,6 @@ dependencies = [
  "camino",
  "dashmap",
  "indexmap",
- "rspack-allocative",
  "rspack_cacheable",
  "rspack_intern",
  "rustc-hash",

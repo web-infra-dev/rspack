@@ -79,6 +79,7 @@ pub mod __macro_refs {
 /// The main use case is manual implementations of [`Allocative`], like so:
 ///
 /// ```
+/// # extern crate rspack_allocative as allocative;
 /// use allocative::{Allocative, Visitor, ident_key};
 ///
 /// struct MyStruct {

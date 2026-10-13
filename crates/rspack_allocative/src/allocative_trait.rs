@@ -19,6 +19,7 @@ use crate::Visitor;
 /// Derive an adapter when an active enum variant must be selected:
 ///
 /// ```
+/// # extern crate rspack_allocative as allocative;
 /// use allocative::Allocative;
 ///
 /// #[derive(Allocative)]
@@ -42,6 +43,7 @@ use crate::Visitor;
 /// are cheap).
 ///
 /// ```
+/// # extern crate rspack_allocative as allocative;
 /// use allocative::Allocative;
 ///
 /// /// This does not implement `Allocative`.
@@ -65,6 +67,7 @@ use crate::Visitor;
 ///
 ///
 /// ```
+/// # extern crate rspack_allocative as allocative;
 /// use std::marker::PhantomData;
 ///
 /// use allocative::Allocative;
@@ -119,6 +122,7 @@ use crate::Visitor;
 /// As an example
 ///
 /// ```
+/// # extern crate rspack_allocative as allocative;
 /// use allocative::{Allocative, Key, Visitor};
 /// // use third_party_lib::Unsupported;
 /// # struct Unsupported<T>(T);

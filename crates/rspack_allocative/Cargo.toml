@@ -10,8 +10,7 @@ version           = "0.3.5"
 
 [lib]
 # Workspace regression cases live in rspack_allocative_testing.
-doctest = false
-test    = false
+test = false
 
 [dependencies]
 allocative_derive = { package = "rspack-allocative_derive", path = "../rspack_allocative_derive", version = "=0.3.3" }

@@ -70,3 +70,7 @@ enable_instrument = []
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+
+[package.metadata.cargo-shear]
+# The allocative compiler driver injects enum derives that use this dependency.
+ignored = ["allocative"]
