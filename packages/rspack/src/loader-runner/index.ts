@@ -1254,8 +1254,6 @@ export async function runLoaders(
     compiler.options?.cache &&
     Object.hasOwn(context._module, binding.MODULE_BUILD_INFO_SYMBOL)
   ) {
-    // Untouched native extras need no JS round trip. Both buildInfo accessors
-    // pin their object under this symbol, including replacement objects.
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 
