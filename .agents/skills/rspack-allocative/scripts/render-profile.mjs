@@ -46,8 +46,8 @@ async function readCounts(filename, snapshot) {
   if (typeof data.scope !== 'string' || !data.scope.trim()) {
     throw new Error('Counts must specify a nonempty scope');
   }
-  if (!Array.isArray(data.counts)) {
-    throw new Error('Counts must be an array of measured populations');
+  if (!Array.isArray(data.counts) || !data.counts.length) {
+    throw new Error('Counts must be a nonempty array of measured populations');
   }
   const paths = new Set();
   let total = 0;
