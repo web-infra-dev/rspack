@@ -1,8 +1,8 @@
 # RFC: Loader code filter
 
-| _**Changelog**_         | <br> |
-| ----------------------- | ---- |
-| _**Implementation PR**_ | <br> |
+| _**Changelog**_         | <br>                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| _**Implementation PR**_ | [web-infra-dev/rspack#16073](https://github.com/web-infra-dev/rspack/pull/16073) |
 
 # Summary
 
