@@ -185,7 +185,7 @@ impl EventProcessor {
     // path is gone into a `Remove`, keeping the event kind consistent with
     // inotify (which already reports `Remove`). Done before the stale-event
     // filter below, which only applies to `Change`/`Create`.
-    let kind = if kind == FsEventKind::Change && !path.exists() {
+    let kind = if kind == FsEventKind::Change && std::fs::symlink_metadata(path).is_err() {
       FsEventKind::Remove
     } else {
       kind
@@ -218,8 +218,8 @@ impl EventProcessor {
       return;
     }
 
-    if kind != FsEventKind::Remove {
-      self.path_manager.set_context_entry(path).await;
+    if kind != FsEventKind::Remove && !self.path_manager.set_context_entry(path).await {
+      return;
     }
     self.path_manager.set_last_watch_events(path);
 

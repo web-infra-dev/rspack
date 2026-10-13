@@ -17,6 +17,11 @@ pub fn system_time_to_millis(time: SystemTime) -> u64 {
     .map_or(0, |duration| duration.as_millis() as u64)
 }
 
+/// The process-wide filesystem timestamp accuracy learned so far.
+pub fn fs_accuracy() -> u64 {
+  FS_ACCURACY.load(Ordering::Relaxed)
+}
+
 /// Narrow the process-wide filesystem timestamp accuracy using an observed
 /// mtime and return the current conservative accuracy.
 pub fn mtime_accuracy(mtime_ms: u64) -> u64 {

@@ -815,11 +815,11 @@ fn collect_time_info_entries_scans_a_directory_moved_into_a_context() {
   );
 }
 
-/// A file below a context reported changed while its mtime has not moved (a
-/// second write inside one timestamp tick) is still a change: only registered
-/// files are deduplicated by mtime, so the context is notified.
+/// A file below a context reported changed while its mtime has not moved but
+/// is still within the filesystem accuracy (a second write inside one
+/// timestamp tick) is still a change, like watchpack: the context is notified.
 #[test]
-fn a_context_file_changed_with_the_same_mtime_still_notifies_its_context() {
+fn a_context_file_changed_within_the_accuracy_with_the_same_mtime_still_notifies_its_context() {
   let mut helper = h!(FsWatcherOptions {
     aggregate_timeout: Some(100),
     ..Default::default()
@@ -827,6 +827,10 @@ fn a_context_file_changed_with_the_same_mtime_still_notifies_its_context() {
   std::fs::create_dir_all(helper.join("ctx")).unwrap();
   helper.file("ctx/inner");
   helper.file("sibling");
+  // An mtime not yet past the filesystem accuracy: as if just written, so a
+  // second event with it is a change watchpack keeps.
+  let just_written = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+  set_modified(helper.join("ctx/inner").as_std_path(), just_written).unwrap();
 
   let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
   std::thread::sleep(std::time::Duration::from_millis(300));
@@ -869,10 +873,11 @@ fn collect_time_info_entries_rescans_a_context_that_reappears() {
   );
 }
 
-/// A second change to a file below a context, with its mtime unchanged,
-/// moves the file's safe time to the later observation (watchpack's
-/// `setFileTime(..., initial = false, ignoreWhenEqual = false)`), so a build
-/// that ran between the two changes does not look fresh.
+/// A second change to a file below a context, with its mtime unchanged but
+/// still within the filesystem accuracy, moves the file's safe time to the
+/// later observation (watchpack's `setFileTime(..., initial = false,
+/// ignoreWhenEqual = false)`), so a build that ran between the two changes
+/// does not look fresh.
 #[test]
 fn collect_time_info_entries_restamps_a_context_file_changed_again_with_the_same_mtime() {
   let mut helper = h!(FsWatcherOptions {
@@ -882,6 +887,10 @@ fn collect_time_info_entries_restamps_a_context_file_changed_again_with_the_same
   std::fs::create_dir_all(helper.join("ctx")).unwrap();
   helper.file("ctx/inner");
   helper.file("sibling");
+  // An mtime not yet past the filesystem accuracy: as if just written, so a
+  // second event with it is a change watchpack keeps.
+  let just_written = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+  set_modified(helper.join("ctx/inner").as_std_path(), just_written).unwrap();
 
   let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
   std::thread::sleep(std::time::Duration::from_millis(300));
@@ -1098,6 +1107,9 @@ fn a_missing_dependency_found_by_the_scan_still_reports_its_own_event() {
     std::time::SystemTime::now() - std::time::Duration::from_secs(3600),
   )
   .unwrap();
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late
+  // and take the baseline before the injected event.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
 
   let rx = helper.watch(e!(), e!(), f!("later"));
   std::thread::sleep(std::time::Duration::from_millis(300));
@@ -1115,6 +1127,11 @@ fn a_missing_dependency_found_by_the_scan_still_reports_its_own_event() {
 fn watch_nested_contexts_after_an_event(helper: &mut helpers::TestHelper) -> u64 {
   std::fs::create_dir_all(helper.join("ctx/sub")).expect("create ctx/sub");
   helper.file("ctx/sub/inner");
+  // An mtime not yet past the filesystem accuracy: as if just written, so a
+  // second event with it is a change watchpack keeps.
+  let just_written = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
+  set_modified(helper.join("ctx/sub/inner").as_std_path(), just_written)
+    .expect("date ctx/sub/inner");
   let rx = helper.watch(e!(), f!("ctx", "ctx/sub"), e!());
   std::thread::sleep(std::time::Duration::from_millis(300));
   while rx.try_recv().is_ok() {}
@@ -1654,4 +1671,76 @@ fn should_report_a_recreated_file_as_changed_only() {
     },
   );
   assert!(load!(aggregate_events) > 0, "Expected an aggregated event");
+}
+
+/// With `followSymlinks`, watchpack only descends into a link to a directory
+/// elsewhere: a dangling link, a link into its own directory, and a link back
+/// above itself are each recorded as an entry of their own.
+#[cfg(unix)]
+#[test]
+fn collect_time_info_entries_records_links_it_does_not_follow_as_entries() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    follow_symlinks: true,
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx/dir")).unwrap();
+  helper.file("ctx/dir/inside");
+  std::os::unix::fs::symlink(helper.join("ctx/gone"), helper.join("ctx/dangling")).unwrap();
+  std::os::unix::fs::symlink(helper.join("ctx/dir"), helper.join("ctx/sibling")).unwrap();
+  std::os::unix::fs::symlink(helper.join("ctx"), helper.join("ctx/loop")).unwrap();
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let _rx = helper.watch(e!(), f!("ctx"), e!());
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+
+  for name in ["ctx/dangling", "ctx/sibling", "ctx/loop"] {
+    let entry = has_time_info_entry(&helper, &file_timestamps, name)
+      .then(|| helper.time_info_entry(&file_timestamps, name));
+    assert!(
+      matches!(entry, Some(TimeInfoEntry::Entry { .. })),
+      "{name} is recorded as an entry of its own: {entry:?}"
+    );
+  }
+  assert!(
+    !has_time_info_entry(&helper, &file_timestamps, "ctx/sibling/inside"),
+    "a link into its own directory is not descended"
+  );
+}
+
+/// Like watchpack's `setFileTime`, an event on a file below a context whose
+/// mtime has not moved and is past the filesystem accuracy changed nothing but
+/// attributes (an xattr, a `chmod`): it is dropped, and the file keeps its
+/// safe time.
+#[test]
+fn an_attribute_only_event_on_a_context_file_is_dropped() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/old");
+  helper.file("sibling");
+  let an_hour_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(3600);
+  set_modified(helper.join("ctx/old").as_std_path(), an_hour_ago).unwrap();
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  while rx.try_recv().is_ok() {}
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+  let before = safe_time_of(helper.time_info_entry(&file_timestamps, "ctx/old"));
+
+  helper.trigger_event("ctx/old", rspack_watcher::FsEventKind::Change);
+  let deadline = std::time::Instant::now() + std::time::Duration::from_millis(1000);
+  while let Some(remaining) = deadline.checked_duration_since(std::time::Instant::now()) {
+    if let Ok(helpers::Event::Aggregated(batch)) = rx.recv_timeout(remaining) {
+      panic!("an attribute-only event was reported: {batch:?}");
+    }
+  }
+  let (file_timestamps, _) = helper.collect_time_info_entries();
+  let after = safe_time_of(helper.time_info_entry(&file_timestamps, "ctx/old"));
+  assert_eq!(after, before, "the attribute-only event restamped the file");
 }
