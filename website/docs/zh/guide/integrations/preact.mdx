@@ -65,6 +65,7 @@ export default {
   - 使用 `babel-loader` 并接入 prefresh 官方[babel 插件](https://github.com/preactjs/prefresh/tree/main/packages/babel)。
 
 ```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 import PreactRefreshPlugin from '@rspack/plugin-preact-refresh';
 
 const isDev = process.env.NODE_ENV === 'development';
