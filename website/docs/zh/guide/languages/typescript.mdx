@@ -33,8 +33,6 @@ export default {
 
 `builtin:swc-loader` 会独立转译每个模块。建议在 `tsconfig.json` 中开启 [`isolatedModules`](https://www.typescriptlang.org/tsconfig#isolatedModules)，让 TypeScript 检查无法安全地进行单文件转译的代码。
 
-例如，不能引用通过 `declare const enum` 声明的枚举成员，但普通的 `const enum` 声明可以正常使用。
-
 ```json title="tsconfig.json"
 {
   "compilerOptions": {

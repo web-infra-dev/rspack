@@ -33,8 +33,6 @@ For maximum speed, `builtin:swc-loader` transpiles TypeScript source code withou
 
 `builtin:swc-loader` transpiles each module independently. Enable [`isolatedModules`](https://www.typescriptlang.org/tsconfig#isolatedModules) in `tsconfig.json` so TypeScript reports code that cannot be safely transpiled in isolation.
 
-For example, references to ambient `const enum` members (declared with `declare const enum`) are not supported. Regular `const enum` declarations are supported.
-
 ```json title="tsconfig.json"
 {
   "compilerOptions": {
