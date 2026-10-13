@@ -29,10 +29,10 @@ Native-backed object
 
 The two kinds of objects can use exactly the same JavaScript syntax while behaving differently:
 
-| Object type                | Where the data is stored | What happens on property access or method call       | Lifetime                               |
-| -------------------------- | ------------------------ | ---------------------------------------------------- | -------------------------------------- |
-| Ordinary JavaScript object | JavaScript memory        | Read directly without crossing the binding           | Data normally exists while referenced  |
-| Native-backed object       | Primarily in Rust        | May read or modify data through the Node-API binding | Limited by its compiler or compilation |
+| Object type                | Where the data is stored | What happens on property access or method call       | Lifetime                              |
+| -------------------------- | ------------------------ | ---------------------------------------------------- | ------------------------------------- |
+| Ordinary JavaScript object | JavaScript memory        | Read directly without crossing the binding           | Data normally exists while referenced |
+| Native-backed object       | Primarily in Rust        | May read or modify data through the Node-API binding | Depends on the object and property    |
 
 A native-backed object can contain both kinds of properties:
 
@@ -43,10 +43,10 @@ Keeping the JavaScript object alive does not guarantee that it still refers to d
 
 This implementation model has two direct consequences:
 
-1. **Lifetime:** A native-backed object reliably refers to the intended Rust data only within the compiler, compilation, or hook execution scope that produced it.
+1. **Lifetime:** For most native-backed objects, access to the intended Rust data is limited to the compiler, compilation, or hook that produced them. Some objects explicitly own data beyond that scope.
 2. **Performance:** Reading a getter or calling a method may convert data between JavaScript and Rust. Repeating the same access in a loop can accumulate significant cost.
 
-If data is needed later, copy strings, numbers, or ordinary JavaScript objects while the corresponding build is still active instead of retaining the native-backed object itself.
+If data is needed later, copy strings, numbers, or ordinary JavaScript objects while the corresponding build is still active, unless the API explicitly supports retaining the native-backed object.
 
 ## Compiler lifecycle
 
@@ -74,12 +74,15 @@ When a compiler is no longer needed, call `close()` and wait for its callback. T
 
 Every build, including each watch rebuild, creates a new `Compilation`. Objects such as `Module`, `Chunk`, and graph objects obtained from a `Compilation` do not copy all of their data into JavaScript. Reading some properties or calling some methods still requires Rspack to retrieve data from the current Rust compilation through Node-API.
 
+A `Dependency` is an exception for properties stored on the dependency itself. Its JavaScript wrapper keeps the Rust dependency alive, so properties such as `type`, `request`, `loc`, and `critical` remain accessible after the hook or compilation ends. Setting `critical` is also safe, although a late change cannot affect work the build has already completed. Retaining a `Dependency` does not retain its `Compilation` or make it part of a later build: graph-derived properties such as `ids` and `_parentModule` still require the original compilation and may throw after it becomes unavailable. Before a dependency enters the graph, these graph-derived properties are unavailable.
+
 Follow these rules:
 
-- Use a `Compilation` and its `Module`, `Chunk`, graph, dependency, and block objects only in hooks and callbacks for the current build.
+- Use a `Compilation` and its `Module`, `Chunk`, graph, and block objects only in hooks and callbacks for the current build.
 - Unless the API documentation explicitly promises a longer lifetime, do not retain these objects after the hook finishes or into the next build.
+- If you retain a `Dependency` beyond its original compilation, use only its own properties; obtain a dependency from the current build when you need graph relationships.
 - If information is needed later, save JavaScript-owned strings or numbers such as identifiers, names, paths, and hashes, or convert the data into an ordinary JavaScript object.
-- After a watch rebuild, obtain objects again from the new `Compilation` instead of reusing objects saved from the previous build.
+- After a watch rebuild, obtain compilation-scoped objects again from the new `Compilation` instead of reusing objects saved from the previous build.
 
 ## Hook and callback execution
 

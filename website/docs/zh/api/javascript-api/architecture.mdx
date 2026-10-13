@@ -29,10 +29,10 @@ Native-backed 对象
 
 两种对象看起来可能使用完全相同的 JavaScript 语法，但行为不同：
 
-| 对象类型             | 数据保存在哪里  | 读取属性或调用方法时                     | 生命周期                            |
-| -------------------- | --------------- | ---------------------------------------- | ----------------------------------- |
-| 普通 JavaScript 对象 | JavaScript 内存 | 直接读取，不经过 binding                 | 只要对象仍被引用，数据通常就存在    |
-| Native-backed 对象   | 主要位于 Rust   | 可能通过 Node-API binding 读取或修改数据 | 受对应 compiler 或 compilation 限制 |
+| 对象类型             | 数据保存在哪里  | 读取属性或调用方法时                     | 生命周期                         |
+| -------------------- | --------------- | ---------------------------------------- | -------------------------------- |
+| 普通 JavaScript 对象 | JavaScript 内存 | 直接读取，不经过 binding                 | 只要对象仍被引用，数据通常就存在 |
+| Native-backed 对象   | 主要位于 Rust   | 可能通过 Node-API binding 读取或修改数据 | 取决于对象及其属性               |
 
 一个 native-backed 对象可以同时包含两类属性：
 
@@ -43,10 +43,10 @@ Native-backed 对象
 
 这种实现方式带来两个直接影响：
 
-1. **生命周期：**native-backed 对象的含义通常只有在产生它的 compiler、compilation 或 hook 执行范围内才是可靠的。
+1. **生命周期：**对大多数 native-backed 对象，只有在产生它的 compiler、compilation 或 hook 执行范围内，才能可靠访问对应的 Rust 数据。少数对象会明确持有超出该范围的数据。
 2. **性能：**读取 getter 或调用 method 可能发生 JavaScript 和 Rust 之间的数据转换。在循环中重复访问同一属性，成本会累积。
 
-如果需要在之后使用数据，应在 native-backed 对象所表示的构建仍然活跃时，提取字符串、数字或普通 JavaScript 对象，而不是长期保存这个对象。
+如果需要在之后使用数据，应在对应构建仍然活跃时提取字符串、数字或普通 JavaScript 对象；除非 API 明确支持保留该 native-backed 对象。
 
 ## Compiler 生命周期
 
@@ -74,12 +74,15 @@ watch 模式下，应使用当前构建 hook 提供的 `Compilation` 和 native-
 
 每次构建，包括 watch rebuild，都会创建新的 `Compilation`。从 `Compilation` 获取的 `Module`、`Chunk` 和 graph 等对象，并不会把全部数据复制到 JavaScript。读取其中一些属性或调用方法时，Rspack 仍需要通过 N-API 从当前 Rust compilation 获取数据。
 
+`Dependency` 是一个例外：它的 JavaScript wrapper 会保持 Rust 依赖对象存活。因此，即使 hook 或 compilation 已结束，仍可读取依赖自身的 `type`、`request`、`loc`、`critical` 等属性，也可以设置 `critical`；但较晚的修改无法影响构建已完成的工作。保留 `Dependency` 不会保留原 `Compilation`，也不会让它成为后续构建的一部分。`ids` 和 `_parentModule` 等由图计算的属性仍依赖原 compilation，在原 compilation 不可用后可能报错；依赖进入图之前，这些属性也不可用。
+
 建议遵守以下规则：
 
-- 只在当前构建的 hook 和回调中使用对应的 `Compilation`、`Module`、`Chunk`、graph、dependency 和 block。
+- 只在当前构建的 hook 和回调中使用对应的 `Compilation`、`Module`、`Chunk`、graph 和 block。
 - 除非 API 文档明确说明可以长期使用，否则不要把这些对象保留到 hook 结束后或下一次构建。
+- 如果跨越原 compilation 保留 `Dependency`，只能使用依赖自身的属性；如需使用图中的关系，应从当前构建重新获取依赖。
 - 如果稍后仍需要某些信息，应提前保存 identifier、name、path、hash 等字符串或数字，或者转换成普通 JavaScript 对象。
-- watch rebuild 后，应从新的 `Compilation` 重新获取对象，不要复用上一次构建保存的对象。
+- watch rebuild 后，应从新的 `Compilation` 重新获取 compilation-scoped 对象，不要复用上一次构建保存的对象。
 
 ## Hook 和回调执行
 
