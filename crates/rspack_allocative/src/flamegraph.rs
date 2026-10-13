@@ -304,6 +304,7 @@ unsafe impl Send for VisitedSharedPointer {}
 /// # Example
 ///
 /// ```
+/// # extern crate rspack_allocative as allocative;
 /// use allocative::{Allocative, FlameGraphBuilder};
 ///
 /// #[derive(Allocative)]

@@ -18,7 +18,6 @@ use crate::{
 };
 
 #[derive(Default)]
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 struct CachedData {
   hash: OnceLock<u64>,
   size: OnceLock<usize>,
@@ -61,7 +60,6 @@ struct CachedData {
 ///   "Hello World\nconsole.log('test');\nconsole.log('test2');\nHello2\n"
 /// );
 /// ```
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct CachedSource {
   inner: BoxSource,
   cache: Arc<CachedData>,

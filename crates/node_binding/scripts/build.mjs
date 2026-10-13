@@ -2,6 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
 import { readFileSync, writeFileSync, renameSync, appendFileSync } from "node:fs";
 import { parseArgs } from "node:util";
+import { prepareAllocativeDriver } from "../../../scripts/allocative-driver.mjs";
 
 const { values, positionals } = parseArgs({
 	args: process.argv.slice(2),
@@ -21,6 +22,7 @@ const watch = process.argv.includes("--watch");
 
 const measureFresh = process.env.MEASURE_CARGO_FRESH === "1" && !watch;
 const isReleaseProfile = values.profile === "release" || values.profile === "release-wasi";
+const useAllocative = Boolean(process.env.ALLOCATIVE) || values.profile === "release-debug" || values.profile === "profiling";
 
 build().then((value) => {
 	// Regarding cargo's non-zero exit code as an error.
@@ -33,6 +35,7 @@ build().then((value) => {
 });
 
 async function build() {
+	const buildEnvironment = useAllocative ? await prepareAllocativeDriver() : process.env;
 	return new Promise((resolve, reject) => {
 		const args = [
 			"build",
@@ -47,7 +50,7 @@ async function build() {
 		];
 		const rustflags = []
 		const features = [];
-		const envs = { ...process.env };
+		const envs = { ...buildEnvironment };
 		const use_build_std = values.profile === "release"
 			|| values.profile === "release-debug"
 			|| values.profile === "release-wasi"
@@ -90,7 +93,9 @@ async function build() {
 			features.push("sftrace-setup");
 			rustflags.push("-Zinstrument-xray=always");
 		}
-		if (process.env.ALLOCATIVE) {
+		// Diagnostic builds support memory snapshots without a custom rebuild.
+		// Collection remains opt-in through RSPACK_ALLOCATIVE_DIR at runtime.
+		if (useAllocative) {
 			features.push("allocative");
 			rustflags.push("--cfg=allocative");
 		}
@@ -119,9 +124,19 @@ async function build() {
 			args.push("--");
 
 			if (rustflags.length > 0) {
-				const flag = rustflags.map(f => `\\"${f}\\"`).join(",");
-				args.push("--config");
-				args.push(`"target.'cfg(all())'.rustflags = [${flag}]"`)
+				if (useAllocative && (envs.CARGO_ENCODED_RUSTFLAGS !== undefined || envs.RUSTFLAGS !== undefined)) {
+					// Environment flags override target config. Preserve their precedence
+					// and encoded argument boundaries, then append the required build flags.
+					const inherited = envs.CARGO_ENCODED_RUSTFLAGS !== undefined
+						? (envs.CARGO_ENCODED_RUSTFLAGS ? envs.CARGO_ENCODED_RUSTFLAGS.split("\x1f") : [])
+						: envs.RUSTFLAGS.split(/\s+/).filter(Boolean);
+					envs.CARGO_ENCODED_RUSTFLAGS = [...inherited, ...rustflags].join("\x1f");
+					delete envs.RUSTFLAGS;
+				} else {
+					const flag = rustflags.map(f => `\\"${f}\\"`).join(",");
+					args.push("--config");
+					args.push(`"target.'cfg(all())'.rustflags = [${flag}]"`)
+				}
 			}
 
 			if (use_build_std) {

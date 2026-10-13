@@ -40,7 +40,6 @@ pub type IdentifierLinkedSet = LinkedHashSet<Identifier, BuildHasherDefault<Iden
 
 #[cacheable(with=Custom, hashable)]
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Identifier(Ustr);
 
 impl Deref for Identifier {
