@@ -124,16 +124,14 @@ impl Cache for PersistentCache {
     }
     // rebuild will pass modified_files and removed_files from js side,
     // so only calculate them when build.
-    if let Some((is_hot_start, modified_paths, removed_paths)) =
-      self.ctx.load_snapshot(&self.snapshot).await
-    {
-      compilation.persistent_cache_state = self.ctx.state();
+    let snapshot = self.ctx.load_snapshot(&self.snapshot).await;
+    compilation.persistent_cache_state = self.ctx.state();
+    if let Some((is_hot_start, modified_paths, removed_paths)) = snapshot {
       compilation.modified_files.extend(modified_paths);
       compilation.removed_files.extend(removed_paths);
       return is_hot_start;
     }
 
-    compilation.persistent_cache_state = self.ctx.state();
     false
   }
 

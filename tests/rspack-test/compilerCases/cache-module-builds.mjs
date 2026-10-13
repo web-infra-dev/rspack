@@ -91,14 +91,25 @@ const cases = [false, true].map(newCache => {
       const artifacts = () => ["bundle.js", "bundle.js.map"].map(file =>
         fs.readFileSync(path.join(root, "output", file), "utf8")
       );
-      const build = async expected => {
+      const build = async (expected, status, reason = null) => {
         dependencyBuilds = 0;
         const stats = await manager.build();
         expect(stats.hasErrors()).toBe(false);
+        const before = artifacts();
         const cacheInfo = stats.toJson({ all: false, cacheInfo: true }).cacheInfo;
+        expect(cacheInfo.mode).toBe("persistent");
         expect(cacheInfo.moduleBuilds).toEqual(expected);
+        expect(cacheInfo.persistent).toEqual({ status: newCache ? "unknown" : status, reason: newCache ? null : reason });
+        expect(cacheInfo.persistentSessionInitialization).toEqual(
+          newCache ? expect.objectContaining({ status: expect.any(String) }) : null
+        );
         checkCacheCounters(stats, cacheInfo.counters);
-        return artifacts();
+        expect(cacheInfo.counters).toContainEqual(expect.objectContaining({
+          logger: "rspack.Compilation",
+          label: "module code generation cache"
+        }));
+        expect(artifacts()).toEqual(before);
+        return before;
       };
       const restart = async version => {
         await manager.close();
@@ -107,17 +118,17 @@ const cases = [false, true].map(newCache => {
         manager.createCompiler().outputFileSystem = fs;
       };
 
-      const cold = await build({ reused: 0, total: 2 });
+      const cold = await build({ reused: 0, total: 2 }, "cold");
       expect(cold[0]).toContain("dep-v1");
       await restart("first");
-      expect(await build({ reused: 2, total: 2 })).toEqual(cold);
+      expect(await build({ reused: 2, total: 2 }, "valid")).toEqual(cold);
       await restart("first");
       fs.writeFileSync(path.join(root, "dep.js"), 'export const value = "dependency-v2";');
-      const changed = await build({ reused: 1, total: 2 });
+      const changed = await build({ reused: 1, total: 2 }, "valid");
       expect(changed[0]).toContain("dependency-v2");
       expect(changed[1]).not.toEqual(cold[1]);
       await restart("first");
-      expect(await build({ reused: 2, total: 2 })).toEqual(changed);
+      expect(await build({ reused: 2, total: 2 }, "valid")).toEqual(changed);
       await restart("first");
       forceRebuild = true;
       const stats = await manager.build();
@@ -125,7 +136,9 @@ const cases = [false, true].map(newCache => {
       expect(forcedRebuilds).toBe(1);
       expect(dependencyBuilds).toBeLessThanOrEqual(1);
       if (!newCache) expect(dependencyBuilds).toBe(1);
-      expect(stats.toJson({ all: false, cacheInfo: true }).cacheInfo.moduleBuilds).toEqual({
+      const cacheInfo = stats.toJson({ all: false, cacheInfo: true }).cacheInfo;
+      expect(cacheInfo.persistent).toEqual({ status: newCache ? "unknown" : "valid", reason: null });
+      expect(cacheInfo.moduleBuilds).toEqual({
         reused: dependencyBuilds ? 1 : 2,
         total: 2
       });
@@ -138,22 +151,22 @@ const cases = [false, true].map(newCache => {
         );
         expect(cacheDirectory).toBeDefined();
         fs.writeFileSync(path.join(cacheRoot, cacheDirectory, "snapshot_file", "0.pack"), "corrupt\n");
-        expect(await build({ reused: 0, total: 2 })).toEqual(changed);
+        expect(await build({ reused: 0, total: 2 }, "error", "recovery")).toEqual(changed);
         await restart("first");
       }
       fs.writeFileSync(path.join(root, "build-dependency.js"), 'module.exports = "changed dependency";');
-      expect(await build({ reused: 0, total: 2 })).toEqual(changed);
+      expect(await build({ reused: 0, total: 2 }, "invalidated", "buildDependencies")).toEqual(changed);
       await restart("first");
-      expect(await build({ reused: 2, total: 2 })).toEqual(changed);
+      expect(await build({ reused: 2, total: 2 }, "valid")).toEqual(changed);
       await restart("second");
-      expect(await build({ reused: 0, total: 2 })).toEqual(changed);
+      expect(await build({ reused: 0, total: 2 }, "invalidated", "version")).toEqual(changed);
       await restart("second");
       forceLateRebuild = true;
-      expect(await build(null)).toEqual(changed);
-      await build(null);
+      expect(await build(null, "valid")).toEqual(changed);
+      await build(null, "unknown");
       await restart("second");
       fs.writeFileSync(path.join(root, "entry.js"), 'console.log("no dependency");');
-      const removed = await build({ reused: 0, total: 1 });
+      const removed = await build({ reused: 0, total: 1 }, "valid");
       expect(removed[0]).not.toContain("dependency-v2");
     }
   };
