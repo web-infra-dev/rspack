@@ -782,11 +782,15 @@ impl PathManager {
     // record: the context reports it.
     let removed_files: Vec<InternedPath> = self.files.removed.iter().map(|p| p.clone()).collect();
     for path in &removed_files {
-      if !self.missing.all.contains(path) {
+      let still_missing = self.missing.all.contains(path);
+      if !still_missing {
         self.baselines.remove(path);
       }
       if !self.is_below_context(path) {
         self.file_times.remove(path);
+        if !still_missing {
+          self.unindex_record(path);
+        }
       }
     }
     let removed_missing: Vec<InternedPath> =
@@ -798,6 +802,7 @@ impl PathManager {
       self.baselines.remove(path);
       if !self.is_below_context(path) {
         self.file_times.remove(path);
+        self.unindex_record(path);
       }
     }
     let removed_dirs: Vec<InternedPath> =
