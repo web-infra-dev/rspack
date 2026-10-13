@@ -29,59 +29,32 @@ pub enum UpdateParam {
   ForceBuildModules(IdentifierSet),
 }
 
-/// Updated artifacts, retained even on failure so callers can restore them before
-/// propagating the error.
-#[derive(Debug)]
-pub struct ModuleGraphUpdateResult {
-  pub artifact: BuildModuleGraphArtifact,
-  pub exports_info_artifact: ExportsInfoArtifact,
-  pub result: Result<()>,
-}
-
-/// Update module graph through `UpdateParam`.
+/// Update module graph through `UpdateParam`
 pub async fn update_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
-  exports_info_artifact: ExportsInfoArtifact,
+  mut exports_info_artifact: ExportsInfoArtifact,
   params: Vec<UpdateParam>,
-) -> ModuleGraphUpdateResult {
+) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   let mut cutout = Cutout::default();
 
   let build_dependencies = cutout.cutout_artifact(compilation, &mut artifact, params);
 
   let revoked_modules = artifact.revoked_modules().copied().collect();
-  let result = compilation
+  compilation
     .plugin_driver
     .compilation_hooks
     .revoked_modules
     .call(compilation, &revoked_modules)
-    .await;
-  if result.is_err() {
-    return ModuleGraphUpdateResult {
-      artifact,
-      exports_info_artifact,
-      result,
-    };
-  }
+    .await?;
 
-  let ModuleGraphUpdateResult {
-    mut artifact,
-    exports_info_artifact,
-    result,
-  } = repair(
+  (artifact, exports_info_artifact) = repair(
     compilation,
     artifact,
     exports_info_artifact,
     build_dependencies,
   )
-  .await;
-  if result.is_err() {
-    return ModuleGraphUpdateResult {
-      artifact,
-      exports_info_artifact,
-      result,
-    };
-  }
+  .await?;
   cutout.fix_artifact(&mut artifact);
   let module_graph = artifact.get_module_graph();
   for id in artifact.affected_modules.active() {
@@ -89,9 +62,5 @@ pub async fn update_module_graph(
       module.freeze_build_meta();
     }
   }
-  ModuleGraphUpdateResult {
-    artifact,
-    exports_info_artifact,
-    result: Ok(()),
-  }
+  Ok((artifact, exports_info_artifact))
 }

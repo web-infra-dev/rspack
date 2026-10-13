@@ -24,7 +24,7 @@ use self::{
   execute::{ExecuteModuleResult, ExecuteTask},
 };
 use super::{
-  BuildModuleGraphArtifact, ModuleGraphUpdateResult,
+  BuildModuleGraphArtifact,
   graph_updater::{UpdateParam, repair::context::TaskContext, update_module_graph},
 };
 use crate::{
@@ -65,7 +65,7 @@ impl Default for ModuleExecutor {
 impl ModuleExecutor {
   pub async fn before_build_module_graph(&mut self, compilation: &Compilation) -> Result<()> {
     let mut make_artifact = self.make_artifact.steal();
-    let exports_info_artifact = self.exports_info_artifact.steal();
+    let mut exports_info_artifact = self.exports_info_artifact.steal();
     let mut params = Vec::with_capacity(5);
     params.push(UpdateParam::CheckNeedBuild);
     if !compilation.modified_files.is_empty() {
@@ -79,16 +79,8 @@ impl ModuleExecutor {
     make_artifact.reset_temporary_data();
 
     // update the module affected by modified_files
-    let ModuleGraphUpdateResult {
-      artifact: make_artifact,
-      exports_info_artifact,
-      result,
-    } = update_module_graph(compilation, make_artifact, exports_info_artifact, params).await;
-    if result.is_err() {
-      self.make_artifact = make_artifact.into();
-      self.exports_info_artifact = exports_info_artifact.into();
-      return result;
-    }
+    (make_artifact, exports_info_artifact) =
+      update_module_graph(compilation, make_artifact, exports_info_artifact, params).await?;
 
     let mut ctx = ExecutorTaskContext {
       origin_context: TaskContext::new(compilation, make_artifact, exports_info_artifact),
@@ -123,9 +115,9 @@ impl ModuleExecutor {
     let Ok(ctx) = stop_receiver.expect("should have receiver").await else {
       panic!("receive make artifact failed");
     };
-    let make_artifact = ctx.origin_context.artifact;
+    let mut make_artifact = ctx.origin_context.artifact;
     let mut entries = ctx.entries;
-    let exports_info_artifact = ctx.origin_context.exports_info_artifact;
+    let mut exports_info_artifact = ctx.origin_context.exports_info_artifact;
 
     // clean removed entries
     let removed_module = compilation
@@ -136,11 +128,7 @@ impl ModuleExecutor {
     entries.retain(|k, v| {
       !removed_module.contains(&k.origin_module_identifier) || ctx.executed_entry_deps.contains(v)
     });
-    let ModuleGraphUpdateResult {
-      artifact: make_artifact,
-      exports_info_artifact,
-      result,
-    } = update_module_graph(
+    (make_artifact, exports_info_artifact) = update_module_graph(
       compilation,
       make_artifact,
       exports_info_artifact,
@@ -148,13 +136,7 @@ impl ModuleExecutor {
         entries.values().copied().collect(),
       )],
     )
-    .await;
-    if result.is_err() {
-      self.make_artifact = make_artifact.into();
-      self.exports_info_artifact = exports_info_artifact.into();
-      self.entries = entries;
-      return result;
-    }
+    .await?;
 
     let mg = compilation.build_module_graph_artifact.get_module_graph();
     let module_assets = std::mem::take(&mut self.module_assets);

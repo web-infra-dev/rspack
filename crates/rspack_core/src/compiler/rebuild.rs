@@ -45,7 +45,7 @@ impl Compiler {
         failed.and(Err(e))
       }
     };
-    self.store_cache_metadata();
+    self.store_cache_metadata(result.is_ok());
     result
   }
 

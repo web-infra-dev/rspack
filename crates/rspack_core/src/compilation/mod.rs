@@ -87,8 +87,8 @@ use crate::{
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
-    BuildModuleGraphArtifact, ModuleExecutor, ModuleGraphUpdateResult, UpdateParam,
-    module_build_cache::ModuleBuildCache, update_module_graph,
+    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
+    update_module_graph,
   },
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
@@ -744,11 +744,7 @@ impl Compilation {
 
     let make_artifact = self.build_module_graph_artifact.steal();
     let exports_info_artifact = self.exports_info_artifact.steal();
-    let ModuleGraphUpdateResult {
-      artifact: make_artifact,
-      exports_info_artifact,
-      result,
-    } = update_module_graph(
+    let (make_artifact, exports_info_artifact) = update_module_graph(
       self,
       make_artifact,
       exports_info_artifact,
@@ -762,11 +758,11 @@ impl Compilation {
           .collect(),
       )],
     )
-    .await;
+    .await?;
     self.build_module_graph_artifact = make_artifact.into();
     self.exports_info_artifact = exports_info_artifact.into();
 
-    result
+    Ok(())
   }
 
   pub async fn add_include<D>(&mut self, args: Vec<(D, EntryOptions)>) -> Result<()>
@@ -805,11 +801,7 @@ impl Compilation {
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
     let make_artifact = self.build_module_graph_artifact.steal();
     let exports_info_artifact = self.exports_info_artifact.steal();
-    let ModuleGraphUpdateResult {
-      artifact: make_artifact,
-      exports_info_artifact,
-      result,
-    } = update_module_graph(
+    let (make_artifact, exports_info_artifact) = update_module_graph(
       self,
       make_artifact,
       exports_info_artifact,
@@ -823,11 +815,11 @@ impl Compilation {
           .collect(),
       )],
     )
-    .await;
+    .await?;
     self.build_module_graph_artifact = make_artifact.into();
     self.exports_info_artifact = exports_info_artifact.into();
 
-    result
+    Ok(())
   }
 
   fn set_asset_info(
@@ -1133,20 +1125,15 @@ impl Compilation {
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    let ModuleGraphUpdateResult {
-      artifact,
-      exports_info_artifact: updated_exports_info_artifact,
-      result,
-    } = update_module_graph(
+    let (artifact, updated_exports_info_artifact) = update_module_graph(
       self,
       artifact,
       std::mem::take(exports_info_artifact),
       vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
-    .await;
+    .await?;
     *exports_info_artifact = updated_exports_info_artifact;
     self.build_module_graph_artifact = artifact.into();
-    result?;
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers

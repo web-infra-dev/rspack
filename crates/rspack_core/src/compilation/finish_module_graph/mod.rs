@@ -5,9 +5,7 @@ use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use tracing::instrument;
 
 use crate::{
-  Compilation,
-  compilation::build_module_graph::{ModuleGraphUpdateResult, finish_build_module_graph},
-  logger::Logger,
+  Compilation, compilation::build_module_graph::finish_build_module_graph, logger::Logger,
 };
 
 pub async fn finish_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
@@ -25,20 +23,17 @@ pub async fn finish_build_module_graph_pass(compilation: &mut Compilation) -> Re
   // clean up the entry deps
   let make_artifact = compilation.build_module_graph_artifact.steal();
   let exports_info_artifact = compilation.exports_info_artifact.steal();
-  let ModuleGraphUpdateResult {
-    artifact: make_artifact,
-    exports_info_artifact,
-    result,
-  } = finish_build_module_graph(compilation, make_artifact, exports_info_artifact).await;
+  let (make_artifact, exports_info_artifact) =
+    finish_build_module_graph(compilation, make_artifact, exports_info_artifact).await?;
   compilation.build_module_graph_artifact = make_artifact.into();
   compilation.exports_info_artifact = exports_info_artifact.into();
-  result?;
   // sync assets to module graph from module_executor
   if let Some(module_executor) = &mut compilation.module_executor {
     let mut module_executor = std::mem::take(module_executor);
-    let result = module_executor.after_build_module_graph(compilation).await;
+    module_executor
+      .after_build_module_graph(compilation)
+      .await?;
     compilation.module_executor = Some(module_executor);
-    result?;
   }
   // make finished, make artifact should be readonly thereafter.
   Ok(())

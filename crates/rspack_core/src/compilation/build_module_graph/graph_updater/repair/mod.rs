@@ -5,10 +5,11 @@ pub mod factorize;
 pub mod lazy;
 pub mod process_dependencies;
 
+use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use self::context::TaskContext;
-use super::{BuildModuleGraphArtifact, ModuleGraphUpdateResult};
+use super::BuildModuleGraphArtifact;
 use crate::{
   BuildDependency, Compilation, ExportsInfoArtifact,
   utils::task_loop::{Task, run_task_loop},
@@ -19,7 +20,7 @@ pub async fn repair(
   artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
   build_dependencies: HashSet<BuildDependency>,
-) -> ModuleGraphUpdateResult {
+) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
   let module_graph = &ctx.artifact.module_graph;
   let mut grouped_deps = HashMap::default();
@@ -63,11 +64,6 @@ pub async fn repair(
     })
     .collect::<Vec<_>>();
 
-  let result = run_task_loop(&mut ctx, init_tasks).await;
-  // The caller must recover ownership even when a task bails out.
-  ModuleGraphUpdateResult {
-    artifact: ctx.artifact,
-    exports_info_artifact: ctx.exports_info_artifact,
-    result,
-  }
+  run_task_loop(&mut ctx, init_tasks).await?;
+  Ok((ctx.artifact, ctx.exports_info_artifact))
 }

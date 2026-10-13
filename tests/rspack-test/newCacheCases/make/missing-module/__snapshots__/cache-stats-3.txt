@@ -9,7 +9,7 @@
       "total": 1
     },
     "resolver cache": {
-      "hits": 1,
+      "hits": 0,
       "total": 3
     }
   }
