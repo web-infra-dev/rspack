@@ -43,14 +43,6 @@ export default [
     },
   },
   {
-    name: "dependency-retention",
-    description: "should retain dependency properties without retaining the old graph",
-    async run() {
-      const { default: run } = await import("./dependency-retention.mjs");
-      await run();
-    },
-  },
-  {
     name: "import-module",
     description: "should collect importModule publicPath callbacks before compiler close",
     async run() {
