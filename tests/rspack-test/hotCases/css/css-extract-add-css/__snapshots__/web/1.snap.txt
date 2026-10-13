@@ -6,16 +6,16 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: lazy.chunk.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 84
+- Manifest: main.LAST_HASH.hot-update.json, size: 60
 - Update: lazy.LAST_HASH.hot-update.js, size: 1223
-- Update: main.LAST_HASH.hot-update.js, size: 7544
+- Update: main.LAST_HASH.hot-update.js, size: 6485
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["lazy","main"],"r":[],"m":[],"miniCss":{"c":["lazy"],"f":{"lazy":"lazy.css"}}}
+{"c":["lazy","main"],"r":[],"m":[],"miniCss":{"c":["lazy"]}}
 ```
 
 
@@ -214,7 +214,7 @@ var extractCssInitialChunkIds = {"main": 1,};
 var extractCssChunkIsLoaded = function (chunkId) {
 	return typeof __webpack_require__.hmrS_jsonp !== "undefined" && __webpack_require__.hmrS_jsonp && __webpack_require__.hmrS_jsonp[chunkId] === 0;
 };
-__webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, load, unchanged, groups) {
+__webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss) {
 	applyHandlers.push(extractCssApplyHandler);
 	/**
 		`miniCss` is the hot-update manifest's namespace for extracted CSS:
@@ -227,36 +227,26 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 		rarely does.
 	 */
 	var cssRemovedChunkIds = (miniCss && miniCss.r) || [];
-	var cssChunkIds = ((miniCss && miniCss.c) || []).slice();
-	var files = (miniCss && miniCss.f) || {};
-	var oldFiles = (miniCss && miniCss.o) || {};
-	var requiredCssChunks = Object.create(null);
-	if (load) Object.keys(load).forEach(function (entryId) {
-		if (extractCssChunkIsLoaded(entryId)) load[entryId].forEach(function (id) {
-			requiredCssChunks[id] = true;
-			if (files[id] && cssChunkIds.indexOf(id) < 0) cssChunkIds.push(id);
-		});
-	});
+	var cssChunkIds = (miniCss && miniCss.c) || [];
 	var seen = {};
 	cssRemovedChunkIds.forEach(function (chunkId) {
-		var href = oldFiles[chunkId] || __webpack_require__.miniCssF(chunkId);
+		var href = __webpack_require__.miniCssF(chunkId);
 		if (!href) return;
 		var oldTag = extractCssFindStylesheet(href, __webpack_require__.p + href);
 		if (oldTag) extractCssOldTags.push(oldTag);
 	});
-	var prepareCss = function (chunkId, promises) {
-		var href = files[chunkId] || __webpack_require__.miniCssF(chunkId);
+	cssChunkIds.forEach(function (chunkId) {
+		var href = __webpack_require__.miniCssF(chunkId);
 		if (!href) return;
 		var fullhref = __webpack_require__.p + href;
 		if (seen[fullhref]) return;
-		var oldHref = oldFiles[chunkId] || __webpack_require__.miniCssF(chunkId);
-		var oldTag = oldHref && extractCssFindStylesheet(oldHref, __webpack_require__.p + oldHref);
+		seen[fullhref] = true;
+		var oldTag = extractCssFindStylesheet(href, fullhref);
 		// The manifest is computed from the compilation and also lists chunks this
 		// page never loaded. A missing tag is legitimate only for a chunk that is
 		// actually on the page: an initial chunk gaining its first stylesheet, or
 		// a loaded async chunk whose stylesheet was removed by an earlier update.
-		if (!oldTag && !requiredCssChunks[chunkId] && !extractCssInitialChunkIds[chunkId] && !extractCssChunkIsLoaded(chunkId)) return;
-		seen[fullhref] = true;
+		if (!oldTag && !extractCssInitialChunkIds[chunkId] && !extractCssChunkIsLoaded(chunkId)) return;
 		promises.push(new Promise(function (resolve, reject) {
 			var tag = extractCssCreateStylesheet(
 				chunkId,
@@ -279,19 +269,8 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 				reject
 			);
 		}))
-	};
-	cssChunkIds.forEach(function (id) { prepareCss(id, promises); });
-	if (groups && __webpack_require__.e) {
-		var ensureGroup = function (groupId, promises) {
-			(groups[groupId] || []).forEach(function (id) {
-				requiredCssChunks[id] = true;
-				if (files[id]) prepareCss(id, promises);
-			});
-		};
-		__webpack_require__.e.h.push(ensureGroup);
-		Object.keys(__webpack_require__.e.s || {}).forEach(function (id) { ensureGroup(id, promises); });
-	}
-};
+	});
+}
 
 // no prefetch
 // no preload

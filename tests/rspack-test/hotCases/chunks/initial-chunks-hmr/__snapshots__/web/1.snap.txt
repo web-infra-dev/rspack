@@ -8,17 +8,16 @@
 - Bundle: async/initial_js.js
 - Bundle: lib.CURRENT_HASH.js
 - Bundle: main.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 108
+- Manifest: main.LAST_HASH.hot-update.json, size: 41
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: lib.LAST_HASH.hot-update.js, size: 1600
-- Update: main.LAST_HASH.hot-update.js, size: 29947
+- Update: main.LAST_HASH.hot-update.js, size: 25524
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["initial_js","main"],"r":[],"m":[],"load":{"main":["lib"]},"unchanged":["./node_modules/lib-js/a.js"]}
+{"c":["initial_js","main"],"r":[],"m":[]}
 ```
 
 
@@ -53,43 +52,6 @@ const value = "b";
 
 
 
-### lib.LAST_HASH.hot-update.js
-
-#### Changed Modules
-- ./node_modules/lib-js/a.js
-- ./node_modules/lib-js/b.js
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-"use strict";
-self["rspackHotUpdate"]("lib", {
-"./node_modules/lib-js/a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  a: () => (a)
-});
-const a = "a";
-
-
-},
-"./node_modules/lib-js/b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  b: () => (b)
-});
-const b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-
-
-},
-
-});
-```
-
-
-
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
@@ -97,7 +59,6 @@ const b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 
 #### Changed Runtime Modules
 - webpack/runtime/css_loading
-- webpack/runtime/ensure_chunk
 - webpack/runtime/get_full_hash
 - webpack/runtime/jsonp_chunk_loading
 - webpack/runtime/on_chunk_loaded
@@ -112,41 +73,18 @@ __webpack_require__.r(__webpack_exports__);
 
 
 it("should work if there are new initial chunks", async () => {
-	// HMR must install the new initial dependency before import() can ensure it.
-	expect(__webpack_require__.m["./node_modules/lib-js/b.js"]).toBeTypeOf("function");
-	expect((await __webpack_require__.e("584e78d43acd0c4b", 0, true).then(__webpack_require__.bind(__webpack_require__, "./initial.js"))).value).toBe("b");
+	await Promise.all(/* import() */ [__webpack_require__.e("lib"), __webpack_require__.e("initial_js")]).then(__webpack_require__.bind(__webpack_require__, "./initial.js"));
+	expect(
+		globalThis.__INITIAL_CHUNK_HMR_CHUNKS__.some(([chunkIds]) =>
+			chunkIds.includes("lib")
+		)
+	).toBe(true);
 });
 
 
 },
 
 },function(__webpack_require__) {
-// webpack/runtime/ensure_chunk
-(() => {
-__webpack_require__.f = __webpack_require__.f || {};
-// Preserve activated load sites across updates of their physical loading plans.
-var groupState = __webpack_require__.e && __webpack_require__.e.s || Object.create(null);
-var groupHandlers = __webpack_require__.e && __webpack_require__.e.h || [];
-__webpack_require__.e = (id, fetchPriority, isGroup) => {
-	isGroup = isGroup === true;
-	var promises = [];
-	var chunks = isGroup ? __webpack_require__.e.g[id] || [] : [id];
-	if (isGroup) {
-		__webpack_require__.e.s[id] = true;
-		__webpack_require__.e.h.forEach((handler) => { handler(id, promises); });
-	}
-	chunks.forEach((chunkId) => {
-		Object.keys(__webpack_require__.f).forEach((key) => {
-			__webpack_require__.f[key](chunkId, promises, fetchPriority);
-		});
-	});
-	return Promise.all(promises);
-};
-__webpack_require__.e.g = {"584e78d43acd0c4b":["lib","initial_js"]};
-__webpack_require__.e.s = groupState;
-__webpack_require__.e.h = groupHandlers;
-
-})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -284,7 +222,7 @@ var cssInitialChunkIds = {"lib": 1,"main": 1,};
 var cssChunkIsLoaded = (chunkId) => {
 	return typeof __webpack_require__.hmrS_jsonp !== "undefined" && __webpack_require__.hmrS_jsonp && __webpack_require__.hmrS_jsonp[chunkId] === 0;
 };
-__webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, load, unchanged, groups) => {
+__webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css) => {
 	if (typeof document === 'undefined') return;
 	applyHandlers.push(cssApplyHandler);
 	// `css` is the hot-update manifest's css namespace (aligned with webpack):
@@ -293,38 +231,28 @@ __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promise
 	// no CSS work at all — notably the runtime chunk is in `chunkIds` on every
 	// update (its full hash always changes) while its stylesheet rarely does.
 	var cssRemovedChunkIds = (css && css.r) || [];
-	var cssChunkIds = ((css && css.c) || []).slice();
-	var files = (css && css.f) || {};
-	var oldFiles = (css && css.o) || {};
-	var requiredCssChunks = Object.create(null);
-	if (load) Object.keys(load).forEach((entryId) => {
-		if (cssChunkIsLoaded(entryId)) load[entryId].forEach((id) => {
-			requiredCssChunks[id] = true;
-			if (files[id] && cssChunkIds.indexOf(id) < 0) cssChunkIds.push(id);
-		});
-	});
+	var cssChunkIds = (css && css.c) || [];
 	var seen = {};
 	cssRemovedChunkIds.forEach((chunkId) => {
-		var filename = oldFiles[chunkId] || __webpack_require__.k(chunkId);
+		var filename = __webpack_require__.k(chunkId);
 		if (!filename) return;
 		var oldTag = cssLoadStylesheet(chunkId, __webpack_require__.p + filename);
 		if (oldTag) cssOldTags.push(oldTag);
 	});
-	var prepareCss = (chunkId, promises) => {
-		var filename = files[chunkId] || __webpack_require__.k(chunkId);
+	cssChunkIds.forEach((chunkId) => {
+		var filename = __webpack_require__.k(chunkId);
 		if (!filename) return;
 		var url = __webpack_require__.p + filename;
 		if (seen[url]) {
 			return;
 		}
-		var oldFilename = oldFiles[chunkId] || __webpack_require__.k(chunkId);
-		var oldTag = oldFilename && cssLoadStylesheet(chunkId, __webpack_require__.p + oldFilename);
+		seen[url] = true;
+		var oldTag = cssLoadStylesheet(chunkId, url);
 		// The manifest is computed from the compilation and also lists chunks this
 		// page never loaded. A missing tag is legitimate only for a chunk that is
 		// actually on the page: an initial chunk gaining its first stylesheet, or
 		// a loaded async chunk whose stylesheet was removed by an earlier update.
-		if (!oldTag && !requiredCssChunks[chunkId] && !cssInitialChunkIds[chunkId] && !cssChunkIsLoaded(chunkId)) return;
-		seen[url] = true;
+		if (!oldTag && !cssInitialChunkIds[chunkId] && !cssChunkIsLoaded(chunkId)) return;
 		promises.push(
 			new Promise((resolve, reject) => {
 				var link = cssLoadStylesheet(
@@ -358,18 +286,7 @@ __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promise
 				);
 			})
 		);
-	};
-	cssChunkIds.forEach(function (id) { prepareCss(id, promises); });
-	if (groups && __webpack_require__.e) {
-		var ensureGroup = function (groupId, promises) {
-			(groups[groupId] || []).forEach(function (id) {
-				requiredCssChunks[id] = true;
-				if (files[id]) prepareCss(id, promises);
-			});
-		};
-		__webpack_require__.e.h.push(ensureGroup);
-		Object.keys(__webpack_require__.e.s || {}).forEach(function (id) { ensureGroup(id, promises); });
-	}
+	});
 };
 
 })();
@@ -482,15 +399,9 @@ var hotCurrentUpdateChunks;
 var hotCurrentUpdate;
 var hotCurrentUpdateRemovedChunks;
 var hotCurrentUpdateRuntime;
-var hotCurrentUpdateLoadChunks;
-var hotCurrentUpdateUnchangedModules;
 function hotApplyHandler(options) {
 	if (__webpack_require__.f) delete __webpack_require__.f.jsonpHmr;
 	hotCurrentUpdateChunks = undefined;
-	var loadChunks = hotCurrentUpdateLoadChunks || {};
-	var unchangedModules = hotCurrentUpdateUnchangedModules || {};
-	hotCurrentUpdateLoadChunks = undefined;
-	hotCurrentUpdateUnchangedModules = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
 		var outdatedModules = [updateModuleId];
 		var outdatedDependencies = {};
@@ -589,12 +500,6 @@ function hotApplyHandler(options) {
 
 	for (var moduleId in hotCurrentUpdate) {
 		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {
-			// A complete supplemental payload also contains unchanged factories.
-			// Preserve existing instances on movement unless explicitly invalidated.
-			if (unchangedModules[moduleId] && __webpack_require__.o(__webpack_require__.m, moduleId)) {
-				var cachedModule = __webpack_require__.c[moduleId];
-				if (!cachedModule || !cachedModule.hot._selfInvalidated) continue;
-			}
 			var newModuleFactory = hotCurrentUpdate[moduleId];
 			var result = newModuleFactory ? getAffectedModuleEffects(moduleId) : {
 				type: "disposed",
@@ -784,14 +689,6 @@ function hotApplyHandler(options) {
 				
 			}
 
-			// A full payload has now installed the chunk's factories. Keep the
-			// loading state in sync so subsequent edits download its hot updates.
-			for (var chunkId in loadChunks) {
-				var installed = jsonpInstalledChunks[chunkId];
-				if (installed && typeof installed[0] === "function") installed[0]();
-				jsonpInstalledChunks[chunkId] = 0;
-			}
-
 			// call accept handlers
 			for (var outdatedModuleId in outdatedDependencies) {
 				if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
@@ -926,12 +823,7 @@ __webpack_require__.hmrC.jsonp = function (
 	removedModules,
 	promises,
 	applyHandlers,
-	updatedModulesList,
-	css,
-	miniCss,
-	load,
-	unchanged,
-	groups
+	updatedModulesList
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -941,9 +833,6 @@ __webpack_require__.hmrC.jsonp = function (
 		return obj;
 	}, {});
 	hotCurrentUpdateRuntime = [];
-	hotCurrentUpdateLoadChunks = Object.create(null);
-	hotCurrentUpdateUnchangedModules = Object.create(null);
-	(unchanged || []).forEach(function (id) { hotCurrentUpdateUnchangedModules[id] = true; });
 	chunkIds.forEach(function (chunkId) {
 		if (
 			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
@@ -955,33 +844,6 @@ __webpack_require__.hmrC.jsonp = function (
 			hotCurrentUpdateChunks[chunkId] = false;
 		}
 	});
-	if (load) {
-		Object.keys(load).forEach(function (entryId) {
-			var entryIsLoaded = __webpack_require__.o(jsonpInstalledChunks, entryId) && jsonpInstalledChunks[entryId] === 0;
-			load[entryId].forEach(function (chunkId) {
-				if (!__webpack_require__.o(hotCurrentUpdateChunks, chunkId)) hotCurrentUpdateChunks[chunkId] = false;
-				if (!entryIsLoaded) return;
-				hotCurrentUpdateLoadChunks[chunkId] = true;
-				if (!hotCurrentUpdateChunks[chunkId]) {
-					promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
-					hotCurrentUpdateChunks[chunkId] = true;
-				}
-			});
-		});
-	}
-	if (groups && __webpack_require__.e) {
-		var ensureGroup = function (groupId, promises) {
-			(groups[groupId] || []).forEach(function (chunkId) {
-				hotCurrentUpdateLoadChunks[chunkId] = true;
-				if (!hotCurrentUpdateChunks[chunkId]) {
-					promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
-					hotCurrentUpdateChunks[chunkId] = true;
-				}
-			});
-		};
-		__webpack_require__.e.h.push(ensureGroup);
-		Object.keys(__webpack_require__.e.s || {}).forEach(function (id) { ensureGroup(id, promises); });
-	}
 	if (__webpack_require__.f) {
 		__webpack_require__.f.jsonpHmr = function (chunkId, promises) {
 			if (

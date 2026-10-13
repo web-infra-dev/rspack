@@ -17,9 +17,9 @@
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 71
 - Manifest: main.LAST_HASH.hot-update.json, size: 56
 - Update: main.LAST_HASH.hot-update.js, size: 181
-- Update: shared.LAST_HASH.hot-update.js, size: 766
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 1668
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 1495
+- Update: shared.LAST_HASH.hot-update.js, size: 765
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 612
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 473
 
 ## Manifest
 
@@ -91,7 +91,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (4);
-if (Math.random() < 0) __webpack_require__.e("c1724fb3cc54c670", 0, true).then(__webpack_require__.bind(__webpack_require__, "./chunkS.js"));
+if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(__webpack_require__.bind(__webpack_require__, "./chunkS.js"));
 
 
 },
@@ -116,7 +116,6 @@ __webpack_require__.d(__webpack_exports__, {
 - ./moduleA.js
 
 #### Changed Runtime Modules
-- webpack/runtime/ensure_chunk
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -129,38 +128,12 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (4);
-if (Math.random() < 0) __webpack_require__.e("f732101375edbd90", 0, true).then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
+if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
 
 
 },
 
 },function(__webpack_require__) {
-// webpack/runtime/ensure_chunk
-(() => {
-__webpack_require__.f = __webpack_require__.f || {};
-// Preserve activated load sites across updates of their physical loading plans.
-var groupState = __webpack_require__.e && __webpack_require__.e.s || Object.create(null);
-var groupHandlers = __webpack_require__.e && __webpack_require__.e.h || [];
-__webpack_require__.e = (id, fetchPriority, isGroup) => {
-	isGroup = isGroup === true;
-	var promises = [];
-	var chunks = isGroup ? __webpack_require__.e.g[id] || [] : [id];
-	if (isGroup) {
-		__webpack_require__.e.s[id] = true;
-		__webpack_require__.e.h.forEach((handler) => { handler(id, promises); });
-	}
-	chunks.forEach((chunkId) => {
-		Object.keys(__webpack_require__.f).forEach((key) => {
-			__webpack_require__.f[key](chunkId, promises, fetchPriority);
-		});
-	});
-	return Promise.all(promises);
-};
-__webpack_require__.e.g = {"3f14b96a3d0e813e":["shared"],"c1724fb3cc54c670":["chunkS_js"],"f732101375edbd90":["chunk_js"]};
-__webpack_require__.e.s = groupState;
-__webpack_require__.e.h = groupHandlers;
-
-})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -178,7 +151,6 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 - ./moduleB.js
 
 #### Changed Runtime Modules
-- webpack/runtime/ensure_chunk
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -196,32 +168,6 @@ __webpack_require__.d(__webpack_exports__, {
 },
 
 },function(__webpack_require__) {
-// webpack/runtime/ensure_chunk
-(() => {
-__webpack_require__.f = __webpack_require__.f || {};
-// Preserve activated load sites across updates of their physical loading plans.
-var groupState = __webpack_require__.e && __webpack_require__.e.s || Object.create(null);
-var groupHandlers = __webpack_require__.e && __webpack_require__.e.h || [];
-__webpack_require__.e = (id, fetchPriority, isGroup) => {
-	isGroup = isGroup === true;
-	var promises = [];
-	var chunks = isGroup ? __webpack_require__.e.g[id] || [] : [id];
-	if (isGroup) {
-		__webpack_require__.e.s[id] = true;
-		__webpack_require__.e.h.forEach((handler) => { handler(id, promises); });
-	}
-	chunks.forEach((chunkId) => {
-		Object.keys(__webpack_require__.f).forEach((key) => {
-			__webpack_require__.f[key](chunkId, promises, fetchPriority);
-		});
-	});
-	return Promise.all(promises);
-};
-__webpack_require__.e.g = {"57faabebb0ed3e7e":["shared"],"c1724fb3cc54c670":["chunkS_js"]};
-__webpack_require__.e.s = groupState;
-__webpack_require__.e.h = groupHandlers;
-
-})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

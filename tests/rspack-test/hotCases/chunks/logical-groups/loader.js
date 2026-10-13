@@ -1,3 +1,0 @@
-export const load = () => import(/* webpackChunkName: "loaded" */ './loaded');
-export const loadUnloaded = () => import(/* webpackChunkName: "unloaded" */ './unloaded');
-export const loadContext = name => import(`./context/${name}.js`);

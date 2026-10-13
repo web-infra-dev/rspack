@@ -10,8 +10,8 @@
 - Bundle: modules_module_js.chunk.CURRENT_HASH.js
 - Bundle: modules_module_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 71
-- Update: main.LAST_HASH.hot-update.js, size: 1761
-- Update: modules_module_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1047
+- Update: main.LAST_HASH.hot-update.js, size: 470
+- Update: modules_module_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1054
 
 ## Manifest
 
@@ -31,7 +31,6 @@
 - ./generation.js
 
 #### Changed Runtime Modules
-- webpack/runtime/ensure_chunk
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -49,32 +48,6 @@ __webpack_require__.d(__webpack_exports__, {
 },
 
 },function(__webpack_require__) {
-// webpack/runtime/ensure_chunk
-(() => {
-__webpack_require__.f = __webpack_require__.f || {};
-// Preserve activated load sites across updates of their physical loading plans.
-var groupState = __webpack_require__.e && __webpack_require__.e.s || Object.create(null);
-var groupHandlers = __webpack_require__.e && __webpack_require__.e.h || [];
-__webpack_require__.e = (id, fetchPriority, isGroup) => {
-	isGroup = isGroup === true;
-	var promises = [];
-	var chunks = isGroup ? __webpack_require__.e.g[id] || [] : [id];
-	if (isGroup) {
-		__webpack_require__.e.s[id] = true;
-		__webpack_require__.e.h.forEach((handler) => { handler(id, promises); });
-	}
-	chunks.forEach((chunkId) => {
-		Object.keys(__webpack_require__.f).forEach((key) => {
-			__webpack_require__.f[key](chunkId, promises, fetchPriority);
-		});
-	});
-	return Promise.all(promises);
-};
-__webpack_require__.e.g = {"0d10c4a0038fa232":["modules_demo_js_lazy-compilation-proxy"],"54e4b13ad70d5177":["modules_demo_js"],"739196c38a55d695":["modules_module_js_lazy-compilation-proxy"],"7cc9e8428e8cf135":["modules_module_js"],"c79412e084709f6d":["modules_module_js_lazy-compilation-proxy"],"d3149439b29539b7":["modules_demo_js_lazy-compilation-proxy"]};
-__webpack_require__.e.s = groupState;
-__webpack_require__.e.h = groupHandlers;
-
-})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -100,7 +73,7 @@ self["rspackHotUpdate"]("modules_module_js_lazy-compilation-proxy", {
 "./modules/module.js!lazy-compilation-proxy"(module, __unused_rspack_exports, __webpack_require__) {
 var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2F_rspack%2Flazy%2Ftrigger");
 var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules/module.js";
-        module.exports = __webpack_require__.e("7cc9e8428e8cf135", 0, true).then(__webpack_require__.bind(__webpack_require__, "./modules/module.js"));
+        module.exports = __webpack_require__.e(/* import() */ "modules_module_js").then(__webpack_require__.bind(__webpack_require__, "./modules/module.js"));
         if (module.hot) {
           module.hot.accept();
           module.hot.accept("./modules/module.js", function() { module.hot.invalidate(); });
@@ -152,8 +125,6 @@ Updated Modules:
 - ./modules/demo.js!lazy-compilation-proxy
 
 Updated Runtime:
-- `__webpack_require__.e`
-- `__webpack_require__.f`
 - `__webpack_require__.h`
 
 
