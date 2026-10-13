@@ -1,4 +1,3 @@
-use cow_utils::CowUtils;
 use rspack_core::{
   Context, CssLayer, CssModuleRenderCondition,
   rspack_sources::{
@@ -114,10 +113,8 @@ impl CssSourceBuilder {
     let include_sources_content = self.include_sources_content;
     let source_map_context = self.source_map_context.clone();
     let source = self.into_source();
-    let mut css_text = source
-      .source()
-      .into_string_lossy()
-      .cow_replace(crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER, "")
+    let mut css_text = crate::utils::AUTO_PUBLIC_PATH_MATCHER
+      .replace(&source.source().into_string_lossy(), "")
       .into_owned();
 
     if let Some(mut source_map) = source.map(&ObjectPool::default(), &MapOptions::default()) {

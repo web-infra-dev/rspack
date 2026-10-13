@@ -3,6 +3,7 @@ mod code_generation_results;
 mod dependencies;
 mod diagnostics;
 pub mod entries;
+mod modules;
 
 use std::{cell::RefCell, ptr::NonNull};
 
@@ -11,6 +12,7 @@ pub use code_generation_results::*;
 use dependencies::FileSystemDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
+use modules::Modules;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -68,14 +70,7 @@ impl JsCompilation {
     &self,
     f: impl FnOnce(&Compilation) -> napi::Result<R>,
   ) -> napi::Result<R> {
-    with_compilation(self.id, |compilation| {
-      if compilation.build_module_graph_artifact.is_stolen() {
-        return Err(napi::Error::from_reason(
-          "ModuleGraph is not available while a compilation pass is holding the module graph artifact".to_string(),
-        ));
-      }
-      f(compilation)
-    })
+    with_module_graph(self.id, f)
   }
 
   pub(crate) fn as_ref(&self) -> napi::Result<&'static Compilation> {
@@ -106,6 +101,20 @@ impl JsCompilation {
       "Cannot mutate exports info artifact after it was stolen from compilation.".to_string(),
     ))
   }
+}
+
+fn with_module_graph<R>(
+  compilation_id: CompilationId,
+  f: impl FnOnce(&Compilation) -> napi::Result<R>,
+) -> napi::Result<R> {
+  with_compilation(compilation_id, |compilation| {
+    if compilation.build_module_graph_artifact.is_stolen() {
+      return Err(napi::Error::from_reason(
+        "ModuleGraph is not available while a compilation pass is holding the module graph artifact",
+      ));
+    }
+    f(compilation)
+  })
 }
 
 #[napi]
@@ -220,21 +229,9 @@ impl JsCompilation {
       .transpose()
   }
 
-  #[napi(getter, ts_return_type = "Array<Module>")]
-  pub fn modules<'a>(&self, env: &'a Env) -> Result<Array<'a>> {
-    self.with_module_graph(|compilation| {
-      let module_graph = compilation.get_module_graph();
-      let mut arr = env.create_array(module_graph.modules_len() as u32)?;
-      for (i, identifier) in module_graph.modules_keys().enumerate() {
-        arr.set(
-          i as u32,
-          compilation
-            .module_by_identifier(identifier)
-            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())),
-        )?;
-      }
-      Ok(arr)
-    })
+  #[napi(getter)]
+  pub fn modules(&self) -> Modules {
+    Modules::new(self.id)
   }
 
   #[napi(getter, ts_return_type = "Array<Module>")]
@@ -733,12 +730,13 @@ impl JsCompilation {
   #[napi(
     ts_args_type = "request: string, layer: string | undefined, public_path: JsFilename | undefined, base_uri: string | undefined, original_module: string, original_module_context: string | undefined | null, callback: (...args: any[]) => any"
   )]
-  pub fn import_module(
+  pub fn import_module<'a>(
     &self,
+    env: &'a Env,
     reference: Reference<JsCompilation>,
     request: String,
     layer: Option<String>,
-    public_path: Option<JsFilename>,
+    public_path: Option<Unknown<'a>>,
     base_uri: Option<String>,
     original_module: String,
     original_module_context: Option<String>,
@@ -747,6 +745,31 @@ impl JsCompilation {
     let compilation = self
       .as_ref()
       .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
+    let public_path = if let Some(public_path) = public_path {
+      let mut compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+        let references = ref_cell.borrow();
+        references.get(&compilation.compiler_id()).cloned()
+      });
+      let js_compiler = compiler_reference
+        .as_mut()
+        .and_then(|reference| reference.get_mut())
+        .ok_or_else(|| {
+          napi::Error::new(
+            napi::Status::GenericFailure.into(),
+            "Unable to importModule now. The Compiler has been garbage collected by JavaScript.",
+          )
+        })?;
+      // Convert function-valued public paths in their owning compiler's scope so
+      // their callbacks are released when the compiler closes.
+      Some(
+        js_compiler
+          .compiler_scoped_tsfn_manager
+          .scope(|| unsafe { JsFilename::from_napi_value(env.raw(), public_path.raw()) })
+          .map_err(|err| napi::Error::new(err.status.into(), err.reason))?,
+      )
+    } else {
+      None
+    };
     let compiler_context = compilation.compiler_context.clone();
     callbackify(
       callback,

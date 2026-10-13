@@ -48,23 +48,10 @@ pub use steal_cell::StealCell;
 #[cfg(feature = "codspeed")]
 pub use self::codspeed::*;
 pub use self::{
-  comment::*,
-  extract_source_map::*,
-  extract_url_and_global::*,
-  fast_actions::*,
-  file_counter::{FileCounter, ResourceId},
-  find_graph_roots::*,
-  identifier::*,
-  module_rules::*,
-  property_access::*,
-  property_name::*,
-  remove_bom::*,
-  runtime::*,
-  source::*,
-  source_size_cache::*,
-  template::*,
-  to_path::to_path,
-  topological_sort::*,
+  comment::*, extract_source_map::*, extract_url_and_global::*, fast_actions::*,
+  file_counter::FileCounter, find_graph_roots::*, identifier::*, module_rules::*,
+  property_access::*, property_name::*, remove_bom::*, runtime::*, source::*, source_size_cache::*,
+  template::*, to_path::to_path, topological_sort::*,
 };
 
 /// join string component in a more human readable way
@@ -275,7 +262,7 @@ pub fn compare_chunks_with_graph(
 }
 
 #[cfg(allocative)]
-pub fn snapshot_allocative(name: &str) {
+pub fn snapshot_allocative(name: &str, compilation: &crate::Compilation) {
   use std::{
     path::PathBuf,
     sync::{
@@ -299,6 +286,7 @@ pub fn snapshot_allocative(name: &str) {
   if let Some(dir) = ENABLE.as_deref() {
     let mut builder = allocative::FlameGraphBuilder::default();
     builder.visit_global_roots();
+    builder.visit_root(compilation);
     let buf = builder.finish_and_write_flame_graph();
     let count = COUNT.fetch_add(1, atomic::Ordering::Relaxed);
     let path = dir.join(format!("{}-{}.allocative", count, name));

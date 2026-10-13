@@ -28,7 +28,7 @@ use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash
 use rspack_regex::RspackRegex;
 use rspack_util::{
   asset_condition::AssetConditions,
-  fx_hash::{FxHashMap, FxHasher},
+  fx_hash::{FxHashMap, FxHashSet, FxHasher},
 };
 use swc_config::types::BoolOrDataConfig;
 use swc_core::{
@@ -362,7 +362,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let javascript_compiler = JavaScriptCompiler::new();
         let comments_op = |comments: &SingleThreadedComments| {
           if let Some(ref extract_comments) = extract_comments_option {
-            let mut extracted_comments = vec![];
+            let mut extracted_comments = FxHashSet::default();
             // add all matched comments to source
 
             let (leading_trivial, trailing_trivial) = comments.borrow_all();
@@ -378,9 +378,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                       format!("/*{}*/", c.text)
                     }
                   };
-                  if !extracted_comments.contains(&comment) {
-                    extracted_comments.push(comment);
-                  }
+                  extracted_comments.insert(comment);
                 }
               });
             });
@@ -395,15 +393,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                       format!("/*{}*/", c.text)
                     }
                   };
-                  if !extracted_comments.contains(&comment) {
-                    extracted_comments.push(comment);
-                  }
+                  extracted_comments.insert(comment);
                 }
               });
             });
 
             // if not matched comments, we don't need to emit .License.txt file
             if !extracted_comments.is_empty() {
+              let mut extracted_comments = extracted_comments.into_iter().collect::<Vec<_>>();
               extracted_comments.sort();
               all_extracted_comments
                 .lock()

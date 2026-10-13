@@ -245,14 +245,11 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tapPromise(
-      'ExamplePlugin',
-      (compiler) => {
-        console.log('Build is about to start...');
+    compiler.hooks.beforeRun.tapPromise('ExamplePlugin', async (compiler) => {
+      console.log('Build is about to start...');
 
-        await someAsyncOperation();
-      },
-    );
+      await someAsyncOperation();
+    });
   }
 }
 ```
@@ -284,7 +281,7 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tap('ExamplePlugin', (compiler) => {
+    compiler.hooks.run.tap('ExamplePlugin', (compiler) => {
       console.log('Build start...');
     });
   }
@@ -296,14 +293,11 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tapPromise(
-      'ExamplePlugin',
-      (compiler) => {
-        console.log('Build start...');
+    compiler.hooks.run.tapPromise('ExamplePlugin', async (compiler) => {
+      console.log('Build start...');
 
-        await someAsyncOperation();
-      },
-    );
+      await someAsyncOperation();
+    });
   }
 }
 ```
@@ -355,7 +349,7 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.watchRun.tapPromise('ExamplePlugin', compiler => {
+    compiler.hooks.watchRun.tapPromise('ExamplePlugin', async (compiler) => {
       await someAsyncOperation();
     });
   }
@@ -366,13 +360,24 @@ class ExamplePlugin {
 
 在编译参数创建后执行插件。
 
-- **类型：** `AsyncSeriesHook<[]>`
+- **类型：** `AsyncSeriesHook<[CompilationParams]>`
+- **参数：**
+  - `params`：编译参数，包含 [normal module factory](/api/plugin-api/normal-module-factory-hooks) 和 [context module factory](/api/plugin-api/context-module-factory-hooks)。
+
+```ts
+type CompilationParams = {
+  normalModuleFactory: NormalModuleFactory;
+  contextModuleFactory: ContextModuleFactory;
+};
+```
 
 ## `compile`
 
 在一个新的 [compilation 对象](/api/javascript-api/compilation) 被创建之前调用。
 
-- **类型：** `SyncHook<[]>`
+- **类型：** `SyncHook<[CompilationParams]>`
+- **参数：**
+  - `params`：与 [beforeCompile](#beforecompile) 接收的相同编译参数。
 
 ## `thisCompilation`
 
@@ -380,9 +385,10 @@ class ExamplePlugin {
 
 你可以通过 `compilation` 参数来访问 compilation 对象的属性，或是注册 [compilation hooks](/api/plugin-api/compilation-hooks)。
 
-- **类型：** `SyncHook<[Compilation]>`
+- **类型：** `SyncHook<[Compilation, CompilationParams]>`
 - **参数：**
   - `compilation`: 创建的 [compilation 对象](/api/javascript-api/compilation)
+  - `params: CompilationParams`：本次编译使用的模块工厂，包含 `normalModuleFactory` 和 `contextModuleFactory` 属性。
 
 <Collapse>
   <CollapsePanel
@@ -402,8 +408,8 @@ class ExamplePlugin {
     compiler.hooks.thisCompilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation created:', compilation);
 
-      compilation.hooks.make.tap('ExamplePlugin', (compilation) => {
-        console.log("compilation's make hook called:", compilation);
+      compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
+        console.log('Generated assets:', Object.keys(assets));
       });
     });
   }
@@ -418,9 +424,10 @@ class ExamplePlugin {
 
 `compilation` 钩子的调用晚于 [thisCompilation](#thiscompilation) 钩子，并且 `thisCompilation` 钩子不会被复制到 child compiler 中，而 `compilation` 钩子会被复制到 child compiler 中。
 
-- **类型：** `SyncHook<[Compilation]>`
+- **类型：** `SyncHook<[Compilation, CompilationParams]>`
 - **参数：**
   - `compilation`: 创建的 [compilation](/api/javascript-api/compilation) 对象
+  - `params: CompilationParams`：本次编译使用的模块工厂，包含 `normalModuleFactory` 和 `contextModuleFactory` 属性。
 
 <Collapse>
   <CollapsePanel
@@ -438,8 +445,8 @@ class ExamplePlugin {
     compiler.hooks.compilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation created:', compilation);
 
-      compilation.hooks.make.tap('ExamplePlugin', (compilation) => {
-        console.log("compilation's make hook called:", compilation);
+      compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
+        console.log('Generated assets:', Object.keys(assets));
       });
     });
   }

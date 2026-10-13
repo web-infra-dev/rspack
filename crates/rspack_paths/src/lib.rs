@@ -20,6 +20,8 @@ pub use ustr::IdentityHasher;
 
 #[cfg(feature = "cacheable")]
 mod cacheable;
+mod path_list;
+pub use path_list::InternedPathList;
 
 /// Returns the byte index immediately after a DOS device path prefix
 /// (`\\\\?\\` or `\\\\.\\`), or zero when `path` has no such prefix.

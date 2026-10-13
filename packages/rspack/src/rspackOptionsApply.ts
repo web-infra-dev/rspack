@@ -227,6 +227,7 @@ export class RspackOptionsApply {
             options.output.devtoolFallbackModuleFilenameTemplate,
           append: hidden ? false : undefined,
           module: moduleMaps ? true : !cheap,
+          test: evalWrapped ? undefined : /\.((c|m)?js|css)($|\?)/i,
           columns: !cheap,
           noSources: noSources,
           namespace: options.output.devtoolNamespace,

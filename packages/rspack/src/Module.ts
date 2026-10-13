@@ -9,7 +9,11 @@ export type ResourceDataWithData = ResourceData & {
   data?: Record<string, any>;
 };
 export type ContextInfo = binding.ContextInfo;
-export type ResolveData = binding.JsResolveData;
+export type ResolveData = binding.JsResolveData & {
+  fileDependencies: string[];
+  contextDependencies: string[];
+  missingDependencies: string[];
+};
 
 export class ContextModuleFactoryBeforeResolveData {
   #inner: binding.JsContextModuleFactoryBeforeResolveData;

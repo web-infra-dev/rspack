@@ -710,7 +710,7 @@ class Compiler {
     compilerName: string,
     compilerIndex: number,
     outputOptions: OutputNormalized,
-    plugins: (RspackPluginInstance | Falsy)[],
+    plugins?: (RspackPluginInstance | Falsy)[],
   ): Compiler {
     const options: RspackOptionsNormalized = {
       ...this.options,

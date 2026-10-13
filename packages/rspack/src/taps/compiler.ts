@@ -1,4 +1,5 @@
 import binding from '@rspack/binding';
+import type { Source } from 'webpack-sources';
 import type { CreatePartialRegisters } from './types';
 
 export const createCompilerHooksRegisters: CreatePartialRegisters<
@@ -129,21 +130,26 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
           targetPath,
           outputPath,
         }: binding.JsAssetEmittedArgs) {
+          let source: Source | undefined;
+          let content: Buffer | undefined;
           return queried.promise(filename, {
             compilation: getCompiler().__internal__get_compilation()!,
             targetPath,
             outputPath,
             get source() {
-              const source = getCompiler()
-                .__internal__get_compilation()!
-                .getAsset(filename)?.source;
-              if (!source) {
-                throw new Error(`Asset ${filename} not found`);
+              if (source === undefined) {
+                const assetSource = getCompiler()
+                  .__internal__get_compilation()!
+                  .getAsset(filename)?.source;
+                if (!assetSource) {
+                  throw new Error(`Asset ${filename} not found`);
+                }
+                source = assetSource;
               }
               return source;
             },
             get content() {
-              return this.source?.buffer();
+              return (content ??= this.source.buffer());
             },
           });
         };

@@ -11,6 +11,7 @@ const MIN_POOL_CAPACITY: usize = 64;
 
 /// A memory pool for reusing `T` allocations to reduce memory allocation overhead.
 #[derive(Default, Debug)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct ObjectPool {
   objects: RefCell<BTreeMap<usize, Vec<Vec<usize>>>>,
 }
@@ -49,8 +50,10 @@ impl ObjectPool {
 /// pooled objects lifecycle. When the `Pooled` instance is dropped, the contained object
 /// is automatically returned to its associated pool for future reuse.
 #[derive(Debug)]
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct Pooled<'object_pool> {
   object: Option<Vec<usize>>,
+  #[cfg_attr(feature = "allocative", allocative(skip))]
   pool: &'object_pool ObjectPool,
 }
 

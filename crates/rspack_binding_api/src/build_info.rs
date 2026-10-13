@@ -10,7 +10,7 @@ use rspack_core::WeakBindingCell;
 use rspack_napi::unknown_to_json_value;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{define_symbols, module::Module};
+use crate::{define_symbols, module::Module, shared_properties::define_shared_properties};
 
 define_symbols! {
   BUILD_INFO_ASSETS_SYMBOL => "rspack.buildInfo.assets",
@@ -282,34 +282,50 @@ impl ToNapiValue for BuildInfo {
       BUILD_INFO_PROPERTIES_BUFFER.with(|ref_cell| {
         let mut properties = ref_cell.borrow_mut();
         properties.clear();
-        create_known_private_properties(&env_wrapper, &mut properties)?;
+        define_shared_properties::<KnownBuildInfo>(&env_wrapper, object, || {
+          let mut properties = Vec::with_capacity(6);
+          create_known_private_properties(&env_wrapper, &mut properties)?;
 
-        let commit_custom_fields_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
-          .create_function_from_closure("commitCustomFieldsToRust", |ctx| {
-            let object = ctx.this::<Object>()?;
-            let env = ctx.env;
-            let this: &mut KnownBuildInfo =
-              FromNapiMutRef::from_napi_mut_ref(env.raw(), object.raw())?;
+          let commit_custom_fields_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
+            .create_function_from_closure("commitCustomFieldsToRust", |ctx| {
+              let object = ctx.this::<Object>()?;
+              let env = ctx.env;
+              let this: &mut KnownBuildInfo =
+                FromNapiMutRef::from_napi_mut_ref(env.raw(), object.raw())?;
 
-            this.with_mut(|module| {
-              let mut extras = serde_json::Map::new();
-              let names = Array::from_unknown(object.get_property_names()?.to_unknown())?;
-              for index in 0..names.len() {
-                if let Some(name) = names.get::<String>(index)?
-                  && !KNOWN_BUILD_INFO_FIELD_NAMES.contains(name.as_str())
-                {
-                  let value = object.get_named_property::<Unknown>(&name)?;
-                  if let Some(json_value) = unknown_to_json_value(value)? {
-                    extras.insert(name, json_value);
+              this.with_mut(|module| {
+                let mut extras = serde_json::Map::new();
+                let names = Array::from_unknown(object.get_property_names()?.to_unknown())?;
+                for index in 0..names.len() {
+                  if let Some(name) = names.get::<String>(index)?
+                    && !KNOWN_BUILD_INFO_FIELD_NAMES.contains(name.as_str())
+                  {
+                    let value = object.get_named_property::<Unknown>(&name)?;
+                    if let Some(json_value) = unknown_to_json_value(value)? {
+                      extras.insert(name, json_value);
+                    }
                   }
                 }
-              }
 
-              module.build_info_mut().extras = extras;
+                module.build_info_mut().extras = extras;
 
-              Ok(())
-            })
+                Ok(())
+              })
+            })?;
+
+          COMMIT_CUSTOM_FIELDS_SYMBOL.with(|once_cell| {
+            #[allow(clippy::unwrap_used)]
+            let symbol = once_cell.get().unwrap();
+            properties.push(
+              Property::new()
+                .with_name(&env_wrapper, symbol)?
+                .with_value(&commit_custom_fields_fn)
+                .with_property_attributes(PropertyAttributes::Configurable),
+            );
+            Ok::<(), napi::Error>(())
           })?;
+          Ok(properties)
+        })?;
 
         val.with_ref(|module| {
           let extras = &module.build_info().extras;
@@ -323,17 +339,6 @@ impl ToNapiValue for BuildInfo {
             );
           }
           Ok(())
-        })?;
-        COMMIT_CUSTOM_FIELDS_SYMBOL.with(|once_cell| {
-          #[allow(clippy::unwrap_used)]
-          let symbol = once_cell.get().unwrap();
-          properties.push(
-            Property::new()
-              .with_name(&env_wrapper, symbol)?
-              .with_value(&commit_custom_fields_fn)
-              .with_property_attributes(PropertyAttributes::Configurable),
-          );
-          Ok::<(), napi::Error>(())
         })?;
         object.define_properties(&properties)
       })?;

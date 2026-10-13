@@ -137,9 +137,11 @@ compiler.hooks.compilation.tap(
 
 ## `afterResolve`
 
-`AsyncSeriesBailHook<[ResolveData]>`
+`AsyncSeriesBailHook<[ResolveData], false | void>`
 
 在模块标识符被解析后调用。
+
+返回 `false` 可以忽略该请求并停止后续回调。返回 `undefined` 或不返回值则继续执行。
 
 `afterResolve` 用于在模块解析完成之后，进一步处理或修改模块的解析结果。它在模块解析过程的末尾触发，意味着在这个阶段，模块的路径、请求信息等已经确定。
 
@@ -148,6 +150,10 @@ compiler.hooks.compilation.tap(
   'MyPlugin',
   (compilation, { normalModuleFactory }) => {
     normalModuleFactory.hooks.afterResolve.tap('MyPlugin', (resolveData) => {
+      if (resolveData.request === './optional-module.js') {
+        return false;
+      }
+
       // 访问和修改解析后的模块信息
       console.log(JSON.stringify(resolveData, null, 2));
     });
@@ -185,11 +191,13 @@ compiler.hooks.compilation.tap(
 
 ## `resolveForScheme`
 
-`AsyncSeriesBailHook<[ResourceDataWithData]>`
+`HookMap<AsyncSeriesBailHook<[ResourceDataWithData], true | void>>`
 
 在解析带有 scheme（URI）的模块标识符之前调用。
 
 `resolveForScheme` 通常用于处理具有特定协议的模块标识符，例如 `file://`、`https://` 等。
+
+通过 `.for(scheme)` 选择协议，例如 `.for('https')`，再在返回的钩子上注册回调。处理完资源后返回 `true`，可以跳过该协议的后续回调。返回 `undefined` 或不返回值则继续执行下一个回调。
 
 ```js
 compiler.hooks.compilation.tap(

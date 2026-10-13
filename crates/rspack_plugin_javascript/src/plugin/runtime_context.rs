@@ -31,8 +31,7 @@ impl JsPlugin {
       .unwrap_or_default();
 
     let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
-    let need_module_defer =
-      runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
+    let need_module_defer = runtime_requirements.contains(RuntimeGlobals::DEFERRED_MODULE_EXPORTS);
     let callable_require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
     let require_argument = runtime_template.render_runtime_argument();
     let module_factories = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
@@ -119,9 +118,9 @@ var module = ({module_cache}[moduleId] = {{"#,
       sources.push("}".into());
     } else {
       sources.push(module_execution);
-      if need_module_defer {
-        sources.push("delete __rspack_deferred_exports[moduleId];".into());
-      }
+    }
+    if need_module_defer {
+      sources.push("delete __rspack_deferred_exports[moduleId];".into());
     }
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
@@ -164,8 +163,7 @@ var module = ({module_cache}[moduleId] = {{"#,
     let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE)
       || !runtime_requirements.renderable_require_scope().is_empty()
       || has_custom_runtime_module;
-    let need_module_defer =
-      runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
+    let need_module_defer = runtime_requirements.contains(RuntimeGlobals::DEFERRED_MODULE_EXPORTS);
     let module_used = compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -292,6 +290,16 @@ function {}(moduleId) {{
 "#,
           module_cache_runtime_global,
           runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
+        )
+        .into(),
+      );
+    }
+
+    if uses_runtime_context && need_module_defer {
+      header.push(
+        format!(
+          "// expose the deferred module exports\n{} = __rspack_deferred_exports;\n",
+          runtime_template.render_runtime_globals(&RuntimeGlobals::DEFERRED_MODULE_EXPORTS),
         )
         .into(),
       );
