@@ -1746,6 +1746,9 @@ impl JavascriptParser<'_> {
           .call_hooks_name(self, |this, for_name| drive.can_rename(this, for_name))
           .unwrap_or_default()
       {
+        // Rename fast-path still assigns the left-hand local; record mutation
+        // before set_variable replaces the binding with a FREE alias.
+        self.mark_mutated_binding(Atom::from(&ident.id.sym));
         if !rename_identifier
           .call_hooks_name(self, |this, for_name| {
             drive.rename(this, &expr.right, for_name)
