@@ -1916,8 +1916,7 @@ checksum = "ec9d92d097f4749b64e8cc33d924d9f40a2d4eb91402b458014b781f5733d60f"
 [[package]]
 name = "hstr"
 version = "4.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5aeaa35fe008fce2e6d04433dfaa364dd4b52adf59936fea6f88dd9a9e7750ec"
+source = "git+https://github.com/swc-project/swc.git?rev=c07290bb931df2a415649bd1fbda86b312426034#c07290bb931df2a415649bd1fbda86b312426034"
 dependencies = [
  "hashbrown 0.14.5",
  "new_debug_unreachable",

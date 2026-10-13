@@ -263,6 +263,9 @@ rspack_util                            = { version = "=0.102.8", path = "crates/
 rspack_watcher                         = { version = "=0.102.8", path = "crates/rspack_watcher", default-features = false }
 rspack_workspace                       = { version = "=0.102.8", path = "crates/rspack_workspace", default-features = false }
 
+[patch.crates-io]
+hstr = { git = "https://github.com/swc-project/swc.git", rev = "c07290bb931df2a415649bd1fbda86b312426034" }
+
 
 [workspace.metadata.release]
 rate-limit = { existing-packages = 70, new-packages = 70 }
