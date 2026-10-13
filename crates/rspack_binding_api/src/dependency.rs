@@ -17,9 +17,14 @@ use crate::{module::ModuleObject, with_compilation};
 
 // allows JS-side access to a Dependency instance that has already
 // been processed and stored in the Compilation.
+enum DependencyAccess {
+  ModuleGraph(CompilationId),
+  Direct(CompilationId),
+}
+
 #[napi]
 pub struct Dependency {
-  pub(crate) compilation_id: Option<CompilationId>,
+  access: DependencyAccess,
   pub(crate) dependency_id: DependencyId,
   pub(crate) dependency: NonNull<dyn rspack_core::Dependency>,
 }
@@ -29,24 +34,30 @@ impl Dependency {
     &mut self,
     f: impl FnOnce(&dyn rspack_core::Dependency, Option<&Compilation>) -> napi::Result<R>,
   ) -> napi::Result<R> {
-    if let Some(compilation_id) = self.compilation_id {
-      with_compilation(compilation_id, |compilation| {
-        let module_graph = compilation.get_module_graph();
-        if let Some(dependency) = internal::try_dependency_by_id(module_graph, &self.dependency_id)
-        {
-          f(dependency, Some(compilation))
-        } else {
-          Err(napi::Error::from_reason(format!(
-            "Unable to access dependency with id = {:?} now. The dependency have been removed on the Rust side.",
-            self.dependency_id
-          )))
-        }
-      })
-    } else {
-      // SAFETY:
-      // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
-      // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
-      f(unsafe { self.dependency.as_ref() }, None)
+    match &self.access {
+      DependencyAccess::ModuleGraph(compilation_id) => {
+        with_compilation(*compilation_id, |compilation| {
+          let module_graph = compilation.get_module_graph();
+          if let Some(dependency) =
+            internal::try_dependency_by_id(module_graph, &self.dependency_id)
+          {
+            f(dependency, Some(compilation))
+          } else {
+            Err(napi::Error::from_reason(format!(
+              "Unable to access dependency with id = {:?} now. The dependency have been removed on the Rust side.",
+              self.dependency_id
+            )))
+          }
+        })
+      }
+      DependencyAccess::Direct(compilation_id) => {
+        // SAFETY:
+        // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
+        // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
+        with_compilation(*compilation_id, |_| {
+          f(unsafe { self.dependency.as_ref() }, None)
+        })
+      }
     }
   }
 }
@@ -192,6 +203,13 @@ pub struct DependencyWrapper {
 }
 
 impl DependencyWrapper {
+  fn access(&self) -> DependencyAccess {
+    match self.registered_compilation_id {
+      Some(compilation_id) => DependencyAccess::ModuleGraph(compilation_id),
+      None => DependencyAccess::Direct(self.compilation_id),
+    }
+  }
+
   pub fn new<'a>(
     dependency: &'a dyn rspack_core::Dependency,
     compilation_id: CompilationId,
@@ -252,14 +270,14 @@ impl ToNapiValue for DependencyWrapper {
           std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
             let r = occupied_entry.get_mut();
             let instance = &mut **r;
-            instance.compilation_id = val.registered_compilation_id;
+            instance.access = val.access();
             instance.dependency = val.dependency;
 
             ToNapiValue::to_napi_value(env, r)
           }
           std::collections::hash_map::Entry::Vacant(vacant_entry) => {
             let js_dependency = Dependency {
-              compilation_id: val.registered_compilation_id,
+              access: val.access(),
               dependency_id: val.dependency_id,
               dependency: val.dependency,
             };

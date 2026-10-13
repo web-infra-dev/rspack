@@ -5,7 +5,7 @@ use rspack_core::{Compilation, CompilerId, DependenciesBlock as _, internal};
 use rspack_napi::{OneShotRef, napi::bindgen_prelude::*};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{COMPILER_REFERENCES, dependency::DependencyWrapper};
+use crate::{current_compilation, dependency::DependencyWrapper};
 
 #[napi]
 pub struct AsyncDependenciesBlock {
@@ -14,13 +14,6 @@ pub struct AsyncDependenciesBlock {
 }
 
 impl AsyncDependenciesBlock {
-  fn compiler_garbage_collected_error(&self) -> napi::Error {
-    napi::Error::from_reason(format!(
-      "Unable to access async dependencies block with id = {:?} now. The Compiler has been garbage collected by JavaScript.",
-      self.block_id
-    ))
-  }
-
   fn block_removed_error(&self) -> napi::Error {
     napi::Error::from_reason(format!(
       "Unable to access async dependencies block with id = {:?} now. The block has been removed on the Rust side.",
@@ -32,19 +25,7 @@ impl AsyncDependenciesBlock {
     &self,
     f: impl FnOnce(&Compilation) -> napi::Result<R>,
   ) -> napi::Result<R> {
-    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
-      let references = ref_cell.borrow();
-      references.get(&self.compiler_id).cloned()
-    });
-
-    let Some(this) = compiler_reference
-      .as_ref()
-      .and_then(|compiler_reference| compiler_reference.get())
-    else {
-      return Err(self.compiler_garbage_collected_error());
-    };
-
-    f(&this.compiler.compilation)
+    f(current_compilation(self.compiler_id)?)
   }
 
   fn with_ref<R>(

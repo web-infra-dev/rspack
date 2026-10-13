@@ -35,6 +35,8 @@ Compilation ===============> Stats JSON =================> Stats Output
 
 `stats.toJson()` 和 `stats.toString()` 依赖在 `compiler.hooks.done` 阶段才最终稳定的编译产物。如果在其他时机调用（例如复用更早阶段拿到的旧 `Stats` 对象），部分 Stats 字段可能不完整。
 
+`compiler.close()` 完成后，保留的 `Stats` 不再持有原生编译数据：`toJson()` 返回 `{}`，`toString()` 返回空字符串。
+
 为了拿到完整且稳定的 Stats 输出，建议在 `compiler.hooks.done` 中调用这些方法：
 
 ```js

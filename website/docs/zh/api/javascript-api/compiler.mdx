@@ -139,6 +139,8 @@ Watching 对象提供如下方法：
 
 关闭当前构建器，在此期间处理低优先级任务，如缓存等。
 
+回调执行前，Rspack 会释放原生 Compilation。保留的 `Stats` 调用 `toJson()` 会返回 `{}`，调用 `toString()` 会返回空字符串；原生 Compilation API 此后不可访问。请在调用 `close()` 前读取所需的统计信息。
+
 ```ts
 function close(
   callback: (err: Error) => void, // 关闭完成后回调

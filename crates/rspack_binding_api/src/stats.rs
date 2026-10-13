@@ -15,14 +15,14 @@ use rspack_error::Severity;
 use rspack_intern::Atom;
 use rspack_napi::napi::{
   Either,
-  bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
+  bindgen_prelude::{Buffer, Result, ToNapiValue, Unknown},
 };
 use rspack_util::numeric_id_value;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   chunk_graph::{JsModuleId, to_js_module_id},
-  compilation::JsCompilation,
+  current_compilation,
   error::{RspackError, RspackResultToNapiResultExt},
   identifier::JsIdentifier,
   logging::JsLog,
@@ -1003,45 +1003,41 @@ impl<'a> ToNapiValue for JsStatsCompilationWrapper<'a> {
 
 #[napi]
 pub struct JsStats {
-  inner: SharedReference<JsCompilation, Stats<'static>>,
+  compiler_id: rspack_core::CompilerId,
 }
 
 impl JsStats {
-  pub fn new(inner: SharedReference<JsCompilation, Stats<'static>>) -> Self {
-    Self { inner }
+  pub fn new(compiler_id: rspack_core::CompilerId) -> Self {
+    Self { compiler_id }
   }
 }
 
 #[napi]
 impl JsStats {
   #[napi(ts_return_type = "JsStatsCompilation")]
-  pub fn to_json(
-    &self,
-    env: &Env,
-    js_options: JsStatsOptions,
-  ) -> Result<JsStatsCompilationWrapper<'_>> {
-    self.inner.clear_artifact_fallback_flags();
+  pub fn to_json<'env>(&self, env: &'env Env, js_options: JsStatsOptions) -> Result<Unknown<'env>> {
+    let stats = current_compilation(self.compiler_id)?.get_stats();
 
     let options = ExtendedStatsOptions::from(js_options);
 
-    let hash = options.hash.then(|| self.hash()).flatten();
+    let hash = options.hash.then(|| Self::hash(&stats)).flatten();
 
     let (assets, assets_by_chunk_name) = if options.assets {
-      let asts = self.assets();
+      let asts = Self::assets(&stats);
       (Some(asts.assets), Some(asts.assets_by_chunk_name))
     } else {
       (None, None)
     };
 
     let modules = if options.modules {
-      let mds = self.modules(env, &options)?;
+      let mds = Self::modules(&stats, env, &options)?;
       Some(mds)
     } else {
       None
     };
 
     let chunks = if options.chunks {
-      let chks = self.chunks(env, &options)?;
+      let chks = Self::chunks(&stats, env, &options)?;
       Some(chks)
     } else {
       None
@@ -1049,25 +1045,33 @@ impl JsStats {
 
     let entrypoints = match options.entrypoints {
       EntrypointsStatsOption::Bool(true) | EntrypointsStatsOption::String(_) => {
-        Some(self.entrypoints(options.chunk_group_auxiliary, options.chunk_group_children))
+        Some(Self::entrypoints(
+          &stats,
+          options.chunk_group_auxiliary,
+          options.chunk_group_children,
+        ))
       }
       _ => None,
     };
 
     let named_chunk_groups = options.chunk_groups.then(|| {
-      self.named_chunk_groups(options.chunk_group_auxiliary, options.chunk_group_children)
+      Self::named_chunk_groups(
+        &stats,
+        options.chunk_group_auxiliary,
+        options.chunk_group_children,
+      )
     });
 
-    let errors = self.errors(env)?;
+    let errors = Self::errors(&stats, env)?;
 
-    let warnings = self.warnings(env)?;
+    let warnings = Self::warnings(&stats, env)?;
 
-    let artifact_fallback_flags = self.inner.artifact_fallback_flags();
+    let artifact_fallback_flags = stats.artifact_fallback_flags();
     if artifact_fallback_flags != 0 {
       emit_incomplete_stats_warning(env, artifact_fallback_flags)?;
     }
 
-    Ok(JsStatsCompilationWrapper(JsStatsCompilation {
+    let result = JsStatsCompilationWrapper(JsStatsCompilation {
       assets,
       assets_by_chunk_name,
       chunks,
@@ -1077,11 +1081,14 @@ impl JsStats {
       modules,
       named_chunk_groups,
       warnings,
-    }))
+    });
+    // Stats output borrows the temporary Stats, so convert it while Stats is alive.
+    let value = unsafe { ToNapiValue::to_napi_value(env.raw(), result)? };
+    unsafe { Unknown::from_napi_value(env.raw(), value) }
   }
 
-  fn assets(&self) -> JsStatsGetAssets<'_> {
-    let (assets, assets_by_chunk_name) = self.inner.get_assets();
+  fn assets<'a>(stats: &'a Stats<'_>) -> JsStatsGetAssets<'a> {
+    let (assets, assets_by_chunk_name) = stats.get_assets();
     let assets = assets.into_iter().map(Into::into).collect();
     let assets_by_chunk_name = assets_by_chunk_name.into_iter().map(Into::into).collect();
     JsStatsGetAssets {
@@ -1090,9 +1097,8 @@ impl JsStats {
     }
   }
 
-  fn modules(&self, env: &Env, options: &ExtendedStatsOptions) -> Result<napi_value> {
-    self
-      .inner
+  fn modules(stats: &Stats<'_>, env: &Env, options: &ExtendedStatsOptions) -> Result<napi_value> {
+    stats
       .get_modules(options, |res| {
         let val = res
           .into_iter()
@@ -1103,9 +1109,8 @@ impl JsStats {
       .to_napi_result()?
   }
 
-  fn chunks(&self, env: &Env, options: &ExtendedStatsOptions) -> Result<napi_value> {
-    self
-      .inner
+  fn chunks(stats: &Stats<'_>, env: &Env, options: &ExtendedStatsOptions) -> Result<napi_value> {
+    stats
       .get_chunks(options, |res| {
         let val = res
           .into_iter()
@@ -1116,34 +1121,32 @@ impl JsStats {
       .to_napi_result()?
   }
 
-  fn entrypoints(
-    &self,
+  fn entrypoints<'a>(
+    stats: &'a Stats<'_>,
     chunk_group_auxiliary: bool,
     chunk_group_children: bool,
-  ) -> Vec<JsStatsChunkGroup<'_>> {
-    self
-      .inner
+  ) -> Vec<JsStatsChunkGroup<'a>> {
+    stats
       .get_entrypoints(chunk_group_auxiliary, chunk_group_children)
       .into_iter()
       .map(Into::into)
       .collect()
   }
 
-  fn named_chunk_groups(
-    &self,
+  fn named_chunk_groups<'a>(
+    stats: &'a Stats<'_>,
     chunk_group_auxiliary: bool,
     chunk_group_children: bool,
-  ) -> Vec<JsStatsChunkGroup<'_>> {
-    self
-      .inner
+  ) -> Vec<JsStatsChunkGroup<'a>> {
+    stats
       .get_named_chunk_groups(chunk_group_auxiliary, chunk_group_children)
       .into_iter()
       .map(Into::into)
       .collect()
   }
 
-  fn errors(&self, env: &Env) -> napi::Result<napi_value> {
-    self.inner.get_errors(|errors| {
+  fn errors(stats: &Stats<'_>, env: &Env) -> napi::Result<napi_value> {
+    stats.get_errors(|errors| {
       let val = errors
         .into_iter()
         .map(JsStatsError::from)
@@ -1152,8 +1155,8 @@ impl JsStats {
     })
   }
 
-  fn warnings(&self, env: &Env) -> napi::Result<napi_value> {
-    self.inner.get_warnings(|warnings| {
+  fn warnings(stats: &Stats<'_>, env: &Env) -> napi::Result<napi_value> {
+    stats.get_warnings(|warnings| {
       let val = warnings
         .into_iter()
         .map(JsStatsError::from)
@@ -1163,20 +1166,22 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_logging(&self, accepted_types: u32) -> Vec<JsLog> {
-    self
-      .inner
-      .get_logging()
-      .filter(|log| {
-        let bit = log.1.to_bit_flag();
-        accepted_types & bit == bit
-      })
-      .map(Into::into)
-      .collect()
+  pub fn get_logging(&self, accepted_types: u32) -> Result<Vec<JsLog>> {
+    let stats = current_compilation(self.compiler_id)?.get_stats();
+    Ok(
+      stats
+        .get_logging()
+        .filter(|log| {
+          let bit = log.1.to_bit_flag();
+          accepted_types & bit == bit
+        })
+        .map(Into::into)
+        .collect(),
+    )
   }
 
-  fn hash(&self) -> Option<&str> {
-    self.inner.get_hash()
+  fn hash<'a>(stats: &'a Stats<'_>) -> Option<&'a str> {
+    stats.get_hash()
   }
 }
 

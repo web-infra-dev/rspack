@@ -4,7 +4,7 @@ mod dependencies;
 mod diagnostics;
 pub mod entries;
 
-use std::{cell::RefCell, ptr::NonNull};
+use std::cell::RefCell;
 
 use chunks::Chunks;
 pub use code_generation_results::*;
@@ -29,6 +29,7 @@ use crate::{
   chunk::{Chunk, ChunkWrapper},
   chunk_graph::ChunkGraph,
   chunk_group::ChunkGroupWrapper,
+  current_compilation, current_compilation_mut,
   dependencies::EntryDependency,
   error::{ErrorCode, JsRspackDiagnostic, RspackError, RspackResultToNapiResultExt},
   file_system_dependency_strings::intern_js_values,
@@ -46,18 +47,16 @@ use crate::{
 #[napi]
 pub struct JsCompilation {
   pub(crate) id: CompilationId,
-  pub(crate) inner: NonNull<Compilation>,
+  pub(crate) compiler_id: rspack_core::CompilerId,
 }
 
 impl JsCompilation {
-  pub(crate) fn new(id: CompilationId, inner: NonNull<Compilation>) -> Self {
-    #[allow(clippy::unwrap_used)]
-    Self { id, inner }
+  pub(crate) fn new(id: CompilationId, compiler_id: rspack_core::CompilerId) -> Self {
+    Self { id, compiler_id }
   }
 
-  // `inner` points at the `Compilation` inlined in `Compiler`, and `Compiler::rebuild`
-  // replaces the value in that slot, so a handle from an earlier build aliases whichever
-  // compilation occupies the slot now. Reading the module graph through such a handle is
+  // A handle from an earlier build resolves to the compiler's current compilation.
+  // Reading the module graph through such a handle is
   // the case that aborts the process: these accessors reach into
   // `build_module_graph_artifact`, which the running build steals for the whole make phase.
   //
@@ -79,15 +78,11 @@ impl JsCompilation {
   }
 
   pub(crate) fn as_ref(&self) -> napi::Result<&'static Compilation> {
-    // SAFETY: The memory address of rspack_core::Compilation will not change,
-    // so as long as the Compiler is not dropped, we can safely return a 'static reference.
-    Ok(unsafe { self.inner.as_ref() })
+    current_compilation(self.compiler_id)
   }
 
   pub(crate) fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
-    // SAFETY: The memory address of rspack_core::Compilation will not change,
-    // so as long as the Compiler is not dropped, we can safely return a 'static reference.
-    Ok(unsafe { self.inner.as_mut() })
+    current_compilation_mut(self.compiler_id)
   }
 
   pub(crate) fn exports_info_artifact_mut(
@@ -584,13 +579,9 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
-    Ok(JsStats::new(reference.share_with(env, |compilation| {
-      let compilation = compilation.as_ref()?;
-      let stats = compilation.get_stats();
-
-      Ok(stats)
-    })?))
+  pub fn get_stats(&self) -> Result<JsStats> {
+    self.as_ref()?;
+    Ok(JsStats::new(self.compiler_id))
   }
 
   #[napi]
@@ -807,7 +798,7 @@ impl JsCompilation {
   pub fn entries(&mut self) -> Result<JsEntries> {
     let compilation = self.as_mut()?;
 
-    Ok(JsEntries::new(compilation))
+    Ok(JsEntries::new(compilation.compiler_id()))
   }
 
   #[napi(ts_args_type = "chunk: Chunk, runtimeModule: JsAddingRuntimeModule")]
@@ -1127,17 +1118,14 @@ thread_local! {
 // This means that when transferring a JsCompilation from Rust to JS, you must use JsCompilationWrapper instead.
 pub struct JsCompilationWrapper {
   id: CompilationId,
-  inner: NonNull<Compilation>,
+  compiler_id: rspack_core::CompilerId,
 }
-
-unsafe impl Send for JsCompilationWrapper {}
 
 impl JsCompilationWrapper {
   pub fn new(compilation: &Compilation) -> Self {
-    #[allow(clippy::unwrap_used)]
     Self {
       id: compilation.id(),
-      inner: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
+      compiler_id: compilation.compiler_id(),
     }
   }
 
@@ -1161,7 +1149,7 @@ impl ToNapiValue for JsCompilationWrapper {
             ToNapiValue::to_napi_value(env, r.clone())
           }
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let js_compilation = JsCompilation::new(val.id, val.inner);
+            let js_compilation = JsCompilation::new(val.id, val.compiler_id);
             let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
             let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
             let weak_reference = entry.insert(reference.downgrade());

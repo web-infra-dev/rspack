@@ -35,6 +35,8 @@ Create a stats object related to a compilation through [`compilation.getStats()`
 
 `stats.toJson()` and `stats.toString()` rely on compilation artifacts that are finalized in `compiler.hooks.done`. If they are called at other times (for example, on stale `Stats` objects captured earlier), some stats fields can be incomplete.
 
+After `compiler.close()` completes, retained `Stats` objects no longer have native compilation data: `toJson()` returns `{}` and `toString()` returns an empty string.
+
 For complete and stable stats output, call these methods in `compiler.hooks.done`:
 
 ```js

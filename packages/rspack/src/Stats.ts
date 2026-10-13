@@ -52,6 +52,7 @@ export class Stats {
   }
 
   get hash() {
+    if (this.#compilation.compiler._lastCompilation === undefined) return null;
     return this.compilation.hash;
   }
 
@@ -64,6 +65,7 @@ export class Stats {
   }
 
   hasErrors(): boolean {
+    if (this.#compilation.compiler._lastCompilation === undefined) return false;
     return (
       this.#compilation.errors.length > 0 ||
       this.#compilation.children.some((child) => child.getStats().hasErrors())
@@ -71,6 +73,7 @@ export class Stats {
   }
 
   hasWarnings(): boolean {
+    if (this.#compilation.compiler._lastCompilation === undefined) return false;
     const warnings = this.#compilation.hooks.processWarnings.call(
       this.#compilation.warnings,
     );
@@ -81,6 +84,7 @@ export class Stats {
   }
 
   toJson(opts?: StatsValue, forToString?: boolean): StatsCompilation {
+    if (this.#compilation.compiler._lastCompilation === undefined) return {};
     const options = this.compilation.createStatsOptions(opts, {
       forToString,
     });
@@ -127,6 +131,7 @@ export class Stats {
   }
 
   toString(opts?: StatsValue) {
+    if (this.#compilation.compiler._lastCompilation === undefined) return '';
     const options = this.compilation.createStatsOptions(opts, {
       forToString: true,
     });
