@@ -625,6 +625,49 @@ compiler.hooks.invalid.tap('MyPlugin', (fileName, changeTime) => {
 });
 ```
 
+## `watchInvalidation`
+
+Rspack 在每次观察到 watch 失效事件时同步调用此钩子，调用发生在调度或合并重构建之前。编译进行期间也会触发。与 `invalid` 不同，此钩子报告每个观察到的原因，包括重复的手动失效调用。
+
+- **类型：** `SyncHook<[WatchInvalidation]>`
+- **参数：** 不可变的 `WatchInvalidation`，包含 `watchId`、`revision` 和 `cause`。
+
+```ts
+type WatchCause =
+  | { readonly kind: 'initial' }
+  | { readonly kind: 'lazy'; readonly keys: readonly string[] }
+  | {
+      readonly kind: 'source';
+      readonly changed: readonly string[];
+      readonly removed: readonly string[];
+    }
+  | { readonly kind: 'unknown' };
+
+interface WatchInvalidation {
+  readonly watchId: string;
+  readonly revision: number;
+  readonly cause: WatchCause;
+}
+```
+
+`WatchCause` 和 `WatchInvalidation` 类型从 `@rspack/core` 导出。每个 `Watching` 生命周期具有不同的 `watchId`。修订号零表示初次编译，不触发通知。后续失效事件的修订号递增。关闭 watcher 会丢弃尚未分配的失效事件。
+
+对于 `MultiCompiler`，请在 `compiler.compilers` 中的每个子编译器上注册此钩子。
+
+手动调用 `watching.invalidate()` 的原因为 `unknown`。文件通知和暂停的 watcher 恢复时发现的变更原因为 `source`。缺少文件名的信息以 `unknown` 表示。同一路径的文件通知与后续聚合更新可能分别产生事件。
+
+MultiCompiler 调度子编译器时，若该子编译器已有待处理失效事件，则不额外添加原因。依赖失效会在受影响的子编译器上记录 `unknown` 原因。没有其他原因的调度重构建也记录为 `unknown`。
+
+`lazy` 原因来自 Rspack 的懒编译中间件，包含新加入队列的不透明后端键。这些键不是文件路径或 URL。重复的待处理请求保留中间件现有的调度去重行为。请求的键不能证明某次编译已消费这些键。
+
+```ts
+compiler.hooks.watchInvalidation.tap('WatchObserver', (event) => {
+  console.log(event.watchId, event.revision, event.cause);
+});
+```
+
+[Compilation.rebuildOrigin](/api/javascript-api/compilation#rebuildorigin) 记录分配给一次编译的原因及其后端消费的懒编译键。通知不保证重构建成功，也不保证应用已发布对应的运行时。
+
 ## `watchClose`
 
 停止监听时调用。

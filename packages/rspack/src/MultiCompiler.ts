@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { invalidateWatchDependency, scheduleWatchRebuild } from './WatchOrigin';
 import * as liteTapable from '@rspack/lite-tapable';
 import type {
   CompilationParams,
@@ -414,6 +415,7 @@ export class MultiCompiler {
      * @returns {void}
      */
     const nodeInvalidFromParent = (node: Node<SetupResult>): void => {
+      invalidateWatchDependency(node.compiler.watching);
       if (node.state === 'done') {
         node.state = 'blocked';
       } else if (node.state === 'running') {
@@ -542,7 +544,7 @@ export class MultiCompiler {
         },
         (compiler, watching, _done) => {
           if (compiler.watching !== watching) return;
-          if (!watching.running) watching.invalidate();
+          if (!watching.running) scheduleWatchRebuild(watching);
         },
         handler,
       );

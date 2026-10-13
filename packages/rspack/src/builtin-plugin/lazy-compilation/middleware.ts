@@ -1,3 +1,8 @@
+import {
+  consumeLazyKeys,
+  invalidateLazyCompilation,
+  registerLazyCompilation,
+} from '../../WatchOrigin';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createRequire } from 'node:module';
 import { type Compiler, MultiCompiler } from '../..';
@@ -7,6 +12,11 @@ import type { DevServerMiddlewareHandler } from '../../config/devServer';
 import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
 
 const require = createRequire(import.meta.url);
+
+interface LazyCompilationState {
+  pending: Set<string>;
+  reserved: Set<string>;
+}
 
 export const LAZY_COMPILATION_PREFIX = '/_rspack/lazy/trigger';
 
@@ -68,7 +78,10 @@ export const lazyCompilationMiddleware = (
 
       const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
       options.prefix = `${prefix}__${i++}`;
-      const newlyActiveModules = new Set<string>();
+      const newlyActiveModules: LazyCompilationState = {
+        pending: new Set(),
+        reserved: new Set(),
+      };
 
       middlewareByCompiler.set(
         options.prefix,
@@ -101,7 +114,10 @@ export const lazyCompilationMiddleware = (
     return noop;
   }
 
-  const newlyActiveModules: Set<string> = new Set();
+  const newlyActiveModules: LazyCompilationState = {
+    pending: new Set(),
+    reserved: new Set(),
+  };
 
   const options = {
     ...compiler.options.lazyCompilation,
@@ -120,14 +136,34 @@ export const lazyCompilationMiddleware = (
 function applyPlugin(
   compiler: Compiler,
   options: LazyCompilationOptions,
-  newlyActiveModules: Set<string>,
+  newlyActiveModules: LazyCompilationState,
 ) {
+  registerLazyCompilation(compiler, () => {
+    for (const key of newlyActiveModules.pending)
+      newlyActiveModules.reserved.add(key);
+    newlyActiveModules.pending.clear();
+  });
+  compiler.hooks.watchClose.tap('LazyCompilation', () => {
+    newlyActiveModules.pending.clear();
+    newlyActiveModules.reserved.clear();
+  });
   const plugin = new BuiltinLazyCompilationPlugin(
     // Hand over the modules reported since the last compilation; the native
     // plugin keeps every activated module and skips the ones already active.
     () => {
-      const res = new Set(newlyActiveModules);
-      newlyActiveModules.clear();
+      const res = compiler.watchMode
+        ? new Set(newlyActiveModules.reserved)
+        : new Set([
+            ...newlyActiveModules.reserved,
+            ...newlyActiveModules.pending,
+          ]);
+      consumeLazyKeys(
+        compiler.watching,
+        compiler.__internal__get_compilation(),
+        [...res],
+      );
+      newlyActiveModules.reserved.clear();
+      if (!compiler.watchMode) newlyActiveModules.pending.clear();
       return res;
     },
     options.entries ?? true,
@@ -233,8 +269,8 @@ function readModuleIdsFromBody(
 }
 
 const lazyCompilationMiddlewareInternal = (
-  compiler: Compiler | MultiCompiler,
-  newlyActiveModules: Set<string>,
+  compiler: Compiler,
+  newlyActiveModules: LazyCompilationState,
   lazyCompilationPrefix: string,
 ): DevServerMiddlewareHandler => {
   const logger = compiler.getInfrastructureLogger('LazyCompilation');
@@ -259,16 +295,20 @@ const lazyCompilationMiddlewareInternal = (
     }
 
     const moduleActivated = [];
-    for (const key of modules) {
-      if (!newlyActiveModules.has(key)) {
-        newlyActiveModules.add(key);
+    for (const key of new Set(modules)) {
+      const activated =
+        newlyActiveModules.pending.has(key) ||
+        newlyActiveModules.reserved.has(key);
+      if (!activated) {
         logger.log(`${key} is now in use and will be compiled.`);
         moduleActivated.push(key);
       }
     }
 
-    if (moduleActivated.length && compiler.watching) {
-      compiler.watching.invalidate();
+    if (moduleActivated.length) {
+      for (const key of moduleActivated) newlyActiveModules.pending.add(key);
+      if (compiler.watching)
+        invalidateLazyCompilation(compiler.watching, moduleActivated);
     }
 
     res.writeHead(200);

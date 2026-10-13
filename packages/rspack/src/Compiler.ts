@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { beginWatchOrigin, type WatchInvalidation } from './WatchOrigin';
 import { createRequire } from 'node:module';
 import type binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
@@ -99,6 +100,7 @@ export type CompilerHooks = {
   thisCompilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
   compilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
   invalid: liteTapable.SyncHook<[string | null, number]>;
+  watchInvalidation: liteTapable.SyncHook<[WatchInvalidation]>;
   compile: liteTapable.SyncHook<[CompilationParams]>;
   normalModuleFactory: liteTapable.SyncHook<NormalModuleFactory>;
   contextModuleFactory: liteTapable.SyncHook<ContextModuleFactory>;
@@ -242,6 +244,7 @@ class Compiler {
         'params',
       ]),
       invalid: new liteTapable.SyncHook(['filename', 'changeTime']),
+      watchInvalidation: new liteTapable.SyncHook(['invalidation']),
       compile: new liteTapable.SyncHook(['params']),
       infrastructureLog: new liteTapable.SyncBailHook([
         'origin',
@@ -902,6 +905,7 @@ class Compiler {
       compilation = new Compilation(this, native);
       compilation.name = this.name;
       this.#bindingCompilationMap.set(native, compilation);
+      beginWatchOrigin(this.watching, compilation);
     }
 
     this.#compilation = compilation;
