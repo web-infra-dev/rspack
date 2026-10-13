@@ -49,11 +49,9 @@ impl PassExt for ModuleIdsPass {
       compilation.module_ids_artifact.clear();
     }
 
-    // Keep a copy of the current ids so the end of this pass can tell which
-    // modules got a different id. If a copy already exists, the last rebuild
-    // failed before module hashing: keep that older copy, because the module
-    // hashes were built from it. Cold builds don't track changes, so they skip
-    // the copy.
+    // Copy the current ids so the end of this pass can find modules whose id
+    // changed. An existing copy means the last rebuild failed before hashing;
+    // keep it, since the hashes were built from those ids. Cold builds skip this.
     if compilation.incremental.mutations_writable()
       && compilation.module_ids_diff_artifact.previous_ids.is_none()
     {
@@ -152,12 +150,9 @@ impl PassExt for ModuleIdsPass {
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.recordModules"))?;
     }
-    // Record every module whose id changed, including modules that still exist
-    // but no longer have an id. Compare only the final ids: plugins may clear
-    // and reassign ids during this pass, and those in-between states don't
-    // matter. This must run before CreateModuleHashesPass, which reads these
-    // mutations once to decide which modules need new hashes (modules whose id
-    // changed, and the modules that reference them).
+    // Record modules whose final id changed, including ones that lost their id.
+    // Must run before CreateModuleHashesPass, which reads these mutations once to
+    // pick the modules to rehash: those with a new id and the modules using them.
     if let Some(mut mutations) = compilation.incremental.mutations_write() {
       for (module, id) in module_ids_artifact.iter() {
         if compilation

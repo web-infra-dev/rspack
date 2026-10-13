@@ -4,11 +4,9 @@ use rspack_collections::{Identifier, IdentifierMap};
 
 use crate::{ArtifactExt, ModuleId, incremental::IncrementalPasses};
 
-/// Everything a deterministic module id assignment depends on. If a rebuild
-/// produces the same inputs as the previous build, the previous ids are still
-/// correct and the assignment can be skipped. `candidates` is sorted the same
-/// way the assignment sorts modules, so module graph iteration order does not
-/// affect the comparison.
+/// Everything deterministic module ids depend on. If a rebuild produces equal
+/// inputs, the previous ids are still correct. `candidates` uses the same sort
+/// order as the assignment, so module graph iteration order doesn't matter.
 #[derive(Debug, PartialEq, Eq)]
 pub struct DeterministicModuleIdsInputs {
   pub candidates: Vec<(Identifier, String, Option<u32>)>,
@@ -21,20 +19,16 @@ pub struct DeterministicModuleIdsInputs {
   pub fail_on_conflict: bool,
 }
 
-/// State kept between rebuilds, so the module ids pass can tell which modules
-/// got a different id, and deterministic ids can skip reassignment when nothing
-/// they depend on has changed.
+/// Kept between rebuilds to find modules whose id changed, and to let
+/// deterministic ids skip reassignment.
 #[derive(Debug, Default)]
 pub struct ModuleIdsDiffArtifact {
-  /// Module ids as they were when module hashes were last computed. The module
-  /// ids pass compares the new ids against this map. It is cleared only after
-  /// hashing succeeds, so a rebuild that fails in between still compares
-  /// against the ids the current hashes were built from. Cold builds leave it
-  /// empty because they don't track changes. It is never used to reserve ids.
+  /// Module ids from when module hashes were last computed. New ids are compared
+  /// against it. Cleared only after hashing succeeds, so a failed rebuild keeps
+  /// it. Not set on cold builds, and never used to reserve ids.
   pub previous_ids: Option<IdentifierMap<ModuleId>>,
-  /// Inputs of the last deterministic id assignment, written by
-  /// DeterministicModuleIdsPlugin. The module ids hook only gets `&Compilation`,
-  /// hence the Mutex. The lock is held only to read or replace the value.
+  /// Inputs of the last deterministic id assignment. A Mutex because the module
+  /// ids hook only gets `&Compilation`.
   pub deterministic_inputs: Mutex<Option<DeterministicModuleIdsInputs>>,
 }
 
