@@ -74,8 +74,6 @@ When a compiler is no longer needed, call `close()` and wait for its callback. T
 
 Every build, including each watch rebuild, creates a new `Compilation`. Objects such as `Module`, `Chunk`, and graph objects obtained from a `Compilation` do not copy all of their data into JavaScript. Reading some properties or calling some methods still requires Rspack to retrieve data from the current Rust compilation through Node-API.
 
-A `Dependency` wrapper keeps its underlying dependency alive. Its own properties, such as `type`, `request`, and `loc`, remain readable if the dependency is removed from the module graph or the compilation ends. This does not make the old dependency part of a later build. Graph-derived properties such as `ids` and `_parentModule` still require the original compilation and can fail after removal or rebuild. The `critical` setter modifies the retained dependency directly, including after `contextModuleFactory.afterResolve` returns; a late change may not affect results already produced by the build.
-
 Follow these rules:
 
 - Use a `Compilation` and its `Module`, `Chunk`, graph, dependency, and block objects only in hooks and callbacks for the current build.

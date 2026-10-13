@@ -74,8 +74,6 @@ watch 模式下，应使用当前构建 hook 提供的 `Compilation` 和 native-
 
 每次构建，包括 watch rebuild，都会创建新的 `Compilation`。从 `Compilation` 获取的 `Module`、`Chunk` 和 graph 等对象，并不会把全部数据复制到 JavaScript。读取其中一些属性或调用方法时，Rspack 仍需要通过 N-API 从当前 Rust compilation 获取数据。
 
-`Dependency` wrapper 会保持其底层依赖对象存活。即使依赖已从 module graph 移除，或者 compilation 已结束，仍可读取该依赖自身的 `type`、`request`、`loc` 等属性；这不代表旧依赖属于后续构建。`ids` 和 `_parentModule` 等由图计算的属性仍需要原 compilation，在依赖移除或 rebuild 后可能报错。`critical` setter 直接修改保留的依赖对象，包括 `contextModuleFactory.afterResolve` 返回之后；较晚的修改可能无法影响构建已生成的结果。
-
 建议遵守以下规则：
 
 - 只在当前构建的 hook 和回调中使用对应的 `Compilation`、`Module`、`Chunk`、graph、dependency 和 block。
