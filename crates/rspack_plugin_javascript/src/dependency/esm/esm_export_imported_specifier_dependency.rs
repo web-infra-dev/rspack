@@ -1255,13 +1255,13 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
     runtime: Option<&RuntimeSpec>,
   ) {
     let module_graph = compilation.get_module_graph();
-    let mut mode = self.get_mode(
+    let mut export_mode = self.get_mode(
       module_graph,
       runtime,
       &compilation.module_graph_cache_artifact,
       &compilation.exports_info_artifact,
     );
-    let ExportMode::NormalReexport(reexport) = &mode else {
+    let ExportMode::NormalReexport(mode) = &export_mode else {
       return;
     };
     // Case: `export { value } from "./file.js"` where `value` is an inlinable
@@ -1277,7 +1277,7 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
       .exports_info_artifact
       .get_exports_info_data(imported_module);
 
-    for item in &reexport.items {
+    for item in &mode.items {
       if item.hidden || item.checked {
         continue;
       }
@@ -1289,12 +1289,12 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
         inlined.hash(hasher);
       }
     }
-    if self.filter_lazy_reexports(&mut mode, compilation, runtime)
-      && let ExportMode::NormalReexport(reexport) = &mode
+    if self.filter_lazy_reexports(&mut export_mode, compilation, runtime)
+      && let ExportMode::NormalReexport(mode) = &export_mode
     {
       // Hash the effective getters rather than the incoming dependencies. A
       // new redirected consumer must not invalidate an unchanged factory.
-      let mut names = reexport
+      let mut names = mode
         .items
         .iter()
         .filter(|item| !item.hidden)
