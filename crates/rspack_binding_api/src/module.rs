@@ -507,13 +507,8 @@ impl Module {
       Ok(
         dependencies
           .filter_map(|dependency_id| {
-            internal::try_dependency_by_id(module_graph, dependency_id).map(|dep| {
-              DependencyWrapper::new(
-                dep,
-                compilation.id(),
-                Some(compilation),
-              )
-            })
+            internal::try_dependency_ref_by_id(module_graph, dependency_id)
+              .map(|dep| DependencyWrapper::from_graph(dep, compilation.id()))
           })
           .collect::<Vec<_>>(),
       )
