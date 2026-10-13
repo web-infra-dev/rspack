@@ -804,6 +804,8 @@ export default {
 A function can also be used to select loaders for each module. It can return a loader name, a loader options object, or an array of these:
 
 ```js title="rspack.config.mjs"
+import { basename } from 'node:path';
+
 export default {
   module: {
     rules: [

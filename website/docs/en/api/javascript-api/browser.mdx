@@ -239,7 +239,7 @@ interface BrowserRequirePluginOptions {
 This option allows you to directly map a module request id to any JavaScript object within the project. Note that you need to create a corresponding empty file in `memfs`:
 
 ```js title="rspack.config.mjs"
-import { BrowserRequirePlugin, builtinMemfs } from '@rspack/browser';
+import { BrowserRequirePlugin, builtinMemFs } from '@rspack/browser';
 import CustomLoader from './custom-loader';
 
 builtinMemFs.volume.fromJSON({

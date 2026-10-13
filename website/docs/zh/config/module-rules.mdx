@@ -802,6 +802,8 @@ export default {
 也可以使用函数为每个模块选择 loader，返回 loader 名称、loader 配置对象或由它们组成的数组：
 
 ```js title="rspack.config.mjs"
+import { basename } from 'node:path';
+
 export default {
   module: {
     rules: [

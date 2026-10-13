@@ -19,8 +19,10 @@ Thanks to the good compatibility of Rspack with the [svelte-loader](https://gith
 import path from 'node:path';
 import { defineConfig } from '@rspack/cli';
 import { createRequire } from 'node:module';
+import { sveltePreprocess } from 'svelte-preprocess';
 
 const require = createRequire(import.meta.url);
+const prod = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
   entry: {
