@@ -69,8 +69,11 @@ async fn module_ids(
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   let hooks = &compilation.plugin_driver.compilation_hooks;
-  // Replaying multiple allocators has pass-disable/clear interactions. Unknown
-  // taps, callable filters and current hook-assigned IDs stay on that path.
+  // Skipping is only safe when the inputs below capture everything that
+  // affects the ids. That holds when incremental module ids are enabled, this
+  // plugin is the only moduleIds tap and nothing intercepts the hook, there is
+  // no `test` filter function, and reviveModules or beforeModuleIds assigned
+  // no ids. Any other setup assigns ids the same way as before.
   let can_reuse = self.test.is_none()
     && preserved_module_ids.is_empty()
     && hooks.module_ids.tap_stages().len() == 1
@@ -83,8 +86,9 @@ async fn module_ids(
       .context
       .as_deref()
       .unwrap_or(compilation.options.context.as_ref());
-    // Use this compilation's reservations, never recovered IDs, to determine
-    // the full allocation domain, including candidates already assigned last time.
+    // Collect candidates as if no module had an id yet. Starting from the ids
+    // recovered from the last build would leave out modules that already have
+    // one, and the inputs would no longer describe the whole assignment.
     let (used_ids, modules) =
       get_used_module_ids_and_modules_with_artifact(compilation, preserved_module_ids, None);
     let mg = compilation.get_module_graph();
@@ -132,6 +136,8 @@ async fn module_ids(
       .deterministic_inputs
       .lock()
       .expect("Mutex poisoned: deterministic module ID inputs");
+    // If nothing that affects the ids changed and every candidate still has the
+    // id it got last time, those ids are still correct and there is nothing to do.
     if let Some(inputs) = &inputs
       && compilation
         .incremental
@@ -145,7 +151,8 @@ async fn module_ids(
     {
       return Ok(());
     }
-    // A failed allocation must not leave an input proof paired with its IDs.
+    // Forget the stored inputs before assigning ids. They are stored again only
+    // after the assignment succeeds, so a failed one is never skipped next time.
     *previous = None;
   }
 
@@ -167,8 +174,8 @@ async fn module_ids(
   let expand_factor = if self.fixed_length { 0 } else { 10 };
 
   let (mut used_module_ids, modules_with_hashes) = if let Some(inputs) = &inputs {
-    // The captured candidate count and reservations define the hashing range.
-    // Replay this exact domain instead of scanning the module graph again.
+    // The inputs already hold the candidates and reserved ids, so reuse them
+    // instead of walking the module graph a second time.
     debug_assert_eq!(
       inputs.range,
       get_deterministic_id_range(
@@ -196,7 +203,8 @@ async fn module_ids(
       .collect::<Vec<_>>();
     (used_module_ids, modules_with_hashes)
   } else {
-    // Callable filters and other unprovable inputs retain the original replay.
+    // Setups that can't skip (see `can_reuse`) collect candidates as before,
+    // taking the async path only when there is a `test` filter function.
     let (used_ids, modules) = if self.test.is_some() {
       get_used_module_ids_and_modules_with_async_filter(compilation, module_ids, self.test.as_ref())
         .await?
