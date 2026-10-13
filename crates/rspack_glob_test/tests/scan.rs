@@ -575,6 +575,28 @@ async fn scan_literal_branches_uses_no_directory_reads() {
 }
 
 #[tokio::test]
+async fn walk_preserves_depth_first_order_and_sibling_patterns() {
+  let fs = Arc::new(ReadDirCountingFileSystem::default());
+  let root = Utf8Path::new("/project");
+  for directory in ["a/deep", "z"] {
+    fs.inner
+      .create_dir_all(root.join(directory).as_path())
+      .await
+      .expect("create directory");
+  }
+  let expected = ["a/deep/first.js", "a/last.js", "z/other.js"].map(|name| root.join(name));
+  for path in &expected {
+    fs.inner.write(path, b"value").await.expect("write fixture");
+  }
+  let pattern = GlobPattern::new(b"{a/deep/first.js,a/last.js,z/other.js}").expect("valid glob");
+  assert_eq!(
+    pattern.walk(root, fs.clone()).await.expect("walk"),
+    expected
+  );
+  assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 0);
+}
+
+#[tokio::test]
 async fn walk_keeps_globstar_continuations_after_exact_matches() {
   let fs = Arc::new(MemoryFileSystem::default());
   fs.create_dir_all("/project/nested".into()).await.unwrap();

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use async_recursion::async_recursion;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -12,7 +11,6 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 /// - `skip_dotfiles`: whether to skip files whose name starts with `.`
 /// - `should_enter_dir`: called with (full_path, dirname) for each directory before descending
 /// - `on_file`: called with (full_path, filename) for each file
-#[async_recursion]
 pub(crate) async fn walk_dir(
   root: &Utf8Path,
   fs: Arc<dyn ReadableFileSystem>,
@@ -24,19 +22,20 @@ pub(crate) async fn walk_dir(
   if !fs.metadata(root).await.is_ok_and(|m| m.is_directory) {
     return Ok(());
   }
-  for filename in fs.read_dir(root).await? {
+  let filenames = fs.read_dir(root).await?;
+  // Keep each directory's iterator suspended while visiting its children, so
+  // callbacks retain the depth-first order without recursive boxed futures.
+  let mut stack = vec![(root.to_path_buf(), filenames.into_iter())];
+  while let Some((root, filenames)) = stack.last_mut() {
+    let Some(filename) = filenames.next() else {
+      stack.pop();
+      continue;
+    };
     let path = root.join(&filename);
     if fs.metadata(&path).await.is_ok_and(|m| m.is_directory) {
       if recursive && should_enter_dir(&path, &filename) {
-        walk_dir(
-          &path,
-          fs.clone(),
-          recursive,
-          skip_dotfiles,
-          should_enter_dir,
-          on_file,
-        )
-        .await?;
+        let filenames = fs.read_dir(&path).await?;
+        stack.push((path, filenames.into_iter()));
       }
     } else if skip_dotfiles && filename.starts_with('.') {
       // skip dotfiles

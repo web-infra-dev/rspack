@@ -1,6 +1,5 @@
 use std::{borrow::Cow, sync::Arc};
 
-use async_recursion::async_recursion;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -68,40 +67,40 @@ impl GlobPattern<'_> {
     fs: Arc<dyn ReadableFileSystem>,
   ) -> Result<Vec<Utf8PathBuf>> {
     let mut files = Vec::new();
-    walk(root, self, &fs, &mut files).await?;
+    if !fs.metadata(root).await.is_ok_and(|meta| meta.is_directory) {
+      return Ok(files);
+    }
+    let names = match self.view().next_components(&self.states) {
+      Some(names) => names,
+      None => fs.read_dir(root).await?,
+    };
+    // Suspend parent iterators and matching states to preserve depth-first
+    // traversal while pruning children with the remaining pattern.
+    let mut stack = vec![(root.to_path_buf(), Cow::Borrowed(self), names.into_iter())];
+    while let Some((root, pattern, names)) = stack.last_mut() {
+      let Some(name) = names.next() else {
+        stack.pop();
+        continue;
+      };
+      let Some(remaining) = pattern.match_prefix(&name) else {
+        continue;
+      };
+      let path = root.join(&name);
+      let Ok(metadata) = fs.metadata(&path).await else {
+        continue;
+      };
+      if metadata.is_directory {
+        if let Some(remaining) = remaining.match_prefix("/") {
+          let names = match remaining.view().next_components(&remaining.states) {
+            Some(names) => names,
+            None => fs.read_dir(&path).await?,
+          };
+          stack.push((path, Cow::Owned(remaining), names.into_iter()));
+        }
+      } else if remaining.match_path("").is_exact() {
+        files.push(path);
+      }
+    }
     Ok(files)
   }
-}
-
-#[async_recursion]
-async fn walk(
-  root: &Utf8Path,
-  pattern: &GlobPattern<'_>,
-  fs: &Arc<dyn ReadableFileSystem>,
-  files: &mut Vec<Utf8PathBuf>,
-) -> Result<()> {
-  if !fs.metadata(root).await.is_ok_and(|meta| meta.is_directory) {
-    return Ok(());
-  }
-  let names = match pattern.view().next_components(&pattern.states) {
-    Some(names) => names,
-    None => fs.read_dir(root).await?,
-  };
-  for name in names {
-    let Some(remaining) = pattern.match_prefix(&name) else {
-      continue;
-    };
-    let path = root.join(&name);
-    let Ok(metadata) = fs.metadata(&path).await else {
-      continue;
-    };
-    if metadata.is_directory {
-      if let Some(remaining) = remaining.match_prefix("/") {
-        walk(&path, &remaining, fs, files).await?;
-      }
-    } else if remaining.match_path("").is_exact() {
-      files.push(path);
-    }
-  }
-  Ok(())
 }

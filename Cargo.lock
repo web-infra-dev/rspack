@@ -4401,7 +4401,6 @@ dependencies = [
 name = "rspack_glob"
 version = "0.102.8"
 dependencies = [
- "async-recursion",
  "cow-utils",
  "rspack_error",
  "rspack_fs",
