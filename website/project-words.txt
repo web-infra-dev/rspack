@@ -5,6 +5,8 @@ ahabhgk
 Akait
 alexander-akait
 alibaba
+allocative
+ALLOCATIVE
 analysable
 ansi
 antd
@@ -236,6 +238,7 @@ ulivz
 unaccessed
 Undelayed
 unplugin
+Ustr
 valorkin
 vant
 verkada

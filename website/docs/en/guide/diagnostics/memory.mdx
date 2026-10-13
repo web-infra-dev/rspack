@@ -1,0 +1,118 @@
+---
+description: 'Capture Rspack memory snapshots, inspect ownership in Speedscope, and compare retained memory across HMR updates.'
+---
+
+# Memory profiling
+
+Rspack can use allocative to capture the memory represented by its Rust data structures. Use these snapshots to investigate large owned buffers, retained compilation data, and changes across rebuilds.
+
+A snapshot follows ownership paths from the compiler and registered global roots. Its weights are bytes, rather than execution time or allocation events.
+
+## Enable profiling
+
+Memory snapshots require a native binding built with allocative support. Use a diagnostic build that includes this instrumentation; see [Using `@rspack-debug/core`](/contribute/development/debugging) for using a diagnostic package in an existing project. If the installed package does not include memory profiling, build Rspack from source.
+
+After setting up the [development prerequisites](/contribute/development/prerequisites), run these commands from the Rspack repository root:
+
+```sh
+pnpm install
+ALLOCATIVE=1 pnpm run build:binding:dev
+pnpm run build:js
+```
+
+The debug (`release-debug`) and profiling binding build profiles enable allocative automatically. Other binding build profiles opt in with `ALLOCATIVE=1`.
+
+| Variable                | When to set it                  | Purpose                                                    |
+| ----------------------- | ------------------------------- | ---------------------------------------------------------- |
+| `ALLOCATIVE=1`          | Building the native binding     | Include allocative instrumentation in the binding.         |
+| `RSPACK_ALLOCATIVE_DIR` | Running the build or dev server | Enable snapshot collection and select an output directory. |
+
+Setting `ALLOCATIVE=1` only when running a project does not enable profiling in an existing binding. Leave `RSPACK_ALLOCATIVE_DIR` unset to disable snapshot collection.
+
+## Capture a build
+
+Run the project's original build command with an absolute output directory:
+
+```sh
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/build-1 pnpm exec rspack build
+```
+
+If you built Rspack from source, run its CLI from your project's working directory:
+
+```sh
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/build-1 \
+  node /path/to/rspack/packages/rspack-cli/bin/rspack.js build \
+  --config ./rspack.config.mjs
+```
+
+Check that the build, its configuration, and its plugins all load the intended diagnostic binding. For frameworks that integrate Rspack, keep the framework's normal build command and use a compatible diagnostic package override.
+
+The initial build produces these files after cache finalization, before the compiler is destroyed:
+
+```text
+build-1/
+  0-build.allocative
+  0-build.counts.json
+  0-build.metadata.json
+  0-build.warnings.txt
+```
+
+Use a fresh directory for each process. Snapshot numbering is shared by compilers within a process and restarts in a new process; sharing a directory between processes can overwrite files.
+
+## Capture HMR updates
+
+Set the same output variable when starting the dev server:
+
+```sh
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-1 pnpm exec rspack dev
+```
+
+Edit a source file and wait for each rebuild to finish. A single compiler with three rebuilds produces four byte snapshots:
+
+```text
+0-build.allocative
+1-rebuild.allocative
+2-rebuild.allocative
+3-rebuild.allocative
+```
+
+Each snapshot has matching counts, metadata, and warnings files. Watch-mode builds and HMR tests using the same binding can also collect snapshots through `RSPACK_ALLOCATIVE_DIR`; the test framework does not need a separate capture integration.
+
+Keep the input, build mode, sourcemap settings, and update sequence consistent when comparing runs. Disabling sourcemaps changes the workload, so only do so when that is the scenario you want to measure.
+
+## View snapshots
+
+Open [Speedscope](https://www.speedscope.app/) and drag in a `.allocative` file. Use search and zoom to find a data structure, and select **Left Heavy** to explore the largest ownership paths.
+
+Wider frames represent more bytes. The paths describe ownership, not allocation call stacks. The folded format does not carry a unit, so treat the weights as bytes even if the viewer displays a different label. **Time Order** is not a timeline for these snapshots.
+
+Read the matching `.metadata.json` and `.warnings.txt` before interpreting the total. Metadata includes the represented byte total, shared-ownership policy, and global string arena usage. Warnings identify inaccessible nested allocations and other coverage gaps.
+
+## Read entry counts
+
+The `.counts.json` sidecar records module and dependency entries in the current compilation's module graph, grouped by type. These are collection cardinalities, not a process-wide object or allocation count. An empty graph has explicit zero-valued module and dependency populations.
+
+Do not derive counts by dividing byte weights by a type's size or by counting lines in a `.allocative` file. A collection can reserve more storage than its length, and multiple references can share one allocation.
+
+For a CSV table and a separate count-weighted profile, use the repository's report helper:
+
+```sh
+pnpm --dir /path/to/rspack exec zx \
+  /path/to/rspack/.agents/skills/rspack-allocative/scripts/render-profile.mjs \
+  /absolute/path/profiles/build-1/0-build.allocative \
+  --out-dir /absolute/path/profiles/build-1/report-0
+```
+
+The helper discovers matching sidecars and writes `summary.json`, `counts.csv`, and `counts.folded`. Use a new report directory for each snapshot. A nonempty `counts.folded` file can also be opened in Speedscope, with weights interpreted as **entries** instead of bytes. Zero-valued populations remain in the table and summary but produce no chart frames.
+
+## Interpret the results
+
+Compare matching snapshots from the same phase and with the same workload. For example, if module and dependency counts stay stable during repeated HMR updates while represented bytes grow, inspect which ownership paths retain more data. This observation alone does not establish a memory leak.
+
+Keep these limits in mind:
+
+- Snapshots represent visited inline storage and owned allocations at the end of a build or rebuild. They do not measure RSS, peak memory, or cumulative allocations, and do not include objects already freed.
+- The roots include compiler-owned fields, registered globals, and the process-global Ustr string arena. Arena capacity and unused collection capacity can contribute bytes even when entry counts stay stable.
+- Shared allocations are charged once under the first encountered owner. Hash iteration can change that path between captures. Do not add a parent's inclusive size to its children's sizes.
+- JavaScript and V8 heap objects, callback captures, some external state, allocator metadata, and private container overhead are not fully represented. Nonblocking locks and unsupported nested types can also limit coverage.
+- A warning about unobserved nested allocations means missing coverage. A warning about children exceeding their parent's size indicates an accounting problem that should be investigated before using the affected totals.

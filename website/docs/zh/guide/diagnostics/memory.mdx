@@ -1,0 +1,118 @@
+---
+description: '采集 Rspack 内存快照，使用 Speedscope 查看所有权关系，并比较 HMR 更新后的内存保留情况。'
+---
+
+# 内存分析 \{#memory-profiling}
+
+Rspack 可以通过 allocative 采集 Rust 数据结构所表示的内存。你可以使用这些快照，分析较大的缓冲区、保留的编译数据，以及重建前后的变化。
+
+快照从 compiler 和注册的全局根对象出发，沿所有权路径遍历。数据权重表示字节，而非执行时间或内存分配事件。
+
+## 启用分析 \{#enable-profiling}
+
+内存快照需要使用构建时启用了 allocative 的原生 binding。请选择包含该功能的诊断构建；在现有项目中使用诊断包的方式，请参阅[使用 `@rspack-debug/core`](/contribute/development/debugging)。如果当前安装的包不包含内存分析功能，可以从源码构建 Rspack。
+
+配置好[开发环境](/contribute/development/prerequisites)后，在 Rspack 仓库根目录执行：
+
+```sh
+pnpm install
+ALLOCATIVE=1 pnpm run build:binding:dev
+pnpm run build:js
+```
+
+debug（`release-debug`）和 profiling binding 构建配置会自动启用 allocative，其他 binding 构建配置可以通过 `ALLOCATIVE=1` 启用。
+
+| 变量                    | 设置时机                 | 用途                                   |
+| ----------------------- | ------------------------ | -------------------------------------- |
+| `ALLOCATIVE=1`          | 构建原生 binding 时      | 将 allocative 采集能力编译进 binding。 |
+| `RSPACK_ALLOCATIVE_DIR` | 运行构建或 dev server 时 | 开启快照采集并指定输出目录。           |
+
+仅在运行项目时设置 `ALLOCATIVE=1`，无法为已有的 binding 启用分析能力。不设置 `RSPACK_ALLOCATIVE_DIR` 时，不会采集快照。
+
+## 采集构建快照 \{#capture-a-build}
+
+使用项目原有的构建命令，并设置一个绝对输出目录：
+
+```sh
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/build-1 pnpm exec rspack build
+```
+
+如果从源码构建了 Rspack，可以在项目工作目录运行本地 CLI：
+
+```sh
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/build-1 \
+  node /path/to/rspack/packages/rspack-cli/bin/rspack.js build \
+  --config ./rspack.config.mjs
+```
+
+请确认构建、配置文件及插件都加载了预期的诊断 binding。对于集成 Rspack 的框架，保留框架原有的构建命令，并使用版本兼容的诊断包覆盖。
+
+首次构建会在缓存处理完成、compiler 销毁前生成以下文件：
+
+```text
+build-1/
+  0-build.allocative
+  0-build.counts.json
+  0-build.metadata.json
+  0-build.warnings.txt
+```
+
+每个进程应使用新的目录。同一进程内的多个 compiler 共用快照编号，新进程会重新编号；多个进程共用目录可能覆盖文件。
+
+## 采集 HMR 更新 \{#capture-hmr-updates}
+
+启动 dev server 时，设置相同的输出变量：
+
+```sh
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-1 pnpm exec rspack dev
+```
+
+修改源文件，并等待每次重建完成。单个 compiler 在完成三次重建后，会生成四份字节快照：
+
+```text
+0-build.allocative
+1-rebuild.allocative
+2-rebuild.allocative
+3-rebuild.allocative
+```
+
+每份快照都有对应的 counts、metadata 和 warnings 文件。使用相同 binding 的 watch 构建和 HMR 测试，也可以通过 `RSPACK_ALLOCATIVE_DIR` 采集快照，测试框架无需额外接入采集逻辑。
+
+比较不同运行结果时，保持输入、构建模式、sourcemap 设置和更新顺序一致。关闭 sourcemap 会改变工作负载，因此应仅在需要分析这种场景时关闭它。
+
+## 查看快照 \{#view-snapshots}
+
+打开 [Speedscope](https://www.speedscope.app/)，将 `.allocative` 文件拖入页面。使用搜索和缩放定位数据结构，选择 **Left Heavy** 查看最大的所有权路径。
+
+较宽的节点表示更多字节。路径描述所有权关系，而非内存分配时的调用栈。folded 格式不包含单位，因此即使查看器显示了其他标签，也应将权重理解为字节。对于这些快照，**Time Order** 不表示时间线。
+
+解读总量前，请阅读对应的 `.metadata.json` 和 `.warnings.txt`。metadata 包含所表示的字节总量、共享所有权计量策略，以及全局字符串 arena 的使用情况。warnings 会指出无法访问的嵌套分配和其他覆盖缺口。
+
+## 读取条目计数 \{#read-entry-counts}
+
+`.counts.json` 文件记录当前 compilation 模块图中的模块和依赖条目，并按类型分组。这些数值表示集合基数，而非整个进程的对象数或分配次数。空模块图会输出明确的模块和依赖零值。
+
+不要用字节权重除以类型大小，也不要统计 `.allocative` 文件的行数来推算对象数量。集合容量可能超过长度，多个引用也可能共享同一块内存。
+
+如需 CSV 表格和独立的计数权重文件，可以使用仓库提供的报告工具：
+
+```sh
+pnpm --dir /path/to/rspack exec zx \
+  /path/to/rspack/.agents/skills/rspack-allocative/scripts/render-profile.mjs \
+  /absolute/path/profiles/build-1/0-build.allocative \
+  --out-dir /absolute/path/profiles/build-1/report-0
+```
+
+工具会自动发现匹配的附加文件，并生成 `summary.json`、`counts.csv` 和 `counts.folded`。每份快照应使用新的报告目录。非空的 `counts.folded` 也可以在 Speedscope 中查看，但其权重应理解为**条目数**，而非字节。零值会保留在表格和汇总中，但不会生成图表节点。
+
+## 解读结果 \{#interpret-the-results}
+
+比较相同阶段、相同工作负载的快照。例如，反复进行 HMR 更新时，如果模块和依赖条目数保持稳定，而所表示的字节增加，可以进一步查看哪些所有权路径保留了更多数据。仅凭这种现象，还不能确定存在内存泄漏。
+
+解读数据时，需要注意以下限制：
+
+- 快照表示构建或重建结束时，遍历到的内联存储和拥有所有权的分配。它不测量 RSS、峰值内存或累计分配，也不包含已经释放的对象。
+- 根对象包括 compiler 拥有的字段、注册的全局对象，以及进程级 Ustr 字符串 arena。即使条目数不变，arena 容量和集合的未使用容量也可能计入字节。
+- 共享分配只会计入首次遇到的所有者路径。哈希表遍历顺序可能导致路径变化。不要把父节点的包含大小与其子节点大小相加。
+- JavaScript 和 V8 堆对象、回调捕获、部分外部状态、分配器元数据和容器的私有开销无法完整计入。非阻塞锁和不支持的嵌套类型也可能造成覆盖缺口。
+- 未观测到嵌套分配的警告表示覆盖不足。如果警告指出子节点大小超过父节点，说明存在计量问题，应先调查问题，再使用受影响的总量。
