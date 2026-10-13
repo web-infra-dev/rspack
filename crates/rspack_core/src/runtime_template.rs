@@ -1072,8 +1072,8 @@ impl ModuleCodeTemplate {
           .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
       }
       return format!(
-        "{}({}, {}, true)",
-        self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+        "{}({}, {})",
+        self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_GROUP),
         json!(block.runtime_id(compilation)),
         fetch_priority.map_or_else(|| "0".to_string(), |priority| format!("\"{priority}\"")),
       );

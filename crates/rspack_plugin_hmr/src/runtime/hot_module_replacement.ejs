@@ -28,7 +28,13 @@
 	module.children = [];
 	currentParents = [];
 	options.require = require;
-	<% if (_is_rspack_runtime_mode) { %>options.context.r = require;<% } %>
+	<% if (_is_rspack_runtime_mode) { %>options.context.r = require;
+	if (require.eg) Object.defineProperty(options.context, "eg", {
+		configurable: true,
+		enumerable: true,
+		writable: true,
+		value: require.eg
+	});<% } %>
 });
 
 <%- define(HMR_DOWNLOAD_UPDATE_HANDLERS) %> = {};
@@ -75,13 +81,16 @@
 		};
 	};
 	for (var name in require) {
-		if (Object.prototype.hasOwnProperty.call(require, name) && name !== "e") {
+		if (Object.prototype.hasOwnProperty.call(require, name) && name !== "e" && name !== "eg") {
 			Object.defineProperty(fn, name, createPropertyDescriptor(name));
 		}
 	}
 
-	fn.e = function (chunkId, fetchPriority, isGroup) {
-		return trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority, isGroup));
+	fn.e = function (chunkId, fetchPriority) {
+		return trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority));
+	};
+	if (<%- weak(ENSURE_CHUNK_GROUP) %>) fn.eg = function (groupId, fetchPriority) {
+		return trackBlockingPromise(<%- weak(ENSURE_CHUNK_GROUP) %>(groupId, fetchPriority));
 	};
 
 	return fn;
@@ -139,7 +148,7 @@
 			switch (currentStatus) {
 				case "idle":
 					currentUpdateApplyHandlers = [];
-					if (<%- weak(ENSURE_CHUNK) %>) <%- weak(ENSURE_CHUNK) %>.h = [];
+					if (<%- weak(ENSURE_CHUNK_GROUP) %>) <%- weak(ENSURE_CHUNK_GROUP) %>.h = [];
 					Object.keys(<%- HMR_INVALIDATE_MODULE_HANDLERS %>).forEach(function (key) {
 						<%- HMR_INVALIDATE_MODULE_HANDLERS %>[key](moduleId, currentUpdateApplyHandlers);
 					});
@@ -323,7 +332,7 @@
 		})
 		.filter(Boolean);
 
-	if (<%- weak(ENSURE_CHUNK) %>) <%- weak(ENSURE_CHUNK) %>.h = [];
+	if (<%- weak(ENSURE_CHUNK_GROUP) %>) <%- weak(ENSURE_CHUNK_GROUP) %>.h = [];
 
 	if (errors.length > 0) {
 		return setStatus("abort").then(function () {

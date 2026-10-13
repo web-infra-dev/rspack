@@ -87,14 +87,14 @@
 		}))
 	};
 	cssChunkIds.forEach(function (id) { prepareCss(id, promises); });
-	if (groups && <%- weak(ENSURE_CHUNK) %>) {
+	if (groups && <%- weak(ENSURE_CHUNK_GROUP) %>) {
 		var ensureGroup = function (groupId, promises) {
 			(groups[groupId] || []).forEach(function (id) {
 				requiredCssChunks[id] = true;
 				if (files[id]) prepareCss(id, promises);
 			});
 		};
-		<%- weak(ENSURE_CHUNK) %>.h.push(ensureGroup);
-		Object.keys(<%- weak(ENSURE_CHUNK) %>.s || {}).forEach(function (id) { ensureGroup(id, promises); });
+		<%- weak(ENSURE_CHUNK_GROUP) %>.h.push(ensureGroup);
+		Object.keys(<%- weak(ENSURE_CHUNK_GROUP) %>.s || {}).forEach(function (id) { ensureGroup(id, promises); });
 	}
 };

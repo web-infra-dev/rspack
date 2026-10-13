@@ -1,0 +1,25 @@
+// Preserve loading state when HMR replaces the group's physical chunk list.
+var groupState = <%- REQUIRE_SCOPE %>.eg && <%- REQUIRE_SCOPE %>.eg.s || Object.create(null);
+var groupHandlers = <%- REQUIRE_SCOPE %>.eg && <%- REQUIRE_SCOPE %>.eg.h || [];
+<%- define(ENSURE_CHUNK_GROUP) %> = <%- basicFunction("groupId, fetchPriority") %> {
+	var promises = [];
+	<%- ENSURE_CHUNK_GROUP %>.h.forEach(<%- basicFunction("handler") %> { handler(groupId, promises); });
+	var chunks = <%- ENSURE_CHUNK_GROUP %>.g[groupId] || [];
+	chunks.forEach(<%- basicFunction("chunkId") %> {
+		promises.push(<%- ENSURE_CHUNK %>(chunkId, fetchPriority));
+	});
+	var promise = Promise.all(promises);
+	// undefined = not loaded, Promise = loading, 0 = loaded.
+	if (groupState[groupId] !== 0) {
+		groupState[groupId] = promise;
+		promise.then(<%- basicFunction("") %> {
+			groupState[groupId] = 0;
+		}, <%- basicFunction("") %> {
+			if (groupState[groupId] === promise) delete groupState[groupId];
+		});
+	}
+	return promise;
+};
+<%- ENSURE_CHUNK_GROUP %>.g = <%- _groups %>;
+<%- ENSURE_CHUNK_GROUP %>.s = groupState;
+<%- ENSURE_CHUNK_GROUP %>.h = groupHandlers;
