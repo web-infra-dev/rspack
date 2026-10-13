@@ -20,6 +20,7 @@ impl EnsureChunkRuntimeModule {
 enum TemplateId {
   Raw,
   WithInline,
+  Hot,
 }
 
 impl EnsureChunkRuntimeModule {
@@ -27,6 +28,7 @@ impl EnsureChunkRuntimeModule {
     match id {
       TemplateId::Raw => self.id().to_string(),
       TemplateId::WithInline => format!("{}_inline", self.id()),
+      TemplateId::Hot => format!("{}_hot", self.id()),
     }
   }
 }
@@ -47,6 +49,10 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
         self.template_id(TemplateId::WithInline),
         include_str!("runtime/ensure_chunk_with_inline.ejs").to_string(),
       ),
+      (
+        self.template_id(TemplateId::Hot),
+        include_str!("runtime/ensure_chunk_with_hmr.ejs").to_string(),
+      ),
     ]
   }
 
@@ -58,7 +64,17 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     let runtime_template = context.runtime_template;
     let chunk_ukey = self.chunk().expect("should have chunk");
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
-    let source = if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+    let source = if compilation.hot_module_replacement {
+      let graph = &compilation.build_chunk_graph_artifact;
+      let chunk = graph.chunk_by_ukey.expect_get(&chunk_ukey);
+      let groups = graph
+        .chunk_graph
+        .get_async_chunk_groups(compilation, Some(chunk.runtime()));
+      runtime_template.render(
+        &self.template_id(TemplateId::Hot),
+        Some(serde_json::json!({ "_groups": rspack_util::json_stringify(&groups) })),
+      )?
+    } else if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
       let fetch_priority = if runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
         ", fetchPriority"
       } else {
@@ -82,16 +98,20 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     let mut dependencies = RuntimeGlobals::default();
+    if compilation.hot_module_replacement {
+      dependencies.insert(RuntimeGlobals::REQUIRE_SCOPE);
+    }
     let mut define = RuntimeGlobals::ENSURE_CHUNK;
     if let Some(chunk_ukey) = self.chunk() {
-      if self.has_async_chunks
+      if compilation.hot_module_replacement
+        || self.has_async_chunks
         || get_chunk_runtime_requirements(compilation, &chunk_ukey)
           .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       {
         dependencies.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
         define.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
       }
-    } else if self.has_async_chunks {
+    } else if compilation.hot_module_replacement || self.has_async_chunks {
       dependencies.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
       define.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }

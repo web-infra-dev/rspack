@@ -20,7 +20,7 @@
 <%- var("extractCssChunkIsLoaded") %> = function (chunkId) {
 	return typeof <%- _js_state_expression %> !== "undefined" && <%- _js_state_expression %> && <%- _js_state_expression %>[chunkId] === 0;
 };
-<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss) {
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, load, unchanged, groups) {
 	applyHandlers.push(extractCssApplyHandler);
 	/**
 		`miniCss` is the hot-update manifest's namespace for extracted CSS:
@@ -33,26 +33,36 @@
 		rarely does.
 	 */
 	var cssRemovedChunkIds = (miniCss && miniCss.r) || [];
-	var cssChunkIds = (miniCss && miniCss.c) || [];
+	var cssChunkIds = ((miniCss && miniCss.c) || []).slice();
+	var files = (miniCss && miniCss.f) || {};
+	var oldFiles = (miniCss && miniCss.o) || {};
+	var requiredCssChunks = Object.create(null);
+	if (load) Object.keys(load).forEach(function (entryId) {
+		if (extractCssChunkIsLoaded(entryId)) load[entryId].forEach(function (id) {
+			requiredCssChunks[id] = true;
+			if (files[id] && cssChunkIds.indexOf(id) < 0) cssChunkIds.push(id);
+		});
+	});
 	var seen = {};
 	cssRemovedChunkIds.forEach(function (chunkId) {
-		var href = <%- _get_chunk_css_filename %>(chunkId);
+		var href = oldFiles[chunkId] || <%- _get_chunk_css_filename %>(chunkId);
 		if (!href) return;
 		var oldTag = extractCssFindStylesheet(href, <%- PUBLIC_PATH %> + href);
 		if (oldTag) extractCssOldTags.push(oldTag);
 	});
-	cssChunkIds.forEach(function (chunkId) {
-		var href = <%- _get_chunk_css_filename %>(chunkId);
+	var prepareCss = function (chunkId, promises) {
+		var href = files[chunkId] || <%- _get_chunk_css_filename %>(chunkId);
 		if (!href) return;
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (seen[fullhref]) return;
-		seen[fullhref] = true;
-		var oldTag = extractCssFindStylesheet(href, fullhref);
+		var oldHref = oldFiles[chunkId] || <%- _get_chunk_css_filename %>(chunkId);
+		var oldTag = oldHref && extractCssFindStylesheet(oldHref, <%- PUBLIC_PATH %> + oldHref);
 		// The manifest is computed from the compilation and also lists chunks this
 		// page never loaded. A missing tag is legitimate only for a chunk that is
 		// actually on the page: an initial chunk gaining its first stylesheet, or
 		// a loaded async chunk whose stylesheet was removed by an earlier update.
-		if (!oldTag && !extractCssInitialChunkIds[chunkId] && !extractCssChunkIsLoaded(chunkId)) return;
+		if (!oldTag && !requiredCssChunks[chunkId] && !extractCssInitialChunkIds[chunkId] && !extractCssChunkIsLoaded(chunkId)) return;
+		seen[fullhref] = true;
 		promises.push(new Promise(function (resolve, reject) {
 			var tag = extractCssCreateStylesheet(
 				chunkId,
@@ -75,5 +85,16 @@
 				reject
 			);
 		}))
-	});
-}
+	};
+	cssChunkIds.forEach(function (id) { prepareCss(id, promises); });
+	if (groups && <%- weak(ENSURE_CHUNK) %>) {
+		var ensureGroup = function (groupId, promises) {
+			(groups[groupId] || []).forEach(function (id) {
+				requiredCssChunks[id] = true;
+				if (files[id]) prepareCss(id, promises);
+			});
+		};
+		<%- weak(ENSURE_CHUNK) %>.h.push(ensureGroup);
+		Object.keys(<%- weak(ENSURE_CHUNK) %>.s || {}).forEach(function (id) { ensureGroup(id, promises); });
+	}
+};
