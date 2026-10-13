@@ -227,6 +227,14 @@ export default {
 };
 ```
 
+### javascript.dynamicUrl
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+为动态 `new URL()` 请求启用上下文依赖，例如 ``new URL(`./assets/${name}.png`, import.meta.url)``。
+
+设为 `false` 时，动态请求将在运行时求值。`new URL('./icon.png', import.meta.url)` 等静态请求仍会被打包。要禁用所有 URL 解析，请将 [`javascript.url`](#javascripturl) 设为 `false`。
+
 ### javascript.url
 
 <PropertyType
