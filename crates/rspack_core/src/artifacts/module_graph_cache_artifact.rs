@@ -18,6 +18,7 @@ use crate::{
   RuntimeKey,
 };
 pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
+type ModuleReferencedExportsCacheKey = (ModuleIdentifier, Option<RuntimeKey>);
 
 /// This is a rust port of `ModuleGraph.cached` and `ModuleGraph.dependencyCacheProvide` in webpack.
 /// We use this to cache the result of functions with high computational overhead.
@@ -32,6 +33,8 @@ pub struct ModuleGraphCacheArtifactInner {
   get_side_effects_connection_state_cache: GetSideEffectsConnectionStateCache,
   concatenated_module_entries: ConcatenatedModuleEntriesCache,
   module_graph_hash_cache: ModuleGraphHashCache,
+  module_referenced_exports_cache:
+    RwLock<HashMap<ModuleReferencedExportsCacheKey, Arc<ModuleReferencedExports>>>,
 }
 
 impl ModuleGraphCacheArtifactInner {
@@ -42,6 +45,11 @@ impl ModuleGraphCacheArtifactInner {
     self.get_side_effects_connection_state_cache.freeze();
     self.concatenated_module_entries.freeze();
     self.module_graph_hash_cache.freeze();
+    self
+      .module_referenced_exports_cache
+      .write()
+      .expect("should get lock")
+      .clear();
     self.freezed.store(true, Ordering::Release);
   }
 
@@ -85,6 +93,33 @@ impl ModuleGraphCacheArtifactInner {
         value
       }
     }
+  }
+
+  /// Reuse incoming export references only while the module graph is frozen.
+  /// Each freeze clears the values so consumer changes are visible on rebuilds.
+  pub fn cached_module_referenced_exports<F: FnOnce() -> ModuleReferencedExports>(
+    &self,
+    key: ModuleReferencedExportsCacheKey,
+    f: F,
+  ) -> Arc<ModuleReferencedExports> {
+    if !self.freezed.load(Ordering::Acquire) {
+      return Arc::new(f());
+    }
+    if let Some(value) = self
+      .module_referenced_exports_cache
+      .read()
+      .expect("should get lock")
+      .get(&key)
+    {
+      return Arc::clone(value);
+    }
+    let value = Arc::new(f());
+    self
+      .module_referenced_exports_cache
+      .write()
+      .expect("should get lock")
+      .insert(key, Arc::clone(&value));
+    value
   }
 
   pub fn cached_determine_export_assignments<F: FnOnce() -> DetermineExportAssignmentsValue>(
@@ -164,6 +199,13 @@ impl ModuleGraphCacheArtifactInner {
       }
     }
   }
+}
+
+/// Top-level exports referenced by incoming dependencies in the optimized graph.
+#[derive(Debug)]
+pub enum ModuleReferencedExports {
+  All,
+  Names(HashSet<Atom>),
 }
 
 pub(super) mod module_graph_hash {

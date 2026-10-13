@@ -23,7 +23,7 @@ test('activating redirected lazy reexports preserves the barrel factories', asyn
         const source = asset.source.source().toString();
         const start = source.indexOf(marker);
         if (start !== -1) {
-          const end = source.indexOf('\n}', start);
+          const end = source.indexOf('\n},', start);
           expect(end).toBeGreaterThan(start);
           return source.slice(start, end + 2);
         }

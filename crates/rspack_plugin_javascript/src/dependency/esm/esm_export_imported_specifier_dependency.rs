@@ -23,12 +23,12 @@ use rspack_core::{
   ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, ForwardId, ImportAttributes,
   ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
   LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  NormalInitFragment, NormalReexportItem, ReferencedExport, ResourceIdentifier, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
-  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  get_runtime_key, get_terminal_binding, property_access, property_name,
-  render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
+  ModuleReferencedExports, NormalInitFragment, NormalReexportItem, ReferencedExport,
+  ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
+  property_name, render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{RspackHash, RspackHasher};
@@ -160,6 +160,59 @@ impl ESMExportImportedSpecifierDependency {
         runtime,
       )
     })
+  }
+
+  fn filter_lazy_reexports(
+    &self,
+    mode: &mut ExportMode,
+    compilation: &rspack_core::Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> bool {
+    let ExportMode::NormalReexport(reexport) = mode else {
+      return false;
+    };
+    let module_graph = compilation.get_module_graph();
+    let module = module_graph
+      .get_parent_module(&self.id)
+      .expect("should have parent module");
+    if !compilation
+      .build_module_graph_artifact
+      .module_to_lazy_make
+      .get_lazy_dependencies(module)
+      .is_some_and(|lazy| lazy.contains_dependency(&self.request, &self.id))
+    {
+      return false;
+    }
+
+    // Redirected consumers no longer need getters through this barrel. Share
+    // the decision between module hashing and rendering, including after all
+    // originally lazy dependencies have already been activated.
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
+    let referenced_exports = module_graph_cache.cached_module_referenced_exports(
+      (*module, runtime.map(get_runtime_key).cloned()),
+      || {
+        let mut names = HashSet::default();
+        for connection in module_graph.get_incoming_connections(module) {
+          let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+          for export in dependency.get_referenced_exports(
+            module_graph,
+            module_graph_cache,
+            &compilation.exports_info_artifact,
+            runtime,
+          ) {
+            let Some(name) = export.name.first() else {
+              return ModuleReferencedExports::All;
+            };
+            names.insert(name.clone());
+          }
+        }
+        ModuleReferencedExports::Names(names)
+      },
+    );
+    if let ModuleReferencedExports::Names(names) = referenced_exports.as_ref() {
+      reexport.items.retain(|item| names.contains(&item.name));
+    }
+    true
   }
 
   fn get_mode_inner(
@@ -1201,21 +1254,22 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
     compilation: &rspack_core::Compilation,
     runtime: Option<&RuntimeSpec>,
   ) {
+    let module_graph = compilation.get_module_graph();
+    let mut mode = self.get_mode(
+      module_graph,
+      runtime,
+      &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
+    );
+    let ExportMode::NormalReexport(reexport) = &mode else {
+      return;
+    };
     // Case: `export { value } from "./file.js"` where `value` is an inlinable
     // const export. The reexport template renders the imported module's
     // get_used_name(...) result directly. When that result is inlined, the
     // connection can be inactive and get_module_graph_hash may skip the imported
     // module's exports_info, so hash the inline value here to invalidate stale
     // generated reexport code when the target const changes.
-    let module_graph = compilation.get_module_graph();
-    let ExportMode::NormalReexport(mode) = self.get_mode(
-      module_graph,
-      runtime,
-      &compilation.module_graph_cache_artifact,
-      &compilation.exports_info_artifact,
-    ) else {
-      return;
-    };
     let Some(imported_module) = module_graph.module_identifier_by_dependency_id(&self.id) else {
       return;
     };
@@ -1223,7 +1277,7 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
       .exports_info_artifact
       .get_exports_info_data(imported_module);
 
-    for item in mode.items {
+    for item in &reexport.items {
       if item.hidden || item.checked {
         continue;
       }
@@ -1234,6 +1288,20 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
         item.ids.hash(hasher);
         inlined.hash(hasher);
       }
+    }
+    if self.filter_lazy_reexports(&mut mode, compilation, runtime)
+      && let ExportMode::NormalReexport(reexport) = &mode
+    {
+      // Hash the effective getters rather than the incoming dependencies. A
+      // new redirected consumer must not invalidate an unchanged factory.
+      let mut names = reexport
+        .items
+        .iter()
+        .filter(|item| !item.hidden)
+        .map(|item| &item.name)
+        .collect::<Vec<_>>();
+      names.sort_unstable();
+      names.hash(hasher);
     }
   }
 
@@ -1723,7 +1791,6 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       .expect("ESMExportImportedSpecifierDependencyTemplate should only be used for ESMExportImportedSpecifierDependency");
     let TemplateContext {
       compilation,
-      module,
       runtime,
       concatenation_scope,
       ..
@@ -1750,42 +1817,11 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       return;
     }
 
-    if let ExportMode::NormalReexport(reexport) = &mut mode
-      && compilation
-        .build_module_graph_artifact
-        .module_to_lazy_make
-        .get_lazy_dependencies(&module.identifier())
-        .is_some_and(|lazy| lazy.all_lazy_dependencies().any(|id| id == dep.id))
+    if dep.filter_lazy_reexports(&mut mode, compilation, *runtime)
+      && let ExportMode::NormalReexport(reexport) = &mode
+      && reexport.items.iter().all(|item| item.hidden)
     {
-      // Resolving a lazy reexport can redirect its consumers to the defining
-      // module. Only consumers that still reference this module need getters.
-      let mut names = HashSet::default();
-      let mut exports_object_referenced = false;
-      for connection in module_graph.get_incoming_connections(&module.identifier()) {
-        let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-        for export in dependency.get_referenced_exports(
-          module_graph,
-          module_graph_cache,
-          exports_info_artifact,
-          *runtime,
-        ) {
-          if let Some(name) = export.name.first() {
-            names.insert(name.clone());
-          } else {
-            exports_object_referenced = true;
-            break;
-          }
-        }
-        if exports_object_referenced {
-          break;
-        }
-      }
-      if !exports_object_referenced {
-        reexport.items.retain(|item| names.contains(&item.name));
-        if reexport.items.iter().all(|item| item.hidden) {
-          return;
-        }
-      }
+      return;
     }
 
     if !matches!(
