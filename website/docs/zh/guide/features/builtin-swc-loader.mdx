@@ -264,6 +264,8 @@ export default {
 
 ### jsc.transform.react
 
+配置 React 的 JSX 转换，包括 JSX runtime 和 Fast Refresh 支持。
+
 配置 JSX 转换时，如果未显式指定 `jsc.transform.react.development`，它会根据 Rspack 的 [`mode`](/config/mode) 自动设置。
 
 配置步骤请参考 [React 集成指南](/guide/integrations/react)和 [Fast Refresh 配置](/guide/integrations/react#fast-refresh)。
@@ -506,7 +508,7 @@ Rspack 内置的实验性功能。
 - 类型：`boolean | object`
 - 默认值：`false`
 
-设置为 `true` 可启用 React Server Components 转换。传入 `{ disableClientApiChecks: true }` 还可关闭对服务器组件导入客户端专用 React API 的检查，该检查默认开启。
+设置为 `true` 可启用 React Server Components 转换，也可以传入对象来自定义配置。
 
 所需插件和配置示例请参考 [React Server Components 指南](/guide/integrations/rsc)。
 

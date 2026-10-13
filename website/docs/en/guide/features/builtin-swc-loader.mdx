@@ -264,6 +264,8 @@ export default {
 
 ### jsc.transform.react
 
+Configures JSX transforms for React, including the JSX runtime and Fast Refresh support.
+
 When configuring JSX transforms, `jsc.transform.react.development` is automatically set based on Rspack's [`mode`](/config/mode) unless explicitly specified.
 
 See the [React integration guide](/guide/integrations/react) and [Fast Refresh configuration](/guide/integrations/react#fast-refresh) for setup instructions.
@@ -504,7 +506,7 @@ Experimental features provided by rspack.
 - Type: `boolean | object`
 - Default: `false`
 
-Set to `true` to enable React Server Components transforms. Passing `{ disableClientApiChecks: true }` also disables checks for server components importing client-only React APIs. These checks are enabled by default.
+Set to `true` to enable React Server Components transforms, or pass an object to customize the options.
 
 See the [React Server Components guide](/guide/integrations/rsc) for the required plugins and configuration examples.
 
