@@ -14,7 +14,7 @@ Rspack 可以在构建和 HMR 更新时采集内存快照。反馈内存问题�
 
 <ApiMeta addedVersion="2.3.0-beta.0" />
 
-请使用该版本或更高版本、原生 binding 包含 allocative 支持的 debug 或 profiling 包。请选择包含内存分析功能、且与项目 Rspack 版本兼容的包。标准 release 包不包含该支持。快照采集默认关闭，需要在运行项目时设置 `RSPACK_ALLOCATIVE_DIR`，开启采集并指定输出目录。
+请使用该版本或更高版本的 debug 或 profiling 包（标准 release 包不含 allocative 支持）。快照采集默认关闭，需要在运行项目时设置 `RSPACK_ALLOCATIVE_DIR`，开启采集并指定输出目录。
 
 #### 直接使用 Rspack \{#direct-rspack-users}
 
@@ -50,7 +50,7 @@ Rspack 可以在构建和 HMR 更新时采集内存快照。反馈内存问题�
 
 版本号应与框架实际使用的 `@rspack/core` 版本一致（本例为 `2.3.0`），然后执行 `pnpm install`。关于诊断包覆盖的更多说明，请参阅[调试指南](/contribute/development/debugging)。
 
-两种方式都可以使用以 profiling 构建配置发布的包替代 debug 包。运行项目原有的构建或 dev 命令时，设置 `RSPACK_ALLOCATIVE_DIR` 即可。不设置该变量时，不会采集快照。如果没有合适的包，可以参考[构建本地 binding](#build-a-local-binding)，从源码构建。
+两种方式也都可以使用 profiling 构建的包替代 debug 包。运行项目原有的构建或 dev 命令时，设置 `RSPACK_ALLOCATIVE_DIR` 即可。不设置该变量时，不会采集快照。如果没有合适的包，可以参考[构建本地 binding](#build-a-local-binding)，从源码构建。
 
 ### 采集内存快照 \{#capture-memory-snapshots}
 
@@ -62,7 +62,7 @@ Rspack 可以在构建和 HMR 更新时采集内存快照。反馈内存问题�
 RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/build-1 pnpm exec rspack build
 ```
 
-请确认构建、配置文件及插件都加载了预期的诊断 binding。对于集成 Rspack 的框架，保留框架原有的构建命令，并使用版本兼容的诊断包覆盖。
+请确认构建、配置文件及插件都加载了预期的诊断包。对于集成 Rspack 的框架，保留框架原有的构建命令，并使用版本兼容的诊断包覆盖。
 
 首次构建完成后，输出目录中会生成以下文件：
 
@@ -93,7 +93,7 @@ RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-1 pnpm exec rspack dev
 3-rebuild.allocative
 ```
 
-每份快照都有对应的 counts、metadata 和 warnings 文件。使用相同包的 watch 构建，也可以通过 `RSPACK_ALLOCATIVE_DIR` 采集快照。
+每份快照都有对应的 counts、metadata 和 warnings 文件。使用相同包的 watch 模式构建，同样支持通过 `RSPACK_ALLOCATIVE_DIR` 采集快照。
 
 复现问题时，请保持项目原有的构建模式和 sourcemap 设置，并记录每次 HMR 更新的修改内容。
 
@@ -114,7 +114,7 @@ RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-1 pnpm exec rspack dev
 tar -czf rspack-memory-build-1.tar.gz -C /absolute/path/profiles build-1
 ```
 
-反馈 HMR 问题时，请打包从首次构建到最后一次相关重建的完整序列，以及每份快照的配套文件。保留原始文件名，方便维护者匹配快照及其附加文件。
+反馈 HMR 问题时，请打包从首次构建到最后一次相关重建的完整序列，包含每份快照的配套文件。保留原始文件名，方便维护者匹配快照及其附加文件。
 
 问题反馈中还应包含以下信息：
 
@@ -133,7 +133,7 @@ Rspack 仓库提供了 [`rspack-allocative` skill](https://github.com/web-infra-
 
 #### 默认基准项目 \{#default-benchmark-projects}
 
-skill 默认使用仓库内置的基准项目，并按需准备项目文件。不指定项目或测试用例时，会采集 Three.js 10 倍规模的开发构建：
+skill 默认使用仓库内置的基准项目，并按需准备项目文件。不指定项目或测试用例时，默认采集 Three.js 10 倍规模的开发构建：
 
 ```text
 $rspack-allocative 抓取内存以及模块和依赖条目数
@@ -149,7 +149,7 @@ $rspack-allocative 抓取内存以及模块和依赖条目数
 $rspack-allocative --project-dir /path/to/my-app 运行启用 sourcemap 的生产构建，收集内存以及模块和依赖条目数
 ```
 
-`--project-dir` 是由 agent 解释的 skill 请求参数，不是 Rspack CLI 参数。相对路径基于 agent 的初始工作目录解析，包含空格的路径需要加引号。也可以用自然语言指定项目目录。项目目录决定工作负载，Rspack checkout 决定使用的本地 binding 和 JavaScript 包。如果项目有多个配置，请在请求中指定配置文件和构建模式。
+`--project-dir` 是由 agent 解释的 skill 请求参数——不是 Rspack CLI 参数。相对路径基于 agent 的初始工作目录解析，包含空格的路径需要加引号。也可以用自然语言描述项目目录。项目目录决定工作负载，Rspack checkout 决定使用的本地 binding 和 JavaScript 包。如果项目有多个配置，请在请求中指定配置文件和构建模式。
 
 #### Rspack 测试用例 \{#rspack-test-cases}
 
@@ -170,11 +170,11 @@ $rspack-allocative 使用 hotCases/source-map/disable 测试用例抓取内存�
 
 每份快照还会生成对应的 `.counts.json`、`.metadata.json` 和 `.warnings.txt` 文件。
 
-可以每次使用独立输出目录，避免数据被覆盖。skill 会报告选定的项目、构建方式、采集阶段、输出路径和覆盖限制。按照[查看快照](#view-snapshots)中的说明，在 [Speedscope](https://www.speedscope.app/) 中检查结果。
+建议每次使用独立的输出目录，避免覆盖已有数据。skill 会报告选定的项目、构建方式、采集阶段、输出路径和覆盖限制。按照[查看快照](#view-snapshots)中的说明，在 [Speedscope](https://www.speedscope.app/) 中检查结果。
 
 ### 查看快照 \{#view-snapshots}
 
-快照从 compiler 和注册的全局根对象出发，沿所有权路径遍历。数据权重表示字节，而非执行时间或内存分配事件。
+快照从 compiler 和注册的全局根对象出发，沿所有权路径遍历。权重表示字节数，而非执行时间或内存分配事件。
 
 打开 [Speedscope](https://www.speedscope.app/)，将 `.allocative` 文件拖入页面。使用搜索和缩放定位数据结构，选择 **Left Heavy** 查看最大的所有权路径。
 
@@ -184,7 +184,7 @@ $rspack-allocative 使用 hotCases/source-map/disable 测试用例抓取内存�
 
 ### 读取条目计数 \{#read-entry-counts}
 
-`.counts.json` 文件记录当前 compilation 模块图中的模块和依赖条目，并按类型分组。这些数值表示集合基数，而非整个进程的对象数或分配次数。空模块图会输出明确的模块和依赖零值。
+`.counts.json` 文件记录当前 compilation 模块图中的模块和依赖条目，并按类型分组。这些数值表示集合基数——而非整个进程的对象数或分配次数。空模块图会输出明确的模块和依赖零值。
 
 不要用字节权重除以类型大小，也不要统计 `.allocative` 文件的行数来推算对象数量。集合容量可能超过长度，多个引用也可能共享同一块内存。
 
@@ -198,7 +198,7 @@ $rspack-allocative 使用 hotCases/source-map/disable 测试用例抓取内存�
 
 - 快照表示构建或重建结束时，遍历到的内联存储和拥有所有权的分配。它不测量 RSS、峰值内存或累计分配，也不包含已经释放的对象。
 - 根对象包括 compiler 拥有的字段、注册的全局对象，以及进程级 Ustr 字符串 arena。即使条目数不变，arena 容量和集合的未使用容量也可能计入字节。
-- 共享分配只会计入首次遇到的所有者路径。哈希表遍历顺序可能导致路径变化。不要把父节点的包含大小与其子节点大小相加。
+- 共享分配只会计入首次遇到的所有者路径。哈希表遍历顺序可能导致路径变化。不要将父节点的包含大小与其子节点大小相加。
 - JavaScript 和 V8 堆对象、回调捕获、部分外部状态、分配器元数据和容器的私有开销无法完整计入。非阻塞锁和不支持的嵌套类型也可能造成覆盖缺口。
 - 未观测到嵌套分配的警告表示覆盖不足。如果警告指出子节点大小超过父节点，说明存在计量问题，应先调查问题，再使用受影响的总量。
 

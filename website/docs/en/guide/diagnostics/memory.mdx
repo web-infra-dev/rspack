@@ -6,7 +6,7 @@ import { ApiMeta } from '@components/ApiMeta';
 
 # Memory
 
-Rspack can capture memory snapshots during builds and HMR updates. Collect these files when reporting a memory issue so maintainers can investigate it.
+Rspack supports capturing memory snapshots during builds and HMR updates. When you report a memory issue, include these files to help maintainers investigate.
 
 ## For users
 
@@ -14,7 +14,7 @@ Rspack can capture memory snapshots during builds and HMR updates. Collect these
 
 <ApiMeta addedVersion="2.3.0-beta.0" />
 
-Use a debug or profiling package for this version or later whose native binding includes allocative support. Choose a version that includes memory profiling and is compatible with your project's Rspack version. Standard release packages do not include this support. Snapshot collection is disabled by default; set `RSPACK_ALLOCATIVE_DIR` when running your project to enable collection and select an output directory.
+Use a debug or profiling package at this version or later (standard release packages do not include allocative support). Snapshot collection is off by default. To enable it, set `RSPACK_ALLOCATIVE_DIR` to an output directory when running your project.
 
 #### Direct Rspack users
 
@@ -50,7 +50,7 @@ If your project uses Rspack indirectly through a framework such as Rsbuild, add 
 
 Use the same version as the framework's resolved `@rspack/core` dependency (`2.3.0` in this example), then run `pnpm install`. See [Debugging](/contribute/development/debugging) for more about diagnostic package overrides.
 
-For either approach, a package built with the profiling profile can replace the debug package. Set `RSPACK_ALLOCATIVE_DIR` when running your project's original build or dev command. Leave it unset to disable snapshot collection. If a suitable package is not available, see [Build a local binding](#build-a-local-binding) to build from source.
+For either approach, you can use a profiling build instead of the debug package. Set `RSPACK_ALLOCATIVE_DIR` when running your project's original build or dev command. Leave it unset to skip snapshot collection. If no suitable package is available, see [Build a local binding](#build-a-local-binding) to build from source.
 
 ### Capture memory snapshots
 
@@ -62,7 +62,7 @@ Run the project's original build command with an absolute output directory:
 RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/build-1 pnpm exec rspack build
 ```
 
-Check that the build, its configuration, and its plugins all load the intended diagnostic binding. For frameworks that integrate Rspack, keep the framework's normal build command and use a compatible diagnostic package override.
+Verify that the build, its configuration, and its plugins all load the intended diagnostic package. For Rspack-integrated frameworks, keep the framework's normal build command and use a compatible diagnostic package override.
 
 After the initial build completes, the output directory contains:
 
@@ -74,7 +74,7 @@ build-1/
   0-build.warnings.txt
 ```
 
-Use a fresh directory for each process. Snapshot numbering is shared by compilers within a process and restarts in a new process; sharing a directory between processes can overwrite files.
+Use a fresh directory for each process. Snapshot numbering is shared across compilers within a process and resets in a new process. Reusing a directory between processes can overwrite files.
 
 #### Capture HMR updates
 
@@ -93,7 +93,7 @@ Edit a source file and wait for each rebuild to finish. A single compiler with t
 3-rebuild.allocative
 ```
 
-Each snapshot has matching counts, metadata, and warnings files. Watch-mode builds using the same package can also collect snapshots through `RSPACK_ALLOCATIVE_DIR`.
+Each snapshot also has matching counts, metadata, and warnings files. Watch-mode builds using the same package can also collect snapshots via `RSPACK_ALLOCATIVE_DIR`.
 
 Keep the project's build mode and sourcemap settings while reproducing the issue, and record the edits made for each HMR update.
 
@@ -114,7 +114,7 @@ For example, archive the build capture directory:
 tar -czf rspack-memory-build-1.tar.gz -C /absolute/path/profiles build-1
 ```
 
-For an HMR issue, archive the complete sequence from the initial build through the last relevant rebuild, with each snapshot's matching files. Keep the original filenames so maintainers can match the snapshots and sidecars.
+For an HMR issue, archive the complete sequence from the initial build through the last relevant rebuild, including all matching files for each snapshot. Keep the original filenames so maintainers can match the snapshots and sidecars.
 
 Include this context in the issue report:
 
@@ -149,7 +149,7 @@ To capture an external project, specify its directory and build mode:
 $rspack-allocative --project-dir /path/to/my-app production build with sourcemap; collect memory and module/dependency entry counts
 ```
 
-`--project-dir` is an argument in the skill request, interpreted by the agent. It is not a Rspack CLI option. Relative paths resolve from the agent's initial working directory; quote paths containing spaces. You can also describe the project directory in natural language. The project directory selects the workload, while the Rspack checkout selects the local binding and JavaScript packages. Specify the configuration file and build mode in the request when a project has several configurations.
+`--project-dir` is an argument in the skill request, interpreted by the agent — it is not a Rspack CLI option. Relative paths resolve from the agent's initial working directory; quote paths that contain spaces. You can also describe the project directory in natural language. The project directory selects the workload; the Rspack checkout selects the local binding and JavaScript packages. If a project has several configurations, specify the configuration file and build mode in the request.
 
 #### Rspack test cases
 
@@ -174,7 +174,7 @@ You can use a separate output directory for each run to avoid overwriting data. 
 
 ### View snapshots
 
-A snapshot follows ownership paths from the compiler and registered global roots. Its weights are bytes, rather than execution time or allocation events.
+A snapshot traces ownership paths from the compiler and registered global roots. Its weights are bytes, not execution time or allocation events.
 
 Open [Speedscope](https://www.speedscope.app/) and drag in a `.allocative` file. Use search and zoom to find a data structure, and select **Left Heavy** to explore the largest ownership paths.
 
@@ -184,7 +184,7 @@ Read the matching `.metadata.json` and `.warnings.txt` before interpreting the t
 
 ### Read entry counts
 
-The `.counts.json` sidecar records module and dependency entries in the current compilation's module graph, grouped by type. These are collection cardinalities, not a process-wide object or allocation count. An empty graph has explicit zero-valued module and dependency populations.
+The `.counts.json` sidecar records module and dependency entries in the current compilation's module graph, grouped by type. These are collection cardinalities — not a process-wide object count or allocation count. An empty graph produces explicit zero-valued module and dependency populations.
 
 Do not derive counts by dividing byte weights by a type's size or by counting lines in a `.allocative` file. A collection can reserve more storage than its length, and multiple references can share one allocation.
 
@@ -206,9 +206,9 @@ Keep these limits in mind:
 
 ### How memory collection works
 
-Rspack forks [Buck2](https://github.com/facebook/buck2)'s allocative in [`crates/rspack_allocative`](https://github.com/web-infra-dev/rspack/tree/main/crates/rspack_allocative). The fork uses Rust's compile-time reflection and a compiler driver to collect memory data automatically in most cases, reducing the need for manual `Allocative` implementations.
+Rspack maintains a fork of [Buck2](https://github.com/facebook/buck2)'s allocative in [`crates/rspack_allocative`](https://github.com/web-infra-dev/rspack/tree/main/crates/rspack_allocative). The fork uses Rust's compile-time reflection and a compiler driver to collect memory data automatically in most cases, reducing the need for manual `Allocative` implementations.
 
-Borrowed references do not imply ownership, and raw pointers or unsupported values are treated as opaque. Shared allocations are counted once under the first encountered owner. These policies avoid counting shared payloads repeatedly, but inaccessible state still limits coverage.
+Borrowed references do not imply ownership; raw pointers and unsupported values are treated as opaque. Shared allocations are counted once under the first encountered owner. These policies avoid double-counting shared payloads, but inaccessible state still limits coverage.
 
 The capture flow is:
 
@@ -243,7 +243,7 @@ pnpm run build:binding:debug
 pnpm run build:js
 ```
 
-**The debug build includes allocative support by default; snapshot collection remains disabled by default.** The `build:binding:debug` command uses the `release-debug` Cargo profile. Standard release builds do not include allocative support. The profiling build also includes this support by default:
+**The debug build includes allocative support by default; snapshot collection is still off by default.** The `build:binding:debug` command uses the `release-debug` Cargo profile. Standard release builds do not include allocative support. The profiling build also includes this support by default:
 
 ```sh
 pnpm run build:binding:profiling
@@ -260,7 +260,7 @@ ALLOCATIVE=1 pnpm run build:binding:dev
 | `ALLOCATIVE=1`          | Building a binding that does not include it by default | Include allocative instrumentation in the binding.         |
 | `RSPACK_ALLOCATIVE_DIR` | Running a local build or test                          | Enable snapshot collection and select an output directory. |
 
-Setting `ALLOCATIVE=1` only at runtime does not add instrumentation to an existing binding. Debug and profiling builds collect no snapshots unless `RSPACK_ALLOCATIVE_DIR` is set.
+Setting `ALLOCATIVE=1` at runtime alone does not add instrumentation to an existing binding. Debug and profiling builds do not collect snapshots unless `RSPACK_ALLOCATIVE_DIR` is set.
 
 ### Profile a local build or test
 
@@ -272,7 +272,7 @@ RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/local-build-1 \
   --config ./rspack.config.mjs
 ```
 
-Tests using the local binding can also collect snapshots through `RSPACK_ALLOCATIVE_DIR`. Each build or rebuild produces a snapshot automatically; the test framework does not need a separate capture integration. After building the binding and JavaScript packages, run a focused HMR case:
+Tests using the local binding can also collect snapshots via `RSPACK_ALLOCATIVE_DIR`. Each build or rebuild produces a snapshot automatically; the test framework does not need a separate capture integration. After building the binding and JavaScript packages, run a focused HMR case:
 
 ```sh
 cd /path/to/rspack/tests/rspack-test
@@ -281,7 +281,7 @@ RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-test-1 \
   -t hotCases/source-map/disable --maxWorkers 1
 ```
 
-The literal double quotes in the positional file argument select the exact `HotNode.test.mjs` runner; `-t` selects the fixture. Use one worker and a fresh output directory. For other runners or concurrent processes, give each process its own directory to avoid overwritten snapshots. See [Testing](/contribute/development/testing) for the repository's test conventions.
+The literal double quotes in the positional argument select the exact `HotNode.test.mjs` runner; `-t` selects the fixture. Use one worker and a fresh output directory. For other runners or concurrent processes, give each process its own directory to avoid overwriting snapshots. See [Testing](/contribute/development/testing) for the repository's test conventions.
 
 ### Prepare count reports
 
