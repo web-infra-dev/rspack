@@ -492,3 +492,26 @@ async fn same_dir_references_prefer_paths() {
     assert_eq!(resolved_path, Ok(f.join("src/index.ts")), "{config_file}");
   }
 }
+
+// A solution-style root config (`files: []`, no `paths`/`baseUrl`) does not
+// compete with its references: the `baseUrl: "../.."` reference still
+// resolves files from the monorepo root, as on main.
+#[tokio::test]
+async fn root_config_without_aliases_does_not_shadow_references() {
+  let f = super::fixture_root().join("tsconfig/cases/references-solution-root");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("apps/web/tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let resolved_path = resolver
+    .resolve(&f.join("apps/web/src"), "packages/ui/src/index")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("packages/ui/src/index.ts")));
+}

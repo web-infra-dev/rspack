@@ -181,13 +181,12 @@ impl TsConfig {
   }
 
   /// Picks the config whose claimed directory is the longest prefix of
-  /// `path`. References with neither `paths` nor `baseUrl` are skipped. On a
-  /// tie, a config with `paths` wins, then a reference wins over the root
-  /// config, then the first declared reference wins, as on main. The root
-  /// config is the fallback when nothing matches.
+  /// `path`. Configs with neither `paths` nor `baseUrl`, the root config
+  /// included, are skipped. On a tie, a config with `paths` wins, then a
+  /// reference wins over the root config, then the first declared reference
+  /// wins, as on main. The root config is the fallback when nothing matches.
   pub fn resolve(&self, path: &Utf8Path, specifier: &str) -> Vec<Utf8PathBuf> {
-    let root = path
-      .starts_with(self.directory())
+    let root = (self.has_path_alias() && path.starts_with(self.directory()))
       .then(|| (self.directory(), false, self));
     self
       .flattened_references
