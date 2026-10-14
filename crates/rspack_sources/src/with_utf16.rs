@@ -75,16 +75,11 @@ impl<'text> WithUtf16<'text> {
         while byte_start < bytes.len() {
           let first_byte = bytes[byte_start];
           indices.push(byte_start as u32);
-          byte_start += if first_byte < 0x80 {
-            1
-          } else if first_byte < 0xe0 {
-            2
-          } else if first_byte < 0xf0 {
-            3
-          } else {
+          let byte_len = first_byte.leading_ones().max(1) as usize;
+          if byte_len == 4 {
             indices.push(byte_start as u32);
-            4
-          };
+          }
+          byte_start += byte_len;
         }
         return Some(WideChars::Dense(indices));
       }
