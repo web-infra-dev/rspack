@@ -451,10 +451,9 @@
 	updatedModulesList,
 	css,
 	miniCss,
-	load,
-	unchanged,
-	groups
+	update
 ) {
+	var load = update && update.load;
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
 	hotCurrentUpdateRemovedChunks = removedChunks;
@@ -465,7 +464,7 @@
 	hotCurrentUpdateRuntime = [];
 	hotCurrentUpdateLoadChunks = Object.create(null);
 	hotCurrentUpdateUnchangedModules = Object.create(null);
-	(unchanged || []).forEach(function (id) { hotCurrentUpdateUnchangedModules[id] = true; });
+	((update && update.unchanged) || []).forEach(function (id) { hotCurrentUpdateUnchangedModules[id] = true; });
 	chunkIds.forEach(function (chunkId) {
 		if (
 			<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) &&
@@ -491,19 +490,13 @@
 			});
 		});
 	}
-	if (groups && <%- weak(ENSURE_CHUNK_GROUP) %>) {
-		var ensureGroup = function (groupId, promises) {
-			(groups[groupId] || []).forEach(function (chunkId) {
-				hotCurrentUpdateLoadChunks[chunkId] = true;
-				if (!hotCurrentUpdateChunks[chunkId]) {
-					promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList));
-					hotCurrentUpdateChunks[chunkId] = true;
-				}
-			});
-		};
-		<%- weak(ENSURE_CHUNK_GROUP) %>.h.push(ensureGroup);
-		Object.keys(<%- weak(ENSURE_CHUNK_GROUP) %>.s || {}).forEach(function (id) { ensureGroup(id, promises); });
-	}
+	if (update) update.chunkHandlers.push(function (chunkId, promises) {
+		hotCurrentUpdateLoadChunks[chunkId] = true;
+		if (!hotCurrentUpdateChunks[chunkId]) {
+			promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList));
+			hotCurrentUpdateChunks[chunkId] = true;
+		}
+	});
 	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) {
 		<%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr = function (chunkId, promises) {
 			if (

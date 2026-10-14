@@ -1,25 +1,47 @@
-// Preserve loading state when HMR replaces the group's physical chunk list.
-var groupState = <%- REQUIRE_SCOPE %>.eg && <%- REQUIRE_SCOPE %>.eg.s || Object.create(null);
-var groupHandlers = <%- REQUIRE_SCOPE %>.eg && <%- REQUIRE_SCOPE %>.eg.h || [];
+<%- var("chunkGroups") %> = <%- _groups %>;
+// undefined = not loaded, Promise = loading, 0 = loaded.
+<%- var("installedChunkGroups") %> = <% if (_hmr) { %><%- _state_expression %> = <%- _state_expression %> || <% } %>Object.create(null);
+<% if (_hmr) { %><%- var("hotUpdateChunkGroup") %>;
+<% } %>
 <%- define(ENSURE_CHUNK_GROUP) %> = <%- basicFunction("groupId, fetchPriority") %> {
 	var promises = [];
-	<%- ENSURE_CHUNK_GROUP %>.h.forEach(<%- basicFunction("handler") %> { handler(groupId, promises); });
-	var chunks = <%- ENSURE_CHUNK_GROUP %>.g[groupId] || [];
+	<% if (_hmr) { %>if (hotUpdateChunkGroup) hotUpdateChunkGroup(groupId, promises);
+	<% } %>var chunks = chunkGroups[groupId] || [];
 	chunks.forEach(<%- basicFunction("chunkId") %> {
 		promises.push(<%- ENSURE_CHUNK %>(chunkId, fetchPriority));
 	});
 	var promise = Promise.all(promises);
-	// undefined = not loaded, Promise = loading, 0 = loaded.
-	if (groupState[groupId] !== 0) {
-		groupState[groupId] = promise;
+	if (installedChunkGroups[groupId] !== 0) {
+		installedChunkGroups[groupId] = promise;
 		promise.then(<%- basicFunction("") %> {
-			groupState[groupId] = 0;
+			installedChunkGroups[groupId] = 0;
 		}, <%- basicFunction("") %> {
-			if (groupState[groupId] === promise) delete groupState[groupId];
+			if (installedChunkGroups[groupId] === promise) delete installedChunkGroups[groupId];
 		});
 	}
 	return promise;
 };
-<%- ENSURE_CHUNK_GROUP %>.g = <%- _groups %>;
-<%- ENSURE_CHUNK_GROUP %>.s = groupState;
-<%- ENSURE_CHUNK_GROUP %>.h = groupHandlers;
+<% if (_hmr) { %>
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.chunkGroups = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, update") %> {
+	if (!update || !update.groups) return;
+	hotUpdateChunkGroup = <%- basicFunction("groupId, promises") %> {
+		var chunks = update.groups[groupId];
+		if (!chunks) return;
+		// Wait until all download handlers have registered their chunk preparers.
+		promises.push(Promise.resolve().then(<%- basicFunction("") %> {
+			var chunkPromises = [];
+			chunks.forEach(<%- basicFunction("chunkId") %> {
+				update.chunkHandlers.forEach(<%- basicFunction("handler") %> { handler(chunkId, chunkPromises); });
+			});
+			return Promise.all(chunkPromises);
+		}));
+	};
+	Object.keys(installedChunkGroups).forEach(<%- basicFunction("groupId") %> {
+		hotUpdateChunkGroup(groupId, promises);
+	});
+	applyHandlers.push(<%- basicFunction("") %> {
+		hotUpdateChunkGroup = undefined;
+		return {};
+	});
+};
+<% } %>

@@ -148,7 +148,6 @@
 			switch (currentStatus) {
 				case "idle":
 					currentUpdateApplyHandlers = [];
-					if (<%- weak(ENSURE_CHUNK_GROUP) %>) <%- weak(ENSURE_CHUNK_GROUP) %>.h = [];
 					Object.keys(<%- HMR_INVALIDATE_MODULE_HANDLERS %>).forEach(function (key) {
 						<%- HMR_INVALIDATE_MODULE_HANDLERS %>[key](moduleId, currentUpdateApplyHandlers);
 					});
@@ -272,6 +271,12 @@
 			return setStatus("prepare").then(function () {
 				var updatedModules = [];
 				currentUpdateApplyHandlers = [];
+				var updateOptions = {
+					load: update.load,
+					unchanged: update.unchanged,
+					groups: update.groups,
+					chunkHandlers: []
+				};
 
 				return Promise.all(
 					Object.keys(<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>).reduce(function (
@@ -287,9 +292,7 @@
 							updatedModules,
 							update.css,
 							update.miniCss,
-							update.load,
-							update.unchanged,
-							update.groups
+							updateOptions
 						);
 						return promises;
 					},
@@ -331,8 +334,6 @@
 			return r.error;
 		})
 		.filter(Boolean);
-
-	if (<%- weak(ENSURE_CHUNK_GROUP) %>) <%- weak(ENSURE_CHUNK_GROUP) %>.h = [];
 
 	if (errors.length > 0) {
 		return setStatus("abort").then(function () {
