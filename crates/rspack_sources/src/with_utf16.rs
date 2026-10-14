@@ -47,12 +47,6 @@ impl<'text> WithUtf16<'text> {
     if end_utf16_index <= start_utf16_index {
       return "";
     }
-    if start_utf16_index >= self.line.len() {
-      return "";
-    }
-    if start_utf16_index == 0 && end_utf16_index >= self.line.len() {
-      return self.line;
-    }
 
     let wide_chars = self.wide_chars.get_or_init(|| {
       if self.is_ascii {
