@@ -32,12 +32,26 @@ struct ScanState {
 
 impl<'text> LineIndex<'text> {
   pub fn new(text: &'text str) -> Self {
+    Self::with_known_ascii(text, false)
+  }
+
+  pub fn with_known_ascii(text: &'text str, is_known_ascii: bool) -> Self {
+    debug_assert!(!is_known_ascii || text.is_ascii());
     let mut index = Self {
       text,
       line_starts: if text.is_empty() { Vec::new() } else { vec![0] },
       line_wide_chars: IntMap::default(),
     };
-    index.scan();
+    if is_known_ascii {
+      for newline in memchr::memchr_iter(b'\n', text.as_bytes()) {
+        let next = newline + 1;
+        if next < text.len() {
+          index.line_starts.push(next as u32);
+        }
+      }
+    } else {
+      index.scan();
+    }
     index
   }
 

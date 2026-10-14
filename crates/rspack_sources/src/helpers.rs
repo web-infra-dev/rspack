@@ -195,6 +195,11 @@ impl<'a> TextSpan<'a> {
     }
   }
 
+  #[inline]
+  pub(crate) fn is_known_ascii(&self) -> bool {
+    matches!(self.ascii_hit, AsciiHit::Ascii)
+  }
+
   /// Return the UTF-16 length of the span.
   #[inline]
   pub fn utf16_len(&self) -> usize {
@@ -615,7 +620,7 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
   on_source: OnSource<'_, 'source>,
   on_name: OnName<'_, 'source>,
 ) -> GeneratedInfo {
-  let lines = LineIndex::new(source.as_str());
+  let lines = LineIndex::with_known_ascii(source.as_str(), source.is_known_ascii());
 
   if lines.line_count() == 0 {
     return GeneratedInfo {

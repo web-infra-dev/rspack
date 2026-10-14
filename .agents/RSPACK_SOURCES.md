@@ -189,7 +189,8 @@ calculation handle.
 - known non-ASCII and unknown use `simd_utf16_len` directly; its ASCII fast path avoids a separate scan;
 - a subspan of known non-ASCII becomes unknown because the slice may be ASCII-only.
 
-`LineIndex` scans a whole source once, using SSE2 or NEON to find newlines in ASCII blocks.
+`LineIndex` scans a whole source once. A known-ASCII `TextSpan` uses a newline-only scan;
+otherwise SSE2 or NEON finds newlines in ASCII blocks and scalar code indexes UTF-8 characters.
 It stores compact line starts and indexes only lines containing non-ASCII characters. Line views
 convert UTF-16 columns back to valid UTF-8 byte boundaries.
 Four-byte scalars occupy two UTF-16 columns, and a column inside the surrogate pair rounds down
