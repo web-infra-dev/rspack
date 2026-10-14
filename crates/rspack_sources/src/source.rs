@@ -311,7 +311,7 @@ impl MapOptions {
   }
 }
 
-fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
+pub(crate) fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
   if val.is_empty() {
     return true;
   }

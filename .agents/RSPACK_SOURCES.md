@@ -232,7 +232,8 @@ Important implementation details:
   Unedited `source()` and `buffer()` use the existing `SourceMap::to_json()` serializer on demand
   and cache only its byte length. Construction must not scan the map to compute its exact JSON
   size; `size()` computes it lazily if needed, and this cache must not affect equality or hashing.
-  Rope APIs expose borrowed JSON fragments, including splits at escapes. RCH scans serialized bytes
+  Rope APIs expose borrowed JSON fragments, including splits at escapes, and rope and JSON chunk
+  iteration share one lazy edit overlay so the two views cannot diverge. RCH scans serialized bytes
   with bounded buffering and retains edits in another `MappingSource`, including custom digests
   and maps participating in content-hash groups. Reuse the scan's byte count when creating edited
   views so their size calculation does not serialize the input again. Edited writers apply byte

@@ -8,6 +8,7 @@ use std::{
 use crate::{
   MapOptions, ObjectPool, RawBufferSource, RawStringSource, Source, SourceMap, SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, stream_chunks_of_raw_rope},
+  source::is_all_empty,
 };
 
 #[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
@@ -130,32 +131,23 @@ impl MappingSource {
       return self.to_writer(&mut writer).is_ok() && writer.is_finished();
     }
     let mut writer = CompareWriter {
-      chunks: Some(self.json_chunks_iter()),
+      chunks: Some(Box::new(self.json_chunks_iter().map(str::as_bytes))),
       chunk: &[],
     };
     other.to_writer(&mut writer).is_ok() && writer.is_finished()
   }
 
-  fn json_chunks_iter(&self) -> Box<dyn Iterator<Item = &[u8]> + '_> {
+  fn json_chunks_iter(&self) -> Box<dyn Iterator<Item = &str> + '_> {
     match self.0.as_ref() {
-      Data::Map(data) => {
-        // Keep one reference per field rather than per escape. The string
-        // cursor scans each field only as the comparison needs its bytes.
-        let mut parts = Vec::new();
-        data.visit(&mut |part| parts.push(part));
-        Box::new(JsonChunks {
-          parts: parts.into_iter(),
-          string: None,
-        })
-      }
+      Data::Map(data) => Box::new(JsonChunks::new(data)),
       Data::Edited {
         inner,
         replacements,
         ..
-      } => Box::new(EditedJsonChunks {
+      } => Box::new(EditedChunks {
         inner: inner.json_chunks_iter(),
         replacements,
-        chunk: &[],
+        chunk: "",
         position: 0,
         skip_until: 0,
       }),
@@ -310,35 +302,51 @@ struct JsonChunks<'a> {
   string: Option<JsonStringChunks<'a>>,
 }
 
+impl<'a> JsonChunks<'a> {
+  fn new(data: &'a MapData) -> Self {
+    // Keep one reference per field rather than per escape. The string cursor
+    // scans each field only as a consumer needs its fragments.
+    let mut parts = Vec::new();
+    data.visit(&mut |part| parts.push(part));
+    Self {
+      parts: parts.into_iter(),
+      string: None,
+    }
+  }
+}
+
 impl<'a> Iterator for JsonChunks<'a> {
-  type Item = &'a [u8];
+  type Item = &'a str;
 
   fn next(&mut self) -> Option<Self::Item> {
     loop {
       if let Some(string) = &mut self.string {
         if let Some(chunk) = string.next() {
-          return Some(chunk.as_bytes());
+          return Some(chunk);
         }
         self.string = None;
       }
       match self.parts.next()? {
-        Part::Raw(chunk) => return Some(chunk.as_bytes()),
+        Part::Raw(chunk) => return Some(chunk),
         Part::String(value) => self.string = Some(JsonStringChunks::new(value)),
       }
     }
   }
 }
 
-struct EditedJsonChunks<'a> {
-  inner: Box<dyn Iterator<Item = &'a [u8]> + 'a>,
+/// Sorted, non-overlapping byte edits applied lazily to borrowed JSON
+/// fragments. Both `rope()` and JSON chunk iteration drive this iterator, so
+/// the two views cannot diverge.
+struct EditedChunks<'a> {
+  inner: Box<dyn Iterator<Item = &'a str> + 'a>,
   replacements: &'a [(usize, usize, String)],
-  chunk: &'a [u8],
+  chunk: &'a str,
   position: usize,
   skip_until: usize,
 }
 
-impl<'a> Iterator for EditedJsonChunks<'a> {
-  type Item = &'a [u8];
+impl<'a> Iterator for EditedChunks<'a> {
+  type Item = &'a str;
 
   fn next(&mut self) -> Option<Self::Item> {
     loop {
@@ -348,11 +356,23 @@ impl<'a> Iterator for EditedJsonChunks<'a> {
       {
         self.skip_until = *stop;
         self.replacements = &self.replacements[1..];
-        return Some(content.as_bytes());
+        return Some(content.as_str());
       }
       if self.chunk.is_empty() {
-        self.chunk = self.inner.next()?;
-        continue;
+        match self.inner.next() {
+          Some(chunk) => {
+            self.chunk = chunk;
+            continue;
+          }
+          // A fully deleted inner view may never yield a fragment. Flush any
+          // remaining edits once the inner stream ends.
+          None => {
+            let (_, stop, content) = self.replacements.first()?;
+            self.skip_until = *stop;
+            self.replacements = &self.replacements[1..];
+            return Some(content.as_str());
+          }
+        }
       }
       if self.position < self.skip_until {
         let len = self.chunk.len().min(self.skip_until - self.position);
@@ -405,11 +425,7 @@ impl MapData {
       visit(Part::String(source));
     }
     visit(Part::Raw("]"));
-    if fields
-      .sources_content
-      .iter()
-      .any(|content| !content.is_empty())
-    {
+    if !is_all_empty(&fields.sources_content) {
       visit(Part::Raw(",\"sourcesContent\":["));
       for (i, content) in fields.sources_content.iter().enumerate() {
         if i != 0 {
@@ -504,12 +520,6 @@ impl<'a> Iterator for JsonStringChunks<'a> {
   }
 }
 
-fn json_string_rope<'a>(value: &'a str, visit: &mut dyn FnMut(&'a str)) {
-  for chunk in JsonStringChunks::new(value) {
-    visit(chunk);
-  }
-}
-
 impl Source for MappingSource {
   fn source(&self) -> SourceValue<'_> {
     let value = match self.0.as_ref() {
@@ -522,42 +532,8 @@ impl Source for MappingSource {
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    match self.0.as_ref() {
-      Data::Map(data) => data.visit(&mut |part| match part {
-        Part::Raw(s) => on_chunk(s),
-        Part::String(s) => json_string_rope(s, on_chunk),
-      }),
-      Data::Edited {
-        inner,
-        replacements,
-        ..
-      } => {
-        let mut position = 0;
-        let mut consumed = 0;
-        let mut edits = replacements.iter().peekable();
-        inner.rope(&mut |chunk| {
-          let end = position + chunk.len();
-          while let Some((start, stop, content)) = edits.peek()
-            && *start <= end
-          {
-            if *start > consumed.max(position) {
-              on_chunk(&chunk[consumed.max(position) - position..start - position]);
-            }
-            on_chunk(content);
-            consumed = *stop;
-            edits.next();
-          }
-          if consumed < end {
-            on_chunk(&chunk[consumed.max(position) - position..]);
-            consumed = end;
-          }
-          position = end;
-        });
-        // An edited view may be empty, in which case its rope has no fragments.
-        for (_, _, content) in edits {
-          on_chunk(content);
-        }
-      }
+    for chunk in self.json_chunks_iter() {
+      on_chunk(chunk);
     }
   }
 
