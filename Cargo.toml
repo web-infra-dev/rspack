@@ -74,6 +74,7 @@ micromegas-perfetto = { version = "0.9.0", default-features = false }
 miette              = { version = "7.6.0", default-features = false }
 mimalloc            = { version = "0.1.48", default-features = false }
 mime_guess          = { version = "2.0.5", default-features = false, features = ["rev-mappings"] }
+nohash-hasher       = { version = "0.2.0", default-features = false }
 normalize-path      = { version = "0.2.2", default-features = false }
 notify              = { version = "8.2.0", default-features = false }
 num-bigint          = { version = "0.4.6", default-features = false }

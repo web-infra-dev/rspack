@@ -1,17 +1,10 @@
-use rustc_hash::FxHashMap;
+use nohash_hasher::IntMap;
 
 #[derive(Debug)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]
 struct WideChar {
   utf16_start: u32,
   byte_start: u32,
-}
-
-#[derive(Debug, Default)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
-struct WideLine {
-  chars: Vec<WideChar>,
-  extra_bytes: u32,
 }
 
 /// UTF-16 columns for a whole source. Only non-ASCII lines have character indexes.
@@ -21,13 +14,13 @@ pub struct LineIndex<'text> {
   #[cfg_attr(allocative, allocative(skip))]
   text: &'text str,
   line_starts: Vec<u32>,
-  wide_lines: FxHashMap<u32, WideLine>,
+  line_wide_chars: IntMap<u32, Box<[WideChar]>>,
 }
 
 #[derive(Clone, Copy)]
 pub struct IndexedLine<'text, 'index> {
   pub line: &'text str,
-  wide: Option<&'index WideLine>,
+  wide: Option<&'index [WideChar]>,
 }
 
 #[derive(Default)]
@@ -42,7 +35,7 @@ impl<'text> LineIndex<'text> {
     let mut index = Self {
       text,
       line_starts: if text.is_empty() { Vec::new() } else { vec![0] },
-      wide_lines: FxHashMap::default(),
+      line_wide_chars: IntMap::default(),
     };
     index.scan();
     index
@@ -61,7 +54,7 @@ impl<'text> LineIndex<'text> {
     let text: &'text str = self.text;
     Some(IndexedLine {
       line: &text[start..end],
-      wide: self.wide_lines.get(&(line as u32)),
+      wide: self.line_wide_chars.get(&(line as u32)).map(Box::as_ref),
     })
   }
 
@@ -76,12 +69,9 @@ impl<'text> LineIndex<'text> {
 
   fn finish_line(&mut self, state: &mut ScanState) {
     if !state.chars.is_empty() {
-      self.wide_lines.insert(
+      self.line_wide_chars.insert(
         (self.line_starts.len() - 1) as u32,
-        WideLine {
-          chars: std::mem::take(&mut state.chars),
-          extra_bytes: state.extra_bytes as u32,
-        },
+        std::mem::take(&mut state.chars).into_boxed_slice(),
       );
     }
     state.extra_bytes = 0;
@@ -251,15 +241,12 @@ impl<'text> IndexedLine<'text, '_> {
       return unsafe { self.line.get_unchecked(start..end) };
     };
 
-    let utf16_len = self.line.len() - wide.extra_bytes as usize;
     let to_byte = |index: usize| {
-      if index >= utf16_len {
+      if index >= self.line.len() {
         return self.line.len();
       }
-      let position = wide
-        .chars
-        .partition_point(|ch| ch.utf16_start as usize <= index);
-      let Some(ch) = position.checked_sub(1).and_then(|i| wide.chars.get(i)) else {
+      let position = wide.partition_point(|ch| ch.utf16_start as usize <= index);
+      let Some(ch) = position.checked_sub(1).and_then(|i| wide.get(i)) else {
         return index;
       };
       let byte_start = ch.byte_start as usize;
@@ -269,7 +256,7 @@ impl<'text> IndexedLine<'text, '_> {
       if after < wide_len {
         byte_start
       } else {
-        byte_start + byte_len + after - wide_len
+        (byte_start + byte_len + after - wide_len).min(self.line.len())
       }
     };
 
