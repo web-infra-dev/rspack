@@ -4,15 +4,18 @@ use rspack_core::{
   ConstDependency, JavascriptParserCommonjsExportsOption, OverrideStrict, RuntimeGlobals,
   RuntimeRequirementsDependency,
 };
-use swc_experimental_ecma_ast::{
-  AssignExpr, CallExpr, Ident, MemberExpr, NewExpr, Program, Span, UnaryExpr,
+use swc_next_ecma_ast::{
+  AssignmentExpression, CallExpression, GetSpan, MemberExpression, NewExpression, Program, Span,
+  UnaryExpression,
 };
 
 use super::JavascriptParserPlugin;
 use crate::{
   Atom,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier},
-  visitors::{JavascriptParser, Statement, VariableInfoFlags, expr_name},
+  visitors::{
+    HookMemberExpression, Identifier, JavascriptParser, Statement, VariableInfoFlags, expr_name,
+  },
 };
 
 pub struct CommonJsPlugin;
@@ -92,13 +95,13 @@ impl CommonJsPlugin {
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
-  fn program(&self, parser: &mut JavascriptParser<'p>, _ast: &Program) -> Option<bool> {
+  fn program(&self, parser: &mut JavascriptParser<'p>, _ast: Program) -> Option<bool> {
     parser.build_info.module_exports_accessed =
       Self::should_track_module_exports_access(parser).then_some(false);
     None
   }
 
-  fn statement(&self, parser: &mut JavascriptParser<'p>, statement: Statement<'_>) -> Option<bool> {
+  fn statement(&self, parser: &mut JavascriptParser<'p>, statement: Statement) -> Option<bool> {
     // Statement walking starts after scope pre-walking, so shadowed bindings are already known.
     Self::tag_require_access(parser);
     if matches!(statement, Statement::Return(_)) && parser.is_top_level_scope() {
@@ -147,14 +150,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &UnaryExpr,
+    expr: UnaryExpression,
     for_name: &str,
   ) -> Option<bool> {
     self.observe_factory_binding(parser, for_name);
 
     if for_name == expr_name::MODULE {
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        expr.span.into(),
+        expr.span(parser.ast.ast).into(),
         "'object'".into(),
       )));
       Some(true)
@@ -166,7 +169,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn member(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _expr: &MemberExpr,
+    _expr: HookMemberExpression,
     for_name: &str,
   ) -> Option<bool> {
     self.observe_factory_binding(parser, for_name);
@@ -193,7 +196,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _ident: &Ident,
+    _ident: &Identifier,
     for_name: &str,
   ) -> Option<bool> {
     self.observe_factory_binding(parser, for_name);
@@ -203,7 +206,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn new_expression(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _expr: &NewExpr,
+    _expr: NewExpression,
     for_name: &str,
   ) -> Option<bool> {
     self.observe_factory_binding(parser, for_name);
@@ -213,7 +216,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _call_expr: &CallExpr,
+    _call_expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
     self.observe_factory_binding(parser, for_name);
@@ -223,8 +226,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn assign(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _expr: &AssignExpr,
-    _ident: &Ident,
+    _expr: AssignmentExpression,
+    _ident: &Identifier,
     for_name: &str,
   ) -> Option<bool> {
     self.observe_factory_binding(parser, for_name);
@@ -234,7 +237,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn assign_member_chain(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _expr: &AssignExpr,
+    _expr: AssignmentExpression,
     _members: &[Atom],
     _member_ranges: &[Span],
     for_name: &str,
@@ -246,7 +249,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn member_chain(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _expr: &MemberExpr,
+    _expr: HookMemberExpression,
     for_name: &str,
     _members: &[Atom],
     _members_optionals: &[bool],
@@ -259,7 +262,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn call_member_chain(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _expr: &CallExpr,
+    _expr: CallExpression,
     for_name: &str,
     _members: &[Atom],
     _members_optionals: &[bool],
@@ -272,9 +275,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn member_chain_of_call_member_chain(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _member_expr: &MemberExpr,
+    _member_expr: MemberExpression,
     _callee_members: &[Atom],
-    _call_expr: &CallExpr,
+    _call_expr: CallExpression,
     _members: &[Atom],
     _member_ranges: &[Span],
     for_name: &str,
@@ -286,9 +289,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn call_member_chain_of_call_member_chain(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _call_expr: &CallExpr,
+    _call_expr: CallExpression,
     _callee_members: &[Atom],
-    _inner_call_expr: &CallExpr,
+    _inner_call_expr: CallExpression,
     _members: &[Atom],
     _member_ranges: &[Span],
     for_name: &str,

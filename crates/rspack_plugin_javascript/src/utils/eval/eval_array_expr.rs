@@ -1,27 +1,29 @@
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::ArrayLit;
+use swc_next_ecma_ast::{ArgumentData, ArrayExpression, GetSpan};
 
 use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
 
 #[inline]
-pub fn eval_array_expression<'parser: 'a, 'a>(
-  scanner: &mut JavascriptParser<'parser>,
-  expr: &'a ArrayLit<'a>,
-) -> Option<BasicEvaluatedExpression<'a>> {
-  let mut items = vec![];
-
-  for elem in &expr.elems {
-    if let Some(elem) = elem
-      && elem.spread.is_none()
-    {
-      items.push(scanner.evaluate_expression(&elem.expr));
-    } else {
+pub fn eval_array_expression<'parser>(
+  parser: &mut JavascriptParser<'parser>,
+  expression: ArrayExpression,
+) -> Option<BasicEvaluatedExpression<'parser>> {
+  let ast = parser.ast.ast;
+  let mut items = Vec::new();
+  for element in expression
+    .elements(ast)
+    .iter()
+    .map(|id| ast.get_node_in_sub_range(id))
+  {
+    let element = element?;
+    let ArgumentData::Expr(element) = ast.argument_data(element) else {
       return None;
-    }
+    };
+    items.push(parser.evaluate_expression(element));
   }
-
-  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-  res.set_items(items);
-  Some(res)
+  let span = expression.span(ast);
+  let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
+  result.set_items(items);
+  Some(result)
 }

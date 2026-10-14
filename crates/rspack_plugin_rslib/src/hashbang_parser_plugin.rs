@@ -2,25 +2,19 @@ use std::sync::Arc;
 
 use rspack_core::ConstDependency;
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
-use swc_experimental_ecma_ast::Program;
+use swc_next_ecma_ast::{GetSpan, Program};
 
 pub struct HashbangParserPlugin;
 
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for HashbangParserPlugin {
-  fn program(&self, parser: &mut JavascriptParser<'p>, ast: &Program) -> Option<bool> {
-    let hashbang = ast
-      .as_module()
-      .and_then(|m| m.shebang.as_ref())
-      .or_else(|| ast.as_script().and_then(|s| s.shebang.as_ref()))?;
+  fn program(&self, parser: &mut JavascriptParser<'p>, program: Program) -> Option<bool> {
+    let ast = parser.ast.ast;
+    let hashbang = program.hashbang(ast)?;
+    let hashbang_value = ast.get_utf8(hashbang.value(ast));
 
-    // Normalize hashbang to always include "#!" prefix
-    // SWC may omit the leading "#!" in the shebang value
-    let normalized_hashbang = if hashbang.starts_with("#!") {
-      hashbang.to_string()
-    } else {
-      format!("#!{hashbang}")
-    };
+    // SWC Next stores the hashbang value without the leading "#!".
+    let normalized_hashbang = format!("#!{hashbang_value}");
 
     // Store hashbang in build_info for later use during rendering
     parser.build_info.extras.insert(
@@ -28,16 +22,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for HashbangParserPlugin {
       serde_json::Value::String(normalized_hashbang),
     );
 
-    // Remove hashbang from source code
-    // If SWC omitted "#!", we still need to remove those two characters
-    let replace_len = if hashbang.starts_with("#!") {
-      hashbang.len() as u32
-    } else {
-      hashbang.len() as u32 + 2 // include "#!"
-    };
-
     parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-      (0, replace_len).into(),
+      hashbang.span(ast).into(),
       "".into(),
     )));
 
