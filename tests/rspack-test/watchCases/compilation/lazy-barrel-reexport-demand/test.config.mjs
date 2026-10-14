@@ -25,6 +25,7 @@ export default {
 			return source.slice(start, end + 2);
 		});
 		scope.CONFIG_KEY = `${options.cache}-${options.incremental}`;
+		scope.CONFIG_INCREMENTAL = options.incremental;
 		return scope;
 	}
 };
