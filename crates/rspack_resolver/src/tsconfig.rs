@@ -1,4 +1,4 @@
-use std::{hash::BuildHasherDefault, sync::Arc};
+use std::{cmp::Reverse, hash::BuildHasherDefault, sync::Arc};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use cow_utils::CowUtils;
@@ -180,32 +180,55 @@ impl TsConfig {
       .extend(other_config.file_dependencies.iter().cloned());
   }
 
-  /// Picks the config whose claimed directory is the longest prefix of
-  /// `path`. References with neither `paths` nor `baseUrl` are skipped. On a
-  /// tie, a config with `paths` wins, then a reference wins over the root
-  /// config, then the first declared reference wins, as on main. The root
-  /// config is the fallback when nothing matches.
+  /// `paths` act like aliases across the configs claiming `path`: the most
+  /// specific config with a `paths` key matching `specifier` supplies the
+  /// mapped candidates, so a config without such a key falls through to the
+  /// next one. Its targets are not padded with other configs' mappings, so a
+  /// missing target never resolves to a same-named file elsewhere. The
+  /// `baseUrl` candidate likewise comes from the most specific config with a
+  /// `baseUrl`, after the `paths` candidates.
   pub fn resolve(&self, path: &Utf8Path, specifier: &str) -> Vec<Utf8PathBuf> {
-    let root = path
-      .starts_with(self.directory())
-      .then(|| (self.directory(), false, self));
-    self
+    if specifier.starts_with(['/', '.']) {
+      return vec![];
+    }
+    let configs = self.configs_by_specificity(path);
+    let paths = configs
+      .iter()
+      .find_map(|config| config.paths_candidates(specifier))
+      .unwrap_or_default();
+    let base_url = configs
+      .iter()
+      .find_map(|config| config.base_url_candidate(specifier));
+    paths.into_iter().chain(base_url).collect()
+  }
+
+  /// Configs whose claimed directory is a prefix of `path`, longest first.
+  /// References with neither `paths` nor `baseUrl` are skipped. On a tie, a
+  /// config with `paths` goes first, then a reference before the root
+  /// config, then references in declaration order, as on main. The root
+  /// config always comes last when it does not claim `path`.
+  fn configs_by_specificity(&self, path: &Utf8Path) -> Vec<&Self> {
+    let root_claims_path = path.starts_with(self.directory());
+    let mut configs: Vec<(&Utf8Path, bool, &Self)> = self
       .flattened_references
       .iter()
       .filter(|reference| reference.has_path_alias())
       .map(|reference| (reference.claimed_directory(), true, reference.as_ref()))
       .filter(|(directory, _, _)| path.starts_with(directory))
-      .chain(root)
-      .rev()
-      .max_by_key(|(directory, is_reference, config)| {
-        (
-          directory.as_str().len(),
-          config.compiler_options.paths.is_some(),
-          *is_reference,
-        )
-      })
-      .map_or(self, |(_, _, config)| config)
-      .resolve_path_alias(specifier)
+      .chain(root_claims_path.then(|| (self.directory(), false, self)))
+      .collect();
+    configs.sort_by_key(|(directory, is_reference, config)| {
+      Reverse((
+        directory.as_str().len(),
+        config.compiler_options.paths.is_some(),
+        *is_reference,
+      ))
+    });
+    let mut configs: Vec<&Self> = configs.into_iter().map(|(_, _, config)| config).collect();
+    if !root_claims_path {
+      configs.push(self);
+    }
+    configs
   }
 
   /// Whether `resolve_path_alias` can produce any candidate.
@@ -233,62 +256,66 @@ impl TsConfig {
     if specifier.starts_with(['/', '.']) {
       return vec![];
     }
+    self
+      .paths_candidates(specifier)
+      .unwrap_or_default()
+      .into_iter()
+      .chain(self.base_url_candidate(specifier))
+      .collect()
+  }
 
-    let base_url_iter = self
+  /// The `paths` targets for `specifier`, or `None` when no `paths` key
+  /// matches it.
+  fn paths_candidates(&self, specifier: &str) -> Option<Vec<Utf8PathBuf>> {
+    let paths_map = self.compiler_options.paths.as_ref()?;
+
+    let paths = paths_map.get(specifier).cloned().or_else(|| {
+      let mut longest_prefix_length = 0;
+      let mut longest_suffix_length = 0;
+      let mut best_key: Option<&String> = None;
+
+      for key in paths_map.keys() {
+        if let Some((prefix, suffix)) = key.split_once('*') {
+          if (best_key.is_none() || prefix.len() > longest_prefix_length)
+            && specifier.starts_with(prefix)
+            && specifier.ends_with(suffix)
+          {
+            longest_prefix_length = prefix.len();
+            longest_suffix_length = suffix.len();
+            best_key.replace(key);
+          }
+        }
+      }
+
+      best_key.and_then(|key| paths_map.get(key)).map(|paths| {
+        paths
+          .iter()
+          .map(|path| {
+            path
+              .cow_replace(
+                '*',
+                &specifier[longest_prefix_length..specifier.len() - longest_suffix_length],
+              )
+              .into_owned()
+          })
+          .collect::<Vec<_>>()
+      })
+    })?;
+
+    Some(
+      paths
+        .into_iter()
+        .map(|p| self.compiler_options.paths_base.normalize_with(p))
+        .collect(),
+    )
+  }
+
+  fn base_url_candidate(&self, specifier: &str) -> Option<Utf8PathBuf> {
+    self
       .compiler_options
       .base_url
       .as_ref()
-      .map_or_else(Vec::new, |base_url| {
-        vec![base_url.normalize_with(specifier)]
-      });
-
-    let Some(paths_map) = &self.compiler_options.paths else {
-      return base_url_iter;
-    };
-
-    let paths = paths_map.get(specifier).map_or_else(
-      || {
-        let mut longest_prefix_length = 0;
-        let mut longest_suffix_length = 0;
-        let mut best_key: Option<&String> = None;
-
-        for key in paths_map.keys() {
-          if let Some((prefix, suffix)) = key.split_once('*') {
-            if (best_key.is_none() || prefix.len() > longest_prefix_length)
-              && specifier.starts_with(prefix)
-              && specifier.ends_with(suffix)
-            {
-              longest_prefix_length = prefix.len();
-              longest_suffix_length = suffix.len();
-              best_key.replace(key);
-            }
-          }
-        }
-
-        best_key
-          .and_then(|key| paths_map.get(key))
-          .map_or_else(Vec::new, |paths| {
-            paths
-              .iter()
-              .map(|path| {
-                path
-                  .cow_replace(
-                    '*',
-                    &specifier[longest_prefix_length..specifier.len() - longest_suffix_length],
-                  )
-                  .into_owned()
-              })
-              .collect::<Vec<_>>()
-          })
-      },
-      Clone::clone,
-    );
-
-    paths
-      .into_iter()
-      .map(|p| self.compiler_options.paths_base.normalize_with(p))
-      .chain(base_url_iter)
-      .collect()
+      .map(|base_url| base_url.normalize_with(specifier))
   }
 
   /// Template variable `${configDir}` for substitution of config files directory path

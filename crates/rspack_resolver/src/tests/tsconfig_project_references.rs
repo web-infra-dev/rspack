@@ -390,6 +390,93 @@ async fn nested_references_longest_match() {
   }
 }
 
+// A config whose `paths` key matches but whose target is missing does not
+// fall through to a less specific config's same-named file.
+#[tokio::test]
+async fn missing_alias_target_does_not_fall_through() {
+  let f = super::fixture_root().join("tsconfig/cases/references-longest-match");
+
+  let resolver = Resolver::new(ResolveOptions {
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("app"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let resolved_path = resolver
+    .resolve(&f.join("outer"), "@/only-outer.ts")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("outer/aliased/only-outer.ts")));
+
+  let resolved_path = resolver
+    .resolve(&f.join("outer/inner"), "@/only-outer.ts")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(
+    resolved_path,
+    Err(ResolveError::NotFound("@/only-outer.ts".into()))
+  );
+}
+
+// Same-directory references that both map a specifier: the first declared
+// one wins, as on main.
+#[tokio::test]
+async fn same_dir_references_first_declared_wins() {
+  let f = super::fixture_root().join("tsconfig/cases/references-same-dir-order");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let resolved_path = resolver.resolve(&f, "@/x").await.map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("a/x.ts")));
+}
+
+// `paths` act like aliases: when the most specific config has no mapping
+// for a specifier, the less specific configs (down to the root) are tried.
+#[tokio::test]
+async fn reference_paths_fall_back_to_root() {
+  let f = super::fixture_root().join("tsconfig/cases/references-paths-fallback");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let cases = [
+    (
+      f.join("src"),
+      "@src/config/settings",
+      f.join("src/config/settings.ts"),
+    ),
+    (f.join("src"), "@tools/build", f.join("tools/build.ts")),
+    (
+      f.join("tools"),
+      "@src/config/settings",
+      f.join("src/config/settings.ts"),
+    ),
+  ];
+
+  for (path, request, expected) in cases {
+    let resolved_path = resolver
+      .resolve(&path, request)
+      .await
+      .map(|p| p.full_path());
+    assert_eq!(resolved_path, Ok(expected), "{request} from {path:?}");
+  }
+}
+
 // A reference is matched by its config directory, not its `baseUrl`, like
 // `enhanced-resolve`: `project_b` has `baseUrl: ./src`, yet a request from
 // `project_b` itself must still use its `paths`.
