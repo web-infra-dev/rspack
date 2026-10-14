@@ -1,2 +1,4 @@
-// a module worker is an ES module, where top-level `this` is undefined
-this.onmessage = () => {};
+import { parentPort } from "worker_threads";
+import dependency from "./dependency.cjs";
+
+parentPort.postMessage({ thisIsUndefined: this === undefined, dependency });
