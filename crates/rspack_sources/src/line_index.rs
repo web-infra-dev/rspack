@@ -39,7 +39,6 @@ struct ScanState {
 
 impl<'text> LineIndex<'text> {
   pub fn new(text: &'text str) -> Self {
-    assert!(u32::try_from(text.len()).is_ok());
     let mut index = Self {
       text,
       line_starts: if text.is_empty() { Vec::new() } else { vec![0] },
