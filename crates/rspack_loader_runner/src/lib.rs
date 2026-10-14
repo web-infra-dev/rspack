@@ -19,7 +19,7 @@ pub use loader::{
 };
 pub use plugin::LoaderRunnerPlugin;
 pub use rspack_collections::{Identifiable, Identifier};
-pub use runner::{LoaderResult, run_loaders};
+pub use runner::{LoaderCodeFilters, LoaderResult, run_loaders};
 pub use scheme::{Scheme, get_scheme};
 
 pub const BUILTIN_LOADER_PREFIX: &str = "builtin:";

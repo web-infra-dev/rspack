@@ -12,7 +12,7 @@ const filtered = (
     {
       loader: './transform-loader.mjs',
       options: { value },
-      filter: { code },
+      codeFilter: code,
     },
   ],
 });
@@ -39,7 +39,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'empty-content' },
-            filter: { code: '' },
+            codeFilter: '',
           },
           './empty-producer-loader.mjs',
         ],
@@ -52,7 +52,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'functional' },
-            filter: { code: 'marker:functional' },
+            codeFilter: 'marker:functional',
           },
         ],
       },
@@ -63,7 +63,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'right-output' },
-            filter: { code: /generated:marker/g },
+            codeFilter: /generated:marker/g,
           },
           './marker-producer-loader.mjs',
         ],
@@ -75,7 +75,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'should-not-run' },
-            filter: { code: 'not present' },
+            codeFilter: 'not present',
           },
           './metadata-producer-loader.mjs',
         ],
@@ -87,7 +87,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'mixed-native' },
-            filter: { code: '-simple' },
+            codeFilter: '-simple',
           },
           'builtin:test-simple-loader',
         ],
@@ -100,7 +100,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'should-not-run' },
-            filter: { code: '' },
+            codeFilter: '',
           },
           './invalid-producer-loader.mjs',
         ],
@@ -110,7 +110,7 @@ export default defineConfig({
         use: [
           {
             loader: 'builtin:test-simple-loader',
-            filter: { code: 'marker' },
+            codeFilter: 'marker',
           },
         ],
       },
@@ -119,7 +119,7 @@ export default defineConfig({
         use: [
           {
             loader: 'builtin:test-simple-loader',
-            filter: { code: 'not present' },
+            codeFilter: 'not present',
           },
         ],
       },
@@ -128,7 +128,7 @@ export default defineConfig({
         use: [
           {
             loader: './pitch-result-loader.mjs',
-            filter: { code: 'not present' },
+            codeFilter: 'not present',
           },
         ],
       },

@@ -1,5 +1,3 @@
-mod code_filter_loader;
-pub use code_filter_loader::CodeFilteredLoader;
 pub(crate) mod loader_cache;
 pub use loader_cache::{
   LoaderCacheDependencySnapshot, loader_cache_dependency_snapshot,

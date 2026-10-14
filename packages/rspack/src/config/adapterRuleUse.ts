@@ -3,7 +3,6 @@ import type {
   RawModuleRuleUse,
   RawOptions,
   RawRuleSetLoaderCodeFilter,
-  RawRuleSetLoaderFilter,
 } from '@rspack/binding';
 import { getLightningcssLoaderOptions } from '../builtin-loader/lightningcss';
 import { getSwcLoaderOptions } from '../builtin-loader/swc';
@@ -575,12 +574,13 @@ function createRawModuleRuleUsesImpl(
       optionsCacheKey: use.cache
         ? (JSON.stringify(fingerprintOptions) ?? '')
         : '',
-      filter: use.filter
-        ? createRawRuleSetLoaderFilter(
-            use.filter.code,
-            `${path}[${index}].filter.code`,
-          )
-        : undefined,
+      codeFilter:
+        use.codeFilter !== undefined
+          ? createRawRuleSetLoaderCodeFilter(
+              use.codeFilter,
+              `${path}[${index}].codeFilter`,
+            )
+          : undefined,
     };
   });
 }
@@ -635,13 +635,6 @@ function createRawRuleSetLoaderCodeFilter(
         ? []
         : normalizeCodeFilterPatterns(filter.exclude, `${path}.exclude`),
   };
-}
-
-function createRawRuleSetLoaderFilter(
-  filter: RuleSetLoaderCodeFilter,
-  path: string,
-): RawRuleSetLoaderFilter {
-  return { code: createRawRuleSetLoaderCodeFilter(filter, path) };
 }
 
 function resolveStringifyLoaders(

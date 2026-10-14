@@ -2,7 +2,7 @@ use std::{borrow::Cow, ops::Deref, sync::Arc};
 
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{Loader, LoaderRunnerOptions, Scheme, get_scheme};
+use rspack_loader_runner::{CodeFilter, Loader, LoaderRunnerOptions, Scheme, get_scheme};
 use rspack_util::{
   MergeFrom,
   fx_hash::{FxDashMap, FxHashMap as HashMap},
@@ -12,16 +12,16 @@ use winnow::prelude::*;
 
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
-  CodeFilteredLoader, CompilerOptions, Context, CssAutoOrModuleParserOptions,
-  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
-  DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, MatchContext, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
-  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType,
-  NormalModule, ParserAndGenerator, ParserOptions, ParserOptionsMap, RawModule, Resolve,
-  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, ResolvedModuleOptions,
-  ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory, ResourceData, ResourceParsedData,
-  RunnerContext, RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency,
-  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
+  CompilerOptions, Context, CssAutoOrModuleParserOptions, CssModuleGeneratorOptions,
+  CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx,
+  GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
+  ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
+  ResolveResult, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory,
+  ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
+  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
+  stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -856,7 +856,7 @@ impl NormalModuleFactory {
             }),
             cache: false,
             options_cache_key: String::new(),
-            filter: None,
+            code_filter: None,
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -1103,9 +1103,19 @@ module.exports = "data:,";
     } else {
       resource_data.resource().to_owned()
     };
-    let has_cached_loader = resolved_loaders
-      .iter()
-      .any(|resolved| resolved.options.cache);
+    let mut has_cached_loader = false;
+    let mut has_code_filter = false;
+    for resolved in &resolved_loaders {
+      has_cached_loader |= resolved.options.cache;
+      has_code_filter |= resolved.code_filter.is_some();
+    }
+    let loader_code_filters = has_code_filter.then(|| {
+      resolved_loaders
+        .iter()
+        .map(|resolved| resolved.code_filter.clone())
+        .collect::<Vec<_>>()
+        .into_boxed_slice()
+    });
     let (loaders, loader_options) = if has_cached_loader {
       let (loaders, loader_options) = resolved_loaders
         .into_iter()
@@ -1208,6 +1218,7 @@ module.exports = "data:,";
         resolved_resolve_options,
         loaders,
         loader_options,
+        loader_code_filters,
         create_data.context.clone().map(|x| x.into()),
         resolved_extract_source_map,
         dependency_phase,
@@ -1377,6 +1388,7 @@ async fn resolve_each(
 struct ResolvedLoader {
   loader: BoxLoader,
   options: LoaderRunnerOptions,
+  code_filter: Option<Arc<CodeFilter>>,
 }
 
 impl ResolvedLoader {
@@ -1384,6 +1396,7 @@ impl ResolvedLoader {
     Self {
       loader,
       options: LoaderRunnerOptions::default(),
+      code_filter: None,
     }
   }
 }
@@ -1413,13 +1426,12 @@ async fn resolve_each_with_options(
     data,
   )
   .await?;
-  let resolved: BoxLoader = if let Some(filter) = loader.filter.clone() {
-    Arc::new(CodeFilteredLoader::new(resolved, filter))
-  } else {
-    resolved
-  };
   if !loader.cache {
-    return Ok(ResolvedLoader::uncached(resolved));
+    return Ok(ResolvedLoader {
+      loader: resolved,
+      options: LoaderRunnerOptions::default(),
+      code_filter: loader.code_filter.clone(),
+    });
   }
   let loader_name = parse_resource(&loader.loader).map_or_else(
     || loader.loader.clone(),
@@ -1437,6 +1449,7 @@ async fn resolve_each_with_options(
       options_cache_key: loader.options_cache_key.clone(),
       loader_version,
     },
+    code_filter: loader.code_filter.clone(),
   })
 }
 

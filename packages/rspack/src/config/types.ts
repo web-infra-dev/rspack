@@ -891,14 +891,6 @@ export type RuleSetLoaderCodeFilter =
       exclude?: RuleSetLoaderCodePattern | RuleSetLoaderCodePattern[];
     };
 
-export type RuleSetLoaderFilter = {
-  /**
-   * Pre-filters the normal loader handler using its current input code.
-   * @experimental
-   */
-  code: RuleSetLoaderCodeFilter;
-};
-
 export type RuleSetLoaderWithOptions = {
   /**
    * Stable identifier used to reference object-form loader options.
@@ -931,7 +923,7 @@ export type RuleSetLoaderWithOptions = {
    * The loader pitch function is not filtered.
    * @experimental
    */
-  filter?: RuleSetLoaderFilter;
+  codeFilter?: RuleSetLoaderCodeFilter;
 
   options?: RuleSetLoaderOptions;
 };

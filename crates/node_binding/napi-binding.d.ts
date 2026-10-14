@@ -2817,7 +2817,7 @@ export interface RawModuleRuleUse {
   options?: string
   cache: boolean
   optionsCacheKey: string
-  filter?: RawRuleSetLoaderFilter
+  codeFilter?: RawRuleSetLoaderCodeFilter
 }
 
 export interface RawNewCache {
@@ -3124,10 +3124,6 @@ export declare enum RawRuleSetConditionType {
 export interface RawRuleSetLoaderCodeFilter {
   include?: Array<string | RegExp> | undefined
   exclude: Array<string | RegExp>
-}
-
-export interface RawRuleSetLoaderFilter {
-  code: RawRuleSetLoaderCodeFilter
 }
 
 export interface RawRuleSetLogicalConditions {

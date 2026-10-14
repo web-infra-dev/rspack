@@ -51,7 +51,7 @@ pub struct RawModuleRuleUse {
   pub options: Option<String>,
   pub cache: bool,
   pub options_cache_key: String,
-  pub filter: Option<RawRuleSetLoaderFilter>,
+  pub code_filter: Option<RawRuleSetLoaderCodeFilter>,
 }
 
 type RawRuleSetLoaderCodePattern = Either<String, RspackRegex>;
@@ -65,12 +65,6 @@ pub struct RawRuleSetLoaderCodeFilter {
   pub exclude: Vec<RawRuleSetLoaderCodePattern>,
 }
 
-#[napi(object)]
-#[derive(Debug)]
-pub struct RawRuleSetLoaderFilter {
-  pub code: RawRuleSetLoaderCodeFilter,
-}
-
 fn normalize_loader_code_pattern(value: RawRuleSetLoaderCodePattern) -> CodeFilterPattern {
   match value {
     Either::A(value) => CodeFilterPattern::String(value),
@@ -78,17 +72,16 @@ fn normalize_loader_code_pattern(value: RawRuleSetLoaderCodePattern) -> CodeFilt
   }
 }
 
-impl From<RawRuleSetLoaderFilter> for CodeFilter {
-  fn from(value: RawRuleSetLoaderFilter) -> Self {
+impl From<RawRuleSetLoaderCodeFilter> for CodeFilter {
+  fn from(value: RawRuleSetLoaderCodeFilter) -> Self {
     Self::new(
-      value.code.include.map(|patterns| {
+      value.include.map(|patterns| {
         patterns
           .into_iter()
           .map(normalize_loader_code_pattern)
           .collect()
       }),
       value
-        .code
         .exclude
         .into_iter()
         .map(normalize_loader_code_pattern)
@@ -1069,7 +1062,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
             options: rule_use.options,
             cache: rule_use.cache,
             options_cache_key: rule_use.options_cache_key,
-            filter: rule_use.filter.map(|filter| Arc::new(filter.into())),
+            code_filter: rule_use.code_filter.map(|filter| Arc::new(filter.into())),
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -1086,7 +1079,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
                   options: rule_use.options,
                   cache: rule_use.cache,
                   options_cache_key: rule_use.options_cache_key,
-                  filter: rule_use.filter.map(|filter| Arc::new(filter.into())),
+                  code_filter: rule_use.code_filter.map(|filter| Arc::new(filter.into())),
                 })
                 .collect::<Vec<_>>()
             })

@@ -6,7 +6,7 @@
 
 # Summary
 
-为 `module.rules[].use` 的对象形式增加实验性的 `filter.code` 配置，使 Rspack 能在 loader 的 normal handler 执行前，根据该位置的当前输入代码判断是否需要调用 loader。API 结构与 Rolldown Hook Filter 保持一致：`filter` 表示预过滤器，`code` 表示参与匹配的输入维度。
+为 `module.rules[].use` 的对象形式增加实验性的 `codeFilter` 配置，使 Rspack 能在 loader 的 normal handler 执行前，根据该位置的当前输入代码判断是否需要调用 loader。匹配值沿用 Rolldown Hook Filter 的 `code` 匹配语义；Rspack 的 rule 已提供路径等静态条件，因此字段直接表明它只过滤当前输入代码。
 
 ```ts
 module: {
@@ -17,9 +17,7 @@ module: {
         {
           loader: require.resolve('./transform-loader'),
           options: { mode: 'server' },
-          filter: {
-            code: /createMiddleware/,
-          },
+          codeFilter: /createMiddleware/,
         },
       ],
     },
@@ -27,7 +25,7 @@ module: {
 }
 ```
 
-`filter.code` 只过滤 normal handler，不过滤 pitch。它是 loader normal handler 的执行前置条件：用户必须保证在 filter miss 时，该 handler 原本也应当是无可观察副作用的 no-op。基于这一约束，filter 不参与 loader options、loader request、`NormalModule` identifier 或 loader cache etag。
+`codeFilter` 只过滤 normal handler，不过滤 pitch。它是 loader normal handler 的执行前置条件：用户必须保证在 filter miss 时，该 handler 原本也应当是无可观察副作用的 no-op。基于这一约束，filter 不参与 loader options、loader request、`NormalModule` identifier 或 loader cache etag。
 
 该设计的目标是把 transform 中常见的源码正则预检查前移到 Rspack 调度层，在不改变资源读取、pitch、loader 链和缓存身份的前提下，减少无效的 Rust → JavaScript 调用及 worker dispatch。
 
@@ -61,7 +59,7 @@ module.exports = function transformLoader(source) {
 - 保留 webpack-compatible pitch 顺序和短路行为；
 - miss 时不调用 normal handler，不查询或写入该 loader 的 normal cache，也不 dispatch worker；
 - 不增加真实或伪 builtin loader，不改变用户可观察的 loader 链；
-- 不改变未使用 `filter` 的模块身份、缓存和热路径行为；
+- 不改变未使用 `codeFilter` 的模块身份、缓存和热路径行为；
 - 不把 filter 混入 `options`，避免 loader 通过 `getOptions()` 观察到 Rspack 调度元数据；
 - 静态 matcher 只编译一次，并尽可能在 Rust 中零拷贝匹配；
 - 为 Rsbuild `api.transform` 提供可直接使用的底层能力。
@@ -87,7 +85,7 @@ transform: {
 }
 ```
 
-本 RFC 沿用 Rolldown 的两层结构和匹配语义：外层 `filter` 按输入维度组织条件，`code` 使用 `GeneralHookFilter<string | RegExp>` 风格的直接值、数组或 `include`/`exclude` 对象；数组表示 OR、`exclude` 优先、缺少 `include` 时默认包含。差异在于 Rspack loader 还存在独立的 pitch 阶段，因此 `filter.code` 必须明确限定为 normal-only。
+本 RFC 沿用 Rolldown `code` 条件的匹配语义：`codeFilter` 使用 `GeneralHookFilter<string | RegExp>` 风格的直接值、数组或 `include`/`exclude` 对象；数组表示 OR、`exclude` 优先、缺少 `include` 时默认包含。差异在于 Rspack loader 还存在独立的 pitch 阶段，因此 `codeFilter` 必须明确限定为 normal-only。
 
 ## webpack 和 Rspack loader
 
@@ -124,14 +122,6 @@ type RuleSetLoaderCodeFilter =
       exclude?: RuleSetLoaderCodePattern | RuleSetLoaderCodePattern[];
     };
 
-type RuleSetLoaderFilter = {
-  /**
-   * Pre-filters the normal loader handler using its current input code.
-   * @experimental
-   */
-  code: RuleSetLoaderCodeFilter;
-};
-
 type RuleSetLoaderWithOptions = {
   loader: RuleSetLoader;
   options?: RuleSetLoaderOptions;
@@ -139,7 +129,8 @@ type RuleSetLoaderWithOptions = {
   parallel?: boolean | { maxWorkers?: number };
   cache?: boolean;
 
-  filter?: RuleSetLoaderFilter;
+  /** Filters the normal handler using its current input code. @experimental */
+  codeFilter?: RuleSetLoaderCodeFilter;
 };
 ```
 
@@ -154,11 +145,9 @@ export default {
         use: [
           {
             loader: require.resolve('./server-function-loader.js'),
-            filter: {
-              code: {
-                include: [/\bcreateServerFn\b/, /\bcreateMiddleware\b/],
-                exclude: '/* generated */',
-              },
+            codeFilter: {
+              include: [/\bcreateServerFn\b/, /\bcreateMiddleware\b/],
+              exclude: '/* generated */',
             },
           },
         ],
@@ -168,7 +157,7 @@ export default {
 };
 ```
 
-`filter` 本身是按输入维度组织条件的对象；v1 要求提供 `code`。以下规则均针对 `filter.code`：
+以下规则均针对 `codeFilter`：
 
 - string 使用子串匹配，不是 glob；
 - `RegExp` 的匹配不依赖调用前的 `lastIndex`，每次都从 `lastIndex = 0` 开始；
@@ -176,20 +165,18 @@ export default {
 - `exclude` 优先于 `include`；
 - 未提供 `include` 时默认包含；
 - `include: []` 永不匹配，`exclude: []` 不排除任何内容；
-- `filter.code: {}` 等价于匹配所有有效文本输入；外层 `filter: {}` 是无效配置；
+- `codeFilter: {}` 等价于匹配所有有效文本输入；
 - 空字符串是有效输入；空 pattern 字符串按 JavaScript `String.prototype.includes('')` 的语义匹配；
 - string content 和有效 UTF-8 Buffer 可以参与匹配；content 不存在或 Buffer 不是有效 UTF-8 时视为 miss；
 - v1 不接受函数，也不支持 `and`、`or`、`not` 组合表达式。
 
-`filter.code` 检查的是 normal handler 执行点的当前输入：
+`codeFilter` 检查的是 normal handler 执行点的当前输入：
 
 ```js
 use: [
   {
     loader: './a-loader.js',
-    filter: {
-      code: 'generated-by-b',
-    },
+    codeFilter: 'generated-by-b',
   },
   './b-loader.js',
 ];
@@ -199,7 +186,7 @@ normal 阶段从右到左执行，因此 `a-loader` 的 code filter 能看到 `b
 
 ## 与 pitch 共存
 
-配置 `filter.code` 不代表 loader 没有 pitch，也不禁止 loader 导出 pitch。pitch 始终按现有语义执行：
+配置 `codeFilter` 不代表 loader 没有 pitch，也不禁止 loader 导出 pitch。pitch 始终按现有语义执行：
 
 ```js
 module.exports = function normal(source) {
@@ -211,11 +198,11 @@ module.exports.pitch = function pitch(remainingRequest, previousRequest, data) {
 };
 ```
 
-上述 loader 的 pitch 对所有匹配 rule 的模块执行；只有 normal handler 受 `filter` 控制。如果 pitch 返回内容并触发短路，则继续沿用现有 loader runner 行为，不额外执行 code filter。
+上述 loader 的 pitch 对所有匹配 rule 的模块执行；只有 normal handler 受 `codeFilter` 控制。如果 pitch 返回内容并触发短路，则继续沿用现有 loader runner 行为，不额外执行 code filter。
 
 ## 正确性约束和兼容回退
 
-`filter.code` 是性能 prefilter，不应被用来为同一个 loader request 创建两套不同的转换语义。loader 作者或配置作者必须保证：当 filter miss 时，跳过 normal handler 与调用 handler 后直接透传完全等价。
+`codeFilter` 是性能 prefilter，不应被用来为同一个 loader request 创建两套不同的转换语义。loader 作者或配置作者必须保证：当 filter miss 时，跳过 normal handler 与调用 handler 后直接透传完全等价。
 
 为兼容 webpack、旧版 Rspack 或其他不识别该字段的运行环境，loader 可以保留 handler 内检查：
 
@@ -229,23 +216,19 @@ module.exports = function loader(source) {
 };
 ```
 
-该检查在支持 `filter` 的 Rspack 中只会对命中模块执行；在不支持该配置的环境中仍保证正确性。
+该检查在支持 `codeFilter` 的 Rspack 中只会对命中模块执行；在不支持该配置的环境中仍保证正确性。
 
 如果 handler 在 miss 路径仍会增加 dependencies、发出文件、修改 `buildInfo`、记录 diagnostics 或产生其他副作用，则不能使用 code filter，除非这些行为被移到 pitch 或另一个不受过滤的 loader 中。
 
 ## Rsbuild API
 
-Rsbuild 的 `api.transform` 使用相同的 filter 结构，避免框架层与 bundler 层出现两套命名：
+Rsbuild 的 `api.transform` 使用 `code` 表示当前 transform 的源码过滤条件；映射到 Rspack loader 配置时使用 `codeFilter`：
 
 ```ts
-type TransformFilter = {
-  /** @experimental */
-  code: TransformCodeFilter;
-};
-
 type TransformDescriptor = {
   test?: RuleSetCondition;
-  filter?: TransformFilter;
+  /** @experimental */
+  code?: TransformCodeFilter;
 
   // existing fields...
 };
@@ -255,10 +238,8 @@ type TransformDescriptor = {
 api.transform(
   {
     test: /\.[cm]?[jt]sx?$/,
-    filter: {
-      code: {
-        include: [/\bcreateServerFn\b/, /\bcreateMiddleware\b/],
-      },
+    code: {
+      include: [/\bcreateServerFn\b/, /\bcreateMiddleware\b/],
     },
     order: 'pre',
   },
@@ -266,7 +247,7 @@ api.transform(
 );
 ```
 
-Rsbuild 仅在 `filter.code` 存在时将其原样映射为 Rspack loader use item 的 `filter.code`；未配置时生成结果保持不变。`raw: true` 仍决定 handler 接收 Buffer，但 filter 只对有效 UTF-8 文本视图进行匹配。
+Rsbuild 仅在 `code` 存在时将其原样映射为 Rspack loader use item 的 `codeFilter`；未配置时生成结果保持不变。`raw: true` 仍决定 handler 接收 Buffer，但 filter 只对有效 UTF-8 文本视图进行匹配。
 
 # Detailed design
 
@@ -279,16 +260,15 @@ code filter 位于具体的 `Rule.use` item，而不是与 `Rule.test` 同级，
 3. 同一个 rule 中不同 loader 看到的输入不同，rule 级 code 条件无法表达“当前 loader 位置”；
 4. filter 是特定 normal handler 的执行前置条件，而不是整个 module rule 是否成立的条件。
 
-字段采用 `filter.code`，与 Rolldown `HookFilter` 的结构保持一致：
+字段采用 `codeFilter`，保留 Rolldown `HookFilter.code` 的匹配值语义，但不照搬其两层结构：
 
-- `filter` 是调度层预过滤器的命名空间，明确它由 Rspack 消费，不传给 loader `options`；
-- `code` 明确指出匹配对象是 normal handler 的当前输入代码，而不是 resource path、loader options 或 pitch；
+- `codeFilter` 明确指出匹配对象是 normal handler 的当前输入代码，而不是 resource path、loader options 或 pitch；它由 Rspack 消费，不传给 loader `options`；
 - code condition 仍支持直接 pattern、pattern 数组和 `include`/`exclude` 三种写法，与 Rolldown `GeneralHookFilter` 一致；
-- 不提供 `filter: /foo/` 简写，避免 `{ include, exclude }` 与未来按维度组织的 filter object 形成两种结构；
+- 不额外提供 `filter: { code: ... }` 别名，以免同一语义存在两套配置结构；
 - 不使用 `when.code`，因为 `when` 容易让用户误以为 pitch 和 normal 都受条件控制；
 - 不使用 loader use item 顶层的裸 `code`，避免与 loader 输入或 options 混淆。
 
-v1 的 `RuleSetLoaderFilter` 只包含必填的 `code` 字段。Rolldown 的 `id` 和 `moduleType` 不直接照搬：resource、resourceQuery、issuer、mimetype 等静态信息已经由 `module.rules` 在资源读取前筛选；将它们加入 loader filter 会重复现有能力，并产生“是否同时过滤 pitch”的阶段歧义。如果未来出现只能在 normal 调度点获得、且有充分实际场景的新维度，可以通过独立 RFC 增加为 `filter` 的同级字段；多个维度按 AND 组合。将 `code` 设为必填也可以让 v1 对无意义的 `filter: {}` 直接报错。
+Rolldown 的 `id` 和 `moduleType` 不直接照搬：resource、resourceQuery、issuer、mimetype 等静态信息已经由 `module.rules` 在资源读取前筛选；将它们加入 loader filter 会重复现有能力，并产生“是否同时过滤 pitch”的阶段歧义。如果未来出现只能在 normal 调度点获得、且有充分实际场景的新维度，应通过独立 RFC 设计明确的字段和组合语义。`codeFilter: {}` 可用，表示匹配所有有效文本输入。
 
 Rolldown 与 Rspack 的职责映射如下：
 
@@ -296,7 +276,7 @@ Rolldown 与 Rspack 的职责映射如下：
 | ------------------------- | ------------------------------------------------------------ | --------------------------------- |
 | `id`                      | `module.rules` 的 `test`、`resource`、`resourceQuery` 等条件 | 否                                |
 | `moduleType`              | 在 loader runner 前由 module rule 和 module factory 决定     | 否                                |
-| `code`                    | 某个 normal handler 执行点的当前输入                         | 是，使用 `filter.code`            |
+| `code`                    | 某个 normal handler 执行点的当前输入                         | 是，使用 `codeFilter`             |
 
 ## 执行时序
 
@@ -307,7 +287,7 @@ NormalModuleFactory 选择并解析 loader
   → pitch（从左到右，行为不变）
   → readResource / readResource hook（行为不变）
   → normal（从右到左）
-      → 判断当前 loader 的 filter.code
+      → 判断当前 loader 的 codeFilter
           → miss：标记 normal 已完成，移动到左侧 loader
           → hit：loader cache lookup → normal handler / worker dispatch
 ```
@@ -323,34 +303,23 @@ filter 必须在以下操作之前判断：
 
 pitch 短路保持现有行为：如果某个 pitch 返回 content，loader runner 直接转入该 loader 左侧的 normal 链。被现有 pitch 语义跳过的 normal handler 不需要再判断 filter。
 
-## 透明的内部 loader decorator
+## 每次 loader 使用的执行元数据
 
-实现上不注册 `builtin:code-filter-loader`，也不向用户链中插入第二个 loader。NormalModuleFactory 解析目标 loader 后，在 Rust 内部用透明 decorator 持有目标 loader 和已编译 filter：
+实现上不注册 `builtin:code-filter-loader`，不包装目标 loader，也不向用户链中插入第二个 loader。NormalModuleFactory 解析目标 loader 后，在 `ResolvedLoader` 中分别保存真实目标 loader、loader cache options 和已编译 code filter。`NormalModule` 继续保存原有的 `Vec<BoxLoader>`；仅当至少一个 loader 配有 code filter 时，另外保存按 loader 索引排列的可选表：
 
 ```rust
-struct CodeFilteredLoader {
-  target: BoxLoader,
-  filter: Arc<CompiledCodeFilter>,
-}
+type LoaderCodeFilters = Box<[Option<Arc<CodeFilter>>]>;
 ```
 
-decorator 对以下能力全部委托给 target：
+这避免了为未启用 loader cache 的模块构造一整组 `LoaderRunnerOptions`。无 code filter 的模块不分配此表；静态 rule 的已编译 matcher 通过 `Arc` 在模块间共享。进入 loader runner 时，按照索引将 filter 移入对应 `LoaderItem`；执行状态 `NotEvaluated`、`Matched` 或 `Skipped` 也由该 item 保存。filter 不属于 `Loader` trait，目标 loader 的 `identifier()`、`pitch()`、`run()`、`type()`、`cache_version()` 和 `execution_kind()` 均保持原样。
 
-- `identifier()`；
-- `pitch()` 和 `run()`；
-- `type()`；
-- `cache_version()`；
-- `execution_kind()`。
-
-因此它不是 loader chain 中的独立节点，也不会出现在 request、stats 或 loader context 中。`this.loaders`、`this.request`、`currentRequest`、`remainingRequest`、`previousRequest` 和 `getOptions()` 均继续展示真实目标 loader。
-
-实际匹配逻辑集中在 `rspack_loader_runner::loader`：`LoaderItem` 暴露一个 normal precondition 检查，并保存 `NotEvaluated`、`Matched` 或 `Skipped` 状态。`runner.rs` 的 normal loop 只增加一次轻量调用，并在 `Skipped` 时设置 `normalExecuted` 后继续；不在 runner 中实现具体匹配算法。
+因此 `this.loaders`、`this.request`、`currentRequest`、`remainingRequest`、`previousRequest` 和 `getOptions()` 均继续展示真实目标 loader。实际匹配逻辑集中在 `rspack_loader_runner::loader`：`LoaderItem` 暴露一个 normal precondition 检查；`runner.rs` 的 normal loop 只调用该检查，并在 `Skipped` 时设置 `normalExecuted` 后继续。
 
 这一检查必须位于 `start_yielding` 之前，否则当前 loader 是 JavaScript loader 时仍会先跨越 Rust → JavaScript 边界。它也必须位于 `LoaderRunnerPlugin::run_normal_loader` 之前，否则 miss 仍会进入 loader cache。
 
 ## 配置适配和 binding
 
-TypeScript config adapter 将 `filter.code` 规范化为结构化 binding 类型，RegExp 通过现有 `RspackRegex` N-API 能力传递，不能使用 JSON 序列化。
+TypeScript config adapter 将 `codeFilter` 规范化为结构化 binding 类型，RegExp 通过现有 `RspackRegex` N-API 能力传递，不能使用 JSON 序列化。
 
 概念上的 Rust 类型如下：
 
@@ -366,11 +335,11 @@ struct CodeFilter {
 }
 ```
 
-`RawModuleRuleUse`、`ModuleRuleUseLoader` 和 `ResolvedLoader` 分别携带原始、已规范化和已编译的 filter。filter 不能放入当前仅在 `cache: true` 时创建的 `LoaderRunnerOptions`，否则 `cache: false` 的 filter 会丢失。
+`RawModuleRuleUse`、`ModuleRuleUseLoader` 和 `ResolvedLoader` 分别携带原始、已规范化和已编译的 filter。filter 独立于仅在 `cache: true` 时保留的 `LoaderRunnerOptions`；即使 `cache: false`，可选表仍会传到 loader runner。
 
-静态 rule 的 matcher 在配置转换或 loader resolve 后编译一次，并通过 `Arc` 在模块间共享。函数形式的 `Rule.use` 也允许返回 `filter`；v1 对每次动态返回的 loader item 编译 matcher，不引入无界的跨模块 matcher cache。
+静态 rule 的 matcher 在配置转换或 loader resolve 后编译一次，并通过 `Arc` 在模块间共享。函数形式的 `Rule.use` 也允许返回 `codeFilter`；v1 对每次动态返回的 loader item 编译 matcher，不引入无界的跨模块 matcher cache。
 
-配置错误应携带完整 option path，例如 `module.rules[2].use[0].filter.code.include[1]`。缺少 `code`、函数、逻辑条件对象或其他不支持的值应在配置阶段报错，而不是静默忽略。
+配置错误应携带完整 option path，例如 `module.rules[2].use[0].codeFilter.include[1]`。函数、逻辑条件对象或其他不支持的值应在配置阶段报错，而不是静默忽略。
 
 ## Rust matcher
 
@@ -472,7 +441,7 @@ loader cache 只保存“目标 loader 在给定 content、options、version 和
 - pitch 短路与现有行为一致；
 - 左侧 filter 能看到右侧 loader 的输出；
 - miss 保持 source map、additional data、dependencies、cacheability 和 pitch data；
-- `this.loaders`、request 系列字段和 `getOptions()` 不包含 filter decorator；
+- `this.loaders`、request 系列字段和 `getOptions()` 不包含 code filter 元数据；
 - raw loader 命中时仍接收 Buffer；
 - inline loader request 不获得配置 filter，但与 rule loader 混用时顺序正确。
 
@@ -486,13 +455,13 @@ loader cache 只保存“目标 loader 在给定 content、options、version 和
 - memory cache、persistent cache、incremental 的独立组合；
 - watch rebuild 中新增或删除 marker；
 - 同一资源由不同 issuer 命中等价 prefilter 时模块身份保持稳定；
-- 函数形式 `Rule.use` 返回带 filter 的 loader。
+- 函数形式 `Rule.use` 返回带 `codeFilter` 的 loader。
 
 ### Rsbuild 和真实消费方
 
-- `api.transform({ filter: { code } })` 只调用命中 handler；
+- `api.transform({ code })` 只调用命中 handler；
 - `raw`、`order`、`environment` 和其他 descriptor 条件保持现有行为；
-- 不配置 `filter` 时生成的 Rspack rule 不变；
+- 不配置 `codeFilter` 时生成的 Rspack rule 不变；
 - TanStack Start 普通源码 miss；
 - 右侧 transform 生成虚拟源码后，编译器 transform 的 code filter 能命中；
 - watch 和 persistent cache 下 server function metadata 保持正确。
@@ -514,7 +483,7 @@ loader cache 只保存“目标 loader 在给定 content、options、version 和
 - 同一 loader 可能同时保留配置 filter 和 handler 内 fallback，存在 pattern 漂移风险；框架应从同一个 pattern 定义生成两者。
 - filter 不参与 module identity 的正确性依赖 no-op assertion。Rspack 无法自动证明 handler 在 miss 路径没有依赖、资产或其他副作用。
 - RegExp 扫描仍有 CPU 成本；对高命中率或极轻量 handler，filter 可能没有收益，甚至略有回退。
-- 未来扩展其他 filter 维度时，必须重新评估它们在 pitch、normal、缓存和 identity 中的语义，不能因为已有 `filter` 对象就直接加入。
+- 未来若增加其他过滤维度，必须重新评估它们在 pitch、normal、缓存和 identity 中的语义，不能假设它们可以直接复用 `codeFilter`。
 
 # Unresolved questions & TODOs
 
@@ -544,7 +513,7 @@ loader cache 只保存“目标 loader 在给定 content、options、version 和
 
 ## `rspack.experiments.withCodeFilter()` helper
 
-helper 可以隐藏内部协议，但用户需要学习额外工厂 API，函数形式 `Rule.use`、配置合并工具和 Rsbuild chain API 也需要特殊适配。`filter` 直接属于 loader use item，组合性更好。
+helper 可以隐藏内部协议，但用户需要学习额外工厂 API，函数形式 `Rule.use`、配置合并工具和 Rsbuild chain API 也需要特殊适配。`codeFilter` 直接属于 loader use item，组合性更好。
 
 ## Loader 导出 `codeFilter`
 
@@ -575,7 +544,18 @@ export const codeFilter = /createServerFn/;
 }
 ```
 
-该形式更短，但会让 `filter` 同时表示“完整 filter”和“code condition”，无法从字段名直接看出 pattern 匹配的是 resource 还是当前代码。它还会使 `{ include, exclude }` 成为外层对象，未来增加按维度组织的字段时需要同时维护两种对象结构。为保持与 Rolldown/Vite Hook Filter 的一致性并确保单一规范写法，本 RFC 不提供该简写。
+该形式更短，但无法从字段名直接看出 pattern 匹配的是 resource 还是当前代码；`codeFilter` 保持简短，同时明确了匹配对象。
+
+## 使用 `filter.code`
+
+```js
+{
+  loader: './transform-loader.js',
+  filter: { code: /foo/ },
+}
+```
+
+它与 Rolldown/Vite Hook Filter 结构更接近，也为其他维度预留了命名空间。但 Rspack 已通过 module rule 提供多数静态维度，v1 只有当前代码这一项。额外嵌套会增加配置和类型复杂度，并暗示未来可以直接添加其他维度；本 RFC 改用语义明确的 `codeFilter`。
 
 ## Loader use item 顶层使用 `code`
 
@@ -586,7 +566,7 @@ export const codeFilter = /createServerFn/;
 }
 ```
 
-这种形式虽然简短，但 `code` 脱离 `filter` 上下文后容易被理解为输入值或 loader option，也不能直接复用 Rolldown/Vite 的 filter 配置结构，因此不采用。
+这种形式虽然简短，但 `code` 脱离过滤上下文后容易被理解为输入值或 loader option，因此不采用。
 
 # Refs
 
@@ -604,8 +584,8 @@ export const codeFilter = /createServerFn/;
 
 重点希望获得以下反馈：
 
-1. 是否接受将 `filter` 定义为 no-op precondition assertion，并因此保持 module identity 和 cache etag 不变；
+1. 是否接受将 `codeFilter` 定义为 no-op precondition assertion，并因此保持 module identity 和 cache etag 不变；
 2. normal-only 语义是否足够清晰，是否需要在类型名或 diagnostics 中进一步强调 pitch 不受影响；
-3. Rspack loader use item 与 Rsbuild `api.transform` 统一使用 `filter.code` 是否足够清晰；
+3. Rspack loader use item 的 `codeFilter` 与 Rsbuild `api.transform` 的 `code` 命名差异是否足够清晰；
 4. v1 是否需要支持 loader export 形式，还是应留给后续 loader manifest RFC；
 5. benchmark 和真实框架接入还需要覆盖哪些典型 loader 链。
