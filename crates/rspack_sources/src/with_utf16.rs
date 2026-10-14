@@ -109,13 +109,7 @@ impl<'text> WithUtf16<'text> {
           utf16_start: utf16_pos as u32,
           byte_start: byte_start as u32,
         });
-        let byte_len = if first_byte < 0xe0 {
-          2
-        } else if first_byte < 0xf0 {
-          3
-        } else {
-          4
-        };
+        let byte_len = first_byte.leading_ones() as usize;
         byte_start += byte_len;
         utf16_pos += if byte_len == 4 { 2 } else { 1 };
       }
