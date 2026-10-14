@@ -1,12 +1,12 @@
 use std::borrow::Cow;
 
-use crate::{helpers::split_into_lines, with_utf16::WithUtf16};
+use crate::line_index::{IndexedLine, LineIndex};
 
 #[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SourceContentLines<'source> {
   text: Cow<'source, str>,
-  // Self-referential data structure: lines borrow from the text.
-  lines: Vec<WithUtf16<'static>>,
+  // Self-referential data structure: the index borrows from the text.
+  index: LineIndex<'static>,
 }
 
 impl<'source> SourceContentLines<'source> {
@@ -15,14 +15,12 @@ impl<'source> SourceContentLines<'source> {
     // and all &'static str references are only used within the lifetime of this struct.
     #[allow(unsafe_code)]
     let text_ref = unsafe { std::mem::transmute::<&str, &'static str>(text.as_ref()) };
-    let lines = split_into_lines(text_ref)
-      .map(WithUtf16::new)
-      .collect::<Vec<_>>();
-    Self { text, lines }
+    let index = LineIndex::new(text_ref);
+    Self { text, index }
   }
 
-  pub fn get(&self, line: usize) -> Option<&WithUtf16<'_>> {
+  pub fn get(&self, line: usize) -> Option<IndexedLine<'_, '_>> {
     let _ = &self.text;
-    self.lines.get(line)
+    self.index.get(line)
   }
 }

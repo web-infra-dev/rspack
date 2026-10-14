@@ -10,10 +10,10 @@ use crate::{
   MapOptions, SourceMap, SourceMapFields,
   decoder::MappingsDecoder,
   encoder::create_encoder,
+  line_index::LineIndex,
   linear_map::LinearMap,
   source::{Mapping, OriginalLocation},
   source_content_lines::SourceContentLines,
-  with_utf16::WithUtf16,
 };
 
 pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<SourceMapFields<'a>> {
@@ -215,11 +215,6 @@ impl<'a> TextSpan<'a> {
       AsciiHit::Ascii => text.len(),
       AsciiHit::NotAscii | AsciiHit::Unknown => utf16_len(text),
     }
-  }
-
-  #[inline]
-  pub(crate) fn is_known_ascii(&self) -> bool {
-    matches!(self.ascii_hit, AsciiHit::Ascii)
   }
 
   /// Slice this span by byte offsets.
@@ -620,11 +615,9 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
   on_source: OnSource<'_, 'source>,
   on_name: OnName<'_, 'source>,
 ) -> GeneratedInfo {
-  let lines = split_into_lines(source.as_str())
-    .map(|line| WithUtf16::with_known(line, source.is_known_ascii()))
-    .collect::<Vec<WithUtf16<'chunk>>>();
+  let lines = LineIndex::new(source.as_str());
 
-  if lines.is_empty() {
+  if lines.line_count() == 0 {
     return GeneratedInfo {
       generated_line: 1,
       generated_column: 0,
@@ -640,12 +633,12 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
   for (i, name) in source_map.names().iter().enumerate() {
     on_name(i as u32, Cow::Borrowed(name));
   }
-  let last_line = &lines[lines.len() - 1].line;
+  let last_line = lines.get(lines.line_count() - 1).unwrap().line;
   let last_new_line = last_line.ends_with('\n');
   let final_line: u32 = if last_new_line {
-    lines.len() + 1
+    lines.line_count() + 1
   } else {
-    lines.len()
+    lines.line_count()
   } as u32;
   let final_column: u32 = if last_new_line {
     0
@@ -658,11 +651,11 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
   let mut active_mapping_original: Option<OriginalLocation> = None;
 
   let mut on_mapping = |mapping: Mapping| {
-    if mapping_active && current_generated_line as usize <= lines.len() {
+    if mapping_active && current_generated_line as usize <= lines.line_count() {
       let chunk: &str;
       let mapping_line = current_generated_line;
       let mapping_column = current_generated_column;
-      let line = &lines[(current_generated_line - 1) as usize];
+      let line = lines.get((current_generated_line - 1) as usize).unwrap();
       if mapping.generated_line != current_generated_line {
         chunk = line.substring(current_generated_column as usize, usize::MAX);
         current_generated_line += 1;
@@ -687,8 +680,10 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
       mapping_active = false;
     }
     if mapping.generated_line > current_generated_line && current_generated_column > 0 {
-      if current_generated_line as usize <= lines.len() {
-        let chunk = lines[(current_generated_line - 1) as usize]
+      if current_generated_line as usize <= lines.line_count() {
+        let chunk = lines
+          .get((current_generated_line - 1) as usize)
+          .unwrap()
           .substring(current_generated_column as usize, usize::MAX);
         on_chunk(
           Some(source.subspan(chunk)),
@@ -703,8 +698,11 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
       current_generated_column = 0;
     }
     while mapping.generated_line > current_generated_line {
-      if current_generated_line as usize <= lines.len() {
-        let chunk = &lines[(current_generated_line as usize) - 1].line;
+      if current_generated_line as usize <= lines.line_count() {
+        let chunk = lines
+          .get((current_generated_line as usize) - 1)
+          .unwrap()
+          .line;
         on_chunk(
           Some(source.subspan(chunk)),
           Mapping {
@@ -717,11 +715,14 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
       current_generated_line += 1;
     }
     if mapping.generated_column > current_generated_column {
-      if current_generated_line as usize <= lines.len() {
-        let chunk = lines[(current_generated_line as usize) - 1].substring(
-          current_generated_column as usize,
-          mapping.generated_column as usize,
-        );
+      if current_generated_line as usize <= lines.line_count() {
+        let chunk = lines
+          .get((current_generated_line as usize) - 1)
+          .unwrap()
+          .substring(
+            current_generated_column as usize,
+            mapping.generated_column as usize,
+          );
         on_chunk(
           Some(source.subspan(chunk)),
           Mapping {

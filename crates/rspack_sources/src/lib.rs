@@ -21,6 +21,7 @@ mod decoder;
 mod encoder;
 mod error;
 mod helpers;
+mod line_index;
 mod linear_map;
 mod original_source;
 mod raw_source;
@@ -28,7 +29,6 @@ mod replace_source;
 mod source;
 mod source_content_lines;
 mod source_map_source;
-mod with_utf16;
 
 /// Feature for rspack persistent cache serialization/deserialization.
 #[cfg(feature = "rspack_cacheable")]

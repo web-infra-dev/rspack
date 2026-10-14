@@ -189,8 +189,9 @@ calculation handle.
 - known non-ASCII and unknown use `simd_utf16_len` directly; its ASCII fast path avoids a separate scan;
 - a subspan of known non-ASCII becomes unknown because the slice may be ASCII-only.
 
-`WithUtf16` converts UTF-16 columns back to valid UTF-8 byte boundaries. It lazily indexes only
-non-ASCII characters and reserves an upper bound based on the byte/UTF-16 length difference.
+`LineIndex` scans a whole source once, using SSE2 or NEON to find newlines in ASCII blocks.
+It stores compact line starts and indexes only lines containing non-ASCII characters. Line views
+convert UTF-16 columns back to valid UTF-8 byte boundaries.
 Four-byte scalars occupy two UTF-16 columns, and a column inside the surrogate pair rounds down
 to the scalar's starting byte.
 
@@ -319,6 +320,6 @@ Completed sources are `Send + Sync`. Lazy shared state uses `OnceLock`; `ConcatS
 synchronous. Parallelize at the module/asset level using Rspack's existing parallel abstractions,
 not inside one mapping stream.
 
-`WithUtf16` owns a per-line sparse index. Character offsets use `u32`,
-so a line requiring an index must fit in 4 GiB. Mapping streams drop the index after use rather
+`LineIndex` owns source-wide line starts and sparse UTF-16 character indexes for non-ASCII lines.
+Offsets use `u32`, so the source must fit in 4 GiB. Mapping streams drop the index after use rather
 than retaining line-sized buffers in a pool.
