@@ -10,10 +10,6 @@ struct WideChar {
 #[derive(Debug)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]
 enum WideChars {
-  One {
-    ch: WideChar,
-    utf16_len: usize,
-  },
   Sparse {
     chars: Vec<WideChar>,
     utf16_len: usize,
@@ -95,37 +91,21 @@ impl<'text> WithUtf16<'text> {
 
       // Like rust-analyzer's LineIndex, store only non-ASCII characters. Their
       // byte and UTF-16 offsets let ASCII spans use direct offset arithmetic.
-      let mut first = None;
       let mut chars = Vec::new();
       let mut utf16_pos = 0;
       for (byte_start, ch) in self.line.char_indices() {
         if !ch.is_ascii() {
-          let wide = WideChar {
+          chars.push(WideChar {
             utf16_start: utf16_pos,
             byte_start,
-          };
-          if let Some(first_wide) = first.take() {
-            chars.push(first_wide);
-            chars.push(wide);
-          } else if chars.is_empty() {
-            first = Some(wide);
-          } else {
-            chars.push(wide);
-          }
+          });
         }
         utf16_pos += ch.len_utf16();
       }
-      if let Some(ch) = first {
-        Some(WideChars::One {
-          ch,
-          utf16_len: utf16_pos,
-        })
-      } else {
-        Some(WideChars::Sparse {
-          chars,
-          utf16_len: utf16_pos,
-        })
-      }
+      Some(WideChars::Sparse {
+        chars,
+        utf16_len: utf16_pos,
+      })
     });
 
     let Some(wide_chars) = wide_chars else {
@@ -138,22 +118,6 @@ impl<'text> WithUtf16<'text> {
         .get(index)
         .map(|&byte_start| byte_start as usize)
         .unwrap_or(self.line.len()),
-      WideChars::One { ch, utf16_len } => {
-        if index >= *utf16_len {
-          return self.line.len();
-        }
-        if index < ch.utf16_start {
-          return index;
-        }
-        let byte_len = self.line.as_bytes()[ch.byte_start].leading_ones() as usize;
-        let utf16_len = if byte_len == 4 { 2 } else { 1 };
-        let after = index - ch.utf16_start;
-        if after < utf16_len {
-          ch.byte_start
-        } else {
-          ch.byte_start + byte_len + after - utf16_len
-        }
-      }
       WideChars::Sparse { chars, utf16_len } => {
         if index >= *utf16_len {
           return self.line.len();

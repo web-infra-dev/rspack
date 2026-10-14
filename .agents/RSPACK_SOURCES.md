@@ -319,5 +319,5 @@ Completed sources are `Send + Sync`. Lazy shared state uses `OnceLock`; `ConcatS
 synchronous. Parallelize at the module/asset level using Rspack's existing parallel abstractions,
 not inside one mapping stream.
 
-`WithUtf16` keeps a single non-ASCII offset inline, or owns a per-line sparse or compact direct
-index. Mapping streams drop the index after use rather than retaining line-sized buffers in a pool.
+`WithUtf16` owns a per-line sparse or compact direct index. Mapping streams drop the index after
+use rather than retaining line-sized buffers in a pool.
