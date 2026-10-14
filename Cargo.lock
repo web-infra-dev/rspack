@@ -4632,6 +4632,7 @@ dependencies = [
  "memchr",
  "rspack-allocative",
  "rspack_cacheable",
+ "simd-utf16-len",
 ]
 
 [[package]]
@@ -5099,6 +5100,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simd-utf16-len",
  "slotmap",
  "smallvec",
  "sugar_path",

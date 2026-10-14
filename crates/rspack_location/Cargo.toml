@@ -11,6 +11,7 @@ allocative       = { workspace = true, optional = true }
 itoa             = { workspace = true }
 memchr           = { workspace = true }
 rspack_cacheable = { workspace = true }
+simd-utf16-len   = { workspace = true }
 
 [lints]
 workspace = true
