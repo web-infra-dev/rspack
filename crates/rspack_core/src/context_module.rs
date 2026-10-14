@@ -916,9 +916,8 @@ impl ContextModule {
 
     let request_prefix = if compilation.hot_module_replacement {
       format!(
-        "{}(ids[{chunks_position}][0], {})",
+        "{}(ids[{chunks_position}][0]{fetch_priority_arg})",
         runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_GROUP),
-        fetch_priority.map_or_else(|| "0".to_string(), |priority| format!("\"{priority}\""))
       )
     } else if has_no_chunk {
       "Promise.resolve()".to_string()

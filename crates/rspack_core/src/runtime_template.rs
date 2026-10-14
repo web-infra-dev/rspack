@@ -1072,10 +1072,12 @@ impl ModuleCodeTemplate {
           .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
       }
       return format!(
-        "{}({}, {})",
+        "{}({}{})",
         self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_GROUP),
         json!(block.runtime_id(compilation)),
-        fetch_priority.map_or_else(|| "0".to_string(), |priority| format!("\"{priority}\"")),
+        fetch_priority
+          .map(|priority| format!(r#", "{priority}""#))
+          .unwrap_or_default(),
       );
     }
     let Some(chunk_group) = chunk_group else {
