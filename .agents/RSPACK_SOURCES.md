@@ -190,7 +190,7 @@ calculation handle.
 - a subspan of known non-ASCII becomes unknown because the slice may be ASCII-only.
 
 `WithUtf16` converts UTF-16 columns back to valid UTF-8 byte boundaries. It lazily indexes only
-non-ASCII characters in mostly ASCII lines, switching to a compact direct index for dense Unicode.
+non-ASCII characters and reserves an upper bound based on the byte/UTF-16 length difference.
 Four-byte scalars occupy two UTF-16 columns, and a column inside the surrogate pair rounds down
 to the scalar's starting byte.
 
@@ -319,6 +319,6 @@ Completed sources are `Send + Sync`. Lazy shared state uses `OnceLock`; `ConcatS
 synchronous. Parallelize at the module/asset level using Rspack's existing parallel abstractions,
 not inside one mapping stream.
 
-`WithUtf16` owns a per-line sparse or compact direct index. Sparse character offsets use `u32`,
+`WithUtf16` owns a per-line sparse index. Character offsets use `u32`,
 so a line requiring an index must fit in 4 GiB. Mapping streams drop the index after use rather
 than retaining line-sized buffers in a pool.

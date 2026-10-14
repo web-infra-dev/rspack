@@ -9,12 +9,9 @@ struct WideChar {
 
 #[derive(Debug)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]
-enum WideChars {
-  Sparse {
-    chars: Vec<WideChar>,
-    utf16_len: usize,
-  },
-  Dense(Vec<u32>),
+struct WideChars {
+  chars: Vec<WideChar>,
+  utf16_len: usize,
 }
 
 #[derive(Debug)]
@@ -58,27 +55,7 @@ impl<'text> WithUtf16<'text> {
         return None;
       }
 
-      // The byte/UTF-16 length gap detects dense Unicode before allocating.
-      // Every wide character contributes at most two extra bytes.
-      if u32::try_from(self.line.len()).is_ok()
-        && self.line.len() - utf16_len >= utf16_len.div_ceil(2)
-      {
-        let mut indices = Vec::with_capacity(utf16_len);
-        let bytes = self.line.as_bytes();
-        let mut byte_start = 0;
-        while byte_start < bytes.len() {
-          let first_byte = bytes[byte_start];
-          indices.push(byte_start as u32);
-          let byte_len = first_byte.leading_ones().max(1) as usize;
-          if byte_len == 4 {
-            indices.push(byte_start as u32);
-          }
-          byte_start += byte_len;
-        }
-        return Some(WideChars::Dense(indices));
-      }
-
-      // All sparse offsets fit in u32, including the UTF-16 length.
+      // All indexed offsets must fit in u32.
       assert!(u32::try_from(self.line.len()).is_ok());
 
       // Like rust-analyzer's LineIndex, store only non-ASCII characters. Their
@@ -102,7 +79,7 @@ impl<'text> WithUtf16<'text> {
         byte_start += byte_len;
         utf16_pos += if byte_len == 4 { 2 } else { 1 };
       }
-      Some(WideChars::Sparse {
+      Some(WideChars {
         chars,
         utf16_len: utf16_pos,
       })
@@ -116,36 +93,35 @@ impl<'text> WithUtf16<'text> {
       return unsafe { self.line.get_unchecked(start..end) };
     };
 
-    let to_byte = |index: usize| match wide_chars {
-      WideChars::Dense(indices) => indices
-        .get(index)
-        .map(|&byte_start| byte_start as usize)
-        .unwrap_or(self.line.len()),
-      WideChars::Sparse { chars, utf16_len } => {
-        if index >= *utf16_len {
-          return self.line.len();
-        }
-        let position = chars.partition_point(|ch| ch.utf16_start as usize <= index);
-        let Some(wide) = position.checked_sub(1).and_then(|i| chars.get(i)) else {
-          return index;
-        };
-        let byte_start = wide.byte_start as usize;
-        let byte_len = self.line.as_bytes()[byte_start].leading_ones() as usize;
-        let utf16_len = if byte_len == 4 { 2 } else { 1 };
-        let after = index - wide.utf16_start as usize;
-        if after < utf16_len {
-          byte_start
-        } else {
-          byte_start + byte_len + after - utf16_len
-        }
+    let to_byte = |index: usize| {
+      if index >= wide_chars.utf16_len {
+        return self.line.len();
+      }
+      let position = wide_chars
+        .chars
+        .partition_point(|ch| ch.utf16_start as usize <= index);
+      let Some(wide) = position
+        .checked_sub(1)
+        .and_then(|i| wide_chars.chars.get(i))
+      else {
+        return index;
+      };
+      let byte_start = wide.byte_start as usize;
+      let byte_len = self.line.as_bytes()[byte_start].leading_ones() as usize;
+      let utf16_len = if byte_len == 4 { 2 } else { 1 };
+      let after = index - wide.utf16_start as usize;
+      if after < utf16_len {
+        byte_start
+      } else {
+        byte_start + byte_len + after - utf16_len
       }
     };
 
     let start = to_byte(start_utf16_index);
     let end = to_byte(end_utf16_index);
-    // SAFETY: Dense entries are character starts. Sparse entries are character
-    // starts or offsets into ASCII runs; positions inside a surrogate pair
-    // round down. The conversion is monotonic and clamps at line.len().
+    // SAFETY: Indexed entries are character starts or offsets into ASCII runs;
+    // positions inside a surrogate pair round down. The conversion is
+    // monotonic and clamps at line.len().
     unsafe { self.line.get_unchecked(start..end) }
   }
 }
