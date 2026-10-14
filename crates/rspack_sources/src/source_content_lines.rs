@@ -16,7 +16,7 @@ impl<'source> SourceContentLines<'source> {
     #[allow(unsafe_code)]
     let text_ref = unsafe { std::mem::transmute::<&str, &'static str>(text.as_ref()) };
     let lines = split_into_lines(text_ref)
-      .map(|line| WithUtf16::new(line))
+      .map(WithUtf16::new)
       .collect::<Vec<_>>();
     Self { text, lines }
   }

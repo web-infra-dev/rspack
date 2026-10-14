@@ -3,8 +3,8 @@ use std::cell::OnceCell;
 #[derive(Debug)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]
 struct WideChar {
-  utf16_start: usize,
-  byte_start: usize,
+  utf16_start: u32,
+  byte_start: u32,
 }
 
 #[derive(Debug)]
@@ -66,7 +66,7 @@ impl<'text> WithUtf16<'text> {
 
       // The byte/UTF-16 length gap detects dense Unicode before allocating.
       // Every wide character contributes at most two extra bytes.
-      if self.line.len() <= u32::MAX as usize
+      if u32::try_from(self.line.len()).is_ok()
         && self.line.len() - utf16_len >= utf16_len.div_ceil(2)
       {
         let mut indices = Vec::with_capacity(utf16_len);
@@ -89,6 +89,9 @@ impl<'text> WithUtf16<'text> {
         return Some(WideChars::Dense(indices));
       }
 
+      // All sparse offsets fit in u32, including the UTF-16 length.
+      assert!(u32::try_from(self.line.len()).is_ok());
+
       // Like rust-analyzer's LineIndex, store only non-ASCII characters. Their
       // byte and UTF-16 offsets let ASCII spans use direct offset arithmetic.
       let mut chars = Vec::new();
@@ -96,8 +99,8 @@ impl<'text> WithUtf16<'text> {
       for (byte_start, ch) in self.line.char_indices() {
         if !ch.is_ascii() {
           chars.push(WideChar {
-            utf16_start: utf16_pos,
-            byte_start,
+            utf16_start: utf16_pos as u32,
+            byte_start: byte_start as u32,
           });
         }
         utf16_pos += ch.len_utf16();
@@ -122,17 +125,18 @@ impl<'text> WithUtf16<'text> {
         if index >= *utf16_len {
           return self.line.len();
         }
-        let position = chars.partition_point(|ch| ch.utf16_start <= index);
+        let position = chars.partition_point(|ch| ch.utf16_start as usize <= index);
         let Some(wide) = position.checked_sub(1).and_then(|i| chars.get(i)) else {
           return index;
         };
-        let byte_len = self.line.as_bytes()[wide.byte_start].leading_ones() as usize;
+        let byte_start = wide.byte_start as usize;
+        let byte_len = self.line.as_bytes()[byte_start].leading_ones() as usize;
         let utf16_len = if byte_len == 4 { 2 } else { 1 };
-        let after = index - wide.utf16_start;
+        let after = index - wide.utf16_start as usize;
         if after < utf16_len {
-          wide.byte_start
+          byte_start
         } else {
-          wide.byte_start + byte_len + after - utf16_len
+          byte_start + byte_len + after - utf16_len
         }
       }
     };
