@@ -9,6 +9,10 @@ test('css edits still apply when the css runtime is disabled', async ({
   page,
   fileAction,
 }) => {
+  const stylesheet = page.locator('link[rel="stylesheet"]');
+  await expect(stylesheet).toHaveAttribute('href', /\?from=hook$/);
+  await expect(stylesheet).toHaveAttribute('data-rspack', /:css$/);
+  const ownership = await stylesheet.getAttribute('data-rspack');
   const body = page.locator('body');
   await expect(body).toHaveCSS('background-color', COLOR_BLUE);
 
@@ -17,4 +21,5 @@ test('css edits still apply when the css runtime is disabled', async ({
   );
 
   await expect(body).toHaveCSS('background-color', COLOR_GREEN);
+  await expect(stylesheet).toHaveAttribute('data-rspack', ownership!);
 });

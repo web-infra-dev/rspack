@@ -89,15 +89,18 @@ async fn generate_html(
     .borrow()
     .before_asset_tag_generation
     .call(BeforeAssetTagGenerationData {
-      assets: assets_info.0,
+      assets: assets_info,
       output_name: html_file_name.as_str().to_string(),
       compilation_id: compilation.id(),
       uid: config.uid,
     })
     .await?;
 
-  let asset_tags: HtmlPluginAssetTags =
-    HtmlPluginAssetTags::from_assets(config, &before_generation_data.assets);
+  let asset_tags = HtmlPluginAssetTags::from_assets(
+    config,
+    &before_generation_data.assets,
+    &compilation.options.output.unique_name,
+  );
 
   let alter_asset_tags_data = hooks
     .borrow()

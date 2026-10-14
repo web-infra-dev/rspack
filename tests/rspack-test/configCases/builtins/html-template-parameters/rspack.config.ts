@@ -4,6 +4,7 @@ import { rspack } from '@rspack/core';
 const { CssExtractRspackPlugin, HtmlRspackPlugin } = rspack;
 
 export default defineConfig({
+  optimization: { chunkIds: 'named' },
   output: {
     publicPath: 'http://cdn.com/',
     crossOriginLoading: 'anonymous',
