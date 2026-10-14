@@ -2151,3 +2151,78 @@ fn a_new_link_to_an_old_file_is_a_change_with_follow_symlinks() {
     batch.changed_files.contains(context.as_str())
   });
 }
+
+/// A removal below a registered context that arrives after the context's own
+/// removal does not report the context, gone by then, as changed.
+#[test]
+fn a_removal_arriving_after_its_context_is_gone_reports_the_context_removed() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/a.js");
+  helper.file("sibling");
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch(f!("ctx/a.js", "sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  std::fs::remove_dir_all(helper.join("ctx")).unwrap();
+  // Let the removal's own events be delivered first.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+  while rx.try_recv().is_ok() {}
+
+  helper.trigger_event("ctx", rspack_watcher::FsEventKind::Remove);
+  helper.trigger_event("ctx/a.js", rspack_watcher::FsEventKind::Remove);
+  let file = helper.join("ctx/a.js");
+  let context = helper.join("ctx");
+  let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+  loop {
+    let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+    match rx.recv_timeout(remaining) {
+      Ok(helpers::Event::Aggregated(batch)) => {
+        assert!(
+          !batch.changed_files.contains(context.as_str()),
+          "the gone context is not changed: {batch:?}"
+        );
+        if batch.deleted_files.contains(file.as_str()) {
+          return;
+        }
+      }
+      Ok(_) => {}
+      Err(_) => panic!("no aggregated removal for the file"),
+    }
+  }
+}
+
+/// Like watchpack's `lstat`, a registered dangling link is on disk: the scan
+/// does not take it for gone, and reports nothing for it when it is older
+/// than the start time.
+#[cfg(unix)]
+#[test]
+fn a_registered_dangling_link_older_than_the_start_is_not_reported() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::os::unix::fs::symlink(helper.join("nowhere"), helper.join("link.js")).unwrap();
+  helper.file("sibling");
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch(f!("link.js", "sibling"), e!(), e!());
+  let link = helper.join("link.js");
+  let deadline = std::time::Instant::now() + std::time::Duration::from_millis(1500);
+  while let Ok(event) =
+    rx.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now()))
+  {
+    if let helpers::Event::Aggregated(batch) = event {
+      assert!(
+        !batch.changed_files.contains(link.as_str())
+          && !batch.deleted_files.contains(link.as_str()),
+        "the dangling link is reported: {batch:?}"
+      );
+    }
+  }
+}

@@ -120,11 +120,12 @@ impl Scanner {
 }
 
 /// The registered `paths` gone from disk (a registered-missing path is
-/// expected to be absent and is not one of them).
+/// expected to be absent and is not one of them). A dangling link is there,
+/// like watchpack's `lstat` sees it.
 fn absent_paths(paths: &[InternedPath], missing: &InternedPathDashSet) -> Vec<InternedPath> {
   paths
     .iter()
-    .filter(|path| !path.exists() && !missing.contains(*path))
+    .filter(|path| std::fs::symlink_metadata(path).is_err() && !missing.contains(*path))
     .cloned()
     .collect()
 }

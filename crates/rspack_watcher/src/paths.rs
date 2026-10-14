@@ -380,12 +380,13 @@ impl PathManager {
   /// Use `has_mtime_changed` (which atomically reads-and-updates the
   /// baseline) to advance the recorded mtime in response to real events.
   pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
-    self.baselines.entry(path.clone()).or_insert(mtime);
-    self
-      .file_times
-      .entry(path.clone())
-      .or_insert_with(|| FileTime::initial(mtime));
-    self.index_record(&path);
+    self.record(&path, || {
+      self.baselines.entry(path.clone()).or_insert(mtime);
+      self
+        .file_times
+        .entry(path.clone())
+        .or_insert_with(|| FileTime::initial(mtime));
+    });
   }
 
   /// The scanner reported `path` as changed: the build will know this mtime,
@@ -432,9 +433,12 @@ impl PathManager {
     }
   }
 
-  /// `path` now holds a record: index it, and its ancestors not indexed yet.
-  fn index_record(&self, path: &InternedPath) {
+  /// Writes a record for `path` with `write` and indexes it, and its ancestors
+  /// not indexed yet, under the index lock: a sweep of an ancestor sees the
+  /// record either both written and indexed, or not at all.
+  fn record<R>(&self, path: &InternedPath, write: impl FnOnce() -> R) -> R {
     let _index = self.lock_index();
+    let written = write();
     let mut child = path.clone();
     while let Some(parent) = child.parent().map(InternedPath::from) {
       let indexed = !self
@@ -443,10 +447,11 @@ impl PathManager {
         .or_default()
         .insert(child);
       if indexed {
-        return;
+        break;
       }
       child = parent;
     }
+    written
   }
 
   /// `path` may no longer hold a record of its own: once it holds none and
@@ -590,8 +595,7 @@ impl PathManager {
           continue;
         };
         if metadata.is_dir() {
-          self.context_directories.insert(path.clone());
-          self.index_record(&path);
+          self.record(&path, || self.context_directories.insert(path.clone()));
           if self.forget_if_orphaned(&path) {
             break;
           }
@@ -682,14 +686,12 @@ impl PathManager {
     if metadata.is_dir() {
       // Like watchpack's `setDirectory`, only a directory not known before is
       // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
-      if self.context_directories.insert(path.clone()) {
-        self.index_record(path);
+      if self.record(path, || self.context_directories.insert(path.clone())) {
         self.scan_below(vec![path.clone()], false, None).await;
       }
       return true;
     }
-    self.context_files.insert(path.clone());
-    self.index_record(path);
+    self.record(path, || self.context_files.insert(path.clone()));
     let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
       return true;
     };
@@ -779,8 +781,7 @@ impl PathManager {
     } else {
       FileTime::observed(mtime)
     };
-    self.file_times.insert(path.clone(), time);
-    self.index_record(path);
+    self.record(path, || self.file_times.insert(path.clone(), time));
     true
   }
 
@@ -901,8 +902,7 @@ impl PathManager {
       // forgotten, so it is scanned as a new directory when it comes back.
       let absent = self.absent_directories.remove(dir).is_some();
       if !absent && self.is_below_context(dir) {
-        self.context_directories.insert(dir.clone());
-        self.index_record(dir);
+        self.record(dir, || self.context_directories.insert(dir.clone()));
       } else {
         self.last_watch_events.remove(dir);
       }

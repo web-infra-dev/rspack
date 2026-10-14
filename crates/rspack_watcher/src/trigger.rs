@@ -280,6 +280,16 @@ impl EventProcessor {
 
     let finder = self.finder();
     let mut associated_event = finder.find_associated_event(path, kind);
+    // A directory above changes with `path`, unless it is gone itself: an
+    // event below it may arrive after the directory's own removal.
+    for (associated, associated_kind) in &mut associated_event {
+      if associated != path
+        && *associated_kind == FsEventKind::Change
+        && std::fs::symlink_metadata(&*associated).is_err()
+      {
+        *associated_kind = FsEventKind::Remove;
+      }
+    }
 
     if appeared && path.is_dir() && !path.is_symlink() {
       // On Linux, inotify adds a new directory's watch before emitting its
