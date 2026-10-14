@@ -5213,6 +5213,7 @@ version = "0.102.9"
 dependencies = [
  "async-trait",
  "camino",
+ "cow-utils",
  "itertools 0.14.0",
  "regex",
  "rspack_cacheable",
@@ -5233,6 +5234,8 @@ dependencies = [
  "simd-json",
  "tokio",
  "tracing",
+ "url",
+ "urlencoding",
 ]
 
 [[package]]
