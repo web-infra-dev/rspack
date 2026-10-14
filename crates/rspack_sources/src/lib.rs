@@ -15,6 +15,7 @@
   clippy::unwrap_used
 )]
 
+mod asset_source;
 mod cached_source;
 mod concat_source;
 mod decoder;
@@ -35,6 +36,7 @@ mod with_utf16;
 #[cfg(feature = "rspack_cacheable")]
 pub mod cacheable;
 
+pub use asset_source::AssetSource;
 pub use cached_source::CachedSource;
 pub use concat_source::ConcatSource;
 pub use error::{Error, Result};

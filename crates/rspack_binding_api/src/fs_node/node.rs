@@ -6,18 +6,26 @@ use napi_derive::napi;
 use rspack_fs::FileMetadata;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
+use crate::source::JsAssetSource;
+
 type Open = ThreadsafeFunction<FnArgs<(String, String)>, Promise<Either<i32, ()>>>;
 type Write = ThreadsafeFunction<FnArgs<(i32, Buffer, u32)>, Promise<Either<u32, ()>>>;
 type Read = ThreadsafeFunction<FnArgs<(i32, u32, u32)>, Promise<Either<Buffer, ()>>>;
 type ReadUtil = ThreadsafeFunction<FnArgs<(i32, u8, u32)>, Promise<Either<Buffer, ()>>>;
 type ReadToEnd = ThreadsafeFunction<FnArgs<(i32, u32)>, Promise<Either<Buffer, ()>>>;
 type Chmod = ThreadsafeFunction<FnArgs<(String, u32)>, Promise<()>>;
+type WriteAsset = ThreadsafeFunction<FnArgs<(String, JsAssetSource)>, Promise<()>>;
+type CompareAsset = ThreadsafeFunction<FnArgs<(String, JsAssetSource)>, Promise<bool>>;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false, js_name = "ThreadsafeNodeFS")]
 pub struct ThreadsafeNodeFS {
   #[napi(ts_type = "(name: string, content: Buffer) => Promise<void>")]
   pub write_file: ThreadsafeFunction<FnArgs<(String, Buffer)>, Promise<()>>,
+  #[napi(ts_type = "(name: string, source: JsAssetSource) => Promise<void>")]
+  pub write_asset: Option<WriteAsset>,
+  #[napi(ts_type = "(name: string, source: JsAssetSource) => Promise<boolean>")]
+  pub compare_asset: Option<CompareAsset>,
   #[napi(ts_type = "(name: string) => Promise<void>")]
   pub remove_file: ThreadsafeFunction<String, Promise<()>>,
   #[napi(ts_type = "(name: string) => Promise<void>")]

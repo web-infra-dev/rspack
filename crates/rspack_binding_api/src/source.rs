@@ -1,14 +1,100 @@
-use std::{cell::Cell, hash::Hash, sync::Arc};
+use std::{cell::Cell, hash::Hash, io::Read, sync::Arc};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, ObjectPool, OriginalSource, RawBufferSource,
-  RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, SourceValue,
-  WithoutOriginalOptions,
+  AssetSource, BoxSource, CachedSource, ConcatSource, MapOptions, ObjectPool, OriginalSource,
+  RawBufferSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
+  SourceValue, WithoutOriginalOptions,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
 use crate::error::RspackResultToNapiResultExt;
+
+/// An owned snapshot of a compressed final asset. It remains valid across rebuilds.
+#[napi]
+pub struct JsAssetSource {
+  source: AssetSource,
+}
+
+impl JsAssetSource {
+  pub(crate) fn new(source: &AssetSource) -> Self {
+    Self {
+      source: source.clone(),
+    }
+  }
+}
+
+#[napi]
+impl JsAssetSource {
+  #[napi(getter)]
+  pub fn compressed_buffer(&self) -> Buffer {
+    // JS buffers are mutable; never expose the immutable shared frame directly.
+    self.source.compressed_buffer().to_vec().into()
+  }
+
+  #[napi(getter)]
+  pub fn content_hash(&self) -> String {
+    format!("{:016x}", self.source.content_hash())
+  }
+
+  #[napi]
+  pub fn size(&self) -> f64 {
+    self.source.size() as f64
+  }
+
+  #[napi]
+  pub fn source(&self) -> String {
+    self.source.source().into_string_lossy().into_owned()
+  }
+
+  #[napi]
+  pub fn buffer(&self) -> Buffer {
+    self.source.buffer().into_owned().into()
+  }
+
+  #[napi]
+  pub fn reader(&self) -> Result<JsAssetSourceReader> {
+    Ok(JsAssetSourceReader {
+      reader: Some(Box::new(
+        self
+          .source
+          .reader()
+          .map_err(|err| napi::Error::from_reason(err.to_string()))?,
+      )),
+    })
+  }
+}
+
+/// An independent decoder used by Node readable streams, released at EOF or cancellation.
+#[napi]
+pub struct JsAssetSourceReader {
+  reader: Option<Box<dyn Read + Send>>,
+}
+
+#[napi]
+impl JsAssetSourceReader {
+  #[napi]
+  pub fn read(&mut self, size: u32) -> Result<Option<Buffer>> {
+    let Some(reader) = &mut self.reader else {
+      return Ok(None);
+    };
+    let mut buffer = vec![0; (size as usize).clamp(1, 64 * 1024)];
+    let size = reader
+      .read(&mut buffer)
+      .map_err(|err| napi::Error::from_reason(err.to_string()))?;
+    if size == 0 {
+      self.reader = None;
+      return Ok(None);
+    }
+    buffer.truncate(size);
+    Ok(Some(buffer.into()))
+  }
+
+  #[napi]
+  pub fn close(&mut self) {
+    self.reader = None;
+  }
+}
 
 /// Zero copy `JsSourceFromJs` slice shared between Rust and Node.js if buffer is used.
 ///

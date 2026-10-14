@@ -50,6 +50,6 @@ where
     deserializer: &mut D,
   ) -> Result<BoxSource> {
     let cacheable: CacheableSource = field.deserialize(deserializer)?;
-    Ok(from_cacheable(cacheable))
+    from_cacheable(cacheable).map_err(<Error as rkyv::rancor::Source>::new)
   }
 }
