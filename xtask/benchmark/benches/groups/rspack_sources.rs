@@ -5,8 +5,6 @@
 mod bench_complex_replace_source;
 #[path = "rspack_sources_source_map.rs"]
 mod bench_source_map;
-#[path = "rspack_sources_utf16.rs"]
-mod bench_utf16;
 #[path = "rspack_sources_repetitive_react_components.rs"]
 mod benchmark_repetitive_react_components;
 
@@ -18,7 +16,6 @@ use bench_complex_replace_source::{
   benchmark_complex_replace_source_size, benchmark_complex_replace_source_source,
 };
 use bench_source_map::{benchmark_parse_source_map_from_json, benchmark_source_map_to_json};
-use bench_utf16::{benchmark_dense_non_ascii_map, benchmark_sparse_non_ascii_map};
 use benchmark_repetitive_react_components::{
   benchmark_repetitive_react_components_map, benchmark_repetitive_react_components_source,
 };
@@ -167,15 +164,6 @@ fn benchmark_concat_source_add_few(b: &mut Bencher) {
 
 fn bench_rspack_sources(criterion: &mut Criterion) {
   let mut group = criterion.benchmark_group("rspack_sources");
-
-  group.bench_function(
-    "sources@utf16_sparse_non_ascii_map",
-    benchmark_sparse_non_ascii_map,
-  );
-  group.bench_function(
-    "sources@utf16_dense_non_ascii_map",
-    benchmark_dense_non_ascii_map,
-  );
 
   group.bench_function(
     "sources@concat_generate_string_with_cache",
