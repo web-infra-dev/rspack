@@ -180,22 +180,23 @@ impl TsConfig {
       .extend(other_config.file_dependencies.iter().cloned());
   }
 
-  /// Picks the config whose base path is the longest prefix of `path`, like
+  /// Picks the config whose directory is the longest prefix of `path`, like
   /// `enhanced-resolve`: references without `paths` are skipped, and a
-  /// reference wins a tie with the root config.
+  /// reference wins a tie with the root config. The root config is the
+  /// fallback when nothing matches.
   pub fn resolve(&self, path: &Utf8Path, specifier: &str) -> Vec<Utf8PathBuf> {
-    let root_base_path_len = path
-      .starts_with(self.base_path())
-      .then(|| self.base_path().as_str().len());
+    let root_directory_len = path
+      .starts_with(self.directory())
+      .then(|| self.directory().as_str().len());
     self
       .flattened_references
       .iter()
       .filter(|reference| {
-        reference.compiler_options.paths.is_some() && path.starts_with(reference.base_path())
+        reference.compiler_options.paths.is_some() && path.starts_with(reference.directory())
       })
-      .max_by_key(|reference| reference.base_path().as_str().len())
+      .max_by_key(|reference| reference.directory().as_str().len())
       .filter(|reference| {
-        root_base_path_len.is_none_or(|len| reference.base_path().as_str().len() >= len)
+        root_directory_len.is_none_or(|len| reference.directory().as_str().len() >= len)
       })
       .map_or(self, |reference| reference.as_ref())
       .resolve_path_alias(specifier)
@@ -263,14 +264,6 @@ impl TsConfig {
       .map(|p| self.compiler_options.paths_base.normalize_with(p))
       .chain(base_url_iter)
       .collect()
-  }
-
-  fn base_path(&self) -> &Utf8Path {
-    self
-      .compiler_options
-      .base_url
-      .as_ref()
-      .map_or_else(|| self.directory(), |path| path.as_ref())
   }
 
   /// Template variable `${configDir}` for substitution of config files directory path

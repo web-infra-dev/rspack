@@ -389,3 +389,25 @@ async fn nested_references_longest_match() {
     assert_eq!(resolved_path, Ok(expected), "from {path:?}");
   }
 }
+
+// A reference is matched by its config directory, not its `baseUrl`, like
+// `enhanced-resolve`: `project_b` has `baseUrl: ./src`, yet a request from
+// `project_b` itself must still use its `paths`.
+#[tokio::test]
+async fn reference_matched_by_config_directory() {
+  let f = super::fixture_root().join("tsconfig/cases/references-transitive");
+
+  let resolver = Resolver::new(ResolveOptions {
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("app"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let resolved_path = resolver
+    .resolve(&f.join("project_b"), "@/index.ts")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("project_b/src/aliased/index.ts")));
+}
