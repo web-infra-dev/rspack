@@ -411,3 +411,25 @@ async fn reference_matched_by_config_directory() {
     .map(|p| p.full_path());
   assert_eq!(resolved_path, Ok(f.join("project_b/src/aliased/index.ts")));
 }
+
+// A reference with `baseUrl` but no `paths` still resolves non-relative
+// specifiers against its `baseUrl` for files in its directory.
+#[tokio::test]
+async fn reference_with_base_url_only() {
+  let f = super::fixture_root().join("tsconfig/cases/references-baseurl-only");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let resolved_path = resolver
+    .resolve(&f.join("packages/a/src/deep"), "utils/format")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("packages/a/src/utils/format.ts")));
+}

@@ -181,9 +181,9 @@ impl TsConfig {
   }
 
   /// Picks the config whose directory is the longest prefix of `path`, like
-  /// `enhanced-resolve`: references without `paths` are skipped, and a
-  /// reference wins a tie with the root config. The root config is the
-  /// fallback when nothing matches.
+  /// `enhanced-resolve`: references with neither `paths` nor `baseUrl` are
+  /// skipped, and a reference wins a tie with the root config. The root
+  /// config is the fallback when nothing matches.
   pub fn resolve(&self, path: &Utf8Path, specifier: &str) -> Vec<Utf8PathBuf> {
     let root_directory_len = path
       .starts_with(self.directory())
@@ -191,15 +191,18 @@ impl TsConfig {
     self
       .flattened_references
       .iter()
-      .filter(|reference| {
-        reference.compiler_options.paths.is_some() && path.starts_with(reference.directory())
-      })
+      .filter(|reference| reference.has_path_alias() && path.starts_with(reference.directory()))
       .max_by_key(|reference| reference.directory().as_str().len())
       .filter(|reference| {
         root_directory_len.is_none_or(|len| reference.directory().as_str().len() >= len)
       })
       .map_or(self, |reference| reference.as_ref())
       .resolve_path_alias(specifier)
+  }
+
+  /// Whether `resolve_path_alias` can produce any candidate.
+  fn has_path_alias(&self) -> bool {
+    self.compiler_options.paths.is_some() || self.compiler_options.base_url.is_some()
   }
 
   // Copied from parcel
