@@ -1,5 +1,5 @@
 use rspack_util::swc::AstSubRangeExt;
-use swc_next_ecma_ast::{ExprData, GetSpan, Stmt, StmtData, TypedSubRange};
+use swc_next_ecma_ast::{ExprData, GetSpan, Stmt, StmtData, SubRange};
 
 use super::{
   JavascriptParser,
@@ -15,14 +15,14 @@ use crate::{
 };
 
 impl JavascriptParser<'_> {
-  pub fn block_pre_walk_module_items(&mut self, statements: TypedSubRange<Stmt>) {
+  pub fn block_pre_walk_module_items(&mut self, statements: SubRange<Stmt>) {
     let ast = self.ast.ast;
     for statement in ast.nodes(statements) {
       self.block_pre_walk_module_item(statement);
     }
   }
 
-  pub fn block_pre_walk_statements(&mut self, statements: TypedSubRange<Stmt>) {
+  pub fn block_pre_walk_statements(&mut self, statements: SubRange<Stmt>) {
     let ast = self.ast.ast;
     for statement in ast.nodes(statements) {
       self.block_pre_walk_statement(Statement::from_stmt(ast, statement));

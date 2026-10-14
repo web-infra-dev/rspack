@@ -11,45 +11,76 @@ use swc_next_ecma_ast::{
   ExportAllDeclaration as SwcExportAllDeclaration,
   ExportDefaultDeclaration as SwcExportDefaultDeclaration, ExportDefaultDeclarationKindData,
   ExportNamedDeclaration as SwcExportNamedDeclaration, Expr, ExpressionStatement, ForInStatement,
-  ForOfStatement, ForStatement, FormalParameters, Function, GetSpan, IfStatement, ImportAttribute,
-  LabeledStatement, ModuleExportName, ModuleExportNameData, NodeKindData, ReturnStatement, Span,
-  Stmt, SwitchStatement, ThrowStatement, TryStatement, TypedSubRange,
-  VariableDeclaration as SwcVariableDeclaration, VariableDeclarator, VariableKind, WhileStatement,
-  WithStatement,
+  ForOfStatement, ForStatement, FormalParameterPattern, FormalParameterPatternData,
+  FormalParameters, Function, GetSpan, IfStatement, ImportAttribute, LabeledStatement,
+  ModuleExportName, ModuleExportNameData, NodeKindData, ReturnStatement, Span, Stmt, SubRange,
+  SwitchStatement, ThrowStatement, TryStatement, VariableDeclaration as SwcVariableDeclaration,
+  VariableDeclarator, VariableKind, WhileStatement, WithStatement,
 };
 
 fn wtf8_to_atom(value: &swc_next_allocator::wtf8::Wtf8) -> Atom {
   Atom::from(value.to_string_lossy().as_ref())
 }
 
-/// Iterate the binding patterns represented by a function's formal parameters.
+/// Convert a formal parameter pattern into the `BindingPattern` shape used by
+/// the parser plugins.
+///
+/// SWC Next models formal parameters with their own node kinds, so the binding
+/// forms have to be projected back into `BindingPattern`.
+pub fn formal_parameter_pattern(ast: &Ast<'_>, pattern: FormalParameterPattern) -> BindingPattern {
+  match ast.formal_parameter_pattern_data(pattern) {
+    FormalParameterPatternData::BindingIdentifier(node) => BindingPattern::BindingIdentifier(node),
+    FormalParameterPatternData::ArrayPattern(node) => BindingPattern::ArrayPattern(node),
+    FormalParameterPatternData::ObjectPattern(node) => BindingPattern::ObjectPattern(node),
+  }
+}
+
+/// Iterate the binding patterns represented by a function's formal parameters,
+/// together with the default value of each parameter.
 ///
 /// SWC Next stores ordinary parameters and the rest parameter separately. Keeping
 /// this detail here avoids reproducing the same reconstruction in parser plugins.
+/// The rest parameter is represented by its argument pattern because callers only
+/// consumed the former rest element to reach that pattern.
+pub fn formal_parameter_patterns_with_defaults<'a>(
+  ast: &'a Ast<'_>,
+  params: FormalParameters,
+) -> impl Iterator<Item = (BindingPattern, Option<Expr>)> + 'a {
+  let rest = params
+    .rest(ast)
+    .map(|rest| (formal_parameter_pattern(ast, rest.argument(ast)), None));
+  ast
+    .nodes(params.items(ast))
+    .filter_map(move |item| item.as_formal_parameter(ast))
+    .map(move |parameter| {
+      (
+        formal_parameter_pattern(ast, parameter.pattern(ast)),
+        parameter.initializer(ast),
+      )
+    })
+    .chain(rest)
+}
+
+/// Iterate the binding patterns represented by a function's formal parameters.
 pub fn formal_parameter_patterns<'a>(
   ast: &'a Ast<'_>,
   params: FormalParameters,
 ) -> impl Iterator<Item = BindingPattern> + 'a {
-  let rest = params.rest(ast).map(BindingPattern::BindingRestElement);
-  ast
-    .nodes(params.items(ast))
-    .filter_map(move |item| item.as_formal_parameter(ast))
-    .filter_map(move |parameter| parameter.pattern(ast).as_binding_pattern(ast))
-    .chain(rest)
+  formal_parameter_patterns_with_defaults(ast, params).map(|(pattern, _)| pattern)
 }
 
 /// Returns whether all formal parameters are plain identifier bindings.
 ///
-/// This intentionally rejects rest parameters and destructuring. Those cases
-/// need their parameter initialization semantics to be analyzed separately.
+/// This intentionally rejects rest parameters, destructuring and default values.
+/// Those cases need their parameter initialization semantics to be analyzed
+/// separately.
 pub fn formal_parameters_are_simple_identifiers(ast: &Ast<'_>, params: FormalParameters) -> bool {
   params.rest(ast).is_none()
     && ast.nodes(params.items(ast)).all(|item| {
-      item
-        .as_formal_parameter(ast)
-        .and_then(|parameter| parameter.pattern(ast).as_binding_pattern(ast))
-        .and_then(|pattern| pattern.as_binding_identifier(ast))
-        .is_some()
+      item.as_formal_parameter(ast).is_some_and(|parameter| {
+        parameter.initializer(ast).is_none()
+          && parameter.pattern(ast).as_binding_identifier(ast).is_some()
+      })
     })
 }
 
@@ -99,7 +130,7 @@ impl ExportAllDeclaration {
       .map(|name| module_export_name_to_atom(ast, name))
   }
 
-  pub fn attributes(self, ast: &Ast<'_>) -> TypedSubRange<ImportAttribute> {
+  pub fn attributes(self, ast: &Ast<'_>) -> SubRange<ImportAttribute> {
     self.0.attributes(ast)
   }
 
@@ -130,7 +161,7 @@ impl ExportNamedDeclaration {
       .map(|declaration| declaration.span(ast))
   }
 
-  pub fn attributes(self, ast: &Ast<'_>) -> TypedSubRange<ImportAttribute> {
+  pub fn attributes(self, ast: &Ast<'_>) -> SubRange<ImportAttribute> {
     self.0.attributes(ast)
   }
 
@@ -223,7 +254,7 @@ impl ExportImport {
     }
   }
 
-  pub fn attributes(self, ast: &Ast<'_>) -> TypedSubRange<ImportAttribute> {
+  pub fn attributes(self, ast: &Ast<'_>) -> SubRange<ImportAttribute> {
     match self {
       Self::All(node) => node.attributes(ast),
       Self::Named(node) => node.attributes(ast),

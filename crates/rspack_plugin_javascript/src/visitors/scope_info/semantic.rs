@@ -126,7 +126,7 @@ impl<'ast> SemanticStore<'ast> {
       if !entry.symbol.flags.contains(SymbolFlags::FUNCTION) {
         continue;
       }
-      let owner = ast.semantic.scope(entry.symbol.scope);
+      let owner = ast.semantic.scope(ast.semantic.scope_of(entry.id));
       if matches!(owner.kind, ScopeKind::Block | ScopeKind::With)
         && matches!(
           ast.semantic.scope(owner.hoist_target).kind,

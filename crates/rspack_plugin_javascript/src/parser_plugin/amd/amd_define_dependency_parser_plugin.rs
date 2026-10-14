@@ -22,7 +22,8 @@ use crate::{
   },
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    JavascriptParser, PatRef, context_reg_exp, create_context_dependency, formal_parameter_patterns,
+    JavascriptParser, PatRef, context_reg_exp, create_context_dependency,
+    formal_parameter_patterns, formal_parameter_patterns_with_defaults,
   },
 };
 
@@ -444,7 +445,12 @@ impl AMDDefineDependencyParserPlugin {
     if bound_call.is_some() {
       // Bound factories historically exclude these runtime names from local parameters.
       // Install their aliases explicitly because semantic initializes every parameter.
-      for parameter in formal_parameter_patterns(ast, params.expect("callback parameters")) {
+      for (parameter, initializer) in
+        formal_parameter_patterns_with_defaults(ast, params.expect("callback parameters"))
+      {
+        if initializer.is_some() {
+          continue;
+        }
         if let Some(identifier) = parameter.as_binding_identifier(ast) {
           let name = ast.get_utf8(identifier.name(ast));
           if RESERVED_NAMES.contains(&name) {
@@ -464,15 +470,16 @@ impl AMDDefineDependencyParserPlugin {
       let in_try = parser.in_try;
       let callback_params = if bound_call.is_some() {
         Either::Left(
-          formal_parameter_patterns(ast, params.expect("callback parameters"))
-            .filter(|parameter| {
-              parameter
-                .as_binding_identifier(ast)
-                .is_some_and(|identifier| {
-                  !RESERVED_NAMES.contains(&ast.get_utf8(identifier.name(ast)))
-                })
+          formal_parameter_patterns_with_defaults(ast, params.expect("callback parameters"))
+            .filter(|(parameter, initializer)| {
+              initializer.is_none()
+                && parameter
+                  .as_binding_identifier(ast)
+                  .is_some_and(|identifier| {
+                    !RESERVED_NAMES.contains(&ast.get_utf8(identifier.name(ast)))
+                  })
             })
-            .map(PatRef::Borrowed),
+            .map(|(parameter, _)| PatRef::Borrowed(parameter)),
         )
       } else {
         Either::Right(fn_params.expect("callback parameters").into_iter())

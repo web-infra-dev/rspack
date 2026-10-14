@@ -1,4 +1,7 @@
-use rspack_util::{SpanExt, swc::AstSubRangeExt};
+use rspack_util::{
+  SpanExt,
+  swc::{AstSubRangeExt, PropertyKeyValue, classify_property_key},
+};
 use swc_next_ecma_ast::*;
 
 use super::{DestructuringAssignmentProperty, JavascriptParser, PatRef, estree::Statement};
@@ -16,23 +19,23 @@ fn eval_property_key<'parser>(
   let ast = parser.ast.ast;
   let span = key.span(ast);
   let mut evaluated = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-  match ast.property_key_data(key) {
-    PropertyKeyData::StringLiteral(string) => {
+  match classify_property_key(ast, key) {
+    PropertyKeyValue::StringLiteral(string) => {
       evaluated.set_string(ast.get_wtf8(string.value(ast)).to_string_lossy());
     }
-    PropertyKeyData::NumericLiteral(number) => evaluated.set_number(number.value(ast)),
-    PropertyKeyData::BigIntLiteral(bigint) => {
+    PropertyKeyValue::NumericLiteral(number) => evaluated.set_number(number.value(ast)),
+    PropertyKeyValue::BigIntLiteral(bigint) => {
       if let Some(value) = parse_bigint_literal(ast.get_utf8(bigint.raw(ast))) {
         evaluated.set_bigint(value);
       }
     }
-    PropertyKeyData::IdentifierName(identifier) => {
+    PropertyKeyValue::IdentifierName(identifier) => {
       evaluated.set_string(ast.get_utf8(identifier.name(ast)));
     }
-    PropertyKeyData::PrivateIdentifier(identifier) => {
+    PropertyKeyValue::PrivateIdentifier(identifier) => {
       evaluated.set_string(ast.get_utf8(identifier.name(ast)));
     }
-    PropertyKeyData::Expr(expression) => return parser.evaluate_expression(expression),
+    PropertyKeyValue::OtherExpr(expression) => return parser.evaluate_expression(expression),
   }
   evaluated
 }
@@ -89,14 +92,14 @@ fn skip_js_trivia(source: &str, mut offset: usize, end: usize) -> usize {
 }
 
 impl JavascriptParser<'_> {
-  pub fn pre_walk_module_items(&mut self, statements: TypedSubRange<Stmt>) {
+  pub fn pre_walk_module_items(&mut self, statements: SubRange<Stmt>) {
     let ast = self.ast.ast;
     for statement in ast.nodes(statements) {
       self.pre_walk_module_item(statement);
     }
   }
 
-  pub fn pre_walk_statements(&mut self, statements: TypedSubRange<Stmt>) {
+  pub fn pre_walk_statements(&mut self, statements: SubRange<Stmt>) {
     let ast = self.ast.ast;
     for statement in ast.nodes(statements) {
       self.pre_walk_statement(Statement::from_stmt(ast, statement));

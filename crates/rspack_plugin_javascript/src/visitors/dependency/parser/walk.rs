@@ -1,5 +1,8 @@
 use rspack_intern::AtomRef;
-use rspack_util::{SpanExt, swc::AstSubRangeExt};
+use rspack_util::{
+  SpanExt,
+  swc::{AstSubRangeExt, PropertyKeyValue, classify_property_key},
+};
 use smallvec::SmallVec;
 use swc_next_ecma_ast::*;
 
@@ -8,7 +11,8 @@ use super::{
   MemberExpressionInfo, PatRef, RootName, ScopeTerminated, TopLevelScope,
   estree::{
     ClassDeclOrExpr, ExportDefaultDeclaration, MaybeNamedClassDecl, MaybeNamedFunctionDecl,
-    Statement, formal_parameter_patterns, formal_parameters_are_simple_identifiers,
+    Statement, formal_parameter_patterns, formal_parameter_patterns_with_defaults,
+    formal_parameters_are_simple_identifiers,
   },
   object_and_members_to_name,
 };
@@ -133,7 +137,7 @@ impl JavascriptParser<'_> {
     self.terminated = old_terminated;
   }
 
-  pub fn walk_module_items(&mut self, statements: TypedSubRange<Stmt>) {
+  pub fn walk_module_items(&mut self, statements: SubRange<Stmt>) {
     let ast = self.ast.ast;
     for statement in ast.nodes(statements) {
       self.walk_module_item(statement);
@@ -188,7 +192,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  pub fn walk_statements(&mut self, statements: TypedSubRange<Stmt>) {
+  pub fn walk_statements(&mut self, statements: SubRange<Stmt>) {
     let ast = self.ast.ast;
     let mut only_function_declaration = false;
     for statement in ast.nodes(statements) {
@@ -335,7 +339,7 @@ impl JavascriptParser<'_> {
     });
   }
 
-  fn walk_switch_cases(&mut self, cases: TypedSubRange<SwitchCase>) {
+  fn walk_switch_cases(&mut self, cases: SubRange<SwitchCase>) {
     self.in_block_scope(false, |this| {
       this.definitions_db.initialize_scope_bindings();
       let ast = this.ast.ast;
@@ -1428,9 +1432,9 @@ impl JavascriptParser<'_> {
   }
 
   fn property_key_name<'a>(ast: &'a Ast<'_>, key: PropertyKey) -> Option<&'a str> {
-    match ast.property_key_data(key) {
-      PropertyKeyData::IdentifierName(identifier) => Some(ast.get_utf8(identifier.name(ast))),
-      PropertyKeyData::StringLiteral(literal) => ast.get_wtf8(literal.value(ast)).as_str(),
+    match classify_property_key(ast, key) {
+      PropertyKeyValue::IdentifierName(identifier) => Some(ast.get_utf8(identifier.name(ast))),
+      PropertyKeyValue::StringLiteral(literal) => ast.get_wtf8(literal.value(ast)).as_str(),
       _ => None,
     }
   }
@@ -2103,8 +2107,11 @@ impl JavascriptParser<'_> {
       false,
       formal_parameter_patterns(ast, params).map(PatRef::Borrowed),
       |this| {
-        for pattern in formal_parameter_patterns(ast, params) {
-          this.walk_pattern(pattern)
+        for (pattern, initializer) in formal_parameter_patterns_with_defaults(ast, params) {
+          if let Some(initializer) = initializer {
+            this.walk_expression(initializer);
+          }
+          this.walk_pattern(pattern);
         }
         match this
           .ast
@@ -2172,8 +2179,12 @@ impl JavascriptParser<'_> {
 
   fn walk_function(&mut self, function: Function) {
     let ast = self.ast.ast;
-    for pattern in formal_parameter_patterns(ast, function.params(ast)) {
-      self.walk_pattern(pattern)
+    for (pattern, initializer) in formal_parameter_patterns_with_defaults(ast, function.params(ast))
+    {
+      if let Some(initializer) = initializer {
+        self.walk_expression(initializer);
+      }
+      self.walk_pattern(pattern);
     }
     self.walk_function_body(function.body(ast));
   }

@@ -26,7 +26,7 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     ExportedVariableInfo, JavascriptParser, PatRef, context_reg_exp, create_context_dependency,
-    create_traceable_error, formal_parameter_patterns,
+    create_traceable_error, formal_parameter_patterns_with_defaults,
   },
 };
 
@@ -233,9 +233,9 @@ impl AMDRequireDependenciesBlockParserPlugin {
         Either::Left(function) => (function.node_id(), function.params(ast)),
         Either::Right(arrow) => (arrow.node_id(), arrow.params(ast)),
       };
-      let reserved = formal_parameter_patterns(ast, params)
-        .filter(|param| is_reserved_param(ast, *param))
-        .map(|param| {
+      let reserved = formal_parameter_patterns_with_defaults(ast, params)
+        .filter(|(param, initializer)| initializer.is_none() && is_reserved_param(ast, *param))
+        .map(|(param, _)| {
           let identifier = param
             .as_binding_identifier(ast)
             .expect("reserved parameter");
@@ -250,9 +250,9 @@ impl AMDRequireDependenciesBlockParserPlugin {
       parser.in_semantic_scope(node, |parser| {
         parser.in_function_scope(
           true,
-          formal_parameter_patterns(ast, params)
-            .filter(|param| !is_reserved_param(ast, *param))
-            .map(PatRef::Borrowed),
+          formal_parameter_patterns_with_defaults(ast, params)
+            .filter(|(param, initializer)| initializer.is_some() || !is_reserved_param(ast, *param))
+            .map(|(param, _)| PatRef::Borrowed(param)),
           |parser| {
             for (name, variable) in reserved {
               parser.set_variable(name, variable);

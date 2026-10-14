@@ -4,7 +4,7 @@ use rspack_core::{
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   Argument, AssignmentExpression, Ast, CallExpression, Expr, ExprData, GetSpan, PropertyKeyData,
-  Span, ThisExpression, TypedSubRange, UnaryExpression, UnaryOperator,
+  Span, SubRange, ThisExpression, UnaryExpression, UnaryOperator,
 };
 
 use super::JavascriptParserPlugin;
@@ -241,7 +241,7 @@ fn handle_access_export(
   remaining: &[Atom],
   remaining_optionals: &[bool],
   base: ExportsBase,
-  call_args: Option<TypedSubRange<Argument>>,
+  call_args: Option<SubRange<Argument>>,
 ) -> Option<bool> {
   if parser.is_esm {
     return None;

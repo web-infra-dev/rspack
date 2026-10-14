@@ -7,7 +7,7 @@
 //
 // Rspack-specific policies such as `/*#__PURE__*/`, `pureFunctions`, parser hooks, and deferred
 // import checks stay in `side_effects_parser_plugin`.
-use rspack_util::swc::AstSubRangeExt;
+use rspack_util::swc::{AstSubRangeExt, PropertyKeyValue, classify_property_key};
 use swc_next_ecma_ast::{
   ArgumentData, Ast, Class, ClassElementData, DeclData, Expr, ExprData, Function,
   MethodDefinitionKind, ObjectPropertyKindData, PropertyKey, PropertyKeyData, PropertyKind, Stmt,
@@ -275,7 +275,7 @@ fn is_global_ref_to(expression: Expr, ctx: SideEffectsContext<'_, '_>, id: &str)
 }
 
 fn arguments_may_have_side_effects(
-  arguments: swc_next_ecma_ast::TypedSubRange<swc_next_ecma_ast::Argument>,
+  arguments: swc_next_ecma_ast::SubRange<swc_next_ecma_ast::Argument>,
   ctx: SideEffectsContext<'_, '_>,
 ) -> bool {
   ctx
@@ -431,17 +431,17 @@ fn object_member_access_may_have_side_effects(
 }
 
 fn property_key_may_have_side_effects(key: PropertyKey, ctx: SideEffectsContext<'_, '_>) -> bool {
-  match ctx.ast.property_key_data(key) {
-    PropertyKeyData::Expr(expression) => may_have_side_effects(expression, ctx),
+  match classify_property_key(ctx.ast, key) {
+    PropertyKeyValue::OtherExpr(expression) => may_have_side_effects(expression, ctx),
     _ => false,
   }
 }
 
 fn property_key_is(key: PropertyKey, ctx: SideEffectsContext<'_, '_>, expected: &str) -> bool {
   let ast = ctx.ast;
-  match ast.property_key_data(key) {
-    PropertyKeyData::IdentifierName(identifier) => ast.get_utf8(identifier.name(ast)) == expected,
-    PropertyKeyData::StringLiteral(string) => {
+  match classify_property_key(ast, key) {
+    PropertyKeyValue::IdentifierName(identifier) => ast.get_utf8(identifier.name(ast)) == expected,
+    PropertyKeyValue::StringLiteral(string) => {
       ast.get_wtf8(string.value(ast)).as_str() == Some(expected)
     }
     _ => false,

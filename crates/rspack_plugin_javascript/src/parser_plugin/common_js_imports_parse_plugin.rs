@@ -9,10 +9,13 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_intern::AtomRef;
-use rspack_util::{SpanExt, json_stringify_str, swc::AstSubRangeExt};
+use rspack_util::{
+  SpanExt, json_stringify_str,
+  swc::{AstSubRangeExt, PropertyKeyValue, classify_property_key},
+};
 use swc_next_ecma_ast::{
   Argument, ArgumentData, AssignmentExpression, AssignmentOperator, Ast, CallExpression, Expr,
-  ExprData, GetSpan, MemberExpression, NewExpression, PropertyKeyData, Span, TypedSubRange,
+  ExprData, GetSpan, MemberExpression, NewExpression, PropertyKeyData, Span, SubRange,
   UnaryExpression, UnaryOperator, VariableDeclarator,
 };
 use url::Url;
@@ -324,7 +327,7 @@ pub(crate) fn is_create_require_namespace_member(
           .as_identifier_name(ast)
           .is_some_and(|identifier| ast.get_utf8(identifier.name(ast)) == specifier);
       }
-      if let PropertyKeyData::StringLiteral(string) = ast.property_key_data(property) {
+      if let PropertyKeyValue::StringLiteral(string) = classify_property_key(ast, property) {
         return ast.get_wtf8(string.value(ast)).to_string_lossy() == specifier;
       }
       member_property_key_to_atom(ast, property).is_some_and(|member| member == specifier)
@@ -547,7 +550,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: Expr) ->
 #[inline(never)]
 fn ignored_url_args_are_side_effect_free_from(
   parser: &mut JavascriptParser,
-  args: TypedSubRange<Argument>,
+  args: SubRange<Argument>,
   start: usize,
 ) -> bool {
   let ast = parser.ast.ast;
@@ -596,7 +599,7 @@ fn parse_create_require_argument(
 #[inline(never)]
 fn parse_create_require_argument_from_args(
   parser: &mut JavascriptParser,
-  args: TypedSubRange<Argument>,
+  args: SubRange<Argument>,
   span: Span,
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
@@ -695,10 +698,7 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: Ex
 }
 
 #[inline(never)]
-fn can_defer_create_require_call(
-  parser: &mut JavascriptParser,
-  args: TypedSubRange<Argument>,
-) -> bool {
+fn can_defer_create_require_call(parser: &mut JavascriptParser, args: SubRange<Argument>) -> bool {
   let ast = parser.ast.ast;
   args.len() == 1
     && ast
@@ -712,7 +712,7 @@ fn can_defer_create_require_call(
 #[inline(never)]
 fn should_clear_create_require_call(
   parser: &mut JavascriptParser,
-  args: TypedSubRange<Argument>,
+  args: SubRange<Argument>,
 ) -> bool {
   !matches!(parser.javascript_options.require_resolve, Some(false))
     && can_defer_create_require_call(parser, args)
@@ -905,7 +905,7 @@ fn wrap_span_with_side_effects(parser: &mut JavascriptParser, span: Span, side_e
 #[inline(never)]
 fn create_require_extra_arg_side_effects(
   parser: &JavascriptParser,
-  args: TypedSubRange<Argument>,
+  args: SubRange<Argument>,
 ) -> String {
   let ast = parser.ast.ast;
   let mut side_effects = String::new();
@@ -926,7 +926,7 @@ fn create_require_extra_arg_side_effects(
 #[inline(never)]
 fn create_require_args_side_effects(
   parser: &mut JavascriptParser,
-  args: TypedSubRange<Argument>,
+  args: SubRange<Argument>,
   argument: &CreateRequireArgument,
 ) -> String {
   let mut side_effects = if argument.replace_argument {
@@ -954,7 +954,7 @@ fn create_require_args_side_effects(
 fn evaluate_created_require<'p>(
   parser: &mut JavascriptParser<'p>,
   range: Span,
-  args: TypedSubRange<Argument>,
+  args: SubRange<Argument>,
   argument: CreateRequireArgument,
 ) -> BasicEvaluatedExpression<'p> {
   let side_effects = create_require_args_side_effects(parser, args, &argument);
@@ -1233,7 +1233,7 @@ fn tag_created_require_declarator(
   binding: swc_next_ecma_ast::BindingIdentifier,
   call_span: Span,
   clear_call: bool,
-  args: TypedSubRange<Argument>,
+  args: SubRange<Argument>,
   deferred_callee: Option<DeferredCreateRequireCallee>,
   argument: CreateRequireArgument,
 ) {
@@ -1581,7 +1581,7 @@ impl CallOrNewExpression {
     }
   }
 
-  pub fn args(self, ast: &Ast<'_>) -> TypedSubRange<Argument> {
+  pub fn args(self, ast: &Ast<'_>) -> SubRange<Argument> {
     match self {
       CallOrNewExpression::Call(call_expr) => call_expr.arguments(ast),
       CallOrNewExpression::New(new_expr) => new_expr.arguments(ast),
