@@ -62,7 +62,7 @@ impl WorkerDependency {
         concat_string!("new URL(", request, ", "),
         None,
       );
-      source.insert_static(self.range_path.end, ")", None);
+      source.insert(self.range_path.end, ")", None);
     } else {
       source.insert(self.range_path.start, concat_string!(request, ", "), None);
     }

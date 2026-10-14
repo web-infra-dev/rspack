@@ -130,7 +130,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
         format!("function(__rspack_hmr_outdated) {{\n{content}("),
         None,
       );
-      source.insert_static(
+      source.insert(
         dep.range.end,
         ")(__rspack_hmr_outdated); }.bind(this)",
         None,

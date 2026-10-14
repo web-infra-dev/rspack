@@ -260,7 +260,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
               ),
               None,
             );
-            source.replace_static(value_range.end, dep.range.end, "))", None);
+            source.replace(value_range.end, dep.range.end, "))", None);
           } else {
             panic!("Unexpected base type");
           }
@@ -275,13 +275,13 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
             )
             .boxed(),
           );
-          source.replace_static(
+          source.replace(
             dep.range.start,
             value_range.start,
             "__rspack_unused_export = (",
             None,
           );
-          source.replace_static(value_range.end, dep.range.end, ")", None);
+          source.replace(value_range.end, dep.range.end, ")", None);
         }
       } else {
         panic!("Define property need value range");

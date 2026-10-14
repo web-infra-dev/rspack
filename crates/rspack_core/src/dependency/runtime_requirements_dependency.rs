@@ -233,7 +233,7 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
       &dep.mode,
       RuntimeRequirementsDependencyMode::UnsupportedRequireProperty
     ) {
-      source.replace(dep.range.start, dep.range.end, "undefined".into(), None);
+      source.replace(dep.range.start, dep.range.end, "undefined", None);
       return;
     }
 

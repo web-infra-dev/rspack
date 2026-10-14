@@ -139,7 +139,7 @@ fn context_dependency_template_as_require_call(
     for (content, start, end) in &dep.options().replaces {
       source.replace(*start, *end, content.clone(), None);
     }
-    source.replace_static(value_range.end, range.end, ")", None);
+    source.replace(value_range.end, range.end, ")", None);
     expr.push('(');
     source.replace(range.start, value_range.start, expr, None);
     return;
@@ -186,5 +186,5 @@ fn context_dependency_template_as_id(
     format!("{}.resolve(", &expr),
     None,
   );
-  source.replace_static(range.end, range.end, ")", None);
+  source.replace(range.end, range.end, ")", None);
 }

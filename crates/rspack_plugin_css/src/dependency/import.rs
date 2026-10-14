@@ -160,7 +160,7 @@ impl DependencyTemplate for CssImportDependencyTemplate {
       .downcast_ref::<CssImportDependency>()
       .expect("CssImportDependencyTemplate should be used for CssImportDependency");
 
-    source.replace_static(dep.range.start, dep.range.end, "", None);
+    source.replace(dep.range.start, dep.range.end, "", None);
   }
 }
 

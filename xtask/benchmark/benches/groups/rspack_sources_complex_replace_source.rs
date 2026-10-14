@@ -16,36704 +16,36704 @@ static LARGE_REPLACE_SOURCE: LazyLock<BoxSource> = LazyLock::new(|| {
       "/@remixicon/react/index.mjs",
     ).boxed()
   );
-  source.replace_static(49, 70, "", None);
-  source.replace_static(
+  source.replace(49, 70, "", None);
+  source.replace(
     133,
     148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     272,
     287,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1252,
     1267,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1391,
     1406,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2387,
     2402,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2526,
     2541,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2862,
     2877,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     3001,
     3016,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     3352,
     3367,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     3491,
     3506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     4084,
     4099,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     4223,
     4238,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     4694,
     4709,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     4833,
     4848,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     5626,
     5641,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     5765,
     5780,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     6236,
     6251,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     6375,
     6390,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     7179,
     7194,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     7318,
     7333,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     7800,
     7815,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     7939,
     7954,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     8775,
     8790,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     8914,
     8929,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     9447,
     9462,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     9586,
     9601,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     10538,
     10553,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     10677,
     10692,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     10926,
     10941,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     11065,
     11080,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     11329,
     11344,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     11468,
     11483,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     11711,
     11726,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     11850,
     11865,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     12206,
     12221,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     12345,
     12360,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     12475,
     12490,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     12614,
     12629,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     12744,
     12759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     12883,
     12898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     13266,
     13281,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     13405,
     13420,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     13903,
     13918,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     14042,
     14057,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     14555,
     14570,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     14694,
     14709,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     15219,
     15234,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     15358,
     15373,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     15903,
     15918,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     16042,
     16057,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     16615,
     16630,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     16754,
     16769,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     17274,
     17289,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     17413,
     17428,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     18142,
     18157,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     18281,
     18296,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     18740,
     18755,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     18879,
     18894,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     19422,
     19437,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     19561,
     19576,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     19958,
     19973,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     20097,
     20112,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     20644,
     20659,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     20783,
     20798,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     21310,
     21325,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     21449,
     21464,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     22033,
     22048,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     22172,
     22187,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     22819,
     22834,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     22958,
     22973,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     23736,
     23751,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     23875,
     23890,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     24042,
     24057,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     24181,
     24196,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     24333,
     24348,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     24472,
     24487,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     24624,
     24639,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     24763,
     24778,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     24915,
     24930,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     25054,
     25069,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     25206,
     25221,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     25345,
     25360,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     25509,
     25524,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     25648,
     25663,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     25872,
     25887,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     26011,
     26026,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     26895,
     26910,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     27034,
     27049,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     28028,
     28043,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     28167,
     28182,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     30277,
     30292,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     30416,
     30431,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     32233,
     32248,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     32372,
     32387,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     32970,
     32985,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     33109,
     33124,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     33692,
     33707,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     33831,
     33846,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     34589,
     34604,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     34728,
     34743,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     36117,
     36132,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     36256,
     36271,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     36712,
     36727,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     36851,
     36866,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     37645,
     37660,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     37784,
     37799,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     38422,
     38437,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     38561,
     38576,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     39260,
     39275,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     39399,
     39414,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     39715,
     39730,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     39854,
     39869,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     40317,
     40332,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     40456,
     40471,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     40757,
     40772,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     40896,
     40911,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     41360,
     41375,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     41499,
     41514,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     41796,
     41811,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     41935,
     41950,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     42395,
     42410,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     42534,
     42549,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     43829,
     43844,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     43968,
     43983,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     45239,
     45254,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     45378,
     45393,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     46249,
     46264,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     46388,
     46403,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     48310,
     48325,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     48449,
     48464,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     49097,
     49112,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     49236,
     49251,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     50428,
     50443,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     50567,
     50582,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     51130,
     51145,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     51269,
     51284,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     52290,
     52305,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     52429,
     52444,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     52734,
     52749,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     52873,
     52888,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     53192,
     53207,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     53331,
     53346,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     53620,
     53635,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     53759,
     53774,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     54069,
     54084,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     54208,
     54223,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     54422,
     54437,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     54561,
     54576,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     54868,
     54883,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     55007,
     55022,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     55129,
     55144,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     55268,
     55283,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     55484,
     55499,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     55623,
     55638,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     55734,
     55749,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     55873,
     55888,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     56075,
     56090,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     56214,
     56229,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     56325,
     56340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     56464,
     56479,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     56650,
     56665,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     56789,
     56804,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     56898,
     56913,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     57037,
     57052,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     57234,
     57249,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     57373,
     57388,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     57484,
     57499,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     57623,
     57638,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     57826,
     57841,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     57965,
     57980,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     58076,
     58091,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     58215,
     58230,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     58397,
     58412,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     58536,
     58551,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     58766,
     58781,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     58905,
     58920,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     59277,
     59292,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     59416,
     59431,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     59645,
     59660,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     59784,
     59799,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     60150,
     60165,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     60289,
     60304,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     60503,
     60518,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     60642,
     60657,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     60949,
     60964,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     61088,
     61103,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     61291,
     61306,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     61430,
     61445,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     61608,
     61623,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     61747,
     61762,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     61869,
     61884,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     62008,
     62023,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     62223,
     62238,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     62362,
     62377,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     62516,
     62531,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     62655,
     62670,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     63016,
     63031,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     63155,
     63170,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     63264,
     63279,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     63403,
     63418,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     63598,
     63613,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     63737,
     63752,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     63939,
     63954,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     64078,
     64093,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     64241,
     64256,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     64380,
     64395,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     64594,
     64609,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     64733,
     64748,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     65040,
     65055,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     65179,
     65194,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     65382,
     65397,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     65521,
     65536,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     65723,
     65738,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     65862,
     65877,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     65984,
     65999,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     66123,
     66138,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     66338,
     66353,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     66477,
     66492,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     66588,
     66603,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     66727,
     66742,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     66930,
     66945,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     67069,
     67084,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     67270,
     67285,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     67409,
     67424,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     67595,
     67610,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     67734,
     67749,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     67948,
     67963,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     68087,
     68102,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     68394,
     68409,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     68533,
     68548,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     68688,
     68703,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     68827,
     68842,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     69178,
     69193,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     69317,
     69332,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     69439,
     69454,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     69578,
     69593,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     69794,
     69809,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     69933,
     69948,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     70042,
     70057,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     70181,
     70196,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     70375,
     70390,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     70514,
     70529,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     70747,
     70762,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     70886,
     70901,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     71134,
     71149,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     71273,
     71288,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     71559,
     71574,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     71698,
     71713,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     71999,
     72014,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     72138,
     72153,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     72414,
     72429,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     72553,
     72568,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     72846,
     72861,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     72985,
     73000,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     73240,
     73255,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     73379,
     73394,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     73650,
     73665,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     73789,
     73804,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     74133,
     74148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     74272,
     74287,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     75108,
     75123,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     75247,
     75262,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     75971,
     75986,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     76110,
     76125,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     76936,
     76951,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     77075,
     77090,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     77646,
     77661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     77785,
     77800,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     78250,
     78265,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     78389,
     78404,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     78797,
     78812,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     78936,
     78951,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     79425,
     79440,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     79564,
     79579,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     80213,
     80228,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     80352,
     80367,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     81009,
     81024,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     81148,
     81163,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     83068,
     83083,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     83207,
     83222,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     85670,
     85685,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     85809,
     85824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     86260,
     86275,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     86399,
     86414,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     86926,
     86941,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     87065,
     87080,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     87441,
     87456,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     87580,
     87595,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     88005,
     88020,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     88144,
     88159,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     88569,
     88584,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     88708,
     88723,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     89182,
     89197,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     89321,
     89336,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     89631,
     89646,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     89770,
     89785,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     90125,
     90140,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     90264,
     90279,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     90402,
     90417,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     90541,
     90556,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     90731,
     90746,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     90870,
     90885,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     91131,
     91146,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     91270,
     91285,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     91546,
     91561,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     91685,
     91700,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     91825,
     91840,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     91964,
     91979,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     92154,
     92169,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     92293,
     92308,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     92483,
     92498,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     92622,
     92637,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     92763,
     92778,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     92902,
     92917,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     93043,
     93058,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     93182,
     93197,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     93322,
     93337,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     93461,
     93476,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     93735,
     93750,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     93874,
     93889,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     94163,
     94178,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     94302,
     94317,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     94486,
     94501,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     94625,
     94640,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     94826,
     94841,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     94965,
     94980,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     95294,
     95309,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     95433,
     95448,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     95812,
     95827,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     95951,
     95966,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     96847,
     96862,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     96986,
     97001,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     97913,
     97928,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     98052,
     98067,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     99402,
     99417,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     99541,
     99556,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     100951,
     100966,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     101090,
     101105,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     101388,
     101403,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     101527,
     101542,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     101851,
     101866,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     101990,
     102005,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     102259,
     102274,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     102398,
     102413,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     102693,
     102708,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     102832,
     102847,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     103087,
     103102,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     103226,
     103241,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     103547,
     103562,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     103686,
     103701,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     103912,
     103927,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     104051,
     104066,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     104292,
     104307,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     104431,
     104446,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     104671,
     104686,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     104810,
     104825,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     105065,
     105080,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     105204,
     105219,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     105514,
     105529,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     105653,
     105668,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     105989,
     106004,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     106128,
     106143,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     106487,
     106502,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     106626,
     106641,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     107019,
     107034,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     107158,
     107173,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     107784,
     107799,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     107923,
     107938,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     109077,
     109092,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     109216,
     109231,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     111771,
     111786,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     111910,
     111925,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     112702,
     112717,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     112841,
     112856,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     113930,
     113945,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     114069,
     114084,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     115491,
     115506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     115630,
     115645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     116349,
     116364,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     116488,
     116503,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     117207,
     117222,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     117346,
     117361,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     118657,
     118672,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     118796,
     118811,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     119804,
     119819,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     119943,
     119958,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     120186,
     120201,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     120325,
     120340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     120585,
     120600,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     120724,
     120739,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     121649,
     121664,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     121788,
     121803,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     122825,
     122840,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     122964,
     122979,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     123826,
     123841,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     123965,
     123980,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     125034,
     125049,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     125173,
     125188,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     125653,
     125668,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     125792,
     125807,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     126226,
     126241,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     126365,
     126380,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     127032,
     127047,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     127171,
     127186,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     127838,
     127853,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     127977,
     127992,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     128377,
     128392,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     128516,
     128531,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     128916,
     128931,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     129055,
     129070,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     129447,
     129462,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     129586,
     129601,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     130201,
     130216,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     130340,
     130355,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     130830,
     130845,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     130969,
     130984,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     131491,
     131506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     131630,
     131645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     132022,
     132037,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     132161,
     132176,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     132393,
     132408,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     132532,
     132547,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     132820,
     132835,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     132959,
     132974,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     133285,
     133300,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     133424,
     133439,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     133830,
     133845,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     133969,
     133984,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     134254,
     134269,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     134393,
     134408,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     134762,
     134777,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     134901,
     134916,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     135214,
     135229,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     135353,
     135368,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     135739,
     135754,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     135878,
     135893,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     136177,
     136192,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     136316,
     136331,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     136695,
     136710,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     136834,
     136849,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     137139,
     137154,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     137278,
     137293,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     137599,
     137614,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     137738,
     137753,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     137966,
     137981,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     138105,
     138120,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     138349,
     138364,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     138488,
     138503,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     138859,
     138874,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     138998,
     139013,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     139409,
     139424,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     139548,
     139563,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     140055,
     140070,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     140194,
     140209,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     140747,
     140762,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     140886,
     140901,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     141242,
     141257,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     141381,
     141396,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     141777,
     141792,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     141916,
     141931,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     142803,
     142818,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     142942,
     142957,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     143778,
     143793,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     143917,
     143932,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     144583,
     144598,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     144722,
     144737,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     145388,
     145403,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     145527,
     145542,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     145668,
     145683,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     145807,
     145822,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     145948,
     145963,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     146087,
     146102,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     146409,
     146424,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     146548,
     146563,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     146884,
     146899,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     147023,
     147038,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     147352,
     147367,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     147491,
     147506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     147820,
     147835,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     147959,
     147974,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     148298,
     148313,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     148437,
     148452,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     148792,
     148807,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     148931,
     148946,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     149273,
     149288,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     149412,
     149427,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     149819,
     149834,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     149958,
     149973,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     150276,
     150291,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     150415,
     150430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     150749,
     150764,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     150888,
     150903,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     151178,
     151193,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     151317,
     151332,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     151673,
     151688,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     151812,
     151827,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     152931,
     152946,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     153070,
     153085,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     154099,
     154114,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     154238,
     154253,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     154901,
     154916,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     155040,
     155055,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     155782,
     155797,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     155921,
     155936,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     156368,
     156383,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     156507,
     156522,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     156984,
     156999,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     157123,
     157138,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     157481,
     157496,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     157620,
     157635,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     158008,
     158023,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     158147,
     158162,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     158760,
     158775,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     158899,
     158914,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     159879,
     159894,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     160018,
     160033,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     160460,
     160475,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     160599,
     160614,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     161381,
     161396,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     161520,
     161535,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     162230,
     162245,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     162369,
     162384,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     163226,
     163241,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     163365,
     163380,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     164084,
     164099,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     164223,
     164238,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     165078,
     165093,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     165217,
     165232,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     165546,
     165561,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     165685,
     165700,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     166072,
     166087,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     166211,
     166226,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     166338,
     166353,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     166477,
     166492,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     166659,
     166674,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     166798,
     166813,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     167068,
     167083,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     167207,
     167222,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     167494,
     167509,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     167633,
     167648,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     167870,
     167885,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     168009,
     168024,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     168267,
     168282,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     168406,
     168421,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     168966,
     168981,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     169105,
     169120,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     169683,
     169698,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     169822,
     169837,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     170179,
     170194,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     170318,
     170333,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     170696,
     170711,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     170835,
     170850,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     171693,
     171708,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     171832,
     171847,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     172704,
     172719,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     172843,
     172858,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     173401,
     173416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     173540,
     173555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     174161,
     174176,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     174300,
     174315,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     175822,
     175837,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     175961,
     175976,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     177907,
     177922,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     178046,
     178061,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     179048,
     179063,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     179187,
     179202,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     180433,
     180448,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     180572,
     180587,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     180985,
     181000,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     181124,
     181139,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     181570,
     181585,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     181709,
     181724,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     182022,
     182037,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     182161,
     182176,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     182489,
     182504,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     182628,
     182643,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     182925,
     182940,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     183064,
     183079,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     183395,
     183410,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     183534,
     183549,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     183879,
     183894,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     184018,
     184033,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     184397,
     184412,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     184536,
     184551,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     184796,
     184811,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     184935,
     184950,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     185230,
     185245,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     185369,
     185384,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     185613,
     185628,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     185752,
     185767,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     186029,
     186044,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     186168,
     186183,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     186481,
     186496,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     186620,
     186635,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     186932,
     186947,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     187071,
     187086,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     187566,
     187581,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     187705,
     187720,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     188215,
     188230,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     188354,
     188369,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     188750,
     188765,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     188889,
     188904,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     189406,
     189421,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     189545,
     189560,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     189994,
     190009,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     190133,
     190148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     190827,
     190842,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     190966,
     190981,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     191744,
     191759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     191883,
     191898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     192413,
     192428,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     192552,
     192567,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     193507,
     193522,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     193646,
     193661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     194728,
     194743,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     194867,
     194882,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     195512,
     195527,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     195651,
     195666,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     196421,
     196436,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     196560,
     196575,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     197062,
     197077,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     197201,
     197216,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     197848,
     197863,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     197987,
     198002,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     198606,
     198621,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     198745,
     198760,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     199392,
     199407,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     199531,
     199546,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     200799,
     200814,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     200938,
     200953,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     202224,
     202239,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     202363,
     202378,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     202873,
     202888,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     203012,
     203027,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     203653,
     203668,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     203792,
     203807,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     204289,
     204304,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     204428,
     204443,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     204861,
     204876,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     205000,
     205015,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     205203,
     205218,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     205342,
     205357,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     205562,
     205577,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     205701,
     205716,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     206238,
     206253,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     206377,
     206392,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     206914,
     206929,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     207053,
     207068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     207549,
     207564,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     207688,
     207703,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     208419,
     208434,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     208558,
     208573,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     208805,
     208820,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     208944,
     208959,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     209325,
     209340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     209464,
     209479,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     209843,
     209858,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     209982,
     209997,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     210378,
     210393,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     210517,
     210532,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     210990,
     211005,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     211129,
     211144,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     211619,
     211634,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     211758,
     211773,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     211961,
     211976,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     212100,
     212115,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     212433,
     212448,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     212572,
     212587,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     212808,
     212823,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     212947,
     212962,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     213423,
     213438,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     213562,
     213577,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     213843,
     213858,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     213982,
     213997,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     214496,
     214511,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     214635,
     214650,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     214838,
     214853,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     214977,
     214992,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     215218,
     215233,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     215357,
     215372,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     215673,
     215688,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     215812,
     215827,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     216166,
     216181,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     216305,
     216320,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     216692,
     216707,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     216831,
     216846,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     217255,
     217270,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     217394,
     217409,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     217629,
     217644,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     217768,
     217783,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     218040,
     218055,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     218179,
     218194,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     218455,
     218470,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     218594,
     218609,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     218901,
     218916,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     219040,
     219055,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     219275,
     219290,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     219414,
     219429,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     219686,
     219701,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     219825,
     219840,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     220298,
     220313,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     220437,
     220452,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     220947,
     220962,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     221086,
     221101,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     221379,
     221394,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     221518,
     221533,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     222034,
     222049,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     222173,
     222188,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     222417,
     222432,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     222556,
     222571,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     222795,
     222810,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     222934,
     222949,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     223296,
     223311,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     223435,
     223450,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     223870,
     223885,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     224009,
     224024,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     224254,
     224269,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     224393,
     224408,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     224669,
     224684,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     224808,
     224823,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     225233,
     225248,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     225372,
     225387,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     226026,
     226041,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     226165,
     226180,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     227075,
     227090,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     227214,
     227229,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     228123,
     228138,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     228262,
     228277,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     229125,
     229140,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     229264,
     229279,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     230122,
     230137,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     230261,
     230276,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     230662,
     230677,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     230801,
     230816,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     231435,
     231450,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     231574,
     231589,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     231863,
     231878,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     232002,
     232017,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     232453,
     232468,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     232592,
     232607,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     232915,
     232930,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     233054,
     233069,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     233415,
     233430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     233554,
     233569,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     233789,
     233804,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     233928,
     233943,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     234200,
     234215,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     234339,
     234354,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     234623,
     234638,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     234762,
     234777,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     235198,
     235213,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     235337,
     235352,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     235766,
     235781,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     235905,
     235920,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     236334,
     236349,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     236473,
     236488,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     236673,
     236688,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     236812,
     236827,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     237012,
     237027,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     237151,
     237166,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     237354,
     237369,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     237493,
     237508,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     237809,
     237824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     237948,
     237963,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     238157,
     238172,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     238296,
     238311,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     238520,
     238535,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     238659,
     238674,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     238965,
     238980,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     239104,
     239119,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     239521,
     239536,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     239660,
     239675,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     239972,
     239987,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     240111,
     240126,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     240337,
     240352,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     240476,
     240491,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     240717,
     240732,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     240856,
     240871,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     241183,
     241198,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     241322,
     241337,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     241759,
     241774,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     241898,
     241913,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     242370,
     242385,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     242509,
     242524,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     243048,
     243063,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     243187,
     243202,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     243756,
     243771,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     243895,
     243910,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     244360,
     244375,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     244499,
     244514,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     244953,
     244968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     245092,
     245107,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     245931,
     245946,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     246070,
     246085,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     247087,
     247102,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     247226,
     247241,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     247588,
     247603,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     247727,
     247742,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     248119,
     248134,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     248258,
     248273,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     248530,
     248545,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     248669,
     248684,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     248965,
     248980,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     249104,
     249119,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     249401,
     249416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     249540,
     249555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     250000,
     250015,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     250139,
     250154,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     250441,
     250456,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     250580,
     250595,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     250978,
     250993,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     251117,
     251132,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     251504,
     251519,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     251643,
     251658,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     252143,
     252158,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     252282,
     252297,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     252581,
     252596,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     252720,
     252735,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     253019,
     253034,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     253158,
     253173,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     253905,
     253920,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     254044,
     254059,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     254817,
     254832,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     254956,
     254971,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     255434,
     255449,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     255573,
     255588,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     256245,
     256260,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     256384,
     256399,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     257074,
     257089,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     257213,
     257228,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     258222,
     258237,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     258361,
     258376,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     258697,
     258712,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     258836,
     258851,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     259344,
     259359,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     259483,
     259498,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     259828,
     259843,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     259967,
     259982,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     260626,
     260641,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     260765,
     260780,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     261052,
     261067,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     261191,
     261206,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     261655,
     261670,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     261794,
     261809,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     262241,
     262256,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     262380,
     262395,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     262832,
     262847,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     262971,
     262986,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     263241,
     263256,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     263380,
     263395,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     263650,
     263665,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     263789,
     263804,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     264059,
     264074,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     264198,
     264213,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     264468,
     264483,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     264607,
     264622,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     264926,
     264941,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     265065,
     265080,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     265384,
     265399,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     265523,
     265538,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     265814,
     265829,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     265953,
     265968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     266714,
     266729,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     266853,
     266868,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     267611,
     267626,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     267750,
     267765,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     268280,
     268295,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     268419,
     268434,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     269205,
     269220,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     269344,
     269359,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     270640,
     270655,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     270779,
     270794,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     272220,
     272235,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     272359,
     272374,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     272868,
     272883,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     273007,
     273022,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     273430,
     273445,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     273569,
     273584,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     274418,
     274433,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     274557,
     274572,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     275406,
     275421,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     275545,
     275560,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     275935,
     275950,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     276074,
     276089,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     276589,
     276604,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     276728,
     276743,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     277009,
     277024,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     277148,
     277163,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     277634,
     277649,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     277773,
     277788,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     278135,
     278150,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     278274,
     278289,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     278749,
     278764,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     278888,
     278903,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     279232,
     279247,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     279371,
     279386,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     279828,
     279843,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     279967,
     279982,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     280209,
     280224,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     280348,
     280363,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     280703,
     280718,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     280842,
     280857,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     281093,
     281108,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     281232,
     281247,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     281596,
     281611,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     281735,
     281750,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     282755,
     282770,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     282894,
     282909,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     283914,
     283929,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     284053,
     284068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     284761,
     284776,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     284900,
     284915,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     285608,
     285623,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     285747,
     285762,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     286022,
     286037,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     286161,
     286176,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     286452,
     286467,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     286591,
     286606,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     287046,
     287061,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     287185,
     287200,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     287722,
     287737,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     287861,
     287876,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     288272,
     288287,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     288411,
     288426,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     288838,
     288853,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     288977,
     288992,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     289244,
     289259,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     289383,
     289398,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     289666,
     289681,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     289805,
     289820,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     290111,
     290126,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     290250,
     290265,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     290702,
     290717,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     290841,
     290856,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     291342,
     291357,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     291481,
     291496,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     292186,
     292201,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     292325,
     292340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     292728,
     292743,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     292867,
     292882,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     293410,
     293425,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     293549,
     293564,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     293956,
     293971,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     294095,
     294110,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     294646,
     294661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     294785,
     294800,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     295123,
     295138,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     295262,
     295277,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     295758,
     295773,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     295897,
     295912,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     296275,
     296290,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     296414,
     296429,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     297074,
     297089,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     297213,
     297228,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     297599,
     297614,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     297738,
     297753,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     298418,
     298433,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     298557,
     298572,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     299027,
     299042,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     299166,
     299181,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     299729,
     299744,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     299868,
     299883,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     300326,
     300341,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     300465,
     300480,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     301060,
     301075,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     301199,
     301214,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     302905,
     302920,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     303044,
     303059,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     304250,
     304265,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     304389,
     304404,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     304973,
     304988,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     305112,
     305127,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     305947,
     305962,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     306086,
     306101,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     307144,
     307159,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     307283,
     307298,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     308489,
     308504,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     308628,
     308643,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     309261,
     309276,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     309400,
     309415,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     310290,
     310305,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     310429,
     310444,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     311062,
     311077,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     311201,
     311216,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     312089,
     312104,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     312228,
     312243,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     312861,
     312876,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     313000,
     313015,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     313884,
     313899,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     314023,
     314038,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     314333,
     314348,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     314472,
     314487,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     314798,
     314813,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     314937,
     314952,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     315338,
     315353,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     315477,
     315492,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     315990,
     316005,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     316129,
     316144,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     316878,
     316893,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     317017,
     317032,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     317905,
     317920,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     318044,
     318059,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     318853,
     318868,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     318992,
     319007,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     319883,
     319898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     320022,
     320037,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     320258,
     320273,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     320397,
     320412,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     320743,
     320758,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     320882,
     320897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     321378,
     321393,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     321517,
     321532,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     322535,
     322550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     322674,
     322689,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     323224,
     323239,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     323363,
     323378,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     324435,
     324450,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     324574,
     324589,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     325282,
     325297,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     325421,
     325436,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     326403,
     326418,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     326542,
     326557,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     326789,
     326804,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     326928,
     326943,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     327186,
     327201,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     327325,
     327340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     327514,
     327529,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     327653,
     327668,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     327859,
     327874,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     327998,
     328013,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     328302,
     328317,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     328441,
     328456,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     328668,
     328683,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     328807,
     328822,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     329082,
     329097,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     329221,
     329236,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     329567,
     329582,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     329706,
     329721,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     330763,
     330778,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     330902,
     330917,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     332014,
     332029,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     332153,
     332168,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     332370,
     332385,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     332509,
     332524,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     332855,
     332870,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     332994,
     333009,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     333607,
     333622,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     333746,
     333761,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     334399,
     334414,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     334538,
     334553,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     335053,
     335068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     335192,
     335207,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     335742,
     335757,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     335881,
     335896,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     336752,
     336767,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     336891,
     336906,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     337874,
     337889,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     338013,
     338028,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     339117,
     339132,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     339256,
     339271,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     340472,
     340487,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     340611,
     340626,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     341197,
     341212,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     341336,
     341351,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     341988,
     342003,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     342127,
     342142,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     342592,
     342607,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     342731,
     342746,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     343734,
     343749,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     343873,
     343888,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     344205,
     344220,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     344344,
     344359,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     344710,
     344725,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     344849,
     344864,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     345401,
     345416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     345540,
     345555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     346143,
     346158,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     346282,
     346297,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     346671,
     346686,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     346810,
     346825,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     347250,
     347265,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     347389,
     347404,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     347825,
     347840,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     347964,
     347979,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     348417,
     348432,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     348556,
     348571,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     348794,
     348809,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     348933,
     348948,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     349186,
     349201,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     349325,
     349340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     349527,
     349542,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     349666,
     349681,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     349883,
     349898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     350022,
     350037,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     350304,
     350319,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     350443,
     350458,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     350742,
     350757,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     350881,
     350896,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     351091,
     351106,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     351230,
     351245,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     351454,
     351469,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     351593,
     351608,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     351834,
     351849,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     351973,
     351988,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     352231,
     352246,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     352370,
     352385,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     352648,
     352663,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     352787,
     352802,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     353081,
     353096,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     353220,
     353235,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     353615,
     353630,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     353754,
     353769,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     354132,
     354147,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     354271,
     354286,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     354609,
     354624,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     354748,
     354763,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     355089,
     355104,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     355228,
     355243,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     355697,
     355712,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     355836,
     355851,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     356326,
     356341,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     356465,
     356480,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     357591,
     357606,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     357730,
     357745,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     358968,
     358983,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     359107,
     359122,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     359618,
     359633,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     359757,
     359772,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     360346,
     360361,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     360485,
     360500,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     360862,
     360877,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     361001,
     361016,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     361483,
     361498,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     361622,
     361637,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     362885,
     362900,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     363024,
     363039,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     365265,
     365280,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     365404,
     365419,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     365711,
     365726,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     365850,
     365865,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     366220,
     366235,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     366359,
     366374,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     366800,
     366815,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     366939,
     366954,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     367693,
     367708,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     367832,
     367847,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     368423,
     368438,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     368562,
     368577,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     369507,
     369522,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     369646,
     369661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     370014,
     370029,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     370153,
     370168,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     370521,
     370536,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     370660,
     370675,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     371276,
     371291,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     371415,
     371430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     372029,
     372044,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     372168,
     372183,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     372412,
     372427,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     372551,
     372566,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     372825,
     372840,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     372964,
     372979,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     373383,
     373398,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     373522,
     373537,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     373847,
     373862,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     373986,
     374001,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     374353,
     374368,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     374492,
     374507,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     374874,
     374889,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     375013,
     375028,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     375374,
     375389,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     375513,
     375528,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     375987,
     376002,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     376126,
     376141,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     376611,
     376626,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     376750,
     376765,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     377288,
     377303,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     377427,
     377442,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     377717,
     377732,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     377856,
     377871,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     378170,
     378185,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     378309,
     378324,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     379411,
     379426,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     379550,
     379565,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     379788,
     379803,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     379927,
     379942,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     380673,
     380688,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     380812,
     380827,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     381582,
     381597,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     381721,
     381736,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     381922,
     381937,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     382061,
     382076,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     382265,
     382280,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     382404,
     382419,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     382928,
     382943,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     383067,
     383082,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     383869,
     383884,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     384008,
     384023,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     384369,
     384384,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     384508,
     384523,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     385193,
     385208,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     385332,
     385347,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     385468,
     385483,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     385607,
     385622,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     385818,
     385833,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     385957,
     385972,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     386350,
     386365,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     386489,
     386504,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     386862,
     386877,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     387001,
     387016,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     387438,
     387453,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     387577,
     387592,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     388007,
     388022,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     388146,
     388161,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     388329,
     388344,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     388468,
     388483,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     388931,
     388946,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     389070,
     389085,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     389357,
     389372,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     389496,
     389511,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     390053,
     390068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     390192,
     390207,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     391709,
     391724,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     391848,
     391863,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     393920,
     393935,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     394059,
     394074,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     394341,
     394356,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     394480,
     394495,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     394901,
     394916,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     395040,
     395055,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     395350,
     395365,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     395489,
     395504,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     396043,
     396058,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     396182,
     396197,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     396467,
     396482,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     396606,
     396621,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     397060,
     397075,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     397199,
     397214,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     397618,
     397633,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     397757,
     397772,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     398559,
     398574,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     398698,
     398713,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     398957,
     398972,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     399096,
     399111,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     399389,
     399404,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     399528,
     399543,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     400088,
     400103,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     400227,
     400242,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     400780,
     400795,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     400919,
     400934,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     401599,
     401614,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     401738,
     401753,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     402543,
     402558,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     402682,
     402697,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     402914,
     402929,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     403053,
     403068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     403398,
     403413,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     403537,
     403552,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     404350,
     404365,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     404489,
     404504,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     405613,
     405628,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     405752,
     405767,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     406432,
     406447,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     406571,
     406586,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     407487,
     407502,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     407626,
     407641,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     409167,
     409182,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     409306,
     409321,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     410859,
     410874,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     410998,
     411013,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     411389,
     411404,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     411528,
     411543,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     411976,
     411991,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     412115,
     412130,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     412899,
     412914,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     413038,
     413053,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     413632,
     413647,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     413771,
     413786,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     414118,
     414133,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     414257,
     414272,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     414663,
     414678,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     414802,
     414817,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     415198,
     415213,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     415337,
     415352,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     415723,
     415738,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     415862,
     415877,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     416321,
     416336,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     416460,
     416475,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     417364,
     417379,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     417503,
     417518,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     417790,
     417805,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     417929,
     417944,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     418282,
     418297,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     418421,
     418436,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     418952,
     418967,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     419091,
     419106,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     419663,
     419678,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     419802,
     419817,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     420068,
     420083,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     420207,
     420222,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     420586,
     420601,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     420725,
     420740,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     421242,
     421257,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     421381,
     421396,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     421955,
     421970,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     422094,
     422109,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     422781,
     422796,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     422920,
     422935,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     423449,
     423464,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     423588,
     423603,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     424199,
     424214,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     424338,
     424353,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     424968,
     424983,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     425107,
     425122,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     425578,
     425593,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     425717,
     425732,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     426301,
     426316,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     426440,
     426455,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     427361,
     427376,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     427500,
     427515,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     428652,
     428667,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     428791,
     428806,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     429365,
     429380,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     429504,
     429519,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     430191,
     430206,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     430330,
     430345,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     430893,
     430908,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     431032,
     431047,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     432023,
     432038,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     432162,
     432177,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     433104,
     433119,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     433243,
     433258,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     433753,
     433768,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     433892,
     433907,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     434185,
     434200,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     434324,
     434339,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     434939,
     434954,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     435078,
     435093,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     436029,
     436044,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     436168,
     436183,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     436596,
     436611,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     436735,
     436750,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     437276,
     437291,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     437415,
     437430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     437654,
     437669,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     437793,
     437808,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     438145,
     438160,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     438284,
     438299,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     440898,
     440913,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     441037,
     441052,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     443809,
     443824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     443948,
     443963,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     444405,
     444420,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     444544,
     444559,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     445050,
     445065,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     445189,
     445204,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     446115,
     446130,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     446254,
     446269,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     447163,
     447178,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     447302,
     447317,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     448505,
     448520,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     448644,
     448659,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     449830,
     449845,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     449969,
     449984,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     450396,
     450411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     450535,
     450550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     451356,
     451371,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     451495,
     451510,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     452298,
     452313,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     452437,
     452452,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     453069,
     453084,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     453208,
     453223,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     453483,
     453498,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     453622,
     453637,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     453898,
     453913,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     454037,
     454052,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     454505,
     454520,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     454644,
     454659,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     455224,
     455239,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     455363,
     455378,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     456073,
     456088,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     456212,
     456227,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     456924,
     456939,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     457063,
     457078,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     457636,
     457651,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     457775,
     457790,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     458530,
     458545,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     458669,
     458684,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     459668,
     459683,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     459807,
     459822,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     461153,
     461168,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     461292,
     461307,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     461762,
     461777,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     461901,
     461916,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     462485,
     462500,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     462624,
     462639,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     463120,
     463135,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     463259,
     463274,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     464074,
     464089,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     464213,
     464228,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     464462,
     464477,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     464601,
     464616,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     465034,
     465049,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     465173,
     465188,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     465560,
     465575,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     465699,
     465714,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     466086,
     466101,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     466225,
     466240,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     466464,
     466479,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     466603,
     466618,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     466879,
     466894,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     467018,
     467033,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     467281,
     467296,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     467420,
     467435,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     467665,
     467680,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     467804,
     467819,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     468071,
     468086,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     468210,
     468225,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     468454,
     468469,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     468593,
     468608,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     468838,
     468853,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     468977,
     468992,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     469194,
     469209,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     469333,
     469348,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     469592,
     469607,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     469731,
     469746,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     470024,
     470039,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     470163,
     470178,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     470472,
     470487,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     470611,
     470626,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     470954,
     470969,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     471093,
     471108,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     471363,
     471378,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     471502,
     471517,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     471806,
     471821,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     471945,
     471960,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     472676,
     472691,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     472815,
     472830,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     473856,
     473871,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     473995,
     474010,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     474409,
     474424,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     474548,
     474563,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     474996,
     475011,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     475135,
     475150,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     475609,
     475624,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     475748,
     475763,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     476232,
     476247,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     476371,
     476386,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     476781,
     476796,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     476920,
     476935,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     477370,
     477385,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     477509,
     477524,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     477848,
     477863,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     477987,
     478002,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     478311,
     478326,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     478450,
     478465,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     478700,
     478715,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     478839,
     478854,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     479123,
     479138,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     479262,
     479277,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     479684,
     479699,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     479823,
     479838,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     480194,
     480209,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     480333,
     480348,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     480933,
     480948,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     481072,
     481087,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     481731,
     481746,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     481870,
     481885,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     482175,
     482190,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     482314,
     482329,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     482647,
     482662,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     482786,
     482801,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     483031,
     483046,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     483170,
     483185,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     483848,
     483863,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     483987,
     484002,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     484678,
     484693,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     484817,
     484832,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     485272,
     485287,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     485411,
     485426,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     485887,
     485902,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     486026,
     486041,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     486271,
     486286,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     486410,
     486425,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     486681,
     486696,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     486820,
     486835,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     487671,
     487686,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     487810,
     487825,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     488682,
     488697,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     488821,
     488836,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     489074,
     489089,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     489213,
     489228,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     489500,
     489515,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     489639,
     489654,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     489951,
     489966,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     490090,
     490105,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     490349,
     490364,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     490488,
     490503,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     490764,
     490779,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     490903,
     490918,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     491240,
     491255,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     491379,
     491394,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     491759,
     491774,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     491898,
     491913,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     492157,
     492172,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     492296,
     492311,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     492572,
     492587,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     492711,
     492726,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     493076,
     493091,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     493215,
     493230,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     493614,
     493629,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     493753,
     493768,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     494033,
     494048,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     494172,
     494187,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     494419,
     494434,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     494558,
     494573,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     494925,
     494940,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     495064,
     495079,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     495455,
     495470,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     495594,
     495609,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     495919,
     495934,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     496058,
     496073,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     496433,
     496448,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     496572,
     496587,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     496852,
     496867,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     496991,
     497006,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     497276,
     497291,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     497415,
     497430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     497774,
     497789,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     497913,
     497928,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     498306,
     498321,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     498445,
     498460,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     499002,
     499017,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     499141,
     499156,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     499757,
     499772,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     499896,
     499911,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     500154,
     500169,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     500293,
     500308,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     500579,
     500594,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     500718,
     500733,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     500953,
     500968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     501092,
     501107,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     501362,
     501377,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     501501,
     501516,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     502174,
     502189,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     502313,
     502328,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     503020,
     503035,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     503159,
     503174,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     504105,
     504120,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     504244,
     504259,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     505224,
     505239,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     505363,
     505378,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     505743,
     505758,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     505882,
     505897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     506401,
     506416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     506540,
     506555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     507013,
     507028,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     507152,
     507167,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     507648,
     507663,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     507787,
     507802,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     508042,
     508057,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     508181,
     508196,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     508456,
     508471,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     508595,
     508610,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     508910,
     508925,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     509049,
     509064,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     509341,
     509356,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     509480,
     509495,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     509730,
     509745,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     509869,
     509884,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     510153,
     510168,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     510292,
     510307,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     510814,
     510829,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     510953,
     510968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     511509,
     511524,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     511648,
     511663,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     511898,
     511913,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     512037,
     512052,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     512321,
     512336,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     512460,
     512475,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     512902,
     512917,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     513041,
     513056,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     513517,
     513532,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     513656,
     513671,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     513910,
     513925,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     514049,
     514064,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     514337,
     514352,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     514476,
     514491,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     515051,
     515066,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     515190,
     515205,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     515824,
     515839,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     515963,
     515978,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     516244,
     516259,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     516383,
     516398,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     516680,
     516695,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     516819,
     516834,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     517171,
     517186,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     517310,
     517325,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     517631,
     517646,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     517770,
     517785,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     518153,
     518168,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     518292,
     518307,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     518690,
     518705,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     518829,
     518844,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     518955,
     518970,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     519094,
     519109,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     519258,
     519273,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     519397,
     519412,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     519537,
     519552,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     519676,
     519691,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     519816,
     519831,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     519955,
     519970,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     520082,
     520097,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     520221,
     520236,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     520403,
     520418,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     520542,
     520557,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     520849,
     520864,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     520988,
     521003,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     521421,
     521436,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     521560,
     521575,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     522152,
     522167,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     522291,
     522306,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     522994,
     523009,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     523133,
     523148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     524158,
     524173,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     524297,
     524312,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     525559,
     525574,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     525698,
     525713,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     526639,
     526654,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     526778,
     526793,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     528029,
     528044,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     528168,
     528183,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     529534,
     529549,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     529673,
     529688,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     531039,
     531054,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     531178,
     531193,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     531507,
     531522,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     531646,
     531661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     532391,
     532406,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     532530,
     532545,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     533586,
     533601,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     533725,
     533740,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     535224,
     535239,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     535363,
     535378,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     535701,
     535716,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     535840,
     535855,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     536194,
     536209,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     536333,
     536348,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     536639,
     536654,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     536778,
     536793,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     537135,
     537150,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     537274,
     537289,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     537543,
     537558,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     537682,
     537697,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     538014,
     538029,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     538153,
     538168,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     538272,
     538287,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     538411,
     538426,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     538578,
     538593,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     538717,
     538732,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     539195,
     539210,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     539334,
     539349,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     540106,
     540121,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     540245,
     540260,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     540670,
     540685,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     540809,
     540824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     541234,
     541249,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     541373,
     541388,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     541797,
     541812,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     541936,
     541951,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     542360,
     542375,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     542499,
     542514,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     543213,
     543228,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     543352,
     543367,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     544029,
     544044,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     544168,
     544183,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     544823,
     544838,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     544962,
     544977,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     545229,
     545244,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     545368,
     545383,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     545626,
     545641,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     545765,
     545780,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     546248,
     546263,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     546387,
     546402,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     547048,
     547063,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     547187,
     547202,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     547666,
     547681,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     547805,
     547820,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     548396,
     548411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     548535,
     548550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     548812,
     548827,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     548951,
     548966,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     549386,
     549401,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     549525,
     549540,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     549872,
     549887,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     550011,
     550026,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     550593,
     550608,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     550732,
     550747,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     550977,
     550992,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     551116,
     551131,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     551400,
     551415,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     551539,
     551554,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     551782,
     551797,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     551921,
     551936,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     552169,
     552184,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     552308,
     552323,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     552582,
     552597,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     552721,
     552736,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     553034,
     553049,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     553173,
     553188,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     553686,
     553701,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     553825,
     553840,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     554388,
     554403,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     554527,
     554542,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     554801,
     554816,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     554940,
     554955,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     555247,
     555262,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     555386,
     555401,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     555710,
     555725,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     555849,
     555864,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     556206,
     556221,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     556345,
     556360,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     556630,
     556645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     556769,
     556784,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     557087,
     557102,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     557226,
     557241,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     557491,
     557506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     557630,
     557645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     557928,
     557943,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     558067,
     558082,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     558300,
     558315,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     558439,
     558454,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     559136,
     559151,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     559275,
     559290,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     559992,
     560007,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     560131,
     560146,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     560387,
     560402,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     560526,
     560541,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     560821,
     560836,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     560960,
     560975,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     561229,
     561244,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     561368,
     561383,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     561670,
     561685,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     561809,
     561824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     562202,
     562217,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     562341,
     562356,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     562773,
     562788,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     562912,
     562927,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     563178,
     563193,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     563317,
     563332,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     563700,
     563715,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     563839,
     563854,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     564255,
     564270,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     564394,
     564409,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     564776,
     564791,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     564915,
     564930,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     565330,
     565345,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     565469,
     565484,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     565741,
     565756,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     565880,
     565895,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     566227,
     566242,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     566366,
     566381,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     566720,
     566735,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     566859,
     566874,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     567132,
     567147,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     567271,
     567286,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     567521,
     567536,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     567660,
     567675,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     567943,
     567958,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     568082,
     568097,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     569153,
     569168,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     569292,
     569307,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     570396,
     570411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     570535,
     570550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     570889,
     570904,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     571028,
     571043,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     571301,
     571316,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     571440,
     571455,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     571819,
     571834,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     571958,
     571973,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     572496,
     572511,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     572635,
     572650,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     573118,
     573133,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     573257,
     573272,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     573773,
     573788,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     573912,
     573927,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     574177,
     574192,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     574316,
     574331,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     574614,
     574629,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     574753,
     574768,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     575242,
     575257,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     575381,
     575396,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     575903,
     575918,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     576042,
     576057,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     576307,
     576322,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     576446,
     576461,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     576744,
     576759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     576883,
     576898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     577308,
     577323,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     577447,
     577462,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     577905,
     577920,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     578044,
     578059,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     578313,
     578328,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     578452,
     578467,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     578754,
     578769,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     578893,
     578908,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     579208,
     579223,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     579347,
     579362,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     579666,
     579681,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     579805,
     579820,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     580114,
     580129,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     580253,
     580268,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     580595,
     580610,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     580734,
     580749,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     580949,
     580964,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     581088,
     581103,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     581234,
     581249,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     581373,
     581388,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     581956,
     581971,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     582095,
     582110,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     583020,
     583035,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     583159,
     583174,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     584146,
     584161,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     584285,
     584300,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     585041,
     585056,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     585180,
     585195,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     586602,
     586617,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     586741,
     586756,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     587185,
     587200,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     587324,
     587339,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     587881,
     587896,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     588020,
     588035,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     588464,
     588479,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     588603,
     588618,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     589160,
     589175,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     589299,
     589314,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     589632,
     589647,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     589771,
     589786,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     590132,
     590147,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     590271,
     590286,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     590662,
     590677,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     590801,
     590816,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     590975,
     590990,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     591114,
     591129,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     591288,
     591303,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     591427,
     591442,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     591601,
     591616,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     591740,
     591755,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     591914,
     591929,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     592053,
     592068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     592643,
     592658,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     592782,
     592797,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     593436,
     593451,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     593575,
     593590,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     593729,
     593744,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     593868,
     593883,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     594368,
     594383,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     594507,
     594522,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     595056,
     595071,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     595195,
     595210,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     595682,
     595697,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     595821,
     595836,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     596594,
     596609,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     596733,
     596748,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     597272,
     597287,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     597411,
     597426,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     598046,
     598061,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     598185,
     598200,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     598482,
     598497,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     598621,
     598636,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     598939,
     598954,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     599078,
     599093,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     599453,
     599468,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     599592,
     599607,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     600174,
     600189,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     600313,
     600328,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     600611,
     600626,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     600750,
     600765,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     601250,
     601265,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     601389,
     601404,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     601851,
     601866,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     601990,
     602005,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     602470,
     602485,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     602609,
     602624,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     603334,
     603349,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     603473,
     603488,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     603982,
     603997,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     604121,
     604136,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     604376,
     604391,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     604515,
     604530,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     604899,
     604914,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     605038,
     605053,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     605933,
     605948,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     606072,
     606087,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     607644,
     607659,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     607783,
     607798,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     608530,
     608545,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     608669,
     608684,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     609894,
     609909,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     610033,
     610048,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     610713,
     610728,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     610852,
     610867,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     611969,
     611984,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     612108,
     612123,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     613334,
     613349,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     613473,
     613488,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     614780,
     614795,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     614919,
     614934,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     615977,
     615992,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     616116,
     616131,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     617223,
     617238,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     617362,
     617377,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     618002,
     618017,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     618141,
     618156,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     619102,
     619117,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     619241,
     619256,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     619506,
     619521,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     619645,
     619660,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     620029,
     620044,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     620168,
     620183,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     620814,
     620829,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     620953,
     620968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     621929,
     621944,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     622068,
     622083,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     622610,
     622625,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     622749,
     622764,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     623621,
     623636,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     623760,
     623775,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     624133,
     624148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     624272,
     624287,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     624681,
     624696,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     624820,
     624835,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     625184,
     625199,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     625323,
     625338,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     625743,
     625758,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     625882,
     625897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     626260,
     626275,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     626399,
     626414,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     626794,
     626809,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     626933,
     626948,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     628118,
     628133,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     628257,
     628272,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     630990,
     631005,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     631129,
     631144,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     632142,
     632157,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     632281,
     632296,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     633549,
     633564,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     633688,
     633703,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     634498,
     634513,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     634637,
     634652,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     635491,
     635506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     635630,
     635645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     636266,
     636281,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     636405,
     636420,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     637228,
     637243,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     637367,
     637382,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     637558,
     637573,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     637697,
     637712,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     637928,
     637943,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     638067,
     638082,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     638814,
     638829,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     638953,
     638968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     639527,
     639542,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     639666,
     639681,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     640228,
     640243,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     640367,
     640382,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     641059,
     641074,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     641198,
     641213,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     641451,
     641466,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     641590,
     641605,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     641839,
     641854,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     641978,
     641993,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     642696,
     642711,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     642835,
     642850,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     643546,
     643561,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     643685,
     643700,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     644336,
     644351,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     644475,
     644490,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     645081,
     645096,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     645220,
     645235,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     645567,
     645582,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     645706,
     645721,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     646068,
     646083,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     646207,
     646222,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     647007,
     647022,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     647146,
     647161,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     648242,
     648257,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     648381,
     648396,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     648933,
     648948,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     649072,
     649087,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     649768,
     649783,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     649907,
     649922,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     650270,
     650285,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     650409,
     650424,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     650882,
     650897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     651021,
     651036,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     651213,
     651228,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     651352,
     651367,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     651802,
     651817,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     651941,
     651956,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     652438,
     652453,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     652577,
     652592,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     652785,
     652800,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     652924,
     652939,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     653444,
     653459,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     653583,
     653598,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     654054,
     654069,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     654193,
     654208,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     655027,
     655042,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     655166,
     655181,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     656048,
     656063,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     656187,
     656202,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     656477,
     656492,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     656616,
     656631,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     656980,
     656995,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     657119,
     657134,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     658259,
     658274,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     658398,
     658413,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     660354,
     660369,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     660493,
     660508,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     661512,
     661527,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     661651,
     661666,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     663366,
     663381,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     663505,
     663520,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     663991,
     664006,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     664130,
     664145,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     664723,
     664738,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     664862,
     664877,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     665437,
     665452,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     665576,
     665591,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     666199,
     666214,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     666338,
     666353,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     666584,
     666599,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     666723,
     666738,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     666984,
     666999,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     667123,
     667138,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     667572,
     667587,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     667711,
     667726,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     668071,
     668086,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     668210,
     668225,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     668566,
     668581,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     668705,
     668720,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     669795,
     669810,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     669934,
     669949,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     671386,
     671401,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     671525,
     671540,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     672038,
     672053,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     672177,
     672192,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     672818,
     672833,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     672957,
     672972,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     673387,
     673402,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     673526,
     673541,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     673971,
     673986,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     674110,
     674125,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     674238,
     674253,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     674377,
     674392,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     674760,
     674775,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     674899,
     674914,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     675317,
     675332,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     675456,
     675471,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     675757,
     675772,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     675896,
     675911,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     676213,
     676228,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     676352,
     676367,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     676769,
     676784,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     676908,
     676923,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     677521,
     677536,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     677660,
     677675,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     677876,
     677891,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     678015,
     678030,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     678652,
     678667,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     678791,
     678806,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     679338,
     679353,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     679477,
     679492,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     680139,
     680154,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     680278,
     680293,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     680591,
     680606,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     680730,
     680745,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     681310,
     681325,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     681449,
     681464,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     681834,
     681849,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     681973,
     681988,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     682850,
     682865,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     682989,
     683004,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     683736,
     683751,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     683875,
     683890,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     685027,
     685042,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     685166,
     685181,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     685489,
     685504,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     685628,
     685643,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     686212,
     686227,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     686351,
     686366,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     686783,
     686798,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     686922,
     686937,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     687365,
     687380,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     687504,
     687519,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     687742,
     687757,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     687881,
     687896,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     688159,
     688174,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     688298,
     688313,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     688553,
     688568,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     688692,
     688707,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     688987,
     689002,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     689126,
     689141,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     689383,
     689398,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     689522,
     689537,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     689813,
     689828,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     689952,
     689967,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     690295,
     690310,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     690434,
     690449,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     690812,
     690827,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     690951,
     690966,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     691292,
     691307,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     691431,
     691446,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     691814,
     691829,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     691953,
     691968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     692338,
     692353,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     692477,
     692492,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     692902,
     692917,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     693041,
     693056,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     693325,
     693340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     693464,
     693479,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     693788,
     693803,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     693927,
     693942,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     694251,
     694266,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     694390,
     694405,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     695447,
     695462,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     695586,
     695601,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     696700,
     696715,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     696839,
     696854,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     697318,
     697333,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     697457,
     697472,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     697977,
     697992,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     698116,
     698131,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     698482,
     698497,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     698621,
     698636,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     699065,
     699080,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     699204,
     699219,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     699690,
     699705,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     699829,
     699844,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     700217,
     700232,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     700356,
     700371,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     700784,
     700799,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     700923,
     700938,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     701265,
     701280,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     701404,
     701419,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     701801,
     701816,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     701940,
     701955,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     702917,
     702932,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     703056,
     703071,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     704162,
     704177,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     704301,
     704316,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     704557,
     704572,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     704696,
     704711,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     704991,
     705006,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     705130,
     705145,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     705366,
     705381,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     705505,
     705520,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     705757,
     705772,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     705896,
     705911,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     706161,
     706176,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     706300,
     706315,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     706717,
     706732,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     706856,
     706871,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     707104,
     707119,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     707243,
     707258,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     707513,
     707528,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     707652,
     707667,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     708005,
     708020,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     708144,
     708159,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     708507,
     708522,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     708646,
     708661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     709091,
     709106,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     709230,
     709245,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     709690,
     709705,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     709829,
     709844,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     710175,
     710190,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     710314,
     710329,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     710732,
     710747,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     710871,
     710886,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     712473,
     712488,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     712612,
     712627,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     714097,
     714112,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     714236,
     714251,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     714636,
     714651,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     714775,
     714790,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     715277,
     715292,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     715416,
     715431,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     716013,
     716028,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     716152,
     716167,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     716576,
     716591,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     716715,
     716730,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     717273,
     717288,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     717412,
     717427,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     717979,
     717994,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     718118,
     718133,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     718567,
     718582,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     718706,
     718721,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     719138,
     719153,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     719277,
     719292,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     719531,
     719546,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     719670,
     719685,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     719941,
     719956,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     720080,
     720095,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     720362,
     720377,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     720501,
     720516,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     720884,
     720899,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     721023,
     721038,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     721271,
     721286,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     721410,
     721425,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     721674,
     721689,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     721813,
     721828,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     722302,
     722317,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     722441,
     722456,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     722979,
     722994,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     723118,
     723133,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     723297,
     723312,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     723436,
     723451,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     723615,
     723630,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     723754,
     723769,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     723974,
     723989,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     724113,
     724128,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     724446,
     724461,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     724585,
     724600,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     724823,
     724838,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     724962,
     724977,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     725313,
     725328,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     725452,
     725467,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     725817,
     725832,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     725956,
     725971,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     726415,
     726430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     726554,
     726569,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     726992,
     727007,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     727131,
     727146,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     727660,
     727675,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     727799,
     727814,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     728119,
     728134,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     728258,
     728273,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     728582,
     728597,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     728721,
     728736,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     729060,
     729075,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     729199,
     729214,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     729602,
     729617,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     729741,
     729756,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     730149,
     730164,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     730288,
     730303,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     730698,
     730713,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     730837,
     730852,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     731240,
     731255,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     731379,
     731394,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     733885,
     733900,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     734024,
     734039,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     736765,
     736780,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     736904,
     736919,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     737174,
     737189,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     737313,
     737328,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     737637,
     737652,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     737776,
     737791,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     739311,
     739326,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     739450,
     739465,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     741016,
     741031,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     741155,
     741170,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     741309,
     741324,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     741448,
     741463,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     743663,
     743678,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     743802,
     743817,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     746379,
     746394,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     746518,
     746533,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     747133,
     747148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     747272,
     747287,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     747952,
     747967,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     748091,
     748106,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     748443,
     748458,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     748582,
     748597,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     748942,
     748957,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     749081,
     749096,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     749437,
     749452,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     749576,
     749591,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     749916,
     749931,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     750055,
     750070,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     750292,
     750307,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     750431,
     750446,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     750668,
     750683,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     750807,
     750822,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     751152,
     751167,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     751291,
     751306,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     751686,
     751701,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     751825,
     751840,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     752502,
     752517,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     752641,
     752656,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     753539,
     753554,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     753678,
     753693,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     754005,
     754020,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     754144,
     754159,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     754612,
     754627,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     754751,
     754766,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     755008,
     755023,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     755147,
     755162,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     755506,
     755521,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     755645,
     755660,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     755891,
     755906,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     756030,
     756045,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     756293,
     756308,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     756432,
     756447,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     756676,
     756691,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     756815,
     756830,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     757075,
     757090,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     757214,
     757229,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     757458,
     757473,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     757597,
     757612,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     757859,
     757874,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     757998,
     758013,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     758241,
     758256,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     758380,
     758395,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     758639,
     758654,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     758778,
     758793,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     759024,
     759039,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     759163,
     759178,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     759425,
     759440,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     759564,
     759579,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     759792,
     759807,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     759931,
     759946,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     760175,
     760190,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     760314,
     760329,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     760542,
     760557,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     760681,
     760696,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     760924,
     760939,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     761063,
     761078,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     761289,
     761304,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     761428,
     761443,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     761670,
     761685,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     761809,
     761824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     762055,
     762070,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     762194,
     762209,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     762482,
     762497,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     762621,
     762636,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     762901,
     762916,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     763040,
     763055,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     763264,
     763279,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     763403,
     763418,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     763643,
     763658,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     763782,
     763797,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     764007,
     764022,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     764146,
     764161,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     764386,
     764401,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     764525,
     764540,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     764785,
     764800,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     764924,
     764939,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     765209,
     765224,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     765348,
     765363,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     765628,
     765643,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     765767,
     765782,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     765994,
     766009,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     766133,
     766148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     766376,
     766391,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     766515,
     766530,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     766743,
     766758,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     766882,
     766897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     767125,
     767140,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     767264,
     767279,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     767491,
     767506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     767630,
     767645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     767874,
     767889,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     768013,
     768028,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     768238,
     768253,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     768377,
     768392,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     768618,
     768633,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     768757,
     768772,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     768984,
     768999,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     769123,
     769138,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     769364,
     769379,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     769503,
     769518,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     769969,
     769984,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     770108,
     770123,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     770803,
     770818,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     770942,
     770957,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     771955,
     771970,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     772094,
     772109,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     773156,
     773171,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     773295,
     773310,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     773700,
     773715,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     773839,
     773854,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     774290,
     774305,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     774429,
     774444,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     775196,
     775211,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     775335,
     775350,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     776061,
     776076,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     776200,
     776215,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     776432,
     776447,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     776571,
     776586,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     776804,
     776819,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     776943,
     776958,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     778955,
     778970,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     779094,
     779109,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     779288,
     779303,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     779427,
     779442,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     781798,
     781813,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     781937,
     781952,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     782702,
     782717,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     782841,
     782856,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     783925,
     783940,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     784064,
     784079,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     784877,
     784892,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     785016,
     785031,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     785791,
     785806,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     785930,
     785945,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     786748,
     786763,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     786887,
     786902,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     787599,
     787614,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     787738,
     787753,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     788315,
     788330,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     788454,
     788469,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     788949,
     788964,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     789088,
     789103,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     789968,
     789983,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     790107,
     790122,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     790987,
     791002,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     791126,
     791141,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     791346,
     791361,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     791485,
     791500,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     791686,
     791701,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     791825,
     791840,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     792070,
     792085,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     792209,
     792224,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     793051,
     793066,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     793190,
     793205,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     794032,
     794047,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     794171,
     794186,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     794694,
     794709,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     794833,
     794848,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     795620,
     795635,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     795759,
     795774,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     796557,
     796572,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     796696,
     796711,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     798220,
     798235,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     798359,
     798374,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     799883,
     799898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     800022,
     800037,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     800460,
     800475,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     800599,
     800614,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     801037,
     801052,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     801176,
     801191,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     801526,
     801541,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     801665,
     801680,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     802015,
     802030,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     802154,
     802169,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     802307,
     802322,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     802446,
     802461,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     802599,
     802614,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     802738,
     802753,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     804053,
     804068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     804192,
     804207,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     805507,
     805522,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     805646,
     805661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     806129,
     806144,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     806268,
     806283,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     806767,
     806782,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     806906,
     806921,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     807263,
     807278,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     807402,
     807417,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     807776,
     807791,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     807915,
     807930,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     808299,
     808314,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     808438,
     808453,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     808839,
     808854,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     808978,
     808993,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     809356,
     809371,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     809495,
     809510,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     809890,
     809905,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     810029,
     810044,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     810265,
     810280,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     810404,
     810419,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     810665,
     810680,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     810804,
     810819,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     811096,
     811111,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     811235,
     811250,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     811629,
     811644,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     811768,
     811783,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     812006,
     812021,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     812145,
     812160,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     812403,
     812418,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     812542,
     812557,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     812784,
     812799,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     812923,
     812938,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     813187,
     813202,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     813326,
     813341,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     813558,
     813573,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     813697,
     813712,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     814091,
     814106,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     814230,
     814245,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     814465,
     814480,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     814604,
     814619,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     815017,
     815032,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     815156,
     815171,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     816250,
     816265,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     816389,
     816404,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     817564,
     817579,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     817703,
     817718,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     817978,
     817993,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     818117,
     818132,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     818407,
     818422,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     818546,
     818561,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     819119,
     819134,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     819258,
     819273,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     820394,
     820409,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     820533,
     820548,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     820844,
     820859,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     820983,
     820998,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     821292,
     821307,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     821431,
     821446,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     821630,
     821645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     821769,
     821784,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     821983,
     821998,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     822122,
     822137,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     823173,
     823188,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     823312,
     823327,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     824776,
     824791,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     824915,
     824930,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     825361,
     825376,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     825500,
     825515,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     825814,
     825829,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     825953,
     825968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     826443,
     826458,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     826582,
     826597,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     826940,
     826955,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     827079,
     827094,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     827666,
     827681,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     827805,
     827820,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     828260,
     828275,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     828399,
     828414,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     828836,
     828851,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     828975,
     828990,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     829284,
     829299,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     829423,
     829438,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     829743,
     829758,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     829882,
     829897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     830710,
     830725,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     830849,
     830864,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     831602,
     831617,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     831741,
     831756,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     832044,
     832059,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     832183,
     832198,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     832716,
     832731,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     832855,
     832870,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     833286,
     833301,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     833425,
     833440,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     833869,
     833884,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     834008,
     834023,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     834502,
     834517,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     834641,
     834656,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     834947,
     834962,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     835086,
     835101,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     835412,
     835427,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     835551,
     835566,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     836626,
     836641,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     836765,
     836780,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     837712,
     837727,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     837851,
     837866,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     838423,
     838438,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     838562,
     838577,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     838990,
     839005,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     839129,
     839144,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     839654,
     839669,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     839793,
     839808,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     840351,
     840366,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     840490,
     840505,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     841030,
     841045,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     841169,
     841184,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     841559,
     841574,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     841698,
     841713,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     842099,
     842114,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     842238,
     842253,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     842705,
     842720,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     842844,
     842859,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     843164,
     843179,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     843303,
     843318,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     843741,
     843756,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     843880,
     843895,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     844268,
     844283,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     844407,
     844422,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     844980,
     844995,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     845119,
     845134,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     845353,
     845368,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     845492,
     845507,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     845835,
     845850,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     845974,
     845989,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     846226,
     846241,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     846365,
     846380,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     846730,
     846745,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     846869,
     846884,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     847162,
     847177,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     847301,
     847316,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     847777,
     847792,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     847916,
     847931,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     848229,
     848244,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     848368,
     848383,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     848861,
     848876,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     849000,
     849015,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     849501,
     849516,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     849640,
     849655,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     850321,
     850336,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     850460,
     850475,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     850941,
     850956,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     851080,
     851095,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     851674,
     851689,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     851813,
     851828,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     852109,
     852124,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     852248,
     852263,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     852729,
     852744,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     852868,
     852883,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     853481,
     853496,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     853620,
     853635,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     854466,
     854481,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     854605,
     854620,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     855189,
     855204,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     855328,
     855343,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     856055,
     856070,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     856194,
     856209,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     856511,
     856526,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     856650,
     856665,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     856982,
     856997,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     857121,
     857136,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     857765,
     857780,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     857904,
     857919,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     858832,
     858847,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     858971,
     858986,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     859853,
     859868,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     859992,
     860007,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     861195,
     861210,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     861334,
     861349,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     862757,
     862772,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     862896,
     862911,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     865075,
     865090,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     865214,
     865229,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     865564,
     865579,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     865703,
     865718,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     866223,
     866238,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     866362,
     866377,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     866951,
     866966,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     867090,
     867105,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     867814,
     867829,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     867953,
     867968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     868240,
     868255,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     868379,
     868394,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     868743,
     868758,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     868882,
     868897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     870262,
     870277,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     870401,
     870416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     871882,
     871897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     872021,
     872036,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     872332,
     872347,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     872471,
     872486,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     872911,
     872926,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     873050,
     873065,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     873687,
     873702,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     873826,
     873841,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     874703,
     874718,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     874842,
     874857,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     874980,
     874995,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     875119,
     875134,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     875257,
     875272,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     875396,
     875411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     875534,
     875549,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     875673,
     875688,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     875811,
     875826,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     875950,
     875965,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     876091,
     876106,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     876230,
     876245,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     876371,
     876386,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     876510,
     876525,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     876651,
     876666,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     876790,
     876805,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     876931,
     876946,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     877070,
     877085,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     877282,
     877297,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     877421,
     877436,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     877633,
     877648,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     877772,
     877787,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     877910,
     877925,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     878049,
     878064,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     878268,
     878283,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     878407,
     878422,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     878705,
     878720,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     878844,
     878859,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     878982,
     878997,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     879121,
     879136,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     879341,
     879356,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     879480,
     879495,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     879777,
     879792,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     879916,
     879931,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     880257,
     880272,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     880396,
     880411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     880740,
     880755,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     880879,
     880894,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     881136,
     881151,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     881275,
     881290,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     881570,
     881585,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     881709,
     881724,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     881966,
     881981,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     882105,
     882120,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     882489,
     882504,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     882628,
     882643,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     882848,
     882863,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     882987,
     883002,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     883245,
     883260,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     883384,
     883399,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     884385,
     884400,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     884524,
     884539,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     885853,
     885868,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     885992,
     886007,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     886319,
     886334,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     886458,
     886473,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     887078,
     887093,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     887217,
     887232,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     887680,
     887695,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     887819,
     887834,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     888446,
     888461,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     888585,
     888600,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     889053,
     889068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     889192,
     889207,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     889824,
     889839,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     889963,
     889978,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     890733,
     890748,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     890872,
     890887,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     891859,
     891874,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     891998,
     892013,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     892500,
     892515,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     892639,
     892654,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     893688,
     893703,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     893827,
     893842,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     894703,
     894718,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     894842,
     894857,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     895940,
     895955,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     896079,
     896094,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     896301,
     896316,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     896440,
     896455,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     896683,
     896698,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     896822,
     896837,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     897812,
     897827,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     897951,
     897966,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     899372,
     899387,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     899511,
     899526,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     900629,
     900644,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     900768,
     900783,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     900991,
     901006,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     901130,
     901145,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     901386,
     901401,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     901525,
     901540,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     902101,
     902116,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     902240,
     902255,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     902865,
     902880,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     903004,
     903019,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     903550,
     903565,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     903689,
     903704,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     904440,
     904455,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     904579,
     904594,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     905432,
     905447,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     905571,
     905586,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     906473,
     906488,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     906612,
     906627,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     907435,
     907450,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     907574,
     907589,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     908602,
     908617,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     908741,
     908756,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     909547,
     909562,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     909686,
     909701,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     910541,
     910556,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     910680,
     910695,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     911456,
     911471,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     911595,
     911610,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     912576,
     912591,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     912715,
     912730,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     913387,
     913402,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     913526,
     913541,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     914247,
     914262,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     914386,
     914401,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     915028,
     915043,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     915167,
     915182,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     916014,
     916029,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     916153,
     916168,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     917073,
     917088,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     917212,
     917227,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     918335,
     918350,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     918474,
     918489,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     919246,
     919261,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     919385,
     919400,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     920379,
     920394,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     920518,
     920533,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     920833,
     920848,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     920972,
     920987,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     921349,
     921364,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     921488,
     921503,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     922079,
     922094,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     922218,
     922233,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     922757,
     922772,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     922896,
     922911,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     923258,
     923273,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     923397,
     923412,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     923865,
     923880,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     924004,
     924019,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     924366,
     924381,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     924505,
     924520,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     924981,
     924996,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     925120,
     925135,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     925870,
     925885,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     926009,
     926024,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     926899,
     926914,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     927038,
     927053,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     927694,
     927709,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     927833,
     927848,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     929034,
     929049,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     929173,
     929188,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     929863,
     929878,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     930002,
     930017,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     930808,
     930823,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     930947,
     930962,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     931525,
     931540,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     931664,
     931679,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     932257,
     932272,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     932396,
     932411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     932744,
     932759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     932883,
     932898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     933460,
     933475,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     933599,
     933614,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     933833,
     933848,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     933972,
     933987,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     934322,
     934337,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     934461,
     934476,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     934858,
     934873,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     934997,
     935012,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     935409,
     935424,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     935548,
     935563,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     936002,
     936017,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     936141,
     936156,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     936676,
     936691,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     936815,
     936830,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     938612,
     938627,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     938751,
     938766,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     940391,
     940406,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     940530,
     940545,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     941442,
     941457,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     941581,
     941596,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     941842,
     941857,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     941981,
     941996,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     942333,
     942348,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     942472,
     942487,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     942868,
     942883,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     943007,
     943022,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     943558,
     943573,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     943697,
     943712,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     943954,
     943969,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     944093,
     944108,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     944425,
     944440,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     944564,
     944579,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     944749,
     944764,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     944888,
     944903,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     945140,
     945155,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     945279,
     945294,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     945689,
     945704,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     945828,
     945843,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     946305,
     946320,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     946444,
     946459,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     946850,
     946865,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     946989,
     947004,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     947488,
     947503,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     947627,
     947642,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     947872,
     947887,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     948011,
     948026,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     948331,
     948346,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     948470,
     948485,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     949039,
     949054,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     949178,
     949193,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     949949,
     949964,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     950088,
     950103,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     950403,
     950418,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     950542,
     950557,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     950887,
     950902,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     951026,
     951041,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     952198,
     952213,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     952337,
     952352,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     952474,
     952489,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     952613,
     952628,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     953034,
     953049,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     953173,
     953188,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     953680,
     953695,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     953819,
     953834,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     954021,
     954036,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     954160,
     954175,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     954669,
     954684,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     954808,
     954823,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     955258,
     955273,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     955397,
     955412,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     955534,
     955549,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     955673,
     955688,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     956331,
     956346,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     956470,
     956485,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     956913,
     956928,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     957052,
     957067,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     957212,
     957227,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     957351,
     957366,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     957563,
     957578,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     957702,
     957717,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     958122,
     958137,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     958261,
     958276,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     958856,
     958871,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     958995,
     959010,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     959269,
     959284,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     959408,
     959423,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     959720,
     959735,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     959859,
     959874,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     960264,
     960279,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     960403,
     960418,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     960917,
     960932,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     961056,
     961071,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     961729,
     961744,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     961868,
     961883,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     962317,
     962332,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     962456,
     962471,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     963320,
     963335,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     963459,
     963474,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     964326,
     964341,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     964465,
     964480,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     965262,
     965277,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     965401,
     965416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     965752,
     965767,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     965891,
     965906,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     966242,
     966257,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     966381,
     966396,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     966967,
     966982,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     967106,
     967121,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     967362,
     967377,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     967501,
     967516,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     967870,
     967885,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     968009,
     968024,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     968248,
     968263,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     968387,
     968402,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     968739,
     968754,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     968878,
     968893,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     969161,
     969176,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     969300,
     969315,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     969579,
     969594,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     969718,
     969733,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     970011,
     970026,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     970150,
     970165,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     970747,
     970762,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     970886,
     970901,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     971512,
     971527,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     971651,
     971666,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     972244,
     972259,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     972383,
     972398,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     973000,
     973015,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     973139,
     973154,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     973906,
     973921,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     974045,
     974060,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     975057,
     975072,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     975196,
     975211,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     975945,
     975960,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     976084,
     976099,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     976980,
     976995,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     977119,
     977134,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     977354,
     977369,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     977493,
     977508,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     977989,
     978004,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     978128,
     978143,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     979007,
     979022,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     979146,
     979161,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     979596,
     979611,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     979735,
     979750,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     980185,
     980200,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     980324,
     980339,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     980684,
     980699,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     980823,
     980838,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     981196,
     981211,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     981335,
     981350,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     981565,
     981580,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     981704,
     981719,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     981931,
     981946,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     982070,
     982085,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     982525,
     982540,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     982664,
     982679,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     983135,
     983150,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     983274,
     983289,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     983553,
     983568,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     983692,
     983707,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     984160,
     984175,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     984299,
     984314,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     984534,
     984549,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     984673,
     984688,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     985021,
     985036,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     985160,
     985175,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     985281,
     985296,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     985420,
     985435,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     985541,
     985556,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     985680,
     985695,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     985999,
     986014,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     986138,
     986153,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     986457,
     986472,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     986596,
     986611,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     987491,
     987506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     987630,
     987645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     988890,
     988905,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     989029,
     989044,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     989801,
     989816,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     989940,
     989955,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     990840,
     990855,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     990979,
     990994,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     991315,
     991330,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     991454,
     991469,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     991864,
     991879,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     992003,
     992018,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     992809,
     992824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     992948,
     992963,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     993960,
     993975,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     994099,
     994114,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     994386,
     994401,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     994525,
     994540,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     994828,
     994843,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     994967,
     994982,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     995552,
     995567,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     995691,
     995706,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     996694,
     996709,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     996833,
     996848,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     997401,
     997416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     997540,
     997555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     998109,
     998124,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     998248,
     998263,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     998983,
     998998,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     999122,
     999137,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     999732,
     999747,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     999871,
     999886,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1000401,
     1000416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1000540,
     1000555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1001613,
     1001628,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1001752,
     1001767,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1002242,
     1002257,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1002381,
     1002396,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1002808,
     1002823,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1002947,
     1002962,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1003371,
     1003386,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1003510,
     1003525,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1003953,
     1003968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1004092,
     1004107,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1004507,
     1004522,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1004646,
     1004661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1005080,
     1005095,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1005219,
     1005234,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1005548,
     1005563,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1005687,
     1005702,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1006035,
     1006050,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1006174,
     1006189,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1006450,
     1006465,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1006589,
     1006604,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1007086,
     1007101,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1007225,
     1007240,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1007605,
     1007620,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1007744,
     1007759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1008139,
     1008154,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1008278,
     1008293,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1008552,
     1008567,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1008691,
     1008706,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1009176,
     1009191,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1009315,
     1009330,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1010066,
     1010081,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1010205,
     1010220,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1011270,
     1011285,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1011409,
     1011424,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1012223,
     1012238,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1012362,
     1012377,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1013300,
     1013315,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1013439,
     1013454,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1015004,
     1015019,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1015143,
     1015158,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1017064,
     1017079,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1017203,
     1017218,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1017782,
     1017797,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1017921,
     1017936,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1018364,
     1018379,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1018503,
     1018518,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1019098,
     1019113,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1019237,
     1019252,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1019502,
     1019517,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1019641,
     1019656,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1019906,
     1019921,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1020045,
     1020060,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1020492,
     1020507,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1020631,
     1020646,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1021256,
     1021271,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1021395,
     1021410,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1021923,
     1021938,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1022062,
     1022077,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1022703,
     1022718,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1022842,
     1022857,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1023247,
     1023262,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1023386,
     1023401,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1023841,
     1023856,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1023980,
     1023995,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1024148,
     1024163,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1024287,
     1024302,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1024493,
     1024508,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1024632,
     1024647,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1024813,
     1024828,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1024952,
     1024967,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1025133,
     1025148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1025272,
     1025287,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1025558,
     1025573,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1025697,
     1025712,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1026102,
     1026117,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1026241,
     1026256,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1026648,
     1026663,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1026787,
     1026802,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1027238,
     1027253,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1027377,
     1027392,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1028491,
     1028506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1028630,
     1028645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1029744,
     1029759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1029883,
     1029898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1030327,
     1030342,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1030466,
     1030481,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1030980,
     1030995,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1031119,
     1031134,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1031548,
     1031563,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1031687,
     1031702,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1032186,
     1032201,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1032325,
     1032340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1032838,
     1032853,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1032977,
     1032992,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1033507,
     1033522,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1033646,
     1033661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1034245,
     1034260,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1034384,
     1034399,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1034976,
     1034991,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1035115,
     1035130,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1036235,
     1036250,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1036374,
     1036389,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1037501,
     1037516,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1037640,
     1037655,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1038251,
     1038266,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1038390,
     1038405,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1039074,
     1039089,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1039213,
     1039228,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1039697,
     1039712,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1039836,
     1039851,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1040415,
     1040430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1040554,
     1040569,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1041067,
     1041082,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1041206,
     1041221,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1041792,
     1041807,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1041931,
     1041946,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1042735,
     1042750,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1042874,
     1042889,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1044211,
     1044226,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1044350,
     1044365,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1044669,
     1044684,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1044808,
     1044823,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1045272,
     1045287,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1045411,
     1045426,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1045875,
     1045890,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1046014,
     1046029,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1046631,
     1046646,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1046770,
     1046785,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1047105,
     1047120,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1047244,
     1047259,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1047599,
     1047614,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1047738,
     1047753,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1048324,
     1048339,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1048463,
     1048478,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1049033,
     1049048,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1049172,
     1049187,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1049680,
     1049695,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1049819,
     1049834,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1050354,
     1050369,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1050493,
     1050508,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1051122,
     1051137,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1051261,
     1051276,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1052130,
     1052145,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1052269,
     1052284,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1052459,
     1052474,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1052598,
     1052613,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1052788,
     1052803,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1052927,
     1052942,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1053071,
     1053086,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1053210,
     1053225,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1053400,
     1053415,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1053539,
     1053554,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1053897,
     1053912,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1054036,
     1054051,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1054502,
     1054517,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1054641,
     1054656,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1055621,
     1055636,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1055760,
     1055775,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1057923,
     1057938,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1058062,
     1058077,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1058345,
     1058360,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1058484,
     1058499,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1058812,
     1058827,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1058951,
     1058966,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1059122,
     1059137,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1059261,
     1059276,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1059452,
     1059467,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1059591,
     1059606,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1059875,
     1059890,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1060014,
     1060029,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1060174,
     1060189,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1060313,
     1060328,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1060592,
     1060607,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1060731,
     1060746,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1061047,
     1061062,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1061186,
     1061201,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1061693,
     1061708,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1061832,
     1061847,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1062452,
     1062467,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1062591,
     1062606,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1063080,
     1063095,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1063219,
     1063234,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1063673,
     1063688,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1063812,
     1063827,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1064304,
     1064319,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1064443,
     1064458,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1064797,
     1064812,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1064936,
     1064951,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1065585,
     1065600,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1065724,
     1065739,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1066587,
     1066602,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1066726,
     1066741,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1067764,
     1067779,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1067903,
     1067918,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1068305,
     1068320,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1068444,
     1068459,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1068861,
     1068876,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1069000,
     1069015,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1069316,
     1069331,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1069455,
     1069470,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1069884,
     1069899,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1070023,
     1070038,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1070420,
     1070435,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1070559,
     1070574,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1070971,
     1070986,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1071110,
     1071125,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1071605,
     1071620,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1071744,
     1071759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1072347,
     1072362,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1072486,
     1072501,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1073042,
     1073057,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1073181,
     1073196,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1073848,
     1073863,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1073987,
     1074002,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1077926,
     1077941,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1078065,
     1078080,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1082545,
     1082560,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1082684,
     1082699,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1083000,
     1083015,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1083139,
     1083154,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1083568,
     1083583,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1083707,
     1083722,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1084313,
     1084328,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1084452,
     1084467,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1085028,
     1085043,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1085167,
     1085182,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1086328,
     1086343,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1086467,
     1086482,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1087593,
     1087608,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1087732,
     1087747,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1088476,
     1088491,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1088615,
     1088630,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1089402,
     1089417,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1089541,
     1089556,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1091527,
     1091542,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1091666,
     1091681,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1094326,
     1094341,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1094465,
     1094480,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1095087,
     1095102,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1095226,
     1095241,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1095736,
     1095751,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1095875,
     1095890,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1096849,
     1096864,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1096988,
     1097003,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1098039,
     1098054,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1098178,
     1098193,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1098524,
     1098539,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1098663,
     1098678,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1099043,
     1099058,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1099182,
     1099197,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1099664,
     1099679,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1099803,
     1099818,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1100333,
     1100348,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1100472,
     1100487,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1101065,
     1101080,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1101204,
     1101219,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1101958,
     1101973,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1102097,
     1102112,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1102396,
     1102411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1102535,
     1102550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1102850,
     1102865,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1102989,
     1103004,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1103618,
     1103633,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1103757,
     1103772,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1104408,
     1104423,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1104547,
     1104562,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1105180,
     1105195,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1105319,
     1105334,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1105999,
     1106014,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1106138,
     1106153,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1106348,
     1106363,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1106487,
     1106502,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1106697,
     1106712,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1106836,
     1106851,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1107501,
     1107516,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1107640,
     1107655,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1108305,
     1108320,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1108444,
     1108459,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1108744,
     1108759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1108883,
     1108898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1109357,
     1109372,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1109496,
     1109511,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1109713,
     1109728,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1109852,
     1109867,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1110276,
     1110291,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1110415,
     1110430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1110664,
     1110679,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1110803,
     1110818,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1111068,
     1111083,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1111207,
     1111222,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1111434,
     1111449,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1111573,
     1111588,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1111900,
     1111915,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1112039,
     1112054,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1112556,
     1112571,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1112695,
     1112710,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1113102,
     1113117,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1113241,
     1113256,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1113755,
     1113770,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1113894,
     1113909,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1114623,
     1114638,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1114762,
     1114777,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1115004,
     1115019,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1115143,
     1115158,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1115426,
     1115441,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1115565,
     1115580,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1116197,
     1116212,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1116336,
     1116351,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1117048,
     1117063,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1117187,
     1117202,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1117957,
     1117972,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1118096,
     1118111,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1118969,
     1118984,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1119108,
     1119123,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1119263,
     1119278,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1119402,
     1119417,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1119557,
     1119572,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1119696,
     1119711,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1120730,
     1120745,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1120869,
     1120884,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1121901,
     1121916,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1122040,
     1122055,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1122690,
     1122705,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1122829,
     1122844,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1123588,
     1123603,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1123727,
     1123742,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1124823,
     1124838,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1124962,
     1124977,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1126075,
     1126090,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1126214,
     1126229,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1126752,
     1126767,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1126891,
     1126906,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1127495,
     1127510,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1127634,
     1127649,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1128144,
     1128159,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1128283,
     1128298,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1129033,
     1129048,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1129172,
     1129187,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1130155,
     1130170,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1130294,
     1130309,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1131784,
     1131799,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1131923,
     1131938,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1132503,
     1132518,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1132642,
     1132657,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1133241,
     1133256,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1133380,
     1133395,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1133766,
     1133781,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1133905,
     1133920,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1134393,
     1134408,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1134532,
     1134547,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1135130,
     1135145,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1135269,
     1135284,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1135972,
     1135987,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1136111,
     1136126,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1136848,
     1136863,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1136987,
     1137002,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1137243,
     1137258,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1137382,
     1137397,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1137638,
     1137653,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1137777,
     1137792,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1138084,
     1138099,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1138223,
     1138238,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1138553,
     1138568,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1138692,
     1138707,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1139245,
     1139260,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1139384,
     1139399,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1140013,
     1140028,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1140152,
     1140167,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1140811,
     1140826,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1140950,
     1140965,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1141610,
     1141625,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1141749,
     1141764,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1143239,
     1143254,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1143378,
     1143393,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1144254,
     1144269,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1144393,
     1144408,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1145356,
     1145371,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1145495,
     1145510,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1146507,
     1146522,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1146646,
     1146661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1147478,
     1147493,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1147617,
     1147632,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1148498,
     1148513,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1148637,
     1148652,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1149317,
     1149332,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1149456,
     1149471,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1150093,
     1150108,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1150232,
     1150247,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1150597,
     1150612,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1150736,
     1150751,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1151133,
     1151148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1151272,
     1151287,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1151554,
     1151569,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1151693,
     1151708,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1151998,
     1152013,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1152137,
     1152152,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1152356,
     1152371,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1152495,
     1152510,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1152743,
     1152758,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1152882,
     1152897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1153702,
     1153717,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1153841,
     1153856,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1154753,
     1154768,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1154892,
     1154907,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1155540,
     1155555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1155679,
     1155694,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1156479,
     1156494,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1156618,
     1156633,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1157525,
     1157540,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1157664,
     1157679,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1158690,
     1158705,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1158829,
     1158844,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1159474,
     1159489,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1159613,
     1159628,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1160396,
     1160411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1160535,
     1160550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1160834,
     1160849,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1160973,
     1160988,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1161442,
     1161457,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1161581,
     1161596,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1162638,
     1162653,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1162777,
     1162792,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1163800,
     1163815,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1163939,
     1163954,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1165123,
     1165138,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1165262,
     1165277,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1166407,
     1166422,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1166546,
     1166561,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1167600,
     1167615,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1167739,
     1167754,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1168870,
     1168885,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1169009,
     1169024,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1169617,
     1169632,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1169756,
     1169771,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1170417,
     1170432,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1170556,
     1170571,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1171536,
     1171551,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1171675,
     1171690,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1172558,
     1172573,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1172697,
     1172712,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1172990,
     1173005,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1173129,
     1173144,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1173459,
     1173474,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1173598,
     1173613,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1173953,
     1173968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1174092,
     1174107,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1174521,
     1174536,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1174660,
     1174675,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1174931,
     1174946,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1175070,
     1175085,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1175450,
     1175465,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1175589,
     1175604,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1176151,
     1176166,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1176290,
     1176305,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1177035,
     1177050,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1177174,
     1177189,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1177466,
     1177481,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1177605,
     1177620,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1178080,
     1178095,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1178219,
     1178234,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1178918,
     1178933,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1179057,
     1179072,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1179816,
     1179831,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1179955,
     1179970,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1180331,
     1180346,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1180470,
     1180485,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1180976,
     1180991,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1181115,
     1181130,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1181435,
     1181450,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1181574,
     1181589,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1181998,
     1182013,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1182137,
     1182152,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1182609,
     1182624,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1182748,
     1182763,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1183081,
     1183096,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1183220,
     1183235,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1183605,
     1183620,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1183744,
     1183759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1184168,
     1184183,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1184307,
     1184322,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1184519,
     1184534,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1184658,
     1184673,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1184870,
     1184885,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1185009,
     1185024,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1185151,
     1185166,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1185290,
     1185305,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1185547,
     1185562,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1185686,
     1185701,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1185961,
     1185976,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1186100,
     1186115,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1186842,
     1186857,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1186981,
     1186996,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1188053,
     1188068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1188192,
     1188207,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1189076,
     1189091,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1189215,
     1189230,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1190511,
     1190526,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1190650,
     1190665,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1191911,
     1191926,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1192050,
     1192065,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1194478,
     1194493,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1194617,
     1194632,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1195824,
     1195839,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1195963,
     1195978,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1198226,
     1198241,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1198365,
     1198380,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1199820,
     1199835,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1199959,
     1199974,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1202767,
     1202782,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1202906,
     1202921,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1203139,
     1203154,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1203278,
     1203293,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1203605,
     1203620,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1203744,
     1203759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1203991,
     1204006,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1204130,
     1204145,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1204566,
     1204581,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1204705,
     1204720,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1204921,
     1204936,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1205060,
     1205075,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1205308,
     1205323,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1205447,
     1205462,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1206039,
     1206054,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1206178,
     1206193,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1207340,
     1207355,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1207479,
     1207494,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1207761,
     1207776,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1207900,
     1207915,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1208165,
     1208180,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1208304,
     1208319,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1208694,
     1208709,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1208833,
     1208848,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1209207,
     1209222,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1209346,
     1209361,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1210072,
     1210087,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1210211,
     1210226,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1210481,
     1210496,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1210620,
     1210635,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1210955,
     1210970,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1211094,
     1211109,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1211371,
     1211386,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1211510,
     1211525,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1212020,
     1212035,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1212159,
     1212174,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1212375,
     1212390,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1212514,
     1212529,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1212858,
     1212873,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1212997,
     1213012,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1214021,
     1214036,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1214160,
     1214175,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1214579,
     1214594,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1214718,
     1214733,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1215291,
     1215306,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1215430,
     1215445,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1215793,
     1215808,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1215932,
     1215947,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1216448,
     1216463,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1216587,
     1216602,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1216909,
     1216924,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1217048,
     1217063,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1217399,
     1217414,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1217538,
     1217553,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1218042,
     1218057,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1218181,
     1218196,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1218650,
     1218665,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1218789,
     1218804,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1219412,
     1219427,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1219551,
     1219566,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1220026,
     1220041,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1220165,
     1220180,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1220637,
     1220652,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1220776,
     1220791,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1221401,
     1221416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1221540,
     1221555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1222076,
     1222091,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1222215,
     1222230,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1222904,
     1222919,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1223043,
     1223058,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1223982,
     1223997,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1224121,
     1224136,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1224959,
     1224974,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1225098,
     1225113,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1225994,
     1226009,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1226133,
     1226148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1226975,
     1226990,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1227114,
     1227129,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1227544,
     1227559,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1227683,
     1227698,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1228113,
     1228128,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1228252,
     1228267,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1228705,
     1228720,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1228844,
     1228859,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1229330,
     1229345,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1229469,
     1229484,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1229999,
     1230014,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1230138,
     1230153,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1230700,
     1230715,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1230839,
     1230854,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1231761,
     1231776,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1231900,
     1231915,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1232601,
     1232616,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1232740,
     1232755,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1233291,
     1233306,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1233430,
     1233445,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1234052,
     1234067,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1234191,
     1234206,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1234751,
     1234766,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1234890,
     1234905,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1235500,
     1235515,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1235639,
     1235654,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1236471,
     1236486,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1236610,
     1236625,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1237499,
     1237514,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1237638,
     1237653,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1238342,
     1238357,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1238481,
     1238496,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1239187,
     1239202,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1239326,
     1239341,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1239656,
     1239671,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1239795,
     1239810,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1240379,
     1240394,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1240518,
     1240533,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1241134,
     1241149,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1241273,
     1241288,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1241889,
     1241904,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1242028,
     1242043,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1242266,
     1242281,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1242405,
     1242420,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1242820,
     1242835,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1242959,
     1242974,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1243183,
     1243198,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1243322,
     1243337,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1243562,
     1243577,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1243701,
     1243716,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1244411,
     1244426,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1244550,
     1244565,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1245254,
     1245269,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1245393,
     1245408,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1245800,
     1245815,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1245939,
     1245954,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1246467,
     1246482,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1246606,
     1246621,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1247013,
     1247028,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1247152,
     1247167,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1247680,
     1247695,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1247819,
     1247834,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1248223,
     1248238,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1248362,
     1248377,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1248891,
     1248906,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1249030,
     1249045,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1249338,
     1249353,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1249477,
     1249492,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1249883,
     1249898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1250022,
     1250037,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1250229,
     1250244,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1250368,
     1250383,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1250696,
     1250711,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1250835,
     1250850,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1251242,
     1251257,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1251381,
     1251396,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1252023,
     1252038,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1252162,
     1252177,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1252512,
     1252527,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1252651,
     1252666,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1253032,
     1253047,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1253171,
     1253186,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1253423,
     1253438,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1253562,
     1253577,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1253845,
     1253860,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1253984,
     1253999,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1254400,
     1254415,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1254539,
     1254554,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1254970,
     1254985,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1255109,
     1255124,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1255514,
     1255529,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1255653,
     1255668,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1256121,
     1256136,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1256260,
     1256275,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1256681,
     1256696,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1256820,
     1256835,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1257276,
     1257291,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1257415,
     1257430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1257936,
     1257951,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1258075,
     1258090,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1258638,
     1258653,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1258777,
     1258792,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1259204,
     1259219,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1259343,
     1259358,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1259809,
     1259824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1259948,
     1259963,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1260474,
     1260489,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1260613,
     1260628,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1261175,
     1261190,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1261314,
     1261329,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1262100,
     1262115,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1262239,
     1262254,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1263310,
     1263325,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1263449,
     1263464,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1263974,
     1263989,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1264113,
     1264128,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1264770,
     1264785,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1264909,
     1264924,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1266225,
     1266240,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1266364,
     1266379,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1268363,
     1268378,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1268502,
     1268517,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1270177,
     1270192,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1270316,
     1270331,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1271621,
     1271636,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1271760,
     1271775,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1271978,
     1271993,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1272117,
     1272132,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1272461,
     1272476,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1272600,
     1272615,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1272814,
     1272829,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1272953,
     1272968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1273183,
     1273198,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1273322,
     1273337,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1273584,
     1273599,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1273723,
     1273738,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1274000,
     1274015,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1274139,
     1274154,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1274568,
     1274583,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1274707,
     1274722,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1275229,
     1275244,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1275368,
     1275383,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1275684,
     1275699,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1275823,
     1275838,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1276155,
     1276170,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1276294,
     1276309,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1276622,
     1276637,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1276761,
     1276776,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1277104,
     1277119,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1277243,
     1277258,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1279861,
     1279876,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1280000,
     1280015,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1283295,
     1283310,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1283434,
     1283449,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1283996,
     1284011,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1284135,
     1284150,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1284838,
     1284853,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1284977,
     1284992,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1285148,
     1285163,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1285287,
     1285302,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1285460,
     1285475,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1285599,
     1285614,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1285823,
     1285838,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1285962,
     1285977,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1286186,
     1286201,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1286325,
     1286340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1288327,
     1288342,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1288466,
     1288481,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1289703,
     1289718,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1289842,
     1289857,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1290670,
     1290685,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1290809,
     1290824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1292107,
     1292122,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1292246,
     1292261,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1292415,
     1292430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1292554,
     1292569,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1292848,
     1292863,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1292987,
     1293002,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1293392,
     1293407,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1293531,
     1293546,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1293776,
     1293791,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1293915,
     1293930,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1294271,
     1294286,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1294410,
     1294425,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1294584,
     1294599,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1294723,
     1294738,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1294970,
     1294985,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1295109,
     1295124,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1295659,
     1295674,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1295798,
     1295813,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1296393,
     1296408,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1296532,
     1296547,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1297552,
     1297567,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1297691,
     1297706,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1298700,
     1298715,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1298839,
     1298854,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1299406,
     1299421,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1299545,
     1299560,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1300169,
     1300184,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1300308,
     1300323,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1301132,
     1301147,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1301271,
     1301286,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1302389,
     1302404,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1302528,
     1302543,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1303142,
     1303157,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1303281,
     1303296,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1303988,
     1304003,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1304127,
     1304142,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1304844,
     1304859,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1304983,
     1304998,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1305798,
     1305813,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1305937,
     1305952,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1306228,
     1306243,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1306367,
     1306382,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1306672,
     1306687,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1306811,
     1306826,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1307823,
     1307838,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1307962,
     1307977,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1309128,
     1309143,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1309267,
     1309282,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1309689,
     1309704,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1309828,
     1309843,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1310542,
     1310557,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1310681,
     1310696,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1311744,
     1311759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1311883,
     1311898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1313027,
     1313042,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1313166,
     1313181,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1313699,
     1313714,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1313838,
     1313853,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1314285,
     1314300,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1314424,
     1314439,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1316101,
     1316116,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1316240,
     1316255,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1317376,
     1317391,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1317515,
     1317530,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1317772,
     1317787,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1317911,
     1317926,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1318270,
     1318285,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1318409,
     1318424,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1318768,
     1318783,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1318907,
     1318922,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1319265,
     1319280,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1319404,
     1319419,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1319762,
     1319777,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1319901,
     1319916,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1320332,
     1320347,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1320471,
     1320486,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1320724,
     1320739,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1320863,
     1320878,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1321293,
     1321308,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1321432,
     1321447,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1321899,
     1321914,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1322038,
     1322053,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1322637,
     1322652,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1322776,
     1322791,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1324237,
     1324252,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1324376,
     1324391,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1325781,
     1325796,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1325920,
     1325935,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1326464,
     1326479,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1326603,
     1326618,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1327222,
     1327237,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1327361,
     1327376,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1328083,
     1328098,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1328222,
     1328237,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1328945,
     1328960,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1329084,
     1329099,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1329663,
     1329678,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1329802,
     1329817,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1330500,
     1330515,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1330639,
     1330654,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1330864,
     1330879,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1331003,
     1331018,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1331265,
     1331280,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1331404,
     1331419,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1331717,
     1331732,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1331856,
     1331871,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1332202,
     1332217,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1332341,
     1332356,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1332657,
     1332672,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1332796,
     1332811,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1333210,
     1333225,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1333349,
     1333364,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1333567,
     1333582,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1333706,
     1333721,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1334037,
     1334052,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1334176,
     1334191,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1334385,
     1334400,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1334524,
     1334539,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1334748,
     1334763,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1334887,
     1334902,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1335096,
     1335111,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1335235,
     1335250,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1335459,
     1335474,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1335598,
     1335613,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1336389,
     1336404,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1336528,
     1336543,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1337561,
     1337576,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1337700,
     1337715,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1337931,
     1337946,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1338070,
     1338085,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1338350,
     1338365,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1338489,
     1338504,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1339058,
     1339073,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1339197,
     1339212,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1339998,
     1340013,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1340137,
     1340152,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1340288,
     1340303,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1340427,
     1340442,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1341379,
     1341394,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1341518,
     1341533,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1341992,
     1342007,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1342131,
     1342146,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1342701,
     1342716,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1342840,
     1342855,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1342948,
     1342963,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1343087,
     1343102,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1343194,
     1343209,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1343333,
     1343348,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1343910,
     1343925,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1344049,
     1344064,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1344642,
     1344657,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1344781,
     1344796,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1345850,
     1345865,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1345989,
     1346004,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1347077,
     1347092,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1347216,
     1347231,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1347557,
     1347572,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1347696,
     1347711,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1348053,
     1348068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1348192,
     1348207,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1348571,
     1348586,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1348710,
     1348725,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1349105,
     1349120,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1349244,
     1349259,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1349560,
     1349575,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1349699,
     1349714,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1350031,
     1350046,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1350170,
     1350185,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1350786,
     1350801,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1350925,
     1350940,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1351763,
     1351778,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1351902,
     1351917,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1352494,
     1352509,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1352633,
     1352648,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1353181,
     1353196,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1353320,
     1353335,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1353899,
     1353914,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1354038,
     1354053,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1354743,
     1354758,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1354882,
     1354897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1355343,
     1355358,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1355482,
     1355497,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1356055,
     1356070,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1356194,
     1356209,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1356929,
     1356944,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1357068,
     1357083,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1357958,
     1357973,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1358097,
     1358112,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1359045,
     1359060,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1359184,
     1359199,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1360147,
     1360162,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1360286,
     1360301,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1360607,
     1360622,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1360746,
     1360761,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1361092,
     1361107,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1361231,
     1361246,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1361736,
     1361751,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1361875,
     1361890,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1362429,
     1362444,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1362568,
     1362583,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1363043,
     1363058,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1363182,
     1363197,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1363862,
     1363877,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1364001,
     1364016,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1365178,
     1365193,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1365317,
     1365332,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1366060,
     1366075,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1366199,
     1366214,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1366800,
     1366815,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1366939,
     1366954,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1367725,
     1367740,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1367864,
     1367879,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1368429,
     1368444,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1368568,
     1368583,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1369172,
     1369187,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1369311,
     1369326,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1369548,
     1369563,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1369687,
     1369702,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1369940,
     1369955,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1370079,
     1370094,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1370537,
     1370552,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1370676,
     1370691,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1371358,
     1371373,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1371497,
     1371512,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1372825,
     1372840,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1372964,
     1372979,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1374448,
     1374463,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1374587,
     1374602,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1375107,
     1375122,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1375246,
     1375261,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1375908,
     1375923,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1376047,
     1376062,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1376361,
     1376376,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1376500,
     1376515,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1376762,
     1376777,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1376901,
     1376916,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1377177,
     1377192,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1377316,
     1377331,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1377578,
     1377593,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1377717,
     1377732,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1377994,
     1378009,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1378133,
     1378148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1378461,
     1378476,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1378600,
     1378615,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1378943,
     1378958,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1379082,
     1379097,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1379923,
     1379938,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1380062,
     1380077,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1381235,
     1381250,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1381374,
     1381389,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1383156,
     1383171,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1383295,
     1383310,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1385665,
     1385680,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1385804,
     1385819,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1386493,
     1386508,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1386632,
     1386647,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1387336,
     1387351,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1387475,
     1387490,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1387827,
     1387842,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1387966,
     1387981,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1388357,
     1388372,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1388496,
     1388511,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1389134,
     1389149,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1389273,
     1389288,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1389923,
     1389938,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1390062,
     1390077,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1391152,
     1391167,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1391291,
     1391306,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1392396,
     1392411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1392535,
     1392550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1393282,
     1393297,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1393421,
     1393436,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1394875,
     1394890,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1395014,
     1395029,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1396172,
     1396187,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1396311,
     1396326,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1397583,
     1397598,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1397722,
     1397737,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1398067,
     1398082,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1398206,
     1398221,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1398778,
     1398793,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1398917,
     1398932,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1399345,
     1399360,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1399484,
     1399499,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1400258,
     1400273,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1400397,
     1400412,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1400711,
     1400726,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1400850,
     1400865,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1401191,
     1401206,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1401330,
     1401345,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1401551,
     1401566,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1401690,
     1401705,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1401911,
     1401926,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1402050,
     1402065,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1402320,
     1402335,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1402459,
     1402474,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1402744,
     1402759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1402883,
     1402898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1403304,
     1403319,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1403443,
     1403458,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1403936,
     1403951,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1404075,
     1404090,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1404339,
     1404354,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1404478,
     1404493,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1404739,
     1404754,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1404878,
     1404893,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1405051,
     1405066,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1405190,
     1405205,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1405473,
     1405488,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1405612,
     1405627,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1405728,
     1405743,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1405867,
     1405882,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1406594,
     1406609,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1406733,
     1406748,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1407680,
     1407695,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1407819,
     1407834,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1408343,
     1408358,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1408482,
     1408497,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1409199,
     1409214,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1409338,
     1409353,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1409898,
     1409913,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1410037,
     1410052,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1410853,
     1410868,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1410992,
     1411007,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1411571,
     1411586,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1411710,
     1411725,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1412280,
     1412295,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1412419,
     1412434,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1413003,
     1413018,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1413142,
     1413157,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1414075,
     1414090,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1414214,
     1414229,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1414749,
     1414764,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1414888,
     1414903,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1415772,
     1415787,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1415911,
     1415926,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1416138,
     1416153,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1416277,
     1416292,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1416617,
     1416632,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1416756,
     1416771,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1417009,
     1417024,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1417148,
     1417163,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1417494,
     1417509,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1417633,
     1417648,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1417968,
     1417983,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1418107,
     1418122,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1418554,
     1418569,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1418693,
     1418708,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1419249,
     1419264,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1419388,
     1419403,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1419832,
     1419847,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1419971,
     1419986,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1420231,
     1420246,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1420370,
     1420385,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1420664,
     1420679,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1420803,
     1420818,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1421120,
     1421135,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1421259,
     1421274,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1421685,
     1421700,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1421824,
     1421839,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1422604,
     1422619,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1422743,
     1422758,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1423527,
     1423542,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1423666,
     1423681,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1423837,
     1423852,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1423976,
     1423991,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1424147,
     1424162,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1424286,
     1424301,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1424480,
     1424495,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1424619,
     1424634,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1424813,
     1424828,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1424952,
     1424967,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1425681,
     1425696,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1425820,
     1425835,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1426549,
     1426564,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1426688,
     1426703,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1427065,
     1427080,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1427204,
     1427219,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1427646,
     1427661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1427785,
     1427800,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1428845,
     1428860,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1428984,
     1428999,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1430120,
     1430135,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1430259,
     1430274,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1430932,
     1430947,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1431071,
     1431086,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1431495,
     1431510,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1431634,
     1431649,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1432072,
     1432087,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1432211,
     1432226,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1432832,
     1432847,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1432971,
     1432986,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1433508,
     1433523,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1433647,
     1433662,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1434315,
     1434330,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1434454,
     1434469,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1435168,
     1435183,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1435307,
     1435322,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1435947,
     1435962,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1436086,
     1436101,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1436467,
     1436482,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1436606,
     1436621,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1437124,
     1437139,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1437263,
     1437278,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1437630,
     1437645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1437769,
     1437784,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1438702,
     1438717,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1438841,
     1438856,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1439209,
     1439224,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1439348,
     1439363,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1439723,
     1439738,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1439862,
     1439877,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1440135,
     1440150,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1440274,
     1440289,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1440562,
     1440577,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1440701,
     1440716,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1441093,
     1441108,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1441232,
     1441247,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1441651,
     1441666,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1441790,
     1441805,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1442181,
     1442196,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1442320,
     1442335,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1442679,
     1442694,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1442818,
     1442833,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1443920,
     1443935,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1444059,
     1444074,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1445186,
     1445201,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1445325,
     1445340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1445887,
     1445902,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1446026,
     1446041,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1446847,
     1446862,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1446986,
     1447001,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1447246,
     1447261,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1447385,
     1447400,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1447674,
     1447689,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1447813,
     1447828,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1449769,
     1449784,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1449908,
     1449923,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1451634,
     1451649,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1451773,
     1451788,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1452227,
     1452242,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1452366,
     1452381,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1452912,
     1452927,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1453051,
     1453066,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1453287,
     1453302,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1453426,
     1453441,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1453702,
     1453717,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1453841,
     1453856,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1454165,
     1454180,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1454304,
     1454319,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1454477,
     1454492,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1454616,
     1454631,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1454917,
     1454932,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1455056,
     1455071,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1455257,
     1455272,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1455396,
     1455411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1455597,
     1455612,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1455736,
     1455751,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1456265,
     1456280,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1456404,
     1456419,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1457211,
     1457226,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1457350,
     1457365,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1457711,
     1457726,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1457850,
     1457865,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1458535,
     1458550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1458674,
     1458689,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1458813,
     1458828,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1458952,
     1458967,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1459165,
     1459180,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1459304,
     1459319,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1459783,
     1459798,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1459922,
     1459937,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1460520,
     1460535,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1460659,
     1460674,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1460944,
     1460959,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1461083,
     1461098,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1461570,
     1461585,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1461709,
     1461724,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1461982,
     1461997,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1462121,
     1462136,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1462570,
     1462585,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1462709,
     1462724,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1462929,
     1462944,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1463068,
     1463083,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1463401,
     1463416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1463540,
     1463555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1464187,
     1464202,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1464326,
     1464341,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1465176,
     1465191,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1465315,
     1465330,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1465768,
     1465783,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1465907,
     1465922,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1466594,
     1466609,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1466733,
     1466748,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1467045,
     1467060,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1467184,
     1467199,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1467649,
     1467664,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1467788,
     1467803,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1468040,
     1468055,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1468179,
     1468194,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1468562,
     1468577,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1468701,
     1468716,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1469236,
     1469251,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1469375,
     1469390,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1469883,
     1469898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1470022,
     1470037,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1470713,
     1470728,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1470852,
     1470867,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1471250,
     1471265,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1471389,
     1471404,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1471924,
     1471939,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1472063,
     1472078,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1472775,
     1472790,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1472914,
     1472929,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1473221,
     1473236,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1473360,
     1473375,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1473820,
     1473835,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1473959,
     1473974,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1474343,
     1474358,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1474482,
     1474497,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1475019,
     1475034,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1475158,
     1475173,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1475727,
     1475742,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1475866,
     1475881,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1476550,
     1476565,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1476689,
     1476704,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1477622,
     1477637,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1477761,
     1477776,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1478835,
     1478850,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1478974,
     1478989,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1479281,
     1479296,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1479420,
     1479435,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1479880,
     1479895,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1480019,
     1480034,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1480400,
     1480415,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1480539,
     1480554,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1481073,
     1481088,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1481212,
     1481227,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1481535,
     1481550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1481674,
     1481689,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1482110,
     1482125,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1482249,
     1482264,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1482628,
     1482643,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1482767,
     1482782,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1483261,
     1483276,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1483400,
     1483415,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1483853,
     1483868,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1483992,
     1484007,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1484598,
     1484613,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1484737,
     1484752,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1485439,
     1485454,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1485578,
     1485593,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1486464,
     1486479,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1486603,
     1486618,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1487071,
     1487086,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1487210,
     1487225,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1487742,
     1487757,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1487881,
     1487896,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1488127,
     1488142,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1488266,
     1488281,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1488550,
     1488565,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1488689,
     1488704,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1489137,
     1489152,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1489276,
     1489291,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1489788,
     1489803,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1489927,
     1489942,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1490506,
     1490521,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1490645,
     1490660,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1491239,
     1491254,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1491378,
     1491393,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1491825,
     1491840,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1491964,
     1491979,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1492475,
     1492490,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1492614,
     1492629,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1493063,
     1493078,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1493202,
     1493217,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1493717,
     1493732,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1493856,
     1493871,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1494291,
     1494306,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1494430,
     1494445,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1494930,
     1494945,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1495069,
     1495084,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1496075,
     1496090,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1496214,
     1496229,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1497642,
     1497657,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1497781,
     1497796,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1498575,
     1498590,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1498714,
     1498729,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1499628,
     1499643,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1499767,
     1499782,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1499955,
     1499970,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1500094,
     1500109,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1500386,
     1500401,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1500525,
     1500540,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1500994,
     1501009,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1501133,
     1501148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1501674,
     1501689,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1501813,
     1501828,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1502451,
     1502466,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1502590,
     1502605,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1503087,
     1503102,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1503226,
     1503241,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1505335,
     1505350,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1505474,
     1505489,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1507767,
     1507782,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1507906,
     1507921,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1509390,
     1509405,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1509529,
     1509544,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1511017,
     1511032,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1511156,
     1511171,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1511366,
     1511381,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1511505,
     1511520,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1511849,
     1511864,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1511988,
     1512003,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1512176,
     1512191,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1512315,
     1512330,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1512503,
     1512518,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1512642,
     1512657,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1513261,
     1513276,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1513400,
     1513415,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1514084,
     1514099,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1514223,
     1514238,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1514830,
     1514845,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1514969,
     1514984,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1515641,
     1515656,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1515780,
     1515795,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1516530,
     1516545,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1516669,
     1516684,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1517539,
     1517554,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1517678,
     1517693,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1518455,
     1518470,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1518594,
     1518609,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1519441,
     1519456,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1519580,
     1519595,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1520211,
     1520226,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1520350,
     1520365,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1521056,
     1521071,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1521195,
     1521210,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1521416,
     1521431,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1521555,
     1521570,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1521782,
     1521797,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1521921,
     1521936,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1522773,
     1522788,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1522912,
     1522927,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1523764,
     1523779,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1523903,
     1523918,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1524406,
     1524421,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1524545,
     1524560,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1525146,
     1525161,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1525285,
     1525300,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1525918,
     1525933,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1526057,
     1526072,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1526769,
     1526784,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1526908,
     1526923,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1527333,
     1527348,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1527472,
     1527487,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1527962,
     1527977,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1528101,
     1528116,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1528470,
     1528485,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1528609,
     1528624,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1529162,
     1529177,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1529301,
     1529316,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1529768,
     1529783,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1529907,
     1529922,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1530490,
     1530505,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1530629,
     1530644,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1531775,
     1531790,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1531914,
     1531929,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1533440,
     1533455,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1533579,
     1533594,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1535880,
     1535895,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1536019,
     1536034,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1538149,
     1538164,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1538288,
     1538303,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1539456,
     1539471,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1539595,
     1539610,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1541175,
     1541190,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1541314,
     1541329,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1543508,
     1543523,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1543647,
     1543662,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1545300,
     1545315,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1545439,
     1545454,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1547672,
     1547687,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1547811,
     1547826,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1550307,
     1550322,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1550446,
     1550461,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1551227,
     1551242,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1551366,
     1551381,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1552476,
     1552491,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1552615,
     1552630,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1553451,
     1553466,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1553590,
     1553605,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1554421,
     1554436,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1554560,
     1554575,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1555718,
     1555733,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1555857,
     1555872,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1556942,
     1556957,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1557081,
     1557096,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1557324,
     1557339,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1557463,
     1557478,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1557722,
     1557737,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1557861,
     1557876,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1558115,
     1558130,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1558254,
     1558269,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1558525,
     1558540,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1558664,
     1558679,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1558964,
     1558979,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1559103,
     1559118,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1559455,
     1559470,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1559594,
     1559609,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1560437,
     1560452,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1560576,
     1560591,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1561419,
     1561434,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1561558,
     1561573,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1562474,
     1562489,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1562613,
     1562628,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1563588,
     1563603,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1563727,
     1563742,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1563999,
     1564014,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1564138,
     1564153,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1564537,
     1564552,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1564676,
     1564691,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1564876,
     1564891,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1565015,
     1565030,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1566159,
     1566174,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1566298,
     1566313,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1567325,
     1567340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1567464,
     1567479,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1568386,
     1568401,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1568525,
     1568540,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1568813,
     1568828,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1568952,
     1568967,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1569991,
     1570006,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1570130,
     1570145,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1571275,
     1571290,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1571414,
     1571429,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1572646,
     1572661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1572785,
     1572800,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1574497,
     1574512,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1574636,
     1574651,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1575809,
     1575824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1575948,
     1575963,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1576843,
     1576858,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1576982,
     1576997,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1577315,
     1577330,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1577454,
     1577469,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1577970,
     1577985,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1578109,
     1578124,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1578418,
     1578433,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1578557,
     1578572,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1579049,
     1579064,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1579188,
     1579203,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1579378,
     1579393,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1579517,
     1579532,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1579707,
     1579722,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1579846,
     1579861,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1580132,
     1580147,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1580271,
     1580286,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1580557,
     1580572,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1580696,
     1580711,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1580980,
     1580995,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1581119,
     1581134,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1581403,
     1581418,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1581542,
     1581557,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1581828,
     1581843,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1581967,
     1581982,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1582253,
     1582268,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1582392,
     1582407,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1582624,
     1582639,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1582763,
     1582778,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1583129,
     1583144,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1583268,
     1583283,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1583501,
     1583516,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1583640,
     1583655,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1584012,
     1584027,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1584151,
     1584166,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1584435,
     1584450,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1584574,
     1584589,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1584858,
     1584873,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1584997,
     1585012,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1586131,
     1586146,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1586270,
     1586285,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1587689,
     1587704,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1587828,
     1587843,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1589242,
     1589257,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1589381,
     1589396,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1590468,
     1590483,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1590607,
     1590622,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1590804,
     1590819,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1590943,
     1590958,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1591217,
     1591232,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1591356,
     1591371,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1591536,
     1591551,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1591675,
     1591690,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1591885,
     1591900,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1592024,
     1592039,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1592274,
     1592289,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1592413,
     1592428,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1592734,
     1592749,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1592873,
     1592888,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1593809,
     1593824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1593948,
     1593963,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1595600,
     1595615,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1595739,
     1595754,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1596339,
     1596354,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1596478,
     1596493,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1597095,
     1597110,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1597234,
     1597249,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1597978,
     1597993,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1598117,
     1598132,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1598844,
     1598859,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1598983,
     1598998,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1599246,
     1599261,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1599385,
     1599400,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1599690,
     1599705,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1599829,
     1599844,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1599958,
     1599973,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1600097,
     1600112,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1600396,
     1600411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1600535,
     1600550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1600787,
     1600802,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1600926,
     1600941,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1601230,
     1601245,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1601369,
     1601384,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1601499,
     1601514,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1601638,
     1601653,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1601939,
     1601954,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1602078,
     1602093,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1603949,
     1603964,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1604088,
     1604103,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1606437,
     1606452,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1606576,
     1606591,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1606798,
     1606813,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1606937,
     1606952,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1607195,
     1607210,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1607334,
     1607349,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1607556,
     1607571,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1607695,
     1607710,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1607954,
     1607969,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1608093,
     1608108,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1608311,
     1608326,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1608450,
     1608465,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1608732,
     1608747,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1608871,
     1608886,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1609089,
     1609104,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1609228,
     1609243,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1609482,
     1609497,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1609621,
     1609636,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1609843,
     1609858,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1609982,
     1609997,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1610264,
     1610279,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1610403,
     1610418,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1610625,
     1610640,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1610764,
     1610779,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1611022,
     1611037,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1611161,
     1611176,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1611499,
     1611514,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1611638,
     1611653,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1612019,
     1612034,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1612158,
     1612173,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1612376,
     1612391,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1612515,
     1612530,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1612772,
     1612787,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1612911,
     1612926,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1613248,
     1613263,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1613387,
     1613402,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1613782,
     1613797,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1613921,
     1613936,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1614139,
     1614154,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1614278,
     1614293,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1614533,
     1614548,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1614672,
     1614687,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1614800,
     1614815,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1614939,
     1614954,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1615102,
     1615117,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1615241,
     1615256,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1616717,
     1616732,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1616856,
     1616871,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1618521,
     1618536,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1618660,
     1618675,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1618784,
     1618799,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1618923,
     1618938,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1619047,
     1619062,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1619186,
     1619201,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1619438,
     1619453,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1619577,
     1619592,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1619849,
     1619864,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1619988,
     1620003,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1620116,
     1620131,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1620255,
     1620270,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1620555,
     1620570,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1620694,
     1620709,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1620937,
     1620952,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1621076,
     1621091,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1621351,
     1621366,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1621490,
     1621505,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1621619,
     1621634,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1621758,
     1621773,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1622054,
     1622069,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1622193,
     1622208,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1622522,
     1622537,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1622661,
     1622676,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1623254,
     1623269,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1623393,
     1623408,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1624147,
     1624162,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1624286,
     1624301,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1625048,
     1625063,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1625187,
     1625202,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1625766,
     1625781,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1625905,
     1625920,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1626492,
     1626507,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1626631,
     1626646,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1627760,
     1627775,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1627899,
     1627914,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1629035,
     1629050,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1629174,
     1629189,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1629743,
     1629758,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1629882,
     1629897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1630464,
     1630479,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1630603,
     1630618,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1630902,
     1630917,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1631041,
     1631056,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1631457,
     1631472,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1631596,
     1631611,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1631882,
     1631897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1632021,
     1632036,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1632363,
     1632378,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1632502,
     1632517,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1632779,
     1632794,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1632918,
     1632933,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1633175,
     1633190,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1633314,
     1633329,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1634046,
     1634061,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1634185,
     1634200,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1634987,
     1635002,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1635126,
     1635141,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1636817,
     1636832,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1636956,
     1636971,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1638766,
     1638781,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1638905,
     1638920,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1639327,
     1639342,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1639466,
     1639481,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1639870,
     1639885,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1640009,
     1640024,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1640434,
     1640449,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1640573,
     1640588,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1640978,
     1640993,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1641117,
     1641132,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1641656,
     1641671,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1641795,
     1641810,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1642345,
     1642360,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1642484,
     1642499,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1643567,
     1643582,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1643706,
     1643721,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1645559,
     1645574,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1645698,
     1645713,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1646048,
     1646063,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1646187,
     1646202,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1646769,
     1646784,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1646908,
     1646923,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1647245,
     1647260,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1647384,
     1647399,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1647792,
     1647807,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1647931,
     1647946,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1649435,
     1649450,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1649574,
     1649589,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1650508,
     1650523,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1650647,
     1650662,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1653730,
     1653745,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1653869,
     1653884,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1655634,
     1655649,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1655773,
     1655788,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1655985,
     1656000,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1656124,
     1656139,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1656708,
     1656723,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1656847,
     1656862,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1657766,
     1657781,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1657905,
     1657920,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1658380,
     1658395,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1658519,
     1658534,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1659056,
     1659071,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1659195,
     1659210,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1659908,
     1659923,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1660047,
     1660062,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1660773,
     1660788,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1660912,
     1660927,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1661498,
     1661513,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1661637,
     1661652,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1662232,
     1662247,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1662371,
     1662386,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1663451,
     1663466,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1663590,
     1663605,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1664675,
     1664690,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1664814,
     1664829,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1665385,
     1665400,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1665524,
     1665539,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1666105,
     1666120,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1666244,
     1666259,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1666483,
     1666498,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1666622,
     1666637,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1666884,
     1666899,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1667023,
     1667038,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1667171,
     1667186,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1667310,
     1667325,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1667564,
     1667579,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1667703,
     1667718,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1667921,
     1667936,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1668060,
     1668075,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1668458,
     1668473,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1668597,
     1668612,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1670903,
     1670918,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1671042,
     1671057,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1671181,
     1671196,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1671320,
     1671335,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1671534,
     1671549,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1671673,
     1671688,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1671799,
     1671814,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1671938,
     1671953,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1672147,
     1672162,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1672286,
     1672301,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1672421,
     1672436,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1672560,
     1672575,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1672791,
     1672806,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1672930,
     1672945,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1673061,
     1673076,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1673200,
     1673215,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1673408,
     1673423,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1673547,
     1673562,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1673996,
     1674011,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1674135,
     1674150,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1674594,
     1674609,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1674733,
     1674748,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1675253,
     1675268,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1675392,
     1675407,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1676057,
     1676072,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1676196,
     1676211,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1676793,
     1676808,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1676932,
     1676947,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1677709,
     1677724,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1677848,
     1677863,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1678427,
     1678442,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1678566,
     1678581,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1679396,
     1679411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1679535,
     1679550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1679983,
     1679998,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1680122,
     1680137,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1680580,
     1680595,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1680719,
     1680734,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1681138,
     1681153,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1681277,
     1681292,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1682376,
     1682391,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1682515,
     1682530,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1683107,
     1683122,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1683246,
     1683261,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1684074,
     1684089,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1684213,
     1684228,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1684717,
     1684732,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1684856,
     1684871,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1685536,
     1685551,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1685675,
     1685690,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1687682,
     1687697,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1687821,
     1687836,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1690675,
     1690690,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1690814,
     1690829,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1692544,
     1692559,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1692683,
     1692698,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1693622,
     1693637,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1693761,
     1693776,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1697789,
     1697804,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1697928,
     1697943,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1699311,
     1699326,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1699450,
     1699465,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1700437,
     1700452,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1700576,
     1700591,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1701538,
     1701553,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1701677,
     1701692,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1702729,
     1702744,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1702868,
     1702883,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1704250,
     1704265,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1704389,
     1704404,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1704642,
     1704657,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1704781,
     1704796,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1705105,
     1705120,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1705244,
     1705259,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1705648,
     1705663,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1705787,
     1705802,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1706340,
     1706355,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1706479,
     1706494,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1707413,
     1707428,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1707552,
     1707567,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1708385,
     1708400,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1708524,
     1708539,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1709299,
     1709314,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1709438,
     1709453,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1710116,
     1710131,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1710255,
     1710270,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1711133,
     1711148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1711272,
     1711287,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1712055,
     1712070,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1712194,
     1712209,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1712998,
     1713013,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1713137,
     1713152,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1713580,
     1713595,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1713719,
     1713734,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1714194,
     1714209,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1714333,
     1714348,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1715178,
     1715193,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1715317,
     1715332,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1715540,
     1715555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1715679,
     1715694,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1715799,
     1715814,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1715938,
     1715953,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1716197,
     1716212,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1716336,
     1716351,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1716458,
     1716473,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1716597,
     1716612,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1716995,
     1717010,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1717134,
     1717149,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1717591,
     1717606,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1717730,
     1717745,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1718043,
     1718058,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1718182,
     1718197,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1718566,
     1718581,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1718705,
     1718720,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1719070,
     1719085,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1719209,
     1719224,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1719640,
     1719655,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1719779,
     1719794,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1720364,
     1720379,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1720503,
     1720518,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1721270,
     1721285,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1721409,
     1721424,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1721688,
     1721703,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1721827,
     1721842,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1722041,
     1722056,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1722180,
     1722195,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1723889,
     1723904,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1724028,
     1724043,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1725768,
     1725783,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1725907,
     1725922,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1726265,
     1726280,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1726404,
     1726419,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1726978,
     1726993,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1727117,
     1727132,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1727274,
     1727289,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1727413,
     1727428,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1728075,
     1728090,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1728214,
     1728229,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1728995,
     1729010,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1729134,
     1729149,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1729302,
     1729317,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1729441,
     1729456,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1729681,
     1729696,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1729820,
     1729835,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1730068,
     1730083,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1730207,
     1730222,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1730648,
     1730663,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1730787,
     1730802,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1731338,
     1731353,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1731477,
     1731492,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1732877,
     1732892,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1733016,
     1733031,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1734515,
     1734530,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1734654,
     1734669,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1735013,
     1735028,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1735152,
     1735167,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1735708,
     1735723,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1735847,
     1735862,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1736610,
     1736625,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1736749,
     1736764,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1737706,
     1737721,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1737845,
     1737860,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1738921,
     1738936,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1739060,
     1739075,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1741008,
     1741023,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1741147,
     1741162,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1741822,
     1741837,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1741961,
     1741976,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1742642,
     1742657,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1742781,
     1742796,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1743334,
     1743349,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1743473,
     1743488,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1744033,
     1744048,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1744172,
     1744187,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1744680,
     1744695,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1744819,
     1744834,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1745236,
     1745251,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1745375,
     1745390,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1746407,
     1746422,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1746546,
     1746561,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1747515,
     1747530,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1747654,
     1747669,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1748491,
     1748506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1748630,
     1748645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1749467,
     1749482,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1749606,
     1749621,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1749983,
     1749998,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1750122,
     1750137,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1750850,
     1750865,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1750989,
     1751004,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1751831,
     1751846,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1751970,
     1751985,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1753043,
     1753058,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1753182,
     1753197,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1754277,
     1754292,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1754416,
     1754431,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1754619,
     1754634,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1754758,
     1754773,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1755074,
     1755089,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1755213,
     1755228,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1755679,
     1755694,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1755818,
     1755833,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1756181,
     1756196,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1756320,
     1756335,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1756717,
     1756732,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1756856,
     1756871,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1757509,
     1757524,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1757648,
     1757663,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1758347,
     1758362,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1758486,
     1758501,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1759024,
     1759039,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1759163,
     1759178,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1759735,
     1759750,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1759874,
     1759889,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1760249,
     1760264,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1760388,
     1760403,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1760796,
     1760811,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1760935,
     1760950,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1761483,
     1761498,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1761622,
     1761637,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1762204,
     1762219,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1762343,
     1762358,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1762481,
     1762496,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1762620,
     1762635,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1762831,
     1762846,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1762970,
     1762985,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1763333,
     1763348,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1763472,
     1763487,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1763940,
     1763955,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1764079,
     1764094,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1764275,
     1764290,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1764414,
     1764429,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1764721,
     1764736,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1764860,
     1764875,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1765039,
     1765054,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1765178,
     1765193,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1765447,
     1765462,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1765586,
     1765601,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1765795,
     1765810,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1765934,
     1765949,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1766158,
     1766173,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1766297,
     1766312,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1766981,
     1766996,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1767120,
     1767135,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1767929,
     1767944,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1768068,
     1768083,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1768352,
     1768367,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1768491,
     1768506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1768986,
     1769001,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1769125,
     1769140,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1769334,
     1769349,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1769473,
     1769488,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1769697,
     1769712,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1769836,
     1769851,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1770123,
     1770138,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1770262,
     1770277,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1770656,
     1770671,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1770795,
     1770810,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1772504,
     1772519,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1772643,
     1772658,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1774256,
     1774271,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1774395,
     1774410,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1774941,
     1774956,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1775080,
     1775095,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1775795,
     1775810,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1775934,
     1775949,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1776364,
     1776379,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1776503,
     1776518,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1776990,
     1777005,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1777129,
     1777144,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1777457,
     1777472,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1777596,
     1777611,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1777866,
     1777881,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1778005,
     1778020,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1779207,
     1779222,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1779346,
     1779361,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1781608,
     1781623,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1781747,
     1781762,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1782181,
     1782196,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1782320,
     1782335,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1783091,
     1783106,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1783230,
     1783245,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1784222,
     1784237,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1784361,
     1784376,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1785401,
     1785416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1785540,
     1785555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1786028,
     1786043,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1786167,
     1786182,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1786674,
     1786689,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1786813,
     1786828,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1788211,
     1788226,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1788350,
     1788365,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1789814,
     1789829,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1789953,
     1789968,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1790433,
     1790448,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1790572,
     1790587,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1791106,
     1791121,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1791245,
     1791260,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1791573,
     1791588,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1791712,
     1791727,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1792057,
     1792072,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1792196,
     1792211,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1792684,
     1792699,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1792823,
     1792838,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1793329,
     1793344,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1793468,
     1793483,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1794069,
     1794084,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1794208,
     1794223,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1794826,
     1794841,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1794965,
     1794980,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1795732,
     1795747,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1795871,
     1795886,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1796656,
     1796671,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1796795,
     1796810,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1797643,
     1797658,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1797782,
     1797797,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1798647,
     1798662,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1798786,
     1798801,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1799831,
     1799846,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1799970,
     1799985,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1801033,
     1801048,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1801172,
     1801187,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1803289,
     1803304,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1803428,
     1803443,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1805451,
     1805466,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1805590,
     1805605,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1805972,
     1805987,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1806111,
     1806126,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1806556,
     1806571,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1806695,
     1806710,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1807053,
     1807068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1807192,
     1807207,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1807809,
     1807824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1807948,
     1807963,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1808126,
     1808141,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1808265,
     1808280,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1808442,
     1808457,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1808581,
     1808596,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1808806,
     1808821,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1808945,
     1808960,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1809208,
     1809223,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1809347,
     1809362,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1810085,
     1810100,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1810224,
     1810239,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1811268,
     1811283,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1811407,
     1811422,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1812492,
     1812507,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1812631,
     1812646,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1814206,
     1814221,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1814345,
     1814360,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1814887,
     1814902,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1815026,
     1815041,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1815880,
     1815895,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1816019,
     1816034,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1816685,
     1816700,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1816824,
     1816839,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1818063,
     1818078,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1818202,
     1818217,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1818736,
     1818751,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1818875,
     1818890,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1819554,
     1819569,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1819693,
     1819708,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1819942,
     1819957,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1820081,
     1820096,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1820550,
     1820565,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1820689,
     1820704,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1821271,
     1821286,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1821410,
     1821425,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1821707,
     1821722,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1821846,
     1821861,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1822158,
     1822173,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1822297,
     1822312,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1822813,
     1822828,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1822952,
     1822967,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1823641,
     1823656,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1823780,
     1823795,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1824080,
     1824095,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1824219,
     1824234,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1824557,
     1824572,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1824696,
     1824711,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1825495,
     1825510,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1825634,
     1825649,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1826739,
     1826754,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1826878,
     1826893,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1830276,
     1830291,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1830415,
     1830430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1831806,
     1831821,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1831945,
     1831960,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1832765,
     1832780,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1832904,
     1832919,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1835095,
     1835110,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1835234,
     1835249,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1835771,
     1835786,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1835910,
     1835925,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1836447,
     1836462,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1836586,
     1836601,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1837856,
     1837871,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1837995,
     1838010,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1838544,
     1838559,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1838683,
     1838698,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1838884,
     1838899,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1839023,
     1839038,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1839254,
     1839269,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1839393,
     1839408,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1840977,
     1840992,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1841116,
     1841131,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1842763,
     1842778,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1842902,
     1842917,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1843145,
     1843160,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1843284,
     1843299,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1843663,
     1843678,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1843802,
     1843817,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1844325,
     1844340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1844464,
     1844479,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1845295,
     1845310,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1845434,
     1845449,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1846960,
     1846975,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1847099,
     1847114,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1847524,
     1847539,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1847663,
     1847678,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1848115,
     1848130,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1848254,
     1848269,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1849684,
     1849699,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1849823,
     1849838,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1851164,
     1851179,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1851303,
     1851318,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1851708,
     1851723,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1851847,
     1851862,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1852401,
     1852416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1852540,
     1852555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1852858,
     1852873,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1852997,
     1853012,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1853407,
     1853422,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1853546,
     1853561,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1853962,
     1853977,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1854101,
     1854116,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1854422,
     1854437,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1854561,
     1854576,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1854963,
     1854978,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1855102,
     1855117,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1855373,
     1855388,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1855512,
     1855527,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1855816,
     1855831,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1855955,
     1855970,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1856363,
     1856378,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1856502,
     1856517,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1856838,
     1856853,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1856977,
     1856992,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1857491,
     1857506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1857630,
     1857645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1858072,
     1858087,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1858211,
     1858226,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1858808,
     1858823,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1858947,
     1858962,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1859709,
     1859724,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1859848,
     1859863,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1860502,
     1860517,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1860641,
     1860656,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1860934,
     1860949,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1861073,
     1861088,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1862396,
     1862411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1862535,
     1862550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1862850,
     1862865,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1862989,
     1863004,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1863396,
     1863411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1863535,
     1863550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1863915,
     1863930,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1864054,
     1864069,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1864549,
     1864564,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1864688,
     1864703,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1864946,
     1864961,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1865085,
     1865100,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1865358,
     1865373,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1865497,
     1865512,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1865820,
     1865835,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1865959,
     1865974,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1866540,
     1866555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1866679,
     1866694,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1867171,
     1867186,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1867310,
     1867325,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1867957,
     1867972,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1868096,
     1868111,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1869053,
     1869068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1869192,
     1869207,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1869662,
     1869677,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1869801,
     1869816,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1870758,
     1870773,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1870897,
     1870912,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1871336,
     1871351,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1871475,
     1871490,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1871930,
     1871945,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1872069,
     1872084,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1872355,
     1872370,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1872494,
     1872509,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1872796,
     1872811,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1872935,
     1872950,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1873188,
     1873203,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1873327,
     1873342,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1873734,
     1873749,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1873873,
     1873888,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1874389,
     1874404,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1874528,
     1874543,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1875066,
     1875081,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1875205,
     1875220,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1875458,
     1875473,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1875597,
     1875612,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1875862,
     1875877,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1876001,
     1876016,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1876253,
     1876268,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1876392,
     1876407,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1876658,
     1876673,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1876797,
     1876812,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1877076,
     1877091,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1877215,
     1877230,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1877554,
     1877569,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1877693,
     1877708,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1878029,
     1878044,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1878168,
     1878183,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1878656,
     1878671,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1878795,
     1878810,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1879284,
     1879299,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1879423,
     1879438,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1879730,
     1879745,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1879869,
     1879884,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1880232,
     1880247,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1880371,
     1880386,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1880692,
     1880707,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1880831,
     1880846,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1881554,
     1881569,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1881693,
     1881708,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1882660,
     1882675,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1882799,
     1882814,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1883560,
     1883575,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1883699,
     1883714,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1884716,
     1884731,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1884855,
     1884870,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1885167,
     1885182,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1885306,
     1885321,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1885614,
     1885629,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1885753,
     1885768,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1885998,
     1886013,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1886137,
     1886152,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1886414,
     1886429,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1886553,
     1886568,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1886830,
     1886845,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1886969,
     1886984,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1887810,
     1887825,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1887949,
     1887964,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1888762,
     1888777,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1888901,
     1888916,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1889506,
     1889521,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1889645,
     1889660,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1890484,
     1890499,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1890623,
     1890638,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1892233,
     1892248,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1892372,
     1892387,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1895009,
     1895024,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1895148,
     1895163,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1895665,
     1895680,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1895804,
     1895819,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1896593,
     1896608,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1896732,
     1896747,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1897332,
     1897347,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1897471,
     1897486,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1898401,
     1898416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1898540,
     1898555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1898821,
     1898836,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1898960,
     1898975,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1899220,
     1899235,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1899359,
     1899374,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1899731,
     1899746,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1899870,
     1899885,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1900112,
     1900127,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1900251,
     1900266,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1900605,
     1900620,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1900744,
     1900759,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1901032,
     1901047,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1901171,
     1901186,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1901571,
     1901586,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1901710,
     1901725,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1901977,
     1901992,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1902116,
     1902131,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1902495,
     1902510,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1902634,
     1902649,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1902950,
     1902965,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1903089,
     1903104,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1903517,
     1903532,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1903656,
     1903671,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1903952,
     1903967,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1904091,
     1904106,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1904541,
     1904556,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1904680,
     1904695,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1905021,
     1905036,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1905160,
     1905175,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1905613,
     1905628,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1905752,
     1905767,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1906068,
     1906083,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1906207,
     1906222,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1906635,
     1906650,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1906774,
     1906789,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1907433,
     1907448,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1907572,
     1907587,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1907910,
     1907925,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1908049,
     1908064,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1908311,
     1908326,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1908450,
     1908465,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1908751,
     1908766,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1908890,
     1908905,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1910162,
     1910177,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1910301,
     1910316,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1911709,
     1911724,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1911848,
     1911863,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1912035,
     1912050,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1912174,
     1912189,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1912361,
     1912376,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1912500,
     1912515,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1912685,
     1912700,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1912824,
     1912839,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1913009,
     1913024,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1913148,
     1913163,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1913335,
     1913350,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1913474,
     1913489,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1913661,
     1913676,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1913800,
     1913815,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1913988,
     1914003,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1914127,
     1914142,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1914315,
     1914330,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1914454,
     1914469,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1915165,
     1915180,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1915304,
     1915319,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1917726,
     1917741,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1917865,
     1917880,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1918125,
     1918140,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1918264,
     1918279,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1918582,
     1918597,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1918721,
     1918736,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1918983,
     1918998,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1919122,
     1919137,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1919446,
     1919461,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1919585,
     1919600,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1920221,
     1920236,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1920360,
     1920375,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1921088,
     1921103,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1921227,
     1921242,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1922063,
     1922078,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1922202,
     1922217,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1923135,
     1923150,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1923274,
     1923289,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1923575,
     1923590,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1923714,
     1923729,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1924092,
     1924107,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1924231,
     1924246,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1924975,
     1924990,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1925114,
     1925129,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1926182,
     1926197,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1926321,
     1926336,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1926733,
     1926748,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1926872,
     1926887,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1927334,
     1927349,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1927473,
     1927488,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1927882,
     1927897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1928021,
     1928036,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1928476,
     1928491,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1928615,
     1928630,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1929248,
     1929263,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1929387,
     1929402,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1930114,
     1930129,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1930253,
     1930268,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1931140,
     1931155,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1931279,
     1931294,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1932276,
     1932291,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1932415,
     1932430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1933182,
     1933197,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1933321,
     1933336,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1934638,
     1934653,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1934777,
     1934792,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1935029,
     1935044,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1935168,
     1935183,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1935451,
     1935466,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1935590,
     1935605,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1935920,
     1935935,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1936059,
     1936074,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1936404,
     1936419,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1936543,
     1936558,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1936781,
     1936796,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1936920,
     1936935,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1937277,
     1937292,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1937416,
     1937431,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1938611,
     1938626,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1938750,
     1938765,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1939126,
     1939141,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1939265,
     1939280,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1939627,
     1939642,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1939766,
     1939781,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1940165,
     1940180,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1940304,
     1940319,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1940667,
     1940682,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1940806,
     1940821,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1941200,
     1941215,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1941339,
     1941354,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1941688,
     1941703,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1941827,
     1941842,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1942207,
     1942222,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1942346,
     1942361,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1942698,
     1942713,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1942837,
     1942852,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1943220,
     1943235,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1943359,
     1943374,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1943719,
     1943734,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1943858,
     1943873,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1944253,
     1944268,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1944392,
     1944407,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1944761,
     1944776,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1944900,
     1944915,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1945310,
     1945325,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1945449,
     1945464,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1945994,
     1946009,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1946133,
     1946148,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1947086,
     1947101,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1947225,
     1947240,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1947507,
     1947522,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1947646,
     1947661,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1947928,
     1947943,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1948067,
     1948082,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1948359,
     1948374,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1948498,
     1948513,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1948774,
     1948789,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1948913,
     1948928,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1949205,
     1949220,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1949344,
     1949359,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1949620,
     1949635,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1949759,
     1949774,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1950388,
     1950403,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1950527,
     1950542,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1951189,
     1951204,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1951328,
     1951343,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1951588,
     1951603,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1951727,
     1951742,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1951963,
     1951978,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1952102,
     1952117,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1952362,
     1952377,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1952501,
     1952516,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1952736,
     1952751,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1952875,
     1952890,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1953381,
     1953396,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1953520,
     1953535,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1954135,
     1954150,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1954274,
     1954289,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1954528,
     1954543,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1954667,
     1954682,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1954937,
     1954952,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1955076,
     1955091,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1955438,
     1955453,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1955577,
     1955592,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1955940,
     1955955,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1956079,
     1956094,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1956336,
     1956351,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1956475,
     1956490,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1956748,
     1956763,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1956887,
     1956902,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1957274,
     1957289,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1957413,
     1957428,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1957802,
     1957817,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1957941,
     1957956,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1958328,
     1958343,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1958467,
     1958482,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1958970,
     1958985,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1959109,
     1959124,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1959660,
     1959675,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1959799,
     1959814,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1960331,
     1960346,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1960470,
     1960485,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1961066,
     1961081,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1961205,
     1961220,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1961867,
     1961882,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1962006,
     1962021,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1962781,
     1962796,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1962920,
     1962935,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1963419,
     1963434,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1963558,
     1963573,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1964461,
     1964476,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1964600,
     1964615,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1965039,
     1965054,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1965178,
     1965193,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1965843,
     1965858,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1965982,
     1965997,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1966436,
     1966451,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1966575,
     1966590,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1967044,
     1967059,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1967183,
     1967198,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1967769,
     1967784,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1967908,
     1967923,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1968609,
     1968624,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1968748,
     1968763,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1971762,
     1971777,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1971901,
     1971916,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1975349,
     1975364,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1975488,
     1975503,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1975869,
     1975884,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1976008,
     1976023,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1976375,
     1976390,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1976514,
     1976529,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1976772,
     1976787,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1976911,
     1976926,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1977185,
     1977200,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1977324,
     1977339,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1977680,
     1977695,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1977819,
     1977834,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1978102,
     1978117,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1978241,
     1978256,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1978460,
     1978475,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1978599,
     1978614,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1978949,
     1978964,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1979088,
     1979103,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1979253,
     1979268,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1979392,
     1979407,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1979640,
     1979655,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1979779,
     1979794,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1979944,
     1979959,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1980083,
     1980098,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1980384,
     1980399,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1980523,
     1980538,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1980743,
     1980758,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1980882,
     1980897,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1981184,
     1981199,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1981323,
     1981338,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1981490,
     1981505,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1981629,
     1981644,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1981877,
     1981892,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1982016,
     1982031,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1982183,
     1982198,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1982322,
     1982337,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1982570,
     1982585,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1982709,
     1982724,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1983144,
     1983159,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1983283,
     1983298,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1983631,
     1983646,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1983770,
     1983785,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1984089,
     1984104,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1984228,
     1984243,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1984662,
     1984677,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1984801,
     1984816,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1986932,
     1986947,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1987071,
     1987086,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1989101,
     1989116,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1989240,
     1989255,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1989361,
     1989376,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1989500,
     1989515,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1989621,
     1989636,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1989760,
     1989775,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1990017,
     1990032,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1990156,
     1990171,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1990453,
     1990468,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1990592,
     1990607,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1990852,
     1990867,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1990991,
     1991006,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1991293,
     1991308,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1991432,
     1991447,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1992113,
     1992128,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1992252,
     1992267,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1993759,
     1993774,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1993898,
     1993913,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1994256,
     1994271,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1994395,
     1994410,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1994862,
     1994877,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1995001,
     1995016,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1995441,
     1995456,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1995580,
     1995595,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1996035,
     1996050,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1996174,
     1996189,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1997005,
     1997020,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1997144,
     1997159,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1997975,
     1997990,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1998114,
     1998129,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1998279,
     1998294,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1998418,
     1998433,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1998627,
     1998642,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1998766,
     1998781,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1998990,
     1999005,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1999129,
     1999144,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     1999971,
     1999986,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2000110,
     2000125,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2002280,
     2002295,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2002419,
     2002434,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2003560,
     2003575,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2003699,
     2003714,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2005481,
     2005496,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2005620,
     2005635,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2006138,
     2006153,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2006277,
     2006292,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2006851,
     2006866,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2006990,
     2007005,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2007411,
     2007426,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2007550,
     2007565,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2008036,
     2008051,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2008175,
     2008190,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2010081,
     2010096,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2010220,
     2010235,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2012534,
     2012549,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2012673,
     2012688,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2013293,
     2013308,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2013432,
     2013447,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2014109,
     2014124,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2014248,
     2014263,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2014820,
     2014835,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2014959,
     2014974,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2015641,
     2015656,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2015780,
     2015795,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2016590,
     2016605,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2016729,
     2016744,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2018676,
     2018691,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2018815,
     2018830,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2019435,
     2019450,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2019574,
     2019589,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2020238,
     2020253,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2020377,
     2020392,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2020755,
     2020770,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2020894,
     2020909,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2021344,
     2021359,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2021483,
     2021498,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2021721,
     2021736,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2021860,
     2021875,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2022160,
     2022175,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2022299,
     2022314,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2022624,
     2022639,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2022763,
     2022778,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2023150,
     2023165,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2023289,
     2023304,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2023912,
     2023927,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2024051,
     2024066,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2024734,
     2024749,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2024873,
     2024888,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2026043,
     2026058,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2026182,
     2026197,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2027508,
     2027523,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2027647,
     2027662,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2027843,
     2027858,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2027982,
     2027997,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2028162,
     2028177,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2028301,
     2028316,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2028491,
     2028506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2028630,
     2028645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2028795,
     2028810,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2028934,
     2028949,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2029170,
     2029185,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2029309,
     2029324,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2029607,
     2029622,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2029746,
     2029761,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2029988,
     2030003,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2030127,
     2030142,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2030415,
     2030430,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2030554,
     2030569,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2030859,
     2030874,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2030998,
     2031013,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2031374,
     2031389,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2031513,
     2031528,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2031775,
     2031790,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2031914,
     2031929,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2032239,
     2032254,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2032378,
     2032393,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2032686,
     2032701,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2032825,
     2032840,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2033482,
     2033497,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2033621,
     2033636,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2033978,
     2033993,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2034117,
     2034132,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2034486,
     2034501,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2034625,
     2034640,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2034983,
     2034998,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2035122,
     2035137,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2035491,
     2035506,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2035630,
     2035645,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2035752,
     2035767,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2035891,
     2035906,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2036045,
     2036060,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2036184,
     2036199,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2037142,
     2037157,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2037281,
     2037296,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2039217,
     2039232,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2039356,
     2039371,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2039582,
     2039597,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2039721,
     2039736,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2039974,
     2039989,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2040113,
     2040128,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2040401,
     2040416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2040540,
     2040555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2040981,
     2040996,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2041120,
     2041135,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2041726,
     2041741,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2041865,
     2041880,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2042487,
     2042502,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2042626,
     2042641,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2043176,
     2043191,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2043315,
     2043330,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2043978,
     2043993,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2044117,
     2044132,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2044631,
     2044646,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2044770,
     2044785,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2045493,
     2045508,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2045632,
     2045647,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2045927,
     2045942,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2046066,
     2046081,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2046427,
     2046442,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2046566,
     2046581,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2046863,
     2046878,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2047002,
     2047017,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2047357,
     2047372,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2047496,
     2047511,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2047803,
     2047818,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2047942,
     2047957,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2048256,
     2048271,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2048395,
     2048410,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2048687,
     2048702,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2048826,
     2048841,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2049121,
     2049136,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2049260,
     2049275,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2049557,
     2049572,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2049696,
     2049711,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2050032,
     2050047,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2050171,
     2050186,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2050493,
     2050508,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2050632,
     2050647,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2050929,
     2050944,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2051068,
     2051083,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2051375,
     2051390,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2051514,
     2051529,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2051810,
     2051825,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2051949,
     2051964,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2052243,
     2052258,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2052382,
     2052397,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2052715,
     2052730,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2052854,
     2052869,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2053764,
     2053779,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2053903,
     2053918,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2054683,
     2054698,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2054822,
     2054837,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2056016,
     2056031,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2056155,
     2056170,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2057713,
     2057728,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2057852,
     2057867,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2058990,
     2059005,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2059129,
     2059144,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2060131,
     2060146,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2060270,
     2060285,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2061154,
     2061169,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2061293,
     2061308,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2062100,
     2062115,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2062239,
     2062254,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2063308,
     2063323,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2063447,
     2063462,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2064705,
     2064720,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2064844,
     2064859,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2065839,
     2065854,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2065978,
     2065993,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2067053,
     2067068,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2067192,
     2067207,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2068028,
     2068043,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2068167,
     2068182,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2069003,
     2069018,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2069142,
     2069157,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2070614,
     2070629,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2070753,
     2070768,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2073192,
     2073207,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2073331,
     2073346,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2073604,
     2073619,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2073743,
     2073758,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2075159,
     2075174,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2075298,
     2075313,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2076162,
     2076177,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2076301,
     2076316,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2076734,
     2076749,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2076873,
     2076888,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2077446,
     2077461,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2077585,
     2077600,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2078110,
     2078125,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2078249,
     2078264,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2078836,
     2078851,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2078975,
     2078990,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2079918,
     2079933,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2080057,
     2080072,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2080981,
     2080996,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2081120,
     2081135,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2082286,
     2082301,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2082425,
     2082440,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2083844,
     2083859,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2083983,
     2083998,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2084263,
     2084278,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2084402,
     2084417,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2084697,
     2084712,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2084836,
     2084851,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2085518,
     2085533,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2085657,
     2085672,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2086414,
     2086429,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2086553,
     2086568,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2086865,
     2086880,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2087004,
     2087019,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2087358,
     2087373,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2087497,
     2087512,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2088440,
     2088455,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2088579,
     2088594,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2089374,
     2089389,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2089513,
     2089528,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2090761,
     2090776,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2090900,
     2090915,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2092027,
     2092042,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2092166,
     2092181,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2093419,
     2093434,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2093558,
     2093573,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2094661,
     2094676,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2094800,
     2094815,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2095972,
     2095987,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2096111,
     2096126,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2097199,
     2097214,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2097338,
     2097353,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2098232,
     2098247,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2098371,
     2098386,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2099494,
     2099509,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2099633,
     2099648,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2099876,
     2099891,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2100015,
     2100030,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2100325,
     2100340,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2100464,
     2100479,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2102048,
     2102063,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2102187,
     2102202,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2103128,
     2103143,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2103267,
     2103282,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2104424,
     2104439,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2104563,
     2104578,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2105898,
     2105913,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2106037,
     2106052,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2106757,
     2106772,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2106896,
     2106911,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2107616,
     2107631,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2107755,
     2107770,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2108639,
     2108654,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2108778,
     2108793,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2110024,
     2110039,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2110163,
     2110178,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2111271,
     2111286,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2111410,
     2111425,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2112756,
     2112771,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2112895,
     2112910,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2113265,
     2113280,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2113404,
     2113419,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2113980,
     2113995,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2114119,
     2114134,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2115343,
     2115358,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2115482,
     2115497,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2116362,
     2116377,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2116501,
     2116516,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2117396,
     2117411,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2117535,
     2117550,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2118830,
     2118845,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2118969,
     2118984,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2119095,
     2119110,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2119234,
     2119249,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2119411,
     2119426,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2119550,
     2119565,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2120722,
     2120737,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2120861,
     2120876,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2121949,
     2121964,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2122088,
     2122103,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2123116,
     2123131,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2123255,
     2123270,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2124247,
     2124262,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2124386,
     2124401,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2125106,
     2125121,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2125245,
     2125260,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2125965,
     2125980,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2126104,
     2126119,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2126993,
     2127008,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2127132,
     2127147,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2127913,
     2127928,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2128052,
     2128067,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2128359,
     2128374,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2128498,
     2128513,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2128768,
     2128783,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2128907,
     2128922,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2129934,
     2129949,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2130073,
     2130088,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2131508,
     2131523,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2131647,
     2131662,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2132755,
     2132770,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2132894,
     2132909,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2134245,
     2134260,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2134384,
     2134399,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2135303,
     2135318,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2135442,
     2135457,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2136366,
     2136381,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2136505,
     2136520,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2138193,
     2138208,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2138332,
     2138347,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2139955,
     2139970,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2140094,
     2140109,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2141469,
     2141484,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2141608,
     2141623,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2142883,
     2142898,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2143022,
     2143037,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2143932,
     2143947,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2144071,
     2144086,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2145059,
     2145074,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2145198,
     2145213,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2146142,
     2146157,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2146281,
     2146296,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2147149,
     2147164,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2147288,
     2147303,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2148401,
     2148416,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2148540,
     2148555,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2148791,
     2148806,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2148930,
     2148945,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2149329,
     2149344,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2149468,
     2149483,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2150832,
     2150847,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2150971,
     2150986,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2152498,
     2152513,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2152637,
     2152652,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2153659,
     2153674,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2153798,
     2153813,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2154670,
     2154685,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2154809,
     2154824,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2155464,
     2155479,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2155603,
     2155618,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2156339,
     2156354,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2156478,
     2156493,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2157569,
     2157584,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2157708,
     2157723,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2160475,
     2160490,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2160614,
     2160629,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2160975,
     2160990,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2161114,
     2161129,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2161546,
     2161561,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2161685,
     2161700,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2161971,
     2161986,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2162110,
     2162125,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2162925,
     2162940,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2163064,
     2163079,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2163740,
     2163755,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2163879,
     2163894,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2165254,
     2165269,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2165393,
     2165408,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2166230,
     2166245,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2166369,
     2166384,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2167227,
     2167242,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2167366,
     2167381,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2168247,
     2168262,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2168386,
     2168401,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2169374,
     2169389,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2169513,
     2169528,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2170008,
     2170023,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2170147,
     2170162,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2170851,
     2170866,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2170990,
     2171005,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2171175,
     2171190,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2171314,
     2171329,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2171557,
     2171572,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2171696,
     2171711,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2171905,
     2171920,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2172044,
     2172059,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2172279,
     2172294,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2172418,
     2172433,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2172603,
     2172618,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2172742,
     2172757,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2172986,
     2173001,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2173125,
     2173140,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2173333,
     2173348,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2173472,
     2173487,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2173703,
     2173718,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2173842,
     2173857,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2174051,
     2174066,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2174190,
     2174205,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2174423,
     2174438,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2174562,
     2174577,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2174739,
     2174754,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2174878,
     2174893,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2175121,
     2175136,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2175260,
     2175275,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2175472,
     2175487,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2175611,
     2175626,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2175845,
     2175860,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2175984,
     2175999,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2176177,
     2176192,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2176316,
     2176331,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2176560,
     2176575,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2176699,
     2176714,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2177267,
     2177282,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2177406,
     2177421,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2178440,
     2178455,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2178579,
     2178594,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2179684,
     2179699,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2179823,
     2179838,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2180701,
     2180716,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2180840,
     2180855,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2181278,
     2181293,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2181417,
     2181432,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2181939,
     2181954,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2182078,
     2182093,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2182843,
     2182858,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2182982,
     2182997,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2183860,
     2183875,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2183999,
     2184014,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2185285,
     2185300,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2185424,
     2185439,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2187141,
     2187156,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2187280,
     2187295,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2188500,
     2188515,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2188639,
     2188654,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2189988,
     2190003,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2190127,
     2190142,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2190631,
     2190646,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2190770,
     2190785,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2191324,
     2191339,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2191463,
     2191478,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2191877,
     2191892,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2192016,
     2192031,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2192494,
     2192509,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2192633,
     2192648,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2192839,
     2192854,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(
+  source.replace(
     2192978,
     2192993,
     "react__WEBPACK_IMPORTED_MODULE_0__.createElement",
     None,
   );
-  source.replace_static(2193213, 2259102, "", None);
+  source.replace(2193213, 2259102, "", None);
   source.boxed()
 });
 
