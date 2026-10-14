@@ -49,7 +49,7 @@ impl<'text> WithUtf16<'text> {
     }
 
     let wide_chars = self.wide_chars.get_or_init(|| {
-      if self.is_ascii {
+      if self.is_ascii && self.line.is_ascii() {
         return None;
       }
 
@@ -83,7 +83,7 @@ impl<'text> WithUtf16<'text> {
 
       // Like rust-analyzer's LineIndex, store only non-ASCII characters. Their
       // byte and UTF-16 offsets let ASCII spans use direct offset arithmetic.
-      let mut chars = Vec::new();
+      let mut chars = Vec::with_capacity(self.line.len() - utf16_len);
       let bytes = self.line.as_bytes();
       let mut byte_start = 0;
       let mut utf16_pos = 0;
@@ -109,8 +109,11 @@ impl<'text> WithUtf16<'text> {
     });
 
     let Some(wide_chars) = wide_chars else {
-      return &self.line
-        [start_utf16_index.min(self.line.len())..end_utf16_index.min(self.line.len())];
+      let start = start_utf16_index.min(self.line.len());
+      let end = end_utf16_index.min(self.line.len());
+      // SAFETY: No index is built only for ASCII text. Both clamped offsets
+      // are therefore UTF-8 boundaries, and the early return ensures start <= end.
+      return unsafe { self.line.get_unchecked(start..end) };
     };
 
     let to_byte = |index: usize| match wide_chars {
