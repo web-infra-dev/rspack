@@ -156,7 +156,7 @@ export default [
         } finally {
           await closeCompiler(other);
         }
-        // Closing must not invalidate arrays held by retained wrappers.
+        // Iterators created before close retain their JS-owned arrays.
         const expectedValues = retained.map(({ dependencies }) => [
           ...dependencies,
         ]);
@@ -178,10 +178,12 @@ export default [
         iterators.forEach((iterator, index) =>
           assert.deepEqual([...iterator], expectedValues[index]),
         );
-        // Closing preserves the JS-owned pool and JS helpers. Retained
-        // wrappers keep using the same conversion path while the compiler lives.
-        retained.forEach(({ dependencies }, index) =>
-          assert.deepEqual([...dependencies], expectedValues[index]),
+        // Retained wrappers cannot read a compilation after close.
+        retained.forEach(({ dependencies }) =>
+          assert.throws(
+            () => [...dependencies],
+            /Compiler has been garbage collected|compiler was closed/,
+          ),
         );
       } finally {
         await closeCompiler(compiler);
