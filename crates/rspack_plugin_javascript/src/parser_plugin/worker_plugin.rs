@@ -61,6 +61,13 @@ struct ParsedNewWorkerImportOptions {
   pub ignored: Option<bool>,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct WorkerDependencySettings {
+  is_worklet: bool,
+  is_node_worker: bool,
+  url_mode: Option<JavascriptParserWorkerUrl>,
+}
+
 fn parse_new_worker_options(
   parser: &mut JavascriptParser,
   arg: &ExprOrSpread,
@@ -124,7 +131,7 @@ fn add_dependencies(
   parsed_path: ParsedNewWorkerPath,
   parsed_options: Option<ParsedNewWorkerOptions>,
   need_new_url: bool,
-  url_mode: Option<JavascriptParserWorkerUrl>,
+  settings: WorkerDependencySettings,
 ) {
   let output_options = &parser.compiler_options.output;
   let mut hasher = RspackHasher::from(output_options);
@@ -146,7 +153,7 @@ fn add_dependencies(
     parsed_path.range.into(),
     parsed_path.range_request.map(Into::into),
     need_new_url,
-    url_mode,
+    settings.url_mode,
   ));
   let range = DependencyRange::from(span);
   let loc = parser.to_dependency_location(range);
@@ -155,6 +162,9 @@ fn add_dependencies(
   block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
     name,
     runtime: Some(runtime.into()),
+    // Node CommonJS workers keep module-factory `this`, unlike browser scripts.
+    worker: Some(!settings.is_node_worker),
+    worklet: Some(settings.is_worklet),
     chunk_loading: Some(output_options.worker_chunk_loading.clone()),
     wasm_loading: Some(output_options.worker_wasm_loading.clone()),
     async_chunks: None,
@@ -226,6 +236,10 @@ fn add_dependencies(
       ", { type: \"module\" }".into(),
     )));
   }
+}
+
+fn is_worklet_syntax(syntax: &str) -> bool {
+  syntax.ends_with("Worklet.addModule")
 }
 
 fn handle_worker<'a>(
@@ -505,8 +519,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let data = WorkerSpecifierData::downcast(tag_info.data.clone()?);
+    let members = members.iter().map(|id| id.as_str()).join(".");
+    let is_worklet = is_worklet_syntax(&format!("{}.{}", data.key, members));
     if let Some(value) = self.inner.pattern_syntax.get(data.key.as_str())
-      && value.contains(&members.iter().map(|id| id.as_str()).join("."))
+      && value.contains(&members)
     {
       return handle_worker(parser, &call_expr.args, call_expr.span, false).map(
         |(parsed_path, parsed_options, first_arg, need_new_url)| {
@@ -517,7 +533,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
             parsed_path,
             parsed_options,
             need_new_url,
-            self.url_mode,
+            WorkerDependencySettings {
+              is_worklet,
+              is_node_worker: false,
+              url_mode: self.url_mode,
+            },
           );
           if let Some(callee) = call_expr.callee.as_expr() {
             parser.walk_expression(callee);
@@ -544,6 +564,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
         .expect_get_tag_info(parser.current_tag_info?);
       let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
+      let is_worklet = is_worklet_syntax(&ids);
       if self
         .inner
         .from_call_syntax
@@ -558,7 +579,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
               parsed_path,
               parsed_options,
               need_new_url,
-              self.url_mode,
+              WorkerDependencySettings {
+                is_worklet,
+                is_node_worker: matches!(
+                  settings.source.as_str(),
+                  "worker_threads" | "node:worker_threads"
+                ),
+                url_mode: self.url_mode,
+              },
             );
             if let Some(callee) = call_expr.callee.as_expr() {
               parser.walk_expression(callee);
@@ -584,7 +612,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
           parsed_path,
           parsed_options,
           need_new_url,
-          self.url_mode,
+          WorkerDependencySettings {
+            is_worklet: is_worklet_syntax(for_name),
+            is_node_worker: false,
+            url_mode: self.url_mode,
+          },
         );
         if let Some(callee) = call_expr.callee.as_expr() {
           parser.walk_expression(callee);
@@ -626,7 +658,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
               parsed_path,
               parsed_options,
               need_new_url,
-              self.url_mode,
+              WorkerDependencySettings {
+                is_worklet: false,
+                is_node_worker: matches!(
+                  settings.source.as_str(),
+                  "worker_threads" | "node:worker_threads"
+                ),
+                url_mode: self.url_mode,
+              },
             );
             parser.walk_expression(&new_expr.callee);
             if let Some(args) = &new_expr.args
@@ -654,7 +693,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
           parsed_path,
           parsed_options,
           need_new_url,
-          self.url_mode,
+          WorkerDependencySettings {
+            is_worklet: false,
+            is_node_worker: false,
+            url_mode: self.url_mode,
+          },
         );
         parser.walk_expression(&new_expr.callee);
         if let Some(args) = &new_expr.args

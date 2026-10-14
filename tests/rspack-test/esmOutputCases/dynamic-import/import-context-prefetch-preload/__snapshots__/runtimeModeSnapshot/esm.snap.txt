@@ -29,7 +29,7 @@ moduleFactories.add({
   \**********************/
 (__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
-import("./c.mjs").then(rspackRequire.bind(rspackRequire, /*! ./c */ "./modules/c.js"));
+import("./c.mjs").then(() => (rspackRequire(/*! ./c */ "./modules/c.js")));
 
 /* export default */ const __rspack_default_export = ("b");
 
@@ -165,11 +165,11 @@ module.exports = __rspack_async_context;
 
 module.exports = {
 
-  "./modules/a.js": function() { return ensureChunk(/*! esm */ "a").then(rspackRequire.bind(rspackRequire, /*! ./modules/a.js */ "./modules/a.js")); },
+  "./modules/a.js": function() { return ensureChunk(/*! esm */ "a").then(() => (rspackRequire(/*! ./modules/a.js */ "./modules/a.js"))); },
 
-  "./modules/b.js": function() { return ensureChunk(/*! esm */ "b").then(rspackRequire.bind(rspackRequire, /*! ./modules/b.js */ "./modules/b.js")); },
+  "./modules/b.js": function() { return ensureChunk(/*! esm */ "b").then(() => (rspackRequire(/*! ./modules/b.js */ "./modules/b.js"))); },
 
-  "./modules/c.js": function() { return ensureChunk(/*! esm */ "c").then(rspackRequire.bind(rspackRequire, /*! ./modules/c.js */ "./modules/c.js")); }
+  "./modules/c.js": function() { return ensureChunk(/*! esm */ "c").then(() => (rspackRequire(/*! ./modules/c.js */ "./modules/c.js"))); }
 };
 
 
@@ -251,12 +251,8 @@ moduleFactories.add = function registerModules(modules) { Object.assign(moduleFa
 ;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
-var getChunkScriptFilename = (chunkId) => {
-  // return url for filenames not based on template
 
-  // return url for filenames based on template
-  return "" + chunkId + ".mjs"
-};
+var getChunkScriptFilename = (chunkId) => (chunkId + ".mjs");;
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 export { hasOwnProperty };
@@ -285,7 +281,7 @@ var onChunksLoaded = (result, chunkIds, fn, priority) => {
 		var fulfilled = true;
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
-				(priority & (1 === 0) || notFulfilled >= priority) &&
+				((priority & 1) === 0 || notFulfilled >= priority) &&
 				Object.keys(onChunksLoaded).every((key) => (onChunksLoaded[key](chunkIds[j])))
 			) {
 				chunkIds.splice(j--, 1);
@@ -328,10 +324,9 @@ if (typeof import.meta.url === "string") scriptUrl = import.meta.url
 // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
 // or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
 if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
-scriptUrl = scriptUrl.replace(/^blob:/, "").replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
+scriptUrl = scriptUrl.replace(/^blob:|[?#].*$/g, "").replace(/\/[^/]+$/, "/");
 
-var publicPath = scriptUrl;
-;
+var publicPath = scriptUrl;;
 export { publicPath };
 // rspack/runtime/esm_chunk_loading
 var esmInstalledChunks = {};

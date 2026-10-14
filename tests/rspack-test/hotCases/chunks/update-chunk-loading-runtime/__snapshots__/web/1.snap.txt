@@ -11,8 +11,8 @@
 - Bundle: runtime~main.js
 - Bundle: vendors-node_modules_vendor_js.js
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 76
-- Update: main.LAST_HASH.hot-update.js, size: 660
-- Update: runtime~main.LAST_HASH.hot-update.js, size: 19298
+- Update: main.LAST_HASH.hot-update.js, size: 642
+- Update: runtime~main.LAST_HASH.hot-update.js, size: 19246
 - Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 374
 
 ## Manifest
@@ -44,7 +44,7 @@ __webpack_require__.r(__webpack_exports__);
 /* import */ var vendor__rspack_import_0 = __webpack_require__("./node_modules/vendor.js");
 
 module.hot.data.ok = true;
-module.hot.data.loadChunk = () => __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
+module.hot.data.loadChunk = () => __webpack_require__.e(/* import() */ "chunk_js").then(() => (__webpack_require__("./chunk.js")));
 globalThis.__UPDATE_CHUNK_LOADING_RUNTIME_DATA__ = module.hot.data;
 module.hot.data.test = () => {
 	expect(vendor__rspack_import_0["default"]).toBe(2);
@@ -91,12 +91,13 @@ __webpack_require__.e = (chunkId) => {
 // webpack/runtime/get javascript chunk filename
 (() => {
 // This function allow to reference chunks
+
 __webpack_require__.u = (chunkId) => {
   // return url for filenames not based on template
-  if (chunkId === "chunk_js") return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js";
+  if (chunkId === "chunk_js") return chunkId + ".chunk." + __webpack_require__.h() + ".js";
   // return url for filenames based on template
-  return "" + chunkId + ".js"
-}
+  return chunkId + ".js"
+};
 })();
 // webpack/runtime/get_full_hash
 (() => {
@@ -127,8 +128,6 @@ if (installedChunkData !== 0) {
 			var promise = new Promise((resolve, reject) => (installedChunkData = jsonpInstalledChunks[chunkId] = [resolve, reject]));
 			promises.push((installedChunkData[2] = promise));
 
-			// start chunk loading
-			var url = __webpack_require__.p + __webpack_require__.u(chunkId);
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
 			var loadingEnded = function (event) {
@@ -154,7 +153,7 @@ if (installedChunkData !== 0) {
 					}
 				}
 			};
-			__webpack_require__.l(url, loadingEnded, "chunk-" + chunkId, chunkId);
+			__webpack_require__.l(__webpack_require__.p + __webpack_require__.u(chunkId), loadingEnded, "chunk-" + chunkId, chunkId);
 		} else jsonpInstalledChunks[chunkId] = 0;
 	}
 }
