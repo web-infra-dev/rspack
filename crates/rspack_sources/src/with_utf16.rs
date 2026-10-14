@@ -95,15 +95,29 @@ impl<'text> WithUtf16<'text> {
       // Like rust-analyzer's LineIndex, store only non-ASCII characters. Their
       // byte and UTF-16 offsets let ASCII spans use direct offset arithmetic.
       let mut chars = Vec::new();
+      let bytes = self.line.as_bytes();
+      let mut byte_start = 0;
       let mut utf16_pos = 0;
-      for (byte_start, ch) in self.line.char_indices() {
-        if !ch.is_ascii() {
-          chars.push(WideChar {
-            utf16_start: utf16_pos as u32,
-            byte_start: byte_start as u32,
-          });
+      while byte_start < bytes.len() {
+        let first_byte = bytes[byte_start];
+        if first_byte < 0x80 {
+          byte_start += 1;
+          utf16_pos += 1;
+          continue;
         }
-        utf16_pos += ch.len_utf16();
+        chars.push(WideChar {
+          utf16_start: utf16_pos as u32,
+          byte_start: byte_start as u32,
+        });
+        let byte_len = if first_byte < 0xe0 {
+          2
+        } else if first_byte < 0xf0 {
+          3
+        } else {
+          4
+        };
+        byte_start += byte_len;
+        utf16_pos += if byte_len == 4 { 2 } else { 1 };
       }
       Some(WideChars::Sparse {
         chars,
