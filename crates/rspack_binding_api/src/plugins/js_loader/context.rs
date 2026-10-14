@@ -3,9 +3,7 @@ use std::{ptr::NonNull, sync::Arc};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
-use rspack_core::{
-  CodeFilter, CodeFilterPattern, Content, LoaderContext, LoaderDependencies, Module, RunnerContext,
-};
+use rspack_core::{CodeFilter, Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::ThreadsafeOneShotRef;
@@ -34,27 +32,19 @@ pub struct JsLoaderItem {
   pub no_pitch: bool,
 }
 
-type JsLoaderCodeFilterPattern = Either<String, rspack_regex::RspackRegex>;
-
 #[napi(object)]
 pub struct JsLoaderCodeFilter {
-  #[napi(ts_type = "Array<string | RegExp> | undefined")]
-  pub include: Option<Vec<JsLoaderCodeFilterPattern>>,
-  #[napi(ts_type = "Array<string | RegExp>")]
-  pub exclude: Vec<JsLoaderCodeFilterPattern>,
+  #[napi(ts_type = "RegExp")]
+  pub include: Option<rspack_regex::RspackRegex>,
+  #[napi(ts_type = "RegExp")]
+  pub exclude: Option<rspack_regex::RspackRegex>,
 }
 
 impl From<&CodeFilter> for JsLoaderCodeFilter {
   fn from(value: &CodeFilter) -> Self {
-    let convert = |pattern: &CodeFilterPattern| match pattern {
-      CodeFilterPattern::String(pattern) => Either::A(pattern.clone()),
-      CodeFilterPattern::RegExp(pattern) => Either::B(pattern.clone()),
-    };
     Self {
-      include: value
-        .include()
-        .map(|patterns| patterns.iter().map(convert).collect()),
-      exclude: value.exclude().iter().map(convert).collect(),
+      include: value.include().cloned(),
+      exclude: value.exclude().cloned(),
     }
   }
 }

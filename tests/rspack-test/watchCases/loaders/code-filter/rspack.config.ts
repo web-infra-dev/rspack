@@ -24,7 +24,7 @@ export default defineConfig(
             use: [
               {
                 loader: fileURLToPath(import.meta.resolve('./loader.mjs')),
-                filter: { code: 'transform:marker' },
+                filter: { code: /transform:marker/ },
                 cache,
               },
             ],

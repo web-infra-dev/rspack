@@ -986,8 +986,8 @@ export interface JsLoaderCacheEntry {
 }
 
 export interface JsLoaderCodeFilter {
-  include?: Array<string | RegExp> | undefined
-  exclude: Array<string | RegExp>
+  include?: RegExp
+  exclude?: RegExp
 }
 
 export interface JsLoaderContext {
@@ -3122,8 +3122,8 @@ export declare enum RawRuleSetConditionType {
 }
 
 export interface RawRuleSetLoaderCodeFilter {
-  include?: Array<string | RegExp> | undefined
-  exclude: Array<string | RegExp>
+  include?: RegExp
+  exclude?: RegExp
 }
 
 export interface RawRuleSetLogicalConditions {

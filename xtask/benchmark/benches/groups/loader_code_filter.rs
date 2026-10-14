@@ -1,6 +1,6 @@
 use criterion::{BenchmarkId, black_box};
 use rspack_benchmark::Criterion;
-use rspack_loader_runner::{CodeFilter, CodeFilterPattern, Content};
+use rspack_loader_runner::{CodeFilter, Content};
 use rspack_regex::RspackRegex;
 
 const MODULE_COUNT: usize = 100;
@@ -26,31 +26,12 @@ pub fn benchmark_loader_code_filter(criterion: &mut Criterion) {
 
   for hit_percent in [0, 10, 100] {
     let modules = modules(hit_percent);
-    let substring_filter = CodeFilter::new(
-      Some(vec![
-        CodeFilterPattern::String("createServerFn".to_string()),
-        CodeFilterPattern::String("createMiddleware".to_string()),
-      ]),
-      vec![CodeFilterPattern::String("generated code".to_string())],
-    );
-    group.bench_with_input(
-      BenchmarkId::new("substring", hit_percent),
-      &hit_percent,
-      |bencher, _| {
-        bencher.iter(|| {
-          for content in &modules {
-            black_box(substring_filter.matches(Some(black_box(content))));
-          }
-        });
-      },
-    );
-
     let regexp_filter = CodeFilter::new(
-      Some(vec![CodeFilterPattern::RegExp(
+      Some(
         RspackRegex::new(r"\bcreate(ServerFn|Middleware)\b")
           .expect("benchmark regexp should be valid"),
-      )]),
-      vec![],
+      ),
+      None,
     );
     group.bench_with_input(
       BenchmarkId::new("regexp", hit_percent),
@@ -59,6 +40,22 @@ pub fn benchmark_loader_code_filter(criterion: &mut Criterion) {
         bencher.iter(|| {
           for content in &modules {
             black_box(regexp_filter.matches(Some(black_box(content))));
+          }
+        });
+      },
+    );
+
+    let regexp_with_exclude_filter = CodeFilter::new(
+      regexp_filter.include().cloned(),
+      Some(RspackRegex::new("generated code").expect("benchmark regexp should be valid")),
+    );
+    group.bench_with_input(
+      BenchmarkId::new("regexp_with_exclude", hit_percent),
+      &hit_percent,
+      |bencher, _| {
+        bencher.iter(|| {
+          for content in &modules {
+            black_box(regexp_with_exclude_filter.matches(Some(black_box(content))));
           }
         });
       },

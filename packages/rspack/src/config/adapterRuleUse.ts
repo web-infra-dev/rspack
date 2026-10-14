@@ -25,7 +25,6 @@ import type {
   Resolve,
   RuleSetLoaderWithOptions,
   RuleSetLoaderCodeFilter,
-  RuleSetLoaderCodePattern,
   RuleSetUseItem,
   Target,
 } from './types';
@@ -582,21 +581,6 @@ function createRawModuleRuleUsesImpl(
   });
 }
 
-function normalizeCodeFilterPatterns(
-  value: RuleSetLoaderCodePattern | RuleSetLoaderCodePattern[],
-  path: string,
-): RuleSetLoaderCodePattern[] {
-  const patterns = Array.isArray(value) ? value : [value];
-  for (const [index, pattern] of patterns.entries()) {
-    if (typeof pattern !== 'string' && !(pattern instanceof RegExp)) {
-      throw new Error(
-        `Expected a string or RegExp at \`${path}[${index}]\`, but received ${String(pattern)}.`,
-      );
-    }
-  }
-  return patterns;
-}
-
 function createRawRuleSetLoaderFilter(
   filter: RuleSetLoaderWithOptions['filter'],
   path: string,
@@ -622,18 +606,12 @@ function createRawRuleSetLoaderCodeFilter(
   filter: RuleSetLoaderCodeFilter,
   path: string,
 ): RawRuleSetLoaderCodeFilter {
-  if (typeof filter === 'string' || filter instanceof RegExp) {
-    return { include: [filter], exclude: [] };
+  if (filter instanceof RegExp) {
+    return { include: filter };
   }
-  if (Array.isArray(filter)) {
-    return {
-      include: normalizeCodeFilterPatterns(filter, path),
-      exclude: [],
-    };
-  }
-  if (!filter || typeof filter !== 'object') {
+  if (!filter || typeof filter !== 'object' || Array.isArray(filter)) {
     throw new Error(
-      `Expected a code filter at \`${path}\`, but received ${String(filter)}.`,
+      `Expected a RegExp or an object at \`${path}\`, but received ${String(filter)}.`,
     );
   }
   for (const key of Object.keys(filter)) {
@@ -643,16 +621,13 @@ function createRawRuleSetLoaderCodeFilter(
       );
     }
   }
-  return {
-    include:
-      filter.include === undefined
-        ? undefined
-        : normalizeCodeFilterPatterns(filter.include, `${path}.include`),
-    exclude:
-      filter.exclude === undefined
-        ? []
-        : normalizeCodeFilterPatterns(filter.exclude, `${path}.exclude`),
-  };
+  for (const key of ['include', 'exclude'] as const) {
+    const pattern = filter[key];
+    if (pattern !== undefined && !(pattern instanceof RegExp)) {
+      throw new Error(`Expected a RegExp at \`${path}.${key}\`.`);
+    }
+  }
+  return { include: filter.include, exclude: filter.exclude };
 }
 
 function resolveStringifyLoaders(

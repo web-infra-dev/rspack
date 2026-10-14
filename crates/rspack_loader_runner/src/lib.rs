@@ -9,7 +9,7 @@ mod plugin;
 mod runner;
 mod scheme;
 
-pub use code_filter::{CodeFilter, CodeFilterPattern};
+pub use code_filter::CodeFilter;
 pub use content::{
   AdditionalData, Content, DescriptionData, ParseMeta, ParseMetaValue, ResourceData,
 };

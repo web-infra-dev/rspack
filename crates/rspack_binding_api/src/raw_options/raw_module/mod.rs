@@ -16,7 +16,7 @@ use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, CodeFilter,
-  CodeFilterPattern, CssAutoOrModuleParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
+  CssAutoOrModuleParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
   DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
   GeneratorOptions, GeneratorOptionsMap, ImportMeta, ImportMetaOptions,
@@ -54,39 +54,18 @@ pub struct RawModuleRuleUse {
   pub code_filter: Option<RawRuleSetLoaderCodeFilter>,
 }
 
-type RawRuleSetLoaderCodePattern = Either<String, RspackRegex>;
-
 #[napi(object)]
 #[derive(Debug)]
 pub struct RawRuleSetLoaderCodeFilter {
-  #[napi(ts_type = "Array<string | RegExp> | undefined")]
-  pub include: Option<Vec<RawRuleSetLoaderCodePattern>>,
-  #[napi(ts_type = "Array<string | RegExp>")]
-  pub exclude: Vec<RawRuleSetLoaderCodePattern>,
-}
-
-fn normalize_loader_code_pattern(value: RawRuleSetLoaderCodePattern) -> CodeFilterPattern {
-  match value {
-    Either::A(value) => CodeFilterPattern::String(value),
-    Either::B(value) => CodeFilterPattern::RegExp(value),
-  }
+  #[napi(ts_type = "RegExp")]
+  pub include: Option<RspackRegex>,
+  #[napi(ts_type = "RegExp")]
+  pub exclude: Option<RspackRegex>,
 }
 
 impl From<RawRuleSetLoaderCodeFilter> for CodeFilter {
   fn from(value: RawRuleSetLoaderCodeFilter) -> Self {
-    Self::new(
-      value.include.map(|patterns| {
-        patterns
-          .into_iter()
-          .map(normalize_loader_code_pattern)
-          .collect()
-      }),
-      value
-        .exclude
-        .into_iter()
-        .map(normalize_loader_code_pattern)
-        .collect(),
-    )
+    Self::new(value.include, value.exclude)
   }
 }
 

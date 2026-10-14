@@ -37,7 +37,7 @@ export default defineConfig({
             loader: './transform-loader.mjs',
             parallel: true,
             options: { value: 'should-not-run' },
-            filter: { code: 'not present' },
+            filter: { code: /not present/ },
           },
           producer,
         ],

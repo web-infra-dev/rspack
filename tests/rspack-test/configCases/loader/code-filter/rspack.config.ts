@@ -21,17 +21,16 @@ export default defineConfig({
   context: import.meta.dirname,
   module: {
     rules: [
-      filtered(/[\\/]string\.js$/, 'marker:string', 'string'),
+      filtered(/[\\/]direct\.js$/, /marker:direct/, 'direct'),
       filtered(/regexp-[ab]\.js$/, /marker:regexp/g, 'regexp'),
-      filtered(/array\.js$/, ['not present', /marker:array/], 'array'),
+      filtered(/include\.js$/, { include: /marker:include/ }, 'include'),
       filtered(
         /excluded\.js$/,
-        { include: 'marker:include', exclude: /marker:exclude/ },
+        { include: /marker:include/, exclude: /marker:exclude/ },
         'excluded',
       ),
-      filtered(/empty-include\.js$/, { include: [] }, 'empty-include'),
-      filtered(/empty-exclude\.js$/, { exclude: [] }, 'empty-exclude'),
-      filtered(/empty-string\.js$/, '', 'empty-string'),
+      filtered(/exclude-only\.js$/, { exclude: /marker/ }, 'exclude-only'),
+      filtered(/empty-regexp\.js$/, /(?:)/, 'empty-regexp'),
       {
         test: /empty-content\.js$/,
         use: [
@@ -39,12 +38,12 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'empty-content' },
-            filter: { code: '' },
+            filter: { code: /(?:)/ },
           },
           './empty-producer-loader.mjs',
         ],
       },
-      filtered(/unicode\.js$/, '你好', 'unicode'),
+      filtered(/unicode\.js$/, /你好/u, 'unicode'),
       {
         test: /functional\.js$/,
         use: () => [
@@ -52,7 +51,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'functional' },
-            filter: { code: 'marker:functional' },
+            filter: { code: /marker:functional/ },
           },
         ],
       },
@@ -75,7 +74,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'should-not-run' },
-            filter: { code: 'not present' },
+            filter: { code: /not present/ },
           },
           './metadata-producer-loader.mjs',
         ],
@@ -87,7 +86,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'mixed-native' },
-            filter: { code: '-simple' },
+            filter: { code: /-simple/ },
           },
           'builtin:test-simple-loader',
         ],
@@ -100,7 +99,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'should-not-run' },
-            filter: { code: '' },
+            filter: { code: /(?:)/ },
           },
           './invalid-producer-loader.mjs',
         ],
@@ -110,7 +109,7 @@ export default defineConfig({
         use: [
           {
             loader: 'builtin:test-simple-loader',
-            filter: { code: 'marker' },
+            filter: { code: /marker/ },
           },
         ],
       },
@@ -119,7 +118,7 @@ export default defineConfig({
         use: [
           {
             loader: 'builtin:test-simple-loader',
-            filter: { code: 'not present' },
+            filter: { code: /not present/ },
           },
         ],
       },
@@ -128,7 +127,7 @@ export default defineConfig({
         use: [
           {
             loader: './pitch-result-loader.mjs',
-            filter: { code: 'not present' },
+            filter: { code: /not present/ },
           },
         ],
       },

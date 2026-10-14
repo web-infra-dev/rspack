@@ -1,6 +1,6 @@
 export interface LoaderCodeFilter {
-  include?: (string | RegExp)[];
-  exclude: (string | RegExp)[];
+  include?: RegExp;
+  exclude?: RegExp;
 }
 
 export interface CodeFilterTextCache {
@@ -48,14 +48,11 @@ function codeAsString(
   return text;
 }
 
-function matchesPatterns(patterns: (string | RegExp)[], code: string) {
-  return patterns.some((pattern) => {
-    if (typeof pattern === 'string') return code.includes(pattern);
-    pattern.lastIndex = 0;
-    const matched = pattern.test(code);
-    pattern.lastIndex = 0;
-    return matched;
-  });
+function matchesPattern(pattern: RegExp, code: string): boolean {
+  pattern.lastIndex = 0;
+  const matched = pattern.test(code);
+  pattern.lastIndex = 0;
+  return matched;
 }
 
 export function matchesCodeFilter(
@@ -65,6 +62,6 @@ export function matchesCodeFilter(
 ): boolean {
   const code = codeAsString(content, cache);
   if (code === null) return false;
-  if (matchesPatterns(filter.exclude, code)) return false;
-  return filter.include === undefined || matchesPatterns(filter.include, code);
+  if (filter.exclude && matchesPattern(filter.exclude, code)) return false;
+  return filter.include === undefined || matchesPattern(filter.include, code);
 }

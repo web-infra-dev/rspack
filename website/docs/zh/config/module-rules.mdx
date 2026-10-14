@@ -769,14 +769,11 @@ type RuleSetUse =
 
 type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
 
-type RuleSetLoaderCodePattern = string | RegExp;
-
 type RuleSetLoaderCodeFilter =
-  | RuleSetLoaderCodePattern
-  | RuleSetLoaderCodePattern[]
+  | RegExp
   | {
-      include?: RuleSetLoaderCodePattern | RuleSetLoaderCodePattern[];
-      exclude?: RuleSetLoaderCodePattern | RuleSetLoaderCodePattern[];
+      include?: RegExp;
+      exclude?: RegExp;
     };
 
 type RuleSetLoaderWithOptions = {
@@ -862,7 +859,7 @@ export default {
             loader: './transform-loader.js',
             filter: {
               code: {
-                include: ['createServerFn', /\bcreateMiddleware\b/],
+                include: /\b(createServerFn|createMiddleware)\b/,
                 exclude: /generated code/,
               },
             },
@@ -875,16 +872,15 @@ export default {
 ```
 
 如果只需匹配单个 pattern，可以直接使用 `filter: { code: /createMiddleware/ }`。
+不支持字符串和数组形式的 pattern。
 
 code filter 会在该 loader 的 normal 函数执行前立即求值，因此可以看到其右侧 loader 的输出。loader 的 pitch 函数不会被过滤，并保持原有行为。
 
 匹配规则如下：
 
-- 字符串执行子串匹配，而不是 glob 匹配。
 - `RegExp` 每次都从 `lastIndex = 0` 开始匹配。
-- 数组中的任意一个 pattern 匹配即视为匹配。
 - `exclude` 的优先级高于 `include`。未设置 `include` 时，默认包含输入。
-- `include: []` 永不匹配，`exclude: []` 不排除任何输入。
+- 如需匹配多个候选，可将其合并为一个正则表达式，例如 `/foo|bar/`。
 - 字符串输入和包含有效 UTF-8 的 buffer 可以参与匹配。输入不存在或 buffer 包含非法 UTF-8 时不匹配。
 
 未命中时，Rspack 不会改变当前 content、source map、additional data 和 dependencies，也不会调用 normal loader 函数或查询其 loader cache。`filter` 属于执行元数据：它不会传入 loader options，也不会改变 loader request 或模块 identifier。只有当未命中时跳过 normal 函数与执行该函数具有相同的可观察行为，才应使用此配置。

@@ -4547,7 +4547,6 @@ dependencies = [
 name = "rspack_loader_runner"
 version = "0.102.8"
 dependencies = [
- "aho-corasick",
  "anymap3",
  "async-trait",
  "derive_more",
