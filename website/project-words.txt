@@ -224,6 +224,7 @@ systemjs
 tailwind
 tailwindcss
 Terser
+threejs
 tiktok
 tokio
 Towhk
