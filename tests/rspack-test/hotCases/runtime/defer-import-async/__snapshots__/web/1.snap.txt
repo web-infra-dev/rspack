@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 27441
+- Update: main.LAST_HASH.hot-update.js, size: 27307
 
 ## Manifest
 
@@ -44,7 +44,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* export default */ const __rspack_default_export = (() => __webpack_require__.e(/* import() */ "consumer_js").then(__webpack_require__.bind(__webpack_require__, "./consumer.js")).then(({ namespace }) => namespace));
+/* export default */ const __rspack_default_export = (() => __webpack_require__.e(/* import() */ "consumer_js").then(() => (__webpack_require__("./consumer.js"))).then(({ namespace }) => namespace));
 
 
 },
@@ -106,7 +106,7 @@ var wrapDeps = (deps) => {
 			}
 		}
 		var ret = {};
-		ret[rspackQueues] = () => {};
+		ret[rspackQueues] = x => {};
 		ret[rspackExports] = dep;
 		return ret;
 	});
@@ -124,7 +124,7 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 		outerResolve = resolve;
 	});
 	promise[rspackExports] = exports;
-	promise[rspackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](() => {}); };
+	promise[rspackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](x => {}); };
 	module.exports = promise;
 	var asyncModule = module;
 	if (useModuleExports) {
@@ -157,7 +157,7 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 })();
 // webpack/runtime/create_fake_namespace_object
 (() => {
-var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+var getProto = Object.getPrototypeOf;
 var leafPrototypes;
 // create a fake namespace object
 // mode & 1: value is a module id, require it
@@ -201,12 +201,13 @@ __webpack_require__.e = (chunkId) => {
 // webpack/runtime/get javascript chunk filename
 (() => {
 // This function allow to reference chunks
+
 __webpack_require__.u = (chunkId) => {
   // return url for filenames not based on template
   if (chunkId === "main") return "bundle.js";
   // return url for filenames based on template
-  return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js"
-}
+  return chunkId + ".chunk." + __webpack_require__.h() + ".js"
+};
 })();
 // webpack/runtime/get_full_hash
 (() => {
@@ -344,8 +345,6 @@ if (installedChunkData !== 0) {
 			var promise = new Promise((resolve, reject) => (installedChunkData = jsonpInstalledChunks[chunkId] = [resolve, reject]));
 			promises.push((installedChunkData[2] = promise));
 
-			// start chunk loading
-			var url = __webpack_require__.p + __webpack_require__.u(chunkId);
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
 			var loadingEnded = function (event) {
@@ -371,7 +370,7 @@ if (installedChunkData !== 0) {
 					}
 				}
 			};
-			__webpack_require__.l(url, loadingEnded, "chunk-" + chunkId, chunkId);
+			__webpack_require__.l(__webpack_require__.p + __webpack_require__.u(chunkId), loadingEnded, "chunk-" + chunkId, chunkId);
 		} 
 	}
 }
