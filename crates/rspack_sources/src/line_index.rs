@@ -256,7 +256,8 @@ impl<'text> IndexedLine<'text, '_> {
       if after < wide_len {
         byte_start
       } else {
-        (byte_start + byte_len + after - wide_len).min(self.line.len())
+        let extra_bytes = byte_start - ch.utf16_start as usize + byte_len - wide_len;
+        index.saturating_add(extra_bytes).min(self.line.len())
       }
     };
 
