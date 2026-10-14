@@ -73,7 +73,7 @@ export default [false, true].map(newCache => {
 								{
 									loader,
 									options: { value: "filtered" },
-									codeFilter: "marker",
+									filter: { code: "marker" },
 									cache: true
 								}
 							]

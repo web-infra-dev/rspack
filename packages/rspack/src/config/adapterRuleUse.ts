@@ -574,13 +574,10 @@ function createRawModuleRuleUsesImpl(
       optionsCacheKey: use.cache
         ? (JSON.stringify(fingerprintOptions) ?? '')
         : '',
-      codeFilter:
-        use.codeFilter !== undefined
-          ? createRawRuleSetLoaderCodeFilter(
-              use.codeFilter,
-              `${path}[${index}].codeFilter`,
-            )
-          : undefined,
+      codeFilter: createRawRuleSetLoaderFilter(
+        use.filter,
+        `${path}[${index}].filter`,
+      ),
     };
   });
 }
@@ -598,6 +595,27 @@ function normalizeCodeFilterPatterns(
     }
   }
   return patterns;
+}
+
+function createRawRuleSetLoaderFilter(
+  filter: RuleSetLoaderWithOptions['filter'],
+  path: string,
+): RawRuleSetLoaderCodeFilter | undefined {
+  if (filter === undefined) return undefined;
+  if (!filter || typeof filter !== 'object' || Array.isArray(filter)) {
+    throw new Error(`Expected an object at \`${path}\`.`);
+  }
+  for (const key of Object.keys(filter)) {
+    if (key !== 'code') {
+      throw new Error(
+        `Unexpected property \`${path}.${key}\`. Loader filters only support \`code\`.`,
+      );
+    }
+  }
+  if (filter.code === undefined) {
+    throw new Error(`Expected a code filter at \`${path}.code\`.`);
+  }
+  return createRawRuleSetLoaderCodeFilter(filter.code, `${path}.code`);
 }
 
 function createRawRuleSetLoaderCodeFilter(

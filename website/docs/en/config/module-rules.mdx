@@ -844,7 +844,7 @@ export default {
 };
 ```
 
-## rules[].use.codeFilter
+## rules[].use.filter.code
 
 <ApiMeta stability={Stability.Experimental} />
 
@@ -862,9 +862,11 @@ export default {
         use: [
           {
             loader: './transform-loader.js',
-            codeFilter: {
-              include: ['createServerFn', /\bcreateMiddleware\b/],
-              exclude: /generated code/,
+            filter: {
+              code: {
+                include: ['createServerFn', /\bcreateMiddleware\b/],
+                exclude: /generated code/,
+              },
             },
           },
         ],
@@ -874,7 +876,7 @@ export default {
 };
 ```
 
-For a single pattern, use `codeFilter: /createMiddleware/` directly.
+For a single pattern, use `filter: { code: /createMiddleware/ }`.
 
 The code filter is evaluated immediately before this loader's normal function. It therefore sees the output of loaders to its right. The loader's pitch function is not filtered and keeps its existing behavior.
 
@@ -887,7 +889,7 @@ Matching follows these rules:
 - `include: []` never matches, while `exclude: []` excludes nothing.
 - String input and buffers containing valid UTF-8 can match. Missing input and buffers containing invalid UTF-8 do not match.
 
-On a miss, Rspack leaves the current content, source map, additional data, and dependencies unchanged, and does not call the normal loader function or consult its loader cache. `codeFilter` is execution metadata: it is not passed to loader options and does not change loader requests or module identifiers.
+On a miss, Rspack leaves the current content, source map, additional data, and dependencies unchanged, and does not call the normal loader function or consult its loader cache. `filter` is execution metadata: it is not passed to loader options and does not change loader requests or module identifiers. Only use it when skipping the normal function on a miss has the same observable behavior as running that function.
 
 ## rules[].use.ident
 
