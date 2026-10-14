@@ -2226,3 +2226,74 @@ fn a_registered_dangling_link_older_than_the_start_is_not_reported() {
     }
   }
 }
+
+/// Like watchpack's `readdir` of a registered directory, a registered context
+/// that is a dangling link is gone to the scan, which reports it (as the
+/// link's own event would), matching the `null` its time info reads.
+#[cfg(unix)]
+#[test]
+fn a_registered_context_that_is_a_dangling_link_is_reported() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::os::unix::fs::symlink(helper.join("nowhere"), helper.join("ctx")).unwrap();
+  helper.file("sibling");
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.deleted_files.contains(context.as_str()) || batch.changed_files.contains(context.as_str())
+  });
+}
+
+/// A registered context found gone through an event below it, with no event
+/// of its own, reads as removed in the time info too: its records go with the
+/// removal reported for it.
+#[test]
+fn a_context_found_gone_through_an_event_below_it_reads_as_absent() {
+  use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  };
+  let hide = Arc::new(AtomicBool::new(false));
+  let ignored = {
+    let hide = Arc::clone(&hide);
+    rspack_watcher::FsWatcherIgnored::Function(Arc::new(move |path: String| {
+      let ignored = hide.load(Ordering::SeqCst) && path.ends_with("/ctx");
+      Box::pin(async move { ignored })
+    }))
+  };
+  let mut helper = h!(
+    FsWatcherOptions {
+      aggregate_timeout: Some(100),
+      ..Default::default()
+    },
+    ignored
+  );
+  std::fs::create_dir_all(helper.join("ctx")).unwrap();
+  helper.file("ctx/a.js");
+  helper.file("sibling");
+  // Let the setup's own writes age out, so FSEvents cannot deliver them late.
+  std::thread::sleep(std::time::Duration::from_millis(1000));
+
+  let rx = helper.watch(f!("ctx/a.js", "sibling"), f!("ctx"), e!());
+  std::thread::sleep(std::time::Duration::from_millis(300));
+  // The context's own removal event never arrives.
+  hide.store(true, Ordering::SeqCst);
+  std::fs::remove_dir_all(helper.join("ctx")).unwrap();
+  helper.trigger_event("ctx/a.js", rspack_watcher::FsEventKind::Remove);
+  let context = helper.join("ctx");
+  wait_for_aggregated(&helper, rx, |batch| {
+    batch.deleted_files.contains(context.as_str())
+  });
+
+  let (_, directory_timestamps) = helper.collect_time_info_entries();
+  let entry = helper.time_info_entry(&directory_timestamps, "ctx");
+  assert!(
+    matches!(entry, TimeInfoEntry::Null),
+    "the gone context reads as absent: {entry:?}"
+  );
+}

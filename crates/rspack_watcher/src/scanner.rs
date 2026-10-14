@@ -43,7 +43,10 @@ impl Scanner {
       let files_tx = tx.clone();
       let files_path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
-        let removed = absent_paths(&files, &missing);
+        // A file is there as `lstat` sees it, so a dangling link counts.
+        let removed = absent_paths(&files, &missing, |path| {
+          std::fs::symlink_metadata(path).is_ok()
+        });
         let changed = files
           .iter()
           .filter(|p| changed_since(p, start_time))
@@ -71,7 +74,9 @@ impl Scanner {
       let dirs_tx = tx.clone();
       tokio::spawn(async move {
         _ = send_events(
-          absent_paths(&directories, &missing),
+          // A directory is there only through a link that resolves, like
+          // watchpack's `readdir`.
+          absent_paths(&directories, &missing, |path| path.exists()),
           FsEventKind::Remove,
           &dirs_tx,
         );
@@ -119,13 +124,16 @@ impl Scanner {
   }
 }
 
-/// The registered `paths` gone from disk (a registered-missing path is
-/// expected to be absent and is not one of them). A dangling link is there,
-/// like watchpack's `lstat` sees it.
-fn absent_paths(paths: &[InternedPath], missing: &InternedPathDashSet) -> Vec<InternedPath> {
+/// The registered `paths` not `present` on disk (a registered-missing path
+/// is expected to be absent and is not one of them).
+fn absent_paths(
+  paths: &[InternedPath],
+  missing: &InternedPathDashSet,
+  present: impl Fn(&InternedPath) -> bool,
+) -> Vec<InternedPath> {
   paths
     .iter()
-    .filter(|path| std::fs::symlink_metadata(path).is_err() && !missing.contains(*path))
+    .filter(|path| !present(path) && !missing.contains(*path))
     .cloned()
     .collect()
 }

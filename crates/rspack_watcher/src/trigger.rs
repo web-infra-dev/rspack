@@ -282,12 +282,18 @@ impl EventProcessor {
     let mut associated_event = finder.find_associated_event(path, kind);
     // A directory above changes with `path`, unless it is gone itself: an
     // event below it may arrive after the directory's own removal.
+    // Its records go with it, as for `path` itself.
     for (associated, associated_kind) in &mut associated_event {
       if associated != path
         && *associated_kind == FsEventKind::Change
         && std::fs::symlink_metadata(&*associated).is_err()
       {
         *associated_kind = FsEventKind::Remove;
+        let may_contain_records = self.path_manager.may_contain_records(associated);
+        self.path_manager.remove_file_time(associated);
+        if may_contain_records {
+          self.path_manager.remove_file_times_under(associated);
+        }
       }
     }
 

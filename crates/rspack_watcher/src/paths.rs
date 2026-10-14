@@ -610,8 +610,10 @@ impl PathManager {
           }
           pending.push((path, ancestry.clone(), false));
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
-          self.context_files.insert(path.clone());
-          self.set_file_time(&path, mtime, !observed, true);
+          self.record(&path, || {
+            self.context_files.insert(path.clone());
+            self.write_file_time(&path, mtime, !observed, true)
+          });
           let registered = self.files.all.contains(&path) || self.missing.all.contains(&path);
           if self.forget_if_orphaned(&path) {
             break;
@@ -768,6 +770,20 @@ impl PathManager {
     initial: bool,
     ignore_when_equal: bool,
   ) -> bool {
+    self.record(path, || {
+      self.write_file_time(path, mtime, initial, ignore_when_equal)
+    })
+  }
+
+  /// [`Self::set_file_time`]'s write, for a caller already inside
+  /// [`Self::record`].
+  fn write_file_time(
+    &self,
+    path: &InternedPath,
+    mtime: SystemTime,
+    initial: bool,
+    ignore_when_equal: bool,
+  ) -> bool {
     if ignore_when_equal
       && self
         .file_times
@@ -781,7 +797,7 @@ impl PathManager {
     } else {
       FileTime::observed(mtime)
     };
-    self.record(path, || self.file_times.insert(path.clone(), time));
+    self.file_times.insert(path.clone(), time);
     true
   }
 
