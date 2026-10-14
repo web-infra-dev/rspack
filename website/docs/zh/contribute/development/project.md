@@ -38,7 +38,7 @@ description: '了解 Rspack monorepo 的目录结构，查找 Rust crate、JavaS
 - **`rspack_ids`**: ID 生成和管理，用于为模块、chunk 等创建唯一标识符
 - **`rspack_collections`**: 集合数据结构，提供优化的 HashMap、HashSet 等
 - **`rspack_util`**: 工具函数集合，包含各种辅助函数
-- **`rspack_futures`**: 异步工具，提供异步编程支持
+- **`rspack_parallel`**: 并行执行工具，支持通过 Rayon 或异步任务处理迭代器，以及在作用域内执行异步任务
 - **`rspack_workspace`**: 工作区支持，用于处理单体仓库场景
 
 ### 缓存与存储
@@ -130,7 +130,7 @@ description: '了解 Rspack monorepo 的目录结构，查找 Rust crate、JavaS
 - **`rspack_plugin_size_limits`**: 大小限制插件，用于检查 bundle 大小
 - **`rspack_plugin_sri`**: 子资源完整性 (SRI) 插件
 - **`rspack_plugin_module_info_header`**: 模块信息头部插件
-- **`rspack_plugin_warn_sensitive_module`**: 警告敏感模块插件
+- **`rspack_plugin_case_sensitive`**: 检查模块名称和输出文件名中仅大小写不同的冲突并发出警告
 
 #### 调试与测试插件
 
