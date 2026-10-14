@@ -321,7 +321,8 @@ Completed sources are `Send + Sync`. Lazy shared state uses `OnceLock`; `ConcatS
 synchronous. Parallelize at the module/asset level using Rspack's existing parallel abstractions,
 not inside one mapping stream.
 
-`LineIndex` owns source-wide line starts and keeps non-ASCII character offsets in an `IntMap` of boxed slices.
+`LineIndex` owns source-wide line starts and keeps non-ASCII character offsets in a line-indexed
+vector of boxed slices. The vector stays empty when the entire source is ASCII.
 Offsets use `u32`, following Rspack's assumption that source files fit in 4 GiB.
 Mapping streams drop the index after use rather
 than retaining line-sized buffers in a pool.

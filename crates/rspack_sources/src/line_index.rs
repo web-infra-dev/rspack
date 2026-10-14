@@ -1,5 +1,3 @@
-use nohash_hasher::IntMap;
-
 #[derive(Debug)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]
 struct WideChar {
@@ -14,7 +12,8 @@ pub struct LineIndex<'text> {
   #[cfg_attr(allocative, allocative(skip))]
   text: &'text str,
   line_starts: Vec<u32>,
-  line_wide_chars: IntMap<u32, Box<[WideChar]>>,
+  // Empty when the whole source is ASCII. Otherwise indexed by line number.
+  line_wide_chars: Vec<Option<Box<[WideChar]>>>,
 }
 
 #[derive(Clone, Copy)]
@@ -40,7 +39,7 @@ impl<'text> LineIndex<'text> {
     let mut index = Self {
       text,
       line_starts: if text.is_empty() { Vec::new() } else { vec![0] },
-      line_wide_chars: IntMap::default(),
+      line_wide_chars: Vec::new(),
     };
     if is_known_ascii {
       for newline in memchr::memchr_iter(b'\n', text.as_bytes()) {
@@ -61,19 +60,39 @@ impl<'text> LineIndex<'text> {
 
   #[allow(unsafe_code)]
   pub fn get(&self, line: usize) -> Option<IndexedLine<'text, '_>> {
-    let start = *self.line_starts.get(line)? as usize;
-    let end = self
-      .line_starts
-      .get(line + 1)
-      .map_or(self.text.len(), |&start| start as usize);
+    if line >= self.line_count() {
+      return None;
+    }
+    // SAFETY: The line number was checked against the line count above.
+    Some(unsafe { self.get_unchecked(line) })
+  }
+
+  /// # Safety
+  /// `line` must be less than `self.line_count()`.
+  #[allow(unsafe_code)]
+  pub(crate) unsafe fn get_unchecked(&self, line: usize) -> IndexedLine<'text, '_> {
+    // SAFETY: The caller guarantees that `line` is a valid line number.
+    let start = unsafe { *self.line_starts.get_unchecked(line) } as usize;
+    let end = if line + 1 < self.line_count() {
+      // SAFETY: The next line number was checked against the line count.
+      (unsafe { *self.line_starts.get_unchecked(line + 1) }) as usize
+    } else {
+      self.text.len()
+    };
     let text: &'text str = self.text;
     // SAFETY: Line starts are recorded in order at 0 or immediately after an
     // ASCII newline, so both offsets are ordered UTF-8 boundaries in `text`.
     let line_text = unsafe { text.get_unchecked(start..end) };
-    Some(IndexedLine {
+    let wide = if self.line_wide_chars.is_empty() {
+      None
+    } else {
+      // SAFETY: Once populated, the wide-character vector has one slot per line.
+      unsafe { self.line_wide_chars.get_unchecked(line) }.as_deref()
+    };
+    IndexedLine {
       line: line_text,
-      wide: self.line_wide_chars.get(&(line as u32)).map(Box::as_ref),
-    })
+      wide,
+    }
   }
 
   fn record_newline(&mut self, byte_start: usize, state: &mut ScanState) {
@@ -81,16 +100,22 @@ impl<'text> LineIndex<'text> {
     let next = byte_start + 1;
     if next < self.text.len() {
       self.line_starts.push(next as u32);
+      if !self.line_wide_chars.is_empty() {
+        self.line_wide_chars.push(None);
+      }
     }
     state.line_start = next;
   }
 
   fn finish_line(&mut self, state: &mut ScanState) {
     if !state.chars.is_empty() {
-      self.line_wide_chars.insert(
-        (self.line_starts.len() - 1) as u32,
-        std::mem::take(&mut state.chars).into_boxed_slice(),
-      );
+      if self.line_wide_chars.is_empty() {
+        self
+          .line_wide_chars
+          .resize_with(self.line_starts.len(), || None);
+      }
+      self.line_wide_chars[self.line_starts.len() - 1] =
+        Some(std::mem::take(&mut state.chars).into_boxed_slice());
     }
     state.extra_bytes = 0;
   }

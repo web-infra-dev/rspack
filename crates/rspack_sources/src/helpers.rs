@@ -638,7 +638,8 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
   for (i, name) in source_map.names().iter().enumerate() {
     on_name(i as u32, Cow::Borrowed(name));
   }
-  let last_line = lines.get(lines.line_count() - 1).unwrap().line;
+  // SAFETY: Empty sources returned above, so the last line exists.
+  let last_line = unsafe { lines.get_unchecked(lines.line_count() - 1) }.line;
   let last_new_line = last_line.ends_with('\n');
   let final_line: u32 = if last_new_line {
     lines.line_count() + 1
@@ -660,7 +661,8 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
       let chunk: &str;
       let mapping_line = current_generated_line;
       let mapping_column = current_generated_column;
-      let line = lines.get((current_generated_line - 1) as usize).unwrap();
+      // SAFETY: The line starts at 1 and is bounded by line_count above.
+      let line = unsafe { lines.get_unchecked((current_generated_line - 1) as usize) };
       if mapping.generated_line != current_generated_line {
         chunk = line.substring(current_generated_column as usize, usize::MAX);
         current_generated_line += 1;
@@ -686,9 +688,8 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
     }
     if mapping.generated_line > current_generated_line && current_generated_column > 0 {
       if current_generated_line as usize <= lines.line_count() {
-        let chunk = lines
-          .get((current_generated_line - 1) as usize)
-          .unwrap()
+        // SAFETY: The line starts at 1 and is bounded by line_count above.
+        let chunk = unsafe { lines.get_unchecked((current_generated_line - 1) as usize) }
           .substring(current_generated_column as usize, usize::MAX);
         on_chunk(
           Some(source.subspan(chunk)),
@@ -704,10 +705,8 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
     }
     while mapping.generated_line > current_generated_line {
       if current_generated_line as usize <= lines.line_count() {
-        let chunk = lines
-          .get((current_generated_line as usize) - 1)
-          .unwrap()
-          .line;
+        // SAFETY: The line starts at 1 and is bounded by line_count above.
+        let chunk = unsafe { lines.get_unchecked((current_generated_line as usize) - 1) }.line;
         on_chunk(
           Some(source.subspan(chunk)),
           Mapping {
@@ -721,9 +720,8 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
     }
     if mapping.generated_column > current_generated_column {
       if current_generated_line as usize <= lines.line_count() {
-        let chunk = lines
-          .get((current_generated_line as usize) - 1)
-          .unwrap()
+        // SAFETY: The line starts at 1 and is bounded by line_count above.
+        let chunk = unsafe { lines.get_unchecked((current_generated_line as usize) - 1) }
           .substring(
             current_generated_column as usize,
             mapping.generated_column as usize,
