@@ -652,20 +652,20 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
     source.utf16_len_of(last_line)
   } as u32;
   let mut current_generated_line: u32 = 1;
+  let mut current_generated_index_line = lines.get(0);
   let mut current_generated_column: u32 = 0;
   let mut mapping_active = false;
   let mut active_mapping_original: Option<OriginalLocation> = None;
 
   let mut on_mapping = |mapping: Mapping| {
-    if mapping_active && current_generated_line as usize <= lines.line_count() {
+    if mapping_active && let Some(line) = current_generated_index_line {
       let chunk: &str;
       let mapping_line = current_generated_line;
       let mapping_column = current_generated_column;
-      // SAFETY: The line starts at 1 and is bounded by line_count above.
-      let line = unsafe { lines.get_unchecked((current_generated_line - 1) as usize) };
       if mapping.generated_line != current_generated_line {
         chunk = line.substring(current_generated_column as usize, usize::MAX);
         current_generated_line += 1;
+        current_generated_index_line = lines.get((current_generated_line - 1) as usize);
         current_generated_column = 0;
       } else {
         chunk = line.substring(
@@ -687,10 +687,8 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
       mapping_active = false;
     }
     if mapping.generated_line > current_generated_line && current_generated_column > 0 {
-      if current_generated_line as usize <= lines.line_count() {
-        // SAFETY: The line starts at 1 and is bounded by line_count above.
-        let chunk = unsafe { lines.get_unchecked((current_generated_line - 1) as usize) }
-          .substring(current_generated_column as usize, usize::MAX);
+      if let Some(line) = current_generated_index_line {
+        let chunk = line.substring(current_generated_column as usize, usize::MAX);
         on_chunk(
           Some(source.subspan(chunk)),
           Mapping {
@@ -701,12 +699,12 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
         );
       }
       current_generated_line += 1;
+      current_generated_index_line = lines.get((current_generated_line - 1) as usize);
       current_generated_column = 0;
     }
     while mapping.generated_line > current_generated_line {
-      if current_generated_line as usize <= lines.line_count() {
-        // SAFETY: The line starts at 1 and is bounded by line_count above.
-        let chunk = unsafe { lines.get_unchecked((current_generated_line as usize) - 1) }.line;
+      if let Some(line) = current_generated_index_line {
+        let chunk = line.line;
         on_chunk(
           Some(source.subspan(chunk)),
           Mapping {
@@ -717,15 +715,14 @@ fn stream_chunks_of_source_map_full<'chunk, 'source>(
         );
       }
       current_generated_line += 1;
+      current_generated_index_line = lines.get((current_generated_line - 1) as usize);
     }
     if mapping.generated_column > current_generated_column {
-      if current_generated_line as usize <= lines.line_count() {
-        // SAFETY: The line starts at 1 and is bounded by line_count above.
-        let chunk = unsafe { lines.get_unchecked((current_generated_line as usize) - 1) }
-          .substring(
-            current_generated_column as usize,
-            mapping.generated_column as usize,
-          );
+      if let Some(line) = current_generated_index_line {
+        let chunk = line.substring(
+          current_generated_column as usize,
+          mapping.generated_column as usize,
+        );
         on_chunk(
           Some(source.subspan(chunk)),
           Mapping {
