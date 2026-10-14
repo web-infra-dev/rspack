@@ -1,0 +1,1 @@
+{"compilerOptions":{"paths":{"@src/*":["./src/*"]}},"references":[{"path":"./tsconfig.tools.json"}]}

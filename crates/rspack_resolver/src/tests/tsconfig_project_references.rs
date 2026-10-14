@@ -412,8 +412,9 @@ async fn reference_matched_by_config_directory() {
   assert_eq!(resolved_path, Ok(f.join("project_b/src/aliased/index.ts")));
 }
 
-// A reference with `baseUrl` but no `paths` still resolves non-relative
-// specifiers against its `baseUrl` for files in its directory.
+// A reference with `baseUrl` but no `paths` is matched by its `baseUrl`, as
+// on main: it resolves non-relative specifiers for files under `baseUrl`,
+// and files outside `baseUrl` keep using the root config.
 #[tokio::test]
 async fn reference_with_base_url_only() {
   let f = super::fixture_root().join("tsconfig/cases/references-baseurl-only");
@@ -427,9 +428,67 @@ async fn reference_with_base_url_only() {
     ..ResolveOptions::default()
   });
 
+  let cases = [
+    (
+      f.join("packages/a/src/deep"),
+      "utils/format",
+      f.join("packages/a/src/utils/format.ts"),
+    ),
+    (f.join("packages/a/test"), "@src/x", f.join("src/x.ts")),
+  ];
+
+  for (path, request, expected) in cases {
+    let resolved_path = resolver
+      .resolve(&path, request)
+      .await
+      .map(|p| p.full_path());
+    assert_eq!(resolved_path, Ok(expected), "{request} from {path:?}");
+  }
+}
+
+// A `baseUrl`-only reference next to the root config does not shadow the
+// root `paths` for files outside its `baseUrl`.
+#[tokio::test]
+async fn same_dir_base_url_reference_elsewhere() {
+  let f = super::fixture_root().join("tsconfig/cases/references-baseurl-elsewhere");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
   let resolved_path = resolver
-    .resolve(&f.join("packages/a/src/deep"), "utils/format")
+    .resolve(&f.join("src"), "@src/config/settings")
     .await
     .map(|p| p.full_path());
-  assert_eq!(resolved_path, Ok(f.join("packages/a/src/utils/format.ts")));
+  assert_eq!(resolved_path, Ok(f.join("src/config/settings.ts")));
+}
+
+// Vite-style solution config: `tsconfig.app.json` declares `paths` and
+// `tsconfig.node.json` only `baseUrl: "."`, both in the same directory. On a
+// tie the config with `paths` wins, whatever the declaration order.
+#[tokio::test]
+async fn same_dir_references_prefer_paths() {
+  let f = super::fixture_root().join("tsconfig/cases/references-paths-vs-baseurl");
+
+  for config_file in ["tsconfig.json", "tsconfig.reversed.json"] {
+    let resolver = Resolver::new(ResolveOptions {
+      extensions: vec![".ts".into()],
+      tsconfig: Some(TsconfigOptions {
+        config_file: f.join(config_file),
+        references: TsconfigReferences::Auto,
+      }),
+      ..ResolveOptions::default()
+    });
+
+    let resolved_path = resolver
+      .resolve(&f.join("src"), "@/index")
+      .await
+      .map(|p| p.full_path());
+    assert_eq!(resolved_path, Ok(f.join("src/index.ts")), "{config_file}");
+  }
 }

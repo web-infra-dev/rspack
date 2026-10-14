@@ -180,29 +180,51 @@ impl TsConfig {
       .extend(other_config.file_dependencies.iter().cloned());
   }
 
-  /// Picks the config whose directory is the longest prefix of `path`, like
-  /// `enhanced-resolve`: references with neither `paths` nor `baseUrl` are
-  /// skipped, and a reference wins a tie with the root config. The root
+  /// Picks the config whose claimed directory is the longest prefix of
+  /// `path`. References with neither `paths` nor `baseUrl` are skipped. On a
+  /// tie, a config with `paths` wins, then a reference wins over the root
+  /// config, then the first declared reference wins, as on main. The root
   /// config is the fallback when nothing matches.
   pub fn resolve(&self, path: &Utf8Path, specifier: &str) -> Vec<Utf8PathBuf> {
-    let root_directory_len = path
+    let root = path
       .starts_with(self.directory())
-      .then(|| self.directory().as_str().len());
+      .then(|| (self.directory(), false, self));
     self
       .flattened_references
       .iter()
-      .filter(|reference| reference.has_path_alias() && path.starts_with(reference.directory()))
-      .max_by_key(|reference| reference.directory().as_str().len())
-      .filter(|reference| {
-        root_directory_len.is_none_or(|len| reference.directory().as_str().len() >= len)
+      .filter(|reference| reference.has_path_alias())
+      .map(|reference| (reference.claimed_directory(), true, reference.as_ref()))
+      .filter(|(directory, _, _)| path.starts_with(directory))
+      .chain(root)
+      .rev()
+      .max_by_key(|(directory, is_reference, config)| {
+        (
+          directory.as_str().len(),
+          config.compiler_options.paths.is_some(),
+          *is_reference,
+        )
       })
-      .map_or(self, |reference| reference.as_ref())
+      .map_or(self, |(_, _, config)| config)
       .resolve_path_alias(specifier)
   }
 
   /// Whether `resolve_path_alias` can produce any candidate.
   fn has_path_alias(&self) -> bool {
     self.compiler_options.paths.is_some() || self.compiler_options.base_url.is_some()
+  }
+
+  /// The directory a reference applies to: its config directory when it
+  /// declares `paths`, like `enhanced-resolve`, otherwise its `baseUrl`, as
+  /// on main.
+  fn claimed_directory(&self) -> &Utf8Path {
+    match &self.compiler_options {
+      CompilerOptions {
+        paths: None,
+        base_url: Some(base_url),
+        ..
+      } => base_url,
+      _ => self.directory(),
+    }
   }
 
   // Copied from parcel
