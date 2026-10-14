@@ -59,6 +59,7 @@ impl<'text> LineIndex<'text> {
     self.line_starts.len()
   }
 
+  #[allow(unsafe_code)]
   pub fn get(&self, line: usize) -> Option<IndexedLine<'text, '_>> {
     let start = *self.line_starts.get(line)? as usize;
     let end = self
@@ -66,8 +67,11 @@ impl<'text> LineIndex<'text> {
       .get(line + 1)
       .map_or(self.text.len(), |&start| start as usize);
     let text: &'text str = self.text;
+    // SAFETY: Line starts are recorded in order at 0 or immediately after an
+    // ASCII newline, so both offsets are ordered UTF-8 boundaries in `text`.
+    let line_text = unsafe { text.get_unchecked(start..end) };
     Some(IndexedLine {
-      line: &text[start..end],
+      line: line_text,
       wide: self.line_wide_chars.get(&(line as u32)).map(Box::as_ref),
     })
   }
