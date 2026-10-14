@@ -210,6 +210,17 @@ Rspack 在 [`crates/rspack_allocative`](https://github.com/web-infra-dev/rspack/
 
 借用引用不代表所有权，裸指针和不支持的值会作为不透明对象处理。共享分配只计入首次遇到的所有者路径。这些策略可以避免重复计入共享数据，但无法访问的状态仍会造成覆盖缺口。
 
+**需要手动实现 `Allocative` 的场景。** 普通结构体和大多数枚举可以自动实现，但以下几种情况需要手动实现适配器或添加属性注解：
+
+- **第三方类型**来自外部 crate，没有 `Allocative` 实现。可以在字段上标注 `#[allocative(visit = ...)]` 提供自定义访问函数，或者直接为外部类型实现这个 trait。
+- **Union** 不被 derive 宏支持，只能手写 `Allocative` 实现。
+- **自定义所有权**，即内存布局与实际所有权不一致的情况，比如 arena 分配的数据、借用缓冲区、共享指针等。需要手写实现来表达正确的遍历逻辑。
+- **不透明或无法遍历的值**，如裸指针、回调捕获、V8 堆对象。用 `#[allocative(skip)]` 标记这些字段，将它们排除在外。
+- **泛型约束不正确**时，用 `#[allocative(bound = "...")]` 自行指定约束。
+- **枚举反射的边界场景。** 编译器 driver 的枚举反射要求 `Self: 'static`，带生命周期参数、const 泛型或非字面量数组类型的枚举会跳过。这些枚举会回退到类型化遍历，需要显式的 `Allocative` 实现。
+
+仓库中已为常见类型提供了手动实现，例如 `swc_core::atoms::Atom`、`serde_json::Value`、`simd_json::OwnedValue`、`parking_lot::RawMutex` 和 napi 线程安全函数。完整列表见 [`crates/rspack_allocative/src/impls/`](https://github.com/web-infra-dev/rspack/tree/main/crates/rspack_allocative/src/impls)。
+
 采集流程如下：
 
 ```text

@@ -78,6 +78,7 @@ idents
 Idents
 iife
 Iife
+impls
 incrementality
 indicatif
 inituit
@@ -201,6 +202,7 @@ rustup
 s390x
 samply
 samsung
+serde
 sanyuan
 Shenzhen
 shiki

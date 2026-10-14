@@ -210,6 +210,17 @@ Rspack maintains a fork of [Buck2](https://github.com/facebook/buck2)'s allocati
 
 Borrowed references do not imply ownership; raw pointers and unsupported values are treated as opaque. Shared allocations are counted once under the first encountered owner. These policies avoid double-counting shared payloads, but inaccessible state still limits coverage.
 
+**When manual `Allocative` is needed.** Ordinary structs and most enums are instrumented automatically, but some cases require explicit adapters or annotations:
+
+- **Third-party types** from external crates don't implement `Allocative`. Annotate the field with `#[allocative(visit = ...)]` to supply a custom visit function, or implement the trait directly for the foreign type.
+- **Unions** aren't supported by the derive macro — implement `Allocative` by hand.
+- **Custom ownership** where memory layout doesn't match actual ownership, such as arena-allocated data, borrowed buffers, or shared pointers. Write a manual implementation to express the right traversal.
+- **Opaque or unsupported values** like raw pointers, callback captures, and V8 heap objects. Mark these fields with `#[allocative(skip)]` to exclude them.
+- **Incorrect generic bounds** from the default derive. Use `#[allocative(bound = "...")]` to supply your own constraints.
+- **Enum reflection edge cases.** The compiler driver's enum reflection needs `Self: 'static` and skips enums with lifetime parameters, const generics, or non-literal array types. These fall back to typed traversal and need explicit adapters.
+
+The repository includes manual implementations for common types such as `swc_core::atoms::Atom`, `serde_json::Value`, `simd_json::OwnedValue`, `parking_lot::RawMutex`, and napi thread-safe functions. See [`crates/rspack_allocative/src/impls/`](https://github.com/web-infra-dev/rspack/tree/main/crates/rspack_allocative/src/impls) for the full set.
+
 The capture flow is:
 
 ```text
