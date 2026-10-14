@@ -12,7 +12,6 @@ use simd_json::{BorrowedValue, ErrorType, prelude::*};
 use crate::{
   ReplaceSource, Result,
   helpers::{Chunks, StreamChunks, decode_mappings_fields},
-  object_pool::ObjectPool,
 };
 
 /// An alias for `Box<dyn Source>`.
@@ -125,14 +124,10 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   fn size(&self) -> usize;
 
   /// Get the [SourceMap].
-  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>>;
+  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>>;
 
   /// Get a [SourceMap] that can outlive the borrowed source reference.
-  fn map_static(
-    self: Arc<Self>,
-    object_pool: &ObjectPool,
-    options: &MapOptions,
-  ) -> Option<SourceMap<'static>>;
+  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>>;
 
   /// Update hash based on the source.
   fn update_hash(&self, state: &mut dyn Hasher) {
@@ -165,17 +160,13 @@ impl Source for BoxSource {
   }
 
   #[inline]
-  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
-    self.as_ref().map(object_pool, options)
+  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
+    self.as_ref().map(options)
   }
 
   #[inline]
-  fn map_static(
-    self: Arc<Self>,
-    object_pool: &ObjectPool,
-    options: &MapOptions,
-  ) -> Option<SourceMap<'static>> {
-    self.as_ref().clone().map_static(object_pool, options)
+  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
+    self.as_ref().clone().map_static(options)
   }
 
   #[inline]

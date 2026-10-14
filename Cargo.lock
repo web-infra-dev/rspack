@@ -4871,7 +4871,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "sugar_path",
- "thread_local",
  "tracing",
  "url",
 ]
@@ -5180,7 +5179,6 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_util",
- "thread_local",
  "tracing",
 ]
 
@@ -5384,7 +5382,6 @@ dependencies = [
  "rspack_plugin_json",
  "rspack_util",
  "rustc-hash",
- "thread_local",
  "tokio",
  "tracing",
 ]
@@ -5589,7 +5586,6 @@ dependencies = [
  "swc_config",
  "swc_core",
  "swc_ecma_minifier",
- "thread_local",
  "tracing",
 ]
 

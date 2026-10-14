@@ -16,8 +16,8 @@ use rspack_core::{
   diagnostics::MinifyError,
   legacy_cache::persistent::occasion::minimize::MinimizeCacheKey,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt,
-    SourceMapSource, SourceMapSourceOptions,
+    BoxSource, ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
+    SourceMapSourceOptions,
   },
 };
 use rspack_error::{Diagnostic, Result};
@@ -39,7 +39,6 @@ pub use swc_ecma_minifier::option::{
   MangleOptions,
   terser::{TerserCompressorOptions, TerserEcmaVersion},
 };
-use thread_local::ThreadLocal;
 
 const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 
@@ -255,7 +254,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   });
   let enter_span = tracing::Span::current();
 
-  let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   compilation
     .assets_mut()
     .par_iter_mut()
@@ -325,9 +323,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           counter.miss();
         }
         let input = original_source.source().into_string_lossy().into_owned();
-        let object_pool = tls.get_or(ObjectPool::default);
         let input_source_map =
-          Source::map_static(original_source.clone(), object_pool, &MapOptions::default());
+          Source::map_static(original_source.clone(), &MapOptions::default());
 
         let js_minify_options = rspack_javascript_compiler::minify::JsMinifyOptions {
           minify: minimizer_options.minify.unwrap_or(true),

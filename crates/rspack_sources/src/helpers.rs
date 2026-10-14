@@ -11,24 +11,18 @@ use crate::{
   decoder::MappingsDecoder,
   encoder::create_encoder,
   linear_map::LinearMap,
-  object_pool::ObjectPool,
   source::{Mapping, OriginalLocation},
   source_content_lines::SourceContentLines,
   with_utf16::WithUtf16,
 };
 
-pub fn get_map<'a>(
-  object_pool: &ObjectPool,
-  chunks: &dyn Chunks<'a>,
-  options: &MapOptions,
-) -> Option<SourceMapFields<'a>> {
+pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<SourceMapFields<'a>> {
   let mut mappings_encoder = create_encoder(options.columns);
   let mut sources: Vec<Cow<'a, str>> = Vec::new();
   let mut sources_content: Vec<Cow<'a, str>> = Vec::new();
   let mut names: Vec<Cow<'a, str>> = Vec::new();
 
   chunks.stream(
-    object_pool,
     &MapOptions {
       columns: options.columns,
       final_source: true,
@@ -88,7 +82,6 @@ pub trait Chunks<'source> {
   /// method for building source maps during code transformation.
   fn stream<'chunk>(
     &'chunk self,
-    object_pool: &ObjectPool,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
     on_source: crate::helpers::OnSource<'_, 'source>,
@@ -285,7 +278,6 @@ pub type OnName<'a, 'b> = &'a mut dyn FnMut(u32, Cow<'b, str>);
 /// Default stream chunks behavior impl, see [webpack-sources streamChunks](https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/helpers/streamChunks.js#L15-L35).
 pub fn stream_chunks_default<'chunk, 'source, 'map>(
   options: &MapOptions,
-  object_pool: &ObjectPool,
   source: &'chunk str,
   source_map: Option<&'source SourceMap<'map>>,
   on_chunk: OnChunk<'_, 'chunk>,
@@ -297,7 +289,6 @@ where
 {
   stream_chunks_default_fields(
     options,
-    object_pool,
     source,
     source_map.map(SourceMap::fields),
     on_chunk,
@@ -308,7 +299,6 @@ where
 
 pub(crate) fn stream_chunks_default_fields<'chunk, 'source>(
   options: &MapOptions,
-  object_pool: &ObjectPool,
   source: &'chunk str,
   source_map: Option<&'source SourceMapFields<'_>>,
   on_chunk: OnChunk<'_, 'chunk>,
@@ -317,15 +307,7 @@ pub(crate) fn stream_chunks_default_fields<'chunk, 'source>(
 ) -> GeneratedInfo {
   let source = TextSpan::new(source);
   if let Some(map) = source_map {
-    stream_chunks_of_source_map(
-      options,
-      object_pool,
-      source,
-      map,
-      on_chunk,
-      on_source,
-      on_name,
-    )
+    stream_chunks_of_source_map(options, source, map, on_chunk, on_source, on_name)
   } else {
     stream_chunks_of_raw_source(source, options, on_chunk, on_source, on_name)
   }
@@ -518,7 +500,6 @@ pub fn stream_chunks_of_raw_source<'chunk, 'source>(
 
 pub fn stream_chunks_of_source_map<'chunk, 'source>(
   options: &MapOptions,
-  object_pool: &ObjectPool,
   source: TextSpan<'chunk>,
   source_map: &'source SourceMapFields<'_>,
   on_chunk: OnChunk<'_, 'chunk>,
@@ -535,14 +516,7 @@ pub fn stream_chunks_of_source_map<'chunk, 'source>(
       columns: true,
       final_source: false,
       ..
-    } => stream_chunks_of_source_map_full(
-      object_pool,
-      source,
-      source_map,
-      on_chunk,
-      on_source,
-      on_name,
-    ),
+    } => stream_chunks_of_source_map_full(source, source_map, on_chunk, on_source, on_name),
     MapOptions {
       columns: false,
       final_source: true,
@@ -639,8 +613,7 @@ fn stream_chunks_of_source_map_final<'chunk, 'source>(
   result
 }
 
-fn stream_chunks_of_source_map_full<'chunk, 'source, 'object_pool>(
-  object_pool: &'object_pool ObjectPool,
+fn stream_chunks_of_source_map_full<'chunk, 'source>(
   source: TextSpan<'chunk>,
   source_map: &'source SourceMapFields<'_>,
   on_chunk: OnChunk<'_, 'chunk>,
@@ -648,8 +621,8 @@ fn stream_chunks_of_source_map_full<'chunk, 'source, 'object_pool>(
   on_name: OnName<'_, 'source>,
 ) -> GeneratedInfo {
   let lines = split_into_lines(source.as_str())
-    .map(|line| WithUtf16::with_known(object_pool, line, source.is_known_ascii()))
-    .collect::<Vec<WithUtf16<'object_pool, 'chunk>>>();
+    .map(|line| WithUtf16::with_known(line, source.is_known_ascii()))
+    .collect::<Vec<WithUtf16<'chunk>>>();
 
   if lines.is_empty() {
     return GeneratedInfo {
@@ -924,9 +897,8 @@ struct SourceMapLineData<'a> {
 type InnerSourceIndexValueMapping<'a> = LinearMap<(Cow<'a, str>, Option<&'a str>)>;
 
 #[allow(clippy::too_many_arguments)]
-pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
+pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
   options: &MapOptions,
-  object_pool: &'object_pool ObjectPool,
   source: &'chunk str,
   source_map: &'source SourceMapFields<'_>,
   inner_source_name: &'source str,
@@ -951,7 +923,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
   let inner_source_contents: RefCell<LinearMap<Option<Cow<'source, str>>>> =
     RefCell::new(LinearMap::default());
   let inner_source_content_lines: RefCell<
-    LinearMap<OnceCell<Option<SourceContentLines<'object_pool, 'source>>>>,
+    LinearMap<OnceCell<Option<SourceContentLines<'source>>>>,
   > = RefCell::new(LinearMap::default());
   let inner_name_index_mapping: RefCell<LinearMap<i64>> = RefCell::new(LinearMap::default());
   let inner_name_index_value_mapping: RefCell<LinearMap<Cow<str>>> =
@@ -982,7 +954,6 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
 
   stream_chunks_of_source_map(
     options,
-    object_pool,
     TextSpan::new(source),
     source_map,
     &mut |chunk, mapping| {
@@ -1036,7 +1007,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
                   let inner_source_contents = inner_source_contents.borrow();
                   match inner_source_contents.get(&inner_source_index) {
                     Some(Some(source_content)) => {
-                      Some(SourceContentLines::new(object_pool, source_content.clone()))
+                      Some(SourceContentLines::new(source_content.clone()))
                     }
                     _ => None,
                   }
@@ -1131,7 +1102,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
                   let inner_source_contents = inner_source_contents.borrow();
                   match inner_source_contents.get(&inner_source_index) {
                     Some(Some(source_content)) => {
-                      Some(SourceContentLines::new(object_pool, source_content.clone()))
+                      Some(SourceContentLines::new(source_content.clone()))
                     }
                     _ => None,
                   }
@@ -1290,7 +1261,6 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
             columns: options.columns,
             final_source: false,
           },
-          object_pool,
           TextSpan::new(source_content.unwrap()),
           inner_source_map,
           &mut |chunk, mapping| {
@@ -1378,7 +1348,6 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
 
 pub fn stream_and_get_source_and_map<'source, 'chunk>(
   options: &MapOptions,
-  object_pool: &ObjectPool,
   chunks: &'chunk dyn Chunks<'source>,
   on_chunk: OnChunk<'_, 'chunk>,
   on_source: OnSource<'_, 'source>,
@@ -1390,7 +1359,6 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
   let mut names: Vec<Cow<'source, str>> = Vec::new();
 
   let generated_info = chunks.stream(
-    object_pool,
     options,
     &mut |chunk, mapping| {
       mappings_encoder.encode(&mapping);
@@ -1448,7 +1416,7 @@ mod tests {
     stream_chunks_of_source_map_full, stream_chunks_of_source_map_lines_final,
     stream_chunks_of_source_map_lines_full,
   };
-  use crate::{Mapping, ObjectPool, OriginalLocation, SourceMap};
+  use crate::{Mapping, OriginalLocation, SourceMap};
 
   const UTF16_SOURCE: &str = "var i18n = JSON.parse('{\"魑魅魍魉\":{\"en-US\":\"Evil spirits\",\"zh-CN\":\"魑魅魍魉\"}}');\nvar __webpack_exports___ = i18n[\"魑魅魍魉\"];\nexport { __webpack_exports___ as 魑魅魍魉 };";
 
@@ -1471,12 +1439,10 @@ mod tests {
   fn test_stream_chunks_of_source_map_full_handles_multi_unit_utf16() {
     let source = UTF16_SOURCE;
     let source_map = UTF16_SOURCE_MAP.fields();
-    let object_pool = ObjectPool::default();
 
     let mut chunks = vec![];
 
     let generated_info = stream_chunks_of_source_map_full(
-      &object_pool,
       TextSpan::new(source),
       source_map,
       &mut |chunk, mapping| {

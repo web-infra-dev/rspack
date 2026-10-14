@@ -81,8 +81,7 @@ Preserve these contracts:
    are empty; this says nothing about whether content exists.
 8. **Borrowed `'static` views must retain their owner.** The lifetime extensions in `SourceMap`,
    `CachedSource`, and `SourceContentLines` depend on explicit owner relationships.
-9. **`Source` remains `Send + Sync`; `ObjectPool` does not.** Use one scratch pool per worker or
-   thread, never one shared pool behind a global lock.
+9. **`Source` remains `Send + Sync`.** Temporary UTF-16 indices are local to each mapping stream.
 10. **Hashing and equality describe the canonical source graph, not rendered output.**
     Persistent-cache restoration must reconstruct the same graph, including intentional
     normalization and transparent wrappers.
@@ -100,16 +99,16 @@ Despite its historical name:
 pub type BoxSource = Arc<dyn Source>;
 ```
 
-| Method                      | Use                                       | Cost expectations                           |
-| --------------------------- | ----------------------------------------- | ------------------------------------------- |
-| `source()`                  | text/binary value                         | borrowed for leaves; may flatten composites |
-| `rope(on_chunk)`            | incremental text spans                    | preserve borrowing; text-oriented           |
-| `buffer()`                  | exact bytes                               | preferred for binary data                   |
-| `size()`                    | output byte length                        | must match buffer/writer length             |
-| `map(pool, options)`        | map borrowing from `self`                 | direct borrow or one streamed rebuild       |
-| `map_static(pool, options)` | map that outlives the local source borrow | retains an `Arc` owner                      |
-| `update_hash()`             | structural hash                           | cached by `CachedSource`                    |
-| `to_writer()`               | incremental byte output                   | preferred for emission                      |
+| Method                | Use                                       | Cost expectations                           |
+| --------------------- | ----------------------------------------- | ------------------------------------------- |
+| `source()`            | text/binary value                         | borrowed for leaves; may flatten composites |
+| `rope(on_chunk)`      | incremental text spans                    | preserve borrowing; text-oriented           |
+| `buffer()`            | exact bytes                               | preferred for binary data                   |
+| `size()`              | output byte length                        | must match buffer/writer length             |
+| `map(options)`        | map borrowing from `self`                 | direct borrow or one streamed rebuild       |
+| `map_static(options)` | map that outlives the local source borrow | retains an `Arc` owner                      |
+| `update_hash()`       | structural hash                           | cached by `CachedSource`                    |
+| `to_writer()`         | incremental byte output                   | preferred for emission                      |
 
 For every implementation:
 
@@ -190,8 +189,10 @@ calculation handle.
 - known non-ASCII and unknown use `simd_utf16_len` directly; its ASCII fast path avoids a separate scan;
 - a subspan of known non-ASCII becomes unknown because the slice may be ASCII-only.
 
-`WithUtf16` converts UTF-16 columns back to valid UTF-8 byte boundaries. It builds a pooled byte
-index only for non-ASCII lines; four-byte scalars occupy two UTF-16 columns.
+`WithUtf16` converts UTF-16 columns back to valid UTF-8 byte boundaries. It lazily indexes only
+non-ASCII characters in mostly ASCII lines, switching to a compact direct index for dense Unicode.
+Four-byte scalars occupy two UTF-16 columns, and a column inside the surrogate pair rounds down
+to the scalar's starting byte.
 
 ### `SourceMap`
 
@@ -318,5 +319,5 @@ Completed sources are `Send + Sync`. Lazy shared state uses `OnceLock`; `ConcatS
 synchronous. Parallelize at the module/asset level using Rspack's existing parallel abstractions,
 not inside one mapping stream.
 
-`ObjectPool` reuses large `Vec<usize>` buffers for UTF-16 indices. It uses `RefCell`, does not pool
-requests below 64 elements, and retains peak capacities. Keep one bounded pool per worker/thread.
+`WithUtf16` keeps a single non-ASCII offset inline, or owns a per-line sparse or compact direct
+index. Mapping streams drop the index after use rather than retaining line-sized buffers in a pool.
