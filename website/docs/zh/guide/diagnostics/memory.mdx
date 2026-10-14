@@ -194,13 +194,10 @@ $rspack-allocative 使用 hotCases/source-map/disable 测试用例抓取内存�
 
 比较相同阶段、相同工作负载的快照。例如，反复进行 HMR 更新时，如果模块和依赖条目数保持稳定，而所表示的字节增加，可以进一步查看哪些所有权路径保留了更多数据。仅凭这种现象，还不能确定存在内存泄漏。
 
-解读数据时，需要注意以下限制：
+限制：
 
-- 快照表示构建或重建结束时，遍历到的内联存储和拥有所有权的分配。它不测量 RSS、峰值内存或累计分配，也不包含已经释放的对象。
-- 根对象包括 compiler 拥有的字段、注册的全局对象，以及进程级 Ustr 字符串 arena。即使条目数不变，arena 容量和集合的未使用容量也可能计入字节。
-- 共享分配只会计入首次遇到的所有者路径。哈希表遍历顺序可能导致路径变化。不要将父节点的包含大小与其子节点大小相加。
+- 快照不测量 RSS、峰值内存或累计分配。
 - JavaScript 和 V8 堆对象、回调捕获、部分外部状态、分配器元数据和容器的私有开销无法完整计入。非阻塞锁和不支持的嵌套类型也可能造成覆盖缺口。
-- 未观测到嵌套分配的警告表示覆盖不足。如果警告指出子节点大小超过父节点，说明存在计量问题，应先调查问题，再使用受影响的总量。
 
 ## 进阶 \{#advanced}
 
@@ -212,14 +209,12 @@ Rspack 在 [`crates/rspack_allocative`](https://github.com/web-infra-dev/rspack/
 
 **需要手动实现 `Allocative` 的场景。** 普通结构体和大多数枚举可以自动实现，但以下几种情况需要手动实现适配器或添加属性注解：
 
-- **第三方类型**来自外部 crate，没有 `Allocative` 实现。可以在字段上标注 `#[allocative(visit = ...)]` 提供自定义访问函数，或者直接为外部类型实现这个 trait。
+- **第三方类型**需要在 `rspack_allocative` 中补充对应的 `Allocative` 实现。
 - **Union** 不被 derive 宏支持，只能手写 `Allocative` 实现。
 - **自定义所有权**，即内存布局与实际所有权不一致的情况，比如 arena 分配的数据、借用缓冲区、共享指针等。需要手写实现来表达正确的遍历逻辑。
 - **不透明或无法遍历的值**，如裸指针、回调捕获、V8 堆对象。用 `#[allocative(skip)]` 标记这些字段，将它们排除在外。
 - **泛型约束不正确**时，用 `#[allocative(bound = "...")]` 自行指定约束。
 - **枚举反射的边界场景。** 编译器 driver 的枚举反射要求 `Self: 'static`，带生命周期参数、const 泛型或非字面量数组类型的枚举会跳过。这些枚举会回退到类型化遍历，需要显式的 `Allocative` 实现。
-
-仓库中已为常见类型提供了手动实现，例如 `swc_core::atoms::Atom`、`serde_json::Value`、`simd_json::OwnedValue`、`parking_lot::RawMutex` 和 napi 线程安全函数。完整列表见 [`crates/rspack_allocative/src/impls/`](https://github.com/web-infra-dev/rspack/tree/main/crates/rspack_allocative/src/impls)。
 
 采集流程如下：
 
