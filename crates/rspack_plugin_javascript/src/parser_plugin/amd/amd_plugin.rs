@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, Ident, MemberExpr, UnaryExpr};
+use swc_next_ecma_ast::{CallExpression, Expr, GetSpan, UnaryExpression};
 
 use crate::{
   JavascriptParserPlugin,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier, evaluate_to_string},
-  visitors::JavascriptParser,
+  visitors::{HookMemberExpression, Identifier, JavascriptParser},
 };
 
 pub struct AMDParserPlugin;
@@ -22,12 +22,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "require.config" || for_name == "requirejs.config" {
+      let ast = parser.ast.ast;
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        call_expr.span.into(),
+        call_expr.span(ast).into(),
         "undefined".into(),
       )));
       return Some(true);
@@ -38,19 +39,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
   fn member(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &MemberExpr,
+    expr: HookMemberExpression,
     for_name: &str,
   ) -> Option<bool> {
+    let ast = parser.ast.ast;
     if for_name == "require.version" {
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        expr.span.into(),
+        expr.span(ast).into(),
         "\"0.0.0\"".into(),
       )));
       return Some(true);
     }
     if for_name == "requirejs.onError" {
       parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-        expr.span.into(),
+        expr.span(ast).into(),
         RuntimeGlobals::UNCAUGHT_ERROR_HANDLER,
       )));
       return Some(true);
@@ -59,7 +61,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
     // AMD
     if for_name == "define.amd" || for_name == "require.amd" {
       parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-        expr.span.into(),
+        expr.span(ast).into(),
         RuntimeGlobals::AMD_OPTIONS,
       )));
       return Some(true);
@@ -75,12 +77,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &UnaryExpr,
+    expr: UnaryExpression,
     for_name: &str,
   ) -> Option<bool> {
+    let ast = parser.ast.ast;
     if for_name == DEFINE || for_name == REQUIRE {
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        expr.span.into(),
+        expr.span(ast).into(),
         "\"function\"".into(),
       )));
       return Some(true);
@@ -88,7 +91,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
 
     if for_name == DEFINE_AMD || for_name == REQUIRE_AMD {
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        expr.span.into(),
+        expr.span(ast).into(),
         "\"object\"".into(),
       )));
       return Some(true);
@@ -99,23 +102,24 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
 
   fn evaluate_typeof(
     &self,
-    _parser: &mut JavascriptParser<'p>,
-    expr: &'a UnaryExpr<'a>,
+    parser: &mut JavascriptParser<'p>,
+    expr: UnaryExpression,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+  ) -> Option<BasicEvaluatedExpression<'p>> {
+    let span = expr.span(parser.ast.ast);
     if for_name == DEFINE || for_name == REQUIRE {
       return Some(evaluate_to_string(
         "function".to_string(),
-        expr.span.real_lo(),
-        expr.span.real_hi(),
+        span.real_lo(),
+        span.real_hi(),
       ));
     }
 
     if for_name == DEFINE_AMD || for_name == REQUIRE_AMD {
       return Some(evaluate_to_string(
         "object".to_string(),
-        expr.span.real_lo(),
-        expr.span.real_hi(),
+        span.real_lo(),
+        span.real_hi(),
       ));
     }
 
@@ -125,7 +129,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Ident,
+    ident: &Identifier,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == DEFINE {
@@ -176,10 +180,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
     None
   }
 
-  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: &Expr, for_name: &str) -> Option<bool> {
+  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: Expr, for_name: &str) -> Option<bool> {
     if for_name == DEFINE {
+      let span = expr.span(parser.ast.ast);
       parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-        expr.span().into(),
+        span.into(),
         RuntimeGlobals::AMD_DEFINE,
       )));
       return Some(false);

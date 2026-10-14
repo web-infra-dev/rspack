@@ -10,7 +10,7 @@ use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
 use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
-use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, ObjectLit};
+use swc_next_ecma_ast::{Ast, CallExpression, Expr, GetSpan, ObjectExpression};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -85,12 +85,12 @@ enum ImportMetaGlobQuery {
   Record(Vec<(String, ImportMetaGlobQueryValue)>),
 }
 
-impl<'a> FromAstExpr<'a> for ImportMetaGlobQuery {
-  fn from_ast_expr(expr: &Expr<'a>) -> Result<Option<Self>> {
-    if let Some(query) = String::from_ast_expr(expr)? {
+impl FromAstExpr for ImportMetaGlobQuery {
+  fn from_ast_expr(ast: &Ast<'_>, expr: Expr) -> Result<Option<Self>> {
+    if let Some(query) = String::from_ast_expr(ast, expr)? {
       return Ok(Some(Self::String(query)));
     }
-    Ok(Vec::<(String, ImportMetaGlobQueryValue)>::from_ast_expr(expr)?.map(Self::Record))
+    Ok(Vec::<(String, ImportMetaGlobQueryValue)>::from_ast_expr(ast, expr)?.map(Self::Record))
   }
 }
 
@@ -101,15 +101,15 @@ enum ImportMetaGlobQueryValue {
   Bool(bool),
 }
 
-impl FromAstExpr<'_> for ImportMetaGlobQueryValue {
-  fn from_ast_expr(expr: &Expr<'_>) -> Result<Option<Self>> {
-    if let Some(value) = String::from_ast_expr(expr)? {
+impl FromAstExpr for ImportMetaGlobQueryValue {
+  fn from_ast_expr(ast: &Ast<'_>, expr: Expr) -> Result<Option<Self>> {
+    if let Some(value) = String::from_ast_expr(ast, expr)? {
       return Ok(Some(Self::String(value)));
     }
-    if let Some(value) = f64::from_ast_expr(expr)? {
+    if let Some(value) = f64::from_ast_expr(ast, expr)? {
       return Ok(Some(Self::Number(value)));
     }
-    Ok(bool::from_ast_expr(expr)?.map(Self::Bool))
+    Ok(bool::from_ast_expr(ast, expr)?.map(Self::Bool))
   }
 }
 
@@ -141,10 +141,12 @@ impl ImportMetaGlobQuery {
 }
 
 fn parse_import_meta_glob_case_sensitive(
-  glob_options: Option<&ObjectLit>,
+  glob_options: Option<ObjectExpression>,
   parser: &mut JavascriptParser,
 ) -> bool {
-  let Some(value) = glob_options.and_then(|object| get_from_object(object, &["caseSensitive"]))
+  let ast = parser.ast.ast;
+  let Some(value) =
+    glob_options.and_then(|object| get_from_object(ast, object, &["caseSensitive"]))
   else {
     return true;
   };
@@ -158,7 +160,7 @@ fn parse_import_meta_glob_case_sensitive(
     "Invalid import.meta.glob option".into(),
     "import.meta.glob() 'caseSensitive' option must be a constant boolean (true or false), defaulting to true".into(),
     parser.source.to_string(),
-    value.span().into(),
+    value.span(ast).into(),
   );
   error.severity = Severity::Warning;
   error.hide_stack = Some(true);
@@ -166,21 +168,18 @@ fn parse_import_meta_glob_case_sensitive(
   true
 }
 
-fn static_glob_patterns_from_expr(expr: &Expr) -> Option<Vec<String>> {
-  if let Some(pattern) = static_string_from_expr(expr) {
+fn static_glob_patterns_from_expr(ast: &Ast<'_>, expr: Expr) -> Option<Vec<String>> {
+  if let Some(pattern) = static_string_from_expr(ast, expr) {
     return Some(vec![pattern]);
   }
 
-  let array = expr.as_array()?;
+  let array = expr.as_array_expression(ast)?;
   array
-    .elems
+    .elements(ast)
     .iter()
-    .map(|elem| {
-      let elem = elem.as_ref()?;
-      if elem.spread.is_some() {
-        return None;
-      }
-      static_string_from_expr(&elem.expr)
+    .map(|element| {
+      let element = ast.get_node_in_sub_range(element)?;
+      static_string_from_expr(ast, element.as_expr(ast)?)
     })
     .collect()
 }
@@ -294,21 +293,22 @@ fn normalize_import_meta_glob_patterns(
 }
 
 fn create_import_meta_context_dependency(
-  node: &CallExpr,
+  node: CallExpression,
   parser: &mut JavascriptParser,
 ) -> Option<ImportMetaContextDependency> {
-  assert!(node.callee.is_expr());
-  let dyn_imported = node.args.first()?;
-  if dyn_imported.spread.is_some() {
-    return None;
-  }
+  let ast = parser.ast.ast;
+  let dyn_imported = node.arguments(ast).get_node(ast, 0)?.as_expr(ast)?;
   // TODO: should've used expression evaluation to handle cases like `abc${"efg"}`, etc.
-  let request = static_string_from_expr(&dyn_imported.expr)?;
-  let raw_options = node.args.get(1).and_then(|arg| arg.expr.as_object());
+  let request = static_string_from_expr(ast, dyn_imported)?;
+  let raw_options = node
+    .arguments(ast)
+    .get_node(ast, 1)
+    .and_then(|arg| arg.as_expr(ast))
+    .and_then(|expr| expr.as_object_expression(ast));
   let options = match raw_options {
     Some(raw_options) => {
       let (options, diagnostics) =
-        ImportMetaWebpackContextOptions::from_ast_object_with_diagnostics(raw_options);
+        ImportMetaWebpackContextOptions::from_ast_object_with_diagnostics(ast, raw_options);
       for diagnostic in diagnostics {
         add_ast_object_warning(parser, diagnostic);
       }
@@ -318,14 +318,14 @@ fn create_import_meta_context_dependency(
   };
   let regexp_span = options.reg_exp.as_ref().and_then(|_| {
     raw_options
-      .and_then(|options| get_from_object(options, &["regExp"]))
-      .map(|regexp| regexp.span().into())
+      .and_then(|options| get_from_object(ast, options, &["regExp"]))
+      .map(|regexp| regexp.span(ast).into())
   });
   let regexp = options
     .reg_exp
     .clone()
     .unwrap_or_else(default_context_reg_exp);
-  let span = node.span;
+  let span = node.span(ast);
   let context_options = ContextOptions {
     pattern: clean_regexp_in_context_module(regexp, regexp_span, parser).into(),
     category: DependencyCategory::Esm,
@@ -338,27 +338,28 @@ fn create_import_meta_context_dependency(
   };
   Some(ImportMetaContextDependency::new(
     context_options,
-    node.span.into(),
+    span.into(),
     parser.in_try,
   ))
 }
 
 fn create_import_meta_glob_dependency(
-  node: &CallExpr,
+  node: CallExpression,
   parser: &mut JavascriptParser,
 ) -> Option<ImportMetaContextDependency> {
-  assert!(node.callee.is_expr());
-  let dyn_imported = node.args.first()?;
-  if dyn_imported.spread.is_some() {
-    return None;
-  }
-  let raw_glob_patterns = static_glob_patterns_from_expr(&dyn_imported.expr)?;
+  let ast = parser.ast.ast;
+  let dyn_imported = node.arguments(ast).get_node(ast, 0)?.as_expr(ast)?;
+  let raw_glob_patterns = static_glob_patterns_from_expr(ast, dyn_imported)?;
   let importer_context = get_context(parser.resource_data);
-  let glob_options = node.args.get(1).and_then(|arg| arg.expr.as_object());
+  let glob_options = node
+    .arguments(ast)
+    .get_node(ast, 1)
+    .and_then(|arg| arg.as_expr(ast))
+    .and_then(|expr| expr.as_object_expression(ast));
   let options = match glob_options {
     Some(raw_options) => {
       let (options, diagnostics) =
-        ImportMetaGlobOptions::from_ast_object_with_diagnostics(raw_options);
+        ImportMetaGlobOptions::from_ast_object_with_diagnostics(ast, raw_options);
       for diagnostic in diagnostics {
         add_ast_object_warning(parser, diagnostic);
       }
@@ -403,7 +404,7 @@ fn create_import_meta_glob_dependency(
     ContextNameSpaceObject::Bool(true)
   };
 
-  let span = node.span;
+  let span = node.span(ast);
   let context_options = ContextOptions {
     pattern: ContextModulePattern::Glob(glob_patterns),
     recursive: compiled.recursive,
@@ -458,10 +459,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaContextDependencyParse
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &CallExpr,
+    expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
-    if expr.args.is_empty() || expr.args.len() > 2 {
+    let arguments = expr.arguments(parser.ast.ast);
+    if arguments.is_empty() || arguments.len() > 2 {
       return None;
     }
 

@@ -1,7 +1,7 @@
 use rspack_cacheable::cacheable;
 use rspack_core::EvaluatedInlinableValue;
 use rspack_util::ryu_js;
-use swc_experimental_ecma_ast::{ObjectPatProp, Pat, VarDeclarator};
+use swc_next_ecma_ast::{BindingPattern, BindingPatternData, VariableDeclarator};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -85,24 +85,22 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstValuePlugin {
   fn pre_declarator(
     &self,
     parser: &mut JavascriptParser<'p>,
-    declarator: &VarDeclarator,
-    declaration: VariableDeclaration<'_>,
+    declarator: VariableDeclarator,
+    declaration: VariableDeclaration,
   ) -> Option<bool> {
     if !parser.is_top_level_scope() {
       return None;
     }
-    if !matches!(declaration.kind(), VariableDeclarationKind::Const) || declarator.init.is_none() {
+    let ast = parser.ast.ast;
+    let init = declarator.init(ast)?;
+    if !matches!(declaration.kind(ast), VariableDeclarationKind::Const) {
       return None;
     }
 
-    if let Some(name) = declarator.name.as_ident() {
+    let pattern = declarator.id(ast);
+    if let Some(name) = pattern.as_binding_identifier(ast) {
       let const_value = if self.inline {
-        let evaluated = parser.evaluate_expression(
-          declarator
-            .init
-            .as_ref()
-            .expect("init should exist for const value"),
-        );
+        let evaluated = parser.evaluate_expression(init);
         match to_evaluated_inlinable_value(&evaluated) {
           Some(v) => ConstValue::Inlinable(v),
           None => ConstValue::NoInlinable,
@@ -110,9 +108,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstValuePlugin {
       } else {
         ConstValue::NoInlinable
       };
-      tag_const_variable(parser, Atom::from(&name.id.sym), const_value);
+      tag_const_variable(
+        parser,
+        Atom::from(ast.get_utf8(name.name(ast))),
+        const_value,
+      );
     } else {
-      tag_const_pattern(parser, &declarator.name);
+      tag_const_pattern(parser, pattern);
     }
 
     None
@@ -128,36 +130,47 @@ fn tag_const_variable(parser: &mut JavascriptParser, name: Atom, value: ConstVal
   );
 }
 
-fn tag_const_pattern(parser: &mut JavascriptParser, pattern: &Pat) {
-  match pattern {
-    Pat::Ident(ident) => {
-      tag_const_variable(parser, Atom::from(&ident.id.sym), ConstValue::NoInlinable);
+fn tag_const_pattern(parser: &mut JavascriptParser, pattern: BindingPattern) {
+  let ast = parser.ast.ast;
+  match ast.binding_pattern_data(pattern) {
+    BindingPatternData::BindingIdentifier(identifier) => {
+      tag_const_variable(
+        parser,
+        Atom::from(ast.get_utf8(identifier.name(ast))),
+        ConstValue::NoInlinable,
+      );
     }
-    Pat::Array(array) => {
-      for elem in array.elems.iter().flatten() {
+    BindingPatternData::ArrayPattern(array) => {
+      for elem in array
+        .elements(ast)
+        .iter()
+        .filter_map(|id| ast.get_node_in_sub_range(id))
+      {
         tag_const_pattern(parser, elem);
       }
-    }
-    Pat::Assign(assign) => {
-      tag_const_pattern(parser, &assign.left);
-    }
-    Pat::Object(object) => {
-      for prop in &object.props {
-        match prop {
-          ObjectPatProp::KeyValue(prop) => tag_const_pattern(parser, &prop.value),
-          ObjectPatProp::Assign(prop) => {
-            tag_const_variable(
-              parser,
-              Atom::from(&prop.key.id.sym),
-              ConstValue::NoInlinable,
-            );
-          }
-          ObjectPatProp::Rest(rest) => tag_const_pattern(parser, &rest.arg),
-        }
+      if let Some(rest) = array.rest(ast) {
+        tag_const_pattern(parser, rest.argument(ast));
       }
     }
-    Pat::Rest(rest) => tag_const_pattern(parser, &rest.arg),
-    Pat::Invalid(_) | Pat::Expr(_) => {}
+    BindingPatternData::AssignmentPattern(assignment) => {
+      tag_const_pattern(parser, assignment.left(ast));
+    }
+    BindingPatternData::ObjectPattern(object) => {
+      for property in object
+        .properties(ast)
+        .iter()
+        .map(|id| ast.get_node_in_sub_range(id))
+      {
+        tag_const_pattern(parser, property.value(ast));
+      }
+      if let Some(rest) = object.rest(ast) {
+        tag_const_pattern(parser, rest.argument(ast));
+      }
+    }
+    BindingPatternData::BindingRestElement(rest) => {
+      tag_const_pattern(parser, rest.argument(ast));
+    }
+    BindingPatternData::SimpleAssignmentTarget(_) => {}
   }
 }
 
