@@ -4,45 +4,74 @@ pub mod runtime;
 use rspack_intern::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_ecma_ast::{
-  Ast, CommentKind as NextCommentKind, CommentPosition, ExtraDataCompact, Span as NextAstSpan,
-  TypedSubRange,
+  Ast, BigIntLiteral, CommentKind as NextCommentKind, CommentPosition, Expr, ExprData,
+  ExtraDataValue, IdentifierName, NumericLiteral, PrivateIdentifier, PropertyKey, PropertyKeyData,
+  Span as NextAstSpan, StringLiteral, SubRange,
 };
 
-pub trait AstSubRangeExt<'ast> {
-  fn first<T>(&self, range: TypedSubRange<T>) -> Option<T>
-  where
-    T: ExtraDataCompact<'ast>;
-
-  fn second<T>(&self, range: TypedSubRange<T>) -> Option<T>
-  where
-    T: ExtraDataCompact<'ast>;
-
-  fn nodes<'a, T>(&'a self, range: TypedSubRange<T>) -> impl DoubleEndedIterator<Item = T> + 'a
-  where
-    T: ExtraDataCompact<'ast> + 'a;
+/// The resolved shape of a property key.
+///
+/// SWC Next 0.2.2+ collapsed `PropertyKeyData` into `IdentifierName | Expr`,
+/// so literal keys are now nested inside `Expr`. This enum restores the
+/// pre-0.2.2 shape for callers that matched the literal variants directly.
+#[derive(Debug, Clone, Copy)]
+pub enum PropertyKeyValue {
+  IdentifierName(IdentifierName),
+  StringLiteral(StringLiteral),
+  NumericLiteral(NumericLiteral),
+  BigIntLiteral(BigIntLiteral),
+  PrivateIdentifier(PrivateIdentifier),
+  OtherExpr(Expr),
 }
 
-impl<'ast> AstSubRangeExt<'ast> for Ast<'ast> {
-  #[inline]
-  fn first<T>(&self, range: TypedSubRange<T>) -> Option<T>
+pub fn classify_property_key(ast: &Ast<'_>, key: PropertyKey) -> PropertyKeyValue {
+  match ast.property_key_data(key) {
+    PropertyKeyData::IdentifierName(identifier) => PropertyKeyValue::IdentifierName(identifier),
+    PropertyKeyData::Expr(expression) => match ast.expr_data(expression) {
+      ExprData::StringLiteral(node) => PropertyKeyValue::StringLiteral(node),
+      ExprData::NumericLiteral(node) => PropertyKeyValue::NumericLiteral(node),
+      ExprData::BigIntLiteral(node) => PropertyKeyValue::BigIntLiteral(node),
+      ExprData::PrivateIdentifier(node) => PropertyKeyValue::PrivateIdentifier(node),
+      _ => PropertyKeyValue::OtherExpr(expression),
+    },
+  }
+}
+
+pub trait AstSubRangeExt {
+  fn first<T>(&self, range: SubRange<T>) -> Option<T>
   where
-    T: ExtraDataCompact<'ast>,
+    T: ExtraDataValue;
+
+  fn second<T>(&self, range: SubRange<T>) -> Option<T>
+  where
+    T: ExtraDataValue;
+
+  fn nodes<'a, T>(&'a self, range: SubRange<T>) -> impl DoubleEndedIterator<Item = T> + 'a
+  where
+    T: ExtraDataValue + 'a;
+}
+
+impl AstSubRangeExt for Ast<'_> {
+  #[inline]
+  fn first<T>(&self, range: SubRange<T>) -> Option<T>
+  where
+    T: ExtraDataValue,
   {
     range.get_node(self, 0)
   }
 
   #[inline]
-  fn second<T>(&self, range: TypedSubRange<T>) -> Option<T>
+  fn second<T>(&self, range: SubRange<T>) -> Option<T>
   where
-    T: ExtraDataCompact<'ast>,
+    T: ExtraDataValue,
   {
     range.get_node(self, 1)
   }
 
   #[inline]
-  fn nodes<'a, T>(&'a self, range: TypedSubRange<T>) -> impl DoubleEndedIterator<Item = T> + 'a
+  fn nodes<'a, T>(&'a self, range: SubRange<T>) -> impl DoubleEndedIterator<Item = T> + 'a
   where
-    T: ExtraDataCompact<'ast> + 'a,
+    T: ExtraDataValue + 'a,
   {
     range.iter().map(move |id| self.get_node_in_sub_range(id))
   }

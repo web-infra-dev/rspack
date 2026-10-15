@@ -27,7 +27,8 @@ use crate::{
     ContextModuleScanResult, DestructuringAssignmentProperties, HookMemberExpression, Identifier,
     JavascriptParser, PatRef, TagInfoData, TopLevelScope, VariableDeclaration,
     VariableDeclarationKind, context_reg_exp, create_context_dependency, create_traceable_error,
-    formal_parameter_patterns, get_non_optional_part, parse_order_string,
+    formal_parameter_pattern, formal_parameter_patterns, formal_parameter_patterns_with_defaults,
+    get_non_optional_part, parse_order_string,
   },
 };
 
@@ -749,7 +750,14 @@ fn get_fulfilled_callback_namespace_obj(
     ExprData::Function(function) => function.params(ast),
     _ => return None,
   };
-  let ns_obj = formal_parameter_patterns(ast, params).next()?;
+  // The namespace object heuristic only applies to an ordinary (non-rest)
+  // first parameter, matching the behaviour before SWC Next split the rest
+  // parameter out of `FormalParameters::items`.
+  let ns_obj = ast
+    .first(params.items(ast))
+    .and_then(|item| item.as_formal_parameter(ast))
+    .filter(|parameter| parameter.initializer(ast).is_none())
+    .map(|parameter| formal_parameter_pattern(ast, parameter.pattern(ast)))?;
   if ns_obj.as_binding_identifier(ast).is_some() || ns_obj.as_object_pattern(ast).is_some() {
     return Some(ns_obj);
   }
@@ -813,7 +821,11 @@ fn walk_import_then_fulfilled_callback(
       } else {
         unreachable!()
       }
-      for pattern in formal_parameter_patterns(parser.ast.ast, params) {
+      for (pattern, initializer) in formal_parameter_patterns_with_defaults(parser.ast.ast, params)
+      {
+        if let Some(initializer) = initializer {
+          parser.walk_expression(initializer);
+        }
         parser.walk_pattern(pattern);
       }
       parser.walk_function_expression_body(fulfilled_callback);

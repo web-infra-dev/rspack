@@ -32,10 +32,13 @@
 use rspack_core::{ContextMode, ImportAttributes, try_convert_str_to_context_mode};
 use rspack_error::{Error, Label, Result};
 use rspack_regex::RspackRegex;
-use rspack_util::{SpanExt, swc::AstSubRangeExt};
+use rspack_util::{
+  SpanExt,
+  swc::{AstSubRangeExt, PropertyKeyValue, classify_property_key},
+};
 use swc_next_ecma_ast::{
   Ast, Expr, ExprData, GetSpan, ImportAttribute, ModuleExportNameData, ObjectExpression,
-  PropertyKey, PropertyKeyData, TypedSubRange,
+  PropertyKey, SubRange,
 };
 
 use crate::visitors::static_string_from_expr;
@@ -73,7 +76,7 @@ pub fn get_attributes(ast: &Ast<'_>, object: ObjectExpression) -> ImportAttribut
 
 pub fn get_import_attributes(
   ast: &Ast<'_>,
-  attributes: TypedSubRange<ImportAttribute>,
+  attributes: SubRange<ImportAttribute>,
 ) -> Option<ImportAttributes> {
   if attributes.is_empty() {
     return None;
@@ -260,18 +263,18 @@ impl<T: FromAstExpr> FromAstExpr for Vec<(String, T)> {
 /// Statically resolve an object literal property name, mirroring the key
 /// handling of the previous hand-rolled options parsing.
 fn static_property_name(ast: &Ast<'_>, key: PropertyKey) -> Option<String> {
-  match ast.property_key_data(key) {
-    PropertyKeyData::IdentifierName(identifier) => {
+  match classify_property_key(ast, key) {
+    PropertyKeyValue::IdentifierName(identifier) => {
       Some(ast.get_utf8(identifier.name(ast)).to_string())
     }
-    PropertyKeyData::StringLiteral(string) => Some(
+    PropertyKeyValue::StringLiteral(string) => Some(
       ast
         .get_wtf8(string.value(ast))
         .to_string_lossy()
         .into_owned(),
     ),
-    PropertyKeyData::NumericLiteral(number) => Some(number.value(ast).to_string()),
-    PropertyKeyData::Expr(expression) => {
+    PropertyKeyValue::NumericLiteral(number) => Some(number.value(ast).to_string()),
+    PropertyKeyValue::OtherExpr(expression) => {
       static_string_from_expr(ast, expression).or_else(|| match ast.expr_data(expression) {
         ExprData::NumericLiteral(number) => Some(number.value(ast).to_string()),
         ExprData::BooleanLiteral(boolean) => Some(boolean.value(ast).to_string()),
@@ -279,7 +282,7 @@ fn static_property_name(ast: &Ast<'_>, key: PropertyKey) -> Option<String> {
         _ => None,
       })
     }
-    PropertyKeyData::PrivateIdentifier(_) | PropertyKeyData::BigIntLiteral(_) => None,
+    PropertyKeyValue::PrivateIdentifier(_) | PropertyKeyValue::BigIntLiteral(_) => None,
   }
 }
 

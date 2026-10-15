@@ -54,8 +54,8 @@ pub fn eval_source<'parser>(
       // minimal valid program root around the fragment so any evaluation hook
       // consulting parser.ast observes a self-consistent AST.
       let statement = ast.expression_statement(expression_span, expression);
-      let directives = ast.add_typed_sub_range(std::iter::empty::<Directive>());
-      let body = ast.add_typed_sub_range([Stmt::ExpressionStatement(statement)]);
+      let directives = ast.add_sub_range(std::iter::empty::<Directive>());
+      let body = ast.add_sub_range([Stmt::ExpressionStatement(statement)]);
       let program = ast.program(expression_span, directives, body, None);
       ast.set_root_program(program);
 

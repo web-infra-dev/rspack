@@ -6,13 +6,13 @@ use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
 use rspack_util::{
   SpanExt,
-  swc::{AstSubRangeExt, RspackComment as Comment},
+  swc::{AstSubRangeExt, PropertyKeyValue, RspackComment as Comment, classify_property_key},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{
   ArgumentData, Ast, CommentKind, Expr, ExprData, GetSpan, ObjectPropertyKindData, PropertyKey,
-  PropertyKeyData, Span, UnaryOperator,
+  Span, UnaryOperator,
 };
 use swc_next_ecma_parser::{FragmentContext, NoTokenParserConfig, Options, Parser};
 
@@ -406,11 +406,11 @@ fn find_magic_comment_start(comment_text: &str) -> Option<usize> {
 }
 
 fn prop_name_to_str<'a>(ast: &'a Ast<'a>, name: PropertyKey) -> Option<Cow<'a, str>> {
-  match ast.property_key_data(name) {
-    PropertyKeyData::IdentifierName(identifier) => {
+  match classify_property_key(ast, name) {
+    PropertyKeyValue::IdentifierName(identifier) => {
       Some(Cow::Borrowed(ast.get_utf8(identifier.name(ast))))
     }
-    PropertyKeyData::StringLiteral(string) => {
+    PropertyKeyValue::StringLiteral(string) => {
       Some(ast.get_wtf8(string.value(ast)).to_string_lossy())
     }
     _ => None,

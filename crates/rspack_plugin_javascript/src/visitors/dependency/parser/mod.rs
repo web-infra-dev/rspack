@@ -111,32 +111,21 @@ pub(crate) fn member_property_to_atom(ast: &Ast<'_>, expr: Expr) -> Option<Atom>
 
 /// Resolve the key of a computed member expression.
 ///
-/// `PropertyKey` is a nested union in SWC Next. Literal expressions such as
-/// `obj["key"]` are exposed directly as `StringLiteral`, without an outer
-/// `PropertyKeyData::Expr` variant.
+/// SWC Next 0.2.2+ exposes every expression key (including literals such as
+/// `obj["key"]`) through `PropertyKeyData::Expr`.
 pub(crate) fn member_property_key_to_atom(ast: &Ast<'_>, key: PropertyKey) -> Option<Atom> {
   member_property_key_data_to_atom(ast, ast.property_key_data(key))
 }
 
 fn member_property_key_data_to_atom(ast: &Ast<'_>, key: PropertyKeyData) -> Option<Atom> {
   match key {
-    PropertyKeyData::StringLiteral(node) => Some(atom_from_wtf8(ast.get_wtf8(node.value(ast)))),
-    PropertyKeyData::NumericLiteral(node) => Some(Atom::from(
-      rspack_util::ryu_js::Buffer::new().format(node.value(ast)),
-    )),
-    PropertyKeyData::BigIntLiteral(node) => Some(Atom::from(
-      eval::parse_bigint_literal(ast.get_utf8(node.raw(ast)))?.to_string(),
-    )),
     PropertyKeyData::Expr(expr) => member_property_to_atom(ast, expr),
-    PropertyKeyData::IdentifierName(_) | PropertyKeyData::PrivateIdentifier(_) => None,
+    PropertyKeyData::IdentifierName(_) => None,
   }
 }
 
 fn member_property_key_data_can_be_atom(ast: &Ast<'_>, key: PropertyKeyData) -> bool {
   match key {
-    PropertyKeyData::StringLiteral(_)
-    | PropertyKeyData::NumericLiteral(_)
-    | PropertyKeyData::BigIntLiteral(_) => true,
     PropertyKeyData::Expr(expr) => match ast.expr_data(expr) {
       ExprData::StringLiteral(_)
       | ExprData::BooleanLiteral(_)
@@ -149,7 +138,7 @@ fn member_property_key_data_can_be_atom(ast: &Ast<'_>, key: PropertyKeyData) -> 
       }
       _ => false,
     },
-    PropertyKeyData::IdentifierName(_) | PropertyKeyData::PrivateIdentifier(_) => false,
+    PropertyKeyData::IdentifierName(_) => false,
   }
 }
 

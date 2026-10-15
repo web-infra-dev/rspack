@@ -6,7 +6,7 @@ use rspack_core::{
 use rspack_intern::{AtomRef, AtomSet};
 use rspack_util::{
   SpanExt,
-  swc::{AstSubRangeExt, RspackComments},
+  swc::{AstSubRangeExt, PropertyKeyValue, RspackComments, classify_property_key},
 };
 use rustc_hash::FxHashSet;
 use swc_next_ecma_ast::{
@@ -676,7 +676,7 @@ fn try_extract_deferred_check<'key>(
 fn arguments_are_pure(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
-  arguments: swc_next_ecma_ast::TypedSubRange<swc_next_ecma_ast::Argument>,
+  arguments: swc_next_ecma_ast::SubRange<swc_next_ecma_ast::Argument>,
   comments: &RspackComments<'_>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
@@ -933,10 +933,15 @@ pub fn is_pure_function(parser: &mut JavascriptParser, function: Function) -> bo
     else {
       return false;
     };
-    let FormalParameterPatternData::BindingPattern(pattern) =
-      ast.formal_parameter_pattern_data(parameter.pattern(ast))
-    else {
+    if parameter.initializer(ast).is_some() {
       return false;
+    }
+    let pattern = match ast.formal_parameter_pattern_data(parameter.pattern(ast)) {
+      FormalParameterPatternData::BindingIdentifier(node) => {
+        BindingPattern::BindingIdentifier(node)
+      }
+      FormalParameterPatternData::ArrayPattern(node) => BindingPattern::ArrayPattern(node),
+      FormalParameterPatternData::ObjectPattern(node) => BindingPattern::ObjectPattern(node),
     };
     if !is_pure_pat(parser, pattern) {
       return false;
@@ -1139,11 +1144,11 @@ fn is_common_js_export_assignment(
   };
   let name = ast.get_utf8(identifier.name(ast));
 
-  let property_name = match ast.property_key_data(member.property(ast)) {
-    PropertyKeyData::IdentifierName(property) if !member.computed(ast) => {
+  let property_name = match classify_property_key(ast, member.property(ast)) {
+    PropertyKeyValue::IdentifierName(property) if !member.computed(ast) => {
       Some(ast.get_utf8(property.name(ast)))
     }
-    PropertyKeyData::StringLiteral(property) if member.computed(ast) => {
+    PropertyKeyValue::StringLiteral(property) if member.computed(ast) => {
       ast.get_wtf8(property.value(ast)).as_str()
     }
     _ => None,

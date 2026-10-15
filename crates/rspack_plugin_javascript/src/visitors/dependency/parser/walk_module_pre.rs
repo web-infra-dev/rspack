@@ -1,7 +1,7 @@
 use rspack_intern::Atom;
 use rspack_util::swc::AstSubRangeExt;
 use swc_next_ecma_ast::{
-  GetSpan, ImportDeclaration, ImportDeclarationSpecifierData, Stmt, StmtData, TypedSubRange,
+  GetSpan, ImportDeclaration, ImportDeclarationSpecifierData, Stmt, StmtData, SubRange,
 };
 
 use crate::{
@@ -13,7 +13,7 @@ use crate::{
 };
 
 impl JavascriptParser<'_> {
-  pub fn module_pre_walk_module_items(&mut self, statements: TypedSubRange<Stmt>) {
+  pub fn module_pre_walk_module_items(&mut self, statements: SubRange<Stmt>) {
     let ast = self.ast.ast;
     for statement in ast.nodes(statements) {
       self.statement_path.push(statement.span(ast).into());

@@ -11,7 +11,7 @@ use rspack_macros::AstObject;
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_ecma_ast::{
-  Argument, ArgumentData, CallExpression, GetSpan, NewExpression, Span, TypedSubRange,
+  Argument, ArgumentData, CallExpression, GetSpan, NewExpression, Span, SubRange,
   VariableDeclarator,
 };
 use url::Url;
@@ -235,7 +235,7 @@ fn add_dependencies(
 
 fn handle_worker(
   parser: &mut JavascriptParser,
-  args: TypedSubRange<Argument>,
+  args: SubRange<Argument>,
   span: Span,
   is_shared_worker: bool,
 ) -> Option<(

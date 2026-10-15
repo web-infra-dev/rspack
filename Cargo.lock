@@ -220,7 +220,7 @@ checksum = "4f8abc12baad266b1c8cec146854c195b5864b4221d4b2ca7296a7ae82d9e451"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.3",
+ "syn 3.0.9",
 ]
 
 [[package]]
@@ -231,7 +231,7 @@ checksum = "82f6aeea286b8eb4dd3431a1be1b59d290ace00f5bfd8e2a159bc2a05e2c1667"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.3",
+ "syn 3.0.9",
 ]
 
 [[package]]
@@ -350,7 +350,7 @@ checksum = "c0cb6f3d4773a2107b94cbeccaa5b5f0b35a88389b5d522d13d659f64317b22d"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.3",
+ "syn 3.0.9",
 ]
 
 [[package]]
@@ -740,7 +740,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 3.0.3",
+ "syn 3.0.9",
 ]
 
 [[package]]
@@ -1184,7 +1184,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 3.0.3",
+ "syn 3.0.9",
 ]
 
 [[package]]
@@ -1661,7 +1661,7 @@ checksum = "9fb9654ba8355388abeb8dcb4fc62f511300867002afc858860463bdd9fe0c44"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.3",
+ "syn 3.0.9",
 ]
 
 [[package]]
@@ -3775,7 +3775,7 @@ checksum = "92ecd8964f8453721699a1ed72037b0db49ce2f5a5138486ee89bed6f67cdf3a"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.3",
+ "syn 3.0.9",
 ]
 
 [[package]]
@@ -3913,7 +3913,7 @@ checksum = "1c25ef604ac7dd839d44d64648952ea23c97866f124ff671b0ed2cf3ad9bb06e"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.3",
+ "syn 3.0.9",
 ]
 
 [[package]]
@@ -6043,7 +6043,7 @@ checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.3",
+ "syn 3.0.9",
 ]
 
 [[package]]
@@ -7483,9 +7483,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_allocator"
-version = "0.2.0"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72965c23b599e53e7dc304d56a8e2d5c971a82738920ba3e303b9799a26c1a75"
+checksum = "60df671b4a07b5d7f5dc28c06419124a7f20fa0e1097e42622fd79aeedb98dbd"
 dependencies = [
  "allocator-api2",
  "bumpalo",
@@ -7495,20 +7495,20 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ast_macros"
-version = "0.2.0"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e3570bd93a03c61564002d421ffa93f9ff62a9817a333cd8e340939ef1c8ce3"
+checksum = "47643d901b4613dead3a8c0ab44184220d24c725ed385457427ee2381fa4e1d3"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.119",
+ "syn 3.0.9",
 ]
 
 [[package]]
 name = "swc_next_ecma_ast"
-version = "0.2.0"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee81510203d325d7272f4f348b87813258e139e5931ffc1720915ca792b3e6ae"
+checksum = "f8666167d1bc7c2d04b7f2308105d66889c697ee88fbb534df7a00f4e8c12a60"
 dependencies = [
  "oxc_index",
  "swc_next_allocator",
@@ -7518,37 +7518,40 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_parser"
-version = "0.2.0"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1d1f170e4cb99604e0cfebcc48cc3e10040f1df91921c46f8126e72ae41df61"
+checksum = "16d369fb15b31cd5d2fad2ff45231b89fb987a9148997ddaeff5ad4190b33198"
 dependencies = [
  "bitflags 2.13.2",
  "memchr",
  "rustc-hash",
  "swc_next_allocator",
  "swc_next_ecma_ast",
+ "swc_next_simd",
 ]
 
 [[package]]
 name = "swc_next_ecma_semantic"
-version = "0.2.0"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0525b1a36eca433d420faebdf88490cd1242a514a7e35284d3f50957603683db"
+checksum = "66343267e32f5ce6f2228c0bb81061ae4ae79701a0fd40f6cfe5ddb7a864c1e2"
 dependencies = [
  "bitflags 2.13.2",
  "hashbrown 0.17.1",
+ "memchr",
  "oxc_index",
  "rustc-hash",
  "swc_next_allocator",
  "swc_next_ecma_ast",
  "swc_next_regular_expression",
+ "zmij_ecma",
 ]
 
 [[package]]
 name = "swc_next_regular_expression"
-version = "0.2.0"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1dcf071a591caaa222ce6cf39d35c5edf9d8a90523ff52bd13ee32ca49fff370"
+checksum = "a164c3161da895f5156ff4ec7807cb9e5905d46f748aa2e361b2bed8fc653e8b"
 dependencies = [
  "bitflags 2.13.2",
  "phf 0.14.0",
@@ -7556,6 +7559,12 @@ dependencies = [
  "swc_next_allocator",
  "unicode-id-start",
 ]
+
+[[package]]
+name = "swc_next_simd"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2160e1cd74c30cd68a6721f605cfa492ec60437dc7d34e3fd425b3d32c99899c"
 
 [[package]]
 name = "swc_node_comments"
@@ -7683,9 +7692,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "3.0.3"
+version = "3.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53e9bae58849f64dfa4f5d5ae372c8341f7305f82a3868709269343628b659a3"
+checksum = "d78c8dee4c7bf0e14673097256fed6142ce9d3b85a408189d07482442145823b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7853,7 +7862,7 @@ checksum = "fe5197923287db20a58125f0bc85c062f7f2c892de97b18c356f9efb14b28524"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.3",
+ "syn 3.0.9",
 ]
 
 [[package]]
@@ -9252,3 +9261,9 @@ name = "zmij"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3280a1b827474fcd5dbef4b35a674deb52ba5c312363aef9135317df179d81b"
+
+[[package]]
+name = "zmij_ecma"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "458b3e7a977f14499066b6bdb63d69da30ce337d6c160f077e6c575c82a44db9"

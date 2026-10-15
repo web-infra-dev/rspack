@@ -10,7 +10,10 @@ use rspack_core::{
   get_context, property_access, to_normal_comment,
 };
 use rspack_error::{Error, Severity};
-use rspack_util::{SpanExt, json_stringify_str, swc::AstSubRangeExt};
+use rspack_util::{
+  SpanExt, json_stringify_str,
+  swc::{AstSubRangeExt, PropertyKeyValue, classify_property_key},
+};
 use swc_next_ecma_ast::{
   AssignmentExpression, CallExpression, ChainExpression, Expr, GetSpan, PropertyKeyData, Span,
   UnaryExpression,
@@ -523,11 +526,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       && meta_expr
         .get_root_name(ast)
         .is_some_and(|name| name == expr_name::IMPORT_META)
-      && match ast.property_key_data(member_expr.property(ast)) {
-        PropertyKeyData::IdentifierName(identifier) => {
+      && match classify_property_key(ast, member_expr.property(ast)) {
+        PropertyKeyValue::IdentifierName(identifier) => {
           !self.preserve_property(Some(ast.get_utf8(identifier.name(ast))))
         }
-        PropertyKeyData::StringLiteral(string) if member_expr.computed(ast) => !self
+        PropertyKeyValue::StringLiteral(string) if member_expr.computed(ast) => !self
           .preserve_property(Some(
             ast.get_wtf8(string.value(ast)).to_string_lossy().as_ref(),
           )),
