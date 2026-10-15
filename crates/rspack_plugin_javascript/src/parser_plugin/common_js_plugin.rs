@@ -6,16 +6,14 @@ use rspack_core::{
 };
 use swc_next_ecma_ast::{
   AssignmentExpression, CallExpression, GetSpan, MemberExpression, NewExpression, Program, Span,
-  UnaryExpression,
+  Stmt, UnaryExpression,
 };
 
 use super::JavascriptParserPlugin;
 use crate::{
   Atom,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier},
-  visitors::{
-    HookMemberExpression, Identifier, JavascriptParser, Statement, VariableInfoFlags, expr_name,
-  },
+  visitors::{HookMemberExpression, JavascriptParser, VariableInfoFlags, expr_name},
 };
 
 pub struct CommonJsPlugin;
@@ -101,10 +99,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
     None
   }
 
-  fn statement(&self, parser: &mut JavascriptParser<'p>, statement: Statement) -> Option<bool> {
+  fn statement(&self, parser: &mut JavascriptParser<'p>, statement: Stmt) -> Option<bool> {
     // Statement walking starts after scope pre-walking, so shadowed bindings are already known.
     Self::tag_require_access(parser);
-    if matches!(statement, Statement::Return(_)) && parser.is_top_level_scope() {
+    if statement.is_return_statement(parser.ast.ast) && parser.is_top_level_scope() {
       parser.build_info.module_concatenation_bailout = Some("top-level return".into());
     }
     None
@@ -196,7 +194,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _ident: &Identifier,
+    _span: Span,
     for_name: &str,
   ) -> Option<bool> {
     self.observe_factory_binding(parser, for_name);
@@ -227,7 +225,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     _expr: AssignmentExpression,
-    _ident: &Identifier,
+    _span: Span,
     for_name: &str,
   ) -> Option<bool> {
     self.observe_factory_binding(parser, for_name);

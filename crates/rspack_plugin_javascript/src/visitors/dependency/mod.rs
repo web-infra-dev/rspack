@@ -20,8 +20,7 @@ pub use self::{
     AllowedMemberTypes, AtomMembers, CallExpressionInfo, CallHooksName,
     DestructuringAssignmentProperties, DestructuringAssignmentProperty, ExportedVariableInfo,
     ExpressionExpressionInfo, JavascriptParser, MemberExpressionInfo, MemberRanges,
-    OptionalMembers, PatRef, RootName, ScopeTerminated, TagInfoData, TopLevelScope, ast::*,
-    estree::*,
+    OptionalMembers, PatRef, RootName, ScopeTerminated, TagInfoData, TopLevelScope, estree::*,
   },
   util::*,
 };

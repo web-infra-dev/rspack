@@ -11,7 +11,7 @@ use swc_next_ecma_ast::{CallExpression, GetSpan, Span};
 use super::{super::JavascriptParserPlugin, ProvideValue, VALUE_DEP_PREFIX};
 use crate::{
   dependency::ProvideDependency,
-  visitors::{HookMemberExpression, Identifier, JavascriptParser},
+  visitors::{HookMemberExpression, JavascriptParser},
 };
 
 const SOURCE_DOT: &str = r#"."#;
@@ -98,11 +98,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ProvideParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
-    self
-      .add_provide_dep(for_name, ident.span(), parser)
-      .then_some(true)
+    self.add_provide_dep(for_name, span, parser).then_some(true)
   }
 }

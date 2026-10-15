@@ -1,18 +1,14 @@
 use rspack_util::swc::AstSubRangeExt;
-use swc_next_ecma_ast::{ExprData, GetSpan, Stmt, StmtData, SubRange};
+use swc_next_ecma_ast::{
+  Decl, ExportDefaultDeclarationKindData, ExprData, GetSpan, NodeKindData, Stmt, StmtData,
+  SubRange, VariableDeclaration, VariableKind,
+};
 
 use super::{
   JavascriptParser,
-  estree::{
-    ExportDefaultDeclaration, ExportDefaultExpression, ExportLocal, ExportNamedDeclaration,
-    MaybeNamedClassDecl, Statement,
-  },
+  estree::{ExportDefaultDeclaration, ExportLocal, ExportNamedDeclaration},
 };
-use crate::{
-  Atom, JS_DEFAULT_KEYWORD,
-  parser_plugin::JavascriptParserPlugin,
-  visitors::{VariableDeclaration, VariableDeclarationKind},
-};
+use crate::{Atom, JS_DEFAULT_KEYWORD, parser_plugin::JavascriptParserPlugin};
 
 impl JavascriptParser<'_> {
   pub fn block_pre_walk_module_items(&mut self, statements: SubRange<Stmt>) {
@@ -25,7 +21,7 @@ impl JavascriptParser<'_> {
   pub fn block_pre_walk_statements(&mut self, statements: SubRange<Stmt>) {
     let ast = self.ast.ast;
     for statement in ast.nodes(statements) {
-      self.block_pre_walk_statement(Statement::from_stmt(ast, statement));
+      self.block_pre_walk_statement(statement);
     }
   }
 
@@ -55,19 +51,23 @@ impl JavascriptParser<'_> {
           },
         );
       }
-      _ => self.block_pre_walk_statement(Statement::from_stmt(ast, statement)),
+      _ => self.block_pre_walk_statement(statement),
     }
   }
 
-  pub fn block_pre_walk_statement(&mut self, statement: Statement) {
+  pub fn block_pre_walk_statement(&mut self, statement: Stmt) {
     let drive = self.plugin_drive();
     self.enter_statement(
       statement.span(self.ast.ast),
       statement,
       |parser, node| drive.block_pre_statement(parser, node).unwrap_or_default(),
-      |parser, node| match node {
-        Statement::Var(declaration) => parser.block_pre_walk_variable_declaration(declaration),
-        Statement::Expr(expression) => parser.block_pre_walk_expression_statement(expression),
+      |parser, node| match parser.ast.ast.kind_data(node.node_id()) {
+        NodeKindData::VariableDeclaration(declaration) => {
+          parser.block_pre_walk_variable_declaration(declaration)
+        }
+        NodeKindData::ExpressionStatement(expression) => {
+          parser.block_pre_walk_expression_statement(expression)
+        }
         _ => (),
       },
     );
@@ -84,7 +84,7 @@ impl JavascriptParser<'_> {
   }
 
   pub(super) fn block_pre_walk_variable_declaration(&mut self, declaration: VariableDeclaration) {
-    if declaration.kind(self.ast.ast) != VariableDeclarationKind::Var {
+    if declaration.kind(self.ast.ast) != VariableKind::Var {
       self._pre_walk_variable_declaration(declaration);
     }
   }
@@ -97,7 +97,7 @@ impl JavascriptParser<'_> {
     let drive = self.plugin_drive();
     drive.export(self, ExportLocal::Named(export));
     if let Some(declaration) = export.0.declaration(ast) {
-      let statement = Statement::from_stmt(ast, Stmt::Declaration(declaration));
+      let statement = Stmt::Declaration(declaration);
       let prev = self.prev_statement;
       self.pre_walk_statement(statement);
       self.prev_statement = prev;
@@ -124,10 +124,10 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let drive = self.plugin_drive();
     drive.export(self, ExportLocal::Default(export));
-    let expression = export.expression(ast);
-    match expression {
-      ExportDefaultExpression::ClassDecl(class) => {
-        let statement = Statement::Class(MaybeNamedClassDecl(class));
+    let declaration = export.declaration(ast);
+    match ast.export_default_declaration_kind_data(declaration) {
+      ExportDefaultDeclarationKindData::Class(class) => {
+        let statement = Stmt::Declaration(Decl::Class(class));
         let prev = self.prev_statement;
         self.pre_walk_statement(statement);
         self.prev_statement = prev;
@@ -141,11 +141,11 @@ impl JavascriptParser<'_> {
             identifier.span(ast),
           );
         } else {
-          drive.export_expression(self, export, expression);
+          drive.export_expression(self, export, declaration);
         }
       }
-      ExportDefaultExpression::FnDecl(function) => {
-        let statement = Statement::Fn(super::estree::MaybeNamedFunctionDecl(function));
+      ExportDefaultDeclarationKindData::Function(function) => {
+        let statement = Stmt::Declaration(Decl::Function(function));
         let prev = self.prev_statement;
         self.pre_walk_statement(statement);
         self.prev_statement = prev;
@@ -159,11 +159,11 @@ impl JavascriptParser<'_> {
             identifier.span(ast),
           );
         } else {
-          drive.export_expression(self, export, expression);
+          drive.export_expression(self, export, declaration);
         }
       }
-      ExportDefaultExpression::Expr(_) | ExportDefaultExpression::Other(_) => {
-        drive.export_expression(self, export, expression);
+      _ => {
+        drive.export_expression(self, export, declaration);
       }
     }
   }

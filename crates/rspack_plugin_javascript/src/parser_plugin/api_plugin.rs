@@ -11,7 +11,7 @@ use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, json_stringify_str, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   ArgumentData, AssignmentExpression, AssignmentOperator, BindingPatternData, CallExpression,
-  GetSpan, Span, UnaryExpression, VariableDeclarator,
+  GetSpan, NodeKindData, Span, Stmt, UnaryExpression, VariableDeclaration, VariableDeclarator,
 };
 
 use crate::{
@@ -21,10 +21,7 @@ use crate::{
   },
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{
-    HookMemberExpression, Identifier, JavascriptParser, Statement, VariableDeclaration,
-    create_traceable_error, expr_name,
-  },
+  visitors::{HookMemberExpression, JavascriptParser, create_traceable_error, expr_name},
 };
 
 fn expression_not_supported(
@@ -601,12 +598,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == API_LAYER {
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        ident.span().into(),
+        span.into(),
         serde_json::to_string(&parser.module_layer)
           .expect("should stringify JSON")
           .into(),
@@ -615,7 +612,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     }
 
     if for_name == API_MODULE {
-      let range = ident.span().into();
+      let range = span.into();
       let loc = parser.to_dependency_location(range);
       parser
         .add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(None, range, loc)));
@@ -629,15 +626,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       } else {
         "require".into()
       };
-      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        ident.span().into(),
-        content,
-      )));
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(span.into(), content)));
       return Some(true);
     }
 
     if for_name == API_EXPORTS_INFO {
-      let dep = Arc::new(ConstDependency::new(ident.span().into(), "true".into()));
+      let dep = Arc::new(ConstDependency::new(span.into(), "true".into()));
       parser.add_presentational_dependency(dep);
       return Some(true);
     }
@@ -651,7 +645,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
         && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack =>
       {
         parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-          ident.span().into(),
+          span.into(),
           runtime_global,
         )));
         Some(true)
@@ -664,14 +658,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       }
       _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Call)) => {
         parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::call(
-          ident.span().into(),
+          span.into(),
           runtime_global,
         )));
         Some(true)
       }
       API_LAYER => {
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-          ident.span().into(),
+          span.into(),
           parser
             .module_layer
             .map_or_else(|| "null".to_string(), |layer| json_stringify_str(layer))
@@ -681,7 +675,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       }
       _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Normal)) => {
         parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-          ident.span().into(),
+          span.into(),
           runtime_global,
         )));
         Some(true)
@@ -866,7 +860,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: AssignmentExpression,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
@@ -877,7 +871,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     {
       let dependency = runtime_requirements_write_assignment(
         parser.parser_runtime_requirements.render_mode,
-        ident.span(),
+        span,
         expr.right(ast).span(ast),
         expr.span(ast),
         expr.operator(ast),
@@ -908,22 +902,22 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     None
   }
 
-  fn pre_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
+  fn pre_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Stmt) -> Option<bool> {
     // Check if we're at top level scope
     if parser.is_top_level_scope() {
       let ast = parser.ast.ast;
-      match stmt {
-        Statement::Fn(fn_decl) => {
+      match ast.kind_data(stmt.node_id()) {
+        NodeKindData::Function(fn_decl) => {
           // Check for function declaration named "module"
-          if let Some(ident) = fn_decl.ident(ast)
+          if let Some(ident) = fn_decl.id(ast)
             && ast.get_utf8(ident.name(ast)) == "module"
           {
             parser.build_info.module_argument = ModuleArgument::RspackModule;
           }
         }
-        Statement::Class(class_decl) => {
+        NodeKindData::Class(class_decl) => {
           // Check for class declaration named "module"
-          if let Some(ident) = class_decl.ident(ast)
+          if let Some(ident) = class_decl.id(ast)
             && ast.get_utf8(ident.name(ast)) == "module"
           {
             parser.build_info.module_argument = ModuleArgument::RspackModule;

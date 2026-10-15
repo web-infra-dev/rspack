@@ -12,7 +12,7 @@ use rspack_util::{
 use rustc_hash::FxHashMap;
 use swc_next_ecma_ast::{
   BindingPattern, BindingPatternData, CallExpression, Expr, ExprData, GetSpan, ImportExpression,
-  ObjectPattern, Span, VariableDeclarator,
+  ObjectPattern, Span, VariableDeclaration, VariableDeclarator, VariableKind,
 };
 
 use super::{JavascriptParserPlugin, import_phase::get_import_phase};
@@ -24,11 +24,11 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
-    ContextModuleScanResult, DestructuringAssignmentProperties, HookMemberExpression, Identifier,
-    JavascriptParser, PatRef, TagInfoData, TopLevelScope, VariableDeclaration,
-    VariableDeclarationKind, context_reg_exp, create_context_dependency, create_traceable_error,
-    formal_parameter_pattern, formal_parameter_patterns, formal_parameter_patterns_with_defaults,
-    get_non_optional_part, parse_order_string,
+    ContextModuleScanResult, DestructuringAssignmentProperties, HookMemberExpression,
+    JavascriptParser, PatRef, TagInfoData, TopLevelScope, context_reg_exp,
+    create_context_dependency, create_traceable_error, formal_parameter_pattern,
+    formal_parameter_patterns, formal_parameter_patterns_with_defaults, get_non_optional_part,
+    parse_order_string,
   },
 };
 
@@ -282,7 +282,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     declaration: VariableDeclaration,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    if declaration.kind(ast) != VariableDeclarationKind::Var {
+    if declaration.kind(ast) != VariableKind::Var {
       if let Some(init) = declarator.init(ast)
         && let Some(expr) = init.as_await_expression(ast)
         && let Some(import) = expr.argument(ast).as_import_expression(ast)
@@ -299,7 +299,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if for_name != DYNAMIC_IMPORT_TAG {
@@ -309,10 +309,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
-    if let Some(keys) = parser
-      .destructuring_assignment_properties
-      .get(&ident.span())
-    {
+    if let Some(keys) = parser.destructuring_assignment_properties.get(&span) {
       for ids in collect_destructuring_references(keys) {
         parser
           .dynamic_import_references

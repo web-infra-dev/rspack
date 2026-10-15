@@ -5,7 +5,10 @@ use rspack_core::{
   BoxDependency, ConstDependency, Dependency, DependencyRange, DependencyType, ImportPhase,
 };
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
-use swc_next_ecma_ast::{CommentKind, ExprData, GetSpan, Span};
+use swc_next_ecma_ast::{
+  CommentKind, ExportDefaultDeclarationKind, ExportDefaultDeclarationKindData, ExprData, GetSpan,
+  Span,
+};
 
 use super::{
   DEFAULT_STAR_JS_WORD, JS_DEFAULT_KEYWORD, JavascriptParserPlugin,
@@ -23,8 +26,8 @@ use crate::{
   parser_plugin::compatibility_plugin::CompatibilityPlugin,
   utils::object_properties::get_import_attributes,
   visitors::{
-    BindingState, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
-    JavascriptParser, create_traceable_error,
+    BindingState, ExportDefaultDeclaration, ExportImport, ExportLocal, JavascriptParser,
+    create_traceable_error,
   },
 };
 
@@ -300,13 +303,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     &self,
     parser: &mut JavascriptParser<'p>,
     statement: ExportDefaultDeclaration,
-    expr: ExportDefaultExpression,
+    expr: ExportDefaultDeclarationKind,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
+    let expr_data = ast.export_default_declaration_kind_data(expr);
     let expr_span = expr.span(ast);
     let statement_span = statement.span(ast);
     // Both tag checks refer to the same binding; no hook mutates it between them.
-    let identifier_state = if let ExportDefaultExpression::Expr(expression) = expr
+    let identifier_state = if let ExportDefaultDeclarationKindData::Expr(expression) = expr_data
       && let ExprData::IdentifierReference(identifier) = ast.expr_data(expression)
     {
       let resolution = parser
@@ -346,8 +350,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
           .join("")
       })
       .unwrap_or_default();
-    let declaration = match expr {
-      ExportDefaultExpression::FnDecl(f) => {
+    let declaration = match expr_data {
+      ExportDefaultDeclarationKindData::Function(f) => {
         let start = f.span(ast).real_lo();
         let params = f.params(ast);
         let end = if let Some(first_arg) = ast.first(params.items(ast)) {
@@ -374,13 +378,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
           ),
         )))
       }
-      ExportDefaultExpression::ClassDecl(c) => c
+      ExportDefaultDeclarationKindData::Class(c) => c
         .id(ast)
         .map(|identifier| DeclarationId::Id(ast.get_utf8(identifier.name(ast)).to_string())),
-      ExportDefaultExpression::Expr(_) | ExportDefaultExpression::Other(_) => None,
+      _ => None,
     };
-    let const_value = match expr {
-      ExportDefaultExpression::Expr(expression) => {
+    let const_value = match expr_data {
+      ExportDefaultDeclarationKindData::Expr(expression) => {
         if let ExprData::IdentifierReference(_) = ast.expr_data(expression) {
           identifier_state
             .and_then(|state| {
@@ -403,9 +407,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       parser.to_dependency_location(DependencyRange::from(expr_span)),
     );
     parser.add_dependency(BoxDependency::new(dep));
-    let name = expr
-      .ident(ast)
-      .unwrap_or_else(|| DEFAULT_STAR_JS_WORD.clone());
+    let name = match expr_data {
+      ExportDefaultDeclarationKindData::Function(function) => function.id(ast),
+      ExportDefaultDeclarationKindData::Class(class) => class.id(ast),
+      _ => None,
+    }
+    .map_or_else(
+      || DEFAULT_STAR_JS_WORD.clone(),
+      |identifier| Atom::from(ast.get_utf8(identifier.name(ast))),
+    );
     InnerGraphParserPlugin::add_variable_usage(
       parser,
       &name,

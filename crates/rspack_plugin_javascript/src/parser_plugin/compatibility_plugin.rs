@@ -5,18 +5,15 @@ use rspack_core::{
 };
 use rspack_util::{SpanExt, itoa, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
-  ArgumentData, BindingPatternData, CallExpression, GetSpan, Program, UnaryExpression,
-  VariableDeclarator,
+  ArgumentData, BindingPatternData, CallExpression, GetSpan, NodeKindData, Program, Span, Stmt,
+  UnaryExpression, VariableDeclaration, VariableDeclarator,
 };
 
 use super::JavascriptParserPlugin;
 use crate::{
   Atom,
   dependency::CommonJsRequireContextDependency,
-  visitors::{
-    Identifier, JavascriptParser, PatRef, PatternIdentifier, Statement, TagInfoData,
-    VariableDeclaration, expr_name,
-  },
+  visitors::{JavascriptParser, PatRef, PatternIdentifier, TagInfoData, expr_name},
 };
 
 pub const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_rspack_identifier__";
@@ -44,10 +41,9 @@ impl CompatibilityPlugin {
   fn rewrite_nested_identifier<'p>(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    ident_span: Span,
     in_short_hand: bool,
   ) -> Option<bool> {
-    let ident_span = ident.span();
     let ident_name = parser
       .ast
       .ast
@@ -251,13 +247,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     // Keep the declaration tag and rewrite the target before another assignment
     // hook can bail out, including targets inside destructuring assignments.
     if for_name == NESTED_IDENTIFIER_TAG && parser.in_assignment_pattern {
-      return self.identifier(
-        parser,
-        &Identifier {
-          span: ident.span(ast),
-        },
-        for_name,
-      );
+      return self.identifier(parser, ident.span(ast), for_name);
     }
     // Do not interpret assignments to the CommonJS factory parameter as
     // declarations of a nested runtime binding. Automatic modules can also be
@@ -314,10 +304,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     None
   }
 
-  fn pre_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
-    let fn_decl = stmt.as_function_decl()?;
+  fn pre_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Stmt) -> Option<bool> {
     let ast = parser.ast.ast;
-    let ident = fn_decl.ident(ast)?;
+    let NodeKindData::Function(fn_decl) = ast.kind_data(stmt.node_id()) else {
+      return None;
+    };
+    let ident = fn_decl.id(ast)?;
     let name = ast.get_utf8(ident.name(ast));
     if name != self.nested_require_name(parser) {
       None
@@ -364,13 +356,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if for_name != NESTED_IDENTIFIER_TAG {
       return None;
     }
-    self.rewrite_nested_identifier(parser, ident, parser.in_short_hand)
+    self.rewrite_nested_identifier(parser, span, parser.in_short_hand)
   }
 
   fn r#typeof(
@@ -388,13 +380,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     // binding.
     let ast = parser.ast.ast;
     let ident = expr.argument(ast).as_identifier_reference(ast)?;
-    self.rewrite_nested_identifier(
-      parser,
-      &Identifier {
-        span: ident.span(ast),
-      },
-      false,
-    )
+    self.rewrite_nested_identifier(parser, ident.span(ast), false)
   }
 
   fn call(

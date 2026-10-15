@@ -16,7 +16,7 @@ use rspack_util::{
 use swc_next_ecma_ast::{
   Argument, ArgumentData, AssignmentExpression, AssignmentOperator, Ast, CallExpression, Expr,
   ExprData, GetSpan, MemberExpression, NewExpression, PropertyKeyData, Span, SubRange,
-  UnaryExpression, UnaryOperator, VariableDeclarator,
+  UnaryExpression, UnaryOperator, VariableDeclaration, VariableDeclarator, VariableKind,
 };
 use url::Url;
 
@@ -38,10 +38,9 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    CallHooksName, ExportedVariableInfo, HookMemberExpression, Identifier, JavascriptParser,
-    StatementPath, TagInfoData, VariableDeclaration, VariableDeclarationKind, VariableInfo,
-    VariableInfoFlags, context_reg_exp, create_context_dependency, create_traceable_error,
-    expr_name, get_non_optional_part, member_property_key_to_atom,
+    CallHooksName, ExportedVariableInfo, HookMemberExpression, JavascriptParser, StatementPath,
+    TagInfoData, VariableInfo, VariableInfoFlags, context_reg_exp, create_context_dependency,
+    create_traceable_error, expr_name, get_non_optional_part, member_property_key_to_atom,
     resolve_call_trailing_comma_range,
   },
 };
@@ -1166,7 +1165,7 @@ fn pre_tag_created_require_declarator(
 ) {
   // Register metadata only; the normal declarator walk still creates or clears dependencies.
   let ast = parser.ast.ast;
-  if declaration.kind(ast) != VariableDeclarationKind::Const {
+  if declaration.kind(ast) != VariableKind::Const {
     return;
   }
   let Some(binding) = declarator.id(ast).as_binding_identifier(ast) else {
@@ -1995,14 +1994,13 @@ impl CommonJsImportsParserPlugin {
   fn require_as_expression_handler(
     &self,
     parser: &mut JavascriptParser,
-    ident: &Identifier,
+    span: Span,
     request_context: Option<Context>,
   ) -> Option<bool> {
     if parser.javascript_options.require_as_expression == Some(false) {
       return None;
     }
 
-    let span = ident.span();
     let start = span.real_lo();
     let end = span.real_hi();
     let dep = CommonJsRequireContextDependency::new(
@@ -2093,7 +2091,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     let ast = parser.ast.ast;
-    if declaration.kind(ast) != VariableDeclarationKind::Var
+    if declaration.kind(ast) != VariableKind::Var
       && let Some(init) = declarator.init(ast)
       && let Some(call) = init.as_call_expression(ast)
       && let Some(binding) = declarator.id(ast).as_binding_identifier(ast)
@@ -2165,7 +2163,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       let args = call.arguments(parser.ast.ast);
       let call_span = call.span(parser.ast.ast);
       let clear_call = should_clear_create_require_call(parser, args);
-      let deferred_callee = (declaration.kind(parser.ast.ast) == VariableDeclarationKind::Const
+      let deferred_callee = (declaration.kind(parser.ast.ast) == VariableKind::Const
         && can_defer_create_require_call(parser, args))
       .then(|| deferred_create_require_callee(parser, callee, call_span))
       .flatten();
@@ -2217,7 +2215,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == COMMONJS_REQUIRE_TAG && should_parse_commonjs_require(parser) {
@@ -2225,10 +2223,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         .definitions_db
         .expect_get_tag_info(parser.current_tag_info?);
       let data = RequireTagData::downcast(tag_info.data.clone()?);
-      if let Some(keys) = parser
-        .destructuring_assignment_properties
-        .get(&ident.span())
-      {
+      if let Some(keys) = parser.destructuring_assignment_properties.get(&span) {
         let mut refs = Vec::new();
         keys.traverse_on_leaf(&mut |stack| {
           refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
@@ -2249,7 +2244,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
-      return self.require_as_expression_handler(parser, ident, None);
+      return self.require_as_expression_handler(parser, span, None);
     }
 
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
@@ -2257,7 +2252,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         return Some(true);
       }
       let context = current_created_require_context(parser);
-      return self.require_as_expression_handler(parser, ident, context);
+      return self.require_as_expression_handler(parser, span, context);
     }
 
     None
@@ -2388,13 +2383,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         && let Some(ident) = expr.as_identifier_reference(parser.ast.ast)
       {
         let context = current_created_require_context(parser);
-        self.require_as_expression_handler(
-          parser,
-          &Identifier {
-            span: ident.span(parser.ast.ast),
-          },
-          context,
-        )?;
+        self.require_as_expression_handler(parser, ident.span(parser.ast.ast), context)?;
       }
       parser.walk_expression(expr);
       Some(false)
@@ -2773,7 +2762,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     expr: AssignmentExpression,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
@@ -2794,7 +2783,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       ) {
         return Some(true);
       }
-      let Some(name) = source_for_span(parser, ident.span()) else {
+      let Some(name) = source_for_span(parser, span) else {
         return Some(true);
       };
       clear_create_require_tag(parser, &name);

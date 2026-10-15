@@ -15,8 +15,9 @@ use swc_next_ecma_ast::{
   CallExpression, Class, ClassElement, ClassElementData, CommentKind, Decl, DeclData,
   ExportDefaultDeclarationKindData, Expr, ExprData, ForStatementInitData, FormalParameterItemData,
   FormalParameterPatternData, Function, GetSpan, MethodDefinitionKind, ModuleExportName,
-  ModuleExportNameData, Program, PropertyKey, PropertyKeyData, ScopeId, SimpleAssignmentTargetData,
-  SourceType, Span, Stmt, StmtData, VariableDeclaration as AstVariableDeclaration, VariableKind,
+  ModuleExportNameData, NodeKindData, Program, PropertyKey, PropertyKeyData, ScopeId,
+  SimpleAssignmentTargetData, SourceType, Span, Stmt, StmtData,
+  VariableDeclaration as AstVariableDeclaration, VariableKind,
 };
 use swc_next_ecma_semantic::Semantic;
 
@@ -25,7 +26,7 @@ use crate::{
   Atom, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
   parser_plugin::esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
-  visitors::{JavascriptParser, Statement, TagInfoData, formal_parameters_are_simple_identifiers},
+  visitors::{JavascriptParser, TagInfoData, formal_parameters_are_simple_identifiers},
 };
 
 static PURE_COMMENTS: LazyLock<regex::Regex> = LazyLock::new(|| {
@@ -498,7 +499,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
     None
   }
 
-  fn statement(&self, parser: &mut JavascriptParser<'p>, statement: Statement) -> Option<bool> {
+  fn statement(&self, parser: &mut JavascriptParser<'p>, statement: Stmt) -> Option<bool> {
     if parser.is_top_level_scope() {
       self.analyze_stmt_side_effects(statement, parser);
     }
@@ -1359,36 +1360,36 @@ fn is_side_effects_free_arrow_body(
 }
 
 impl SideEffectsParserPlugin {
-  fn analyze_stmt_side_effects(&self, statement: Statement, parser: &mut JavascriptParser) {
+  fn analyze_stmt_side_effects(&self, statement: Stmt, parser: &mut JavascriptParser) {
     if parser.side_effects_item.is_some() {
       return;
     }
     let ast = parser.ast.ast;
     let comments = parser.ast.comments;
     let mut callees = Vec::new();
-    let pure = match statement {
-      Statement::If(statement) => is_pure_expression(
+    let pure = match ast.kind_data(statement.node_id()) {
+      NodeKindData::IfStatement(statement) => is_pure_expression(
         parser,
         self.analyze_side_effects_free,
         statement.test(ast),
         comments,
         Some(&mut callees),
       ),
-      Statement::While(statement) => is_pure_expression(
+      NodeKindData::WhileStatement(statement) => is_pure_expression(
         parser,
         self.analyze_side_effects_free,
         statement.test(ast),
         comments,
         Some(&mut callees),
       ),
-      Statement::DoWhile(statement) => is_pure_expression(
+      NodeKindData::DoWhileStatement(statement) => is_pure_expression(
         parser,
         self.analyze_side_effects_free,
         statement.test(ast),
         comments,
         Some(&mut callees),
       ),
-      Statement::For(statement) => {
+      NodeKindData::ForStatement(statement) => {
         let init_pure =
           statement
             .init(ast)
@@ -1428,35 +1429,38 @@ impl SideEffectsParserPlugin {
             )
           })
       }
-      Statement::Expr(statement) => is_module_eval_pure_expression(
+      NodeKindData::ExpressionStatement(statement) => is_module_eval_pure_expression(
         parser,
         self.analyze_side_effects_free,
         statement.expression(ast),
         comments,
         Some(&mut callees),
       ),
-      Statement::Switch(statement) => is_pure_expression(
+      NodeKindData::SwitchStatement(statement) => is_pure_expression(
         parser,
         self.analyze_side_effects_free,
         statement.discriminant(ast),
         comments,
         Some(&mut callees),
       ),
-      Statement::Class(statement) => is_pure_class(
+      NodeKindData::Class(statement) => is_pure_class(
         parser,
         self.analyze_side_effects_free,
-        statement.class(),
+        statement,
         comments,
         Some(&mut callees),
       ),
-      Statement::Var(statement) => is_module_eval_pure_var_decl(
+      NodeKindData::VariableDeclaration(statement) => is_module_eval_pure_var_decl(
         parser,
         self.analyze_side_effects_free,
-        statement.0,
+        statement,
         comments,
         Some(&mut callees),
       ),
-      Statement::Empty(_) | Statement::Labeled(_) | Statement::Block(_) | Statement::Fn(_) => true,
+      NodeKindData::EmptyStatement(_)
+      | NodeKindData::LabeledStatement(_)
+      | NodeKindData::BlockStatement(_)
+      | NodeKindData::Function(_) => true,
       _ => false,
     };
     if !pure {

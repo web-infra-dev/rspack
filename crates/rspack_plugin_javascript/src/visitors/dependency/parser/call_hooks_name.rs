@@ -2,7 +2,7 @@ use rspack_intern::AtomRef;
 use swc_next_ecma_ast::{ChainExpression, Expr, IdentifierReference, MemberExpression};
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
-use crate::visitors::{ExprRef, PatternIdentifier, scope_info::BindingState};
+use crate::visitors::{PatternIdentifier, scope_info::BindingState};
 
 /// callHooksForName/callHooksForInfo in webpack
 /// webpack use HookMap and filter at callHooksForName/callHooksForInfo
@@ -103,9 +103,10 @@ impl CallHooksName for MemberExpression {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    let Some(MemberExpressionInfo::Expression(expr_name)) =
-      parser.get_member_expression_info(ExprRef::Member(*self), AllowedMemberTypes::Expression)
-    else {
+    let Some(MemberExpressionInfo::Expression(expr_name)) = parser.get_member_expression_info(
+      Expr::MemberExpression(*self),
+      AllowedMemberTypes::Expression,
+    ) else {
       return None;
     };
 

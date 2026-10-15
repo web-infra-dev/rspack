@@ -6,7 +6,7 @@ use rspack_core::{
 };
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
-  ArgumentData, Ast, Expr, GetSpan, MemberExpression, NewExpression, Visit, VisitWith,
+  ArgumentData, Ast, Expr, ExprData, GetSpan, MemberExpression, NewExpression, Visit, VisitWith,
 };
 use url::Url;
 
@@ -15,7 +15,7 @@ use crate::{
   InnerGraphParserPlugin,
   dependency::{URLContextDependency, URLDependency},
   magic_comment::{MagicCommentValue, try_extract_magic_comment},
-  visitors::{ExprRef, JavascriptParser, RootName, context_reg_exp, create_context_dependency},
+  visitors::{JavascriptParser, RootName, context_reg_exp, create_context_dependency},
 };
 
 struct NestedNewUrlVisitor<'a> {
@@ -41,8 +41,8 @@ impl<'a> Visit<'a> for NestedNewUrlVisitor<'a> {
 
 pub fn is_meta_url(parser: &mut JavascriptParser, expr: MemberExpression) -> bool {
   let ast = parser.ast.ast;
-  let chain = parser.extract_member_expression_chain(ExprRef::Member(expr));
-  if let ExprRef::MetaProp(meta) = chain.object {
+  let chain = parser.extract_member_expression_chain(Expr::MemberExpression(expr));
+  if let ExprData::MetaProperty(meta) = ast.expr_data(chain.object) {
     return meta
       .get_root_name(ast)
       .is_some_and(|name| name == "import.meta")

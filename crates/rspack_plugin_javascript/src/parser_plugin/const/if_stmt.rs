@@ -5,10 +5,10 @@ use rspack_core::ConstDependency;
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use rustc_hash::FxHashSet;
 use swc_next_ecma_ast::{
-  Ast, BindingPattern, BindingPatternData, GetSpan, IfStatement, VariableKind,
+  Ast, BindingPattern, BindingPatternData, GetSpan, IfStatement, NodeKindData, Stmt, VariableKind,
 };
 
-use crate::visitors::{JavascriptParser, Statement, VariableDeclarationKind};
+use crate::visitors::JavascriptParser;
 
 fn collect_declaration_from_pattern<'a>(
   ast: &'a Ast<'_>,
@@ -59,94 +59,76 @@ fn collect_variable_declaration<'a>(
 /// Collects hoisted `var` and (in non-strict mode) function declaration identifiers.
 pub fn get_hoisted_declarations<'a>(
   ast: &'a Ast<'_>,
-  stmt: Statement,
+  stmt: Stmt,
   include_function_declarations: bool,
 ) -> FxHashSet<&'a str> {
   let mut declarations = FxHashSet::default();
   let mut stmt_stack = vec![stmt];
 
   while let Some(statement) = stmt_stack.pop() {
-    match statement {
-      Statement::Block(block) => {
-        stmt_stack.extend(
-          ast
-            .nodes(block.body(ast))
-            .map(|statement| Statement::from_stmt(ast, statement)),
-        );
+    match ast.kind_data(statement.node_id()) {
+      NodeKindData::BlockStatement(block) => {
+        stmt_stack.extend(ast.nodes(block.body(ast)));
       }
-      Statement::If(statement) => {
-        stmt_stack.push(Statement::from_stmt(ast, statement.consequent(ast)));
+      NodeKindData::IfStatement(statement) => {
+        stmt_stack.push(statement.consequent(ast));
         if let Some(alternate) = statement.alternate(ast) {
-          stmt_stack.push(Statement::from_stmt(ast, alternate));
+          stmt_stack.push(alternate);
         }
       }
-      Statement::For(statement) => {
+      NodeKindData::ForStatement(statement) => {
         if let Some(declaration) = statement
           .init(ast)
           .and_then(|init| init.as_variable_declaration(ast))
         {
           collect_variable_declaration(ast, declaration, &mut declarations);
         }
-        stmt_stack.push(Statement::from_stmt(ast, statement.body(ast)));
+        stmt_stack.push(statement.body(ast));
       }
-      Statement::ForIn(statement) => {
+      NodeKindData::ForInStatement(statement) => {
         if let Some(declaration) = statement.left(ast).as_variable_declaration(ast) {
           collect_variable_declaration(ast, declaration, &mut declarations);
         }
-        stmt_stack.push(Statement::from_stmt(ast, statement.body(ast)));
+        stmt_stack.push(statement.body(ast));
       }
-      Statement::ForOf(statement) => {
+      NodeKindData::ForOfStatement(statement) => {
         if let Some(declaration) = statement.left(ast).as_variable_declaration(ast) {
           collect_variable_declaration(ast, declaration, &mut declarations);
         }
-        stmt_stack.push(Statement::from_stmt(ast, statement.body(ast)));
+        stmt_stack.push(statement.body(ast));
       }
-      Statement::DoWhile(statement) => {
-        stmt_stack.push(Statement::from_stmt(ast, statement.body(ast)));
+      NodeKindData::DoWhileStatement(statement) => {
+        stmt_stack.push(statement.body(ast));
       }
-      Statement::While(statement) => {
-        stmt_stack.push(Statement::from_stmt(ast, statement.body(ast)));
+      NodeKindData::WhileStatement(statement) => {
+        stmt_stack.push(statement.body(ast));
       }
-      Statement::Labeled(statement) => {
-        stmt_stack.push(Statement::from_stmt(ast, statement.body(ast)));
+      NodeKindData::LabeledStatement(statement) => {
+        stmt_stack.push(statement.body(ast));
       }
-      Statement::Switch(statement) => {
+      NodeKindData::SwitchStatement(statement) => {
         for case in ast.nodes(statement.cases(ast)) {
-          stmt_stack.extend(
-            ast
-              .nodes(case.consequent(ast))
-              .map(|statement| Statement::from_stmt(ast, statement)),
-          );
+          stmt_stack.extend(ast.nodes(case.consequent(ast)));
         }
       }
-      Statement::Try(statement) => {
-        stmt_stack.extend(
-          ast
-            .nodes(statement.block(ast).body(ast))
-            .map(|statement| Statement::from_stmt(ast, statement)),
-        );
+      NodeKindData::TryStatement(statement) => {
+        stmt_stack.extend(ast.nodes(statement.block(ast).body(ast)));
         if let Some(handler) = statement.handler(ast) {
-          stmt_stack.extend(
-            ast
-              .nodes(handler.body(ast).body(ast))
-              .map(|statement| Statement::from_stmt(ast, statement)),
-          );
+          stmt_stack.extend(ast.nodes(handler.body(ast).body(ast)));
         }
         if let Some(finalizer) = statement.finalizer(ast) {
-          stmt_stack.extend(
-            ast
-              .nodes(finalizer.body(ast))
-              .map(|statement| Statement::from_stmt(ast, statement)),
-          );
+          stmt_stack.extend(ast.nodes(finalizer.body(ast)));
         }
       }
-      Statement::Fn(function) if include_function_declarations => {
-        if let Some(identifier) = function.ident(ast) {
+      NodeKindData::Function(function) if include_function_declarations => {
+        if let Some(identifier) = function.id(ast) {
           declarations.insert(ast.get_utf8(identifier.name(ast)));
         }
       }
-      Statement::Var(declaration) if declaration.kind(ast) == VariableDeclarationKind::Var => {
-        for declarator in declaration.declarators(ast) {
+      NodeKindData::VariableDeclaration(declaration)
+        if declaration.kind(ast) == VariableKind::Var =>
+      {
+        for declarator in ast.nodes(declaration.declarators(ast)) {
           collect_declaration_from_pattern(ast, declarator.id(ast), &mut declarations);
         }
       }
@@ -180,8 +162,7 @@ pub fn statement_if<'p>(
   };
 
   if let Some(branch_to_remove) = branch_to_remove {
-    let branch_statement = Statement::from_stmt(ast, branch_to_remove);
-    let declarations = get_hoisted_declarations(ast, branch_statement, !scanner.is_strict());
+    let declarations = get_hoisted_declarations(ast, branch_to_remove, !scanner.is_strict());
     let replacement = if declarations.is_empty() {
       "{}".to_string()
     } else {

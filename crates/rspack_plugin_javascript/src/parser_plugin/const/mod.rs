@@ -5,13 +5,12 @@ mod if_stmt;
 mod logic_expr;
 
 use rspack_core::{CachedConstDependency, ConstDependency};
-use swc_next_ecma_ast::{ConditionalExpression, GetSpan, IfStatement, LogicalExpression};
+use swc_next_ecma_ast::{
+  ConditionalExpression, GetSpan, IfStatement, LogicalExpression, Span, Stmt,
+};
 
 use super::JavascriptParserPlugin;
-use crate::{
-  utils::eval::evaluate_to_string,
-  visitors::{Identifier, JavascriptParser, Statement},
-};
+use crate::{utils::eval::evaluate_to_string, visitors::JavascriptParser};
 
 pub struct ConstPlugin;
 
@@ -68,14 +67,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     match for_name {
       RESOURCE_FRAGMENT => {
         let resource_fragment = parser.resource_data.fragment().unwrap_or("");
         parser.add_presentational_dependency(Arc::new(CachedConstDependency::new(
-          ident.span().into(),
+          span.into(),
           "__resourceFragment".into(),
           rspack_util::json_stringify_str(resource_fragment).into(),
         )));
@@ -84,7 +83,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
       RESOURCE_QUERY => {
         let resource_query = parser.resource_data.query().unwrap_or("");
         parser.add_presentational_dependency(Arc::new(CachedConstDependency::new(
-          ident.span().into(),
+          span.into(),
           "__resourceQuery".into(),
           rspack_util::json_stringify_str(resource_query).into(),
         )));
@@ -125,7 +124,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
     }
   }
 
-  fn unused_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
+  fn unused_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Stmt) -> Option<bool> {
     // Skip top level scope to align with webpack's ConstPlugin behavior.
     if parser.is_top_level_scope() {
       return None;

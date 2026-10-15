@@ -12,7 +12,7 @@ use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_ecma_ast::{
   Argument, ArgumentData, CallExpression, GetSpan, NewExpression, Span, SubRange,
-  VariableDeclarator,
+  VariableDeclaration, VariableDeclarator,
 };
 use url::Url;
 
@@ -26,7 +26,7 @@ use crate::{
   dependency::{CreateScriptUrlDependency, WorkerDependency},
   magic_comment::try_extract_magic_comment,
   parser_plugin::url_plugin::is_meta_url,
-  visitors::{JavascriptParser, PatternIdentifier, TagInfoData, VariableDeclaration},
+  visitors::{JavascriptParser, PatternIdentifier, TagInfoData},
 };
 
 #[derive(Debug)]

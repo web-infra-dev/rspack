@@ -8,13 +8,11 @@ use rspack_core::{
 use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
 use sugar_path::SugarPath;
-use swc_next_ecma_ast::{Expr, GetSpan, UnaryExpression};
+use swc_next_ecma_ast::{Expr, GetSpan, Span, UnaryExpression};
 
 use crate::{
-  JavascriptParserPlugin,
-  dependency::ExternalModuleDependency,
-  utils::eval,
-  visitors::{Identifier, JavascriptParser},
+  JavascriptParserPlugin, dependency::ExternalModuleDependency, utils::eval,
+  visitors::JavascriptParser,
 };
 
 const DIRNAME: &str = "__dirname";
@@ -136,7 +134,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     // Skip CJS handling if not enabled
@@ -161,12 +159,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeDirnameOption::NodeModule => {
           // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
           // We need to create two separate dependencies in Rspack.
-          Self::add_cjs_node_module_dependency(
-            parser,
-            ident.span(),
-            DIRNAME,
-            NodeMetaProperty::Dirname,
-          );
+          Self::add_cjs_node_module_dependency(parser, span, DIRNAME, NodeMetaProperty::Dirname);
           return Some(true);
         }
         NodeDirnameOption::EvalOnly => {
@@ -174,12 +167,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
           if !parser.compiler_options.output.module {
             return None;
           }
-          Self::add_cjs_node_module_dependency(
-            parser,
-            ident.span(),
-            DIRNAME,
-            NodeMetaProperty::Dirname,
-          );
+          Self::add_cjs_node_module_dependency(parser, span, DIRNAME, NodeMetaProperty::Dirname);
           return Some(true);
         }
         NodeDirnameOption::True => Self::get_relative_path(parser, NodeMetaProperty::Dirname),
@@ -187,7 +175,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
       };
       if let Some(dirname) = dirname {
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-          ident.span().into(),
+          span.into(),
           rspack_util::json_stringify_str(&dirname).into(),
         )));
         return Some(true);
@@ -205,12 +193,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeFilenameOption::NodeModule => {
           // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
           // We need to create two separate dependencies in Rspack.
-          Self::add_cjs_node_module_dependency(
-            parser,
-            ident.span(),
-            FILENAME,
-            NodeMetaProperty::Filename,
-          );
+          Self::add_cjs_node_module_dependency(parser, span, FILENAME, NodeMetaProperty::Filename);
           return Some(true);
         }
         NodeFilenameOption::EvalOnly => {
@@ -218,12 +201,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
           if !parser.compiler_options.output.module {
             return None;
           }
-          Self::add_cjs_node_module_dependency(
-            parser,
-            ident.span(),
-            FILENAME,
-            NodeMetaProperty::Filename,
-          );
+          Self::add_cjs_node_module_dependency(parser, span, FILENAME, NodeMetaProperty::Filename);
           return Some(true);
         }
         NodeFilenameOption::True => Self::get_relative_path(parser, NodeMetaProperty::Filename),
@@ -231,7 +209,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
       };
       if let Some(filename) = filename {
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-          ident.span().into(),
+          span.into(),
           rspack_util::json_stringify_str(&filename).into(),
         )));
         return Some(true);
@@ -243,14 +221,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
       )
     {
       if parser.in_short_hand {
-        let start = ident.span().real_lo();
+        let start = span.real_lo();
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           (start, start).into(),
           format!("{for_name}: ").into(),
         )));
       }
       parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-        ident.span().into(),
+        span.into(),
         RuntimeGlobals::GLOBAL,
       )));
       return Some(true);

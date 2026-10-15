@@ -10,8 +10,7 @@ use super::{
   AllowedMemberTypes, CallHooksName, ExpressionExpressionInfo, JavascriptParser,
   MemberExpressionInfo, PatRef, RootName, ScopeTerminated, TopLevelScope,
   estree::{
-    ClassDeclOrExpr, ExportDefaultDeclaration, MaybeNamedClassDecl, MaybeNamedFunctionDecl,
-    Statement, formal_parameter_patterns, formal_parameter_patterns_with_defaults,
+    ExportDefaultDeclaration, formal_parameter_patterns, formal_parameter_patterns_with_defaults,
     formal_parameters_are_simple_identifiers,
   },
   object_and_members_to_name,
@@ -25,8 +24,7 @@ use crate::{
   },
   utils::eval::{BasicEvaluatedExpression, eval_member_expression_with_info},
   visitors::{
-    AtomMembers, ExportedVariableInfo, ExprRef, Identifier, PatternIdentifier, VariableDeclaration,
-    VariableInfo, VariableInfoFlags,
+    AtomMembers, ExportedVariableInfo, PatternIdentifier, VariableInfo, VariableInfoFlags,
   },
 };
 
@@ -164,17 +162,14 @@ impl JavascriptParser<'_> {
             }
             StmtData::ExportNamedDeclaration(declaration) => {
               if let Some(declaration) = declaration.declaration(parser.ast.ast) {
-                parser.walk_statement(Statement::from_stmt(
-                  parser.ast.ast,
-                  Stmt::Declaration(declaration),
-                ));
+                parser.walk_statement(Stmt::Declaration(declaration));
               }
             }
             _ => (),
           },
         );
       }
-      _ => self.walk_statement(Statement::from_stmt(ast, statement)),
+      _ => self.walk_statement(statement),
     }
   }
 
@@ -182,10 +177,10 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     match ast.export_default_declaration_kind_data(declaration.0.declaration(ast)) {
       ExportDefaultDeclarationKindData::Class(class) => {
-        self.walk_statement(Statement::Class(MaybeNamedClassDecl(class)))
+        self.walk_statement(Stmt::Declaration(Decl::Class(class)))
       }
       ExportDefaultDeclarationKindData::Function(function) => {
-        self.walk_statement(Statement::Fn(MaybeNamedFunctionDecl(function)))
+        self.walk_statement(Stmt::Declaration(Decl::Function(function)))
       }
       ExportDefaultDeclarationKindData::Expr(expression) => self.walk_expression(expression),
       _ => (),
@@ -196,40 +191,42 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let mut only_function_declaration = false;
     for statement in ast.nodes(statements) {
-      let stmt = Statement::from_stmt(ast, statement);
       if only_function_declaration
-        && !matches!(stmt, Statement::Fn(_))
+        && !matches!(
+          ast.kind_data(statement.node_id()),
+          NodeKindData::Function(_)
+        )
         && self
           .plugin_drive()
-          .unused_statement(self, stmt)
+          .unused_statement(self, statement)
           .unwrap_or(false)
       {
         continue;
       }
-      self.walk_statement(stmt);
+      self.walk_statement(statement);
       if self.terminated.is_some() {
         only_function_declaration = true;
       }
     }
   }
 
-  pub(crate) fn walk_statement(&mut self, statement: Statement) {
+  pub(crate) fn walk_statement(&mut self, statement: Stmt) {
     let drive = self.plugin_drive();
     self.enter_statement(
       statement.span(self.ast.ast),
       statement,
       |parser, _| drive.statement(parser, statement).unwrap_or_default(),
-      |parser, _| match statement {
-        Statement::Block(stmt) => parser.in_semantic_scope(stmt.node_id(), |parser| {
+      |parser, _| match parser.ast.ast.kind_data(statement.node_id()) {
+        NodeKindData::BlockStatement(stmt) => parser.in_semantic_scope(stmt.node_id(), |parser| {
           parser.walk_block_statement(stmt);
         }),
-        Statement::Class(decl) => parser.walk_class_declaration(decl),
-        Statement::Fn(decl) => parser.in_semantic_scope(decl.function().node_id(), |parser| {
+        NodeKindData::Class(decl) => parser.walk_class_declaration(decl),
+        NodeKindData::Function(decl) => parser.in_semantic_scope(decl.node_id(), |parser| {
           parser.walk_function_declaration(decl);
         }),
-        Statement::Var(decl) => parser.walk_variable_declaration(decl),
-        Statement::DoWhile(stmt) => parser.walk_do_while_statement(stmt),
-        Statement::Expr(stmt) => {
+        NodeKindData::VariableDeclaration(decl) => parser.walk_variable_declaration(decl),
+        NodeKindData::DoWhileStatement(stmt) => parser.walk_do_while_statement(stmt),
+        NodeKindData::ExpressionStatement(stmt) => {
           // This is a bit different with webpack, so we can easily implement is_statement_level_expression
           // we didn't use pre_statement here like usual, this is referenced from walk_sequence_expression, which did the similar
           let old = parser.statement_path.pop().expect("should in statement");
@@ -240,23 +237,23 @@ impl JavascriptParser<'_> {
           parser.statement_path.pop();
           parser.statement_path.push(old);
         }
-        Statement::ForIn(stmt) => parser.in_semantic_scope(stmt.node_id(), |parser| {
+        NodeKindData::ForInStatement(stmt) => parser.in_semantic_scope(stmt.node_id(), |parser| {
           parser.walk_for_in_statement(stmt);
         }),
-        Statement::ForOf(stmt) => parser.in_semantic_scope(stmt.node_id(), |parser| {
+        NodeKindData::ForOfStatement(stmt) => parser.in_semantic_scope(stmt.node_id(), |parser| {
           parser.walk_for_of_statement(stmt);
         }),
-        Statement::For(stmt) => parser.in_semantic_scope(stmt.node_id(), |parser| {
+        NodeKindData::ForStatement(stmt) => parser.in_semantic_scope(stmt.node_id(), |parser| {
           parser.walk_for_statement(stmt);
         }),
-        Statement::If(stmt) => parser.walk_if_statement(stmt),
-        Statement::Labeled(stmt) => parser.walk_labeled_statement(stmt),
-        Statement::Return(stmt) => parser.walk_return_statement(stmt),
-        Statement::Switch(stmt) => parser.walk_switch_statement(stmt),
-        Statement::Throw(stmt) => parser.walk_throw_stmt(stmt),
-        Statement::Try(stmt) => parser.walk_try_statement(stmt),
-        Statement::While(stmt) => parser.walk_while_statement(stmt),
-        Statement::With(stmt) => parser.walk_with_statement(stmt),
+        NodeKindData::IfStatement(stmt) => parser.walk_if_statement(stmt),
+        NodeKindData::LabeledStatement(stmt) => parser.walk_labeled_statement(stmt),
+        NodeKindData::ReturnStatement(stmt) => parser.walk_return_statement(stmt),
+        NodeKindData::SwitchStatement(stmt) => parser.walk_switch_statement(stmt),
+        NodeKindData::ThrowStatement(stmt) => parser.walk_throw_stmt(stmt),
+        NodeKindData::TryStatement(stmt) => parser.walk_try_statement(stmt),
+        NodeKindData::WhileStatement(stmt) => parser.walk_while_statement(stmt),
+        NodeKindData::WithStatement(stmt) => parser.walk_with_statement(stmt),
         _ => (),
       },
     );
@@ -283,10 +280,10 @@ impl JavascriptParser<'_> {
     let block = stmt.block(ast);
     let was_in_try = self.in_try;
     if self.in_try {
-      self.walk_statement(Statement::Block(block));
+      self.walk_statement(Stmt::BlockStatement(block));
     } else {
       self.in_try = true;
-      self.walk_statement(Statement::Block(block));
+      self.walk_statement(Stmt::BlockStatement(block));
       self.in_try = false;
     }
 
@@ -302,7 +299,7 @@ impl JavascriptParser<'_> {
 
     let mut finalizer_terminated = None;
     if let Some(finalizer) = stmt.finalizer(ast) {
-      self.walk_statement(Statement::Block(finalizer));
+      self.walk_statement(Stmt::BlockStatement(finalizer));
       finalizer_terminated = self.terminated;
       self.terminated = None;
     }
@@ -327,7 +324,7 @@ impl JavascriptParser<'_> {
         this.walk_pattern(param)
       }
       let body = catch_clause.body(ast);
-      this.walk_statement(Statement::Block(body));
+      this.walk_statement(Stmt::BlockStatement(body));
     })
   }
 
@@ -447,7 +444,6 @@ impl JavascriptParser<'_> {
       if let Some(init) = stmt.init(ast) {
         match ast.for_statement_init_data(init) {
           ForStatementInitData::VariableDeclaration(decl) => {
-            let decl = VariableDeclaration(decl);
             this.block_pre_walk_variable_declaration(decl);
             this.prev_statement = None;
             this.walk_variable_declaration(decl);
@@ -514,7 +510,6 @@ impl JavascriptParser<'_> {
   fn walk_for_head(&mut self, for_head: ForStatementLeft) {
     match self.ast.ast.for_statement_left_data(for_head) {
       ForStatementLeftData::VariableDeclaration(decl) => {
-        let decl = VariableDeclaration(decl);
         self.block_pre_walk_variable_declaration(decl);
         self.walk_variable_declaration(decl);
       }
@@ -550,7 +545,7 @@ impl JavascriptParser<'_> {
   fn walk_variable_declaration(&mut self, decl: VariableDeclaration) {
     let drive = self.plugin_drive();
     let ast = self.ast.ast;
-    for declarator in decl.declarators(ast) {
+    for declarator in ast.nodes(decl.declarators(ast)) {
       let init = declarator.init(ast);
       let id = declarator.id(ast);
       if self.javascript_options.is_create_require_enabled()
@@ -1263,7 +1258,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_class_expression(&mut self, expr: Class) {
-    self.walk_class(expr, ClassDeclOrExpr::Expr(expr));
+    self.walk_class(expr);
   }
 
   fn walk_chain_expression(&mut self, expr: ChainExpression) {
@@ -1790,8 +1785,8 @@ impl JavascriptParser<'_> {
   ) {
     let ast = self.ast.ast;
     let super::RawExtractedMemberExpressionChainData { object, members } =
-      self.extract_member_expression_chain_raw(ExprRef::Member(expr));
-    if let ExprRef::Await(await_expr) = object
+      self.extract_member_expression_chain_raw(Expr::MemberExpression(expr));
+    if let ExprData::AwaitExpression(await_expr) = ast.expr_data(object)
       && let Some(call) = await_expr.argument(ast).as_import_expression(ast)
     {
       let members = members
@@ -1855,20 +1850,14 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let drive = self.plugin_drive();
     identifier.call_hooks_name(self, |this, for_name| {
-      drive.identifier(
-        this,
-        &Identifier {
-          span: identifier.span(ast),
-        },
-        for_name,
-      )
+      drive.identifier(this, identifier.span(ast), for_name)
     });
   }
 
   fn walk_identifier_name(&mut self, name: &str, span: Span) {
     let drive = self.plugin_drive();
     self.call_hooks_name(name, |this, for_name| {
-      drive.identifier(this, &Identifier { span }, for_name)
+      drive.identifier(this, span, for_name)
     });
   }
 
@@ -2002,14 +1991,7 @@ impl JavascriptParser<'_> {
       self.enter_assignment_target(left, |this, identifier| {
         if !ident
           .call_hooks_name(this, |this, for_name| {
-            drive.assign(
-              this,
-              expr,
-              &Identifier {
-                span: identifier.span(ast),
-              },
-              for_name,
-            )
+            drive.assign(this, expr, identifier.span(ast), for_name)
           })
           .unwrap_or_default()
         {
@@ -2026,14 +2008,7 @@ impl JavascriptParser<'_> {
         let name = ident.name(ast);
         if !this
           .call_hooks_name(name, |this, for_name| {
-            drive.assign(
-              this,
-              expr,
-              &Identifier {
-                span: ident.span(ast),
-              },
-              for_name,
-            )
+            drive.assign(this, expr, ident.span(ast), for_name)
           })
           .unwrap_or_default()
         {
@@ -2052,14 +2027,7 @@ impl JavascriptParser<'_> {
         let name = ident.name(ast);
         if !this
           .call_hooks_name(name, |this, for_name| {
-            drive.assign(
-              this,
-              expr,
-              &Identifier {
-                span: ident.span(ast),
-              },
-              for_name,
-            )
+            drive.assign(this, expr, ident.span(ast), for_name)
           })
           .unwrap_or_default()
         {
@@ -2071,20 +2039,21 @@ impl JavascriptParser<'_> {
       .as_simple_assignment_target(ast)
       .and_then(|target| target.as_member_expression(ast))
     {
-      if let Some(MemberExpressionInfo::Expression(expr_name)) =
-        self.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
-        && expr_name
-          .root_info
-          .call_hooks_name(self, |parser, for_name| {
-            drive.assign_member_chain(
-              parser,
-              expr,
-              &expr_name.members,
-              &expr_name.member_ranges,
-              for_name,
-            )
-          })
-          .unwrap_or_default()
+      if let Some(MemberExpressionInfo::Expression(expr_name)) = self.get_member_expression_info(
+        Expr::MemberExpression(member),
+        AllowedMemberTypes::Expression,
+      ) && expr_name
+        .root_info
+        .call_hooks_name(self, |parser, for_name| {
+          drive.assign_member_chain(
+            parser,
+            expr,
+            &expr_name.members,
+            &expr_name.member_ranges,
+            for_name,
+          )
+        })
+        .unwrap_or_default()
       {
         return;
       }
@@ -2142,7 +2111,7 @@ impl JavascriptParser<'_> {
 
   fn walk_nested_statement(&mut self, stmt: Stmt) {
     self.prev_statement = None;
-    self.walk_statement(Statement::from_stmt(self.ast.ast, stmt));
+    self.walk_statement(stmt);
   }
 
   fn walk_do_while_statement(&mut self, stmt: DoWhileStatement) {
@@ -2165,11 +2134,10 @@ impl JavascriptParser<'_> {
     })
   }
 
-  fn walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
+  fn walk_function_declaration(&mut self, function: Function) {
     let was_top_level = self.top_level_scope;
     self.top_level_scope = TopLevelScope::False;
     let ast = self.ast.ast;
-    let function = decl.function();
     let patterns = formal_parameter_patterns(ast, function.params(ast));
     self.in_function_scope(true, patterns.map(PatRef::Borrowed), |this| {
       this.walk_function(function);
@@ -2301,37 +2269,37 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn walk_class_declaration(&mut self, decl: MaybeNamedClassDecl) {
-    self.walk_class(decl.class(), ClassDeclOrExpr::Decl(decl.class()));
+  fn walk_class_declaration(&mut self, decl: Class) {
+    self.walk_class(decl);
   }
 
-  fn walk_class(&mut self, classy: Class, class_decl_or_expr: ClassDeclOrExpr) {
+  fn walk_class(&mut self, class: Class) {
     let ast = self.ast.ast;
-    if let Some(super_class) = classy.super_class(ast)
+    if let Some(super_class) = class.super_class(ast)
       && !self
         .plugin_drive()
-        .class_extends_expression(self, super_class, class_decl_or_expr)
+        .class_extends_expression(self, super_class, class)
         .unwrap_or_default()
     {
       self.walk_expression(super_class);
     }
 
     // TODO: define variable for class expression in block pre walk
-    let scope_param = match class_decl_or_expr {
-      ClassDeclOrExpr::Expr(class_expr) => class_expr
+    let scope_param = match class.class_type(ast) {
+      ClassType::ClassExpression => class
         .id(ast)
         .map(BindingPattern::BindingIdentifier)
         .map(PatRef::Owned),
-      ClassDeclOrExpr::Decl(_) => None,
+      ClassType::ClassDeclaration => None,
     };
 
-    let elements = classy.body(ast).body(ast);
-    self.in_semantic_scope(classy.node_id(), |this| {
+    let elements = class.body(ast).body(ast);
+    self.in_semantic_scope(class.node_id(), |this| {
       this.in_class_scope(true, scope_param.into_iter(), |this| {
         for class_element in ast.nodes(elements) {
           if this
             .plugin_drive()
-            .class_body_element(this, class_element, class_decl_or_expr)
+            .class_body_element(this, class_element, class)
             .unwrap_or_default()
           {
             continue;
@@ -2345,7 +2313,7 @@ impl JavascriptParser<'_> {
               }
               if this
                 .plugin_drive()
-                .class_body_value(this, class_element, method.span(ast), class_decl_or_expr)
+                .class_body_value(this, class_element, method.span(ast), class)
                 .unwrap_or_default()
               {
                 continue;
@@ -2369,7 +2337,7 @@ impl JavascriptParser<'_> {
               if let Some(value) = property.value(ast)
                 && !this
                   .plugin_drive()
-                  .class_body_value(this, class_element, value.span(ast), class_decl_or_expr)
+                  .class_body_value(this, class_element, value.span(ast), class)
                   .unwrap_or_default()
               {
                 let was_top_level = this.top_level_scope;

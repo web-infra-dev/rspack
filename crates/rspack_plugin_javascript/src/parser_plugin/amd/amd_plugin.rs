@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
 use rspack_util::SpanExt;
-use swc_next_ecma_ast::{CallExpression, Expr, GetSpan, UnaryExpression};
+use swc_next_ecma_ast::{CallExpression, Expr, GetSpan, Span, UnaryExpression};
 
 use crate::{
   JavascriptParserPlugin,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier, evaluate_to_string},
-  visitors::{HookMemberExpression, Identifier, JavascriptParser},
+  visitors::{HookMemberExpression, JavascriptParser},
 };
 
 pub struct AMDParserPlugin;
@@ -125,12 +125,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == DEFINE {
       parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-        ident.span().into(),
+        span.into(),
         RuntimeGlobals::AMD_DEFINE,
       )));
       return Some(true);

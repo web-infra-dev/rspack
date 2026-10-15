@@ -19,7 +19,7 @@ use crate::{
     eval::{self, BasicEvaluatedExpression},
     object_properties::get_value_by_obj_prop,
   },
-  visitors::{HookMemberExpression, Identifier, JavascriptParser, member_property_key_to_atom},
+  visitors::{HookMemberExpression, JavascriptParser, member_property_key_to_atom},
 };
 
 fn get_value_of_property_description(ast: &Ast<'_>, expr: Expr) -> Option<Expr> {
@@ -373,7 +373,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if self.should_skip_handler(parser) {
@@ -396,7 +396,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
 
     if for_name == "exports" {
       // exports
-      return handle_access_export(parser, ident.span(), &[], &[], ExportsBase::Exports, None);
+      return handle_access_export(parser, span, &[], &[], ExportsBase::Exports, None);
     }
 
     None
