@@ -412,8 +412,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       ExportDefaultDeclarationKindData::Class(class) => class.id(ast),
       _ => None,
     }
-    .map(|identifier| Atom::from(ast.get_utf8(identifier.name(ast))))
-    .unwrap_or_else(|| DEFAULT_STAR_JS_WORD.clone());
+    .map_or_else(
+      || DEFAULT_STAR_JS_WORD.clone(),
+      |identifier| Atom::from(ast.get_utf8(identifier.name(ast))),
+    );
     InnerGraphParserPlugin::add_variable_usage(
       parser,
       &name,

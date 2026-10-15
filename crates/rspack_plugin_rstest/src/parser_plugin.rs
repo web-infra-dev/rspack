@@ -992,9 +992,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     }
 
     let ast = parser.ast.ast;
-    let Some(expr_stmt) = stmt.as_expression_statement(ast) else {
-      return None;
-    };
+    let expr_stmt = stmt.as_expression_statement(ast)?;
     let ExprData::CallExpression(call_expr) = ast.expr_data(expr_stmt.expression(ast)) else {
       return None;
     };
