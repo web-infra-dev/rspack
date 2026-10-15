@@ -801,4 +801,44 @@ The list of tsconfig paths can be provided manually, or you may specify `auto` t
 
 This feature is disabled when the value is `undefined`.
 
+#### Reference matching rules
+
+When resolving a non-relative request, Rspack checks the referenced tsconfig files in order (nested references are flattened) before falling back to the main tsconfig:
+
+1. The base path of each reference is its `baseUrl`, or the directory containing that tsconfig if `baseUrl` is not set.
+2. If the directory of the importing file is inside a reference's base path, Rspack uses the `paths` of that reference and stops there, even if that reference defines no `paths`.
+3. Only when no reference matches does Rspack use the `paths` of the main tsconfig.
+
+The match is based on directories only. Unlike `tsc`, Rspack does not read `include`, `files` or `exclude` to decide which project a file belongs to.
+
+:::warning
+Since references are matched by directory, Rspack cannot tell apart multiple tsconfig files placed in the same directory:
+
+- **The main tsconfig and a referenced tsconfig in the same directory**: every file in that directory matches the reference, so the `paths` of the main tsconfig never take effect there.
+- **Two referenced tsconfig files in the same directory**: they share the same base path, so the one listed first in `references` always wins, and the `paths` of the later one never take effect.
+
+For example, in the following layout, all three tsconfig files have the project root as their base path. Files under `src/` are matched to whichever of `tsconfig.app.json` and `tsconfig.node.json` comes first in `references`. If that is `tsconfig.node.json`, the `paths` in `tsconfig.app.json` are ignored and aliased imports in `src/` fail to resolve, even though `tsc` works because it assigns files by `include`.
+
+```
+.
+├── tsconfig.json         # references tsconfig.app.json and tsconfig.node.json
+├── tsconfig.app.json     # include: ["src"], defines paths
+├── tsconfig.node.json    # include: ["scripts"], no paths
+├── src/
+└── scripts/
+```
+
+Put each referenced tsconfig in the directory of the files it covers instead, so that each directory contains at most one tsconfig:
+
+```
+.
+├── tsconfig.json         # references: [{ "path": "./src" }, { "path": "./scripts" }]
+├── src/
+│   └── tsconfig.json     # defines paths, relative to src/
+└── scripts/
+    └── tsconfig.json
+```
+
+:::
+
 <Attribution url="https://webpack.js.org/configuration/resolve/" />

@@ -798,4 +798,44 @@ export default {
 
 使用 `undefined` 将会关闭该功能。
 
+#### reference 匹配规则
+
+解析非相对路径的请求时，Rspack 会先按顺序检查被引用的 tsconfig（嵌套的 references 会被展开），都不匹配时才使用主 tsconfig：
+
+1. 每个 reference 的基准路径是它的 `baseUrl`；没有设置 `baseUrl` 时，是该 tsconfig 所在的目录。
+2. 如果发起导入的文件所在目录位于某个 reference 的基准路径之下，Rspack 就使用这个 reference 的 `paths`，不再继续查找，即使它没有定义 `paths`。
+3. 所有 reference 都不匹配时，才使用主 tsconfig 的 `paths`。
+
+匹配只看目录。和 `tsc` 不同，Rspack 不会读取 `include`、`files` 或 `exclude` 来判断文件属于哪个 project。
+
+:::warning
+由于按目录匹配，Rspack 无法区分放在同一个目录下的多个 tsconfig：
+
+- **主 tsconfig 和被引用的 tsconfig 在同一个目录**：该目录下的文件都会匹配到被引用的 tsconfig，主 tsconfig 的 `paths` 在这里不会生效。
+- **两个被引用的 tsconfig 在同一个目录**：它们的基准路径相同，永远是 `references` 中排在前面的那个生效，后面那个的 `paths` 不会生效。
+
+例如下面的目录结构中，三个 tsconfig 的基准路径都是项目根目录。`src/` 下的文件会匹配到 `tsconfig.app.json` 和 `tsconfig.node.json` 中在 `references` 里排在前面的那个。如果排在前面的是 `tsconfig.node.json`，`tsconfig.app.json` 中的 `paths` 就会被忽略，`src/` 中使用别名的导入会解析失败；而 `tsc` 能正常工作，因为它按 `include` 判断文件归属。
+
+```
+.
+├── tsconfig.json         # references 指向 tsconfig.app.json 和 tsconfig.node.json
+├── tsconfig.app.json     # include: ["src"]，配置了 paths
+├── tsconfig.node.json    # include: ["scripts"]，没有 paths
+├── src/
+└── scripts/
+```
+
+推荐把每个被引用的 tsconfig 放到它所覆盖的文件所在的目录中，保证每个目录下最多只有一个 tsconfig：
+
+```
+.
+├── tsconfig.json         # references: [{ "path": "./src" }, { "path": "./scripts" }]
+├── src/
+│   └── tsconfig.json     # 配置 paths，路径相对于 src/
+└── scripts/
+    └── tsconfig.json
+```
+
+:::
+
 <Attribution url="https://webpack.js.org/configuration/resolve/" />
