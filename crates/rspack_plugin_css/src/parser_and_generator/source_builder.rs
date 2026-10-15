@@ -1,8 +1,7 @@
 use rspack_core::{
   Context, CssLayer, CssModuleRenderCondition,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, ReplaceSource, Source,
-    SourceExt,
+    BoxSource, ConcatSource, MapOptions, RawStringSource, ReplaceSource, Source, SourceExt,
   },
 };
 use rspack_util::{base64::encode_to_string, identifier::make_paths_relative};
@@ -117,7 +116,7 @@ impl CssSourceBuilder {
       .replace(&source.source().into_string_lossy(), "")
       .into_owned();
 
-    if let Some(mut source_map) = source.map(&ObjectPool::default(), &MapOptions::default()) {
+    if let Some(mut source_map) = source.map(&MapOptions::default()) {
       if !source_map_context.as_str().is_empty() {
         source_map.set_sources(
           source_map

@@ -3,6 +3,7 @@ mod tests;
 
 use std::{collections::VecDeque, fmt, sync::Arc};
 
+use futures::future::BoxFuture;
 use rspack_error::{Result, error};
 use rspack_fs::{Error as FsError, FileMetadata, ReadableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, RspackHashDigest, RspackHasher};
@@ -193,7 +194,18 @@ impl FileSystemInfo {
   /// Corresponds to webpack's `FileSystemInfo.createSnapshot`: classify paths,
   /// snapshot unmanaged paths, then read each managed item's metadata once.
   /// https://github.com/webpack/webpack/blob/fc90789fdf089a5de71671f8d10155fcd32dc027/lib/FileSystemInfo.js#L2534-L3079
-  pub async fn create_snapshot(
+  pub fn create_snapshot<'a>(
+    &'a self,
+    start_time: Option<u64>,
+    files: &'a InternedPathSet,
+    contexts: &'a InternedPathSet,
+    missing: &'a InternedPathSet,
+    strategy: SnapshotStrategyOptions,
+  ) -> BoxFuture<'a, Result<Snapshot>> {
+    Box::pin(self.create_snapshot_impl(start_time, files, contexts, missing, strategy))
+  }
+
+  async fn create_snapshot_impl(
     &self,
     start_time: Option<u64>,
     files: &InternedPathSet,

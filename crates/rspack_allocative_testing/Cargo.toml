@@ -5,8 +5,11 @@ name              = "rspack_allocative_testing"
 publish           = false
 version.workspace = true
 
+[lib]
+test = false
+
 [features]
-allocative = ["dep:allocative", "allocative/smallvec"]
+allocative = ["dep:allocative", "rspack_sources/allocative", "allocative/smallvec"]
 default    = []
 
 [dependencies]
@@ -14,9 +17,15 @@ allocative = { workspace = true, optional = true }
 
 [dev-dependencies]
 cow-utils                = { workspace = true }
+hashlink                 = { workspace = true }
 indexmap                 = { workspace = true }
 rspack_allocative_driver = { workspace = true }
+rspack_sources           = { workspace = true }
+rspack_tasks             = { workspace = true }
 smallvec                 = { workspace = true }
+smol_str                 = { workspace = true }
+swc_core                 = { workspace = true, features = ["base"] }
+urlencoding              = { workspace = true }
 
 [[test]]
 name              = "ownership"

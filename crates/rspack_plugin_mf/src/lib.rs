@@ -120,7 +120,9 @@ mod utils {
       if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
       } else {
-        runtime_template.render_runtime_variable(&RuntimeVariable::Context)
+        runtime_template
+          .render_runtime_variable(&RuntimeVariable::Context)
+          .to_string()
       }
     } else {
       runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)

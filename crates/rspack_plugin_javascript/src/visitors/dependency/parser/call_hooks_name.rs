@@ -1,11 +1,8 @@
-use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
-use swc_experimental_ecma_ast::{Expr, MemberExpr, OptChainExpr};
+use rspack_intern::AtomRef;
+use swc_next_ecma_ast::{ChainExpression, Expr, IdentifierReference, MemberExpression};
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
-use crate::{
-  Atom,
-  visitors::{ExprRef, scope_info::VariableInfoId},
-};
+use crate::visitors::{ExprRef, PatternIdentifier, scope_info::BindingState};
 
 /// callHooksForName/callHooksForInfo in webpack
 /// webpack use HookMap and filter at callHooksForName/callHooksForInfo
@@ -20,8 +17,8 @@ pub trait CallHooksName {
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>;
 }
 
-#[allow(unused_lifetimes)]
-impl CallHooksName for Atom {
+impl CallHooksName for IdentifierReference {
+  /// Dispatches hooks through the semantic binding, or the free name when no binding is active.
   fn call_hooks_name<'parser, F, T>(
     &self,
     parser: &mut JavascriptParser<'parser>,
@@ -30,17 +27,23 @@ impl CallHooksName for Atom {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    if let Some(id) = parser.get_variable_info(self).map(|info| info.id()) {
-      // resolved variable info
-      call_hooks_info(id, parser, hook_call)
+    let resolution = parser
+      .definitions_db
+      .semantic_context
+      .identifier_resolution(parser.ast, *self);
+    if let Some(state) = parser
+      .definitions_db
+      .resolve_identifier(parser.ast, *self, resolution)
+    {
+      call_hooks_info(state, parser, hook_call)
     } else {
-      // unresolved free variable, for example the global `require` in commonjs.
-      hook_call(parser, self)
+      let ast = parser.ast.ast;
+      hook_call(parser, ast.get_utf8(self.name(ast)))
     }
   }
 }
 
-impl CallHooksName for &str {
+impl CallHooksName for PatternIdentifier {
   fn call_hooks_name<'parser, F, T>(
     &self,
     parser: &mut JavascriptParser<'parser>,
@@ -49,45 +52,31 @@ impl CallHooksName for &str {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    if let Some(id) = parser.get_variable_info(*self).map(|info| info.id()) {
-      // resolved variable info
-      call_hooks_info(id, parser, hook_call)
-    } else {
-      // unresolved free variable, for example the global `require` in commonjs.
-      hook_call(parser, self)
+    match self {
+      Self::Reference(identifier) => identifier.call_hooks_name(parser, hook_call),
+      Self::Binding(_) => parser.call_hooks_name(self.name(parser.ast.ast), hook_call),
     }
   }
 }
 
-impl CallHooksName for AstAtom<'_> {
-  fn call_hooks_name<'parser, F, T>(
-    &self,
-    parser: &mut JavascriptParser<'parser>,
+impl<'parser> JavascriptParser<'parser> {
+  pub fn call_hooks_name<'key, F, T>(
+    &mut self,
+    name: impl Into<AtomRef<'key>>,
     hook_call: F,
   ) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
+    F: Fn(&mut Self, &str) -> Option<T>,
   {
-    if let Some(id) = parser.get_variable_info(self).map(|info| info.id()) {
-      call_hooks_info(id, parser, hook_call)
+    let name = name.into();
+    if let Some(state) = self.definitions_db.resolve(name) {
+      call_hooks_info(state, self, hook_call)
     } else {
-      hook_call(parser, self.as_str())
+      hook_call(self, name.as_str())
     }
   }
 }
-#[allow(unused_lifetimes)]
-impl CallHooksName for String {
-  fn call_hooks_name<'parser, F, T>(
-    &self,
-    parser: &mut JavascriptParser<'parser>,
-    hook_call: F,
-  ) -> Option<T>
-  where
-    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
-  {
-    self.as_str().call_hooks_name(parser, hook_call)
-  }
-}
+
 #[allow(unused_lifetimes)]
 impl CallHooksName for ExportedVariableInfo {
   fn call_hooks_name<'parser, F, T>(
@@ -99,13 +88,13 @@ impl CallHooksName for ExportedVariableInfo {
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
     match self {
-      ExportedVariableInfo::Name(n) => n.call_hooks_name(parser, hooks_call),
+      ExportedVariableInfo::Name(n) => parser.call_hooks_name(n, hooks_call),
       ExportedVariableInfo::VariableInfo(v) => call_hooks_info(*v, parser, hooks_call),
     }
   }
 }
 #[allow(unused_lifetimes)]
-impl CallHooksName for MemberExpr<'_> {
+impl CallHooksName for MemberExpression {
   fn call_hooks_name<'parser, F, T>(
     &self,
     parser: &mut JavascriptParser<'parser>,
@@ -115,7 +104,7 @@ impl CallHooksName for MemberExpr<'_> {
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
     let Some(MemberExpressionInfo::Expression(expr_name)) =
-      parser.get_member_expression_info(ExprRef::Member(self), AllowedMemberTypes::Expression)
+      parser.get_member_expression_info(ExprRef::Member(*self), AllowedMemberTypes::Expression)
     else {
       return None;
     };
@@ -124,12 +113,12 @@ impl CallHooksName for MemberExpr<'_> {
     if members.is_empty() {
       expr_name.root_info.call_hooks_name(parser, hook_call)
     } else {
-      expr_name.name.call_hooks_name(parser, hook_call)
+      hook_call(parser, &expr_name.name)
     }
   }
 }
 #[allow(unused_lifetimes)]
-impl CallHooksName for OptChainExpr<'_> {
+impl CallHooksName for ChainExpression {
   fn call_hooks_name<'parser, F, T>(
     &self,
     parser: &mut JavascriptParser<'parser>,
@@ -140,12 +129,7 @@ impl CallHooksName for OptChainExpr<'_> {
   {
     let Some(MemberExpressionInfo::Expression(expr_name)) = parser
       .get_member_expression_info_from_expr(
-        &Expr::OptChain(
-          parser
-            .ast
-            .allocator
-            .boxed(self.clone_in(parser.ast.allocator)),
-        ),
+        Expr::ChainExpression(*self),
         AllowedMemberTypes::Expression,
       )
     else {
@@ -156,19 +140,22 @@ impl CallHooksName for OptChainExpr<'_> {
     if members.is_empty() {
       expr_name.root_info.call_hooks_name(parser, hook_call)
     } else {
-      expr_name.name.call_hooks_name(parser, hook_call)
+      hook_call(parser, &expr_name.name)
     }
   }
 }
 
-fn call_hooks_info<'parser, F, T>(
-  id: VariableInfoId,
+pub(super) fn call_hooks_info<'parser, F, T>(
+  id: BindingState,
   parser: &mut JavascriptParser<'parser>,
   hook_call: F,
 ) -> Option<T>
 where
   F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
 {
+  if matches!(id, BindingState::Normal(_)) {
+    return None;
+  }
   let info = parser.definitions_db.expect_get_variable(id);
   let mut next_tag_info = info.tag_info;
 
@@ -185,7 +172,7 @@ where
   }
 
   let info = parser.definitions_db.expect_get_variable(id);
-  if let Some(name) = &info.name
+  if let Some(name) = info.name
     && (info.is_free() || info.is_tagged())
   {
     let result = hook_call(parser, &name.clone());

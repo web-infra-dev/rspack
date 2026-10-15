@@ -1083,17 +1083,6 @@ pub struct BoxModule(Box<dyn Module>);
 #[repr(transparent)]
 pub struct ModuleRef(Arc<dyn Module>);
 
-#[cfg(allocative)]
-impl rspack_util::allocative::Allocative for ModuleRef {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_util::allocative::Visitor<'b>) {
-    let mut visitor = visitor.enter_self(self);
-    if let Some(source) = self.source() {
-      visitor.visit_field(rspack_util::allocative::ident_key!(source), source);
-    }
-    visitor.exit();
-  }
-}
-
 impl From<BoxModule> for ModuleRef {
   fn from(module: BoxModule) -> Self {
     Self(Arc::from(module.0))

@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-  MapOptions, ObjectPool, RawBufferSource, RawStringSource, Source, SourceMap, SourceValue,
+  MapOptions, RawBufferSource, RawStringSource, Source, SourceMap, SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, stream_chunks_of_raw_rope},
   source::is_all_empty,
 };
@@ -556,11 +556,11 @@ impl Source for MappingSource {
     }
   }
 
-  fn map(&self, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap<'_>> {
+  fn map<'a>(&'a self, _: &MapOptions) -> Option<SourceMap<'a>> {
     None
   }
 
-  fn map_static(self: Arc<Self>, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap<'static>> {
+  fn map_static(self: Arc<Self>, _: &MapOptions) -> Option<SourceMap<'static>> {
     None
   }
 
@@ -612,7 +612,6 @@ struct MappingChunks<'a>(&'a MappingSource);
 impl<'source> Chunks<'source> for MappingChunks<'source> {
   fn stream<'chunk>(
     &'chunk self,
-    _: &ObjectPool,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
     on_source: crate::helpers::OnSource<'_, 'source>,

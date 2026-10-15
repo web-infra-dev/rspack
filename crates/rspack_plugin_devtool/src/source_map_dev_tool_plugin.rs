@@ -16,8 +16,8 @@ use rspack_core::{
   cache::CachedSourceMapDevToolPluginEntry,
   legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, MappingSource, ObjectPool, RawBufferSource,
-    RawStringSource, Source, SourceExt, SourceMap, SourceValue,
+    BoxSource, ConcatSource, MapOptions, MappingSource, RawBufferSource, RawStringSource, Source,
+    SourceExt, SourceMap, SourceValue,
   },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -34,7 +34,6 @@ use rspack_util::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
-use thread_local::ThreadLocal;
 use url::Url;
 
 use crate::{
@@ -597,7 +596,6 @@ impl SourceMapDevToolPlugin {
       include: self.include.as_ref(),
       exclude: self.exclude.as_ref(),
     };
-    let tls = ThreadLocal::new();
     let default_module_filename_template =
       default_source_map_module_filename_template(compilation.options.experiments.runtime_mode);
     let module_filename_template = self
@@ -625,21 +623,11 @@ impl SourceMapDevToolPlugin {
           };
 
           let map_options = map_options.clone();
-          let s = unsafe {
-            token.used((
-              self,
-              compilation,
-              file_to_chunk,
-              output_path,
-              template,
-              &tls,
-            ))
-          };
+          let s = unsafe { token.used((self, compilation, file_to_chunk, output_path, template)) };
           s.spawn(
-            |(plugin, compilation, file_to_chunk, output_path, template, tls)| async move {
+            |(plugin, compilation, file_to_chunk, output_path, template)| async move {
               let source_map = {
-                let object_pool = tls.get_or(ObjectPool::default);
-                match source.clone().map_static(object_pool, &map_options) {
+                match source.clone().map_static(&map_options) {
                   Some(sm) => sm,
                   None => return Ok(None),
                 }
@@ -735,22 +723,12 @@ impl SourceMapDevToolPlugin {
 
           let asset_filename: Arc<str> = Arc::from(asset_filename);
           let map_options = map_options.clone();
-          let s = unsafe {
-            token.used((
-              self,
-              compilation,
-              output_path,
-              f,
-              source,
-              asset_filename,
-              &tls,
-            ))
-          };
+          let s =
+            unsafe { token.used((self, compilation, output_path, f, source, asset_filename)) };
           s.spawn(
-            |(plugin, compilation, output_path, f, source, asset_filename, tls)| async move {
+            |(plugin, compilation, output_path, f, source, asset_filename)| async move {
               let source_map = {
-                let object_pool = tls.get_or(ObjectPool::default);
-                match source.clone().map_static(object_pool, &map_options) {
+                match source.clone().map_static(&map_options) {
                   Some(sm) => sm,
                   None => return Ok(None),
                 }

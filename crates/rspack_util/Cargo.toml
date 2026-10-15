@@ -34,8 +34,8 @@ smallvec         = { workspace = true }
 sugar_path       = { workspace = true }
 unicase          = { workspace = true }
 
-swc_core                  = { workspace = true, features = ["__common", "base", "ecma_ast"] }
-swc_experimental_ecma_ast = { workspace = true }
+swc_core          = { workspace = true, features = ["__common", "base", "ecma_ast"] }
+swc_next_ecma_ast = { workspace = true }
 
 # wasm runtime
 anyhow            = { workspace = true, optional = true }
@@ -48,7 +48,8 @@ rspack_regex = { workspace = true }
 signal-hook  = { workspace = true, optional = true }
 
 [features]
-debug_tool = ["signal-hook"]                                                         # only used for local debug and  should not be enabled in production release
+allocative = ["dep:allocative", "allocative/smallvec", "allocative/triomphe", "allocative/either", "allocative/parking_lot", "rspack_intern/allocative"]
+debug_tool = ["signal-hook"]                                                                                                                             # only used for local debug and  should not be enabled in production release
 plugin     = ["anyhow", "once_cell", "wasmtime", "wasi-common", "swc_plugin_runner"]
 
 [lints]
