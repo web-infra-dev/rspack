@@ -53,9 +53,10 @@ export default {
 When multiple loaders within the same rule have `parallel` enabled, Rspack executes them sequentially inside the same worker until it encounters a non-parallel loader or a Rust-implemented builtin loader. This preserves the loader execution order while maximizing parallel efficiency.
 
 :::tip
+
 - The loader options must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
 - In worker mode, most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, and `LoaderContext._module` are not supported.
-:::
+  :::
 
 For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparallel).
 
