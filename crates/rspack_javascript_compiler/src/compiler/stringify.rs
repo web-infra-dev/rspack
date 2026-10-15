@@ -2,7 +2,7 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_error::Result;
 use rspack_sources::{
-  MapOptions, Mapping, ObjectPool, OriginalLocation, Source, SourceMap, SourceMapSource,
+  MapOptions, Mapping, OriginalLocation, Source, SourceMap, SourceMapSource,
   SourceMapSourceOptions, encode_mappings,
 };
 use rspack_util::source_map::SourceMapKind;
@@ -270,10 +270,7 @@ fn build_rspack_source_map(
       inner_source_map: Some(input_source_map),
       remove_original_source: true,
     }))
-    .map_static(
-      &ObjectPool::default(),
-      &MapOptions::new(config.source_map_kind.emit_columns()),
-    )
+    .map_static(&MapOptions::new(config.source_map_kind.emit_columns()))
   } else {
     Some(intermediate_map)
   }
