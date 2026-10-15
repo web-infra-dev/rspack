@@ -14,9 +14,7 @@ use rspack_plugin_javascript::{
     self,
     eval::{self},
   },
-  visitors::{
-    HookMemberExpression, Identifier, JavascriptParser, create_traceable_error, expr_name,
-  },
+  visitors::{HookMemberExpression, JavascriptParser, create_traceable_error, expr_name},
 };
 use rspack_util::{
   SpanExt, json_stringify_str,
@@ -1154,7 +1152,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _ident: &Identifier,
+    _span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if self.options.module_path_name {

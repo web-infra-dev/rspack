@@ -21,9 +21,7 @@ use crate::{
   },
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{
-    HookMemberExpression, Identifier, JavascriptParser, create_traceable_error, expr_name,
-  },
+  visitors::{HookMemberExpression, JavascriptParser, create_traceable_error, expr_name},
 };
 
 fn expression_not_supported(
@@ -600,12 +598,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == API_LAYER {
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        ident.span().into(),
+        span.into(),
         serde_json::to_string(&parser.module_layer)
           .expect("should stringify JSON")
           .into(),
@@ -614,7 +612,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     }
 
     if for_name == API_MODULE {
-      let range = ident.span().into();
+      let range = span.into();
       let loc = parser.to_dependency_location(range);
       parser
         .add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(None, range, loc)));
@@ -628,15 +626,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       } else {
         "require".into()
       };
-      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        ident.span().into(),
-        content,
-      )));
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(span.into(), content)));
       return Some(true);
     }
 
     if for_name == API_EXPORTS_INFO {
-      let dep = Arc::new(ConstDependency::new(ident.span().into(), "true".into()));
+      let dep = Arc::new(ConstDependency::new(span.into(), "true".into()));
       parser.add_presentational_dependency(dep);
       return Some(true);
     }
@@ -650,7 +645,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
         && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack =>
       {
         parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-          ident.span().into(),
+          span.into(),
           runtime_global,
         )));
         Some(true)
@@ -663,14 +658,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       }
       _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Call)) => {
         parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::call(
-          ident.span().into(),
+          span.into(),
           runtime_global,
         )));
         Some(true)
       }
       API_LAYER => {
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-          ident.span().into(),
+          span.into(),
           parser
             .module_layer
             .map_or_else(|| "null".to_string(), |layer| json_stringify_str(layer))
@@ -680,7 +675,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       }
       _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Normal)) => {
         parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-          ident.span().into(),
+          span.into(),
           runtime_global,
         )));
         Some(true)
@@ -865,7 +860,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: AssignmentExpression,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
@@ -876,7 +871,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     {
       let dependency = runtime_requirements_write_assignment(
         parser.parser_runtime_requirements.render_mode,
-        ident.span(),
+        span,
         expr.right(ast).span(ast),
         expr.span(ast),
         expr.operator(ast),

@@ -24,8 +24,7 @@ use crate::{
   },
   utils::eval::{BasicEvaluatedExpression, eval_member_expression_with_info},
   visitors::{
-    AtomMembers, ExportedVariableInfo, ExprRef, Identifier, PatternIdentifier, VariableInfo,
-    VariableInfoFlags,
+    AtomMembers, ExportedVariableInfo, PatternIdentifier, VariableInfo, VariableInfoFlags,
   },
 };
 
@@ -1786,8 +1785,8 @@ impl JavascriptParser<'_> {
   ) {
     let ast = self.ast.ast;
     let super::RawExtractedMemberExpressionChainData { object, members } =
-      self.extract_member_expression_chain_raw(ExprRef::Member(expr));
-    if let ExprRef::Await(await_expr) = object
+      self.extract_member_expression_chain_raw(Expr::MemberExpression(expr));
+    if let ExprData::AwaitExpression(await_expr) = ast.expr_data(object)
       && let Some(call) = await_expr.argument(ast).as_import_expression(ast)
     {
       let members = members
@@ -1851,20 +1850,14 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let drive = self.plugin_drive();
     identifier.call_hooks_name(self, |this, for_name| {
-      drive.identifier(
-        this,
-        &Identifier {
-          span: identifier.span(ast),
-        },
-        for_name,
-      )
+      drive.identifier(this, identifier.span(ast), for_name)
     });
   }
 
   fn walk_identifier_name(&mut self, name: &str, span: Span) {
     let drive = self.plugin_drive();
     self.call_hooks_name(name, |this, for_name| {
-      drive.identifier(this, &Identifier { span }, for_name)
+      drive.identifier(this, span, for_name)
     });
   }
 
@@ -1998,14 +1991,7 @@ impl JavascriptParser<'_> {
       self.enter_assignment_target(left, |this, identifier| {
         if !ident
           .call_hooks_name(this, |this, for_name| {
-            drive.assign(
-              this,
-              expr,
-              &Identifier {
-                span: identifier.span(ast),
-              },
-              for_name,
-            )
+            drive.assign(this, expr, identifier.span(ast), for_name)
           })
           .unwrap_or_default()
         {
@@ -2022,14 +2008,7 @@ impl JavascriptParser<'_> {
         let name = ident.name(ast);
         if !this
           .call_hooks_name(name, |this, for_name| {
-            drive.assign(
-              this,
-              expr,
-              &Identifier {
-                span: ident.span(ast),
-              },
-              for_name,
-            )
+            drive.assign(this, expr, ident.span(ast), for_name)
           })
           .unwrap_or_default()
         {
@@ -2048,14 +2027,7 @@ impl JavascriptParser<'_> {
         let name = ident.name(ast);
         if !this
           .call_hooks_name(name, |this, for_name| {
-            drive.assign(
-              this,
-              expr,
-              &Identifier {
-                span: ident.span(ast),
-              },
-              for_name,
-            )
+            drive.assign(this, expr, ident.span(ast), for_name)
           })
           .unwrap_or_default()
         {
@@ -2067,20 +2039,21 @@ impl JavascriptParser<'_> {
       .as_simple_assignment_target(ast)
       .and_then(|target| target.as_member_expression(ast))
     {
-      if let Some(MemberExpressionInfo::Expression(expr_name)) =
-        self.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
-        && expr_name
-          .root_info
-          .call_hooks_name(self, |parser, for_name| {
-            drive.assign_member_chain(
-              parser,
-              expr,
-              &expr_name.members,
-              &expr_name.member_ranges,
-              for_name,
-            )
-          })
-          .unwrap_or_default()
+      if let Some(MemberExpressionInfo::Expression(expr_name)) = self.get_member_expression_info(
+        Expr::MemberExpression(member),
+        AllowedMemberTypes::Expression,
+      ) && expr_name
+        .root_info
+        .call_hooks_name(self, |parser, for_name| {
+          drive.assign_member_chain(
+            parser,
+            expr,
+            &expr_name.members,
+            &expr_name.member_ranges,
+            for_name,
+          )
+        })
+        .unwrap_or_default()
       {
         return;
       }

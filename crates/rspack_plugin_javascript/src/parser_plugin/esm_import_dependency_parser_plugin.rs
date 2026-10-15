@@ -27,7 +27,7 @@ use crate::{
   },
   visitors::{
     AllowedMemberTypes, AtomMembers, ExportedVariableInfo, ExpressionExpressionInfo,
-    HookMemberExpression, Identifier, JavascriptParser, MemberExpressionInfo, TagInfoData,
+    HookMemberExpression, JavascriptParser, MemberExpressionInfo, TagInfoData,
     get_non_optional_member_chain_from_expr, get_non_optional_member_chain_from_member,
     get_non_optional_part,
   },
@@ -293,7 +293,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if for_name != ESM_SPECIFIER_TAG {
@@ -305,16 +305,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
     let referenced_properties_in_destructuring = parser
       .destructuring_assignment_properties
-      .get(&ident.span())
+      .get(&span)
       .cloned();
-    let range = DependencyRange::from(ident.span());
+    let range = DependencyRange::from(span);
     let loc = parser.to_dependency_location(range);
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
       parser.in_short_hand,
-      !parser.is_asi_position(ident.span().real_lo()),
+      !parser.is_asi_position(span.real_lo()),
       range,
       settings.ids.into_vec(),
       parser.in_tagged_template_tag,

@@ -39,7 +39,7 @@ use crate::{
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    AllowedMemberTypes, ExportedVariableInfo, ExprRef, HookMemberExpression, JavascriptParser,
+    AllowedMemberTypes, ExportedVariableInfo, HookMemberExpression, JavascriptParser,
     MemberExpressionInfo, RootName, context_reg_exp, create_context_dependency,
     create_traceable_error, expr_name, get_non_optional_member_chain_from_expr,
     member_property_key_to_atom, resolve_call_trailing_comma_range,
@@ -886,7 +886,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             return Some(true);
           }
           let members = parser
-            .get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::Expression)
+            .get_member_expression_info(
+              Expr::MemberExpression(expr),
+              AllowedMemberTypes::Expression,
+            )
             .and_then(|info| match info {
               MemberExpressionInfo::Expression(res) => Some(res),
               _ => None,

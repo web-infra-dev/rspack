@@ -7,16 +7,14 @@ use std::{
 };
 
 use rspack_util::SpanExt;
-use swc_next_ecma_ast::{Expr, GetSpan, UnaryExpression};
+use swc_next_ecma_ast::{Expr, GetSpan, Span, UnaryExpression};
 
 use super::{VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
 use crate::{
   JavascriptParserPlugin,
   define_plugin::walk_data::DefineRecord,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_string},
-  visitors::{
-    AllowedMemberTypes, HookMemberExpression, Identifier, JavascriptParser, MemberExpressionInfo,
-  },
+  visitors::{AllowedMemberTypes, HookMemberExpression, JavascriptParser, MemberExpressionInfo},
 };
 
 pub struct DefineParserPlugin {
@@ -217,14 +215,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_expression) = &record.on_expression
     {
       self.add_value_dependency(parser, for_name);
-      let span = ident.span();
       return on_expression(
         record,
         parser,
@@ -237,7 +234,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
       && let Some(on_expression) = &record.on_expression
     {
       self.add_value_dependency(parser, for_name);
-      let span = ident.span();
       return on_expression(
         record,
         parser,

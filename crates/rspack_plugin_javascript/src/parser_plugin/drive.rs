@@ -14,8 +14,8 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     DestructuringAssignmentProperty, ExportDefaultDeclaration, ExportImport, ExportLocal,
-    ExportedVariableInfo, ExpressionExpressionInfo, HookMemberExpression, Identifier,
-    JavascriptParser, PatternIdentifier,
+    ExportedVariableInfo, ExpressionExpressionInfo, HookMemberExpression, JavascriptParser,
+    PatternIdentifier,
   },
 };
 
@@ -304,11 +304,11 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     &self,
     parser: &mut JavascriptParser<'p>,
     expr: AssignmentExpression,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Assign) {
-      let res = plugin.assign(parser, expr, ident, for_name);
+      let res = plugin.assign(parser, expr, span, for_name);
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -450,11 +450,11 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Identifier) {
-      let res = plugin.identifier(parser, expr, for_name);
+      let res = plugin.identifier(parser, span, for_name);
       // `SyncBailHook`
       if res.is_some() {
         return res;

@@ -13,7 +13,7 @@ use super::JavascriptParserPlugin;
 use crate::{
   Atom,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier},
-  visitors::{HookMemberExpression, Identifier, JavascriptParser, VariableInfoFlags, expr_name},
+  visitors::{HookMemberExpression, JavascriptParser, VariableInfoFlags, expr_name},
 };
 
 pub struct CommonJsPlugin;
@@ -194,7 +194,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _ident: &Identifier,
+    _span: Span,
     for_name: &str,
   ) -> Option<bool> {
     self.observe_factory_binding(parser, for_name);
@@ -225,7 +225,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     _expr: AssignmentExpression,
-    _ident: &Identifier,
+    _span: Span,
     for_name: &str,
   ) -> Option<bool> {
     self.observe_factory_binding(parser, for_name);

@@ -52,7 +52,7 @@ use crate::{
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     ParsedJavaScriptAst, PatternIdentifier, ScanDependenciesResult,
-    dependency::parser::{ast::ExprRef, location_advancer::DependencyLocationAdvancer},
+    dependency::parser::location_advancer::DependencyLocationAdvancer,
     scope_info::{
       BindingState, ScopeInfoDB, SymbolBinding, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags,
     },
@@ -196,7 +196,7 @@ impl RawMember {
 }
 
 struct RawExtractedMemberExpressionChainData {
-  object: ExprRef,
+  object: Expr,
   members: RawMembers,
 }
 
@@ -218,7 +218,7 @@ fn materialize_members(
 
 #[derive(Debug)]
 pub struct ExtractedMemberExpressionChainData {
-  pub object: ExprRef,
+  pub object: Expr,
   pub members: AtomMembers,
   pub members_optionals: OptionalMembers,
   pub member_ranges: MemberRanges,
@@ -293,17 +293,6 @@ impl RootName for Expr {
       ExprData::IdentifierReference(ident) => ident.get_root_name(ast),
       ExprData::ThisExpression(this) => this.get_root_name(ast),
       ExprData::MetaProperty(meta) => meta.get_root_name(ast),
-      _ => None,
-    }
-  }
-}
-
-impl RootName for ExprRef {
-  fn get_root_name<'ast>(&self, ast: &'ast Ast<'_>) -> Option<&'ast str> {
-    match self {
-      ExprRef::Ident(ident) => ident.get_root_name(ast),
-      ExprRef::This(this) => this.get_root_name(ast),
-      ExprRef::MetaProp(meta) => meta.get_root_name(ast),
       _ => None,
     }
   }
@@ -1131,8 +1120,8 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   /// Resolves a member-chain root for alias- and tag-aware hook dispatch.
-  fn get_name_info_from_root(&mut self, root: ExprRef) -> Option<NameInfo<'_>> {
-    let ExprRef::Ident(identifier) = root else {
+  fn get_name_info_from_root(&mut self, root: Expr) -> Option<NameInfo<'_>> {
+    let ExprData::IdentifierReference(identifier) = self.ast.ast.expr_data(root) else {
       return self.get_name_info_from_variable(root.get_root_name(self.ast.ast)?);
     };
     let resolution = self
@@ -1289,22 +1278,22 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn _get_member_expression_info(
     &mut self,
-    object: ExprRef,
+    object: Expr,
     members: RawMembers,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
     let ast = self.ast.ast;
-    match object {
-      ExprRef::Call(expr) => {
+    match ast.expr_data(object) {
+      ExprData::CallExpression(expr) => {
         if !allowed_types.contains(AllowedMemberTypes::CallExpression) {
           return None;
         }
         let callee = expr.callee(ast);
         let (root, root_members) = if let Some(member) = callee.as_member_expression(ast) {
-          let extracted = self.extract_member_expression_chain_raw(ExprRef::Member(member));
+          let extracted = self.extract_member_expression_chain_raw(Expr::MemberExpression(member));
           (extracted.object, extracted.members)
         } else {
-          (ExprRef::from_expr(ast, callee), RawMembers::new())
+          (callee, RawMembers::new())
         };
         let NameInfo {
           name: resolved_root,
@@ -1333,7 +1322,9 @@ impl<'parser> JavascriptParser<'parser> {
           member_ranges,
         }))
       }
-      ExprRef::MetaProp(_) | ExprRef::Ident(_) | ExprRef::This(_) => {
+      ExprData::MetaProperty(_)
+      | ExprData::IdentifierReference(_)
+      | ExprData::ThisExpression(_) => {
         if !allowed_types.contains(AllowedMemberTypes::Expression) {
           return None;
         }
@@ -1368,18 +1359,17 @@ impl<'parser> JavascriptParser<'parser> {
     expr: Expr,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
-    let expr_ref = ExprRef::from_expr(self.ast.ast, expr);
-    match expr_ref {
-      ExprRef::Member(_) | ExprRef::OptChain(_) => {
-        self.get_member_expression_info(expr_ref, allowed_types)
+    match self.ast.ast.expr_data(expr) {
+      ExprData::MemberExpression(_) | ExprData::ChainExpression(_) => {
+        self.get_member_expression_info(expr, allowed_types)
       }
-      _ => self._get_member_expression_info(expr_ref, RawMembers::new(), allowed_types),
+      _ => self._get_member_expression_info(expr, RawMembers::new(), allowed_types),
     }
   }
 
   pub fn get_member_expression_info(
     &mut self,
-    expr: ExprRef,
+    expr: Expr,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
     let RawExtractedMemberExpressionChainData { object, members } =
@@ -1387,10 +1377,7 @@ impl<'parser> JavascriptParser<'parser> {
     self._get_member_expression_info(object, members, allowed_types)
   }
 
-  pub fn extract_member_expression_chain(
-    &self,
-    expr: ExprRef,
-  ) -> ExtractedMemberExpressionChainData {
+  pub fn extract_member_expression_chain(&self, expr: Expr) -> ExtractedMemberExpressionChainData {
     let RawExtractedMemberExpressionChainData { object, members } =
       self.extract_member_expression_chain_raw(expr);
     let (members, members_optionals, member_ranges) = materialize_members(self.ast.ast, members);
@@ -1404,15 +1391,15 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn extract_member_expression_chain_raw(
     &self,
-    expr: ExprRef,
+    expr: Expr,
   ) -> RawExtractedMemberExpressionChainData {
     let ast = self.ast.ast;
     let mut object = expr;
     let mut members = RawMembers::new();
     let mut in_optional_chain = self.member_expr_in_optional_chain;
     loop {
-      match object {
-        ExprRef::Member(expr) => {
+      match ast.expr_data(object) {
+        ExprData::MemberExpression(expr) => {
           let property = expr.property(ast);
           let property_data = if expr.computed(ast) {
             let property_data = ast.property_key_data(property);
@@ -1431,14 +1418,14 @@ impl<'parser> JavascriptParser<'parser> {
             object: member_object,
             optional: in_optional_chain || expr.optional(ast),
           });
-          object = ExprRef::from_expr(ast, member_object);
+          object = member_object;
           in_optional_chain = false;
         }
-        ExprRef::OptChain(expr) => {
+        ExprData::ChainExpression(expr) => {
           let expression = expr.expression(ast);
           if let Some(member) = expression.as_member_expression(ast) {
             in_optional_chain = member.optional(ast);
-            object = ExprRef::Member(member);
+            object = Expr::MemberExpression(member);
           } else {
             break;
           }

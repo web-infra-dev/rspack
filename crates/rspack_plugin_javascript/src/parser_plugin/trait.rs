@@ -111,7 +111,7 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     DestructuringAssignmentProperty, ExportDefaultDeclaration, ExportImport, ExportLocal,
-    ExportedVariableInfo, ExpressionExpressionInfo, Identifier, JavascriptParser,
+    ExportedVariableInfo, ExpressionExpressionInfo, JavascriptParser,
   },
 };
 
@@ -472,7 +472,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn identifier(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _ident: &Identifier,
+    _span: Span,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -491,7 +491,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     &self,
     _parser: &mut JavascriptParser<'p>,
     _expr: AssignmentExpression,
-    _ident: &Identifier,
+    _span: Span,
     _for_name: &str,
   ) -> Option<bool> {
     None

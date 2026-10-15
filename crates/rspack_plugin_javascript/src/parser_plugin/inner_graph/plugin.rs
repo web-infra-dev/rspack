@@ -26,7 +26,7 @@ use crate::{
     is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
   },
   visitors::{
-    ExportedVariableInfo, HookMemberExpression, Identifier, JavascriptParser, TagInfoData,
+    ExportedVariableInfo, HookMemberExpression, JavascriptParser, TagInfoData,
     scope_info::VariableInfoFlags,
   },
 };
@@ -909,7 +909,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     expr: AssignmentExpression,
-    _ident: &Identifier,
+    _span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() || for_name != TOP_LEVEL_SYMBOL {
@@ -924,7 +924,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _ident: &Identifier,
+    _span: Span,
     for_name: &str,
   ) -> Option<bool> {
     Self::for_each_expression(parser, for_name);

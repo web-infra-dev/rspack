@@ -24,7 +24,7 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
-    ContextModuleScanResult, DestructuringAssignmentProperties, HookMemberExpression, Identifier,
+    ContextModuleScanResult, DestructuringAssignmentProperties, HookMemberExpression,
     JavascriptParser, PatRef, TagInfoData, TopLevelScope, context_reg_exp,
     create_context_dependency, create_traceable_error, formal_parameter_pattern,
     formal_parameter_patterns, formal_parameter_patterns_with_defaults, get_non_optional_part,
@@ -299,7 +299,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Identifier,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     if for_name != DYNAMIC_IMPORT_TAG {
@@ -309,10 +309,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
-    if let Some(keys) = parser
-      .destructuring_assignment_properties
-      .get(&ident.span())
-    {
+    if let Some(keys) = parser.destructuring_assignment_properties.get(&span) {
       for ids in collect_destructuring_references(keys) {
         parser
           .dynamic_import_references

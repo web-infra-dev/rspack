@@ -5,7 +5,7 @@ use super::BasicEvaluatedExpression;
 use crate::{
   parser_plugin::{CREATED_REQUIRE_IDENTIFIER_TAG, CreatedRequireTagData, JavascriptParserPlugin},
   visitors::{
-    AllowedMemberTypes, ExportedVariableInfo, ExprRef, ExpressionExpressionInfo, JavascriptParser,
+    AllowedMemberTypes, ExportedVariableInfo, ExpressionExpressionInfo, JavascriptParser,
     MemberExpressionInfo,
   },
 };
@@ -15,9 +15,10 @@ pub fn eval_member_expression<'parser>(
   member: MemberExpression,
   expression: Expr,
 ) -> Option<BasicEvaluatedExpression<'parser>> {
-  let info = match parser
-    .get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
-  {
+  let info = match parser.get_member_expression_info(
+    Expr::MemberExpression(member),
+    AllowedMemberTypes::Expression,
+  ) {
     Some(MemberExpressionInfo::Expression(info)) => Some(info),
     _ => None,
   };
