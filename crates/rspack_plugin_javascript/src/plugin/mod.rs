@@ -697,7 +697,17 @@ var {} = {{}};
     })
   }
 
-  pub async fn render_main(
+  pub fn render_main<'a>(
+    &'a self,
+    compilation: &'a Compilation,
+    chunk_ukey: &'a ChunkUkey,
+    output_path: &'a str,
+    runtime_template: &'a RuntimeCodeTemplate,
+  ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<BoxSource>> + Send + 'a>> {
+    Box::pin(self.render_main_impl(compilation, chunk_ukey, output_path, runtime_template))
+  }
+
+  async fn render_main_impl(
     &self,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,

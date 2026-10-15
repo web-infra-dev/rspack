@@ -30,7 +30,8 @@ pub struct Helper<L = CompilationLogger> {
   logger: L,
 }
 
-impl<L: Logger> Helper<L> {
+// `Send` is required so that `resolve_file` can return a `BoxFuture`.
+impl<L: Logger + Send> Helper<L> {
   pub fn new(fs: Arc<dyn ReadableFileSystem>, logger: L) -> Self {
     Helper {
       resolver: Resolver::new(
@@ -74,7 +75,14 @@ impl<L: Logger> Helper<L> {
   ///
   /// This function will try analyze the ast and resolve the requests in them.
   /// Return the file path that the input file depends on.
-  async fn resolve_file(&mut self, file: &Utf8Path) -> Option<HashSet<Utf8PathBuf>> {
+  fn resolve_file<'a>(
+    &'a mut self,
+    file: &'a Utf8Path,
+  ) -> futures::future::BoxFuture<'a, Option<HashSet<Utf8PathBuf>>> {
+    Box::pin(self.resolve_file_impl(file))
+  }
+
+  async fn resolve_file_impl(&mut self, file: &Utf8Path) -> Option<HashSet<Utf8PathBuf>> {
     let Some(ext) = file.extension() else {
       // no extension
       return None;

@@ -559,7 +559,16 @@ impl PathManager {
   /// `doScan(false)`: the files directly in them are stamped with the
   /// observation time, since one changed while away may have kept its mtime.
   /// Returns the files whose safe time is at or after `changed_since`.
-  async fn scan_below(
+  fn scan_below<'a>(
+    &'a self,
+    roots: Vec<InternedPath>,
+    recovered: bool,
+    changed_since: Option<u64>,
+  ) -> futures::future::BoxFuture<'a, Vec<InternedPath>> {
+    Box::pin(self.scan_below_impl(roots, recovered, changed_since))
+  }
+
+  async fn scan_below_impl(
     &self,
     roots: Vec<InternedPath>,
     recovered: bool,

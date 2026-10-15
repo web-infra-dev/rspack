@@ -187,43 +187,50 @@ pub fn runtime_module_get_generated_code<'a>(
   })
 }
 
-pub async fn runtime_module_code_generation(
-  module: &dyn RuntimeModule,
-  common: &RuntimeModuleCommon,
-  ctx: &mut ModuleCodeGenerationContext<'_>,
-) -> Result<CodeGenerationResultBuilder> {
-  let mut result = CodeGenerationResultBuilder::default();
-  let source = runtime_module_get_generated_code(module, common, ctx.compilation).await?;
-  result.add(SourceType::Runtime, source);
-  Ok(result)
+pub fn runtime_module_code_generation<'a, 'b>(
+  module: &'a dyn RuntimeModule,
+  common: &'a RuntimeModuleCommon,
+  ctx: &'a mut ModuleCodeGenerationContext<'b>,
+) -> BoxFuture<'a, Result<CodeGenerationResultBuilder>>
+where
+  'b: 'a,
+{
+  Box::pin(async move {
+    let mut result = CodeGenerationResultBuilder::default();
+    let source = runtime_module_get_generated_code(module, common, ctx.compilation).await?;
+    result.add(SourceType::Runtime, source);
+    Ok(result)
+  })
 }
 
-pub async fn runtime_module_get_runtime_hash(
-  module: &dyn RuntimeModule,
-  common: &RuntimeModuleCommon,
-  compilation: &Compilation,
-  _runtime: Option<&RuntimeSpec>,
-) -> Result<RspackHashDigest> {
-  let mut hasher = RspackHasher::from(&compilation.options.output);
-  module.name().hash(&mut hasher);
-  module.stage().hash(&mut hasher);
-  if module.full_hash() || module.dependent_hash() {
-    let runtime_template = compilation
-      .runtime_template
-      .create_runtime_module_code_template();
-    let context = RuntimeModuleGenerateContext {
-      compilation,
-      runtime_template: &runtime_template,
-    };
-    RspackHash::hash(&module.generate_with_custom(&context).await?, &mut hasher);
-  } else {
-    use std::hash::Hash;
+pub fn runtime_module_get_runtime_hash<'a>(
+  module: &'a dyn RuntimeModule,
+  common: &'a RuntimeModuleCommon,
+  compilation: &'a Compilation,
+  _runtime: Option<&'a RuntimeSpec>,
+) -> BoxFuture<'a, Result<RspackHashDigest>> {
+  Box::pin(async move {
+    let mut hasher = RspackHasher::from(&compilation.options.output);
+    module.name().hash(&mut hasher);
+    module.stage().hash(&mut hasher);
+    if module.full_hash() || module.dependent_hash() {
+      let runtime_template = compilation
+        .runtime_template
+        .create_runtime_module_code_template();
+      let context = RuntimeModuleGenerateContext {
+        compilation,
+        runtime_template: &runtime_template,
+      };
+      RspackHash::hash(&module.generate_with_custom(&context).await?, &mut hasher);
+    } else {
+      use std::hash::Hash;
 
-    runtime_module_get_generated_code(module, common, compilation)
-      .await?
-      .hash(&mut hasher);
-  }
-  Ok(hasher.digest(&compilation.options.output.hash_digest))
+      runtime_module_get_generated_code(module, common, compilation)
+        .await?
+        .hash(&mut hasher);
+    }
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
+  })
 }
 
 #[async_trait]

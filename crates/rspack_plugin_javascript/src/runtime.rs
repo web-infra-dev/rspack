@@ -126,7 +126,38 @@ pub async fn render_chunk_modules(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub async fn render_module(
+pub fn render_module<'a>(
+  compilation: &'a Compilation,
+  chunk_ukey: &'a ChunkUkey,
+  module: &'a dyn Module,
+  all_strict: bool,
+  factory: bool,
+  render_preserved_asset_import_fragment: bool,
+  output_path: &'a str,
+  hooks: &'a JavascriptModulesPluginHooks,
+  runtime_template: &'a RuntimeCodeTemplate,
+  module_runtime_scope: Option<&'a str>,
+) -> std::pin::Pin<
+  Box<
+    dyn std::future::Future<Output = Result<Option<(BoxSource, ChunkInitFragments)>>> + Send + 'a,
+  >,
+> {
+  Box::pin(render_module_impl(
+    compilation,
+    chunk_ukey,
+    module,
+    all_strict,
+    factory,
+    render_preserved_asset_import_fragment,
+    output_path,
+    hooks,
+    runtime_template,
+    module_runtime_scope,
+  ))
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn render_module_impl(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   module: &dyn Module,
@@ -420,7 +451,19 @@ pub async fn render_chunk_runtime_modules(
   Ok(sources.boxed())
 }
 
-pub async fn render_runtime_modules(
+pub fn render_runtime_modules<'a>(
+  compilation: &'a Compilation,
+  chunk_ukey: &'a ChunkUkey,
+  runtime_template: &'a RuntimeCodeTemplate,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<BoxSource>> + Send + 'a>> {
+  Box::pin(render_runtime_modules_impl(
+    compilation,
+    chunk_ukey,
+    runtime_template,
+  ))
+}
+
+async fn render_runtime_modules_impl(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,

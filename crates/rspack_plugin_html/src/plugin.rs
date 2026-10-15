@@ -59,7 +59,23 @@ impl HtmlRspackPlugin {
   }
 }
 
-async fn generate_html(
+fn generate_html<'a>(
+  filename: &'a str,
+  html_file_name: &'a Filename,
+  config: &'a HtmlRspackPluginOptions,
+  compilation: &'a mut Compilation,
+  hooks: ArcHtmlPluginHooks,
+) -> futures::future::BoxFuture<'a, Result<(String, String, Vec<PathBuf>)>> {
+  Box::pin(generate_html_impl(
+    filename,
+    html_file_name,
+    config,
+    compilation,
+    hooks,
+  ))
+}
+
+async fn generate_html_impl(
   filename: &str,
   html_file_name: &Filename,
   config: &HtmlRspackPluginOptions,

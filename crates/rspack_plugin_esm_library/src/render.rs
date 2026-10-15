@@ -128,7 +128,18 @@ impl EsmLibraryPlugin {
       .map_or(chunk_ukey, ChunkGroup::get_entrypoint_chunk)
   }
 
-  pub(crate) async fn render_chunk(
+  pub(crate) fn render_chunk<'a>(
+    &'a self,
+    compilation: &'a Compilation,
+    chunk_ukey: &'a ChunkUkey,
+    asset_info: &'a mut AssetInfo,
+    runtime_template: &'a RuntimeCodeTemplate,
+  ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<RenderSource>>> + Send + 'a>>
+  {
+    Box::pin(self.render_chunk_impl(compilation, chunk_ukey, asset_info, runtime_template))
+  }
+
+  async fn render_chunk_impl(
     &self,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,

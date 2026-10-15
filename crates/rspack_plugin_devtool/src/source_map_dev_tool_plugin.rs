@@ -404,7 +404,17 @@ impl SourceMapDevToolPlugin {
     }
   }
 
-  async fn map_assets(
+  fn map_assets<'a>(
+    &'a self,
+    compilation: &'a Compilation,
+    file_to_chunk: &'a HashMap<&'a str, &'a Chunk>,
+    output_path: &'a Utf8Path,
+    compilation_assets: Vec<(String, &'a CompilationAsset)>,
+  ) -> futures::future::BoxFuture<'a, Result<Vec<MappedAsset>>> {
+    Box::pin(self.map_assets_impl(compilation, file_to_chunk, output_path, compilation_assets))
+  }
+
+  async fn map_assets_impl(
     &self,
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,

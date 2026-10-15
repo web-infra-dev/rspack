@@ -108,7 +108,14 @@ impl CacheValidator {
 
   /// See webpack's build dependency resolution and snapshot persistence:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/cache/PackFileCacheStrategy.js#L1510-L1625
-  pub(super) async fn update(
+  pub(super) fn update<'a>(
+    &'a self,
+    new_build_dependencies: InternedPathSet,
+  ) -> futures::future::BoxFuture<'a, Result<Option<Vec<u8>>>> {
+    Box::pin(self.update_impl(new_build_dependencies))
+  }
+
+  async fn update_impl(
     &self,
     mut new_build_dependencies: InternedPathSet,
   ) -> Result<Option<Vec<u8>>> {

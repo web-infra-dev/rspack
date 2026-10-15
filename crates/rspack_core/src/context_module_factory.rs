@@ -218,7 +218,18 @@ impl ContextModuleFactory {
       })
   }
 
-  async fn resolve(
+  fn resolve<'a>(
+    &'a self,
+    data: &'a mut ModuleFactoryCreateData,
+    before_resolve_data: Box<BeforeResolveData>,
+  ) -> futures::future::BoxFuture<
+    'a,
+    Result<(ModuleFactoryResult, Option<ContextModuleAfterResolveInput>)>,
+  > {
+    Box::pin(self.resolve_impl(data, before_resolve_data))
+  }
+
+  async fn resolve_impl(
     &self,
     data: &mut ModuleFactoryCreateData,
     before_resolve_data: Box<BeforeResolveData>,
