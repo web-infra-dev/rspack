@@ -4,7 +4,7 @@ use rspack_util::{
 };
 use swc_next_ecma_ast::*;
 
-use super::{DestructuringAssignmentProperty, JavascriptParser, PatRef, estree::Statement};
+use super::{DestructuringAssignmentProperty, JavascriptParser, PatRef};
 use crate::{
   Atom,
   parser_plugin::JavascriptParserPlugin,
@@ -102,7 +102,7 @@ impl JavascriptParser<'_> {
   pub fn pre_walk_statements(&mut self, statements: SubRange<Stmt>) {
     let ast = self.ast.ast;
     for statement in ast.nodes(statements) {
-      self.pre_walk_statement(Statement::from_stmt(ast, statement));
+      self.pre_walk_statement(statement);
     }
   }
 
@@ -112,54 +112,54 @@ impl JavascriptParser<'_> {
       | StmtData::ExportNamedDeclaration(_)
       | StmtData::ExportDefaultDeclaration(_)
       | StmtData::ExportAllDeclaration(_) => self.is_esm = true,
-      _ => self.pre_walk_statement(Statement::from_stmt(self.ast.ast, statement)),
+      _ => self.pre_walk_statement(statement),
     }
   }
 
-  pub fn pre_walk_statement(&mut self, statement: Statement) {
+  pub fn pre_walk_statement(&mut self, statement: Stmt) {
     let drive = self.plugin_drive();
     self.enter_statement(
       statement.span(self.ast.ast),
       statement,
       |parser, node| drive.pre_statement(parser, node).unwrap_or_default(),
-      |parser, node| match node {
-        Statement::Block(stmt) => parser.pre_walk_block_statement(stmt),
-        Statement::DoWhile(stmt) => parser.pre_walk_do_while_statement(stmt),
-        Statement::ForIn(stmt) => parser.pre_walk_for_in_statement(stmt),
-        Statement::ForOf(stmt) => parser.pre_walk_for_of_statement(stmt),
-        Statement::For(stmt) => parser.pre_walk_for_statement(stmt),
-        Statement::Var(stmt) => parser.pre_walk_variable_declaration(stmt),
-        Statement::If(stmt) => parser.pre_walk_if_statement(stmt),
-        Statement::Labeled(stmt) => parser.pre_walk_labeled_statement(stmt),
-        Statement::Switch(stmt) => parser.pre_walk_switch_statement(stmt),
-        Statement::Try(stmt) => parser.pre_walk_try_statement(stmt),
-        Statement::While(stmt) => parser.pre_walk_while_statement(stmt),
-        Statement::With(stmt) => parser.pre_walk_with_statement(stmt),
+      |parser, node| match parser.ast.ast.kind_data(node.node_id()) {
+        NodeKindData::BlockStatement(stmt) => parser.pre_walk_block_statement(stmt),
+        NodeKindData::DoWhileStatement(stmt) => parser.pre_walk_do_while_statement(stmt),
+        NodeKindData::ForInStatement(stmt) => parser.pre_walk_for_in_statement(stmt),
+        NodeKindData::ForOfStatement(stmt) => parser.pre_walk_for_of_statement(stmt),
+        NodeKindData::ForStatement(stmt) => parser.pre_walk_for_statement(stmt),
+        NodeKindData::VariableDeclaration(stmt) => parser.pre_walk_variable_declaration(stmt),
+        NodeKindData::IfStatement(stmt) => parser.pre_walk_if_statement(stmt),
+        NodeKindData::LabeledStatement(stmt) => parser.pre_walk_labeled_statement(stmt),
+        NodeKindData::SwitchStatement(stmt) => parser.pre_walk_switch_statement(stmt),
+        NodeKindData::TryStatement(stmt) => parser.pre_walk_try_statement(stmt),
+        NodeKindData::WhileStatement(stmt) => parser.pre_walk_while_statement(stmt),
+        NodeKindData::WithStatement(stmt) => parser.pre_walk_with_statement(stmt),
         _ => (),
       },
     );
   }
 
   fn pre_walk_with_statement(&mut self, stmt: WithStatement) {
-    self.pre_walk_statement(Statement::from_stmt(self.ast.ast, stmt.body(self.ast.ast)));
+    self.pre_walk_statement(stmt.body(self.ast.ast));
   }
 
   fn pre_walk_while_statement(&mut self, stmt: WhileStatement) {
-    self.pre_walk_statement(Statement::from_stmt(self.ast.ast, stmt.body(self.ast.ast)));
+    self.pre_walk_statement(stmt.body(self.ast.ast));
   }
 
   fn pre_walk_catch_clause(&mut self, clause: CatchClause) {
-    self.pre_walk_statement(Statement::Block(clause.body(self.ast.ast)));
+    self.pre_walk_statement(Stmt::BlockStatement(clause.body(self.ast.ast)));
   }
 
   fn pre_walk_try_statement(&mut self, stmt: TryStatement) {
     let ast = self.ast.ast;
-    self.pre_walk_statement(Statement::Block(stmt.block(ast)));
+    self.pre_walk_statement(Stmt::BlockStatement(stmt.block(ast)));
     if let Some(handler) = stmt.handler(ast) {
       self.pre_walk_catch_clause(handler);
     }
     if let Some(finalizer) = stmt.finalizer(ast) {
-      self.pre_walk_statement(Statement::Block(finalizer));
+      self.pre_walk_statement(Stmt::BlockStatement(finalizer));
     }
   }
 
@@ -171,14 +171,14 @@ impl JavascriptParser<'_> {
   }
 
   fn pre_walk_labeled_statement(&mut self, stmt: LabeledStatement) {
-    self.pre_walk_statement(Statement::from_stmt(self.ast.ast, stmt.body(self.ast.ast)));
+    self.pre_walk_statement(stmt.body(self.ast.ast));
   }
 
   fn pre_walk_if_statement(&mut self, stmt: IfStatement) {
     let ast = self.ast.ast;
-    self.pre_walk_statement(Statement::from_stmt(ast, stmt.consequent(ast)));
+    self.pre_walk_statement(stmt.consequent(ast));
     if let Some(alternate) = stmt.alternate(ast) {
-      self.pre_walk_statement(Statement::from_stmt(ast, alternate));
+      self.pre_walk_statement(alternate);
     }
   }
 
@@ -188,9 +188,9 @@ impl JavascriptParser<'_> {
       && let ForStatementInitData::VariableDeclaration(declaration) =
         ast.for_statement_init_data(init)
     {
-      self.pre_walk_statement(Statement::Var(declaration));
+      self.pre_walk_statement(Stmt::Declaration(Decl::VariableDeclaration(declaration)));
     }
-    self.pre_walk_statement(Statement::from_stmt(ast, stmt.body(ast)));
+    self.pre_walk_statement(stmt.body(ast));
   }
 
   fn pre_walk_for_head(&mut self, head: ForStatementLeft) {
@@ -207,7 +207,7 @@ impl JavascriptParser<'_> {
       self.plugin_drive().top_level_for_of_await_stmt(self, stmt);
     }
     self.pre_walk_for_head(stmt.left(ast));
-    self.pre_walk_statement(Statement::from_stmt(ast, stmt.body(ast)));
+    self.pre_walk_statement(stmt.body(ast));
   }
 
   pub(super) fn pre_walk_block_statement(&mut self, stmt: BlockStatement) {
@@ -216,13 +216,13 @@ impl JavascriptParser<'_> {
   }
 
   fn pre_walk_do_while_statement(&mut self, stmt: DoWhileStatement) {
-    self.pre_walk_statement(Statement::from_stmt(self.ast.ast, stmt.body(self.ast.ast)));
+    self.pre_walk_statement(stmt.body(self.ast.ast));
   }
 
   fn pre_walk_for_in_statement(&mut self, stmt: ForInStatement) {
     let ast = self.ast.ast;
     self.pre_walk_for_head(stmt.left(ast));
-    self.pre_walk_statement(Statement::from_stmt(ast, stmt.body(ast)));
+    self.pre_walk_statement(stmt.body(ast));
   }
 
   fn pre_walk_variable_declaration(&mut self, decl: VariableDeclaration) {

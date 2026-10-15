@@ -1,9 +1,10 @@
 use rspack_intern::Atom;
 use swc_next_ecma_ast::{
   AssignmentExpression, AwaitExpression, BinaryExpression, CallExpression, ChainExpression, Class,
-  ClassElement, ConditionalExpression, Expr, ForOfStatement, IfStatement, ImportDeclaration,
-  ImportExpression, LogicalExpression, MemberExpression, NewExpression, Program, Span, Stmt,
-  ThisExpression, UnaryExpression, VariableDeclaration, VariableDeclarator,
+  ClassElement, ConditionalExpression, ExportDefaultDeclarationKind, Expr, ForOfStatement,
+  IfStatement, ImportDeclaration, ImportExpression, LogicalExpression, MemberExpression,
+  NewExpression, Program, Span, Stmt, ThisExpression, UnaryExpression, VariableDeclaration,
+  VariableDeclarator,
 };
 
 use crate::visitors::{HookMemberExpression, PatternIdentifier};
@@ -109,9 +110,8 @@ impl JavascriptParserPluginHooks {
 use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    DestructuringAssignmentProperty, ExportDefaultDeclaration, ExportDefaultExpression,
-    ExportImport, ExportLocal, ExportedVariableInfo, ExpressionExpressionInfo, Identifier,
-    JavascriptParser, Statement,
+    DestructuringAssignmentProperty, ExportDefaultDeclaration, ExportImport, ExportLocal,
+    ExportedVariableInfo, ExpressionExpressionInfo, Identifier, JavascriptParser,
   },
 };
 
@@ -162,15 +162,11 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   /// - `Some(true)` signifies the termination of the current
   ///   statement's visit during the pre-walk phase.
   /// - Other return values imply that the walk operation ought to continue
-  fn pre_statement(&self, _parser: &mut JavascriptParser<'p>, _stmt: Statement) -> Option<bool> {
+  fn pre_statement(&self, _parser: &mut JavascriptParser<'p>, _stmt: Stmt) -> Option<bool> {
     None
   }
 
-  fn block_pre_statement(
-    &self,
-    _parser: &mut JavascriptParser<'p>,
-    _stmt: Statement,
-  ) -> Option<bool> {
+  fn block_pre_statement(&self, _parser: &mut JavascriptParser<'p>, _stmt: Stmt) -> Option<bool> {
     None
   }
 
@@ -193,7 +189,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     None
   }
 
-  fn statement(&self, _parser: &mut JavascriptParser<'p>, _stmt: Statement) -> Option<bool> {
+  fn statement(&self, _parser: &mut JavascriptParser<'p>, _stmt: Stmt) -> Option<bool> {
     None
   }
 
@@ -204,7 +200,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   /// Return:
   /// - `Some(true)` means the statement is fully handled and should be skipped
   /// - Other values mean the parser should still walk the statement
-  fn unused_statement(&self, _parser: &mut JavascriptParser<'p>, _stmt: Statement) -> Option<bool> {
+  fn unused_statement(&self, _parser: &mut JavascriptParser<'p>, _stmt: Stmt) -> Option<bool> {
     None
   }
 
@@ -593,7 +589,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     &self,
     _parser: &mut JavascriptParser<'p>,
     _statement: ExportDefaultDeclaration,
-    _expr: ExportDefaultExpression,
+    _expr: ExportDefaultDeclarationKind,
   ) -> Option<bool> {
     None
   }

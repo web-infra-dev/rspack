@@ -9,8 +9,9 @@ use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_next_ecma_ast::{
   AssignmentExpression, AssignmentOperator, BindingIdentifier, Class, ClassElement,
-  ClassElementData, ExportDefaultDeclarationKindData, Expr, ExprData, GetSpan, NodeId, Program,
-  Span, Stmt, StmtData, ThisExpression, VariableDeclaration, VariableDeclarator,
+  ClassElementData, ExportDefaultDeclarationKindData, Expr, ExprData, GetSpan, NodeId,
+  NodeKindData, Program, Span, Stmt, StmtData, ThisExpression, VariableDeclaration,
+  VariableDeclarator,
 };
 
 use super::state::{
@@ -25,8 +26,8 @@ use crate::{
     is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
   },
   visitors::{
-    ExportedVariableInfo, HookMemberExpression, Identifier, JavascriptParser, Statement,
-    TagInfoData, scope_info::VariableInfoFlags,
+    ExportedVariableInfo, HookMemberExpression, Identifier, JavascriptParser, TagInfoData,
+    scope_info::VariableInfoFlags,
   },
 };
 
@@ -421,14 +422,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
   fn pre_statement(
     &self,
     parser: &mut crate::visitors::JavascriptParser,
-    stmt: Statement,
+    stmt: Stmt,
   ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() {
       return None;
     }
 
     if parser.is_top_level_scope()
-      && let Some(fn_decl) = stmt.as_function_decl()
+      && let NodeKindData::Function(fn_decl) = parser.ast.ast.kind_data(stmt.node_id())
     {
       let ast = parser.ast.ast;
       let identifier = fn_decl.id(ast);
@@ -453,13 +454,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
   fn block_pre_statement(
     &self,
     parser: &mut crate::visitors::JavascriptParser,
-    stmt: Statement,
+    stmt: Stmt,
   ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
 
-    if let Some(class_decl) = stmt.as_class_decl()
+    if let NodeKindData::Class(class_decl) = parser.ast.ast.kind_data(stmt.node_id())
       && is_pure_class(
         parser,
         self.analyze_pure_annotation,
@@ -629,11 +630,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     None
   }
 
-  fn statement(
-    &self,
-    parser: &mut crate::visitors::JavascriptParser,
-    stmt: Statement,
-  ) -> Option<bool> {
+  fn statement(&self, parser: &mut crate::visitors::JavascriptParser, stmt: Stmt) -> Option<bool> {
     if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }

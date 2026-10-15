@@ -5,12 +5,12 @@ mod if_stmt;
 mod logic_expr;
 
 use rspack_core::{CachedConstDependency, ConstDependency};
-use swc_next_ecma_ast::{ConditionalExpression, GetSpan, IfStatement, LogicalExpression};
+use swc_next_ecma_ast::{ConditionalExpression, GetSpan, IfStatement, LogicalExpression, Stmt};
 
 use super::JavascriptParserPlugin;
 use crate::{
   utils::eval::evaluate_to_string,
-  visitors::{Identifier, JavascriptParser, Statement},
+  visitors::{Identifier, JavascriptParser},
 };
 
 pub struct ConstPlugin;
@@ -125,7 +125,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
     }
   }
 
-  fn unused_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
+  fn unused_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Stmt) -> Option<bool> {
     // Skip top level scope to align with webpack's ConstPlugin behavior.
     if parser.is_top_level_scope() {
       return None;

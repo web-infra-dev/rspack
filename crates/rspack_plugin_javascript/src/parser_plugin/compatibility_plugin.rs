@@ -5,17 +5,15 @@ use rspack_core::{
 };
 use rspack_util::{SpanExt, itoa, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
-  ArgumentData, BindingPatternData, CallExpression, GetSpan, Program, UnaryExpression,
-  VariableDeclaration, VariableDeclarator,
+  ArgumentData, BindingPatternData, CallExpression, GetSpan, NodeKindData, Program, Stmt,
+  UnaryExpression, VariableDeclaration, VariableDeclarator,
 };
 
 use super::JavascriptParserPlugin;
 use crate::{
   Atom,
   dependency::CommonJsRequireContextDependency,
-  visitors::{
-    Identifier, JavascriptParser, PatRef, PatternIdentifier, Statement, TagInfoData, expr_name,
-  },
+  visitors::{Identifier, JavascriptParser, PatRef, PatternIdentifier, TagInfoData, expr_name},
 };
 
 pub const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_rspack_identifier__";
@@ -313,9 +311,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     None
   }
 
-  fn pre_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
-    let fn_decl = stmt.as_function_decl()?;
+  fn pre_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Stmt) -> Option<bool> {
     let ast = parser.ast.ast;
+    let NodeKindData::Function(fn_decl) = ast.kind_data(stmt.node_id()) else {
+      return None;
+    };
     let ident = fn_decl.id(ast)?;
     let name = ast.get_utf8(ident.name(ast));
     if name != self.nested_require_name(parser) {

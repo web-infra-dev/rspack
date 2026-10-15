@@ -15,8 +15,7 @@ use rspack_plugin_javascript::{
     eval::{self},
   },
   visitors::{
-    HookMemberExpression, Identifier, JavascriptParser, Statement, create_traceable_error,
-    expr_name,
+    HookMemberExpression, Identifier, JavascriptParser, create_traceable_error, expr_name,
   },
 };
 use rspack_util::{
@@ -25,8 +24,8 @@ use rspack_util::{
 };
 use swc_next_ecma_ast::{
   Ast, CallExpression, ChainExpression, Expr, ExprData, GetSpan, IdentifierName,
-  IdentifierReference, ImportDeclaration, ImportExpression, PropertyKeyData, Span, UnaryExpression,
-  VariableDeclaration, VariableDeclarator,
+  IdentifierReference, ImportDeclaration, ImportExpression, PropertyKeyData, Span, Stmt,
+  UnaryExpression, VariableDeclaration, VariableDeclarator,
 };
 
 static RSTEST_MOCK_FIRST_ARG_TAG: &str = "strip the import call from the first arg of mock series";
@@ -989,13 +988,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     None
   }
 
-  fn statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
+  fn statement(&self, parser: &mut JavascriptParser<'p>, stmt: Stmt) -> Option<bool> {
     if !self.options.hoist_mock_module {
       return None;
     }
 
     let ast = parser.ast.ast;
-    let Statement::Expr(expr_stmt) = stmt else {
+    let Some(expr_stmt) = stmt.as_expression_statement(ast) else {
       return None;
     };
     let ExprData::CallExpression(call_expr) = ast.expr_data(expr_stmt.expression(ast)) else {
