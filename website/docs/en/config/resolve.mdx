@@ -812,32 +812,27 @@ When resolving a non-relative request, Rspack checks the referenced tsconfig fil
 The match is based on directories only. Unlike `tsc`, Rspack does not read `include`, `files` or `exclude` to decide which project a file belongs to.
 
 :::warning
-Since references are matched by directory, Rspack cannot tell apart multiple tsconfig files placed in the same directory:
-
-- **The main tsconfig and a referenced tsconfig in the same directory**: every file in that directory matches the reference, so the `paths` of the main tsconfig never take effect there.
-- **Two referenced tsconfig files in the same directory**: they share the same base path, so the one listed first in `references` always wins, and the `paths` of the later one never take effect.
-
-For example, in the following layout, all three tsconfig files have the project root as their base path. Files under `src/` are matched to whichever of `tsconfig.app.json` and `tsconfig.node.json` comes first in `references`. If that is `tsconfig.node.json`, the `paths` in `tsconfig.app.json` are ignored and aliased imports in `src/` fail to resolve, even though `tsc` works because it assigns files by `include`.
-
-```
-.
-├── tsconfig.json         # references tsconfig.app.json and tsconfig.node.json
-├── tsconfig.app.json     # include: ["src"], defines paths
-├── tsconfig.node.json    # include: ["scripts"], no paths
-├── src/
-└── scripts/
-```
-
-Put each referenced tsconfig in the directory of the files it covers instead, so that each directory contains at most one tsconfig:
+Since references are matched by directory, keep at most one tsconfig in each directory, and put each referenced tsconfig in the directory of the files it covers:
 
 ```
 .
 ├── tsconfig.json         # references: [{ "path": "./src" }, { "path": "./scripts" }]
 ├── src/
-│   └── tsconfig.json     # defines paths, relative to src/
+│   └── tsconfig.json
 └── scripts/
     └── tsconfig.json
 ```
+
+Avoid placing tsconfig files side by side like this:
+
+```
+.
+├── tsconfig.json
+├── tsconfig.app.json     # include: ["src"]
+└── tsconfig.node.json    # include: ["scripts"]
+```
+
+Here all three tsconfig files have the project root as their base path, so every file matches the reference listed first, and the `paths` of the other reference and of the main tsconfig never take effect.
 
 :::
 
