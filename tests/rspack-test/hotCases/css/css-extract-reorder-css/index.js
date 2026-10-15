@@ -16,9 +16,13 @@ it("should re-apply the stylesheet when the css import order changes", async () 
 	await NEXT_HMR();
 	if (typeof document !== "undefined") {
 		const links = stylesheets();
-		expect(links.length).toBe(1);
+		const original = links[0];
+		if (original.isLoaded === false) {
+			await new Promise(resolve => original.addEventListener("load", resolve, { once: true }));
+		}
+		expect(stylesheets().length).toBe(1);
 		// The cascade order changed, so the stylesheet must have been re-fetched
-		// (the swapped-in probe carries a cache-busting query).
+		// (the original link now carries a cache-busting query).
 		expect((links[0].getAttribute("href") || "").indexOf("?")).not.toBe(-1);
 	}
 });

@@ -8,7 +8,7 @@
 - Bundle: lazy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 60
 - Update: lazy.LAST_HASH.hot-update.js, size: 1223
-- Update: main.LAST_HASH.hot-update.js, size: 6485
+- Update: main.LAST_HASH.hot-update.js, size: 8220
 
 ## Manifest
 
@@ -192,16 +192,63 @@ __webpack_require__.f.miniCss = function (chunkId, promises, fetchPriority) {
 		)
 }
 
+var extractCssPendingCommits = new WeakMap();
+var extractCssCommitLink = function(oldTag, newTag) {
+  var previous = extractCssPendingCommits.get(oldTag);
+  if (previous) previous();
+  var parent = oldTag.parentNode;
+  if (!parent) { newTag.remove(); return; }
+  var stopped = false;
+  var cleanup = function() {
+    if (stopped) return;
+    stopped = true;
+    observer.disconnect();
+    oldTag.removeEventListener('load', cleanup);
+    oldTag.removeEventListener('error', fail);
+    newTag.remove();
+    oldTag.isLoaded = true;
+    oldTag.visited = false;
+    extractCssPendingCommits.delete(oldTag);
+  };
+  var fail = function() { window.location.reload(); };
+  var observer = new MutationObserver(function() {
+    if (oldTag.parentNode !== parent || oldTag.href !== newTag.href) cleanup();
+  });
+  observer.observe(parent, {childList:true, subtree:true, attributes:true, attributeFilter:['href']});
+  extractCssPendingCommits.set(oldTag, cleanup);
+  oldTag.isLoaded = false;
+  oldTag.visited = true;
+  oldTag.addEventListener('load', cleanup);
+  oldTag.addEventListener('error', fail);
+  oldTag.disabled = false;
+  oldTag.setAttribute('href', newTag.getAttribute('href'));
+};
+
+var extractCssDisableLink = function(oldTag) {
+  var pending = extractCssPendingCommits.get(oldTag);
+  if (pending) pending();
+  oldTag.disabled = true;
+  oldTag.visited = true;
+};
+
 var extractCssOldTags = [];
 var extractCssNewTags = [];
 var extractCssApplyHandler = function (options) {
 	return {
 		dispose: function () {},
 		apply: function () {
-			for (var i = 0; i < extractCssNewTags.length; i++) extractCssNewTags[i].sheet.disabled = false;
+			for (var i = 0; i < extractCssNewTags.length; i++) {
+        var newTag = extractCssNewTags[i];
+        newTag.sheet.disabled = false;
+        newTag.visited = newTag.__rspackOldTag && newTag.__rspackOldTag.tagName === 'LINK';
+        if (newTag.__rspackOldTag) {
+          if (newTag.__rspackOldTag.tagName === 'LINK') extractCssCommitLink(newTag.__rspackOldTag, newTag);
+          else newTag.__rspackOldTag.remove();
+        }
+      }
 			for (var i = 0; i < extractCssOldTags.length; i++) {
 				var oldTag = extractCssOldTags[i];
-				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
+				if (oldTag.tagName === 'LINK') extractCssDisableLink(oldTag); else oldTag.remove();
 			}
 			extractCssOldTags.length = 0;
 			extractCssNewTags.length = 0;
@@ -262,12 +309,13 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 				oldTag,
 				function () {
 					tag.sheet.disabled = true;
-					if (oldTag) extractCssOldTags.push(oldTag);
+					tag.__rspackOldTag = oldTag;
 					extractCssNewTags.push(tag);
 					resolve();
 				},
 				reject
 			);
+			tag.visited = true;
 		}))
 	});
 }
