@@ -1,22 +1,28 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, Dependency,
   DependencyCategory, DependencyId, DependencyType, ExportNameOrSpec, ExportSpec,
   ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec,
 };
+use rspack_intern::Atom;
 
 #[cacheable]
 #[derive(Debug)]
 pub struct CssExportDependency {
   id: DependencyId,
-  convention_names: Vec<String>,
+  /// Interned export names. Archived as the same string list as the previous `Vec<String>`.
+  #[cacheable(with=AsVec<AsPreset>)]
+  convention_names: Vec<Atom>,
 }
 
 impl CssExportDependency {
   pub fn new(convention_names: Vec<String>) -> Self {
     Self {
       id: DependencyId::new(),
-      convention_names,
+      convention_names: convention_names.into_iter().map(Atom::from).collect(),
     }
   }
 }

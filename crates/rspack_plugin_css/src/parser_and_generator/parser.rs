@@ -11,6 +11,7 @@ use rspack_core::{
   topological_sort,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray};
+use rspack_intern::Atom;
 use rspack_plugin_javascript::{RawMagicComment, try_extract_magic_comment_from_comments};
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
@@ -1244,7 +1245,7 @@ impl<'context> CssModuleParser<'context> {
       CssSelfReferenceLocalIdentDependency::new(
         convention_names,
         vec![CssSelfReferenceLocalIdentReplacement {
-          local_ident,
+          local_ident: Atom::from(local_ident),
           range: (range.start, range.end).into(),
         }],
       ),
@@ -1332,7 +1333,7 @@ impl<'context> CssModuleParser<'context> {
       CssSelfReferenceLocalIdentDependency::new(
         convention_names,
         vec![CssSelfReferenceLocalIdentReplacement {
-          local_ident,
+          local_ident: Atom::from(local_ident),
           range: (range.start, range.end).into(),
         }],
       ),
