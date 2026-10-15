@@ -377,7 +377,7 @@ impl Source for ReplaceSource {
         }
         // Insert replacement content split into chunks by lines
         let replacement = unsafe { self.replacements.get_unchecked(replacement_idx) };
-        on_chunk(replacement.content.as_ref().share());
+        on_chunk(replacement.content.view());
 
         // Remove replaced content by settings this variable
         replacement_end = if let Some(replacement_end) = replacement_end {
@@ -420,7 +420,7 @@ impl Source for ReplaceSource {
     while replacement_idx < self.replacements.len() {
       let replacement = unsafe { self.replacements.get_unchecked(replacement_idx) };
       let content = &replacement.content;
-      on_chunk(content.as_ref().share());
+      on_chunk(content.view());
       replacement_idx += 1;
     }
   }
@@ -809,9 +809,9 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
               replacement_name_index = global_index;
             }
           }
-          let content = repl.content.as_ref();
+          let content = &repl.content;
           let content_is_ascii = content.is_ascii();
-          for_each_line(content, |content_line, ends_with_newline| {
+          for_each_line(content.as_str(), |content_line, ends_with_newline| {
             let content_chunk = ContentSlice::with_ascii_hint(content_line, content_is_ascii);
             let content_utf16_len = if ends_with_newline {
               0
@@ -999,10 +999,10 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
     // Handle remaining replacements one by one
     let mut line = result.generated_line as i64 + generated_line_offset;
     while i < repls.len() {
-      let content = repls[i].content.as_ref();
+      let content = &repls[i].content;
       let content_is_ascii = content.is_ascii();
 
-      for_each_line(content, |content_line, ends_with_newline| {
+      for_each_line(content.as_str(), |content_line, ends_with_newline| {
         let content_chunk = ContentSlice::with_ascii_hint(content_line, content_is_ascii);
         let content_utf16_len = if ends_with_newline {
           0

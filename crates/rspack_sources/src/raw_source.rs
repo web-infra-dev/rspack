@@ -69,11 +69,11 @@ impl From<Content> for RawStringSource {
 
 impl Source for RawStringSource {
   fn source(&self) -> SourceValue<'_> {
-    SourceValue::String(CowContent::Borrowed(self.0.as_ref().share()))
+    SourceValue::String(CowContent::Borrowed(self.0.view()))
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(ContentSlice<'a>)) {
-    on_chunk(self.0.as_ref().share())
+    on_chunk(self.0.view())
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
@@ -104,7 +104,7 @@ impl std::fmt::Debug for RawStringSource {
     write!(
       f,
       "{indent_str}RawStringSource::from_static({:?}).boxed()",
-      self.0.as_ref()
+      self.0.as_str()
     )
   }
 }
@@ -133,7 +133,7 @@ impl<'source> Chunks<'source> for RawStringChunks<'source> {
     on_source: crate::helpers::OnSource<'_, 'source>,
     on_name: crate::helpers::OnName<'_, 'source>,
   ) -> crate::helpers::GeneratedInfo {
-    let source = self.0.as_ref().share();
+    let source = self.0.view();
     if options.final_source {
       get_generated_source_info(source)
     } else {
@@ -175,7 +175,7 @@ impl RawBufferSource {
         Cow::Owned(s) => Some(Content::from(s)),
         Cow::Borrowed(_) => None,
       }) {
-      Some(content) => content.as_ref().clone(),
+      Some(content) => content.view(),
       None => ContentSlice::from_str(unsafe { std::str::from_utf8_unchecked(&self.value) }),
     }
   }

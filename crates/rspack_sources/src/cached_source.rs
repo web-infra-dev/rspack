@@ -134,7 +134,9 @@ impl Source for CachedSource {
     }
 
     let chunks = self.get_or_init_chunks();
-    SourceValue::String(Content::from_iter(chunks.iter(), self.size()).into())
+    SourceValue::String(
+      Content::from_iter(chunks.iter().map(ContentSlice::share), self.size()).into(),
+    )
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(ContentSlice<'a>)) {
@@ -207,9 +209,9 @@ impl<'source> CachedSourceChunks<'source> {
         SourceValue::String(value) => value,
         value => value.into_string_lossy().into(),
       });
-    let view = source.as_ref();
+    let view = source.view();
     let _ = view.is_ascii();
-    view.share()
+    view
   }
 }
 

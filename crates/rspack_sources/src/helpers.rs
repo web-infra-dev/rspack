@@ -430,9 +430,7 @@ fn stream_chunks_of_source_map_final<'chunk, 'source>(
     on_source(
       i as u32,
       get_source(source_map, source),
-      source_map
-        .get_source_content(i)
-        .map(|content| content.as_ref().share()),
+      source_map.get_source_content(i).map(CowContent::view),
     )
   }
   for (i, name) in source_map.names().iter().enumerate() {
@@ -495,9 +493,7 @@ fn stream_chunks_of_source_map_full<'chunk, 'source, 'object_pool>(
     on_source(
       i as u32,
       get_source(source_map, source),
-      source_map
-        .get_source_content(i)
-        .map(|content| content.as_ref().share()),
+      source_map.get_source_content(i).map(CowContent::view),
     )
   }
   for (i, name) in source_map.names().iter().enumerate() {
@@ -637,9 +633,7 @@ fn stream_chunks_of_source_map_lines_final<'chunk, 'source>(
     on_source(
       i as u32,
       get_source(source_map, source),
-      source_map
-        .get_source_content(i)
-        .map(|content| content.as_ref().share()),
+      source_map.get_source_content(i).map(CowContent::view),
     )
   }
   let final_line = if result.generated_column == 0 {
@@ -683,9 +677,7 @@ fn stream_chunks_of_source_map_lines_full<'chunk, 'source>(
     on_source(
       i as u32,
       get_source(source_map, source),
-      source_map
-        .get_source_content(i)
-        .map(|content| content.as_ref().share()),
+      source_map.get_source_content(i).map(CowContent::view),
     )
   }
   let mut current_generated_line = 1;

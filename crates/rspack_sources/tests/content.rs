@@ -92,7 +92,7 @@ fn cached_source_returns_content_with_known_ascii_status() {
 fn content_from_iter_collects_text_and_ascii_status() {
   let first = Content::from("abc");
   let second = Content::from("é");
-  let joined = Content::from_iter([first.as_ref(), second.as_ref()], 5);
+  let joined = Content::from_iter([first.view(), second.view()], 5);
   assert_eq!(joined.as_str(), "abcé");
   assert_eq!(joined.cached_is_ascii(), Some(false));
   assert_eq!(first.cached_is_ascii(), Some(true));
@@ -178,7 +178,7 @@ fn complete_view_updates_owner_and_substring_keeps_its_own_cache() {
   assert_eq!(borrowed.cached_is_ascii(), Some(false));
 
   let ascii_owner = Content::from_boxed("hello".into());
-  let complete = ascii_owner.as_ref().clone();
+  let complete = ascii_owner.view();
   assert!(complete.is_ascii());
   assert_eq!(ascii_owner.cached_is_ascii(), Some(true));
   assert_eq!(
@@ -273,12 +273,21 @@ fn static_source_map_retains_the_tag_owner() {
 }
 
 #[test]
-fn local_views_do_not_change_an_unrelated_cache() {
+fn local_view_clone_is_independent_but_share_uses_the_same_cache() {
   let original = ContentSlice::from_str("café");
   let copy = original.clone();
   assert!(!copy.is_ascii());
   assert_eq!(copy.cached_is_ascii(), Some(false));
   assert_eq!(original.cached_is_ascii(), None);
+
+  let shared = original.share();
+  assert!(!shared.is_ascii());
+  assert_eq!(original.cached_is_ascii(), Some(false));
+
+  let cow = CowContent::Borrowed(ContentSlice::from_str("café"));
+  assert_eq!(cow.cached_is_ascii(), None);
+  assert!(!cow.view().is_ascii());
+  assert_eq!(cow.cached_is_ascii(), Some(false));
 }
 
 #[test]

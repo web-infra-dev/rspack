@@ -92,7 +92,7 @@ impl Content {
   ///
   /// `capacity` is the total UTF-8 byte length when known.
   pub fn from_iter<'a>(
-    chunks: impl IntoIterator<Item = &'a ContentSlice<'a>>,
+    chunks: impl IntoIterator<Item = ContentSlice<'a>>,
     capacity: usize,
   ) -> Self {
     let mut text = String::with_capacity(capacity);
@@ -132,16 +132,21 @@ impl Content {
     Self::try_from_boxed(text).unwrap_or_else(|_| panic!("content exceeds u32::MAX bytes"))
   }
 
-  /// Borrow the same descriptor and ASCII cache as this string.
-  #[allow(clippy::should_implement_trait)]
-  pub fn as_ref<'a>(&'a self) -> &'a ContentSlice<'a> {
-    // SAFETY: ContentSlice is repr(transparent) over ContentRepr. Both the returned
-    // reference and its byte lifetime are tied to the borrow of self.
-    unsafe { &*((&self.repr as *const ContentRepr).cast::<ContentSlice<'a>>()) }
+  /// Borrow the same bytes and ASCII cache as this string.
+  pub fn view(&self) -> ContentSlice<'_> {
+    ContentSlice {
+      repr: ContentRepr {
+        ptr: NonNull::from(&self.repr).cast(),
+        len: self.repr.len,
+        tag: AtomicU32::new(SHARED),
+      },
+      lifetime: PhantomData,
+    }
   }
 
   pub fn as_str(&self) -> &str {
-    self.as_ref().as_str()
+    // SAFETY: Content stores immutable UTF-8 bytes from a boxed string.
+    unsafe { str::from_utf8_unchecked(self.repr.as_bytes()) }
   }
 
   pub fn is_ascii(&self) -> bool {
@@ -158,7 +163,7 @@ impl Content {
   }
 
   pub fn slice(&self, range: Range<usize>) -> Option<ContentSlice<'_>> {
-    self.as_ref().slice(range)
+    self.view().slice(range)
   }
 
   pub fn len(&self) -> usize {
@@ -465,25 +470,13 @@ impl<'a> ContentSlice<'a> {
 
 impl Clone for ContentSlice<'_> {
   fn clone(&self) -> Self {
-    if self.repr.mode() == OWNER {
-      let target = &self.repr;
-      Self {
-        repr: ContentRepr {
-          ptr: NonNull::from(target).cast(),
-          len: target.len,
-          tag: AtomicU32::new(SHARED),
-        },
-        lifetime: PhantomData,
-      }
-    } else {
-      Self {
-        repr: ContentRepr {
-          ptr: self.repr.ptr,
-          len: self.repr.len,
-          tag: AtomicU32::new(self.repr.tag.load(Ordering::Relaxed)),
-        },
-        lifetime: PhantomData,
-      }
+    Self {
+      repr: ContentRepr {
+        ptr: self.repr.ptr,
+        len: self.repr.len,
+        tag: AtomicU32::new(self.repr.tag.load(Ordering::Relaxed)),
+      },
+      lifetime: PhantomData,
     }
   }
 }
@@ -530,35 +523,50 @@ pub enum CowContent<'a> {
 
 impl<'a> CowContent<'a> {
   pub fn from_content(value: &'a Content) -> Self {
-    Self::Borrowed(value.as_ref().share())
+    Self::Borrowed(value.view())
   }
 
-  #[allow(clippy::should_implement_trait)]
-  pub fn as_ref(&self) -> &ContentSlice<'_> {
+  /// Borrow the same bytes and ASCII cache as this content.
+  pub fn view(&self) -> ContentSlice<'_> {
     match self {
-      Self::Owned(value) => value.as_ref(),
-      Self::Borrowed(value) => value,
+      Self::Owned(value) => value.view(),
+      Self::Borrowed(value) => value.share(),
     }
   }
 
   pub fn as_str(&self) -> &str {
-    self.as_ref().as_str()
+    match self {
+      Self::Owned(value) => value.as_str(),
+      Self::Borrowed(value) => value.as_str(),
+    }
   }
 
   pub fn is_ascii(&self) -> bool {
-    self.as_ref().is_ascii()
+    match self {
+      Self::Owned(value) => value.is_ascii(),
+      Self::Borrowed(value) => value.is_ascii(),
+    }
   }
 
   pub fn cached_is_ascii(&self) -> Option<bool> {
-    self.as_ref().cached_is_ascii()
+    match self {
+      Self::Owned(value) => value.cached_is_ascii(),
+      Self::Borrowed(value) => value.cached_is_ascii(),
+    }
   }
 
   pub fn len(&self) -> usize {
-    self.as_ref().len()
+    match self {
+      Self::Owned(value) => value.len(),
+      Self::Borrowed(value) => value.len(),
+    }
   }
 
   pub fn is_empty(&self) -> bool {
-    self.as_ref().is_empty()
+    match self {
+      Self::Owned(value) => value.is_empty(),
+      Self::Borrowed(value) => value.is_empty(),
+    }
   }
 
   pub fn into_owned(self) -> Content {

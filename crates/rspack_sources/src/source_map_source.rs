@@ -121,11 +121,11 @@ impl SourceMapSource {
 
 impl Source for SourceMapSource {
   fn source(&self) -> SourceValue<'_> {
-    SourceValue::String(CowContent::Borrowed(self.value.as_ref().share()))
+    SourceValue::String(CowContent::Borrowed(self.value.view()))
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(ContentSlice<'a>)) {
-    on_chunk(self.value.as_ref().clone())
+    on_chunk(self.value.view())
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
@@ -161,7 +161,7 @@ impl Source for SourceMapSource {
         let value = std::mem::take(&mut source.value);
         let source = Arc::new(source);
         let owner = source.clone();
-        let chunks = SourceMapSourceChunks::new(source.as_ref(), value.as_ref());
+        let chunks = SourceMapSourceChunks::new(source.as_ref(), value.view());
         get_map(object_pool, &chunks, options)
           .map(SourceMap::from_fields)
           .map(|map| map.into_static(owner))
@@ -244,7 +244,7 @@ impl std::fmt::Debug for SourceMapSource {
 }
 
 struct SourceMapSourceChunks<'source, 'value> {
-  value: &'value ContentSlice<'value>,
+  value: ContentSlice<'value>,
   name: &'source str,
   source_map: &'source SourceMap<'static>,
   original_source: Option<ContentSlice<'source>>,
@@ -253,15 +253,12 @@ struct SourceMapSourceChunks<'source, 'value> {
 }
 
 impl<'source, 'value> SourceMapSourceChunks<'source, 'value> {
-  fn new(source: &'source SourceMapSource, value: &'value ContentSlice<'value>) -> Self {
+  fn new(source: &'source SourceMapSource, value: ContentSlice<'value>) -> Self {
     Self {
       value,
       name: &source.name,
       source_map: &source.source_map,
-      original_source: source
-        .original_source
-        .as_ref()
-        .map(|content| content.as_ref().clone()),
+      original_source: source.original_source.as_ref().map(Content::view),
       inner_source_map: source.inner_source_map.as_ref(),
       remove_original_source: source.remove_original_source,
     }
@@ -307,7 +304,7 @@ impl<'source, 'value> Chunks<'source> for SourceMapSourceChunks<'source, 'value>
 
 impl StreamChunks for SourceMapSource {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
-    Box::new(SourceMapSourceChunks::new(self, self.value.as_ref()))
+    Box::new(SourceMapSourceChunks::new(self, self.value.view()))
   }
 }
 
