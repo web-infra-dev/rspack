@@ -36,7 +36,7 @@ use swc_next_ecma_ast::{
   ArrayPattern, AssignmentPattern, Ast, BindingIdentifier, BindingPattern, BindingPatternData,
   BindingRestElement, CallExpression, Decl, DeclData, Expr, ExprData, GetSpan, IdentifierReference,
   MemberExpression, MetaProperty, NodeId, ObjectPattern, Program, PropertyKey, PropertyKeyData,
-  Span, StmtData, ThisExpression,
+  SourceType as SwcSourceType, Span, ThisExpression,
 };
 
 use crate::{
@@ -713,7 +713,7 @@ impl<'parser> JavascriptParser<'parser> {
       in_short_hand: false,
       in_assignment_pattern: false,
       top_level_scope: TopLevelScope::Top,
-      is_esm: matches!(module_type, ModuleType::JsEsm),
+      is_esm: ast.ast.source_type() == SwcSourceType::Module,
       in_tagged_template_tag: false,
       definitions_db: ScopeInfoDB::with_semantic(ast),
       plugin_drive,
@@ -1631,22 +1631,7 @@ impl<'parser> JavascriptParser<'parser> {
     if drive.program(self, program).is_none() {
       let ast = self.ast.ast;
       let body = program.body(ast);
-      // Match the legacy `Program::Module` traversal without treating an
-      // `import.meta`-only unambiguous parse as ESM. Do not set `self.is_esm`
-      // early: legacy parsing only flipped that state during pre-walk.
-      let is_esm_program = matches!(self.module_type, ModuleType::JsEsm)
-        || ast.nodes(body).any(|statement| {
-          matches!(
-            ast.stmt_data(statement),
-            StmtData::ImportDeclaration(_)
-              | StmtData::ExportNamedDeclaration(_)
-              | StmtData::ExportDefaultDeclaration(_)
-              | StmtData::ExportAllDeclaration(_)
-              | StmtData::TsExportAssignment(_)
-              | StmtData::TsNamespaceExportDeclaration(_)
-          )
-        });
-      if is_esm_program {
+      if self.is_esm {
         self.set_strict(true);
         self.prev_statement = None;
         self.module_pre_walk_module_items(body);
@@ -1671,7 +1656,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn detect_mode(&mut self, program: Program) {
-    // Semantic can rule out strict directives; module classification still follows Rspack.
     if self.is_strict()
       || !self
         .ast

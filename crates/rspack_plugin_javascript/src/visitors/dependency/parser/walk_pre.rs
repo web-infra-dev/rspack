@@ -111,7 +111,7 @@ impl JavascriptParser<'_> {
       StmtData::ImportDeclaration(_)
       | StmtData::ExportNamedDeclaration(_)
       | StmtData::ExportDefaultDeclaration(_)
-      | StmtData::ExportAllDeclaration(_) => self.is_esm = true,
+      | StmtData::ExportAllDeclaration(_) => {}
       _ => self.pre_walk_statement(statement),
     }
   }
