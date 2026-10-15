@@ -270,6 +270,7 @@ impl<'text> LineIndex<'text> {
 impl<'text> IndexedLine<'text, '_> {
   /// Slice by UTF-16 columns, rounding a position inside a surrogate pair down
   /// to the start of its UTF-8 character.
+  #[inline(always)]
   #[allow(unsafe_code)]
   pub fn substring(&self, start_utf16_index: usize, end_utf16_index: usize) -> &'text str {
     if end_utf16_index <= start_utf16_index {
