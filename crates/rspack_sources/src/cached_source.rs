@@ -8,9 +8,10 @@ use std::{
 use rustc_hash::FxHasher;
 
 use crate::{
-  BoxSource, MapOptions, RawBufferSource, Source, SourceExt, SourceMap,
+  BoxSource, Content, ContentSlice, CowContent, MapOptions, RawBufferSource, Source, SourceExt,
+  SourceMap,
   helpers::{
-    Chunks, GeneratedInfo, StreamChunks, TextSpan, stream_and_get_source_and_map,
+    Chunks, GeneratedInfo, StreamChunks, stream_and_get_source_and_map,
     stream_chunks_of_raw_source, stream_chunks_of_source_map,
   },
   object_pool::ObjectPool,
@@ -21,8 +22,7 @@ use crate::{
 struct CachedData {
   hash: OnceLock<u64>,
   size: OnceLock<usize>,
-  is_ascii: OnceLock<bool>,
-  chunks: OnceLock<Box<[&'static str]>>,
+  chunks: OnceLock<Box<[ContentSlice<'static>]>>,
   columns_map: OnceLock<Option<SourceMap<'static>>>,
   line_only_map: OnceLock<Option<SourceMap<'static>>>,
 }
@@ -85,7 +85,7 @@ impl CachedSource {
     &self.inner
   }
 
-  fn get_or_init_chunks(&self) -> &[&str] {
+  fn get_or_init_chunks(&self) -> &[ContentSlice<'_>] {
     self.cache.chunks.get_or_init(|| {
       let mut chunks = Vec::new();
       self.inner.rope(&mut |chunk| {
@@ -94,20 +94,11 @@ impl CachedSource {
       let chunks = chunks.into_boxed_slice();
       #[allow(unsafe_code)]
       // SAFETY: CachedSource guarantees that the underlying source outlives the cache,
-      // so transmuting Box<[&str]> to Box<[&'static str]> is safe in this context.
+      // so extending the ContentSlice byte lifetimes to 'static is safe here.
       // The boxed slice retains only the used references instead of Vec's spare capacity.
       unsafe {
-        std::mem::transmute::<Box<[&str]>, Box<[&'static str]>>(chunks)
+        std::mem::transmute::<Box<[ContentSlice<'_>]>, Box<[ContentSlice<'static>]>>(chunks)
       }
-    })
-  }
-
-  fn is_ascii(&self) -> bool {
-    *self.cache.is_ascii.get_or_init(|| {
-      if let Some(chunks) = self.cache.chunks.get() {
-        return chunks.iter().all(|chunk| chunk.is_ascii());
-      }
-      self.inner.source().as_bytes().is_ascii()
     })
   }
 
@@ -143,27 +134,12 @@ impl Source for CachedSource {
     }
 
     let chunks = self.get_or_init_chunks();
-    let mut string = String::with_capacity(self.size());
-    if self.cache.is_ascii.get().is_none() {
-      let mut is_ascii = true;
-      for chunk in chunks {
-        if is_ascii {
-          is_ascii = chunk.is_ascii();
-        }
-        string.push_str(chunk);
-      }
-      let _ = self.cache.is_ascii.set(is_ascii);
-    } else {
-      for chunk in chunks {
-        string.push_str(chunk);
-      }
-    }
-    SourceValue::String(Cow::Owned(string))
+    SourceValue::String(Content::from_iter(chunks.iter(), self.size()).into())
   }
 
-  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
+  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(ContentSlice<'a>)) {
     let chunks = self.get_or_init_chunks();
-    chunks.iter().for_each(|chunk| on_chunk(chunk));
+    chunks.iter().for_each(|chunk| on_chunk(chunk.share()));
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
@@ -205,7 +181,7 @@ impl Source for CachedSource {
 struct CachedSourceChunks<'source> {
   cache_source: &'source CachedSource,
   chunks: OnceCell<Box<dyn Chunks<'source> + 'source>>,
-  source: OnceCell<Cow<'source, str>>,
+  source: OnceCell<CowContent<'source>>,
 }
 
 impl<'source> CachedSourceChunks<'source> {
@@ -224,12 +200,16 @@ impl<'source> CachedSourceChunks<'source> {
       .as_ref()
   }
 
-  fn get_or_init_source(&self) -> TextSpan<'_> {
+  fn get_or_init_source(&self) -> ContentSlice<'_> {
     let source = self
       .source
-      .get_or_init(|| self.cache_source.source().into_string_lossy());
-    let is_ascii = self.cache_source.is_ascii();
-    TextSpan::with_known(source.as_ref(), is_ascii)
+      .get_or_init(|| match self.cache_source.source() {
+        SourceValue::String(value) => value,
+        value => value.into_string_lossy().into(),
+      });
+    let view = source.as_ref();
+    let _ = view.is_ascii();
+    view.share()
   }
 }
 

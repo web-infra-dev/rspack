@@ -327,7 +327,7 @@ impl<'a> RspackSourceMapBuilder<'a> {
       self
         .sources_content
         .into_iter()
-        .map(|source_content| Cow::Owned(source_content.into_owned()))
+        .map(|source_content| source_content.into_owned().into())
         .collect(),
       ordered_cows(self.name_indices),
     );

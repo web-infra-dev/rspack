@@ -8,7 +8,7 @@ use std::{
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  BoxSource, MapOptions, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
+  BoxSource, ContentSlice, MapOptions, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, get_map},
   linear_map::LinearMap,
   object_pool::ObjectPool,
@@ -180,16 +180,16 @@ impl Source for ConcatSource {
     }
 
     let mut string = String::with_capacity(self.size());
-    let mut on_chunk = |chunk| {
-      string.push_str(chunk);
+    let mut on_chunk = |chunk: ContentSlice<'_>| {
+      string.push_str(chunk.as_str());
     };
     children.iter().for_each(|child| {
       child.rope(&mut on_chunk);
     });
-    SourceValue::String(Cow::Owned(string))
+    SourceValue::String(string.into())
   }
 
-  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
+  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(ContentSlice<'a>)) {
     let children = self.optimized_children();
     children.iter().for_each(|child| {
       child.rope(on_chunk);

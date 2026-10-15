@@ -10,7 +10,7 @@ use serde::{Serialize, Serializer};
 use simd_json::{BorrowedValue, ErrorType, prelude::*};
 
 use crate::{
-  ReplaceSource, Result,
+  ContentSlice, CowContent, ReplaceSource, Result,
   helpers::{Chunks, StreamChunks, decode_mappings_fields},
   object_pool::ObjectPool,
 };
@@ -27,10 +27,7 @@ pub type BoxSource = Arc<dyn Source>;
 #[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum SourceValue<'a> {
   /// Text content stored as a UTF-8 string.
-  String(
-    // Use the typed Cow adapter: this value can contain a temporary borrow.
-    #[cfg_attr(allocative, allocative(visit = allocative::Allocative::visit))] Cow<'a, str>,
-  ),
+  String(#[cfg_attr(allocative, allocative(visit = allocative::Allocative::visit))] CowContent<'a>),
   /// Binary content stored as raw bytes.
   Buffer(#[cfg_attr(allocative, allocative(visit = allocative::Allocative::visit))] Cow<'a, [u8]>),
 }
@@ -43,7 +40,7 @@ impl<'a> SourceValue<'a> {
   /// characters (�) will be used in place of invalid sequences.
   pub fn into_string_lossy(self) -> Cow<'a, str> {
     match self {
-      SourceValue::String(cow) => cow,
+      SourceValue::String(cow) => cow.into_cow_str(),
       SourceValue::Buffer(cow) => match cow {
         Cow::Borrowed(bytes) => String::from_utf8_lossy(bytes),
         Cow::Owned(bytes) => {
@@ -86,8 +83,8 @@ impl<'a> SourceValue<'a> {
   pub fn into_bytes(self) -> Cow<'a, [u8]> {
     match self {
       SourceValue::String(cow) => match cow {
-        Cow::Borrowed(s) => Cow::Borrowed(s.as_bytes()),
-        Cow::Owned(s) => Cow::Owned(s.into_bytes()),
+        CowContent::Borrowed(s) => Cow::Borrowed(s.as_str().as_bytes()),
+        CowContent::Owned(s) => Cow::Owned(s.into_bytes()),
       },
       SourceValue::Buffer(cow) => cow,
     }
@@ -115,8 +112,8 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
 
-  /// Return a lightweight "rope" view of the source as borrowed string slices.
-  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str));
+  /// Visit the source as borrowed content slices without joining its chunks.
+  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(ContentSlice<'a>));
 
   /// Get the source buffer.
   fn buffer(&self) -> Cow<'_, [u8]>;
@@ -150,7 +147,7 @@ impl Source for BoxSource {
   }
 
   #[inline]
-  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
+  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(ContentSlice<'a>)) {
     self.as_ref().rope(on_chunk)
   }
 
@@ -295,7 +292,7 @@ impl MapOptions {
   }
 }
 
-fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
+fn is_all_empty(val: &[CowContent<'_>]) -> bool {
   if val.is_empty() {
     return true;
   }
@@ -310,7 +307,7 @@ pub(crate) struct SourceMapFields<'a> {
   pub(crate) file: Option<Cow<'a, str>>,
   pub(crate) sources: Cow<'a, [Cow<'a, str>]>,
   #[serde(rename = "sourcesContent", skip_serializing_if = "is_all_empty")]
-  pub(crate) sources_content: Cow<'a, [Cow<'a, str>]>,
+  pub(crate) sources_content: Cow<'a, [CowContent<'a>]>,
   pub(crate) names: Cow<'a, [Cow<'a, str>]>,
   pub(crate) mappings: Cow<'a, str>,
   #[serde(rename = "sourceRoot", skip_serializing_if = "Option::is_none")]
@@ -349,7 +346,7 @@ impl<'a> SourceMapFields<'a> {
     self.sources.as_ref()
   }
 
-  pub(crate) fn get_source_content(&self, index: usize) -> Option<&Cow<'a, str>> {
+  pub(crate) fn get_source_content(&self, index: usize) -> Option<&CowContent<'a>> {
     self.sources_content.get(index)
   }
 
@@ -443,7 +440,7 @@ impl SourceMap<'static> {
   pub fn new(
     mappings: impl Into<Cow<'static, str>>,
     sources: Vec<Cow<'static, str>>,
-    sources_content: Vec<Cow<'static, str>>,
+    sources_content: Vec<CowContent<'static>>,
     names: Vec<Cow<'static, str>>,
   ) -> Self {
     Self {
@@ -543,17 +540,22 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Get the sourcesContent field in [SourceMap].
-  pub fn sources_content(&self) -> &[Cow<'_, str>] {
+  pub fn sources_content(&self) -> &[CowContent<'_>] {
     self.fields.sources_content.as_ref()
   }
 
   /// Set the sourcesContent field in [SourceMap].
   pub fn set_sources_content(&mut self, sources_content: Vec<Cow<'a, str>>) {
+    self.fields.sources_content = Cow::Owned(sources_content.into_iter().map(Into::into).collect());
+  }
+
+  /// Set the sourcesContent field while retaining its ASCII tags.
+  pub fn set_sources_content_values(&mut self, sources_content: Vec<CowContent<'a>>) {
     self.fields.sources_content = Cow::Owned(sources_content);
   }
 
   /// Get the source content by index from sourcesContent field in [SourceMap].
-  pub fn get_source_content(&self, index: usize) -> Option<&Cow<'_, str>> {
+  pub fn get_source_content(&self, index: usize) -> Option<&CowContent<'_>> {
     self.fields.sources_content.get(index)
   }
 
@@ -761,10 +763,10 @@ fn optional_string_field<'a>(
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
 }
 
-fn optional_string_array_field<'a>(
+fn optional_string_array_field<'a, T: From<&'a str>>(
   object: &'a simd_json::borrowed::Object<'a>,
   key: &str,
-) -> Result<Vec<Cow<'a, str>>> {
+) -> Result<Vec<T>> {
   let Some(value) = object.get(key) else {
     return Ok(Vec::new());
   };
@@ -778,11 +780,11 @@ fn optional_string_array_field<'a>(
     .iter()
     .map(|value| {
       if value.is_null() {
-        Ok(Cow::Borrowed(""))
+        Ok(T::from(""))
       } else {
         value
           .as_str()
-          .map(Cow::Borrowed)
+          .map(T::from)
           .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
       }
     })

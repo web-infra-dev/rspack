@@ -17,6 +17,7 @@
 
 mod cached_source;
 mod concat_source;
+mod content;
 mod decoder;
 mod encoder;
 mod error;
@@ -37,6 +38,7 @@ pub mod cacheable;
 
 pub use cached_source::CachedSource;
 pub use concat_source::ConcatSource;
+pub use content::{Content, ContentSlice, CowContent};
 pub use error::{Error, Result};
 pub use original_source::OriginalSource;
 pub use raw_source::{RawBufferSource, RawStringSource};
@@ -49,8 +51,11 @@ pub use source_map_source::{SourceMapSource, SourceMapSourceOptions, WithoutOrig
 
 /// Reexport `StreamChunks` related types.
 pub mod stream_chunks {
-  pub use super::helpers::{
-    Chunks, GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks, TextSpan, stream_chunks_default,
+  pub use super::{
+    ContentSlice,
+    helpers::{
+      Chunks, GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks, stream_chunks_default,
+    },
   };
 }
 

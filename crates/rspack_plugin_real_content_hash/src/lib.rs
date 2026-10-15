@@ -1,7 +1,6 @@
 mod drive;
 
 use std::{
-  borrow::Cow,
   hash::BuildHasherDefault,
   sync::{Arc, LazyLock},
 };
@@ -14,7 +13,7 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt, SourceValue},
+  rspack_sources::{BoxSource, CowContent, RawStringSource, SourceExt, SourceValue},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHasher;
@@ -314,7 +313,7 @@ struct AssetData<'a> {
   #[debug(skip)]
   old_source: &'a BoxSource,
   #[debug(skip)]
-  content: Option<Cow<'a, str>>,
+  content: Option<CowContent<'a>>,
   #[debug(skip)]
   new_source: OnceCell<BoxSource>,
   #[debug(skip)]
@@ -326,7 +325,7 @@ impl<'a> AssetData<'a> {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
     let content = if let SourceValue::String(content) = source.source() {
-      for hash in hash_ac.find_iter(content.as_ref()) {
+      for hash in hash_ac.find_iter(content.as_str()) {
         let hash = &content[hash.range()];
         if info.content_hash.contains(hash) {
           own_hashes.insert(hash.to_string());
