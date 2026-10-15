@@ -61,6 +61,7 @@ enum ExecAggregateEvent {
 
 enum ExecEvent {
   Execute(EventBatch),
+  Aggregate(FilesData),
   Close,
 }
 
@@ -135,26 +136,30 @@ impl Executor {
 
       let future = async move {
         while let Some(events) = rx.lock().await.recv().await {
+          // This lock orders raw batches against the aggregate snapshot below.
+          // Enqueue raw delivery before allowing a snapshot to consume these paths.
+          let mut files = files_data.lock().await;
           for event in &events {
             let path = event.path.to_string_lossy().to_string();
             match event.kind {
               FsEventKind::Change => {
-                files_data.lock().await.changed.insert(path);
+                files.changed.insert(path);
               }
               FsEventKind::Remove => {
-                files_data.lock().await.deleted.insert(path);
+                files.deleted.insert(path);
               }
               FsEventKind::Create => {
-                files_data.lock().await.changed.insert(path);
+                files.changed.insert(path);
               }
             }
           }
 
+          let _ = exec_tx.send(ExecEvent::Execute(events));
+          drop(files);
+
           if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
             let _ = exec_aggregate_tx.send(ExecAggregateEvent::Execute);
           }
-
-          let _ = exec_tx.send(ExecEvent::Execute(events));
         }
 
         let _ = exec_aggregate_tx.send(ExecAggregateEvent::Close);
@@ -187,7 +192,7 @@ impl Executor {
     event_handler: Box<dyn EventHandler + Send>,
   ) {
     self.execute_aggregate_handle = Some(create_execute_aggregate_task(
-      event_aggregate_handler,
+      self.exec_tx.clone(),
       Arc::clone(&self.exec_aggregate_rx),
       Arc::clone(&self.files_data),
       self.aggregate_timeout as u64,
@@ -195,6 +200,7 @@ impl Executor {
     ));
 
     self.execute_handle = Some(create_execute_task(
+      event_aggregate_handler,
       event_handler,
       Arc::clone(&self.exec_rx),
     ));
@@ -202,6 +208,7 @@ impl Executor {
 }
 
 fn create_execute_task(
+  event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
   event_handler: Box<dyn EventHandler + Send>,
   exec_rx: ThreadSafetyReceiver<ExecEvent>,
 ) -> tokio::task::JoinHandle<()> {
@@ -226,6 +233,9 @@ fn create_execute_task(
             }
           }
         }
+        ExecEvent::Aggregate(files) => {
+          event_aggregate_handler.on_event_handle(files.changed, files.deleted);
+        }
         ExecEvent::Close => {
           break;
         }
@@ -236,7 +246,7 @@ fn create_execute_task(
 }
 
 fn create_execute_aggregate_task(
-  event_handler: Box<dyn EventAggregateHandler + Send>,
+  exec_tx: UnboundedSender<ExecEvent>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
   files: ThreadSafety<FilesData>,
   aggregate_timeout: u64,
@@ -259,19 +269,20 @@ fn create_execute_aggregate_task(
         // Wait for the aggregate timeout before executing the handler
         tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
 
-        // Get the files to process
-        let files = {
+        // Snapshot and enqueue under the same lock used to enqueue raw events.
+        // The single delivery consumer observes every contributing raw event first.
+        {
           let mut files = files.lock().await;
           if files.is_empty() {
             running.store(false, Ordering::Relaxed);
             continue;
           }
-          std::mem::take(&mut *files)
-        };
-
-        // Call the event handler with the changed and deleted files
-        event_handler.on_event_handle(files.changed, files.deleted);
-        running.store(false, Ordering::Relaxed);
+          let batch = std::mem::take(&mut *files);
+          let _ = exec_tx.send(ExecEvent::Aggregate(batch));
+          // Publish timer completion before releasing the snapshot lock, so
+          // a later edit cannot see running=true after missing this snapshot.
+          running.store(false, Ordering::Relaxed);
+        }
       }
     }
   };
