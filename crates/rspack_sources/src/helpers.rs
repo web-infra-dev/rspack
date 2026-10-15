@@ -498,6 +498,40 @@ pub fn stream_chunks_of_raw_source<'chunk, 'source>(
   }
 }
 
+/// Stream unmapped borrowed fragments without constructing a contiguous source.
+pub(crate) fn stream_chunks_of_raw_rope<'a>(
+  source: &'a dyn crate::Source,
+  options: &MapOptions,
+  on_chunk: OnChunk<'_, 'a>,
+) -> GeneratedInfo {
+  let mut line = 1;
+  let mut column = 0;
+  source.rope(&mut |chunk| {
+    for text in split_into_lines(chunk) {
+      if !options.final_source {
+        on_chunk(
+          Some(TextSpan::new(text)),
+          Mapping {
+            generated_line: line,
+            generated_column: column,
+            original: None,
+          },
+        );
+      }
+      if text.ends_with('\n') {
+        line += 1;
+        column = 0;
+      } else {
+        column += utf16_len(text) as u32;
+      }
+    }
+  });
+  GeneratedInfo {
+    generated_line: line,
+    generated_column: column,
+  }
+}
+
 pub fn stream_chunks_of_source_map<'chunk, 'source>(
   options: &MapOptions,
   source: TextSpan<'chunk>,

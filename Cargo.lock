@@ -5810,6 +5810,7 @@ dependencies = [
 name = "rspack_util"
 version = "0.102.9"
 dependencies = [
+ "aho-corasick",
  "anyhow",
  "base64-simd 0.8.0",
  "bitflags 2.13.2",
