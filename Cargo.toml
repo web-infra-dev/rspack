@@ -118,7 +118,6 @@ tempfile            = { version = "3.27.0", default-features = false }
 termcolor           = { version = "1.4.1", default-features = false }
 textwrap            = { version = "0.16.1", default-features = false }
 thiserror           = { version = "2.0.21", default-features = false, features = ["std"] }
-thread_local        = { version = "1.1.10", default-features = false }
 tokio               = { version = "1.53.2", default-features = false, features = ["rt"] }
 tracing             = { version = "0.1.44", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber  = { version = "0.3.23", default-features = false, features = ["fmt", "registry"] }
@@ -160,11 +159,10 @@ swc_html_minifier   = { version = "63.0.0", default-features = false }
 swc_plugin_runner   = { version = "34.0.0", default-features = false }
 swc_typescript      = { version = "34.0.1", default-features = false }
 
-swc_experimental_allocator            = { version = "0.11.0", default-features = false }
-swc_experimental_ecma_ast             = { version = "0.11.0", default-features = false }
-swc_experimental_ecma_parser          = { version = "0.11.0", default-features = false }
-swc_experimental_ecma_semantic        = { version = "0.11.0", default-features = false }
-swc_experimental_ecma_transforms_base = { version = "0.11.0", default-features = false }
+swc_next_allocator     = { version = "0.2.4", default-features = false }
+swc_next_ecma_ast      = { version = "0.2.4", default-features = false }
+swc_next_ecma_parser   = { version = "0.2.4", default-features = false }
+swc_next_ecma_semantic = { version = "0.2.4", default-features = false }
 
 tracy-client = { version = "=0.18.4", default-features = false, features = ["enable", "sampling", "demangle", "system-tracing"] }
 wasi-common  = { version = "36.0.17", default-features = false }
@@ -382,18 +380,6 @@ opt-level = "s"
 opt-level = "s"
 
 [profile.release.package.swc_ecma_loader]
-opt-level = "s"
-
-[profile.release.package.swc_experimental_ecma_ast]
-opt-level = "s"
-
-[profile.release.package.swc_experimental_ecma_parser]
-opt-level = "s"
-
-[profile.release.package.swc_experimental_ecma_semantic]
-opt-level = "s"
-
-[profile.release.package.swc_experimental_ecma_visit]
 opt-level = "s"
 
 [profile.release.package.chrono]
