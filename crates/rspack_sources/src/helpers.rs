@@ -7,7 +7,7 @@ use std::{
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  MapOptions, SourceMap, SourceMapFields,
+  ContentSlice, CowContent, MapOptions, SourceMap, SourceMapFields,
   decoder::MappingsDecoder,
   encoder::create_encoder,
   linear_map::LinearMap,
@@ -24,7 +24,7 @@ pub fn get_map<'a>(
 ) -> Option<SourceMapFields<'a>> {
   let mut mappings_encoder = create_encoder(options.columns);
   let mut sources: Vec<Cow<'a, str>> = Vec::new();
-  let mut sources_content: Vec<Cow<'a, str>> = Vec::new();
+  let mut sources_content: Vec<CowContent<'a>> = Vec::new();
   let mut names: Vec<Cow<'a, str>> = Vec::new();
 
   chunks.stream(
@@ -46,9 +46,12 @@ pub fn get_map<'a>(
       sources[source_index] = source;
       if let Some(source_content) = source_content {
         if sources_content.len() <= source_index {
-          sources_content.resize(source_index + 1, Cow::Borrowed(""));
+          sources_content.resize(
+            source_index + 1,
+            CowContent::Borrowed(ContentSlice::from_str("")),
+          );
         }
-        sources_content[source_index] = Cow::Borrowed(source_content);
+        sources_content[source_index] = CowContent::Borrowed(source_content);
       }
     },
     // on_name
@@ -102,182 +105,11 @@ pub trait StreamChunks {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a>;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum AsciiHit {
-  Ascii,
-  NotAscii,
-  Unknown,
-}
-
-impl AsciiHit {
-  #[inline]
-  fn from_is_ascii(is_ascii: bool) -> Self {
-    if is_ascii {
-      Self::Ascii
-    } else {
-      Self::NotAscii
-    }
-  }
-
-  #[inline]
-  fn for_subspan(self) -> Self {
-    if matches!(self, Self::Ascii) {
-      Self::Ascii
-    } else {
-      Self::Unknown
-    }
-  }
-}
-
-/// A borrowed text span with ASCII metadata.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
-pub struct TextSpan<'a> {
-  #[cfg_attr(allocative, allocative(skip))]
-  text: &'a str,
-  ascii_hit: AsciiHit,
-}
-
-impl<'a> TextSpan<'a> {
-  /// Create a text span without computing its ASCII status.
-  #[inline]
-  pub fn new(text: &'a str) -> Self {
-    Self {
-      text,
-      ascii_hit: AsciiHit::Unknown,
-    }
-  }
-
-  /// Create a text span from an ASCII fast-path hint.
-  #[inline]
-  pub fn with_ascii(text: &'a str, is_ascii: bool) -> Self {
-    debug_assert!(!is_ascii || text.is_ascii());
-    Self {
-      text,
-      ascii_hit: AsciiHit::from_is_ascii(is_ascii),
-    }
-  }
-
-  /// Create a text span from known ASCII status.
-  #[inline]
-  pub(crate) fn with_known(text: &'a str, is_ascii: bool) -> Self {
-    debug_assert_eq!(is_ascii, text.is_ascii());
-    Self {
-      text,
-      ascii_hit: AsciiHit::from_is_ascii(is_ascii),
-    }
-  }
-
-  /// Return the span text.
-  #[inline]
-  pub fn as_str(&self) -> &'a str {
-    self.text
-  }
-
-  /// Return the byte length of the span text.
-  #[inline]
-  pub fn len(&self) -> usize {
-    self.text.len()
-  }
-
-  /// Return whether the span text is empty.
-  #[inline]
-  pub fn is_empty(&self) -> bool {
-    self.text.is_empty()
-  }
-
-  /// Return whether the span text ends with a character.
-  #[inline]
-  pub fn ends_with(&self, ch: char) -> bool {
-    self.text.ends_with(ch)
-  }
-
-  /// Return whether this span is ASCII.
-  #[inline]
-  pub fn is_ascii(&self) -> bool {
-    match self.ascii_hit {
-      AsciiHit::Ascii => true,
-      AsciiHit::NotAscii => false,
-      AsciiHit::Unknown => self.text.is_ascii(),
-    }
-  }
-
-  /// Return the UTF-16 length of the span.
-  #[inline]
-  pub fn utf16_len(&self) -> usize {
-    self.utf16_len_of(self.text)
-  }
-
-  #[inline]
-  pub(crate) fn subspan(&self, text: &'a str) -> Self {
-    Self {
-      text,
-      ascii_hit: self.ascii_hit.for_subspan(),
-    }
-  }
-
-  #[inline]
-  pub(crate) fn utf16_len_of(&self, text: &str) -> usize {
-    match self.ascii_hit {
-      AsciiHit::Ascii => text.len(),
-      AsciiHit::NotAscii | AsciiHit::Unknown => utf16_len(text),
-    }
-  }
-
-  #[inline]
-  pub(crate) fn is_known_ascii(&self) -> bool {
-    matches!(self.ascii_hit, AsciiHit::Ascii)
-  }
-
-  /// Slice this span by byte offsets.
-  #[inline]
-  pub fn slice(&self, start: usize, end: usize) -> Self {
-    Self {
-      text: &self.text[start..end],
-      ascii_hit: self.ascii_hit.for_subspan(),
-    }
-  }
-
-  /// Slice this span from the start to a byte offset.
-  #[inline]
-  pub fn slice_to(&self, end: usize) -> Self {
-    Self {
-      text: &self.text[..end],
-      ascii_hit: self.ascii_hit.for_subspan(),
-    }
-  }
-
-  /// Slice this span from a byte offset to the end.
-  #[inline]
-  pub fn slice_from(&self, start: usize) -> Self {
-    Self {
-      text: &self.text[start..],
-      ascii_hit: self.ascii_hit.for_subspan(),
-    }
-  }
-}
-
-impl AsRef<str> for TextSpan<'_> {
-  #[inline]
-  fn as_ref(&self) -> &str {
-    self.text
-  }
-}
-
-impl std::ops::Deref for TextSpan<'_> {
-  type Target = str;
-
-  #[inline]
-  fn deref(&self) -> &Self::Target {
-    self.text
-  }
-}
-
 /// [OnChunk] abstraction, see [webpack-sources onChunk](https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/helpers/streamChunks.js#L13).
-pub type OnChunk<'a, 'b> = &'a mut dyn FnMut(Option<TextSpan<'b>>, Mapping);
+pub type OnChunk<'a, 'b> = &'a mut dyn FnMut(Option<ContentSlice<'b>>, Mapping);
 
 /// [OnSource] abstraction, see [webpack-sources onSource](https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/helpers/streamChunks.js#L13).
-pub type OnSource<'a, 'b> = &'a mut dyn FnMut(u32, Cow<'b, str>, Option<&'b str>);
+pub type OnSource<'a, 'b> = &'a mut dyn FnMut(u32, Cow<'b, str>, Option<ContentSlice<'b>>);
 
 /// [OnName] abstraction, see [webpack-sources onName](https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/helpers/streamChunks.js#L13).
 pub type OnName<'a, 'b> = &'a mut dyn FnMut(u32, Cow<'b, str>);
@@ -315,7 +147,7 @@ pub(crate) fn stream_chunks_default_fields<'chunk, 'source>(
   on_source: OnSource<'_, 'source>,
   on_name: OnName<'_, 'source>,
 ) -> GeneratedInfo {
-  let source = TextSpan::new(source);
+  let source = ContentSlice::from_str(source);
   if let Some(map) = source_map {
     stream_chunks_of_source_map(
       options,
@@ -458,7 +290,7 @@ pub fn split_into_lines(source: &str) -> impl Iterator<Item = &str> {
   split(source, b'\n')
 }
 
-pub(crate) fn get_generated_source_info(source: TextSpan<'_>) -> GeneratedInfo {
+pub(crate) fn get_generated_source_info(source: ContentSlice<'_>) -> GeneratedInfo {
   let (generated_line, generated_column) = if source.ends_with('\n') {
     (split_into_lines(source.as_str()).count() + 1, 0)
   } else {
@@ -479,7 +311,7 @@ pub(crate) fn get_generated_source_info(source: TextSpan<'_>) -> GeneratedInfo {
 }
 
 pub fn stream_chunks_of_raw_source<'chunk, 'source>(
-  source: TextSpan<'chunk>,
+  source: ContentSlice<'chunk>,
   options: &MapOptions,
   on_chunk: OnChunk<'_, 'chunk>,
   _on_source: OnSource<'_, 'source>,
@@ -519,7 +351,7 @@ pub fn stream_chunks_of_raw_source<'chunk, 'source>(
 pub fn stream_chunks_of_source_map<'chunk, 'source>(
   options: &MapOptions,
   object_pool: &ObjectPool,
-  source: TextSpan<'chunk>,
+  source: ContentSlice<'chunk>,
   source_map: &'source SourceMapFields<'_>,
   on_chunk: OnChunk<'_, 'chunk>,
   on_source: OnSource<'_, 'source>,
@@ -584,7 +416,7 @@ fn has_uri_scheme(source: &str) -> bool {
 }
 
 fn stream_chunks_of_source_map_final<'chunk, 'source>(
-  source: TextSpan<'chunk>,
+  source: ContentSlice<'chunk>,
   source_map: &'source SourceMapFields<'_>,
   on_chunk: OnChunk,
   on_source: OnSource<'_, 'source>,
@@ -598,7 +430,7 @@ fn stream_chunks_of_source_map_final<'chunk, 'source>(
     on_source(
       i as u32,
       get_source(source_map, source),
-      source_map.get_source_content(i).map(AsRef::as_ref),
+      source_map.get_source_content(i).map(CowContent::view),
     )
   }
   for (i, name) in source_map.names().iter().enumerate() {
@@ -641,7 +473,7 @@ fn stream_chunks_of_source_map_final<'chunk, 'source>(
 
 fn stream_chunks_of_source_map_full<'chunk, 'source, 'object_pool>(
   object_pool: &'object_pool ObjectPool,
-  source: TextSpan<'chunk>,
+  source: ContentSlice<'chunk>,
   source_map: &'source SourceMapFields<'_>,
   on_chunk: OnChunk<'_, 'chunk>,
   on_source: OnSource<'_, 'source>,
@@ -661,7 +493,7 @@ fn stream_chunks_of_source_map_full<'chunk, 'source, 'object_pool>(
     on_source(
       i as u32,
       get_source(source_map, source),
-      source_map.get_source_content(i).map(AsRef::as_ref),
+      source_map.get_source_content(i).map(CowContent::view),
     )
   }
   for (i, name) in source_map.names().iter().enumerate() {
@@ -784,7 +616,7 @@ fn stream_chunks_of_source_map_full<'chunk, 'source, 'object_pool>(
 }
 
 fn stream_chunks_of_source_map_lines_final<'chunk, 'source>(
-  source: TextSpan<'chunk>,
+  source: ContentSlice<'chunk>,
   source_map: &'source SourceMapFields<'_>,
   on_chunk: OnChunk,
   on_source: OnSource<'_, 'source>,
@@ -801,7 +633,7 @@ fn stream_chunks_of_source_map_lines_final<'chunk, 'source>(
     on_source(
       i as u32,
       get_source(source_map, source),
-      source_map.get_source_content(i).map(AsRef::as_ref),
+      source_map.get_source_content(i).map(CowContent::view),
     )
   }
   let final_line = if result.generated_column == 0 {
@@ -828,7 +660,7 @@ fn stream_chunks_of_source_map_lines_final<'chunk, 'source>(
 }
 
 fn stream_chunks_of_source_map_lines_full<'chunk, 'source>(
-  source: TextSpan<'chunk>,
+  source: ContentSlice<'chunk>,
   source_map: &'source SourceMapFields<'_>,
   on_chunk: OnChunk<'_, 'chunk>,
   on_source: OnSource<'_, 'source>,
@@ -845,7 +677,7 @@ fn stream_chunks_of_source_map_lines_full<'chunk, 'source>(
     on_source(
       i as u32,
       get_source(source_map, source),
-      source_map.get_source_content(i).map(AsRef::as_ref),
+      source_map.get_source_content(i).map(CowContent::view),
     )
   }
   let mut current_generated_line = 1;
@@ -918,19 +750,19 @@ fn stream_chunks_of_source_map_lines_full<'chunk, 'source>(
 #[derive(Debug)]
 struct SourceMapLineData<'a> {
   pub mappings_data: Vec<i64>,
-  pub chunks: Vec<TextSpan<'a>>,
+  pub chunks: Vec<ContentSlice<'a>>,
 }
 
-type InnerSourceIndexValueMapping<'a> = LinearMap<(Cow<'a, str>, Option<&'a str>)>;
+type InnerSourceIndexValueMapping<'a> = LinearMap<(Cow<'a, str>, Option<ContentSlice<'a>>)>;
 
 #[allow(clippy::too_many_arguments)]
 pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
   options: &MapOptions,
   object_pool: &'object_pool ObjectPool,
-  source: &'chunk str,
+  source: ContentSlice<'chunk>,
   source_map: &'source SourceMapFields<'_>,
   inner_source_name: &'source str,
-  inner_source: Option<&'source str>,
+  inner_source: Option<ContentSlice<'source>>,
   inner_source_map: &'source SourceMapFields<'_>,
   remove_inner_source: bool,
   on_chunk: OnChunk<'_, 'chunk>,
@@ -938,7 +770,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
   on_name: OnName<'_, 'source>,
 ) -> GeneratedInfo {
   let on_source = RefCell::new(on_source);
-  let inner_source: RefCell<Option<&str>> = RefCell::new(inner_source);
+  let inner_source = RefCell::new(inner_source);
   let source_mapping: RefCell<HashMap<Cow<str>, u32>> = RefCell::new(HashMap::default());
   let mut name_mapping: HashMap<Cow<str>, u32> = HashMap::default();
   let source_index_mapping: RefCell<LinearMap<i64>> = RefCell::new(LinearMap::default());
@@ -948,7 +780,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
   let inner_source_index_mapping: RefCell<LinearMap<i64>> = RefCell::new(LinearMap::default());
   let inner_source_index_value_mapping: RefCell<InnerSourceIndexValueMapping<'source>> =
     RefCell::new(LinearMap::default());
-  let inner_source_contents: RefCell<LinearMap<Option<Cow<'source, str>>>> =
+  let inner_source_contents: RefCell<LinearMap<Option<CowContent<'source>>>> =
     RefCell::new(LinearMap::default());
   let inner_source_content_lines: RefCell<
     LinearMap<OnceCell<Option<SourceContentLines<'object_pool, 'source>>>>,
@@ -980,10 +812,11 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
     Some(l as u32 - 1)
   };
 
+  let source_text = source.as_str();
   stream_chunks_of_source_map(
     options,
     object_pool,
-    TextSpan::new(source),
+    source,
     source_map,
     &mut |chunk, mapping| {
       let source_index = mapping
@@ -1025,7 +858,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
             let inner_source_index = inner_source_index as u32;
             // Check for an identity mapping
             // where we are allowed to adjust the original column
-            let inner_chunk = chunks[idx];
+            let inner_chunk = &chunks[idx];
             let inner_generated_column = mappings_data[mi];
             let location_in_chunk = original_column - inner_generated_column;
             if location_in_chunk > 0 {
@@ -1204,11 +1037,11 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
             let mut global_index = source_mapping.get(inner_source_name).copied();
             if global_index.is_none() {
               let len = source_mapping.len() as u32;
-              source_mapping.insert(Cow::Borrowed(source), len);
+              source_mapping.insert(Cow::Borrowed(source_text), len);
               on_source.borrow_mut()(
                 len,
                 Cow::Borrowed(inner_source_name),
-                *inner_source.borrow(),
+                inner_source.borrow().clone(),
               );
               global_index = Some(len);
             }
@@ -1279,10 +1112,10 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
       if source == inner_source_name {
         *inner_source_index.borrow_mut() = i as i64;
         let mut inner_source = inner_source.borrow_mut();
-        if let Some(inner_source) = inner_source.as_ref() {
-          source_content = Some(inner_source);
+        if let Some(cached_inner_source) = inner_source.as_ref() {
+          source_content = Some(cached_inner_source.clone());
         } else {
-          *inner_source = source_content;
+          *inner_source = source_content.clone();
         }
         source_index_mapping.borrow_mut().insert(i, -2);
         stream_chunks_of_source_map(
@@ -1291,7 +1124,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
             final_source: false,
           },
           object_pool,
-          TextSpan::new(source_content.unwrap()),
+          source_content.unwrap(),
           inner_source_map,
           &mut |chunk, mapping| {
             let mut inner_source_map_line_data = inner_source_map_line_data.borrow_mut();
@@ -1339,9 +1172,12 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
             data.chunks.push(chunk.unwrap());
           },
           &mut |i, source, source_content| {
-            inner_source_contents
-              .borrow_mut()
-              .insert(i, source_content.map(Cow::Borrowed));
+            inner_source_contents.borrow_mut().insert(
+              i,
+              source_content
+                .as_ref()
+                .map(|content| CowContent::Borrowed(content.clone())),
+            );
             inner_source_content_lines
               .borrow_mut()
               .insert(i, Default::default());
@@ -1386,7 +1222,7 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
 ) -> (GeneratedInfo, Option<SourceMapFields<'source>>) {
   let mut mappings_encoder = create_encoder(options.columns);
   let mut sources: Vec<Cow<'source, str>> = Vec::new();
-  let mut sources_content: Vec<Cow<'source, str>> = Vec::new();
+  let mut sources_content: Vec<CowContent<'source>> = Vec::new();
   let mut names: Vec<Cow<'source, str>> = Vec::new();
 
   let generated_info = chunks.stream(
@@ -1402,11 +1238,11 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
         sources.push(Cow::Borrowed(""));
       }
       sources[source_index2] = source.clone();
-      if let Some(source_content) = source_content {
+      if let Some(source_content) = source_content.as_ref() {
         while sources_content.len() <= source_index2 {
-          sources_content.push(Cow::Borrowed(""));
+          sources_content.push(CowContent::Borrowed(ContentSlice::from_str("")));
         }
-        sources_content[source_index2] = Cow::Borrowed(source_content);
+        sources_content[source_index2] = CowContent::Borrowed(source_content.clone());
       }
       on_source(source_index, source, source_content);
     },
@@ -1444,7 +1280,7 @@ mod tests {
   use std::sync::LazyLock;
 
   use super::{
-    GeneratedInfo, TextSpan, split_into_potential_tokens, stream_chunks_of_source_map_final,
+    ContentSlice, GeneratedInfo, split_into_potential_tokens, stream_chunks_of_source_map_final,
     stream_chunks_of_source_map_full, stream_chunks_of_source_map_lines_final,
     stream_chunks_of_source_map_lines_full,
   };
@@ -1477,7 +1313,7 @@ mod tests {
 
     let generated_info = stream_chunks_of_source_map_full(
       &object_pool,
-      TextSpan::new(source),
+      ContentSlice::from_str(source),
       source_map,
       &mut |chunk, mapping| {
         chunks.push((chunk.unwrap().as_str(), mapping));
@@ -1715,7 +1551,7 @@ mod tests {
     let source_map = UTF16_SOURCE_MAP.fields();
 
     let generated_info = stream_chunks_of_source_map_final(
-      TextSpan::new(source),
+      ContentSlice::from_str(source),
       source_map,
       &mut |_chunk, _mapping| {},
       &mut |_i, _source, _source_content| {},
@@ -1737,7 +1573,7 @@ mod tests {
     let source_map = UTF16_SOURCE_MAP.fields();
 
     let generated_info = stream_chunks_of_source_map_lines_final(
-      TextSpan::new(source),
+      ContentSlice::from_str(source),
       source_map,
       &mut |_chunk, _mapping| {},
       &mut |_i, _source, _source_content| {},
@@ -1759,7 +1595,7 @@ mod tests {
     let source_map = UTF16_SOURCE_MAP.fields();
 
     let generated_info = stream_chunks_of_source_map_lines_full(
-      TextSpan::new(source),
+      ContentSlice::from_str(source),
       source_map,
       &mut |_chunk, _mapping| {},
       &mut |_i, _source, _source_content| {},

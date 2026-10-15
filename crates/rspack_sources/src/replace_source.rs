@@ -8,9 +8,9 @@ use std::{
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  BoxSource, MapOptions, Mapping, OriginalLocation, OriginalSource, Source, SourceExt, SourceMap,
-  SourceValue,
-  helpers::{Chunks, GeneratedInfo, StreamChunks, TextSpan, get_map},
+  BoxSource, ContentSlice, CowContent, MapOptions, Mapping, OriginalLocation, OriginalSource,
+  Source, SourceExt, SourceMap, SourceValue,
+  helpers::{Chunks, GeneratedInfo, StreamChunks, get_map},
   linear_map::LinearMap,
   object_pool::ObjectPool,
   source_content_lines::SourceContentLines,
@@ -60,7 +60,7 @@ pub enum ReplacementEnforce {
 pub struct Replacement {
   start: u32,
   end: u32,
-  content: Cow<'static, str>,
+  content: CowContent<'static>,
   name: Option<Cow<'static, str>>,
   enforce: ReplacementEnforce,
   insertion_order: u32,
@@ -284,7 +284,7 @@ impl ReplaceSource {
     self.add_replacement(Replacement {
       start,
       end,
-      content: Cow::Borrowed(content),
+      content: CowContent::Borrowed(ContentSlice::from_str(content)),
       name: name.map(Cow::Borrowed),
       enforce,
       insertion_order: self.replacements.len() as u32,
@@ -324,13 +324,13 @@ impl Source for ReplaceSource {
 
     let mut string = String::with_capacity(self.size());
     self.rope(&mut |chunk| {
-      string.push_str(chunk);
+      string.push_str(chunk.as_str());
     });
-    SourceValue::String(Cow::Owned(string))
+    SourceValue::String(string.into())
   }
 
   #[allow(unsafe_code)]
-  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
+  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(ContentSlice<'a>)) {
     if self.replacements.is_empty() {
       return self.inner.rope(on_chunk);
     }
@@ -368,14 +368,16 @@ impl Source for ReplaceSource {
         if next_replacement_pos > pos {
           // Emit chunk until replacement
           let offset = next_replacement_pos - pos;
-          let chunk_slice = unsafe { chunk.get_unchecked(chunk_pos..(chunk_pos + offset)) };
+          let chunk_slice = chunk
+            .slice(chunk_pos..chunk_pos + offset)
+            .expect("slice must use UTF-8 boundaries");
           on_chunk(chunk_slice);
           chunk_pos += offset;
           pos = next_replacement_pos;
         }
         // Insert replacement content split into chunks by lines
         let replacement = unsafe { self.replacements.get_unchecked(replacement_idx) };
-        on_chunk(&replacement.content);
+        on_chunk(replacement.content.view());
 
         // Remove replaced content by settings this variable
         replacement_end = if let Some(replacement_end) = replacement_end {
@@ -409,7 +411,7 @@ impl Source for ReplaceSource {
 
       // Emit remaining chunk
       if chunk_pos < chunk.len() {
-        on_chunk(unsafe { chunk.get_unchecked(chunk_pos..) });
+        on_chunk(chunk.slice_from(chunk_pos));
       }
       pos = end_pos;
     });
@@ -418,7 +420,7 @@ impl Source for ReplaceSource {
     while replacement_idx < self.replacements.len() {
       let replacement = unsafe { self.replacements.get_unchecked(replacement_idx) };
       let content = &replacement.content;
-      on_chunk(content);
+      on_chunk(content.view());
       replacement_idx += 1;
     }
   }
@@ -542,7 +544,7 @@ impl std::fmt::Debug for ReplaceSource {
 }
 
 enum SourceContent<'object_pool, 'source> {
-  Raw(Cow<'source, str>),
+  Raw(CowContent<'source>),
   Lines(SourceContentLines<'object_pool, 'source>),
 }
 
@@ -740,8 +742,11 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
           if next_replacement_pos > pos {
             // Emit chunk until replacement
             let offset = next_replacement_pos - pos;
-            let chunk_slice = chunk.slice(chunk_pos as usize, (chunk_pos + offset) as usize);
+            let chunk_slice = chunk
+              .slice(chunk_pos as usize..(chunk_pos + offset) as usize)
+              .expect("slice must use UTF-8 boundaries");
             let chunk_slice_utf16_offset = chunk_slice.utf16_len() as u32;
+            let chunk_slice_text = chunk_slice.as_str();
             on_chunk(
               Some(chunk_slice),
               Mapping {
@@ -775,7 +780,7 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
                   original.source_index,
                   original.original_line,
                   original.original_column,
-                  chunk_slice.as_str(),
+                  chunk_slice_text,
                 )
               {
                 original.original_column += chunk_slice_utf16_offset;
@@ -804,10 +809,15 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
               replacement_name_index = global_index;
             }
           }
-          let content = repl.content.as_ref();
+          let content = &repl.content;
           let content_is_ascii = content.is_ascii();
-          for_each_line(content, |content_line, ends_with_newline| {
-            let content_chunk = TextSpan::with_ascii(content_line, content_is_ascii);
+          for_each_line(content.as_str(), |content_line, ends_with_newline| {
+            let content_chunk = ContentSlice::with_ascii_hint(content_line, content_is_ascii);
+            let content_utf16_len = if ends_with_newline {
+              0
+            } else {
+              content_chunk.utf16_len() as i64
+            };
             on_chunk(
               Some(content_chunk),
               Mapping {
@@ -836,7 +846,6 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
             replacement_name_index = None;
 
             if !ends_with_newline {
-              let content_utf16_len = content_chunk.utf16_len() as i64;
               if generated_column_offset_line == line {
                 generated_column_offset += content_utf16_len;
               } else {
@@ -901,7 +910,8 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
                   original.original_line,
                   original.original_column,
                   chunk
-                    .slice(chunk_pos as usize, (chunk_pos + offset as u32) as usize)
+                    .slice(chunk_pos as usize..(chunk_pos + offset as u32) as usize)
+                    .expect("slice must use UTF-8 boundaries")
                     .as_str(),
                 )
               {
@@ -910,7 +920,8 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
             }
 
             let utf16_offset = chunk
-              .slice(chunk_pos as usize, (chunk_pos + offset as u32) as usize)
+              .slice(chunk_pos as usize..(chunk_pos + offset as u32) as usize)
+              .expect("slice must use UTF-8 boundaries")
               .utf16_len() as i64;
             chunk_pos += offset as u32;
             pos += offset as u32;
@@ -963,8 +974,9 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
       &mut |source_index, source, source_content| {
         if !self.is_original_source {
           let mut source_content_lines = source_content_lines.borrow_mut();
-          let lines =
-            source_content.map(|source_content| SourceContent::Raw(Cow::Borrowed(source_content)));
+          let lines = source_content
+            .as_ref()
+            .map(|source_content| SourceContent::Raw(CowContent::Borrowed(source_content.clone())));
           source_content_lines.insert(source_index, lines);
         }
         on_source(source_index, source, source_content);
@@ -987,11 +999,16 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
     // Handle remaining replacements one by one
     let mut line = result.generated_line as i64 + generated_line_offset;
     while i < repls.len() {
-      let content = repls[i].content.as_ref();
+      let content = &repls[i].content;
       let content_is_ascii = content.is_ascii();
 
-      for_each_line(content, |content_line, ends_with_newline| {
-        let content_chunk = TextSpan::with_ascii(content_line, content_is_ascii);
+      for_each_line(content.as_str(), |content_line, ends_with_newline| {
+        let content_chunk = ContentSlice::with_ascii_hint(content_line, content_is_ascii);
+        let content_utf16_len = if ends_with_newline {
+          0
+        } else {
+          content_chunk.utf16_len() as i64
+        };
         on_chunk(
           Some(content_chunk),
           Mapping {
@@ -1008,7 +1025,6 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
 
         // Handle line and column offset updates
         if !ends_with_newline {
-          let content_utf16_len = content_chunk.utf16_len() as i64;
           // Last line of current replacement doesn't end with newline
           if generated_column_offset_line == line {
             generated_column_offset += content_utf16_len;
@@ -1413,7 +1429,7 @@ function StaticPage(_ref) {
     assert_eq!(source_map.get_name(1).unwrap(), "data");
     assert_eq!(source_map.get_name(2).unwrap(), "foo");
     assert_eq!(
-      source_map.get_source_content(0).unwrap().as_ref(),
+      source_map.get_source_content(0).unwrap().as_str(),
       r#"export default function StaticPage({ data }) {
 return <div>{data.foo}</div>
 }

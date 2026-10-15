@@ -5,10 +5,9 @@ use std::{
 };
 
 use crate::{
-  MapOptions, Source, SourceMap, SourceValue,
+  Content, ContentSlice, CowContent, MapOptions, Source, SourceMap, SourceValue,
   helpers::{
-    Chunks, GeneratedInfo, StreamChunks, TextSpan, get_generated_source_info,
-    stream_chunks_of_raw_source,
+    Chunks, GeneratedInfo, StreamChunks, get_generated_source_info, stream_chunks_of_raw_source,
   },
   object_pool::ObjectPool,
 };
@@ -27,7 +26,8 @@ use crate::{
 /// assert_eq!(s.size(), 16);
 /// ```
 #[derive(Clone, PartialEq, Eq)]
-pub struct RawStringSource(Cow<'static, str>);
+#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
+pub struct RawStringSource(CowContent<'static>);
 
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 static_assertions::assert_eq_size!(RawStringSource, [u8; 24]);
@@ -43,7 +43,7 @@ impl RawStringSource {
   /// assert_eq!(s.source().into_string_lossy(), code);
   /// ```
   pub fn from_static(s: &'static str) -> Self {
-    Self(Cow::Borrowed(s))
+    Self(CowContent::Borrowed(ContentSlice::from_str(s)))
   }
 }
 
@@ -51,23 +51,29 @@ impl From<String> for RawStringSource {
   fn from(mut value: String) -> Self {
     // Source contents are immutable, so they do not need room to grow.
     value.shrink_to_fit();
-    Self(Cow::Owned(value))
+    Self(CowContent::Owned(Content::from(value)))
   }
 }
 
 impl From<&str> for RawStringSource {
   fn from(value: &str) -> Self {
-    Self(Cow::Owned(value.to_string()))
+    Self(CowContent::Owned(Content::from(value)))
+  }
+}
+
+impl From<Content> for RawStringSource {
+  fn from(value: Content) -> Self {
+    Self(CowContent::Owned(value))
   }
 }
 
 impl Source for RawStringSource {
   fn source(&self) -> SourceValue<'_> {
-    SourceValue::String(Cow::Borrowed(&self.0))
+    SourceValue::String(CowContent::Borrowed(self.0.view()))
   }
 
-  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    on_chunk(self.0.as_ref())
+  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(ContentSlice<'a>)) {
+    on_chunk(self.0.view())
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
@@ -98,7 +104,7 @@ impl std::fmt::Debug for RawStringSource {
     write!(
       f,
       "{indent_str}RawStringSource::from_static({:?}).boxed()",
-      self.0.as_ref()
+      self.0.as_str()
     )
   }
 }
@@ -110,7 +116,7 @@ impl Hash for RawStringSource {
   }
 }
 
-struct RawStringChunks<'source>(&'source str);
+struct RawStringChunks<'source>(&'source CowContent<'static>);
 
 impl<'source> RawStringChunks<'source> {
   pub fn new(source: &'source RawStringSource) -> Self {
@@ -127,7 +133,7 @@ impl<'source> Chunks<'source> for RawStringChunks<'source> {
     on_source: crate::helpers::OnSource<'_, 'source>,
     on_name: crate::helpers::OnName<'_, 'source>,
   ) -> crate::helpers::GeneratedInfo {
-    let source = TextSpan::new(self.0);
+    let source = self.0.view();
     if options.final_source {
       get_generated_source_info(source)
     } else {
@@ -157,20 +163,21 @@ impl StreamChunks for RawStringSource {
 /// ```
 pub struct RawBufferSource {
   value: Vec<u8>,
-  value_as_string: OnceLock<Option<String>>,
+  value_as_string: OnceLock<Option<Content>>,
 }
 
 impl RawBufferSource {
   #[allow(unsafe_code)]
-  fn get_or_init_value_as_string(&self) -> &str {
-    self
+  fn get_or_init_value_as_content_slice(&self) -> ContentSlice<'_> {
+    match self
       .value_as_string
       .get_or_init(|| match String::from_utf8_lossy(&self.value) {
-        Cow::Owned(s) => Some(s),
+        Cow::Owned(s) => Some(Content::from(s)),
         Cow::Borrowed(_) => None,
-      })
-      .as_deref()
-      .unwrap_or_else(|| unsafe { std::str::from_utf8_unchecked(&self.value) })
+      }) {
+      Some(content) => content.view(),
+      None => ContentSlice::from_str(unsafe { std::str::from_utf8_unchecked(&self.value) }),
+    }
   }
 }
 
@@ -214,8 +221,8 @@ impl Source for RawBufferSource {
     SourceValue::Buffer(Cow::Borrowed(&self.value))
   }
 
-  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    on_chunk(self.get_or_init_value_as_string())
+  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(ContentSlice<'a>)) {
+    on_chunk(self.get_or_init_value_as_content_slice())
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
@@ -269,8 +276,7 @@ impl<'source> Chunks<'source> for RawBufferSourceChunks<'source> {
     on_source: crate::helpers::OnSource<'_, 'source>,
     on_name: crate::helpers::OnName<'_, 'source>,
   ) -> GeneratedInfo {
-    let code = self.0.get_or_init_value_as_string();
-    let source = TextSpan::new(code);
+    let source = self.0.get_or_init_value_as_content_slice();
     if options.final_source {
       get_generated_source_info(source)
     } else {

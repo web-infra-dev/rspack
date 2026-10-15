@@ -5,10 +5,10 @@ use std::{
 };
 
 use crate::{
-  MapOptions, Source, SourceMap, SourceValue,
+  Content, ContentSlice, CowContent, MapOptions, Source, SourceMap, SourceValue,
   helpers::{
-    Chunks, GeneratedInfo, StreamChunks, TextSpan, get_generated_source_info, get_map,
-    split_into_lines, split_into_potential_tokens,
+    Chunks, GeneratedInfo, StreamChunks, get_generated_source_info, get_map, split_into_lines,
+    split_into_potential_tokens,
   },
   object_pool::ObjectPool,
   source::{Mapping, OriginalLocation},
@@ -37,7 +37,7 @@ use crate::{
 /// ```
 #[derive(Clone, Eq)]
 pub struct OriginalSource {
-  value: Box<str>,
+  value: Content,
   name: Box<str>,
 }
 
@@ -45,7 +45,7 @@ impl OriginalSource {
   /// Create a [OriginalSource].
   pub fn new(value: impl Into<Box<str>>, name: impl Into<Box<str>>) -> Self {
     Self {
-      value: value.into(),
+      value: Content::from_boxed(value.into()),
       name: name.into(),
     }
   }
@@ -55,19 +55,19 @@ impl OriginalSource {
     &self.name
   }
 
-  /// Get the value as a shared string reference.
-  pub fn value(&self) -> &str {
+  /// Get the source content and its shared ASCII cache.
+  pub fn value(&self) -> &Content {
     &self.value
   }
 }
 
 impl Source for OriginalSource {
   fn source(&self) -> SourceValue<'_> {
-    SourceValue::String(Cow::Borrowed(&self.value))
+    SourceValue::String(CowContent::Borrowed(self.value.view()))
   }
 
-  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    on_chunk(self.value.as_ref())
+  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(ContentSlice<'a>)) {
+    on_chunk(self.value.view())
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
@@ -143,13 +143,13 @@ impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
     on_source: crate::helpers::OnSource<'_, 'source>,
     _on_name: crate::helpers::OnName<'_, 'source>,
   ) -> GeneratedInfo {
-    on_source(0, Cow::Borrowed(&self.0.name), Some(self.0.value.as_ref()));
-    let source = TextSpan::new(self.0.value.as_ref());
+    on_source(0, Cow::Borrowed(&self.0.name), Some(self.0.value.view()));
+    let source = self.0.value.view();
     if options.columns {
       // With column info we need to read all lines and split them
       let mut line = 1;
       let mut column = 0;
-      for token in split_into_potential_tokens(self.0.value.as_ref()) {
+      for token in split_into_potential_tokens(self.0.value.as_str()) {
         let is_end_of_line = token.ends_with("\n");
         if is_end_of_line && token.len() == 1 {
           if !options.final_source {
@@ -231,7 +231,7 @@ impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
       // we need to split source by lines
       let mut line = 1;
       let mut last_line = None;
-      for l in split_into_lines(self.0.value.as_ref()) {
+      for l in split_into_lines(self.0.value.as_str()) {
         on_chunk(
           (!options.final_source).then_some(source.subspan(l)),
           Mapping {

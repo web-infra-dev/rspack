@@ -5,9 +5,9 @@ use std::{
 };
 
 use crate::{
-  MapOptions, Source, SourceMap, SourceValue,
+  Content, ContentSlice, CowContent, MapOptions, Source, SourceMap, SourceValue,
   helpers::{
-    Chunks, StreamChunks, TextSpan, get_map, stream_chunks_of_combined_source_map,
+    Chunks, StreamChunks, get_map, stream_chunks_of_combined_source_map,
     stream_chunks_of_source_map,
   },
   object_pool::ObjectPool,
@@ -23,7 +23,7 @@ pub struct SourceMapSourceOptions<V, N> {
   /// The source map of the source code.
   pub source_map: SourceMap<'static>,
   /// The original source code.
-  pub original_source: Option<Box<str>>,
+  pub original_source: Option<Content>,
   /// The original source map.
   pub inner_source_map: Option<SourceMap<'static>>,
   /// Whether remove the original source.
@@ -61,10 +61,10 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#sourcemapsource).
 #[derive(Eq)]
 pub struct SourceMapSource {
-  value: Box<str>,
+  value: Content,
   name: Box<str>,
   source_map: SourceMap<'static>,
-  original_source: Option<Box<str>>,
+  original_source: Option<Content>,
   inner_source_map: Option<SourceMap<'static>>,
   remove_original_source: bool,
 }
@@ -79,7 +79,7 @@ impl SourceMapSource {
   {
     let options = options.into();
     Self {
-      value: Box::from(options.value.into()),
+      value: Content::from_boxed(Box::from(options.value.into())),
       name: Box::from(options.name.into()),
       source_map: options.source_map,
       original_source: options.original_source,
@@ -88,8 +88,8 @@ impl SourceMapSource {
     }
   }
 
-  /// Get the value as a shared string reference.
-  pub fn value(&self) -> &str {
+  /// Get the generated content and its shared ASCII cache.
+  pub fn value(&self) -> &Content {
     &self.value
   }
 
@@ -103,9 +103,9 @@ impl SourceMapSource {
     &self.source_map
   }
 
-  /// Get the original source code.
-  pub fn original_source(&self) -> Option<&str> {
-    self.original_source.as_deref()
+  /// Get the original source content and its shared ASCII cache.
+  pub fn original_source(&self) -> Option<&Content> {
+    self.original_source.as_ref()
   }
 
   /// Get the inner source map.
@@ -121,11 +121,11 @@ impl SourceMapSource {
 
 impl Source for SourceMapSource {
   fn source(&self) -> SourceValue<'_> {
-    SourceValue::String(Cow::Borrowed(&self.value))
+    SourceValue::String(CowContent::Borrowed(self.value.view()))
   }
 
-  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    on_chunk(&self.value)
+  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(ContentSlice<'a>)) {
+    on_chunk(self.value.view())
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
@@ -161,7 +161,7 @@ impl Source for SourceMapSource {
         let value = std::mem::take(&mut source.value);
         let source = Arc::new(source);
         let owner = source.clone();
-        let chunks = SourceMapSourceChunks::new(source.as_ref(), &value);
+        let chunks = SourceMapSourceChunks::new(source.as_ref(), value.view());
         get_map(object_pool, &chunks, options)
           .map(SourceMap::from_fields)
           .map(|map| map.into_static(owner))
@@ -219,7 +219,7 @@ impl std::fmt::Debug for SourceMapSource {
       Some(original_source) => {
         writeln!(
           f,
-          "{indent_str}  original_source: Some({:?}.to_string()),",
+          "{indent_str}  original_source: Some({:?}.into()),",
           original_source
         )?;
       }
@@ -244,21 +244,21 @@ impl std::fmt::Debug for SourceMapSource {
 }
 
 struct SourceMapSourceChunks<'source, 'value> {
-  value: &'value str,
+  value: ContentSlice<'value>,
   name: &'source str,
   source_map: &'source SourceMap<'static>,
-  original_source: Option<&'source str>,
+  original_source: Option<ContentSlice<'source>>,
   inner_source_map: Option<&'source SourceMap<'static>>,
   remove_original_source: bool,
 }
 
 impl<'source, 'value> SourceMapSourceChunks<'source, 'value> {
-  fn new(source: &'source SourceMapSource, value: &'value str) -> Self {
+  fn new(source: &'source SourceMapSource, value: ContentSlice<'value>) -> Self {
     Self {
       value,
       name: &source.name,
       source_map: &source.source_map,
-      original_source: source.original_source.as_deref(),
+      original_source: source.original_source.as_ref().map(Content::view),
       inner_source_map: source.inner_source_map.as_ref(),
       remove_original_source: source.remove_original_source,
     }
@@ -278,10 +278,10 @@ impl<'source, 'value> Chunks<'source> for SourceMapSourceChunks<'source, 'value>
       stream_chunks_of_combined_source_map(
         options,
         object_pool,
-        self.value,
+        self.value.clone(),
         self.source_map.fields(),
         self.name,
-        self.original_source,
+        self.original_source.clone(),
         inner_source_map.fields(),
         self.remove_original_source,
         on_chunk,
@@ -292,7 +292,7 @@ impl<'source, 'value> Chunks<'source> for SourceMapSourceChunks<'source, 'value>
       stream_chunks_of_source_map(
         options,
         object_pool,
-        TextSpan::new(self.value),
+        self.value.clone(),
         self.source_map.fields(),
         on_chunk,
         on_source,
@@ -304,7 +304,7 @@ impl<'source, 'value> Chunks<'source> for SourceMapSourceChunks<'source, 'value>
 
 impl StreamChunks for SourceMapSource {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
-    Box::new(SourceMapSourceChunks::new(self, &self.value))
+    Box::new(SourceMapSourceChunks::new(self, self.value.view()))
   }
 }
 
@@ -945,7 +945,7 @@ mod tests {
   value: "hello world",
   name: "hello.txt",
   source_map: SourceMap::from_json("{\"version\":3,\"sources\":[\"hello.txt\"],\"names\":[],\"mappings\":\"AAAA,MAAG\"}".to_string()).unwrap(),
-  original_source: Some("你好 世界".to_string()),
+  original_source: Some("你好 世界".into()),
   inner_source_map: Some(SourceMap::from_json("{\"version\":3,\"sources\":[\"hello world.txt\"],\"sourcesContent\":[\"你好✋世界\"],\"names\":[],\"mappings\":\"AAAA,EAAE\"}".to_string()).unwrap()),
   remove_original_source: false,
 }).boxed()"#

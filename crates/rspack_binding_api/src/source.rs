@@ -71,7 +71,7 @@ impl TryFrom<&BoxSource> for JsSourceToJs {
         let map = value.map(&ObjectPool::default(), &MapOptions::default());
         let json = map.map(|m| m.to_json());
         Ok(JsSourceToJs {
-          source: Either::A(string.into_owned()),
+          source: Either::A(string.into_owned().into_string()),
           map: json,
         })
       }
@@ -114,7 +114,7 @@ impl JsSourceWithLazyMap<'_> {
     let value = source.source();
     let binding = match &value {
       SourceValue::String(string) => JsSourceWithLazyMap {
-        source: Either::A(string.as_ref()),
+        source: Either::A(string.as_str()),
         map: LazySourceMap::from_source(source)
           .map(|map| {
             // The callback owns the snapshot until its first call or JavaScript GC.

@@ -506,7 +506,9 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
 
   fn try_from(stats: StatsModule<'a>) -> std::result::Result<Self, Self::Error> {
     let source = stats.source.map(|source| match source.source() {
-      SourceValue::String(string) => JsStatsModuleSource::A(CowStrWrapper::new(string)),
+      SourceValue::String(string) => {
+        JsStatsModuleSource::A(CowStrWrapper::new(string.into_cow_str()))
+      }
       SourceValue::Buffer(bytes) => JsStatsModuleSource::B(Buffer::from(bytes.to_vec())),
     });
 
