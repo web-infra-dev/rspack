@@ -273,16 +273,12 @@ fn static_source_map_retains_the_tag_owner() {
 }
 
 #[test]
-fn local_view_clone_is_independent_but_share_uses_the_same_cache() {
+fn local_view_clone_is_independent_but_cow_view_uses_the_same_cache() {
   let original = ContentSlice::from_str("café");
   let copy = original.clone();
   assert!(!copy.is_ascii());
   assert_eq!(copy.cached_is_ascii(), Some(false));
   assert_eq!(original.cached_is_ascii(), None);
-
-  let shared = original.share();
-  assert!(!shared.is_ascii());
-  assert_eq!(original.cached_is_ascii(), Some(false));
 
   let cow = CowContent::Borrowed(ContentSlice::from_str("café"));
   assert_eq!(cow.cached_is_ascii(), None);

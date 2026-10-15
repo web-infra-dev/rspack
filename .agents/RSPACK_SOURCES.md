@@ -193,8 +193,8 @@ cached ASCII result; `SourceValue::String` also carries `CowContent`. The `u32`
 length bounds source content to 4 GiB minus one byte.
 
 `Content::view()` and `CowContent::view()` return `ContentSlice` by value while sharing the stored
-ASCII tag. `ContentSlice::clone()` gives a local view an independent tag; `share()` borrows that
-local view's tag for the borrow lifetime.
+ASCII tag. `ContentSlice::clone()` gives a local view an independent tag; the crate-internal
+`share()` operation borrows that local view's tag for the borrow lifetime.
 
 `ContentSlice` carries the borrowed text and its ASCII tag through stream callbacks. Preserve the
 tag across transformations:

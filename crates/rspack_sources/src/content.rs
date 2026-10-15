@@ -418,7 +418,7 @@ impl<'a> ContentSlice<'a> {
   }
 
   /// Borrow the same bytes and cache as this view.
-  pub fn share(&self) -> ContentSlice<'_> {
+  pub(crate) fn share(&self) -> ContentSlice<'_> {
     let target = self.repr.target();
     ContentSlice {
       repr: ContentRepr {
