@@ -110,6 +110,8 @@ pub struct Chunk {
   auxiliary_files: HashSet<String>,
   chunk_reason: Option<String>,
   rendered: bool,
+  // Unchanged factories included only to supply missing dependencies during HMR.
+  hot_update_module_additions: Option<Box<IdentifierSet>>,
 }
 
 impl Chunk {
@@ -119,6 +121,14 @@ impl Chunk {
 
   pub fn kind(&self) -> ChunkKind {
     self.kind
+  }
+
+  pub fn hot_update_module_additions(&self) -> Option<&IdentifierSet> {
+    self.hot_update_module_additions.as_deref()
+  }
+
+  pub fn set_hot_update_module_additions(&mut self, modules: IdentifierSet) {
+    self.hot_update_module_additions = (!modules.is_empty()).then(|| Box::new(modules));
   }
 
   pub fn set_kind(&mut self, kind: ChunkKind) {
@@ -326,6 +336,7 @@ impl Chunk {
       kind,
       chunk_reason: Default::default(),
       rendered: false,
+      hot_update_module_additions: None,
     }
   }
 

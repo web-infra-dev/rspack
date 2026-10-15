@@ -25,7 +25,6 @@
 };
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, update") %> {
 	if (typeof document === 'undefined') return;
-	var load = update && update.load;
 	applyHandlers.push(cssApplyHandler);
 	// `css` is the hot-update manifest's css namespace (aligned with webpack):
 	// `css.c` lists the chunks whose CSS content actually changed and `css.r`
@@ -37,12 +36,6 @@
 	var files = (css && css.f) || {};
 	var oldFiles = (css && css.o) || {};
 	var requiredCssChunks = Object.create(null);
-	if (load) Object.keys(load).forEach(<%- basicFunction("entryId") %> {
-		if (cssChunkIsLoaded(entryId)) load[entryId].forEach(<%- basicFunction("id") %> {
-			requiredCssChunks[id] = true;
-			if (files[id] && cssChunkIds.indexOf(id) < 0) cssChunkIds.push(id);
-		});
-	});
 	var seen = {};
 	cssRemovedChunkIds.forEach(<%- basicFunction("chunkId") %> {
 		var filename = oldFiles[chunkId] || <%- GET_CHUNK_CSS_FILENAME %>(chunkId);

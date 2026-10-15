@@ -24,7 +24,7 @@ pub struct ChunkGraph {
 
 impl ChunkGraph {
   /// Current physical loading plans, optionally restricted to one runtime.
-  pub fn get_async_chunk_groups(
+  pub fn get_block_chunks(
     &self,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,

@@ -21,7 +21,6 @@
 	return typeof <%- _js_state_expression %> !== "undefined" && <%- _js_state_expression %> && <%- _js_state_expression %>[chunkId] === 0;
 };
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, update) {
-	var load = update && update.load;
 	applyHandlers.push(extractCssApplyHandler);
 	/**
 		`miniCss` is the hot-update manifest's namespace for extracted CSS:
@@ -38,12 +37,6 @@
 	var files = (miniCss && miniCss.f) || {};
 	var oldFiles = (miniCss && miniCss.o) || {};
 	var requiredCssChunks = Object.create(null);
-	if (load) Object.keys(load).forEach(function (entryId) {
-		if (extractCssChunkIsLoaded(entryId)) load[entryId].forEach(function (id) {
-			requiredCssChunks[id] = true;
-			if (files[id] && cssChunkIds.indexOf(id) < 0) cssChunkIds.push(id);
-		});
-	});
 	var seen = {};
 	cssRemovedChunkIds.forEach(function (chunkId) {
 		var href = oldFiles[chunkId] || <%- _get_chunk_css_filename %>(chunkId);

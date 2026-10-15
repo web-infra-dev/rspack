@@ -168,15 +168,12 @@ pub struct AsyncDependenciesBlock {
 }
 
 impl AsyncDependenciesBlock {
-  /// A load site keeps its identity when splitChunks changes its physical chunks.
+  /// Use the existing block identifier, relative to the compilation context.
   pub fn runtime_id(&self, compilation: &Compilation) -> String {
-    let mut hasher = RspackHasher::new(&rspack_hash::HashFunction::Xxhash64);
     rspack_util::identifier::make_paths_relative(
       compilation.options.context.as_str(),
       self.id.0.as_str(),
     )
-    .hash(&mut hasher);
-    format!("{:016x}", hasher.finish())
   }
 
   /// modifier should be Dependency.span in most of time

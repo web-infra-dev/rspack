@@ -1,47 +1,20 @@
-<%- var("chunkGroups") %> = <%- _groups %>;
+<%- var("blockChunks") %> = <%- _blocks %>;
 // undefined = not loaded, Promise = loading, 0 = loaded.
-<%- var("installedChunkGroups") %> = <% if (_hmr) { %><%- _state_expression %> = <%- _state_expression %> || <% } %>Object.create(null);
-<% if (_hmr) { %><%- var("hotUpdateChunkGroup") %>;
-<% } %>
-<%- define(ENSURE_CHUNK_GROUP) %> = <%- basicFunction("groupId, fetchPriority") %> {
+<%- var("installedBlocks") %> = <% if (_hmr) { %><%- _state_expression %> = <%- _state_expression %> || <% } %>Object.create(null);
+<%- define(ENSURE_CHUNK_GROUP) %> = <%- basicFunction("blockId, fetchPriority") %> {
 	var promises = [];
-	<% if (_hmr) { %>if (hotUpdateChunkGroup) hotUpdateChunkGroup(groupId, promises);
-	<% } %>var chunks = chunkGroups[groupId] || [];
+	var chunks = blockChunks[blockId] || [];
 	chunks.forEach(<%- basicFunction("chunkId") %> {
 		promises.push(<%- ENSURE_CHUNK %>(chunkId, fetchPriority));
 	});
 	var promise = Promise.all(promises);
-	if (installedChunkGroups[groupId] !== 0) {
-		installedChunkGroups[groupId] = promise;
+	if (installedBlocks[blockId] !== 0) {
+		installedBlocks[blockId] = promise;
 		promise.then(<%- basicFunction("") %> {
-			installedChunkGroups[groupId] = 0;
+			installedBlocks[blockId] = 0;
 		}, <%- basicFunction("") %> {
-			if (installedChunkGroups[groupId] === promise) delete installedChunkGroups[groupId];
+			if (installedBlocks[blockId] === promise) delete installedBlocks[blockId];
 		});
 	}
 	return promise;
 };
-<% if (_hmr) { %>
-<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.chunkGroups = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, update") %> {
-	if (!update || !update.groups) return;
-	hotUpdateChunkGroup = <%- basicFunction("groupId, promises") %> {
-		var chunks = update.groups[groupId];
-		if (!chunks) return;
-		// Wait until all download handlers have registered their chunk preparers.
-		promises.push(Promise.resolve().then(<%- basicFunction("") %> {
-			var chunkPromises = [];
-			chunks.forEach(<%- basicFunction("chunkId") %> {
-				update.chunkHandlers.forEach(<%- basicFunction("handler") %> { handler(chunkId, chunkPromises); });
-			});
-			return Promise.all(chunkPromises);
-		}));
-	};
-	Object.keys(installedChunkGroups).forEach(<%- basicFunction("groupId") %> {
-		hotUpdateChunkGroup(groupId, promises);
-	});
-	applyHandlers.push(<%- basicFunction("") %> {
-		hotUpdateChunkGroup = undefined;
-		return {};
-	});
-};
-<% } %>

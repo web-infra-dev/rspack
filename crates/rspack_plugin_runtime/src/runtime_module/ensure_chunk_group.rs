@@ -10,7 +10,7 @@ use crate::extract_runtime_module_variables_from_ejs;
 static TEMPLATE: &str = include_str!("runtime/ensure_chunk_group.ejs");
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
   let mut variables = extract_runtime_module_variables_from_ejs(&[TEMPLATE]);
-  variables.push("__rspack_hmr_s_chunkGroups");
+  variables.push("__rspack_hmr_s_blocks");
   variables
 });
 
@@ -43,15 +43,15 @@ impl RuntimeModule for EnsureChunkGroupRuntimeModule {
     let chunk = graph
       .chunk_by_ukey
       .expect_get(&self.chunk().expect("should have chunk"));
-    let groups = graph
+    let blocks = graph
       .chunk_graph
-      .get_async_chunk_groups(compilation, Some(chunk.runtime()));
+      .get_block_chunks(compilation, Some(chunk.runtime()));
     context.runtime_template.render(
       self.id(),
       Some(serde_json::json!({
-        "_groups": rspack_util::json_stringify(&groups),
+        "_blocks": rspack_util::json_stringify(&blocks),
         "_hmr": compilation.hot_module_replacement,
-        "_state_expression": context.runtime_template.render_hmr_runtime_state_expression("chunkGroups"),
+        "_state_expression": context.runtime_template.render_hmr_runtime_state_expression("blocks"),
       })),
     )
   }
@@ -62,9 +62,7 @@ impl RuntimeModule for EnsureChunkGroupRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     let mut dependencies = RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS;
     if compilation.hot_module_replacement {
-      dependencies.insert(
-        RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX,
-      );
+      dependencies.insert(RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
     }
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,

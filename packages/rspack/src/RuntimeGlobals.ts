@@ -123,7 +123,7 @@ enum RuntimeGlobals {
   ensureChunk,
 
   /**
-   * ensure the current chunks of an HMR logical loading group
+   * ensure the current chunks of an async dependency block
    */
   ensureChunkGroup,
 

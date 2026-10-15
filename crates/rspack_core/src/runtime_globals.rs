@@ -313,7 +313,7 @@ define_runtime_globals! {
   // reexport
   const REEXPORT;
 
-  // HMR logical loading groups
+  // Ensure chunks belonging to an async dependency block
   const ENSURE_CHUNK_GROUP;
 }
 
