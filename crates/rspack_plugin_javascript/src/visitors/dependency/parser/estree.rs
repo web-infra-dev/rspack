@@ -6,12 +6,75 @@
 use rspack_intern::Atom;
 use rspack_util::swc::AstSubRangeExt;
 use swc_next_ecma_ast::{
-  Ast, BindingPattern, ExportAllDeclaration as SwcExportAllDeclaration,
+  Ast, BindingIdentifier, BindingPattern, ExportAllDeclaration as SwcExportAllDeclaration,
   ExportDefaultDeclaration as SwcExportDefaultDeclaration, ExportDefaultDeclarationKind,
   ExportNamedDeclaration as SwcExportNamedDeclaration, Expr, FormalParameterPattern,
-  FormalParameterPatternData, FormalParameters, GetSpan, ImportAttribute, ModuleExportName,
-  ModuleExportNameData, Span, SubRange,
+  FormalParameterPatternData, FormalParameters, GetSpan, IdentifierReference, ImportAttribute,
+  JsxMemberExpression, MemberExpression, ModuleExportName, ModuleExportNameData, Span, SubRange,
 };
+
+/// An identifier visited by pattern hooks, either in a binding or an assignment.
+#[derive(Debug, Clone, Copy)]
+pub enum PatternIdentifier {
+  Binding(BindingIdentifier),
+  Reference(IdentifierReference),
+}
+
+impl PatternIdentifier {
+  pub fn name<'a>(self, ast: &'a Ast<'_>) -> &'a str {
+    ast.get_utf8(match self {
+      Self::Binding(identifier) => identifier.name(ast),
+      Self::Reference(identifier) => identifier.name(ast),
+    })
+  }
+
+  pub fn span(self, ast: &Ast<'_>) -> Span {
+    match self {
+      Self::Binding(identifier) => identifier.span(ast),
+      Self::Reference(identifier) => identifier.span(ast),
+    }
+  }
+}
+
+/// The hook-facing representation of an ECMAScript or JSX member expression.
+///
+/// SWC Next keeps those node kinds distinct. Parser plugins mostly need the
+/// complete source span, while the few ECMAScript-only paths can explicitly
+/// request the underlying node instead of manufacturing an incompatible AST
+/// handle for JSX.
+#[derive(Debug, Clone, Copy)]
+pub enum HookMemberExpression {
+  Ecma(MemberExpression),
+  Jsx(JsxMemberExpression),
+}
+
+impl HookMemberExpression {
+  pub fn span(self, ast: &Ast<'_>) -> Span {
+    match self {
+      Self::Ecma(expression) => expression.span(ast),
+      Self::Jsx(expression) => expression.span(ast),
+    }
+  }
+
+  pub fn ecma(self) -> Option<MemberExpression> {
+    match self {
+      Self::Ecma(expression) => Some(expression),
+      Self::Jsx(_) => None,
+    }
+  }
+}
+
+impl From<MemberExpression> for HookMemberExpression {
+  fn from(expression: MemberExpression) -> Self {
+    Self::Ecma(expression)
+  }
+}
+
+impl From<JsxMemberExpression> for HookMemberExpression {
+  fn from(expression: JsxMemberExpression) -> Self {
+    Self::Jsx(expression)
+  }
+}
 
 fn wtf8_to_atom(value: &swc_next_allocator::wtf8::Wtf8) -> Atom {
   Atom::from(value.to_string_lossy().as_ref())

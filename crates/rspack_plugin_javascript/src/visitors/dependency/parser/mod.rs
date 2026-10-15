@@ -1,6 +1,5 @@
 use rspack_intern::AtomRef;
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
-pub mod ast;
 mod call_hooks_name;
 pub mod estree;
 mod location_advancer;
