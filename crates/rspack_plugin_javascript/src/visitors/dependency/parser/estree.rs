@@ -6,16 +6,15 @@
 use rspack_intern::Atom;
 use rspack_util::swc::AstSubRangeExt;
 use swc_next_ecma_ast::{
-  Ast, BindingIdentifier, BindingPattern, BlockStatement, BreakStatement, Class, ContinueStatement,
-  DebuggerStatement, DoWhileStatement, EmptyStatement,
-  ExportAllDeclaration as SwcExportAllDeclaration,
+  Ast, BindingPattern, BlockStatement, BreakStatement, Class, ContinueStatement, DebuggerStatement,
+  DoWhileStatement, EmptyStatement, ExportAllDeclaration as SwcExportAllDeclaration,
   ExportDefaultDeclaration as SwcExportDefaultDeclaration, ExportDefaultDeclarationKindData,
   ExportNamedDeclaration as SwcExportNamedDeclaration, Expr, ExpressionStatement, ForInStatement,
   ForOfStatement, ForStatement, FormalParameterPattern, FormalParameterPatternData,
   FormalParameters, Function, GetSpan, IfStatement, ImportAttribute, LabeledStatement,
   ModuleExportName, ModuleExportNameData, NodeKindData, ReturnStatement, Span, Stmt, SubRange,
-  SwitchStatement, ThrowStatement, TryStatement, VariableDeclaration as SwcVariableDeclaration,
-  VariableDeclarator, VariableKind, WhileStatement, WithStatement,
+  SwitchStatement, ThrowStatement, TryStatement, VariableDeclaration, WhileStatement,
+  WithStatement,
 };
 
 fn wtf8_to_atom(value: &swc_next_allocator::wtf8::Wtf8) -> Atom {
@@ -82,28 +81,6 @@ pub fn formal_parameters_are_simple_identifiers(ast: &Ast<'_>, params: FormalPar
           && parameter.pattern(ast).as_binding_identifier(ast).is_some()
       })
     })
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum ClassDeclOrExpr {
-  Decl(Class),
-  Expr(Class),
-}
-
-impl ClassDeclOrExpr {
-  pub fn node(self) -> Class {
-    match self {
-      Self::Decl(node) | Self::Expr(node) => node,
-    }
-  }
-
-  pub fn span(self, ast: &Ast<'_>) -> Span {
-    self.node().span(ast)
-  }
-
-  pub fn ident(self, ast: &Ast<'_>) -> Option<BindingIdentifier> {
-    self.node().id(ast)
-  }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -289,40 +266,6 @@ impl ExportLocal {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct MaybeNamedFunctionDecl(pub Function);
-
-impl MaybeNamedFunctionDecl {
-  pub fn span(self, ast: &Ast<'_>) -> Span {
-    self.0.span(ast)
-  }
-
-  pub fn ident(self, ast: &Ast<'_>) -> Option<BindingIdentifier> {
-    self.0.id(ast)
-  }
-
-  pub fn function(self) -> Function {
-    self.0
-  }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct MaybeNamedClassDecl(pub Class);
-
-impl MaybeNamedClassDecl {
-  pub fn span(self, ast: &Ast<'_>) -> Span {
-    self.0.span(ast)
-  }
-
-  pub fn ident(self, ast: &Ast<'_>) -> Option<BindingIdentifier> {
-    self.0.id(ast)
-  }
-
-  pub fn class(self) -> Class {
-    self.0
-  }
-}
-
-#[derive(Debug, Clone, Copy)]
 pub enum Statement {
   Block(BlockStatement),
   Empty(EmptyStatement),
@@ -342,8 +285,8 @@ pub enum Statement {
   ForIn(ForInStatement),
   ForOf(ForOfStatement),
   Expr(ExpressionStatement),
-  Class(MaybeNamedClassDecl),
-  Fn(MaybeNamedFunctionDecl),
+  Class(Class),
+  Fn(Function),
   Var(VariableDeclaration),
   Other(Stmt),
 }
@@ -370,9 +313,9 @@ impl Statement {
       Self::ForIn(node) => node.node_id(),
       Self::ForOf(node) => node.node_id(),
       Self::Expr(node) => node.node_id(),
-      Self::Class(node) => node.0.node_id(),
-      Self::Fn(node) => node.0.node_id(),
-      Self::Var(node) => node.0.node_id(),
+      Self::Class(node) => node.node_id(),
+      Self::Fn(node) => node.node_id(),
+      Self::Var(node) => node.node_id(),
       Self::Other(node) => node.node_id(),
     }
   }
@@ -397,9 +340,9 @@ impl Statement {
       NodeKindData::ForInStatement(node) => Self::ForIn(node),
       NodeKindData::ForOfStatement(node) => Self::ForOf(node),
       NodeKindData::ExpressionStatement(node) => Self::Expr(node),
-      NodeKindData::Class(node) => Self::Class(MaybeNamedClassDecl(node)),
-      NodeKindData::Function(node) => Self::Fn(MaybeNamedFunctionDecl(node)),
-      NodeKindData::VariableDeclaration(node) => Self::Var(VariableDeclaration(node)),
+      NodeKindData::Class(node) => Self::Class(node),
+      NodeKindData::Function(node) => Self::Fn(node),
+      NodeKindData::VariableDeclaration(node) => Self::Var(node),
       _ => Self::Other(statement),
     }
   }
@@ -431,37 +374,18 @@ impl Statement {
     }
   }
 
-  pub fn as_function_decl(self) -> Option<MaybeNamedFunctionDecl> {
+  pub fn as_function_decl(self) -> Option<Function> {
     match self {
       Self::Fn(node) => Some(node),
       _ => None,
     }
   }
 
-  pub fn as_class_decl(self) -> Option<MaybeNamedClassDecl> {
+  pub fn as_class_decl(self) -> Option<Class> {
     match self {
       Self::Class(node) => Some(node),
       _ => None,
     }
-  }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct VariableDeclaration(pub SwcVariableDeclaration);
-
-pub type VariableDeclarationKind = VariableKind;
-
-impl VariableDeclaration {
-  pub fn span(self, ast: &Ast<'_>) -> Span {
-    self.0.span(ast)
-  }
-
-  pub fn kind(self, ast: &Ast<'_>) -> VariableKind {
-    self.0.kind(ast)
-  }
-
-  pub fn declarators<'a>(self, ast: &'a Ast<'_>) -> impl Iterator<Item = VariableDeclarator> + 'a {
-    ast.nodes(self.0.declarators(ast))
   }
 }
 

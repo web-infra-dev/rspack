@@ -6,7 +6,7 @@ use rspack_core::{
 use rspack_util::{SpanExt, itoa, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   ArgumentData, BindingPatternData, CallExpression, GetSpan, Program, UnaryExpression,
-  VariableDeclarator,
+  VariableDeclaration, VariableDeclarator,
 };
 
 use super::JavascriptParserPlugin;
@@ -14,8 +14,7 @@ use crate::{
   Atom,
   dependency::CommonJsRequireContextDependency,
   visitors::{
-    Identifier, JavascriptParser, PatRef, PatternIdentifier, Statement, TagInfoData,
-    VariableDeclaration, expr_name,
+    Identifier, JavascriptParser, PatRef, PatternIdentifier, Statement, TagInfoData, expr_name,
   },
 };
 
@@ -317,7 +316,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
   fn pre_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
     let fn_decl = stmt.as_function_decl()?;
     let ast = parser.ast.ast;
-    let ident = fn_decl.ident(ast)?;
+    let ident = fn_decl.id(ast)?;
     let name = ast.get_utf8(ident.name(ast));
     if name != self.nested_require_name(parser) {
       None

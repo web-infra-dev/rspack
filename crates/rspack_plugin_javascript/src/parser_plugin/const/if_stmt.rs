@@ -8,7 +8,7 @@ use swc_next_ecma_ast::{
   Ast, BindingPattern, BindingPatternData, GetSpan, IfStatement, VariableKind,
 };
 
-use crate::visitors::{JavascriptParser, Statement, VariableDeclarationKind};
+use crate::visitors::{JavascriptParser, Statement};
 
 fn collect_declaration_from_pattern<'a>(
   ast: &'a Ast<'_>,
@@ -141,12 +141,12 @@ pub fn get_hoisted_declarations<'a>(
         }
       }
       Statement::Fn(function) if include_function_declarations => {
-        if let Some(identifier) = function.ident(ast) {
+        if let Some(identifier) = function.id(ast) {
           declarations.insert(ast.get_utf8(identifier.name(ast)));
         }
       }
-      Statement::Var(declaration) if declaration.kind(ast) == VariableDeclarationKind::Var => {
-        for declarator in declaration.declarators(ast) {
+      Statement::Var(declaration) if declaration.kind(ast) == VariableKind::Var => {
+        for declarator in ast.nodes(declaration.declarators(ast)) {
           collect_declaration_from_pattern(ast, declarator.id(ast), &mut declarations);
         }
       }

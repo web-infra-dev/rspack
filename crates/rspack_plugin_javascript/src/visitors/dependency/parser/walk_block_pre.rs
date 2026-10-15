@@ -1,18 +1,16 @@
 use rspack_util::swc::AstSubRangeExt;
-use swc_next_ecma_ast::{ExprData, GetSpan, Stmt, StmtData, SubRange};
+use swc_next_ecma_ast::{
+  ExprData, GetSpan, Stmt, StmtData, SubRange, VariableDeclaration, VariableKind,
+};
 
 use super::{
   JavascriptParser,
   estree::{
     ExportDefaultDeclaration, ExportDefaultExpression, ExportLocal, ExportNamedDeclaration,
-    MaybeNamedClassDecl, Statement,
+    Statement,
   },
 };
-use crate::{
-  Atom, JS_DEFAULT_KEYWORD,
-  parser_plugin::JavascriptParserPlugin,
-  visitors::{VariableDeclaration, VariableDeclarationKind},
-};
+use crate::{Atom, JS_DEFAULT_KEYWORD, parser_plugin::JavascriptParserPlugin};
 
 impl JavascriptParser<'_> {
   pub fn block_pre_walk_module_items(&mut self, statements: SubRange<Stmt>) {
@@ -84,7 +82,7 @@ impl JavascriptParser<'_> {
   }
 
   pub(super) fn block_pre_walk_variable_declaration(&mut self, declaration: VariableDeclaration) {
-    if declaration.kind(self.ast.ast) != VariableDeclarationKind::Var {
+    if declaration.kind(self.ast.ast) != VariableKind::Var {
       self._pre_walk_variable_declaration(declaration);
     }
   }
@@ -127,7 +125,7 @@ impl JavascriptParser<'_> {
     let expression = export.expression(ast);
     match expression {
       ExportDefaultExpression::ClassDecl(class) => {
-        let statement = Statement::Class(MaybeNamedClassDecl(class));
+        let statement = Statement::Class(class);
         let prev = self.prev_statement;
         self.pre_walk_statement(statement);
         self.prev_statement = prev;
@@ -145,7 +143,7 @@ impl JavascriptParser<'_> {
         }
       }
       ExportDefaultExpression::FnDecl(function) => {
-        let statement = Statement::Fn(super::estree::MaybeNamedFunctionDecl(function));
+        let statement = Statement::Fn(function);
         let prev = self.prev_statement;
         self.pre_walk_statement(statement);
         self.prev_statement = prev;

@@ -1,9 +1,9 @@
 use rspack_intern::Atom;
 use swc_next_ecma_ast::{
-  AssignmentExpression, AwaitExpression, BinaryExpression, CallExpression, ChainExpression,
+  AssignmentExpression, AwaitExpression, BinaryExpression, CallExpression, ChainExpression, Class,
   ClassElement, ConditionalExpression, Expr, ForOfStatement, IfStatement, ImportDeclaration,
   ImportExpression, LogicalExpression, MemberExpression, NewExpression, Program, Span, Stmt,
-  ThisExpression, UnaryExpression, VariableDeclarator,
+  ThisExpression, UnaryExpression, VariableDeclaration, VariableDeclarator,
 };
 
 use crate::visitors::{HookMemberExpression, PatternIdentifier};
@@ -109,9 +109,9 @@ impl JavascriptParserPluginHooks {
 use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    ClassDeclOrExpr, DestructuringAssignmentProperty, ExportDefaultDeclaration,
-    ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo,
-    ExpressionExpressionInfo, Identifier, JavascriptParser, Statement, VariableDeclaration,
+    DestructuringAssignmentProperty, ExportDefaultDeclaration, ExportDefaultExpression,
+    ExportImport, ExportLocal, ExportedVariableInfo, ExpressionExpressionInfo, Identifier,
+    JavascriptParser, Statement,
   },
 };
 
@@ -431,7 +431,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     &self,
     _parser: &mut JavascriptParser<'p>,
     _super_class: Expr,
-    _class_decl_or_expr: ClassDeclOrExpr,
+    _class: Class,
   ) -> Option<bool> {
     None
   }
@@ -440,7 +440,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     &self,
     _parser: &mut JavascriptParser<'p>,
     _element: ClassElement,
-    _class_decl_or_expr: ClassDeclOrExpr,
+    _class: Class,
   ) -> Option<bool> {
     None
   }
@@ -450,7 +450,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     _parser: &mut JavascriptParser<'p>,
     _element: ClassElement,
     _expr_span: Span,
-    _class_decl_or_expr: ClassDeclOrExpr,
+    _class: Class,
   ) -> Option<bool> {
     None
   }

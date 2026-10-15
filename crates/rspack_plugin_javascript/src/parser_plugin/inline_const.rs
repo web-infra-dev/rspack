@@ -1,7 +1,9 @@
 use rspack_cacheable::cacheable;
 use rspack_core::EvaluatedInlinableValue;
 use rspack_util::{ryu_js, swc::AstSubRangeExt};
-use swc_next_ecma_ast::{BindingPattern, BindingPatternData, VariableDeclarator};
+use swc_next_ecma_ast::{
+  BindingPattern, BindingPatternData, VariableDeclaration, VariableDeclarator, VariableKind,
+};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -10,10 +12,7 @@ use crate::{
     BasicEvaluatedExpression, evaluate_to_boolean, evaluate_to_null, evaluate_to_number,
     evaluate_to_string, evaluate_to_undefined,
   },
-  visitors::{
-    JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind,
-    scope_info::VariableInfoFlags,
-  },
+  visitors::{JavascriptParser, TagInfoData, scope_info::VariableInfoFlags},
 };
 
 pub const INLINABLE_CONST_TAG: &str = "inlinable const";
@@ -93,7 +92,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstValuePlugin {
     }
     let ast = parser.ast.ast;
     let init = declarator.init(ast)?;
-    if !matches!(declaration.kind(ast), VariableDeclarationKind::Const) {
+    if !matches!(declaration.kind(ast), VariableKind::Const) {
       return None;
     }
 

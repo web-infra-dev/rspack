@@ -16,7 +16,7 @@ use rspack_util::{
 use swc_next_ecma_ast::{
   Argument, ArgumentData, AssignmentExpression, AssignmentOperator, Ast, CallExpression, Expr,
   ExprData, GetSpan, MemberExpression, NewExpression, PropertyKeyData, Span, SubRange,
-  UnaryExpression, UnaryOperator, VariableDeclarator,
+  UnaryExpression, UnaryOperator, VariableDeclaration, VariableDeclarator, VariableKind,
 };
 use url::Url;
 
@@ -39,10 +39,9 @@ use crate::{
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     CallHooksName, ExportedVariableInfo, HookMemberExpression, Identifier, JavascriptParser,
-    StatementPath, TagInfoData, VariableDeclaration, VariableDeclarationKind, VariableInfo,
-    VariableInfoFlags, context_reg_exp, create_context_dependency, create_traceable_error,
-    expr_name, get_non_optional_part, member_property_key_to_atom,
-    resolve_call_trailing_comma_range,
+    StatementPath, TagInfoData, VariableInfo, VariableInfoFlags, context_reg_exp,
+    create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
+    member_property_key_to_atom, resolve_call_trailing_comma_range,
   },
 };
 
@@ -1166,7 +1165,7 @@ fn pre_tag_created_require_declarator(
 ) {
   // Register metadata only; the normal declarator walk still creates or clears dependencies.
   let ast = parser.ast.ast;
-  if declaration.kind(ast) != VariableDeclarationKind::Const {
+  if declaration.kind(ast) != VariableKind::Const {
     return;
   }
   let Some(binding) = declarator.id(ast).as_binding_identifier(ast) else {
@@ -2093,7 +2092,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     let ast = parser.ast.ast;
-    if declaration.kind(ast) != VariableDeclarationKind::Var
+    if declaration.kind(ast) != VariableKind::Var
       && let Some(init) = declarator.init(ast)
       && let Some(call) = init.as_call_expression(ast)
       && let Some(binding) = declarator.id(ast).as_binding_identifier(ast)
@@ -2165,7 +2164,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       let args = call.arguments(parser.ast.ast);
       let call_span = call.span(parser.ast.ast);
       let clear_call = should_clear_create_require_call(parser, args);
-      let deferred_callee = (declaration.kind(parser.ast.ast) == VariableDeclarationKind::Const
+      let deferred_callee = (declaration.kind(parser.ast.ast) == VariableKind::Const
         && can_defer_create_require_call(parser, args))
       .then(|| deferred_create_require_callee(parser, callee, call_span))
       .flatten();

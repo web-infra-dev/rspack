@@ -1445,14 +1445,14 @@ impl SideEffectsParserPlugin {
       Statement::Class(statement) => is_pure_class(
         parser,
         self.analyze_side_effects_free,
-        statement.class(),
+        statement,
         comments,
         Some(&mut callees),
       ),
       Statement::Var(statement) => is_module_eval_pure_var_decl(
         parser,
         self.analyze_side_effects_free,
-        statement.0,
+        statement,
         comments,
         Some(&mut callees),
       ),

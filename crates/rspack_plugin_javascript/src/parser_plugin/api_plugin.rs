@@ -11,7 +11,7 @@ use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, json_stringify_str, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   ArgumentData, AssignmentExpression, AssignmentOperator, BindingPatternData, CallExpression,
-  GetSpan, Span, UnaryExpression, VariableDeclarator,
+  GetSpan, Span, UnaryExpression, VariableDeclaration, VariableDeclarator,
 };
 
 use crate::{
@@ -22,8 +22,8 @@ use crate::{
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    HookMemberExpression, Identifier, JavascriptParser, Statement, VariableDeclaration,
-    create_traceable_error, expr_name,
+    HookMemberExpression, Identifier, JavascriptParser, Statement, create_traceable_error,
+    expr_name,
   },
 };
 
@@ -915,7 +915,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       match stmt {
         Statement::Fn(fn_decl) => {
           // Check for function declaration named "module"
-          if let Some(ident) = fn_decl.ident(ast)
+          if let Some(ident) = fn_decl.id(ast)
             && ast.get_utf8(ident.name(ast)) == "module"
           {
             parser.build_info.module_argument = ModuleArgument::RspackModule;
@@ -923,7 +923,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
         }
         Statement::Class(class_decl) => {
           // Check for class declaration named "module"
-          if let Some(ident) = class_decl.ident(ast)
+          if let Some(ident) = class_decl.id(ast)
             && ast.get_utf8(ident.name(ast)) == "module"
           {
             parser.build_info.module_argument = ModuleArgument::RspackModule;

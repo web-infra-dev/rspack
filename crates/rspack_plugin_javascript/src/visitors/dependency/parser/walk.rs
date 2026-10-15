@@ -10,9 +10,8 @@ use super::{
   AllowedMemberTypes, CallHooksName, ExpressionExpressionInfo, JavascriptParser,
   MemberExpressionInfo, PatRef, RootName, ScopeTerminated, TopLevelScope,
   estree::{
-    ClassDeclOrExpr, ExportDefaultDeclaration, MaybeNamedClassDecl, MaybeNamedFunctionDecl,
-    Statement, formal_parameter_patterns, formal_parameter_patterns_with_defaults,
-    formal_parameters_are_simple_identifiers,
+    ExportDefaultDeclaration, Statement, formal_parameter_patterns,
+    formal_parameter_patterns_with_defaults, formal_parameters_are_simple_identifiers,
   },
   object_and_members_to_name,
 };
@@ -25,8 +24,8 @@ use crate::{
   },
   utils::eval::{BasicEvaluatedExpression, eval_member_expression_with_info},
   visitors::{
-    AtomMembers, ExportedVariableInfo, ExprRef, Identifier, PatternIdentifier, VariableDeclaration,
-    VariableInfo, VariableInfoFlags,
+    AtomMembers, ExportedVariableInfo, ExprRef, Identifier, PatternIdentifier, VariableInfo,
+    VariableInfoFlags,
   },
 };
 
@@ -182,10 +181,10 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     match ast.export_default_declaration_kind_data(declaration.0.declaration(ast)) {
       ExportDefaultDeclarationKindData::Class(class) => {
-        self.walk_statement(Statement::Class(MaybeNamedClassDecl(class)))
+        self.walk_statement(Statement::Class(class))
       }
       ExportDefaultDeclarationKindData::Function(function) => {
-        self.walk_statement(Statement::Fn(MaybeNamedFunctionDecl(function)))
+        self.walk_statement(Statement::Fn(function))
       }
       ExportDefaultDeclarationKindData::Expr(expression) => self.walk_expression(expression),
       _ => (),
@@ -224,7 +223,7 @@ impl JavascriptParser<'_> {
           parser.walk_block_statement(stmt);
         }),
         Statement::Class(decl) => parser.walk_class_declaration(decl),
-        Statement::Fn(decl) => parser.in_semantic_scope(decl.function().node_id(), |parser| {
+        Statement::Fn(decl) => parser.in_semantic_scope(decl.node_id(), |parser| {
           parser.walk_function_declaration(decl);
         }),
         Statement::Var(decl) => parser.walk_variable_declaration(decl),
@@ -447,7 +446,6 @@ impl JavascriptParser<'_> {
       if let Some(init) = stmt.init(ast) {
         match ast.for_statement_init_data(init) {
           ForStatementInitData::VariableDeclaration(decl) => {
-            let decl = VariableDeclaration(decl);
             this.block_pre_walk_variable_declaration(decl);
             this.prev_statement = None;
             this.walk_variable_declaration(decl);
@@ -514,7 +512,6 @@ impl JavascriptParser<'_> {
   fn walk_for_head(&mut self, for_head: ForStatementLeft) {
     match self.ast.ast.for_statement_left_data(for_head) {
       ForStatementLeftData::VariableDeclaration(decl) => {
-        let decl = VariableDeclaration(decl);
         self.block_pre_walk_variable_declaration(decl);
         self.walk_variable_declaration(decl);
       }
@@ -550,7 +547,7 @@ impl JavascriptParser<'_> {
   fn walk_variable_declaration(&mut self, decl: VariableDeclaration) {
     let drive = self.plugin_drive();
     let ast = self.ast.ast;
-    for declarator in decl.declarators(ast) {
+    for declarator in ast.nodes(decl.declarators(ast)) {
       let init = declarator.init(ast);
       let id = declarator.id(ast);
       if self.javascript_options.is_create_require_enabled()
@@ -1263,7 +1260,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_class_expression(&mut self, expr: Class) {
-    self.walk_class(expr, ClassDeclOrExpr::Expr(expr));
+    self.walk_class(expr);
   }
 
   fn walk_chain_expression(&mut self, expr: ChainExpression) {
@@ -2165,11 +2162,10 @@ impl JavascriptParser<'_> {
     })
   }
 
-  fn walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
+  fn walk_function_declaration(&mut self, function: Function) {
     let was_top_level = self.top_level_scope;
     self.top_level_scope = TopLevelScope::False;
     let ast = self.ast.ast;
-    let function = decl.function();
     let patterns = formal_parameter_patterns(ast, function.params(ast));
     self.in_function_scope(true, patterns.map(PatRef::Borrowed), |this| {
       this.walk_function(function);
@@ -2301,37 +2297,37 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn walk_class_declaration(&mut self, decl: MaybeNamedClassDecl) {
-    self.walk_class(decl.class(), ClassDeclOrExpr::Decl(decl.class()));
+  fn walk_class_declaration(&mut self, decl: Class) {
+    self.walk_class(decl);
   }
 
-  fn walk_class(&mut self, classy: Class, class_decl_or_expr: ClassDeclOrExpr) {
+  fn walk_class(&mut self, class: Class) {
     let ast = self.ast.ast;
-    if let Some(super_class) = classy.super_class(ast)
+    if let Some(super_class) = class.super_class(ast)
       && !self
         .plugin_drive()
-        .class_extends_expression(self, super_class, class_decl_or_expr)
+        .class_extends_expression(self, super_class, class)
         .unwrap_or_default()
     {
       self.walk_expression(super_class);
     }
 
     // TODO: define variable for class expression in block pre walk
-    let scope_param = match class_decl_or_expr {
-      ClassDeclOrExpr::Expr(class_expr) => class_expr
+    let scope_param = match class.class_type(ast) {
+      ClassType::ClassExpression => class
         .id(ast)
         .map(BindingPattern::BindingIdentifier)
         .map(PatRef::Owned),
-      ClassDeclOrExpr::Decl(_) => None,
+      ClassType::ClassDeclaration => None,
     };
 
-    let elements = classy.body(ast).body(ast);
-    self.in_semantic_scope(classy.node_id(), |this| {
+    let elements = class.body(ast).body(ast);
+    self.in_semantic_scope(class.node_id(), |this| {
       this.in_class_scope(true, scope_param.into_iter(), |this| {
         for class_element in ast.nodes(elements) {
           if this
             .plugin_drive()
-            .class_body_element(this, class_element, class_decl_or_expr)
+            .class_body_element(this, class_element, class)
             .unwrap_or_default()
           {
             continue;
@@ -2345,7 +2341,7 @@ impl JavascriptParser<'_> {
               }
               if this
                 .plugin_drive()
-                .class_body_value(this, class_element, method.span(ast), class_decl_or_expr)
+                .class_body_value(this, class_element, method.span(ast), class)
                 .unwrap_or_default()
               {
                 continue;
@@ -2369,7 +2365,7 @@ impl JavascriptParser<'_> {
               if let Some(value) = property.value(ast)
                 && !this
                   .plugin_drive()
-                  .class_body_value(this, class_element, value.span(ast), class_decl_or_expr)
+                  .class_body_value(this, class_element, value.span(ast), class)
                   .unwrap_or_default()
               {
                 let was_top_level = this.top_level_scope;

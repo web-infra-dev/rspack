@@ -9,7 +9,7 @@ use crate::{
   Atom,
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{BasicEvaluatedExpression, parse_bigint_literal},
-  visitors::{DestructuringAssignmentProperties, VariableDeclaration, VariableDeclarationKind},
+  visitors::DestructuringAssignmentProperties,
 };
 
 fn eval_property_key<'parser>(
@@ -188,7 +188,7 @@ impl JavascriptParser<'_> {
       && let ForStatementInitData::VariableDeclaration(declaration) =
         ast.for_statement_init_data(init)
     {
-      self.pre_walk_statement(Statement::Var(VariableDeclaration(declaration)));
+      self.pre_walk_statement(Statement::Var(declaration));
     }
     self.pre_walk_statement(Statement::from_stmt(ast, stmt.body(ast)));
   }
@@ -197,7 +197,7 @@ impl JavascriptParser<'_> {
     if let ForStatementLeftData::VariableDeclaration(declaration) =
       self.ast.ast.for_statement_left_data(head)
     {
-      self.pre_walk_variable_declaration(VariableDeclaration(declaration));
+      self.pre_walk_variable_declaration(declaration);
     }
   }
 
@@ -226,7 +226,7 @@ impl JavascriptParser<'_> {
   }
 
   fn pre_walk_variable_declaration(&mut self, decl: VariableDeclaration) {
-    if decl.kind(self.ast.ast) == VariableDeclarationKind::Var {
+    if decl.kind(self.ast.ast) == VariableKind::Var {
       self._pre_walk_variable_declaration(decl);
     }
   }
@@ -234,7 +234,7 @@ impl JavascriptParser<'_> {
   pub(super) fn _pre_walk_variable_declaration(&mut self, decl: VariableDeclaration) {
     let drive = self.plugin_drive();
     let ast = self.ast.ast;
-    for declarator in decl.declarators(ast) {
+    for declarator in ast.nodes(decl.declarators(ast)) {
       self.pre_walk_variable_declarator(declarator);
       if !drive
         .pre_declarator(self, declarator, decl)
