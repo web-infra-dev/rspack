@@ -125,6 +125,12 @@ pub async fn render_chunk_modules(
   Ok(Some((sources.boxed(), chunk_init_fragments)))
 }
 
+type RenderModuleFuture<'a> = std::pin::Pin<
+  Box<
+    dyn std::future::Future<Output = Result<Option<(BoxSource, ChunkInitFragments)>>> + Send + 'a,
+  >,
+>;
+
 #[allow(clippy::too_many_arguments)]
 pub fn render_module<'a>(
   compilation: &'a Compilation,
@@ -137,11 +143,7 @@ pub fn render_module<'a>(
   hooks: &'a JavascriptModulesPluginHooks,
   runtime_template: &'a RuntimeCodeTemplate,
   module_runtime_scope: Option<&'a str>,
-) -> std::pin::Pin<
-  Box<
-    dyn std::future::Future<Output = Result<Option<(BoxSource, ChunkInitFragments)>>> + Send + 'a,
-  >,
-> {
+) -> RenderModuleFuture<'a> {
   Box::pin(render_module_impl(
     compilation,
     chunk_ukey,
