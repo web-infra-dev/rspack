@@ -66,6 +66,6 @@ Each field below is an array of IDs:
 | `miniCss.c` | Same as `css.c`, for CSS extracted by [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin). |
 | `miniCss.r` | Same as `css.r`, for CSS extracted by `CssExtractRspackPlugin`.                                     |
 
-`css` and `miniCss` are optional objects. Their `c` and `r` fields are omitted when empty. Tracking CSS updates separately lets the runtime skip unchanged stylesheets. Removing a chunk's CSS does not necessarily remove the chunk itself.
+`css` and `miniCss` are optional objects. Their `c` and `r` fields are omitted when empty.
 
 Use [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename) to customize the manifest filename. With `output.module: true`, the manifest is exported as an ES module.

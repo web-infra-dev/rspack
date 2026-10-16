@@ -66,6 +66,6 @@ export default {
 | `miniCss.c` | 含义同 `css.c`，用于 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) 提取的 CSS。 |
 | `miniCss.r` | 含义同 `css.r`，用于 `CssExtractRspackPlugin` 提取的 CSS。                                     |
 
-`css` 和 `miniCss` 是可选对象，其中的 `c`、`r` 字段为空时会省略。单独记录 CSS 更新可以避免重新加载未变化的样式表。移除 chunk 的 CSS 不一定会移除 chunk 本身。
+`css` 和 `miniCss` 是可选对象，其中的 `c`、`r` 字段为空时会省略。
 
 可通过 [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename) 自定义清单文件名。设置 `output.module: true` 时，清单会以 ES 模块导出。
