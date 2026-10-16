@@ -1955,6 +1955,12 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     selected
   }
 
+  // Keep one closure type across scanner entry points so the generic scanner
+  // only needs one ICSS-symbol specialization.
+  fn icss_symbol_predicate(&self) -> impl FnMut(&str) -> bool + '_ {
+    |ident| self.contains_icss_symbol(ident)
+  }
+
   #[inline]
   fn fast_forward_selector(
     &mut self,
@@ -1967,7 +1973,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       &mut square_depth,
       keep_comments,
       has_mode,
-      |ident| self.contains_icss_symbol(ident),
+      self.icss_symbol_predicate(),
       is_css_modules_pure_magic_comment,
     );
     self.selector_square_depth = square_depth;
@@ -2000,7 +2006,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         keep_comments,
         preserve_strings,
         preserve_delimiters,
-        |ident| self.contains_icss_symbol(ident),
+        self.icss_symbol_predicate(),
         is_css_modules_pure_magic_comment,
       );
     }
@@ -2017,7 +2023,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       keep_comments,
       preserve_strings,
       preserve_delimiters,
-      |ident| self.contains_icss_symbol(ident),
+      self.icss_symbol_predicate(),
       is_css_modules_pure_magic_comment,
     );
   }

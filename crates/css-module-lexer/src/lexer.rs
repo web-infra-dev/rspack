@@ -339,28 +339,17 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     F: FnMut(&str) -> bool,
     C: FnMut(&str) -> bool,
   {
-    if let Some(candidate) = block_item {
-      self.scan_value::<true, _, _>(
-        state,
-        options,
-        is_candidate,
-        is_comment_candidate,
-        icss_symbols,
-        Some(candidate),
-      )
-    } else {
-      self.scan_value::<false, _, _>(
-        state,
-        options,
-        is_candidate,
-        is_comment_candidate,
-        icss_symbols,
-        None,
-      )
-    }
+    self.scan_value(
+      state,
+      options,
+      is_candidate,
+      is_comment_candidate,
+      icss_symbols,
+      block_item,
+    )
   }
 
-  fn scan_value<const CHECK_SYNTAX: bool, F, C>(
+  fn scan_value<F, C>(
     &mut self,
     state: &mut GenericValueScanState,
     options: GenericValueScanOptions,
@@ -373,7 +362,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     F: FnMut(&str) -> bool,
     C: FnMut(&str) -> bool,
   {
-    let mut block_item = if CHECK_SYNTAX { block_item } else { None };
+    let mut block_item = block_item;
     let mut position = self.scan_pos as usize;
     let scan_start = position;
     let mut candidate_token = None;
@@ -389,7 +378,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       && !options.keep_comments
       && !options.preserve_strings
       && !options.preserve_delimiters
-      && !value_is_nested::<CHECK_SYNTAX>(state, &block_item)
+      && !value_is_nested(state, &block_item)
       && let Some(candidate) = block_item.as_mut()
       && candidate.flat_probe_start != Some(position as Pos)
     {
@@ -541,7 +530,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
           .visitor
           .visit_ident(name, Range::new(position as Pos, end as Pos));
         if is_function {
-          if !CHECK_SYNTAX {
+          if !validating {
             state.consume(TokenKind::LeftParenthesis);
           }
           position = end + 1;
@@ -576,7 +565,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       }
       if validating
         && matches!(byte, C_LEFT_CURLY | C_RIGHT_PARENTHESIS | C_RIGHT_SQUARE)
-        && !value_is_nested::<CHECK_SYNTAX>(state, &block_item)
+        && !value_is_nested(state, &block_item)
       {
         break;
       }
@@ -625,7 +614,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
             leading,
             FunctionKind::Other,
           );
-          if !CHECK_SYNTAX {
+          if !validating {
             state.consume(TokenKind::LeftParenthesis);
           }
           position += 1;
@@ -643,7 +632,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
             leading,
             FunctionKind::Other,
           );
-          if !CHECK_SYNTAX {
+          if !validating {
             state.consume(TokenKind::RightParenthesis);
           }
           position += 1;
@@ -661,7 +650,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
             leading,
             FunctionKind::Other,
           );
-          if !CHECK_SYNTAX {
+          if !validating {
             state.consume(TokenKind::LeftSquareBracket);
           }
           position += 1;
@@ -679,14 +668,13 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
             leading,
             FunctionKind::Other,
           );
-          if !CHECK_SYNTAX {
+          if !validating {
             state.consume(TokenKind::RightSquareBracket);
           }
           position += 1;
         }
         C_LEFT_CURLY
-          if options.stop_at_top_level_left_curly
-            && !value_is_nested::<CHECK_SYNTAX>(state, &block_item) =>
+          if options.stop_at_top_level_left_curly && !value_is_nested(state, &block_item) =>
         {
           break;
         }
@@ -703,13 +691,13 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
             leading,
             FunctionKind::Other,
           );
-          if !CHECK_SYNTAX {
+          if !validating {
             state.consume(TokenKind::LeftCurlyBracket);
           }
           position += 1;
         }
         C_RIGHT_CURLY
-          if value_expects::<CHECK_SYNTAX>(state, &block_item, TokenKind::RightCurlyBracket)
+          if value_expects(state, &block_item, TokenKind::RightCurlyBracket)
             && !preserve_delimiters =>
         {
           observe_opaque_value(
@@ -721,7 +709,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
             leading,
             FunctionKind::Other,
           );
-          if !CHECK_SYNTAX {
+          if !validating {
             state.consume(TokenKind::RightCurlyBracket);
           }
           position += 1;
@@ -732,18 +720,13 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
             break;
           }
         }
-        C_RIGHT_CURLY
-          if preserve_delimiters || !value_is_nested::<CHECK_SYNTAX>(state, &block_item) =>
-        {
+        C_RIGHT_CURLY if preserve_delimiters || !value_is_nested(state, &block_item) => {
           break;
         }
         C_RIGHT_CURLY => position += 1,
         C_SEMICOLON
-          if RecoveryBoundary::at(
-            TokenKind::Semicolon,
-            value_is_nested::<CHECK_SYNTAX>(state, &block_item),
-          )
-          .is_some() =>
+          if RecoveryBoundary::at(TokenKind::Semicolon, value_is_nested(state, &block_item))
+            .is_some() =>
         {
           break;
         }
@@ -1957,34 +1940,21 @@ impl std::ops::DerefMut for BlockItemScan<'_> {
 
 /// While ambiguous, syntax and raw value scanning use the same component stack.
 #[inline]
-fn value_is_nested<const CHECK_SYNTAX: bool>(
-  state: &ComponentValues,
-  candidate: &Option<BlockItemScan<'_>>,
-) -> bool {
-  if CHECK_SYNTAX {
-    candidate
-      .as_ref()
-      .expect("syntax scanning has candidates")
-      .is_nested()
-  } else {
-    state.is_nested()
-  }
+fn value_is_nested(state: &ComponentValues, candidate: &Option<BlockItemScan<'_>>) -> bool {
+  candidate
+    .as_ref()
+    .map_or_else(|| state.is_nested(), |candidate| candidate.is_nested())
 }
 
 #[inline]
-fn value_expects<const CHECK_SYNTAX: bool>(
+fn value_expects(
   state: &ComponentValues,
   candidate: &Option<BlockItemScan<'_>>,
   kind: TokenKind,
 ) -> bool {
-  if CHECK_SYNTAX {
-    candidate
-      .as_ref()
-      .expect("syntax scanning has candidates")
-      .expects(kind)
-  } else {
-    state.expects(kind)
-  }
+  candidate
+    .as_ref()
+    .map_or_else(|| state.expects(kind), |candidate| candidate.expects(kind))
 }
 
 #[inline]
