@@ -15,10 +15,13 @@ use crate::EventBatch;
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
 
+/// watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
+/// have arrived since the last aggregated batch was delivered. Guarded by a
+/// synchronous mutex so a paused watcher can be drained from JS.
 #[derive(Debug, Default)]
-struct FilesData {
-  changed: HashSet<String>,
-  deleted: HashSet<String>,
+pub(crate) struct FilesData {
+  pub(crate) changed: HashSet<String>,
+  pub(crate) deleted: HashSet<String>,
 }
 
 impl FilesData {
@@ -27,6 +30,8 @@ impl FilesData {
   }
 }
 
+pub(crate) type Aggregated = Arc<std::sync::Mutex<FilesData>>;
+
 /// `WatcherExecutor` is responsible for managing the execution of file system event handlers,
 /// aggregating file change and delete events, and invoking the provided event handler after
 /// a configurable aggregate timeout. It receives events from a channel, tracks changed and
@@ -34,7 +39,7 @@ impl FilesData {
 pub struct Executor {
   aggregate_timeout: u32,
   rx: ThreadSafetyReceiver<EventBatch>,
-  files_data: ThreadSafety<FilesData>,
+  files_data: Aggregated,
   exec_aggregate_tx: UnboundedSender<ExecAggregateEvent>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
   exec_tx: UnboundedSender<ExecEvent>,
@@ -93,6 +98,11 @@ impl Executor {
     }
   }
 
+  /// The pending aggregated sets, shared with [`crate::FsWatcher`].
+  pub fn aggregated(&self) -> Aggregated {
+    Arc::clone(&self.files_data)
+  }
+
   /// Abort all executor.
   async fn abort(&mut self) {
     if let Some(execute_aggregate_handle) = std::mem::take(&mut self.execute_aggregate_handle) {
@@ -136,26 +146,24 @@ impl Executor {
 
       let future = async move {
         while let Some(events) = rx.lock().await.recv().await {
-          // This lock orders raw batches against the aggregate snapshot below.
-          // Enqueue raw delivery before allowing a snapshot to consume these paths.
-          let mut files = files_data.lock().await;
-          for event in &events {
-            let path = event.path.to_string_lossy().to_string();
-            match event.kind {
-              FsEventKind::Change => {
-                files.changed.insert(path);
-              }
-              FsEventKind::Remove => {
-                files.deleted.insert(path);
-              }
-              FsEventKind::Create => {
-                files.changed.insert(path);
+          // Enqueue raw delivery before allowing an aggregate snapshot to consume it.
+          {
+            let mut files = files_data.lock().expect("aggregated sets poisoned");
+            for event in &events {
+              let path = event.path.to_string_lossy().to_string();
+              match event.kind {
+                FsEventKind::Change | FsEventKind::Create => {
+                  files.deleted.remove(&path);
+                  files.changed.insert(path);
+                }
+                FsEventKind::Remove => {
+                  files.changed.remove(&path);
+                  files.deleted.insert(path);
+                }
               }
             }
+            let _ = exec_tx.send(ExecEvent::Execute(events));
           }
-
-          let _ = exec_tx.send(ExecEvent::Execute(events));
-          drop(files);
 
           if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
             let _ = exec_aggregate_tx.send(ExecAggregateEvent::Execute);
@@ -181,7 +189,12 @@ impl Executor {
     // indefinitely — the event loop already processed them (added to files_data)
     // but skipped sending Execute because paused was true. No future OS event
     // will re-deliver them, so we must kick the aggregate task ourselves.
-    if !self.files_data.lock().await.is_empty() {
+    if !self
+      .files_data
+      .lock()
+      .expect("aggregated sets poisoned")
+      .is_empty()
+    {
       let _ = self.exec_aggregate_tx.send(ExecAggregateEvent::Execute);
     }
   }
@@ -248,7 +261,7 @@ fn create_execute_task(
 fn create_execute_aggregate_task(
   exec_tx: UnboundedSender<ExecEvent>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
-  files: ThreadSafety<FilesData>,
+  files: Aggregated,
   aggregate_timeout: u64,
   running: Arc<AtomicBool>,
 ) -> tokio::task::JoinHandle<()> {
@@ -272,7 +285,7 @@ fn create_execute_aggregate_task(
         // Snapshot and enqueue under the same lock used to enqueue raw events.
         // The single delivery consumer observes every contributing raw event first.
         {
-          let mut files = files.lock().await;
+          let mut files = files.lock().expect("aggregated sets poisoned");
           if files.is_empty() {
             running.store(false, Ordering::Relaxed);
             continue;

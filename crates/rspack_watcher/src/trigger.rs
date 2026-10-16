@@ -110,13 +110,25 @@ struct EventProcessor {
 /// It only buffers: the OS watcher callback hands an event over and returns
 /// immediately, and a dedicated thread drains the buffer one event at a time.
 pub struct Trigger {
-  pending: UnboundedSender<(InternedPath, FsEventKind)>,
+  pending: UnboundedSender<(InternedPath, FsEventKind, Origin)>,
+}
+
+/// Where an event comes from.
+#[derive(Clone, Copy)]
+enum Origin {
+  /// The OS watcher; `appeared` when it created or renamed the path into place.
+  Disk { appeared: bool },
+  /// A scan, for what changed while the watch was not active yet: a file a
+  /// context's initial scan found changed since the start time, or a
+  /// registered path the scanner backfills. Already judged a change, it is
+  /// never dropped as a duplicate or as attribute-only.
+  Scan,
 }
 
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<EventBatch>) -> Self {
-    let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind)>();
+    let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
     let processor = EventProcessor { path_manager, tx };
 
     // One event at a time, in arrival order: the JS `ignored` predicate is
@@ -133,8 +145,8 @@ impl Trigger {
           .expect("create watcher event filter runtime");
 
         runtime.block_on(async move {
-          while let Some((path, kind)) = incoming.recv().await {
-            processor.process(&path, kind).await;
+          while let Some((path, kind, origin)) = incoming.recv().await {
+            processor.process(&path, kind, origin).await;
           }
         });
       })
@@ -146,7 +158,43 @@ impl Trigger {
   /// Hands a raw event to the filter thread. Never blocks — this runs straight
   /// from the OS watcher callback.
   pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
-    let _ = self.pending.send((path.clone(), kind));
+    self.on_disk_event(path, kind, kind == FsEventKind::Create);
+  }
+
+  /// Preserves whether an OS event created or renamed a path into place,
+  /// without treating ordinary directory changes as appearances.
+  pub(crate) fn on_disk_event(&self, path: &InternedPath, kind: FsEventKind, appeared: bool) {
+    let _ = self
+      .pending
+      .send((path.clone(), kind, Origin::Disk { appeared }));
+  }
+
+  /// A context's initial scan found `path` changed since the start time, while
+  /// the watch was not active yet: like watchpack's initial scan, it is
+  /// reported as found, never taken for an attribute-only event.
+  pub(crate) fn on_scanned_change(&self, path: &InternedPath) {
+    let _ = self
+      .pending
+      .send((path.clone(), FsEventKind::Change, Origin::Scan));
+  }
+
+  /// A sender for the scanner's backfilled events. They queue with the live
+  /// ones, so whichever is processed last for a path ends as its state on
+  /// disk: a removal backfilled for a file back on disk by then is a change.
+  pub(crate) fn backfill_sender(&self) -> UnboundedSender<EventBatch> {
+    let (tx, mut batches) = unbounded_channel::<EventBatch>();
+    let pending = self.pending.clone();
+    std::thread::Builder::new()
+      .name("rspack-fs-scan-backfill".to_string())
+      .spawn(move || {
+        while let Some(batch) = batches.blocking_recv() {
+          for event in batch {
+            let _ = pending.send((event.path, event.kind, Origin::Scan));
+          }
+        }
+      })
+      .expect("spawn watcher scan backfill thread");
+    tx
   }
 }
 
@@ -164,12 +212,14 @@ impl EventProcessor {
   /// If the file `/path/to/file.js` is changed, the trigger will send an event for the following paths:
   /// - `/path`
   /// - `/path/to`
-  async fn process(&self, path: &InternedPath, kind: FsEventKind) {
+  async fn process(&self, path: &InternedPath, kind: FsEventKind, origin: Origin) {
+    let appeared = matches!(origin, Origin::Disk { appeared: true });
     // Drop events inside ignored subtrees. The recursive-root watch delivers
     // events for unregistered paths (e.g. the build-output dir); left through,
     // `find_associated_event` bubbles them to a registered parent and triggers
     // a spurious rebuild.
-    if self.path_manager.is_ignored_path(path.as_ref()).await {
+    // A scan's event was filtered when the scan found the path.
+    if !matches!(origin, Origin::Scan) && self.path_manager.is_ignored_path(path.as_ref()).await {
       return;
     }
 
@@ -179,27 +229,116 @@ impl EventProcessor {
     // path is gone into a `Remove`, keeping the event kind consistent with
     // inotify (which already reports `Remove`). Done before the stale-event
     // filter below, which only applies to `Change`/`Create`.
-    let kind = if kind == FsEventKind::Change && !path.exists() {
-      FsEventKind::Remove
-    } else {
-      kind
+    // The reverse holds too: a removal of a path back on disk (unlinked and
+    // re-created) ends as the path's final state, like watchpack's lstat on
+    // each event. Its records still go, so it is taken as new.
+    let removed = kind == FsEventKind::Remove;
+    let exists = std::fs::symlink_metadata(path).is_ok();
+    let kind = match kind {
+      FsEventKind::Change if !exists => FsEventKind::Remove,
+      FsEventKind::Remove if exists => FsEventKind::Change,
+      kind => kind,
     };
 
-    let is_registered_file = self.path_manager.access().files().0.contains(path);
+    let accessor = self.path_manager.access();
+    let is_watched_path = accessor.files().0.contains(path) || accessor.missing().0.contains(path);
+
+    // Drop a removed path's record so it reads as `null`, like watchpack. A
+    // directory moved or deleted as a whole is one event with no per-file
+    // removals, so its descendants' records go with it. Only a path that can
+    // hold records is swept, so deleting many unrelated files stays cheap.
+    if removed || kind == FsEventKind::Remove {
+      let may_contain_records = self.path_manager.may_contain_records(path);
+      self.path_manager.remove_file_time(path);
+      if may_contain_records {
+        self.path_manager.remove_file_times_under(path);
+      }
+    }
 
     // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
     // written before the watcher was created. Stat the file and compare mtime
     // against the recorded baseline to suppress events where nothing changed.
     // Apply the same suppression to Create for already-registered files, since
     // macOS may emit stale Create events for files that predate the watcher.
-    if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_registered_file))
+    // A registered-missing path takes its first record here, once it exists.
+    if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_watched_path))
       && !self.path_manager.has_mtime_changed(path)
+      && !matches!(origin, Origin::Scan)
     {
       return;
     }
 
+    if kind != FsEventKind::Remove
+      && !self
+        .path_manager
+        .set_context_entry(path, matches!(origin, Origin::Scan) || is_watched_path)
+        .await
+    {
+      return;
+    }
+    self.path_manager.set_last_watch_events(path);
+
     let finder = self.finder();
-    let associated_event = finder.find_associated_event(path, kind);
+    let mut associated_event = finder.find_associated_event(path, kind);
+    // A directory above changes with `path`, unless it is gone itself: an
+    // event below it may arrive after the directory's own removal.
+    // Its records go with it, as for `path` itself.
+    for (associated, associated_kind) in &mut associated_event {
+      if associated != path
+        && *associated_kind == FsEventKind::Change
+        && std::fs::symlink_metadata(&*associated).is_err()
+      {
+        *associated_kind = FsEventKind::Remove;
+        let may_contain_records = self.path_manager.may_contain_records(associated);
+        self.path_manager.remove_file_time(associated);
+        if may_contain_records {
+          self.path_manager.remove_file_times_under(associated);
+        }
+      }
+    }
+
+    if appeared && path.is_dir() && !path.is_symlink() {
+      // On Linux, inotify adds a new directory's watch before emitting its
+      // Create event, so files written before that watch existed are already
+      // on disk; later writes produce their own events. On every backend, a
+      // directory moved into place reports only itself. Recover registered
+      // descendants here, off the OS reader thread. Duplicate events coalesce
+      // in the aggregate sets. Cost is proportional to the new subtree; on
+      // Linux it is comparable to notify's own add-watch walk.
+      let mut directories = vec![path.clone()];
+      while let Some(directory) = directories.pop() {
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+          continue;
+        };
+        for entry in entries.flatten() {
+          let Ok(file_type) = entry.file_type() else {
+            continue;
+          };
+          let entry_path = InternedPath::from(entry.path());
+          let is_registered = finder.contains_path(&entry_path);
+          if !file_type.is_dir() && !is_registered {
+            continue;
+          }
+          if self.path_manager.is_ignored_path(entry_path.as_ref()).await {
+            continue;
+          }
+
+          if is_registered {
+            if finder.files.contains(&entry_path)
+              && !self.path_manager.has_mtime_changed(&entry_path)
+            {
+              continue;
+            }
+            associated_event.extend(finder.find_associated_event(&entry_path, FsEventKind::Create));
+          }
+          // DirEntry::file_type does not follow symlinks.
+          if file_type.is_dir() {
+            directories.push(entry_path);
+          }
+        }
+      }
+    }
+
     self.trigger_events(associated_event);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.

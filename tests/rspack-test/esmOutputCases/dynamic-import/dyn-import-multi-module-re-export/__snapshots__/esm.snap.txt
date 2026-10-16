@@ -7,7 +7,7 @@
 
 // ./shared.js
 const value = 42
-const helper = () => 1
+const helper = () => 1;
 
 // path
 
@@ -35,7 +35,7 @@ it('should dynamically import modules from multi-module chunk with mixed re-expo
 	const modB = await import("./ab-chunk.mjs")
 	expect(modB.helper()).toBe(1)
 	expect(modB.join).toBeDefined()
-})
+});
 
 export {};
 

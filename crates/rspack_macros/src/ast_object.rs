@@ -101,7 +101,7 @@ pub fn expand_ast_object_derive(input: DeriveInput) -> Result<TokenStream> {
     });
     let ty = &field.ty;
     let extract = quote! {
-      crate::utils::object_properties::get_value_from_object::<#ty>(obj, &[#key])
+      crate::utils::object_properties::get_value_from_object::<#ty>(ast, obj, &[#key])
     };
     let default = default_value(default_fn);
     let initializer = quote! {
@@ -123,9 +123,10 @@ pub fn expand_ast_object_derive(input: DeriveInput) -> Result<TokenStream> {
       /// absent or not statically resolvable fall back to the field default.
       /// Conversion failures are returned to the caller.
       pub fn from_ast_object(
-        obj: &::swc_experimental_ecma_ast::ObjectLit<'_>,
+        ast: &::swc_next_ecma_ast::Ast<'_>,
+        obj: ::swc_next_ecma_ast::ObjectExpression,
       ) -> ::rspack_error::Result<Self> {
-        let (value, diagnostics) = Self::from_ast_object_with_diagnostics(obj);
+        let (value, diagnostics) = Self::from_ast_object_with_diagnostics(ast, obj);
         match diagnostics.into_iter().next() {
           Some(error) => Err(error),
           None => Ok(value),
@@ -135,7 +136,8 @@ pub fn expand_ast_object_derive(input: DeriveInput) -> Result<TokenStream> {
       /// Extract the options while preserving successful fields when another
       /// field cannot be converted. Failed fields fall back to their defaults.
       pub fn from_ast_object_with_diagnostics(
-        obj: &::swc_experimental_ecma_ast::ObjectLit<'_>,
+        ast: &::swc_next_ecma_ast::Ast<'_>,
+        obj: ::swc_next_ecma_ast::ObjectExpression,
       ) -> (Self, Vec<::rspack_error::Error>) {
         let mut diagnostics = Vec::new();
         let value = Self {
@@ -145,12 +147,13 @@ pub fn expand_ast_object_derive(input: DeriveInput) -> Result<TokenStream> {
       }
     }
 
-    impl<'__ast> crate::utils::object_properties::FromAstExpr<'__ast> for #name {
+    impl crate::utils::object_properties::FromAstExpr for #name {
       fn from_ast_expr(
-        expr: &::swc_experimental_ecma_ast::Expr<'__ast>,
+        ast: &::swc_next_ecma_ast::Ast<'_>,
+        expr: ::swc_next_ecma_ast::Expr,
       ) -> ::rspack_error::Result<Option<Self>> {
-        match expr.as_object() {
-          Some(obj) => Self::from_ast_object(obj).map(Some),
+        match expr.as_object_expression(ast) {
+          Some(obj) => Self::from_ast_object(ast, obj).map(Some),
           None => Ok(None),
         }
       }

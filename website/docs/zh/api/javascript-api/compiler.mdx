@@ -1,5 +1,5 @@
 ---
-description: 'Compiler 是 Rspack 内部的核心对象，当你调用 Rspack 的 JavaScript API 或 CLI 时，都会创建一个 Compiler 实例。'
+description: '查阅 Compiler 和 MultiCompiler API，运行、监听和关闭构建，创建子编译器，并访问文件系统。'
 ---
 
 import StatsType from '../../types/stats.mdx';
@@ -187,7 +187,7 @@ function purgeInputFileSystem(): void;
 
 ### createChildCompiler
 
-允许在 Rspack 中运行另一个 Rspack 实例。但是，子编译器会应用不同的设置和配置。他会从父 Compiler（或者顶级 Compiler）中复制所有的钩子（hook）和插件（plugin），并且创建一个子 Compiler 实例。 返回值为创建好的 Compiler 实例。
+创建并返回一个子 `Compiler`，可以为其指定输出选项和额外插件。钩子和插件的继承规则见 [compilation.createChildCompiler](/api/javascript-api/compilation#createchildcompiler)。
 
 ```ts
 function createChildCompiler(

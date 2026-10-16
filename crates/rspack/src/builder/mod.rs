@@ -1787,6 +1787,7 @@ impl ModuleOptionsBuilder {
           dynamic_import_prefetch: Some(JavascriptParserOrder::Disable),
           dynamic_import_fetch_priority: None,
           url: Some(JavascriptParserUrl::Enable),
+          dynamic_url: Some(true),
           expr_context_critical: Some(true),
           unknown_context_critical: Some(true),
           wrapped_context_critical: Some(false),

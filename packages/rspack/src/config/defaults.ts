@@ -337,7 +337,7 @@ const applyExperimentsDefaults = (
     D(experiments.newCache, 'devtool', true);
     D(experiments.newCache, 'loader', true);
     D(experiments.newCache, 'minimize', true);
-    D(experiments.newCache, 'resolver', true);
+    D(experiments.newCache, 'resolver', false);
   }
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
@@ -394,6 +394,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'dynamicImportPrefetch', false);
   D(parserOptions, 'dynamicImportPreload', false);
   D(parserOptions, 'url', true);
+  D(parserOptions, 'dynamicUrl', true);
   D(parserOptions, 'exprContextCritical', true);
   D(parserOptions, 'unknownContextCritical', true);
   D(parserOptions, 'wrappedContextCritical', false);

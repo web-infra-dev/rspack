@@ -4,7 +4,7 @@ it("css modules hmr", async () => {
 	expect(style.div).toBeDefined();
 	await NEXT_HMR();
 	expect(style.a).toBeDefined();
-	expect(style).not.toContain('div');
+	expect(style).not.toHaveProperty('div');
 });
 
 module.hot.accept('./index.module.css')
