@@ -1,4 +1,5 @@
-use cow_utils::CowUtils;
+use std::sync::LazyLock;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
@@ -6,11 +7,15 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ModuleDependency, ModuleIdentifier, TemplateContext,
   TemplateReplaceSource,
 };
+use rspack_util::placeholder::PlaceholderFinder;
 
 use crate::{css_syntax::serialize_url_value, utils::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
-const ASSET_AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
+static ASSET_AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new("__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__"));
 
+/// An asset reference, for example `background: url("./logo.png")`.
+/// Resolves the asset module and replaces only the URL with its emitted URL.
 #[cacheable]
 #[derive(Debug)]
 pub struct CssUrlDependency {
@@ -40,20 +45,14 @@ impl CssUrlDependency {
 
     if let Some(url) = code_gen_result.data().get::<CodeGenerationDataUrl>() {
       Some(
-        url
-          .inner()
-          .cow_replace(
-            ASSET_AUTO_PUBLIC_PATH_PLACEHOLDER,
-            AUTO_PUBLIC_PATH_PLACEHOLDER,
-          )
+        ASSET_AUTO_PUBLIC_PATH_MATCHER
+          .replace(url.inner(), AUTO_PUBLIC_PATH_PLACEHOLDER)
           .into_owned(),
       )
     } else if let Some(data) = code_gen_result.data().get::<CodeGenerationDataFilename>() {
       let filename = data.filename();
-      let public_path = data.public_path().cow_replace(
-        ASSET_AUTO_PUBLIC_PATH_PLACEHOLDER,
-        AUTO_PUBLIC_PATH_PLACEHOLDER,
-      );
+      let public_path =
+        ASSET_AUTO_PUBLIC_PATH_MATCHER.replace(data.public_path(), AUTO_PUBLIC_PATH_PLACEHOLDER);
       Some(format!("{public_path}{filename}"))
     } else {
       None

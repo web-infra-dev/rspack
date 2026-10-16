@@ -26,7 +26,7 @@ export default {
       [];
     const concatenatedModule = modules.find((module) =>
       module.modules?.some((innerModule) =>
-        innerModule.identifier.endsWith("style.css"),
+        innerModule.name === "./style.css",
       ),
     );
 

@@ -1,0 +1,5 @@
+Object {
+  a: file_with_many_dots_in_name_module_css-a,
+  b: file_with_many_dots_in_name_module_css-b,
+  c: file_with_many_dots_in_name_module_css-c,
+}

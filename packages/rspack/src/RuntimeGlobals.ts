@@ -459,6 +459,8 @@ enum RuntimeGlobals {
   makeDeferredNamespaceObject,
 
   makeDeferredNamespaceObjectSymbol,
+
+  deferredModuleExports,
 }
 
 export const isReservedRuntimeGlobal = (
@@ -562,6 +564,8 @@ function renderRuntimeGlobals(
       return `${scope_name}.s`;
     case RuntimeGlobals.moduleCache:
       return `${scope_name}.c`;
+    case RuntimeGlobals.deferredModuleExports:
+      return `${scope_name}.zD`;
     case RuntimeGlobals.moduleFactories:
       return `${scope_name}.m`;
     case RuntimeGlobals.moduleFactoriesAddOnly:

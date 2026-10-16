@@ -30,7 +30,7 @@ export default {
 };
 ```
 
-- `patterns` can be a string, or an array of objects.
+- `patterns` is an array whose elements can be strings or objects.
 
 ```ts title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -40,7 +40,7 @@ export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       // This is equivalent to `patterns: [{ from: 'src/file.txt' }]`
-      patterns: 'src/file.txt',
+      patterns: ['src/file.txt'],
     }),
   ],
 };

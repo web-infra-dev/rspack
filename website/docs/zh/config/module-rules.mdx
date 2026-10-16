@@ -802,6 +802,8 @@ export default {
 也可以使用函数为每个模块选择 loader，返回 loader 名称、loader 配置对象或由它们组成的数组：
 
 ```js title="rspack.config.mjs"
+import { basename } from 'node:path';
+
 export default {
   module: {
     rules: [
@@ -869,37 +871,7 @@ export default {
 - 设置为 `{ maxWorkers }` 时，可以手动控制最大 worker 的数量。
 - 设置为 `false` 或省略时，该 loader 默认会在主线程中执行。
 
-例如，将 `less-loader` 配置为并行执行：
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'less-loader',
-            parallel: true,
-            options: {
-              // loader options
-            },
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-当同一条 Rule 下有多个 loader 开启了 `parallel` 选项，Rspack 会在同一个 worker 中按顺序依次运行这些 loader，直到遇到未启用 parallel 的 loader 或 Rust 实现的 builtin loader。这样可以在保证 loader 顺序的前提下最大化并行效率。
-
-:::tip
-
-- loader 的选项需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
-- 目前 loader 在 worker 中不支持 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的大多数方法。
-
-:::
+使用示例和限制请参考 [并行 Loader](/guide/features/loader#parallel-loader)。
 
 ## rules[].use.parallel.maxWorkers
 

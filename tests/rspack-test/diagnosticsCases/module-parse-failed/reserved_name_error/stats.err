@@ -1,6 +1,6 @@
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: `let` cannot be used as an identifier in strict mode
+  ╰─▶   × JavaScript parse error: 'let' is reserved in strict mode and cannot be used as a binding identifier
          ╭─[2:4]
        1 │ "use strict";
        2 │ var let = let;
@@ -12,7 +12,7 @@ ERROR in ./index.js
 
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: `let` cannot be used as an identifier in strict mode
+  ╰─▶   × JavaScript parse error: 'let' is reserved in strict mode and cannot be used as an identifier
          ╭─[2:10]
        1 │ "use strict";
        2 │ var let = let;

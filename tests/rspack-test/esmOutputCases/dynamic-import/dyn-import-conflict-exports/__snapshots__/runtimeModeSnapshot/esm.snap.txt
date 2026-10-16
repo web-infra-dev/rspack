@@ -15,10 +15,10 @@ definePropertyGetters(b_namespaceObject, {
 
 
 // ./a.js
-const value = 1
+const value = 1;
 
 // ./b.js
-const b_value = 2
+const b_value = 2;
 
 export { a_namespaceObject, b_namespaceObject, b_value, value };
 
@@ -40,7 +40,7 @@ it('should handle conflicting exports from multi-module chunk', async () => {
 
 	expect(modA.value).toBe(1)
 	expect(modB.value).toBe(2)
-})
+});
 
 export {};
 

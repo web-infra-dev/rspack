@@ -19,6 +19,9 @@ const CACHED_LOADER_RUNS_BY_STEP = [1, 1, 2, 2, 3];
 // etag at step 1. Changing this loader's own file dependency still invalidates
 // its stored mtime snapshot at step 2.
 const OVERLAP_LOADER_RUNS_BY_STEP = [1, 2, 3, 3, 3];
+// Adjacent cached loaders form one cache chain, so changing the right loader's
+// dependency at step 2 invalidates and reruns the whole chain.
+const CACHE_CHAIN_RUNS_BY_STEP = [1, 1, 2, 2, 2];
 
 it("should cache each opted-in loader until its input changes", () => {
 	const step = +WATCH_STEP;
@@ -59,7 +62,7 @@ it("should cache each opted-in loader until its input changes", () => {
 		runs: step + 1
 	});
 	expect(chainDependency).toEqual({
-		leftRuns: 1
+		leftRuns: CACHE_CHAIN_RUNS_BY_STEP[step]
 	});
 	expect(overlapDependency).toEqual({
 		value: step < 2 ? "overlap-0" : "overlap-2",
