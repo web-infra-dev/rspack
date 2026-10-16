@@ -28,7 +28,9 @@
 	module.children = [];
 	currentParents = [];
 	options.require = require;
-	<% if (_is_rspack_runtime_mode) { %>options.context.r = require;<% } %>
+	<% if (_is_rspack_runtime_mode) { %>options.context.r = require;
+	// Shadow the shared context's setter without replacing the runtime's ensure function.
+	Object.defineProperty(options.context, "e", { value: require.e, writable: true, configurable: true });<% } %>
 });
 
 <%- define(HMR_DOWNLOAD_UPDATE_HANDLERS) %> = {};
@@ -37,7 +39,9 @@
 <%- fn("rspackHmrCreateRequire") %>(require, moduleId<% if (_is_rspack_runtime_mode) { %>, context<% } %>) {
 	var me = hmrInstalledModules[moduleId];
 	if (!me) return require;
-	var fn = function (request) {
+	<% if (_is_rspack_runtime_mode) { %>// Use the shared context so the module's wrapped ensure function cannot recurse.
+	var runtimeContext = Object.getPrototypeOf(context);
+	<% } %>var fn = function (request) {
 		if (me.hot.active) {
 			if (hmrInstalledModules[request]) {
 				var parents = hmrInstalledModules[request].parents;
@@ -81,7 +85,7 @@
 	}
 
 	fn.e = function (chunkId, fetchPriority) {
-		return trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority));
+		return trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %>runtimeContext.e<% } else { %>require.e<% } %>(chunkId, fetchPriority));
 	};
 
 	return fn;
@@ -188,44 +192,52 @@
 	}
 	<% } %>
 	var results = [];
-	for (var i = 0; i < registeredStatusHandlers.length; i++)
-		results[i] = registeredStatusHandlers[i].call(null, newStatus);
+	try {
+		for (var i = 0; i < registeredStatusHandlers.length; i++)
+			results[i] = registeredStatusHandlers[i].call(null, newStatus);
+	} catch (error) {
+		return Promise.reject(error);
+	}
 
 	return Promise.all(results).then(function () { });
 }
 
 <%- fn("unblock") %>() {
-	if (--blockingPromises === 0) {
+	if (--blockingPromises === 0 && currentStatus === "prepare") {
 		setStatus("ready").then(function () {
 			if (blockingPromises === 0) {
 				var list = blockingPromisesWaiting;
 				blockingPromisesWaiting = [];
-				for (var i = 0; i < list.length; i++) {
-					list[i]();
-				}
+				for (var i = 0; i < list.length; i++) list[i].resolve();
 			}
+		}, function (error) {
+			var list = blockingPromisesWaiting;
+			blockingPromisesWaiting = [];
+			var reject = function () {
+				for (var i = 0; i < list.length; i++) list[i].reject(error);
+			};
+			if (currentStatus === "abort" || currentStatus === "fail") reject();
+			else setStatus("abort").then(reject, reject);
 		});
 	}
 }
 
 <%- fn("trackBlockingPromise") %>(promise) {
-	switch (currentStatus) {
-		case "ready":
-			setStatus("prepare");
-		case "prepare":
-			blockingPromises++;
-			promise.then(unblock, unblock);
-			return promise;
-		default:
-			return promise;
-	}
+	if (currentStatus === "ready") setStatus("prepare");
+	// Imports started before check/prepare must settle before applying updates.
+	blockingPromises++;
+	promise.then(unblock, unblock);
+	return promise;
 }
 
 <%- fn("waitForBlockingPromises") %>(fn) {
 	if (blockingPromises === 0) return fn();
-	return new Promise(function (resolve) {
-		blockingPromisesWaiting.push(function () {
-			resolve(fn());
+	return new Promise(function (resolve, reject) {
+		blockingPromisesWaiting.push({
+			resolve: function () {
+				try { resolve(fn()); } catch (error) { reject(error); }
+			},
+			reject: reject
 		});
 	});
 }
@@ -259,6 +271,8 @@
 				);
 			}
 
+			// Include initial hot-update downloads before prepare handlers can settle imports.
+			blockingPromises++;
 			return setStatus("prepare").then(function () {
 				var updatedModules = [];
 				currentUpdateApplyHandlers = [];
@@ -281,16 +295,20 @@
 						return promises;
 					},
 						[])
-				).then(function () {
-					return waitForBlockingPromises(function () {
-						if (applyOnUpdate) {
-							return internalApply(applyOnUpdate);
-						}
-						return setStatus("ready").then(function () {
-							return updatedModules;
-						});
-					});
+				).then(function () { return updatedModules; });
+			}).then(function (updatedModules) {
+				// Register before releasing the download barrier so ready handlers finish
+				// before check resolves or automatic application begins.
+				var result = waitForBlockingPromises(function () {
+					if (applyOnUpdate) return internalApply(applyOnUpdate);
+					return updatedModules;
 				});
+				unblock();
+				return result;
+			}, function (error) {
+				// Preparation failed before the download barrier was released.
+				blockingPromises--;
+				return setStatus("abort").then(function () { throw error; });
 			});
 		});
 }
