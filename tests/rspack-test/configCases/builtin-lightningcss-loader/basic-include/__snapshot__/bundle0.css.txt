@@ -1,5 +1,5 @@
 body {
-  & ._66K1xe {
+  & .BkppLM {
     color: #00f;
   }
 }

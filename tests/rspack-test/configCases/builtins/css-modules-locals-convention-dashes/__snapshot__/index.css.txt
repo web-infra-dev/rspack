@@ -1,9 +1,9 @@
 Object {
-  btn--info_is-disabled_1: tYAZEz,
-  btn-info-is-disabled: SoW1Xa,
-  btn-info-is-disabled-1: tYAZEz,
-  btn-info_is-disabled: SoW1Xa,
-  foo-bar: xQxhRt,
-  foo_bar: xQxhRt,
-  simple: bHNeS1,
+  btn--info_is-disabled_1: Qa_kDD,
+  btn-info-is-disabled: pnzMDh,
+  btn-info-is-disabled-1: Qa_kDD,
+  btn-info_is-disabled: pnzMDh,
+  foo-bar: S3wJqR,
+  foo_bar: S3wJqR,
+  simple: M4yaYA,
 }

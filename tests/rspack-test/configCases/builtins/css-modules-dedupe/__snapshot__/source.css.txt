@@ -1,4 +1,4 @@
 Object {
-  backButton: gLhLGs Ixu_G0 MO8LNE,
-  nextButton: Mne4EQ XDRSUb MO8LNE,
+  backButton: _5jFRwU nMz4EF dAvCUA,
+  nextButton: uXHFmu _6-qYWi dAvCUA,
 }

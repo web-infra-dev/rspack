@@ -1,0 +1,14 @@
+Object {
+  btn--info_is-disabled_1: zXsm12,
+  btn-info-is-disabled: mxdHab,
+  btn-info-is-disabled-1: zXsm12,
+  btn-info_is-disabled: mxdHab,
+  class: _234Ku8,
+  default: TnMFQg,
+  foo: bar,
+  foo-bar: qkA0ES,
+  foo_bar: qkA0ES,
+  my-btn-info-is-disabled: value,
+  my-btn-info_is-disabled: value,
+  simple: _20QnbX,
+}

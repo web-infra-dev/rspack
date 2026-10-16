@@ -1,0 +1,4 @@
+Object {
+  backButton: _5jFRwU nMz4EF dAvCUA,
+  nextButton: uXHFmu _6-qYWi dAvCUA,
+}
