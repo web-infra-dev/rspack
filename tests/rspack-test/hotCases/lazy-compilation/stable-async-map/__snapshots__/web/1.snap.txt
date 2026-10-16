@@ -11,7 +11,7 @@
 - Bundle: other_js.chunk.CURRENT_HASH.js
 - Bundle: shared.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 64
-- Update: feature_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 2378
+- Update: feature_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 2771
 - Update: main.LAST_HASH.hot-update.js, size: 1726
 
 ## Manifest
@@ -58,7 +58,12 @@ var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/load
         if (module.hot) {
           module.hot.accept();
           if (module.hot.data && module.hot.data.resolveSelf) module.hot.data.resolveSelf(module.exports);
-          module.hot.dispose(function(data) { data.resolveSelf = resolveSelf; dispose(data); });
+          var onStatus = function(status) {
+            if (status === "abort" || status === "fail") onError(new Error("Lazy compilation of " + data + " cannot finish because hot module replacement is in " + status + " status. Reload the page."));
+          };
+          onStatus(module.hot.status());
+          module.hot.addStatusHandler(onStatus);
+          module.hot.dispose(function(data) { module.hot.removeStatusHandler(onStatus); data.resolveSelf = resolveSelf; dispose(data); });
         }
         var dispose = client.activate({ data: data, active: false, module: module, onError: onError })
 

@@ -285,6 +285,8 @@ impl Module for LazyCompilationProxyModule {
       "var dispose = client.activate({{ data: data, active: false, module: {module_argument}, onError: onError }})"
     );
 
+    // The pending promise settles only through a hot update. Once the runtime
+    // reaches a terminal status no update can apply, so reject instead of hanging.
     let pending = format!(
         "{client}
         var resolveSelf, onError;
@@ -292,7 +294,12 @@ impl Module for LazyCompilationProxyModule {
         if ({module_argument}.hot) {{
           {module_argument}.hot.accept();
           if ({module_argument}.hot.data && {module_argument}.hot.data.resolveSelf) {module_argument}.hot.data.resolveSelf({module_argument}.exports);
-          {module_argument}.hot.dispose(function(data) {{ data.resolveSelf = resolveSelf; dispose(data); }});
+          var onStatus = function(status) {{
+            if (status === \"abort\" || status === \"fail\") onError(new Error(\"Lazy compilation of \" + data + \" cannot finish because hot module replacement is in \" + status + \" status. Reload the page.\"));
+          }};
+          onStatus({module_argument}.hot.status());
+          {module_argument}.hot.addStatusHandler(onStatus);
+          {module_argument}.hot.dispose(function(data) {{ {module_argument}.hot.removeStatusHandler(onStatus); data.resolveSelf = resolveSelf; dispose(data); }});
         }}
         {keep_active}
 "
