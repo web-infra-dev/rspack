@@ -577,6 +577,7 @@ fn convert_import_option(import: Option<Either<bool, RawCssImportFn>>) -> Option
 pub struct RawCssParserOptions {
   #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
   pub export_type: Option<String>,
+  pub runtime_public_path: Option<bool>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   #[napi(js_name = "import")]
@@ -591,6 +592,7 @@ impl From<RawCssParserOptions> for CssParserOptions {
   fn from(value: RawCssParserOptions) -> Self {
     Self {
       export_type: value.export_type.map(Into::into),
+      runtime_public_path: value.runtime_public_path,
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -604,6 +606,7 @@ impl From<RawCssParserOptions> for CssParserOptions {
 pub struct RawCssModuleParserOptions {
   #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
   pub export_type: Option<String>,
+  pub runtime_public_path: Option<bool>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   #[napi(js_name = "import")]
@@ -625,6 +628,7 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
   fn from(value: RawCssModuleParserOptions) -> Self {
     Self {
       export_type: value.export_type.map(Into::into),
+      runtime_public_path: value.runtime_public_path,
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -644,6 +648,7 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
 pub struct RawCssAutoOrModuleParserOptions {
   #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
   pub export_type: Option<String>,
+  pub runtime_public_path: Option<bool>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   #[napi(js_name = "import")]
@@ -666,6 +671,7 @@ impl From<RawCssAutoOrModuleParserOptions> for CssAutoOrModuleParserOptions {
   fn from(value: RawCssAutoOrModuleParserOptions) -> Self {
     Self {
       export_type: value.export_type.map(Into::into),
+      runtime_public_path: value.runtime_public_path,
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,

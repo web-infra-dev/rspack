@@ -84,3 +84,15 @@ declare const dynamicConfig: RspackOptions | MultiRspackOptions;
 defineConfig(dynamicConfig);
 
 export { single, multi, syncResult, asyncResult };
+
+const cssRuntimePublicPath: RspackOptions = {
+  module: {
+    parser: {
+      css: { exportType: 'style', runtimePublicPath: true },
+      'css/auto': { exportType: 'style', runtimePublicPath: true },
+      'css/global': { exportType: 'style', runtimePublicPath: false },
+      'css/module': { exportType: 'style', runtimePublicPath: true },
+    },
+  },
+};
+defineConfig(cssRuntimePublicPath);
