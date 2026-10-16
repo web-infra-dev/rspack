@@ -255,14 +255,11 @@ export type StatsChunkOrigin = KnownStatsChunkOrigin & Record<string, any>;
 export type StatsCacheInfo = {
   mode: 'disabled' | 'memory' | 'persistent';
   counters: { logger: string; label: string; hit: number; total: number }[];
-  persistentSessionInitialization: {
-    status: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown';
-    reason: 'version' | 'buildDependencies' | 'recovery' | null;
-  } | null;
   persistent: {
     status: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown';
     reason: 'version' | 'buildDependencies' | 'recovery' | null;
   } | null;
+  persistentSessionInitialization: StatsCacheInfo['persistent'];
   moduleBuilds: { reused: number; total: number } | null;
 };
 
