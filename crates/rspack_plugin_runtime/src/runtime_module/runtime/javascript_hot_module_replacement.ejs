@@ -250,27 +250,57 @@
 				}
 			}
 
-			// modules can be re-created by dispose handlers (e.g. requires
-			// during dispose); dispose them as well, otherwise they would
-			// stay active and cached after this transaction
-			for (var k = 0; k < outdatedModules.length; k++) {
-				moduleId = outdatedModules[k];
-				module = <%- MODULE_CACHE %>[moduleId];
-				if (!module) continue;
+			// Modules can be re-created by dispose handlers (e.g. requires
+			// during dispose); dispose every instance that is left in the
+			// cache for an outdated module as well. Dispose handlers run at
+			// most once per module here: they may require outdated modules
+			// again, and those later instances are only cleaned up.
+			var handledModuleIds = Object.create(null);
+			var recreated;
+			do {
+				recreated = false;
+				for (var k = 0; k < outdatedModules.length; k++) {
+					moduleId = outdatedModules[k];
+					module = <%- MODULE_CACHE %>[moduleId];
+					if (!module) continue;
+					recreated = true;
 
-				module.hot.active = false;
+					if (!handledModuleIds[moduleId]) {
+						handledModuleIds[moduleId] = true;
 
-				delete <%- MODULE_CACHE %>[moduleId];
+						data = {};
 
-				for (j = 0; j < module.children.length; j++) {
-					child = <%- MODULE_CACHE %>[module.children[j]];
-					if (!child) continue;
-					idx = child.parents.indexOf(moduleId);
-					if (idx >= 0) {
-						child.parents.splice(idx, 1);
+						// Call dispose handlers
+						disposeHandlers = module.hot._disposeHandlers;
+						for (j = 0; j < disposeHandlers.length; j++) {
+							disposeHandlers[j].call(null, data);
+						}
+						<%- HMR_MODULE_DATA %>[moduleId] = data;
+					}
+
+					module.hot.active = false;
+
+					delete <%- MODULE_CACHE %>[moduleId];
+
+					for (j = 0; j < module.children.length; j++) {
+						child = <%- MODULE_CACHE %>[module.children[j]];
+						if (!child) continue;
+						idx = child.parents.indexOf(moduleId);
+						if (idx >= 0) {
+							child.parents.splice(idx, 1);
+						}
+					}
+
+					for (j = 0; j < module.parents.length; j++) {
+						var parent = <%- MODULE_CACHE %>[module.parents[j]];
+						if (!parent) continue;
+						idx = parent.children.indexOf(moduleId);
+						if (idx >= 0) {
+							parent.children.splice(idx, 1);
+						}
 					}
 				}
-			}
+			} while (recreated);
 
 			var dependency;
 			for (var outdatedModuleId in outdatedDependencies) {
