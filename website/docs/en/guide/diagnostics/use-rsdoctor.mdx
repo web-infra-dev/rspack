@@ -4,11 +4,7 @@ description: 'Use Rsdoctor to analyze Rspack build output and performance.'
 
 # Use Rsdoctor
 
-[Rsdoctor](https://rsdoctor.rs/) is a build analyzer tailored for the Rspack ecosystem.
-
-Rsdoctor is committed to being a one-stop, intelligent build analyzer that makes the build process transparent, predictable, and optimizable through visualization and smart analysis, helping development teams precisely identify bottlenecks, optimize performance, and improve engineering quality.
-
-If you need to debug the build outputs or build process, you can use Rsdoctor for troubleshooting.
+[Rsdoctor](https://rsdoctor.rs/) is a build analysis tool for the Rspack ecosystem. It visualizes the build process and output to help developers investigate build issues and identify performance bottlenecks. It also provides build data to agents for automated diagnosis and optimization of JavaScript programs.
 
 ## Requirements
 
@@ -21,6 +17,8 @@ Rsdoctor 2.0 requires Node.js `^20.19.0 || >=22.12.0` and Rspack 2.0 or later. I
 import { PackageManagerTabs } from '@theme';
 
 <PackageManagerTabs command="add @rsdoctor/core@latest -D" />
+
+To upgrade from Rsdoctor 1.x, see the [Rsdoctor 2.0 migration guide](https://rsdoctor.rs/guide/migration/migration-v2).
 
 2. Register `RsdoctorRspackPlugin` in the Rspack [plugins](/config/plugins) option. Rsdoctor 2.0 packages are ESM-only, so use an ESM config and import:
 
@@ -45,7 +43,7 @@ RSDOCTOR=true rspack serve
 RSDOCTOR=true rspack build
 ```
 
-As Windows does not support the above usage, you can also use [cross-env](https://npmjs.com/package/cross-env) to set environment variables. This ensures compatibility across different systems:
+On Windows, use [cross-env](https://npmjs.com/package/cross-env) to set environment variables:
 
 ```bash
 cross-env RSDOCTOR=true rspack serve
@@ -53,7 +51,3 @@ cross-env RSDOCTOR=true rspack build
 ```
 
 After the build, Rsdoctor opens the analysis page. See the [Rsdoctor 2.0 quick start](https://rsdoctor.rs/guide/start/quick-start) for more details.
-
-## Upgrading from Rsdoctor 1.x
-
-Replace `@rsdoctor/rspack-plugin` with `@rsdoctor/core` and update the import shown above. Remove `experiments.enableNativePlugin` if configured; the Rspack native plugin is always enabled in Rsdoctor 2.0. For other configuration changes, see the [Rsdoctor 2.0 migration guide](https://rsdoctor.rs/guide/migration/migration-v2).
