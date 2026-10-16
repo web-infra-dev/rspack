@@ -31,7 +31,7 @@ pub struct RawTraceEvent {
   pub args: Option<HashMap<String, String>>,
   // track_uuid
   pub uuid: u32,
-  // timestamp in microseconds
+  // timestamp relative to the tracer start, in nanoseconds
   pub ts: BigInt,
   // chrome trace event ph
   pub ph: String,

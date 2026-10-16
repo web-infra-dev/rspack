@@ -42,7 +42,7 @@ export class JavaScriptTracer {
     this.output = output;
     this.events = [];
     this.state = 'on';
-    this.startTime = process.hrtime.bigint(); // use microseconds
+    this.startTime = process.hrtime.bigint(); // nanoseconds, aligned with rust side relative timestamp
   }
 
   static uuid() {

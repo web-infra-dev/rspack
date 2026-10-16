@@ -64,7 +64,7 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.62.1-jammy
+          image: mcr.microsoft.com/playwright:v1.63.0-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # The tool cache contains both Node.js and pnpm.
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
@@ -79,7 +79,7 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.62.1-jammy
+          image: mcr.microsoft.com/playwright:v1.63.0-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # The tool cache contains both Node.js and pnpm.
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}

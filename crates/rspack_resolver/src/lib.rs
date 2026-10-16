@@ -1711,20 +1711,28 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       ))),
       Some(b'/') => Ok(Utf8PathBuf::from(specifier)),
       Some(b'.') => Ok(tsconfig.directory().normalize_with(specifier)),
-      _ => self
-        .clone_with_options(ResolveOptions {
-          description_files: vec![],
-          extensions: vec![".json".into()],
-          main_files: vec!["tsconfig.json".into()],
-          ..ResolveOptions::default()
-        })
-        .load_package_self_or_node_modules(directory, specifier, &mut Ctx::default())
-        .await
-        .map(|p| p.to_path_buf())
-        .map_err(|err| match err {
-          ResolveError::NotFound(_) => ResolveError::TsconfigNotFound(PathBuf::from(specifier)),
-          _ => err,
-        }),
+      _ => {
+        let cached_path = self
+          .clone_with_options(ResolveOptions {
+            description_files: vec![],
+            extensions: vec![".json".into()],
+            main_files: vec!["tsconfig.json".into()],
+            ..ResolveOptions::default()
+          })
+          .load_package_self_or_node_modules(directory, specifier, &mut Ctx::default())
+          .await
+          .map_err(|err| match err {
+            ResolveError::NotFound(_) => ResolveError::TsconfigNotFound(PathBuf::from(specifier)),
+            _ => err,
+          })?;
+        // `tsc` resolves a package `extends` through the file's real path, so
+        // an `extends` nested inside that package is looked up from its real
+        // directory. Without this, a pnpm-style symlinked package
+        // (`node_modules/pkg` -> `node_modules/.pnpm/pkg@x/node_modules/pkg`)
+        // would walk up to the root `node_modules`, where the package's own
+        // dependencies do not exist.
+        self.load_realpath(&cached_path, &mut Ctx::default()).await
+      }
     }
   }
 

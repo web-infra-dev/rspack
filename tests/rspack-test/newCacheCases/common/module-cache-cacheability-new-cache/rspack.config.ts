@@ -26,15 +26,6 @@ const recordModule = (modules: string[], module: Module) => {
 
 export default defineConfig({
   context: import.meta.dirname,
-  experiments: {
-    newCache: {
-      codeGeneration: false,
-      devtool: false,
-      loader: false,
-      minimize: false,
-      module: true,
-    },
-  },
   cache: {
     type: 'persistent',
   },

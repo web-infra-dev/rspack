@@ -11,6 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
+allocative  = { workspace = true, optional = true }
 html-escape = { workspace = true }
 rustc-hash  = { workspace = true, features = ["std"] }
 serde_json  = { workspace = true }
@@ -20,3 +21,7 @@ workspace = true
 
 [lib]
 doctest = false
+
+[package.metadata.cargo-shear]
+# The allocative compiler driver injects enum derives that use this dependency.
+ignored = ["allocative"]

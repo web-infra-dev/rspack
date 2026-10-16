@@ -10,6 +10,7 @@ use crate::groups::{
 
 pub mod basic_react;
 pub mod css;
+pub mod css_modules;
 pub mod misc;
 pub mod threejs;
 pub mod util;
