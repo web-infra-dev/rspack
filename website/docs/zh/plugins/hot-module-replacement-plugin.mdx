@@ -41,9 +41,9 @@ export default {
 
 ## 热更新清单 \{#hot-update-manifest}
 
-HMR 期间，运行时会读取 `hot-update.json` 清单，了解哪些 chunk 需要更新，哪些 chunk 或模块需要移除。清单中记录的是 ID，更新后的 JavaScript 代码位于单独的 `hot-update.js` 文件中。
+热更新时，运行时会读取 `hot-update.json`，确定需要更新的 chunk，以及需要移除的 chunk 或模块。清单中记录了它们的 ID，JavaScript 更新代码则存放在单独的 `hot-update.js` 文件中。
 
-例如，下面的清单表示更新 `main` chunk 的 JavaScript 和内置 CSS，没有需要移除的 chunk 或模块：
+下面的示例表示更新 `main` chunk 的 JavaScript 和内置 CSS，无需移除任何 chunk 或模块：
 
 ```json
 {
@@ -54,16 +54,18 @@ HMR 期间，运行时会读取 `hot-update.json` 清单，了解哪些 chunk �
 }
 ```
 
-| 字段        | 含义和作用                                                                                        |
-| ----------- | ------------------------------------------------------------------------------------------------- |
-| `c`         | 有 JavaScript 更新的 chunk ID 列表，运行时据此加载所需的更新文件。                                |
-| `r`         | 需要从当前运行时移除的 chunk ID 列表。                                                            |
-| `m`         | 需要从当前运行时移除的模块 ID 列表。                                                              |
-| `css.c`     | 内置 CSS 需要更新的 chunk ID 列表，运行时会重新加载对应的样式表。                                 |
-| `css.r`     | 内置 CSS 已被移除的 chunk ID 列表，运行时会移除对应的旧样式表。                                   |
-| `miniCss.c` | 与 `css.c` 类似，但用于 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) 提取的 CSS。 |
-| `miniCss.r` | 与 `css.r` 类似，但用于 `CssExtractRspackPlugin` 提取的 CSS。                                     |
+下表中的字段均为 ID 数组：
 
-`css` 和 `miniCss` 是可选对象，其中的 `c`、`r` 字段为空时会省略。CSS 更新与 JavaScript 更新分开记录，以避免重新加载未变化的样式表。移除 chunk 的 CSS 也不一定会移除 chunk 本身。
+| 字段        | 含义和作用                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| `c`         | 需要更新 JavaScript 的 chunk，运行时会按需加载对应的更新文件。                                 |
+| `r`         | 需要从当前运行时移除的 chunk。                                                                 |
+| `m`         | 需要从当前运行时移除的模块。                                                                   |
+| `css.c`     | 内置 CSS 发生变化的 chunk，运行时会重新加载对应的样式表。                                      |
+| `css.r`     | 内置 CSS 已被移除的 chunk，运行时会移除对应的旧样式表。                                        |
+| `miniCss.c` | 含义同 `css.c`，用于 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) 提取的 CSS。 |
+| `miniCss.r` | 含义同 `css.r`，用于 `CssExtractRspackPlugin` 提取的 CSS。                                     |
 
-清单文件名由 [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename) 控制。启用 `output.module: true` 时，清单会以 ES 模块导出，而非纯 JSON。
+`css` 和 `miniCss` 是可选对象，其中的 `c`、`r` 字段为空时会省略。单独记录 CSS 更新可以避免重新加载未变化的样式表。移除 chunk 的 CSS 不一定会移除 chunk 本身。
+
+可通过 [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename) 自定义清单文件名。设置 `output.module: true` 时，清单会以 ES 模块导出。
