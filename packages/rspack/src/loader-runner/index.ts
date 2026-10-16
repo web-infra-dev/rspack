@@ -192,17 +192,12 @@ export class LoaderObject {
     content: unknown,
     cache: ReturnType<typeof createCodeFilterTextCache>,
   ) {
-    const { codeFilter } = this.loaderItem;
-    if (!codeFilter) return false;
-    if (!this.loaderItem.codeFilterEvaluated) {
-      this.loaderItem.codeFilterMatched = matchesCodeFilter(
-        codeFilter,
-        content,
-        cache,
-      );
-      this.loaderItem.codeFilterEvaluated = true;
-    }
-    return !this.loaderItem.codeFilterMatched;
+    const codeFilter = this.loaderItem.filter?.code;
+    if (!codeFilter || this.loaderItem.filterMatched) return false;
+    const matched = matchesCodeFilter(codeFilter, content, cache);
+    if (matched === false) return true;
+    if (matched) this.loaderItem.filterMatched = true;
+    return false;
   }
 
   static __from_binding(
@@ -967,9 +962,8 @@ export async function runLoaders(
               if (update.normalExecuted) {
                 item.normalExecuted = true;
               }
-              if (update.codeFilterEvaluated) {
-                item.loaderItem.codeFilterEvaluated = true;
-                item.loaderItem.codeFilterMatched = update.codeFilterMatched;
+              if (update.filterMatched) {
+                item.loaderItem.filterMatched = true;
               }
               return item;
             });

@@ -2,7 +2,7 @@ use std::{borrow::Cow, ops::Deref, sync::Arc};
 
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{CodeFilter, Loader, LoaderRunnerOptions, Scheme, get_scheme};
+use rspack_loader_runner::{Loader, LoaderFilter, LoaderRunnerOptions, Scheme, get_scheme};
 use rspack_util::{
   MergeFrom,
   fx_hash::{FxDashMap, FxHashMap as HashMap},
@@ -856,7 +856,7 @@ impl NormalModuleFactory {
             }),
             cache: false,
             options_cache_key: String::new(),
-            code_filter: None,
+            filter: None,
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -1104,15 +1104,15 @@ module.exports = "data:,";
       resource_data.resource().to_owned()
     };
     let mut has_cached_loader = false;
-    let mut has_code_filter = false;
+    let mut has_filter = false;
     for resolved in &resolved_loaders {
       has_cached_loader |= resolved.options.cache;
-      has_code_filter |= resolved.code_filter.is_some();
+      has_filter |= resolved.filter.is_some();
     }
-    let loader_code_filters = has_code_filter.then(|| {
+    let loader_filters = has_filter.then(|| {
       resolved_loaders
         .iter()
-        .map(|resolved| resolved.code_filter.clone())
+        .map(|resolved| resolved.filter.clone())
         .collect::<Vec<_>>()
         .into_boxed_slice()
     });
@@ -1218,7 +1218,7 @@ module.exports = "data:,";
         resolved_resolve_options,
         loaders,
         loader_options,
-        loader_code_filters,
+        loader_filters,
         create_data.context.clone().map(|x| x.into()),
         resolved_extract_source_map,
         dependency_phase,
@@ -1388,7 +1388,7 @@ async fn resolve_each(
 struct ResolvedLoader {
   loader: BoxLoader,
   options: LoaderRunnerOptions,
-  code_filter: Option<Arc<CodeFilter>>,
+  filter: Option<Arc<LoaderFilter>>,
 }
 
 impl ResolvedLoader {
@@ -1396,7 +1396,7 @@ impl ResolvedLoader {
     Self {
       loader,
       options: LoaderRunnerOptions::default(),
-      code_filter: None,
+      filter: None,
     }
   }
 }
@@ -1430,7 +1430,7 @@ async fn resolve_each_with_options(
     return Ok(ResolvedLoader {
       loader: resolved,
       options: LoaderRunnerOptions::default(),
-      code_filter: loader.code_filter.clone(),
+      filter: loader.filter.clone(),
     });
   }
   let loader_name = parse_resource(&loader.loader).map_or_else(
@@ -1449,7 +1449,7 @@ async fn resolve_each_with_options(
       options_cache_key: loader.options_cache_key.clone(),
       loader_version,
     },
-    code_filter: loader.code_filter.clone(),
+    filter: loader.filter.clone(),
   })
 }
 

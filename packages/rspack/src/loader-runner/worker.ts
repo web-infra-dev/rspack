@@ -552,18 +552,19 @@ async function loaderImpl(
           continue;
         }
         const { loaderItem } = currentLoaderObject;
-        if (loaderItem.codeFilter && !loaderItem.codeFilterEvaluated) {
-          loaderItem.codeFilterMatched = matchesCodeFilter(
-            loaderItem.codeFilter,
+        const codeFilter = loaderItem.filter?.code;
+        if (codeFilter && !loaderItem.filterMatched) {
+          const matched = matchesCodeFilter(
+            codeFilter,
             args[0],
             codeFilterTextCache,
           );
-          loaderItem.codeFilterEvaluated = true;
-        }
-        if (loaderItem.codeFilter && !loaderItem.codeFilterMatched) {
-          currentLoaderObject.normalExecuted = true;
-          loaderContext.loaderIndex--;
-          continue;
+          if (matched === false) {
+            currentLoaderObject.normalExecuted = true;
+            loaderContext.loaderIndex--;
+            continue;
+          }
+          if (matched) loaderItem.filterMatched = true;
         }
 
         if (shouldYieldToMainThread(currentLoaderObject)) break;
@@ -631,8 +632,7 @@ async function loaderImpl(
         data: item.loaderItem.data,
         normalExecuted: item.normalExecuted,
         pitchExecuted: item.pitchExecuted,
-        codeFilterEvaluated: item.loaderItem.codeFilterEvaluated,
-        codeFilterMatched: item.loaderItem.codeFilterMatched,
+        filterMatched: item.loaderItem.filterMatched,
       };
     }),
   );

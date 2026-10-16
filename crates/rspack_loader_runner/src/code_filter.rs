@@ -4,8 +4,6 @@ use rspack_cacheable::{
 };
 use rspack_regex::RspackRegex;
 
-use crate::Content;
-
 #[cacheable]
 #[doc(hidden)]
 pub struct SerializableCodeFilter {
@@ -33,20 +31,7 @@ impl CodeFilter {
     self.exclude.as_ref()
   }
 
-  pub fn matches(&self, content: Option<&Content>) -> bool {
-    let Some(content) = content else {
-      return false;
-    };
-    let code = match content {
-      Content::String(code) => code.as_str(),
-      Content::Buffer(code) => {
-        let Ok(code) = simdutf8::basic::from_utf8(code) else {
-          return false;
-        };
-        code
-      }
-    };
-
+  pub fn matches(&self, code: &str) -> bool {
     if self
       .exclude
       .as_ref()

@@ -42,6 +42,27 @@ export default defineConfig({
           producer,
         ],
       },
+      {
+        test: /invalid\.js$/,
+        use: [
+          {
+            loader: './invalid-finalizer-loader.mjs',
+            parallel: true,
+            options: {},
+          },
+          {
+            loader: './invalid-transform-loader.mjs',
+            parallel: true,
+            options: {},
+            filter: { code: /(?:)/ },
+          },
+          {
+            loader: './invalid-producer-loader.mjs',
+            parallel: true,
+            options: {},
+          },
+        ],
+      },
     ],
   },
 });

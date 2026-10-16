@@ -6,18 +6,24 @@
 
 # Summary
 
-为对象形式的 `module.rules[].use[]` 增加实验性 `filter.code`。Rspack 在某个 loader 的 normal handler 即将处理当前输入时，先按源码内容判断是否需要执行该 handler：
+为对象形式的 `module.rules[].use[]` 增加实验性 `filter.code`，无需额外的功能开关。目前仅支持代码过滤，名称为未来扩展其他过滤维度留出空间。Rspack 在某个 loader 的 normal handler 即将处理当前输入时，先按源码内容判断是否需要执行该 handler：
 
 ```js
-{
-  test: /\.[jt]sx?$/,
-  use: [
-    {
-      loader: './transform-loader.js',
-      filter: { code: /createMiddleware/ },
-    },
-  ],
-}
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[jt]sx?$/,
+        use: [
+          {
+            loader: './transform-loader.js',
+            filter: { code: /createMiddleware/ },
+          },
+        ],
+      },
+    ],
+  },
+};
 ```
 
 `filter.code` 是性能预过滤条件，只控制 normal，不控制 pitch；它不进入 loader options、loader request、模块 identifier 或 loader cache key。配置作者必须保证：过滤未命中时，跳过 normal 与执行 normal 后原样透传在所有可观察行为上等价。
@@ -48,14 +54,11 @@
 ## Rspack 配置
 
 ```ts
-type RuleSetLoaderCodePattern = string | RegExp;
-
 type RuleSetLoaderCodeFilter =
-  | RuleSetLoaderCodePattern
-  | RuleSetLoaderCodePattern[]
+  | RegExp
   | {
-      include?: RuleSetLoaderCodePattern | RuleSetLoaderCodePattern[];
-      exclude?: RuleSetLoaderCodePattern | RuleSetLoaderCodePattern[];
+      include?: RegExp;
+      exclude?: RegExp;
     };
 
 type RuleSetLoader = string;
@@ -88,7 +91,7 @@ export default {
             options: { mode: 'server' },
             filter: {
               code: {
-                include: ['createServerFn', /\bcreateMiddleware\b/],
+                include: /\bcreate(ServerFn|Middleware)\b/,
                 exclude: /generated code/,
               },
             },
@@ -104,14 +107,12 @@ export default {
 
 ## 匹配规则
 
-- string 是区分大小写的子串匹配，不是 glob。
 - `RegExp` 每次从 `lastIndex = 0` 开始匹配；`g`/`y` 等有状态 flag 不使结果依赖上一次调用。
-- 数组为 OR；`exclude` 任一命中即 miss，优先于 `include`。
-- 未提供 `include` 时默认包含；`include: []` 永不命中，`exclude: []` 不排除任何输入。`filter: { code: {} }` 匹配所有有效文本输入。
-- 空字符串 content 是有效输入，空 string pattern 能匹配它。content 不存在或 Buffer 不是有效 UTF-8 时一律 miss；有效 UTF-8 Buffer 按文本匹配。
+- `exclude` 命中即 miss，优先于 `include`。未提供 `include` 时默认包含；`filter: { code: {} }` 匹配所有有效文本输入。
+- 空字符串 content 是有效输入。content 不存在或 Buffer 不是有效 UTF-8 时跳过过滤判断，照常执行 normal loader；有效 UTF-8 Buffer 按文本匹配。
 - 不接受函数、`and`/`or`/`not`，也不支持 inline loader request 表达过滤条件。
 
-`filter.code` 检查当前输入而非磁盘原文。例如 `use: [{ loader: './a.js', filter: { code: 'generated' } }, './b.js']` 中，`a.js` 可以匹配到 `b.js` 的 normal 输出。
+`filter.code` 检查当前输入而非磁盘原文。例如 `use: [{ loader: './a.js', filter: { code: /generated/ } }, './b.js']` 中，`a.js` 可以匹配到 `b.js` 的 normal 输出。
 
 # Detailed design
 
@@ -135,27 +136,27 @@ pitch 无条件沿用原有行为。配置 `filter.code` 不表示 loader 没有
 
 ## 配置、binding 与元数据所有权
 
-TypeScript config adapter 校验 `filter` 仅包含必需的 `code`，再把单个 pattern、数组、`include`/`exclude` 规范化为结构化 `RawRuleSetLoaderCodeFilter`。它以 `use.filter !== undefined` 判断是否配置，并保留有效的空 string pattern。缺少 `code`、非法值和未知对象字段在配置阶段报包含完整路径的错误，如 `module.rules[2].use[0].filter.code.include[1]`。
+`filter` 是每次使用 loader 的执行元数据，不改变 loader 链。config adapter 校验 `filter.code`；静态和函数式 `Rule.use` 共用这一校验。关键数据结构如下：
 
-`RegExp` 通过 N-API 的 `RspackRegex` 结构化传递，不经过 JSON 序列化。`RawModuleRuleUse.code_filter` 转为 `ModuleRuleUseLoader.code_filter: Option<Arc<CodeFilter>>`；静态 rule 在配置转换时编译 matcher，并在模块间共享。函数式 `Rule.use` 返回的 use item 走相同转换，但每次动态返回会重新编译，不引入无界的全局 matcher cache。
+| 数据结构                                 | 关键字段                                 | 作用                                                                                                  |
+| ---------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `RawModuleRuleUse`                       | `filter: Option<RawRuleSetLoaderFilter>` | config adapter 校验配置后，经 N-API 传递 `RegExp`，不经过 JSON 序列化。                               |
+| `ModuleRuleUseLoader` / `ResolvedLoader` | `filter: Option<Arc<LoaderFilter>>`      | 保存与目标 loader 关联的 matcher；静态 rule 可在模块间复用。`LoaderFilter` 目前只包含 `code`。        |
+| `NormalModule`                           | `loader_filters: Option<LoaderFilters>`  | `LoaderFilters = Box<[Option<Arc<LoaderFilter>>]>`，与原有 loader 顺序对齐；没有 filter 时为 `None`。 |
+| `LoaderItem`                             | `filter`、`filter_matched()`             | normal 执行点读取当前输入，并把命中结果交给后续运行时复用。                                           |
+| `JsLoaderItem`                           | `filter`、`filterMatched`                | 将相同的条件和命中状态传给 JS 主线程及 worker。                                                       |
 
-解析 loader 后，`ResolvedLoader` 分别持有真实目标 loader、loader cache options 和 filter。`NormalModule` 仍保存原有的 `Vec<BoxLoader>`；仅当至少一个 loader 有 filter 时，额外保存与 loader 顺序对齐的：
-
-```rust
-type LoaderCodeFilters = Box<[Option<Arc<CodeFilter>>]>;
-```
-
-这份元数据独立于 `LoaderRunnerOptions`：后者在未启用 loader cache 时可能整组省略，不能承载 filter。`run_loaders` 按索引将 matcher 附到对应的 `LoaderItem`，不增加第二个 loader，也不通过 `Loader` trait 从 decorator 获取 filter。无 filter 的模块不分配上述数组；normal 调度只检查空 `Option`。
+`run_loaders` 按位置把 filter 放入 `LoaderItem`。它独立于 `LoaderRunnerOptions`：未启用 loader cache 时，后者可能被省略，但 filter 仍须生效。函数式 `Rule.use` 返回的配置也走同一转换路径。
 
 ## 匹配与跨 runtime 状态
 
-Rust matcher 直接借用 `Content::String`；Buffer 使用 UTF-8 校验后借用 `&str`，非法编码立即 miss。单个非空 string pattern 使用 `memchr::memmem`，多个 string pattern 使用预编译 Aho-Corasick；空 pattern 为恒匹配。`RegExp` 复用 `RspackRegex`。匹配顺序为先排除，再检查包含。
+同一条件需要在三个调度位置判断，因为 JS 一次调用可能连续处理多个 loader：
 
-`LoaderItem` 保存 matcher 与 `NotEvaluated`、`Matched`、`Skipped` 状态。Rust normal loop 在 `start_yielding` 与 `LoaderRunnerPlugin::run_normal_loader` 之前判断，因此 miss 不触发 normal loader cache lookup 或 Rust → JS normal dispatch。
+- **Rust：** 在 normal 调度前判断。对 JS loader，主要目的是 miss 时不调用 JS runner；对 builtin loader，则直接跳过其 normal。
+- **JS 主线程：** 在同一批 loader 中判断，主要避免把 miss 的 parallel loader 派发到 worker；普通 JS loader 也可在加载和调用前跳过。
+- **Worker：** 对已进入 worker 的批次继续判断后续 loader，避免调用其中 miss 的 loader。
 
-一次 JS yield 可以在同一 batch 中执行多个 loader。主线程 runner 与 worker runner 共用 TypeScript matcher，并在各自的 cache lookup、`loadLoader` 和 worker dispatch 之前判断后续 loader；中间的 miss 只移动 loader index，不强制返回 Rust。Rust 已计算的结果不会在 JS 中重复扫描，JS/worker 的结果会同步回 Rust。JS 对同一 content 视图最多做一次严格 UTF-8 解码，content 改变后失效该视图。
-
-miss 只将该 loader 标记为 normal 已完成；不修改 content、source map、additional data、dependencies、cacheability 或 pitch data。hit 后完全进入原有执行路径，是否实际调用 handler 仍取决于 loader cache 等既有机制。
+判断使用目标 loader 执行点的当前输入。Rust 直接借用字符串；Buffer 仅在 UTF-8 有效时作为文本匹配。无内容或编码无效时跳过过滤判断，照常执行 normal。`exclude` 优先于 `include`。命中后设置 `filterMatched`，避免跨运行时重复匹配；miss 则只标记该次 normal 已完成，不改变源码、source map、additional data 或依赖。
 
 ## 模块身份、缓存与正确性
 
@@ -163,13 +164,30 @@ miss 只将该 loader 标记为 normal 已完成；不修改 content、source ma
 
 这是有意选择的正确性约束：如果某个 handler 在 miss 时仍会增加依赖、发出资产、记录 diagnostics、修改 `buildInfo` 或做出其他可观察改变，那么不能直接为它配置 `filter.code`。否则同一模块在不同 issuer/rule 下去重，或 memory/persistent cache 复用时，结果可能不正确。应先把这些行为移到始终执行的阶段，或放弃预过滤。
 
-filter hit 可沿用目标 loader 的既有 cache 条目；miss 不查询或写入该 loader 的 normal cache。`CodeFilter` 序列化 pattern 并在恢复时重建预编译 matcher，使持久缓存恢复后仍有执行元数据。源码变更由既有 snapshot/invalidation 触发重建，watch rebuild 对新输入重新判断；`cache` 和 `incremental` 的开关彼此独立。
+filter hit 可沿用目标 loader 的既有 cache 条目；miss 不查询或写入该 loader 的 normal cache。`LoaderFilter` 序列化内部的 `CodeFilter` pattern，使持久缓存恢复后仍有执行元数据。源码变更由既有 snapshot/invalidation 触发重建，watch rebuild 对新输入重新判断；`cache` 和 `incremental` 的开关彼此独立。
 
-## 验证与性能证据
+## 验证性能
 
-现有 config cases 覆盖 pattern、空值、Unicode、有效/无效 UTF-8、右侧 loader 输出、pitch、native/JS 混合链及元数据透传；parallel case 覆盖 worker batch；watch 与 compiler cases 覆盖 marker 改变和 legacy/new cache 的持久恢复。英文和中文 `module.rules` 文档同步标记为 experimental。
+实验保留 `rspack-ecosystem-benchmark/cases/10000` 中 10,000 个模块的导入关系，只在其中 0、1,000 或 10,000 个模块里加入 `'use dola'` 指令，形成 0%、10%、100% 三种命中率的输入。
 
-现有 `xtask/benchmark/benches/groups/loader_code_filter.rs` 仅测 matcher，在 100 个模拟模块上覆盖 0%、10%、100% 命中率及 string/RegExp。它不能证明构建吞吐收益，也不是改动前后的 A/B 结果。仍需增加端到端 miss-heavy loader benchmark，并在相同机器、构建模式和 runner 上比较无 filter、低命中率及高命中率场景。
+对每种输入，比较同一个目标 loader 的两种配置：不使用 filter（10,000 个模块都调用 loader normal），以及使用 `filter.code`（只有包含指令的模块调用 normal）。目标 loader 分别采用原样返回源码的 no-op loader，以观察跳过 JS 调用本身的收益；以及“未命中时原样返回、命中时执行 SWC 转换”的指令型 loader，以模拟实际转换。另外在 0% 输入上测量不配置目标 loader 的构建耗时，作为基线。
+
+实验关闭 Rspack cache。每种配置测两轮、每轮采样 10 次；计时包含启动 Node.js、编译和写出产物。下表按**相同输入**比较有无 filter 的构建耗时中位数；耗时差值 = 无 filter − 有 filter，正数表示使用 filter 后更快：
+
+| 目标 loader | 命中率 | normal 调用次数：无 filter → 有 filter | 第 A 轮耗时：无 filter → 有 filter（ms） | 第 A 轮差值（ms） | 第 A 轮收益 | 第 B 轮耗时：无 filter → 有 filter（ms） | 第 B 轮差值（ms） | 第 B 轮收益 |
+| ----------- | -----: | -------------------------------------: | ---------------------------------------: | ----------------: | ----------: | ---------------------------------------: | ----------------: | ----------: |
+| no-op       |     0% |                             10,000 → 0 |                            640.0 → 502.1 |             137.9 |       21.6% |                            598.6 → 474.7 |             123.9 |       20.7% |
+| no-op       |    10% |                         10,000 → 1,000 |                            650.0 → 507.7 |             142.3 |       21.9% |                            595.5 → 475.7 |             119.8 |       20.1% |
+| no-op       |   100% |                        10,000 → 10,000 |                            627.8 → 597.9 |              29.9 |        4.8% |                            643.3 → 665.4 |             −22.1 |       −3.4% |
+| 指令型      |     0% |                             10,000 → 0 |                            601.8 → 473.7 |             128.1 |       21.3% |                            612.2 → 534.1 |              78.1 |       12.8% |
+| 指令型      |    10% |                         10,000 → 1,000 |                            641.7 → 473.6 |             168.1 |       26.2% |                            621.6 → 481.0 |             140.6 |       22.6% |
+| 指令型      |   100% |                        10,000 → 10,000 |                            796.4 → 813.7 |             −17.3 |       −2.2% |                            806.3 → 812.6 |              −6.3 |       −0.8% |
+
+校验确认所有配置均编译 10,000 个源模块，相同输入的有/无 filter 产物哈希一致，指令型 loader 的实际转换数也与命中率一致。结论是：低命中率时，减少 JS normal 调用可带来可观的端到端收益；全命中时没有稳定收益，扫描成本可能使构建略慢。
+
+这组数据来自 2026-10-14 的 Rspack `b724ae0d35`，当时 benchmark 使用字符串 filter；当前 API 只接受 `RegExp`，实现也已调整。因此它是设计的方向性证据，**不是当前实现的性能验收结果**。本机 WallTime 和无 loader 基线存在波动，不能将上述百分比直接推广到 CI 或业务项目。需要用当前代码、相同机器和夹具重新测量。原始测量见 CodSpeed [第 A 轮](https://app.codspeed.io/web-infra-dev/rspack/runs/6acf3e124b019d5d14158c91)和[第 B 轮](https://app.codspeed.io/web-infra-dev/rspack/runs/6acf403de25fe35df6cae95b)。
+
+功能正确性另由 config、parallel、watch 和 persistent-cache 用例覆盖，包括 pitch、当前输入、UTF-8 Buffer 及元数据透传。
 
 # Drawbacks
 
@@ -181,7 +199,7 @@ filter hit 可沿用目标 loader 的既有 cache 条目；miss 不查询或写�
 
 # Unresolved questions & TODOs
 
-- 用端到端 benchmark 测量不同命中率、源码大小、handler 成本、JS/worker/native 链的 break-even point；不把现有 matcher microbenchmark 当成整体收益。
+- 用当前实现的端到端 benchmark 复测不同命中率、源码大小、handler 成本及 JS/worker/native 链的 break-even point；不能用 matcher microbenchmark 代替整体构建测量。
 - 评估首次 pitch capability discovery 的成本是否值得通过独立的 loader manifest 等机制优化；v1 不假设“有 filter 的 loader 没有 pitch”。
 - 若动态 `Rule.use` 在真实项目中产生大量重复 matcher，再评估有界共享缓存；v1 不增加常驻 cache。
 - `filter` 对象为未来的其他维度保留命名空间，但任何新维度都需重新评估取值阶段、pitch 语义、模块身份和缓存，而非仅增加一个字段。

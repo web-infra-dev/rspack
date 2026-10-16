@@ -97,8 +97,7 @@ export default defineConfig({
           './invalid-finalizer-loader.mjs',
           './pitch-observer-loader.mjs',
           {
-            loader: './transform-loader.mjs',
-            options: { value: 'should-not-run' },
+            loader: './invalid-utf8-transform-loader.mjs',
             filter: { code: /(?:)/ },
           },
           './invalid-producer-loader.mjs',

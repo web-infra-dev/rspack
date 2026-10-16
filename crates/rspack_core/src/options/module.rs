@@ -1682,8 +1682,8 @@ pub struct ModuleRuleUseLoader {
   pub cache: bool,
   /// Stable serialization of the public loader options.
   pub options_cache_key: String,
-  /// Code precondition for running the normal loader handler.
-  pub code_filter: Option<Arc<rspack_loader_runner::CodeFilter>>,
+  /// Preconditions for running the normal loader handler.
+  pub filter: Option<Arc<rspack_loader_runner::LoaderFilter>>,
 }
 
 pub type FnUse =

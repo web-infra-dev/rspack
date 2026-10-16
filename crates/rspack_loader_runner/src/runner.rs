@@ -7,7 +7,7 @@ use rspack_sources::SourceMap;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  CodeFilter, LoaderExecutionKind, LoaderRunnerOptions, ParseMeta,
+  LoaderExecutionKind, LoaderFilter, LoaderRunnerOptions, ParseMeta,
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, LoaderDependencies, State},
   loader::{Loader, LoaderItem},
@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// Normal-stage preconditions aligned with the loaders in the chain.
-pub type LoaderCodeFilters = Box<[Option<Arc<CodeFilter>>]>;
+pub type LoaderFilters = Box<[Option<Arc<LoaderFilter>>]>;
 
 impl<Context: Send> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
@@ -103,7 +103,7 @@ fn create_loader_context<Context: Send>(
 pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
   loader_options: Option<Vec<LoaderRunnerOptions>>,
-  loader_code_filters: Option<LoaderCodeFilters>,
+  loader_filters: Option<LoaderFilters>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
@@ -116,15 +116,15 @@ pub async fn run_loaders<Context: Send>(
       "loader options must stay aligned with loaders"
     );
   }
-  if let Some(loader_code_filters) = &loader_code_filters {
+  if let Some(loader_filters) = &loader_filters {
     assert_eq!(
       loaders.len(),
-      loader_code_filters.len(),
-      "loader code filters must stay aligned with loaders"
+      loader_filters.len(),
+      "loader filters must stay aligned with loaders"
     );
   }
   let mut loader_options = loader_options.map(Vec::into_iter);
-  let mut loader_code_filters = loader_code_filters.map(|filters| filters.into_vec().into_iter());
+  let mut loader_filters = loader_filters.map(|filters| filters.into_vec().into_iter());
   let loaders = loaders
     .into_iter()
     .map(|loader| {
@@ -135,11 +135,8 @@ pub async fn run_loaders<Context: Send>(
             .next()
             .expect("loader options must stay aligned with loaders")
         });
-      let code_filter = loader_code_filters
-        .as_mut()
-        .and_then(Iterator::next)
-        .flatten();
-      LoaderItem::new(loader, options, code_filter)
+      let filter = loader_filters.as_mut().and_then(Iterator::next).flatten();
+      LoaderItem::new(loader, options, filter)
     })
     .collect::<Vec<LoaderItem<Context>>>();
   let mut cx = create_loader_context(loaders, resource_data, plugin, context);
@@ -204,8 +201,12 @@ async fn run_loaders_impl<Context: Send>(
           continue;
         }
 
-        if cx.loader_index == 0 && cx.current_loader().normal_executed() {
-          cx.state.transition(State::Finished);
+        if cx.current_loader().normal_executed() {
+          if cx.loader_index == 0 {
+            cx.state.transition(State::Finished);
+          } else {
+            cx.loader_index -= 1;
+          }
           continue;
         }
         if cx.current_loader().should_skip_normal(cx.content.as_ref()) {

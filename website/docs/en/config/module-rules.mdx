@@ -848,7 +848,7 @@ export default {
 - **Type:** `RuleSetLoaderCodeFilter`
 - **Default:** `undefined`
 
-Skips a loader's normal function when its current input code does not match. This is useful for transforms that only apply to modules containing specific syntax:
+Skips a loader's normal function when its current input code does not match. It is useful for transforms that only apply to modules containing specific syntax:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -883,7 +883,7 @@ Matching follows these rules:
 - A `RegExp` is tested from `lastIndex = 0` each time.
 - `exclude` takes precedence over `include`. If `include` is omitted, the input is included by default.
 - To match multiple alternatives, combine them in one regular expression, such as `/foo|bar/`.
-- String input and buffers containing valid UTF-8 can match. Missing input and buffers containing invalid UTF-8 do not match.
+- String input and buffers containing valid UTF-8 can match. If the input is missing or a buffer contains invalid UTF-8, Rspack bypasses the filter and runs the normal loader function.
 
 On a miss, Rspack leaves the current content, source map, additional data, and dependencies unchanged, and does not call the normal loader function or consult its loader cache. `filter` is execution metadata: it is not passed to loader options and does not change loader requests or module identifiers. Only use it when skipping the normal function on a miss has the same observable behavior as running that function.
 

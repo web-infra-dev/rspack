@@ -3,6 +3,7 @@ import type {
   RawModuleRuleUse,
   RawOptions,
   RawRuleSetLoaderCodeFilter,
+  RawRuleSetLoaderFilter,
 } from '@rspack/binding';
 import { getLightningcssLoaderOptions } from '../builtin-loader/lightningcss';
 import { getSwcLoaderOptions } from '../builtin-loader/swc';
@@ -573,7 +574,7 @@ function createRawModuleRuleUsesImpl(
       optionsCacheKey: use.cache
         ? (JSON.stringify(fingerprintOptions) ?? '')
         : '',
-      codeFilter: createRawRuleSetLoaderFilter(
+      filter: createRawRuleSetLoaderFilter(
         use.filter,
         `${path}[${index}].filter`,
       ),
@@ -584,7 +585,7 @@ function createRawModuleRuleUsesImpl(
 function createRawRuleSetLoaderFilter(
   filter: RuleSetLoaderWithOptions['filter'],
   path: string,
-): RawRuleSetLoaderCodeFilter | undefined {
+): RawRuleSetLoaderFilter | undefined {
   if (filter === undefined) return undefined;
   if (!filter || typeof filter !== 'object' || Array.isArray(filter)) {
     throw new Error(`Expected an object at \`${path}\`.`);
@@ -599,7 +600,9 @@ function createRawRuleSetLoaderFilter(
   if (filter.code === undefined) {
     throw new Error(`Expected a code filter at \`${path}.code\`.`);
   }
-  return createRawRuleSetLoaderCodeFilter(filter.code, `${path}.code`);
+  return {
+    code: createRawRuleSetLoaderCodeFilter(filter.code, `${path}.code`),
+  };
 }
 
 function createRawRuleSetLoaderCodeFilter(

@@ -79,7 +79,7 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
             ),
             cache: false,
             options_cache_key: String::new(),
-            code_filter: None,
+            filter: None,
           }]),
           ..Default::default()
         },

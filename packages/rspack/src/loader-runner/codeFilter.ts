@@ -59,9 +59,9 @@ export function matchesCodeFilter(
   filter: LoaderCodeFilter,
   content: unknown,
   cache: CodeFilterTextCache,
-): boolean {
+): boolean | undefined {
   const code = codeAsString(content, cache);
-  if (code === null) return false;
+  if (code === null) return undefined;
   if (filter.exclude && matchesPattern(filter.exclude, code)) return false;
   return filter.include === undefined || matchesPattern(filter.include, code);
 }

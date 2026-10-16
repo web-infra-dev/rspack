@@ -31,7 +31,7 @@ it("should filter normal loader execution using its current input", () => {
 	expect(mixedNative).toBe("mixed-native");
 });
 
-it("should preserve loader state on a miss", () => {
+it("should preserve loader state on a miss or undecodable input", () => {
 	expect(metadata).toBe("__VALUE__");
 	expect(invalidUtf8).toBe("invalid-preserved");
 });

@@ -3,7 +3,7 @@ use std::{
   ops::Deref,
   sync::{
     Arc,
-    atomic::{AtomicBool, AtomicU8, Ordering},
+    atomic::{AtomicBool, Ordering},
   },
 };
 
@@ -15,11 +15,7 @@ use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
-use super::{CodeFilter, Content, LoaderContext, LoaderRunnerOptions};
-
-const CODE_FILTER_NOT_EVALUATED: u8 = 0;
-const CODE_FILTER_MATCHED: u8 = 1;
-const CODE_FILTER_SKIPPED: u8 = 2;
+use super::{Content, LoaderContext, LoaderFilter, LoaderRunnerOptions};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoaderExecutionKind {
@@ -28,16 +24,16 @@ pub enum LoaderExecutionKind {
 }
 
 #[derive(Debug)]
-struct CodeFilterExecution {
-  filter: Arc<CodeFilter>,
-  state: AtomicU8,
+struct LoaderFilterExecution {
+  filter: Arc<LoaderFilter>,
+  matched: AtomicBool,
 }
 
-impl CodeFilterExecution {
-  fn new(filter: Arc<CodeFilter>) -> Self {
+impl LoaderFilterExecution {
+  fn new(filter: Arc<LoaderFilter>) -> Self {
     Self {
       filter,
-      state: AtomicU8::new(CODE_FILTER_NOT_EVALUATED),
+      matched: AtomicBool::new(false),
     }
   }
 }
@@ -64,7 +60,7 @@ pub struct LoaderItem<Context: Send> {
   data: serde_json::Value,
   r#type: String,
   cache_options: Option<Box<LoaderRunnerOptions>>,
-  code_filter: Option<CodeFilterExecution>,
+  filter: Option<LoaderFilterExecution>,
   execution_kind: LoaderExecutionKind,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
@@ -165,40 +161,43 @@ impl<C: Send> LoaderItem<C> {
   }
 
   #[inline]
-  pub fn code_filter(&self) -> Option<&CodeFilter> {
-    self.code_filter.as_ref().map(|entry| entry.filter.as_ref())
+  pub fn filter(&self) -> Option<&LoaderFilter> {
+    self.filter.as_ref().map(|entry| entry.filter.as_ref())
   }
 
   #[inline]
-  pub fn code_filter_evaluated(&self) -> bool {
+  pub fn filter_matched(&self) -> bool {
     self
-      .code_filter
+      .filter
       .as_ref()
-      .is_some_and(|entry| entry.state.load(Ordering::Relaxed) != CODE_FILTER_NOT_EVALUATED)
-  }
-
-  #[inline]
-  pub fn code_filter_matched(&self) -> bool {
-    self
-      .code_filter
-      .as_ref()
-      .is_some_and(|entry| entry.state.load(Ordering::Relaxed) == CODE_FILTER_MATCHED)
+      .is_some_and(|entry| entry.matched.load(Ordering::Relaxed))
   }
 
   #[inline]
   pub fn should_skip_normal(&self, content: Option<&Content>) -> bool {
-    let Some(entry) = &self.code_filter else {
+    let Some(entry) = &self.filter else {
       return false;
     };
-    match entry.state.load(Ordering::Relaxed) {
-      CODE_FILTER_MATCHED => false,
-      CODE_FILTER_SKIPPED => true,
-      _ => {
-        let matched = entry.filter.matches(content);
-        self.set_code_filter_result(matched);
-        !matched
-      }
+    if entry.matched.load(Ordering::Relaxed) {
+      return false;
     }
+    let Some(content) = content else {
+      return false;
+    };
+    let content = match content {
+      Content::String(content) => content.as_str(),
+      Content::Buffer(content) => {
+        let Ok(content) = simdutf8::basic::from_utf8(content) else {
+          return false;
+        };
+        content
+      }
+    };
+    let matched = entry.filter.matches(content);
+    if matched {
+      entry.matched.store(true, Ordering::Relaxed);
+    }
+    !matched
   }
 
   #[inline]
@@ -221,16 +220,9 @@ impl<C: Send> LoaderItem<C> {
 
   #[inline]
   #[doc(hidden)]
-  pub fn set_code_filter_result(&self, matched: bool) {
-    if let Some(entry) = &self.code_filter {
-      entry.state.store(
-        if matched {
-          CODE_FILTER_MATCHED
-        } else {
-          CODE_FILTER_SKIPPED
-        },
-        Ordering::Relaxed,
-      )
+  pub fn set_filter_matched(&self) {
+    if let Some(entry) = &self.filter {
+      entry.matched.store(true, Ordering::Relaxed);
     }
   }
 
@@ -337,10 +329,10 @@ impl<C: Send> LoaderItem<C> {
   pub(crate) fn new(
     loader: Arc<dyn Loader<C>>,
     options: LoaderRunnerOptions,
-    code_filter: Option<Arc<CodeFilter>>,
+    filter: Option<Arc<LoaderFilter>>,
   ) -> Self {
     let cache_options = options.cache.then(|| Box::new(options));
-    let code_filter = code_filter.map(CodeFilterExecution::new);
+    let filter = filter.map(LoaderFilterExecution::new);
     let ident = &**loader.identifier();
     let execution_kind = loader.execution_kind();
     if let Some(r#type) = loader.r#type() {
@@ -359,7 +351,7 @@ impl<C: Send> LoaderItem<C> {
         data: serde_json::Value::Null,
         r#type: ty,
         cache_options,
-        code_filter,
+        filter,
         execution_kind,
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
@@ -381,7 +373,7 @@ impl<C: Send> LoaderItem<C> {
       data: serde_json::Value::Null,
       r#type: String::default(),
       cache_options,
-      code_filter,
+      filter,
       execution_kind,
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),

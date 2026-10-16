@@ -25,11 +25,15 @@ pub struct JsLoaderItem {
   pub normal_executed: bool,
   pub pitch_executed: bool,
 
-  pub code_filter: Option<JsLoaderCodeFilter>,
-  pub code_filter_evaluated: bool,
-  pub code_filter_matched: bool,
+  pub filter: Option<JsLoaderFilter>,
+  pub filter_matched: bool,
 
   pub no_pitch: bool,
+}
+
+#[napi(object)]
+pub struct JsLoaderFilter {
+  pub code: Option<JsLoaderCodeFilter>,
 }
 
 #[napi(object)]
@@ -59,9 +63,10 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
       data: value.data().clone(),
       normal_executed: value.normal_executed(),
       pitch_executed: value.pitch_executed(),
-      code_filter: value.code_filter().map(Into::into),
-      code_filter_evaluated: value.code_filter_evaluated(),
-      code_filter_matched: value.code_filter_matched(),
+      filter: value.filter().map(|filter| JsLoaderFilter {
+        code: filter.code().map(Into::into),
+      }),
+      filter_matched: value.filter_matched(),
 
       no_pitch: false,
     }
@@ -83,9 +88,8 @@ where
         cache: false,
         pitch_executed: false,
         normal_executed: false,
-        code_filter: None,
-        code_filter_evaluated: false,
-        code_filter_matched: false,
+        filter: None,
+        filter_matched: false,
         no_pitch: false,
       };
     }
@@ -96,9 +100,8 @@ where
       cache: false,
       pitch_executed: false,
       normal_executed: false,
-      code_filter: None,
-      code_filter_evaluated: false,
-      code_filter_matched: false,
+      filter: None,
+      filter_matched: false,
       no_pitch: false,
     }
   }

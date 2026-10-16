@@ -23,7 +23,7 @@ use rspack_core::{
   JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
   JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
-  JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule, ModuleNoParseRules,
+  JsonGeneratorOptions, JsonParserOptions, LoaderFilter, ModuleNoParseRule, ModuleNoParseRules,
   ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap,
   TypeReexportPresenceMode,
@@ -51,7 +51,19 @@ pub struct RawModuleRuleUse {
   pub options: Option<String>,
   pub cache: bool,
   pub options_cache_key: String,
-  pub code_filter: Option<RawRuleSetLoaderCodeFilter>,
+  pub filter: Option<RawRuleSetLoaderFilter>,
+}
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct RawRuleSetLoaderFilter {
+  pub code: Option<RawRuleSetLoaderCodeFilter>,
+}
+
+impl From<RawRuleSetLoaderFilter> for LoaderFilter {
+  fn from(value: RawRuleSetLoaderFilter) -> Self {
+    Self::new(value.code.map(Into::into))
+  }
 }
 
 #[napi(object)]
@@ -1041,7 +1053,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
             options: rule_use.options,
             cache: rule_use.cache,
             options_cache_key: rule_use.options_cache_key,
-            code_filter: rule_use.code_filter.map(|filter| Arc::new(filter.into())),
+            filter: rule_use.filter.map(|filter| Arc::new(filter.into())),
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -1058,7 +1070,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
                   options: rule_use.options,
                   cache: rule_use.cache,
                   options_cache_key: rule_use.options_cache_key,
-                  code_filter: rule_use.code_filter.map(|filter| Arc::new(filter.into())),
+                  filter: rule_use.filter.map(|filter| Arc::new(filter.into())),
                 })
                 .collect::<Vec<_>>()
             })

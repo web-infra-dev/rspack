@@ -30,8 +30,8 @@ export default {
 							rules: [{ use: [{ loader, filter: { code } }] }]
 						}
 					},
-						resolve
-					);
+					resolve
+				);
 			});
 			expect(error?.message).toMatch(/Expected a RegExp/);
 		}
