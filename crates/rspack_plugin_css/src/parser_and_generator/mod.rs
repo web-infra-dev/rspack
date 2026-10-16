@@ -1,4 +1,5 @@
 pub mod generator;
+mod local_idents;
 mod parser;
 mod source_builder;
 
@@ -254,31 +255,19 @@ impl ParserAndGenerator for CssParserAndGenerator {
       .css
       .as_deref()
       .expect("CSS module should have build info");
-    match generate_context.requested_source_type {
-      SourceType::Css => Ok(
-        CssModuleGenerator::new(
-          source.clone(),
-          module,
-          css_build_info,
-          generate_context,
-          self.hot,
-          self.es_module,
-        )
-        .generate_css_source(),
-      ),
-      SourceType::JavaScript => CssModuleGenerator::new(
-        source.clone(),
-        module,
-        css_build_info,
-        generate_context,
-        self.hot,
-        self.es_module,
-      )
-      .generate_javascript_source(),
-      _ => panic!(
-        "Unsupported source type: {:?}",
-        generate_context.requested_source_type
-      ),
+    let requested_source_type = generate_context.requested_source_type;
+    let generator = CssModuleGenerator::new(
+      source.clone(),
+      module,
+      css_build_info,
+      generate_context,
+      self.hot,
+      self.es_module,
+    );
+    match requested_source_type {
+      SourceType::Css => generator.generate_css_source().await,
+      SourceType::JavaScript => generator.generate_javascript_source().await,
+      source_type => panic!("Unsupported source type: {source_type:?}"),
     }
   }
 

@@ -1,6 +1,6 @@
 Object {
-  class: _XsYe5d r_gdk2,
-  ghi: _2JfWaB,
-  other: vgErQ5 pbdjza,
-  otherClassName: IvyQ2T globalClassName,
+  class: _25aam5 yPoQPN,
+  ghi: TNozaq,
+  other: la5UyB _9FY2F-,
+  otherClassName: CWHnU3 globalClassName,
 }

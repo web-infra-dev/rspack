@@ -1,6 +1,6 @@
 Object {
-  btnInfoIsDisabled: SoW1Xa,
-  btnInfoIsDisabled1: tYAZEz,
-  fooBar: xQxhRt,
-  simple: bHNeS1,
+  btnInfoIsDisabled: wRawe0,
+  btnInfoIsDisabled1: foauuC,
+  fooBar: oFRWYo,
+  simple: LfLtR8,
 }

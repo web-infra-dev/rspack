@@ -1,0 +1,5 @@
+body {
+  & .CiYScg {
+    color: #00f;
+  }
+}

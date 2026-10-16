@@ -1,0 +1,14 @@
+Object {
+  btn--info_is-disabled_1: V-OY-P,
+  btn-info_is-disabled: NpkIbb,
+  btnInfoIsDisabled: NpkIbb,
+  btnInfoIsDisabled1: V-OY-P,
+  class: e9L402,
+  default: AcwXs,
+  foo: bar,
+  fooBar: _98LNCs,
+  foo_bar: _98LNCs,
+  my-btn-info_is-disabled: value,
+  myBtnInfoIsDisabled: value,
+  simple: LqJ7cj,
+}

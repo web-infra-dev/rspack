@@ -1,0 +1,6 @@
+Object {
+  btnInfoIsDisabled: wRawe0,
+  btnInfoIsDisabled1: foauuC,
+  fooBar: oFRWYo,
+  simple: LfLtR8,
+}

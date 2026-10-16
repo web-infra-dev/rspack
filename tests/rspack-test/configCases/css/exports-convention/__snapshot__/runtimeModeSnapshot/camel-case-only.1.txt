@@ -1,0 +1,10 @@
+Object {
+  btnInfoIsDisabled: EATOoB,
+  btnInfoIsDisabled1: bxASI9,
+  class: S-kLv2,
+  default: ihWheL,
+  foo: bar,
+  fooBar: pEHTxU,
+  myBtnInfoIsDisabled: value,
+  simple: QQTSgW,
+}

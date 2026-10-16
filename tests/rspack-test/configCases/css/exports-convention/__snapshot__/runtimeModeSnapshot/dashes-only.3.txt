@@ -1,0 +1,10 @@
+Object {
+  btn-info-is-disabled: cTY0VC,
+  btn-info-is-disabled-1: __XBZ2,
+  class: VcNqtn,
+  default: j7ThOI,
+  foo: bar,
+  foo-bar: fUeUGo,
+  my-btn-info-is-disabled: value,
+  simple: IJcLpu,
+}

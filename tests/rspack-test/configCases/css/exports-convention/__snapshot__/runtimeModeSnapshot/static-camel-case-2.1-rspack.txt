@@ -1,0 +1,14 @@
+Object {
+  btn--info_is-disabled_1: uPgleg,
+  btn-info_is-disabled: R6W7gD,
+  btnInfoIsDisabled: R6W7gD,
+  btnInfoIsDisabled1: uPgleg,
+  class: w-WKo1,
+  default: Hk4GBs,
+  foo: bar,
+  fooBar: W0pQHP,
+  foo_bar: W0pQHP,
+  my-btn-info_is-disabled: value,
+  myBtnInfoIsDisabled: value,
+  simple: nrkB0-,
+}

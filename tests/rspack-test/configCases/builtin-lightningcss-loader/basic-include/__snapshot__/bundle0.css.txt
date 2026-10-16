@@ -1,5 +1,5 @@
 body {
-  & ._66K1xe {
+  & .CiYScg {
     color: #00f;
   }
 }

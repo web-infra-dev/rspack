@@ -1,95 +1,95 @@
-.E_OvvY {
+.SeVrfc {
 	color: #e74c3c
 }
 
-.Q-49ks {
+.K6ZOOs {
 	background-color: #3498db;
 	color: white;
 }
 
-.UILpUa {
+.iFw9ch {
 	background-color: #e74c3c;
 	border: 2px solid darkred;
 }
 
 
-.UU_tpl {
+.T20obh {
 	color: __value__;
 }
 
-.txv8eJ {
+._7u0atw {
 }
 
 
-.BRXavc {
+.iNUS04 {
 	display: unset;
 }
 
-.FHXYtO {
+.pbERgy {
 	transition: transform Xs ease;
 }
 
-._6cWniN {
+._882db9 {
 	cursor: pointer;
 }
 
-.gohrJR {
+.HXrSoF {
 	display: flex;
 }
 
-.A5yP4X {
+.ZdCFC- {
 	align-items: center;
 }
 
-.kUDfcD {
+.Fwk8d8 {
 	padding: 16px;
 }
 
-.xYqD9j {
+.rLiRdC {
 	will-change: transform;
 }
 
-.xYqD9j:hover {
+.rLiRdC:hover {
 	transform: scale(1.02);
 }
 
-.qdzzZe {
+._0-oQuP {
 	border: 1px solid #ccc;
 	border-radius: 8px;
 }
 
-._8aNfK_ {
+._1koY7G {
 	border: 1px solid #ccc;
 	border-radius: 8px;
 }
 
 
 
-.j2PdtE {
+.LckxnS {
 	color: red;
 }
 
-.Ro5Pxh {
+.PkZ5VT {
 	color: red;
 }
 
-.Ro5Pxh {
+.PkZ5VT {
 }
 
-.P1ehFp {
+.CZD_PY {
 	color: red;
 }
 
 
-.GB2FOr {
+.DOa_fj {
 	background: red;
 }
 
-._0VYBFQ {
+.IV5k0u {
 	color: blue;
 }
 
-.JXn9Xg {
+.c0LtzU {
 }
 
 
@@ -97,7 +97,7 @@
 
 
 
-.furHaz {
+.NCmviA {
 	background: blue;
 }
 
@@ -106,34 +106,34 @@
 
 
 
-.xJ2SpX {
+._1PorP4 {
 	color: a;
 }
 
-.mmNM9- {
+._370Pvp {
 	color: b;
 }
 
-.R4nl9c {
+._-7-kzA {
 	color: c;
 }
 
-.RSkK1x {
+._4JfpxD {
 	color: d;
 }
 
-.Dckb98 {
+._5nEP_p {
 	color: d;
 }
 
-.izFRDC {
+._9qqNO7 {
 }
 
 :root {
-	--jfhoh6: red;
+	--aMWuTO: red;
 }
 
-.jfhoh6 {
+.aMWuTO {
 	color: red;
 }
 
@@ -143,11 +143,11 @@
 
 
 
-.ZGT0QO {
+.Br9H9p {
 	color: red;
 }
 
-.JTr570 {
+.J2fP6U {
 	width: 50%;
 }
 
@@ -155,127 +155,127 @@
 	font-size: 14px;
 }
 
-._5Vcxg3 {
+._967cyR {
 	display: block;
 }
 
-._5Vcxg3 {
+._967cyR {
 	background-color: black;
 }
 
-.zH1PuB {
+.yTlYeY {
 	background: blue;
 }
 
-.nUmUBn {
+.yo7g2u {
 }
 
-.A0m68u {
+.NaLSll {
 }
 
-.I62MUF {
+.fbsPWt {
 	color: blue;
 }
 
-.I62MUF {
-	color: blue;
-}
-
-
-.TU_6N_ {
+.fbsPWt {
 	color: blue;
 }
 
 
-.iYZI63 {
+._1VCmZ {
 	color: blue;
 }
 
-._1gEiam {  color: red; }
-.w5QDWv {  color: green; }
-.xuvJ78 { color: blue }
-.w5QDWv {  color: white; }
-.w5QDWv {  color: black; }
 
-.GUOebj {
+.rWWCW8 {
+	color: blue;
+}
+
+._1NZHCg {  color: red; }
+._8i8kbn {  color: green; }
+.vUeUrS { color: blue }
+._8i8kbn {  color: white; }
+._8i8kbn {  color: black; }
+
+.-CJ7Zh {
 	color: red;
 }
 
-.zB2SIO {
+._4OiPf7 {
 	color: blue;
 }
 
-.Kv804y {
+.I3hlWs {
 }
 
 :root {
-	--zCGg-b: red;
+	--ChKcwP: red;
 }
 
 
 
-.lN8cZb {
-	color: var(--zCGg-b);
-	background-color: var(--O2JzVP from "./shared-custom-properties.module.css");
-	border-color: var(--O1laQq from "./shared-custom-properties.module.css");
-	outline-color: var(--r2UEoW);
-	text-decoration-color: var(--_pd6p1);
+.SuiFbm {
+	color: var(--ChKcwP);
+	background-color: var(--KiCGdx from "./shared-custom-properties.module.css");
+	border-color: var(--X1GvRH from "./shared-custom-properties.module.css");
+	outline-color: var(--WkaT3L);
+	text-decoration-color: var(--tpxV9q);
 }
 
-.Qd9RVw {
-	color: var(--u5xyqD from "./vars.module.css");
+.i_r572 {
+	color: var(--kEobLy from "./vars.module.css");
 }
 
 
-.Mx1drJ {
+.D5vV7N {
 	background-color: #3498db;
 	color: #2ecc71;
 }
 
 
-.A62m63 {
+._9m7E1z {
 	color: red;
 }
 
 
-.TLOxAV {
+.LemX5- {
 	background-color: #3498db;
 }
 
 
-.J75kHj {
+.VBfohD {
 	background-color: #e74c3c;
 }
 
 
-._8-YjdR {
+._5rsNkm {
 	background-color: #e74c3c;
 }
 
 
-._0vDmWC {
+.FgZEbz {
 	background-color: #c1c2c3;
 }
 
-.trrWBd {
+.oTpIZ7 {
 	content: "export3-value"
 }
 
-.hydESP { value: my-selector-value; }
+.inJSFf { value: my-selector-value; }
 
-.lwweu5 { value: other-selector-value; }
+.HyIy1S { value: other-selector-value; }
 
-.z-yLea { value: other-selector-value; }
+.Dzlbpc { value: other-selector-value; }
 
-.K3y_NA { value: reexport-selector-value; }
+.GOwmir { value: reexport-selector-value; }
 
-._2jSHbX { value: reexport-selector-value; }
+.fou3u6 { value: reexport-selector-value; }
 
-._61LowY { background-color: #c1c2c3; }
+._2PlHI_ { background-color: #c1c2c3; }
 
-.zVEFPg { background-color: #e74c3c; }
+._8x06lF { background-color: #e74c3c; }
 
-.XuepqC {
+._2ex1jx {
 	color: white;
 }
 
@@ -283,45 +283,45 @@
 	color: red;
 }
 
-.LzSpqq {
+.ghmQVt {
 }
 
 
-.MEIRRY { color: red }
+._3Aia8L { color: red }
 
-.WnmXrp {
+._6k6x8B {
 	color: red;
 }
 
 
-.rh1p7E { color: #3498db; }
+.OzOI4r { color: #3498db; }
 
-.OBvJMj {
+._460hp8 {
 }
 
 
-.GuBn9B {
+.MrJ-Rp {
 }
 
 
-.GZUeRs {
+.L3BreW {
 }
 
 
-.MTGbMU {
-	color: GB2FOr;
+.uX2T-P {
+	color: DOa_fj;
 }
 
 
 
-._6VHhxw {
+.wXsA3H {
 	color: __value_cyclical__;
 }
 
 
 
 
-.rh1p7E { color: #3498db; }
+.OzOI4r { color: #3498db; }
 
-._3M386q {
+.d9bnvT {
 }

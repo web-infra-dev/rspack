@@ -1,0 +1,4 @@
+Object {
+  simple-bar: IFc9bo EcXBL7,
+  simple-foo: KSuhvx EcXBL7,
+}

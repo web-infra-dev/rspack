@@ -201,13 +201,13 @@
 	color: var(--main-bg-color);
 }
 
-@property --h_0muZ {
+@property --g7771C {
 	syntax: "<color>";
 	inherits: false;
 	initial-value: #c0ffee;
 }
 
-@property --hOUNtO {
+@property --_9WNEPC {
 	syntax: "<color>";
 	inherits: false;
 	initial-value: #c0ffee;
@@ -492,7 +492,7 @@ div {
 	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
-._0QESIz {
+.srolwu {
 	color: red;
 }
 
@@ -509,7 +509,7 @@ div {
 	color: green;
 }
 
-.global .dRwPBj {
+.global ._6pH3MY {
 	color: yellow;
 }
 
@@ -581,7 +581,7 @@ div {
 	overflow: hidden;
 }
 
-.Kgyaat.nested2.nested3 {
+._Ltb4c.nested2.nested3 {
 	color: pink;
 }
 
@@ -711,7 +711,7 @@ div {
 	}
 }
 
-.globalUpperCase .LJJZlA {
+.globalUpperCase .Au9r7B {
 	color: yellow;
 }
 
@@ -781,7 +781,7 @@ div {
 	}
 }
 
-@counter-style _tEP1J {
+@counter-style LvG4_E {
 	system: cyclic;
 	symbols: "\1F44D";
 	suffix: " ";
@@ -800,19 +800,19 @@ div {
 	}
 }
 
-@property --_5_8BXF {
+@property --kZonHX {
 	syntax: "<color>";
 	inherits: false;
 	initial-value: #c0ffee;
 }
 
-@property --yMmgtL {
+@property --As6O6d {
 	initial-value: #c0ffee;
 	syntax: "<color>";
 	inherits: false;
 }
 
-@property --moXICl {
+@property --ROFmHE {
 	syntax: "<color>";
 	initial-value: #c0ffee;
 	inherits: false;
@@ -903,7 +903,7 @@ div {
 .nested-with-local-pseudo {
 	color: red;
 
-	.atUlku {
+	._7w4zmk {
 		color: red;
 	}
 
@@ -911,7 +911,7 @@ div {
 		color: red;
 	}
 
-	.atUlku {
+	._7w4zmk {
 		color: red;
 	}
 
@@ -919,11 +919,11 @@ div {
 		color: red;
 	}
 
-	.atUlku, .global-nested-next {
+	._7w4zmk, .global-nested-next {
 		color: red;
 	}
 
-	.atUlku, .global-nested-next {
+	._7w4zmk, .global-nested-next {
 		color: red;
 	}
 
@@ -953,7 +953,7 @@ div {
 		color: red;
 	}
 
-	.q-F86w {
+	.NXsVDt {
 		color: blue;
 	}
 }
@@ -966,9 +966,9 @@ div {
 	}
 }
 
-.class ._pUr1t,
-.class ._pUr1t,
-.hEbxEV .in-local-global-scope {
+.class ._7vbNvb,
+.class ._7vbNvb,
+.EyPf1L .in-local-global-scope {
 	color: red;
 }
 
@@ -1044,14 +1044,14 @@ div {
 	bar: env(foo, var(--baz-prop));
 }
 
-.global-foo, ._1z-NWQ {
-	.q-F86w       {
+.global-foo, .V7mBcU {
+	.NXsVDt       {
 		color: blue;
 	}
 
 	@media screen {
 		.my-global-class-again,
-		.BUo87j {
+		.Mrx86_ {
 			color: red;
 		}
 	}
@@ -1096,7 +1096,7 @@ div {
 .again-again-global {
 	animation: slidein Xs;
 
-	.again-again-global, .class, .Kgyaat.nested2.nested3 {
+	.again-again-global, .class, ._Ltb4c.nested2.nested3 {
 		animation: slidein Xs;
 	}
 
@@ -1277,7 +1277,7 @@ div {
 	}
 }
 
-@counter-style _tEP1J {
+@counter-style LvG4_E {
 	system: cyclic;
 	symbols: "\1F44D";
 	suffix: " ";
@@ -1287,7 +1287,7 @@ ul {
 	list-style: thumbs;
 }
 
-@counter-style _XsAoSR {
+@counter-style qxz8UG {
 	fallback: thumbs;
 	system: extends thumbs;
 	speak-as: thumbs;
@@ -1419,7 +1419,7 @@ div {
 	}
 }
 
-@font-palette-values r07wcT {
+@font-palette-values iVsOnq {
 	font-family: Bixa;
 }
 
@@ -1601,7 +1601,7 @@ div {
 	}
 }
 
-@property --buCmmn {
+@property --A8KIQo {
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
@@ -1650,7 +1650,7 @@ div {
 	initial-value: 40%;
 }
 
-@property --k-jK33 {
+@property --UKIda1 {
 	syntax: "<percentage>";
 	inherits: false;
 	initial-value: 25%;
@@ -1681,32 +1681,32 @@ div {
 @keyframes/**test**//**test**/"initial"/**test**//**test**/{ /* ... */ }
 @keyframes /**test**/ /**test**/ "initial" /**test**/ /**test**/ { /* ... */ }
 @keyframes "None" { /* ... */ }
-@property/**test**/--buCmmn {
+@property/**test**/--A8KIQo {
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
 }
-@property/**test**/--buCmmn/**test**/{
+@property/**test**/--A8KIQo/**test**/{
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
 }
-@property /**test**/--buCmmn/**test**/ {
+@property /**test**/--A8KIQo/**test**/ {
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
 }
-@property /**test**/ --buCmmn /**test**/ {
+@property /**test**/ --A8KIQo /**test**/ {
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
 }
-@property/**test**/ --buCmmn /**test**/{
+@property/**test**/ --A8KIQo /**test**/{
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
 }
-@property /**test**/ --buCmmn /**test**/ {
+@property /**test**/ --A8KIQo /**test**/ {
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
@@ -1906,7 +1906,7 @@ div {
 	result: oklch(from var(--color) l c h / var(--alpha));
 }
 
-@function --_7-lCv_(--color, --alpha) {
+@function ---kYQeX(--color, --alpha) {
 	result: oklch(from var(--color) l c h / var(--alpha));
 }
 
@@ -2012,15 +2012,15 @@ section {
 		color: red;
 	}
 
-	.fcj_Kv {
+	.XcqGUS {
 		color: red;
 	}
 
-	/** test **/.fcj_Kv {
+	/** test **/.XcqGUS {
 		color: red;
 	}
 
-	/** test **/#G-wEV1 {
+	/** test **/#R4VYah {
 		color: red;
 	}
 
@@ -2051,7 +2051,7 @@ section {
 	color: red;
 }
 
-._9AWhNY {
+.lTdu0D {
 	color: red;
 }
 
@@ -2059,23 +2059,23 @@ section {
 	color: red;
 }
 
-.exxDbs.dEv5iQ {
+.ZPI4fA.qfACxI {
 	color: red;
 }
 
-.r_0_Ht .SfYYeX {
+.JUahGc .zOhIdY {
 	color: red;
 }
 
-div:not(.sgjLxj) {
+div:not(.-vziqc) {
 	color: blue;
 }
 
-p:not(#Gonxc7) {
+p:not(#_9opovB) {
 	font-weight: bold;
 }
 
-.ULIwdV {
+.GTstDR {
 	/* Styles for .container */
 	background-color: lightblue;
 
@@ -2086,13 +2086,13 @@ p:not(#Gonxc7) {
 	}
 
 	@supports (display: grid) {
-		& .inePMa {
+		& ._PfZQE {
 			display: grid;
 			grid-template-columns: 1fr 1fr;
 		}
 	}
 
-	& .MQbo4Q {
+	& .MimL2n {
 		/* Styles for .container.active */
 		border: 2px solid blue;
 	}
@@ -2103,7 +2103,7 @@ p:not(#Gonxc7) {
 	}
 
 	/* Nesting a descendant with multiple classes */
-	.item._0Jv2q0 {
+	.item.bG5_cq {
 		/* Styles for .container .item.selected */
 		font-weight: bold;
 		color: darkgreen;
@@ -2145,31 +2145,31 @@ p:not(#Gonxc7) {
 	}
 }
 
-.SaTzPi {
+._9bGdmW {
 	color: red;
 }
 
-.global-befor-local .SaTzPi {
+.global-befor-local ._9bGdmW {
 	color: red;
 }
 
-.SaTzPi .global-after-local {
+._9bGdmW .global-after-local {
 	color: red;
 }
 
-.MuV03G {
-	&.fcj_Kv {
+.mLxs7k {
+	&.XcqGUS {
 		a_value: some-value;
 	}
 
 	@media screen and (min-width: 900px) {
 		b_value: some-value;
 
-		._1z-NWQ {
+		.V7mBcU {
 			c_value: some-value;
 		}
 
-		&.vtps9y {
+		&.j4ll83 {
 			c_value: some-value;
 		}
 	}
@@ -2181,7 +2181,7 @@ p:not(#Gonxc7) {
 	color: black;
 }
 
-._2qNGmq {
+.aQ6Nbq {
 	color: white;
 }
 
@@ -2189,7 +2189,7 @@ p:not(#Gonxc7) {
 	color: red;
 }
 
-.X-AaD8 {
+.TuUwFJ {
 }
 
 /* At-rules */
@@ -2198,7 +2198,7 @@ p:not(#Gonxc7) {
 @keyframes local(local-keyframes) {}
 @keyframes global(global-keyframes) {}
 /** Deprecated syntax */
-@keyframes El38Ni {}
+@keyframes rndOL5 {}
 @keyframes local-keyframes-old-syntax {}
 
 .foo {
@@ -2230,11 +2230,11 @@ p:not(#Gonxc7) {
 	animation: local(progressAnimationLocal) Xs ease infinite;
 }
 
-@scope (.ocraTB) to (.class) {
+@scope (.qmxTnX) to (.class) {
 	.article-footer {
 		border: 5px solid black;
 	}
-	.O4viXB {
+	.bDYxBq {
 		color: red;
 	}
 	.class-2 {

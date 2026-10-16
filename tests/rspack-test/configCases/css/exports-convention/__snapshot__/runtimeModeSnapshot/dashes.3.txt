@@ -1,0 +1,14 @@
+Object {
+  btn--info_is-disabled_1: CiwCID,
+  btn-info-is-disabled: STlqka,
+  btn-info-is-disabled-1: CiwCID,
+  btn-info_is-disabled: STlqka,
+  class: _9lKM2A,
+  default: _6axYSD,
+  foo: bar,
+  foo-bar: _482-SF,
+  foo_bar: _482-SF,
+  my-btn-info-is-disabled: value,
+  my-btn-info_is-disabled: value,
+  simple: VC2_Tf,
+}

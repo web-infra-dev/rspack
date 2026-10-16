@@ -506,118 +506,118 @@ a[href="#b.c"].basic_module_css-x.basic_module_css-y {
   background: hotpink;
 }
 
-.local-Ident-name\.module--test--cW2T1 {
+.local-Ident-name\.module--test--ncbxX {
   background: red;
 }
 
-.local-Ident-name\.module--_test--Nrv8r {
+.local-Ident-name\.module--_test--KjVFW {
   background: blue;
 }
 
-.local-Ident-name\.module--className--sQSol {
+.local-Ident-name\.module--className--MWQ4O {
   background: red;
 }
 
-#local-Ident-name\.module--someId--YItf9 {
+#local-Ident-name\.module--someId--weDgw {
   background: green;
 }
 
-.local-Ident-name\.module--className--sQSol .local-Ident-name\.module--subClass--RECgX {
+.local-Ident-name\.module--className--MWQ4O .local-Ident-name\.module--subClass--gaJ0h {
   color: green;
 }
 
-#local-Ident-name\.module--someId--YItf9 .local-Ident-name\.module--subClass--RECgX {
+#local-Ident-name\.module--someId--weDgw .local-Ident-name\.module--subClass--gaJ0h {
   color: blue;
 }
 
-.local-Ident-name\.module---a0-34a___f--FZQl8 {
+.local-Ident-name\.module---a0-34a___f--vYwrU {
   color: red;
 }
 
-.local-Ident-name\.module--m_x_\@--AX-mG {
+.local-Ident-name\.module--m_x_\@--kIvXs {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
-.local-Ident-name\.module--B\&W\?--QNB2B {
+.local-Ident-name\.module--B\&W\?--BtRwH {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
 /* matches elements with class=":`(" */
-.local-Ident-name\.module--\:\`\(--jhwpi {
+.local-Ident-name\.module--\:\`\(--h3eRC {
   color: aqua;
 }
 
 /* matches elements with class="1a2b3c" */
-.local-Ident-name\.module--1a2b3c--s_F9a {
+.local-Ident-name\.module--1a2b3c--uoLQA {
   color: aliceblue;
 }
 
 /* matches the element with id="#fake-id-x" */
-#local-Ident-name\.module--\#fake-id-x--Fy-Th {
+#local-Ident-name\.module--\#fake-id-x--dlQZ- {
   color: antiquewhite;
 }
 
 /* matches the element with id="-a-b-c-" */
-#local-Ident-name\.module---a-b-c---aXWOF {
+#local-Ident-name\.module---a-b-c---I-HP_ {
   color: azure;
 }
 
 /* matches the element with id="©id" */
-#local-Ident-name\.module--©id--YXPHJ {
+#local-Ident-name\.module--©id--mi1Y- {
   color: black;
 }
 
-.local-Ident-name\.module--♥--6TzmN { background: lime; }
-.local-Ident-name\.module--©--TAAxi { background: lime; }
-.local-Ident-name\.module--😍--Bh2TR { background: lime; }
-.local-Ident-name\.module--“‘’”--A5wmb { background: lime; }
-.local-Ident-name\.module--☺☃--qv-8G { background: lime; }
-.local-Ident-name\.module--⌘⌥--W4GoM { background: lime; }
-.local-Ident-name\.module--𝄞♪♩♫♬--zkoxN { background: lime; }
-.local-Ident-name\.module--💩--6_uQp { background: lime; }
-.local-Ident-name\.module--\?--_fIvG { background: lime; }
-.local-Ident-name\.module--\@--JvnrO { background: lime; }
-.local-Ident-name\.module--\.--4v_Mk { background: lime; }
-.local-Ident-name\.module--\:\)--nGvXL { background: lime; }
-.local-Ident-name\.module--\:\`\(--jhwpi { background: lime; }
-.local-Ident-name\.module--123--sViMo { background: lime; }
-.local-Ident-name\.module--1a2b3c--s_F9a { background: lime; }
-.local-Ident-name\.module--\<p\>--rKWfB { background: lime; }
-.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--wXTCo { background: lime; }
-.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--XXhiY { background: lime; }
-.local-Ident-name\.module--\#--KLKyE { background: lime; }
-.local-Ident-name\.module--\#\#--bGsIH { background: lime; }
-.local-Ident-name\.module--\#\.\#\.\#--FMivF { background: lime; }
-.local-Ident-name\.module--_--WNXDs { background: lime; }
-.local-Ident-name\.module--\{\}--5UX4G { background: lime; }
-.local-Ident-name\.module--\#fake-id--Kes3f { background: lime; }
-.local-Ident-name\.module--foo\.bar--rGzNx { background: lime; }
-.local-Ident-name\.module--\:hover--OgVn8 { background: lime; }
-.local-Ident-name\.module--\:hover\:focus\:active--NZ8f7 { background: lime; }
-.local-Ident-name\.module--\[attr\=value\]--gKc6u { background: lime; }
-.local-Ident-name\.module--f\/o\/o--kIc1W { background: lime; }
-.local-Ident-name\.module--f\\o\\o--aKZtm { background: lime; }
-.local-Ident-name\.module--f\*o\*o--SQRry { background: lime; }
-.local-Ident-name\.module--f\!o\!o--Eh3Tz { background: lime; }
-.local-Ident-name\.module--f\'o\'o--s088- { background: lime; }
-.local-Ident-name\.module--f\~o\~o--Qk4va { background: lime; }
-.local-Ident-name\.module--f\+o\+o--DwR6i { background: lime; }
+.local-Ident-name\.module--♥--kvcQV { background: lime; }
+.local-Ident-name\.module--©--9B87P { background: lime; }
+.local-Ident-name\.module--😍--XxI2r { background: lime; }
+.local-Ident-name\.module--“‘’”--RsyKm { background: lime; }
+.local-Ident-name\.module--☺☃--bC23G { background: lime; }
+.local-Ident-name\.module--⌘⌥--AFegR { background: lime; }
+.local-Ident-name\.module--𝄞♪♩♫♬--YC0_3 { background: lime; }
+.local-Ident-name\.module--💩--kgegO { background: lime; }
+.local-Ident-name\.module--\?--m3nvu { background: lime; }
+.local-Ident-name\.module--\@--yOyn0 { background: lime; }
+.local-Ident-name\.module--\.--vwDCN { background: lime; }
+.local-Ident-name\.module--\:\)--4wNIC { background: lime; }
+.local-Ident-name\.module--\:\`\(--h3eRC { background: lime; }
+.local-Ident-name\.module--123--ZF_q0 { background: lime; }
+.local-Ident-name\.module--1a2b3c--uoLQA { background: lime; }
+.local-Ident-name\.module--\<p\>--W5RC- { background: lime; }
+.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--Xbk2J { background: lime; }
+.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--GPRKD { background: lime; }
+.local-Ident-name\.module--\#--o3SFY { background: lime; }
+.local-Ident-name\.module--\#\#--W7eeJ { background: lime; }
+.local-Ident-name\.module--\#\.\#\.\#--2oiKG { background: lime; }
+.local-Ident-name\.module--_--jU79f { background: lime; }
+.local-Ident-name\.module--\{\}--WXsC { background: lime; }
+.local-Ident-name\.module--\#fake-id--WxrxM { background: lime; }
+.local-Ident-name\.module--foo\.bar--KSjOw { background: lime; }
+.local-Ident-name\.module--\:hover--pL4Fb { background: lime; }
+.local-Ident-name\.module--\:hover\:focus\:active--MOPxa { background: lime; }
+.local-Ident-name\.module--\[attr\=value\]--QPc-k { background: lime; }
+.local-Ident-name\.module--f\/o\/o--t7Ydf { background: lime; }
+.local-Ident-name\.module--f\\o\\o--c79Am { background: lime; }
+.local-Ident-name\.module--f\*o\*o--5XVDr { background: lime; }
+.local-Ident-name\.module--f\!o\!o--JwK3h { background: lime; }
+.local-Ident-name\.module--f\'o\'o--60_lY { background: lime; }
+.local-Ident-name\.module--f\~o\~o--mTLX5 { background: lime; }
+.local-Ident-name\.module--f\+o\+o--1jL88 { background: lime; }
 
-.local-Ident-name\.module--foo\/bar--3Vm_l {
+.local-Ident-name\.module--foo\/bar--zv-Ez {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar--26v9V {
+.local-Ident-name\.module--foo\\bar--uHcPH {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\/bar\/baz--mxV2a {
+.local-Ident-name\.module--foo\/bar\/baz--Kqcm4 {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar\\baz--yS0ki {
+.local-Ident-name\.module--foo\\bar\\baz--tEQpp {
   background: hotpink;
 }
 
@@ -966,118 +966,118 @@ a[href="#b.c"].basic_module_css-x.basic_module_css-y {
   background: hotpink;
 }
 
-.test--2_LXt0 {
+.test--svaDyD {
   background: red;
 }
 
-._test--nhbNAM {
+._test--z1kMWo {
   background: blue;
 }
 
-.className--lf1_Es {
+.className--EyPtVq {
   background: red;
 }
 
-#someId--rh4AhY {
+#someId--pxJvla {
   background: green;
 }
 
-.className--lf1_Es .subClass--PLMrmZ {
+.className--EyPtVq .subClass--PKQ66x {
   color: green;
 }
 
-#someId--rh4AhY .subClass--PLMrmZ {
+#someId--pxJvla .subClass--PKQ66x {
   color: blue;
 }
 
-.-a0-34a___f--6HArfD {
+.-a0-34a___f--5JKI0V {
   color: red;
 }
 
-.m_x_\@--m6Nq_j {
+.m_x_\@--NcrnNx {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
-.B\&W\?--05yezd {
+.B\&W\?--3pENJI {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
 /* matches elements with class=":`(" */
-.\:\`\(--wQ1De3 {
+.\:\`\(--ObmDIV {
   color: aqua;
 }
 
 /* matches elements with class="1a2b3c" */
-._1a2b3c--5P6H01 {
+._1a2b3c--3j7K2G {
   color: aliceblue;
 }
 
 /* matches the element with id="#fake-id-x" */
-#\#fake-id-x--eQkTG- {
+#\#fake-id-x--w6jKJw {
   color: antiquewhite;
 }
 
 /* matches the element with id="-a-b-c-" */
-#-a-b-c---GOMgf0 {
+#-a-b-c---lLRCKj {
   color: azure;
 }
 
 /* matches the element with id="©id" */
-#©id--OziLpf {
+#©id--HaACsy {
   color: black;
 }
 
-.♥--8TmYXs { background: lime; }
-.©--Lb0YoP { background: lime; }
-.😍--_yigvc { background: lime; }
-.“‘’”--DxNNVE { background: lime; }
-.☺☃--UkbyJ0 { background: lime; }
-.⌘⌥--sADnT- { background: lime; }
-.𝄞♪♩♫♬--UKTXkz { background: lime; }
-.💩--gXsly_ { background: lime; }
-.\?--Z0P-AF { background: lime; }
-.\@--19RtRZ { background: lime; }
-.\.--slqzEI { background: lime; }
-.\:\)--B72TgB { background: lime; }
-.\:\`\(--wQ1De3 { background: lime; }
-._123--36DTfN { background: lime; }
-._1a2b3c--5P6H01 { background: lime; }
-.\<p\>--Mxdt6v { background: lime; }
-.\<\>\<\<\<\>\>\<\>--LT8Tam { background: lime; }
-.\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--u3K9S5 { background: lime; }
-.\#--9iFogX { background: lime; }
-.\#\#--XsRGQ9 { background: lime; }
-.\#\.\#\.\#--AaqfcF { background: lime; }
-._--Vk3C0v { background: lime; }
-.\{\}--b4KFj7 { background: lime; }
-.\#fake-id--5l_baW { background: lime; }
-.foo\.bar--JnknN6 { background: lime; }
-.\:hover--QVw4xq { background: lime; }
-.\:hover\:focus\:active--wcn-Jt { background: lime; }
-.\[attr\=value\]--bnEMAb { background: lime; }
-.f\/o\/o--Yu5C7j { background: lime; }
-.f\\o\\o--oe0Sra { background: lime; }
-.f\*o\*o--jV8jhP { background: lime; }
-.f\!o\!o--pvwT8B { background: lime; }
-.f\'o\'o--vhJI4W { background: lime; }
-.f\~o\~o--dWfz0x { background: lime; }
-.f\+o\+o--WeNb5Q { background: lime; }
+.♥--AOBYKT { background: lime; }
+.©--jFnt9K { background: lime; }
+.😍--9G1WIA { background: lime; }
+.“‘’”--rjDFjg { background: lime; }
+.☺☃--DdnI-0 { background: lime; }
+.⌘⌥--mB1gLy { background: lime; }
+.𝄞♪♩♫♬--vUaDpa { background: lime; }
+.💩--ZZ-4Qm { background: lime; }
+.\?--ulbq_0 { background: lime; }
+.\@--ya3mMJ { background: lime; }
+.\.--3Y0gD- { background: lime; }
+.\:\)--5g2Klk { background: lime; }
+.\:\`\(--ObmDIV { background: lime; }
+._123--sgVrgG { background: lime; }
+._1a2b3c--3j7K2G { background: lime; }
+.\<p\>--g5IkXs { background: lime; }
+.\<\>\<\<\<\>\>\<\>--4dzCUL { background: lime; }
+.\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--u4XRRI { background: lime; }
+.\#--6D1wPc { background: lime; }
+.\#\#--sFxDyb { background: lime; }
+.\#\.\#\.\#--uZs7Xf { background: lime; }
+._--kCzPMX { background: lime; }
+.\{\}--oxMYgP { background: lime; }
+.\#fake-id--Amakrk { background: lime; }
+.foo\.bar--griYrm { background: lime; }
+.\:hover--Rs2jTk { background: lime; }
+.\:hover\:focus\:active--seFPB3 { background: lime; }
+.\[attr\=value\]--6EpsI5 { background: lime; }
+.f\/o\/o--CQsRWM { background: lime; }
+.f\\o\\o--m1dwYk { background: lime; }
+.f\*o\*o--IUlbRR { background: lime; }
+.f\!o\!o--QViaJE { background: lime; }
+.f\'o\'o--a-oQ1W { background: lime; }
+.f\~o\~o--AGH_19 { background: lime; }
+.f\+o\+o--7McL4H { background: lime; }
 
-.foo\/bar--fSseTj {
+.foo\/bar--xI1Mhk {
   background: hotpink;
 }
 
-.foo\\bar--yCsZz4 {
+.foo\\bar---X-P3f {
   background: hotpink;
 }
 
-.foo\/bar\/baz--OE1DHr {
+.foo\/bar\/baz--feewQP {
   background: hotpink;
 }
 
-.foo\\bar\\baz--zBwbQz {
+.foo\\bar\\baz--djjYz7 {
   background: hotpink;
 }
 
@@ -1196,923 +1196,923 @@ a[href="#b.c"].basic_module_css-x.basic_module_css-y {
   background: hotpink;
 }
 
-.local-Ident-name\.module--test--6y2MZL2dRW {
+.local-Ident-name\.module--test--V1ZdKG0g7F {
   background: red;
 }
 
-.local-Ident-name\.module--_test--jkChnYaYBV {
+.local-Ident-name\.module--_test--QTtu6msaiV {
   background: blue;
 }
 
-.local-Ident-name\.module--className--HP09CfTnX1 {
+.local-Ident-name\.module--className--mEXR95v3Ci {
   background: red;
 }
 
-#local-Ident-name\.module--someId--MLaknB8z97 {
+#local-Ident-name\.module--someId--M7gJvIe9Yh {
   background: green;
 }
 
-.local-Ident-name\.module--className--HP09CfTnX1 .local-Ident-name\.module--subClass--4o6O5CPJI6 {
+.local-Ident-name\.module--className--mEXR95v3Ci .local-Ident-name\.module--subClass--_hyv19acqX {
   color: green;
 }
 
-#local-Ident-name\.module--someId--MLaknB8z97 .local-Ident-name\.module--subClass--4o6O5CPJI6 {
+#local-Ident-name\.module--someId--M7gJvIe9Yh .local-Ident-name\.module--subClass--_hyv19acqX {
   color: blue;
 }
 
-.local-Ident-name\.module---a0-34a___f--8SmkpM38MT {
+.local-Ident-name\.module---a0-34a___f--epGagqayHQ {
   color: red;
 }
 
-.local-Ident-name\.module--m_x_\@--hTokNmWv2C {
+.local-Ident-name\.module--m_x_\@--cBxI5O-FuN {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
-.local-Ident-name\.module--B\&W\?--2nDwDstWPk {
+.local-Ident-name\.module--B\&W\?--pjbo-DWDqM {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
 /* matches elements with class=":`(" */
-.local-Ident-name\.module--\:\`\(--XFoJZOBwb2 {
+.local-Ident-name\.module--\:\`\(--pD1pRFFKpu {
   color: aqua;
 }
 
 /* matches elements with class="1a2b3c" */
-.local-Ident-name\.module--1a2b3c--27Ol2f1A5B {
+.local-Ident-name\.module--1a2b3c--76zEHGs90x {
   color: aliceblue;
 }
 
 /* matches the element with id="#fake-id-x" */
-#local-Ident-name\.module--\#fake-id-x--2EbZHbHGCY {
+#local-Ident-name\.module--\#fake-id-x--COoD9oVEyv {
   color: antiquewhite;
 }
 
 /* matches the element with id="-a-b-c-" */
-#local-Ident-name\.module---a-b-c---spF-wFF3ki {
+#local-Ident-name\.module---a-b-c---P0SC4WhScg {
   color: azure;
 }
 
 /* matches the element with id="©id" */
-#local-Ident-name\.module--©id--UrZDoNLIly {
+#local-Ident-name\.module--©id--YsDz23vYpV {
   color: black;
 }
 
-.local-Ident-name\.module--♥--44uxusx5VU { background: lime; }
-.local-Ident-name\.module--©--8qkLiWtfe0 { background: lime; }
-.local-Ident-name\.module--😍--ZFvdqtu3qG { background: lime; }
-.local-Ident-name\.module--“‘’”--o0Ra2DG0ZC { background: lime; }
-.local-Ident-name\.module--☺☃--DnbMOfd6eV { background: lime; }
-.local-Ident-name\.module--⌘⌥--S6bOlCWVBp { background: lime; }
-.local-Ident-name\.module--𝄞♪♩♫♬--BSgrxZWBoa { background: lime; }
-.local-Ident-name\.module--💩--IYSuXUnVFH { background: lime; }
-.local-Ident-name\.module--\?--iQGuBSRyn5 { background: lime; }
-.local-Ident-name\.module--\@--rXUc81UfOs { background: lime; }
-.local-Ident-name\.module--\.--TYgwrPPlce { background: lime; }
-.local-Ident-name\.module--\:\)--8IGwE2kP5T { background: lime; }
-.local-Ident-name\.module--\:\`\(--XFoJZOBwb2 { background: lime; }
-.local-Ident-name\.module--123--dRCMetfS4k { background: lime; }
-.local-Ident-name\.module--1a2b3c--27Ol2f1A5B { background: lime; }
-.local-Ident-name\.module--\<p\>--VleHaJt0jW { background: lime; }
-.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--efv0wrKauZ { background: lime; }
-.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--SjgB1SBFzx { background: lime; }
-.local-Ident-name\.module--\#--CUiuWNpacN { background: lime; }
-.local-Ident-name\.module--\#\#--CU4LyzXr4m { background: lime; }
-.local-Ident-name\.module--\#\.\#\.\#---k23lpEMg- { background: lime; }
-.local-Ident-name\.module--_--O587A_Y16h { background: lime; }
-.local-Ident-name\.module--\{\}--KmrFboxFIk { background: lime; }
-.local-Ident-name\.module--\#fake-id--aoLUns9FUw { background: lime; }
-.local-Ident-name\.module--foo\.bar--ekmt08iOcx { background: lime; }
-.local-Ident-name\.module--\:hover--gj5dKEVBLV { background: lime; }
-.local-Ident-name\.module--\:hover\:focus\:active--MF6oOllQUU { background: lime; }
-.local-Ident-name\.module--\[attr\=value\]--pVXs1yvO-c { background: lime; }
-.local-Ident-name\.module--f\/o\/o--IfM4TmY7KJ { background: lime; }
-.local-Ident-name\.module--f\\o\\o--smRz6NSna2 { background: lime; }
-.local-Ident-name\.module--f\*o\*o--i7809YiNmT { background: lime; }
-.local-Ident-name\.module--f\!o\!o--piVwcUXcCA { background: lime; }
-.local-Ident-name\.module--f\'o\'o--_4GqKKgPVD { background: lime; }
-.local-Ident-name\.module--f\~o\~o--zcYow3hnn9 { background: lime; }
-.local-Ident-name\.module--f\+o\+o--22BN9FvSaj { background: lime; }
+.local-Ident-name\.module--♥--60nw037KEp { background: lime; }
+.local-Ident-name\.module--©--9cb6LH6KAu { background: lime; }
+.local-Ident-name\.module--😍--pU4OlRWw4q { background: lime; }
+.local-Ident-name\.module--“‘’”---Hrutwvwl0 { background: lime; }
+.local-Ident-name\.module--☺☃--ndk9GATko7 { background: lime; }
+.local-Ident-name\.module--⌘⌥--Kk2W8I-j5m { background: lime; }
+.local-Ident-name\.module--𝄞♪♩♫♬--fYJBQ7dnXO { background: lime; }
+.local-Ident-name\.module--💩--qNqdbWTQSW { background: lime; }
+.local-Ident-name\.module--\?--vGTwgKNZwH { background: lime; }
+.local-Ident-name\.module--\@--Zc-DnK7J4_ { background: lime; }
+.local-Ident-name\.module--\.--57xSoEHGOU { background: lime; }
+.local-Ident-name\.module--\:\)--ohdnwjYSBZ { background: lime; }
+.local-Ident-name\.module--\:\`\(--pD1pRFFKpu { background: lime; }
+.local-Ident-name\.module--123--Bf8Upz7jtE { background: lime; }
+.local-Ident-name\.module--1a2b3c--76zEHGs90x { background: lime; }
+.local-Ident-name\.module--\<p\>--MBQL5UTjye { background: lime; }
+.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--sMWIDMC8c4 { background: lime; }
+.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--B4KCnJkx9B { background: lime; }
+.local-Ident-name\.module--\#--xBhlXimk4V { background: lime; }
+.local-Ident-name\.module--\#\#--D18D3V6EsS { background: lime; }
+.local-Ident-name\.module--\#\.\#\.\#--SMUykD7-Cw { background: lime; }
+.local-Ident-name\.module--_--BPiKtZb0Jr { background: lime; }
+.local-Ident-name\.module--\{\}--THhQrgNfKa { background: lime; }
+.local-Ident-name\.module--\#fake-id--gXWSjNnF-S { background: lime; }
+.local-Ident-name\.module--foo\.bar--IPXI7zXsjf { background: lime; }
+.local-Ident-name\.module--\:hover--JQLGKVBWFK { background: lime; }
+.local-Ident-name\.module--\:hover\:focus\:active--tomd58AsfW { background: lime; }
+.local-Ident-name\.module--\[attr\=value\]--YSuD-0aEiW { background: lime; }
+.local-Ident-name\.module--f\/o\/o--LHjTKR2yeE { background: lime; }
+.local-Ident-name\.module--f\\o\\o--0EW7qsZATg { background: lime; }
+.local-Ident-name\.module--f\*o\*o--risTSUrjx2 { background: lime; }
+.local-Ident-name\.module--f\!o\!o--ZzboPGXsjk { background: lime; }
+.local-Ident-name\.module--f\'o\'o--oBjIEblQdg { background: lime; }
+.local-Ident-name\.module--f\~o\~o--sq2gjCHh41 { background: lime; }
+.local-Ident-name\.module--f\+o\+o--q8YjmsbV9F { background: lime; }
 
-.local-Ident-name\.module--foo\/bar--pmM_pDdiuz {
+.local-Ident-name\.module--foo\/bar--TX4HbUgZ_F {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar--37QAOKIbi2 {
+.local-Ident-name\.module--foo\\bar--G_0TD6ieps {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\/bar\/baz--OHGMWfcvMx {
+.local-Ident-name\.module--foo\/bar\/baz--dWF4l49oFx {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar\\baz--zz8kivuxZ6 {
+.local-Ident-name\.module--foo\\bar\\baz--FZQ-7fvj3g {
   background: hotpink;
 }
 
-.local-Ident-name\.module--test--_SesvC {
+.local-Ident-name\.module--test--UgZ3nD {
   background: red;
 }
 
-.local-Ident-name\.module--_test--IFXC8J {
+.local-Ident-name\.module--_test--PsjN1F {
   background: blue;
 }
 
-.local-Ident-name\.module--className--Gf2qKu {
+.local-Ident-name\.module--className--mJwa3e {
   background: red;
 }
 
-#local-Ident-name\.module--someId--hSsSyu {
+#local-Ident-name\.module--someId--DHmaNx {
   background: green;
 }
 
-.local-Ident-name\.module--className--Gf2qKu .local-Ident-name\.module--subClass--rJLSP7 {
+.local-Ident-name\.module--className--mJwa3e .local-Ident-name\.module--subClass--i9rqtl {
   color: green;
 }
 
-#local-Ident-name\.module--someId--hSsSyu .local-Ident-name\.module--subClass--rJLSP7 {
+#local-Ident-name\.module--someId--DHmaNx .local-Ident-name\.module--subClass--i9rqtl {
   color: blue;
 }
 
-.local-Ident-name\.module---a0-34a___f--j4G6AV {
+.local-Ident-name\.module---a0-34a___f--FFUo-_ {
   color: red;
 }
 
-.local-Ident-name\.module--m_x_\@--j3M2wy {
+.local-Ident-name\.module--m_x_\@--_bIt0l {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
-.local-Ident-name\.module--B\&W\?--Cx7Xfj {
+.local-Ident-name\.module--B\&W\?--YPTrgI {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
 /* matches elements with class=":`(" */
-.local-Ident-name\.module--\:\`\(--PKfNRg {
+.local-Ident-name\.module--\:\`\(--m_kdf3 {
   color: aqua;
 }
 
 /* matches elements with class="1a2b3c" */
-.local-Ident-name\.module--1a2b3c--Prq2-n {
+.local-Ident-name\.module--1a2b3c--oJPe5r {
   color: aliceblue;
 }
 
 /* matches the element with id="#fake-id-x" */
-#local-Ident-name\.module--\#fake-id-x--hxBHhk {
+#local-Ident-name\.module--\#fake-id-x--Vug2Rw {
   color: antiquewhite;
 }
 
 /* matches the element with id="-a-b-c-" */
-#local-Ident-name\.module---a-b-c---baJWIK {
+#local-Ident-name\.module---a-b-c---bvPpw5 {
   color: azure;
 }
 
 /* matches the element with id="©id" */
-#local-Ident-name\.module--©id--8B3d97 {
+#local-Ident-name\.module--©id--JFh6lH {
   color: black;
 }
 
-.local-Ident-name\.module--♥--Wquu8v { background: lime; }
-.local-Ident-name\.module--©--if7zkU { background: lime; }
-.local-Ident-name\.module--😍--vXWvMf { background: lime; }
-.local-Ident-name\.module--“‘’”--zEDyfZ { background: lime; }
-.local-Ident-name\.module--☺☃--DzDnMo { background: lime; }
-.local-Ident-name\.module--⌘⌥--VM04KP { background: lime; }
-.local-Ident-name\.module--𝄞♪♩♫♬--qoKZGt { background: lime; }
-.local-Ident-name\.module--💩--Wmv5n7 { background: lime; }
-.local-Ident-name\.module--\?--cFxilG { background: lime; }
-.local-Ident-name\.module--\@--RJiOrO { background: lime; }
-.local-Ident-name\.module--\.--v7SGE3 { background: lime; }
-.local-Ident-name\.module--\:\)--stxQmr { background: lime; }
-.local-Ident-name\.module--\:\`\(--PKfNRg { background: lime; }
-.local-Ident-name\.module--123--FPfb_a { background: lime; }
-.local-Ident-name\.module--1a2b3c--Prq2-n { background: lime; }
-.local-Ident-name\.module--\<p\>--Lzbt_f { background: lime; }
-.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--bH0ZRJ { background: lime; }
-.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--G9OqS6 { background: lime; }
-.local-Ident-name\.module--\#--H4xWOk { background: lime; }
-.local-Ident-name\.module--\#\#--qmWu4j { background: lime; }
-.local-Ident-name\.module--\#\.\#\.\#--jTAz29 { background: lime; }
-.local-Ident-name\.module--_--jZA8cH { background: lime; }
-.local-Ident-name\.module--\{\}--rC8he6 { background: lime; }
-.local-Ident-name\.module--\#fake-id--Tf_LXF { background: lime; }
-.local-Ident-name\.module--foo\.bar--_-hir3 { background: lime; }
-.local-Ident-name\.module--\:hover--7J6Ovy { background: lime; }
-.local-Ident-name\.module--\:hover\:focus\:active--N6KkcF { background: lime; }
-.local-Ident-name\.module--\[attr\=value\]--_X7rXs { background: lime; }
-.local-Ident-name\.module--f\/o\/o--TnGHtD { background: lime; }
-.local-Ident-name\.module--f\\o\\o--zZG-0O { background: lime; }
-.local-Ident-name\.module--f\*o\*o--US0RYV { background: lime; }
-.local-Ident-name\.module--f\!o\!o--IQSVKY { background: lime; }
-.local-Ident-name\.module--f\'o\'o--Jke6Ar { background: lime; }
-.local-Ident-name\.module--f\~o\~o--wi3S5B { background: lime; }
-.local-Ident-name\.module--f\+o\+o--JZ_ZYM { background: lime; }
+.local-Ident-name\.module--♥--rDM8Yi { background: lime; }
+.local-Ident-name\.module--©--ySdkV9 { background: lime; }
+.local-Ident-name\.module--😍--vaL8ye { background: lime; }
+.local-Ident-name\.module--“‘’”--czeXmb { background: lime; }
+.local-Ident-name\.module--☺☃--7VeavE { background: lime; }
+.local-Ident-name\.module--⌘⌥--iwhZNP { background: lime; }
+.local-Ident-name\.module--𝄞♪♩♫♬--VevUxL { background: lime; }
+.local-Ident-name\.module--💩--Y4GH_y { background: lime; }
+.local-Ident-name\.module--\?--MBXE_p { background: lime; }
+.local-Ident-name\.module--\@--LDRlAY { background: lime; }
+.local-Ident-name\.module--\.--ynRKKG { background: lime; }
+.local-Ident-name\.module--\:\)--Z8v2Ms { background: lime; }
+.local-Ident-name\.module--\:\`\(--m_kdf3 { background: lime; }
+.local-Ident-name\.module--123--bVILEu { background: lime; }
+.local-Ident-name\.module--1a2b3c--oJPe5r { background: lime; }
+.local-Ident-name\.module--\<p\>--N0Eqcj { background: lime; }
+.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--tPJJOO { background: lime; }
+.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--HEWfi2 { background: lime; }
+.local-Ident-name\.module--\#--eM1M5R { background: lime; }
+.local-Ident-name\.module--\#\#--Xqu_ez { background: lime; }
+.local-Ident-name\.module--\#\.\#\.\#--jj11KT { background: lime; }
+.local-Ident-name\.module--_--5nCW6i { background: lime; }
+.local-Ident-name\.module--\{\}--qcEwi8 { background: lime; }
+.local-Ident-name\.module--\#fake-id--m4PgH7 { background: lime; }
+.local-Ident-name\.module--foo\.bar--Q-fzgs { background: lime; }
+.local-Ident-name\.module--\:hover--Au4F0W { background: lime; }
+.local-Ident-name\.module--\:hover\:focus\:active--FH1kHu { background: lime; }
+.local-Ident-name\.module--\[attr\=value\]--WD1Ob8 { background: lime; }
+.local-Ident-name\.module--f\/o\/o--aFxli- { background: lime; }
+.local-Ident-name\.module--f\\o\\o--4YiHk1 { background: lime; }
+.local-Ident-name\.module--f\*o\*o--WWuX7q { background: lime; }
+.local-Ident-name\.module--f\!o\!o--0QJPtU { background: lime; }
+.local-Ident-name\.module--f\'o\'o--VIaxhI { background: lime; }
+.local-Ident-name\.module--f\~o\~o--8uyhcj { background: lime; }
+.local-Ident-name\.module--f\+o\+o--Rt422N { background: lime; }
 
-.local-Ident-name\.module--foo\/bar--LMZK6C {
+.local-Ident-name\.module--foo\/bar--2z0IS_ {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar--qVBL0b {
+.local-Ident-name\.module--foo\\bar--Vc6Kd2 {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\/bar\/baz--44CiTQ {
+.local-Ident-name\.module--foo\/bar\/baz--PwX76u {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar\\baz--aiT34M {
+.local-Ident-name\.module--foo\\bar\\baz--kX7YX- {
   background: hotpink;
 }
 
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---test---QYsDQ6-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---test---7nEgQi-postfix {
   background: red;
 }
 
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---_test---utht9q-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---_test---xyrwct-postfix {
   background: blue;
 }
 
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---className---0Xo17Z-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---className---P-C8JE-postfix {
   background: red;
 }
 
-#prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---someId---uxnBsx-postfix {
+#prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---someId---WXs15H-postfix {
   background: green;
 }
 
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---className---0Xo17Z-postfix .prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---subClass---o4g0kD-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---className---P-C8JE-postfix .prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---subClass---0MnEam-postfix {
   color: green;
 }
 
-#prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---someId---uxnBsx-postfix .prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---subClass---o4g0kD-postfix {
+#prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---someId---WXs15H-postfix .prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---subClass---0MnEam-postfix {
   color: blue;
 }
 
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9----a0-34a___f---gymb5L-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9----a0-34a___f---XWWPX0-postfix {
   color: red;
 }
 
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---m_x_\@---_nvgrv-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---m_x_\@---92OEdM-postfix {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---B\&W\?---E3Nl3Y-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---B\&W\?---LJX4H4-postfix {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
 /* matches elements with class=":`(" */
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\:\`\(---5ZFUXo-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\:\`\(---td4uf4-postfix {
   color: aqua;
 }
 
 /* matches elements with class="1a2b3c" */
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---1a2b3c---BHzUP0-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---1a2b3c---jHnV0f-postfix {
   color: aliceblue;
 }
 
 /* matches the element with id="#fake-id-x" */
-#prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\#fake-id-x---9B0h5m-postfix {
+#prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\#fake-id-x---Mf8dHA-postfix {
   color: antiquewhite;
 }
 
 /* matches the element with id="-a-b-c-" */
-#prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9----a-b-c----Pl6Aaw-postfix {
+#prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9----a-b-c----nCy8mt-postfix {
   color: azure;
 }
 
 /* matches the element with id="©id" */
-#prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---©id---55J2Nn-postfix {
+#prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---©id---9TQQFA-postfix {
   color: black;
 }
 
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---♥---YodVSq-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---©---n9UH-P-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---😍---FkIfzA-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---“‘’”---lYdPbz-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---☺☃---I1Oz8l-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---⌘⌥---nJ2VbB-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---𝄞♪♩♫♬---e9MbaG-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---💩---FMuUYA-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\?---ai35MS-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\@---aCi8pI-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\.---zeFJ-s-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\:\)---0IP2ug-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\:\`\(---5ZFUXo-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---123---P67bvs-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---1a2b3c---BHzUP0-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\<p\>---dxhOJf-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\<\>\<\<\<\>\>\<\>---FT-dfK-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.---zj6XLT-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\#---DnD56x-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\#\#---lFLaO3-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\#\.\#\.\#----YTXg9-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---_---GDSZLn-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\{\}---l4jdzT-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\#fake-id---JMd-nS-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---foo\.bar----l1eME-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\:hover---G9f1lN-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\:hover\:focus\:active---p0R12n-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\[attr\=value\]---XsSHZ6-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\/o\/o---pll2oR-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\\o\\o---j2mg8O-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\*o\*o---h8czyn-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\!o\!o---S1D0ut-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\'o\'o---SV60Nc-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\~o\~o---gqXh5f-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\+o\+o---kkInv7-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---♥---YwUln7-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---©---zN3_Ri-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---😍---Kka-GJ-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---“‘’”---bOn72M-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---☺☃---_ut81b-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---⌘⌥---byYrLy-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---𝄞♪♩♫♬---BSX8IA-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---💩---Jm0LSf-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\?---8itxQ5-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\@---PwDF4U-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\.---Wl1gp--postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\:\)---ekHYMX-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\:\`\(---td4uf4-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---123---LS5QVi-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---1a2b3c---jHnV0f-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\<p\>---iB060A-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\<\>\<\<\<\>\>\<\>---fFYZaR-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.---mJfVsl-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\#---RD1pe8-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\#\#---ySb_EG-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\#\.\#\.\#---5Kc_3B-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---_---RMeBJh-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\{\}---R_DbJZ-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\#fake-id---9mHkFA-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---foo\.bar---msJbTr-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\:hover---6_TM_X-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\:hover\:focus\:active---wKhufO-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\[attr\=value\]---JTARLD-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\/o\/o---bZYgY2-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\\o\\o---2hkenI-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\*o\*o---_p8zlj-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\!o\!o---cjmWcr-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\'o\'o---3z9lPw-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\~o\~o---ikkeXu-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\+o\+o---5DxCVw-postfix { background: lime; }
 
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---foo\/bar---uw9Piq-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---foo\/bar---G275MJ-postfix {
   background: hotpink;
 }
 
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---foo\\bar---r4Wnce-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---foo\\bar---lqpX50-postfix {
   background: hotpink;
 }
 
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---foo\/bar\/baz---dO7uLz-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---foo\/bar\/baz---Xk1ztW-postfix {
   background: hotpink;
 }
 
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---foo\\bar\\baz---ywI-yX-postfix {
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---foo\\bar\\baz---Q80Cej-postfix {
   background: hotpink;
 }
 
-.local-Ident-name\.module--test--IW08kN {
+.local-Ident-name\.module--test--ZuSEGj {
   background: red;
 }
 
-.local-Ident-name\.module--_test--7U8l23 {
+.local-Ident-name\.module--_test--sNybeC {
   background: blue;
 }
 
-.local-Ident-name\.module--className--W4Nheh {
+.local-Ident-name\.module--className--KcwqYw {
   background: red;
 }
 
-#local-Ident-name\.module--someId--9YWj-o {
+#local-Ident-name\.module--someId--zQi909 {
   background: green;
 }
 
-.local-Ident-name\.module--className--W4Nheh .local-Ident-name\.module--subClass--xPxhwS {
+.local-Ident-name\.module--className--KcwqYw .local-Ident-name\.module--subClass--LGuqOA {
   color: green;
 }
 
-#local-Ident-name\.module--someId--9YWj-o .local-Ident-name\.module--subClass--xPxhwS {
+#local-Ident-name\.module--someId--zQi909 .local-Ident-name\.module--subClass--LGuqOA {
   color: blue;
 }
 
-.local-Ident-name\.module---a0-34a___f--ZhYuaS {
+.local-Ident-name\.module---a0-34a___f--7dqL-X {
   color: red;
 }
 
-.local-Ident-name\.module--m_x_\@--jUNG0V {
+.local-Ident-name\.module--m_x_\@--88I7W3 {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
-.local-Ident-name\.module--B\&W\?--m6T8Qi {
+.local-Ident-name\.module--B\&W\?--X2RRLP {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
 /* matches elements with class=":`(" */
-.local-Ident-name\.module--\:\`\(--mjoA5K {
+.local-Ident-name\.module--\:\`\(--D6o52u {
   color: aqua;
 }
 
 /* matches elements with class="1a2b3c" */
-.local-Ident-name\.module--1a2b3c--9fy0aG {
+.local-Ident-name\.module--1a2b3c--oVSA3q {
   color: aliceblue;
 }
 
 /* matches the element with id="#fake-id-x" */
-#local-Ident-name\.module--\#fake-id-x--v_9pBf {
+#local-Ident-name\.module--\#fake-id-x--05IKmr {
   color: antiquewhite;
 }
 
 /* matches the element with id="-a-b-c-" */
-#local-Ident-name\.module---a-b-c---LXacHt {
+#local-Ident-name\.module---a-b-c---CCmYri {
   color: azure;
 }
 
 /* matches the element with id="©id" */
-#local-Ident-name\.module--©id--PWef3o {
+#local-Ident-name\.module--©id--Ohnwt0 {
   color: black;
 }
 
-.local-Ident-name\.module--♥--bfjy9e { background: lime; }
-.local-Ident-name\.module--©--SVuQwl { background: lime; }
-.local-Ident-name\.module--😍--9oKjW8 { background: lime; }
-.local-Ident-name\.module--“‘’”--O0ad0D { background: lime; }
-.local-Ident-name\.module--☺☃--EqWKJi { background: lime; }
-.local-Ident-name\.module--⌘⌥--UitTXu { background: lime; }
-.local-Ident-name\.module--𝄞♪♩♫♬--BgZvsZ { background: lime; }
-.local-Ident-name\.module--💩--fbe2ty { background: lime; }
-.local-Ident-name\.module--\?--FpwtWJ { background: lime; }
-.local-Ident-name\.module--\@--Opw7pQ { background: lime; }
-.local-Ident-name\.module--\.--4E3lgm { background: lime; }
-.local-Ident-name\.module--\:\)--FIc3uS { background: lime; }
-.local-Ident-name\.module--\:\`\(--mjoA5K { background: lime; }
-.local-Ident-name\.module--123---tFAV9 { background: lime; }
-.local-Ident-name\.module--1a2b3c--9fy0aG { background: lime; }
-.local-Ident-name\.module--\<p\>--lmRhqK { background: lime; }
-.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--p-PsLb { background: lime; }
-.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--ajue2u { background: lime; }
-.local-Ident-name\.module--\#--1utiiU { background: lime; }
-.local-Ident-name\.module--\#\#--Wnf6Le { background: lime; }
-.local-Ident-name\.module--\#\.\#\.\#--J2xwK1 { background: lime; }
-.local-Ident-name\.module--_--IsJyHt { background: lime; }
-.local-Ident-name\.module--\{\}--IpfGbS { background: lime; }
-.local-Ident-name\.module--\#fake-id--ozOLzf { background: lime; }
-.local-Ident-name\.module--foo\.bar--jk-Shb { background: lime; }
-.local-Ident-name\.module--\:hover--KFZKIl { background: lime; }
-.local-Ident-name\.module--\:hover\:focus\:active--ZHY1t6 { background: lime; }
-.local-Ident-name\.module--\[attr\=value\]--2jVWMz { background: lime; }
-.local-Ident-name\.module--f\/o\/o--2zptxG { background: lime; }
-.local-Ident-name\.module--f\\o\\o--tIQ9Yz { background: lime; }
-.local-Ident-name\.module--f\*o\*o--YWnHCJ { background: lime; }
-.local-Ident-name\.module--f\!o\!o--w7Xi2u { background: lime; }
-.local-Ident-name\.module--f\'o\'o--xHU9v- { background: lime; }
-.local-Ident-name\.module--f\~o\~o--BB46Kj { background: lime; }
-.local-Ident-name\.module--f\+o\+o--cUc1Aw { background: lime; }
+.local-Ident-name\.module--♥--ojQW71 { background: lime; }
+.local-Ident-name\.module--©--x6YXl2 { background: lime; }
+.local-Ident-name\.module--😍--SoZTzS { background: lime; }
+.local-Ident-name\.module--“‘’”--4KtYBL { background: lime; }
+.local-Ident-name\.module--☺☃--gEFyeG { background: lime; }
+.local-Ident-name\.module--⌘⌥--3WdPhn { background: lime; }
+.local-Ident-name\.module--𝄞♪♩♫♬--BR_2ou { background: lime; }
+.local-Ident-name\.module--💩--mTARE8 { background: lime; }
+.local-Ident-name\.module--\?--hQbZWF { background: lime; }
+.local-Ident-name\.module--\@--hTv1cj { background: lime; }
+.local-Ident-name\.module--\.--ae5t1Z { background: lime; }
+.local-Ident-name\.module--\:\)--BSS_yr { background: lime; }
+.local-Ident-name\.module--\:\`\(--D6o52u { background: lime; }
+.local-Ident-name\.module--123--OBX_fN { background: lime; }
+.local-Ident-name\.module--1a2b3c--oVSA3q { background: lime; }
+.local-Ident-name\.module--\<p\>--3C-WYj { background: lime; }
+.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--5ZhE1A { background: lime; }
+.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--jWaZx6 { background: lime; }
+.local-Ident-name\.module--\#--MOLq3X { background: lime; }
+.local-Ident-name\.module--\#\#--6juWkY { background: lime; }
+.local-Ident-name\.module--\#\.\#\.\#--DQRJL0 { background: lime; }
+.local-Ident-name\.module--_--QGt8hp { background: lime; }
+.local-Ident-name\.module--\{\}--0SPBNL { background: lime; }
+.local-Ident-name\.module--\#fake-id--Pcf_Fb { background: lime; }
+.local-Ident-name\.module--foo\.bar--NLDECw { background: lime; }
+.local-Ident-name\.module--\:hover--FNERzc { background: lime; }
+.local-Ident-name\.module--\:hover\:focus\:active---6YTIz { background: lime; }
+.local-Ident-name\.module--\[attr\=value\]--JLygBO { background: lime; }
+.local-Ident-name\.module--f\/o\/o--XhdpKM { background: lime; }
+.local-Ident-name\.module--f\\o\\o--2nWE4G { background: lime; }
+.local-Ident-name\.module--f\*o\*o--0u2_8d { background: lime; }
+.local-Ident-name\.module--f\!o\!o--vojiqE { background: lime; }
+.local-Ident-name\.module--f\'o\'o--ZzQZJy { background: lime; }
+.local-Ident-name\.module--f\~o\~o--flxhrR { background: lime; }
+.local-Ident-name\.module--f\+o\+o--S7nmGF { background: lime; }
 
-.local-Ident-name\.module--foo\/bar--zl-pGk {
+.local-Ident-name\.module--foo\/bar--2rPrMK {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar--VpGbWC {
+.local-Ident-name\.module--foo\\bar--cgGuIO {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\/bar\/baz--RQxHqX {
+.local-Ident-name\.module--foo\/bar\/baz--vgeEL- {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar\\baz--flXsxN {
+.local-Ident-name\.module--foo\\bar\\baz--QS47Jr {
   background: hotpink;
 }
 
-.local-Ident-name\.module--test--fd5da94f {
+.local-Ident-name\.module--test--649e0a0c {
   background: red;
 }
 
-.local-Ident-name\.module--_test--22f97297 {
+.local-Ident-name\.module--_test--ee8bd710 {
   background: blue;
 }
 
-.local-Ident-name\.module--className--21e1e93d {
+.local-Ident-name\.module--className--25641314 {
   background: red;
 }
 
-#local-Ident-name\.module--someId--28ba622c {
+#local-Ident-name\.module--someId--5a30fb9d {
   background: green;
 }
 
-.local-Ident-name\.module--className--21e1e93d .local-Ident-name\.module--subClass--b46d5b87 {
+.local-Ident-name\.module--className--25641314 .local-Ident-name\.module--subClass--5defffef {
   color: green;
 }
 
-#local-Ident-name\.module--someId--28ba622c .local-Ident-name\.module--subClass--b46d5b87 {
+#local-Ident-name\.module--someId--5a30fb9d .local-Ident-name\.module--subClass--5defffef {
   color: blue;
 }
 
-.local-Ident-name\.module---a0-34a___f--f3a352bb {
+.local-Ident-name\.module---a0-34a___f--04ff3e3b {
   color: red;
 }
 
-.local-Ident-name\.module--m_x_\@--51f2bd5c {
+.local-Ident-name\.module--m_x_\@--ab51e543 {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
-.local-Ident-name\.module--B\&W\?--b782f1fd {
+.local-Ident-name\.module--B\&W\?--bf642774 {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
 /* matches elements with class=":`(" */
-.local-Ident-name\.module--\:\`\(--96a44c63 {
+.local-Ident-name\.module--\:\`\(--5da80e52 {
   color: aqua;
 }
 
 /* matches elements with class="1a2b3c" */
-.local-Ident-name\.module--1a2b3c--6760e7de {
+.local-Ident-name\.module--1a2b3c--082e0718 {
   color: aliceblue;
 }
 
 /* matches the element with id="#fake-id-x" */
-#local-Ident-name\.module--\#fake-id-x--f9bd382d {
+#local-Ident-name\.module--\#fake-id-x--071327aa {
   color: antiquewhite;
 }
 
 /* matches the element with id="-a-b-c-" */
-#local-Ident-name\.module---a-b-c---84250322 {
+#local-Ident-name\.module---a-b-c---f801ba17 {
   color: azure;
 }
 
 /* matches the element with id="©id" */
-#local-Ident-name\.module--©id--2c466de3 {
+#local-Ident-name\.module--©id--7661353b {
   color: black;
 }
 
-.local-Ident-name\.module--♥--06a429a5 { background: lime; }
-.local-Ident-name\.module--©--568dfb7c { background: lime; }
-.local-Ident-name\.module--😍--a3d07967 { background: lime; }
-.local-Ident-name\.module--“‘’”--6a70b56a { background: lime; }
-.local-Ident-name\.module--☺☃--dc021635 { background: lime; }
-.local-Ident-name\.module--⌘⌥--6b80b781 { background: lime; }
-.local-Ident-name\.module--𝄞♪♩♫♬--ea983d35 { background: lime; }
-.local-Ident-name\.module--💩--4245100e { background: lime; }
-.local-Ident-name\.module--\?--5875534a { background: lime; }
-.local-Ident-name\.module--\@--b029bf67 { background: lime; }
-.local-Ident-name\.module--\.--17a89fa5 { background: lime; }
-.local-Ident-name\.module--\:\)--e9c39a46 { background: lime; }
-.local-Ident-name\.module--\:\`\(--96a44c63 { background: lime; }
-.local-Ident-name\.module--123--fa419e39 { background: lime; }
-.local-Ident-name\.module--1a2b3c--6760e7de { background: lime; }
-.local-Ident-name\.module--\<p\>--ae20d89d { background: lime; }
-.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--dfe25b4a { background: lime; }
-.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--c1e4fb1d { background: lime; }
-.local-Ident-name\.module--\#--2d7dda07 { background: lime; }
-.local-Ident-name\.module--\#\#--b71dfb27 { background: lime; }
-.local-Ident-name\.module--\#\.\#\.\#--9bbf8e59 { background: lime; }
-.local-Ident-name\.module--_--44b29d88 { background: lime; }
-.local-Ident-name\.module--\{\}--c39afc67 { background: lime; }
-.local-Ident-name\.module--\#fake-id--84620bfb { background: lime; }
-.local-Ident-name\.module--foo\.bar--bc8454ca { background: lime; }
-.local-Ident-name\.module--\:hover--392582ba { background: lime; }
-.local-Ident-name\.module--\:hover\:focus\:active--8aa3e8ed { background: lime; }
-.local-Ident-name\.module--\[attr\=value\]--53cd4ad6 { background: lime; }
-.local-Ident-name\.module--f\/o\/o--d2d027ab { background: lime; }
-.local-Ident-name\.module--f\\o\\o--2a8bdda1 { background: lime; }
-.local-Ident-name\.module--f\*o\*o--5573efeb { background: lime; }
-.local-Ident-name\.module--f\!o\!o--a54e6827 { background: lime; }
-.local-Ident-name\.module--f\'o\'o--a9514430 { background: lime; }
-.local-Ident-name\.module--f\~o\~o--d305438a { background: lime; }
-.local-Ident-name\.module--f\+o\+o--02805824 { background: lime; }
+.local-Ident-name\.module--♥--6e33d2ab { background: lime; }
+.local-Ident-name\.module--©--5a235443 { background: lime; }
+.local-Ident-name\.module--😍--2925579d { background: lime; }
+.local-Ident-name\.module--“‘’”--be059909 { background: lime; }
+.local-Ident-name\.module--☺☃--c9b563d5 { background: lime; }
+.local-Ident-name\.module--⌘⌥--cb286bf7 { background: lime; }
+.local-Ident-name\.module--𝄞♪♩♫♬--19ed15f3 { background: lime; }
+.local-Ident-name\.module--💩--fa1789db { background: lime; }
+.local-Ident-name\.module--\?--3e50ff79 { background: lime; }
+.local-Ident-name\.module--\@--e842473c { background: lime; }
+.local-Ident-name\.module--\.--f6039248 { background: lime; }
+.local-Ident-name\.module--\:\)--c106066b { background: lime; }
+.local-Ident-name\.module--\:\`\(--5da80e52 { background: lime; }
+.local-Ident-name\.module--123--69b7b82d { background: lime; }
+.local-Ident-name\.module--1a2b3c--082e0718 { background: lime; }
+.local-Ident-name\.module--\<p\>--253d42e7 { background: lime; }
+.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--cd1c3ea8 { background: lime; }
+.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--bcd086ad { background: lime; }
+.local-Ident-name\.module--\#--aec2e61e { background: lime; }
+.local-Ident-name\.module--\#\#--eb98ab1c { background: lime; }
+.local-Ident-name\.module--\#\.\#\.\#--798f71e1 { background: lime; }
+.local-Ident-name\.module--_--eb0f88c8 { background: lime; }
+.local-Ident-name\.module--\{\}--084997f1 { background: lime; }
+.local-Ident-name\.module--\#fake-id--1af5fdbe { background: lime; }
+.local-Ident-name\.module--foo\.bar--942193de { background: lime; }
+.local-Ident-name\.module--\:hover--4cd95260 { background: lime; }
+.local-Ident-name\.module--\:hover\:focus\:active--606773f7 { background: lime; }
+.local-Ident-name\.module--\[attr\=value\]--74a3de10 { background: lime; }
+.local-Ident-name\.module--f\/o\/o--9d63eb92 { background: lime; }
+.local-Ident-name\.module--f\\o\\o--c46ceca8 { background: lime; }
+.local-Ident-name\.module--f\*o\*o--6ab2874e { background: lime; }
+.local-Ident-name\.module--f\!o\!o--3aa96e13 { background: lime; }
+.local-Ident-name\.module--f\'o\'o--9713c01e { background: lime; }
+.local-Ident-name\.module--f\~o\~o--378009fd { background: lime; }
+.local-Ident-name\.module--f\+o\+o--12853283 { background: lime; }
 
-.local-Ident-name\.module--foo\/bar--175e76d1 {
+.local-Ident-name\.module--foo\/bar--5a403817 {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar--41183679 {
+.local-Ident-name\.module--foo\\bar--812b4af0 {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\/bar\/baz--490a2aa6 {
+.local-Ident-name\.module--foo\/bar\/baz--afb2c98e {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar\\baz--da2a665a {
+.local-Ident-name\.module--foo\\bar\\baz--93222d00 {
   background: hotpink;
 }
 
-.local-Ident-name\.module--test--B\/hn0qPt {
+.local-Ident-name\.module--test--N\+UJlw77 {
   background: red;
 }
 
-.local-Ident-name\.module--_test--pMfP2zUp {
+.local-Ident-name\.module--_test--gnoBkWiX {
   background: blue;
 }
 
-.local-Ident-name\.module--className--Ujj2kVJf {
+.local-Ident-name\.module--className--pENHOoaw {
   background: red;
 }
 
-#local-Ident-name\.module--someId--DNBMNFmc {
+#local-Ident-name\.module--someId--l2pFVdZF {
   background: green;
 }
 
-.local-Ident-name\.module--className--Ujj2kVJf .local-Ident-name\.module--subClass--8cEsbpGr {
+.local-Ident-name\.module--className--pENHOoaw .local-Ident-name\.module--subClass--z\+8BgXsG {
   color: green;
 }
 
-#local-Ident-name\.module--someId--DNBMNFmc .local-Ident-name\.module--subClass--8cEsbpGr {
+#local-Ident-name\.module--someId--l2pFVdZF .local-Ident-name\.module--subClass--z\+8BgXsG {
   color: blue;
 }
 
-.local-Ident-name\.module---a0-34a___f--k\/zyx1kO {
+.local-Ident-name\.module---a0-34a___f--2Fs1SY2H {
   color: red;
 }
 
-.local-Ident-name\.module--m_x_\@--ECutjqru {
+.local-Ident-name\.module--m_x_\@--S5xdjgg0 {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
-.local-Ident-name\.module--B\&W\?--cOxHJ2na {
+.local-Ident-name\.module--B\&W\?--VAw3mg0d {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
 /* matches elements with class=":`(" */
-.local-Ident-name\.module--\:\`\(--wv4C7dsx {
+.local-Ident-name\.module--\:\`\(--zWAnnSM3 {
   color: aqua;
 }
 
 /* matches elements with class="1a2b3c" */
-.local-Ident-name\.module--1a2b3c--XCkKuRHm {
+.local-Ident-name\.module--1a2b3c--SzLMd\/w0 {
   color: aliceblue;
 }
 
 /* matches the element with id="#fake-id-x" */
-#local-Ident-name\.module--\#fake-id-x--3BOJPtZ5 {
+#local-Ident-name\.module--\#fake-id-x--fArcS7o4 {
   color: antiquewhite;
 }
 
 /* matches the element with id="-a-b-c-" */
-#local-Ident-name\.module---a-b-c---GXbOTCHl {
+#local-Ident-name\.module---a-b-c---YclXkYr9 {
   color: azure;
 }
 
 /* matches the element with id="©id" */
-#local-Ident-name\.module--©id--5P52YGNU {
+#local-Ident-name\.module--©id--sosI700g {
   color: black;
 }
 
-.local-Ident-name\.module--♥--5qlv5LMa { background: lime; }
-.local-Ident-name\.module--©--ew9d\/TMl { background: lime; }
-.local-Ident-name\.module--😍--26CI3wEd { background: lime; }
-.local-Ident-name\.module--“‘’”--qaxjiNef { background: lime; }
-.local-Ident-name\.module--☺☃--\+YjmbDXn { background: lime; }
-.local-Ident-name\.module--⌘⌥--Blbua3Ll { background: lime; }
-.local-Ident-name\.module--𝄞♪♩♫♬--EPDGTKaj { background: lime; }
-.local-Ident-name\.module--💩--yKGKGtTu { background: lime; }
-.local-Ident-name\.module--\?--H7f7VUxp { background: lime; }
-.local-Ident-name\.module--\@--8cP\/2p9h { background: lime; }
-.local-Ident-name\.module--\.--KyiNKoOl { background: lime; }
-.local-Ident-name\.module--\:\)--8qCf4Grn { background: lime; }
-.local-Ident-name\.module--\:\`\(--wv4C7dsx { background: lime; }
-.local-Ident-name\.module--123--\+vevJos\/ { background: lime; }
-.local-Ident-name\.module--1a2b3c--XCkKuRHm { background: lime; }
-.local-Ident-name\.module--\<p\>--bGj9ItOs { background: lime; }
-.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--L08pQiPg { background: lime; }
-.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--ec63NGoD { background: lime; }
-.local-Ident-name\.module--\#--d3RRjRzR { background: lime; }
-.local-Ident-name\.module--\#\#--jP\+b90iY { background: lime; }
-.local-Ident-name\.module--\#\.\#\.\#--kXRqdiWa { background: lime; }
-.local-Ident-name\.module--_--RG\+NDzTy { background: lime; }
-.local-Ident-name\.module--\{\}--CK\+7Qyjf { background: lime; }
-.local-Ident-name\.module--\#fake-id--GeZ061Tp { background: lime; }
-.local-Ident-name\.module--foo\.bar--34NdVkap { background: lime; }
-.local-Ident-name\.module--\:hover--TJ7Q2jCq { background: lime; }
-.local-Ident-name\.module--\:hover\:focus\:active--rR4Rztxt { background: lime; }
-.local-Ident-name\.module--\[attr\=value\]--bKirmSZk { background: lime; }
-.local-Ident-name\.module--f\/o\/o--NDgamiVK { background: lime; }
-.local-Ident-name\.module--f\\o\\o--hiVsO8De { background: lime; }
-.local-Ident-name\.module--f\*o\*o--KUoTZvOc { background: lime; }
-.local-Ident-name\.module--f\!o\!o--SS0S02in { background: lime; }
-.local-Ident-name\.module--f\'o\'o--2Izy7\+Wn { background: lime; }
-.local-Ident-name\.module--f\~o\~o--edHAcT3Q { background: lime; }
-.local-Ident-name\.module--f\+o\+o--nMAlIzPS { background: lime; }
+.local-Ident-name\.module--♥--6tCuPP0x { background: lime; }
+.local-Ident-name\.module--©--ISVLcML\/ { background: lime; }
+.local-Ident-name\.module--😍--60y0viyN { background: lime; }
+.local-Ident-name\.module--“‘’”--A06t0mKz { background: lime; }
+.local-Ident-name\.module--☺☃--XgBOZXbS { background: lime; }
+.local-Ident-name\.module--⌘⌥--TvfZFYrd { background: lime; }
+.local-Ident-name\.module--𝄞♪♩♫♬--EpnQoPvI { background: lime; }
+.local-Ident-name\.module--💩--Eo\/\+j2LU { background: lime; }
+.local-Ident-name\.module--\?--BZxG9OI3 { background: lime; }
+.local-Ident-name\.module--\@--aO5\/308M { background: lime; }
+.local-Ident-name\.module--\.--h\+51FgbG { background: lime; }
+.local-Ident-name\.module--\:\)--ZlhZU\/T3 { background: lime; }
+.local-Ident-name\.module--\:\`\(--zWAnnSM3 { background: lime; }
+.local-Ident-name\.module--123--KVrRedmY { background: lime; }
+.local-Ident-name\.module--1a2b3c--SzLMd\/w0 { background: lime; }
+.local-Ident-name\.module--\<p\>--\/FxCHDLZ { background: lime; }
+.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--KiQ8xG\/d { background: lime; }
+.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--\/HNpCQXj { background: lime; }
+.local-Ident-name\.module--\#--jfTZ8UJY { background: lime; }
+.local-Ident-name\.module--\#\#--UL35uhHf { background: lime; }
+.local-Ident-name\.module--\#\.\#\.\#--ERKMB\/V\/ { background: lime; }
+.local-Ident-name\.module--_--j1f3gKjS { background: lime; }
+.local-Ident-name\.module--\{\}--jFsNVa1z { background: lime; }
+.local-Ident-name\.module--\#fake-id--3\/K\+KMcN { background: lime; }
+.local-Ident-name\.module--foo\.bar--3qXYWSox { background: lime; }
+.local-Ident-name\.module--\:hover--zSm6\/v19 { background: lime; }
+.local-Ident-name\.module--\:hover\:focus\:active--0Mjz1vbh { background: lime; }
+.local-Ident-name\.module--\[attr\=value\]--Lc2l24as { background: lime; }
+.local-Ident-name\.module--f\/o\/o--X7LaLlYo { background: lime; }
+.local-Ident-name\.module--f\\o\\o--XVyXas6m { background: lime; }
+.local-Ident-name\.module--f\*o\*o--0fLwJshG { background: lime; }
+.local-Ident-name\.module--f\!o\!o--UOZkctF9 { background: lime; }
+.local-Ident-name\.module--f\'o\'o--ptic6IqN { background: lime; }
+.local-Ident-name\.module--f\~o\~o--q2tHymYE { background: lime; }
+.local-Ident-name\.module--f\+o\+o--zfCRiwkE { background: lime; }
 
-.local-Ident-name\.module--foo\/bar--DukRiyQL {
+.local-Ident-name\.module--foo\/bar--tL7gyPRq {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar--ANdVl3T1 {
+.local-Ident-name\.module--foo\\bar--yLKcK7D5 {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\/bar\/baz--qpobP\/Q5 {
+.local-Ident-name\.module--foo\/bar\/baz--RUyjLMEG {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar\\baz--B5Ea8wU7 {
+.local-Ident-name\.module--foo\\bar\\baz--9\/NQgz1y {
   background: hotpink;
 }
 
-.local-Ident-name\.module--test--2GQpZJ {
+.local-Ident-name\.module--test--6wxYII {
   background: red;
 }
 
-.local-Ident-name\.module--_test--8xrdZV {
+.local-Ident-name\.module--_test--Zbs2ll {
   background: blue;
 }
 
-.local-Ident-name\.module--className--2Kh-Ov {
+.local-Ident-name\.module--className--Ueqx_F {
   background: red;
 }
 
-#local-Ident-name\.module--someId--hIrhgH {
+#local-Ident-name\.module--someId--xKJVoS {
   background: green;
 }
 
-.local-Ident-name\.module--className--2Kh-Ov .local-Ident-name\.module--subClass--CS7Un_ {
+.local-Ident-name\.module--className--Ueqx_F .local-Ident-name\.module--subClass--C3DooA {
   color: green;
 }
 
-#local-Ident-name\.module--someId--hIrhgH .local-Ident-name\.module--subClass--CS7Un_ {
+#local-Ident-name\.module--someId--xKJVoS .local-Ident-name\.module--subClass--C3DooA {
   color: blue;
 }
 
-.local-Ident-name\.module---a0-34a___f--IDqcbV {
+.local-Ident-name\.module---a0-34a___f--iORIYP {
   color: red;
 }
 
-.local-Ident-name\.module--m_x_\@--X8bP8q {
+.local-Ident-name\.module--m_x_\@--v0w1RE {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
-.local-Ident-name\.module--B\&W\?--7ftAnV {
+.local-Ident-name\.module--B\&W\?--Ebk7Is {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
 /* matches elements with class=":`(" */
-.local-Ident-name\.module--\:\`\(--WwHPwk {
+.local-Ident-name\.module--\:\`\(--3CmisG {
   color: aqua;
 }
 
 /* matches elements with class="1a2b3c" */
-.local-Ident-name\.module--1a2b3c--bVeVN5 {
+.local-Ident-name\.module--1a2b3c--niDZEj {
   color: aliceblue;
 }
 
 /* matches the element with id="#fake-id-x" */
-#local-Ident-name\.module--\#fake-id-x--uMKzBb {
+#local-Ident-name\.module--\#fake-id-x--0unTjv {
   color: antiquewhite;
 }
 
 /* matches the element with id="-a-b-c-" */
-#local-Ident-name\.module---a-b-c---Z08EAB {
+#local-Ident-name\.module---a-b-c---D9_kMu {
   color: azure;
 }
 
 /* matches the element with id="©id" */
-#local-Ident-name\.module--©id--BNk8lB {
+#local-Ident-name\.module--©id--2E5aig {
   color: black;
 }
 
-.local-Ident-name\.module--♥--y3MitJ { background: lime; }
-.local-Ident-name\.module--©--iWVpcm { background: lime; }
-.local-Ident-name\.module--😍--WcxZ0t { background: lime; }
-.local-Ident-name\.module--“‘’”--tEAd1K { background: lime; }
-.local-Ident-name\.module--☺☃--8UhLTD { background: lime; }
-.local-Ident-name\.module--⌘⌥--0M-Dzq { background: lime; }
-.local-Ident-name\.module--𝄞♪♩♫♬--72crRY { background: lime; }
-.local-Ident-name\.module--💩--7uK8qM { background: lime; }
-.local-Ident-name\.module--\?--L-dtlw { background: lime; }
-.local-Ident-name\.module--\@--siEE0h { background: lime; }
-.local-Ident-name\.module--\.--MWGP9- { background: lime; }
-.local-Ident-name\.module--\:\)--Ie3pA9 { background: lime; }
-.local-Ident-name\.module--\:\`\(--WwHPwk { background: lime; }
-.local-Ident-name\.module--123--Nm8irE { background: lime; }
-.local-Ident-name\.module--1a2b3c--bVeVN5 { background: lime; }
-.local-Ident-name\.module--\<p\>--HpZvES { background: lime; }
-.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--Hz1mIz { background: lime; }
-.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--jkaqMF { background: lime; }
-.local-Ident-name\.module--\#--WLkUKg { background: lime; }
-.local-Ident-name\.module--\#\#--jZQh9o { background: lime; }
-.local-Ident-name\.module--\#\.\#\.\#--tDxSdx { background: lime; }
-.local-Ident-name\.module--_--3k2Agq { background: lime; }
-.local-Ident-name\.module--\{\}--nRmS1p { background: lime; }
-.local-Ident-name\.module--\#fake-id--V2cCf7 { background: lime; }
-.local-Ident-name\.module--foo\.bar--7yacah { background: lime; }
-.local-Ident-name\.module--\:hover--DqSicW { background: lime; }
-.local-Ident-name\.module--\:hover\:focus\:active--7Xp248 { background: lime; }
-.local-Ident-name\.module--\[attr\=value\]--u54HDK { background: lime; }
-.local-Ident-name\.module--f\/o\/o--lJEk9y { background: lime; }
-.local-Ident-name\.module--f\\o\\o--DGQBRU { background: lime; }
-.local-Ident-name\.module--f\*o\*o--QbjpCQ { background: lime; }
-.local-Ident-name\.module--f\!o\!o--T3prsX { background: lime; }
-.local-Ident-name\.module--f\'o\'o--jt-RhY { background: lime; }
-.local-Ident-name\.module--f\~o\~o--98SqRg { background: lime; }
-.local-Ident-name\.module--f\+o\+o--bBOiFl { background: lime; }
+.local-Ident-name\.module--♥--X7wY1k { background: lime; }
+.local-Ident-name\.module--©--IzHBJt { background: lime; }
+.local-Ident-name\.module--😍--ziA8kX { background: lime; }
+.local-Ident-name\.module--“‘’”--gVWwYr { background: lime; }
+.local-Ident-name\.module--☺☃--2J3iSm { background: lime; }
+.local-Ident-name\.module--⌘⌥--SOFaj2 { background: lime; }
+.local-Ident-name\.module--𝄞♪♩♫♬--LEx-FJ { background: lime; }
+.local-Ident-name\.module--💩--leoLe1 { background: lime; }
+.local-Ident-name\.module--\?--ng9g6J { background: lime; }
+.local-Ident-name\.module--\@--_rVtdB { background: lime; }
+.local-Ident-name\.module--\.--CAn8MG { background: lime; }
+.local-Ident-name\.module--\:\)--OsNQf- { background: lime; }
+.local-Ident-name\.module--\:\`\(--3CmisG { background: lime; }
+.local-Ident-name\.module--123--5JFS8g { background: lime; }
+.local-Ident-name\.module--1a2b3c--niDZEj { background: lime; }
+.local-Ident-name\.module--\<p\>--NABU3b { background: lime; }
+.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--YQaEOE { background: lime; }
+.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--DVxPnv { background: lime; }
+.local-Ident-name\.module--\#--9aIKyA { background: lime; }
+.local-Ident-name\.module--\#\#--fQnSbS { background: lime; }
+.local-Ident-name\.module--\#\.\#\.\#--iFv3rN { background: lime; }
+.local-Ident-name\.module--_--2HdavO { background: lime; }
+.local-Ident-name\.module--\{\}--_ArUM4 { background: lime; }
+.local-Ident-name\.module--\#fake-id--ayDEdk { background: lime; }
+.local-Ident-name\.module--foo\.bar--cZaH91 { background: lime; }
+.local-Ident-name\.module--\:hover--dLyOb9 { background: lime; }
+.local-Ident-name\.module--\:hover\:focus\:active--wt6aUB { background: lime; }
+.local-Ident-name\.module--\[attr\=value\]--OY9RvA { background: lime; }
+.local-Ident-name\.module--f\/o\/o--bL7jME { background: lime; }
+.local-Ident-name\.module--f\\o\\o--zmzVll { background: lime; }
+.local-Ident-name\.module--f\*o\*o--9xAbEc { background: lime; }
+.local-Ident-name\.module--f\!o\!o--bODrIV { background: lime; }
+.local-Ident-name\.module--f\'o\'o--o7ZbjY { background: lime; }
+.local-Ident-name\.module--f\~o\~o--BuQcHk { background: lime; }
+.local-Ident-name\.module--f\+o\+o--hgR1vS { background: lime; }
 
-.local-Ident-name\.module--foo\/bar--2nkRzH {
+.local-Ident-name\.module--foo\/bar--1BACO6 {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar--00tycH {
+.local-Ident-name\.module--foo\\bar--dOtRKN {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\/bar\/baz--aTk6tX {
+.local-Ident-name\.module--foo\/bar\/baz--XU69HP {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar\\baz--Xyl0u2 {
+.local-Ident-name\.module--foo\\bar\\baz--VTFRZq {
   background: hotpink;
 }
 
-.local-Ident-name\.module--test--a60f4680ad27 {
+.local-Ident-name\.module--test--8971a78a4131 {
   background: red;
 }
 
-.local-Ident-name\.module--_test--89d707c3fad8 {
+.local-Ident-name\.module--_test--be9baab732d7 {
   background: blue;
 }
 
-.local-Ident-name\.module--className--9f53c7efa137 {
+.local-Ident-name\.module--className--a135acdda21e {
   background: red;
 }
 
-#local-Ident-name\.module--someId--bfc6d0920e46 {
+#local-Ident-name\.module--someId--dc3c85a15dc2 {
   background: green;
 }
 
-.local-Ident-name\.module--className--9f53c7efa137 .local-Ident-name\.module--subClass--97560fae798c {
+.local-Ident-name\.module--className--a135acdda21e .local-Ident-name\.module--subClass--fb2504179a60 {
   color: green;
 }
 
-#local-Ident-name\.module--someId--bfc6d0920e46 .local-Ident-name\.module--subClass--97560fae798c {
+#local-Ident-name\.module--someId--dc3c85a15dc2 .local-Ident-name\.module--subClass--fb2504179a60 {
   color: blue;
 }
 
-.local-Ident-name\.module---a0-34a___f--4612db420e23 {
+.local-Ident-name\.module---a0-34a___f--26844ad6d84d {
   color: red;
 }
 
-.local-Ident-name\.module--m_x_\@--e7a6eff38a8d {
+.local-Ident-name\.module--m_x_\@--410b684fe774 {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
-.local-Ident-name\.module--B\&W\?--8cd981d8b590 {
+.local-Ident-name\.module--B\&W\?--cf4a09ff83ed {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
 /* matches elements with class=":`(" */
-.local-Ident-name\.module--\:\`\(--bc61af26245b {
+.local-Ident-name\.module--\:\`\(--bf85a434a49e {
   color: aqua;
 }
 
 /* matches elements with class="1a2b3c" */
-.local-Ident-name\.module--1a2b3c--b883ad2dd9f8 {
+.local-Ident-name\.module--1a2b3c--e417b0452b8a {
   color: aliceblue;
 }
 
 /* matches the element with id="#fake-id-x" */
-#local-Ident-name\.module--\#fake-id-x--2b8a93aeef26 {
+#local-Ident-name\.module--\#fake-id-x--a2ca8d5fcb3b {
   color: antiquewhite;
 }
 
 /* matches the element with id="-a-b-c-" */
-#local-Ident-name\.module---a-b-c---b170d6339a09 {
+#local-Ident-name\.module---a-b-c---22b49d3c70c7 {
   color: azure;
 }
 
 /* matches the element with id="©id" */
-#local-Ident-name\.module--©id--1e41ac2b1eed {
+#local-Ident-name\.module--©id--c5b224792f37 {
   color: black;
 }
 
-.local-Ident-name\.module--♥--76ddd7511c43 { background: lime; }
-.local-Ident-name\.module--©--73e3d1219ba0 { background: lime; }
-.local-Ident-name\.module--😍--29d85c2489ef { background: lime; }
-.local-Ident-name\.module--“‘’”--bf4bc7cf1f92 { background: lime; }
-.local-Ident-name\.module--☺☃--543bef227373 { background: lime; }
-.local-Ident-name\.module--⌘⌥--d045ac42a7d0 { background: lime; }
-.local-Ident-name\.module--𝄞♪♩♫♬--95edd86361c1 { background: lime; }
-.local-Ident-name\.module--💩--54f8b2bdd0e9 { background: lime; }
-.local-Ident-name\.module--\?--f76eafe5a169 { background: lime; }
-.local-Ident-name\.module--\@--e273723fec35 { background: lime; }
-.local-Ident-name\.module--\.--5470f44f036b { background: lime; }
-.local-Ident-name\.module--\:\)--17eb8b70354f { background: lime; }
-.local-Ident-name\.module--\:\`\(--bc61af26245b { background: lime; }
-.local-Ident-name\.module--123--d17ed8537e79 { background: lime; }
-.local-Ident-name\.module--1a2b3c--b883ad2dd9f8 { background: lime; }
-.local-Ident-name\.module--\<p\>--3ee2ce137c10 { background: lime; }
-.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--f10fbf26846b { background: lime; }
-.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--35f5b6eb7413 { background: lime; }
-.local-Ident-name\.module--\#--e4f1b73cd809 { background: lime; }
-.local-Ident-name\.module--\#\#--405237512524 { background: lime; }
-.local-Ident-name\.module--\#\.\#\.\#--381b432f1b73 { background: lime; }
-.local-Ident-name\.module--_--572d2835970e { background: lime; }
-.local-Ident-name\.module--\{\}--00d46b3a8952 { background: lime; }
-.local-Ident-name\.module--\#fake-id--9e548df04926 { background: lime; }
-.local-Ident-name\.module--foo\.bar--d1268ba07c09 { background: lime; }
-.local-Ident-name\.module--\:hover--5c74060ab542 { background: lime; }
-.local-Ident-name\.module--\:hover\:focus\:active--940cf6c5d089 { background: lime; }
-.local-Ident-name\.module--\[attr\=value\]--e0514aa37eca { background: lime; }
-.local-Ident-name\.module--f\/o\/o--7590fb61ecff { background: lime; }
-.local-Ident-name\.module--f\\o\\o--ac338e117e89 { background: lime; }
-.local-Ident-name\.module--f\*o\*o--e6413d687d7f { background: lime; }
-.local-Ident-name\.module--f\!o\!o--dd84868984da { background: lime; }
-.local-Ident-name\.module--f\'o\'o--d25297ca72bf { background: lime; }
-.local-Ident-name\.module--f\~o\~o--72d738764f15 { background: lime; }
-.local-Ident-name\.module--f\+o\+o--50ed97029705 { background: lime; }
+.local-Ident-name\.module--♥--85a459f360fc { background: lime; }
+.local-Ident-name\.module--©--1bc803bf1d73 { background: lime; }
+.local-Ident-name\.module--😍--cdb9e9e3a31e { background: lime; }
+.local-Ident-name\.module--“‘’”--7f2c482eea75 { background: lime; }
+.local-Ident-name\.module--☺☃--f139b4fcf13d { background: lime; }
+.local-Ident-name\.module--⌘⌥--888eb88e6bb9 { background: lime; }
+.local-Ident-name\.module--𝄞♪♩♫♬--babac5aaf7b6 { background: lime; }
+.local-Ident-name\.module--💩--d9387fcb58cd { background: lime; }
+.local-Ident-name\.module--\?--fe72cf754f5d { background: lime; }
+.local-Ident-name\.module--\@--8aeaa1386a15 { background: lime; }
+.local-Ident-name\.module--\.--48d371ea9f1f { background: lime; }
+.local-Ident-name\.module--\:\)--ca43187dd530 { background: lime; }
+.local-Ident-name\.module--\:\`\(--bf85a434a49e { background: lime; }
+.local-Ident-name\.module--123--0286c3a86c4f { background: lime; }
+.local-Ident-name\.module--1a2b3c--e417b0452b8a { background: lime; }
+.local-Ident-name\.module--\<p\>--69f044b522b8 { background: lime; }
+.local-Ident-name\.module--\<\>\<\<\<\>\>\<\>--de34f812834d { background: lime; }
+.local-Ident-name\.module--\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--66284bd808aa { background: lime; }
+.local-Ident-name\.module--\#--3cd0d0ff00af { background: lime; }
+.local-Ident-name\.module--\#\#--4c92885581a2 { background: lime; }
+.local-Ident-name\.module--\#\.\#\.\#--b3b3e6028deb { background: lime; }
+.local-Ident-name\.module--_--c5dc3850ba6d { background: lime; }
+.local-Ident-name\.module--\{\}--729d8a2a2495 { background: lime; }
+.local-Ident-name\.module--\#fake-id--0b62db8736f4 { background: lime; }
+.local-Ident-name\.module--foo\.bar--8252ae861cec { background: lime; }
+.local-Ident-name\.module--\:hover--8a1365bc7850 { background: lime; }
+.local-Ident-name\.module--\:hover\:focus\:active--9f070be59d38 { background: lime; }
+.local-Ident-name\.module--\[attr\=value\]--1d206be17eb3 { background: lime; }
+.local-Ident-name\.module--f\/o\/o--e6d66c3147ac { background: lime; }
+.local-Ident-name\.module--f\\o\\o--840e4ebdc903 { background: lime; }
+.local-Ident-name\.module--f\*o\*o--f4a6d3e5dc2c { background: lime; }
+.local-Ident-name\.module--f\!o\!o--ee19deb68a44 { background: lime; }
+.local-Ident-name\.module--f\'o\'o--a6ca5695dc21 { background: lime; }
+.local-Ident-name\.module--f\~o\~o--f7b2229cc8cf { background: lime; }
+.local-Ident-name\.module--f\+o\+o--89974724768f { background: lime; }
 
-.local-Ident-name\.module--foo\/bar--4fbc31b40f2d {
+.local-Ident-name\.module--foo\/bar--46f9d70eb023 {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar--ae3f0073234b {
+.local-Ident-name\.module--foo\\bar--d15ee1eeb317 {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\/bar\/baz--e0d2321851b9 {
+.local-Ident-name\.module--foo\/bar\/baz--7706342bcaf9 {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar\\baz--782f833dc5da {
+.local-Ident-name\.module--foo\\bar\\baz--328c6c969d53 {
   background: hotpink;
 }
 
