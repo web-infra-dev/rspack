@@ -2,6 +2,7 @@ pub mod generator;
 mod local_idents;
 mod parser;
 mod source_builder;
+mod walker;
 
 use std::{
   borrow::Cow,
