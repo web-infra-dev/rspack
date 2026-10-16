@@ -162,6 +162,7 @@ impl ModuleGraphData {
 pub struct ModuleGraph {
   pub(super) inner: ModuleGraphData,
 }
+
 impl ModuleGraph {
   // checkpoint
   pub fn checkpoint(&mut self) {

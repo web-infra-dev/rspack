@@ -40,13 +40,13 @@ export default {
 - **类型：** `string | RegExp | Array<string | RegExp>`
 - **默认值：** `\.[cm]?js(\?.*)?$`
 
-指定需要被压缩的产物文件。可以使用正则表达式或者文件路径字符串，只有匹配的文件会被压缩。
+指定需要被压缩的产物文件。可以使用正则表达式或者文件路径字符串，只有匹配的文件会被压缩。`test`、`include` 和 `exclude` 匹配的是相对于 [`output.path`](/config/output#outputpath) 的产物名称。
 
-例如，构建生成了 `/dist/foo.[hash].js` 和其他 JS 文件，我们仅对 `foo.js` 进行压缩：
+例如，以下配置仅压缩名称为 `foo.[contenthash].js` 的产物：
 
 ```js
 new rspack.SwcJsMinimizerRspackPlugin({
-  test: /dist\/foo\.\w+\.js$/,
+  test: /^foo\.\w+\.js$/,
 });
 ```
 
@@ -59,7 +59,7 @@ new rspack.SwcJsMinimizerRspackPlugin({
 
 ```js
 new rspack.SwcJsMinimizerRspackPlugin({
-  include: /dist\/foo\.\w+\.js$/,
+  include: /^foo\.\w+\.js$/,
 });
 ```
 
@@ -70,11 +70,11 @@ new rspack.SwcJsMinimizerRspackPlugin({
 
 指定需要被排除的产物文件。可以使用正则表达式或者文件路径字符串，匹配的文件不会被压缩。
 
-例如，构建生成了 `/dist/foo.[hash].js` 和其他 JS 文件，我们排除 `foo.js` 的压缩：
+例如，排除 `foo.[contenthash].js` 的压缩：
 
 ```js
 new rspack.SwcJsMinimizerRspackPlugin({
-  exclude: /dist\/foo\.\w+\.js$/,
+  exclude: /^foo\.\w+\.js$/,
 });
 ```
 

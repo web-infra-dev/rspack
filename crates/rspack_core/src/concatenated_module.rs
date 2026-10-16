@@ -27,13 +27,7 @@ use rspack_util::{
   source_map::SourceMapKind, swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::{
-  common::{BytePos, Spanned, SyntaxContext},
-  ecma::visit::swc_ecma_ast,
-};
-use swc_experimental_allocator::{Allocator, CloneIn};
-use swc_experimental_ecma_ast::{ClassExpr, Ident, ObjectPatProp, Program, Prop, Visit, VisitWith};
-use swc_experimental_ecma_semantic::resolver::Semantic;
+use swc_core::common::SyntaxContext;
 
 use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, ChunkInitFragments,
@@ -44,10 +38,10 @@ use crate::{
   ConcatenationContext, ConcatenationInterop, ConcatenationNameAllocator, ConcatenationScope,
   ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
   DependenciesBlock, DependenciesBlockData, Dependency, DependencyCodeGenerationRef, DependencyId,
-  DependencyType, ExportProvided, ExportsArgument, ExportsInfoArtifact, FactoryMeta,
-  FactoryMetaStore, FreezeLock, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage,
-  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  DependencyType, ExportInfo, ExportInfoData, ExportProvided, ExportsArgument, ExportsInfoArtifact,
+  FactoryMeta, FactoryMetaStore, FreezeLock, ImportedByDeferModulesArtifact, InitFragment,
+  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
   UsedName, UsedNameItem, analyze_module_scope, escape_identifier, fast_set, filter_runtime,
@@ -60,6 +54,17 @@ use crate::{
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
+
+/// Queries share a fixed module graph and concatenation membership during code generation.
+/// Cache only completed queries; cycle detection remains local to each traversal.
+#[derive(Default)]
+struct MissingStarExportCache {
+  results: HashMap<(ModuleIdentifier, ExportInfo), bool>,
+  star_dependencies: IdentifierMap<HashSet<DependencyId>>,
+  pending: Vec<(ModuleIdentifier, Atom)>,
+  visited: HashSet<ExportInfo>,
+}
+
 define_hook!(ConcatenatedModuleExportsDefinitions: SeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
 define_hook!(ConcatenatedModuleConcatenatedInfo: Series(compilation: &Compilation, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>, info: &mut ConcatenatedModuleInfo, all_used_names: &mut HashSet<Atom>));
 
@@ -204,6 +209,8 @@ pub struct ConcatenatedModuleInfo {
   pub runtime_requirements: RuntimeGlobals,
   pub runtime_requirements_write: RuntimeGlobals,
   pub has_ast: bool,
+  /// Position of a missing final statement semicolon, before any trailing comments.
+  pub trailing_semicolon_position: Option<u32>,
   pub source: Option<ReplaceSource>,
   pub internal_source: Option<Arc<dyn Source>>,
   pub internal_names: AtomMap<Atom>,
@@ -922,6 +929,11 @@ impl Module for ConcatenatedModule {
     // populate root inline_exports
     self.build_info.get_mut().inline_exports = root_module.build_info().inline_exports;
 
+    // Deferred purity checks follow connections redirected to this module. Preserve
+    // the root's pure exports so concatenation cannot reactivate unused imports.
+    self.build_info.get_mut().side_effects_free =
+      root_module.build_info().side_effects_free.clone();
+
     let dependency_parts = self
       .modules
       .par_iter()
@@ -1140,7 +1152,7 @@ impl Module for ConcatenatedModule {
 
             let source = info.source.as_mut().expect("should have source");
             for identifier in refs.iter().map(|index| &info.idents[*index as usize]) {
-              let span = identifier.id.span();
+              let span = identifier.span;
               let low = span.real_lo();
               let high = span.real_hi();
               if identifier.shorthand {
@@ -1312,7 +1324,7 @@ impl Module for ConcatenatedModule {
         let build_meta = module.build_meta();
         let mut refs = vec![];
         for reference in info.global_scope_ident.iter() {
-          let name = &reference.id.sym;
+          let name = &reference.name;
           let match_result = ConcatenationScope::match_module_reference(name.as_str());
           if let Some(match_info) = match_result {
             let referenced_info_id = &references_info[match_info.index].0;
@@ -1357,7 +1369,7 @@ impl Module for ConcatenatedModule {
           );
 
           // We assume this should be concatenated module info because previous loop
-          let span = reference_ident.id.span();
+          let span = reference_ident.span;
           let low = span.real_lo();
           let high = span.real_hi();
           // let source = info.source.as_mut().expect("should have source");
@@ -1393,6 +1405,7 @@ impl Module for ConcatenatedModule {
     let mut exports_map = IndexAtomMap::<String>::default();
     let mut unused_exports = IndexAtomSet::default();
     let mut inlined_exports = IndexAtomSet::default();
+    let mut missing_star_export_cache = MissingStarExportCache::default();
 
     let root_info = binding_resolver
       .module_to_info_map
@@ -1426,6 +1439,14 @@ impl Module for ConcatenatedModule {
         inlined_exports.insert(name);
         continue;
       };
+      if self.is_missing_star_export(
+        &binding_resolver,
+        &root_module_id,
+        export_info,
+        &mut missing_star_export_cache,
+      ) {
+        continue;
+      }
       exports_map.insert(used_name.clone(), {
         let final_name = self.get_final_name(
           &binding_resolver,
@@ -1582,8 +1603,15 @@ impl Module for ConcatenatedModule {
         if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
           continue;
         }
-
         if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) {
+          if self.is_missing_star_export(
+            &binding_resolver,
+            &module_info_id,
+            export_info,
+            &mut missing_star_export_cache,
+          ) {
+            continue;
+          }
           let final_name = self.get_final_name(
             &binding_resolver,
             &module_info_id,
@@ -2467,6 +2495,91 @@ impl ConcatenatedModule {
     }
   }
 
+  /// A missing name is readable as `undefined`, but must not become an own star-export property.
+  /// Only validated empty CommonJS leaves that actually joined this concatenation qualify.
+  fn is_missing_star_export(
+    &self,
+    binding_resolver: &ConcatenationBindingResolver,
+    module_id: &ModuleIdentifier,
+    export_info: &ExportInfoData,
+    cache: &mut MissingStarExportCache,
+  ) -> bool {
+    if matches!(export_info.provided(), Some(ExportProvided::Provided)) {
+      return false;
+    }
+    let module_graph = binding_resolver.context.module_graph;
+    let Some(name) = export_info.name() else {
+      return false;
+    };
+    let MissingStarExportCache {
+      results,
+      star_dependencies,
+      pending,
+      visited,
+    } = cache;
+    *results
+      .entry((*module_id, export_info.id()))
+      .or_insert_with(|| {
+        pending.clear();
+        visited.clear();
+        pending.push((*module_id, name.clone()));
+        let mut has_empty_target = false;
+        while let Some((module_id, name)) = pending.pop() {
+          let module = module_graph
+            .module_by_identifier(&module_id)
+            .expect("should have module");
+          if !module.build_meta().esm()
+            && module.build_info().module_exports_accessed == Some(false)
+            && matches!(
+              binding_resolver.module_to_info_map.get(&module_id),
+              Some(ModuleInfo::Concatenated(_))
+            )
+          {
+            has_empty_target = true;
+            continue;
+          }
+          let exports_info = binding_resolver
+            .context
+            .exports_info_artifact
+            .get_exports_info_data(&module_id);
+          let export_info = exports_info.get_export_info_without_mut_module_graph(&name);
+          if !visited.insert(export_info.id()) {
+            continue;
+          }
+          let targets = export_info.get_max_target();
+          if matches!(export_info.provided(), Some(ExportProvided::Provided)) || targets.is_empty()
+          {
+            return false;
+          }
+          let dependencies = star_dependencies.entry(module_id).or_insert_with(|| {
+            module
+              .build_info()
+              .all_star_exports
+              .iter()
+              .copied()
+              .collect()
+          });
+          for target in targets.values() {
+            let Some(dependency) = target
+              .dependency
+              .filter(|dependency| dependencies.contains(dependency))
+            else {
+              // Explicit reexports create own properties, even when their value is undefined.
+              return false;
+            };
+            let Some([name]) = target.export.as_deref() else {
+              return false;
+            };
+            let Some(target) = module_graph.module_identifier_by_dependency_id(&dependency) else {
+              return false;
+            };
+            pending.push((*target, name.clone()));
+          }
+        }
+        has_empty_target
+      })
+  }
+
   #[allow(clippy::too_many_arguments)]
   #[allow(clippy::fn_params_excessive_bools)]
   fn get_final_name(
@@ -2869,6 +2982,18 @@ impl ConcatenatedModule {
         let module = module_graph
           .module_by_identifier(&info_id)
           .expect("should have module");
+        // A non-ESM module can join a concatenation only through the validated empty CommonJS
+        // path. Missing properties are readable, but export-star getters must be omitted above.
+        if !module.build_meta().esm() && module.build_info().module_exports_accessed == Some(false)
+        {
+          return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+            info_id,
+            raw_name: "/* missing export from empty CommonJS module */ undefined".into(),
+            ids: export_name[1..].to_vec(),
+            export_name,
+            comment: None,
+          }));
+        }
         panic!(
           "Cannot get final name for export '{}' of module '{}'",
           join_atom(export_name.iter(), "."),
@@ -3058,100 +3183,4 @@ pub fn escape_name_atom_ref(name: &Atom) -> Atom {
     Cow::Borrowed(_) => name.clone(),
     Cow::Owned(name) => Atom::from(name),
   }
-}
-
-#[derive(Debug)]
-pub struct NewConcatenatedModuleIdent<'a> {
-  pub id: Ident<'a>,
-  pub shorthand: bool,
-  pub is_class_expr_with_ident: bool,
-}
-
-impl NewConcatenatedModuleIdent<'_> {
-  pub fn to_legacy(&self, semantic: &Semantic) -> ConcatenatedModuleIdent {
-    let span = swc_core::common::Span::new(BytePos(self.id.span.start), BytePos(self.id.span.end));
-    let sym = swc_core::atoms::Atom::from(self.id.sym.as_str());
-    let ctxt = SyntaxContext::from_u32(semantic.node_scope(&self.id).raw());
-    ConcatenatedModuleIdent {
-      id: swc_ecma_ast::Ident::new(sym, span, ctxt),
-      is_class_expr_with_ident: self.is_class_expr_with_ident,
-      shorthand: self.shorthand,
-    }
-  }
-}
-
-/// This function ports [crate::utils::IdentCollector].
-/// A faster preorder visit based on the node array **has been tried** in https://github.com/web-infra-dev/rspack/pull/12369,
-/// which depends on `free_node` during parsing.
-/// However, a better mutability story on swc_experimental is designing and `free_node` is removed temporarily.
-/// Once it's finished, this function will be reverted back.
-pub fn collect_ident<'a>(
-  allocator: &'a Allocator,
-  root: &Program<'a>,
-) -> Vec<NewConcatenatedModuleIdent<'a>> {
-  struct IdentCollector<'a> {
-    allocator: &'a Allocator,
-    ids: Vec<NewConcatenatedModuleIdent<'a>>,
-  }
-
-  impl<'a> Visit<'a> for IdentCollector<'a> {
-    fn visit_ident(&mut self, node: &Ident<'a>) {
-      self.ids.push(NewConcatenatedModuleIdent {
-        id: node.clone_in(self.allocator),
-        shorthand: false,
-        is_class_expr_with_ident: false,
-      });
-    }
-
-    fn visit_object_pat_prop(&mut self, n: &ObjectPatProp<'a>) {
-      match n {
-        ObjectPatProp::Assign(assign) => {
-          self.ids.push(NewConcatenatedModuleIdent {
-            id: assign.key.id.as_ref().clone_in(self.allocator),
-            shorthand: true,
-            is_class_expr_with_ident: false,
-          });
-          assign.value.visit_with(self);
-        }
-        ObjectPatProp::KeyValue(_) | ObjectPatProp::Rest(_) => {
-          n.visit_children_with(self);
-        }
-      }
-    }
-
-    fn visit_prop(&mut self, node: &Prop<'a>) {
-      match node {
-        Prop::Shorthand(node) => {
-          self.ids.push(NewConcatenatedModuleIdent {
-            id: node.as_ref().clone_in(self.allocator),
-            shorthand: true,
-            is_class_expr_with_ident: false,
-          });
-        }
-        _ => {
-          node.visit_children_with(self);
-        }
-      }
-    }
-
-    /// Reserve every class expression's inner name, even without a superclass,
-    /// so renaming an outer binding cannot make it captured by the class scope.
-    fn visit_class_expr(&mut self, node: &ClassExpr<'a>) {
-      if let Some(ident) = &node.ident {
-        self.ids.push(NewConcatenatedModuleIdent {
-          id: ident.as_ref().clone_in(self.allocator),
-          shorthand: false,
-          is_class_expr_with_ident: true,
-        });
-      }
-      node.class.visit_with(self);
-    }
-  }
-
-  let mut collector = IdentCollector {
-    allocator,
-    ids: Vec::new(),
-  };
-  root.visit_with(&mut collector);
-  collector.ids
 }
