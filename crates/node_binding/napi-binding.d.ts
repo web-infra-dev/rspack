@@ -2781,6 +2781,7 @@ export interface RawModuleOptions {
 }
 
 export interface RawModuleRule {
+  as?: string
   /**
    * A conditional match matching an absolute path + query + fragment.
    * Note:

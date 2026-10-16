@@ -952,6 +952,12 @@ export type RuleSetRuleUseAndLoader =
 
 /** Rule defines the conditions for matching a module and the behavior of handling those modules. */
 export type RuleSetRule = RuleSetRuleUseAndLoader & {
+  /**
+   * Match subsequent rules as if the resource had this filename. `*` stands for the current filename without its extension.
+   * @experimental
+   */
+  as?: string;
+
   /** Matches all modules that match this resource, and will match against Resource. */
   test?: RuleSetCondition;
 
