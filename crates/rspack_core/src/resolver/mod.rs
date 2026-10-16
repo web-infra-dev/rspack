@@ -322,6 +322,15 @@ pub async fn resolve(
   };
 
   let resolver = plugin_driver.resolver_factory.get(dep);
+  resolve_with_resolver(args, plugin_driver, &resolver).await
+}
+
+/// Resolve using an already acquired resolver, retaining diagnostics and dependencies.
+pub(crate) async fn resolve_with_resolver(
+  args: ResolveArgs<'_>,
+  plugin_driver: &SharedPluginDriver,
+  resolver: &Resolver,
+) -> (Result<ResolveResult, Error>, ResolveDependencies) {
   let (result, dependencies) = resolver
     .resolve_with_context(args.context.as_ref(), args.specifier)
     .await;
