@@ -1,0 +1,6 @@
+Object {
+  class: xct3wq WLNlgQ,
+  ghi: PDJNc4,
+  other: KfQ2RA st4G5g,
+  otherClassName: WOiogG globalClassName,
+}

@@ -1,0 +1,14 @@
+Object {
+  btn--info_is-disabled_1: dTsfj9,
+  btn-info_is-disabled: FE2p5K,
+  btnInfoIsDisabled: FE2p5K,
+  btnInfoIsDisabled1: dTsfj9,
+  class: d2xMdt,
+  default: e3BRfl,
+  foo: bar,
+  fooBar: _jxmq4,
+  foo_bar: _jxmq4,
+  my-btn-info_is-disabled: value,
+  myBtnInfoIsDisabled: value,
+  simple: qBcqF8,
+}

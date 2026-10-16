@@ -1,0 +1,10 @@
+Object {
+  btn-info-is-disabled: x7JEEB,
+  btn-info-is-disabled-1: whno5g,
+  class: VeVoAm,
+  default: us3Jeb,
+  foo: bar,
+  foo-bar: H9MZW1,
+  my-btn-info-is-disabled: value,
+  simple: ZcEVtw,
+}

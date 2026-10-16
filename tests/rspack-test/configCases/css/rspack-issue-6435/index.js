@@ -2,11 +2,9 @@ import * as classes from "./style.module.css";
 import legacyClasses from "./legacy/index.css";
 
 it("should have consistent hash", () => {
-  if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
-    expect(classes["container-main"]).toBe("c4e49a91299807229fc9-container-main")
-    expect(legacyClasses["legacy-main"]).toBe("fc6b8ed3d0ff87063b2f-legacy-main")
-  } else {
-    expect(classes["container-main"]).toBe("e49dcf8a2397e06e4127-container-main")
-    expect(legacyClasses["legacy-main"]).toBe("_70bba980f1e761daa7f8-legacy-main")
-  }
+  const suffix = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK ? "-rspack" : "";
+  expect(classes["container-main"]).toMatch(/^_?[a-f0-9]{20}-container-main$/);
+  expect(legacyClasses["legacy-main"]).toMatch(/^_?[a-f0-9]{20}-legacy-main$/);
+  expect(classes["container-main"]).toMatchFileSnapshotSync(`${__SNAPSHOT__}/container-main${suffix}.txt`);
+  expect(legacyClasses["legacy-main"]).toMatchFileSnapshotSync(`${__SNAPSHOT__}/legacy-main${suffix}.txt`);
 });

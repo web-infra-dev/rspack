@@ -1,0 +1,9 @@
+Object {
+  btn--info_is-disabled_1: chsMY3-btn--info_is-disabled_1,
+  btn-info_is-disabled: ZhXqNQ-btn-info_is-disabled,
+  color-red: --fwg_z5-color-red,
+  foo: bar,
+  foo_bar: Z8Tl3U-foo_bar,
+  my-btn-info_is-disabled: value,
+  simple: Jfd_fl-simple,
+}

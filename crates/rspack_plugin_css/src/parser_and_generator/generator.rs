@@ -20,16 +20,19 @@ use super::walker::{
   CssModuleImportSink,
 };
 use crate::{
-  css_exports::{css_export_dependency, css_export_name, find_css_export_target, find_export},
+  css_exports::{css_export_name, find_css_export_target, find_export},
   css_syntax::{escape_identifier, unescape_identifier},
   dependency::{
     CssIcssExportDependency, CssIcssImportDependency, CssIcssSymbolDependency, CssIcssSymbolKind,
-    CssImportDependency,
+    CssImportDependency, CssLocalIdentKind,
   },
   parser_and_generator::{
     CodeGenerationDataUnusedLocalIdent, CssExportsRef, CssSourceBuilder, get_used_exports,
   },
-  utils::{css_generator_options, css_module_export_type, replace_css_module_id_placeholder},
+  utils::{
+    LocalIdentOptions, css_generator_options, css_module_export_type,
+    replace_css_module_id_placeholder,
+  },
 };
 
 fn css_javascript_source_map_module_name(module: &dyn Module, context: &Context) -> String {
@@ -68,12 +71,14 @@ pub(super) struct CssExportValue<'a> {
 // shared storage when a child generator returns its value to the parent.
 enum CssExportText<'a> {
   Text(Cow<'a, str>),
+  LocalIdent(SmolStr),
 }
 
 impl Borrow<str> for CssExportText<'_> {
   fn borrow(&self) -> &str {
     match self {
       Self::Text(text) => text,
+      Self::LocalIdent(ident) => ident,
     }
   }
 }
@@ -106,6 +111,7 @@ pub(crate) struct CssModuleGenerator<'a, 'g> {
   css_inject_style: Option<String>,
   css_style_sheet: Option<String>,
   css_output_prepared: bool,
+  local_idents: Option<HashMap<DependencyId, SmolStr>>,
   used_local_idents: HashSet<DependencyId>,
   outputs_prepared: bool,
 }
@@ -137,9 +143,62 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       css_inject_style: None,
       css_style_sheet: None,
       css_output_prepared: false,
+      local_idents: None,
       used_local_idents: Default::default(),
       outputs_prepared: false,
     }
+  }
+
+  async fn ensure_local_idents(&mut self) -> Result<()> {
+    if self.local_idents.is_some() {
+      return Ok(());
+    }
+
+    let compilation = self.generate_context.compilation;
+    let mut idents = HashMap::default();
+    if let Some(first_local) = self
+      .module
+      .get_dependencies()
+      .iter()
+      .position(|dependency| {
+        dependency
+          .downcast_ref::<CssIcssExportDependency>()
+          .is_some_and(|definition| definition.local_ident.is_some())
+      })
+    {
+      let options = LocalIdentOptions::for_module(
+        &self.css_output,
+        self.module,
+        compilation,
+        self.generate_context.runtime,
+      );
+      for dependency in &self.module.get_dependencies()[first_local..] {
+        let Some(definition) = dependency.downcast_ref::<CssIcssExportDependency>() else {
+          continue;
+        };
+        let Some(kind) = definition.local_ident else {
+          continue;
+        };
+        let ident = options.get_local_ident(&definition.value).await?;
+        let ident = match kind {
+          CssLocalIdentKind::Ident => ident,
+          CssLocalIdentKind::DashedIdent => {
+            format!("--{}", ident.strip_prefix("_--").unwrap_or(&ident))
+          }
+        };
+        idents.insert(*definition.id(), SmolStr::new(ident));
+      }
+    }
+    self.local_idents = Some(idents);
+    Ok(())
+  }
+
+  fn local_ident(&self, dependency: DependencyId) -> &SmolStr {
+    self
+      .local_idents
+      .as_ref()
+      .and_then(|idents| idents.get(&dependency))
+      .expect("local identifier should be generated before rendering")
   }
 
   fn module_argument(&mut self) -> &str {
@@ -308,6 +367,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     if self.outputs_prepared && (!render_css || self.css_output_prepared) {
       return Ok(());
     }
+    self.ensure_local_idents().await?;
     self.outputs_prepared = true;
 
     let roots = self.collect_css_export_roots(render_css);
@@ -389,13 +449,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     Ok(css_values)
   }
 
-  fn render_local_ident(
-    compilation: &Compilation,
-    module: &dyn Module,
-    definition: &CssIcssExportDependency,
-  ) -> String {
+  fn render_local_ident(compilation: &Compilation, module: &dyn Module, ident: &str) -> String {
     escape_identifier(&replace_css_module_id_placeholder(
-      &definition.value,
+      ident,
       compilation,
       module,
     ))
@@ -403,7 +459,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn render_css_dependencies(&mut self, css_values: &HashMap<DependencyId, Option<String>>) {
-    let mut local_idents = HashMap::default();
+    let mut escaped_local_idents = HashMap::default();
+    let local_idents = self
+      .local_idents
+      .as_ref()
+      .expect("local identifiers should be generated before rendering");
     let mut init_fragments = ModuleInitFragments::default();
     let mut context = TemplateContext {
       compilation: self.generate_context.compilation,
@@ -421,11 +481,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       if let Some(symbol) = dependency.downcast_ref::<CssIcssSymbolDependency>() {
         let value = match symbol.kind {
           CssIcssSymbolKind::LocalDeclaration | CssIcssSymbolKind::LocalReference => {
-            let value = local_idents.entry(symbol.target).or_insert_with(|| {
-              let definition =
-                css_export_dependency(context.compilation.get_module_graph(), &symbol.target);
-              Self::render_local_ident(context.compilation, context.module, definition)
-            });
+            let value = escaped_local_idents
+              .entry(symbol.target)
+              .or_insert_with(|| {
+                let ident = local_idents
+                  .get(&symbol.target)
+                  .expect("local identifier should be generated before rendering");
+                Self::render_local_ident(context.compilation, context.module, ident)
+              });
             Some(value.as_str())
           }
           CssIcssSymbolKind::IcssReference => {
@@ -458,11 +521,10 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let Some(local_names) = self.css_build_info.local_names() else {
       return;
     };
-    let graph = self.generate_context.compilation.get_module_graph();
     let idents = local_names
       .values()
       .filter(|id| !self.used_local_idents.contains(id))
-      .map(|id| css_export_dependency(graph, id).value.clone())
+      .map(|id| self.local_ident(*id).clone())
       .collect();
     // Only the top-level generator publishes data; children share its context
     // but track identifiers belonging to their own module.
@@ -909,6 +971,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       target,
       css_build_info,
     );
+    child.ensure_local_idents().await?;
     // The walker owns cycle detection across modules. The child generator only
     // tracks local output and identifier usage for its module.
     let value = walker
@@ -1114,11 +1177,15 @@ impl<'g> CssModuleGraphSink<'g> for CssModuleGenerator<'_, 'g> {
     self.used_local_idents.insert(*export.id());
     let mut resolved = CssExportValue::default();
     if requirements.css || requirements.js {
-      let text = CssExportText::Text(replace_css_module_id_placeholder(
-        &export.value,
+      let ident = self.local_ident(*export.id()).clone();
+      let text = match replace_css_module_id_placeholder(
+        &ident,
         self.generate_context.compilation,
         self.module,
-      ));
+      ) {
+        Cow::Borrowed(_) => CssExportText::LocalIdent(ident),
+        Cow::Owned(text) => CssExportText::Text(Cow::Owned(text)),
+      };
       resolved.append_text(text, requirements);
     }
     resolved

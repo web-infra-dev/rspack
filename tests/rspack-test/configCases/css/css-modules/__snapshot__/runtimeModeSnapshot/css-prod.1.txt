@@ -1,0 +1,2634 @@
+.LG7Uft {
+	color: blue;
+}
+
+
+
+@media (max-width: 599px) {
+	abbr:hover {
+		color: limegreen;
+		transition-duration: Xs;
+	}
+}
+
+
+.BBAgxw { color: red; }
+
+
+.BBAgxw {
+	&.Mzz0op { color: red; }
+}
+
+
+.BBAgxw {
+	@media (min-width: 1024px) {
+		&.Mzz0op { color: red; }
+	}
+}
+
+
+.BBAgxw {
+	@media (min-width: 1024px) {
+		&.Mzz0op {
+			@media (min-width: 1024px) {
+				color: red;
+			}
+		}
+	}
+}
+
+
+.BBAgxw { height: 40px; height: 36px; }
+
+
+.Sry5Es {
+	color: red;
+}
+
+
+#YF7JgY {
+	color: red;
+}
+
+
+._7Q3OZ- > ._7Q3OZ- {
+	color: red;
+}
+
+
+.red {
+	color: .red;
+}
+
+
+.mqyu3Y {
+	color: blue;
+}
+
+
+.BBAgxw { color: red; }
+
+
+.BBAgxw { color: red; }
+.Mzz0op { color: yellow }
+
+
+.BBAgxw { color: blue; }
+
+
+._6zxdiG { color: red; }
+
+
+._6zxdiG { margin: calc(10px * 2); }
+
+
+._6zxdiG { content: "test-a" "test-b"; }
+
+
+.BBAgxw { color: var(--color); }
+
+
+.BBAgxw {
+	color: var(--color);
+	background-color: #0f0;
+	border-top-color: #00ff00;
+	border-bottom-color: rgba(34, 12, 64, 0.3);
+	outline-color: hsla(220, 13.0%, 18.0%, 1);
+}
+
+
+.BBAgxw { color: blue; }
+.Mzz0op { color: red }
+
+
+.BBAgxw { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.BBAgxw { color: color(red lightness(50%)); }
+
+
+:root { --AJqH4D: var(--color); }
+
+
+:root { --AJqH4D: ; }
+
+
+:root { --AJqH4D:   ; }
+
+
+:root { --AJqH4D: /* comment */; }
+
+
+.eG__s6 {
+	color: var(--color);
+}
+
+
+.jIXzia {
+	color: red;
+	color: red;
+	color: blue;
+}
+
+
+._6IPclX {
+	color: /* test */red/* test */;
+}
+
+
+._6IPclX {
+	color: /* test *//* test */red/* test */;
+}
+
+
+.BBAgxw { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.BBAgxw { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.BBAgxw { box-shadow: /* test */   0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.BBAgxw { box-shadow: /* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.BBAgxw { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.BBAgxw { box-shadow: /* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.BBAgxw { color: blue; }
+
+
+.BBAgxw { color: blue; }
+
+
+.BBAgxw { color: red; }
+
+
+._6IPclX {
+	color: /*
+	multiline
+	comment
+*/red/*
+	multiline
+	comment
+*/;
+}
+
+
+.BBAgxw { color: blue; }
+
+
+:root { --AJqH4D: /*
+	multiline
+	comment
+*/; }
+
+
+:root {
+	--EXVkWh: brown;
+	--M4HdG3: red;
+	--zD63b7: blue;
+	--yY7Dtt: yellow;
+	--EyHXNb: "reserved";
+	--lIFXDL: green;
+}
+
+.uj1NQP {
+	color: var(--EXVkWh);
+}
+
+@property --_7jQd9Q {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: #c0ffee;
+}
+
+@property --EyHXNb {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: #c0ffee;
+}
+
+.uj1NQP {
+	color: var(--_7jQd9Q);
+}
+
+div {
+	background-color: var(--pKgeJs);
+}
+
+._31tsMp {
+	--pKgeJs: cornflowerblue;
+}
+
+.V9oIML {
+	--pKgeJs: aquamarine;
+}
+
+
+.y05I9O {
+	/* Red if --my-var is not defined */
+	color: var(--M4HdG3, red);
+}
+
+._31tsMp {
+	/* pink if --my-var and --my-background are not defined */
+	color: var(--M4HdG3, var(--zD63b7, pink));
+}
+
+.HVHbey {
+	color: var(--EyHXNb);
+}
+
+._4L2iYk {
+	color: var(--lIFXDL);
+}
+
+.EJzzj_ {
+	color: var(--my-global from global);
+}
+
+.mfuDPN {
+	color: var(--my-global from global, pink);
+}
+
+._0lIlNb {
+	color: var(--my-global from global, var(--my-global-background from global));
+}
+
+.JMxKoW {
+	color: var(--my-global from global, var(--my-global-background from global, pink));
+}
+
+.JpvB1E {
+	color: var(--my-global from global, var(--zD63b7, pink));
+}
+
+.heaTAp {
+	color: var(   --my-global   from   global,var(--zD63b7,pink));
+}
+
+.FetnCq {
+	background: var(   --EXVkWh   ,   var(   --zD63b7   ,   pink   )   )   , var(--my-global from   global);
+}
+
+.g63umB {
+	background: var(--EXVkWh,var(--zD63b7,pink)),var(--my-global from global);
+}
+
+.b1miA_ {
+	color: var(--kVAUM9 from "./var-function-export.modules.css");
+}
+
+.lInUtj {
+	color: var(--EXVkWh, var(--kVAUM9 from "./var-function-export.modules.css"));
+}
+
+.OoBwfj {
+	color: var(--kVAUM9 from "./var-function-export.modules.css",  var(--EXVkWh));
+}
+
+.k1fQmK {
+	color: var(--kVAUM9 from "./var-function-export.modules.css",  var(--rG35iJ from "./var-function-export.modules.css"));
+}
+
+.B5Rjmt {
+	color: var(--_8lRPwX from "./var-function-export.modules.css");
+}
+
+._5mH9yU {
+	color: var(--h7EN6U from "./var-function-export.modules.css");
+}
+
+.TuWw_c {
+	color: var(--EXVkWh from "./var-function-export.modules.css");
+}
+
+.PJdPhR {
+	color: var(--kVAUM9 from "./var-function-export.modules.css", var(--my-global from global, var(--EXVkWh, red)));
+}
+
+.Mu6PEa {
+	color: var(--my-global from);
+}
+
+.Des1zx {
+	color: var(--my-global from 1);
+}
+
+:root {
+	--_7QnAnj: red;
+}
+
+.f46mIg {
+	color: var(--_7QnAnj from "./var-function-export.modules.css")
+}
+
+.NARM3U {
+	--Yb91Ur: #fff;
+	--_0zwS99: #333;
+
+	.zHPB-v {
+		--OXpATP: var(--Yb91Ur);
+		--t65dDM: var(--_0zwS99);
+		color: var(--OXpATP);
+		background-color: var(--t65dDM);
+	}
+}
+
+.Y1uBmR {
+	--vdD_z_: 20px;
+	padding: var(--vdD_z_);
+
+	.VYU-e1 {
+		--_8rR8xd: 10px;
+		margin-top: var(--_8rR8xd);
+		padding-left: var(--vdD_z_); /* Accessing parent's variable */
+	}
+}
+
+@media (min-width: 768px) {
+	:root {
+		--_3yoaIv: 1.5rem;
+		--SoxQ3w: 1.2;
+	}
+}
+
+._6O4RUn {
+	padding: var(--_3yoaIv); /* This will be 1rem or 1.5rem based on screen size */
+}
+
+.Ktsxm7 {
+	/* Dynamic font size based on screen size using the variable */
+	font-size: calc(1.2rem * var(--SoxQ3w));
+	margin-bottom: calc(var(--_3yoaIv) / 2);
+}
+
+.-Fb4Hk {
+	/* Using calc() to create a flexible layout */
+	width: calc(100% - (var(--_3yoaIv) * 2));
+}
+
+.nA1ltm {
+	/* Locally scoped variables (pseudo-private) */
+	--q7XuDW: #e0f7fa; /* Default info color */
+	--rH_QcX: #00796b;
+	--zhU0nI: "ℹ️";
+
+	padding: 1em;
+	background-color: var(--q7XuDW);
+	color: var(--rH_QcX);
+	border-left: 5px solid var(--rH_QcX);
+}
+
+:root {
+	--SZcnmf: #fff;
+	--ztF_Hp: #ddd;
+	--eSyNFU: #333;
+	--_WoHok: royalblue;
+}
+
+.Dg-vzq {
+	border: 1px solid var(--ztF_Hp);
+	border-radius: 4px;
+	width: 100%;
+	max-width: 400px;
+
+	/* CSS Nesting starts here */
+	& .axD-rg {
+		background: var(--SZcnmf);
+		color: var(--eSyNFU);
+		border-bottom: 1px solid var(--ztF_Hp);
+
+		&:last-child {
+			border-bottom: none;
+		}
+
+		& .tTl8QV {
+			padding: 1rem;
+			cursor: pointer;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+
+			&:hover {
+				background: color-mix(in srgb, var(--SZcnmf) 90%, gray);
+			}
+		}
+
+		/* Override variables locally for a specific state (e.g., active item) */
+		&.ejyXgA {
+			--SZcnmf: var(--_WoHok); /* Nested override */
+			--eSyNFU: #fff; /* Nested override */
+
+			& .tTl8QV {
+				font-weight: bold;
+			}
+		}
+	}
+
+	/* Define a complete alternate theme nested inside the container */
+	&.N__DKf {
+		/* These variables are scoped only to elements within this specific container */
+		--SZcnmf: #333;
+		--ztF_Hp: #555;
+		--eSyNFU: #eee;
+		--_WoHok: #2ecc71; /* A new accent color for the dark theme */
+	}
+}
+
+.u8ty9J {
+	/* Establish a container context for cqw units */
+	container-type: inline-size;
+	display: flex;
+	gap: 1rem;
+	padding: 1rem;
+	border: 1px solid #ccc;
+
+	/* Define default mobile variables */
+	--_Hvq2c: 48px;
+	--RyOWjx: 1rem;
+
+	& .PTERNS {
+		width: var(--_Hvq2c);
+		height: var(--_Hvq2c);
+		border-radius: 50%;
+		background: lightgray;
+	}
+
+	& .EWPbWX {
+		font-size: var(--RyOWjx);
+	}
+
+	/* Nested Container Query (Responsive override of variables) */
+	@container (min-width: 400px) {
+		/* Redefine variables when container is wide enough */
+		--_Hvq2c: 10cqw; /* Dynamic size based on container width (10% of container) */
+		--RyOWjx: 1.2rem;
+		gap: 1.5rem;
+	}
+}
+
+:root {
+	--mNUdkO: #007bff;
+	--Yb91Ur: var(--mNUdkO); /* --text-color now uses the value of --primary-color */
+	--jSwkMS: linear-gradient(to right, var(--mNUdkO), #6c757d);
+}
+
+.xcX5E5 {
+	color: var(--Yb91Ur);
+	background: var(--jSwkMS);
+}
+
+.ktbAfu {
+	color: red
+}
+
+.eDZexm {
+	color: green;
+}
+
+._7ZAxw6 {
+	color: blue;
+}
+
+.tWOCpA {
+	color: yellow;
+}
+
+.oHrjQs {
+	color: red;
+}
+
+._5Tj0mk {
+	color: red;
+}
+
+._2eLg3Y {
+	color: red;
+}
+
+.J_gbgG {
+	color: red;
+}
+
+._1Ggrfz {
+	color: red;
+}
+
+.y_0O88 {
+	color: red;
+}
+
+.Z0e6g8 {
+	color: tan;
+}
+
+:root {
+	--from-shared: --custom-shared;
+}
+
+@color-profile --custom-shared {
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+}
+
+:local(.local-my-shared-class) {
+	color: red;
+}
+
+
+
+
+.QOzV90 {
+	color: red;
+}
+
+.T1bqJS,
+.o2ag3h .global,
+.DlJGLH {
+	color: green;
+}
+
+.global .Fpcq-Y {
+	color: yellow;
+}
+
+.qHID3n.global.yTdeBz {
+	color: blue;
+}
+
+._25da_m div:not(.dFUg8S, ._3kd9lT, .MO6pyz) {
+    pointer-events: initial !important;
+}
+
+.q0MQvp :is(div.CbrbEx.h9ECqA.Ly1QPe,
+    div.CbrbEx.h9ECqA.CmmP_5,
+    div.Lwv6fm.X1IvER,
+    div.Lwv6fm.tHFkna div.k3JOMs) {
+  max-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.mCkB7a :matches(div.CbrbEx.h9ECqA.Ly1QPe,
+    div.CbrbEx.h9ECqA.CmmP_5,
+    div.Lwv6fm.X1IvER,
+    div.Lwv6fm.tHFkna div.k3JOMs) {
+  max-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+._-9Ipo4 :where(div.CbrbEx.h9ECqA.Ly1QPe,
+    div.CbrbEx.h9ECqA.CmmP_5,
+    div.Lwv6fm.X1IvER,
+    div.Lwv6fm.tHFkna div.k3JOMs) {
+  max-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.SC2RKb div:has(.dFUg8S, ._3kd9lT, .MO6pyz) {
+    pointer-events: initial !important;
+}
+
+.fLEBXu div:current(p, span) {
+	background-color: yellow;
+}
+
+.upytnw div:past(p, span) {
+	display: none;
+}
+
+.BBtYYf div:future(p, span) {
+	background-color: yellow;
+}
+
+.BmSzNW div:-moz-any(ol, ul, menu, dir) {
+	list-style-type: square;
+}
+
+.xx6F4_ li:-webkit-any(:first-child, :last-child) {
+	background-color: aquamarine;
+}
+
+.mCkB7a :matches(div.CbrbEx.h9ECqA.Ly1QPe,
+    div.CbrbEx.h9ECqA.CmmP_5,
+    div.Lwv6fm.X1IvER,
+    div.Lwv6fm.tHFkna div.k3JOMs) {
+	max-height: 0;
+	margin: 0;
+	overflow: hidden;
+}
+
+.v9mhuK.nested2.-vroQ0 {
+	color: pink;
+}
+
+#tE9_xg {
+	color: purple;
+}
+
+@keyframes nHxNpq {
+	0% {
+		left: var(--f87vJ_);
+		top: var(--iHyWQC);
+		color: var(--theme-color1);
+	}
+	100% {
+		left: var(--miACtF);
+		top: var(--oVxH9k);
+		color: var(--theme-color2);
+	}
+}
+
+@keyframes cZXs2Q {
+	0% {
+		left: 0;
+	}
+	100% {
+		left: 100px;
+	}
+}
+
+.Hs6K0V {
+	animation-name: nHxNpq;
+	animation: Xs ease-in Xs 2 reverse both paused nHxNpq, cZXs2Q;
+	--f87vJ_: 0px;
+	--iHyWQC: 0px;
+	--miACtF: 10px;
+	--oVxH9k: 20px;
+}
+
+.LeAl6c {
+	color: var(--HccdmT);
+	--HccdmT: red;
+}
+
+.uAUoJm {
+	color: var(--global-color);
+	--global-color: red;
+}
+
+@media (min-width: 1600px) {
+	.mQtnpR {
+		color: var(--HccdmT);
+		--HccdmT: green;
+	}
+}
+
+@media screen and (max-width: 600px) {
+	.uVzDRC {
+		color: var(--HccdmT);
+		--HccdmT: purple;
+	}
+}
+
+@supports (display: grid) {
+	.cKTEWx {
+		display: grid;
+	}
+}
+
+@supports not (display: grid) {
+  .Z8vNCH {
+    float: right;
+  }
+}
+
+@supports (display: flex) {
+  @media screen and (min-width: 900px) {
+    .TBiutY {
+      display: flex;
+    }
+  }
+}
+
+@media screen and (min-width: 900px) {
+	@supports (display: flex) {
+    .Xl0eT3 {
+      display: flex;
+    }
+  }
+}
+
+@MEDIA screen and (min-width: 900px) {
+	@SUPPORTS (display: flex) {
+		.o_P_1I {
+			display: flex;
+		}
+	}
+}
+
+._2T2eIM {
+	ANIMATION-NAME: uAEXs8;
+	ANIMATION: Xs ease-in Xs 2 reverse both paused uAEXs8, JS6BU_;
+	--f87vJ_: 0px;
+	--iHyWQC: 0px;
+	--miACtF: 10px;
+	--oVxH9k: 20px;
+}
+
+@KEYFRAMES uAEXs8 {
+	0% {
+		left: VAR(--f87vJ_);
+		top: VAR(--iHyWQC);
+		color: VAR(--theme-color1);
+	}
+	100% {
+		left: VAR(--miACtF);
+		top: VAR(--oVxH9k);
+		color: VAR(--theme-color2);
+	}
+}
+
+@KEYframes JS6BU_ {
+	0% {
+		left: 0;
+	}
+	100% {
+		left: 100px;
+	}
+}
+
+.globalUpperCase .Y98-7M {
+	color: yellow;
+}
+
+.-sUWrx {
+	color: VAR(--JtZ41K);
+	--JtZ41K: red;
+}
+
+.gAT-74 {
+	COLOR: VAR(--GLOBAR-COLOR);
+	--GLOBAR-COLOR: red;
+}
+
+@supports (top: env(safe-area-inset-top, 0)) {
+	.AxG_do {
+		color: red;
+	}
+}
+
+.QNNb26 {
+	animation: Xs _5hD7K3;
+	-webkit-animation: Xs _5hD7K3;
+}
+
+._3QvxP- {
+	animation: _5hD7K3 Xs;
+	-webkit-animation: _5hD7K3 Xs;
+}
+
+.jFQsGk {
+	animation-name: _5hD7K3;
+	-webkit-animation-name: _5hD7K3;
+}
+
+.EP2-jo {
+	animation: Xs auto _5hD7K3;
+}
+
+.LX3jBs {
+	--cAt_xk: animationName;
+}
+
+@keyframes _5hD7K3 {
+	0% {
+		background: white;
+	}
+	100% {
+		background: red;
+	}
+}
+
+@-webkit-keyframes _5hD7K3 {
+	0% {
+		background: white;
+	}
+	100% {
+		background: red;
+	}
+}
+
+@-moz-keyframes X73r3G {
+	0% {
+		background: white;
+	}
+	100% {
+		background: red;
+	}
+}
+
+@counter-style OoLsxy {
+	system: cyclic;
+	symbols: "\1F44D";
+	suffix: " ";
+}
+
+@font-feature-values Font One {
+	@styleset {
+		nice-style: 12;
+	}
+}
+
+/* At-rule for "nice-style" in Font Two */
+@font-feature-values Font Two {
+	@styleset {
+		nice-style: 4;
+	}
+}
+
+@property --zi5zI0 {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: #c0ffee;
+}
+
+@property --ydk19l {
+	initial-value: #c0ffee;
+	syntax: "<color>";
+	inherits: false;
+}
+
+@property --og81uG {
+	syntax: "<color>";
+	initial-value: #c0ffee;
+	inherits: false;
+}
+
+.QOzV90 {
+	color: var(--zi5zI0);
+}
+
+@layer utilities {
+	.q0QpWD {
+		padding: 0.5rem;
+	}
+
+	.MUsui4 {
+		padding: 0.8rem;
+	}
+}
+
+.QOzV90 {
+	color: red;
+
+	.Jscs7a {
+		color: red;
+	}
+
+	@media screen and (min-width: 200px) {
+		color: blue;
+
+		.Ua9FxC {
+			color: blue;
+		}
+	}
+
+	@supports (display: flex) {
+		display: flex;
+
+		.TzdC23 {
+			display: flex;
+		}
+	}
+
+	@layer foo {
+		background: red;
+
+		._2XtmmX {
+			background: red;
+		}
+	}
+
+	@container foo-c {
+		background: red;
+
+		._2XtmmX {
+			background: red;
+		}
+	}
+}
+
+.ZxdKHi {
+	color: #fff;
+	opacity: 0.12;
+	padding: .5px;
+	unknown: :local(.test);
+	unknown2: :global(.test);
+	unknown3: local(.test);
+	unknown4: global(.test);
+	/* No one support it */
+	unknown5: :local .test;
+	unknown6: :global .test;
+	unknown7: .foo, .bar, #bar;
+}
+
+@unknown local(.local) global(.global) {
+	color: red;
+}
+
+@unknown :local(.local) :global(.global) {
+	color: red;
+}
+
+.qBo0Os {
+	.QOXIcc {
+		color: var(--HccdmT);
+	}
+}
+
+.qGUfK4 {
+	color: red;
+
+	.S4riCa {
+		color: red;
+	}
+
+	.global-nested {
+		color: red;
+	}
+
+	.S4riCa {
+		color: red;
+	}
+
+	.global-nested {
+		color: red;
+	}
+
+	.S4riCa, .global-nested-next {
+		color: red;
+	}
+
+	.S4riCa, .global-nested-next {
+		color: red;
+	}
+
+	.foo, .VBRDBl {
+		color: red;
+	}
+}
+
+#gRcMr6 {
+	color: red;
+
+	#t7qpha {
+		color: red;
+	}
+}
+
+.rJB2wP {
+	.mCkB7a div:has(.Ly1QPe, .CmmP_5) {
+		max-height: 0;
+		margin: 0;
+		overflow: hidden;
+	}
+}
+
+.global-foo {
+	.gyF8-r {
+		color: red;
+	}
+
+	._0KuuXs {
+		color: blue;
+	}
+}
+
+@unknown .class {
+	color: red;
+
+	.QOzV90 {
+		color: red;
+	}
+}
+
+.class .f4FQ9p,
+.class .f4FQ9p,
+.PCgH8p .in-local-global-scope {
+	color: red;
+}
+
+@container (width > 400px) {
+	.LDTvJw {
+		font-size: 1.5em;
+	}
+}
+
+@container summary (min-width: 400px) {
+	@container (width > 400px) {
+		.D6rnlB {
+			font-size: 1.5em;
+		}
+	}
+}
+
+:scope {
+	color: red;
+}
+
+.TbWIZF:-ms-input-placeholder {
+	--_05BNuH: 1;
+	color: #4a5568;
+	color: rgba(74, 85, 104, var(--_05BNuH));
+}
+.TbWIZF::-ms-input-placeholder {
+	--_05BNuH: 1;
+	color: #4a5568;
+	color: rgba(74, 85, 104, var(--_05BNuH));
+}
+.TbWIZF::placeholder {
+	--_05BNuH: 1;
+	color: #4a5568;
+	color: rgba(74, 85, 104, var(--_05BNuH));
+}
+
+:root {
+	--lEz9EJ: dark;
+}
+
+@media screen and (prefers-color-scheme: var(--lEz9EJ)) {
+	.Ysy1gY {
+		color: white;
+	}
+}
+
+@keyframes QnPvVv {
+	from {
+		margin-left: 100%;
+		width: 300%;
+	}
+
+	to {
+		margin-left: 0%;
+		width: 100%;
+	}
+}
+
+.QOzV90 {
+	animation:
+		foo var(--cAt_xk) Xs,
+		var(--cAt_xk) Xs,
+		Xs linear Xs infinite running QnPvVv,
+		Xs linear env(foo, var(--PXDyym)) infinite running QnPvVv;
+}
+
+:root {
+	--PXDyym: 10px;
+}
+
+.QOzV90 {
+	bar: env(foo, var(--PXDyym));
+}
+
+.global-foo, .VBRDBl {
+	._0KuuXs       {
+		color: blue;
+	}
+
+	@media screen {
+		.my-global-class-again,
+		.qa9Esz {
+			color: red;
+		}
+	}
+}
+
+.Ebk7nx {
+	.Bf-34o {
+		color: red;
+	}
+}
+
+.cAnWRc {
+	@media screen {
+		.ORpcjt {
+			color: red;
+		}
+	}
+}
+
+.again-global {
+	color:red;
+}
+
+.again-again-global {
+	.again-again-global {
+		color: red;
+	}
+}
+
+:root {
+	--kvBL0M: red;
+}
+
+.again-again-global {
+	color: var(--kvBL0M);
+
+	.again-again-global {
+		color: var(--kvBL0M);
+	}
+}
+
+.again-again-global {
+	animation: slidein Xs;
+
+	.again-again-global, .QOzV90, .v9mhuK.nested2.-vroQ0 {
+		animation: QnPvVv Xs;
+	}
+
+  .o2ag3h .global,
+	.DlJGLH {
+		color: red;
+	}
+}
+
+@unknown var(--kvBL0M) {
+	color: red;
+}
+
+.QOzV90 {
+	.QOzV90 {
+		.QOzV90 {
+			.QOzV90 {}
+		}
+	}
+}
+
+.QOzV90 {
+	.QOzV90 {
+		.QOzV90 {
+			.QOzV90 {
+				animation: QnPvVv Xs;
+			}
+		}
+	}
+}
+
+.QOzV90 {
+	animation: QnPvVv Xs;
+	.QOzV90 {
+		animation: QnPvVv Xs;
+		.QOzV90 {
+			animation: QnPvVv Xs;
+			.QOzV90 {
+				animation: QnPvVv Xs;
+			}
+		}
+	}
+}
+
+._77QV3n {
+	. global(.QOzV90) {
+		color: red;
+	}
+
+	: global(.QOzV90) {
+		color: red;
+	}
+
+	: global .QOzV90 {
+		color: red;
+	}
+
+	: local(.QOzV90) {
+		color: red;
+	}
+
+	: local .QOzV90 {
+		color: red;
+	}
+
+	# hash {
+		color: red;
+	}
+}
+
+.k0a92c {
+	:/** test */global(.QOzV90) {
+		color: red;
+	}
+
+	:/** test */global .QOzV90 {
+		color: red;
+	}
+
+	:/** test */local(.QOzV90) {
+		color: red;
+	}
+
+	:/** test */local .QOzV90 {
+		color: red;
+	}
+
+	./** test **/class {
+		color: red;
+	}
+
+	./** test **/class {
+		color: red;
+	}
+
+	./** test **/class {
+		color: red;
+	}
+}
+
+.wTCEov {
+	color: red;
+	+ .VBRDBl + & { color: blue; }
+}
+
+._3N5MDX, #_06Su3Q {
+	&:hover > .Ysy1gY { color: red; }
+}
+
+.wTCEov {
+	& :is(.VBRDBl, &.Ysy1gY) { color: red; }
+}
+
+.Ws-6mH {
+	color: green;
+	& .QNNb26 { color: blue; }
+	color: red;
+}
+
+.e3xh9w {
+	color: blue;
+
+	@scope (& > .RMMPiY) to (& > .PTrrae) {
+		& .p6NMtj {
+			color: red;
+		}
+	}
+}
+
+.e3xh9w {
+	color: blue;
+
+	@scope (& > .RMMPiY) to (& > .PTrrae) {
+		.p6NMtj {
+			color: red;
+		}
+	}
+
+	.QNNb26 {
+		color: red;
+	}
+}
+
+@scope (.r7OFAg) {
+	:scope { border-block-end: 1px solid white; }
+}
+
+.r7OFAg {
+	inline-size: 40ch;
+	aspect-ratio: 3/4;
+
+	@scope (&) {
+		:scope {
+			border: 1px solid white;
+		}
+	}
+}
+
+.wTCEov {
+	display: grid;
+
+	@media (orientation: landscape) {
+		.VBRDBl {
+			grid-auto-flow: column;
+
+			@media (min-width > 1024px) {
+				.eWyKrO {
+					display: grid;
+				}
+
+				max-inline-size: 1024px;
+
+				._M5HZK {
+					display: grid;
+				}
+			}
+		}
+	}
+}
+
+@counter-style OoLsxy {
+	system: cyclic;
+	symbols: "\1F44D";
+	suffix: " ";
+}
+
+ul {
+	list-style: OoLsxy;
+}
+
+@counter-style D4_Pgj {
+	fallback: thumbs;
+	system: extends thumbs;
+	speak-as: thumbs;
+}
+
+div {
+	list-style: inside;
+	list-style: outside;
+	list-style: upper-roman inside;
+	list-style: circle outside;
+	list-style: none disc;
+	list-style: none url("c70fe6cc89bc50bd.png");
+	list-style: none;
+	list-style: none disc url("c70fe6cc89bc50bd.png");
+	list-style: lower-alpha;
+	list-style: disc;
+	list-style: square;
+	list-style: url("c70fe6cc89bc50bd.png");
+	list-style: georgian inside url("c70fe6cc89bc50bd.png");
+	list-style: georgian outside url("c70fe6cc89bc50bd.png");
+	/* type */
+	list-style: square;
+
+	/* image */
+	list-style: url("c70fe6cc89bc50bd.png");
+
+	/* position */
+	list-style: inside;
+
+	/* two values */
+	list-style: georgian outside;
+	list-style: url("c70fe6cc89bc50bd.png") inside;
+
+	/* three values */
+	list-style: lower-roman url("c70fe6cc89bc50bd.png") outside;
+
+	/* Keyword value */
+	list-style: none;
+
+	/* Global values */
+	list-style: inherit;
+	list-style: initial;
+	list-style: revert;
+	list-style: revert-layer;
+	list-style: unset;
+
+	list-style-type: "★";
+
+	list-style-type: D4_Pgj;
+	list-style: D4_Pgj;
+}
+
+@container (width > 400px) and style(--responsive: true) {
+	.QOzV90 {
+		font-size: 1.5em;
+	}
+}
+
+@container _8KpaTF (height > 30rem) {
+	p {
+		line-height: 1.6;
+	}
+}
+
+@container Bv-OQu scroll-state(stuck: top) {
+	h2 {
+		background: purple;
+		color: white;
+	}
+}
+
+@container card-c (width > 400px), style(--responsive: true), scroll-state(stuck: top) {
+	h2 {
+		font-size: 1.5em;
+	}
+}
+
+@container (width > 400px) and (height > 400px) {
+	/* <stylesheet> */
+}
+
+@container (width > 400px) or (height > 400px) {
+	/* <stylesheet> */
+}
+
+@container not (width < 400px) {
+	/* <stylesheet> */
+}
+
+@container (min-width: 400px) {
+	/* … */
+}
+@container (orientation: landscape) and (width > 400px) {
+	/* … */
+}
+@container (15em <= block-size <= 30em) {
+	/* … */
+}
+
+.LLM4Fe {
+	container-name: _8KpaTF;
+	container-type: inline-size;
+
+	container: none;
+	container: inherit;
+	container: Bv-OQu / inline-size;
+	container: Bv-OQu / size;
+	container: Bv-OQu / scroll-state;
+	--rcwvWW: local(sticky-heading);
+
+	container: var(--rcwvWW);
+	--C69uUc: small;
+	container-type: inline-size;
+}
+
+
+@container summary style(--cards: small) {
+	.r7OFAg {
+		border: thin solid silver;
+		border-radius: 0.5em;
+		padding: 1em;
+	}
+}
+
+/* At-rule for "nice-style" in Font One */
+@font-feature-values Font One {
+	@styleset {
+		nice-style: 12;
+	}
+}
+
+@font-palette-values bfV9LM {
+	font-family: Bixa;
+}
+
+.L42EXS {
+	font-palette: bfV9LM;
+}
+
+@keyframes _2-Nrxy { /* ... */ }
+@keyframes "foo-kf-str" { /* ... */ }
+@keyframes { /* ... */ }
+@keyframes{ /* ... */ }
+
+@supports (display: flex) {
+	@media screen and (min-width: 900px) {
+		article {
+			display: flex;
+		}
+	}
+}
+
+@starting-style {
+	.QOzV90 {
+		opacity: 0;
+		transform: scaleX(0);
+	}
+}
+
+.QOzV90 {
+	opacity: 1;
+	transform: scaleX(1);
+
+	@starting-style {
+		opacity: 0;
+		transform: scaleX(0);
+	}
+}
+
+@scope (.sc0B44) {
+	.QOzV90 { opacity: 0; }
+
+	:scope ._21gnTb { opacity: 0; }
+
+	& .QOzV90 { opacity: 0; }
+}
+
+@position-try --custom-left {
+	position-area: left;
+	width: 100px;
+	margin: 0 10px 0 0;
+}
+
+@position-try --custom-bottom {
+	top: anchor(bottom);
+	justify-self: anchor-center;
+	margin: 10px 0 0 0;
+	position-area: none;
+}
+
+@position-try --custom-right {
+	left: calc(anchor(right) + 10px);
+	align-self: anchor-center;
+	width: 100px;
+	position-area: none;
+}
+
+@position-try --custom-bottom-right {
+	position-area: bottom right;
+	margin: 10px 0 0 10px;
+}
+
+.SNVYUG {
+	position: fixed;
+	position-anchor: --myAnchor;
+	position-area: top;
+	width: 200px;
+	margin: 0 0 10px 0;
+	position-try-fallbacks:
+		--custom-left, --custom-bottom,
+		--custom-right, --custom-bottom-right;
+}
+
+@page {
+	size: 8.5in 9in;
+	margin-top: 4in;
+}
+
+@color-profile --swop5c {
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+}
+
+.iy6HIx {
+	background-color: color(--swop5c 0% 70% 20% 0%);
+}
+
+.drB8Bx {
+	test: (1, 2) [3, 4], { 1: 2};
+	.QNNb26 {
+		width: 200px;
+	}
+}
+
+.drB8Bx {
+	.drB8Bx {
+		width: 200px;
+	}
+}
+
+.drB8Bx {
+	width: 200px;
+
+	.drB8Bx {
+		width: 200px;
+	}
+}
+
+.drB8Bx {
+	width: 200px;
+
+	.drB8Bx {
+		.drB8Bx {
+			width: 200px;
+		}
+	}
+}
+
+.drB8Bx {
+	width: 200px;
+
+	.drB8Bx {
+		width: 200px;
+
+		.drB8Bx {
+			width: 200px;
+		}
+	}
+}
+
+.drB8Bx {
+	.drB8Bx {
+		width: 200px;
+
+		.drB8Bx {
+			width: 200px;
+		}
+	}
+}
+
+.drB8Bx {
+	.drB8Bx {
+		width: 200px;
+	}
+	width: 200px;
+}
+
+.drB8Bx {
+	.drB8Bx {
+		width: 200px;
+	}
+	.drB8Bx {
+		width: 200px;
+	}
+}
+
+.drB8Bx {
+	.drB8Bx {
+		width: 200px;
+	}
+	width: 200px;
+	.drB8Bx {
+		width: 200px;
+	}
+}
+
+#GrR2DM {
+	c: 1;
+
+	#GrR2DM {
+		c: 2;
+	}
+}
+
+@property --TZBD8Y {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+
+.WAKKCK {
+	display: flex;
+	height: 200px;
+	border: 1px dashed black;
+
+	/* set custom property values on parent */
+	--TZBD8Y: 20%;
+	--WZUF1W: orange;
+}
+
+.e_tz8c {
+	width: var(--TZBD8Y);
+	height: var(--TZBD8Y);
+	background-color: var(--WZUF1W);
+}
+
+.JxRG2A {
+	--TZBD8Y: initial;
+	--WZUF1W: inherit;
+}
+
+.Q_cVZI {
+	/* invalid values */
+	--TZBD8Y: 1000px;
+	--WZUF1W: xyz;
+}
+
+@property invalid {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property{
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+
+@property --mYh0Ff {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 25%;
+}
+
+.VBRDBl {
+	display: inline-block;
+	--mYh0Ff: 25%;
+	width: 100%;
+	height: 5px;
+	background: linear-gradient(
+		to right,
+		#00d230 var(--mYh0Ff),
+		black var(--mYh0Ff)
+	);
+	animation: B8W-Fk Xs ease infinite;
+}
+
+@keyframes B8W-Fk {
+	to {
+		--mYh0Ff: 100%;
+	}
+}
+
+@keyframes "initial" { /* ... */ }
+@keyframes/**test**/"initial" { /* ... */ }
+@keyframes/**test**/"initial"/**test**/{ /* ... */ }
+@keyframes/**test**//**test**/"initial"/**test**//**test**/{ /* ... */ }
+@keyframes /**test**/ /**test**/ "initial" /**test**/ /**test**/ { /* ... */ }
+@keyframes "None" { /* ... */ }
+@property/**test**/--TZBD8Y {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property/**test**/--TZBD8Y/**test**/{
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property /**test**/--TZBD8Y/**test**/ {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property /**test**/ --TZBD8Y /**test**/ {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property/**test**/ --TZBD8Y /**test**/{
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property /**test**/ --TZBD8Y /**test**/ {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+div {
+	animation: Xs ease-in Xs 2 reverse both paused "initial", cZXs2Q;
+	animation-name: "initial";
+	animation-duration: Xs;
+}
+
+.c0rwmO {
+	width: var(   --TZBD8Y   );
+	height: var(/**comment**/--TZBD8Y);
+	background-color: var( /**comment**/--WZUF1W);
+	background-color-1: var(/**comment**/ --WZUF1W);
+	background-color-2: var( /**comment**/ --WZUF1W);
+	background-color-3: var( /**comment**/ --WZUF1W /**comment**/ );
+	background-color-3: var( /**comment**/--WZUF1W/**comment**/ );
+	background-color-3: var(/**comment**/--WZUF1W/**comment**/);
+}
+
+@keyframes/**test**/b3E51V { /* ... */ }
+@keyframes /**test**/b3E51V { /* ... */ }
+@keyframes/**test**/ b3E51V { /* ... */ }
+@keyframes /**test**/ b3E51V { /* ... */ }
+@keyframes /**test**//**test**/ b3E51V { /* ... */ }
+@keyframes /**test**/ /**test**/ b3E51V { /* ... */ }
+@keyframes /**test**/ /**test**/b3E51V { /* ... */ }
+@keyframes /**test**//**test**/b3E51V { /* ... */ }
+@keyframes/**test**//**test**/b3E51V { /* ... */ }
+@keyframes/**test**//**test**/b3E51V/**test**//**test**/{ /* ... */ }
+@keyframes /**test**/ /**test**/ b3E51V /**test**/ /**test**/ { /* ... */ }
+
+./**test**//**test**/class {
+	background: red;
+}
+
+./**test**/ /**test**/class {
+	background: red;
+}
+
+.ytUCJ6 {
+	--Epevav: black;
+	--_040z2n: 10px;
+	--kvBL0M: 10px;
+	--HkU0xM: calc(var(--kvBL0M) + 10px);
+	--Ivc8ab: linear-gradient(to top, var(--Epevav), white);
+	--JfA6jJ: "test";
+	--eMpj7u: yellow;
+	--dAT8Np: red;
+	--pU1mpu: red;
+	--c6Wz5m: black;
+	-foo: calc(var(--HkU0xM) + 10px);
+	var: var(--Epevav);
+	var1: var(--kvBL0M);
+	var2: var(--_040z2n);
+	content: " (" var(--JfA6jJ) ")";
+	var3: var(--Epevav, blue);
+	var4: var(--eMpj7u,);
+	var5: var(--eMpj7u, initial);
+	var6: var(--eMpj7u, var(--dAT8Np));
+	var7: var(--eMpj7u, var(--dAT8Np, red));
+	var8: var(--unknown);
+	background-color: var(--pU1mpu, var(--c6Wz5m, white));
+}
+
+._30ewwr {
+	background-color: var(--lEz9EJ);
+	--lEz9EJ: red;
+}
+
+.SHHta9 {
+	border-radius: 12px;
+}
+
+._0PieIy {
+	border-radius: 12px;
+}
+
+.edrPfC {
+	border-radius: 12px;
+}
+
+.s2QRyf {
+	border: red;
+}
+
+.rkQwMl {
+}
+
+.global-class-name {
+	color: red;
+}
+
+.tpymdX {
+	color: blue;
+}
+
+.YpSqm3 {
+	color: green;
+}
+
+._0fu1v8 {
+	composes: local-class-name global(global-class-name) local(other-local-class-name);
+}
+
+.M-C0GT {
+	color: red;
+}
+
+.CUMcZV {
+}
+
+.DcRaGU {
+}
+
+.HFQ_li {
+}
+
+.nw2bh5 {
+}
+
+@function --KesLBr(--color <color>, --alpha type(<number> | <percentage>)) returns <color> {
+	result: oklch(from var(--color) l c h / var(--alpha));
+}
+
+section {
+	--k8T56r: #faa6ff;
+	background-color: --KesLBr(var(--k8T56r), 0.8);
+}
+
+@function --yIZPCF(--list <length>#, --x <length>) {
+	result: calc(max(var(--list)) + var(--x));
+}
+
+div {
+	width: --yIZPCF({1px, 7px, 2px}, 3px); /* 10px */
+}
+
+@function --TCfLnD(--animation-prop, --count) {
+	--AM6i0u: Xs;
+	--WRtPvj: linear;
+	result: var(--animation-prop) var(--AM6i0u) var(--count) var(--WRtPvj);
+}
+
+div {
+	animation: --TCfLnD(local(bounce), 2);
+}
+
+@function --JS8Yi1(--outer-arg) {
+	--HkiHai: 2;
+	result: --diXd_9();
+}
+
+@function --diXd_9() returns <number> {
+	result: calc(var(--outer-arg) + var(--HkiHai));
+}
+
+div {
+	z-index: --JS8Yi1(1); /* 3 */
+}
+
+@function --MaFBpE(--narrow, --wide) {
+	result: var(--wide);
+	@media (width < 700px) {
+		result: var(--narrow);
+	}
+}
+
+@function --JWtKzJ(--narrow, --wide) {
+	result: if(media(width < 700px): var(--narrow) ; else: var(--wide));
+}
+
+@function --KesLBr(--color, --alpha) {
+	result: oklch(from var(--color) l c h / var(--alpha));
+}
+
+@function --_3LO4wF(--color, --alpha) {
+	result: oklch(from var(--color) l c h / var(--alpha));
+}
+
+@function --transparent-global(--color, --alpha) {
+	result: oklch(from var(--color) l c h / var(--alpha));
+}
+
+section {
+	--k8T56r: #faa6ff;
+	background-color: --KesLBr(var(--k8T56r), 0.8);
+	background-color: local(--transparent-local)(var(--k8T56r), 0.8);
+	background-color: global(--transparent-global)(var(--k8T56r), 0.8);
+}
+
+:root {
+	--Rfhz1w: sharp;
+}
+
+.tX5NTv {
+	border-radius: if(style(--mode: sharp): 0px; else: revert-rule);
+}
+
+@color-profile --swop5c {
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+}
+
+@color-profile local(--swop5c-local) {
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+}
+
+@color-profile :local(--swop5c-local) {
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+}
+
+@color-profile global(--swop5c) {
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+}
+
+@color-profile :global(--swop5c) {
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+}
+
+.QOzV90 {
+	background-color: color(--swop5c 0% 70% 20% 0%);
+	background-color: color(local(--swop5c-local) 0% 70% 20% 0%);
+	background-color: color(:local(--swop5c-local) 0% 70% 20% 0%);
+	background-color: color(global(--swop5c) 0% 70% 20% 0%);
+	background-color: color(:global(--swop5c) 0% 70% 20% 0%);
+	background-color: color(--swop5c from global 0% 70% 20% 0%);
+	background-color: color(--from-shared from "./shared.css" 0% 70% 20% 0%);
+	background-color: color(local(--swop5c-local, "./shared.css") 0% 70% 20% 0%);
+	background-color: color(:local(--swop5c-local, "./shared.css") 0% 70% 20% 0%);
+}
+
+:root {
+	--hMH5Fu: #eee;
+}
+
+.dxLj7j {
+	color: var(--hMH5Fu);
+}
+
+/* Just nesting */
+.ijeRyb {
+	--hMH5Fu: #fff;
+	--RkgSLn: #333;
+
+	.coLMFZ {
+		--IepiPd: var(--hMH5Fu);
+		--ekDJ15: var(--RkgSLn);
+		color: var(--IepiPd);
+		background-color: var(--ekDJ15);
+	}
+}
+
+/* A container context based on inline size */
+.LLM4Fe {
+	--t6Nbej: blue;
+	container-type: inline-size;
+}
+
+/* Apply styles if the container is narrower than 650px */
+@container (width < 650px) and style(--themeColor: blue) {
+	.r7OFAg {
+		width: 50%;
+		background-color: lightgray;
+		font-size: 1em;
+	}
+}
+
+@keyframes _9HepOj;
+
+._36SODu {
+	color: red;
+}
+
+.glWozd {
+	.class-no-space {
+		color: red;
+	}
+
+	/** test **/.class {
+		color: red;
+	}
+
+	.QOzV90 {
+		color: red;
+	}
+
+	/** test **/.QOzV90 {
+		color: red;
+	}
+
+	/** test **/#G6Dodr {
+		color: red;
+	}
+
+	/** test **/{
+		color: red;
+	}
+}
+
+/* nesting */
+
+.QOzV90{.QOzV90{}}
+.QOzV90{color:#fff5f5}
+.QOzV90{.QOzV90{color:#f1f1f1}}
+.QOzV90{--kvBL0M:#fff5f5}
+.QOzV90{--kvBL0M:#fff5f5;color:#f1f1f1}
+.QOzV90{--kvBL0M:#fff5f5;color:#f1f1f1;}
+.QOzV90{--kvBL0M:#fff5f5;color:#f1f1f1;.QOzV90{color:#f1f1f1}}
+.QOzV90{--kvBL0M:#fff5f5;.QOzV90{color:#f1f1f1}color:#f1f1f1;}
+.QOzV90{.QOzV90{color:#f1f1f1}--kvBL0M:#fff5f5;color:#f1f1f1;}
+/* TODO fix, but this syntax is not used anywhere */
+.QOzV90{--HkU0xM:{1, 'string', .class, #f1f1f1, #id}}
+.QOzV90{--PXDyym:[1, "string", .class, #f1f1f1, #id]}
+.QOzV90{--PXDyym:(1, "string", .class, #f1f1f1, #id)}
+
+/* Cases for `css/global` */
+
+.Fg2C-i {
+	color: red;
+}
+
+.TzxCCS {
+	color: red;
+}
+
+.my-global-local {
+	color: red;
+}
+
+.q_ZEsP._VueBA {
+	color: red;
+}
+
+.UMdIXX .Z93iiu {
+	color: red;
+}
+
+div:not(._5ld3-N) {
+	color: blue;
+}
+
+p:not(#S1f4_9) {
+	font-weight: bold;
+}
+
+.WAKKCK {
+	/* Styles for .container */
+	background-color: lightblue;
+
+	@media (min-width: 768px) {
+		/* Styles for .card on larger screens */
+		display: flex;
+		gap: 1rem;
+	}
+
+	@supports (display: grid) {
+		& .iy6HIx {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+		}
+	}
+
+	& .r9gLpu {
+		/* Styles for .container.active */
+		border: 2px solid blue;
+	}
+
+	&.nRkCtE {
+		/* Styles for .container.highlighted */
+		box-shadow: 0 0 5px yellow;
+	}
+
+	/* Nesting a descendant with multiple classes */
+	.e_tz8c.oDJZN0 {
+		/* Styles for .container .item.selected */
+		font-weight: bold;
+		color: darkgreen;
+	}
+}
+
+.lJrzOM {
+	/* Styles for .container */
+	background-color: lightblue;
+
+	@media (min-width: 768px) {
+		/* Styles for .card on larger screens */
+		display: flex;
+		gap: 1rem;
+	}
+
+	@supports (display: grid) {
+		& .iy6HIx {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+		}
+	}
+
+	& .r9gLpu {
+		/* Styles for .container.active */
+		border: 2px solid blue;
+	}
+
+	&.nRkCtE {
+		/* Styles for .container.highlighted */
+		box-shadow: 0 0 5px yellow;
+	}
+
+	/* Nesting a descendant with multiple classes */
+	.e_tz8c.oDJZN0 {
+		/* Styles for .container .item.selected */
+		font-weight: bold;
+		color: darkgreen;
+	}
+}
+
+.tpymdX {
+	color: red;
+}
+
+.QRQF9O .tpymdX {
+	color: red;
+}
+
+.tpymdX .bXLwlc {
+	color: red;
+}
+
+.wTCEov {
+	&.QOzV90 {
+		a_value: some-value;
+	}
+
+	@media screen and (min-width: 900px) {
+		b_value: some-value;
+
+		.VBRDBl {
+			c_value: some-value;
+		}
+
+		&.Ysy1gY {
+			c_value: some-value;
+		}
+	}
+}
+
+/* Composes */
+
+.QOzV90 {
+	color: black;
+}
+
+.sdl-yn {
+	color: white;
+}
+
+.global-class-other {
+	color: red;
+}
+
+.Djn_-k {
+}
+
+/* At-rules */
+
+@keyframes mPBZa9 {}
+@keyframes local(local-keyframes) {}
+@keyframes global(global-keyframes) {}
+/** Deprecated syntax */
+@keyframes uF5zX4 {}
+@keyframes local-keyframes-old-syntax {}
+
+.wTCEov {
+	animation-name: mPBZa9, global(global-keyframes), local(local-keyframes);
+}
+
+@property local(--progress) {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 25%;
+}
+
+@keyframes local(progressAnimationLocal) {
+	to {
+		--mYh0Ff: 100%;
+	}
+}
+
+.VBRDBl {
+	display: inline-block;
+	--mYh0Ff: 25%;
+	width: 100%;
+	height: 5px;
+	background: linear-gradient(
+		to right,
+		#00d230 var(local(--progress)),
+		black var(local(--progress))
+	);
+	animation: local(progressAnimationLocal) Xs ease infinite;
+}
+
+@scope (.Xg0ZCg) to (.class) {
+	.mOiGb2 {
+		border: 5px solid black;
+	}
+	._21gnTb {
+		color: red;
+	}
+	.class-2 {
+		color: blue;
+	}
+}
+
+/** Custom properties */
+
+:root {
+	--aCgLhx: red;
+	--KtUTLV: red;
+	--eHLuEV: red;
+	--sYmygI:
+	red,
+	local(--local-foo-bar),
+	global(--global-foo-bar),
+		/** Deprecated syntax */
+	:local(--local-foo-bar),
+	:global(--global-foo-bar);
+}
+
+.QOzV90 {
+	background-color:
+		var(--aCgLhx),
+		var(local(--local-foo-bar)),
+		var(global(--global-foo-bar)),
+			/** Deprecated syntax */
+		var(:local(--local-foo-bar)),
+		var(:global(--global-foo-bar)),
+		var(--global-foo-bar from global),
+		var(--PDkSHX from "./shared.css");
+}
+
+/** Custom local value */
+
+@unknown-rule local(unknown-at-rule) {}
+
+.QOzV90 {
+	custom-name: local(unknown-at-rule);
+}
+
+.class {
+	--test-1: red;
+	color: var(--test-1);
+	animation-name: animation-name-test;
+	local-and-global: local(animation-name-test) global(animation-name-test)
+}
+
+/* GRID */
+
+.VKvVD_ {
+	grid: none;
+}
+
+.jRqeb- {
+	grid: "a" 100px "b" 1fr;
+}
+
+.pLFqOj {
+	grid: [line-name1] "a" 100px [line-name2];
+}
+
+.KK3bw4 {
+	grid: "a" 200px "b" min-content;
+}
+
+.g7YQlH {
+	grid: "a" minmax(100px, max-content) "b" 20%;
+}
+
+._2WR7SE {
+	grid: 100px / 200px;
+}
+
+.giTFJj {
+	grid: minmax(400px, min-content) / repeat(auto-fill, 50px);
+}
+
+.AiDyCA {
+	grid: 200px / auto-flow;
+}
+
+.xX6SqP {
+	grid: 30% / auto-flow dense;
+}
+
+.NazgM4 {
+	grid: repeat(3, [line1 line2 line3] 200px) / auto-flow 300px;
+}
+
+.T2PsqI {
+	grid: [line1] minmax(20em, max-content) / auto-flow dense 40%;
+}
+
+.Wl2x3V {
+	grid: auto-flow / 200px;
+}
+
+.Z29aYm {
+	grid: auto-flow dense / 30%;
+}
+
+._eT2_4 {
+	grid: auto-flow 300px / repeat(3, [line1 line2 line3] 200px);
+}
+
+.U3eMWw {
+	grid: auto-flow dense 40% / [line1] minmax(20em, max-content);
+}
+
+.JM4gZA {
+	grid: inherit;
+	grid: initial;
+	grid: revert;
+	grid: revert-layer;
+	grid: unset;
+}
+
+.rkQq8B {
+	grid-template-areas: 'A43iB- uePGgM';
+}
+
+.ioZ2-S {
+	grid-area: auto / auto / auto / auto;
+}
+
+.NaPhxl {
+	grid-area: some-grid-area;
+}
+
+._3yupwS {
+	grid-area: some-grid-area / another-grid-area;
+}
+
+._3nbrb {
+	grid-area: X some-grid-area / 2 another-grid-area;
+}
+
+.oiH7Y3 {
+	grid-area: span 3 / span some-grid-area;
+}
+
+/* Keyword value */
+._9rIbS9 {
+	grid-row-start: auto;
+}
+
+/* <custom-ident> values */
+.w_YCTS {
+	grid-row-start: some-grid-area;
+}
+
+/* <integer> + <custom-ident> values */
+.A0CCe3 {
+	grid-row-start: 2;
+}
+.a5E66Y {
+	grid-row-start: some-grid-area 4;
+}
+
+/* span + <integer> + <custom-ident> values */
+.opoBwh {
+	grid-row-start: span 3;
+}
+._5ksqCR {
+	grid-row-start: span some-grid-area;
+}
+.SLF0yU {
+	grid-row-start: X some-grid-area span;
+}
+
+/* Global values */
+.OHJ7b1 {
+	grid-row-start: inherit;
+}
+.fBcZDV {
+	grid-row-start: initial;
+}
+.IyX4o0 {
+	grid-row-start: revert;
+}
+.VOAP_k {
+	grid-row-start: revert-layer;
+}
+.c0x4fE {
+	grid-row-start: unset;
+}
+
+.ajDOQY {
+	grid-template-areas:
+  "QNNb26 _3QvxP- ."
+  "QNNb26   jFQsGk   LX3jBs";
+}
+
+.xfBaR- {
+	grid-template-rows: [line-name1] 100px [line-name2 line-name3];
+}
+
+.Nfo9FQ {
+	grid-template-rows:
+		[line-name1 line-name2] 100px
+		repeat(auto-fit, [line-name1] 300px) [line-name3];
+}
+
+.Y0TBXs {
+	grid-template-rows:
+		[line-name1] 100px [line-name2]
+		repeat(auto-fit, [line-name3 line-name4] 300px)
+		100px;
+}
+
+.nI2AQE {
+	grid-template-rows: max-content 1fr max-content;
+}
+
+._10WsdI {
+	grid-template:
+		[header-top] "QNNb26 QNNb26 QNNb26" [header-bottom]
+		[main-top] "_3QvxP- _3QvxP- _3QvxP-" 1fr [main-bottom]
+		/ auto 1fr auto;
+}
+
+._6mIpad {
+	display: grid;
+	/* 1. Use repeat, auto-fit, and minmax for responsive columns.
+		 Columns will be at least 150px wide, growing to fill available space (1fr).
+		 Lines are named 'col-start' and 'col-end' for each track repetition. */
+	grid-template-columns: repeat(auto-fit, [col-start] minmax(150px, 1fr) [col-end]);
+
+	/* 2. Define explicit row heights and name key row lines. */
+	grid-template-rows: [header-start] 100px [header-end content-start] auto [content-end];
+
+	/* 3. Add gaps for spacing */
+	gap: 20px;
+
+	padding: 20px;
+	background-color: #f0f0f0;
+}
+
+.QOzV90 {
+	grid-template-columns: repeat(auto-fit, [col-start] minmax(150px, 1fr) [col-end]);
+}
+
+.bbG4GD {
+	display: grid;
+	grid-template-columns: [main-start] 1fr [content-start] 1fr [content-end] 1fr [main-end];
+	grid-template-rows: [main-start] 100px [content-start] 100px [content-end] 100px [main-end];
+}
+
+.tuopjW {
+	grid-column-start: main-start;
+	grid-row-start: main-start;
+	grid-row-end: main-end;
+}
+
+.A2cYgm {
+	grid-column-start: content-end;
+	grid-row-start: main-start;
+	grid-row-end: content-end;
+}
+
+.h9vQpM {
+	grid-column-start: content-start;
+	grid-row-start: main-start;
+}
+
+.r47uGa {
+	grid-column-start: content-start;
+	grid-column-end: main-end;
+	grid-row-start: content-end;
+}
+
+.bbG4GD {
+	display: grid;
+	grid-template-columns: repeat(9, 1fr);
+	grid-auto-rows: minmax(100px, auto);
+	grid-template-areas:
+    "_9T3kJo _9T3kJo _9T3kJo _9T3kJo   _9T3kJo   _9T3kJo   _9T3kJo   _9T3kJo   _9T3kJo"
+    "FrHzxI FrHzxI FrHzxI uePGgM uePGgM uePGgM uePGgM uePGgM uePGgM"
+    "LVWNKA LVWNKA LVWNKA LVWNKA   LVWNKA   LVWNKA   LVWNKA   LVWNKA   LVWNKA";
+}
+
+.iy6HIx {
+	grid-area: _9T3kJo;
+}
+
+.I2KnUk {
+	grid-area: LVWNKA;
+}
+
+.p6NMtj {
+	grid-area: uePGgM;
+}
+
+.b3f0FH {
+	grid-area: FrHzxI;
+}
+
+.bbG4GD > div.drKsRF {
+	z-index: 10;
+	grid-column: main-start / main-end;
+	grid-row: hd-start / ft-end;
+	border: 4px solid rgb(92 148 13);
+	background-color: rgb(92 148 13 / 40%);
+	color: rgb(92 148 13);
+	font-size: 150%;
+}
+
+.bbG4GD {
+	display: grid;
+	grid-template-columns: repeat(12, [col-start] 1fr);
+}
+
+.wtd81n {
+	grid-column: col-start / col-start 5;
+}
+
+.ygdzjU {
+	grid-column: col-start 7 / span 3;
+}
+
+.bbG4GD {
+	grid-template-columns: repeat(4, [col1-start] 1fr [col2-start] 3fr);
+}
+
+.bbG4GD {
+	grid-template-columns: repeat(4, [col-start] 1fr [col-end]);
+}
+
+.bbG4GD {
+	grid-template-columns: [col-start] 1fr [col-end col-start] 1fr [col-end col-start] 1fr [col-end col-start] 1fr [col-end];
+}
+
+.ODFdH9 {
+	animation: none !important;
+	animation: my-name !important;
+	animation-name: none !important;
+	animation-name: my-name !important;
+
+	color: red !important;
+
+	container: Bv-OQu / inline-size !ODFdH9;
+	container-name: _8KpaTF !ODFdH9;
+
+	grid-column: col-start / col-start 5 !important;
+	grid-area: some-grid-area !important;
+
+	list-style-type: extend-thumbs !important;
+	list-style: extend-thumbs !important;
+
+	fallback: thumbs !important;
+	system: extends thumbs !important;
+	speak-as: thumbs !important;
+}
+
+.tRWFVJ {
+    color: red;
+}
+
+.class {
+    color: teal;
+}
+
+.YH7P7z{
+    color: red;
+    padding: var(--Mld_h0);
+    --Mld_h0: 10px;
+}
+
+.Wtt5Dn {
+    color: green;
+    padding: var(--To_SSx);
+    --To_SSx: 10px;
+}

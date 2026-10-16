@@ -1,0 +1,327 @@
+.zeppFg {
+	color: #e74c3c
+}
+
+.D0KKMP {
+	background-color: #3498db;
+	color: white;
+}
+
+.jkUedV {
+	background-color: #e74c3c;
+	border: 2px solid darkred;
+}
+
+
+.Rua1Yr {
+	color: __value__;
+}
+
+.h0dIUU {
+}
+
+
+._3-l_sm {
+	display: unset;
+}
+
+.XXUZ31 {
+	transition: transform Xs ease;
+}
+
+.Yr_cDR {
+	cursor: pointer;
+}
+
+.NGmxzQ {
+	display: flex;
+}
+
+._6KHSvb {
+	align-items: center;
+}
+
+.YgJrAh {
+	padding: 16px;
+}
+
+.AVIBtg {
+	will-change: transform;
+}
+
+.AVIBtg:hover {
+	transform: scale(1.02);
+}
+
+.JCgNOJ {
+	border: 1px solid #ccc;
+	border-radius: 8px;
+}
+
+.WDOuIE {
+	border: 1px solid #ccc;
+	border-radius: 8px;
+}
+
+
+
+.oenpTT {
+	color: red;
+}
+
+.FH9Yf- {
+	color: red;
+}
+
+.FH9Yf- {
+}
+
+.Y5EJ1Y {
+	color: red;
+}
+
+
+.FqwXbw {
+	background: red;
+}
+
+.N_ujLt {
+	color: blue;
+}
+
+._1WppCO {
+}
+
+
+
+
+
+
+.PXmh_O {
+	background: blue;
+}
+
+
+
+
+
+
+._1RKCCE {
+	color: a;
+}
+
+.jI9du_ {
+	color: b;
+}
+
+.FJKuWh {
+	color: c;
+}
+
+.xgjkiB {
+	color: d;
+}
+
+.mIPxxX {
+	color: d;
+}
+
+.DXfwRE {
+}
+
+:root {
+	--_82_UTr: red;
+}
+
+._82_UTr {
+	color: red;
+}
+
+
+
+
+
+
+
+.F2c3Q8 {
+	color: red;
+}
+
+.dIMji1 {
+	width: 50%;
+}
+
+.button-global-font-size\a1 {
+	font-size: 14px;
+}
+
+.T-Utt7 {
+	display: block;
+}
+
+.T-Utt7 {
+	background-color: black;
+}
+
+.ty46ym {
+	background: blue;
+}
+
+.epuGFW {
+}
+
+.v5Nho4 {
+}
+
+.qjDW7i {
+	color: blue;
+}
+
+.qjDW7i {
+	color: blue;
+}
+
+
+._8xIHuq {
+	color: blue;
+}
+
+
+.-yngec {
+	color: blue;
+}
+
+.nE025M {  color: red; }
+._2cRX3F {  color: green; }
+._4wGN0Q { color: blue }
+._2cRX3F {  color: white; }
+._2cRX3F {  color: black; }
+
+.tWRjsB {
+	color: red;
+}
+
+.pWqo2u {
+	color: blue;
+}
+
+._0JXSRu {
+}
+
+:root {
+	--zaZWSf: red;
+}
+
+
+
+._56MiNG {
+	color: var(--zaZWSf);
+	background-color: var(--ICem7I from "./shared-custom-properties.module.css");
+	border-color: var(--kQs-IN from "./shared-custom-properties.module.css");
+	outline-color: var(--B6T78P);
+	text-decoration-color: var(--t_bUwU);
+}
+
+.SC-1oL {
+	color: var(--TGnPHJ from "./vars.module.css");
+}
+
+
+.BhZTfe {
+	background-color: #3498db;
+	color: #2ecc71;
+}
+
+
+.Ul8pWm {
+	color: red;
+}
+
+
+.NFIYhz {
+	background-color: #3498db;
+}
+
+
+._1Qge-c {
+	background-color: #e74c3c;
+}
+
+
+._2oRdHm {
+	background-color: #e74c3c;
+}
+
+
+.m0LsXx {
+	background-color: #c1c2c3;
+}
+
+.LYHILx {
+	content: "export3-value"
+}
+
+.mtZgJt { value: my-selector-value; }
+
+.KXcQ5E { value: other-selector-value; }
+
+.VCMAfd { value: other-selector-value; }
+
+._4-GbZJ { value: reexport-selector-value; }
+
+.-FgqH4 { value: reexport-selector-value; }
+
+.J1hZZm { background-color: #c1c2c3; }
+
+.jhJ7jd { background-color: #e74c3c; }
+
+.sBzfKx {
+	color: white;
+}
+
+.global-class-other {
+	color: red;
+}
+
+.RHDDjC {
+}
+
+
+._0AEV3- { color: red }
+
+._F5f_e {
+	color: red;
+}
+
+
+._8M4nY2 { color: #3498db; }
+
+.NkWDJw {
+}
+
+
+._4M_J2C {
+}
+
+
+._y_mGj {
+}
+
+
+.zdXsjG {
+	color: FqwXbw;
+}
+
+
+
+.pHMOr8 {
+	color: __value_cyclical__;
+}
+
+
+
+
+._8M4nY2 { color: #3498db; }
+
+.kOeSis {
+}

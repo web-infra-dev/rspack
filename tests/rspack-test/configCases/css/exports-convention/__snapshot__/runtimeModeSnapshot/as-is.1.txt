@@ -1,0 +1,10 @@
+Object {
+  btn--info_is-disabled_1: Szih44,
+  btn-info_is-disabled: GDnvdb,
+  class: iVXueQ,
+  default: VOSY8Z,
+  foo: bar,
+  foo_bar: VGSvZz,
+  my-btn-info_is-disabled: value,
+  simple: HGGFVN,
+}

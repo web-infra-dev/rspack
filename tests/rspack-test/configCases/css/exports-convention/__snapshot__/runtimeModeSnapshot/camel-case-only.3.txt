@@ -1,0 +1,10 @@
+Object {
+  btnInfoIsDisabled: ZUh0Xv,
+  btnInfoIsDisabled1: B9nFo_,
+  class: _6JcQjH,
+  default: ipArjn,
+  foo: bar,
+  fooBar: _0Op7bl,
+  myBtnInfoIsDisabled: value,
+  simple: liHMgm,
+}

@@ -1,11 +1,12 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, CssExportType, CssModuleRenderCondition, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ModuleDependency, ResourceIdentifier, TemplateContext,
-  TemplateReplaceSource, css_module_render_conditions_identifier,
+  AsContextDependency, Compilation, CssExportType, CssModuleRenderCondition, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ModuleDependency, ResourceIdentifier, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, css_module_render_conditions_identifier,
   iter_css_module_render_conditions, push_css_module_identifier_part,
 };
+use rspack_hash::{RspackHasher, rspack_hash_object};
 
 use crate::utils::source_order_to_i32;
 
@@ -91,7 +92,8 @@ impl Dependency for CssImportDependency {
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
-    rspack_core::AffectType::True
+    // A stylesheet can be embedded through multiple levels of @import.
+    rspack_core::AffectType::Transitive
   }
 }
 
@@ -108,6 +110,19 @@ impl ModuleDependency for CssImportDependency {
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for CssImportDependency {
+  fn update_hash(
+    &self,
+    hasher: &mut RspackHasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    // The resource identifier includes the request, conditions and export type.
+    rspack_hash_object!(hasher, {
+      "resourceIdentifier" => &self.resource_identifier,
+      "range" => &self.range,
+    });
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CssImportDependencyTemplate::template_type())
   }

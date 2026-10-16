@@ -1,0 +1,9 @@
+Object {
+  bar: EVqtxB,
+  bav: IbSxIr,
+  foo: kdVWGf,
+  four: BRcbCf,
+  one: hS_d_F,
+  three: _1pA4Wj,
+  two: SVUWcR,
+}

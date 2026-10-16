@@ -1,0 +1,9 @@
+Object {
+  btn--info_is-disabled_1: Qa_kDD,
+  btn-info-is-disabled: pnzMDh,
+  btn-info-is-disabled-1: Qa_kDD,
+  btn-info_is-disabled: pnzMDh,
+  foo-bar: S3wJqR,
+  foo_bar: S3wJqR,
+  simple: M4yaYA,
+}

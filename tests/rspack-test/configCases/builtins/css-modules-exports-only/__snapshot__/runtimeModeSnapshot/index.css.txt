@@ -1,0 +1,4 @@
+Object {
+  simple-bar: _5FkG6Z kgitm9,
+  simple-foo: cAS_gH kgitm9,
+}
