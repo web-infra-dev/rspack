@@ -1,4 +1,4 @@
-# Case removed-modules-reinstantiated-during-dispose: Step 0
+# Case require-updated-module-during-dispose: Step 0
 
 ## Changed Files
 

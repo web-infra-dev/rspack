@@ -1,19 +1,20 @@
-# Case removed-modules-reinstantiated-during-dispose: Step 1
+# Case require-updated-module-during-dispose: Step 1
 
 ## Changed Files
 - a.js
+- u.js
 
 ## Asset Files
 - Bundle: bundle.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 47
-- Update: main.LAST_HASH.hot-update.js, size: 213
+- Manifest: main.LAST_HASH.hot-update.json, size: 36
+- Update: main.LAST_HASH.hot-update.js, size: 263
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main"],"r":[],"m":["./m1.js","./m2.js"]}
+{"c":["main"],"r":[],"m":["./r.js"]}
 ```
 
 
@@ -24,6 +25,7 @@
 
 #### Changed Modules
 - ./a.js
+- ./u.js
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -33,6 +35,11 @@
 self["rspackHotUpdate"]("main", {
 "./a.js"(module) {
 module.exports = 2;
+
+
+},
+"./u.js"(module) {
+module.exports.value = 2;
 
 
 },
