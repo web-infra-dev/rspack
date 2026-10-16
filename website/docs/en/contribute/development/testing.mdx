@@ -205,10 +205,7 @@ The snapshot structure is as follows:
 
 - **Changed Files**: Source code files that trigger this HMR build
 - **Asset Files**: Artifact files of this HMR build
-- **Manifest**: Contents of the `hot-update.json` metadata file for this HMR build, where:
-  - `"c"`: Id of the chunks to be updated in this HMR
-  - `"r"`: Id of the chunks to be removed in this HMR
-  - `"m"`: Id of the modules to be removed in this HMR
+- **Manifest**: Contents of the `hot-update.json` metadata file for this HMR build. See [Hot update manifest](/plugins/hot-module-replacement-plugin#hot-update-manifest) for the meaning of each field.
 - **Update**: Information about the `hot-update.js` patch file for this HMR build, including:
   - **Changed Modules**: List of modules included in the patch
   - **Changed Runtime Modules**: List of runtime modules included in the patch
