@@ -2,6 +2,13 @@ import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
 export default defineConfig({
+  entry: {
+    main: './index.js',
+    other: './other.js',
+  },
+  output: {
+    filename: '[name].js',
+  },
   module: {
     rules: [
       {

@@ -1,0 +1,1 @@
+import(/* webpackChunkName: "lazy" */ "./lazy");

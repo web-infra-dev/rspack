@@ -23,7 +23,9 @@ test('editing css applies to the stylesheet extracted into its own chunk', async
 
   await expect(body).toHaveCSS('background-color', COLOR_GREEN);
   await expect(page.locator('link[rel="stylesheet"]')).toHaveCount(1);
-  expect(cssRequests.length).toBe(1);
+  // The probe loads first, then the retained link loads the same cache-busted URL.
+  expect(cssRequests).toHaveLength(2);
+  expect(new Set(cssRequests).size).toBe(1);
 });
 
 test('an unchanged stylesheet is not refetched when its module recompiles', async ({

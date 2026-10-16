@@ -275,7 +275,23 @@ var extractCssLoadStylesheet = function (chunkId, fetchPriority) {
 	return new Promise(function (resolve, reject) {
 		var href = __webpack_require__.miniCssF(chunkId);
 		var fullhref = __webpack_require__.p + href;
-		if (extractCssFindStylesheet(href, fullhref)) return resolve();
+		var tag = extractCssFindStylesheet(href, fullhref);
+		// A link disabled by a hot update (disabled and visited) is refetched in place when its chunk loads again.
+		if (tag && !(tag.disabled && tag.visited)) return resolve();
+		if (tag) {
+			var onComplete = function (event) {
+				tag.removeEventListener('load', onComplete);
+				tag.removeEventListener('error', onComplete);
+				if (event.type === 'load') resolve();
+				else reject(new Error("Loading CSS chunk " + chunkId + " failed.\\n(" + fullhref + ")"));
+			};
+			tag.addEventListener('load', onComplete);
+			tag.addEventListener('error', onComplete);
+			tag.disabled = false;
+			tag.visited = false;
+			tag.setAttribute('href', fullhref + '?' + Date.now());
+			return;
+		}
 		extractCssCreateStylesheet(chunkId, fullhref, null, resolve, reject, fetchPriority);
 	})
 }
