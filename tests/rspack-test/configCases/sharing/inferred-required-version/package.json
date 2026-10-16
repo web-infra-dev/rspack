@@ -1,0 +1,35 @@
+{
+  "name": "inferred-required-version",
+  "private": true,
+  "dependencies": {
+    "catalog": "catalog:",
+    "catalog-singleton": "catalog:default",
+    "workspace": "workspace:*",
+    "workspace-range": "workspace:^1.2.0",
+    "file": "file:../lib",
+    "tag": "latest",
+    "empty": "  ",
+    "url-without-version": "https://github.com/example/lib.git",
+    "optional-priority": "^1.2.0",
+    "semver": "  ^1.2.0  ",
+    "git-short": "github:example/lib#semver:^1.2.0",
+    "git-extreme-short": "example/lib#semver:^1.2.0",
+    "git-ssh": "git@example.com:example/lib.git#semver:^1.2.0",
+    "git-https": "git+https://github.com/example/lib.git#semver:^1.2.0",
+    "git-tree": "https://github.com/example/lib/tree/v1.2.3",
+    "git-encoded": "https://github.com/example/lib.git#semver:%5E1.2.0",
+    "explicit-override": "catalog:",
+    "explicit-false": "workspace:*",
+    "semver-mismatch": "^1.2.0",
+    "git-mismatch": "github:example/lib#semver:^1.2.0",
+    "gitlab": "https://gitlab.com/group/subgroup/lib.git#semver:^1.2.0",
+    "bitbucket": "https://bitbucket.org/example/lib.git#semver:^1.2.0",
+    "gist": "https://gist.github.com/example/1234#semver:^1.2.0",
+    "invalid-url": "https://gitlab.com/example/%zz#semver:^1.2.0",
+    "github-blob": "https://github.com/example/lib/blob/v1.2.3#semver:^1.2.0",
+    "gist-raw": "https://gist.github.com/example/1234/raw#semver:^1.2.0"
+  },
+  "optionalDependencies": {
+    "optional-priority": "catalog:"
+  }
+}
