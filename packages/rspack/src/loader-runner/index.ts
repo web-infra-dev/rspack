@@ -68,6 +68,7 @@ import {
 } from './utils';
 
 const LOADER_PROCESS_NAME = 'Loader Analysis';
+const IS_WASM = Boolean(process.env.WASM);
 
 type LoaderObjectOptions = string | (object & { ident?: unknown }) | null;
 
@@ -1024,7 +1025,7 @@ export async function runLoaders(
     // A buffer backed by WASM linear memory retains the entire backing store
     // after crossing the worker boundary, so a cached loader must stay on the
     // main thread to avoid copying the whole WASM memory through N-API.
-    if (process.env.WASM && currentLoaderObject?.loaderItem.cache) return false;
+    if (IS_WASM && currentLoaderObject?.loaderItem.cache) return false;
 
     return currentLoaderObject?.parallel;
   };
