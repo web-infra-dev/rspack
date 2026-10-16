@@ -60,7 +60,7 @@
       "id": "rspackConfigPath",
       "type": "promptString",
       "description": "the rspack config path of your project",
-      "default": "examples/basic/rspack.config.cjs"
+      "default": "examples/basic/rspack.config.mjs"
     },
     {
       "id": "pickTestFile",
