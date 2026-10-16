@@ -14,3 +14,9 @@ it("require([...], function () {}) should work well", () => new Promise(done => 
 		done();
 	});
 }));
+
+it("require(['exports'], function () {}) should work well", async () => {
+	await require(['./exports-dep']);
+
+	expect(require('./exports-dep').value).toBe('exports-dep');
+});
