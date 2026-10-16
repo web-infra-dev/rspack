@@ -41,7 +41,7 @@ See [Preact - Fast Refresh](/guide/integrations/preact#preact-refresh) for more 
 
 ## Hot update manifest
 
-During HMR, the runtime reads `hot-update.json` to determine which chunks to update and which chunks or modules to remove. The manifest lists their IDs; the JavaScript updates are stored in separate `hot-update.js` files.
+During HMR, the runtime reads `hot-update.json` to determine which chunks to update and which chunks or modules to remove. The manifest lists their IDs; the JavaScript updates are stored in separate `*.hot-update.(js|mjs)` files.
 
 This example updates the JavaScript and built-in CSS for the `main` chunk without removing any chunks or modules:
 

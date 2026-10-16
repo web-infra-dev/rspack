@@ -41,7 +41,7 @@ export default {
 
 ## 热更新清单 \{#hot-update-manifest}
 
-热更新时，运行时会读取 `hot-update.json`，确定需要更新的 chunk，以及需要移除的 chunk 或模块。清单中记录了它们的 ID，JavaScript 更新代码则存放在单独的 `hot-update.js` 文件中。
+热更新时，运行时会读取 `hot-update.json`，确定需要更新的 chunk，以及需要移除的 chunk 或模块。清单中记录了它们的 ID，JavaScript 更新代码则存放在单独的 `*.hot-update.(js|mjs)` 文件中。
 
 下面的示例表示更新 `main` chunk 的 JavaScript 和内置 CSS，无需移除任何 chunk 或模块：
 
