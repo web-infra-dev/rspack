@@ -26,10 +26,10 @@ use crate::{
     ChunkPrefetchPreloadFunctionRuntimeModule, CompatGetDefaultExportRuntimeModule,
     CreateFakeNamespaceObjectRuntimeModule, CreateScriptRuntimeModule,
     CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule,
-    ESMModuleDecoratorRuntimeModule, EnsureChunkRuntimeModule, GetChunkFilenameRuntimeModule,
-    GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
-    GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
-    LoadScriptRuntimeModule, MakeDeferredNamespaceObjectRuntimeModule,
+    ESMModuleDecoratorRuntimeModule, EnsureAsyncBlockRuntimeModule, EnsureChunkRuntimeModule,
+    GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
+    GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
+    HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule, MakeDeferredNamespaceObjectRuntimeModule,
     MakeNamespaceObjectRuntimeModule, MakeOptimizedDeferredNamespaceObjectRuntimeModule,
     NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, OnChunkLoadedRuntimeModule,
     PublicPathRuntimeModule, ReexportRuntimeModule, RelativeUrlRuntimeModule,
@@ -173,6 +173,14 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
   }
 
+  // Context imports also use ensureChunk, even before an active lazy proxy
+  // introduces a block promise. Keep its signature stable across activation.
+  if compilation.uses_stable_async_block_map()
+    && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK)
+  {
+    runtime_requirements_mut.insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
+  }
+
   if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES) {
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
   }
@@ -208,6 +216,12 @@ async fn runtime_requirements_in_tree(
   #[allow(clippy::collapsible_match)]
   for runtime_requirement in runtime_requirements.iter() {
     match runtime_requirement {
+      RuntimeGlobals::ENSURE_ASYNC_BLOCK => {
+        runtime_modules_to_add.push((
+          *chunk_ukey,
+          EnsureAsyncBlockRuntimeModule::new(&compilation.runtime_template).boxed(),
+        ));
+      }
       RuntimeGlobals::ASYNC_MODULE => {
         runtime_modules_to_add.push((
           *chunk_ukey,

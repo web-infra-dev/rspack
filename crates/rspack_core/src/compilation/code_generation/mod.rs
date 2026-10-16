@@ -193,7 +193,11 @@ pub(crate) async fn code_generation_modules(
             .module_by_identifier(&job.module)
             .expect("should have module");
           let new_code_generation_cache = new_cache.map(|cache| {
-            let etag = Etag::from(job.hash.encoded());
+            let etag = Etag::from(format!(
+              "{}|stable-async-block-map={}",
+              job.hash.encoded(),
+              this.uses_stable_async_block_map()
+            ));
             MultiItemCache::new(job.runtimes.iter().map(|runtime| {
               cache.get_item_cache(
                 &format!("{}|{}", job.module, get_runtime_key(runtime)),
@@ -248,7 +252,7 @@ pub(crate) async fn code_generation_modules(
           } else {
             this
               .code_generate_cache_artifact
-              .use_cache(&job, generator)
+              .use_cache(&job, this.uses_stable_async_block_map(), generator)
               .await
           };
           if let Some(counter) = cache_counter {

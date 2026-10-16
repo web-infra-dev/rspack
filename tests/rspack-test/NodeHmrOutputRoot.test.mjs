@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { setTimeout as sleep } from "node:timers/promises";
-import { rspack } from "@rspack/core";
+import { rspack, lazyCompilationMiddleware } from "@rspack/core";
 
 const require = createRequire(import.meta.url);
 
@@ -123,3 +123,114 @@ it.each([
 		fs.rmSync(dir, { recursive: true, force: true });
 	}
 });
+
+it.each([
+	{
+		name: "development",
+		mode: "development",
+		lazy: true,
+		hot: true,
+		concatenate: false,
+		enabled: true,
+	},
+	{
+		name: "production",
+		mode: "production",
+		lazy: true,
+		hot: true,
+		concatenate: false,
+		enabled: false,
+	},
+	{
+		name: "numeric chunk IDs",
+		mode: "development",
+		lazy: true,
+		hot: true,
+		concatenate: false,
+		chunkIds: "natural",
+		enabled: true,
+	},
+	{
+		name: "concatenation",
+		mode: "development",
+		lazy: true,
+		hot: true,
+		concatenate: true,
+		enabled: false,
+	},
+	{
+		name: "no lazy plugin",
+		mode: "development",
+		lazy: false,
+		hot: true,
+		concatenate: false,
+		enabled: false,
+	},
+	{
+		name: "no HMR",
+		mode: "development",
+		lazy: true,
+		hot: false,
+		concatenate: false,
+		enabled: false,
+	},
+])(
+	"scopes the async block map to lazy development HMR: $name",
+	async (policy) => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "rspack-map-😀-"));
+		fs.writeFileSync(
+			path.join(dir, "entry.js"),
+			`
+  exports.hasMap = typeof __webpack_require__.eb === 'function';
+  exports.load = () => Promise.all([
+   import(/* webpackChunkName: "😀-one" */ './one.js'),
+   import(/* webpackChunkName: "😀-two", webpackFetchPriority: "high" */ './two.js'),
+  ]).then(values => values.map(value => value.default));
+ `,
+		);
+		fs.writeFileSync(path.join(dir, "one.js"), "export default 1;");
+		fs.writeFileSync(path.join(dir, "two.js"), "export default 2;");
+		const compiler = rspack({
+			context: dir,
+			mode: policy.mode,
+			target: "node",
+			devtool: false,
+			entry: "./entry.js",
+			output: {
+				path: path.join(dir, "dist"),
+				filename: "main.cjs",
+				chunkFilename: "[name].cjs",
+				library: { type: "commonjs2" },
+			},
+			// Keep these imports eager to isolate map policy and lossless Unicode decoding.
+			lazyCompilation: policy.lazy
+				? { entries: false, test: () => false }
+				: false,
+			optimization: {
+				minimize: false,
+				concatenateModules: policy.concatenate,
+				chunkIds: policy.chunkIds || "named",
+			},
+			plugins: policy.hot ? [new rspack.HotModuleReplacementPlugin()] : [],
+		});
+		if (policy.lazy) lazyCompilationMiddleware(compiler);
+		try {
+			const stats = await new Promise((resolve, reject) =>
+				compiler.run((error, stats) =>
+					error ? reject(error) : resolve(stats),
+				),
+			);
+			expect(stats.hasErrors()).toBe(false);
+			const live = require(path.join(dir, "dist/main.cjs"));
+			expect(live.hasMap).toBe(policy.enabled);
+			expect(await live.load()).toEqual([1, 2]);
+		} finally {
+			await new Promise((resolve, reject) =>
+				compiler.close((error) => (error ? reject(error) : resolve())),
+			);
+			for (const key of Object.keys(require.cache))
+				if (key.startsWith(dir + path.sep)) delete require.cache[key];
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	},
+);

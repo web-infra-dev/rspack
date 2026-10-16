@@ -315,6 +315,9 @@ define_runtime_globals! {
 
   // Exports objects shared by deferred namespaces and the module bootstrap.
   const DEFERRED_MODULE_EXPORTS;
+
+  // Development-time stable async-block loading indirection.
+  const ENSURE_ASYNC_BLOCK;
 }
 
 impl Default for RuntimeGlobals {
@@ -382,6 +385,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::MODULE_CACHE => "c",
     RuntimeGlobals::DEFERRED_MODULE_EXPORTS => "zD",
     RuntimeGlobals::ENSURE_CHUNK => "e",
+    RuntimeGlobals::ENSURE_ASYNC_BLOCK => "eb",
     RuntimeGlobals::ENSURE_CHUNK_HANDLERS => "f",
     RuntimeGlobals::PUBLIC_PATH => "p",
     RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => "u",
