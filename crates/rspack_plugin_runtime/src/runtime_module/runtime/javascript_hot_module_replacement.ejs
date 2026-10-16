@@ -250,6 +250,28 @@
 				}
 			}
 
+			// modules can be re-created by dispose handlers (e.g. requires
+			// during dispose); dispose them as well, otherwise they would
+			// stay active and cached after this transaction
+			for (var k = 0; k < outdatedModules.length; k++) {
+				moduleId = outdatedModules[k];
+				module = <%- MODULE_CACHE %>[moduleId];
+				if (!module) continue;
+
+				module.hot.active = false;
+
+				delete <%- MODULE_CACHE %>[moduleId];
+
+				for (j = 0; j < module.children.length; j++) {
+					child = <%- MODULE_CACHE %>[module.children[j]];
+					if (!child) continue;
+					idx = child.parents.indexOf(moduleId);
+					if (idx >= 0) {
+						child.parents.splice(idx, 1);
+					}
+				}
+			}
+
 			var dependency;
 			for (var outdatedModuleId in outdatedDependencies) {
 				if (<%- HAS_OWN_PROPERTY %>(outdatedDependencies, outdatedModuleId)) {

@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 27441
+- Update: main.LAST_HASH.hot-update.js, size: 28120
 
 ## Manifest
 
@@ -668,6 +668,28 @@ function hotApplyHandler(options) {
 
 				for (j = 0; j < module.children.length; j++) {
 					var child = __webpack_require__.c[module.children[j]];
+					if (!child) continue;
+					idx = child.parents.indexOf(moduleId);
+					if (idx >= 0) {
+						child.parents.splice(idx, 1);
+					}
+				}
+			}
+
+			// modules can be re-created by dispose handlers (e.g. requires
+			// during dispose); dispose them as well, otherwise they would
+			// stay active and cached after this transaction
+			for (var k = 0; k < outdatedModules.length; k++) {
+				moduleId = outdatedModules[k];
+				module = __webpack_require__.c[moduleId];
+				if (!module) continue;
+
+				module.hot.active = false;
+
+				delete __webpack_require__.c[moduleId];
+
+				for (j = 0; j < module.children.length; j++) {
+					child = __webpack_require__.c[module.children[j]];
 					if (!child) continue;
 					idx = child.parents.indexOf(moduleId);
 					if (idx >= 0) {
