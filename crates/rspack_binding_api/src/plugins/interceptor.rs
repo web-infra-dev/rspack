@@ -1,9 +1,10 @@
 use std::{
+  collections::VecDeque,
   ffi::c_void,
   hash::Hash,
   marker::PhantomData,
   ptr::NonNull,
-  sync::{Arc, RwLock},
+  sync::{Arc, Mutex, RwLock},
 };
 
 use async_trait::async_trait;
@@ -639,7 +640,7 @@ pub struct RegisterJsTaps {
   )]
   pub register_normal_module_factory_resolve_for_scheme_taps: RegisterFunction,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((args: JsResolveData[]) => Promise<Array<[boolean | undefined, JsResolveData]>>); stage: number; }>"
   )]
   pub register_normal_module_factory_after_resolve_taps: RegisterFunction,
   #[napi(
@@ -962,19 +963,203 @@ define_register!(
   skip = true,
 );
 define_register!(
-  RegisterNormalModuleFactoryAfterResolveTaps,
-  tap = NormalModuleFactoryAfterResolveTap<JsResolveData, Promise<(Option<bool>, JsResolveData)>> @ NormalModuleFactoryAfterResolveHook,
-  cache = true,
-  kind = RegisterJsTapKind::NormalModuleFactoryAfterResolve,
-  skip = true,
-);
-define_register!(
   RegisterNormalModuleFactoryCreateModuleTaps,
   tap = NormalModuleFactoryCreateModuleTap<JsNormalModuleFactoryCreateModuleArgs, Promise<()>> @ NormalModuleFactoryCreateModuleHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleFactoryCreateModule,
   skip = true,
 );
+
+type NormalModuleFactoryAfterResolveOutput = (Option<bool>, JsResolveData);
+
+struct PendingNormalModuleFactoryAfterResolve {
+  data: JsResolveData,
+  response:
+    tokio::sync::oneshot::Sender<rspack_error::Result<NormalModuleFactoryAfterResolveOutput>>,
+}
+
+#[derive(Default)]
+struct NormalModuleFactoryAfterResolveBatchState {
+  requests: VecDeque<PendingNormalModuleFactoryAfterResolve>,
+  processing: bool,
+}
+
+// Keep each N-API payload bounded while amortizing the fixed cost of crossing into JavaScript.
+const NORMAL_MODULE_FACTORY_AFTER_RESOLVE_BATCH_SIZE: usize = 128;
+
+struct NormalModuleFactoryAfterResolveBatcher {
+  function: ThreadsafeJsTapFunction<
+    Vec<JsResolveData>,
+    Promise<Vec<NormalModuleFactoryAfterResolveOutput>>,
+  >,
+  state: Mutex<NormalModuleFactoryAfterResolveBatchState>,
+}
+
+impl NormalModuleFactoryAfterResolveBatcher {
+  fn new(function: DynThreadsafeFunction) -> Self {
+    Self {
+      function: ThreadsafeJsTapFunction::new(function),
+      state: Mutex::new(Default::default()),
+    }
+  }
+
+  async fn call(
+    &self,
+    data: JsResolveData,
+  ) -> rspack_error::Result<NormalModuleFactoryAfterResolveOutput> {
+    let (response, receiver) = tokio::sync::oneshot::channel();
+    let should_process = {
+      let mut state = self
+        .state
+        .lock()
+        .expect("after resolve batch state should lock");
+      state
+        .requests
+        .push_back(PendingNormalModuleFactoryAfterResolve { data, response });
+      if state.processing {
+        false
+      } else {
+        state.processing = true;
+        true
+      }
+    };
+
+    if should_process {
+      // Let other ready module tasks enqueue their requests before the first flush. Requests that
+      // arrive while JavaScript is running are picked up by the next loop iteration.
+      tokio::task::yield_now().await;
+      self.process();
+    }
+
+    receiver.await.map_err(|_| {
+      rspack_error::Error::error("normal module factory afterResolve batch was cancelled".into())
+    })?
+  }
+
+  fn process(&self) {
+    loop {
+      let requests = {
+        let mut state = self
+          .state
+          .lock()
+          .expect("after resolve batch state should lock");
+        if state.requests.is_empty() {
+          state.processing = false;
+          return;
+        }
+        let len = state
+          .requests
+          .len()
+          .min(NORMAL_MODULE_FACTORY_AFTER_RESOLVE_BATCH_SIZE);
+        state.requests.drain(..len).collect::<Vec<_>>()
+      };
+
+      let expected_len = requests.len();
+      let (data, responses): (Vec<_>, Vec<_>) = requests
+        .into_iter()
+        .map(|request| (request.data, request.response))
+        .unzip();
+      let function = self.function.clone();
+      rspack_tasks::spawn_in_context(async move {
+        let result = function.call_with_promise(data).await.and_then(|result| {
+          if result.len() == expected_len {
+            Ok(result)
+          } else {
+            Err(rspack_error::Error::error(format!(
+              "normal module factory afterResolve batch returned {} results for {expected_len} requests",
+              result.len()
+            )))
+          }
+        });
+
+        match result {
+          Ok(results) => {
+            for (response, result) in responses.into_iter().zip(results) {
+              let _ = response.send(Ok(result));
+            }
+          }
+          Err(error) => {
+            for response in responses {
+              let _ = response.send(Err(error.clone()));
+            }
+          }
+        }
+      });
+    }
+  }
+}
+
+#[derive(Clone)]
+struct NormalModuleFactoryAfterResolveTap {
+  batcher: Arc<NormalModuleFactoryAfterResolveBatcher>,
+  stage: i32,
+}
+
+#[derive(Clone)]
+pub struct RegisterNormalModuleFactoryAfterResolveTaps {
+  inner: RegisterJsTapsInner,
+  batchers: Arc<RwLock<Vec<Arc<NormalModuleFactoryAfterResolveBatcher>>>>,
+}
+
+impl RegisterNormalModuleFactoryAfterResolveTaps {
+  pub fn new(register: RegisterFunction, non_skippable_registers: NonSkippableRegisters) -> Self {
+    Self {
+      inner: RegisterJsTapsInner::new(register, Some(non_skippable_registers), true),
+      batchers: Default::default(),
+    }
+  }
+
+  pub fn clear_cache(&self) {
+    self.inner.clear_cache();
+    self
+      .batchers
+      .write()
+      .expect("after resolve batchers should lock")
+      .clear();
+  }
+}
+
+#[async_trait]
+impl Interceptor<NormalModuleFactoryAfterResolveHook>
+  for RegisterNormalModuleFactoryAfterResolveTaps
+{
+  async fn call(
+    &self,
+    hook: &NormalModuleFactoryAfterResolveHook,
+  ) -> rspack_error::Result<Vec<<NormalModuleFactoryAfterResolveHook as Hook>::Tap>> {
+    if let Some(non_skippable_registers) = &self.inner.non_skippable_registers
+      && !non_skippable_registers
+        .is_non_skippable(&RegisterJsTapKind::NormalModuleFactoryAfterResolve)
+    {
+      return Ok(Vec::new());
+    }
+    let js_taps = self.inner.call_register(hook.tap_stages()).await?;
+    let mut batchers = self
+      .batchers
+      .write()
+      .expect("after resolve batchers should lock");
+    if batchers.len() != js_taps.len() {
+      batchers.clear();
+      batchers.extend(js_taps.iter().map(|tap| {
+        Arc::new(NormalModuleFactoryAfterResolveBatcher::new(
+          tap.function.clone(),
+        ))
+      }));
+    }
+    Ok(
+      js_taps
+        .iter()
+        .zip(batchers.iter())
+        .map(|(tap, batcher)| {
+          Box::new(NormalModuleFactoryAfterResolveTap {
+            batcher: batcher.clone(),
+            stage: tap.stage,
+          }) as <NormalModuleFactoryAfterResolveHook as Hook>::Tap
+        })
+        .collect(),
+    )
+  }
+}
 
 /* ContextModuleFactory Hooks */
 define_register!(
@@ -1790,8 +1975,8 @@ impl NormalModuleFactoryAfterResolve for NormalModuleFactoryAfterResolveTap {
     create_data: &mut NormalModuleCreateData,
   ) -> rspack_error::Result<Option<bool>> {
     match self
-      .function
-      .call_with_promise(JsResolveData::from_nmf_data(data, Some(create_data)))
+      .batcher
+      .call(JsResolveData::from_nmf_data(data, Some(create_data)))
       .await
     {
       Ok((ret, new_data)) => {
