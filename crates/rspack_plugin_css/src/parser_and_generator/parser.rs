@@ -1,6 +1,5 @@
 use std::{path::Path, sync::Arc};
 
-use once_cell::sync::OnceCell;
 use rspack_core::{
   BoxDependency, ConstDependency, CssAutoOrModuleParserOptions, CssExportType, CssExports,
   CssExportsConvention, CssLayer, CssLocalNames, CssModuleGeneratorOptions,
@@ -16,7 +15,7 @@ use rspack_util::fx_hash::FxIndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 
-use super::is_css_module;
+use super::{is_css_module, local_idents::CssLocalIdents};
 use crate::{
   css_syntax::{normalize_url, unescape_identifier},
   dependency::{
@@ -24,9 +23,8 @@ use crate::{
     CssIcssSymbolKind, CssImportDependency, CssUrlDependency,
   },
   utils::{
-    LocalIdentModuleHashOptions, LocalIdentOptions, PresentationalDependencyHashUpdate,
-    css_parsing_traceable_error, export_locals_convention, replace_module_request_prefix,
-    source_order_to_i32,
+    LocalIdentModuleHashOptions, PresentationalDependencyHashUpdate, css_parsing_traceable_error,
+    export_locals_convention, replace_module_request_prefix, source_order_to_i32,
   },
 };
 
@@ -67,7 +65,7 @@ pub(super) struct CssModuleParser<'context> {
   current_icss_import_from: Option<String>,
   // Tracks imported CSS order for the cascade before chunk graph construction.
   composes_order: ComposesOrderState,
-  local_ident_options: OnceCell<LocalIdentOptions<'context>>,
+  local_idents: CssLocalIdents<'context>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -292,6 +290,15 @@ impl<'context> CssModuleParser<'context> {
       .as_deref()
       .and_then(|css_build_info| css_build_info.export_type)
       .or(parser_options.export_type);
+    let local_idents = CssLocalIdents::new(
+      parse_context
+        .module_match_resource
+        .unwrap_or(parse_context.resource_data),
+      parse_context.module_type,
+      source_code.clone(),
+      parse_context.compiler_options,
+      generator_options,
+    );
 
     Self {
       parser_options,
@@ -314,7 +321,7 @@ impl<'context> CssModuleParser<'context> {
       icss_definitions: Default::default(),
       current_icss_import_from: None,
       composes_order: Default::default(),
-      local_ident_options: OnceCell::new(),
+      local_idents,
     }
   }
 
@@ -1260,18 +1267,6 @@ impl<'context> CssModuleParser<'context> {
       .expect("should have es_module")
   }
 
-  fn get_local_ident_options(&self) -> &LocalIdentOptions<'_> {
-    self.local_ident_options.get_or_init(move || {
-      LocalIdentOptions::new(
-        self.resource_data(),
-        self.parse_context.module_type,
-        self.source_code.clone(),
-        self.parse_context.compiler_options,
-        self.generator_options,
-      )
-    })
-  }
-
   async fn handle_local_ident_usage(
     &mut self,
     name: &str,
@@ -1539,8 +1534,8 @@ impl<'context> CssModuleParser<'context> {
       *id
     } else {
       let ident = self
-        .get_local_ident_options()
-        .get_local_ident(name, module_hash_options)
+        .local_idents
+        .generate(name, module_hash_options)
         .await?;
       let ident = match kind {
         LocalCssIdentKind::Ident => ident,

@@ -1,4 +1,5 @@
 pub mod generator;
+mod local_idents;
 mod parser;
 mod source_builder;
 
