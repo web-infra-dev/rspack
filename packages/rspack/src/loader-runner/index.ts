@@ -8,7 +8,7 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 import querystring from 'node:querystring';
-import {
+import binding, {
   formatDiagnostic,
   type JsLoaderContext,
   type JsLoaderItem,
@@ -1221,7 +1221,10 @@ export async function runLoaders(
     });
   }
 
-  if (compiler.options?.cache) {
+  if (
+    compiler.options?.cache &&
+    Object.hasOwn(context._module, binding.MODULE_BUILD_INFO_SYMBOL)
+  ) {
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 
