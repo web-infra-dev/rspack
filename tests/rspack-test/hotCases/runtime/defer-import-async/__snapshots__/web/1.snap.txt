@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 29032
+- Update: main.LAST_HASH.hot-update.js, size: 29403
 
 ## Manifest
 
@@ -717,12 +717,19 @@ function hotApplyHandler(options) {
 						}
 					}
 
-					for (j = 0; j < module.parents.length; j++) {
-						var parent = __webpack_require__.c[module.parents[j]];
-						if (!parent) continue;
-						idx = parent.children.indexOf(moduleId);
-						if (idx >= 0) {
-							parent.children.splice(idx, 1);
+					// Removed modules are never re-instantiated; drop their
+					// id from cached parents as well. Updated modules keep
+					// these edges: paths like the self-accepted reload
+					// restore `parents` from the previous instance without
+					// re-adding the id to the parent's `children`.
+					if (appliedUpdate[moduleId] === warnUnexpectedRequire) {
+						for (j = 0; j < module.parents.length; j++) {
+							var parent = __webpack_require__.c[module.parents[j]];
+							if (!parent) continue;
+							idx = parent.children.indexOf(moduleId);
+							if (idx >= 0) {
+								parent.children.splice(idx, 1);
+							}
 						}
 					}
 				}

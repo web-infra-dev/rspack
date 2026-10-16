@@ -291,12 +291,19 @@
 						}
 					}
 
-					for (j = 0; j < module.parents.length; j++) {
-						var parent = <%- MODULE_CACHE %>[module.parents[j]];
-						if (!parent) continue;
-						idx = parent.children.indexOf(moduleId);
-						if (idx >= 0) {
-							parent.children.splice(idx, 1);
+					// Removed modules are never re-instantiated; drop their
+					// id from cached parents as well. Updated modules keep
+					// these edges: paths like the self-accepted reload
+					// restore `parents` from the previous instance without
+					// re-adding the id to the parent's `children`.
+					if (appliedUpdate[moduleId] === warnUnexpectedRequire) {
+						for (j = 0; j < module.parents.length; j++) {
+							var parent = <%- MODULE_CACHE %>[module.parents[j]];
+							if (!parent) continue;
+							idx = parent.children.indexOf(moduleId);
+							if (idx >= 0) {
+								parent.children.splice(idx, 1);
+							}
 						}
 					}
 				}
