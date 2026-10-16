@@ -1,5 +1,5 @@
 body {
-  & .CiYScg {
+  & .BkppLM {
     color: #00f;
   }
 }

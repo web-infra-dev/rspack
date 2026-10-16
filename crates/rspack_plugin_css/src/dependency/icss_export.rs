@@ -13,9 +13,11 @@ use crate::utils::{css_generator_options, export_locals_convention};
 /// The surrounding text stays in the owning definition; the referenced value
 /// is read from its dependency instead of copied into a second expression tree.
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, RspackHash)]
 pub struct CssIcssReference {
   pub range: DependencyRange,
+  // The shared export walk hashes this edge using a stable binding index.
+  #[rspack_hash(skip)]
   pub dependency_id: DependencyId,
 }
 
@@ -25,8 +27,9 @@ pub struct CssIcssReference {
 /// the literal `10px`. Local compositions refer directly to local definitions.
 /// Aliases in BuildInfo point to this same dependency; they do not copy its value.
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, RspackHash)]
 pub struct CssIcssExportDependency {
+  #[rspack_hash(skip)]
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   pub name: SmolStr,
@@ -36,14 +39,18 @@ pub struct CssIcssExportDependency {
   /// Substitutions within `value`, such as the `color` in `0 0 color`.
   pub references: Vec<CssIcssReference>,
   /// Space-separated values appended by `composes`; never copied definitions.
+  // The shared export walk hashes these edges using stable binding indices.
+  #[rspack_hash(skip)]
   pub composes: Vec<DependencyId>,
   pub local_ident: Option<CssLocalIdentKind>,
   /// `None` for definitions used internally without declaring a JS export.
+  // The module graph hash already includes the resulting export names and state.
+  #[rspack_hash(skip)]
   pub can_mangle: Option<bool>,
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, RspackHash)]
 pub enum CssLocalIdentKind {
   Ident,
   DashedIdent,
@@ -124,7 +131,7 @@ impl DependencyCodeGeneration for CssIcssExportDependency {
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.value.hash(hasher);
+    RspackHash::hash(self, hasher);
   }
 }
 impl AsContextDependency for CssIcssExportDependency {}

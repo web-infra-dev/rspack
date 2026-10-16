@@ -1,9 +1,10 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyType, ExportsInfoArtifact, ModuleDependency, ReferencedExport,
-  RuntimeSpec,
+  AsContextDependency, ChunkGraph, Compilation, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyType, ExportsInfoArtifact,
+  ModuleDependency, ReferencedExport, RuntimeSpec,
 };
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_intern::Atom;
 use smol_str::SmolStr;
 
@@ -12,8 +13,9 @@ use smol_str::SmolStr;
 /// imported name `color`, and local name `accent`. Export definitions and symbol
 /// uses refer to its ID; it establishes the module edge without rewriting CSS.
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, RspackHash)]
 pub struct CssIcssImportDependency {
+  #[rspack_hash(skip)]
   id: DependencyId,
   request: String,
   #[cacheable(with=AsPreset)]
@@ -21,6 +23,8 @@ pub struct CssIcssImportDependency {
   #[cacheable(with=AsPreset)]
   local_name: SmolStr,
   range: DependencyRange,
+  // Dependencies are already hashed in source order.
+  #[rspack_hash(skip)]
   source_order: Option<i32>,
 }
 
@@ -104,5 +108,22 @@ impl ModuleDependency for CssIcssImportDependency {
   }
 }
 
-impl AsDependencyCodeGeneration for CssIcssImportDependency {}
+#[cacheable_dyn]
+impl DependencyCodeGeneration for CssIcssImportDependency {
+  fn update_hash(
+    &self,
+    hasher: &mut RspackHasher,
+    compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    let graph = compilation.get_module_graph();
+    let module_id = graph
+      .get_module_by_dependency_id(&self.id)
+      .and_then(|module| {
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+      });
+    // The generated JS expression can refer to the resolved module ID.
+    RspackHash::hash(&(self, module_id), hasher);
+  }
+}
 impl AsContextDependency for CssIcssImportDependency {}

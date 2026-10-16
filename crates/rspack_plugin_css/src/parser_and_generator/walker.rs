@@ -32,6 +32,10 @@ impl<'g> CssModuleGraphWalker<'g> {
     }
   }
 
+  pub(super) fn compilation(&self) -> &'g Compilation {
+    self.compilation
+  }
+
   pub(super) fn resolve_css_export_dependency<'a, S: CssModuleGraphSink<'g> + 'a>(
     &'a mut self,
     sink: &'a mut S,
@@ -93,6 +97,31 @@ impl<'g> CssModuleGraphWalker<'g> {
     let graph = self.compilation.get_module_graph();
     let id = graph.get_parent_module(dependency.id())?;
     graph.module_by_identifier(id).map(AsRef::as_ref)
+  }
+
+  pub(super) fn is_css_import_inlined(
+    &self,
+    dependency: &CssImportDependency,
+    module: &dyn Module,
+  ) -> bool {
+    let Some(parent) = self.css_import_parent(dependency) else {
+      return false;
+    };
+    match crate::utils::css_module_export_type(parent) {
+      Some(CssExportType::Text | CssExportType::CssStyleSheet) => true,
+      Some(CssExportType::Style) => {
+        let exports_only = parent
+          .as_normal_module()
+          .and_then(|module| module.get_generator_options())
+          .is_some_and(|options| match options {
+            rspack_core::GeneratorOptions::CssModule(options) => options.exports_only == Some(true),
+            rspack_core::GeneratorOptions::Css(options) => options.exports_only == Some(true),
+            _ => false,
+          });
+        !exports_only && self.is_css_import_inlined_style(dependency, module)
+      }
+      _ => false,
+    }
   }
 
   pub(super) fn is_css_import_inlined_style(

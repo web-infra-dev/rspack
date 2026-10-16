@@ -1,11 +1,12 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyType,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyType, RuntimeSpec,
 };
+use rspack_hash::{RspackHash, RspackHasher, rspack_hash_object};
 
 #[cacheable]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, RspackHash)]
 pub enum CssIcssSymbolKind {
   /// A selector or declaration is rewritten without marking its export used.
   LocalDeclaration,
@@ -56,6 +57,20 @@ impl Dependency for CssIcssSymbolDependency {
     rspack_core::AffectType::True
   }
 }
-impl AsDependencyCodeGeneration for CssIcssSymbolDependency {}
+#[cacheable_dyn]
+impl DependencyCodeGeneration for CssIcssSymbolDependency {
+  fn update_hash(
+    &self,
+    hasher: &mut RspackHasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    // The shared export walk hashes `target` using a stable binding index.
+    rspack_hash_object!(hasher, {
+      "range" => &self.range,
+      "kind" => &self.kind,
+    });
+  }
+}
 impl AsContextDependency for CssIcssSymbolDependency {}
 impl AsModuleDependency for CssIcssSymbolDependency {}

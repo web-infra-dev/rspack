@@ -12,8 +12,8 @@ _index_module_css__rspack_import_0.compose;
 },
 "./index.module.css"(module) {
 var exports = {
-  "foo": "rxVgAl",
-  "compose": "JFz4iC" + " " + "oTLkRz",
+  "foo": "VDCdUQ",
+  "compose": "kc9afi" + " " + "L8a5_n",
 };
 
 module.exports = exports;
