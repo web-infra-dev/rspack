@@ -1,5 +1,5 @@
 ---
-description: '注意 HMR 不能被用于生产构建，因此你需要通过 process.env.NODEENV 来判断当前是否是开发环境。'
+description: '通过 HotModuleReplacementPlugin 启用模块热替换（HMR），在开发时无需刷新整个页面即可更新模块。'
 ---
 
 # HotModuleReplacementPlugin
@@ -68,4 +68,4 @@ export default {
 
 `css` 和 `miniCss` 是可选对象，其中的 `c`、`r` 字段为空时会省略。
 
-可通过 [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename) 自定义清单文件名。设置 `output.module: true` 时，清单会以 ES 模块导出。
+你可以通过 [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename) 自定义清单文件的名称。如果将 `output.module` 设为 `true`，Rspack 会将清单生成为 ES 模块，并通过默认导出提供清单内容。

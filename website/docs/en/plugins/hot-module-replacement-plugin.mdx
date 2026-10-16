@@ -1,5 +1,5 @@
 ---
-description: 'Enabling HMR is straightforward and in most cases no options are necessary'
+description: 'Enable hot module replacement (HMR) in Rspack to update modules during development without reloading the page.'
 ---
 
 # HotModuleReplacementPlugin
@@ -68,4 +68,4 @@ Each field below is an array of IDs:
 
 `css` and `miniCss` are optional objects. Their `c` and `r` fields are omitted when empty.
 
-Use [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename) to customize the manifest filename. With `output.module: true`, the manifest is exported as an ES module.
+You can customize the manifest filename with [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename). If you set `output.module` to `true`, Rspack generates the manifest as an ES module with the manifest data as its default export.
