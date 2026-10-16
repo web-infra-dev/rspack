@@ -4,8 +4,9 @@
 
 
 ## Asset Files
-- Bundle: bundle.js
 - Bundle: lazy.chunk.CURRENT_HASH.js
+- Bundle: main.js
+- Bundle: other.js
 
 ## Manifest
 
