@@ -214,6 +214,14 @@ impl Cache for PersistentCache {
         .unwrap_or_default();
       compilation.source_map_dev_tool_plugin_cache = Some(cache_item);
     }
+
+    // All cache reads for this compilation are done from here on. Hand the
+    // pending serialized entries (including the module graph) to the storage
+    // writer now so they drain while the remaining process-assets / emit work
+    // still runs; otherwise gigabytes of already-serialized entries stay
+    // pending until `after_compile`, right at the point the build reports
+    // completion.
+    self.ctx.save_storage();
   }
 
   async fn after_process_assets(&mut self, compilation: &Compilation) {

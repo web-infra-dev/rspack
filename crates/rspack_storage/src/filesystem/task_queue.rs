@@ -22,11 +22,25 @@ impl Default for TaskQueue {
     TaskQueue {
       sender: LazyLock::new(|| {
         let (tx, mut rx) = mpsc::unbounded_channel();
-        tokio::spawn(async move {
-          while let Some(future) = rx.recv().await {
-            future.await
-          }
-        });
+        // Drain the queue on a dedicated thread instead of the ambient
+        // compiler runtime: background cache writes must keep making progress
+        // while the build saturates every runtime worker, otherwise gigabytes
+        // of already-serialized entries stay queued until after the
+        // compilation finishes.
+        std::thread::Builder::new()
+          .name("rspack-storage-writer".to_string())
+          .spawn(move || {
+            let runtime = tokio::runtime::Builder::new_current_thread()
+              .enable_all()
+              .build()
+              .expect("should create storage writer runtime");
+            runtime.block_on(async move {
+              while let Some(future) = rx.recv().await {
+                future.await
+              }
+            });
+          })
+          .expect("should spawn storage writer thread");
 
         tx
       }),
