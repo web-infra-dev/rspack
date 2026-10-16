@@ -148,7 +148,8 @@ inventory = { version = "0.3.17", default-features = false }
 rkyv      = { version = "=0.8.18", default-features = false, features = ["std", "bytecheck", "smallvec-1"] }
 
 # Must be pinned with the same swc versions
-pnp                 = { version = "0.12.12", default-features = false }
+# pnp 0.12.12 uses regress 0.12, while swc_config still uses regress 0.11.
+pnp                 = { version = "=0.12.11", default-features = false }
 swc                 = { version = "=80.0.0", default-features = false }
 swc_config          = { version = "6.0.1", default-features = false }
 swc_core            = { version = "=82.0.0", default-features = false, features = ["parallel_rayon"] }
