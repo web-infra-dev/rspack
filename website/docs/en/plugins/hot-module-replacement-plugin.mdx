@@ -38,3 +38,32 @@ See [React - Fast Refresh](/guide/integrations/react#fast-refresh) for more deta
 To enable Fast Refresh in Preact projects, you also need to use the [@rspack/plugin-preact-refresh](https://www.npmjs.com/package/@rspack/plugin-preact-refresh) plugin.
 
 See [Preact - Fast Refresh](/guide/integrations/preact#preact-refresh) for more details.
+
+## Hot update manifest
+
+During HMR, the runtime reads a `hot-update.json` manifest to find out which chunks need updates and which chunks or modules need removal. The manifest contains IDs, while the updated JavaScript code is in separate `hot-update.js` files.
+
+For example, this manifest tells the runtime to update the JavaScript and built-in CSS for the `main` chunk, with no chunks or modules to remove:
+
+```json
+{
+  "c": ["main"],
+  "r": [],
+  "m": [],
+  "css": { "c": ["main"] }
+}
+```
+
+| Field       | Meaning and purpose                                                                                  |
+| ----------- | ---------------------------------------------------------------------------------------------------- |
+| `c`         | Chunk IDs with JavaScript updates. The runtime uses these IDs to load the needed update files.       |
+| `r`         | Chunk IDs to remove from the current runtime.                                                        |
+| `m`         | Module IDs to remove from the current runtime.                                                       |
+| `css.c`     | Chunk IDs whose built-in CSS needs updating. The runtime reloads their stylesheets.                  |
+| `css.r`     | Chunk IDs whose built-in CSS has been removed. The runtime removes their old stylesheets.            |
+| `miniCss.c` | Like `css.c`, but for CSS extracted by [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin). |
+| `miniCss.r` | Like `css.r`, but for CSS extracted by `CssExtractRspackPlugin`.                                     |
+
+`css` and `miniCss` are optional objects, and their `c` and `r` fields are omitted when empty. CSS updates are tracked separately from JavaScript updates to avoid reloading unchanged stylesheets. Removing a chunk's CSS does not necessarily remove the chunk itself.
+
+The manifest filename is controlled by [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename). With `output.module: true`, the manifest is exported as an ES module instead of plain JSON.
