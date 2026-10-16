@@ -6,7 +6,7 @@ use std::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use syn::{ItemMod, visit::Visit};
 
-use crate::{Imports, ManualAdapters, instrument_file};
+use crate::{Imports, ManualAdapters, instrument_file, ownership_traits};
 
 struct Source {
   path: PathBuf,
@@ -22,6 +22,7 @@ pub fn instrument_source_tree(
   package: &Path,
   generated: Option<&Path>,
   crate_path: &str,
+  crate_name: &str,
 ) -> io::Result<FxHashMap<PathBuf, String>> {
   let directory = root
     .parent()
@@ -54,7 +55,7 @@ pub fn instrument_source_tree(
         &source.parsed,
         &source.text,
         crate_path,
-        &[],
+        ownership_traits(crate_name),
         &manual.names,
         &source.module,
       )

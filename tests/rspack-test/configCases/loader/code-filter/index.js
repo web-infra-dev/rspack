@@ -1,3 +1,5 @@
+import cachedHit from "./cached-hit";
+import cachedMiss from "./cached-miss";
 import direct from "./direct";
 import emptyContent from "./empty-content";
 import emptyRegexp from "./empty-regexp";
@@ -28,6 +30,8 @@ it("should filter normal loader execution using its current input", () => {
 	expect(emptyRegexp).toBe("empty-regexp");
 	expect(unicode).toBe("unicode");
 	expect(rightOutput).toBe("right-output");
+	expect(cachedHit).toBe("cached-hit");
+	expect(cachedMiss).toBe("__VALUE__");
 	expect(mixedNative).toBe("mixed-native");
 });
 

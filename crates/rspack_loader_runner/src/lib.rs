@@ -1,6 +1,7 @@
 #![feature(string_from_utf8_lossy_owned)]
 
 mod cache;
+mod chain;
 mod code_filter;
 mod content;
 mod context;
@@ -26,3 +27,4 @@ pub use scheme::{Scheme, get_scheme};
 
 pub const BUILTIN_LOADER_PREFIX: &str = "builtin:";
 pub use cache::LoaderRunnerOptions;
+pub use chain::LoaderChain;

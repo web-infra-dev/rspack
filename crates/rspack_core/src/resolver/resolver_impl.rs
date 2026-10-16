@@ -5,6 +5,7 @@ use std::{
   sync::Arc,
 };
 
+use futures::future::BoxFuture;
 use parking_lot::RwLock;
 use rspack_cacheable::cacheable;
 use rspack_error::{Error, Severity, cyan, yellow};
@@ -238,25 +239,30 @@ impl Resolver {
   }
 
   /// Resolve a specifier to a given path.
-  pub async fn resolve_with_context(
-    &self,
-    path: &Path,
-    request: &str,
-  ) -> (
-    Result<ResolveResult, ResolveInnerError>,
-    ResolveDependencies,
-  ) {
-    let cache = self.cache.read().clone();
-    match cache {
-      Some(cache) => {
-        cache
-          .use_cache(self.options_key, path, request, || {
-            self.resolve_with_context_impl(path, request)
-          })
-          .await
+  pub fn resolve_with_context<'a>(
+    &'a self,
+    path: &'a Path,
+    request: &'a str,
+  ) -> BoxFuture<
+    'a,
+    (
+      Result<ResolveResult, ResolveInnerError>,
+      ResolveDependencies,
+    ),
+  > {
+    Box::pin(async move {
+      let cache = self.cache.read().clone();
+      match cache {
+        Some(cache) => {
+          cache
+            .use_cache(self.options_key, path, request, || {
+              self.resolve_with_context_impl(path, request)
+            })
+            .await
+        }
+        None => self.resolve_with_context_impl(path, request).await,
       }
-      None => self.resolve_with_context_impl(path, request).await,
-    }
+    })
   }
 
   pub fn inner_fs(&self) -> Arc<dyn ReadableFileSystem> {

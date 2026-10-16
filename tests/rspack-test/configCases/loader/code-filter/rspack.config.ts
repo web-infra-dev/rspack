@@ -64,6 +64,38 @@ export default defineConfig({
         ],
       },
       {
+        test: /cached-hit\.js$/,
+        use: [
+          './pitch-observer-loader.mjs',
+          {
+            loader: './transform-loader.mjs',
+            options: { value: 'cached-hit' },
+            filter: { code: /generated:marker/ },
+            cache: true,
+          },
+          {
+            loader: './marker-producer-loader.mjs',
+            cache: true,
+          },
+        ],
+      },
+      {
+        test: /cached-miss\.js$/,
+        use: [
+          './pitch-observer-loader.mjs',
+          {
+            loader: './transform-loader.mjs',
+            options: { value: 'should-not-run' },
+            filter: { code: /not-present/ },
+            cache: true,
+          },
+          {
+            loader: './marker-producer-loader.mjs',
+            cache: true,
+          },
+        ],
+      },
+      {
         test: /metadata\.js$/,
         use: [
           './metadata-observer-loader.mjs',
