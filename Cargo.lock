@@ -7481,9 +7481,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_allocator"
-version = "0.2.4"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60df671b4a07b5d7f5dc28c06419124a7f20fa0e1097e42622fd79aeedb98dbd"
+checksum = "a349d5392d5353ec25823156a7b7c40a818fb05f9d5f43be3c2ce74e53651f60"
 dependencies = [
  "allocator-api2",
  "bumpalo",
@@ -7493,9 +7493,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ast_macros"
-version = "0.2.4"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47643d901b4613dead3a8c0ab44184220d24c725ed385457427ee2381fa4e1d3"
+checksum = "7cfd5bc38ef1da4221abed5c45f03be4b69803ac53d3ab16a6c28374e6176a63"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7504,9 +7504,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_ast"
-version = "0.2.4"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8666167d1bc7c2d04b7f2308105d66889c697ee88fbb534df7a00f4e8c12a60"
+checksum = "426ffe2137865aaa7cb65bbccbc99b1d37205eb775be8767f845fa7329b0996f"
 dependencies = [
  "oxc_index",
  "swc_next_allocator",
@@ -7516,9 +7516,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_parser"
-version = "0.2.4"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16d369fb15b31cd5d2fad2ff45231b89fb987a9148997ddaeff5ad4190b33198"
+checksum = "5da102150f7f9a21ea4cb42d05da147badfb54ae39ea7c722b465a61b0ada633"
 dependencies = [
  "bitflags 2.13.2",
  "memchr",
@@ -7526,13 +7526,14 @@ dependencies = [
  "swc_next_allocator",
  "swc_next_ecma_ast",
  "swc_next_simd",
+ "unicode-id-start",
 ]
 
 [[package]]
 name = "swc_next_ecma_semantic"
-version = "0.2.4"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66343267e32f5ce6f2228c0bb81061ae4ae79701a0fd40f6cfe5ddb7a864c1e2"
+checksum = "8dd69734ae802b96d7eaf924f9e01706b286161d9ef46e29cd44f2f432cb761c"
 dependencies = [
  "bitflags 2.13.2",
  "hashbrown 0.17.1",
@@ -7547,9 +7548,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_regular_expression"
-version = "0.2.4"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a164c3161da895f5156ff4ec7807cb9e5905d46f748aa2e361b2bed8fc653e8b"
+checksum = "ccf170d303015b83a3fcfb896fd0bd156726973ae6b974030643db88e474bd86"
 dependencies = [
  "bitflags 2.13.2",
  "phf 0.14.0",
@@ -7560,9 +7561,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_simd"
-version = "0.2.4"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2160e1cd74c30cd68a6721f605cfa492ec60437dc7d34e3fd425b3d32c99899c"
+checksum = "c07f9a9b3e69d5090af16380fc693359b01f37a4636e53473c1371ab8998591c"
 
 [[package]]
 name = "swc_node_comments"

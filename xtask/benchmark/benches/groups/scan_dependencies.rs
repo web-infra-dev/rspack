@@ -29,7 +29,7 @@ use rustc_hash::FxHashSet;
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{Lang, SourceType as SwcSourceType};
 use swc_next_ecma_parser::{CommentMode, Options, Parser, TokenParserConfig};
-use swc_next_ecma_semantic::{AnalyzeOptions, analyze};
+use swc_next_ecma_semantic::{AnalyzeOptions, SyntaxChecks, analyze};
 
 const THREE_MODULE_BENCHMARK_ID: &str = "rust@scan_dependencies@three_module";
 const THREE_MODULE_RESOURCE_PATH: &str = "/node_modules/three/build/three.module.js";
@@ -214,7 +214,7 @@ fn parse_benchmark_program(
   let semantic_return = analyze(
     ast,
     AnalyzeOptions {
-      check_syntax: true,
+      check_syntax: SyntaxChecks::all(),
       build_module_record: false,
     },
   );

@@ -76,7 +76,7 @@ fn symbol_binding(
     index: NonZeroU32::new(symbol_start + symbol.index() as u32 + 1)
       .expect("semantic symbol indices start at one"),
     scope: SemanticScopeId(
-      NonZeroU32::new(scope_start + semantic.scope_of(symbol).raw())
+      NonZeroU32::new(scope_start + semantic.scope_of_symbol(symbol).raw())
         .expect("semantic scope indices start at one"),
     ),
   }
@@ -126,7 +126,7 @@ impl<'ast> SemanticStore<'ast> {
       if !entry.symbol.flags.contains(SymbolFlags::FUNCTION) {
         continue;
       }
-      let owner = ast.semantic.scope(ast.semantic.scope_of(entry.id));
+      let owner = ast.semantic.scope(ast.semantic.scope_of_symbol(entry.id));
       if matches!(owner.kind, ScopeKind::Block | ScopeKind::With)
         && matches!(
           ast.semantic.scope(owner.hoist_target).kind,
@@ -250,9 +250,6 @@ impl<'ast> SemanticContext<'ast> {
       return IdentifierResolution::Name;
     };
     let reference = semantic.reference(reference);
-    if reference.flags.is_dynamic() {
-      return IdentifierResolution::Name;
-    }
     match reference.symbol {
       Some(symbol) => IdentifierResolution::Symbol(symbol),
       // A fragment is evaluated in its caller's environment, not as a separate module.
@@ -401,7 +398,7 @@ impl<'ast> ScopeInfoDB<'ast> {
         return state.defined();
       }
       let scope = self.semantic_context.scope_start as usize
-        + parsed.semantic.scope_of(symbol).raw() as usize
+        + parsed.semantic.scope_of_symbol(symbol).raw() as usize
         - 1;
       if let Some(owner) = self.semantic_scope_owners[scope] {
         return Some(BindingState::Normal(owner));
