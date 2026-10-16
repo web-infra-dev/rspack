@@ -81,8 +81,7 @@ Preserve these contracts:
    are empty; this says nothing about whether content exists.
 8. **Borrowed `'static` views must retain their owner.** The lifetime extensions in `SourceMap`,
    `CachedSource`, and `SourceContentLines` depend on explicit owner relationships.
-9. **`Source` remains `Send + Sync`; `ObjectPool` does not.** Use one scratch pool per worker or
-   thread, never one shared pool behind a global lock.
+9. **`Source` remains `Send + Sync`.** Temporary UTF-16 indices are local to each mapping stream.
 10. **Hashing and equality describe the canonical source graph, not rendered output.**
     Persistent-cache restoration must reconstruct the same graph, including intentional
     normalization and transparent wrappers.
@@ -100,16 +99,16 @@ Despite its historical name:
 pub type BoxSource = Arc<dyn Source>;
 ```
 
-| Method                      | Use                                       | Cost expectations                           |
-| --------------------------- | ----------------------------------------- | ------------------------------------------- |
-| `source()`                  | text/binary value                         | borrowed for leaves; may flatten composites |
-| `rope(on_chunk)`            | incremental text spans                    | preserve borrowing; text-oriented           |
-| `buffer()`                  | exact bytes                               | preferred for binary data                   |
-| `size()`                    | output byte length                        | must match buffer/writer length             |
-| `map(pool, options)`        | map borrowing from `self`                 | direct borrow or one streamed rebuild       |
-| `map_static(pool, options)` | map that outlives the local source borrow | retains an `Arc` owner                      |
-| `update_hash()`             | structural hash                           | cached by `CachedSource`                    |
-| `to_writer()`               | incremental byte output                   | preferred for emission                      |
+| Method                | Use                                       | Cost expectations                           |
+| --------------------- | ----------------------------------------- | ------------------------------------------- |
+| `source()`            | text/binary value                         | borrowed for leaves; may flatten composites |
+| `rope(on_chunk)`      | incremental text spans                    | preserve borrowing; text-oriented           |
+| `buffer()`            | exact bytes                               | preferred for binary data                   |
+| `size()`              | output byte length                        | must match buffer/writer length             |
+| `map(options)`        | map borrowing from `self`                 | direct borrow or one streamed rebuild       |
+| `map_static(options)` | map that outlives the local source borrow | retains an `Arc` owner                      |
+| `update_hash()`       | structural hash                           | cached by `CachedSource`                    |
+| `to_writer()`         | incremental byte output                   | preferred for emission                      |
 
 For every implementation:
 
@@ -190,8 +189,12 @@ calculation handle.
 - known non-ASCII and unknown use `simd_utf16_len` directly; its ASCII fast path avoids a separate scan;
 - a subspan of known non-ASCII becomes unknown because the slice may be ASCII-only.
 
-`WithUtf16` converts UTF-16 columns back to valid UTF-8 byte boundaries. It builds a pooled byte
-index only for non-ASCII lines; four-byte scalars occupy two UTF-16 columns.
+`LineIndex` scans a whole source once. A known-ASCII `TextSpan` uses a newline-only scan;
+otherwise SSE2 or NEON finds newlines in ASCII blocks and scalar code indexes UTF-8 characters.
+It stores compact line starts and indexes only lines containing non-ASCII characters. Line views
+convert UTF-16 columns back to valid UTF-8 byte boundaries.
+Four-byte scalars occupy two UTF-16 columns, and a column inside the surrogate pair rounds down
+to the scalar's starting byte.
 
 ### `SourceMap`
 
@@ -217,6 +220,7 @@ representation optimizations.
 | `RawBufferSource` | binary leaf          | exact bytes; lazy lossy rope view                                   |
 | `OriginalSource`  | mapped text leaf     | lazily creates token-like or line mappings                          |
 | `SourceMapSource` | existing/nested map  | directly borrows one map or composes outer and inner maps           |
+| `MappingSource`   | external map JSON    | retains the original map and serializes JSON on demand              |
 | `ConcatSource`    | ordered composition  | flattens nested concats, merges adjacent raw strings, remaps tables |
 | `ReplaceSource`   | byte-range transform | maintains sorted edits and repairs mappings                         |
 | `CachedSource`    | memoization wrapper  | owns cross-call memoized state                                      |
@@ -226,6 +230,25 @@ Important implementation details:
 - `OriginalSource` splits potential JavaScript tokens with `memchr`; it is not an AST tokenizer.
 - `SourceMapSource` composition indexes inner mappings by line and binary-searches the closest
   preceding segment. Avoid cloning maps or eagerly splitting all `sourcesContent`.
+- `MappingSource` is the JSON asset itself, so `map()` returns `None`. It retains the original
+  `SourceMap` and its owner without interning, deduplicating, or rewriting `sourcesContent`.
+  Unedited `source()` and `buffer()` use the existing `SourceMap::to_json()` serializer on demand
+  and cache only its byte length. Construction must not scan the map to compute its exact JSON
+  size; `size()` computes it lazily if needed, and this cache must not affect equality or hashing.
+  Rope APIs expose borrowed JSON fragments, including splits at escapes, and rope and JSON chunk
+  iteration share one lazy edit overlay so the two views cannot diverge. RCH scans serialized bytes
+  with bounded buffering and retains edits in another `MappingSource`, including custom digests
+  and maps participating in content-hash groups. Reuse the scan's byte count when creating edited
+  views so their size calculation does not serialize the input again. Edited writers apply byte
+  ranges to the original SIMD serializer's output; do not route them through the scalar rope escaper.
+  SRI computes all requested digests in one serialization pass. Content equality retains field references and
+  advances through escapes lazily, rather than retaining a reference per escaped fragment.
+  Content hashing and equality consume the exact rendered bytes; structural Source hashing remains
+  separate. Persistent cache stores map fields and edit layers directly, preserving empty fields
+  without JSON encoding or parsing. Its map record is boxed so other cached source nodes do not
+  grow. For external `noSources` maps, own the remaining borrowed metadata before releasing the
+  owner of the removed contents. Do not retain the whole JSON in either the map asset or its
+  replacement result. JS binding content requests remain an explicit materialization boundary.
 - `ConcatSource::add` uses `&mut self` and `Mutex::get_mut`; reads lazily optimize children. Mapping
   shifts generated positions and remaps child-local indices into global deduplicated tables.
 - `ReplaceSource` ranges are half-open byte ranges. Edits are ordered by
@@ -318,5 +341,8 @@ Completed sources are `Send + Sync`. Lazy shared state uses `OnceLock`; `ConcatS
 synchronous. Parallelize at the module/asset level using Rspack's existing parallel abstractions,
 not inside one mapping stream.
 
-`ObjectPool` reuses large `Vec<usize>` buffers for UTF-16 indices. It uses `RefCell`, does not pool
-requests below 64 elements, and retains peak capacities. Keep one bounded pool per worker/thread.
+`LineIndex` owns source-wide line starts and keeps non-ASCII character offsets in a line-indexed
+vector of boxed slices. The vector stays empty when the entire source is ASCII.
+Offsets use `u32`, following Rspack's assumption that source files fit in 4 GiB.
+Mapping streams drop the index after use rather
+than retaining line-sized buffers in a pool.

@@ -18,6 +18,7 @@ pub mod ryu_js;
 pub mod size;
 pub mod source_map;
 pub mod span;
+pub mod streaming_matcher;
 pub mod swc;
 pub mod test;
 pub mod time;

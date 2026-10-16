@@ -2,7 +2,7 @@ use std::{cell::Cell, hash::Hash, sync::Arc};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, ObjectPool, OriginalSource, RawBufferSource,
+  BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, SourceValue,
   WithoutOriginalOptions,
 };
@@ -68,7 +68,7 @@ impl TryFrom<&BoxSource> for JsSourceToJs {
   fn try_from(value: &BoxSource) -> Result<Self> {
     match value.source() {
       SourceValue::String(string) => {
-        let map = value.map(&ObjectPool::default(), &MapOptions::default());
+        let map = value.map(&MapOptions::default());
         let json = map.map(|m| m.to_json());
         Ok(JsSourceToJs {
           source: Either::A(string.into_owned()),
@@ -174,7 +174,7 @@ impl LazySourceMap {
       Some(true) => Some(Self::Source(Arc::clone(source))),
       // Keep RawSource / SourceMapSource selection exact for sources without a cheap presence check.
       None => Arc::clone(source)
-        .map_static(&ObjectPool::default(), &MapOptions::default())
+        .map_static(&MapOptions::default())
         .map(|map| Self::Map(Box::new(map))),
     }
   }
@@ -182,7 +182,7 @@ impl LazySourceMap {
   fn to_json(&self) -> Result<String> {
     match self {
       Self::Source(source) => Arc::clone(source)
-        .map_static(&ObjectPool::default(), &MapOptions::default())
+        .map_static(&MapOptions::default())
         .map(|map| map.to_json())
         .ok_or_else(|| napi::Error::from_reason("Source map is not available")),
       Self::Map(map) => Ok(map.to_json()),

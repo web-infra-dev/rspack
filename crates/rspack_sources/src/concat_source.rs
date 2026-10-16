@@ -11,7 +11,6 @@ use crate::{
   BoxSource, MapOptions, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, get_map},
   linear_map::LinearMap,
-  object_pool::ObjectPool,
   source::{Mapping, OriginalLocation},
 };
 
@@ -21,8 +20,8 @@ use crate::{
 ///
 /// ```
 /// use rspack_sources::{
-///   BoxSource, ConcatSource, MapOptions, ObjectPool, OriginalSource, RawStringSource, Source,
-///   SourceExt, SourceMap,
+///   BoxSource, ConcatSource, MapOptions, OriginalSource, RawStringSource, Source, SourceExt,
+///   SourceMap,
 /// };
 ///
 /// let mut source = ConcatSource::new([
@@ -41,9 +40,7 @@ use crate::{
 ///   "Hello World\nconsole.log('test');\nconsole.log('test2');\nHello2\n"
 /// );
 /// assert_eq!(
-///   source
-///     .map(&ObjectPool::default(), &MapOptions::new(false))
-///     .unwrap(),
+///   source.map(&MapOptions::new(false)).unwrap(),
 ///   SourceMap::from_json(
 ///     r#"{
 ///       "version": 3,
@@ -217,21 +214,14 @@ impl Source for ConcatSource {
       .sum()
   }
 
-  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
+  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
     let chunks = self.stream_chunks();
-    get_map(object_pool, chunks.as_ref(), options).map(SourceMap::from_fields)
+    get_map(chunks.as_ref(), options).map(SourceMap::from_fields)
   }
 
-  fn map_static(
-    self: Arc<Self>,
-    object_pool: &ObjectPool,
-    options: &MapOptions,
-  ) -> Option<SourceMap<'static>> {
+  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
     let owner = self.clone();
-    self
-      .as_ref()
-      .map(object_pool, options)
-      .map(|map| map.into_static(owner))
+    self.as_ref().map(options).map(|map| map.into_static(owner))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -276,14 +266,13 @@ impl<'source> ConcatSourceChunks<'source> {
 impl<'source> Chunks<'source> for ConcatSourceChunks<'source> {
   fn stream<'chunk>(
     &'chunk self,
-    object_pool: &ObjectPool,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
     on_source: crate::helpers::OnSource<'_, 'source>,
     on_name: crate::helpers::OnName<'_, 'source>,
   ) -> GeneratedInfo {
     if self.children_chunks.len() == 1 {
-      return self.children_chunks[0].stream(object_pool, options, on_chunk, on_source, on_name);
+      return self.children_chunks[0].stream(options, on_chunk, on_source, on_name);
     }
     let mut current_line_offset = 0;
     let mut current_column_offset = 0;
@@ -302,7 +291,6 @@ impl<'source> Chunks<'source> for ConcatSourceChunks<'source> {
         generated_line,
         generated_column,
       } = child_handle.stream(
-        object_pool,
         options,
         &mut |chunk, mapping| {
           let line = mapping.generated_line + current_line_offset;
@@ -511,9 +499,7 @@ mod tests {
     assert_eq!(source.size(), 62);
     assert_eq!(source.source().into_string_lossy(), expected_source);
     assert_eq!(
-      source
-        .map(&ObjectPool::default(), &MapOptions::new(false))
-        .unwrap(),
+      source.map(&MapOptions::new(false)).unwrap(),
       SourceMap::from_json(
         r#"{
           "version": 3,
@@ -530,9 +516,7 @@ mod tests {
       .unwrap()
     );
     assert_eq!(
-      source
-        .map(&ObjectPool::default(), &MapOptions::default())
-        .unwrap(),
+      source.map(&MapOptions::default()).unwrap(),
       SourceMap::from_json(
         r#"{
           "version": 3,
@@ -566,9 +550,7 @@ mod tests {
     assert_eq!(source.size(), 62);
     assert_eq!(source.source().into_string_lossy(), expected_source);
     assert_eq!(
-      source
-        .map(&ObjectPool::default(), &MapOptions::new(false))
-        .unwrap(),
+      source.map(&MapOptions::new(false)).unwrap(),
       SourceMap::from_json(
         r#"{
           "version": 3,
@@ -585,9 +567,7 @@ mod tests {
       .unwrap()
     );
     assert_eq!(
-      source
-        .map(&ObjectPool::default(), &MapOptions::default())
-        .unwrap(),
+      source.map(&MapOptions::default()).unwrap(),
       SourceMap::from_json(
         r#"{
           "version": 3,
@@ -621,9 +601,7 @@ mod tests {
     assert_eq!(source.size(), 62);
     assert_eq!(source.source().into_string_lossy(), expected_source);
     assert_eq!(
-      source
-        .map(&ObjectPool::default(), &MapOptions::new(false))
-        .unwrap(),
+      source.map(&MapOptions::new(false)).unwrap(),
       SourceMap::from_json(
         r#"{
           "version": 3,
@@ -640,9 +618,7 @@ mod tests {
       .unwrap()
     );
     assert_eq!(
-      source
-        .map(&ObjectPool::default(), &MapOptions::default())
-        .unwrap(),
+      source.map(&MapOptions::default()).unwrap(),
       SourceMap::from_json(
         r#"{
           "version": 3,
@@ -693,9 +669,7 @@ mod tests {
     assert_eq!(source.source().into_string_lossy(), expected_source);
     assert_eq!(source.buffer(), expected_source.as_bytes());
 
-    let map = source
-      .map(&ObjectPool::default(), &MapOptions::new(false))
-      .unwrap();
+    let map = source.map(&MapOptions::new(false)).unwrap();
     assert_eq!(map, expected_map1);
 
     // TODO: test hash
@@ -710,8 +684,8 @@ mod tests {
     ]);
 
     let result_text = source.source();
-    let result_map = source.map(&ObjectPool::default(), &MapOptions::default());
-    let result_list_map = source.map(&ObjectPool::default(), &MapOptions::new(false));
+    let result_map = source.map(&MapOptions::default());
+    let result_list_map = source.map(&MapOptions::new(false));
 
     assert_eq!(
       result_text.into_string_lossy(),
@@ -735,9 +709,7 @@ mod tests {
     ]);
 
     assert_eq!(
-      source
-        .map(&ObjectPool::default(), &MapOptions::default())
-        .unwrap(),
+      source.map(&MapOptions::default()).unwrap(),
       SourceMap::from_json(
         r#"{
           "mappings": "AAAA,K,CCAA,M;ADAA;;ACAA",
@@ -764,11 +736,7 @@ mod tests {
       RawStringSource::from("c"),
     ]);
     assert_eq!(source.source().into_string_lossy(), "abc");
-    assert!(
-      source
-        .map(&ObjectPool::default(), &MapOptions::default())
-        .is_none()
-    );
+    assert!(source.map(&MapOptions::default()).is_none());
   }
 
   #[test]
