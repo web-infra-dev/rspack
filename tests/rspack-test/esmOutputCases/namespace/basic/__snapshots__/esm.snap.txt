@@ -19,7 +19,7 @@ const foo = __webpack_require__("./foo.js");
 it('should import namespace', () => {
 	expect(foo.p).toBe(123);
 	expect(foo.p).toBe(123);
-})
+});
 
 export {};
 

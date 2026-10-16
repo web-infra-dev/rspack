@@ -11,12 +11,13 @@ version.workspace = true
 # `rspack_cacheable` is optional because it pulls in swc_core and lightningcss, which
 # `rspack_resolver` cannot afford: it has to keep building for wasm32-unknown-unknown.
 [features]
-cacheable = ["dep:rspack_cacheable"]
-default   = ["cacheable"]
+allocative = ["rspack_intern/allocative"]
+cacheable  = ["dep:rspack_cacheable"]
+default    = ["cacheable"]
 
 [dependencies]
 camino           = { workspace = true }
-dashmap          = { workspace = true }
+dashmap          = { workspace = true, features = ["raw-api"] }
 indexmap         = { workspace = true }
 rspack_cacheable = { workspace = true, optional = true }
 rspack_intern    = { workspace = true }

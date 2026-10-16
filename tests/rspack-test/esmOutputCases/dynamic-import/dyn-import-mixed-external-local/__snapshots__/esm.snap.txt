@@ -5,7 +5,7 @@ it('should dynamically import module with mixed external re-exports and local ex
 	expect(mod.readFile).toBeDefined()
 	expect(mod.localValue).toBe(42)
 	expect(mod.localFn()).toBe('hello')
-})
+});
 
 export {};
 
@@ -17,7 +17,7 @@ export {};
 // ./wrapper.js
 
 const localValue = 42
-const localFn = () => 'hello'
+const localFn = () => 'hello';
 
 export { localFn, localValue };
 export { readFile } from "fs";

@@ -1,5 +1,4 @@
-use rspack_intern::Atom;
-use swc_experimental_ecma_ast::CallExpr;
+use swc_next_ecma_ast::CallExpression;
 
 use super::{
   JavascriptParserPlugin,
@@ -14,7 +13,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _expr: &CallExpr<'_>,
+    _expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "eval" {
@@ -36,12 +35,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
     if parser.build_info.top_level_declarations.is_none() {
       parser.build_info.top_level_declarations = Some(Default::default());
     }
-    let variables: Vec<_> = parser
-      .get_all_variables_from_current_scope()
-      .map(|(name, _)| Atom::new(name))
-      .collect();
-    for name in variables {
-      if parser.is_variable_defined(&name) {
+    let variables = parser.definitions_db.current_variables();
+    for (name, info) in variables {
+      if !parser.definitions_db.expect_get_variable(info).is_free() {
         parser
           .build_info
           .top_level_declarations

@@ -27,7 +27,6 @@
     "@rspress/plugin-algolia": "catalog:",
     "@rspress/plugin-client-redirects": "catalog:",
     "@rspress/plugin-rss": "catalog:",
-    "@rspress/plugin-sitemap": "catalog:",
     "@shikijs/transformers": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
