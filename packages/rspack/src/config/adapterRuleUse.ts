@@ -1,10 +1,4 @@
-import type {
-  AssetInfo,
-  RawModuleRuleUse,
-  RawOptions,
-  RawRuleSetLoaderCodeFilter,
-  RawRuleSetLoaderFilter,
-} from '@rspack/binding';
+import type { AssetInfo, RawModuleRuleUse, RawOptions } from '@rspack/binding';
 import { getLightningcssLoaderOptions } from '../builtin-loader/lightningcss';
 import { getSwcLoaderOptions } from '../builtin-loader/swc';
 import type { Compilation } from '../Compilation';
@@ -25,7 +19,6 @@ import type {
   PublicPath,
   Resolve,
   RuleSetLoaderWithOptions,
-  RuleSetLoaderCodeFilter,
   RuleSetUseItem,
   Target,
 } from './types';
@@ -574,7 +567,7 @@ function createRawModuleRuleUsesImpl(
       optionsCacheKey: use.cache
         ? (JSON.stringify(fingerprintOptions) ?? '')
         : '',
-      filter: createRawRuleSetLoaderFilter(
+      codeFilter: createRawLoaderCodeFilter(
         use.filter,
         `${path}[${index}].filter`,
       ),
@@ -582,10 +575,10 @@ function createRawModuleRuleUsesImpl(
   });
 }
 
-function createRawRuleSetLoaderFilter(
+function createRawLoaderCodeFilter(
   filter: RuleSetLoaderWithOptions['filter'],
   path: string,
-): RawRuleSetLoaderFilter | undefined {
+): string | RegExp | undefined {
   if (filter === undefined) return undefined;
   if (!filter || typeof filter !== 'object' || Array.isArray(filter)) {
     throw new Error(`Expected an object at \`${path}\`.`);
@@ -600,37 +593,10 @@ function createRawRuleSetLoaderFilter(
   if (filter.code === undefined) {
     throw new Error(`Expected a code filter at \`${path}.code\`.`);
   }
-  return {
-    code: createRawRuleSetLoaderCodeFilter(filter.code, `${path}.code`),
-  };
-}
-
-function createRawRuleSetLoaderCodeFilter(
-  filter: RuleSetLoaderCodeFilter,
-  path: string,
-): RawRuleSetLoaderCodeFilter {
-  if (filter instanceof RegExp) {
-    return { include: filter };
+  if (typeof filter.code === 'string' || filter.code instanceof RegExp) {
+    return filter.code;
   }
-  if (!filter || typeof filter !== 'object' || Array.isArray(filter)) {
-    throw new Error(
-      `Expected a RegExp or an object at \`${path}\`, but received ${String(filter)}.`,
-    );
-  }
-  for (const key of Object.keys(filter)) {
-    if (key !== 'include' && key !== 'exclude') {
-      throw new Error(
-        `Unexpected property \`${path}.${key}\`. Code filters only support \`include\` and \`exclude\`.`,
-      );
-    }
-  }
-  for (const key of ['include', 'exclude'] as const) {
-    const pattern = filter[key];
-    if (pattern !== undefined && !(pattern instanceof RegExp)) {
-      throw new Error(`Expected a RegExp at \`${path}.${key}\`.`);
-    }
-  }
-  return { include: filter.include, exclude: filter.exclude };
+  throw new Error(`Expected a string or RegExp at \`${path}.code\`.`);
 }
 
 function resolveStringifyLoaders(

@@ -24,7 +24,7 @@ export default defineConfig({
             loader: './transform-loader.mjs',
             parallel: true,
             options: { value: 'hit' },
-            filter: { code: /generated:marker/g },
+            filter: { code: 'generated:marker' },
           },
           producer,
         ],

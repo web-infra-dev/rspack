@@ -985,11 +985,6 @@ export interface JsLoaderCacheEntry {
   parseMeta: Record<string, string>
 }
 
-export interface JsLoaderCodeFilter {
-  include?: RegExp
-  exclude?: RegExp
-}
-
 export interface JsLoaderContext {
   resource: string
   _module: Module
@@ -1015,10 +1010,6 @@ export interface JsLoaderDependencies {
   buildDependencies: Array<string>
 }
 
-export interface JsLoaderFilter {
-  code?: JsLoaderCodeFilter
-}
-
 export interface JsLoaderItem {
   loader: string
   type: string
@@ -1026,7 +1017,7 @@ export interface JsLoaderItem {
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
-  filter?: JsLoaderFilter
+  codeFilter?: string | RegExp
   filterMatched: boolean
   noPitch: boolean
 }
@@ -2820,7 +2811,7 @@ export interface RawModuleRuleUse {
   options?: string
   cache: boolean
   optionsCacheKey: string
-  filter?: RawRuleSetLoaderFilter
+  codeFilter?: string | RegExp
 }
 
 export interface RawNewCache {
@@ -3122,15 +3113,6 @@ export declare enum RawRuleSetConditionType {
   logical = 'logical',
   array = 'array',
   func = 'func'
-}
-
-export interface RawRuleSetLoaderCodeFilter {
-  include?: RegExp
-  exclude?: RegExp
-}
-
-export interface RawRuleSetLoaderFilter {
-  code?: RawRuleSetLoaderCodeFilter
 }
 
 export interface RawRuleSetLogicalConditions {

@@ -192,7 +192,7 @@ export class LoaderObject {
     content: unknown,
     cache: ReturnType<typeof createCodeFilterTextCache>,
   ) {
-    const codeFilter = this.loaderItem.filter?.code;
+    const codeFilter = this.loaderItem.codeFilter;
     if (!codeFilter || this.loaderItem.filterMatched) return false;
     const matched = matchesCodeFilter(codeFilter, content, cache);
     if (matched === false) return true;

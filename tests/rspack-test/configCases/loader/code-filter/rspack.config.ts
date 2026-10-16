@@ -23,13 +23,9 @@ export default defineConfig({
     rules: [
       filtered(/[\\/]direct\.js$/, /marker:direct/, 'direct'),
       filtered(/regexp-[ab]\.js$/, /marker:regexp/g, 'regexp'),
-      filtered(/include\.js$/, { include: /marker:include/ }, 'include'),
-      filtered(
-        /excluded\.js$/,
-        { include: /marker:include/, exclude: /marker:exclude/ },
-        'excluded',
-      ),
-      filtered(/exclude-only\.js$/, { exclude: /marker/ }, 'exclude-only'),
+      filtered(/include\.js$/, 'marker:include', 'include'),
+      filtered(/excluded\.js$/, 'marker:not-present', 'excluded'),
+      filtered(/exclude-only\.js$/, '__VALUE__', 'exclude-only'),
       filtered(/empty-regexp\.js$/, /(?:)/, 'empty-regexp'),
       {
         test: /empty-content\.js$/,
@@ -38,12 +34,12 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'empty-content' },
-            filter: { code: /(?:)/ },
+            filter: { code: '' },
           },
           './empty-producer-loader.mjs',
         ],
       },
-      filtered(/unicode\.js$/, /你好/u, 'unicode'),
+      filtered(/unicode\.js$/, '你好', 'unicode'),
       {
         test: /functional\.js$/,
         use: () => [
@@ -62,7 +58,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'right-output' },
-            filter: { code: /generated:marker/g },
+            filter: { code: 'generated:marker' },
           },
           './marker-producer-loader.mjs',
         ],

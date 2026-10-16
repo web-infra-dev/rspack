@@ -51,34 +51,16 @@ pub struct RawModuleRuleUse {
   pub options: Option<String>,
   pub cache: bool,
   pub options_cache_key: String,
-  pub filter: Option<RawRuleSetLoaderFilter>,
+  #[napi(ts_type = "string | RegExp")]
+  pub code_filter: Option<Either<String, RspackRegex>>,
 }
 
-#[napi(object)]
-#[derive(Debug)]
-pub struct RawRuleSetLoaderFilter {
-  pub code: Option<RawRuleSetLoaderCodeFilter>,
-}
-
-impl From<RawRuleSetLoaderFilter> for LoaderFilter {
-  fn from(value: RawRuleSetLoaderFilter) -> Self {
-    Self::new(value.code.map(Into::into))
-  }
-}
-
-#[napi(object)]
-#[derive(Debug)]
-pub struct RawRuleSetLoaderCodeFilter {
-  #[napi(ts_type = "RegExp")]
-  pub include: Option<RspackRegex>,
-  #[napi(ts_type = "RegExp")]
-  pub exclude: Option<RspackRegex>,
-}
-
-impl From<RawRuleSetLoaderCodeFilter> for CodeFilter {
-  fn from(value: RawRuleSetLoaderCodeFilter) -> Self {
-    Self::new(value.include, value.exclude)
-  }
+fn into_loader_filter(value: Either<String, RspackRegex>) -> Arc<LoaderFilter> {
+  let code = match value {
+    Either::A(value) => CodeFilter::String(value),
+    Either::B(value) => CodeFilter::Regexp(value),
+  };
+  Arc::new(LoaderFilter::new(Some(code)))
 }
 
 #[rspack_napi_macros::tagged_union]
@@ -1053,7 +1035,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
             options: rule_use.options,
             cache: rule_use.cache,
             options_cache_key: rule_use.options_cache_key,
-            filter: rule_use.filter.map(|filter| Arc::new(filter.into())),
+            filter: rule_use.code_filter.map(into_loader_filter),
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -1070,7 +1052,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
                   options: rule_use.options,
                   cache: rule_use.cache,
                   options_cache_key: rule_use.options_cache_key,
-                  filter: rule_use.filter.map(|filter| Arc::new(filter.into())),
+                  filter: rule_use.code_filter.map(into_loader_filter),
                 })
                 .collect::<Vec<_>>()
             })

@@ -881,12 +881,7 @@ export type RuleSetLoader = string;
 
 export type RuleSetLoaderOptions = string | Record<string, any>;
 
-export type RuleSetLoaderCodeFilter =
-  | RegExp
-  | {
-      include?: RegExp;
-      exclude?: RegExp;
-    };
+export type RuleSetLoaderCodeFilter = string | RegExp;
 
 export type RuleSetLoaderWithOptions = {
   /**

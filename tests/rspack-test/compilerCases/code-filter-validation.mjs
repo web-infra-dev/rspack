@@ -10,15 +10,17 @@ const loader = fileURLToPath(
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 export default {
-	description: "rejects non-RegExp loader code filters",
+	description: "rejects loader code filters other than strings and RegExps",
 	async build() {},
 	async check({ context }) {
 		for (const code of [
-			"marker",
 			[/marker/],
-			{ include: "marker" },
+			{ include: /marker/ },
 			{ include: [/marker/] },
-			{ exclude: [/marker/] }
+			{ exclude: [/marker/] },
+			() => true,
+			42,
+			null
 		]) {
 			const error = await new Promise(resolve => {
 				rspack(
@@ -33,7 +35,7 @@ export default {
 					resolve
 				);
 			});
-			expect(error?.message).toMatch(/Expected a RegExp/);
+			expect(error?.message).toMatch(/Expected a string or RegExp/);
 		}
 	}
 };

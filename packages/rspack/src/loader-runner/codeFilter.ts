@@ -1,7 +1,4 @@
-export interface LoaderCodeFilter {
-  include?: RegExp;
-  exclude?: RegExp;
-}
+export type LoaderCodeFilter = string | RegExp;
 
 export interface CodeFilterTextCache {
   initialized: boolean;
@@ -62,6 +59,7 @@ export function matchesCodeFilter(
 ): boolean | undefined {
   const code = codeAsString(content, cache);
   if (code === null) return undefined;
-  if (filter.exclude && matchesPattern(filter.exclude, code)) return false;
-  return filter.include === undefined || matchesPattern(filter.include, code);
+  return typeof filter === 'string'
+    ? code.includes(filter)
+    : matchesPattern(filter, code);
 }

@@ -552,7 +552,7 @@ async function loaderImpl(
           continue;
         }
         const { loaderItem } = currentLoaderObject;
-        const codeFilter = loaderItem.filter?.code;
+        const codeFilter = loaderItem.codeFilter;
         if (codeFilter && !loaderItem.filterMatched) {
           const matched = matchesCodeFilter(
             codeFilter,

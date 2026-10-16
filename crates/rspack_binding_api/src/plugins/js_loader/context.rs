@@ -25,31 +25,17 @@ pub struct JsLoaderItem {
   pub normal_executed: bool,
   pub pitch_executed: bool,
 
-  pub filter: Option<JsLoaderFilter>,
+  #[napi(ts_type = "string | RegExp")]
+  pub code_filter: Option<Either<String, rspack_regex::RspackRegex>>,
   pub filter_matched: bool,
 
   pub no_pitch: bool,
 }
 
-#[napi(object)]
-pub struct JsLoaderFilter {
-  pub code: Option<JsLoaderCodeFilter>,
-}
-
-#[napi(object)]
-pub struct JsLoaderCodeFilter {
-  #[napi(ts_type = "RegExp")]
-  pub include: Option<rspack_regex::RspackRegex>,
-  #[napi(ts_type = "RegExp")]
-  pub exclude: Option<rspack_regex::RspackRegex>,
-}
-
-impl From<&CodeFilter> for JsLoaderCodeFilter {
-  fn from(value: &CodeFilter) -> Self {
-    Self {
-      include: value.include().cloned(),
-      exclude: value.exclude().cloned(),
-    }
+fn into_js_code_filter(value: &CodeFilter) -> Either<String, rspack_regex::RspackRegex> {
+  match value {
+    CodeFilter::String(value) => Either::A(value.clone()),
+    CodeFilter::Regexp(value) => Either::B(value.clone()),
   }
 }
 
@@ -63,9 +49,9 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
       data: value.data().clone(),
       normal_executed: value.normal_executed(),
       pitch_executed: value.pitch_executed(),
-      filter: value.filter().map(|filter| JsLoaderFilter {
-        code: filter.code().map(Into::into),
-      }),
+      code_filter: value
+        .filter()
+        .and_then(|filter| filter.code().map(into_js_code_filter)),
       filter_matched: value.filter_matched(),
 
       no_pitch: false,
@@ -88,7 +74,7 @@ where
         cache: false,
         pitch_executed: false,
         normal_executed: false,
-        filter: None,
+        code_filter: None,
         filter_matched: false,
         no_pitch: false,
       };
@@ -100,7 +86,7 @@ where
       cache: false,
       pitch_executed: false,
       normal_executed: false,
-      filter: None,
+      code_filter: None,
       filter_matched: false,
       no_pitch: false,
     }

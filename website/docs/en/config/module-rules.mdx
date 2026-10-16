@@ -770,12 +770,7 @@ type RuleSetUse =
 
 type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
 
-type RuleSetLoaderCodeFilter =
-  | RegExp
-  | {
-      include?: RegExp;
-      exclude?: RegExp;
-    };
+type RuleSetLoaderCodeFilter = string | RegExp;
 
 type RuleSetLoaderWithOptions = {
   ident?: string;
@@ -860,10 +855,7 @@ export default {
           {
             loader: './transform-loader.js',
             filter: {
-              code: {
-                include: /\b(createServerFn|createMiddleware)\b/,
-                exclude: /generated code/,
-              },
+              code: /\b(createServerFn|createMiddleware)\b/,
             },
           },
         ],
@@ -873,16 +865,14 @@ export default {
 };
 ```
 
-For a single pattern, use `filter: { code: /createMiddleware/ }`.
-String and array patterns are not supported.
+Use a string for substring matching, such as `filter: { code: 'createMiddleware' }`, or a regular expression for more precise matching. Arrays, objects, and functions are not supported.
 
 The code filter is evaluated immediately before this loader's normal function. It therefore sees the output of loaders to its right. The loader's pitch function is not filtered and keeps its existing behavior.
 
 Matching follows these rules:
 
-- A `RegExp` is tested from `lastIndex = 0` each time.
-- `exclude` takes precedence over `include`. If `include` is omitted, the input is included by default.
-- To match multiple alternatives, combine them in one regular expression, such as `/foo|bar/`.
+- A string matches when it occurs anywhere in the current input; it is not a glob.
+- A `RegExp` is tested from `lastIndex = 0` each time. To match multiple alternatives, combine them in one regular expression, such as `/foo|bar/`.
 - String input and buffers containing valid UTF-8 can match. If the input is missing or a buffer contains invalid UTF-8, Rspack bypasses the filter and runs the normal loader function.
 
 On a miss, Rspack leaves the current content, source map, additional data, and dependencies unchanged, and does not call the normal loader function or consult its loader cache. `filter` is execution metadata: it is not passed to loader options and does not change loader requests or module identifiers. Only use it when skipping the normal function on a miss has the same observable behavior as running that function.
