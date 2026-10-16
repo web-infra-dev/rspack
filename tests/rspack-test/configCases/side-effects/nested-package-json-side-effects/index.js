@@ -9,10 +9,16 @@ import { light as explicitTrue } from "explicit-true";
 import { light as namedBoundary } from "named-boundary";
 import { light as anonymousBoundary } from "anonymous-boundary";
 import { light as localNested } from "./local-nested/esm/index.js";
+import { light as directoryMetadata } from "directory-metadata";
 
 it("inherits sideEffects from the owning package past a type-only package.json", () => {
   expect(inheritedFalse).toBe("inherited-false");
   expect(globalThis.__nestedSideEffectsMarkers).not.toContain("inherited-false");
+});
+
+it("skips ancestor package.json directories when inheriting sideEffects", () => {
+  expect(directoryMetadata).toBe("directory-metadata");
+  expect(globalThis.__nestedSideEffectsMarkers).not.toContain("directory-metadata");
 });
 
 it("matches inherited sideEffects globs relative to the owning package root", () => {

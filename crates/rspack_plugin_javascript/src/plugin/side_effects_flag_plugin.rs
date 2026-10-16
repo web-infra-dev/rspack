@@ -166,7 +166,10 @@ impl SideEffectsFlagPlugin {
         Err(err)
           if matches!(
             err.kind(),
-            std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+            std::io::ErrorKind::NotFound
+              | std::io::ErrorKind::NotADirectory
+              | std::io::ErrorKind::IsADirectory
+              | std::io::ErrorKind::InvalidFilename
           ) =>
         {
           result

@@ -21,6 +21,8 @@ impl From<rspack_error::Error> for Error {
     let kind = match e.code.as_deref() {
       Some("ENOENT") => std::io::ErrorKind::NotFound,
       Some("ENOTDIR") => std::io::ErrorKind::NotADirectory,
+      Some("EISDIR") => std::io::ErrorKind::IsADirectory,
+      Some("ENAMETOOLONG") => std::io::ErrorKind::InvalidFilename,
       _ => std::io::ErrorKind::Other,
     };
     Error::Io(std::io::Error::new(kind, e.to_string()))
