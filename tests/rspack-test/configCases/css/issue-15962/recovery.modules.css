@@ -1,0 +1,63 @@
+.recovery {
+	/* Invalid candidates synchronize without exporting names from their text. */
+	missingColon;
+	brokenString:"unterminated
+		.shouldNotExport;
+	brokenUrl:url(bad"url);
+	/* Provisional URL dependencies and dashed names must be discarded. */
+	background:url("./must-not-resolve.svg") "unterminated
+		.shouldNotExportEither;
+	font-palette:--discardedPalette );
+	.afterInvalid { color: green; }
+
+	/* Semicolons in component values must not reset the declaration state. */
+	animation:{opaque; stillOpaque} !important;
+	animation:[opaque; stillOpaque] recoveryFade 1s;
+	animation:[opaque) ; stillOpaque} ] recoveryFade 1s;
+	color:{.opaque; :global(.opaqueGlobal)} !\69mportant;
+	color:{@import "not-a-file.css"; @property --opaque { syntax:"x"; }};
+	background:paint([{.opaque; .alsoOpaque}]);
+	--components:before{.opaque; stillOpaque}after;
+	--mismatched:paint([opaque) ; stillOpaque} ]);
+
+	/* A known property name can still become a nested type selector. */
+	animation:hover .rollbackCandidate { color: green; }
+
+	/* Both prefixes are possible until the top-level curly block starts. */
+	button:where(:global(.globalCandidate[data-token=--components]), .localCandidate[data-token=--components]) {
+		color:var(--components);
+	}
+	/* Deferred function events keep selector nesting, modes and lookahead. */
+	button:is(:nth-child(2n + 1 of .eventSibling), :local(.eventLocal), :global(.eventGlobal)) > .eventAfter {
+		background:linear-gradient(rgb(1, 2, 3), var(--components));
+	}
+	button:where(:local /* before class */ .eventCommented, :global(.eventExternal)) {
+		color:RGB(1, 2, 3);
+	}
+	/* The rule ends before the trailing text that invalidated the declaration. */
+	button:{color:red} trailing;
+	.afterTrailing { color: blue; }
+	.afterRecovery { animation: recoveryFade 1s; }
+}
+
+@keyframes recoveryFade {
+	to { opacity: 1; }
+}
+
+.modeRollback {
+	/* Candidate replay must not leave implicit classes or ids in explicit mode. */
+	button:hover:global .rawModeClass { color: red; }
+	.implicitAfterGlobal, #implicitIdAfterGlobal { color: blue; }
+	button:hover:local .explicitModeClass { color: red; }
+	.implicitAfterLocal, #implicitIdAfterLocal { color: blue; }
+	button:where(:global(.rawModeFunction), :local(.explicitModeFunction)) {
+		color: green;
+	}
+	.implicitAfterFunction, #implicitIdAfterFunction { color: blue; }
+	/* Rejected candidates must not leave a mode behind either. */
+	button:where(:global(.discardedGlobalMode)) ) ;
+	button:where(:local(.discardedLocalMode)) ) ;
+	.implicitAfterInvalidMode, #implicitIdAfterInvalidMode { color: blue; }
+}
+
+.implicitOutsideRollback, #implicitIdOutsideRollback { color: green; }
