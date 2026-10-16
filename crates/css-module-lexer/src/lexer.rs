@@ -581,6 +581,19 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
         break;
       }
       match byte {
+        C_COMMA if preserve_selector => {
+          // Selector arms need the comma when a declaration candidate is replayed.
+          observe_opaque_value(
+            &mut block_item,
+            TokenKind::Comma,
+            position,
+            position + 1,
+            self.value,
+            leading,
+            FunctionKind::Other,
+          );
+          position += 1;
+        }
         C_NUMBER_SIGN => {
           note_opaque_value(&mut block_item);
           let name_start = position + 1;

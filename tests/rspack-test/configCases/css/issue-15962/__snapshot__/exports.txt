@@ -9,6 +9,10 @@ Object {
     globalModeId: LOCAL-globalModeId,
     globalModeLocal: LOCAL-globalModeLocal,
   },
+  globalComma: Object {
+    commaLocal: LOCAL-commaLocal,
+    commentLocal: LOCAL-commentLocal,
+  },
   local: Object {
     after: LOCAL-after,
     attribute: LOCAL-attribute,

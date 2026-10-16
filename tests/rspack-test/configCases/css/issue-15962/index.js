@@ -1,5 +1,7 @@
 import * as styles from "./style.modules.css";
 import * as globalStyles from "./style.global.css";
+// Keep this fixture short to exercise replay with selector fast-forward disabled.
+import * as commaGlobalStyles from "./comma.global.css";
 import * as smallStyles from "./small.modules.css";
 import * as syntaxStyles from "./syntax.modules.css";
 import * as recoveryStyles from "./recovery.modules.css";
@@ -19,6 +21,7 @@ it("localizes type-first selectors in nested rules", () => {
 	expect({
 		local: styles,
 		global: globalStyles,
+		globalComma: commaGlobalStyles,
 		short: smallStyles,
 		syntax: syntaxStyles,
 		recovery: recoveryStyles,
