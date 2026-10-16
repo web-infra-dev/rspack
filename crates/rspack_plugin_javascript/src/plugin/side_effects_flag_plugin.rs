@@ -1,22 +1,28 @@
-use std::{borrow::Cow, fmt::Debug};
+use std::{
+  borrow::Cow,
+  fmt::Debug,
+  sync::{Arc, RwLock},
+};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, BoxModule, Compilation, CompilationFinishModules,
-  CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
-  ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  OptimizationBailoutItem, Plugin, ResolvedExportInfoTarget, SideEffectsDoOptimize,
-  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact, SideEffectsState,
-  SideEffectsStateArtifact,
+  CompilationOptimizeDependencies, CompilationParams, CompilerCompilation, ConnectionState,
+  DependencyExtraMeta, DependencyId, ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger,
+  ModuleFactoryCreateData, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  NormalModuleCreateData, NormalModuleFactoryModule, OptimizationBailoutItem, Plugin,
+  ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  SideEffectsOptimizeArtifact, SideEffectsState, SideEffectsStateArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::{Diagnostic, Result};
+use rspack_fs::FsResultToIoResultExt;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::{AssertUtf8, Utf8Path};
+use rspack_paths::{AssertUtf8, InternedPath, Utf8Path, Utf8PathBuf};
+use rustc_hash::FxHashMap;
 use sugar_path::SugarPath;
 
 use crate::{
@@ -32,6 +38,26 @@ enum SideEffects {
   Bool(bool),
   String(String),
   Array(Vec<String>),
+}
+
+#[derive(Clone, Debug)]
+struct OwningSideEffects {
+  side_effects: SideEffects,
+  package_root: Utf8PathBuf,
+}
+
+#[derive(Debug, Default)]
+struct OwningSideEffectsResult {
+  owning: Option<OwningSideEffects>,
+  file_dependencies: Vec<InternedPath>,
+  missing_dependencies: Vec<InternedPath>,
+}
+
+impl OwningSideEffectsResult {
+  fn add_dependencies(&self, data: &mut ModuleFactoryCreateData) {
+    data.add_file_dependencies(self.file_dependencies.iter().cloned());
+    data.add_missing_dependencies(self.missing_dependencies.iter().cloned());
+  }
 }
 
 impl SideEffects {
@@ -58,10 +84,13 @@ impl SideEffects {
   }
 }
 
-fn get_side_effects_from_package_json(side_effects: SideEffects, relative_path: &Utf8Path) -> bool {
+fn get_side_effects_from_package_json(
+  side_effects: &SideEffects,
+  relative_path: &Utf8Path,
+) -> bool {
   match side_effects {
-    SideEffects::Bool(s) => s,
-    SideEffects::String(s) => glob_match_with_normalized_pattern(&s, relative_path.as_str()),
+    SideEffects::Bool(s) => *s,
+    SideEffects::String(s) => glob_match_with_normalized_pattern(s, relative_path.as_str()),
     SideEffects::Array(patterns) => patterns
       .iter()
       .any(|pattern| glob_match_with_normalized_pattern(pattern, relative_path.as_str())),
@@ -82,18 +111,113 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
 #[derive(Debug, Default)]
 pub struct SideEffectsFlagPlugin {
   analyze_side_effects_free: bool,
+  owning_side_effects_cache: RwLock<FxHashMap<Utf8PathBuf, Arc<OwningSideEffectsResult>>>,
 }
 
 impl SideEffectsFlagPlugin {
   pub fn new(analyze_side_effects_free: bool) -> Self {
-    Self::new_inner(analyze_side_effects_free)
+    Self::new_inner(analyze_side_effects_free, Default::default())
   }
+
+  async fn get_owning_side_effects(
+    &self,
+    data: &mut ModuleFactoryCreateData,
+    description_root: &Utf8Path,
+  ) -> Result<Arc<OwningSideEffectsResult>> {
+    if let Some(cached) = self
+      .owning_side_effects_cache
+      .read()
+      .expect("sideEffects cache lock should not be poisoned")
+      .get(description_root)
+      .cloned()
+    {
+      cached.add_dependencies(data);
+      return Ok(cached);
+    }
+
+    let fs = &data.build_context.fs;
+    let mut dir = description_root.parent();
+    let mut result = OwningSideEffectsResult::default();
+
+    while let Some(current) = dir {
+      if current.file_name() == Some("node_modules") {
+        break;
+      }
+
+      let description_file = current.join("package.json");
+      match fs.read(&description_file).await.to_io_result() {
+        Ok(content) => {
+          result
+            .file_dependencies
+            .push(description_file.as_path().into());
+          if let Ok(description) = serde_json::from_slice::<serde_json::Value>(&content) {
+            if let Some(side_effects) = SideEffects::from_description(&description) {
+              result.owning = Some(OwningSideEffects {
+                side_effects,
+                package_root: current.to_path_buf(),
+              });
+              break;
+            }
+            if description.get("name").is_some() || description.get("sideEffects").is_some() {
+              break;
+            }
+          }
+        }
+        Err(err)
+          if matches!(
+            err.kind(),
+            std::io::ErrorKind::NotFound
+              | std::io::ErrorKind::NotADirectory
+              | std::io::ErrorKind::IsADirectory
+              | std::io::ErrorKind::InvalidFilename
+          ) =>
+        {
+          result
+            .missing_dependencies
+            .push(description_file.as_path().into());
+        }
+        Err(err) => {
+          return Err(rspack_error::error!(
+            "Failed to read sideEffects metadata at {}: {}",
+            description_file,
+            err
+          ));
+        }
+      }
+
+      dir = current.parent();
+    }
+
+    result.add_dependencies(data);
+    let result = Arc::new(result);
+    self
+      .owning_side_effects_cache
+      .write()
+      .expect("sideEffects cache lock should not be poisoned")
+      .insert(description_root.to_path_buf(), result.clone());
+    Ok(result)
+  }
+}
+
+// Both positive and negative lookups are valid only for this compilation.
+#[plugin_hook(CompilerCompilation for SideEffectsFlagPlugin)]
+async fn compilation(
+  &self,
+  _compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  self
+    .owning_side_effects_cache
+    .write()
+    .expect("sideEffects cache lock should not be poisoned")
+    .clear();
+  Ok(())
 }
 
 #[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin,tracing=false)]
 async fn nmf_module(
   &self,
-  _data: &mut ModuleFactoryCreateData,
+  data: &mut ModuleFactoryCreateData,
   create_data: &NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
@@ -112,12 +236,35 @@ async fn nmf_module(
     return Ok(());
   };
   let package_path = description.path();
-  let Some(side_effects) = SideEffects::from_description(description.json()) else {
-    return Ok(());
+  let direct = SideEffects::from_description(description.json());
+  let inherited;
+  let (side_effects, package_path) = if let Some(side_effects) = &direct {
+    (side_effects, package_path.assert_utf8())
+  } else {
+    // A named package owns its metadata boundary even when it omits sideEffects.
+    if description.json().get("name").is_some() || description.json().get("sideEffects").is_some() {
+      return Ok(());
+    }
+
+    let description_root = package_path.assert_utf8();
+    // Type-only nested package.json files shadow application metadata, but inside
+    // node_modules they should inherit sideEffects from the owning package root.
+    if !description_root
+      .components()
+      .any(|component| component.as_str() == "node_modules")
+    {
+      return Ok(());
+    }
+
+    inherited = self.get_owning_side_effects(data, description_root).await?;
+    let Some(owning) = &inherited.owning else {
+      return Ok(());
+    };
+    (&owning.side_effects, owning.package_root.as_path())
   };
   let relative_path = resource_path
     .as_std_path()
-    .relative(package_path)
+    .relative(package_path.as_std_path())
     .assert_utf8();
   let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path.as_path());
 
@@ -527,6 +674,7 @@ impl Plugin for SideEffectsFlagPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
       .normal_module_factory_hooks
       .module
@@ -566,7 +714,7 @@ mod test_side_effects {
       SideEffects::String((&side_effects_config[0]).to_string())
     };
 
-    get_side_effects_from_package_json(side_effects, relative_path)
+    get_side_effects_from_package_json(&side_effects, relative_path)
   }
 
   #[test]
