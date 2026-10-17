@@ -514,6 +514,9 @@ impl JavascriptParser<'_> {
         self.walk_variable_declaration(decl);
       }
       ForStatementLeftData::AssignmentTarget(target) => {
+        // `for (x of …)` / `for (x in …)` assign into the left-hand target;
+        // enter_assignment_target records mutated_bindings for value-binding emit.
+        self.enter_assignment_target(target, |_, _| {});
         self.walk_assignment_target(target);
       }
     }
@@ -672,6 +675,9 @@ impl JavascriptParser<'_> {
   fn walk_update_expression(&mut self, expr: UpdateExpression) {
     let ast = self.ast.ast;
     let argument = expr.argument(ast);
+    if let Some(ident) = argument.as_identifier_reference(ast) {
+      self.mark_mutated_binding(Atom::from(ast.get_utf8(ident.name(ast))));
+    }
     if !self.javascript_options.is_create_require_enabled() {
       self.walk_simple_assign_target(argument);
       return;
@@ -1928,6 +1934,9 @@ impl JavascriptParser<'_> {
       }
     };
     if let Some(identifier) = identifier {
+      if self.in_assignment_pattern {
+        self.mark_mutated_binding(Atom::from(identifier.name(ast)));
+      }
       let drive = self.plugin_drive();
       if !identifier
         .call_hooks_name(self, |parser, for_name| {
@@ -1963,6 +1972,9 @@ impl JavascriptParser<'_> {
           })
           .unwrap_or_default()
       {
+        // Rename fast-path still assigns the left-hand local; record mutation
+        // before set_variable replaces the binding with a FREE alias.
+        self.mark_mutated_binding(Atom::from(ast.get_utf8(ident.name(ast))));
         if !self
           .call_hooks_name(&rename_identifier, |this, for_name| {
             drive.rename(this, right, for_name)
