@@ -49,6 +49,16 @@ impl PassExt for ModuleIdsPass {
       compilation.module_ids_artifact.clear();
     }
 
+    // Copy the current ids so the end of this pass can find modules whose id
+    // changed. An existing copy means the last rebuild failed before hashing;
+    // keep it, since the hashes were built from those ids. Cold builds skip this.
+    if compilation.incremental.mutations_writable()
+      && compilation.module_ids_diff_artifact.previous_ids.is_none()
+    {
+      compilation.module_ids_diff_artifact.previous_ids =
+        Some((*compilation.module_ids_artifact).clone());
+    }
+
     let module_ids_artifact = compilation.module_ids_artifact.steal();
     let mut preserved_module_ids_artifact = ModuleIdsArtifact::default();
 
@@ -107,15 +117,8 @@ impl PassExt for ModuleIdsPass {
     // Merge IDs assigned by reviveModules and beforeModuleIds before running module ID plugins,
     // so every plugin sees them as reserved IDs. Plugins that reset global IDs retain this
     // preserved subset.
-    {
-      let mut mutations = compilation.incremental.mutations_write();
-      for (module, id) in preserved_module_ids_artifact.iter() {
-        if ChunkGraph::set_module_id(&mut module_ids_artifact, *module, id.clone())
-          && let Some(mutations) = &mut mutations
-        {
-          mutations.add(Mutation::ModuleSetId { module: *module });
-        }
-      }
+    for (module, id) in preserved_module_ids_artifact.iter() {
+      ChunkGraph::set_module_id(&mut module_ids_artifact, *module, id.clone());
     }
 
     compilation
@@ -146,6 +149,32 @@ impl PassExt for ModuleIdsPass {
         .call(compilation, &module_ids_artifact)
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.recordModules"))?;
+    }
+    // Record modules whose final id changed, including ones that lost their id.
+    // Must run before CreateModuleHashesPass, which reads these mutations once to
+    // pick the modules to rehash: those with a new id and the modules using them.
+    if let Some(mut mutations) = compilation.incremental.mutations_write() {
+      for (module, id) in module_ids_artifact.iter() {
+        if compilation
+          .module_ids_diff_artifact
+          .previous_ids
+          .as_ref()
+          .and_then(|ids| ids.get(module))
+          != Some(id)
+        {
+          mutations.add(Mutation::ModuleSetId { module: *module });
+        }
+      }
+      if let Some(previous_ids) = &compilation.module_ids_diff_artifact.previous_ids {
+        let module_graph = compilation.get_module_graph();
+        for module in previous_ids.keys() {
+          if !module_ids_artifact.contains_key(module)
+            && module_graph.module_by_identifier(module).is_some()
+          {
+            mutations.add(Mutation::ModuleSetId { module: *module });
+          }
+        }
+      }
     }
     compilation.module_ids_artifact = module_ids_artifact.into();
     compilation.extend_diagnostics(diagnostics);

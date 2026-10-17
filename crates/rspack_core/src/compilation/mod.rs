@@ -79,11 +79,12 @@ use crate::{
   DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
   ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, FileSystemInfo, Filename,
   ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
-  ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
-  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
-  SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleIdsDiffArtifact,
+  ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact, ReferencedExport,
+  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
+  RuntimeProxyMetadataArtifact, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
+  StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
     update_module_graph,
@@ -255,6 +256,7 @@ pub struct Compilation {
   pub side_effects_optimize_artifact: StealCell<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
   pub module_ids_artifact: StealCell<ModuleIdsArtifact>,
+  pub module_ids_diff_artifact: ModuleIdsDiffArtifact,
   // artifact for named_chunk_ids
   pub named_chunk_ids_artifact: StealCell<ChunkNamedIdArtifact>,
   // artifact for code_generation
@@ -417,6 +419,7 @@ impl Compilation {
       exports_info_artifact: StealCell::new(ExportsInfoArtifact::default()),
       side_effects_optimize_artifact: StealCell::new(Default::default()),
       module_ids_artifact: StealCell::new(Default::default()),
+      module_ids_diff_artifact: Default::default(),
       named_chunk_ids_artifact: StealCell::new(Default::default()),
       code_generation_results: Default::default(),
       cgm_hash_artifact: StealCell::new(Default::default()),

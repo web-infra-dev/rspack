@@ -223,6 +223,10 @@ impl DefineHookInput {
         pub fn is_empty(&self) -> bool {
           self.common.is_empty()
         }
+
+        pub fn has_interceptors(&self) -> bool {
+          self.common.interceptor_count() != 0
+        }
       }
     })
   }

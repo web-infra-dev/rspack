@@ -10,17 +10,17 @@ use std::{
 
 use futures::future::BoxFuture;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, BoxModule, ChunkByUkey, ChunkNamedIdArtifact, CircularModulesInfo,
   Compilation, CompilationAfterOptimizeModules, CompilationAfterProcessAssets,
-  CompilationBuildModule, CompilationChunkIds, CompilationFinishModules, CompilationId,
-  CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationOptimizeCodeGeneration, CompilationOptimizeDependencies, CompilationOptimizeModules,
-  CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
-  CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit,
-  CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation, ExportsInfoArtifact,
-  ModuleIdentifier, ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact,
+  CompilationBeforeModuleIds, CompilationBuildModule, CompilationChunkIds,
+  CompilationFinishModules, CompilationId, CompilationOptimizeChunkModules,
+  CompilationOptimizeChunks, CompilationOptimizeCodeGeneration, CompilationOptimizeDependencies,
+  CompilationOptimizeModules, CompilationOptimizeTree, CompilationParams, CompilationProcessAssets,
+  CompilationSeal, CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation,
+  CompilerEmit, CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation,
+  ExportsInfoArtifact, ModuleIdentifier, ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, build_module_graph::BuildModuleGraphArtifact,
 };
 use rspack_error::{Diagnostic, Result};
@@ -502,13 +502,12 @@ async fn optimize_chunk_modules(&self, _compilation: &mut Compilation) -> Result
   Ok(None)
 }
 
-#[plugin_hook(CompilationModuleIds for ProgressPlugin)]
-async fn module_ids(
+#[plugin_hook(CompilationBeforeModuleIds for ProgressPlugin)]
+async fn before_module_ids(
   &self,
   _compilation: &Compilation,
-  _module_ids: &mut ModuleIdsArtifact,
-  _preserved_module_ids: &ModuleIdsArtifact,
-  _diagnostics: &mut Vec<Diagnostic>,
+  _modules: &IdentifierSet,
+  _preserved_module_ids: &mut ModuleIdsArtifact,
 ) -> Result<()> {
   self.sealing_hooks_report("assign module ids", 16).await
 }
@@ -631,7 +630,10 @@ impl Plugin for ProgressPlugin {
       .compilation_hooks
       .optimize_chunk_modules
       .tap(optimize_chunk_modules::new(self));
-    ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
+    ctx
+      .compilation_hooks
+      .before_module_ids
+      .tap(before_module_ids::new(self));
     ctx.compilation_hooks.chunk_ids.tap(chunk_ids::new(self));
     ctx
       .compilation_hooks
