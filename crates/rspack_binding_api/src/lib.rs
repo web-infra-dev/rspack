@@ -577,6 +577,7 @@ impl JsCompiler {
   }
 }
 
+#[cfg(not(target_family = "wasm"))]
 async fn collect_allocator_pages() {
   let workers = std::env::var("TOKIO_WORKER_THREADS")
     .ok()
@@ -602,6 +603,9 @@ async fn collect_allocator_pages() {
   }
   rayon::broadcast(|_| rspack_allocator::collect(true));
 }
+
+#[cfg(target_family = "wasm")]
+async fn collect_allocator_pages() {}
 
 struct RunGuard {
   _compiler_state_guard: CompilerStateGuard,
