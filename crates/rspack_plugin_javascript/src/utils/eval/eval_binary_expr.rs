@@ -147,7 +147,16 @@ fn handle_abstract_equality_comparison<'parser>(
   let right_const = right.is_compile_time_value();
 
   if left_const && right_const {
-    res.set_bool(eql == left.compare_compile_time_value(&right));
+    let left_nullish = left.is_null() || left.is_undefined();
+    let right_nullish = right.is_null() || right.is_undefined();
+    let equal = if left_nullish || right_nullish {
+      left_nullish && right_nullish
+    } else if std::mem::discriminant(&left.payload) == std::mem::discriminant(&right.payload) {
+      left.compare_compile_time_value(&right)
+    } else {
+      return None;
+    };
+    res.set_bool(eql == equal);
     res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
     Some(res)
   } else if left.is_array() && right.is_array() {
