@@ -713,7 +713,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
 #[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 1)]
 async fn optimize_runtime_chunk_hook(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  optimize_runtime_chunks(compilation);
+  let module_info = self.concatenated_modules_map.read().await;
+  optimize_runtime_chunks(compilation, &module_info);
+  drop(module_info);
   mark_facade_chunks(compilation);
   Ok(None)
 }
