@@ -455,10 +455,15 @@ impl JsCompiler {
               print_error_diagnostic(e, compiler.options.stats.colors)
             });
             result?;
+            collect_allocator_pages().await;
             tracing::debug!("build ok");
             Ok(())
           },
-          Some(move |env: &Env, result: &mut _| guard.finish(env, result)),
+          Some(move |env: &Env, result: &mut _| {
+            // The JS thread freed asset strings after the async build resolved.
+            rspack_allocator::collect(true);
+            guard.finish(env, result)
+          }),
         )
       })
     }
@@ -557,6 +562,32 @@ impl JsCompiler {
   pub fn get_compiler_id(&self) -> External<CompilerId> {
     External::new(self.compiler.id())
   }
+}
+
+async fn collect_allocator_pages() {
+  let workers = std::env::var("TOKIO_WORKER_THREADS")
+    .ok()
+    .and_then(|value| value.parse::<usize>().ok())
+    .filter(|value| *value > 0)
+    .unwrap_or_else(|| {
+      std::thread::available_parallelism()
+        .map(|value| value.get())
+        .unwrap_or(4)
+    });
+  let barrier = std::sync::Arc::new(tokio::sync::Barrier::new(workers));
+  let tasks = (0..workers)
+    .map(|_| {
+      let barrier = barrier.clone();
+      tokio::spawn(async move {
+        barrier.wait().await;
+        rspack_allocator::collect(true);
+      })
+    })
+    .collect::<Vec<_>>();
+  for task in tasks {
+    let _ = task.await;
+  }
+  rayon::broadcast(|_| rspack_allocator::collect(true));
 }
 
 struct RunGuard {
