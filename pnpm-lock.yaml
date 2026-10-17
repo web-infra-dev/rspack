@@ -308,8 +308,8 @@ catalogs:
       specifier: 0.7.0
       version: 0.7.0
     playwright:
-      specifier: 1.63.0
-      version: 1.63.0
+      specifier: 1.64.1
+      version: 1.64.1
     postcss:
       specifier: ^8.5.30
       version: 8.5.30
@@ -950,7 +950,7 @@ importers:
         version: 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(jsdom@30.1.2)
       '@rstest/playwright':
         specifier: 'catalog:'
-        version: 0.12.3(@rstest/core@0.12.3)(playwright@1.63.0)
+        version: 0.12.3(@rstest/core@0.12.3)(playwright@1.64.1)
       '@swc/helpers':
         specifier: 'catalog:'
         version: 0.5.23
@@ -971,7 +971,7 @@ importers:
         version: 11.4.1
       playwright:
         specifier: 'catalog:'
-        version: 1.63.0
+        version: 1.64.1
       postcss:
         specifier: 'catalog:'
         version: 8.5.30
@@ -1016,10 +1016,10 @@ importers:
         version: 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(jsdom@30.1.2)
       '@rstest/playwright':
         specifier: 'catalog:'
-        version: 0.12.3(@rstest/core@0.12.3)(playwright@1.63.0)
+        version: 0.12.3(@rstest/core@0.12.3)(playwright@1.64.1)
       playwright:
         specifier: 'catalog:'
-        version: 1.63.0
+        version: 1.64.1
       rstack:
         specifier: 'catalog:'
         version: 0.8.3(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.2)(typescript@6.0.3)
@@ -6414,13 +6414,13 @@ packages:
     resolution: {integrity: sha512-NPE8TDbzl/3YQYY7CSS228s3g2ollTFnc+Qi3tqmqJp9Vg2ovUpixcJEo2HJScN2Ez+kEaal6y70c0ehqJBJeA==}
     engines: {node: '>=10'}
 
-  playwright-core@1.63.0:
-    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+  playwright-core@1.64.1:
+    resolution: {integrity: sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==}
     engines: {node: '>=20'}
     hasBin: true
 
-  playwright@1.63.0:
-    resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
+  playwright@1.64.1:
+    resolution: {integrity: sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -9665,10 +9665,10 @@ snapshots:
       - '@module-federation/runtime-tools'
       - core-js
 
-  '@rstest/playwright@0.12.3(@rstest/core@0.12.3)(playwright@1.63.0)':
+  '@rstest/playwright@0.12.3(@rstest/core@0.12.3)(playwright@1.64.1)':
     dependencies:
       '@rstest/core': 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(jsdom@30.1.2)
-      playwright: 1.63.0
+      playwright: 1.64.1
 
   '@rushstack/node-core-library@5.25.1(@types/node@20.19.43)':
     dependencies:
@@ -13019,11 +13019,11 @@ snapshots:
     dependencies:
       find-up: 5.0.0
 
-  playwright-core@1.63.0: {}
+  playwright-core@1.64.1: {}
 
-  playwright@1.63.0:
+  playwright@1.64.1:
     dependencies:
-      playwright-core: 1.63.0
+      playwright-core: 1.64.1
 
   points-on-curve@0.2.0: {}
 
