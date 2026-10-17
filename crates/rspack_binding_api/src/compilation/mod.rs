@@ -145,6 +145,7 @@ impl JsCompilation {
           Ok(new_source)
         })();
         let new_source = new_source.to_rspack_result()?;
+        let new_source = reuse_with_inserted_edit(&filename, original_source, new_source);
 
         let new_info: Option<(rspack_core::AssetInfo, Option<AssetInfoRelated>)> =
           match asset_info_update_or_function {
@@ -1212,4 +1213,107 @@ pub struct JsExecuteModuleResult {
 pub struct JsBuildTimeExecutionOption {
   pub public_path: Option<String>,
   pub base_uri: Option<String>,
+}
+
+/// Keep the previous source when a plugin's `updateAsset` result for a
+/// serialized source-map asset is the same content with one small contiguous
+/// insertion — for example a source-map post-processor that prepends a
+/// character to the serialized map and then re-serializes it. The insertion is
+/// recorded as a replacement over the previous source, so no second full copy
+/// of a large asset is retained while the resulting bytes stay identical.
+///
+/// Only `.map` assets whose update is plain text take this path: a plugin may
+/// attach a real source map through a `SourceMapSource`, which must keep the
+/// map it supplied, and a Buffer-valued update must keep returning a buffer.
+fn reuse_with_inserted_edit(filename: &str, original: BoxSource, new: BoxSource) -> BoxSource {
+  use rspack_core::rspack_sources::{
+    RawBufferSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceValue,
+  };
+  const MIN_ORIGINAL: usize = 1 << 18;
+  const MAX_INSERTED: usize = 8 << 10;
+
+  if !filename.ends_with(".map")
+    || !new.as_any().is::<RawStringSource>()
+    || original.as_any().is::<RawBufferSource>()
+  {
+    return new;
+  }
+  let old_len = original.size();
+  if old_len < MIN_ORIGINAL || old_len > u32::MAX as usize {
+    return new;
+  }
+  let new_value = new.source();
+  let new_bytes: &[u8] = match &new_value {
+    SourceValue::String(text) => text.as_bytes(),
+    SourceValue::Buffer(_) => return new,
+  };
+  let Some(inserted) = new_bytes.len().checked_sub(old_len) else {
+    return new;
+  };
+  if inserted == 0 || inserted > MAX_INSERTED {
+    return new;
+  }
+
+  // Longest common prefix; the inserted bytes must sit directly after it.
+  let mut prefix = 0usize;
+  let mut prefix_done = false;
+  let mut boundary_byte = None;
+  original.rope(&mut |chunk| {
+    if prefix_done {
+      return;
+    }
+    for &byte in chunk.as_bytes() {
+      if prefix >= new_bytes.len() || new_bytes[prefix] != byte {
+        boundary_byte = Some(byte);
+        prefix_done = true;
+        return;
+      }
+      prefix += 1;
+    }
+  });
+  if prefix > old_len || prefix + inserted > new_bytes.len() {
+    return new;
+  }
+  // `ReplaceSource` slices text at byte offsets; an insertion inside a
+  // multi-byte UTF-8 character would produce an invalid `str` boundary.
+  if boundary_byte.is_some_and(|byte| byte & 0b1100_0000 == 0b1000_0000) {
+    return new;
+  }
+
+  // After the insertion the rest of the previous content must equal the new tail.
+  let mut position = 0usize;
+  let mut matches = true;
+  original.rope(&mut |chunk| {
+    if !matches || position >= old_len {
+      return;
+    }
+    let bytes = chunk.as_bytes();
+    let end = (position + bytes.len()).min(old_len);
+    if end > position && end > prefix {
+      let from = prefix.saturating_sub(position);
+      let old_tail = &bytes[from..(end - position)];
+      let new_start = position + from + inserted;
+      let new_end = new_start + old_tail.len();
+      if new_end > new_bytes.len() || old_tail != &new_bytes[new_start..new_end] {
+        matches = false;
+        return;
+      }
+    }
+    position += bytes.len();
+  });
+  if !matches {
+    return new;
+  }
+
+  let Ok(inserted_text) = std::str::from_utf8(&new_bytes[prefix..prefix + inserted]) else {
+    return new;
+  };
+  let mut source = ReplaceSource::new(original);
+  source.replace(
+    prefix as u32,
+    prefix as u32,
+    inserted_text.to_string(),
+    None,
+  );
+  source.boxed()
 }
