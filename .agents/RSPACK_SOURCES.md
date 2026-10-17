@@ -156,6 +156,12 @@ Replaying a cached map still requires the generated text: `stream_chunks_of_sour
 compute the final position and, for non-final streams, slice the text passed to `on_chunk`. Keeping
 a flat `String` in `CachedSource` would make this cheap but would permanently duplicate the source.
 
+For web targets, devtool keeps the rendered chunk source and reuses it for the emitted asset instead
+of flattening a second `RawStringSource`. The asset and the render cache therefore share one source
+graph. `MapFreeSource` delegates content but returns no map, matching the previous flattened asset;
+the chunk map is emitted as its own asset. Server targets keep the flattened form because their
+emit path otherwise walks large replacement graphs repeatedly.
+
 Unlike webpack-sources' direct `streamChunks(options, callbacks)`, Rspack first builds a `Chunks`
 calculation tree and then executes it:
 

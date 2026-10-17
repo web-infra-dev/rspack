@@ -448,17 +448,35 @@ impl JsCompiler {
   ) -> Result<(), ErrorCode> {
     unsafe {
       self.run(&env, reference, |compiler, guard| {
+        let collect_main = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let collect_async = collect_main.clone();
+        let collect_callback = collect_main;
         callbackify(
           f,
           async move {
+            let build_started = std::time::Instant::now();
             let result = compiler.build().await.to_napi_result_with_message(|e| {
               print_error_diagnostic(e, compiler.options.stats.colors)
             });
             result?;
+            // Large builds retain enough transient allocator pages for a
+            // one-time collection to matter; short builds skip its cost.
+            let collect = build_started.elapsed() >= std::time::Duration::from_secs(60);
+            collect_async.store(collect, std::sync::atomic::Ordering::Relaxed);
+            if collect {
+              collect_allocator_pages().await;
+            }
             tracing::debug!("build ok");
             Ok(())
           },
-          Some(move |env: &Env, result: &mut _| guard.finish(env, result)),
+          Some(move |env: &Env, result: &mut _| {
+            // The JS thread freed large asset strings after the async build
+            // resolved.
+            if collect_callback.load(std::sync::atomic::Ordering::Relaxed) {
+              rspack_allocator::collect(true);
+            }
+            guard.finish(env, result)
+          }),
         )
       })
     }
@@ -558,6 +576,32 @@ impl JsCompiler {
     External::new(self.compiler.id())
   }
 }
+
+#[cfg(not(target_family = "wasm"))]
+async fn collect_allocator_pages() {
+  let workers = std::env::var("TOKIO_WORKER_THREADS")
+    .ok()
+    .and_then(|value| value.parse::<usize>().ok())
+    .filter(|value| *value > 0)
+    .unwrap_or_else(|| std::thread::available_parallelism().map_or(4, |value| value.get()));
+  let barrier = std::sync::Arc::new(tokio::sync::Barrier::new(workers));
+  let tasks = (0..workers)
+    .map(|_| {
+      let barrier = barrier.clone();
+      tokio::spawn(async move {
+        barrier.wait().await;
+        rspack_allocator::collect(true);
+      })
+    })
+    .collect::<Vec<_>>();
+  for task in tasks {
+    let _ = task.await;
+  }
+  rayon::broadcast(|_| rspack_allocator::collect(true));
+}
+
+#[cfg(target_family = "wasm")]
+async fn collect_allocator_pages() {}
 
 struct RunGuard {
   _compiler_state_guard: CompilerStateGuard,

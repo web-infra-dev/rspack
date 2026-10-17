@@ -14,7 +14,9 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
-  rspack_sources::{BoxSource, MappingSource, RawStringSource, Source, SourceExt, SourceValue},
+  rspack_sources::{
+    BoxSource, MappingSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceValue,
+  },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHasher;
@@ -122,7 +124,13 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       asset.get_source().map(|source| {
         (
           name.as_str(),
-          AssetData::new(source, asset.get_info(), &hash_ac, &hash_patterns),
+          AssetData::new(
+            source,
+            asset.get_info(),
+            &hash_ac,
+            &hash_patterns,
+            compilation.platform.is_web(),
+          ),
         )
       })
     })
@@ -343,6 +351,7 @@ struct AssetData<'a> {
   new_source: OnceCell<BoxSource>,
   #[debug(skip)]
   new_source_without_own: OnceCell<BoxSource>,
+  replace_in_place: bool,
 }
 
 impl<'a> AssetData<'a> {
@@ -351,6 +360,7 @@ impl<'a> AssetData<'a> {
     info: &AssetInfo,
     hash_ac: &AhoCorasick,
     hash_patterns: &[&'a str],
+    replace_in_place: bool,
   ) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
@@ -378,6 +388,7 @@ impl<'a> AssetData<'a> {
         mapping_size,
         new_source: OnceCell::new(),
         new_source_without_own: OnceCell::new(),
+        replace_in_place,
       };
     }
     let content = if let SourceValue::String(content) = source.source() {
@@ -406,6 +417,7 @@ impl<'a> AssetData<'a> {
       mapping_size: 0,
       new_source: OnceCell::new(),
       new_source_without_own: OnceCell::new(),
+      replace_in_place,
     }
   }
 
@@ -452,6 +464,35 @@ impl<'a> AssetData<'a> {
             .iter()
             .any(|&hash| matches!(hash_to_new_hash.get(hash), Some(h) if h != hash)))
       {
+        if self.replace_in_place {
+          let mut replacements = Vec::new();
+          for found in hash_ac.find_iter(content.as_ref()) {
+            let hash = hash_patterns[found.pattern().as_usize()];
+            let replacement = if without_own && self.own_hashes.contains(hash) {
+              ""
+            } else {
+              hash_to_new_hash
+                .get(hash)
+                .expect("RealContentHashPlugin: should have new hash")
+            };
+            if replacement != hash {
+              replacements.push((
+                found.start() as u32,
+                found.end() as u32,
+                replacement.to_owned(),
+              ));
+            }
+          }
+          return if replacements.is_empty() {
+            Arc::clone(self.old_source)
+          } else {
+            let mut source = ReplaceSource::new(Arc::clone(self.old_source));
+            for (start, end, replacement) in replacements {
+              source.replace(start, end, replacement, None);
+            }
+            source.boxed()
+          };
+        }
         let mut new_content = String::with_capacity(content.len());
         hash_ac.replace_all_with(content, &mut new_content, |_, hash, dst| {
           let replace_to = if without_own && self.own_hashes.contains(hash) {
