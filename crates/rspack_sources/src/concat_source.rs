@@ -469,7 +469,7 @@ fn merge_raw_sources(raw_sources: &mut Vec<BoxSource>, new_children: &mut Vec<Bo
         // Large groups usually reference module output that is still retained
         // elsewhere. Keep those handles instead of materializing a second copy
         // of the same bytes; small fragments are still cheaper to merge.
-        new_children.extend(raw_sources.drain(..));
+        new_children.append(raw_sources);
         return;
       }
       let mut merged_content = String::with_capacity(capacity);
