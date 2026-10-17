@@ -2,7 +2,7 @@ use std::{cmp::Ordering, collections::hash_map, fmt::Debug, ops::Deref};
 
 use rspack_cacheable::{
   cacheable,
-  with::{AsPreset, AsRefStr, AsVec},
+  with::{AsPreset, AsRefStr, AsVec, AsVecConverter},
 };
 use rspack_hash::RspackHasher;
 #[cfg(allocative)]
@@ -19,10 +19,81 @@ use crate::{EntryOptions, EntryRuntime};
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
   #[rspack_hash(skip)]
-  inner: UstrSet,
+  inner: RuntimeSet,
   #[cacheable(with=AsPreset)]
   #[cfg_attr(allocative, allocative(skip))]
   key: RuntimeKey,
+}
+
+/// Most specs contain a single runtime. Keep it inline instead of allocating
+/// a hash table for every value cloned through the compilation artifacts.
+#[derive(Debug, Default, Clone)]
+enum RuntimeSet {
+  #[default]
+  Empty,
+  Single(Ustr),
+  Multiple(Vec<Ustr>),
+}
+
+impl RuntimeSet {
+  fn as_slice(&self) -> &[Ustr] {
+    match self {
+      Self::Empty => &[],
+      Self::Single(runtime) => std::slice::from_ref(runtime),
+      Self::Multiple(runtimes) => runtimes,
+    }
+  }
+
+  fn insert(&mut self, runtime: Ustr) {
+    if self.as_slice().contains(&runtime) {
+      return;
+    }
+    match self {
+      Self::Empty => *self = Self::Single(runtime),
+      Self::Single(first) => *self = Self::Multiple(vec![*first, runtime]),
+      Self::Multiple(runtimes) => runtimes.push(runtime),
+    }
+  }
+
+  fn extend(&mut self, runtimes: impl IntoIterator<Item = Ustr>) {
+    for runtime in runtimes {
+      self.insert(runtime);
+    }
+  }
+
+  fn is_empty(&self) -> bool {
+    matches!(self, Self::Empty)
+  }
+}
+
+impl FromIterator<Ustr> for RuntimeSet {
+  fn from_iter<T: IntoIterator<Item = Ustr>>(iter: T) -> Self {
+    let mut set = Self::default();
+    set.extend(iter);
+    set
+  }
+}
+
+impl AsVecConverter for RuntimeSet {
+  type Item = Ustr;
+
+  fn len(&self) -> usize {
+    self.as_slice().len()
+  }
+
+  fn iter(&self) -> impl Iterator<Item = &Self::Item> {
+    self.as_slice().iter()
+  }
+
+  fn from(
+    data: impl Iterator<Item = rspack_cacheable::Result<Self::Item>>,
+  ) -> rspack_cacheable::Result<Self> {
+    let mut set = Self::default();
+    for runtime in data {
+      set.insert(runtime?);
+    }
+    Ok(set)
+  }
 }
 
 impl std::fmt::Display for RuntimeSpec {
@@ -54,36 +125,48 @@ impl std::cmp::PartialEq for RuntimeSpec {
 impl std::cmp::Eq for RuntimeSpec {}
 
 impl Deref for RuntimeSpec {
-  type Target = UstrSet;
+  type Target = [Ustr];
 
   fn deref(&self) -> &Self::Target {
-    &self.inner
+    self.inner.as_slice()
   }
 }
 
 impl From<UstrSet> for RuntimeSpec {
   fn from(value: UstrSet) -> Self {
-    Self::new(value)
+    let mut inner = RuntimeSet::default();
+    inner.extend(value);
+    Self::from_set(inner)
   }
 }
 
 impl FromIterator<Ustr> for RuntimeSpec {
   fn from_iter<T: IntoIterator<Item = Ustr>>(iter: T) -> Self {
-    Self::new(UstrSet::from_iter(iter))
+    let mut inner = RuntimeSet::default();
+    inner.extend(iter);
+    Self::from_set(inner)
   }
 }
 
 impl IntoIterator for RuntimeSpec {
   type Item = Ustr;
-  type IntoIter = <UstrSet as IntoIterator>::IntoIter;
+  type IntoIter = std::vec::IntoIter<Ustr>;
 
   fn into_iter(self) -> Self::IntoIter {
-    self.inner.into_iter()
+    match self.inner {
+      RuntimeSet::Empty => Vec::new().into_iter(),
+      RuntimeSet::Single(runtime) => vec![runtime].into_iter(),
+      RuntimeSet::Multiple(runtimes) => runtimes.into_iter(),
+    }
   }
 }
 
 impl RuntimeSpec {
   pub fn new(inner: UstrSet) -> Self {
+    inner.into()
+  }
+
+  fn from_set(inner: RuntimeSet) -> Self {
     let mut this = Self {
       inner,
       key: RuntimeKey::default(),
@@ -93,11 +176,11 @@ impl RuntimeSpec {
   }
 
   pub fn from_runtimes<'a>(runtimes: impl IntoIterator<Item = &'a RuntimeSpec>) -> Self {
-    let mut inner = UstrSet::default();
+    let mut inner = RuntimeSet::default();
     for runtime in runtimes {
-      inner.extend(runtime.inner.iter().copied());
+      inner.extend(runtime.inner.as_slice().iter().copied());
     }
-    Self::new(inner)
+    Self::from_set(inner)
   }
 
   pub fn from_entry(entry: &str, runtime: Option<&EntryRuntime>) -> Self {
@@ -118,13 +201,47 @@ impl RuntimeSpec {
   }
 
   pub fn subtract(&self, b: &RuntimeSpec) -> Self {
-    let res = self.inner.difference(&b.inner).copied().collect();
-    Self::new(res)
+    let res = self
+      .inner
+      .as_slice()
+      .iter()
+      .copied()
+      .filter(|runtime| !b.inner.as_slice().contains(runtime))
+      .collect();
+    Self::from_set(res)
+  }
+
+  pub fn intersection<'a>(&'a self, other: &'a RuntimeSpec) -> impl Iterator<Item = &'a Ustr> {
+    self
+      .inner
+      .as_slice()
+      .iter()
+      .filter(move |runtime| other.contains(*runtime))
+  }
+
+  pub fn is_subset(&self, other: &RuntimeSpec) -> bool {
+    self
+      .inner
+      .as_slice()
+      .iter()
+      .all(|runtime| other.contains(runtime))
+  }
+
+  pub fn is_superset(&self, other: &RuntimeSpec) -> bool {
+    other.is_subset(self)
+  }
+
+  pub fn is_disjoint(&self, other: &RuntimeSpec) -> bool {
+    self
+      .inner
+      .as_slice()
+      .iter()
+      .all(|runtime| !other.contains(runtime))
   }
 
   pub fn extend(&mut self, other: &Self) {
     let prev = self.inner.len();
-    self.inner.extend(other.inner.iter().copied());
+    self.inner.extend(other.inner.as_slice().iter().copied());
     if prev != self.inner.len() {
       self.update_key();
     }
@@ -139,6 +256,7 @@ impl RuntimeSpec {
         self.key = SmolStr::new(
           self
             .inner
+            .as_slice()
             .iter()
             .next()
             .expect("should have one runtime")
@@ -146,7 +264,12 @@ impl RuntimeSpec {
         );
       }
       _ => {
-        let mut ordered = self.inner.iter().map(|s| s.as_str()).collect::<Vec<_>>();
+        let mut ordered = self
+          .inner
+          .as_slice()
+          .iter()
+          .map(|s| s.as_str())
+          .collect::<Vec<_>>();
         ordered.sort_unstable();
 
         let mut key = SmolStrBuilder::new();
@@ -220,8 +343,8 @@ impl RuntimeCondition {
 
 pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
   let mut set = a.inner.clone();
-  set.extend(b.inner.iter().copied());
-  RuntimeSpec::new(set)
+  set.extend(b.inner.as_slice().iter().copied());
+  RuntimeSpec::from_set(set)
 }
 
 pub fn filter_runtime(
@@ -234,7 +357,7 @@ pub fn filter_runtime(
     Some(runtime) => {
       let mut some = false;
       let mut every = true;
-      let mut result = UstrSet::default();
+      let mut result = RuntimeSet::default();
 
       for &r in runtime.iter() {
         let cur = RuntimeSpec::from_iter([r]);
@@ -252,7 +375,7 @@ pub fn filter_runtime(
       } else if every {
         RuntimeCondition::Boolean(true)
       } else {
-        RuntimeCondition::Spec(RuntimeSpec::new(result))
+        RuntimeCondition::Spec(RuntimeSpec::from_set(result))
       }
     }
   }
@@ -307,19 +430,19 @@ pub fn subtract_runtime_condition(
     (_, RuntimeCondition::Boolean(true)) => return RuntimeCondition::Boolean(false),
     (_, RuntimeCondition::Boolean(false)) => return a.clone(),
     (RuntimeCondition::Boolean(false), _) => return RuntimeCondition::Boolean(false),
-    (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => a.difference(b).copied().collect(),
+    (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => a.subtract(b).into_iter().collect(),
     (RuntimeCondition::Boolean(true), RuntimeCondition::Spec(b)) => {
       if let Some(a) = runtime {
-        a.difference(b).copied().collect()
+        a.subtract(b).into_iter().collect()
       } else {
-        UstrSet::default()
+        RuntimeSet::default()
       }
     }
   };
   if merged.is_empty() {
     return RuntimeCondition::Boolean(false);
   }
-  RuntimeCondition::Spec(merged.into())
+  RuntimeCondition::Spec(RuntimeSpec::from_set(merged))
 }
 
 pub fn get_runtime_key(runtime: &RuntimeSpec) -> &RuntimeKey {
