@@ -5,7 +5,7 @@ it("should work", () => new Promise((resolve, reject) => {
 	const done = err => (err ? reject(err) : resolve());
 	expect(pureStyle).toEqual(nsObj({}));
 	const style = getComputedStyle(document.body);
-	expect(style.getPropertyValue("background")).toBe("red");
+	expect(style.getPropertyValue("background-color")).toBe("rgb(255, 0, 0)");
 	expect(styles.foo).toBe('style_modules_css-foo');
 
 	import(/* webpackPrefetch: true */ "./style2.css").then(x => {

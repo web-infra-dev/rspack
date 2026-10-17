@@ -8,7 +8,7 @@ import * as style5 from "./style5.module.css!=!./loader.mjs!./style4.js";
 it("should correctly compile css/auto", () => {
 	const style = getComputedStyle(document.body);
 	expect(style.getPropertyValue("color")).toBe("rgb(0, 128, 0)");
-	expect(style.getPropertyValue("background")).toBe("rgb(255, 0, 0)");
+	expect(style.getPropertyValue("background-color")).toBe("rgb(255, 0, 0)");
 	expect(style1.class).toBe("style1_module_less-class");
 	expect(style2.class).toBe("style2_modules_less-class");
 	expect(style3.class).toBe("style3_module_less_loader_mjs_style3_module_js-class");
