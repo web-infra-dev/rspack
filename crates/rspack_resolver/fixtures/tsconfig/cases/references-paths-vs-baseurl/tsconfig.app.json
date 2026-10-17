@@ -1,0 +1,1 @@
+{"compilerOptions":{"composite":true,"paths":{"@/*":["./src/*"]}},"include":["src"]}

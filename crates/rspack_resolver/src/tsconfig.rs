@@ -180,13 +180,50 @@ impl TsConfig {
       .extend(other_config.file_dependencies.iter().cloned());
   }
 
+  /// Picks the config whose claimed directory is the longest prefix of
+  /// `path`. Configs with neither `paths` nor `baseUrl`, the root config
+  /// included, are skipped. On a tie, a config with `paths` wins, then a
+  /// reference wins over the root config, then the first declared reference
+  /// wins, as on main. The root config is the fallback when nothing matches.
   pub fn resolve(&self, path: &Utf8Path, specifier: &str) -> Vec<Utf8PathBuf> {
-    for tsconfig in &self.flattened_references {
-      if path.starts_with(tsconfig.base_path()) {
-        return tsconfig.resolve_path_alias(specifier);
-      }
+    let root = (self.has_path_alias() && path.starts_with(self.directory()))
+      .then(|| (self.directory(), false, self));
+    self
+      .flattened_references
+      .iter()
+      .filter(|reference| reference.has_path_alias())
+      .map(|reference| (reference.claimed_directory(), true, reference.as_ref()))
+      .filter(|(directory, _, _)| path.starts_with(directory))
+      .chain(root)
+      .rev()
+      .max_by_key(|(directory, is_reference, config)| {
+        (
+          directory.as_str().len(),
+          config.compiler_options.paths.is_some(),
+          *is_reference,
+        )
+      })
+      .map_or(self, |(_, _, config)| config)
+      .resolve_path_alias(specifier)
+  }
+
+  /// Whether `resolve_path_alias` can produce any candidate.
+  fn has_path_alias(&self) -> bool {
+    self.compiler_options.paths.is_some() || self.compiler_options.base_url.is_some()
+  }
+
+  /// The directory a reference applies to: its config directory when it
+  /// declares `paths`, like `enhanced-resolve`, otherwise its `baseUrl`, as
+  /// on main.
+  fn claimed_directory(&self) -> &Utf8Path {
+    match &self.compiler_options {
+      CompilerOptions {
+        paths: None,
+        base_url: Some(base_url),
+        ..
+      } => base_url,
+      _ => self.directory(),
     }
-    self.resolve_path_alias(specifier)
   }
 
   // Copied from parcel
@@ -251,14 +288,6 @@ impl TsConfig {
       .map(|p| self.compiler_options.paths_base.normalize_with(p))
       .chain(base_url_iter)
       .collect()
-  }
-
-  fn base_path(&self) -> &Utf8Path {
-    self
-      .compiler_options
-      .base_url
-      .as_ref()
-      .map_or_else(|| self.directory(), |path| path.as_ref())
   }
 
   /// Template variable `${configDir}` for substitution of config files directory path

@@ -330,3 +330,188 @@ async fn cyclic_references() {
     .map(|p| p.full_path());
   assert_eq!(resolved_path, Ok(f.join("b/src/index.ts")));
 }
+
+// A referenced tsconfig in the same directory as the root config, without
+// `paths` of its own, must not shadow the root config's `paths` for files
+// next to them (#16057). Matches `enhanced-resolve`, which only registers
+// references that declare `paths`.
+#[tokio::test]
+async fn same_dir_reference_without_paths() {
+  let f = super::fixture_root().join("tsconfig/cases/references-same-dir");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let resolved_path = resolver
+    .resolve(&f.join("src"), "@src/config/settings")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("src/config/settings.ts")));
+}
+
+// The deepest config containing the requesting file wins regardless of
+// declaration order, matching `enhanced-resolve`'s longest-prefix context
+// selection. The root config takes part too, so a reference to an
+// ancestor directory does not shadow it.
+#[tokio::test]
+async fn nested_references_longest_match() {
+  let f = super::fixture_root().join("tsconfig/cases/references-longest-match");
+
+  let resolver = Resolver::new(ResolveOptions {
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("app"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let cases = [
+    (f.clone(), f.join("aliased/index.ts")),
+    (f.join("app"), f.join("app/aliased/index.ts")),
+    (f.join("outer"), f.join("outer/aliased/index.ts")),
+    (
+      f.join("outer/inner"),
+      f.join("outer/inner/aliased/index.ts"),
+    ),
+  ];
+
+  for (path, expected) in cases {
+    let resolved_path = resolver
+      .resolve(&path, "@/index.ts")
+      .await
+      .map(|p| p.full_path());
+    assert_eq!(resolved_path, Ok(expected), "from {path:?}");
+  }
+}
+
+// A reference is matched by its config directory, not its `baseUrl`, like
+// `enhanced-resolve`: `project_b` has `baseUrl: ./src`, yet a request from
+// `project_b` itself must still use its `paths`.
+#[tokio::test]
+async fn reference_matched_by_config_directory() {
+  let f = super::fixture_root().join("tsconfig/cases/references-transitive");
+
+  let resolver = Resolver::new(ResolveOptions {
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("app"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let resolved_path = resolver
+    .resolve(&f.join("project_b"), "@/index.ts")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("project_b/src/aliased/index.ts")));
+}
+
+// A reference with `baseUrl` but no `paths` is matched by its `baseUrl`, as
+// on main: it resolves non-relative specifiers for files under `baseUrl`,
+// and files outside `baseUrl` keep using the root config.
+#[tokio::test]
+async fn reference_with_base_url_only() {
+  let f = super::fixture_root().join("tsconfig/cases/references-baseurl-only");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let cases = [
+    (
+      f.join("packages/a/src/deep"),
+      "utils/format",
+      f.join("packages/a/src/utils/format.ts"),
+    ),
+    (f.join("packages/a/test"), "@src/x", f.join("src/x.ts")),
+  ];
+
+  for (path, request, expected) in cases {
+    let resolved_path = resolver
+      .resolve(&path, request)
+      .await
+      .map(|p| p.full_path());
+    assert_eq!(resolved_path, Ok(expected), "{request} from {path:?}");
+  }
+}
+
+// A `baseUrl`-only reference next to the root config does not shadow the
+// root `paths` for files outside its `baseUrl`.
+#[tokio::test]
+async fn same_dir_base_url_reference_elsewhere() {
+  let f = super::fixture_root().join("tsconfig/cases/references-baseurl-elsewhere");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let resolved_path = resolver
+    .resolve(&f.join("src"), "@src/config/settings")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("src/config/settings.ts")));
+}
+
+// Vite-style solution config: `tsconfig.app.json` declares `paths` and
+// `tsconfig.node.json` only `baseUrl: "."`, both in the same directory. On a
+// tie the config with `paths` wins, whatever the declaration order.
+#[tokio::test]
+async fn same_dir_references_prefer_paths() {
+  let f = super::fixture_root().join("tsconfig/cases/references-paths-vs-baseurl");
+
+  for config_file in ["tsconfig.json", "tsconfig.reversed.json"] {
+    let resolver = Resolver::new(ResolveOptions {
+      extensions: vec![".ts".into()],
+      tsconfig: Some(TsconfigOptions {
+        config_file: f.join(config_file),
+        references: TsconfigReferences::Auto,
+      }),
+      ..ResolveOptions::default()
+    });
+
+    let resolved_path = resolver
+      .resolve(&f.join("src"), "@/index")
+      .await
+      .map(|p| p.full_path());
+    assert_eq!(resolved_path, Ok(f.join("src/index.ts")), "{config_file}");
+  }
+}
+
+// A solution-style root config (`files: []`, no `paths`/`baseUrl`) does not
+// compete with its references: the `baseUrl: "../.."` reference still
+// resolves files from the monorepo root, as on main.
+#[tokio::test]
+async fn root_config_without_aliases_does_not_shadow_references() {
+  let f = super::fixture_root().join("tsconfig/cases/references-solution-root");
+
+  let resolver = Resolver::new(ResolveOptions {
+    extensions: vec![".ts".into()],
+    tsconfig: Some(TsconfigOptions {
+      config_file: f.join("apps/web/tsconfig.json"),
+      references: TsconfigReferences::Auto,
+    }),
+    ..ResolveOptions::default()
+  });
+
+  let resolved_path = resolver
+    .resolve(&f.join("apps/web/src"), "packages/ui/src/index")
+    .await
+    .map(|p| p.full_path());
+  assert_eq!(resolved_path, Ok(f.join("packages/ui/src/index.ts")));
+}
