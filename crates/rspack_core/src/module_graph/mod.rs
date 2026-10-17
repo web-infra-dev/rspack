@@ -137,7 +137,8 @@ pub(crate) struct ModuleGraphData {
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
-  dep_meta_map: rollback::DenseDependencyIdMap<DependencyExtraMeta>,
+  // Most dependency slots stay empty; boxing keeps each dense slot pointer-sized.
+  dep_meta_map: rollback::DenseDependencyIdMap<Box<DependencyExtraMeta>>,
 }
 impl ModuleGraphData {
   fn checkpoint(&mut self) {
@@ -980,11 +981,11 @@ impl ModuleGraph {
   /// We can't insert all sort of things into one hashmap like javascript, so we create different
   /// hashmap to store different kinds of meta.
   pub fn get_dep_meta_if_existing(&self, id: &DependencyId) -> Option<&DependencyExtraMeta> {
-    self.inner.dep_meta_map.get(id)
+    self.inner.dep_meta_map.get(id).map(Box::as_ref)
   }
 
   pub fn set_dependency_extra_meta(&mut self, dep_id: DependencyId, extra: DependencyExtraMeta) {
-    self.inner.dep_meta_map.insert(dep_id, extra);
+    self.inner.dep_meta_map.insert(dep_id, Box::new(extra));
   }
 
   pub fn can_update_module(&self, dep_id: &DependencyId, module_id: &ModuleIdentifier) -> bool {

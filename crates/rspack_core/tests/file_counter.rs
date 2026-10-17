@@ -112,3 +112,19 @@ fn incremental_info_follows_the_grouped_paths() {
   counter.remove_dependency_files(dependency, &list);
   assert_eq!(counter.removed_files().count(), 2);
 }
+
+#[test]
+fn shrinking_preserves_files_and_dependency_membership() {
+  let mut counter = FileCounter::default();
+  let a = path("/a");
+  let b = path("/b");
+  let list = InternedPathList::new(&[a.clone(), b.clone()]);
+  counter.add_dependency_files(DependencyId::from(1), &list);
+
+  counter.shrink_to_fit();
+
+  assert_eq!(counter.files().count(), 2);
+  assert_eq!(dependencies(&counter, &a), vec![1]);
+  assert_eq!(dependencies(&counter, &b), vec![1]);
+  assert_eq!(counter.added_files().count(), 2);
+}

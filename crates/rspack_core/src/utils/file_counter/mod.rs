@@ -74,6 +74,13 @@ impl GroupRefs {
       GroupRefs::Hot(lists) => GroupRefsIter::Hot(lists.iter()),
     }
   }
+
+  fn shrink_to_fit(&mut self) {
+    match self {
+      GroupRefs::Small(lists) => lists.shrink_to_fit(),
+      GroupRefs::Hot(lists) => lists.shrink_to_fit(),
+    }
+  }
 }
 
 /// Borrowed iteration over a path's group references.
@@ -98,6 +105,11 @@ impl<'a> Iterator for GroupRefsIter<'a> {
 impl PathResourceIds {
   fn is_empty(&self) -> bool {
     self.modules.is_empty() && self.groups.is_empty()
+  }
+
+  fn shrink_to_fit(&mut self) {
+    self.modules.shrink_to_fit();
+    self.groups.shrink_to_fit();
   }
 }
 
@@ -277,6 +289,19 @@ impl FileCounter {
   /// reset incremental info
   pub fn reset_incremental_info(&mut self) {
     self.incremental_info.reset();
+  }
+
+  /// Release spare capacity after the compilation has stopped adding files.
+  pub fn shrink_to_fit(&mut self) {
+    self.inner.shrink_to_fit();
+    for entry in self.inner.values_mut() {
+      entry.shrink_to_fit();
+    }
+    self.groups.shrink_to_fit();
+    for dependencies in self.groups.values_mut() {
+      dependencies.shrink_to_fit();
+    }
+    self.incremental_info.shrink_to_fit();
   }
 
   /// Added files compared to the `files()` when call reset_incremental_info

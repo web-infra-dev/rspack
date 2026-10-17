@@ -1102,6 +1102,17 @@ impl Compilation {
     }
   }
 
+  /// Drop spare capacity accumulated by file dependency counters.
+  pub fn shrink_file_counters(&mut self) {
+    let Some(artifact) = self.build_module_graph_artifact.try_write() else {
+      return;
+    };
+    artifact.file_dependencies.shrink_to_fit();
+    artifact.context_dependencies.shrink_to_fit();
+    artifact.missing_dependencies.shrink_to_fit();
+    artifact.build_dependencies.shrink_to_fit();
+  }
+
   pub fn entrypoints(&self) -> &FxIndexMap<String, ChunkGroupUkey> {
     &self.build_chunk_graph_artifact.entrypoints
   }

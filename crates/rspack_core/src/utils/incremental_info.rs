@@ -76,6 +76,12 @@ where
     self.removed = HashSet::default();
   }
 
+  pub fn shrink_to_fit(&mut self) {
+    self.added.shrink_to_fit();
+    self.updated.shrink_to_fit();
+    self.removed.shrink_to_fit();
+  }
+
   /// Get added data.
   pub fn added(&self) -> &HashSet<T, S> {
     &self.added
