@@ -450,7 +450,7 @@ impl JsCompiler {
       self.run(&env, reference, |compiler, guard| {
         let collect_main = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let collect_async = collect_main.clone();
-        let collect_callback = collect_main.clone();
+        let collect_callback = collect_main;
         callbackify(
           f,
           async move {
@@ -583,11 +583,7 @@ async fn collect_allocator_pages() {
     .ok()
     .and_then(|value| value.parse::<usize>().ok())
     .filter(|value| *value > 0)
-    .unwrap_or_else(|| {
-      std::thread::available_parallelism()
-        .map(|value| value.get())
-        .unwrap_or(4)
-    });
+    .unwrap_or_else(|| std::thread::available_parallelism().map_or(4, |value| value.get()));
   let barrier = std::sync::Arc::new(tokio::sync::Barrier::new(workers));
   let tasks = (0..workers)
     .map(|_| {
