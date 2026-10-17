@@ -160,7 +160,9 @@ For web targets, devtool keeps the rendered chunk source and reuses it for the e
 of flattening a second `RawStringSource`. The asset and the render cache therefore share one source
 graph. `MapFreeSource` delegates content but returns no map, matching the previous flattened asset;
 the chunk map is emitted as its own asset. Server targets keep the flattened form because their
-emit path otherwise walks large replacement graphs repeatedly.
+emit path otherwise walks large replacement graphs repeatedly. After server assets are emitted,
+devtool rebuilds their source from the retained graph and the recorded `updateAsset` replacement
+chain, then the allocator can release the flattened text.
 
 Unlike webpack-sources' direct `streamChunks(options, callbacks)`, Rspack first builds a `Chunks`
 calculation tree and then executes it:
@@ -227,7 +229,7 @@ representation optimizations.
 | `OriginalSource`  | mapped text leaf     | lazily creates token-like or line mappings                          |
 | `SourceMapSource` | existing/nested map  | directly borrows one map or composes outer and inner maps           |
 | `MappingSource`   | external map JSON    | retains the original map and serializes JSON on demand              |
-| `ConcatSource`    | ordered composition  | flattens nested concats, merges adjacent raw strings, remaps tables |
+| `ConcatSource`    | ordered composition  | flattens nested concats, shares optimization across clones, merges small adjacent raw strings, remaps tables |
 | `ReplaceSource`   | byte-range transform | maintains sorted edits and repairs mappings                         |
 | `CachedSource`    | memoization wrapper  | owns cross-call memoized state                                      |
 
@@ -323,6 +325,11 @@ references.
 `ConcatSource` may lazily build an optimized child list, but it does so before returning borrowed
 spans. Moving its `Vec<BoxSource>` does not move child data because each child is held by `Arc`.
 These rules keep the strings returned by `rope()` immutable and address-stable.
+
+Clones share the optimized child list so a large raw-string group is materialized once. Large groups
+keep their child handles instead of concatenating into a new string because those children commonly
+remain owned by module or render caches. Small groups are still merged to keep child traversal cheap.
+Mutating one clone detaches it from the shared optimized list before adding another child.
 
 The `'static` extension in `CachedSource::get_or_init_chunks` is safe only because every clone
 sharing the cache also retains the same inner `BoxSource`; the inner graph cannot be mutated or

@@ -60,21 +60,15 @@ use crate::{
 #[derive(Default)]
 pub struct ConcatSource {
   children: Mutex<Vec<BoxSource>>,
-  is_optimized: OnceLock<Vec<BoxSource>>,
+  /// Shared so clones materialize the merged raw-source buffers only once.
+  is_optimized: Arc<OnceLock<Vec<BoxSource>>>,
 }
 
 impl Clone for ConcatSource {
   fn clone(&self) -> Self {
     Self {
       children: Mutex::new(self.children.lock().unwrap().clone()),
-      is_optimized: match self.is_optimized.get() {
-        Some(children) => {
-          let once_lock = OnceLock::new();
-          once_lock.get_or_init(|| children.clone());
-          once_lock
-        }
-        None => OnceLock::default(),
-      },
+      is_optimized: self.is_optimized.clone(),
     }
   }
 }
@@ -135,8 +129,11 @@ impl ConcatSource {
       .get_mut()
       .expect("ConcatSource children mutex poisoned");
 
-    if let Some(optimized_children) = self.is_optimized.take() {
-      *children = optimized_children;
+    if let Some(optimized_children) = self.is_optimized.get() {
+      *children = optimized_children.clone();
+      self.is_optimized = Arc::new(OnceLock::new());
+    } else if Arc::strong_count(&self.is_optimized) > 1 {
+      self.is_optimized = Arc::new(OnceLock::new());
     }
 
     // First check if it's already a BoxSource containing a ConcatSource
@@ -468,6 +465,13 @@ fn merge_raw_sources(raw_sources: &mut Vec<BoxSource>, new_children: &mut Vec<Bo
     _ => {
       // Multiple sources - merge them
       let capacity = raw_sources.iter().map(|s| s.size()).sum();
+      if capacity > 64 * 1024 {
+        // Large groups usually reference module output that is still retained
+        // elsewhere. Keep those handles instead of materializing a second copy
+        // of the same bytes; small fragments are still cheaper to merge.
+        new_children.extend(raw_sources.drain(..));
+        return;
+      }
       let mut merged_content = String::with_capacity(capacity);
       for source in raw_sources.drain(..) {
         merged_content.push_str(source.source().into_string_lossy().as_ref());
