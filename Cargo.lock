@@ -5556,6 +5556,7 @@ name = "rspack_plugin_split_chunks"
 version = "0.102.9"
 dependencies = [
  "derive_more",
+ "fixedbitset",
  "futures",
  "hashbrown 0.17.1",
  "itertools 0.14.0",
