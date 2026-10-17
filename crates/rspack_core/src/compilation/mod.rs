@@ -51,7 +51,9 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathSet};
-use rspack_sources::BoxSource;
+use rspack_sources::{
+  BoxSource, ConcatSource, MapFreeSource, ReplaceSource, Replacement, SourceExt,
+};
 use rspack_tasks::CompilerContext;
 use rspack_util::{fx_hash::FxIndexMap, itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -206,6 +208,14 @@ impl Default for CompilationId {
 
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 
+#[derive(Debug)]
+struct DeferredSourceMapAsset {
+  original_source: BoxSource,
+  append: Vec<BoxSource>,
+  edits: Vec<Vec<Replacement>>,
+  current_source: BoxSource,
+}
+
 /// Use macro to prevent cargo shear from failing and reporting errors
 /// due to the inability to parse the async closure syntax
 /// https://github.com/Boshen/cargo-shear/issues/143
@@ -232,6 +242,10 @@ pub struct Compilation {
   pub runtime_modules_code_generation_source: IdentifierMap<BoxSource>,
   assets: CompilationAssets,
   assets_related_in: HashMap<String, HashSet<String>>,
+  /// Server assets keep a flattened source during the build because repeatedly
+  /// walking the rendered graph is slower there. Retain the graph and later
+  /// asset edits so the flattened text can be released after build hooks.
+  source_map_deferred_assets: HashMap<String, DeferredSourceMapAsset>,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
@@ -398,6 +412,7 @@ impl Compilation {
       global_entry: Default::default(),
       assets: Default::default(),
       assets_related_in: Default::default(),
+      source_map_deferred_assets: Default::default(),
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       logging,
@@ -833,7 +848,9 @@ impl Compilation {
         source: Some(source),
         info: old_info,
       }) => {
+        let tracked_source = source.clone();
         let (new_source, new_info) = updater(source, old_info.clone())?;
+        self.record_source_map_asset_edit(filename, &tracked_source, &new_source);
         (old_info, new_source, new_info)
       }
       _ => {
@@ -983,6 +1000,106 @@ impl Compilation {
 
   pub fn assets_mut(&mut self) -> &mut CompilationAssets {
     &mut self.assets
+  }
+
+  /// Register a server asset whose build-time source is a flattened copy of
+  /// `original_source`. The source is replaced with the graph after build hooks.
+  pub fn register_deferred_source_map_asset(
+    &mut self,
+    name: String,
+    original_source: BoxSource,
+    append: Vec<BoxSource>,
+  ) {
+    let Some(current_source) = self
+      .assets
+      .get(&name)
+      .and_then(|asset| asset.source.clone())
+    else {
+      return;
+    };
+    self.source_map_deferred_assets.insert(
+      name,
+      DeferredSourceMapAsset {
+        original_source,
+        append,
+        edits: Vec::new(),
+        current_source,
+      },
+    );
+  }
+
+  fn record_source_map_asset_edit(
+    &mut self,
+    name: &str,
+    original_source: &BoxSource,
+    updated_source: &BoxSource,
+  ) {
+    let Some(deferred) = self.source_map_deferred_assets.get_mut(name) else {
+      return;
+    };
+    if !Arc::ptr_eq(&deferred.current_source, original_source) {
+      self.source_map_deferred_assets.remove(name);
+      return;
+    }
+    if Arc::ptr_eq(updated_source, original_source) {
+      return;
+    }
+
+    let Some(updated) = updated_source.as_any().downcast_ref::<ReplaceSource>() else {
+      self.source_map_deferred_assets.remove(name);
+      return;
+    };
+    let inner_is_original =
+      if let Some(inner) = updated.inner().as_any().downcast_ref::<MapFreeSource>() {
+        Arc::ptr_eq(inner.inner(), original_source)
+      } else {
+        Arc::ptr_eq(updated.inner(), original_source)
+      };
+    if !inner_is_original {
+      self.source_map_deferred_assets.remove(name);
+      return;
+    }
+
+    deferred.edits.push(updated.replacements().to_vec());
+    deferred.current_source = updated_source.clone();
+  }
+
+  /// Replace flattened server asset text with the retained source graph after
+  /// all build hooks have finished. Asset edits are replayed on the graph so
+  /// the in-memory source stays byte-for-byte identical to the emitted asset.
+  pub fn release_deferred_source_map_assets(&mut self) {
+    let pending = std::mem::take(&mut self.source_map_deferred_assets);
+    for (name, deferred) in pending {
+      let Some(asset) = self.assets.get_mut(&name) else {
+        continue;
+      };
+      let Some(current_source) = &asset.source else {
+        continue;
+      };
+      if !Arc::ptr_eq(current_source, &deferred.current_source) {
+        continue;
+      }
+
+      let mut children = Vec::with_capacity(1 + deferred.append.len());
+      children.push(MapFreeSource::new(deferred.original_source).boxed());
+      children.extend(deferred.append);
+      let mut current_source = ConcatSource::new(children).boxed();
+
+      for replacements in deferred.edits {
+        let mut updated = ReplaceSource::new(MapFreeSource::new(current_source).boxed());
+        for replacement in replacements {
+          updated.replace_with_enforce(
+            replacement.start(),
+            replacement.end(),
+            replacement.content().to_string(),
+            replacement.name().map(ToOwned::to_owned),
+            replacement.enforce(),
+          );
+        }
+        current_source = updated.boxed();
+      }
+      asset.source = Some(current_source);
+    }
   }
 
   pub fn entrypoints(&self) -> &FxIndexMap<String, ChunkGroupUkey> {

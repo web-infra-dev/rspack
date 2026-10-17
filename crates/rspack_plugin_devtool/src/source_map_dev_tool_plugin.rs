@@ -220,6 +220,7 @@ enum SourceMappingUrlCommentRef<'a> {
 struct SourceMapTask {
   pub asset_filename: Arc<str>,
   pub source: BoxSource,
+  pub original_source: Option<BoxSource>,
   pub source_map: SourceMap<'static>,
   pub unresolved_source_map_path: Option<Utf8PathBuf>,
   pub source_references: Vec<SourceReference>,
@@ -291,6 +292,7 @@ pub(crate) struct MappedAsset {
   pub(crate) asset: (Arc<str>, CompilationAsset),
   pub(crate) asset_append: Vec<BoxSource>,
   pub(crate) source_map: Option<(String, CompilationAsset)>,
+  pub(crate) original_source: Option<BoxSource>,
 }
 
 #[plugin]
@@ -470,6 +472,7 @@ impl SourceMapDevToolPlugin {
           asset: (Arc::from(filename), source_asset),
           asset_append,
           source_map,
+          original_source: None,
         });
         continue;
       }
@@ -544,6 +547,7 @@ impl SourceMapDevToolPlugin {
           asset: (Arc::from(filename), source_asset),
           asset_append,
           source_map,
+          original_source: None,
         });
         continue;
       }
@@ -686,6 +690,7 @@ impl SourceMapDevToolPlugin {
                 ));
               }
 
+              let original_source = compilation.platform.is_node().then(|| source.clone());
               let source = if compilation.platform.is_node() {
                 match source.source() {
                   SourceValue::String(cow) => RawStringSource::from(cow.into_owned()).boxed(),
@@ -697,6 +702,7 @@ impl SourceMapDevToolPlugin {
               let task = SourceMapTask {
                 asset_filename,
                 source,
+                original_source,
                 source_map,
                 unresolved_source_map_path,
                 source_references,
@@ -774,6 +780,7 @@ impl SourceMapDevToolPlugin {
                 ));
               }
 
+              let original_source = compilation.platform.is_node().then(|| source.clone());
               let source = if compilation.platform.is_node() {
                 match source.source() {
                   SourceValue::String(cow) => RawStringSource::from(cow.into_owned()).boxed(),
@@ -785,6 +792,7 @@ impl SourceMapDevToolPlugin {
               let task = SourceMapTask {
                 asset_filename,
                 source,
+                original_source,
                 source_map,
                 unresolved_source_map_path,
                 source_references,
@@ -921,6 +929,7 @@ impl SourceMapDevToolPlugin {
         |SourceMapTask {
            asset_filename,
            source,
+           original_source,
            source_map,
            unresolved_source_map_path,
            source_references,
@@ -933,6 +942,7 @@ impl SourceMapDevToolPlugin {
               reference_to_source_name_mapping,
               asset_filename,
               source,
+              original_source,
               source_map,
               unresolved_source_map_path,
               source_references,
@@ -946,6 +956,7 @@ impl SourceMapDevToolPlugin {
               reference_to_source_name_mapping,
               asset_filename,
               source,
+              original_source,
               source_map,
               unresolved_source_map_path,
               source_references,
@@ -957,6 +968,7 @@ impl SourceMapDevToolPlugin {
                 reference_to_source_name_mapping,
                 asset_filename,
                 source,
+                original_source,
                 source_map,
                 unresolved_source_map_path,
                 source_references,
@@ -1039,6 +1051,7 @@ impl SourceMapDevToolPlugin {
     reference_to_source_name_mapping: &ReferenceToSourceNameMapping,
     asset_filename: Arc<str>,
     source: BoxSource,
+    original_source: Option<BoxSource>,
     mut source_map: SourceMap<'static>,
     unresolved_source_map_path: Option<Utf8PathBuf>,
     source_references: Vec<SourceReference>,
@@ -1195,6 +1208,7 @@ impl SourceMapDevToolPlugin {
         asset: (asset_filename, asset),
         source_map: Some((source_map_filename.clone(), source_map_asset)),
         asset_append,
+        original_source,
       })
     } else {
       let current_source_mapping_url_comment = current_source_mapping_url_comment
@@ -1222,6 +1236,7 @@ impl SourceMapDevToolPlugin {
         asset: (asset_filename, asset),
         asset_append,
         source_map: None,
+        original_source,
       })
     }
   }
@@ -1330,8 +1345,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   for mapped_asset in mapped_assets {
     let MappedAsset {
       asset: (source_filename, mut source_asset),
+      asset_append,
       source_map,
-      ..
+      original_source,
     } = mapped_asset;
     if let Some(asset) = compilation.assets_mut().remove(source_filename.as_ref()) {
       source_asset.info = asset.info;
@@ -1342,6 +1358,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     let chunk_ukey = file_to_chunk_ukey.get(source_filename.as_ref());
     compilation.emit_asset(source_filename.to_string(), source_asset);
+    if let Some(original_source) = original_source {
+      compilation.register_deferred_source_map_asset(
+        source_filename.to_string(),
+        original_source,
+        asset_append,
+      );
+    }
     if let Some((source_map_filename, source_map_asset)) = source_map {
       compilation.emit_asset(source_map_filename.clone(), source_map_asset);
 

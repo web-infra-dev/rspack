@@ -489,12 +489,16 @@ impl Compiler {
 
     self.emitted_asset_versions = new_emitted_asset_versions;
 
-    self
+    let result = self
       .plugin_driver
       .compiler_hooks
       .after_emit
       .call(&mut self.compilation)
-      .await
+      .await;
+    if result.is_ok() {
+      self.compilation.release_deferred_source_map_assets();
+    }
+    result
   }
   async fn emit_asset(
     &self,
