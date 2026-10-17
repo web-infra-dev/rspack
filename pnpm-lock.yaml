@@ -158,8 +158,8 @@ catalogs:
       specifier: ^0.5.6
       version: 0.5.6
     cac:
-      specifier: ^7.0.0
-      version: 7.0.0
+      specifier: ^7.1.0
+      version: 7.1.0
     case-police:
       specifier: ~2.2.1
       version: 2.2.1
@@ -811,7 +811,7 @@ importers:
         version: 1.0.2(jiti@2.7.0)
       cac:
         specifier: 'catalog:'
-        version: 7.0.0
+        version: 7.1.0
       concat-stream:
         specifier: 'catalog:'
         version: 2.0.0
@@ -4345,6 +4345,10 @@ packages:
 
   cac@7.0.0:
     resolution: {integrity: sha512-tixWYgm5ZoOD+3g6UTea91eow5z6AAHaho3g0V9CNSNb45gM8SmflpAc+GRd1InC4AqN/07Unrgp56Y94N9hJQ==}
+    engines: {node: '>=20.19.0'}
+
+  cac@7.1.0:
+    resolution: {integrity: sha512-LMDU/U2yA4IPIY8KT0NsNPWEYZvAMkbgyspxJ6btJaYV+WMDOHAZCmB0lsTObiHaRS1V/ztKAl7+TSkTqXyeoA==}
     engines: {node: '>=20.19.0'}
 
   call-bind-apply-helpers@1.0.2:
@@ -10548,6 +10552,8 @@ snapshots:
       run-applescript: 7.1.0
 
   cac@7.0.0: {}
+
+  cac@7.1.0: {}
 
   call-bind-apply-helpers@1.0.2:
     dependencies:
