@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use rspack_core::{BuildMetaExportsType, ExportsArgument, ModuleArgument, ModuleType};
-use rspack_util::{SpanExt, swc::AstSubRangeExt};
+use rspack_util::SpanExt;
 use swc_next_ecma_ast::{
-  AwaitExpression, CallExpression, ForOfStatement, GetSpan, Program, Span, StmtData,
-  UnaryExpression,
+  AwaitExpression, CallExpression, ForOfStatement, GetSpan, Program, Span, UnaryExpression,
 };
 
 use super::JavascriptParserPlugin;
@@ -52,25 +51,7 @@ fn is_non_esm_identifier(name: &str) -> bool {
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMDetectionParserPlugin {
   fn program(&self, parser: &mut JavascriptParser<'p>, _program: Program) -> Option<bool> {
     let is_strict_esm = matches!(parser.module_type, ModuleType::JsEsm);
-    let ast = parser.ast.ast;
-    // `SourceType::Unambiguous` in SWC Next classifies `import.meta`-only input
-    // as a module. Rspack's legacy parser only enabled ESM semantics when the
-    // program contained an actual import/export declaration (or the module
-    // type was explicitly `javascript/esm`). Preserve that distinction here.
-    let has_esm_declaration = ast.nodes(_program.body(ast)).any(|statement| {
-      matches!(
-        ast.stmt_data(statement),
-        StmtData::ImportDeclaration(_)
-          | StmtData::ExportNamedDeclaration(_)
-          | StmtData::ExportDefaultDeclaration(_)
-          | StmtData::ExportAllDeclaration(_)
-          | StmtData::TsExportAssignment(_)
-          | StmtData::TsNamespaceExportDeclaration(_)
-      )
-    });
-    let is_esm = is_strict_esm || has_esm_declaration;
-
-    if is_esm {
+    if parser.is_esm {
       parser.add_presentational_dependency(Arc::new(ESMCompatibilityDependency));
       parser.build_meta.set_esm(true);
       parser

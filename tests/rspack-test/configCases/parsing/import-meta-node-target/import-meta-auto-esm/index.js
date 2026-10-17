@@ -1,0 +1,13 @@
+// No import/export syntax: `import.meta` alone marks this as an ES module,
+// so the module is rendered in strict mode (matching Node.js).
+const topLevelThis = this;
+void import.meta;
+
+function getThis() {
+	return this;
+}
+
+it("import-meta-auto-esm: should treat a module using import.meta as a strict ES module", () => {
+	expect(getThis()).toBe(undefined);
+	expect(topLevelThis).toBe(undefined);
+});

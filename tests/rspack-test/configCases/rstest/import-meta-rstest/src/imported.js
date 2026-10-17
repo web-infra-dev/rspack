@@ -6,7 +6,7 @@ if (import.meta.rstest) {
   branch = true;
 }
 
-module.exports = {
+export {
   branch,
   direct,
   optional,
