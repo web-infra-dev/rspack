@@ -798,4 +798,39 @@ export default {
 
 使用 `undefined` 将会关闭该功能。
 
+#### reference 匹配规则
+
+解析非相对路径的请求时，Rspack 会先按顺序检查被引用的 tsconfig（嵌套的 references 会被展开），都不匹配时才使用主 tsconfig：
+
+1. 每个 reference 的基准路径是它的 `baseUrl`；没有设置 `baseUrl` 时，是该 tsconfig 所在的目录。
+2. 如果发起导入的文件所在目录位于某个 reference 的基准路径之下，Rspack 就使用这个 reference 的 `paths`，不再继续查找，即使它没有定义 `paths`。
+3. 所有 reference 都不匹配时，才使用主 tsconfig 的 `paths`。
+
+匹配只看目录。和 `tsc` 不同，Rspack 不会读取 `include`、`files` 或 `exclude` 来判断文件属于哪个 project。
+
+:::warning
+由于按目录匹配，每个目录下最多只放一个 tsconfig，并把被引用的 tsconfig 放到它所覆盖的文件所在的目录中：
+
+```
+.
+├── tsconfig.json         # references: [{ "path": "./src" }, { "path": "./scripts" }]
+├── src/
+│   └── tsconfig.json
+└── scripts/
+    └── tsconfig.json
+```
+
+不要像下面这样把多个 tsconfig 并排放在同一个目录：
+
+```
+.
+├── tsconfig.json
+├── tsconfig.app.json     # include: ["src"]
+└── tsconfig.node.json    # include: ["scripts"]
+```
+
+这时三个 tsconfig 的基准路径都是项目根目录，所有文件都会匹配到 `references` 中排在最前面的那个，另一个 reference 和主 tsconfig 的 `paths` 都不会生效。
+
+:::
+
 <Attribution url="https://webpack.js.org/configuration/resolve/" />
