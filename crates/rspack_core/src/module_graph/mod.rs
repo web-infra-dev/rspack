@@ -137,8 +137,7 @@ pub(crate) struct ModuleGraphData {
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
-  // Most dependency slots stay empty; boxing keeps each dense slot pointer-sized.
-  dep_meta_map: rollback::DenseDependencyIdMap<Box<DependencyExtraMeta>>,
+  dep_meta_map: HashMap<DependencyId, Box<DependencyExtraMeta>>,
 }
 impl ModuleGraphData {
   fn checkpoint(&mut self) {

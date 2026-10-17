@@ -25,6 +25,8 @@ enum GroupRefs {
   /// those lists would cost one full scan per path it mentions and degrade
   /// into quadratic work, while a set removes in constant time.
   Hot(Box<FxHashSet<InternedPathList>>),
+  /// A completed build keeps hot memberships in a compact pointer slice.
+  Frozen(Box<[InternedPathList]>),
 }
 
 impl Default for GroupRefs {
@@ -49,6 +51,11 @@ impl GroupRefs {
       GroupRefs::Hot(lists) => {
         lists.insert(list);
       }
+      GroupRefs::Frozen(lists) => {
+        let mut hot: FxHashSet<_> = std::mem::take(lists).into_vec().into_iter().collect();
+        hot.insert(list);
+        *self = GroupRefs::Hot(Box::new(hot));
+      }
     }
   }
 
@@ -58,6 +65,11 @@ impl GroupRefs {
       GroupRefs::Hot(lists) => {
         lists.remove(list);
       }
+      GroupRefs::Frozen(lists) => {
+        let mut hot: FxHashSet<_> = std::mem::take(lists).into_vec().into_iter().collect();
+        hot.remove(list);
+        *self = GroupRefs::Hot(Box::new(hot));
+      }
     }
   }
 
@@ -65,6 +77,7 @@ impl GroupRefs {
     match self {
       GroupRefs::Small(lists) => lists.is_empty(),
       GroupRefs::Hot(lists) => lists.is_empty(),
+      GroupRefs::Frozen(lists) => lists.is_empty(),
     }
   }
 
@@ -72,6 +85,7 @@ impl GroupRefs {
     match self {
       GroupRefs::Small(lists) => GroupRefsIter::Small(lists.iter()),
       GroupRefs::Hot(lists) => GroupRefsIter::Hot(lists.iter()),
+      GroupRefs::Frozen(lists) => GroupRefsIter::Frozen(lists.iter()),
     }
   }
 
@@ -79,6 +93,15 @@ impl GroupRefs {
     match self {
       GroupRefs::Small(lists) => lists.shrink_to_fit(),
       GroupRefs::Hot(lists) => lists.shrink_to_fit(),
+      GroupRefs::Frozen(lists) => *lists = std::mem::take(lists).into_vec().into_boxed_slice(),
+    }
+  }
+
+  fn freeze(&mut self) {
+    if let GroupRefs::Hot(lists) = self {
+      let mut lists = lists.iter().cloned().collect::<Vec<_>>();
+      lists.sort_unstable_by_key(InternedPathList::as_ptr);
+      *self = GroupRefs::Frozen(lists.into_boxed_slice());
     }
   }
 }
@@ -88,6 +111,7 @@ impl GroupRefs {
 enum GroupRefsIter<'a> {
   Small(std::slice::Iter<'a, InternedPathList>),
   Hot(std::collections::hash_set::Iter<'a, InternedPathList>),
+  Frozen(std::slice::Iter<'a, InternedPathList>),
 }
 
 impl<'a> Iterator for GroupRefsIter<'a> {
@@ -98,6 +122,7 @@ impl<'a> Iterator for GroupRefsIter<'a> {
     match self {
       GroupRefsIter::Small(lists) => lists.next(),
       GroupRefsIter::Hot(lists) => lists.next(),
+      GroupRefsIter::Frozen(lists) => lists.next(),
     }
   }
 }
@@ -296,6 +321,7 @@ impl FileCounter {
     self.inner.shrink_to_fit();
     for entry in self.inner.values_mut() {
       entry.shrink_to_fit();
+      entry.groups.freeze();
     }
     self.groups.shrink_to_fit();
     for dependencies in self.groups.values_mut() {

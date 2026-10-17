@@ -1111,6 +1111,12 @@ impl Compilation {
     artifact.context_dependencies.shrink_to_fit();
     artifact.missing_dependencies.shrink_to_fit();
     artifact.build_dependencies.shrink_to_fit();
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+    {
+      artifact.factorization_artifact.clear_successful();
+    }
   }
 
   pub fn entrypoints(&self) -> &FxIndexMap<String, ChunkGroupUkey> {

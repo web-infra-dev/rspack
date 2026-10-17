@@ -128,3 +128,22 @@ fn shrinking_preserves_files_and_dependency_membership() {
   assert_eq!(dependencies(&counter, &b), vec![1]);
   assert_eq!(counter.added_files().count(), 2);
 }
+
+#[test]
+fn frozen_hot_memberships_remain_mutable() {
+  let mut counter = FileCounter::default();
+  let shared = path("/shared");
+  let lists = (0..20)
+    .map(|index| InternedPathList::new(&[shared.clone(), path(&format!("/leaf-{index}"))]))
+    .collect::<Vec<_>>();
+  for (index, list) in lists.iter().enumerate() {
+    counter.add_dependency_files(DependencyId::from(index as u32), list);
+  }
+  assert_eq!(dependencies(&counter, &shared).len(), 20);
+
+  counter.shrink_to_fit();
+  assert_eq!(dependencies(&counter, &shared).len(), 20);
+
+  counter.remove_dependency_files(DependencyId::from(0), &lists[0]);
+  assert_eq!(dependencies(&counter, &shared).len(), 19);
+}

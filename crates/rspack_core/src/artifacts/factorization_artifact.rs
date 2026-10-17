@@ -115,4 +115,19 @@ impl FactorizationArtifact {
   pub(crate) fn iter(&self) -> impl Iterator<Item = (DependencyId, &FactorizeInfo)> {
     self.infos.iter().map(|(dep_id, info)| (*dep_id, info))
   }
+
+  pub(crate) fn clear_successful(&mut self) {
+    let infos = std::mem::take(&mut self.infos);
+    for (owner, info) in infos {
+      if info.is_success() {
+        for dependency in info.related_dep_ids() {
+          self.dependency_owners.remove(dependency);
+        }
+      } else {
+        self.infos.insert(owner, info);
+      }
+    }
+    self.infos.shrink_to_fit();
+    self.dependency_owners.shrink_to_fit();
+  }
 }

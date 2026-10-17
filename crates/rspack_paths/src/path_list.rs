@@ -107,6 +107,11 @@ impl InternedPathList {
   pub fn is_empty(&self) -> bool {
     self.0.ids.is_empty()
   }
+
+  #[inline]
+  pub fn as_ptr(&self) -> *const () {
+    Arc::as_ptr(&self.0).cast()
+  }
 }
 
 impl Clone for InternedPathList {
