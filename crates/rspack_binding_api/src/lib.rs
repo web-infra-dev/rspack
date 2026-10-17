@@ -448,20 +448,33 @@ impl JsCompiler {
   ) -> Result<(), ErrorCode> {
     unsafe {
       self.run(&env, reference, |compiler, guard| {
+        let collect_main = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let collect_async = collect_main.clone();
+        let collect_callback = collect_main.clone();
         callbackify(
           f,
           async move {
+            let build_started = std::time::Instant::now();
             let result = compiler.build().await.to_napi_result_with_message(|e| {
               print_error_diagnostic(e, compiler.options.stats.colors)
             });
             result?;
-            collect_allocator_pages().await;
+            // Large builds retain enough transient allocator pages for a
+            // one-time collection to matter; short builds skip its cost.
+            let collect = build_started.elapsed() >= std::time::Duration::from_secs(60);
+            collect_async.store(collect, std::sync::atomic::Ordering::Relaxed);
+            if collect {
+              collect_allocator_pages().await;
+            }
             tracing::debug!("build ok");
             Ok(())
           },
           Some(move |env: &Env, result: &mut _| {
-            // The JS thread freed asset strings after the async build resolved.
-            rspack_allocator::collect(true);
+            // The JS thread freed large asset strings after the async build
+            // resolved.
+            if collect_callback.load(std::sync::atomic::Ordering::Relaxed) {
+              rspack_allocator::collect(true);
+            }
             guard.finish(env, result)
           }),
         )
