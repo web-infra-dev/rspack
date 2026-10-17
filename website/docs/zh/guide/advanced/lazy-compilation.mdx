@@ -69,6 +69,8 @@ export default defineConfig({
 
 只有当执行对应的入口和模块时，Rspack 才会编译对应的入口和 Module 以及他们的所有依赖。
 
+使用 `import('./feature.js')` 的模块可以通过 `module.hot.accept('./feature.js', callback)` 或 `import.meta.webpackHot.accept('./feature.js', callback)` 接受同一请求的更新。懒编译模块激活时，HMR 依赖的标识保持不变，后续源码修改会触发注册的回调。
+
 ## 筛选部分模块 \{#filtering-modules}
 
 除了 [`entries`](/config/lazy-compilation#entries) 和 [`imports`](/config/lazy-compilation#imports) 选项以外，你也可以使用 [`test`](/config/lazy-compilation#test) 来筛选哪些模块开启懒编译。

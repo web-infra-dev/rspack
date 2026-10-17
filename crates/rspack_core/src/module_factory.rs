@@ -16,6 +16,8 @@ pub struct ModuleFactoryCreateData {
   pub dependencies: Vec<DependencyRef>,
   pub issuer: Option<Box<str>>,
   pub issuer_identifier: Option<ModuleIdentifier>,
+  /// Issuer dependencies available while resolving HMR accept/decline requests.
+  pub issuer_dependencies: Option<Arc<[DependencyRef]>>,
   pub issuer_layer: Option<ModuleLayer>,
 
   pub file_dependencies: InternedPathSet,
@@ -73,6 +75,7 @@ impl ModuleFactoryCreateData {
       dependencies,
       issuer,
       issuer_identifier,
+      issuer_dependencies: None,
       issuer_layer,
       file_dependencies: Default::default(),
       context_dependencies: Default::default(),
