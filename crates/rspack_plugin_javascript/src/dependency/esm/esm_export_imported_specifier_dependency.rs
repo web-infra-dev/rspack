@@ -1299,7 +1299,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name,
             export: Some(rspack_core::Nullable::Value(vec![Atom::from("default")])),
-            from: from.cloned(),
+            from: from.as_ref().map(|connection| connection.dependency_id),
             ..Default::default()
           })]),
           priority: Some(1),
@@ -1313,7 +1313,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name,
             export: Some(rspack_core::Nullable::Value(vec![Atom::from("default")])),
-            from: from.cloned(),
+            from: from.as_ref().map(|connection| connection.dependency_id),
             ..Default::default()
           })]),
           priority: Some(1),
@@ -1327,7 +1327,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name,
             export: Some(rspack_core::Nullable::Null),
-            from: from.cloned(),
+            from: from.as_ref().map(|connection| connection.dependency_id),
             ..Default::default()
           })]),
           priority: Some(1),
@@ -1344,11 +1344,11 @@ impl Dependency for ESMExportImportedSpecifierDependency {
             exports: Some(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
               name: "default".into(),
               can_mangle: Some(false),
-              from: from.cloned(),
+              from: from.as_ref().map(|connection| connection.dependency_id),
               export: Some(rspack_core::Nullable::Null),
               ..Default::default()
             })]),
-            from: from.cloned(),
+            from: from.as_ref().map(|connection| connection.dependency_id),
             ..Default::default()
           })]),
           priority: Some(1),
@@ -1376,7 +1376,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
               .map(|item| {
                 ExportNameOrSpec::ExportSpec(ExportSpec {
                   name: item.name,
-                  from: from.cloned(),
+                  from: from.as_ref().map(|connection| connection.dependency_id),
                   export: Some(rspack_core::Nullable::Value(item.ids)),
                   hidden: Some(item.hidden),
                   ..Default::default()
@@ -1392,7 +1392,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         let from = mg.connection_by_dependency_id(self.id());
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::UnknownExports,
-          from: from.cloned(),
+          from: from.as_ref().map(|connection| connection.dependency_id),
           can_mangle: Some(false),
           hide_export: mode.hidden.clone(),
           exclude_exports: {
