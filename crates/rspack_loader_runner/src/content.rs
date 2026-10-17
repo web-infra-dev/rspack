@@ -11,7 +11,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   rkyv::string::ArchivedString,
   utils::PortablePath,
-  with::{As, AsInner, AsOption, AsPreset},
+  with::{As, AsInner, AsOption, AsPreset, AsSharedJson},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
@@ -321,7 +321,7 @@ pub struct DescriptionData {
   path: PathBuf,
 
   /// Raw package.json
-  #[cacheable(with=AsInner<AsPreset>)]
+  #[cacheable(with=AsSharedJson)]
   json: Arc<serde_json::Value>,
 }
 
