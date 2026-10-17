@@ -5,6 +5,8 @@ const SECOND = "/* second */\n";
 const expectedLargeMap =
 	SECOND + INSERTED + LARGE_BODY.slice(0, 10) + "Z" + LARGE_BODY.slice(11);
 const expectedCode = INSERTED + LARGE_BODY;
+const expectedConcat = INSERTED + LARGE_BODY + "\n";
+const expectedRawMapped = INSERTED + LARGE_BODY;
 const expectedBinary = Buffer.concat([
 	Buffer.from("// prefix\n"),
 	Buffer.from(LARGE_BODY)
@@ -45,8 +47,23 @@ export default {
 									new sources.RawSource(LARGE_BODY)
 								);
 								compilation.emitAsset(
+									"concat.txt",
+									new sources.ConcatSource(
+										new sources.RawSource(LARGE_BODY),
+										new sources.RawSource("\n")
+									)
+								);
+								compilation.emitAsset(
 									"binary.map",
 									new sources.RawSource(Buffer.from(LARGE_BODY))
+								);
+								compilation.emitAsset(
+									"raw-replaces-mapped.js",
+									new sources.SourceMapSource(
+										LARGE_BODY,
+										"raw-replaces-mapped.js",
+										providedMap
+									)
 								);
 								compilation.emitAsset(
 									"mapped.map",
@@ -76,16 +93,26 @@ export default {
 									"large.map",
 									new sources.RawSource(expectedLargeMap)
 								);
-								// Non-`.map` assets never take the optimization, so a
-								// plugin-supplied source map cannot be dropped.
+								// Any large plain-text asset can take the optimization.
 								compilation.updateAsset(
 									"code.txt",
 									new sources.RawSource(expectedCode)
+								);
+								// Concatenated sources can take it too.
+								compilation.updateAsset(
+									"concat.txt",
+									new sources.RawSource(expectedConcat)
 								);
 								// Buffer-valued updates keep their binary representation.
 								compilation.updateAsset(
 									"binary.map",
 									new sources.RawSource(expectedBinary)
+								);
+								// Replacing a mapped source with a raw source
+								// drops the map, matching the normal path.
+								compilation.updateAsset(
+									"raw-replaces-mapped.js",
+									new sources.RawSource(expectedRawMapped)
 								);
 								// A SourceMapSource keeps the map the plugin supplied.
 								compilation.updateAsset(
@@ -111,10 +138,15 @@ export default {
 									.toString();
 								observed.largeMapSize = asset("large.map").size();
 								observed.code = asset("code.txt").source();
+								observed.concat = asset("concat.txt").source();
 								observed.binaryIsBuffer = Buffer.isBuffer(
 									asset("binary.map").source()
 								);
 								observed.binary = asset("binary.map").buffer().toString();
+								observed.rawMappedValue = asset(
+									"raw-replaces-mapped.js"
+								).source();
+								observed.rawMappedMap = asset("raw-replaces-mapped.js").map();
 								observed.mappedValue = asset("mapped.map").source();
 								observed.mappedMap = asset("mapped.map").map();
 							}
@@ -129,8 +161,11 @@ export default {
 		expect(observed.largeMapBuffer).toBe(expectedLargeMap);
 		expect(observed.largeMapSize).toBe(expectedLargeMap.length);
 		expect(observed.code).toBe(expectedCode);
+		expect(observed.concat).toBe(expectedConcat);
 		expect(observed.binaryIsBuffer).toBe(true);
 		expect(observed.binary).toBe(expectedBinary.toString());
+		expect(observed.rawMappedValue).toBe(expectedRawMapped);
+		expect(observed.rawMappedMap).toBeUndefined();
 		expect(observed.mappedValue).toBe(expectedMapped);
 		expect(observed.mappedMap).toBeTruthy();
 		expect(observed.mappedMap.mappings).toBe("AAAA");

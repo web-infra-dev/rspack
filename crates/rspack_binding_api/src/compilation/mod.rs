@@ -145,7 +145,7 @@ impl JsCompilation {
           Ok(new_source)
         })();
         let new_source = new_source.to_rspack_result()?;
-        let new_source = reuse_with_inserted_edit(&filename, original_source, new_source);
+        let new_source = reuse_with_inserted_edit(original_source, new_source);
 
         let new_info: Option<(rspack_core::AssetInfo, Option<AssetInfoRelated>)> =
           match asset_info_update_or_function {
@@ -1215,27 +1215,25 @@ pub struct JsBuildTimeExecutionOption {
   pub base_uri: Option<String>,
 }
 
-/// Keep the previous source when a plugin's `updateAsset` result for a
-/// serialized source-map asset is the same content with one small contiguous
-/// insertion — for example a source-map post-processor that prepends a
-/// character to the serialized map and then re-serializes it. The insertion is
-/// recorded as a replacement over the previous source, so no second full copy
-/// of a large asset is retained while the resulting bytes stay identical.
+/// Keep the previous source when a plugin's `updateAsset` result is the same
+/// content with one small contiguous insertion — for example a post-processor
+/// that prepends a decode helper to a bundle, or adds a character to a
+/// serialized source map and then re-serializes it. The insertion is recorded
+/// as a replacement over the previous source, so no second full copy of a
+/// large asset is retained while the resulting bytes stay identical.
 ///
-/// Only `.map` assets whose update is plain text take this path: a plugin may
-/// attach a real source map through a `SourceMapSource`, which must keep the
-/// map it supplied, and a Buffer-valued update must keep returning a buffer.
-fn reuse_with_inserted_edit(filename: &str, original: BoxSource, new: BoxSource) -> BoxSource {
+/// The new value must be plain text. A Buffer-valued update keeps the normal
+/// replacement path so it still returns a buffer. The previous source may carry
+/// a map; `ReplaceSource` preserves it across the insertion, while a plain
+/// `RawStringSource` replacement would have dropped it.
+fn reuse_with_inserted_edit(original: BoxSource, new: BoxSource) -> BoxSource {
   use rspack_core::rspack_sources::{
-    RawBufferSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceValue,
+    MapFreeSource, RawBufferSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceValue,
   };
   const MIN_ORIGINAL: usize = 1 << 18;
   const MAX_INSERTED: usize = 8 << 10;
 
-  if !filename.ends_with(".map")
-    || !new.as_any().is::<RawStringSource>()
-    || original.as_any().is::<RawBufferSource>()
-  {
+  if !new.as_any().is::<RawStringSource>() || original.as_any().is::<RawBufferSource>() {
     return new;
   }
   let old_len = original.size();
@@ -1308,7 +1306,7 @@ fn reuse_with_inserted_edit(filename: &str, original: BoxSource, new: BoxSource)
   let Ok(inserted_text) = std::str::from_utf8(&new_bytes[prefix..prefix + inserted]) else {
     return new;
   };
-  let mut source = ReplaceSource::new(original);
+  let mut source = ReplaceSource::new(MapFreeSource::new(original).boxed());
   source.replace(
     prefix as u32,
     prefix as u32,
