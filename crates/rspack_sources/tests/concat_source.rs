@@ -25,7 +25,10 @@ fn large_raw_groups_keep_their_shared_children() {
   ]);
 
   assert_eq!(source.children().len(), 2);
-  assert_eq!(source.source().into_string_lossy(), format!("{left}{right}"));
+  assert_eq!(
+    source.source().into_string_lossy(),
+    format!("{left}{right}")
+  );
 }
 
 #[test]
