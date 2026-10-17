@@ -17,11 +17,13 @@ if (import.meta.rstest) {
   branch = true;
 }
 
-module.exports = {
+const imported = require('./imported');
+
+export {
   branch,
   calls,
   direct,
-  imported: require('./imported'),
+  imported,
   optional,
   property,
   type,
