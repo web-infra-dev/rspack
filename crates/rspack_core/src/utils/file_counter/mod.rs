@@ -199,7 +199,10 @@ impl Iterator for DependencyIdsIter<'_> {
 /// Used to count file usage and track which modules/dependencies use each file
 #[derive(Debug, Default)]
 pub struct FileCounter {
-  inner: InternedPathMap<PathResourceIds>,
+  // Path buckets are sparse but each one owns two collections. Keep the
+  // bucket compact so hash-table growth does not reserve the full payload in
+  // every slot.
+  inner: InternedPathMap<Box<PathResourceIds>>,
   /// The dependency ids grouped by the interned list that recorded them.
   ///
   /// A dependency registers its file list at every path it mentions, but the
@@ -219,7 +222,10 @@ impl FileCounter {
     paths: impl IntoIterator<Item = &'a InternedPath>,
   ) {
     for path in paths {
-      let entry = self.inner.entry(path.clone()).or_default();
+      let entry = self
+        .inner
+        .entry(path.clone())
+        .or_insert_with(|| Box::new(PathResourceIds::default()));
       if entry.is_empty() {
         self.incremental_info.mark_as_add(path);
       }
@@ -262,7 +268,10 @@ impl FileCounter {
       }
       Entry::Vacant(group) => {
         for path in list.as_slice() {
-          let entry = self.inner.entry(path.clone()).or_default();
+          let entry = self
+            .inner
+            .entry(path.clone())
+            .or_insert_with(|| Box::new(PathResourceIds::default()));
           if entry.is_empty() {
             self.incremental_info.mark_as_add(path);
           }
@@ -308,7 +317,7 @@ impl FileCounter {
   /// Get the resource ids (modules/dependencies) that use a specific file
   pub fn related_resource_ids(&self, path: &InternedPath) -> Option<RelatedResourceIds<'_>> {
     self.inner.get(path).map(|entry| RelatedResourceIds {
-      entry,
+      entry: entry.as_ref(),
       groups: &self.groups,
     })
   }

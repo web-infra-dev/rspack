@@ -67,7 +67,10 @@ impl FactorizeInfo {
 
 #[derive(Debug, Default)]
 pub(crate) struct FactorizationArtifact {
-  infos: FxHashMap<DependencyId, FactorizeInfo>,
+  // Each record contains three path-list handles and several vectors, while
+  // the table is keyed by a small id. Box the payload so growth rehashing does
+  // not reserve space for the full record in every bucket.
+  infos: FxHashMap<DependencyId, Box<FactorizeInfo>>,
   dependency_owners: FxHashMap<DependencyId, DependencyId>,
 }
 
@@ -88,16 +91,16 @@ impl FactorizationArtifact {
         "dependency should only belong to one factorization"
       );
     }
-    self.infos.insert(owner_dep_id, info);
+    self.infos.insert(owner_dep_id, Box::new(info));
   }
 
   pub(crate) fn get(&self, dep_id: &DependencyId) -> Option<&FactorizeInfo> {
     let owner_dep_id = self.dependency_owners.get(dep_id)?;
-    self.infos.get(owner_dep_id)
+    self.infos.get(owner_dep_id).map(Box::as_ref)
   }
 
   pub(crate) fn get_by_owner(&self, dep_id: &DependencyId) -> Option<&FactorizeInfo> {
-    self.infos.get(dep_id)
+    self.infos.get(dep_id).map(Box::as_ref)
   }
 
   pub(crate) fn revoke(&mut self, dep_id: &DependencyId) -> Option<(DependencyId, FactorizeInfo)> {
@@ -109,11 +112,14 @@ impl FactorizationArtifact {
     for related_dep_id in info.related_dep_ids() {
       self.dependency_owners.remove(related_dep_id);
     }
-    Some((owner_dep_id, info))
+    Some((owner_dep_id, *info))
   }
 
   pub(crate) fn iter(&self) -> impl Iterator<Item = (DependencyId, &FactorizeInfo)> {
-    self.infos.iter().map(|(dep_id, info)| (*dep_id, info))
+    self
+      .infos
+      .iter()
+      .map(|(dep_id, info)| (*dep_id, info.as_ref()))
   }
 
   pub(crate) fn clear_successful(&mut self) {

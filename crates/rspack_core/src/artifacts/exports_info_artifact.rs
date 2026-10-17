@@ -10,7 +10,9 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct ExportsInfoArtifact {
   module_exports_info: IdentifierMap<ExportsInfo>,
-  exports_info_map: rollback::RollbackAtomMap<ExportsInfo, ExportsInfoData>,
+  // Exports infos are much larger than their ids. Keeping them behind a
+  // pointer prevents the hash table buckets from carrying the full payload.
+  exports_info_map: rollback::RollbackAtomMap<ExportsInfo, Box<ExportsInfoData>>,
 }
 
 impl ArtifactExt for ExportsInfoArtifact {
@@ -65,6 +67,7 @@ impl ExportsInfoArtifact {
     self
       .exports_info_map
       .get(&self.get_exports_info(module_identifier))
+      .map(Box::as_ref)
       .expect("should have exports info")
   }
 
@@ -76,17 +79,19 @@ impl ExportsInfoArtifact {
     self
       .exports_info_map
       .get_mut(&id)
+      .map(Box::as_mut)
       .expect("should have exports info")
   }
 
   pub fn set_exports_info_by_id(&mut self, id: ExportsInfo, info: ExportsInfoData) {
-    self.exports_info_map.insert(id, info);
+    self.exports_info_map.insert(id, Box::new(info));
   }
 
   pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
     self
       .exports_info_map
       .get(id)
+      .map(Box::as_ref)
       .expect("should have exports info")
   }
 
@@ -94,6 +99,7 @@ impl ExportsInfoArtifact {
     self
       .exports_info_map
       .get_mut(id)
+      .map(Box::as_mut)
       .expect("should have exports info")
   }
 
@@ -107,7 +113,7 @@ impl ExportsInfoArtifact {
 
   pub fn reset_all_exports_info_used(&mut self) {
     self.exports_info_map.par_iter_mut().for_each(
-      |(_, exports_info): (&ExportsInfo, &mut ExportsInfoData)| {
+      |(_, exports_info): (&ExportsInfo, &mut Box<ExportsInfoData>)| {
         for export_info in exports_info.exports_mut().values_mut() {
           export_info.set_has_use_info();
         }
