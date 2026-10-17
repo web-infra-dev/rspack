@@ -46,6 +46,17 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
     // check if module runtime changes
     let mg = compilation.get_module_graph();
     for mi in mg.modules_keys() {
+      // Lazy reexport codegen also depends on incoming export references, which
+      // can change without activating another lazy dependency or rebuilding the
+      // barrel. Recheck its hash; unchanged hashes still reuse generated code.
+      if compilation
+        .build_module_graph_artifact
+        .module_to_lazy_make
+        .get_lazy_dependencies(mi)
+        .is_some()
+      {
+        modules.insert(*mi);
+      }
       let module_runtimes = compilation
         .build_chunk_graph_artifact
         .chunk_graph

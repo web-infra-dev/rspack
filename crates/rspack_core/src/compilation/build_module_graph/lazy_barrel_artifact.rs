@@ -115,6 +115,14 @@ impl LazyDependencies {
       .copied()
   }
 
+  pub fn contains_dependency(&self, request: &Atom, dependency: &DependencyId) -> bool {
+    self.fallback_dependencies.contains(dependency)
+      || self
+        .request_to_dependencies
+        .get(request)
+        .is_some_and(|dependencies| dependencies.contains(dependency))
+  }
+
   pub fn requested_lazy_dependencies(
     &self,
     forwarded_ids: &ForwardedIdSet,
