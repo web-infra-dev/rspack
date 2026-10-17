@@ -145,6 +145,8 @@ class Compiler {
   #initial: boolean;
 
   #compilation?: Compilation;
+  #closeCallbacks?: Array<(error?: Error | null) => void>;
+  #closed = false;
   #bindingCompilationMap = new WeakMap<binding.JsCompilation, Compilation>();
   #compilationParams?: CompilationParams;
 
@@ -567,6 +569,13 @@ class Compiler {
     if (this.running) {
       return callback(new ConcurrentCompilationError());
     }
+    if (this.#closeCallbacks || this.#closed) {
+      return callback(
+        new Error(
+          'Rspack compiler has already been closed by `compiler.close()`. Do not call Rspack compiler APIs after close; create a new compiler instead.',
+        ),
+      );
+    }
 
     this.modifiedFiles = options.modifiedFiles;
     this.removedFiles = options.removedFiles;
@@ -825,6 +834,14 @@ class Compiler {
   }
 
   close(callback: (error?: Error | null) => void) {
+    if (this.#closed) {
+      callback();
+      return;
+    }
+    if (this.#closeCallbacks) {
+      this.#closeCallbacks.push(callback);
+      return;
+    }
     if (this.watching) {
       // When there is still an active watching, close this #initial
       this.watching.close(() => {
@@ -833,19 +850,34 @@ class Compiler {
       return;
     }
 
+    this.#closeCallbacks = [callback];
+    const clearCompilationIfIdle = () => {
+      // An in-flight compile still reads this field in its completion callback.
+      if (!this.running) this.#compilation = undefined;
+    };
+    const finish = (error?: Error | null) => {
+      this.#compilation = undefined;
+      this.#closed = true;
+      const callbacks = this.#closeCallbacks!;
+      this.#closeCallbacks = undefined;
+      for (const callback of callbacks) callback(error);
+    };
+
     const instanceCallback = (error?: Error | null) => {
+      clearCompilationIfIdle();
       const close = this.#instance?.close();
       if (close) {
         close.then(
-          () => callback(error),
-          (closeError) => callback(error || closeError),
+          () => finish(error),
+          (closeError) => finish(error || closeError),
         );
       } else {
-        callback(error);
+        finish(error);
       }
     };
 
     this.hooks.shutdown.callAsync((err) => {
+      clearCompilationIfIdle();
       if (err) return instanceCallback(err);
       this.cache.shutdown(instanceCallback);
     });

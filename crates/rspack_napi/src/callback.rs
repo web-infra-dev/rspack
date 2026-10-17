@@ -4,7 +4,7 @@ use std::{
   ptr,
   sync::{
     Arc,
-    atomic::{AtomicBool, AtomicPtr, Ordering},
+    atomic::{AtomicBool, AtomicPtr, AtomicUsize, Ordering},
   },
 };
 
@@ -17,16 +17,25 @@ struct DeferredData<Resolver: FnOnce(Env)> {
 struct JsCallbackInfo {
   tsfn: AtomicPtr<sys::napi_threadsafe_function__>,
   aborted: AtomicBool,
+  // N-API owns another Arc until its finalize callback runs, so Arc's final
+  // drop cannot release the TSFN: finalize itself waits for that release.
+  rust_ref_count: AtomicUsize,
 }
 
-impl Drop for JsCallbackInfo {
+impl<Resolver: FnOnce(Env)> Drop for JsCallback<Resolver> {
   fn drop(&mut self) {
-    if self.aborted.load(Ordering::Relaxed) {
+    if self
+      .callback_info
+      .rust_ref_count
+      .fetch_sub(1, Ordering::AcqRel)
+      != 1
+      || self.callback_info.aborted.swap(true, Ordering::AcqRel)
+    {
       return;
     }
     let status = unsafe {
       sys::napi_release_threadsafe_function(
-        self.tsfn.load(Ordering::Acquire),
+        self.callback_info.tsfn.load(Ordering::Acquire),
         sys::ThreadsafeFunctionReleaseMode::release,
       )
     };
@@ -60,6 +69,7 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
     let callback_info = Arc::new(JsCallbackInfo {
       aborted: AtomicBool::new(false),
       tsfn: AtomicPtr::new(ptr::null_mut()),
+      rust_ref_count: AtomicUsize::new(1),
     });
     check_status!(
       unsafe {
@@ -118,6 +128,10 @@ impl<Resolver: FnOnce(Env)> Clone for JsCallback<Resolver> {
     if self.callback_info.aborted.load(Ordering::Relaxed) {
       panic!("JsCallback was aborted, can not clone it");
     }
+    self
+      .callback_info
+      .rust_ref_count
+      .fetch_add(1, Ordering::Relaxed);
     Self {
       callback_info: self.callback_info.clone(),
       _resolver: PhantomData,

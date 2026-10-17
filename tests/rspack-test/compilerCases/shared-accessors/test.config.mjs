@@ -12,7 +12,7 @@ export default [
     },
   },
   {
-    description: 'keeps shared accessors valid across rebuild, close and GC',
+    description: 'revokes shared accessors after close and GC',
     async run() {
       await runNodeCase(new URL('./lifecycle.mjs', import.meta.url));
     },

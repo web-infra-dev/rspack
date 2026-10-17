@@ -21,7 +21,6 @@ use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  COMPILER_REFERENCES,
   asset::AssetInfo,
   async_dependency_block::AsyncDependenciesBlockWrapper,
   build_info::BuildInfo,
@@ -317,13 +316,6 @@ impl Module {
     Ok(instance)
   }
 
-  fn compiler_garbage_collected_error(&self) -> napi::Error {
-    napi::Error::from_reason(format!(
-      "Unable to access module with id = {} now. The Compiler has been garbage collected by JavaScript.",
-      self.identifier
-    ))
-  }
-
   fn module_removed_error(&self) -> napi::Error {
     napi::Error::from_reason(format!(
       "Unable to access module with id = {} now. The module have been removed on the Rust side.",
@@ -335,19 +327,7 @@ impl Module {
     &self,
     f: impl FnOnce(&Compilation) -> napi::Result<R>,
   ) -> napi::Result<R> {
-    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
-      let references = ref_cell.borrow();
-      references.get(&self.compiler_id).cloned()
-    });
-
-    let Some(this) = compiler_reference
-      .as_ref()
-      .and_then(|compiler_reference| compiler_reference.get())
-    else {
-      return Err(self.compiler_garbage_collected_error());
-    };
-
-    f(&this.compiler.compilation)
+    f(crate::current_compilation(self.compiler_id)?)
   }
 
   pub(crate) fn with_ref<R>(
@@ -371,6 +351,7 @@ impl Module {
   }
 
   pub(crate) fn as_mut(&mut self) -> napi::Result<&'static mut dyn rspack_core::Module> {
+    self.with_compilation(|_| Ok(()))?;
     match self.ptr.as_mut() {
       Some(ptr) => {
         // SAFETY:
@@ -405,20 +386,7 @@ impl Module {
     enumerable = false
   )]
   pub fn original_source<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Unknown<'a>, ()>> {
-    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
-      let references = ref_cell.borrow();
-      references.get(&self.compiler_id).cloned()
-    });
-
-    let compilation = {
-      let Some(this) = compiler_reference
-        .as_ref()
-        .and_then(|compiler_reference| compiler_reference.get())
-      else {
-        return Err(self.compiler_garbage_collected_error());
-      };
-      &this.compiler.compilation
-    };
+    let compilation = crate::current_compilation(self.compiler_id)?;
 
     let module = {
       if let Some(module) = compilation.module_by_identifier(&self.identifier) {

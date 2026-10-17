@@ -142,8 +142,8 @@ export default async function run() {
     } finally {
       await closeCompiler(compiler);
     }
-    // close keeps the current compilation accessible while its compiler lives.
-    assert.equal(entry.context, context);
+    // Shared accessors must reject native-backed reads after close.
+    assert.throws(() => entry.context, /compiler was closed/);
     tracker.track(compiler, 'compiler');
     tracker.track(entry, 'module');
     tracker.track(removed, 'removed module');
@@ -153,19 +153,19 @@ export default async function run() {
     await tracker.waitForCollection('compiler');
     assert.throws(
       () => getContext.call(entry),
-      /Compiler has been garbage collected/,
+      /compiler was closed/,
     );
     assert.throws(
       () => getMatchResource.call(entry),
-      /Compiler has been garbage collected/,
+      /compiler was closed/,
     );
     assert.throws(
       () => getError.call(entry),
-      /Compiler has been garbage collected/,
+      /compiler was closed/,
     );
     assert.throws(
       () => setMatchResource.call(entry, 'closed.js'),
-      /only modify the module in the loader/,
+      /compiler was closed/,
     );
     entry = null;
     removed = null;

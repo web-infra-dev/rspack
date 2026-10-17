@@ -1,5 +1,8 @@
 mod rebuild;
-use std::sync::{Arc, atomic::AtomicU32};
+use std::{
+  ops::{Deref, DerefMut},
+  sync::{Arc, atomic::AtomicU32},
+};
 
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
@@ -96,6 +99,43 @@ impl CompilerId {
 // bounds open file descriptors during emit, same limit as webpack's Compiler.emitAssets
 const EMIT_ASSETS_CONCURRENCY_LIMIT: usize = 15;
 
+/// Keeps the compilation at a stable address across builds while allowing it to
+/// be removed when the compiler closes. Native JS wrappers borrow this slot.
+#[derive(Debug)]
+pub struct CompilationSlot(Option<Compilation>);
+
+impl CompilationSlot {
+  fn new(compilation: Compilation) -> Self {
+    Self(Some(compilation))
+  }
+
+  pub fn get(&self) -> Option<&Compilation> {
+    self.0.as_ref()
+  }
+
+  pub fn get_mut(&mut self) -> Option<&mut Compilation> {
+    self.0.as_mut()
+  }
+
+  pub fn take(&mut self) -> Option<Compilation> {
+    self.0.take()
+  }
+}
+
+impl Deref for CompilationSlot {
+  type Target = Compilation;
+
+  fn deref(&self) -> &Self::Target {
+    self.0.as_ref().expect("compiler compilation was released")
+  }
+}
+
+impl DerefMut for CompilationSlot {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    self.0.as_mut().expect("compiler compilation was released")
+  }
+}
+
 #[derive(Debug)]
 pub struct Compiler {
   id: CompilerId,
@@ -104,7 +144,7 @@ pub struct Compiler {
   pub output_filesystem: Arc<dyn WritableFileSystem>,
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
-  pub compilation: Compilation,
+  pub compilation: CompilationSlot,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -165,7 +205,7 @@ impl Compiler {
     Self {
       id,
       options: options.clone(),
-      compilation: Compilation::new(
+      compilation: CompilationSlot::new(Compilation::new(
         id,
         options,
         platform.clone(),
@@ -185,7 +225,7 @@ impl Compiler {
         output_filesystem.clone(),
         false,
         compiler_context.clone(),
-      ),
+      )),
       compiler_path,
       output_filesystem,
       intermediate_filesystem,
@@ -246,6 +286,9 @@ impl Compiler {
   }
 
   pub async fn build(&mut self) -> Result<()> {
+    if self.compilation.get().is_none() {
+      return Err(rspack_error::error!("Compiler has been closed"));
+    }
     let compiler_context = self.compiler_context.clone();
     let result = match within_compiler_context(compiler_context, self.build_inner()).await {
       Ok(_) => {
@@ -298,7 +341,7 @@ impl Compiler {
     self.incremental_artifacts.reset();
 
     fast_set(
-      &mut self.compilation,
+      &mut *self.compilation,
       Compilation::new(
         self.id,
         self.options.clone(),
@@ -649,16 +692,26 @@ impl Compiler {
     }
   }
 
-  pub async fn close(&self) -> Result<()> {
-    self
+  pub async fn close(&mut self) -> Result<()> {
+    if self.compilation.get().is_none() {
+      return Ok(());
+    }
+    let result = self
       .plugin_driver
       .compiler_hooks
       .close
       .call(&self.compilation)
-      .await?;
-
-    self.cache.close().await;
-    Ok(())
+      .await;
+    if result.is_ok() {
+      self.cache.close().await;
+    }
+    // The binding has revoked JS wrapper access before entering this method.
+    // Release the compilation even when a close hook fails.
+    drop(self.compilation.take());
+    self.incremental_artifacts = IncrementalArtifacts::default();
+    self.emitted_asset_versions.clear();
+    self.last_records = None;
+    result
   }
 }
 

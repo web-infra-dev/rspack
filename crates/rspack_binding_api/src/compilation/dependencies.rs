@@ -38,7 +38,9 @@ fn with_current_compilation<R>(
     .ok_or_else(|| napi::Error::from_reason(format!(
       "Unable to access dependencies for compiler with id = {compiler_id:?}. The Compiler has been garbage collected by JavaScript."
     )))?;
-  f(&compiler.compiler.compilation)
+  f(compiler.compiler.compilation.get().ok_or_else(|| {
+    napi::Error::from_reason("Unable to access dependencies after the compiler was closed")
+  })?)
 }
 
 fn with_current_compilation_mut<R>(
@@ -53,7 +55,9 @@ fn with_current_compilation_mut<R>(
     .ok_or_else(|| napi::Error::from_reason(format!(
       "Unable to access dependencies for compiler with id = {compiler_id:?}. The Compiler has been garbage collected by JavaScript."
     )))?;
-  f(&mut compiler.compiler.compilation)
+  f(compiler.compiler.compilation.get_mut().ok_or_else(|| {
+    napi::Error::from_reason("Unable to access dependencies after the compiler was closed")
+  })?)
 }
 
 impl FileSystemDependencies {
@@ -102,7 +106,9 @@ impl FileSystemDependencies {
   pub fn added<'env>(&self, env: &'env Env) -> napi::Result<Array<'env>> {
     let compiler = upgrade_compiler(env, self.compiler_id)?;
     let (dependency_counter, dependencies) =
-      self.dependency_sources(&compiler.compiler.compilation)?;
+      self.dependency_sources(compiler.compiler.compilation.get().ok_or_else(|| {
+        napi::Error::from_reason("Unable to access dependencies after the compiler was closed")
+      })?)?;
     let mut paths = dependency_counter.added_files().chain(dependencies);
     let mut update = IndexedArrayUpdate::default();
     let array = compiler
@@ -117,7 +123,10 @@ impl FileSystemDependencies {
   #[napi(getter, ts_return_type = "Array<string>")]
   pub fn removed<'env>(&self, env: &'env Env) -> napi::Result<Array<'env>> {
     let compiler = upgrade_compiler(env, self.compiler_id)?;
-    let (dependency_counter, _) = self.dependency_sources(&compiler.compiler.compilation)?;
+    let (dependency_counter, _) =
+      self.dependency_sources(compiler.compiler.compilation.get().ok_or_else(|| {
+        napi::Error::from_reason("Unable to access dependencies after the compiler was closed")
+      })?)?;
     let mut paths = dependency_counter.removed_files();
     let mut update = IndexedArrayUpdate::default();
     let array = compiler
@@ -206,7 +215,9 @@ impl FileSystemDependencies {
     let result = (|| {
       let (mut array, length, update) = {
         let (dependency_counter, dependencies) =
-          self.dependency_sources(&compiler.compiler.compilation)?;
+          self.dependency_sources(compiler.compiler.compilation.get().ok_or_else(|| {
+            napi::Error::from_reason("Unable to access dependencies after the compiler was closed")
+          })?)?;
         // Both sources are unique. Filter compilation dependencies already in
         // the module graph counter, preserving counter-first iteration order.
         let capacity = dependency_counter

@@ -108,11 +108,18 @@ async function runBuild(cli: RspackCLI, options: BuildOptions): Promise<void> {
   }
 
   compiler.run((error: Error | null, stats: Stats | MultiStats | undefined) => {
+    // Stats needs the compilation, which compiler.close() releases. Materialize
+    // successful build output before closing the compiler.
+    if (!error) {
+      errorHandler(error, stats);
+    }
     compiler.close((closeErr) => {
       if (closeErr) {
         logger.error(closeErr);
       }
-      errorHandler(error, stats);
+      if (error) {
+        errorHandler(error, stats);
+      }
     });
   });
 }

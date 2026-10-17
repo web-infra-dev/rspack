@@ -164,6 +164,41 @@ thread_local! {
   static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
 }
 
+pub(crate) fn current_compilation(compiler_id: CompilerId) -> napi::Result<&'static Compilation> {
+  let reference =
+    COMPILER_REFERENCES.with(|references| references.borrow().get(&compiler_id).cloned());
+  let compiler = reference
+    .as_ref()
+    .and_then(|reference| reference.get())
+    .ok_or_else(|| {
+      napi::Error::from_reason("Unable to access Compilation after the compiler was closed")
+    })?;
+  let compilation = compiler.compiler.compilation.get().ok_or_else(|| {
+    napi::Error::from_reason("Unable to access Compilation after the compiler was closed")
+  })?;
+  // The compiler is pinned, and close removes its JS-thread lookup before
+  // dropping the compilation on a worker thread.
+  Ok(unsafe { &*(compilation as *const Compilation) })
+}
+
+pub(crate) fn current_compilation_mut(
+  compiler_id: CompilerId,
+) -> napi::Result<&'static mut Compilation> {
+  let mut reference =
+    COMPILER_REFERENCES.with(|references| references.borrow().get(&compiler_id).cloned());
+  let compiler = reference
+    .as_mut()
+    .and_then(|reference| reference.get_mut())
+    .ok_or_else(|| {
+      napi::Error::from_reason("Unable to access Compilation after the compiler was closed")
+    })?;
+  let compilation = compiler.compiler.compilation.get_mut().ok_or_else(|| {
+    napi::Error::from_reason("Unable to access Compilation after the compiler was closed")
+  })?;
+  // See current_compilation: this reference is used only in the active JS call.
+  Ok(unsafe { &mut *(compilation as *mut Compilation) })
+}
+
 pub(crate) fn with_compilation<R>(
   compilation_id: CompilationId,
   f: impl FnOnce(&Compilation) -> napi::Result<R>,
@@ -173,9 +208,13 @@ pub(crate) fn with_compilation<R>(
     references
       .values()
       .find(|reference| {
-        reference
-          .get()
-          .is_some_and(|compiler| compiler.compiler.compilation.id() == compilation_id)
+        reference.get().is_some_and(|compiler| {
+          compiler
+            .compiler
+            .compilation
+            .get()
+            .is_some_and(|compilation| compilation.id() == compilation_id)
+        })
       })
       .cloned()
   });
@@ -189,7 +228,9 @@ pub(crate) fn with_compilation<R>(
     )));
   };
 
-  f(&compiler.compiler.compilation)
+  f(compiler.compiler.compilation.get().ok_or_else(|| {
+    napi::Error::from_reason("Unable to access Compilation after the compiler was closed")
+  })?)
 }
 
 pub(crate) fn with_compilation_mut<R>(
@@ -201,9 +242,13 @@ pub(crate) fn with_compilation_mut<R>(
     references
       .values()
       .find(|reference| {
-        reference
-          .get()
-          .is_some_and(|compiler| compiler.compiler.compilation.id() == compilation_id)
+        reference.get().is_some_and(|compiler| {
+          compiler
+            .compiler
+            .compilation
+            .get()
+            .is_some_and(|compilation| compilation.id() == compilation_id)
+        })
       })
       .cloned()
   });
@@ -217,7 +262,9 @@ pub(crate) fn with_compilation_mut<R>(
     )));
   };
 
-  f(&mut compiler.compiler.compilation)
+  f(compiler.compiler.compilation.get_mut().ok_or_else(|| {
+    napi::Error::from_reason("Unable to access Compilation after the compiler was closed")
+  })?)
 }
 
 type EntryDependencyCacheKey = (String, String, Option<String>, Option<String>);
@@ -506,12 +553,19 @@ impl JsCompiler {
     env: &'env Env,
     mut reference: Reference<JsCompiler>,
   ) -> Result<PromiseRaw<'env, ()>> {
+    let js_callback = unsafe { rspack_napi::JsCallback::new(env.raw()) }?;
+    if !self.state.begin_close() {
+      return rspack_napi::runtime::promise_from_future(env, async { Ok(()) });
+    }
     // SAFETY:
     // The `Reference<JsCompiler>` prevents the JsCompiler from being garbage collected
     // until `promise.finally()` runs, ensuring the Compiler remains valid throughout the
     // async operation. This allows us to safely extend the lifetime to 'static.
-    let compiler =
-      unsafe { std::mem::transmute::<&Compiler, &'static Compiler>(&reference.compiler) };
+    let compiler = unsafe {
+      std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut reference.compiler)
+    };
+    let compiler_id = compiler.id();
+    let js_hooks_plugin = self.js_hooks_plugin.clone();
     let infrastructure_log_dispatcher = self.infrastructure_log_dispatcher.clone();
 
     let wait_idle = self.state.wait_idle();
@@ -520,6 +574,22 @@ impl JsCompiler {
       // TSFNs; closing mid-build would release them and fail those calls. Wait until
       // the compiler is idle before shutting down.
       wait_idle.await;
+      let compilation_id = compiler.compilation.id();
+      let (revoked_tx, revoked_rx) = tokio::sync::oneshot::channel();
+      // The callback runs after the current JS stack has unwound. Once it
+      // removes the compiler lookup, no synchronous wrapper access can overlap
+      // the compilation being dropped on this worker thread.
+      js_callback.call(move |_env| {
+        js_hooks_plugin.clear_cache(compilation_id);
+        JsCompiler::cleanup_last_compilation(compilation_id);
+        COMPILER_REFERENCES.with(|references| {
+          references.borrow_mut().remove(&compiler_id);
+        });
+        let _ = revoked_tx.send(());
+      });
+      revoked_rx.await.map_err(|_| {
+        napi::Error::from_reason("Failed to revoke Compilation wrappers during close")
+      })?;
       let result = compiler
         .close()
         .await
@@ -530,15 +600,21 @@ impl JsCompiler {
     });
     let Ok(mut promise) = spawn_future_result else {
       self.compiler_scoped_tsfn_manager.release();
+      if let Some(compilation) = reference.compiler.compilation.get() {
+        self.js_hooks_plugin.clear_cache(compilation.id());
+        Self::cleanup_last_compilation(compilation.id());
+      }
+      ModuleObject::cleanup_by_compiler_id(&reference.compiler.id());
+      COMPILER_REFERENCES.with(|references| {
+        references.borrow_mut().remove(&reference.compiler.id());
+      });
       drop(reference);
       return spawn_future_result;
     };
     promise.finally(|_env| {
       // Cached hook taps can retain the compiler after the final rebuild.
       // Release them even when a close hook fails, after in-flight work is idle.
-      self
-        .js_hooks_plugin
-        .clear_cache(self.compiler.compilation.id());
+      ModuleObject::cleanup_by_compiler_id(&reference.compiler.id());
       self.compiler_scoped_tsfn_manager.release();
       drop(reference);
       Ok(())
@@ -597,6 +673,12 @@ impl JsCompiler {
     if self.state.running() {
       return Err(concurrent_compiler_error());
     }
+    if self.state.closing() {
+      return Err(Error::new(
+        ErrorCode::Napi(Status::GenericFailure),
+        "Rspack compiler has already been closed".to_string(),
+      ));
+    }
 
     let compiler_state_guard = self.state.enter();
     // SAFETY:
@@ -617,7 +699,7 @@ impl JsCompiler {
       _reference: reference,
     };
 
-    self.cleanup_last_compilation(&compiler.compilation);
+    Self::cleanup_last_compilation(compiler.compilation.id());
     let result = within_compiler_context_sync(self.compiler_context.clone(), || f(compiler, guard));
     if result.is_err() {
       // This includes failure to construct the completion TSFN, before a task starts.
@@ -626,9 +708,7 @@ impl JsCompiler {
     result
   }
 
-  fn cleanup_last_compilation(&self, compilation: &Compilation) {
-    let compilation_id = compilation.id();
-
+  fn cleanup_last_compilation(compilation_id: CompilationId) {
     JsCompilationWrapper::cleanup_last_compilation(compilation_id);
     ChunkWrapper::cleanup_last_compilation(compilation_id);
     ChunkGroupWrapper::cleanup_last_compilation(compilation_id);
@@ -646,9 +726,10 @@ impl ObjectFinalize for JsCompiler {
       let mut references = ref_cell.borrow_mut();
       references.remove(&compiler_id);
     });
-
     // Pool strings, dependency arrays and JS helpers are owned by JS objects.
-    self.cleanup_last_compilation(&self.compiler.compilation);
+    if let Some(compilation) = self.compiler.compilation.get() {
+      Self::cleanup_last_compilation(compilation.id());
+    }
     ModuleObject::cleanup_by_compiler_id(&compiler_id);
 
     if !self.unsafe_fast_drop {

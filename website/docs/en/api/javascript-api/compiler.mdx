@@ -139,6 +139,8 @@ The Watching object provides the following methods:
 
 Closes the compiler and handles low-priority tasks like caching.
 
+After the callback runs, Rspack releases the native compilation. A retained `Stats` returns `{}` from `toJson()` and an empty string from `toString()`; native-backed `Compilation` APIs are no longer available. Read any stats you need before calling `close()`.
+
 ```ts
 function close(
   callback: (err: Error) => void, // Callback after closing

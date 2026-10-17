@@ -373,7 +373,7 @@ fn reset_compilation_state(compiler: &mut Compiler) {
     compiler.compiler_path.clone(),
   );
   fast_set(
-    &mut compiler.compilation,
+    &mut *compiler.compilation,
     Compilation::new(
       compiler_id,
       compiler.options.clone(),
