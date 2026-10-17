@@ -114,6 +114,9 @@ impl PersistentCache {
 impl Cache for PersistentCache {
   async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
     self.ctx.logger().info("persistent cache enabled");
+    if self.initialized {
+      self.ctx.clear_state();
+    }
     self.initialize().await;
 
     if compilation.is_rebuild {
@@ -121,9 +124,9 @@ impl Cache for PersistentCache {
     }
     // rebuild will pass modified_files and removed_files from js side,
     // so only calculate them when build.
-    if let Some((is_hot_start, modified_paths, removed_paths)) =
-      self.ctx.load_snapshot(&self.snapshot).await
-    {
+    let snapshot = self.ctx.load_snapshot(&self.snapshot).await;
+    compilation.persistent_cache_state = self.ctx.state();
+    if let Some((is_hot_start, modified_paths, removed_paths)) = snapshot {
       compilation.modified_files.extend(modified_paths);
       compilation.removed_files.extend(removed_paths);
       return is_hot_start;
@@ -175,7 +178,18 @@ impl Cache for PersistentCache {
       return;
     }
 
-    if let Some(cache_item) = self.ctx.load_occasion(&self.make_occasion).await {
+    if let Some(mut cache_item) = self.ctx.load_occasion(&self.make_occasion).await {
+      if compilation.options.stats.cache_info
+        && !matches!(self.ctx.state(), crate::PersistentCacheState::Unknown)
+      {
+        cache_item.reused_module_builds = Some(
+          cache_item
+            .module_graph
+            .modules()
+            .map(|(id, _)| *id)
+            .collect(),
+        );
+      }
       *compilation.build_module_graph_artifact = cache_item;
       for (module, _) in compilation
         .build_module_graph_artifact
@@ -185,6 +199,7 @@ impl Cache for PersistentCache {
         compilation.exports_info_artifact.new_exports_info(*module);
       }
     }
+    compilation.persistent_cache_state = self.ctx.state();
   }
 
   async fn after_build_module_graph(&mut self, compilation: &Compilation) {
@@ -214,6 +229,7 @@ impl Cache for PersistentCache {
         .unwrap_or_default();
       compilation.source_map_dev_tool_plugin_cache = Some(cache_item);
     }
+    compilation.persistent_cache_state = self.ctx.state();
   }
 
   async fn after_process_assets(&mut self, compilation: &Compilation) {

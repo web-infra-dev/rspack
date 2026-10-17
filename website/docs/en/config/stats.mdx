@@ -74,6 +74,39 @@ Enabling `stats.all` will lead to a large amount of data transmission between Ru
 
 Sets the [preset](/config/stats#stats-presets) for the type of information that gets displayed. It is useful for [extending stats behaviours](/config/stats#extending-stats-behaviours).
 
+### stats.cacheInfo
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Include cache diagnostics in JSON stats. To measure module reuse, set `stats: { cacheInfo: true }` before creating the compiler. Rspack then tracks module identifiers during the build. Neither `stats.all` nor the `verbose` preset enables collection.
+
+Read the report with `stats.toJson({ all: false, cacheInfo: true }).cacheInfo`. If collection was disabled during the build, `moduleBuilds` is `null`.
+
+#### Module build reuse
+
+Suppose an entry imports one module, and you change only that module. A result of `moduleBuilds: { reused: 1, total: 2 }` means Rspack reused the entry's build result and rebuilt the changed module. Reuse can come from disk, memory, or a pending write.
+
+`total` counts distinct modules in the main graph after `finishModules`, before sealing and optimization. It includes externals and modules ineligible for caching, but excludes runtime modules and separate module-execution graphs. `null` means the count is unavailable, for example on an incremental rebuild, without persistent module caching, or when the graph changes after `finishModules`.
+
+#### Persistent cache validation
+
+`mode` is `disabled`, `memory`, or `persistent`. In persistent mode, two fields describe validation at different points:
+
+- `persistent` describes this compilation's validation with the legacy cache. It is `unknown` on later compilations with the same compiler or with the new cache backend, and `null` outside persistent mode.
+- `persistentSessionInitialization` is the new filesystem cache's session validation, captured when compilation starts. Compilers can share a session: a later build can report its initial `cold` status and still reuse modules. Later reads and writes do not update this field. Other backends report `null`.
+
+Both fields use `{ status, reason }`. The `reason` is `null` unless listed below.
+
+- `cold`: no previous cache metadata.
+- `valid`: the version and tracked build dependencies matched. See `moduleBuilds` for actual reuse.
+- `invalidated`: the `version` or `buildDependencies` changed.
+- `error`: validation or recovery failed. The reason is `recovery` if a snapshot or cache entry could not be restored.
+- `unknown`: no validation result was available.
+
+#### Cache counters
+
+`counters` lists `{ logger, label, hit, total }` events from compilation logs, including repeated labels. Read each counter in its own units: the resolver counts requests, while code generation counts module-runtime pairs. Some counters include uncacheable work even when caching is disabled. An empty array means no counter was reported.
+
 ## Asset options
 
 ### stats.assets

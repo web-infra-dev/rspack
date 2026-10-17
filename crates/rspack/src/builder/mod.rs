@@ -1334,6 +1334,7 @@ impl CompilerOptionsBuilder {
         let default_stats_colors = supports_color::on(Stream::Stdout).is_some();
         StatsOptions {
           colors: default_stats_colors,
+          ..Default::default()
         }
       }
     };
