@@ -70,7 +70,7 @@ catalog:
   'browserslist-load-config': '^1.0.3'
   'browserslist-to-es-version': '^1.4.2'
   'bundle-loader': '^0.5.6'
-  'cac': '^7.0.0'
+  'cac': '^7.1.0'
   'case-police': '~2.2.1'
   'chalk': '^6.0.1'
   'coffee-loader': '^1.0.1'
