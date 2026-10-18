@@ -75,19 +75,12 @@ impl DependencyTemplate for AMDExportsDependencyTemplate {
       .expect("AMDExportsDependencyTemplate should be used for AMDExportsDependency");
 
     let TemplateContext {
-      compilation,
       module,
       runtime_template,
       ..
     } = code_generatable_context;
 
-    let content = runtime_template.render_exports_argument(
-      compilation
-        .get_module_graph()
-        .module_by_identifier(&module.identifier())
-        .expect("should have module")
-        .get_exports_argument(),
-    );
+    let content = runtime_template.render_exports_argument(module.get_exports_argument());
 
     source.replace(dep.range.start, dep.range.end, content, None);
   }

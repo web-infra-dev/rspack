@@ -449,10 +449,6 @@ impl CommonJsExportRequireDependencyTemplate {
 
     let mg = &compilation.get_module_graph();
 
-    let module = mg
-      .module_by_identifier(&module.identifier())
-      .expect("should have mgm");
-
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
 
