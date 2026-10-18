@@ -1,12 +1,8 @@
 #![allow(unused)]
-use std::ops::Deref;
-
-use dashmap::DashSet as HashSet;
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
-use rspack_util::fx_hash::FxDashMap as HashMap;
+use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathSet};
 
 use super::{Analyzer, WatchPattern};
-use crate::paths::PathAccessor;
+use crate::registry::PathAccessor;
 
 #[derive(Default)]
 /// The `WatcherRootAnalyzer` is an implementation of the `Analyzer` trait that
@@ -18,22 +14,22 @@ pub struct WatcherRootAnalyzer {
 
 impl Analyzer for WatcherRootAnalyzer {
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern> {
-    let (_, added_files, removed_files) = path_accessor.files();
-    let (_, added_directories, removed_directories) = path_accessor.directories();
-    let (_, added_missing, removed_missing) = path_accessor.missing();
-
-    // files / directories / missing share one `path_tree`. On recovery a path
-    // can migrate between sets within a single cycle (e.g. the unresolved
-    // dependency `node_modules/some-module` becomes a real directory): it then
-    // shows up in one set's `added` and another set's `removed`. Applying each
-    // set's delta independently lets the stray `removed` delete a node the other
-    // set still references — orphaning its children and disconnecting the tree.
-    // Merge the three sets first, then cancel migrating paths out of both nets.
-    let adds = union3(added_files, added_directories, added_missing);
-    let removes = union3(removed_files, removed_directories, removed_missing);
-    let added = difference(&adds, &removes);
-    let removed = difference(&removes, &adds);
-    self.path_tree.update_paths(&added, &removed);
+    let sets = [
+      path_accessor.files(),
+      path_accessor.directories(),
+      path_accessor.missing(),
+    ];
+    let mut changed = InternedPathSet::default();
+    for (_, added, removed) in &sets {
+      changed.extend(added.iter().chain(removed.iter()).map(|path| path.clone()));
+    }
+    for path in changed {
+      if sets.iter().any(|(all, _, _)| all.contains(&path)) {
+        self.path_tree.add_path(&path);
+      } else {
+        self.path_tree.remove_path(&path);
+      }
+    }
 
     let common_root = self.path_tree.find_common_root();
 
@@ -45,32 +41,6 @@ impl Analyzer for WatcherRootAnalyzer {
       None => vec![],
     }
   }
-}
-
-/// Union of three path sets into a fresh set.
-fn union3(
-  a: &InternedPathDashSet,
-  b: &InternedPathDashSet,
-  c: &InternedPathDashSet,
-) -> InternedPathDashSet {
-  let out = InternedPathDashSet::default();
-  for set in [a, b, c] {
-    for path in set.iter() {
-      out.insert(path.deref().clone());
-    }
-  }
-  out
-}
-
-/// Set difference `a - b` into a fresh set.
-fn difference(a: &InternedPathDashSet, b: &InternedPathDashSet) -> InternedPathDashSet {
-  let out = InternedPathDashSet::default();
-  for path in a.iter() {
-    if !b.contains(path.deref()) {
-      out.insert(path.deref().clone());
-    }
-  }
-  out
 }
 
 #[derive(Debug, Default)]
@@ -92,6 +62,9 @@ impl PathTree {
     // We need make sure the path is exists
     assert!(path.exists(), "Path should exist");
 
+    if node.registered {
+      return path;
+    }
     if let Some(child) = node
       .only_child()
       // Check if the child exists in the tree
@@ -103,33 +76,34 @@ impl PathTree {
     }
   }
 
-  pub fn update_paths(
-    &self,
-    added_paths: &InternedPathDashSet,
-    removed_paths: &InternedPathDashSet,
-  ) {
-    for added in added_paths.iter() {
-      self.add_path(added.deref());
-    }
-    for removed in removed_paths.iter() {
-      self.remove_path(removed.deref());
-    }
-  }
-
   pub fn add_path(&self, path: &InternedPath) {
-    self.inner.entry(path.clone()).or_default();
+    self.inner.entry(path.clone()).or_default().registered = true;
     self.add_path_recursive(path);
   }
 
   pub fn remove_path(&self, path: &InternedPath) {
-    self.inner.remove(path);
-    // Detach from the PARENT's child set. The previous code removed `path` from
-    // its own set (a no-op), leaving a stale child reference on the parent that
-    // could later surface as a tree node that no longer exists.
-    if let Some(parent) = path.parent().map(InternedPath::from)
-      && let Some(mut parent_node) = self.inner.get_mut(&parent)
-    {
-      parent_node.children.remove(path);
+    let Some(mut node) = self.inner.get_mut(path) else {
+      return;
+    };
+    node.registered = false;
+    drop(node);
+    let mut path = path.clone();
+    loop {
+      let removable = self
+        .inner
+        .get(&path)
+        .is_some_and(|node| !node.registered && node.children.is_empty());
+      if !removable {
+        break;
+      }
+      self.inner.remove(&path);
+      let Some(parent) = path.parent().map(InternedPath::from) else {
+        break;
+      };
+      if let Some(mut node) = self.inner.get_mut(&parent) {
+        node.children.remove(&path);
+      }
+      path = parent;
     }
   }
 
@@ -172,6 +146,7 @@ impl PathTree {
 
 #[derive(Debug, Default)]
 struct TreeNode {
+  registered: bool,
   children: InternedPathSet,
 }
 
@@ -194,7 +169,7 @@ mod tests {
   use rspack_paths::InternedPath;
 
   use super::*;
-  use crate::paths::PathManager;
+  use crate::registry::Registry;
 
   #[tokio::test]
   async fn test_find_watch_root() {
@@ -203,14 +178,14 @@ mod tests {
     let file_1 = InternedPath::from(current_dir.join("src/lib.rs"));
     let dir_0 = InternedPath::from(current_dir.clone());
     let dir_1 = InternedPath::from(current_dir.join("src"));
-    let path_manager = PathManager::default();
+    let registry = Registry::default();
     let files = (vec![file_0, file_1].into_iter(), vec![].into_iter());
     let dirs = (vec![dir_0, dir_1].into_iter(), vec![].into_iter());
     let missing = (vec![].into_iter(), vec![].into_iter());
-    path_manager.update(files, dirs, missing).await.unwrap();
+    registry.update(files, dirs, missing).await.unwrap();
 
     let analyzer = WatcherRootAnalyzer::default();
-    let watch_patterns = analyzer.analyze(path_manager.access());
+    let watch_patterns = analyzer.analyze(registry.access());
 
     assert_eq!(watch_patterns.len(), 1);
     assert_eq!(watch_patterns[0].path, InternedPath::from(current_dir));
@@ -221,7 +196,7 @@ mod tests {
   async fn test_find_with_missing() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
 
-    let path_manager = PathManager::default();
+    let registry = Registry::default();
     let files = (vec![].into_iter(), vec![].into_iter());
     let dirs = (vec![].into_iter(), vec![].into_iter());
     let missing = (
@@ -234,10 +209,10 @@ mod tests {
       vec![].into_iter(),
     );
 
-    path_manager.update(files, dirs, missing).await.unwrap();
+    registry.update(files, dirs, missing).await.unwrap();
 
     let analyzer = WatcherRootAnalyzer::default();
-    let watch_patterns = analyzer.analyze(path_manager.access());
+    let watch_patterns = analyzer.analyze(registry.access());
 
     assert_eq!(watch_patterns.len(), 1);
     assert_eq!(watch_patterns[0].path, InternedPath::from(current_dir));
@@ -265,12 +240,10 @@ mod tests {
     tree.remove_path(&leaf);
     assert!(!tree.inner.contains_key(&leaf));
     assert!(
-      !tree
+      tree
         .inner
         .get(&dir)
-        .expect("a present")
-        .children
-        .contains(&leaf),
+        .is_none_or(|node| !node.children.contains(&leaf)),
       "leaf must be detached from its parent's children"
     );
   }
@@ -279,43 +252,43 @@ mod tests {
   async fn test_analyze_cancels_cross_set_migration() {
     // `some-module` migrates missing -> directory on recovery: in the same cycle
     // it appears in both `missing.removed` and `directories.added`. The
-    // union-difference must cancel it, so the shared tree neither re-adds nor
-    // deletes it — keeping the tree connected so `find_common_root` cannot land
-    // on a non-existent orphan root and panic.
+    // final membership must preserve it, keeping the shared tree connected.
     let base = std::env::current_dir().expect("cwd");
     let sm = InternedPath::from(base.join("__mig__").join("some-module"));
     let sub = |s: &str| InternedPath::from(base.join("__mig__").join("some-module").join(s));
 
-    let pm = PathManager::default();
+    let registry = Registry::default();
     let analyzer = WatcherRootAnalyzer::default();
 
     // STEP0: some-module is an unresolved missing dependency.
-    pm.update(
-      (std::iter::empty(), std::iter::empty()),
-      (std::iter::empty(), std::iter::empty()),
-      (std::iter::once(sm.clone()), std::iter::empty()),
-    )
-    .await
-    .unwrap();
-    analyzer.analyze(pm.access());
-    pm.reset();
+    registry
+      .update(
+        (std::iter::empty(), std::iter::empty()),
+        (std::iter::empty(), std::iter::empty()),
+        (std::iter::once(sm.clone()), std::iter::empty()),
+      )
+      .await
+      .unwrap();
+    analyzer.analyze(registry.access());
+    registry.reset();
 
     // STEP1: recover. some-module migrates into `directories`; directory
     // resolution adds some-module/{index.js (file), package.json, index
     // (missing)}; some-module leaves `missing`.
-    pm.update(
-      (std::iter::once(sub("index.js")), std::iter::empty()),
-      (std::iter::once(sm.clone()), std::iter::empty()),
-      (
-        vec![sub("package.json"), sub("index")].into_iter(),
-        std::iter::once(sm.clone()),
-      ),
-    )
-    .await
-    .unwrap();
+    registry
+      .update(
+        (std::iter::once(sub("index.js")), std::iter::empty()),
+        (std::iter::once(sm.clone()), std::iter::empty()),
+        (
+          vec![sub("package.json"), sub("index")].into_iter(),
+          std::iter::once(sm.clone()),
+        ),
+      )
+      .await
+      .unwrap();
 
     // Must not panic, and must keep the migrated `some-module` node.
-    let patterns = analyzer.analyze(pm.access());
+    let patterns = analyzer.analyze(registry.access());
     assert_eq!(patterns.len(), 1);
     assert!(
       analyzer.path_tree.inner.contains_key(&sm),

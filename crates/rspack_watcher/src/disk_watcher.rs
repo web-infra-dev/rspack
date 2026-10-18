@@ -1,11 +1,12 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::{Arc, Mutex};
 
 use notify::{
   Event, EventKind, RecommendedWatcher, Watcher,
   event::{ModifyKind, RenameMode},
 };
-use rspack_paths::InternedPath;
+use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_util::fx_hash::FxHashSet as HashSet;
+use tokio::sync::mpsc;
 
 use crate::{FsEventKind, WatchPattern, trigger};
 
@@ -16,6 +17,20 @@ pub struct DiskWatcher {
   inner: Option<RecommendedWatcher>,
   /// A set of pattern that are currently being watched.
   watch_patterns: HashSet<WatchPattern>,
+  watched_roots: Arc<Mutex<WatchRoots>>,
+  root_events: mpsc::UnboundedReceiver<RootEvent>,
+}
+
+#[derive(Default)]
+struct WatchRoots {
+  watched: InternedPathSet,
+  recovery: InternedPathSet,
+}
+
+pub(crate) struct RootEvent {
+  pub path: InternedPath,
+  pub kind: FsEventKind,
+  pub appeared: bool,
 }
 
 impl DiskWatcher {
@@ -25,13 +40,19 @@ impl DiskWatcher {
     poll_interval: Option<u32>,
     trigger: Arc<trigger::Trigger>,
   ) -> Self {
-    let config = match poll_interval {
-      Some(poll) => notify::Config::default()
-        .with_follow_symlinks(follow_symlinks)
-        .with_poll_interval(Duration::from_millis(u64::from(poll))),
-      None => notify::Config::default().with_follow_symlinks(follow_symlinks),
-    };
+    let watched_roots = Arc::new(Mutex::new(WatchRoots::default()));
+    let (root_tx, root_events) = mpsc::unbounded_channel();
+    if poll_interval.is_some_and(|interval| interval > 0) {
+      return Self {
+        inner: None,
+        watch_patterns: HashSet::default(),
+        watched_roots,
+        root_events,
+      };
+    }
+    let config = notify::Config::default().with_follow_symlinks(follow_symlinks);
 
+    let callback_roots = Arc::clone(&watched_roots);
     let inner = RecommendedWatcher::new(
       move |result: notify::Result<Event>| match result {
         Ok(event) => {
@@ -62,8 +83,29 @@ impl DiskWatcher {
             // Now /path/to/index.js and /path/to/index.js.map will both be changed
             _ => return,
           };
+          let invalidates_root = cfg!(target_os = "linux")
+            && matches!(
+              event.kind,
+              EventKind::Remove(_)
+                | EventKind::Modify(ModifyKind::Name(RenameMode::From | RenameMode::Any))
+            );
           for path in event.paths.into_iter().map(InternedPath::from) {
-            trigger.on_disk_event(&path, kind, appeared);
+            let refresh = if cfg!(target_os = "linux") && (invalidates_root || appeared) {
+              let roots = callback_roots.lock().expect("watch roots lock poisoned");
+              (invalidates_root && roots.watched.contains(&path))
+                || (appeared && roots.recovery.contains(&path))
+            } else {
+              false
+            };
+            if refresh {
+              let _ = root_tx.send(RootEvent {
+                path,
+                kind,
+                appeared,
+              });
+            } else {
+              trigger.on_disk_event(&path, kind, appeared);
+            }
           }
         }
 
@@ -79,7 +121,45 @@ impl DiskWatcher {
     DiskWatcher {
       inner: Some(inner),
       watch_patterns: HashSet::default(),
+      watched_roots,
+      root_events,
     }
+  }
+
+  pub async fn next_root_event(&mut self) -> Option<RootEvent> {
+    self.root_events.recv().await
+  }
+
+  pub fn set_recovery_paths(&mut self, paths: InternedPathSet) {
+    self
+      .watched_roots
+      .lock()
+      .expect("watch roots lock poisoned")
+      .recovery = paths;
+  }
+
+  pub fn invalidate_root(&mut self, path: &InternedPath) -> rspack_error::Result<()> {
+    if !self
+      .watch_patterns
+      .iter()
+      .any(|pattern| &pattern.path == path)
+    {
+      return Ok(());
+    }
+    if let Some(watcher) = &mut self.inner
+      && let Err(error) = watcher.unwatch(path)
+      && !matches!(error.kind, notify::ErrorKind::WatchNotFound)
+    {
+      return Err(rspack_error::error!(error.to_string()));
+    }
+    self.watch_patterns.retain(|pattern| &pattern.path != path);
+    self
+      .watched_roots
+      .lock()
+      .expect("watch roots lock poisoned")
+      .watched
+      .remove(path);
+    Ok(())
   }
 
   /// Watches the given path with the specified recursive mode.
@@ -92,14 +172,23 @@ impl DiskWatcher {
     patterns: impl Iterator<Item = WatchPattern>,
   ) -> rspack_error::Result<()> {
     let new_patterns: HashSet<WatchPattern> = patterns.collect();
-
-    let new_paths = new_patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
+    if cfg!(target_os = "linux") {
+      // The callback can run as soon as the backend attaches a watch.
+      self
+        .watched_roots
+        .lock()
+        .expect("watch roots lock poisoned")
+        .watched = new_patterns
+        .iter()
+        .map(|pattern| pattern.path.clone())
+        .collect();
+    }
 
     // Collect stale paths that are no longer needed, then unwatch and remove them.
     let stale_paths: HashSet<InternedPath> = self
       .watch_patterns
       .iter()
-      .filter(|p| !new_paths.contains(&p.path))
+      .filter(|p| !new_patterns.contains(*p))
       .map(|p| p.path.clone())
       .collect();
 
@@ -147,12 +236,11 @@ mod tests {
   use tokio::sync::mpsc;
 
   use super::*;
-  use crate::paths::PathManager;
 
   fn create_disk_watcher() -> DiskWatcher {
     let (tx, _rx) = mpsc::unbounded_channel();
-    let path_manager = Arc::new(PathManager::default());
-    let trigger = Arc::new(trigger::Trigger::new(path_manager, tx));
+    let state = Arc::new(crate::WatcherManager::default());
+    let trigger = Arc::new(trigger::Trigger::new(state, tx));
     DiskWatcher::new(false, None, trigger)
   }
 
@@ -211,6 +299,26 @@ mod tests {
       .iter()
       .map(|p| p.path.clone())
       .collect();
+    for mode in [
+      notify::RecursiveMode::Recursive,
+      notify::RecursiveMode::NonRecursive,
+    ] {
+      watcher
+        .watch(std::iter::once(WatchPattern {
+          path: InternedPath::from(dir_b.clone()),
+          mode,
+        }))
+        .unwrap();
+      assert_eq!(
+        watcher.watch_patterns.len(),
+        1,
+        "changing mode replaces the old pattern"
+      );
+      assert!(watcher.watch_patterns.contains(&WatchPattern {
+        path: InternedPath::from(dir_b.clone()),
+        mode
+      }));
+    }
     assert!(paths.contains(&InternedPath::from(dir_b)));
     assert!(paths.contains(&InternedPath::from(dir_c)));
     assert!(!paths.contains(&InternedPath::from(dir_a)));

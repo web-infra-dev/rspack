@@ -1,77 +1,139 @@
 #![allow(unused)]
-use rspack_paths::InternedPath;
-use rspack_util::fx_hash::FxHashSet as HashSet;
+use std::sync::Mutex;
+
+use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
 
 use super::{Analyzer, WatchPattern};
-use crate::paths::PathAccessor;
+use crate::registry::PathAccessor;
 
-/// `WatcherDirectoriesAnalyzer` analyzes the path register and determines
-///
-/// which directories should be watched individually (non-recursively).
-/// This is typically used on platforms where recursive watching is not
-/// available or not desired, so each directory is watched separately.
+/// Track subscription deltas by their directory. Files and missing paths share
+/// their parent watch; contexts require recursive coverage of their contents.
 #[derive(Default)]
-pub struct WatcherDirectoriesAnalyzer;
+pub struct WatcherDirectoriesAnalyzer {
+  state: Mutex<DirectoryAnalyzerState>,
+}
+
+#[derive(Default)]
+struct DirectoryAnalyzerState {
+  registrations: [InternedPathSet; 3],
+  directories: InternedPathMap<DirectorySubscriptions>,
+  recovery_paths: InternedPathSet,
+}
+
+#[derive(Default)]
+struct DirectorySubscriptions {
+  files: usize,
+  contexts: usize,
+}
 
 impl Analyzer for WatcherDirectoriesAnalyzer {
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern> {
-    self
-      .find_watch_directories(path_accessor)
-      .into_iter()
+    let mut state = self.state.lock().expect("directory analyzer lock poisoned");
+    let DirectoryAnalyzerState {
+      registrations,
+      directories,
+      recovery_paths,
+    } = &mut *state;
+    for (index, (all, added, removed)) in [
+      path_accessor.files(),
+      path_accessor.directories(),
+      path_accessor.missing(),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+      for path in added.iter().chain(removed.iter()) {
+        let registered = all.contains(&*path);
+        let changed = if registered {
+          registrations[index].insert(path.clone())
+        } else {
+          registrations[index].remove(&*path)
+        };
+        if !changed {
+          continue;
+        }
+        let directory = if index == 1 {
+          path.clone()
+        } else {
+          path
+            .parent()
+            .map_or_else(|| path.clone(), InternedPath::from)
+        };
+        let subscriptions = directories.entry(directory).or_default();
+        let count = if index == 1 {
+          &mut subscriptions.contexts
+        } else {
+          &mut subscriptions.files
+        };
+        if registered {
+          *count += 1;
+        } else {
+          *count -= 1;
+        }
+      }
+    }
+    directories.retain(|_, subscriptions| subscriptions.files + subscriptions.contexts > 0);
+    recovery_paths.clear();
+    let mut patterns = InternedPathMap::<bool>::default();
+    for (directory, subscriptions) in directories.iter() {
+      if let Some((existing, ancestor)) = find_existing_directory(directory.clone()) {
+        if ancestor
+          && let Some(missing) = directory
+            .ancestors()
+            .find(|path| path.parent() == Some(&*existing))
+        {
+          recovery_paths.insert(InternedPath::from(missing));
+        }
+        *patterns.entry(existing).or_default() |= subscriptions.contexts > 0 && !ancestor;
+      }
+    }
+    patterns
+      .iter()
+      .filter(|(path, _)| {
+        !path
+          .ancestors()
+          .skip(1)
+          .any(|ancestor| patterns.get(&InternedPath::from(ancestor)) == Some(&true))
+      })
+      .map(|(path, recursive)| WatchPattern {
+        path: path.clone(),
+        mode: if *recursive {
+          notify::RecursiveMode::Recursive
+        } else {
+          notify::RecursiveMode::NonRecursive
+        },
+      })
       .collect()
+  }
+
+  fn recovery_paths(&self) -> InternedPathSet {
+    self
+      .state
+      .lock()
+      .expect("directory analyzer lock poisoned")
+      .recovery_paths
+      .clone()
   }
 }
 
-const DIRECTORY_WATCH_DEPTH: u32 = 2;
-
-impl WatcherDirectoriesAnalyzer {
-  /// Finds all directories that should be watched individually (non-recursively).
-  fn find_watch_directories<'a>(&self, path_accessor: PathAccessor<'a>) -> HashSet<WatchPattern> {
-    let mut patterns = HashSet::default();
-    let all = path_accessor.all();
-    for path in all {
-      if let Some((dir, deep)) = self.find_exists_path(path) {
-        // Insert the parent directory of the file
-        patterns.insert(WatchPattern {
-          path: dir,
-          mode: if deep >= DIRECTORY_WATCH_DEPTH {
-            notify::RecursiveMode::Recursive
-          } else {
-            notify::RecursiveMode::NonRecursive
-          },
-        });
-      }
-    }
-
-    patterns
+fn find_existing_directory(mut directory: InternedPath) -> Option<(InternedPath, bool)> {
+  let mut ancestor = false;
+  while !directory.is_dir() {
+    directory = InternedPath::from(directory.parent()?);
+    ancestor = true;
   }
-
-  /// Finds the deepest existing directory path and its depth.
-  fn find_exists_path(&self, path: InternedPath) -> Option<(InternedPath, u32)> {
-    let mut current = path;
-    let mut deep = 0u32;
-    // Traverse up the path until we find a directory that exists
-    while !current.is_dir() {
-      deep += 1;
-      if let Some(parent) = current.parent() {
-        current = InternedPath::from(parent);
-      } else {
-        return None; // No parent exists
-      }
-    }
-    Some((current, deep))
-  }
+  Some((directory, ancestor))
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::paths::PathManager;
+  use crate::registry::Registry;
 
   #[tokio::test]
   async fn test_find_watch_directories() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
-    let path_manager = PathManager::default();
+    let registry = Registry::default();
     let files = (
       vec![
         current_dir.join("Cargo.toml").into(),
@@ -88,9 +150,9 @@ mod tests {
 
     let missing = (vec![].into_iter(), vec![].into_iter());
 
-    path_manager.update(files, dirs, missing).await.unwrap();
+    registry.update(files, dirs, missing).await.unwrap();
     let analyzer = WatcherDirectoriesAnalyzer::default();
-    let watch_patterns = analyzer.analyze(path_manager.access());
+    let watch_patterns = analyzer.analyze(registry.access());
 
     assert_eq!(watch_patterns.len(), 2);
     assert!(watch_patterns.contains(&{
@@ -101,7 +163,7 @@ mod tests {
     }));
     assert!(watch_patterns.contains(&WatchPattern {
       path: InternedPath::from(current_dir.join("src")),
-      mode: notify::RecursiveMode::NonRecursive
+      mode: notify::RecursiveMode::Recursive
     }));
   }
 
@@ -110,7 +172,7 @@ mod tests {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let dir_0 = InternedPath::from(current_dir.join("src"));
 
-    let path_manager = PathManager::default();
+    let registry = Registry::default();
     let files = (
       vec![
         current_dir.join("Cargo.toml").into(),
@@ -129,16 +191,12 @@ mod tests {
     );
     let missing = (vec![].into_iter(), vec![].into_iter());
 
-    path_manager.update(files, dirs, missing).await.unwrap();
+    registry.update(files, dirs, missing).await.unwrap();
 
     let analyzer = WatcherDirectoriesAnalyzer::default();
-    let watch_patterns = analyzer.analyze(path_manager.access());
+    let watch_patterns = analyzer.analyze(registry.access());
 
-    assert_eq!(watch_patterns.len(), 3);
-    assert!(watch_patterns.contains(&WatchPattern {
-      path: dir_0.clone(),
-      mode: notify::RecursiveMode::NonRecursive,
-    }));
+    assert_eq!(watch_patterns.len(), 2);
     assert!(watch_patterns.contains(&WatchPattern {
       path: dir_0,
       mode: notify::RecursiveMode::Recursive,

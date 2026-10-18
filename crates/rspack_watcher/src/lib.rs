@@ -1,30 +1,32 @@
 mod analyzer;
+mod dirwatch;
 mod disk_watcher;
 mod executor;
 mod ignored;
-mod paths;
-mod scanner;
+mod polling;
+mod registry;
+mod state;
 mod trigger;
 
 use std::{
+  collections::VecDeque,
   future::Future,
   pin::Pin,
   sync::{
     Arc, Mutex,
     atomic::{AtomicBool, Ordering},
   },
-  time::SystemTime,
+  time::{Duration, SystemTime},
 };
 
 use analyzer::{Analyzer, RecommendedAnalyzer};
+use dirwatch::WatcherManager;
 use disk_watcher::DiskWatcher;
 use executor::{Aggregated, Executor};
 pub use ignored::{FsWatcherIgnored, IgnoredFn};
-use paths::PathManager;
 use rspack_error::Result;
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
-use scanner::Scanner;
 use tokio::sync::{mpsc, oneshot};
 use trigger::Trigger;
 
@@ -137,17 +139,20 @@ pub struct FsWatcher {
   op_tx: mpsc::UnboundedSender<WatcherOp>,
   /// Shared with the owner thread's [`FsWatcherInner`], so the synchronous
   /// napi getter can read time info without awaiting the op channel.
-  path_manager: Arc<PathManager>,
+  state: Arc<WatcherManager>,
   /// Shared with the executor for the same reason: `getInfo()` drains it.
   aggregated: Aggregated,
 }
 
 struct FsWatcherInner {
-  path_manager: Arc<PathManager>,
+  state: Arc<WatcherManager>,
   disk_watcher: DiskWatcher,
   executor: Executor,
-  scanner: Scanner,
+  /// Dropped on close, so no backfill is scanned or sent afterwards.
+  backfill_sender: Option<mpsc::UnboundedSender<EventBatch>>,
   analyzer: RecommendedAnalyzer,
+  polling: Option<polling::PollingWatcher>,
+  poll_interval: Option<Duration>,
   trigger: Arc<Mutex<Option<Arc<Trigger>>>>,
 }
 
@@ -156,9 +161,8 @@ impl FsWatcher {
   pub fn new(options: FsWatcherOptions, ignored: FsWatcherIgnored) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
-    let path_manager =
-      Arc::new(PathManager::new(ignored).with_follow_symlinks(options.follow_symlinks));
-    let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx));
+    let state = Arc::new(WatcherManager::new(ignored, options.follow_symlinks));
+    let trigger = Arc::new(Trigger::new(Arc::clone(&state), tx));
     let disk_watcher = DiskWatcher::new(
       options.follow_symlinks,
       options.poll_interval,
@@ -167,15 +171,23 @@ impl FsWatcher {
     let paused = Arc::new(AtomicBool::new(false));
     let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
     let aggregated = executor.aggregated();
-    let scanner = Scanner::new(trigger.backfill_sender(), Arc::clone(&path_manager));
+    let backfill_sender = Some(trigger.backfill_sender());
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
     let inner = FsWatcherInner {
-      path_manager: Arc::clone(&path_manager),
+      state: Arc::clone(&state),
       disk_watcher,
       executor,
-      scanner,
+      backfill_sender,
       analyzer: RecommendedAnalyzer::default(),
+      polling: options
+        .poll_interval
+        .filter(|interval| *interval > 0)
+        .map(|_| Default::default()),
+      poll_interval: options
+        .poll_interval
+        .filter(|interval| *interval > 0)
+        .map(|interval| Duration::from_millis(u64::from(interval))),
       trigger: Arc::clone(&trigger),
     };
 
@@ -183,7 +195,7 @@ impl FsWatcher {
       paused,
       trigger,
       op_tx: spawn_owner_thread(inner),
-      path_manager,
+      state,
       aggregated,
     }
   }
@@ -207,14 +219,14 @@ impl FsWatcher {
 
   /// watchpack's `collectTimeInfoEntries`, as `(fileTimestamps, directoryTimestamps)`.
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
-    self.path_manager.collect_time_info_entries()
+    self.state.collect_time_info_entries()
   }
 
   /// How many directories index recorded paths (with their entries), and how
   /// many index registered ones, so tests can check they are reclaimed.
   #[doc(hidden)]
   pub fn index_sizes(&self) -> (usize, usize) {
-    self.path_manager.index_sizes()
+    self.state.index_sizes()
   }
 
   /// Starts the file system watcher.
@@ -306,7 +318,48 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
 
   let owner_loop = async move {
     let mut closed = false;
-    while let Some(op) = rx.recv().await {
+    let delay = inner.poll_interval.unwrap_or(Duration::from_secs(1));
+    let timer = tokio::time::sleep(delay);
+    tokio::pin!(timer);
+    let mut pending_ops = VecDeque::new();
+    'owner: loop {
+      let op = if let Some(op) = pending_ops.pop_front() {
+        op
+      } else {
+        tokio::select! {
+          op = rx.recv() => match op {
+            Some(op) => op,
+            None => break,
+          },
+          root = inner.disk_watcher.next_root_event(), if cfg!(target_os = "linux") && !closed && inner.polling.is_none() => {
+            if let Some(root) = root && let Err(error) = inner.refresh_root_watch(root) {
+              tracing::error!(target: "rspack_watcher::fs_event", "failed to restore directory watch: {error}");
+            }
+            continue;
+          }
+          _ = &mut timer, if !closed && inner.polling.is_some() => {
+            let pending = {
+              let poll = inner.poll();
+              tokio::pin!(poll);
+              loop {
+                tokio::select! {
+                  _ = &mut poll => break None,
+                  op = rx.recv() => match op {
+                    Some(op @ WatcherOp::Close { .. }) => break Some(op),
+                    Some(op) => pending_ops.push_back(op),
+                    None => break 'owner,
+                  },
+                }
+              }
+            };
+            timer.as_mut().reset(tokio::time::Instant::now() + delay);
+            match pending {
+              Some(op) => op,
+              None => continue,
+            }
+          }
+        }
+      };
       match op {
         WatcherOp::Watch {
           event_aggregate_handler,
@@ -364,6 +417,60 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
 }
 
 impl FsWatcherInner {
+  fn refresh_root_watch(&mut self, event: disk_watcher::RootEvent) -> Result<()> {
+    if !event.appeared {
+      self.disk_watcher.invalidate_root(&event.path)?;
+    }
+    let patterns = self.analyzer.analyze(self.state.registry.access());
+    self
+      .disk_watcher
+      .set_recovery_paths(self.analyzer.recovery_paths());
+    let result = self.disk_watcher.watch(patterns.into_iter());
+    // Attach first: processing the old root event then observes changes made
+    // while inotify had no watch, including a replacement at the same path.
+    if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
+      trigger.on_disk_event(
+        &event.path,
+        if event.appeared {
+          event.kind
+        } else {
+          FsEventKind::Remove
+        },
+        event.appeared,
+      );
+    }
+    result
+  }
+
+  async fn poll(&mut self) {
+    let Some(polling) = &mut self.polling else {
+      return;
+    };
+    let mut changed = polling.scan();
+    let contexts = self
+      .state
+      .registry
+      .directories
+      .all
+      .iter()
+      .map(|path| path.clone())
+      .collect();
+    changed.extend(
+      self
+        .state
+        .scan(contexts, dirwatch::ScanReason::Discovered)
+        .await,
+    );
+    let trigger = self.trigger.lock().expect("should lock trigger").clone();
+    if let Some(trigger) = trigger {
+      for path in changed {
+        if !self.state.registry.is_ignored_path(path.as_ref()).await {
+          trigger.on_scanned_change(&path);
+        }
+      }
+    }
+  }
+
   async fn watch(
     &mut self,
     files: (Vec<InternedPath>, Vec<InternedPath>),
@@ -373,7 +480,7 @@ impl FsWatcherInner {
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
   ) {
-    self.path_manager.reset();
+    self.state.reset();
 
     if let Err(e) = self
       .wait_for_event(files, directories, missing, start_time)
@@ -391,7 +498,8 @@ impl FsWatcherInner {
 
   async fn close(&mut self) -> Result<()> {
     self.disk_watcher.close();
-    self.scanner.close();
+    self.polling.take();
+    self.backfill_sender.take();
     self.executor.close().await;
     self.trigger.lock().expect("should lock trigger").take();
 
@@ -405,14 +513,7 @@ impl FsWatcherInner {
     missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
   ) -> Result<()> {
-    self
-      .path_manager
-      .update(
-        (files.0.into_iter(), files.1.into_iter()),
-        (directories.0.into_iter(), directories.1.into_iter()),
-        (missing.0.into_iter(), missing.1.into_iter()),
-      )
-      .await?;
+    self.state.update(files, directories, missing).await?;
 
     // Record baseline mtimes for files added in this watch() cycle, BEFORE
     // starting the disk watcher. Synchronous so a stale FSEvent delivered
@@ -427,11 +528,20 @@ impl FsWatcherInner {
     //     landed in the gap between aggregate and rewatch would have its
     //     post-write mtime become the new baseline, and the FSEvent still
     //     in flight for that write would then be suppressed as a duplicate.
-    self.record_initial_file_mtimes();
+    self.state.record_initial_file_mtimes();
 
-    let watch_patterns = self.analyzer.analyze(self.path_manager.access());
-    self.disk_watcher.watch(watch_patterns.into_iter())?;
-    let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
+    if let Some(polling) = &mut self.polling {
+      polling.update(self.state.registry.access());
+    } else {
+      let watch_patterns = self.analyzer.analyze(self.state.registry.access());
+      if cfg!(target_os = "linux") {
+        self
+          .disk_watcher
+          .set_recovery_paths(self.analyzer.recovery_paths());
+      }
+      self.disk_watcher.watch(watch_patterns.into_iter())?;
+    }
+    let changed_in_contexts = self.state.scan_contexts(start_time).await;
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
       for path in &changed_in_contexts {
         trigger.on_scanned_change(path);
@@ -448,24 +558,19 @@ impl FsWatcherInner {
     // deliver the event — so no rebuild was triggered. With this order, a change
     // before the watch is active is on disk by scan time (caught by
     // `mtime > start_time`), and a change after it is active is delivered live.
-    self.scanner.scan(start_time);
+    let registry = &self.state.registry;
+    let has_added_paths = !registry.files.added.is_empty()
+      || !registry.directories.added.is_empty()
+      || !registry.missing.added.is_empty();
+    if has_added_paths && let Some(backfill_sender) = self.backfill_sender.clone() {
+      let scanned = self.state.scan_registered(start_time);
+      tokio::spawn(async move {
+        for batch in scanned.await {
+          let _ = backfill_sender.send(batch);
+        }
+      });
+    }
 
     Ok(())
-  }
-
-  fn record_initial_file_mtimes(&self) {
-    let accessor = self.path_manager.access();
-    // `.1` is `files.added` — the diff set populated by `update()` and
-    // cleared by `reset()`. In steady state (no add/remove churn) this
-    // is empty and the loop is a no-op.
-    let paths: Vec<_> = accessor.files().1.iter().map(|p| p.clone()).collect();
-    for path in paths {
-      if let Ok(mtime) = path
-        .metadata()
-        .and_then(|m| m.modified().or_else(|_| m.created()))
-      {
-        self.path_manager.set_file_time_if_absent(path, mtime);
-      }
-    }
   }
 }

@@ -1,7 +1,7 @@
-use crate::{WatchPattern, paths::PathAccessor};
+use crate::{WatchPattern, registry::PathAccessor};
 
-mod directories;
-mod root;
+pub(crate) mod directories;
+pub(crate) mod root;
 
 /// The `Analyzer` trait defines an interface for analyzing a [`PathAccessor`]
 /// and producing a set of [`WatchPattern`]s to be watched by the file system watcher.
@@ -14,6 +14,10 @@ pub(crate) trait Analyzer: Default {
   /// # Returns
   /// A vector of [`WatchPattern`]s representing the paths and their watch modes.
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern>;
+
+  fn recovery_paths(&self) -> rspack_paths::InternedPathSet {
+    Default::default()
+  }
 }
 
 #[cfg(any(target_os = "macos", target_os = "windows"))]

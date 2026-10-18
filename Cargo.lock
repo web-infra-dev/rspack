@@ -5865,6 +5865,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_watcher_testing"
+version = "0.102.9"
+dependencies = [
+ "cow-utils",
+ "dashmap",
+ "futures",
+ "notify",
+ "regex",
+ "rspack_error",
+ "rspack_paths",
+ "rspack_regex",
+ "rspack_util",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "rspack_workspace"
 version = "0.102.9"
 

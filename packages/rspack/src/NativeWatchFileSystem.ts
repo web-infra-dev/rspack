@@ -404,7 +404,12 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     const nativeWatcherOptions: binding.NativeWatcherOptions = {
       followSymlinks: options.followSymlinks,
       aggregateTimeout: options.aggregateTimeout,
-      pollInterval: typeof options.poll === 'boolean' ? 0 : options.poll,
+      pollInterval:
+        typeof options.poll === 'boolean'
+          ? options.poll
+            ? 5007
+            : undefined
+          : options.poll,
       ignored: toJsWatcherIgnored(options.ignored),
     };
     const nativeWatcher = new binding.NativeWatcher(nativeWatcherOptions);

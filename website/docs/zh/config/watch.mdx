@@ -131,6 +131,8 @@ export default {
 
 是否通过轮询进行监听。
 
+启用 `experiments.nativeWatcher` 时，此选项同样生效。轮询模式通过定时扫描检测变化，不依赖操作系统的文件事件。
+
 当设置为 `true` 时，默认的轮询间隔为 5007 毫秒，这与 Node.js `fs.watchFile()` 的默认轮询间隔一致。
 
 ```js title="rspack.config.mjs"

@@ -131,6 +131,8 @@ Unlike the other forms, the function receives the entry with the platform path s
 
 Whether to watch by polling.
 
+This option also applies when `experiments.nativeWatcher` is enabled. In polling mode, the native watcher scans for changes instead of subscribing to operating system file events.
+
 When set to `true`, the default polling interval is 5007 milliseconds. This matches the default polling interval used by Node.js `fs.watchFile()`.
 
 ```js title="rspack.config.mjs"
