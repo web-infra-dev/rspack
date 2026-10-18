@@ -463,8 +463,10 @@ impl SplitChunksPlugin {
         .or_insert_with(|| ResidualSeed::Projected(SmallVec::from_slice(chunks)));
     };
     // Reuse native dense indexes. Cache a surviving row's bitmap only when a
-    // dense projection is larger than scanning its words; most small rows never
-    // allocate one. A native seed reuses one scratch bitmap across all its rows.
+    // projection has enough members to amortize scanning its words. Hash-table
+    // probes are much more expensive than bitwise word operations; reserve the
+    // set traversal for very small projections. A native seed reuses one scratch
+    // bitmap across all its rows.
     let bitmap_words = indices
       .values()
       .max()
@@ -503,22 +505,19 @@ impl SplitChunksPlugin {
       }
       let native_support = cached_originals.is_some();
       let posting = if let Some(originals) = cached_originals {
-        originals
-          .into_iter()
-          .filter_map(|chunks_key| {
-            original_indices
-              .get(&ModuleGroupKey::Anonymous {
-                cache_group_index: cache,
-                chunks_key,
-              })
-              .copied()
-          })
-          .collect::<SmallVec<[usize; 4]>>()
+        Either::Left(originals.into_iter().filter_map(|chunks_key| {
+          original_indices
+            .get(&ModuleGroupKey::Anonymous {
+              cache_group_index: cache,
+              chunks_key,
+            })
+            .copied()
+        }))
       } else {
         let Some(posting) = shortest_posting(cache, seed.iter(), &original_postings) else {
           continue;
         };
-        SmallVec::from_slice(posting)
+        Either::Right(posting.iter().copied())
       };
       let mut changed = false;
       for index in posting {
@@ -560,7 +559,7 @@ impl SplitChunksPlugin {
             for chunk in affected.drain(..) {
               seed.insert(chunk);
             }
-          } else if seed.len().min(remaining.len()) > bitmap_words.saturating_mul(2) {
+          } else if seed.len().min(remaining.len()) > bitmap_words.div_ceil(8) {
             if seed_bits.is_empty() {
               seed_bits.resize(bitmap_words, 0);
               for chunk in &seed {
