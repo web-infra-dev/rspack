@@ -61,14 +61,19 @@ use crate::{
 pub struct ConcatSource {
   children: Mutex<Vec<BoxSource>>,
   /// Shared so clones materialize the merged raw-source buffers only once.
-  is_optimized: Arc<OnceLock<Vec<BoxSource>>>,
+  is_optimized: OnceLock<Arc<[BoxSource]>>,
 }
 
 impl Clone for ConcatSource {
   fn clone(&self) -> Self {
+    // Cloning is the transition from a mutable builder to a shared graph.
+    // Materialize once here and share the resulting handles between clones.
+    let optimized = self.optimized_children().into();
+    let is_optimized = OnceLock::new();
+    let _ = is_optimized.set(optimized);
     Self {
       children: Mutex::new(self.children.lock().unwrap().clone()),
-      is_optimized: self.is_optimized.clone(),
+      is_optimized,
     }
   }
 }
@@ -82,7 +87,7 @@ impl std::fmt::Debug for ConcatSource {
 
     let original_children = self.children.lock().unwrap();
     let children = match self.is_optimized.get() {
-      Some(optimized_children) => optimized_children,
+      Some(optimized_children) => optimized_children.as_ref(),
       None => original_children.as_ref(),
     };
     for child in children {
@@ -107,10 +112,13 @@ impl ConcatSource {
   }
 
   fn optimized_children(&self) -> &[BoxSource] {
-    self.is_optimized.get_or_init(|| {
-      let mut children = self.children.lock().unwrap();
-      optimize(&mut children)
-    })
+    self
+      .is_optimized
+      .get_or_init(|| {
+        let mut children = self.children.lock().unwrap();
+        optimize(&mut children).into()
+      })
+      .as_ref()
   }
 
   /// Get the (optimized) children of this concat source.
@@ -129,33 +137,15 @@ impl ConcatSource {
       .get_mut()
       .expect("ConcatSource children mutex poisoned");
 
-    if let Some(optimized_children) = self.is_optimized.get() {
-      *children = optimized_children.clone();
-      self.is_optimized = Arc::new(OnceLock::new());
-    } else if Arc::strong_count(&self.is_optimized) > 1 {
-      self.is_optimized = Arc::new(OnceLock::new());
+    if let Some(optimized_children) = self.is_optimized.take() {
+      *children = optimized_children.to_vec();
     }
 
-    // First check if it's already a BoxSource containing a ConcatSource
-    if let Some(box_source) = source.as_any().downcast_ref::<BoxSource>() {
-      if let Some(concat_source) = box_source.as_ref().as_any().downcast_ref::<ConcatSource>() {
-        // Extend with existing children (cheap clone due to Arc)
-        let original_children = concat_source.children.lock().unwrap();
-        let other_children = match concat_source.is_optimized.get() {
-          Some(optimized_children) => optimized_children,
-          None => original_children.as_ref(),
-        };
-        children.extend(other_children.iter().cloned());
-        return;
-      }
-    }
-
-    // Check if the source itself is a ConcatSource
-    if let Some(concat_source) = source.as_any().downcast_ref::<ConcatSource>() {
+    if let Some(concat_source) = source.as_concat_source() {
       // Extend with existing children (cheap clone due to Arc)
       let original_children = concat_source.children.lock().unwrap();
       let other_children = match concat_source.is_optimized.get() {
-        Some(optimized_children) => optimized_children,
+        Some(optimized_children) => optimized_children.as_ref(),
         None => original_children.as_ref(),
       };
       children.extend(other_children.iter().cloned());
@@ -167,6 +157,11 @@ impl ConcatSource {
 }
 
 impl Source for ConcatSource {
+  #[inline]
+  fn as_concat_source(&self) -> Option<&ConcatSource> {
+    Some(self)
+  }
+
   fn source(&self) -> SourceValue<'_> {
     let children = self.optimized_children();
     if children.len() == 1 {

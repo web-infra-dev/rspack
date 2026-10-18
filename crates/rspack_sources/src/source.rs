@@ -10,7 +10,7 @@ use serde::{Serialize, Serializer};
 use simd_json::{BorrowedValue, ErrorType, prelude::*};
 
 use crate::{
-  ReplaceSource, Result,
+  ConcatSource, ReplaceSource, Result,
   helpers::{Chunks, StreamChunks, decode_mappings_fields},
 };
 
@@ -129,6 +129,11 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   /// Get a [SourceMap] that can outlive the borrowed source reference.
   fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>>;
 
+  #[doc(hidden)]
+  fn as_concat_source(&self) -> Option<&ConcatSource> {
+    None
+  }
+
   /// Update hash based on the source.
   fn update_hash(&self, state: &mut dyn Hasher) {
     self.dyn_hash(state);
@@ -167,6 +172,11 @@ impl Source for BoxSource {
   #[inline]
   fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
     self.as_ref().clone().map_static(options)
+  }
+
+  #[inline]
+  fn as_concat_source(&self) -> Option<&ConcatSource> {
+    self.as_ref().as_concat_source()
   }
 
   #[inline]
