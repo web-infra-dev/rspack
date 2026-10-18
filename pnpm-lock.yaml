@@ -104,8 +104,8 @@ catalogs:
       specifier: 0.5.23
       version: 0.5.23
     '@swc/plugin-remove-console':
-      specifier: ^14.0.0
-      version: 14.0.0
+      specifier: ^17.0.0
+      version: 17.0.0
     '@swc/types':
       specifier: 0.1.28
       version: 0.1.28
@@ -1064,7 +1064,7 @@ importers:
         version: 0.5.23
       '@swc/plugin-remove-console':
         specifier: 'catalog:'
-        version: 14.0.0
+        version: 17.0.0
       '@types/fs-extra':
         specifier: 'catalog:'
         version: 11.0.4
@@ -3617,8 +3617,8 @@ packages:
   '@swc/helpers@0.5.23':
     resolution: {integrity: sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==}
 
-  '@swc/plugin-remove-console@14.0.0':
-    resolution: {integrity: sha512-uCU8XNgWe0Yszf6mMC1TpMa2OhkoF/oICnv+uMVsiQMWujmm5aeFtMMWk5o5jVGJUMfMhy30f4jPjeryvO80Gg==}
+  '@swc/plugin-remove-console@17.0.0':
+    resolution: {integrity: sha512-cwUtdtat4Z1nKOVVkJ6vIGtamS0gRt4XTAU+zcxKkxNaYAfYtpWDf7V1sIwkZ/Bp68DbvuPdKIYQ90dDBCocfw==}
 
   '@swc/types@0.1.28':
     resolution: {integrity: sha512-V6Mnml8v09QALx6K0elJ7o9K/MkVDtW3t6L+7Ou/JcWtb3xwId2AH4FeOceySd2JaO87IMw4+6vSZxLm34LPbw==}
@@ -9869,7 +9869,7 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@swc/plugin-remove-console@14.0.0':
+  '@swc/plugin-remove-console@17.0.0':
     dependencies:
       '@swc/counter': 0.1.3
 
