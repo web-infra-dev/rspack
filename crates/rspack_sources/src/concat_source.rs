@@ -222,6 +222,17 @@ impl Source for ConcatSource {
     }
     Ok(())
   }
+
+  fn release_rope_caches(&self) {
+    for child in self.children.lock().unwrap().iter() {
+      child.release_rope_caches();
+    }
+    if let Some(optimized) = self.is_optimized.get() {
+      for child in optimized.as_ref() {
+        child.release_rope_caches();
+      }
+    }
+  }
 }
 
 impl Hash for ConcatSource {
@@ -446,6 +457,10 @@ fn optimize(children: &mut Vec<BoxSource>) -> Vec<BoxSource> {
   // Flush any remaining pending raw sources
   merge_raw_sources(&mut current_raw_sources, &mut new_children);
 
+  // The initial capacity matches the unmerged child count. Raw groups can
+  // collapse many entries, so returning the spare capacity here keeps the
+  // retained optimized graph proportional to its final size.
+  new_children.shrink_to_fit();
   new_children
 }
 

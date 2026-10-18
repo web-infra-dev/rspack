@@ -134,6 +134,9 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
     None
   }
 
+  /// Release derived rope indexes that can be rebuilt on demand.
+  fn release_rope_caches(&self) {}
+
   /// Update hash based on the source.
   fn update_hash(&self, state: &mut dyn Hasher) {
     self.dyn_hash(state);
@@ -177,6 +180,11 @@ impl Source for BoxSource {
   #[inline]
   fn as_concat_source(&self) -> Option<&ConcatSource> {
     self.as_ref().as_concat_source()
+  }
+
+  #[inline]
+  fn release_rope_caches(&self) {
+    self.as_ref().release_rope_caches()
   }
 
   #[inline]

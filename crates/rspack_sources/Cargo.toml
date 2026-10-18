@@ -19,6 +19,7 @@ rspack_cacheable = ["dep:rkyv"]
 
 [dependencies]
 allocative        = { workspace = true, optional = true }
+arc-swap          = { workspace = true }
 memchr            = { workspace = true, features = ["std"] }
 rkyv              = { workspace = true, optional = true }
 rustc-hash        = { workspace = true, features = ["std"] }

@@ -492,6 +492,10 @@ impl Source for ReplaceSource {
     });
     result
   }
+
+  fn release_rope_caches(&self) {
+    self.inner.release_rope_caches();
+  }
 }
 
 impl std::fmt::Debug for ReplaceSource {

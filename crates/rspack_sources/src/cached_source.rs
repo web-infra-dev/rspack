@@ -5,6 +5,7 @@ use std::{
   sync::{Arc, OnceLock},
 };
 
+use arc_swap::ArcSwapOption;
 use rustc_hash::FxHasher;
 
 use crate::{
@@ -21,7 +22,7 @@ struct CachedData {
   hash: OnceLock<u64>,
   size: OnceLock<usize>,
   is_ascii: OnceLock<bool>,
-  chunks: OnceLock<Box<[&'static str]>>,
+  chunks: ArcSwapOption<Box<[&'static str]>>,
   columns_map: OnceLock<Option<SourceMap<'static>>>,
   line_only_map: OnceLock<Option<SourceMap<'static>>>,
 }
@@ -84,28 +85,41 @@ impl CachedSource {
     &self.inner
   }
 
-  fn get_or_init_chunks(&self) -> &[&str] {
-    self.cache.chunks.get_or_init(|| {
-      let mut chunks = Vec::new();
-      self.inner.rope(&mut |chunk| {
-        chunks.push(chunk);
-      });
-      let chunks = chunks.into_boxed_slice();
-      #[allow(unsafe_code)]
-      // SAFETY: CachedSource guarantees that the underlying source outlives the cache,
-      // so transmuting Box<[&str]> to Box<[&'static str]> is safe in this context.
-      // The boxed slice retains only the used references instead of Vec's spare capacity.
-      unsafe {
-        std::mem::transmute::<Box<[&str]>, Box<[&'static str]>>(chunks)
-      }
-    })
+  fn init_chunks(&self) {
+    if self.cache.chunks.load().is_some() {
+      return;
+    }
+
+    let mut chunks = Vec::new();
+    self.inner.rope(&mut |chunk| chunks.push(chunk));
+    let chunks = chunks.into_boxed_slice();
+    #[allow(unsafe_code)]
+    // SAFETY: CachedSource guarantees that the underlying source outlives the cache,
+    // so transmuting Box<[&str]> to Box<[&'static str]> is safe in this context.
+    // The boxed slice retains only the used references instead of Vec's spare capacity.
+    let chunks = unsafe { std::mem::transmute::<Box<[&str]>, Box<[&'static str]>>(chunks) };
+    self.cache.chunks.store(Some(Arc::new(chunks)));
+  }
+
+  fn with_chunks<R>(&self, on_chunks: impl FnOnce(&[&str]) -> R) -> R {
+    self.init_chunks();
+    let chunks = self.cache.chunks.load();
+    on_chunks(
+      chunks
+        .as_ref()
+        .expect("chunks initialized")
+        .as_ref()
+        .as_ref(),
+    )
   }
 
   fn is_ascii(&self) -> bool {
     *self.cache.is_ascii.get_or_init(|| {
-      if let Some(chunks) = self.cache.chunks.get() {
-        return chunks.iter().all(|chunk| chunk.is_ascii());
+      let chunks = self.cache.chunks.load();
+      if let Some(chunks) = chunks.as_ref() {
+        return chunks.as_ref().iter().all(|chunk| chunk.is_ascii());
       }
+      drop(chunks);
       let mut is_ascii = true;
       self.inner.rope(&mut |chunk| is_ascii &= chunk.is_ascii());
       is_ascii
@@ -139,28 +153,33 @@ impl Source for CachedSource {
       return buffer_source.source();
     }
 
-    let chunks = self.get_or_init_chunks();
-    let mut string = String::with_capacity(self.size());
-    if self.cache.is_ascii.get().is_none() {
-      let mut is_ascii = true;
-      for chunk in chunks {
-        if is_ascii {
-          is_ascii = chunk.is_ascii();
+    self.with_chunks(|chunks| {
+      let mut string =
+        String::with_capacity(chunks.iter().fold(0, |size, chunk| size + chunk.len()));
+      if self.cache.is_ascii.get().is_none() {
+        let mut is_ascii = true;
+        for chunk in chunks {
+          if is_ascii {
+            is_ascii = chunk.is_ascii();
+          }
+          string.push_str(chunk);
         }
-        string.push_str(chunk);
+        let _ = self.cache.is_ascii.set(is_ascii);
+      } else {
+        for chunk in chunks {
+          string.push_str(chunk);
+        }
       }
-      let _ = self.cache.is_ascii.set(is_ascii);
-    } else {
-      for chunk in chunks {
-        string.push_str(chunk);
-      }
-    }
-    SourceValue::String(Cow::Owned(string))
+      SourceValue::String(Cow::Owned(string))
+    })
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    let chunks = self.get_or_init_chunks();
-    chunks.iter().for_each(|chunk| on_chunk(chunk));
+    self.init_chunks();
+    let chunks = self.cache.chunks.load();
+    for chunk in chunks.as_ref().expect("chunks initialized").as_ref().iter() {
+      on_chunk(chunk);
+    }
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
@@ -169,8 +188,12 @@ impl Source for CachedSource {
 
   fn size(&self) -> usize {
     *self.cache.size.get_or_init(|| {
-      if let Some(chunks) = self.cache.chunks.get() {
-        return chunks.iter().fold(0, |acc, chunk| acc + chunk.len());
+      let chunks = self.cache.chunks.load();
+      if let Some(chunks) = chunks.as_ref() {
+        return chunks
+          .as_ref()
+          .iter()
+          .fold(0, |acc, chunk| acc + chunk.len());
       }
       self.inner.size()
     })
@@ -192,6 +215,11 @@ impl Source for CachedSource {
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
     self.inner.to_writer(writer)
+  }
+
+  fn release_rope_caches(&self) {
+    self.cache.chunks.store(None);
+    self.inner.release_rope_caches();
   }
 }
 

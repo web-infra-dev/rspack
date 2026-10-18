@@ -1119,6 +1119,15 @@ impl Compilation {
     }
   }
 
+  /// Release source-graph indexes materialized only to render and map assets.
+  pub fn release_asset_rope_caches(&self) {
+    for asset in self.assets.values() {
+      if let Some(source) = &asset.source {
+        source.release_rope_caches();
+      }
+    }
+  }
+
   pub fn entrypoints(&self) -> &FxIndexMap<String, ChunkGroupUkey> {
     &self.build_chunk_graph_artifact.entrypoints
   }

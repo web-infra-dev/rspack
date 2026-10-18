@@ -56,6 +56,10 @@ impl Source for MapFreeSource {
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
     self.0.to_writer(writer)
   }
+
+  fn release_rope_caches(&self) {
+    self.0.release_rope_caches();
+  }
 }
 
 impl StreamChunks for MapFreeSource {

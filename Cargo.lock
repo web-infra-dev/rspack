@@ -5716,6 +5716,7 @@ dependencies = [
 name = "rspack_sources"
 version = "0.102.9"
 dependencies = [
+ "arc-swap",
  "memchr",
  "regex",
  "rkyv 0.8.18",
