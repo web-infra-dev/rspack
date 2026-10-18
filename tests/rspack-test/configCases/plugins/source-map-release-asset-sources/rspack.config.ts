@@ -15,8 +15,8 @@ export default defineConfig({
         compilation.hooks.afterProcessAssets.tap('PLUGIN', () => {
           assetFilename = compilation
             .getAssets()
-            .map(asset => asset.name)
-            .find(name => name.endsWith('.js') && !name.endsWith('.map'));
+            .map((asset) => asset.name)
+            .find((name) => name.endsWith('.js') && !name.endsWith('.map'));
           expect(assetFilename).toBeDefined();
           const asset = compilation.getAsset(assetFilename!);
           expect(asset).toBeDefined();
@@ -40,9 +40,7 @@ export default defineConfig({
         const asset = compiler._lastCompilation!.getAsset(assetFilename!);
         expect(asset).toBeDefined();
         expect(asset!.source.source().toString()).toBe(expectedSource);
-        expect(asset!.source.size()).toBe(
-          Buffer.byteLength(expectedSource!),
-        );
+        expect(asset!.source.size()).toBe(Buffer.byteLength(expectedSource!));
         expect(
           compiler._lastCompilation!.getAsset(`${assetFilename}.map`),
         ).toBeDefined();
