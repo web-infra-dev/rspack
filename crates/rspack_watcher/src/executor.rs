@@ -174,7 +174,10 @@ impl Executor {
                 }
               }
             }
-            if !paused.load(Ordering::Relaxed) {
+            // Like Watchpack, only changes received while unpaused restart the
+            // wait. An empty batch (e.g. an unwatched path removed under the
+            // watch root) must not delay a pending batch.
+            if !events.is_empty() && !paused.load(Ordering::Relaxed) {
               aggregate_time.last_unpaused_event.store(
                 aggregate_time.base.elapsed().as_nanos() as u64,
                 Ordering::Relaxed,
