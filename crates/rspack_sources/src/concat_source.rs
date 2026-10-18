@@ -223,13 +223,13 @@ impl Source for ConcatSource {
     Ok(())
   }
 
-  fn release_rope_caches(&self) {
+  fn release_caches(&self) {
     for child in self.children.lock().unwrap().iter() {
-      child.release_rope_caches();
+      child.release_caches();
     }
     if let Some(optimized) = self.is_optimized.get() {
       for child in optimized.as_ref() {
-        child.release_rope_caches();
+        child.release_caches();
       }
     }
   }

@@ -1120,10 +1120,10 @@ impl Compilation {
   }
 
   /// Release source-graph indexes materialized only to render and map assets.
-  pub fn release_asset_rope_caches(&self) {
+  pub fn release_asset_caches(&self) {
     for asset in self.assets.values() {
       if let Some(source) = &asset.source {
-        source.release_rope_caches();
+        source.release_caches();
       }
     }
   }

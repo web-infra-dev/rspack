@@ -134,8 +134,8 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
     None
   }
 
-  /// Release derived rope indexes that can be rebuilt on demand.
-  fn release_rope_caches(&self) {}
+  /// Release derived indexes that can be rebuilt on demand.
+  fn release_caches(&self) {}
 
   /// Update hash based on the source.
   fn update_hash(&self, state: &mut dyn Hasher) {
@@ -183,8 +183,8 @@ impl Source for BoxSource {
   }
 
   #[inline]
-  fn release_rope_caches(&self) {
-    self.as_ref().release_rope_caches()
+  fn release_caches(&self) {
+    self.as_ref().release_caches()
   }
 
   #[inline]
@@ -403,6 +403,7 @@ impl Hash for SourceMapFields<'_> {
 enum SourceMapOwner {
   Bytes(Vec<u8>),
   Source(BoxSource),
+  Shared(Arc<dyn Any + Send + Sync>),
 }
 
 /// The source map created by [Source::map].
@@ -430,6 +431,25 @@ impl<'a> SourceMap<'a> {
       unsafe { std::mem::transmute::<SourceMapFields<'a>, SourceMapFields<'static>>(self.fields) };
     SourceMap {
       owner: Some(SourceMapOwner::Source(owner)),
+      fields,
+    }
+  }
+
+  /// Build a map view whose fields borrow from `owner`.
+  ///
+  /// # Safety
+  ///
+  /// `fields` must borrow from the allocation held by `owner`.
+  pub(crate) unsafe fn from_shared_fields<'b>(
+    fields: SourceMapFields<'_>,
+    owner: Arc<dyn Any + Send + Sync>,
+  ) -> SourceMap<'b> {
+    // SAFETY: The caller guarantees that `fields` borrows from `owner`. The
+    // returned map retains `owner` for its full lifetime.
+    #[allow(unsafe_code)]
+    let fields = unsafe { std::mem::transmute::<SourceMapFields<'_>, SourceMapFields<'b>>(fields) };
+    SourceMap {
+      owner: Some(SourceMapOwner::Shared(owner)),
       fields,
     }
   }

@@ -57,8 +57,8 @@ impl Source for MapFreeSource {
     self.0.to_writer(writer)
   }
 
-  fn release_rope_caches(&self) {
-    self.0.release_rope_caches();
+  fn release_caches(&self) {
+    self.0.release_caches();
   }
 }
 

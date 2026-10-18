@@ -2,7 +2,10 @@ use std::{
   borrow::Cow,
   cell::OnceCell,
   hash::{Hash, Hasher},
-  sync::{Arc, OnceLock},
+  sync::{
+    Arc, OnceLock,
+    atomic::{AtomicBool, Ordering},
+  },
 };
 
 use arc_swap::ArcSwapOption;
@@ -23,8 +26,32 @@ struct CachedData {
   size: OnceLock<usize>,
   is_ascii: OnceLock<bool>,
   chunks: ArcSwapOption<Box<[&'static str]>>,
-  columns_map: OnceLock<Option<SourceMap<'static>>>,
-  line_only_map: OnceLock<Option<SourceMap<'static>>>,
+  columns_map: ArcSwapOption<CachedMap>,
+  line_only_map: ArcSwapOption<CachedMap>,
+  source_maps_released: AtomicBool,
+}
+
+// The enum is itself stored behind an `Arc`; boxing the map would add another
+// allocation without reducing the retained per-source footprint.
+#[allow(clippy::large_enum_variant)]
+pub(crate) enum CachedMap {
+  None,
+  Some(SourceMap<'static>),
+}
+
+impl CachedMap {
+  fn into_source_map<'a>(self: Arc<Self>) -> Option<SourceMap<'a>> {
+    let owner: Arc<dyn std::any::Any + Send + Sync> = self.clone();
+    match self.as_ref() {
+      CachedMap::None => None,
+      CachedMap::Some(map) => {
+        let fields = map.fields().as_borrowed();
+        // SAFETY: `fields` borrows from `self`, and `owner` is a clone of the
+        // same allocation retained by the returned source map.
+        Some(unsafe { SourceMap::from_shared_fields(fields, owner) })
+      }
+    }
+  }
 }
 
 /// It tries to reused cached results from other methods to avoid calculations,
@@ -126,7 +153,7 @@ impl CachedSource {
     })
   }
 
-  fn map_cache(&self, options: &MapOptions) -> &OnceLock<Option<SourceMap<'static>>> {
+  fn map_cache(&self, options: &MapOptions) -> &ArcSwapOption<CachedMap> {
     if options.columns {
       &self.cache.columns_map
     } else {
@@ -134,10 +161,30 @@ impl CachedSource {
     }
   }
 
-  fn get_or_init_map(&self, options: &MapOptions) -> &Option<SourceMap<'static>> {
-    self
-      .map_cache(options)
-      .get_or_init(|| self.inner.clone().map_static(options))
+  fn get_or_init_map(&self, options: &MapOptions) -> Arc<CachedMap> {
+    let cache = self.map_cache(options);
+    if let Some(map) = cache.load_full() {
+      return map;
+    }
+
+    let map = Arc::new(match self.inner.clone().map_static(options) {
+      Some(map) => CachedMap::Some(map),
+      None => CachedMap::None,
+    });
+    self.store_map(options, &map);
+    map
+  }
+
+  fn store_map(&self, options: &MapOptions, map: &Arc<CachedMap>) {
+    if self.cache.source_maps_released.load(Ordering::Acquire) {
+      return;
+    }
+    self.map_cache(options).store(Some(map.clone()));
+    // A release may race with the store above. Recheck after publishing so a
+    // map computed by a reader cannot become resident again.
+    if self.cache.source_maps_released.load(Ordering::Acquire) {
+      self.map_cache(options).store(None);
+    }
   }
 }
 
@@ -200,26 +247,26 @@ impl Source for CachedSource {
   }
 
   fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
-    self
-      .get_or_init_map(options)
-      .as_ref()
-      .map(SourceMap::as_borrowed)
+    self.get_or_init_map(options).into_source_map()
   }
 
   fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
-    self
-      .get_or_init_map(options)
-      .as_ref()
-      .map(|map| map.as_borrowed().into_static(self.clone()))
+    self.get_or_init_map(options).into_source_map()
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
     self.inner.to_writer(writer)
   }
 
-  fn release_rope_caches(&self) {
+  fn release_caches(&self) {
     self.cache.chunks.store(None);
-    self.inner.release_rope_caches();
+    self
+      .cache
+      .source_maps_released
+      .store(true, Ordering::Release);
+    self.cache.columns_map.store(None);
+    self.cache.line_only_map.store(None);
+    self.inner.release_caches();
   }
 }
 
@@ -227,6 +274,7 @@ struct CachedSourceChunks<'source> {
   cache_source: &'source CachedSource,
   chunks: OnceCell<Box<dyn Chunks<'source> + 'source>>,
   source: OnceCell<Cow<'source, str>>,
+  maps: [OnceCell<Arc<CachedMap>>; 2],
 }
 
 impl<'source> CachedSourceChunks<'source> {
@@ -235,6 +283,7 @@ impl<'source> CachedSourceChunks<'source> {
       cache_source,
       chunks: OnceCell::new(),
       source: OnceCell::new(),
+      maps: Default::default(),
     }
   }
 
@@ -262,29 +311,45 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
     on_source: crate::helpers::OnSource<'_, 'source>,
     on_name: crate::helpers::OnName<'_, 'source>,
   ) -> GeneratedInfo {
-    let cell = if options.columns {
-      &self.cache_source.cache.columns_map
+    let map_index = usize::from(options.columns);
+    let cached = if let Some(cached) = self.maps[map_index].get() {
+      cached.clone()
+    } else if let Some(cached) = self.cache_source.map_cache(options).load_full() {
+      let _ = self.maps[map_index].set(cached.clone());
+      cached
     } else {
-      &self.cache_source.cache.line_only_map
+      let (generated_info, map) = stream_and_get_source_and_map(
+        options,
+        self.get_or_init_chunks(),
+        on_chunk,
+        on_source,
+        on_name,
+      );
+      let map = Arc::new(match map {
+        Some(map) => {
+          CachedMap::Some(SourceMap::from_fields(map).into_static(self.cache_source.inner.clone()))
+        }
+        None => CachedMap::None,
+      });
+      self.cache_source.store_map(options, &map);
+      let _ = self.maps[map_index].set(map);
+      return generated_info;
     };
-    match cell.get() {
-      Some(Some(map)) => {
-        let source = self.get_or_init_source();
+    #[allow(unsafe_code)]
+    // SAFETY: `self.maps` owns the `Arc` for the full `'source` lifetime, so
+    // extending this borrow to `'source` does not outlive its allocation.
+    let cached: &'source CachedMap = unsafe { &*(cached.as_ref() as *const CachedMap) };
+    match cached {
+      CachedMap::Some(map) => {
+        #[allow(unsafe_code)]
+        // SAFETY: the source cell is owned by `self`, which lives for `'source`.
+        let source = unsafe {
+          std::mem::transmute::<TextSpan<'_>, TextSpan<'source>>(self.get_or_init_source())
+        };
         stream_chunks_of_source_map(options, source, map.fields(), on_chunk, on_source, on_name)
       }
-      Some(None) => stream_chunks_of_raw_rope(self.cache_source.inner.as_ref(), options, on_chunk),
-      None => {
-        let (generated_info, map) = stream_and_get_source_and_map(
-          options,
-          self.get_or_init_chunks(),
-          on_chunk,
-          on_source,
-          on_name,
-        );
-        cell.get_or_init(|| {
-          map.map(|map| SourceMap::from_fields(map).into_static(self.cache_source.inner.clone()))
-        });
-        generated_info
+      CachedMap::None => {
+        stream_chunks_of_raw_rope(self.cache_source.inner.as_ref(), options, on_chunk)
       }
     }
   }
@@ -381,14 +446,24 @@ mod tests {
     source.size();
     source.map(&map_options);
 
-    let cached_map = clone
-      .cache
-      .columns_map
-      .get()
-      .and_then(Option::as_ref)
-      .unwrap();
+    let cached_map = clone.cache.columns_map.load_full().unwrap();
+    let CachedMap::Some(cached_map) = cached_map.as_ref() else {
+      panic!("expected a cached source map");
+    };
     let map = source.map(&map_options).unwrap();
     assert!(cached_map.fields() == map.fields());
+  }
+
+  #[test]
+  fn released_maps_are_not_restored_by_lazy_rebuilds() {
+    let source = CachedSource::new(OriginalSource::new("console.log(1);", "index.js"));
+    let options = MapOptions::default();
+
+    assert!(source.map(&options).is_some());
+    source.release_caches();
+    assert!(source.map(&options).is_some());
+
+    assert!(source.cache.columns_map.load().is_none());
   }
 
   #[test]

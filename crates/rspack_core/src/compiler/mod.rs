@@ -497,7 +497,7 @@ impl Compiler {
       .await;
     if result.is_ok() {
       self.compilation.release_deferred_source_map_assets();
-      self.compilation.release_asset_rope_caches();
+      self.compilation.release_asset_caches();
       if matches!(self.options.cache, CacheOptions::Disabled) {
         self.compilation.shrink_file_counters();
       }
