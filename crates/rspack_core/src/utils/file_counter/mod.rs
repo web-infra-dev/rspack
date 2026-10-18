@@ -39,6 +39,7 @@ impl GroupRefs {
   /// Above this many lists sharing a path, removing must not scan.
   const HOT_THRESHOLD: usize = 16;
 
+  #[allow(clippy::mutable_key_type)]
   fn push(&mut self, list: InternedPathList) {
     match self {
       GroupRefs::Small(lists) => {
@@ -59,6 +60,7 @@ impl GroupRefs {
     }
   }
 
+  #[allow(clippy::mutable_key_type)]
   fn remove(&mut self, list: &InternedPathList) {
     match self {
       GroupRefs::Small(lists) => lists.retain(|item| item != list),
