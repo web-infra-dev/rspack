@@ -419,8 +419,8 @@ catalogs:
       specifier: ^1.14.1
       version: 1.14.1
     watchpack:
-      specifier: 2.5.2
-      version: 2.5.2
+      specifier: 2.6.1
+      version: 2.6.1
     webpack-sources:
       specifier: 3.6.0
       version: 3.6.0
@@ -763,7 +763,7 @@ importers:
         version: 6.0.3
       watchpack:
         specifier: 'catalog:'
-        version: 2.5.2
+        version: 2.6.1
       webpack-sources:
         specifier: 'catalog:'
         version: 3.6.0(patch_hash=15bf81e827f2fd8c3e411c5d75b3e27b3ad7aff67e7bdee559e6253e9bf6b5d7)
@@ -7654,8 +7654,8 @@ packages:
   wast-loader@1.14.1:
     resolution: {integrity: sha512-s35gffU7MzyA8nHZapVlYG6KlfSey4ZlZ1Xk//6wmXzogPAykqBMKWUWWBuzVSrrm8dWqNfzcPD0I3z167N72g==}
 
-  watchpack@2.5.2:
-    resolution: {integrity: sha512-6i/00NBjP4yGPs+caKSyRfpTF/8Torsu0MOW3mMzIbhgISFder8i7xbqgHlLMwJrdiN8ndBV3UA1/AfzPSr+jg==}
+  watchpack@2.6.1:
+    resolution: {integrity: sha512-8mk/LnXpQAiM2xKZhTkxikwly5GhL2Z+DWiLTkMa/E1Nfv9zURhHgiFyWvM4BWqW+LjIgL2AIS7JntEUx6v3vQ==}
     engines: {node: '>=10.13.0'}
 
   web-namespaces@2.0.1:
@@ -14332,7 +14332,7 @@ snapshots:
     dependencies:
       wabt: 1.0.0-nightly.20180421
 
-  watchpack@2.5.2:
+  watchpack@2.6.1:
     dependencies:
       graceful-fs: 4.2.11
 
