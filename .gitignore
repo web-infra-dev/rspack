@@ -212,6 +212,3 @@ rstack-examples/
 
 # rstest event report files
 /*-report.txt
-
-# Local loader filter RFC draft
-/loader-code-filter-rfc.md
