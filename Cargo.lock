@@ -4864,7 +4864,6 @@ dependencies = [
  "concat-string",
  "css-module-lexer",
  "cssparser",
- "futures",
  "heck",
  "memchr",
  "once_cell",

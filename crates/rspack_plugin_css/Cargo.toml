@@ -12,7 +12,6 @@ atomic_refcell           = { workspace = true }
 concat-string            = { workspace = true }
 css-module-lexer         = { workspace = true }
 cssparser                = { workspace = true }
-futures                  = { workspace = true }
 heck                     = { workspace = true }
 memchr                   = { workspace = true }
 once_cell                = { workspace = true }

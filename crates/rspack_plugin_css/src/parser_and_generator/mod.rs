@@ -265,8 +265,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
       self.es_module,
     );
     match requested_source_type {
-      SourceType::Css => generator.generate_css_source().await,
-      SourceType::JavaScript => generator.generate_javascript_source().await,
+      SourceType::Css => generator.generate_css_source(),
+      SourceType::JavaScript => generator.generate_javascript_source(),
       source_type => panic!("Unsupported source type: {source_type:?}"),
     }
   }
