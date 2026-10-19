@@ -10,18 +10,3 @@ ERROR in ./index.js
       
   help: 
         You may need an appropriate loader to handle this file type.
-
-ERROR in ./index.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parse error: Unexpected token '}'
-         ╭─[3:0]
-       1 │ function add(a: number, b: number): number {
-       2 │     return a + b;
-       3 │ }
-         · ─
-       4 │
-       5 │ add(1, 2);
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
