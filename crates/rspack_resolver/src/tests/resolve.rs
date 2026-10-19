@@ -202,7 +202,7 @@ async fn bare_package_directory_alias_respects_enforce_extension() {
   let f = super::fixture().join("prefer-dir-over-file");
   let utf8 = |path: std::path::PathBuf| path.to_str().expect("path should be UTF-8").to_string();
   let alias = vec![(
-    utf8(f.join("node_modules/bar")),
+    utf8(f.join("node_modules").join("bar")),
     vec![AliasValue::Path(utf8(f.join("shim.js")))],
   )];
 
