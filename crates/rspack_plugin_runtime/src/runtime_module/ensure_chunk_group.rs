@@ -60,7 +60,9 @@ impl RuntimeModule for EnsureChunkGroupRuntimeModule {
     &self,
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    let mut dependencies = RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS;
+    let mut dependencies = RuntimeGlobals::ENSURE_CHUNK
+      | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+      | RuntimeGlobals::HAS_OWN_PROPERTY;
     if compilation.hot_module_replacement {
       dependencies.insert(RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
     }

@@ -1,6 +1,9 @@
 <%- var("blockChunks") %> = <%- _blocks %>;
 // undefined = not loaded, Promise = loading, 0 = loaded.
 <%- var("installedBlocks") %> = <% if (_hmr) { %><%- _state_expression %> = <%- _state_expression %> || <% } %>Object.create(null);
+Object.keys(installedBlocks).forEach(<%- basicFunction("blockId") %> {
+	if (!<%- HAS_OWN_PROPERTY %>(blockChunks, blockId)) delete installedBlocks[blockId];
+});
 <%- define(ENSURE_CHUNK_GROUP) %> = <%- basicFunction("blockId, fetchPriority") %> {
 	var promises = [];
 	var chunks = blockChunks[blockId] || [];
@@ -11,7 +14,7 @@
 	if (installedBlocks[blockId] !== 0) {
 		installedBlocks[blockId] = promise;
 		promise.then(<%- basicFunction("") %> {
-			installedBlocks[blockId] = 0;
+			if (installedBlocks[blockId] === promise) installedBlocks[blockId] = 0;
 		}, <%- basicFunction("") %> {
 			if (installedBlocks[blockId] === promise) delete installedBlocks[blockId];
 		});
