@@ -1060,7 +1060,7 @@ impl ModuleCodeTemplate {
         block,
         &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       );
-    if compilation.hot_module_replacement {
+    if compilation.hot {
       let mg = compilation.get_module_graph();
       let block = mg.block_by_id_expect(block);
       let fetch_priority = chunk_group

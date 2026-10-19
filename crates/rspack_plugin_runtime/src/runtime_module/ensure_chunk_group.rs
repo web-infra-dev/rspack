@@ -50,7 +50,7 @@ impl RuntimeModule for EnsureChunkGroupRuntimeModule {
       self.id(),
       Some(serde_json::json!({
         "_blocks": rspack_util::json_stringify(&blocks),
-        "_hmr": compilation.hot_module_replacement,
+        "_hmr": compilation.hot,
         "_state_expression": context.runtime_template.render_hmr_runtime_state_expression("blocks"),
       })),
     )
@@ -63,7 +63,7 @@ impl RuntimeModule for EnsureChunkGroupRuntimeModule {
     let mut dependencies = RuntimeGlobals::ENSURE_CHUNK
       | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
       | RuntimeGlobals::HAS_OWN_PROPERTY;
-    if compilation.hot_module_replacement {
+    if compilation.hot {
       dependencies.insert(RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
     }
     rspack_core::RuntimeModuleRuntimeRequirements {

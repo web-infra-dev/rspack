@@ -129,7 +129,7 @@ async fn compilation(
   compilation: &mut Compilation,
   params: &mut CompilationParams,
 ) -> Result<()> {
-  compilation.hot_module_replacement = true;
+  compilation.hot = true;
   compilation.set_dependency_factory(
     DependencyType::ImportMetaHotAccept,
     params.normal_module_factory.clone(),

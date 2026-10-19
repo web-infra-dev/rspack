@@ -298,12 +298,11 @@ impl AsyncDependenciesBlock {
     runtime: Option<&RuntimeSpec>,
   ) {
     self.group_options.hash(hasher);
-    if compilation.hot_module_replacement {
+    if compilation.hot {
       "hmr chunk groups".hash(hasher);
       self.runtime_id(compilation).hash(hasher);
     }
-    if (!compilation.hot_module_replacement
-      || matches!(self.group_options, Some(GroupOptions::Entrypoint(_))))
+    if (!compilation.hot || matches!(self.group_options, Some(GroupOptions::Entrypoint(_))))
       && let Some(chunk_group) = compilation
         .build_chunk_graph_artifact
         .chunk_graph

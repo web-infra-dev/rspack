@@ -819,7 +819,7 @@ impl ContextModule {
 
     let mut items = block_and_first_dependency_list
       .filter_map(|(b, dependency)| {
-        let chunks: Vec<_> = if compilation.hot_module_replacement {
+        let chunks: Vec<_> = if compilation.hot {
           vec![serde_json::json!(b.runtime_id(compilation))]
         } else {
           compilation
@@ -914,7 +914,7 @@ impl ContextModule {
         .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
     }
 
-    let request_prefix = if compilation.hot_module_replacement {
+    let request_prefix = if compilation.hot {
       format!(
         "{}(ids[{chunks_position}][0]{fetch_priority_arg})",
         runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_GROUP),
