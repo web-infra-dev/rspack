@@ -769,11 +769,17 @@ type RuleSetUse =
 
 type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
 
+type RuleSetLoaderCodeFilter = string | RegExp;
+
 type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
   parallel?: boolean | { maxWorkers?: number };
+  cache?: boolean;
+  filter?: {
+    code: RuleSetLoaderCodeFilter;
+  };
 };
 ```
 
@@ -827,6 +833,37 @@ export default {
   },
 };
 ```
+
+## rules[].use.filter.code
+
+- **类型：** `RuleSetLoaderCodeFilter`
+- **默认值：** `undefined`
+
+当 loader 的当前输入代码不匹配时，跳过其 normal 函数。它适用于仅在模块包含特定语法时才需要执行的转换：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './transform-loader.js',
+            filter: {
+              code: /\b(createServerFn|createMiddleware)\b/,
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+字符串按子串匹配，例如 `filter: { code: 'createMiddleware' }`；如需更精确的匹配，可使用正则表达式。
+
+code filter 会在该 loader 的 normal 函数执行前立即求值，因此可以看到其右侧 loader 的输出。loader 的 pitch 函数不会被过滤，并保持原有行为。
 
 ## rules[].use.ident
 

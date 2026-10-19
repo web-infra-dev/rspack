@@ -1022,6 +1022,8 @@ export interface JsLoaderItem {
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
+  codeFilter?: string | RegExp
+  filterMatched: boolean
   noPitch: boolean
 }
 
@@ -2834,6 +2836,7 @@ export interface RawModuleRuleUse {
   options?: string
   cache: boolean
   optionsCacheKey: string
+  codeFilter?: string | RegExp
 }
 
 export interface RawNewCache {
