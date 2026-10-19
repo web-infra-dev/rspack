@@ -8,7 +8,9 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import path from 'node:path';
 import * as liteTapable from '@rspack/lite-tapable';
+import type { Source } from 'webpack-sources';
 import type {
   CompilationParams,
   Compiler,
@@ -16,6 +18,7 @@ import type {
   RspackOptions,
   Stats,
 } from '.';
+import type { Assets, Compilation } from './Compilation';
 import type { WatchOptions } from './config';
 import ConcurrentCompilationError from './error/ConcurrentCompilationError';
 import MultiStats from './MultiStats';
@@ -79,6 +82,13 @@ export class MultiCompiler {
   _options: MultiCompilerOptions;
   running: boolean;
   watching?: MultiWatching;
+  #compilerAssets = new WeakMap<
+    Compiler,
+    {
+      outputFileSystem: NonNullable<Compiler['outputFileSystem']>;
+      assets: Map<string, Source>;
+    }
+  >();
 
   constructor(
     compilers: Compiler[] | Record<string, Compiler>,
@@ -131,6 +141,11 @@ export class MultiCompiler {
       const compiler = this.compilers[index];
       const compilerIndex = index;
       let compilerDone = false;
+      compiler.hooks.thisCompilation.tap('MultiCompiler', (compilation) => {
+        compilation.hooks.afterProcessAssets.tap('MultiCompiler', (assets) =>
+          this.#recordEmittedAssets(compiler, compilation, assets),
+        );
+      });
       compiler.hooks.done.tap('MultiCompiler', (stats) => {
         if (!compilerDone) {
           compilerDone = true;
@@ -143,6 +158,7 @@ export class MultiCompiler {
       });
 
       const resetDoneState = () => {
+        this.#compilerAssets.delete(compiler);
         if (compilerDone) {
           compilerDone = false;
           doneCompilers--;
@@ -156,6 +172,53 @@ export class MultiCompiler {
         { name: 'MultiCompiler', stage: -Infinity },
         resetDoneState,
       );
+    }
+  }
+
+  #recordEmittedAssets(
+    compiler: Compiler,
+    compilation: Compilation,
+    emittedAssets: Assets,
+  ) {
+    const outputFileSystem = compiler.outputFileSystem;
+    if (!outputFileSystem) return;
+
+    const assets = new Map<string, Source>();
+    const conflicts = new Set<string>();
+    for (const [name, source] of Object.entries(emittedAssets)) {
+      const filename = path.resolve(compiler.outputPath, name);
+      assets.set(filename, source);
+
+      for (const otherCompiler of this.compilers) {
+        if (otherCompiler === compiler) continue;
+        const previous = this.#compilerAssets.get(otherCompiler);
+        if (
+          previous?.outputFileSystem === outputFileSystem &&
+          previous.assets.has(filename)
+        ) {
+          const previousSource = previous.assets.get(filename)!;
+          if (
+            previousSource.size() === source.size() &&
+            previousSource.buffer().equals(source.buffer())
+          ) {
+            continue;
+          }
+          const displayName = path.relative(this.outputPath, filename);
+          const describeCompiler = (childCompiler: Compiler) =>
+            childCompiler.name
+              ? `"${childCompiler.name}"`
+              : `at index ${this.compilers.indexOf(childCompiler)}`;
+          conflicts.add(
+            `Conflict: Compilers ${describeCompiler(otherCompiler)} and ${describeCompiler(compiler)} emit different content to the same filename ${displayName}`,
+          );
+        }
+      }
+    }
+
+    this.#compilerAssets.set(compiler, { outputFileSystem, assets });
+
+    for (const conflict of conflicts) {
+      compilation.warnings.push(new Error(conflict));
     }
   }
 
@@ -569,6 +632,7 @@ export class MultiCompiler {
       return callback(new ConcurrentCompilationError());
     }
     this.running = true;
+    this.#compilerAssets = new WeakMap();
 
     if (this.validateDependencies(callback)) {
       this.#runGraph(
