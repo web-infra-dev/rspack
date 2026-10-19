@@ -11,10 +11,7 @@ use rustc_hash::FxHasher;
 use tokio::sync::Mutex;
 
 use super::{CacheFacade, CacheValue, FileSystemInfo, Snapshot, SnapshotValidationResult};
-use crate::{
-  CacheCount, Logger, ResolveDependencies, ResolveInnerError, ResolveResult,
-  SnapshotStrategyOptions,
-};
+use crate::{CacheCount, Logger, ResolveDependencies, ResolveInnerError, ResolveResult};
 
 #[cacheable]
 struct CachedResolution {
@@ -28,7 +25,6 @@ struct CachedResolution {
 pub struct ResolverCache {
   cache: CacheFacade,
   file_system_info: FileSystemInfo,
-  strategy: SnapshotStrategyOptions,
   counter: Arc<CacheCount>,
   locks: Arc<FxDashMap<u64, Arc<Mutex<()>>>>,
 }
@@ -37,13 +33,11 @@ impl ResolverCache {
   pub(crate) fn new(
     cache: CacheFacade,
     file_system_info: FileSystemInfo,
-    strategy: SnapshotStrategyOptions,
     logger: &impl Logger,
   ) -> Self {
     Self {
       cache,
       file_system_info,
-      strategy,
       counter: Arc::new(logger.cache("resolver cache")),
       locks: Default::default(),
     }
@@ -53,7 +47,6 @@ impl ResolverCache {
     Self {
       cache: self.cache.get_child_cache(name),
       file_system_info: self.file_system_info.clone(),
-      strategy: self.strategy,
       counter: Arc::clone(&self.counter),
       locks: Default::default(),
     }
@@ -110,7 +103,7 @@ impl ResolverCache {
           &dependencies.file_dependencies,
           &Default::default(),
           &dependencies.missing_dependencies,
-          self.strategy,
+          self.file_system_info.resolve_strategy(),
         )
         .await
     {

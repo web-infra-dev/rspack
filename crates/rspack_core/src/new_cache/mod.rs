@@ -44,16 +44,13 @@ pub fn create_cache(
     crate::CacheOptions::Disabled => {
       return Cache::new_disabled();
     }
-    crate::CacheOptions::Persistent(_) => {
-      unreachable!("persistent cache options must be converted before enabling newCache")
-    }
     crate::CacheOptions::Memory {
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
       ..
     } => {
       return Cache::new(Some(MemoryCache::new(5)), None);
     }
-    crate::CacheOptions::FileSystem(options) => options,
+    crate::CacheOptions::Persistent(options) => options,
   };
 
   let codec = Arc::new(CacheCodec::new(None));
@@ -67,8 +64,12 @@ pub fn create_cache(
     compiler_options.snapshot.clone(),
     compiler_options.output.hash_function,
   );
-  let base_path = options.cache_directory.clone();
-  let database_path = options.cache_location.clone();
+  let (base_path, database_path) = match &options.storage {
+    crate::StorageOptions::FileSystem {
+      directory,
+      location,
+    } => (directory.clone(), location.clone()),
+  };
   let strategy = FileCacheStrategy::new(
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
@@ -81,9 +82,9 @@ pub fn create_cache(
     (base_path, database_path),
     strategy,
     logger,
-    Some(options.idle_timeout),
-    Some(options.idle_timeout_for_initial_store),
-    Some(options.idle_timeout_after_large_changes),
+    None,
+    None,
+    None,
   );
   let memory_cache = match options.max_memory_generations {
     MaxMemoryGenerations::Disabled => None,

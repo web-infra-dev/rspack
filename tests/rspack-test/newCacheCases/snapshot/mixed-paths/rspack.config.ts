@@ -7,9 +7,11 @@ export default defineConfig({
     type: 'persistent',
     snapshot: {
       immutablePaths: [path.join(import.meta.dirname, 'immutable')],
-      unmanagedPaths: [path.join(import.meta.dirname, 'immutable/mutable')],
       managedPaths: [/^(.+?[\\/]packages[\\/])/],
     },
+  },
+  snapshot: {
+    unmanagedPaths: [path.join(import.meta.dirname, 'immutable/mutable')],
   },
   module: {
     rules: [{ test: /consumer-.*\.js$/, loader: './dependency-loader.js' }],
