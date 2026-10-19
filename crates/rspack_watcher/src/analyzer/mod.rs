@@ -15,9 +15,7 @@ pub(crate) trait Analyzer: Default {
   /// A vector of [`WatchPattern`]s representing the paths and their watch modes.
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern>;
 
-  fn recovery_paths(&self) -> rspack_paths::InternedPathSet {
-    Default::default()
-  }
+  fn on_directory_event(&self, _path: &rspack_paths::InternedPath) {}
 }
 
 #[cfg(any(target_os = "macos", target_os = "windows"))]

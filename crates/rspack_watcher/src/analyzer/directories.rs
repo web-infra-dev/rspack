@@ -17,13 +17,93 @@ pub struct WatcherDirectoriesAnalyzer {
 struct DirectoryAnalyzerState {
   registrations: [InternedPathSet; 3],
   directories: InternedPathMap<DirectorySubscriptions>,
-  recovery_paths: InternedPathSet,
+  requirements: InternedPathMap<WatchRequirement>,
+  recovering: InternedPathMap<InternedPathSet>,
+  dirty: InternedPathSet,
+  patterns: Vec<WatchPattern>,
 }
 
 #[derive(Default)]
 struct DirectorySubscriptions {
   files: usize,
   contexts: usize,
+  resolution: Option<DirectoryResolution>,
+}
+
+struct DirectoryResolution {
+  path: InternedPath,
+  recursive: bool,
+  recovery: Option<InternedPath>,
+}
+
+#[derive(Default)]
+struct WatchRequirement {
+  directories: InternedPathSet,
+  recursive: usize,
+}
+
+impl DirectoryAnalyzerState {
+  fn refresh_directory(&mut self, directory: &InternedPath) {
+    let subscriptions = self
+      .directories
+      .get_mut(directory)
+      .expect("subscribed directory");
+    let active = subscriptions.files + subscriptions.contexts > 0;
+    let context = subscriptions.contexts > 0;
+    if let Some(old) = subscriptions.resolution.take() {
+      let requirement = self
+        .requirements
+        .get_mut(&old.path)
+        .expect("watch requirement");
+      requirement.directories.remove(directory);
+      requirement.recursive -= usize::from(old.recursive);
+      if requirement.directories.is_empty() {
+        self.requirements.remove(&old.path);
+      }
+      if let Some(recovery) = old.recovery {
+        let directories = self
+          .recovering
+          .get_mut(&recovery)
+          .expect("recovering directory");
+        directories.remove(directory);
+        if directories.is_empty() {
+          self.recovering.remove(&recovery);
+        }
+      }
+    }
+    if !active {
+      self.directories.remove(directory);
+      return;
+    }
+    let resolution = find_existing_directory(directory.clone()).map(|(path, ancestor)| {
+      let recovery = ancestor.then(|| {
+        InternedPath::from(
+          directory
+            .ancestors()
+            .find(|missing| missing.parent() == Some(&*path))
+            .expect("missing child"),
+        )
+      });
+      let recursive = context && !ancestor;
+      let requirement = self.requirements.entry(path.clone()).or_default();
+      requirement.directories.insert(directory.clone());
+      requirement.recursive += usize::from(recursive);
+      if let Some(recovery) = &recovery {
+        let directories = self.recovering.entry(recovery.clone()).or_default();
+        directories.insert(directory.clone());
+      }
+      DirectoryResolution {
+        path,
+        recursive,
+        recovery,
+      }
+    });
+    self
+      .directories
+      .get_mut(directory)
+      .expect("subscribed directory")
+      .resolution = resolution;
+  }
 }
 
 impl Analyzer for WatcherDirectoriesAnalyzer {
@@ -32,7 +112,8 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
     let DirectoryAnalyzerState {
       registrations,
       directories,
-      recovery_paths,
+      dirty,
+      ..
     } = &mut *state;
     for (index, (all, added, removed)) in [
       path_accessor.files(),
@@ -59,7 +140,7 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
             .parent()
             .map_or_else(|| path.clone(), InternedPath::from)
         };
-        let subscriptions = directories.entry(directory).or_default();
+        let subscriptions = directories.entry(directory.clone()).or_default();
         let count = if index == 1 {
           &mut subscriptions.contexts
         } else {
@@ -70,49 +151,55 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
         } else {
           *count -= 1;
         }
+        dirty.insert(directory);
       }
     }
-    directories.retain(|_, subscriptions| subscriptions.files + subscriptions.contexts > 0);
-    recovery_paths.clear();
-    let mut patterns = InternedPathMap::<bool>::default();
-    for (directory, subscriptions) in directories.iter() {
-      if let Some((existing, ancestor)) = find_existing_directory(directory.clone()) {
-        if ancestor
-          && let Some(missing) = directory
-            .ancestors()
-            .find(|path| path.parent() == Some(&*existing))
-        {
-          recovery_paths.insert(InternedPath::from(missing));
-        }
-        *patterns.entry(existing).or_default() |= subscriptions.contexts > 0 && !ancestor;
+    if !state.dirty.is_empty() {
+      for directory in std::mem::take(&mut state.dirty) {
+        state.refresh_directory(&directory);
       }
+      state.patterns = state
+        .requirements
+        .iter()
+        .filter(|(path, _)| {
+          !path.ancestors().skip(1).any(|ancestor| {
+            state
+              .requirements
+              .get(&InternedPath::from(ancestor))
+              .is_some_and(|requirement| requirement.recursive > 0)
+          })
+        })
+        .map(|(path, requirement)| WatchPattern {
+          path: path.clone(),
+          mode: if requirement.recursive > 0 {
+            notify::RecursiveMode::Recursive
+          } else {
+            notify::RecursiveMode::NonRecursive
+          },
+        })
+        .collect();
     }
-    patterns
+    state
+      .patterns
       .iter()
-      .filter(|(path, _)| {
-        !path
-          .ancestors()
-          .skip(1)
-          .any(|ancestor| patterns.get(&InternedPath::from(ancestor)) == Some(&true))
-      })
-      .map(|(path, recursive)| WatchPattern {
-        path: path.clone(),
-        mode: if *recursive {
-          notify::RecursiveMode::Recursive
-        } else {
-          notify::RecursiveMode::NonRecursive
-        },
+      .map(|pattern| WatchPattern {
+        path: pattern.path.clone(),
+        mode: pattern.mode,
       })
       .collect()
   }
 
-  fn recovery_paths(&self) -> InternedPathSet {
-    self
-      .state
-      .lock()
-      .expect("directory analyzer lock poisoned")
-      .recovery_paths
-      .clone()
+  fn on_directory_event(&self, path: &InternedPath) {
+    let mut state = self.state.lock().expect("directory analyzer lock poisoned");
+    let affected: InternedPathSet = state
+      .requirements
+      .iter()
+      .filter(|(root, _)| root.starts_with(path.as_ref() as &std::path::Path))
+      .flat_map(|(_, requirement)| requirement.directories.iter())
+      .chain(state.recovering.get(path).into_iter().flatten())
+      .cloned()
+      .collect();
+    state.dirty.extend(affected);
   }
 }
 

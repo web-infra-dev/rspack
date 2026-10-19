@@ -167,6 +167,7 @@ impl FsWatcher {
       options.follow_symlinks,
       options.poll_interval,
       trigger.clone(),
+      Arc::clone(&state),
     );
     let paused = Arc::new(AtomicBool::new(false));
     let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
@@ -421,10 +422,8 @@ impl FsWatcherInner {
     if !event.appeared {
       self.disk_watcher.invalidate_root(&event.path)?;
     }
+    self.analyzer.on_directory_event(&event.path);
     let patterns = self.analyzer.analyze(self.state.registry.access());
-    self
-      .disk_watcher
-      .set_recovery_paths(self.analyzer.recovery_paths());
     let result = self.disk_watcher.watch(patterns.into_iter());
     // Attach first: processing the old root event then observes changes made
     // while inotify had no watch, including a replacement at the same path.
@@ -534,11 +533,6 @@ impl FsWatcherInner {
       polling.update(self.state.registry.access());
     } else {
       let watch_patterns = self.analyzer.analyze(self.state.registry.access());
-      if cfg!(target_os = "linux") {
-        self
-          .disk_watcher
-          .set_recovery_paths(self.analyzer.recovery_paths());
-      }
       self.disk_watcher.watch(watch_patterns.into_iter())?;
     }
     let changed_in_contexts = self.state.scan_contexts(start_time).await;

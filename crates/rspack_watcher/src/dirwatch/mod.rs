@@ -46,6 +46,10 @@ impl WatcherManager {
   }
 
   /// Clear the per-`watch()`-call diff, keeping the watchers and their records.
+  pub(crate) fn has_directory_dependencies(&self, path: &InternedPath) -> bool {
+    self.registry.directories.all.contains(path) || self.registered_ancestors.contains_key(path)
+  }
+
   pub fn reset(&self) {
     self.registry.reset();
   }

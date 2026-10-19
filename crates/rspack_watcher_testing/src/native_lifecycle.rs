@@ -254,3 +254,71 @@ async fn native_watcher_narrows_initially_missing_ancestors() {
 async fn native_watcher_narrows_initially_missing_context_ancestors() {
   initially_missing_ancestors(true).await;
 }
+
+#[cfg(target_os = "linux")]
+#[tokio::test]
+async fn removing_a_context_after_its_child_disappears_keeps_the_child_subscription() {
+  struct Errors(mpsc::UnboundedSender<String>);
+  impl EventAggregateHandler for Errors {
+    fn on_event_handle(&self, _: crate::HashSet<String>, _: crate::HashSet<String>) {}
+    fn on_error(&self, error: rspack_error::Error) {
+      let _ = self.0.send(error.to_string());
+    }
+  }
+  let temp = tempfile::tempdir().expect("directory");
+  let root = InternedPath::from(temp.path().canonicalize().expect("canonicalize"));
+  let parent = root.join("nested");
+  std::fs::create_dir(&parent).expect("parent");
+  let file = InternedPath::from(parent.join("entry.js"));
+  write_file(&file, 100);
+  let watcher = FsWatcher::new(
+    FsWatcherOptions {
+      aggregate_timeout: Some(0),
+      ..Default::default()
+    },
+    Default::default(),
+  );
+  let (tx, mut rx) = mpsc::unbounded_channel();
+  let (error_tx, mut errors) = mpsc::unbounded_channel();
+  watcher
+    .watch(
+      (vec![file.clone()].into_iter(), std::iter::empty()),
+      (vec![root.clone()].into_iter(), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+      SystemTime::now(),
+      Box::new(Errors(error_tx.clone())),
+      Box::new(Events(tx.clone())),
+    )
+    .await;
+  write_file(&file, 101);
+  receive(&mut rx, &file, FsEventKind::Change, "initial edit").await;
+  let archive = tempfile::tempdir().expect("archive");
+  std::fs::rename(&parent, archive.path().join("nested")).expect("move child away");
+  receive(&mut rx, &file, FsEventKind::Remove, "child removal").await;
+  tokio::time::sleep(Duration::from_millis(200)).await;
+  watcher
+    .watch(
+      (std::iter::empty(), std::iter::empty()),
+      (std::iter::empty(), vec![root].into_iter()),
+      (std::iter::empty(), std::iter::empty()),
+      SystemTime::now(),
+      Box::new(Errors(error_tx)),
+      Box::new(Events(tx)),
+    )
+    .await;
+  let error = errors.try_recv();
+  assert!(
+    error.is_err(),
+    "failed to transfer the child watch: {error:?}"
+  );
+  std::fs::create_dir(&parent).expect("restore child");
+  write_file(&file, 102);
+  receive(
+    &mut rx,
+    &file,
+    FsEventKind::Change,
+    "child recovery after context removal",
+  )
+  .await;
+  watcher.close().await.expect("close");
+}

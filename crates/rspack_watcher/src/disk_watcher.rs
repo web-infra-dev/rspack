@@ -1,10 +1,10 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use notify::{
   Event, EventKind, RecommendedWatcher, Watcher,
   event::{ModifyKind, RenameMode},
 };
-use rspack_paths::{InternedPath, InternedPathSet};
+use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use tokio::sync::mpsc;
 
@@ -17,14 +17,7 @@ pub struct DiskWatcher {
   inner: Option<RecommendedWatcher>,
   /// A set of pattern that are currently being watched.
   watch_patterns: HashSet<WatchPattern>,
-  watched_roots: Arc<Mutex<WatchRoots>>,
   root_events: mpsc::UnboundedReceiver<RootEvent>,
-}
-
-#[derive(Default)]
-struct WatchRoots {
-  watched: InternedPathSet,
-  recovery: InternedPathSet,
 }
 
 pub(crate) struct RootEvent {
@@ -39,20 +32,18 @@ impl DiskWatcher {
     follow_symlinks: bool,
     poll_interval: Option<u32>,
     trigger: Arc<trigger::Trigger>,
+    state: Arc<crate::WatcherManager>,
   ) -> Self {
-    let watched_roots = Arc::new(Mutex::new(WatchRoots::default()));
     let (root_tx, root_events) = mpsc::unbounded_channel();
     if poll_interval.is_some_and(|interval| interval > 0) {
       return Self {
         inner: None,
         watch_patterns: HashSet::default(),
-        watched_roots,
         root_events,
       };
     }
     let config = notify::Config::default().with_follow_symlinks(follow_symlinks);
 
-    let callback_roots = Arc::clone(&watched_roots);
     let inner = RecommendedWatcher::new(
       move |result: notify::Result<Event>| match result {
         Ok(event) => {
@@ -90,13 +81,9 @@ impl DiskWatcher {
                 | EventKind::Modify(ModifyKind::Name(RenameMode::From | RenameMode::Any))
             );
           for path in event.paths.into_iter().map(InternedPath::from) {
-            let refresh = if cfg!(target_os = "linux") && (invalidates_root || appeared) {
-              let roots = callback_roots.lock().expect("watch roots lock poisoned");
-              (invalidates_root && roots.watched.contains(&path))
-                || (appeared && roots.recovery.contains(&path))
-            } else {
-              false
-            };
+            let refresh = cfg!(target_os = "linux")
+              && (invalidates_root || appeared)
+              && state.has_directory_dependencies(&path);
             if refresh {
               let _ = root_tx.send(RootEvent {
                 path,
@@ -121,21 +108,12 @@ impl DiskWatcher {
     DiskWatcher {
       inner: Some(inner),
       watch_patterns: HashSet::default(),
-      watched_roots,
       root_events,
     }
   }
 
   pub async fn next_root_event(&mut self) -> Option<RootEvent> {
     self.root_events.recv().await
-  }
-
-  pub fn set_recovery_paths(&mut self, paths: InternedPathSet) {
-    self
-      .watched_roots
-      .lock()
-      .expect("watch roots lock poisoned")
-      .recovery = paths;
   }
 
   pub fn invalidate_root(&mut self, path: &InternedPath) -> rspack_error::Result<()> {
@@ -153,12 +131,6 @@ impl DiskWatcher {
       return Err(rspack_error::error!(error.to_string()));
     }
     self.watch_patterns.retain(|pattern| &pattern.path != path);
-    self
-      .watched_roots
-      .lock()
-      .expect("watch roots lock poisoned")
-      .watched
-      .remove(path);
     Ok(())
   }
 
@@ -172,18 +144,6 @@ impl DiskWatcher {
     patterns: impl Iterator<Item = WatchPattern>,
   ) -> rspack_error::Result<()> {
     let new_patterns: HashSet<WatchPattern> = patterns.collect();
-    if cfg!(target_os = "linux") {
-      // The callback can run as soon as the backend attaches a watch.
-      self
-        .watched_roots
-        .lock()
-        .expect("watch roots lock poisoned")
-        .watched = new_patterns
-        .iter()
-        .map(|pattern| pattern.path.clone())
-        .collect();
-    }
-
     // Collect stale paths that are no longer needed, then unwatch and remove them.
     let stale_paths: HashSet<InternedPath> = self
       .watch_patterns
@@ -240,8 +200,8 @@ mod tests {
   fn create_disk_watcher() -> DiskWatcher {
     let (tx, _rx) = mpsc::unbounded_channel();
     let state = Arc::new(crate::WatcherManager::default());
-    let trigger = Arc::new(trigger::Trigger::new(state, tx));
-    DiskWatcher::new(false, None, trigger)
+    let trigger = Arc::new(trigger::Trigger::new(Arc::clone(&state), tx));
+    DiskWatcher::new(false, None, trigger, state)
   }
 
   #[test]

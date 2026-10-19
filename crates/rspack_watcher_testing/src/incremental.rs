@@ -18,7 +18,7 @@ impl EventAggregateHandler for Aggregate {
 struct Change;
 impl EventHandler for Change {}
 
-fn benchmark_watch_delta(single_file: bool) {
+fn benchmark_watch_delta(single_file: bool, scattered: bool) {
   let runtime = tokio::runtime::Builder::new_current_thread()
     .enable_all()
     .build()
@@ -34,7 +34,11 @@ fn benchmark_watch_delta(single_file: bool) {
         }
       }
       let missing = (0..missing_count)
-        .map(|index| InternedPath::from(context.join(format!("missing-{index}.js"))))
+        .map(|index| InternedPath::from(context.join(if scattered {
+          format!("missing-dir-{index}/entry.js")
+        } else {
+          format!("missing-{index}.js")
+        })))
         .collect::<Vec<_>>();
       let watcher = FsWatcher::new(FsWatcherOptions::default(), Default::default());
       watcher
@@ -50,7 +54,7 @@ fn benchmark_watch_delta(single_file: bool) {
       let mut samples = Vec::with_capacity(200);
       for iteration in 0..220 {
         if iteration == 20 {
-          eprintln!("WATCHER_FS_SAMPLE_BEGIN single_file={single_file} missing={missing_count}");
+          eprintln!("WATCHER_FS_SAMPLE_BEGIN single_file={single_file} scattered={scattered} missing={missing_count}");
         }
         let added = single_file.then(|| files[iteration % 2].clone());
         let removed = (single_file && iteration > 0).then(|| files[(iteration - 1) % 2].clone());
@@ -73,7 +77,7 @@ fn benchmark_watch_delta(single_file: bool) {
       watcher.close().await.expect("close watcher");
       samples.sort_unstable();
       println!(
-        "single_file={single_file}, missing={missing_count}, n={}, p50_us={}, p95_us={}, mean_us={}",
+        "single_file={single_file}, scattered={scattered}, missing={missing_count}, n={}, p50_us={}, p95_us={}, mean_us={}",
         samples.len(),
         samples[100],
         samples[190],
@@ -86,11 +90,18 @@ fn benchmark_watch_delta(single_file: bool) {
 #[test]
 #[ignore = "manual steady-state watch benchmark"]
 fn benchmark_empty_watch_delta() {
-  benchmark_watch_delta(false);
+  benchmark_watch_delta(false, false);
 }
 
 #[test]
 #[ignore = "manual single-file subscription benchmark"]
 fn benchmark_single_file_watch_delta() {
-  benchmark_watch_delta(true);
+  benchmark_watch_delta(true, false);
+}
+
+#[test]
+#[ignore = "manual scattered missing subscription benchmark"]
+fn benchmark_scattered_missing_watch_delta() {
+  benchmark_watch_delta(false, true);
+  benchmark_watch_delta(true, true);
 }
