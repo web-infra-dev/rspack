@@ -665,6 +665,8 @@ Entries are tried in array order, and can be directory names, relative paths, or
 - A directory name or relative path is searched from the directory containing the importing file, and then from each parent directory. For example, `node_modules` searches `<importer-directory>/node_modules`, then each ancestor's `node_modules` directory.
 - An absolute path refers to that exact directory; it is not resolved again from each ancestor.
 
+When resolving a package root such as `foo` or `@scope/foo` from a directory named `node_modules`, Rspack tries the package directory before sibling files with appended extensions, such as `foo.js`. If the directory has no resolvable entry, Rspack falls back to file resolution. Requests matched by `resolve.extensionAlias` retain their existing resolution order. Other module directories and package subpath requests keep file-first resolution.
+
 For example, the following configuration allows modules inside `src` to be imported with bare requests, while preserving the normal lookup of third-party packages from `node_modules`:
 
 ```js title="rspack.config.mjs"

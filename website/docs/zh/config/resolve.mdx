@@ -665,6 +665,8 @@ Rspack 会按照数组顺序依次尝试每一项。数组项可以是目录名�
 - 对于目录名或相对路径，Rspack 会从发起导入的文件所在目录开始，逐级向父目录查找。例如，`node_modules` 会依次查找 `<导入方所在目录>/node_modules` 以及各级父目录下的 `node_modules`。
 - 对于绝对路径，Rspack 只会使用该路径所指向的固定目录，不会基于各级父目录再次解析。
 
+从名为 `node_modules` 的目录中解析 `foo` 或 `@scope/foo` 这样的包名时，Rspack 会先尝试包目录，再尝试同级的 `foo.js` 等带扩展名的文件。如果包目录没有可解析的入口，则回退到文件解析。匹配 `resolve.extensionAlias` 的请求仍沿用原有解析顺序。其他模块目录和包内子路径请求仍优先尝试文件。
+
 例如，下面的配置支持使用非相对模块请求导入 `src` 中的模块，同时保留从 `node_modules` 查找第三方依赖的默认行为：
 
 ```js title="rspack.config.mjs"

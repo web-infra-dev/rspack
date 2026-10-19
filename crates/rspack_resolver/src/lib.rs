@@ -963,6 +963,40 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // c. LOAD_AS_DIRECTORY(DIR/X)
     let node_module_file = cached_path.path().normalize_with(specifier);
     let file_cached = self.cache.value(&node_module_file);
+    // No modern package manager creates `node_modules/foo.js`, so a bare package is looked up as a directory first.
+    if cached_path.path().file_name() == Some("node_modules")
+      && specifier == package_name
+      && !self.options.resolve_to_context
+      && !file_cached.path().extension().is_some_and(|extension| {
+        self
+          .options
+          .extension_alias
+          .iter()
+          .any(|(alias, _)| alias.trim_start_matches('.') == extension)
+      })
+      && file_cached.is_dir(&self.cache.fs, ctx).await
+    {
+      if self.options.enforce_extension.is_disabled() {
+        if let Some(path) = self.load_alias_or_file(&file_cached, ctx).await? {
+          return Ok(Some(path));
+        }
+      }
+      let file_dependencies = ctx.file_dependencies.take();
+      let missing_dependencies = ctx.missing_dependencies.take();
+      let mut directory_ctx = ctx.clone();
+      directory_ctx.file_dependencies = file_dependencies;
+      directory_ctx.missing_dependencies = missing_dependencies;
+      let result = self
+        .load_as_directory(&file_cached, &mut directory_ctx)
+        .await;
+      if let Ok(Some(path)) = result {
+        *ctx = directory_ctx;
+        return Ok(Some(path));
+      }
+      ctx.file_dependencies = directory_ctx.file_dependencies.take();
+      ctx.missing_dependencies = directory_ctx.missing_dependencies.take();
+      result?;
+    }
     self
       .load_as_file_or_directory(&file_cached, specifier, ctx)
       .await
