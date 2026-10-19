@@ -24,13 +24,7 @@ use rspack_util::streaming_matcher::StreamingMatcher;
 pub struct RealContentHashSource(Arc<RealContentHashSourceData>);
 
 struct RealContentHashSourceData {
-  inner: BoxSource,
-  // Materialized source() text for inputs whose writer cannot be used as that
-  // text view (e.g. ConcatSource with non-UTF-8 buffer children). Scanning and
-  // edits use this snapshot; untouched output still uses inner. Known text
-  // sources stream directly and leave this empty.
-  fallback: Option<BoxSource>,
-  binary: bool,
+  inner: RealContentHashInput,
   replacements: Vec<(usize, usize, String)>,
   // Previously, any rewritten ordinary source became a RawStringSource, even
   // when all replacements happened to preserve their original hash strings.
@@ -38,22 +32,59 @@ struct RealContentHashSourceData {
   size: OnceLock<usize>,
 }
 
+#[derive(Clone)]
+enum RealContentHashInput {
+  StreamingText(BoxSource),
+  Binary(BoxSource),
+  // source() text can differ from writer bytes, e.g. for non-UTF-8 buffer
+  // children in ConcatSource. Scan/edit the text, but keep untouched output
+  // and source-map identity on the original source.
+  MaterializedText {
+    original: BoxSource,
+    text: BoxSource,
+  },
+}
+
+impl RealContentHashInput {
+  fn new(source: BoxSource) -> Self {
+    match content_kind(source.as_ref()) {
+      Some(false) => Self::StreamingText(source),
+      Some(true) => Self::Binary(source),
+      None => {
+        let text = match source.source() {
+          SourceValue::String(text) => Some(RawStringSource::from(text.into_owned()).boxed()),
+          SourceValue::Buffer(_) => None,
+        };
+        match text {
+          Some(text) => Self::MaterializedText {
+            original: source,
+            text,
+          },
+          None => Self::Binary(source),
+        }
+      }
+    }
+  }
+
+  fn original(&self) -> &BoxSource {
+    match self {
+      Self::StreamingText(source) | Self::Binary(source) => source,
+      Self::MaterializedText { original, .. } => original,
+    }
+  }
+
+  fn content(&self) -> &BoxSource {
+    match self {
+      Self::StreamingText(source) | Self::Binary(source) => source,
+      Self::MaterializedText { text, .. } => text,
+    }
+  }
+}
+
 impl RealContentHashSource {
   pub fn new(inner: BoxSource) -> Self {
-    let (binary, fallback) = match content_kind(inner.as_ref()) {
-      Some(binary) => (binary, None),
-      None => match inner.source() {
-        SourceValue::String(text) => (
-          false,
-          Some(RawStringSource::from(text.into_owned()).boxed()),
-        ),
-        SourceValue::Buffer(_) => (true, None),
-      },
-    };
     Self(Arc::new(RealContentHashSourceData {
-      inner,
-      fallback,
-      binary,
+      inner: RealContentHashInput::new(inner),
       replacements: Vec::new(),
       normalized: false,
       size: OnceLock::new(),
@@ -61,18 +92,20 @@ impl RealContentHashSource {
   }
 
   pub fn is_text(&self) -> bool {
-    !self.0.binary
+    !matches!(self.0.inner, RealContentHashInput::Binary(_))
   }
 
   /// Whether byte streaming agrees with the source's UTF-8 text view.
   pub fn can_stream_as_text(&self) -> bool {
     self.is_text()
-      && (self.0.fallback.is_none() || self.0.normalized || !self.0.replacements.is_empty())
+      && (matches!(self.0.inner, RealContentHashInput::StreamingText(_))
+        || self.0.normalized
+        || !self.0.replacements.is_empty())
   }
 
   /// Find non-overlapping matches, including patterns split across writer calls.
   pub fn matches(&self, matcher: &AhoCorasick) -> (Vec<Match>, usize) {
-    if self.0.binary {
+    if !self.is_text() {
       return (Vec::new(), self.size());
     }
     let (matches, size) = if let Some(bytes) = borrowed_bytes(self.input().as_ref()) {
@@ -87,7 +120,7 @@ impl RealContentHashSource {
       let size = writer.finish();
       (matches, size)
     };
-    if self.0.fallback.is_none() {
+    if matches!(self.0.inner, RealContentHashInput::StreamingText(_)) {
       let _ = self.0.size.set(size);
     }
     (matches, size)
@@ -110,15 +143,15 @@ impl RealContentHashSource {
     if !normalized && replacements.is_empty() {
       return self.clone();
     }
-    let (inner, fallback) = if self.0.replacements.is_empty() && !self.0.normalized {
-      (Arc::clone(&self.0.inner), self.0.fallback.clone())
+    let inner = if self.0.replacements.is_empty() && !self.0.normalized {
+      self.0.inner.clone()
+    } else if self.is_text() {
+      RealContentHashInput::StreamingText(self.clone().boxed())
     } else {
-      (self.clone().boxed(), None)
+      RealContentHashInput::Binary(self.clone().boxed())
     };
     Self(Arc::new(RealContentHashSourceData {
       inner,
-      fallback,
-      binary: self.0.binary,
       replacements,
       normalized,
       size: OnceLock::from(size),
@@ -130,15 +163,16 @@ impl RealContentHashSource {
     if self.0.normalized || !self.0.replacements.is_empty() {
       self.boxed()
     } else {
-      Arc::clone(&self.0.inner)
+      Arc::clone(self.0.inner.original())
     }
   }
 
   pub fn original_is_mapping(&self) -> bool {
-    self.0.inner.as_any().is::<MappingSource>()
+    self.0.inner.original().as_any().is::<MappingSource>()
       || self
         .0
         .inner
+        .original()
         .as_any()
         .downcast_ref::<Self>()
         .is_some_and(Self::original_is_mapping)
@@ -151,11 +185,11 @@ impl RealContentHashSource {
       s.0.normalized
         || !s.0.replacements.is_empty()
         || s.original_is_mapping()
-        || s.0.inner.as_any().is::<RawStringSource>()
+        || s.0.inner.original().as_any().is::<RawStringSource>()
     };
     match (by_content(self), by_content(other)) {
       (true, true) => self.content_eq(other),
-      (false, false) => self.0.inner.as_ref() == other.0.inner.as_ref(),
+      (false, false) => self.0.inner.original().as_ref() == other.0.inner.original().as_ref(),
       _ => false,
     }
   }
@@ -190,14 +224,14 @@ impl RealContentHashSource {
   }
 
   fn input(&self) -> &BoxSource {
-    self.0.fallback.as_ref().unwrap_or(&self.0.inner)
+    self.0.inner.content()
   }
 
   fn output_input(&self) -> &BoxSource {
     if self.0.normalized || !self.0.replacements.is_empty() {
       self.input()
     } else {
-      &self.0.inner
+      self.0.inner.original()
     }
   }
 
@@ -233,7 +267,7 @@ fn content_kind(source: &dyn Source) -> Option<bool> {
     return Some(true);
   }
   if let Some(s) = any.downcast_ref::<RealContentHashSource>() {
-    return if s.0.binary {
+    return if !s.is_text() {
       Some(true)
     } else {
       s.can_stream_as_text().then_some(false)
@@ -526,7 +560,7 @@ impl StreamChunks for RealContentHashSource {
 impl Hash for RealContentHashSource {
   fn hash<H: Hasher>(&self, state: &mut H) {
     "RealContentHashSource".hash(state);
-    self.0.inner.as_ref().hash(state);
+    self.0.inner.original().as_ref().hash(state);
     self.0.replacements.hash(state);
     self.0.normalized.hash(state);
   }
@@ -534,7 +568,7 @@ impl Hash for RealContentHashSource {
 impl PartialEq for RealContentHashSource {
   fn eq(&self, other: &Self) -> bool {
     Arc::ptr_eq(&self.0, &other.0)
-      || (self.0.inner.as_ref() == other.0.inner.as_ref()
+      || (self.0.inner.original().as_ref() == other.0.inner.original().as_ref()
         && self.0.replacements == other.0.replacements
         && self.0.normalized == other.0.normalized)
   }
