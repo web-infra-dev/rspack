@@ -419,69 +419,6 @@ impl ChunkCombinations<'_> {
 }
 
 impl Combinator {
-  fn original_combinations(
-    &self,
-    module_index: usize,
-    used_exports: bool,
-  ) -> Vec<&ChunkCombination> {
-    if used_exports {
-      self.grouped_by_exports[module_index]
-        .iter()
-        .map(|key| {
-          self.used_exports_combinations[key]
-            .get(false)
-            .last()
-            .expect("original combination")
-        })
-        .collect()
-    } else {
-      self.non_used_exports_chunks_keys[module_index]
-        .map(|key| {
-          self.combinations[&key]
-            .get(false)
-            .last()
-            .expect("original combination")
-        })
-        .into_iter()
-        .collect()
-    }
-  }
-
-  fn support_relations(&self, used_exports: bool) -> FxHashMap<ChunksKey, Vec<ChunksKey>> {
-    let combinations = if used_exports {
-      &self.used_exports_combinations
-    } else {
-      &self.combinations
-    };
-    let mut relations = FxHashMap::<_, Vec<_>>::default();
-    // Original-subset relationships have already been established by native
-    // preparation. Transpose their cached rows instead of scanning chunk sets.
-    for (original, prepared) in combinations {
-      for candidate in prepared.get(false) {
-        relations.entry(candidate.key).or_default().push(*original);
-      }
-    }
-    if let Some(candidates) = self.candidates(used_exports) {
-      for Intersection { chunks, support } in &candidates.intersections {
-        let mut hasher = FxHasher::default();
-        for chunk in chunks {
-          chunk.hash(&mut hasher);
-        }
-        relations.entry(hasher.finish()).or_insert_with(|| {
-          support
-            .iter()
-            .map(|row| candidates.originals[*row])
-            .collect()
-        });
-      }
-    }
-    for originals in relations.values_mut() {
-      originals.sort_unstable();
-      originals.dedup();
-    }
-    relations
-  }
-
   fn candidates(&self, used_exports: bool) -> Option<&CandidateRelations> {
     if used_exports {
       self.used_exports_candidates.as_ref()
@@ -958,7 +895,7 @@ impl SplitChunksPlugin {
 
   #[allow(clippy::too_many_arguments)]
   #[instrument(name = "Compilation:SplitChunks:prepare_module_group_map",target=TRACING_BENCH_TARGET, skip_all)]
-  pub(super) async fn prepare_module_group_map(
+  pub(crate) async fn prepare_module_group_map(
     &self,
     combinator: &Combinator,
     all_modules: &[ModuleIdentifier],
@@ -966,8 +903,7 @@ impl SplitChunksPlugin {
     compilation: &Compilation,
     module_chunks: &[SsoHashSet<ChunkUkey>],
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
-    capture_residual: bool,
-  ) -> Result<(ModuleGroupMap, Option<super::residual::ResidualSupports>)> {
+  ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
     let module_group_map: FxDashMap<ModuleGroupKey, ModuleGroup> = FxDashMap::default();
     // Only function filters use this preparation-scoped memo. Native-only
@@ -999,27 +935,6 @@ impl SplitChunksPlugin {
         })
       })
       .collect();
-    let residual_matches = capture_residual.then(|| {
-      cache_groups
-        .iter()
-        .map(|indexed| {
-          let group = indexed.cache_group;
-          let has_name_batch_getter = name_batch_getters.is_some_and(|getters| {
-            getters
-              .get(indexed.cache_group_index as usize)
-              .is_some_and(Option::is_some)
-          });
-          (matches!(group.chunk_filter, ChunkFilter::All)
-            && matches!(group.name, ChunkNameGetter::Disabled)
-            && !has_name_batch_getter)
-            .then(|| {
-              (0..all_modules.len())
-                .map(|_| AtomicBool::new(false))
-                .collect::<Vec<_>>()
-            })
-        })
-        .collect::<Vec<_>>()
-    });
     let has_name_batch_callback = name_batch_getters.is_some_and(|name_batch_getters| {
       cache_groups.iter().any(|indexed_cache_group| {
         name_batch_getters
@@ -1096,12 +1011,6 @@ impl SplitChunksPlugin {
         };
         if !is_match || belong_to_chunks.len() < cache_group.min_chunks as usize {
           continue;
-        }
-        if let Some(matches) = residual_matches
-          .as_ref()
-          .and_then(|matches| matches[cache_group_position].as_ref())
-        {
-          matches[module_index].store(true, Ordering::Relaxed);
         }
         if let Some(matches) = &direct_matches[cache_group_position] {
           matches[module_index].store(true, Ordering::Relaxed);
@@ -1354,64 +1263,7 @@ impl SplitChunksPlugin {
     let mut ordered_result =
       ModuleGroupMap::with_capacity_and_hasher(module_group_count, Default::default());
     ordered_result.extend(result);
-    let supports = if let Some(matches) = residual_matches {
-      let mut supports = super::residual::ResidualSupports::default();
-      for (indexed, matches) in cache_groups.iter().zip(&matches) {
-        if let Some(matches) = matches {
-          for (module, matched) in matches.iter().enumerate() {
-            if !matched.load(Ordering::Relaxed) {
-              continue;
-            }
-            for original in
-              combinator.original_combinations(module, indexed.cache_group.used_exports)
-            {
-              if original.len() >= indexed.cache_group.min_chunks as usize {
-                supports.add_original(
-                  indexed,
-                  all_modules[module],
-                  original.key,
-                  &original.data.chunks,
-                );
-              }
-            }
-          }
-        }
-      }
-      let mut relations = [None, None];
-      for (indexed, matched) in cache_groups.iter().zip(&matches) {
-        if matched.is_some() {
-          let used_exports = indexed.cache_group.used_exports;
-          relations[used_exports as usize]
-            .get_or_insert_with(|| combinator.support_relations(used_exports));
-        }
-      }
-      for (key, group) in &ordered_result {
-        let position = cache_groups
-          .iter()
-          .position(|indexed| indexed.cache_group_index == group.cache_group_index)
-          .expect("cache group position");
-        let original_keys = if matches[position].is_some() {
-          let ModuleGroupKey::Anonymous { chunks_key, .. } = key else {
-            unreachable!()
-          };
-          relations[cache_groups[position].cache_group.used_exports as usize]
-            .as_ref()
-            .expect("native support relations")
-            .get(chunks_key)
-            .cloned()
-        } else {
-          None
-        };
-        supports.add_seed(key, group, original_keys);
-        if matches[position].is_none() {
-          supports.add_fallback(key, group, &self.cache_groups);
-        }
-      }
-      Some(supports)
-    } else {
-      None
-    };
-    Ok((ordered_result, supports))
+    Ok(ordered_result)
   }
 
   // #[tracing::instrument(skip_all)]

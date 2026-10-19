@@ -184,7 +184,8 @@ impl SplitChunksPlugin {
 
     let mut max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting> = Default::default();
     let mut removed_module_chunks: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
-    let mut residual_occupied: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
+    let mut residual_pools = Vec::<residual::ResidualCandidates>::new();
+    let mut residual_update_seconds = 0.0;
 
     // Each priority uses the remaining original module-chunk edges. Destinations
     // created by earlier splits never become inputs to candidate enumeration.
@@ -196,7 +197,7 @@ impl SplitChunksPlugin {
     let mut jobs = priority_cache_groups
       .into_iter()
       .enumerate()
-      .map(|(index, (_, groups))| (index, Some(groups), None::<residual::ResidualSupports>))
+      .map(|(index, (_, groups))| (index, Some(groups), None::<usize>))
       .collect::<VecDeque<_>>();
     while let Some((index, cache_groups, deferred_originals)) = jobs.pop_front() {
       for (module, removed) in removed_module_chunks.drain() {
@@ -208,13 +209,7 @@ impl SplitChunksPlugin {
       let supplemental = deferred_originals.is_some();
       let (mut module_group_map, residual_originals) = if let Some(originals) = deferred_originals {
         let projection_started = std::time::Instant::now();
-        residual_snapshots += originals.original_count();
-        let candidates = self.prepare_residual_candidates(
-          originals,
-          &residual_occupied,
-          &chunk_index_map,
-          &module_sizes,
-        );
+        let candidates = std::mem::take(&mut residual_pools[originals]).finish(self, &module_sizes);
         residual_candidates += candidates.len();
         residual_prepare_seconds += projection_started.elapsed().as_secs_f64();
         (candidates, None)
@@ -299,7 +294,7 @@ impl SplitChunksPlugin {
           );
         }
 
-        let (mut module_group_map, supports) = self
+        let mut module_group_map = self
           .prepare_module_group_map(
             &combinator,
             &all_modules,
@@ -307,14 +302,29 @@ impl SplitChunksPlugin {
             compilation,
             available_module_chunks,
             &chunk_index_map,
-            residual_enabled,
           )
           .await?;
-        tracing::trace!("prepared module_group_map {:#?}", module_group_map);
-
         module_group_map
           .par_iter_mut()
-          .for_each(|(_, module_group)| module_group.prepare_modules_for_sizes_and_compare());
+          .for_each(|(_, module_group)| {
+            module_group.prepare_modules_for_sizes_and_compare();
+            if residual_enabled {
+              let _ = module_group.get_sizes(&module_sizes);
+            }
+          });
+        let supports = residual_enabled.then(|| {
+          let pool = residual::ResidualCandidates::capture(
+            &mut module_group_map,
+            &self.cache_groups,
+            &module_sizes,
+          );
+          residual_snapshots += pool.len();
+          let index = residual_pools.len();
+          residual_pools.push(pool);
+          index
+        });
+        tracing::trace!("prepared module_group_map {:#?}", module_group_map);
+
         self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
 
         (module_group_map, supports)
@@ -527,6 +537,30 @@ impl SplitChunksPlugin {
         }
         if supplemental {
           residual_committed += 1;
+          if std::env::var_os("RSPACK_RESIDUAL_PLACEMENTS").is_some() {
+            let mut edges = match &placed_module_chunks {
+              ModuleChunkMap::Shared { modules, chunks } => modules
+                .iter()
+                .map(|module| (*module, chunks))
+                .collect::<Vec<_>>(),
+              ModuleChunkMap::ByModule(modules) => modules
+                .iter()
+                .map(|(module, chunks)| (*module, chunks))
+                .collect::<Vec<_>>(),
+            }
+            .into_iter()
+            .map(|(module, chunks)| {
+              let mut sources = chunks
+                .iter()
+                .filter_map(|chunk| chunk_index_map.get(chunk).copied())
+                .collect::<Vec<_>>();
+              sources.sort_unstable();
+              (module.to_string(), sources)
+            })
+            .collect::<Vec<_>>();
+            edges.sort_unstable();
+            eprintln!("[residual-placement] ({:?}, {:?})", cache_group.key, edges);
+          }
         }
 
         // Only mutate metadata on an existing destination after the winning group has passed all
@@ -567,6 +601,19 @@ impl SplitChunksPlugin {
 
         self.split_from_original_chunks(&module_group, &used_chunks, new_chunk, compilation);
 
+        if residual_enabled {
+          let update_started = std::time::Instant::now();
+          for pool in &mut residual_pools {
+            pool.remove(
+              &placed_module_chunks,
+              &self.cache_groups,
+              &chunk_index_map,
+              &module_sizes,
+            );
+          }
+          residual_update_seconds += update_started.elapsed().as_secs_f64();
+        }
+
         let cleanup_started = std::time::Instant::now();
         self.remove_all_modules_from_other_module_groups(
           &placed_module_chunks,
@@ -575,16 +622,10 @@ impl SplitChunksPlugin {
         );
         residual_cleanup_seconds += cleanup_started.elapsed().as_secs_f64();
 
-        if residual_enabled || index != priority_len - 1 {
+        if index != priority_len - 1 {
           match &placed_module_chunks {
             ModuleChunkMap::Shared { modules, chunks } => {
               for module in modules {
-                if residual_enabled {
-                  residual_occupied
-                    .entry(*module)
-                    .or_default()
-                    .extend(chunks.iter().copied());
-                }
                 removed_module_chunks
                   .entry(*module)
                   .or_default()
@@ -593,12 +634,6 @@ impl SplitChunksPlugin {
             }
             ModuleChunkMap::ByModule(module_chunks) => {
               for (module, chunks) in module_chunks {
-                if residual_enabled {
-                  residual_occupied
-                    .entry(*module)
-                    .or_default()
-                    .extend(chunks.iter().copied());
-                }
                 removed_module_chunks
                   .entry(*module)
                   .or_default()
@@ -616,7 +651,7 @@ impl SplitChunksPlugin {
     logger.time_end(start);
     if residual_audit {
       eprintln!(
-        "[residual-reuse] {{\"enabled\":{},\"modules\":{},\"snapshots\":{},\"candidates\":{},\"selected\":{},\"committed\":{},\"rejected\":{},\"projectionSeconds\":{},\"cleanupSeconds\":{},\"splitChunksSeconds\":{}}}",
+        "[residual-reuse] {{\"enabled\":{},\"modules\":{},\"snapshots\":{},\"candidates\":{},\"selected\":{},\"committed\":{},\"rejected\":{},\"projectionSeconds\":{},\"updateSeconds\":{},\"cleanupSeconds\":{},\"splitChunksSeconds\":{}}}",
         residual_enabled,
         all_modules.len(),
         residual_snapshots,
@@ -625,6 +660,7 @@ impl SplitChunksPlugin {
         residual_committed,
         residual_rejected,
         residual_prepare_seconds,
+        residual_update_seconds,
         residual_cleanup_seconds,
         residual_started.elapsed().as_secs_f64()
       );
