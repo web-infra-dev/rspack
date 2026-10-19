@@ -17,6 +17,8 @@ Object {
     after: LOCAL-after,
     attribute: LOCAL-attribute,
     commented: LOCAL-commented,
+    composeBase: LOCAL-composeBase,
+    composeType: LOCAL-composeType,
     container: LOCAL-container,
     custom: --LOCAL-custom,
     deep: LOCAL-deep,

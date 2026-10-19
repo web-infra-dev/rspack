@@ -246,6 +246,10 @@ impl BalancedStack {
     self.0.is_empty()
   }
 
+  fn last_component(&self) -> Option<&BalancedItem> {
+    self.0.iter().rev().find(|item| !item.kind.is_mode_class())
+  }
+
   pub fn push(&mut self, item: BalancedItem, mode_data: Option<&mut ModeData>) {
     if let Some(mode_data) = mode_data {
       if item.kind.is_mode_local() {
@@ -3721,7 +3725,19 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         Scope::InAtImport(_) | Scope::AtImportInvalid | Scope::AtNamespaceInvalid
       );
     match RecoveryBoundary::at(token.kind, nested && !import_semicolon) {
-      Some(RecoveryBoundary::Eof) => None,
+      Some(RecoveryBoundary::Eof) => {
+        if self.scan_context == ScanContext::Selector
+          && let Some(unclosed) = self.balanced.last_component()
+        {
+          self.handle_warning.handle_warning(Warning {
+            range: unclosed.range,
+            kind: WarningKind::InvalidSelector {
+              message: "Unclosed function or block in selector",
+            },
+          });
+        }
+        None
+      }
       Some(RecoveryBoundary::Semicolon) => {
         stream.reset_value_scan_states();
         self.handle_semicolon(stream.lexer_mut(), token.range.start, token.range.end)?;
@@ -4102,6 +4118,9 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         let Some(mode_data) = &mut self.mode_data else {
           return Some(());
         };
+        if self.scan_context == ScanContext::Selector && self.block_nesting_level == 0 {
+          mode_data.composes_local_classes.invalidate();
+        }
         if mode_data.is_current_local_mode()
           && self
             .balanced
@@ -4327,12 +4346,13 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     _: Pos,
   ) -> Option<()> {
     if matches!(self.scope, Scope::InBlock)
-      && self.scan_context != ScanContext::Selector
-      && (!self.balanced.is_empty()
-        || matches!(
-          self.scan_context,
-          ScanContext::GenericValue | ScanContext::SpecialValue(_)
-        ))
+      && (self.selector_square_depth != 0
+        || self.balanced.last_component().is_some()
+        || (self.scan_context != ScanContext::Selector
+          && matches!(
+            self.scan_context,
+            ScanContext::GenericValue | ScanContext::SpecialValue(_)
+          )))
     {
       self.balanced.push(
         BalancedItem::new_curly(start, start + 1),

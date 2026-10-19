@@ -9,6 +9,7 @@ import * as pureRecoveryStyles from "./recovery.pure.modules.css";
 import * as eofStyles from "./eof.modules.css";
 import * as eofCurlyStyles from "./eof-curly.modules.css";
 import "./recovery.css";
+import "./invalid-selector.modules.css";
 
 it("localizes type-first selectors in nested rules", () => {
 	const fs = require("fs");

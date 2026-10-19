@@ -1,5 +1,5 @@
 .plainRecovery {
-	background:url("./must-not-resolve-plain.svg") "unterminated
+	background:paint(opaque) "unterminated
 		.discarded;
 	button:hover { color: red; }
 	/* Selector pseudo-functions must not create declaration URL dependencies. */
@@ -9,9 +9,9 @@
 	button:url(./must-not-resolve-unquoted-selector.svg) { color: red; }
 	button:image-set("./must-not-resolve-image-set-selector.svg" 1x) { color: red; }
 
-	/* A sole curly value falls back to a rule when its contents are invalid. */
+	/* Bad tokens inside a sole curly value remain declaration components. */
 	background:{
-		broken:url("./must-not-resolve-body.svg") "unterminated
+		broken:paint(opaque) "unterminated
 			.discardedInner;
 	}
 	.afterPlainRecovery { color: green; }

@@ -102,9 +102,7 @@ impl DeclarationCandidate {
       return;
     }
     if self.components.is_nested() {
-      if matches!(token.kind, TokenKind::BadString | TokenKind::BadUrl) {
-        self.state = DeclarationState::Rejected;
-      } else if token.kind == TokenKind::Eof {
+      if token.kind == TokenKind::Eof {
         self.state = DeclarationState::Accepted;
       } else {
         self.components.consume(token.kind);
@@ -129,16 +127,7 @@ impl DeclarationCandidate {
         self.components.consume(token.kind);
         DeclarationState::CurlyValue
       }
-      DeclarationState::Value { .. }
-        if !matches!(
-          token.kind,
-          TokenKind::LeftCurlyBracket
-            | TokenKind::RightParenthesis
-            | TokenKind::RightSquareBracket
-            | TokenKind::BadString
-            | TokenKind::BadUrl
-        ) =>
-      {
+      DeclarationState::Value { .. } if token.kind != TokenKind::LeftCurlyBracket => {
         self.components.consume(token.kind);
         DeclarationState::Value { has_value: true }
       }

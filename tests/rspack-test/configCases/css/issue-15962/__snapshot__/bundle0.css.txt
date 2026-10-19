@@ -16,6 +16,13 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 	按钮.LOCAL-unicode { color: blue; }
 	.LOCAL-after { color: green; }
 }
+
+.LOCAL-composeBase { color: red; }
+@media screen {
+	button.LOCAL-composeType {
+		composes: composeBase;
+	}
+}
 @supports (display: grid) { button.LOCAL-supports { color: blue; } }
 @container (width > 100px) { button.LOCAL-container { color: blue; } }
 @layer base { button.LOCAL-layer { color: blue; } }
@@ -86,8 +93,8 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 	brokenString:"unterminated
 		.shouldNotExport;
 	brokenUrl:url(bad"url);
-	/* Provisional URL dependencies and dashed names must be discarded. */
-	background:url("./must-not-resolve.svg") "unterminated
+	/* Bad tokens remain declaration values and must not expose selector dependencies. */
+	background:paint(opaque) "unterminated
 		.shouldNotExportEither;
 	font-palette:--discardedPalette );
 	.LOCAL-afterInvalid { color: green; }
@@ -99,6 +106,11 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 	color:{.opaque; :global(.opaqueGlobal)} !\69mportant;
 	color:{@import "not-a-file.css"; @property --opaque { syntax:"x"; }};
 	background:paint([{.opaque; .alsoOpaque}]);
+	color:{"unterminated
+		.badStringOpaque { color: red; }};
+	color:{url(bad"url) .badUrlOpaque { color: red; }};
+	/* Unmatched closing tokens are preserved in declaration values. */
+	color:) var(--LOCAL-components);
 	--LOCAL-components:before{.opaque; stillOpaque}after;
 	--LOCAL-mismatched:paint([opaque) ; stillOpaque} ]);
 
@@ -162,7 +174,7 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 	color:{.opaqueAtEof
 
 .plainRecovery {
-	background:url("./must-not-resolve-plain.svg") "unterminated
+	background:paint(opaque) "unterminated
 		.discarded;
 	button:hover { color: red; }
 	/* Selector pseudo-functions must not create declaration URL dependencies. */
@@ -172,9 +184,9 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 	button:url(./must-not-resolve-unquoted-selector.svg) { color: red; }
 	button:image-set("./must-not-resolve-image-set-selector.svg" 1x) { color: red; }
 
-	/* A sole curly value falls back to a rule when its contents are invalid. */
+	/* Bad tokens inside a sole curly value remain declaration components. */
 	background:{
-		broken:url("./must-not-resolve-body.svg") "unterminated
+		broken:paint(opaque) "unterminated
 			.discardedInner;
 	}
 	.afterPlainRecovery { color: green; }

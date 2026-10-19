@@ -669,6 +669,7 @@ impl<'s> Warning<'s> {
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum WarningKind<'s> {
   Unexpected { message: &'s str },
+  InvalidSelector { message: &'s str },
   DuplicateUrl { when: &'s str },
   NamespaceNotSupportedInBundledCss,
   NotPrecededAtImport,
@@ -685,6 +686,7 @@ impl Display for Warning<'_> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self.kind {
       WarningKind::Unexpected { message, .. } => write!(f, "{message}"),
+      WarningKind::InvalidSelector { message, .. } => write!(f, "{message}"),
       WarningKind::DuplicateUrl { when, .. } => {
         write!(f, "Duplicate of 'url(...)' in '{when}'")
       }

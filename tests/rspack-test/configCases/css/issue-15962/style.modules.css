@@ -16,6 +16,13 @@ button.root.hovered { color: red; }
 	按钮.unicode { color: blue; }
 	.after { color: green; }
 }
+
+.composeBase { color: red; }
+@media screen {
+	button.composeType {
+		composes: composeBase;
+	}
+}
 @supports (display: grid) { button.supports { color: blue; } }
 @container (width > 100px) { button.container { color: blue; } }
 @layer base { button.layer { color: blue; } }

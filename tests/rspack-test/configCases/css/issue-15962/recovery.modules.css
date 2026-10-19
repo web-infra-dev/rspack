@@ -4,8 +4,8 @@
 	brokenString:"unterminated
 		.shouldNotExport;
 	brokenUrl:url(bad"url);
-	/* Provisional URL dependencies and dashed names must be discarded. */
-	background:url("./must-not-resolve.svg") "unterminated
+	/* Bad tokens remain declaration values and must not expose selector dependencies. */
+	background:paint(opaque) "unterminated
 		.shouldNotExportEither;
 	font-palette:--discardedPalette );
 	.afterInvalid { color: green; }
@@ -17,6 +17,11 @@
 	color:{.opaque; :global(.opaqueGlobal)} !\69mportant;
 	color:{@import "not-a-file.css"; @property --opaque { syntax:"x"; }};
 	background:paint([{.opaque; .alsoOpaque}]);
+	color:{"unterminated
+		.badStringOpaque { color: red; }};
+	color:{url(bad"url) .badUrlOpaque { color: red; }};
+	/* Unmatched closing tokens are preserved in declaration values. */
+	color:) var(--components);
 	--components:before{.opaque; stillOpaque}after;
 	--mismatched:paint([opaque) ; stillOpaque} ]);
 
