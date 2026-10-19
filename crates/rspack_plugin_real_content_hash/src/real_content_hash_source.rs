@@ -36,6 +36,9 @@ struct RealContentHashSourceData {
 enum RealContentHashInput {
   StreamingText(BoxSource),
   Binary(BoxSource),
+  // No hash matched the materialized text, so retain only the original source.
+  // Its writer still must not be treated as the text view.
+  UnmatchedText(BoxSource),
   // source() text can differ from writer bytes, e.g. for non-UTF-8 buffer
   // children in ConcatSource. Scan/edit the text, but keep untouched output
   // and source-map identity on the original source.
@@ -68,46 +71,27 @@ impl RealContentHashInput {
 
   fn original(&self) -> &BoxSource {
     match self {
-      Self::StreamingText(source) | Self::Binary(source) => source,
+      Self::StreamingText(source) | Self::Binary(source) | Self::UnmatchedText(source) => source,
       Self::MaterializedText { original, .. } => original,
     }
   }
 
   fn content(&self) -> &BoxSource {
     match self {
-      Self::StreamingText(source) | Self::Binary(source) => source,
+      Self::StreamingText(source) | Self::Binary(source) | Self::UnmatchedText(source) => source,
       Self::MaterializedText { text, .. } => text,
     }
   }
 }
 
 impl RealContentHashSource {
-  pub(super) fn new(inner: BoxSource) -> Self {
-    Self(Arc::new(RealContentHashSourceData {
-      inner: RealContentHashInput::new(inner),
-      replacements: Vec::new(),
-      normalized: false,
-      size: OnceLock::new(),
-    }))
-  }
-
-  fn is_text(&self) -> bool {
-    !matches!(self.0.inner, RealContentHashInput::Binary(_))
-  }
-
-  /// Whether byte streaming agrees with the source's UTF-8 text view.
-  pub fn can_stream_as_text(&self) -> bool {
-    self.is_text()
-      && (matches!(self.0.inner, RealContentHashInput::StreamingText(_)) || self.is_rewritten())
-  }
-
-  /// Find non-overlapping matches, including patterns split across writer calls.
-  pub(super) fn matches(&self, matcher: &AhoCorasick) -> (Vec<Match>, usize) {
-    if !self.is_text() {
-      return (Vec::new(), self.size());
-    }
-    let input = self.0.inner.content();
-    let (matches, size) = if let Some(bytes) = borrowed_bytes(input.as_ref()) {
+  /// Scan once before sharing the view, releasing unmatched text snapshots here.
+  pub(super) fn new(inner: BoxSource, matcher: &AhoCorasick) -> (Self, Vec<Match>, usize) {
+    let inner = RealContentHashInput::new(inner);
+    let input = inner.content();
+    let (matches, source_size) = if matches!(inner, RealContentHashInput::Binary(_)) {
+      (Vec::new(), input.size())
+    } else if let Some(bytes) = borrowed_bytes(input.as_ref()) {
       (matcher.find_iter(bytes).collect(), bytes.len())
     } else {
       let mut matches = Vec::new();
@@ -118,10 +102,35 @@ impl RealContentHashSource {
       let size = writer.finish();
       (matches, size)
     };
-    if matches!(self.0.inner, RealContentHashInput::StreamingText(_)) {
-      let _ = self.0.size.set(size);
-    }
-    (matches, size)
+    let size = match inner {
+      RealContentHashInput::StreamingText(_) | RealContentHashInput::Binary(_) => {
+        OnceLock::from(source_size)
+      }
+      _ => OnceLock::new(),
+    };
+    let inner = match inner {
+      RealContentHashInput::MaterializedText { original, .. } if matches.is_empty() => {
+        RealContentHashInput::UnmatchedText(original)
+      }
+      inner => inner,
+    };
+    let source = Self(Arc::new(RealContentHashSourceData {
+      inner,
+      replacements: Vec::new(),
+      normalized: false,
+      size,
+    }));
+    (source, matches, source_size)
+  }
+
+  fn is_text(&self) -> bool {
+    !matches!(self.0.inner, RealContentHashInput::Binary(_))
+  }
+
+  /// Whether byte streaming agrees with the source's UTF-8 text view.
+  pub fn can_stream_as_text(&self) -> bool {
+    self.is_text()
+      && (matches!(self.0.inner, RealContentHashInput::StreamingText(_)) || self.is_rewritten())
   }
 
   /// Create a result from the original scanned input, never from another result.

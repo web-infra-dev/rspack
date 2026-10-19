@@ -238,6 +238,7 @@ Important implementation details:
   Rope APIs expose borrowed JSON fragments, including splits at escapes.
   RCH wraps inputs in `RealContentHashSource` from `rspack_plugin_real_content_hash`; that
   content-only view owns bounded-buffer matching, byte edits, content comparison and hashing.
+  Materialized text snapshots with no hash matches are released immediately after scanning.
   Its writer applies edits to the original SIMD serializer's byte stream. Unchanged assets keep
   their original Source; rewritten assets retain the view for emission. Render/devtool caches
   capture their inputs before RCH and therefore persist the original graph and map fields.

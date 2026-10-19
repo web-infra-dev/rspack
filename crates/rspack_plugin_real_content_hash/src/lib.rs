@@ -338,8 +338,7 @@ impl<'a> AssetData<'a> {
     hash_ac: &AhoCorasick,
     hash_patterns: &[&'a str],
   ) -> Self {
-    let source = RealContentHashSource::new(Arc::clone(source));
-    let (matches, source_size) = source.matches(hash_ac);
+    let (source, matches, source_size) = RealContentHashSource::new(Arc::clone(source), hash_ac);
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
     for found in &matches {
