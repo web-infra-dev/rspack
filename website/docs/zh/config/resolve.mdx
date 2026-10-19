@@ -800,36 +800,67 @@ export default {
 
 #### reference 匹配规则
 
-解析非相对路径的请求时，Rspack 会先按顺序检查被引用的 tsconfig（嵌套的 references 会被展开），都不匹配时才使用主 tsconfig：
+解析非相对路径的请求时，Rspack 会逐个检查被引用的 tsconfig，都不匹配时才使用主 tsconfig。检查顺序与 `references` 中的书写顺序一致；如果被引用的 tsconfig 自己也有 references，会先检查这些嵌套的 reference，再检查它本身：
 
-1. 每个 reference 的基准路径是它的 `baseUrl`；没有设置 `baseUrl` 时，是该 tsconfig 所在的目录。
-2. 如果发起导入的文件所在目录位于某个 reference 的基准路径之下，Rspack 就使用这个 reference 的 `paths`，不再继续查找，即使它没有定义 `paths`。
+1. 每个 reference 的基准路径默认是该 tsconfig 所在的目录（如果配置了 `baseUrl`，则使用 `baseUrl`）。
+2. 第一个基准路径包含发起导入的文件所在目录的 reference 生效。Rspack 使用这个 reference 的 `paths`，不再继续查找，即使它没有定义 `paths`。
 3. 所有 reference 都不匹配时，才使用主 tsconfig 的 `paths`。
 
-匹配只看目录。和 `tsc` 不同，Rspack 不会读取 `include`、`files` 或 `exclude` 来判断文件属于哪个 project。
+只按目录匹配。和 `tsc` 不同，Rspack 不会读取 `include`、`files` 或 `exclude` 来判断文件属于哪个 project。
 
-:::warning
-由于按目录匹配，每个目录下最多只放一个 tsconfig，并把被引用的 tsconfig 放到它所覆盖的文件所在的目录中：
+例如下面的目录结构：
 
 ```
 .
-├── tsconfig.json         # references: [{ "path": "./src" }, { "path": "./scripts" }]
+├── tsconfig.json             # paths: { "@/*": ["./src/*"] }
+│                             # references: [{ "path": "./packages/ui" }, { "path": "./packages/utils" }]
 ├── src/
-│   └── tsconfig.json
-└── scripts/
-    └── tsconfig.json
+│   └── index.ts
+└── packages/
+    ├── ui/
+    │   ├── tsconfig.json     # paths: { "@ui/*": ["./src/*"] }
+    │   └── src/button.ts
+    └── utils/
+        ├── tsconfig.json     # 没有 paths
+        └── src/format.ts
 ```
 
-不要像下面这样把多个 tsconfig 并排放在同一个目录：
+| 发起导入的文件                 | 匹配到的 tsconfig                       | 结果                                           |
+| ------------------------------ | --------------------------------------- | ---------------------------------------------- |
+| `src/index.ts`                 | `tsconfig.json`（没有匹配的 reference） | `@/*` 可以解析                                 |
+| `packages/ui/src/button.ts`    | `packages/ui/tsconfig.json`             | `@ui/*` 可以解析，`@/*` 不能解析               |
+| `packages/utils/src/format.ts` | `packages/utils/tsconfig.json`          | 所有别名都不能解析，包括主 tsconfig 中的 `@/*` |
+
+:::tip
+使用 `references: 'auto'` 时，Rspack 会加载 tsconfig 中 `references` 字段列出的所有 tsconfig。应避免把多个被引用的 tsconfig（或被引用的 tsconfig 与主 tsconfig）放在同一个目录下，因为该目录下的文件只能匹配到其中一个。推荐像上面的例子一样，把每个被引用的 tsconfig 放到它所覆盖的文件所在的目录中。这只影响 Rspack 如何解析 `paths` 别名，不影响相对路径导入，也不影响 `tsc`。
+
+例如，把多个 tsconfig 并排放在项目根目录：
 
 ```
 .
-├── tsconfig.json
-├── tsconfig.app.json     # include: ["src"]
-└── tsconfig.node.json    # include: ["scripts"]
+├── tsconfig.json         # references: [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
+├── tsconfig.app.json     # include: ["src"]，paths: { "@/*": ["./src/*"] }
+├── tsconfig.node.json    # include: ["scripts"]，paths: { "@scripts/*": ["./scripts/*"] }
+├── src/
+└── scripts/
 ```
 
-这时三个 tsconfig 的基准路径都是项目根目录，所有文件都会匹配到 `references` 中排在最前面的那个，另一个 reference 和主 tsconfig 的 `paths` 都不会生效。
+两个 reference 的基准路径都是项目根目录，`src/` 和 `scripts/` 下的文件都会匹配到 `references` 中排在前面的 `tsconfig.app.json`。结果是 `@/*` 在 `scripts/` 中也能解析，而 `tsconfig.node.json` 中的 `@scripts/*` 和主 `tsconfig.json` 中的 `paths` 都不会生效。
+
+如果无法调整目录结构，也可以把 `references` 配置为数组，只列出目录互不重叠的 reference，明确指定要使用哪个 reference：
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    tsConfig: {
+      configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
+      references: [path.resolve(import.meta.dirname, './tsconfig.app.json')],
+    },
+  },
+};
+```
 
 :::
 
