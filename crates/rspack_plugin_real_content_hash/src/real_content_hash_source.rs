@@ -48,9 +48,9 @@ enum RealContentHashInput {
 impl RealContentHashInput {
   fn new(source: BoxSource) -> Self {
     match content_kind(source.as_ref()) {
-      Some(false) => Self::StreamingText(source),
-      Some(true) => Self::Binary(source),
-      None => {
+      SourceContentKind::StreamingText => Self::StreamingText(source),
+      SourceContentKind::Binary => Self::Binary(source),
+      SourceContentKind::NeedsMaterialization => {
         let text = match source.source() {
           SourceValue::String(text) => Some(RawStringSource::from(text.into_owned()).boxed()),
           SourceValue::Buffer(_) => None,
@@ -251,26 +251,33 @@ impl RealContentHashSource {
   }
 }
 
-// Some(false): known UTF-8 text; Some(true): source() returns a binary buffer.
-// None preserves the previous materializing fallback for unknown implementations
-// and composite text whose byte writer differs from its lossy rope view.
-fn content_kind(source: &dyn Source) -> Option<bool> {
+enum SourceContentKind {
+  StreamingText,
+  Binary,
+  // Inspect source() for unknown implementations and composite text whose
+  // byte writer differs from its lossy rope view.
+  NeedsMaterialization,
+}
+
+fn content_kind(source: &dyn Source) -> SourceContentKind {
   let any = source.as_any();
   if any.is::<RawStringSource>()
     || any.is::<OriginalSource>()
     || any.is::<SourceMapSource>()
     || any.is::<MappingSource>()
   {
-    return Some(false);
+    return SourceContentKind::StreamingText;
   }
   if any.is::<RawBufferSource>() {
-    return Some(true);
+    return SourceContentKind::Binary;
   }
   if let Some(s) = any.downcast_ref::<RealContentHashSource>() {
     return if !s.is_text() {
-      Some(true)
+      SourceContentKind::Binary
+    } else if s.can_stream_as_text() {
+      SourceContentKind::StreamingText
     } else {
-      s.can_stream_as_text().then_some(false)
+      SourceContentKind::NeedsMaterialization
     };
   }
   if let Some(s) = any.downcast_ref::<ConcatSource>() {
@@ -278,24 +285,29 @@ fn content_kind(source: &dyn Source) -> Option<bool> {
     if children.len() == 1 {
       return content_kind(children[0].as_ref());
     }
-    return children
-      .iter()
-      .all(|s| utf8_writer(s.as_ref()))
-      .then_some(false);
+    return if children.iter().all(|s| utf8_writer(s.as_ref())) {
+      SourceContentKind::StreamingText
+    } else {
+      SourceContentKind::NeedsMaterialization
+    };
   }
   if let Some(s) = any.downcast_ref::<CachedSource>() {
     if s.inner().as_any().is::<RawBufferSource>() {
-      return Some(true);
+      return SourceContentKind::Binary;
     }
-    return utf8_writer(s.inner().as_ref()).then_some(false);
+    return if utf8_writer(s.inner().as_ref()) {
+      SourceContentKind::StreamingText
+    } else {
+      SourceContentKind::NeedsMaterialization
+    };
   }
   if let Some(s) = any.downcast_ref::<ReplaceSource>() {
     if s.replacements().is_empty() {
       return content_kind(s.inner().as_ref());
     }
-    return Some(false);
+    return SourceContentKind::StreamingText;
   }
-  None
+  SourceContentKind::NeedsMaterialization
 }
 
 fn utf8_writer(source: &dyn Source) -> bool {
@@ -305,7 +317,7 @@ fn utf8_writer(source: &dyn Source) -> bool {
   if let Some(cached) = source.as_any().downcast_ref::<CachedSource>() {
     return utf8_writer(cached.inner().as_ref());
   }
-  content_kind(source) == Some(false)
+  matches!(content_kind(source), SourceContentKind::StreamingText)
 }
 
 fn borrowed_bytes(source: &dyn Source) -> Option<&[u8]> {
