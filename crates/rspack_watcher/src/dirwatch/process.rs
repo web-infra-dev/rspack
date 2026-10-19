@@ -454,7 +454,7 @@ impl WatcherManager {
 
 #[cfg(test)]
 mod tests {
-  use std::{path::Path, time::SystemTime};
+  use std::time::SystemTime;
 
   use rspack_paths::InternedPath;
 
@@ -512,8 +512,9 @@ mod tests {
   #[tokio::test]
   async fn find_dependency_for_file() {
     let manager = WatcherManager::default();
-    let file_0 = InternedPath::from(Path::new("/path/a/b/c/index.js"));
-    let dir_0 = InternedPath::from(Path::new("/path/a/b"));
+    let temp = tempfile::tempdir().expect("directory");
+    let file_0 = InternedPath::from(temp.path().join("a/b/c/index.js"));
+    let dir_0 = InternedPath::from(temp.path().join("a/b"));
     update(
       &manager,
       diff(&[&file_0], &[]),
@@ -532,12 +533,13 @@ mod tests {
   #[tokio::test]
   async fn find_dependency_for_directory() {
     let manager = WatcherManager::default();
-    let dir_0 = InternedPath::from(Path::new("/path/a/b/c"));
-    let dir_1 = InternedPath::from(Path::new("/path/a/b"));
+    let temp = tempfile::tempdir().expect("directory");
+    let dir_0 = InternedPath::from(temp.path().join("a/b/c"));
+    let dir_1 = InternedPath::from(temp.path().join("a/b"));
     update(&manager, none(), diff(&[&dir_0, &dir_1], &[]), none()).await;
 
     let associated_events = manager.associated_events(
-      &InternedPath::from(Path::new("/path/a/b/c/index.js")),
+      &InternedPath::from(temp.path().join("a/b/c/index.js")),
       FsEventKind::Create,
     );
 

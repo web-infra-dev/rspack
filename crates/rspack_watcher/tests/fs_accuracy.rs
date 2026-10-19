@@ -40,6 +40,9 @@ fn a_recorded_accuracy_narrows_with_the_filesystem_accuracy() {
     FsWatcher::new(
       FsWatcherOptions {
         aggregate_timeout: Some(100),
+        // This test learns accuracy from scans; native events can replace a
+        // timestamp record with an observation whose accuracy is zero.
+        poll_interval: Some(60_000),
         ..Default::default()
       },
       Default::default(),
