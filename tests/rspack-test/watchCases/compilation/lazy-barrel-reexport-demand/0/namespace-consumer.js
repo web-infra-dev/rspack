@@ -1,9 +1,7 @@
 import * as star from "./lib";
 import * as named from "./lib/named";
 
-it("should expose already activated reexports to a later namespace consumer", () => {
-	expect(Object.keys(star).sort()).toEqual(["create", "createStore"]);
-	expect(Object.keys(named).sort()).toEqual(["create", "makeStore"]);
-	expect(star.createStore("namespace").value).toBe("namespace");
-	expect(named.makeStore("namespace").value).toBe("namespace");
+it("should initially reference only local exports through the barrel connections", () => {
+	expect(star.create("star").value).toBe("star");
+	expect(named.create("named").value).toBe("named");
 });

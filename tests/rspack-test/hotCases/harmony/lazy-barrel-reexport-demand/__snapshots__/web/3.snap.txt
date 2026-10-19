@@ -2,13 +2,12 @@
 
 ## Changed Files
 - consumer.js
-- lib/index.js
 - lib/vanilla.js
 
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 794
+- Update: main.LAST_HASH.hot-update.js, size: 414
 
 ## Manifest
 
@@ -25,7 +24,7 @@
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
-- ./lib/index.js
+- ./lib/vanilla.js
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -34,24 +33,12 @@
 ```js
 "use strict";
 self["rspackHotUpdate"]("main", {
-"./lib/index.js"(module, __webpack_exports__, __webpack_require__) {
+"./lib/vanilla.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  local: () => (local),
-  revision: () => (revision)
+  value: () => (value)
 });
-globalThis.LAZY_BARREL_READY = Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, "./lib/vanilla.js"));
-globalThis.LAZY_BARREL_ACCEPTS = 0;
-
-const local = 7;
-
-module.hot.accept("./lib/vanilla.js", function(__rspack_hmr_outdated) {
-(() => {
-	globalThis.LAZY_BARREL_ACCEPTS++;
-})(__rspack_hmr_outdated); }.bind(this));
-
-module.hot.accept();
-const revision = 1;
+const value = () => 3;
 
 
 },
@@ -83,17 +70,16 @@ check => prepare => dispose => apply => idle
 #### Outdated
 
 Outdated Modules:
-- ./lib/vanilla.js
+- ./consumer.js
+- ./lib/deferred.js
+- ./lib/index.js
 
 
 Outdated Dependencies:
 ```json
 {
   "./index.js": [
-    "./lib/vanilla.js"
-  ],
-  "./lib/index.js": [
-    "./lib/vanilla.js"
+    "./consumer.js"
   ]
 }
 ```
@@ -101,7 +87,9 @@ Outdated Dependencies:
 #### Updated
 
 Updated Modules:
-- ./lib/vanilla.js
+- ./consumer.js
+- ./lib/deferred.js
+- ./lib/index.js
 
 Updated Runtime:
 - `__webpack_require__.h`
@@ -110,7 +98,6 @@ Updated Runtime:
 #### Callback
 
 Accepted Callback:
-- ./lib/vanilla.js
-- ./lib/vanilla.js
+- ./consumer.js
 
 Disposed Callback:

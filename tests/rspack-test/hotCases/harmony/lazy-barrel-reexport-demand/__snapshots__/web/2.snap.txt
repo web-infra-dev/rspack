@@ -2,13 +2,12 @@
 
 ## Changed Files
 - consumer.js
-- lib/index.js
 - lib/vanilla.js
 
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 414
+- Update: main.LAST_HASH.hot-update.js, size: 2168
 
 ## Manifest
 
@@ -25,7 +24,9 @@
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
-- ./lib/vanilla.js
+- ./consumer.js
+- ./lib/deferred.js
+- ./lib/index.js
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -34,12 +35,59 @@
 ```js
 "use strict";
 self["rspackHotUpdate"]("main", {
-"./lib/vanilla.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+"./consumer.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  value: () => (value)
+  read: () => (read)
 });
-const value = () => 2;
+/* import */ var _lib__rspack_import_0 = __webpack_require__("./lib/index.js");
+/* import */ var _lib_deferred__rspack_import_1 = __webpack_require__("./lib/deferred.js");
+
+
+const read = () => [_lib__rspack_import_0.local, _lib_deferred__rspack_import_1.local, (0,_lib_deferred__rspack_import_1.readDeferred)()];
+
+
+},
+"./lib/deferred.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  local: () => (local),
+  readDeferred: () => (readDeferred)
+});
+/* deferred import */var _vanilla__rspack_DEFERRED_import_0 = __webpack_require__.zO("./lib/vanilla.js", 8);
+
+
+const local = 7;
+const readDeferred = () => _vanilla__rspack_DEFERRED_import_0.a.value();
+
+globalThis.LAZY_BARREL_DEFER_READY = Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, "./lib/vanilla.js"));
+globalThis.LAZY_BARREL_DEFER_ACCEPTS = 0;
+
+module.hot.accept("./lib/vanilla.js", function(__rspack_hmr_outdated) {
+/* deferred import */_vanilla__rspack_DEFERRED_import_0 = __webpack_require__.zO("./lib/vanilla.js", 8);
+(() => {
+	globalThis.LAZY_BARREL_DEFER_ACCEPTS++;
+})(__rspack_hmr_outdated); }.bind(this));
+module.hot.accept();
+
+
+},
+"./lib/index.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  local: () => (local)
+});
+globalThis.LAZY_BARREL_READY = Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, "./lib/vanilla.js"));
+globalThis.LAZY_BARREL_ACCEPTS = 0;
+
+const local = 7;
+
+module.hot.accept("./lib/vanilla.js", function(__rspack_hmr_outdated) {
+(() => {
+	globalThis.LAZY_BARREL_ACCEPTS++;
+})(__rspack_hmr_outdated); }.bind(this));
+
+module.hot.accept();
 
 
 },
@@ -72,14 +120,21 @@ check => prepare => dispose => apply => idle
 
 Outdated Modules:
 - ./consumer.js
-- ./lib/index.js
+- ./lib/vanilla.js
 
 
 Outdated Dependencies:
 ```json
 {
+  "./lib/index.js": [
+    "./lib/vanilla.js"
+  ],
+  "./lib/deferred.js": [
+    "./lib/vanilla.js"
+  ],
   "./index.js": [
-    "./consumer.js"
+    "./consumer.js",
+    "./lib/vanilla.js"
   ]
 }
 ```
@@ -87,8 +142,7 @@ Outdated Dependencies:
 #### Updated
 
 Updated Modules:
-- ./consumer.js
-- ./lib/index.js
+- ./lib/vanilla.js
 
 Updated Runtime:
 - `__webpack_require__.h`
@@ -98,5 +152,8 @@ Updated Runtime:
 
 Accepted Callback:
 - ./consumer.js
+- ./lib/vanilla.js
+- ./lib/vanilla.js
+- ./lib/vanilla.js
 
 Disposed Callback:
