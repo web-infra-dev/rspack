@@ -85,6 +85,8 @@ export default {
 
 如果还需要进一步缩小懒编译范围，可以使用 [`test`](#test) 筛选模块。`test` 支持正则表达式，也支持接收 `Module` 并返回 `boolean` 的函数。
 
+启用懒编译后，如果使用了 barrel 模块中本地定义的导出（包括本地 default 导出），Rspack 也会构建该 barrel 中尚未展开的 reexport 依赖。这会在 barrel 执行前准备好这些依赖，避免后续懒加载激活时向已加载模块新增 reexport 而触发整页刷新。仅使用转发导出时，其依赖仍按需构建。因此，混合本地导出和 reexport 的 barrel 可能会提前构建更多依赖。
+
 ## 选项
 
 ### entries

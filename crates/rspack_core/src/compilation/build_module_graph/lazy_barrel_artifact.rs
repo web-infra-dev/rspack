@@ -115,20 +115,26 @@ impl LazyDependencies {
       .copied()
   }
 
-  pub fn contains_dependency(&self, request: &Atom, dependency: &DependencyId) -> bool {
-    self.fallback_dependencies.contains(dependency)
-      || self
-        .request_to_dependencies
-        .get(request)
-        .is_some_and(|dependencies| dependencies.contains(dependency))
-  }
-
   pub fn requested_lazy_dependencies(
     &self,
     forwarded_ids: &ForwardedIdSet,
+    eager_on_local_reference: bool,
   ) -> FxHashSet<DependencyId> {
     match forwarded_ids {
       ForwardedIdSet::All => self.all_lazy_dependencies().collect(),
+      ForwardedIdSet::IdSet(set)
+        if eager_on_local_reference
+          && set.iter().any(|forward_id| {
+            self.terminal_forward_ids.contains(forward_id)
+              // `export *` never forwards default. Without an explicit
+              // reexport, default must be handled by this module, including
+              // `export default` expressions without a Local dependency.
+              || (forward_id == "default"
+                && !self.forward_id_to_request.contains_key(forward_id))
+          }) =>
+      {
+        self.all_lazy_dependencies().collect()
+      }
       ForwardedIdSet::IdSet(set) => set
         .iter()
         .filter(|forward_id| !self.terminal_forward_ids.contains(*forward_id))
@@ -153,6 +159,9 @@ pub enum HasLazyDependencies {
 
 #[derive(Debug, Default)]
 pub struct ModuleToLazyMake {
+  /// Expand a barrel before its local exports make its factory observable.
+  /// Enabled by lazy compilation to avoid changing that factory on activation.
+  pub eager_on_local_reference: bool,
   module_to_lazy_dependencies: IdentifierMap<HasLazyDependencies>,
 }
 
