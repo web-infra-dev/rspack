@@ -8,7 +8,7 @@
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 60
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 18632
+- Update: main.LAST_HASH.hot-update.js, size: 18803
 
 ## Manifest
 
@@ -265,6 +265,7 @@ function hotApplyHandler(options) {
 		);
 		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
 	};
+	warnUnexpectedRequire.__rspack_hmr_disposed = true;
 
 	for (var moduleId in hotCurrentUpdate) {
 		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {
@@ -648,6 +649,8 @@ var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 	if (chunkIds.some((id) => (jsonpInstalledChunks[id] !== 0))) {
 		for (moduleId in moreModules) {
 			if (__webpack_require__.o(moreModules, moduleId)) {
+				var installed = __webpack_require__.m[moduleId];
+				if (installed && !installed.__rspack_hmr_disposed) continue;
 				__webpack_require__.m[moduleId] = moreModules[moduleId];
 			}
 		}

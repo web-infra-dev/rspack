@@ -6,7 +6,9 @@
     // then flag all "ids" as loaded and fire callback
     var moduleId, chunkId, i = 0;
     for (moduleId in moreModules) {
-        if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
+        if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {<% if (_with_hmr) { %>
+            var installed = <%- MODULE_FACTORIES %>[moduleId];
+            if (installed && !installed.__rspack_hmr_disposed) continue;<% } %>
             <%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
         }
     }

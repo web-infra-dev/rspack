@@ -1,0 +1,130 @@
+# Case restore-disposed-module-in-chunk: Step 2
+
+## Changed Files
+- holder.js
+- lazy.js
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: lazy_js.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 38
+- Update: lazy_js.LAST_HASH.hot-update.js, size: 691
+- Update: main.LAST_HASH.hot-update.js, size: 181
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["lazy_js","main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### lazy_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./lazy.js
+- ./restored.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("lazy_js", {
+"./lazy.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (/* reexport safe */ _restored__rspack_import_0["default"])
+});
+/* import */ var _restored__rspack_import_0 = __webpack_require__("./restored.js");
+
+
+
+},
+"./restored.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = ("restored");
+
+
+},
+
+});
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./holder.js
+- ./restored.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./holder.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./holder.js
+- ./restored.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./holder.js
+
+Disposed Callback:
