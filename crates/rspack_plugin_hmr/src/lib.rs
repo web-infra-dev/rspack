@@ -441,15 +441,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let new_hash = compilation
             .code_generation_results
             .get_hash(&module, Some(current_chunk.runtime()));
-          let mut previous = old_module_hashes
-            .iter()
-            .filter(|(id, _)| {
-              old_chunks.get(*id).is_some_and(|(runtimes, _)| {
-                runtimes.iter().any(|runtime| new_runtime.contains(runtime))
+          // Overlapping runtimes can have different factories. Keep the same-chunk
+          // baseline when its runtime is unchanged, and search other chunks only otherwise.
+          let unchanged = if let Some(old_hash) = old_module_hashes
+            .get(&chunk_id)
+            .filter(|_| old_runtime == current_chunk.runtime())
+          {
+            Some(old_hash) == new_hash
+          } else {
+            let mut previous = old_module_hashes
+              .iter()
+              .filter(|(id, _)| {
+                old_chunks.get(*id).is_some_and(|(runtimes, _)| {
+                  runtimes.iter().any(|runtime| new_runtime.contains(runtime))
+                })
               })
-            })
-            .peekable();
-          if previous.peek().is_none() || !previous.all(|(_, hash)| Some(hash) == new_hash) {
+              .peekable();
+            previous.peek().is_some() && previous.all(|(_, hash)| Some(hash) == new_hash)
+          };
+          if !unchanged {
             return Some(module);
           }
           if module_additions
