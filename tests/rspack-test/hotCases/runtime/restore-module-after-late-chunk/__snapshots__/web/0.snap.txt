@@ -1,0 +1,14 @@
+# Case restore-module-after-late-chunk: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: a_js.chunk.CURRENT_HASH.js
+- Bundle: b_js.chunk.CURRENT_HASH.js
+- Bundle: bundle.js
+
+## Manifest
+
+
+## Update
