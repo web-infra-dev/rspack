@@ -4619,6 +4619,7 @@ dependencies = [
  "rspack_fs",
  "rspack_hash",
  "rspack_paths",
+ "rspack_regex",
  "rspack_sources",
  "rspack_util",
  "rustc-hash",
