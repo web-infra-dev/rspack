@@ -9,6 +9,7 @@ use crate::{
   dependency::{
     ESMAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotDeclineDependency,
     ModuleArgumentDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,
+    import_emitted_runtime,
   },
   parser_plugin::JavascriptParserPlugin,
   utils::eval,
@@ -128,6 +129,7 @@ pub struct ModuleHotReplacementParserPlugin {
 impl ModuleHotReplacementParserPlugin {
   #[allow(clippy::new_without_default)]
   pub fn new() -> Self {
+    import_emitted_runtime::init_map();
     Self { _private: () }
   }
 }
@@ -196,6 +198,7 @@ pub struct ImportMetaHotReplacementParserPlugin {
 impl ImportMetaHotReplacementParserPlugin {
   #[allow(clippy::new_without_default)]
   pub fn new() -> Self {
+    import_emitted_runtime::init_map();
     Self { _private: () }
   }
 }

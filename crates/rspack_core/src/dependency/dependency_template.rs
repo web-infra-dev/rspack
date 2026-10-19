@@ -1,15 +1,13 @@
 use std::{fmt::Debug, sync::Arc};
 
 use rspack_cacheable::cacheable_dyn;
-use rspack_collections::IdentifierMap;
 use rspack_hash::RspackHasher;
 use rspack_sources::ReplaceSource;
 use rspack_util::ext::AsAny;
 
 use crate::{
   ChunkInitFragments, CodeGenerationData, CodeGenerationDataChunkInitFragments, Compilation,
-  ConcatenationScope, DependencyType, Module, ModuleCodeTemplate, ModuleInitFragments,
-  RuntimeCondition, RuntimeSpec,
+  ConcatenationScope, DependencyType, Module, ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
 };
 
 pub struct TemplateContext<'a, 'b> {
@@ -20,9 +18,6 @@ pub struct TemplateContext<'a, 'b> {
   pub concatenation_scope: Option<&'b mut ConcatenationScope>,
   pub data: &'a mut CodeGenerationData,
   pub runtime_template: &'a mut ModuleCodeTemplate,
-  /// Imports emitted in this factory, collected when it has HMR accept handlers.
-  /// Recreated for each code generation so omitted imports cannot leave stale bindings.
-  pub import_emitted_runtime: Option<IdentifierMap<RuntimeCondition>>,
 }
 
 impl TemplateContext<'_, '_> {
