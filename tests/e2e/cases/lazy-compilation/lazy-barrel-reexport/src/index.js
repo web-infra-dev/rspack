@@ -1,10 +1,10 @@
-import { infra } from './infrastructure.js';
+import { create } from './lib/index.js';
 
 sessionStorage.setItem(
   'documentLoads',
   String(Number(sessionStorage.getItem('documentLoads')) + 1),
 );
-document.body.dataset.infra = infra;
+document.body.dataset.infra = create('initial').state;
 
 const button = document.createElement('button');
 button.textContent = 'Activate feature';
