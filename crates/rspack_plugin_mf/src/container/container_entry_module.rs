@@ -31,7 +31,6 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct ContainerEntryModule {
-  hot: bool,
   dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   lib_ident: String,
@@ -58,7 +57,6 @@ impl ContainerEntryModule {
     let namespace = module_identifier_namespace(runtime_mode);
     let lib_ident = format!("{namespace}/container/entry/{name}");
     Self {
-      hot: false,
       dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(format!(
         "container entry ({}) {}",
@@ -96,7 +94,6 @@ impl ContainerEntryModule {
     let namespace = module_identifier_namespace(runtime_mode);
     let lib_ident = format!("{namespace}/share/container/{name}");
     Self {
-      hot: false,
       dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(format!("share container entry {}@{}", &name, &version,)),
       lib_ident,
@@ -149,14 +146,6 @@ impl DependenciesBlock for ContainerEntryModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for ContainerEntryModule {
-  fn is_hot(&self) -> bool {
-    self.hot
-  }
-
-  fn set_hot(&mut self, hot: bool) {
-    self.hot = hot;
-  }
-
   impl_module_meta_info!();
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {

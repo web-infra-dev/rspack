@@ -18,11 +18,9 @@ static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntim
       .define
       .insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
     // Keep the block map runtime when the last async block is removed.
-    requirements.dependencies.insert(
-      RuntimeGlobals::ENSURE_CHUNK_GROUP
-        | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
-        | RuntimeGlobals::REQUIRE_SCOPE,
-    );
+    requirements
+      .dependencies
+      .insert(RuntimeGlobals::ENSURE_CHUNK_GROUP);
     requirements
   });
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =

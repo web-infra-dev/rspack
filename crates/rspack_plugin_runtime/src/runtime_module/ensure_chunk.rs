@@ -69,7 +69,7 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
           "_fetch_priority": fetch_priority,
-          "_hmr": runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS),
+          "_hmr": compilation.hot_module_replacement,
         })),
       )?
     } else {
@@ -83,14 +83,14 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     let mut dependencies = RuntimeGlobals::default();
+    if compilation.hot_module_replacement {
+      dependencies.insert(RuntimeGlobals::REQUIRE_SCOPE);
+    }
     let mut define = RuntimeGlobals::ENSURE_CHUNK;
     if let Some(chunk_ukey) = self.chunk() {
-      let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
-      if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
-        dependencies.insert(RuntimeGlobals::REQUIRE_SCOPE);
-      }
       if self.has_async_chunks
-        || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+        || get_chunk_runtime_requirements(compilation, &chunk_ukey)
+          .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       {
         dependencies.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
         define.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);

@@ -47,7 +47,6 @@ fn has_closure_library(output: &OutputOptions) -> bool {
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
-  hot: bool,
   build_info: FreezeLock<BuildInfo>,
   build_meta: FreezeLock<BuildMeta>,
   factory_meta: FactoryMetaStore,
@@ -114,7 +113,6 @@ impl LazyCompilationProxyModule {
       lib_ident,
       identifier,
       source_map_kind: SourceMapKind::empty(),
-      hot: false,
       dependencies_block: Default::default(),
       context: Box::new(create_data.context.clone()),
       layer: create_data.issuer_layer.clone(),
@@ -139,14 +137,6 @@ impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for LazyCompilationProxyModule {
-  fn is_hot(&self) -> bool {
-    self.hot
-  }
-
-  fn set_hot(&mut self, hot: bool) {
-    self.hot = hot;
-  }
-
   impl_module_meta_info!();
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {

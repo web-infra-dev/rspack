@@ -32,7 +32,6 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct RscEntryModule {
-  hot: bool,
   dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   lib_ident: String,
@@ -76,7 +75,6 @@ impl RscEntryModule {
     };
 
     Self {
-      hot: false,
       dependencies_block: Default::default(),
       identifier,
       lib_ident,
@@ -207,14 +205,6 @@ impl DependenciesBlock for RscEntryModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for RscEntryModule {
-  fn is_hot(&self) -> bool {
-    self.hot
-  }
-
-  fn set_hot(&mut self, hot: bool) {
-    self.hot = hot;
-  }
-
   impl_module_meta_info!();
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {

@@ -11,11 +11,10 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use initial_chunks::{EntryChunks, collect_entry_chunks};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationBuildModule,
-  CompilationContentHash, CompilationId, CompilationParams, CompilationProcessAssets,
-  CompilationRecords, CompilerCompilation, CompilerId, DependencyType, LoaderContext,
-  ManifestAssetType, ModuleId, ModuleIdentifier, ModuleType, NormalModule,
+  AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationContentHash,
+  CompilationParams, CompilationProcessAssets, CompilationRecords, CompilerCompilation,
+  DependencyType, LoaderContext, ManifestAssetType, ModuleId, ModuleIdentifier, ModuleType,
   NormalModuleFactoryParser, NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData,
   Plugin, RunnerContext, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
@@ -130,6 +129,7 @@ async fn compilation(
   compilation: &mut Compilation,
   params: &mut CompilationParams,
 ) -> Result<()> {
+  compilation.hot_module_replacement = true;
   compilation.set_dependency_factory(
     DependencyType::ImportMetaHotAccept,
     params.normal_module_factory.clone(),
@@ -925,20 +925,6 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
   Ok(())
 }
 
-#[plugin_hook(CompilationBuildModule for HotModuleReplacementPlugin)]
-async fn build_module(
-  &self,
-  _compiler_id: CompilerId,
-  _compilation_id: CompilationId,
-  module: &mut BoxModule,
-) -> Result<()> {
-  // Normal modules get their HMR state from the parser hook below.
-  if !module.as_any().is::<NormalModule>() {
-    module.set_hot(true);
-  }
-  Ok(())
-}
-
 #[plugin_hook(NormalModuleLoader for HotModuleReplacementPlugin)]
 async fn normal_module_loader(&self, context: &mut LoaderContext<RunnerContext>) -> Result<()> {
   context.hot = true;
@@ -953,7 +939,6 @@ async fn normal_module_factory_parser(
   _parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>() {
-    parser.hot = true;
     if module_type.is_js_auto() {
       parser.add_parser_plugin(Box::new(ModuleHotReplacementParserPlugin::new()));
       parser.add_parser_plugin(Box::new(ImportMetaHotReplacementParserPlugin::new()));
@@ -994,10 +979,6 @@ impl Plugin for HotModuleReplacementPlugin {
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
-    ctx
-      .compilation_hooks
-      .build_module
-      .tap(build_module::new(self));
     ctx
       .compilation_hooks
       .content_hash

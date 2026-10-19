@@ -287,14 +287,6 @@ impl AsyncDependenciesBlock {
     &self.parent
   }
 
-  pub fn is_hot(&self, compilation: &Compilation) -> bool {
-    compilation
-      .get_module_graph()
-      .module_by_identifier(&self.parent)
-      .expect("async block should have a parent module")
-      .is_hot()
-  }
-
   pub fn request(&self) -> &Option<String> {
     &self.request
   }
@@ -306,12 +298,12 @@ impl AsyncDependenciesBlock {
     runtime: Option<&RuntimeSpec>,
   ) {
     self.group_options.hash(hasher);
-    let hot = self.is_hot(compilation);
-    if hot {
+    if compilation.hot_module_replacement {
       "hmr chunk groups".hash(hasher);
       self.runtime_id(compilation).hash(hasher);
     }
-    if (!hot || matches!(self.group_options, Some(GroupOptions::Entrypoint(_))))
+    if (!compilation.hot_module_replacement
+      || matches!(self.group_options, Some(GroupOptions::Entrypoint(_))))
       && let Some(chunk_group) = compilation
         .build_chunk_graph_artifact
         .chunk_graph

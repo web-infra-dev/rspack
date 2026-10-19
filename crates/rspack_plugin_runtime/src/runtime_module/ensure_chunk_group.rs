@@ -5,7 +5,7 @@ use rspack_core::{
   RuntimeTemplate, impl_runtime_module,
 };
 
-use crate::{extract_runtime_module_variables_from_ejs, get_chunk_runtime_requirements};
+use crate::extract_runtime_module_variables_from_ejs;
 
 static TEMPLATE: &str = include_str!("runtime/ensure_chunk_group.ejs");
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
@@ -40,9 +40,9 @@ impl RuntimeModule for EnsureChunkGroupRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let graph = &compilation.build_chunk_graph_artifact;
-    let chunk_ukey = self.chunk().expect("should have chunk");
-    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
-    let chunk = graph.chunk_by_ukey.expect_get(&chunk_ukey);
+    let chunk = graph
+      .chunk_by_ukey
+      .expect_get(&self.chunk().expect("should have chunk"));
     let blocks = graph
       .chunk_graph
       .get_block_chunks(compilation, Some(chunk.runtime()));
@@ -50,7 +50,7 @@ impl RuntimeModule for EnsureChunkGroupRuntimeModule {
       self.id(),
       Some(serde_json::json!({
         "_blocks": rspack_util::json_stringify(&blocks),
-        "_hmr": runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS),
+        "_hmr": compilation.hot_module_replacement,
         "_state_expression": context.runtime_template.render_hmr_runtime_state_expression("blocks"),
       })),
     )
@@ -63,10 +63,7 @@ impl RuntimeModule for EnsureChunkGroupRuntimeModule {
     let mut dependencies = RuntimeGlobals::ENSURE_CHUNK
       | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
       | RuntimeGlobals::HAS_OWN_PROPERTY;
-    if let Some(chunk_ukey) = self.chunk()
-      && get_chunk_runtime_requirements(compilation, &chunk_ukey)
-        .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-    {
+    if compilation.hot_module_replacement {
       dependencies.insert(RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
     }
     rspack_core::RuntimeModuleRuntimeRequirements {

@@ -272,7 +272,6 @@ pub type ResolveContextModuleDependencies = Arc<
 #[cacheable]
 #[derive(Debug)]
 pub struct ContextModule {
-  hot: bool,
   dependencies_block: DependenciesBlockData,
   identifier: Identifier,
   options: ContextModuleOptions,
@@ -298,7 +297,6 @@ impl ContextModule {
     }
 
     Self {
-      hot: false,
       dependencies_block: Default::default(),
       identifier: create_identifier(&options, None),
       options,
@@ -821,7 +819,7 @@ impl ContextModule {
 
     let mut items = block_and_first_dependency_list
       .filter_map(|(b, dependency)| {
-        let chunks: Vec<_> = if self.hot {
+        let chunks: Vec<_> = if compilation.hot_module_replacement {
           vec![serde_json::json!(b.runtime_id(compilation))]
         } else {
           compilation
@@ -916,7 +914,7 @@ impl ContextModule {
         .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
     }
 
-    let request_prefix = if self.hot {
+    let request_prefix = if compilation.hot_module_replacement {
       format!(
         "{}(ids[{chunks_position}][0]{fetch_priority_arg})",
         runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_GROUP),
@@ -1347,14 +1345,6 @@ impl DependenciesBlock for ContextModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ContextModule {
-  fn is_hot(&self) -> bool {
-    self.hot
-  }
-
-  fn set_hot(&mut self, hot: bool) {
-    self.hot = hot;
-  }
-
   impl_module_meta_info!();
 
   fn module_type(&self) -> &ModuleType {

@@ -1060,9 +1060,9 @@ impl ModuleCodeTemplate {
         block,
         &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       );
-    let mg = compilation.get_module_graph();
-    let async_block = mg.block_by_id_expect(block);
-    if async_block.is_hot(compilation) {
+    if compilation.hot_module_replacement {
+      let mg = compilation.get_module_graph();
+      let block = mg.block_by_id_expect(block);
       let fetch_priority = chunk_group
         .and_then(|group| group.kind.get_normal_options())
         .and_then(|options| options.fetch_priority);
@@ -1074,7 +1074,7 @@ impl ModuleCodeTemplate {
       return format!(
         "{}({}{})",
         self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_GROUP),
-        json!(async_block.runtime_id(compilation)),
+        json!(block.runtime_id(compilation)),
         fetch_priority
           .map(|priority| format!(r#", "{priority}""#))
           .unwrap_or_default(),

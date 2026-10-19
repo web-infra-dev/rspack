@@ -223,6 +223,7 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
+  pub hot_module_replacement: bool,
   pub records: Option<Arc<CompilationRecords>>,
   pub options: Arc<CompilerOptions>,
   pub platform: Arc<CompilerPlatform>,
@@ -388,6 +389,7 @@ impl Compilation {
       id: CompilationId::new(),
       compiler_id,
       hot_index: 0,
+      hot_module_replacement: false,
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),

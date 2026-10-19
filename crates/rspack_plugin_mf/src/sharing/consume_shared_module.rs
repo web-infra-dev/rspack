@@ -25,7 +25,6 @@ use crate::{ConsumeOptions, ShareScope, utils::module_identifier_namespace};
 #[cacheable]
 #[derive(Debug)]
 pub struct ConsumeSharedModule {
-  hot: bool,
   #[cacheable(with=Unsupported)]
   dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
@@ -76,7 +75,6 @@ impl ConsumeSharedModule {
       },
     );
     Self {
-      hot: false,
       dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!(
@@ -119,14 +117,6 @@ impl DependenciesBlock for ConsumeSharedModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for ConsumeSharedModule {
-  fn is_hot(&self) -> bool {
-    self.hot
-  }
-
-  fn set_hot(&mut self, hot: bool) {
-    self.hot = hot;
-  }
-
   impl_module_meta_info!();
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
