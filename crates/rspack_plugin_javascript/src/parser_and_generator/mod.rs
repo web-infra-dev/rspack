@@ -146,6 +146,7 @@ impl ParserRuntimeRequirementsData {
 
 #[cacheable]
 pub struct JavaScriptParserAndGenerator {
+  pub hot: bool,
   #[cacheable(with=AsInner)]
   import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
   #[cacheable(with=Skip)]
@@ -163,6 +164,7 @@ impl std::fmt::Debug for JavaScriptParserAndGenerator {
 impl JavaScriptParserAndGenerator {
   pub fn new(module_options: Arc<ResolvedModuleOptions>) -> Self {
     Self {
+      hot: false,
       import_meta: ArcComputed::new(module_options, |options| options.into()),
       parser_plugins: Vec::default(),
     }
@@ -221,6 +223,14 @@ static SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for JavaScriptParserAndGenerator {
+  fn is_hot(&self) -> bool {
+    self.hot
+  }
+
+  fn set_hot(&mut self, hot: bool) {
+    self.hot = hot;
+  }
+
   fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
     SOURCE_TYPES
   }

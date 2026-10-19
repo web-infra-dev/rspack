@@ -377,6 +377,14 @@ impl DependenciesBlock for NormalModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for NormalModule {
+  fn is_hot(&self) -> bool {
+    self.parser_and_generator.is_hot()
+  }
+
+  fn set_hot(&mut self, hot: bool) {
+    self.parser_and_generator.set_hot(hot);
+  }
+
   fn module_type(&self) -> &ModuleType {
     &self.module_type
   }

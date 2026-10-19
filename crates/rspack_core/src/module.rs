@@ -726,6 +726,13 @@ pub trait Module:
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
 
+  /// Whether this module generates HMR-aware async block references.
+  fn is_hot(&self) -> bool {
+    false
+  }
+
+  fn set_hot(&mut self, _hot: bool) {}
+
   /// Defines what kind of code generation results this module can generate.
   fn source_types(&self, module_graph: &ModuleGraph) -> &[SourceType];
 

@@ -195,6 +195,14 @@ pub fn get_unused_local_ident(
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
+  fn is_hot(&self) -> bool {
+    self.hot
+  }
+
+  fn set_hot(&mut self, hot: bool) {
+    self.hot = hot;
+  }
+
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
     let export_type = self.effective_export_type(module);
     if matches!(

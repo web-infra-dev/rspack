@@ -135,6 +135,12 @@ pub struct GenerateContext<'a> {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
+  fn is_hot(&self) -> bool {
+    false
+  }
+
+  fn set_hot(&mut self, _hot: bool) {}
+
   /// The source types that the generator can generate (the source types you can make requests for)
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType];
   /// Parse the source and return the dependencies and the ast or source

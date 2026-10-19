@@ -27,6 +27,7 @@ use crate::{ConsumeVersion, ShareScope, utils::module_identifier_namespace};
 #[cacheable]
 #[derive(Debug)]
 pub struct ProvideSharedModule {
+  hot: bool,
   dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   lib_ident: String,
@@ -66,6 +67,7 @@ impl ProvideSharedModule {
       &scopes_key, &name, &version, &request
     );
     Self {
+      hot: false,
       dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!("{namespace}/sharing/provide/{scopes_key}/{name}"),
@@ -125,6 +127,14 @@ impl DependenciesBlock for ProvideSharedModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for ProvideSharedModule {
+  fn is_hot(&self) -> bool {
+    self.hot
+  }
+
+  fn set_hot(&mut self, hot: bool) {
+    self.hot = hot;
+  }
+
   impl_module_meta_info!();
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
