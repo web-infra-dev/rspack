@@ -5,7 +5,7 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, DEFAULT_EXPORT, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ESMExportBinding, ESMExportInitFragment, ExportNameOrSpec, ExportSpec,
-  ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ForwardId, ModuleGraph,
+  ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ForwardId, LazyUntil, ModuleGraph,
   ModuleGraphCacheArtifact, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
   UsedName, property_access, rspack_sources::ReplacementEnforce,
 };
@@ -126,6 +126,10 @@ impl Dependency for ESMExportExpressionDependency {
 
   fn forward_id(&self) -> ForwardId {
     ForwardId::Id(JS_DEFAULT_KEYWORD.clone())
+  }
+
+  fn lazy(&self) -> Option<LazyUntil> {
+    Some(LazyUntil::LocalDefault)
   }
 }
 
