@@ -21,12 +21,14 @@ use rspack_util::streaming_matcher::StreamingMatcher;
 /// Clones share the input and edits. The view is created after render/devtool cache
 /// entries have captured their inputs; it is not a persistent cache payload.
 #[derive(Clone)]
-pub struct RealContentHashSource(Arc<Data>);
+pub struct RealContentHashSource(Arc<RealContentHashSourceData>);
 
-struct Data {
+struct RealContentHashSourceData {
   inner: BoxSource,
-  // Unknown sources and text views of non-UTF-8 buffers retain the old source()
-  // semantics. Known text sources use their writer without a flattened snapshot.
+  // Materialized source() text for inputs whose writer cannot be used as that
+  // text view (e.g. ConcatSource with non-UTF-8 buffer children). Scanning and
+  // edits use this snapshot; untouched output still uses inner. Known text
+  // sources stream directly and leave this empty.
   fallback: Option<BoxSource>,
   binary: bool,
   replacements: Vec<(usize, usize, String)>,
@@ -48,7 +50,7 @@ impl RealContentHashSource {
         SourceValue::Buffer(_) => (true, None),
       },
     };
-    Self(Arc::new(Data {
+    Self(Arc::new(RealContentHashSourceData {
       inner,
       fallback,
       binary,
@@ -113,7 +115,7 @@ impl RealContentHashSource {
     } else {
       (self.clone().boxed(), None)
     };
-    Self(Arc::new(Data {
+    Self(Arc::new(RealContentHashSourceData {
       inner,
       fallback,
       binary: self.0.binary,
