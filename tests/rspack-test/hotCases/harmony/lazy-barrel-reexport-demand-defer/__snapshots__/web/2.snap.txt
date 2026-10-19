@@ -1,0 +1,133 @@
+# Case lazy-barrel-reexport-demand-defer: Step 2
+
+## Changed Files
+- consumer.js
+- lib/vanilla.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 1464
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./consumer.js
+- ./lib/index.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./consumer.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  read: () => (read)
+});
+/* import */ var _lib__rspack_import_0 = __webpack_require__("./lib/index.js");
+
+const read = () => [_lib__rspack_import_0.local, (0,_lib__rspack_import_0.readDeferred)()];
+
+
+},
+"./lib/index.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  local: () => (local),
+  readDeferred: () => (readDeferred)
+});
+/* deferred import */var _vanilla__rspack_DEFERRED_import_0 = __webpack_require__.zO("./lib/vanilla.js", 8);
+
+
+const local = 7;
+const readDeferred = () => _vanilla__rspack_DEFERRED_import_0.a.value();
+
+globalThis.LAZY_BARREL_DEFER_READY = Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, "./lib/vanilla.js"));
+globalThis.LAZY_BARREL_DEFER_ACCEPTS = 0;
+
+module.hot.accept("./lib/vanilla.js", function(__rspack_hmr_outdated) {
+/* deferred import */_vanilla__rspack_DEFERRED_import_0 = __webpack_require__.zO("./lib/vanilla.js", 8);
+(() => {
+	globalThis.LAZY_BARREL_DEFER_ACCEPTS++;
+})(__rspack_hmr_outdated); }.bind(this));
+module.hot.accept();
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./consumer.js
+- ./lib/vanilla.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./lib/index.js": [
+    "./lib/vanilla.js"
+  ],
+  "./index.js": [
+    "./consumer.js",
+    "./lib/vanilla.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./lib/vanilla.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./consumer.js
+- ./lib/vanilla.js
+- ./lib/vanilla.js
+
+Disposed Callback:

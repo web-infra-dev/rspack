@@ -75,22 +75,28 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     let module_identifier = module.identifier();
     dep.dependency_ids.iter().for_each(|id| {
       let dependency = module_graph.dependency_by_id(id);
-      let target_module = module_graph.get_module_by_dependency_id(dependency.id());
-      let runtime_condition = match target_module {
-        Some(target_module) => {
-          // The emitted-import map can outlive this factory. A filtered lazy
-          // reexport must not leave an HMR assignment to an omitted import.
-          let import_key = format!("ESM import {}", target_module.identifier());
-          if !init_fragments.iter().any(|fragment| {
-            matches!(fragment.key(), InitFragmentKey::ESMImport(key)
-              if key == &import_key || key.strip_prefix("deferred ") == Some(import_key.as_str()))
-          }) {
-            return;
-          }
-          import_emitted_runtime::get_runtime(&module_identifier, &target_module.identifier())
-        }
-        None => RuntimeCondition::Boolean(false),
+      let Some(target_module) = module_graph.get_module_by_dependency_id(dependency.id()) else {
+        return;
       };
+      // The emitted-import map can outlive this factory. Only update bindings
+      // still emitted here, using the matching phase for each import statement.
+      let phases = [
+        (ImportPhase::Evaluation, ""),
+        (ImportPhase::Defer, "deferred "),
+      ]
+      .map(|(phase, prefix)| {
+        let import_key = format!("{prefix}ESM import {}", target_module.identifier());
+        let emitted = init_fragments.iter().any(|fragment| {
+          matches!(fragment.key(), InitFragmentKey::ESMImport(key) if key == &import_key)
+        });
+        (phase, emitted)
+      });
+      if !phases.iter().any(|(_, emitted)| *emitted) {
+        return;
+      }
+
+      let runtime_condition =
+        import_emitted_runtime::get_runtime(&module_identifier, &target_module.identifier());
 
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         return;
@@ -107,31 +113,35 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       let module_dependency = dependency
         .as_module_dependency()
         .expect("should be module dependency");
-      let phase = ImportPhase::Evaluation;
-      let import_var = compilation.get_import_var(
-        module_identifier,
-        target_module,
-        module_dependency.user_request(),
-        phase,
-        *runtime,
-      );
-      let stmts = runtime_template.import_statement(
-        *module,
-        compilation,
-        id,
-        &import_var,
-        module_dependency.request(),
-        phase,
-        true,
-      );
-      if condition == "true" {
-        content.push_str(stmts.0.as_str());
-        content.push_str(stmts.1.as_str());
-      } else {
-        content.push_str(format!("if ({condition}) {{\n").as_str());
-        content.push_str(stmts.0.as_str());
-        content.push_str(stmts.1.as_str());
-        content.push_str("\n}\n");
+      for (phase, emitted) in phases {
+        if !emitted {
+          continue;
+        }
+        let import_var = compilation.get_import_var(
+          module_identifier,
+          Some(target_module),
+          module_dependency.user_request(),
+          phase,
+          *runtime,
+        );
+        let stmts = runtime_template.import_statement(
+          *module,
+          compilation,
+          id,
+          &import_var,
+          module_dependency.request(),
+          phase,
+          true,
+        );
+        if condition == "true" {
+          content.push_str(stmts.0.as_str());
+          content.push_str(stmts.1.as_str());
+        } else {
+          content.push_str(format!("if ({condition}) {{\n").as_str());
+          content.push_str(stmts.0.as_str());
+          content.push_str(stmts.1.as_str());
+          content.push_str("\n}\n");
+        }
       }
     });
 
