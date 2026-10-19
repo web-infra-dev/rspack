@@ -14,6 +14,8 @@ export type CustomPluginName = string;
 
 export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
+export const MODULE_BUILD_INFO_SYMBOL: unique symbol;
+
 export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
 
 export const BUILD_INFO_ASSETS_SYMBOL: unique symbol;

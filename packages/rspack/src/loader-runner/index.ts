@@ -8,7 +8,7 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 import querystring from 'node:querystring';
-import {
+import binding, {
   formatDiagnostic,
   type JsLoaderContext,
   type JsLoaderItem,
@@ -73,6 +73,7 @@ import {
 } from './utils';
 
 const LOADER_PROCESS_NAME = 'Loader Analysis';
+const IS_WASM = Boolean(process.env.WASM);
 
 type LoaderObjectOptions = string | (object & { ident?: unknown }) | null;
 
@@ -1044,7 +1045,7 @@ export async function runLoaders(
     // A buffer backed by WASM linear memory retains the entire backing store
     // after crossing the worker boundary, so a cached loader must stay on the
     // main thread to avoid copying the whole WASM memory through N-API.
-    if (process.env.WASM && currentLoaderObject?.loaderItem.cache) return false;
+    if (IS_WASM && currentLoaderObject?.loaderItem.cache) return false;
 
     return currentLoaderObject?.parallel;
   };
@@ -1248,7 +1249,10 @@ export async function runLoaders(
     });
   }
 
-  if (compiler.options?.cache) {
+  if (
+    compiler.options?.cache &&
+    Object.hasOwn(context._module, binding.MODULE_BUILD_INFO_SYMBOL)
+  ) {
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 

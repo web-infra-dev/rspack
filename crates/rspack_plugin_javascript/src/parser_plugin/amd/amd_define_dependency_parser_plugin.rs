@@ -16,6 +16,7 @@ use crate::{
   dependency::{
     AMDRequireContextDependency,
     amd_define_dependency::AMDDefineDependency,
+    amd_exports_dependency::AMDExportsDependency,
     amd_require_array_dependency::{AMDRequireArrayDependency, AMDRequireArrayItem},
     amd_require_item_dependency::AMDRequireItemDependency,
     local_module_dependency::LocalModuleDependency,
@@ -196,10 +197,7 @@ impl AMDDefineDependencyParserPlugin {
           RuntimeGlobals::REQUIRE,
         ))
       } else if param_str == "exports" {
-        Arc::new(RuntimeRequirementsDependency::new(
-          range.into(),
-          RuntimeGlobals::EXPORTS,
-        ))
+        Arc::new(AMDExportsDependency::new(range.into()))
       } else if param_str == "module" {
         Arc::new(RuntimeRequirementsDependency::new(
           range.into(),

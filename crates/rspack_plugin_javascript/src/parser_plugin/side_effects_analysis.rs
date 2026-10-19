@@ -263,7 +263,7 @@ fn is_unresolved_reference(
     .semantic
     .reference_of(identifier.node_id())
     .map(|reference| ctx.semantic.reference(reference))
-    .is_some_and(|reference| reference.symbol.is_none() && !reference.flags.is_dynamic())
+    .is_some_and(|reference| reference.symbol.is_none())
 }
 
 fn is_global_ref_to(expression: Expr, ctx: SideEffectsContext<'_, '_>, id: &str) -> bool {

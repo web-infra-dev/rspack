@@ -775,9 +775,6 @@ impl ESMExportImportedSpecifierDependency {
 
         let use_runtime =
           self.has_repeated_dynamic_reexports(mg, runtime, mg_cache, exports_info_artifact);
-        let module = mg
-          .module_by_identifier(&module.identifier())
-          .expect("should have module graph module");
         let exports_name = module.get_exports_argument();
         let is_async =
           ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier());

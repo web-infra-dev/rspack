@@ -28,7 +28,7 @@ use rustc_hash::FxHashSet;
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{Lang, Severity as SwcSeverity, SourceType as SwcSourceType};
 use swc_next_ecma_parser::{CommentMode, Options, ParseReturn, Parser, TokenParserConfig};
-use swc_next_ecma_semantic::{AnalyzeOptions, SemanticReturn, analyze};
+use swc_next_ecma_semantic::{AnalyzeOptions, SemanticReturn, SyntaxChecks, analyze};
 
 use crate::{
   BoxJavascriptParserPlugin,
@@ -339,29 +339,30 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return default_with_diagnostics(source, diagnostics);
     }
 
-    let SemanticReturn {
-      semantic,
-      diagnostics: mut semantic_diagnostics,
-    } = analyze(
-      &ast,
-      AnalyzeOptions {
-        check_syntax: true,
-        build_module_record: false,
-      },
-    );
     // The legacy parser accepted several redeclaration combinations that the
     // SWC Next semantic checker rejects (for example `var a` followed by
     // `export function a`, and an exported binding shadowing an import). The
-    // parser has already emitted its own early errors, so retain the semantic
-    // syntax checks while excluding this stricter-than-legacy category.
-    semantic_diagnostics.retain(|diagnostic| {
-      !(diagnostic.message.starts_with("Identifier '")
-        && diagnostic.message.ends_with("' has already been declared"))
-        // Rspack intentionally parses regexp literals as raw pattern/flags
-        // and lets consumers such as import.meta.webpackContext downgrade an
-        // invalid constructed regexp to a warning, matching the legacy path.
-        && diagnostic.message != "Invalid regular expression literal"
-    });
+    // parser has already emitted its own early errors, so run the remaining
+    // semantic syntax checks without this stricter-than-legacy category;
+    // `TS_IMPORT_ALIAS_CONFLICTS` reports the same errors for conflicting
+    // TypeScript import aliases. Rspack also intentionally parses regexp
+    // literals as raw pattern/flags and lets consumers such as
+    // import.meta.webpackContext downgrade an invalid constructed regexp to a
+    // warning, matching the legacy path.
+    let check_syntax = SyntaxChecks::all()
+      - SyntaxChecks::REDECLARATIONS
+      - SyntaxChecks::TS_IMPORT_ALIAS_CONFLICTS
+      - SyntaxChecks::REGEXP_LITERALS;
+    let SemanticReturn {
+      semantic,
+      diagnostics: semantic_diagnostics,
+    } = analyze(
+      &ast,
+      AnalyzeOptions {
+        check_syntax,
+        build_module_record: false,
+      },
+    );
     if !semantic_diagnostics.is_empty() {
       append_swc_next_diagnostics(&mut diagnostics, &source_string, semantic_diagnostics);
       return default_with_diagnostics(source, diagnostics);
