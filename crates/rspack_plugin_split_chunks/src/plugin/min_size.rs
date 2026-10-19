@@ -200,41 +200,32 @@ impl SplitChunksPlugin {
           return None;
         }
 
-        let can_recover = retain_residual
-          && module_group.can_recover(cache_group, module_sizes, module_group.chunks.len());
-        if can_recover
-          && module_group
-            .get_sizes(module_sizes)
-            .iter()
-            .any(|(ty, size)| *size < cache_group.min_size.get(ty).copied().unwrap_or_default())
-        {
-          module_group.residual = Some(Box::new(module_group.fork_residual(cache_group)));
-        }
-        let invalid = if remove_min_size_violating_modules(
+        // A source type below minSize cannot become eligible by deleting
+        // modules or chunks. Apply native pruning before retaining a candidate;
+        // preserving its pre-pruning module set only duplicates invalid work.
+        if remove_min_size_violating_modules(
           module_group_key,
           module_group,
           cache_group,
           module_sizes,
         ) {
-          true
-        } else {
-          let chunks_len = module_group.chunks.len();
-          !Self::check_min_size_reduction(
-            module_group.get_sizes(module_sizes),
-            &cache_group.min_size_reduction,
-            chunks_len,
-          )
-        };
-        if invalid && can_recover {
-          if let Some(residual) = module_group.residual.take() {
-            *module_group = *residual;
-          }
+          return Some(module_group_key.clone());
+        }
+        let chunks_len = module_group.chunks.len();
+        if Self::check_min_size_reduction(
+          module_group.get_sizes(module_sizes),
+          &cache_group.min_size_reduction,
+          chunks_len,
+        ) {
+          return None;
+        }
+        // A mixed-type candidate can recover when a later placement removes
+        // the source type that fails minSizeReduction. Keep the candidate itself.
+        if retain_residual && module_group.can_recover(cache_group, module_sizes, chunks_len) {
           module_group.deferred = true;
           None
-        } else if invalid {
-          Some(module_group_key.clone())
         } else {
-          None
+          Some(module_group_key.clone())
         }
       })
       .collect::<Vec<_>>();

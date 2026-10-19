@@ -27,16 +27,21 @@ async function execute(build, order) {
   }
   return {values, randomCalls, steps};
 }
-export default [false,true].map(named => ({
-  description: `incremental candidate updates across two committed deletions: named=${named}`,
+export default [
+  {named:false, preferModules:false},
+  {named:true, preferModules:false},
+  {named:false, preferModules:true}
+].map(({named,preferModules}) => ({
+  description: `incremental candidate updates across two committed deletions: named=${named}, preferModules=${preferModules}`,
   options(context) {
     return {mode:'production',context:context.getSource(),entry:'./index.js',cache:false,incremental:false,devtool:false,
-      output:{path:context.getDist(String(named)),publicPath:'/',filename:'[name].js',chunkFilename:'[name].js'},
+      output:{path:context.getDist(`${named}-${preferModules}`),publicPath:'/',filename:'[name].js',chunkFilename:'[name].js'},
       optimization:{minimize:false,concatenateModules:false,moduleIds:'named',chunkIds:'named',splitChunks:{chunks:'all',dedupDepth:1,minSize:60,minSizeReduction:0,
         cacheGroups:{default:false,defaultVendors:false,
           first:{test:/[/\\](m1|p)\.js$/,chunks:/^[CEFI]$/,name:'S1',minChunks:2,priority:0},
+          middle:preferModules ? {test:/[/\\](t|r)\.js$/,chunks:/^[AGHI]$/,name:'S3',minChunks:2,priority:0} : false,
           second:{test:/[/\\](m2|q)\.js$/,chunks:/^[DGHJ]$/,name:'S2',minChunks:2,priority:0},
-          target:{test:/[/\\](m1|m2)\.js$/,chunks:/^[ABCD]$/,name:named?'T':false,minChunks:2,priority:0,reuseExistingChunk:true}
+          target:{test:preferModules ? /[/\\](m1|m2|t)\.js$/ : /[/\\](m1|m2)\.js$/,chunks:/^[ABCD]$/,name:named?'T':false,minChunks:2,priority:0,reuseExistingChunk:true}
         }}}};
   },
   compiler(_context,compiler) {compiler.outputFileSystem=fs;},

@@ -1298,17 +1298,16 @@ impl SplitChunksPlugin {
           return None;
         }
         let cache = other_module_group.get_cache_group(&self.cache_groups);
-        let minimum = (cache.min_chunks as usize).max(1);
         if other_module_group.deferred {
-          other_module_group.update_residual(placed_module_chunks, minimum);
-          return (!other_module_group.can_recover(cache, module_sizes, other_module_group.chunks.len()))
+          let changed = other_module_group.update_residual(placed_module_chunks, cache, module_sizes);
+          return (changed && !other_module_group.can_recover(cache, module_sizes, other_module_group.chunks.len()))
             .then(|| key.clone());
         }
-        if let Some(residual) = &mut other_module_group.residual {
-          residual.update_residual(placed_module_chunks, minimum);
-          if !residual.can_recover(cache, module_sizes, residual.chunks.len()) {
-            other_module_group.residual = None;
-          }
+        if let Some(residual) = &mut other_module_group.residual
+          && residual.update_residual(placed_module_chunks, cache, module_sizes)
+          && !residual.can_recover(cache, module_sizes, residual.chunks.len())
+        {
+          other_module_group.residual = None;
         }
         let original_module_count = other_module_group.modules.len();
         match (
@@ -1330,11 +1329,11 @@ impl SplitChunksPlugin {
             {
               if all {
                 other_module_group.deferred = true;
-                other_module_group.update_residual(placed_module_chunks, minimum);
+                other_module_group.update_residual(placed_module_chunks, cache, module_sizes);
                 return None;
               }
               let mut residual = other_module_group.fork_residual(cache);
-              residual.update_residual(placed_module_chunks, minimum);
+              residual.update_residual(placed_module_chunks, cache, module_sizes);
               other_module_group.residual = Some(Box::new(residual));
             }
             if all { return Some(key.clone()); }
@@ -1361,11 +1360,11 @@ impl SplitChunksPlugin {
             {
               if all {
                 other_module_group.deferred = true;
-                other_module_group.update_residual(placed_module_chunks, minimum);
+                other_module_group.update_residual(placed_module_chunks, cache, module_sizes);
                 return None;
               }
               let mut residual = other_module_group.fork_residual(cache);
-              residual.update_residual(placed_module_chunks, minimum);
+              residual.update_residual(placed_module_chunks, cache, module_sizes);
               other_module_group.residual = Some(Box::new(residual));
             }
             if all { return Some(key.clone()); }
@@ -1419,6 +1418,16 @@ impl SplitChunksPlugin {
           &cache_group.min_size_reduction,
           chunks_len,
         ) {
+          // Deleting one source type can temporarily leave another below
+          // minSizeReduction. Further native placements may remove that type;
+          // keep the remaining candidate in place when another type still fits.
+          if retain_residual && other_module_group.residual.is_none()
+            && other_module_group.can_recover(cache_group, module_sizes, chunks_len)
+          {
+            other_module_group.deferred = true;
+            other_module_group.residual_changed = true;
+            return None;
+          }
           tracing::trace!(
             "{key} is deleted for violating min_size {:#?}",
             cache_group.min_size,
