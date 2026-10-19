@@ -31,7 +31,7 @@ use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 
 use crate::{
   BoxJavascriptParserPlugin,
-  dependency::ESMCompatibilityDependency,
+  dependency::{ESMAcceptDependencyTemplate, ESMCompatibilityDependency},
   visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
 };
 
@@ -458,6 +458,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut source = ReplaceSource::new(source.clone());
       let compilation = generate_context.compilation;
       let mut init_fragments = vec![];
+      let import_emitted_runtime = module
+        .get_presentational_dependencies()
+        .is_some_and(|dependencies| {
+          dependencies.iter().any(|dependency| {
+            dependency.dependency_template() == Some(ESMAcceptDependencyTemplate::template_type())
+          })
+        })
+        .then(Default::default);
       let mut context = TemplateContext {
         compilation,
         module,
@@ -466,6 +474,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         concatenation_scope: generate_context.concatenation_scope.take(),
         data: generate_context.data,
         runtime_template: generate_context.runtime_template,
+        import_emitted_runtime,
       };
 
       module.get_dependencies().iter().for_each(|dependency| {

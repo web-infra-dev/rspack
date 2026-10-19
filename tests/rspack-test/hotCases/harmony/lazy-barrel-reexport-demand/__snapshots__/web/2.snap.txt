@@ -2,6 +2,7 @@
 
 ## Changed Files
 - consumer.js
+- lib/index.js
 - lib/vanilla.js
 
 ## Asset Files
@@ -71,6 +72,7 @@ check => prepare => dispose => apply => idle
 
 Outdated Modules:
 - ./consumer.js
+- ./lib/index.js
 
 
 Outdated Dependencies:
@@ -86,6 +88,7 @@ Outdated Dependencies:
 
 Updated Modules:
 - ./consumer.js
+- ./lib/index.js
 
 Updated Runtime:
 - `__webpack_require__.h`

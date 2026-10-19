@@ -23,44 +23,6 @@ use rspack_error::{Diagnostic, Error, Severity};
 use super::create_resource_identifier_for_esm_dependency;
 use crate::Atom;
 
-// TODO: find a better way to implement this for performance
-// Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
-// This map is used to save the runtime conditions of modules and used by ESMAcceptDependency in hot module replacement.
-// It can not be saved in TemplateContext because only dependencies of rebuild modules will be templated again.
-pub mod import_emitted_runtime {
-  use once_cell::sync::OnceCell;
-  use rspack_collections::{IdentifierDashMap, IdentifierMap};
-  use rspack_core::{ModuleIdentifier, RuntimeCondition};
-  #[cfg(allocative)]
-  use rspack_util::allocative;
-
-  #[cfg_attr(allocative, allocative::root)]
-  static IMPORT_EMITTED_MAP: OnceCell<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
-    OnceCell::new();
-
-  pub fn init_map() {
-    IMPORT_EMITTED_MAP.get_or_init(Default::default);
-  }
-
-  pub fn get_map() -> Option<&'static IdentifierDashMap<IdentifierMap<RuntimeCondition>>> {
-    IMPORT_EMITTED_MAP.get()
-  }
-
-  pub fn get_runtime(
-    module: &ModuleIdentifier,
-    referenced_module: &ModuleIdentifier,
-  ) -> RuntimeCondition {
-    let map = get_map().expect("must call import_emitted_runtime::init_map() before");
-    let Some(condition_map) = map.get(module) else {
-      return RuntimeCondition::Boolean(false);
-    };
-    match condition_map.get(referenced_module) {
-      Some(r) => r.to_owned(),
-      None => RuntimeCondition::Boolean(false),
-    }
-  }
-}
-
 // ESMImportDependency is merged ESMImportSideEffectDependency.
 #[cacheable]
 #[derive(Debug)]
@@ -202,7 +164,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let TemplateContext {
     init_fragments,
     compilation,
-    module,
+    import_emitted_runtime,
     ..
   } = code_generatable_context;
 
@@ -217,14 +179,14 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     }
   );
 
-  // The import emitted map is consumed by ESMAcceptDependency which enabled by HotModuleReplacementPlugin
-  if let Some(import_emitted_map) = import_emitted_runtime::get_map()
+  // ESMAcceptDependency is rendered after module dependencies and must only
+  // update import bindings emitted in this code generation.
+  if let Some(import_emitted_runtime) = import_emitted_runtime
     && let Some(target_module) = target_module
   {
     let target_module = target_module.identifier();
-    let mut emitted_modules = import_emitted_map.entry(module.identifier()).or_default();
 
-    let old_runtime_condition = match emitted_modules.get(&target_module) {
+    let old_runtime_condition = match import_emitted_runtime.get(&target_module) {
       Some(v) => v.to_owned(),
       None => RuntimeCondition::Boolean(false),
     };
@@ -244,7 +206,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
           .extend(old_runtime_condition.as_spec().expect("should be spec"));
       }
     }
-    emitted_modules.insert(target_module, merged_runtime_condition);
+    import_emitted_runtime.insert(target_module, merged_runtime_condition);
   }
 
   let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact, &target_module.identifier()));

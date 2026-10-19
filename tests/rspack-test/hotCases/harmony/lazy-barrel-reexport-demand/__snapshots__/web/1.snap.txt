@@ -2,12 +2,13 @@
 
 ## Changed Files
 - consumer.js
+- lib/index.js
 - lib/vanilla.js
 
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 517
+- Update: main.LAST_HASH.hot-update.js, size: 1078
 
 ## Manifest
 
@@ -25,6 +26,7 @@
 
 #### Changed Modules
 - ./consumer.js
+- ./lib/index.js
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -41,6 +43,25 @@ __webpack_require__.d(__webpack_exports__, {
 /* import */ var _lib__rspack_import_0 = __webpack_require__("./lib/index.js");
 
 const read = () => [_lib__rspack_import_0.local];
+
+
+},
+"./lib/index.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  local: () => (local)
+});
+globalThis.LAZY_BARREL_READY = Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, "./lib/vanilla.js"));
+globalThis.LAZY_BARREL_ACCEPTS = 0;
+
+const local = 7;
+
+module.hot.accept("./lib/vanilla.js", function(__rspack_hmr_outdated) {
+(() => {
+	globalThis.LAZY_BARREL_ACCEPTS++;
+})(__rspack_hmr_outdated); }.bind(this));
+
+module.hot.accept();
 
 
 },

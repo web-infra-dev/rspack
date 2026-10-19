@@ -4,8 +4,6 @@ use rspack_core::{
   DependencyTemplateType, ImportPhase, RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
 
-use crate::dependency::import_emitted_runtime;
-
 #[cacheable]
 #[derive(Debug)]
 pub struct ESMAcceptDependency {
@@ -65,6 +63,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       module,
       runtime,
       runtime_template,
+      import_emitted_runtime,
       ..
     } = code_generatable_context;
 
@@ -75,9 +74,11 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       let dependency = module_graph.dependency_by_id(id);
       let target_module = module_graph.get_module_by_dependency_id(dependency.id());
       let runtime_condition = match target_module {
-        Some(target_module) => {
-          import_emitted_runtime::get_runtime(&module_identifier, &target_module.identifier())
-        }
+        Some(target_module) => import_emitted_runtime
+          .as_ref()
+          .and_then(|imports| imports.get(&target_module.identifier()))
+          .cloned()
+          .unwrap_or(RuntimeCondition::Boolean(false)),
         None => RuntimeCondition::Boolean(false),
       };
 

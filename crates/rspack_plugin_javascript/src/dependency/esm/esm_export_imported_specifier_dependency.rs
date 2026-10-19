@@ -1,16 +1,13 @@
 use std::{
   hash::BuildHasherDefault,
-  sync::{
-    RwLock,
-    atomic::{AtomicBool, Ordering},
-  },
+  sync::atomic::{AtomicBool, Ordering},
 };
 
 use indexmap::IndexMap;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  rkyv::with::{AtomicLoad, Lock, Relaxed},
-  with::{AsMap, AsOption, AsPreset, AsVec},
+  rkyv::with::{AtomicLoad, Relaxed},
+  with::{AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -27,18 +24,17 @@ use rspack_core::{
   ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
   LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleReferencedExports, NormalInitFragment, NormalReexportItem, ReferencedExport,
-  ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeKey, RuntimeSpec,
-  SideEffectsStateArtifact, StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState,
-  UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
-  get_terminal_binding, property_access, property_name,
-  render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
+  ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
+  property_name, render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_intern::IndexAtomSet;
 use rspack_util::json_stringify;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use rustc_hash::{FxHashSet as HashSet, FxHasher};
 
 use super::{
   create_resource_identifier_for_esm_dependency,
@@ -47,13 +43,6 @@ use super::{
 use crate::{Atom, connection_active_inline_value_for_esm_export_imported_specifier};
 
 const DYNAMIC_REEXPORT_RUNTIME_THRESHOLD: usize = 16;
-
-#[cacheable]
-#[derive(Debug, Default)]
-struct LazyReexportState {
-  #[cacheable(with=AsMap<AsOption<AsPreset>, AsVec<AsPreset>>)]
-  rendered_exports: HashMap<Option<RuntimeKey>, HashSet<Atom>>,
-}
 
 // Create __rspack_context.d(__rspack_exports, {}).
 // case1: `import { a } from 'a'; export { a }`
@@ -79,8 +68,6 @@ pub struct ESMExportImportedSpecifierDependency {
   loc: Option<DependencyLocation>,
   #[cacheable(with=AtomicLoad<Relaxed>)]
   lazy_make: AtomicBool,
-  #[cacheable(with=Lock)]
-  lazy_reexport_state: RwLock<LazyReexportState>,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -113,7 +100,6 @@ impl ESMExportImportedSpecifierDependency {
       attributes,
       loc,
       lazy_make: AtomicBool::new(false),
-      lazy_reexport_state: RwLock::new(LazyReexportState::default()),
     }
   }
 
@@ -198,9 +184,8 @@ impl ESMExportImportedSpecifierDependency {
       return false;
     }
 
-    // Redirected consumers do not need new getters through this barrel. Keep
-    // getters already rendered by this dependency when consumer demand shrinks.
-    // Rebuilding the barrel creates new dependencies and resets this history.
+    // Consumers redirected to the final module do not need getters through
+    // this barrel. Only keep reexports referenced by its remaining consumers.
     let module_graph_cache = &compilation.module_graph_cache_artifact;
     let referenced_exports = module_graph_cache.cached_module_referenced_exports(
       (*module, runtime.map(get_runtime_key).cloned()),
@@ -223,21 +208,12 @@ impl ESMExportImportedSpecifierDependency {
         ModuleReferencedExports::Names(names)
       },
     );
-    let mut state = self.lazy_reexport_state.write().expect("should get lock");
-    let rendered_exports = state
-      .rendered_exports
-      .entry(runtime.map(get_runtime_key).cloned())
-      .or_default();
-    reexport.items.retain(|item| {
-      let referenced = match referenced_exports.as_ref() {
+    reexport
+      .items
+      .retain(|item| match referenced_exports.as_ref() {
         ModuleReferencedExports::All => true,
         ModuleReferencedExports::Names(names) => names.contains(&item.name),
-      };
-      if referenced && !item.hidden {
-        rendered_exports.insert(item.name.clone());
-      }
-      referenced || rendered_exports.contains(&item.name)
-    });
+      });
     true
   }
 

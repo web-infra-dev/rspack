@@ -1,0 +1,116 @@
+# Case lazy-barrel-reexport-demand: Step 3
+
+## Changed Files
+- consumer.js
+- lib/index.js
+- lib/vanilla.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 794
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./lib/index.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./lib/index.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  local: () => (local),
+  revision: () => (revision)
+});
+globalThis.LAZY_BARREL_READY = Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, "./lib/vanilla.js"));
+globalThis.LAZY_BARREL_ACCEPTS = 0;
+
+const local = 7;
+
+module.hot.accept("./lib/vanilla.js", function(__rspack_hmr_outdated) {
+(() => {
+	globalThis.LAZY_BARREL_ACCEPTS++;
+})(__rspack_hmr_outdated); }.bind(this));
+
+module.hot.accept();
+const revision = 1;
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./lib/vanilla.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./lib/vanilla.js"
+  ],
+  "./lib/index.js": [
+    "./lib/vanilla.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./lib/vanilla.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./lib/vanilla.js
+- ./lib/vanilla.js
+
+Disposed Callback:

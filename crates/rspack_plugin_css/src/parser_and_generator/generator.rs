@@ -292,6 +292,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       concatenation_scope: self.generate_context.concatenation_scope.take(),
       data: self.generate_context.data,
       runtime_template: self.generate_context.runtime_template,
+      import_emitted_runtime: None,
     };
 
     self.module.get_dependencies().iter().for_each(|dep| {
