@@ -52,9 +52,9 @@ class TestPlugin {
       const asset = compilation.getAsset(outputName);
       expect(asset).toBeDefined();
       expect(asset!.source.source()).toBe(expected.toString());
-      expect(
-        readFileSync(path.join(compiler.outputPath, outputName)),
-      ).toEqual(expected);
+      expect(readFileSync(path.join(compiler.outputPath, outputName))).toEqual(
+        expected,
+      );
     });
   }
 }
