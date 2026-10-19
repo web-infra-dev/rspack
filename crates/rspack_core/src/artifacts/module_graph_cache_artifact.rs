@@ -10,6 +10,7 @@ use get_exports_type::*;
 use get_mode::*;
 use get_side_effects_connection_state::*;
 use module_graph_hash::*;
+use module_referenced_exports::*;
 use rspack_intern::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -18,7 +19,6 @@ use crate::{
   RuntimeKey,
 };
 pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
-type ModuleReferencedExportsCacheKey = (ModuleIdentifier, Option<RuntimeKey>);
 
 /// This is a rust port of `ModuleGraph.cached` and `ModuleGraph.dependencyCacheProvide` in webpack.
 /// We use this to cache the result of functions with high computational overhead.
@@ -33,8 +33,7 @@ pub struct ModuleGraphCacheArtifactInner {
   get_side_effects_connection_state_cache: GetSideEffectsConnectionStateCache,
   concatenated_module_entries: ConcatenatedModuleEntriesCache,
   module_graph_hash_cache: ModuleGraphHashCache,
-  module_referenced_exports_cache:
-    RwLock<HashMap<ModuleReferencedExportsCacheKey, Arc<ModuleReferencedExports>>>,
+  module_referenced_exports_cache: ModuleReferencedExportsCache,
 }
 
 impl ModuleGraphCacheArtifactInner {
@@ -45,11 +44,7 @@ impl ModuleGraphCacheArtifactInner {
     self.get_side_effects_connection_state_cache.freeze();
     self.concatenated_module_entries.freeze();
     self.module_graph_hash_cache.freeze();
-    self
-      .module_referenced_exports_cache
-      .write()
-      .expect("should get lock")
-      .clear();
+    self.module_referenced_exports_cache.freeze();
     self.freezed.store(true, Ordering::Release);
   }
 
@@ -105,21 +100,16 @@ impl ModuleGraphCacheArtifactInner {
     if !self.freezed.load(Ordering::Acquire) {
       return Arc::new(f());
     }
-    if let Some(value) = self
-      .module_referenced_exports_cache
-      .read()
-      .expect("should get lock")
-      .get(&key)
-    {
-      return Arc::clone(value);
+    match self.module_referenced_exports_cache.get(&key) {
+      Some(value) => value,
+      None => {
+        let value = Arc::new(f());
+        self
+          .module_referenced_exports_cache
+          .set(key, Arc::clone(&value));
+        value
+      }
     }
-    let value = Arc::new(f());
-    self
-      .module_referenced_exports_cache
-      .write()
-      .expect("should get lock")
-      .insert(key, Arc::clone(&value));
-    value
   }
 
   pub fn cached_determine_export_assignments<F: FnOnce() -> DetermineExportAssignmentsValue>(
@@ -206,6 +196,39 @@ impl ModuleGraphCacheArtifactInner {
 pub enum ModuleReferencedExports {
   All,
   Names(HashSet<Atom>),
+}
+
+pub(super) mod module_referenced_exports {
+  use super::*;
+
+  pub type ModuleReferencedExportsCacheKey = (ModuleIdentifier, Option<RuntimeKey>);
+
+  #[derive(Debug, Default)]
+  pub struct ModuleReferencedExportsCache {
+    cache: RwLock<HashMap<ModuleReferencedExportsCacheKey, Arc<ModuleReferencedExports>>>,
+  }
+
+  impl ModuleReferencedExportsCache {
+    pub fn freeze(&self) {
+      self.cache.write().expect("should get lock").clear();
+    }
+
+    pub fn get(
+      &self,
+      key: &ModuleReferencedExportsCacheKey,
+    ) -> Option<Arc<ModuleReferencedExports>> {
+      let inner = self.cache.read().expect("should get lock");
+      inner.get(key).map(Arc::clone)
+    }
+
+    pub fn set(&self, key: ModuleReferencedExportsCacheKey, value: Arc<ModuleReferencedExports>) {
+      self
+        .cache
+        .write()
+        .expect("should get lock")
+        .insert(key, value);
+    }
+  }
 }
 
 pub(super) mod module_graph_hash {
