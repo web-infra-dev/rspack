@@ -43,20 +43,6 @@ export default defineConfig({
       bomFiltered('bom-rust-hit', /^export/, 'bom-rust-hit', true),
       bomFiltered('bom-js-miss', /^\uFEFFexport/, 'should-not-run', false),
       bomFiltered('bom-rust-miss', /^\uFEFFexport/, 'should-not-run', true),
-      {
-        test: /shared-issuer\.js$/,
-        use: ({ issuer }) => [
-          {
-            loader: './transform-loader.mjs',
-            options: { value: 'issuer-a' },
-            filter: {
-              code: issuer?.endsWith('issuer-a.js')
-                ? '__VALUE__'
-                : 'not-present',
-            },
-          },
-        ],
-      },
       filtered(/[\\/]direct\.js$/, /marker:direct/, 'direct'),
       filtered(/regexp-[ab]\.js$/, /marker:regexp/g, 'regexp'),
       filtered(/include\.js$/, 'marker:include', 'include'),

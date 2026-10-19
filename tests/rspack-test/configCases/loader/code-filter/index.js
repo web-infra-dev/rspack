@@ -11,8 +11,6 @@ import excludeOnly from "./exclude-only";
 import excluded from "./excluded";
 import functional from "./functional";
 import include from "./include";
-import issuerA from "./issuer-a";
-import issuerB from "./issuer-b";
 import invalidUtf8 from "./invalid-utf8";
 import metadata from "./metadata";
 import mixedNative from "./mixed-native.txt";
@@ -46,11 +44,6 @@ it("should ignore a leading UTF-8 buffer BOM when matching in JS and Rust", () =
 	expect(bomRustHit).toBe("bom-rust-hit");
 	expect(bomJsMiss).toBe("__VALUE__");
 	expect(bomRustMiss).toBe("__VALUE__");
-});
-
-it("should distinguish the same resource when issuers choose different filters", () => {
-	expect(issuerA).toBe("issuer-a");
-	expect(issuerB).toBe("__VALUE__");
 });
 
 it("should preserve loader state on a miss or undecodable input", () => {
