@@ -14,7 +14,7 @@ use rspack_cacheable::{
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
-use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
+use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{
   Content, LoaderContext, LoaderFilters, LoaderRunnerOptions, ResourceData, run_loaders,
@@ -200,9 +200,28 @@ impl NormalModule {
     import_phase: ImportPhase,
   ) -> Self {
     let module_type = module_type.into();
-    let id = ModuleIdentifier::from(
-      Self::create_id(&module_type, layer.as_ref(), &request, import_phase).as_ref(),
-    );
+    let base_id = Self::create_id(&module_type, layer.as_ref(), &request, import_phase);
+    let id = if let Some(filters) = loader_filters.as_deref() {
+      let mut hasher = RspackHasher::new(&HashFunction::SHA256);
+      hasher.write(b"normal-module-loader-filters-v1");
+      for filter in filters {
+        if let Some(filter) = filter {
+          hasher.write(b"filtered");
+          hasher.write(filter.fingerprint().as_bytes());
+        } else {
+          hasher.write(b"unfiltered");
+        }
+      }
+      ModuleIdentifier::from(
+        format!(
+          "{base_id}|loader-filter:{}",
+          hasher.digest(&HashDigest::Hex).encoded()
+        )
+        .as_str(),
+      )
+    } else {
+      ModuleIdentifier::from(base_id.as_ref())
+    };
     let request = (request != id.as_str()).then(|| request.into_boxed_str());
     let user_request =
       (user_request != resource_data.resource()).then(|| user_request.into_boxed_str());

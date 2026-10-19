@@ -867,6 +867,8 @@ Use a string for substring matching, such as `filter: { code: 'createMiddleware'
 
 The code filter is evaluated immediately before this loader's normal function. It therefore sees the output of loaders to its right. The loader's pitch function is not filtered and keeps its existing behavior.
 
+Different filters give otherwise identical modules distinct identities, while the loader request remains unchanged.
+
 ## rules[].use.ident
 
 - **Type:** `string`

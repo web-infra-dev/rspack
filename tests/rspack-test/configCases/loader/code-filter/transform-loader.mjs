@@ -16,6 +16,9 @@ export default function (source) {
 		this.previousRequest,
 		...this.loaders.map(loader => loader.request),
 	]) {
+		if (request.includes("|loader-filter:")) {
+			throw new Error(`The filter identity leaked into the loader request: ${request}`);
+		}
 		if (request.includes("builtin:code-filter-loader")) {
 			throw new Error(`The code filter leaked into loader context: ${request}`);
 		}
