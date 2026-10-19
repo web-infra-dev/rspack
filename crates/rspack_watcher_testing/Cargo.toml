@@ -7,6 +7,10 @@ publish              = false
 repository.workspace = true
 version.workspace    = true
 
+[package.metadata.cargo-shear]
+# Used by the watcher implementation compiled through include! in src/lib.rs.
+ignored = ["cow-utils", "dashmap", "regex", "rspack_regex", "tracing"]
+
 [dev-dependencies]
 cow-utils    = { workspace = true }
 dashmap      = { workspace = true }
