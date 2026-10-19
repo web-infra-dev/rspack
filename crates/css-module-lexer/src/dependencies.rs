@@ -15,7 +15,7 @@ use crate::{
     ValueAtRuleImportItem, Warning, WarningKind,
   },
   lexer::{FunctionKind, LexerVisitor, Token, TokenFlags, TokenKind, TokenStream},
-  parser::{BlockItemKind, BlockItemProgress, RecoveryBoundary, resolve_block_item},
+  parser::{BlockItemKind, RecoveryBoundary},
 };
 
 /// Collects dashed identifiers while the dependency parser is in local mode.
@@ -1376,55 +1376,6 @@ fn parse_grid_template_area_ranges(input: &str, offset: Pos) -> impl Iterator<It
 }
 
 #[derive(Debug)]
-struct BlockItemCheckpoint<'s> {
-  dependencies: [usize; 5],
-  dashed: usize,
-  balanced: usize,
-  mode: Option<ModeCheckpoint<'s>>,
-}
-
-/// Mode state restored separately from the balanced stack's nesting counters.
-#[derive(Debug)]
-struct ModeCheckpoint<'s> {
-  current: Mode,
-  resulting_global: Option<Pos>,
-  pure_ignore_pending: bool,
-  pure_global: Option<Pos>,
-  composes: Option<ComposesLocalClasses<'s>>,
-}
-
-/// Warnings are external effects too. Hold them only while both grammars live.
-#[derive(Debug)]
-struct WarningHandler<'s, W> {
-  inner: W,
-  deferred: bool,
-  pending: SmallVec<[Warning<'s>; 2]>,
-}
-
-impl<'s, W: HandleWarning<'s>> HandleWarning<'s> for WarningHandler<'s, W> {
-  fn handle_warning(&mut self, warning: Warning<'s>) {
-    if self.deferred {
-      self.pending.push(warning);
-    } else {
-      self.inner.handle_warning(warning);
-    }
-  }
-}
-
-impl<'s, W: HandleWarning<'s>> WarningHandler<'s, W> {
-  fn finish(&mut self, commit: bool) {
-    self.deferred = false;
-    if commit {
-      for warning in self.pending.drain(..) {
-        self.inner.handle_warning(warning);
-      }
-    } else {
-      self.pending.clear();
-    }
-  }
-}
-
-#[derive(Debug)]
 pub struct LexDependencies<'s, W> {
   dependency_context: DependencyContext<'s>,
   mode_data: Option<ModeData<'s>>,
@@ -1448,8 +1399,7 @@ pub struct LexDependencies<'s, W> {
   icss_symbol_max_len: usize,
   pending_custom_property: Option<Range>,
   pending_grid_property: Option<GridPropertyKind>,
-  handle_warning: WarningHandler<'s, W>,
-  block_item_checkpoint: Option<BlockItemCheckpoint<'s>>,
+  handle_warning: W,
 }
 
 impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
@@ -1489,12 +1439,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       icss_symbol_max_len: 0,
       pending_custom_property: None,
       pending_grid_property: None,
-      handle_warning: WarningHandler {
-        inner: handle_warning,
-        deferred: false,
-        pending: SmallVec::new(),
-      },
-      block_item_checkpoint: None,
+      handle_warning,
     }
   }
 
@@ -1569,7 +1514,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     has_mode: bool,
   ) {
     loop {
-      if self.scan_context == ScanContext::BlockItem && stream.block_item.is_none() {
+      if self.scan_context == ScanContext::BlockItem {
         let first = stream.peek(keep_comments).token;
         if first.kind == TokenKind::Ident {
           let custom =
@@ -1588,35 +1533,36 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             first.flags,
             property_local,
           );
-          let (prepared, flat_probe_start) = stream.prepare_declaration(
+          let kind = if stream.prepare_declaration(
             first,
             custom,
             property == PropertyKind::Generic && self.icss_symbols.is_empty() && !keep_comments,
             collect_dashed,
-          );
-          if !prepared {
-            self.block_item_checkpoint = Some(BlockItemCheckpoint {
-              dependencies: self.dependency_context.checkpoint(),
-              dashed: stream.lexer_mut().visitor_mut().occurrences.len(),
-              balanced: self.balanced.len(),
-              mode: self.mode_data.as_ref().map(|mode| ModeCheckpoint {
-                current: mode.current,
-                resulting_global: mode.resulting_global,
-                pure_ignore_pending: mode.pure_ignore_pending,
-                pure_global: mode.pure_global,
-                composes: (property == PropertyKind::Composes)
-                  .then(|| mode.composes_local_classes.clone()),
-              }),
-            });
-            self.handle_warning.deferred = true;
-            stream.begin_block_item(custom, has_mode, collect_dashed, flat_probe_start);
+          ) {
+            BlockItemKind::Declaration
+          } else {
+            stream.classify_block_item(first, custom, has_mode)
+          };
+          match kind {
+            BlockItemKind::Declaration => {
+              self.property_kind = property;
+              self.pending_grid_property = pending_grid;
+              self.pending_custom_property =
+                (property == PropertyKind::CustomProperty).then_some(first.range);
+              self.is_next_rule_prelude = false;
+              self.set_scan_context(stream, ScanContext::DeclarationName);
+            }
+            BlockItemKind::Rule => {
+              self.is_next_rule_prelude = true;
+              if self.block_nesting_level == 0
+                && let Some(mode) = &mut self.mode_data
+              {
+                mode.composes_local_classes.reset_to_initial();
+              }
+              self.set_scan_context(stream, ScanContext::Selector);
+            }
+            BlockItemKind::Invalid => continue,
           }
-          self.property_kind = property;
-          self.pending_grid_property = pending_grid;
-          self.pending_custom_property =
-            (property == PropertyKind::CustomProperty).then_some(first.range);
-          self.is_next_rule_prelude = false;
-          self.set_scan_context(stream, ScanContext::DeclarationName);
         } else if !matches!(
           first.kind,
           TokenKind::Comment
@@ -1635,11 +1581,8 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           self.set_scan_context(stream, ScanContext::Selector);
         }
       }
-      let (item, progress) = stream.next_with_progress(keep_comments);
+      let item = stream.next(keep_comments);
       let token = item.token;
-      if self.apply_block_item_progress(stream, keep_comments, progress) {
-        continue;
-      }
       let is_trivia = matches!(token.kind, TokenKind::Comment | TokenKind::BadComment);
 
       if self.scan_context == ScanContext::TopLevel
@@ -1835,12 +1778,6 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         _ => {}
       }
 
-      // Subgrammars publish any transitions from the extra tokens they consume.
-      if consumes_subgrammar
-        && self.apply_block_item_progress(stream, keep_comments, stream.block_item_progress())
-      {
-        continue;
-      }
       if result.is_none() {
         return;
       }
@@ -1880,83 +1817,6 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         _ => {}
       }
     }
-  }
-
-  #[inline(always)]
-  fn apply_block_item_progress(
-    &mut self,
-    stream: &mut DependencyTokenStream<'_, 's>,
-    keep_comments: bool,
-    mut progress: BlockItemProgress,
-  ) -> bool {
-    if progress == BlockItemProgress::ResolveRule {
-      resolve_block_item(stream, keep_comments);
-      progress = stream.block_item_progress();
-    }
-    matches!(progress, BlockItemProgress::Finished(_))
-      && self.finish_block_item(stream) != BlockItemKind::Declaration
-  }
-
-  fn finish_block_item(&mut self, stream: &mut DependencyTokenStream<'_, 's>) -> BlockItemKind {
-    let selected = stream.finish_block_item();
-    let checkpoint = self
-      .block_item_checkpoint
-      .take()
-      .expect("candidate effects have a checkpoint");
-    self
-      .handle_warning
-      .finish(selected == BlockItemKind::Declaration);
-    if selected != BlockItemKind::Declaration {
-      self.dependency_context.rollback(checkpoint.dependencies);
-      stream
-        .lexer_mut()
-        .visitor_mut()
-        .occurrences
-        .truncate(checkpoint.dashed);
-      // Unwind speculative items through the stack so mode nesting counters
-      // are restored before selector events are replayed.
-      while self.balanced.len() > checkpoint.balanced {
-        self.balanced.pop(self.mode_data.as_mut());
-      }
-      if let Some(checkpoint) = checkpoint.mode {
-        let mode = self
-          .mode_data
-          .as_mut()
-          .expect("a mode checkpoint has mode data");
-        mode.current = checkpoint.current;
-        mode.resulting_global = checkpoint.resulting_global;
-        mode.pure_ignore_pending = checkpoint.pure_ignore_pending;
-        mode.pure_global = checkpoint.pure_global;
-        if let Some(composes) = checkpoint.composes {
-          mode.composes_local_classes = composes;
-        }
-      }
-      self.in_animation_property = None;
-      self.in_list_style_property = None;
-      self.in_font_palette_property = None;
-      self.in_container_property = None;
-      self.in_grid_property = None;
-      self.pending_custom_property = None;
-      self.pending_grid_property = None;
-      self.property_kind = PropertyKind::Generic;
-      if selected == BlockItemKind::Rule
-        && self.block_nesting_level == 0
-        && let Some(mode) = &mut self.mode_data
-      {
-        mode.composes_local_classes.reset_to_initial();
-      }
-      self.is_next_rule_prelude = selected == BlockItemKind::Rule;
-      self.set_scan_context(
-        stream,
-        if self.is_next_rule_prelude {
-          ScanContext::Selector
-        } else {
-          ScanContext::BlockItem
-        },
-      );
-    }
-    self.update_dashed_ident_collection(stream);
-    selected
   }
 
   // Keep one closure type across scanner entry points so the generic scanner
@@ -2049,12 +1909,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           self.balanced.last(),
           Some(last) if matches!(last.kind, BalancedItemKind::Url | BalancedItemKind::ImageSet)
       );
-    let preserve_delimiters = !self.balanced.is_empty();
     let icss_symbols = (!self.icss_symbols.is_empty()).then_some(&self.icss_symbols);
     stream.fast_forward_special_value_if_buffer_empty(
       keep_comments,
       preserve_strings,
-      preserve_delimiters,
       property,
       icss_symbols,
     );

@@ -12,9 +12,7 @@ use crate::{
     lowercase_ascii_keyword, strip_vendor_prefix,
   },
   dependencies::{PropertyKind, special_value_is_candidate},
-  parser::{
-    BlockItemCandidates, BlockItemKind, BlockItemProgress, ComponentValues, RecoveryBoundary,
-  },
+  parser::{BlockItemKind, ComponentValues, RecoveryBoundary, classify_block_item},
 };
 
 const fn build_plain_ascii_name_byte_table() -> [bool; 256] {
@@ -330,80 +328,18 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
     &mut self,
     state: &mut GenericValueScanState,
     options: GenericValueScanOptions,
-    is_candidate: F,
-    is_comment_candidate: C,
-    icss_symbols: Option<&FxHashSet<&str>>,
-    block_item: Option<BlockItemScan<'_>>,
-  ) -> Option<BufferedToken>
-  where
-    F: FnMut(&str) -> bool,
-    C: FnMut(&str) -> bool,
-  {
-    self.scan_value(
-      state,
-      options,
-      is_candidate,
-      is_comment_candidate,
-      icss_symbols,
-      block_item,
-    )
-  }
-
-  fn scan_value<F, C>(
-    &mut self,
-    state: &mut GenericValueScanState,
-    options: GenericValueScanOptions,
     mut is_candidate: F,
     mut is_comment_candidate: C,
     icss_symbols: Option<&FxHashSet<&str>>,
-    block_item: Option<BlockItemScan<'_>>,
   ) -> Option<BufferedToken>
   where
     F: FnMut(&str) -> bool,
     C: FnMut(&str) -> bool,
   {
-    let mut block_item = block_item;
     let mut position = self.scan_pos as usize;
     let scan_start = position;
     let mut candidate_token = None;
-    if block_item
-      .as_ref()
-      .is_some_and(|candidate| !candidate.can_scan_value())
-    {
-      return None;
-    }
-    // Each suffix gets at most one flat-value proof. A failed prefix proof
-    // from prepare_declaration is carried here, rather than being repeated.
-    if options.allow_flat_scan
-      && !options.keep_comments
-      && !options.preserve_strings
-      && !options.preserve_delimiters
-      && !value_is_nested(state, &block_item)
-      && let Some(candidate) = block_item.as_mut()
-      && candidate.flat_probe_start != Some(position as Pos)
-    {
-      candidate.flat_probe_start = Some(position as Pos);
-      if let Some(end) = self.scan_flat_value(position)
-        && (!candidate.collect_dashed
-          || !self.value[position..end]
-            .windows(2)
-            .any(|bytes| bytes == b"--"))
-      {
-        if end > position {
-          note_opaque_value(&mut block_item);
-        }
-        self.scan_pos = end as Pos;
-        return None;
-      }
-    }
-    let preserve_selector = block_item
-      .as_ref()
-      .is_some_and(|candidate| candidate.preserve_selector_tokens());
-    let defer_rule_events =
-      preserve_selector && options.property.is_none() && !options.preserve_delimiters;
-    let preserve_delimiters =
-      options.preserve_delimiters || (preserve_selector && !defer_rule_events);
-    let validating = block_item.is_some();
+    let preserve_delimiters = options.preserve_delimiters;
     let mut trivia_start = position;
     let mut trivia_comment = None;
     let mut trivia_whitespace = false;
@@ -445,12 +381,8 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
         if options.preserve_strings {
           break;
         }
-        let (kind, end, _, _, _) = self.scan_string(position, byte);
-        if kind == TokenKind::BadString && block_item.is_some() {
-          break;
-        }
+        let (_, end, _, _, _) = self.scan_string(position, byte);
 
-        note_opaque_value(&mut block_item);
         position = end;
         trivia_start = position;
         trivia_comment = None;
@@ -480,12 +412,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
             || options
               .property
               .is_some_and(|property| special_value_is_candidate(property, name, icss_symbols)));
-        if block_item.as_ref().is_some_and(|candidate| {
-          candidate.preserve_selector_tokens()
-            && ((is_function && !defer_rule_events)
-              || name.starts_with("--")
-              || (!is_function && candidate.preserve_ident()))
-        }) || flags.has_escape()
+        if flags.has_escape()
           || is_candidate
           || (is_function && function.is_dependency())
           || (is_function && preserve_delimiters)
@@ -513,26 +440,11 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
           }
           break;
         }
-        if is_function {
-          observe_opaque_value(
-            &mut block_item,
-            TokenKind::Function,
-            position,
-            end + 1,
-            self.value,
-            leading,
-            function,
-          );
-        } else {
-          note_opaque_value(&mut block_item);
-        }
         self
           .visitor
           .visit_ident(name, Range::new(position as Pos, end as Pos));
         if is_function {
-          if !validating {
-            state.consume(TokenKind::LeftParenthesis);
-          }
+          state.consume(TokenKind::LeftParenthesis);
           position = end + 1;
         } else {
           position = end;
@@ -552,7 +464,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
         let Some(end) = self.scan_raw_numeric_end(position) else {
           break;
         };
-        note_opaque_value(&mut block_item);
+
         position = end;
         trivia_start = position;
         trivia_comment = None;
@@ -560,31 +472,8 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
         continue;
       }
 
-      if preserve_selector && matches!(byte, C_NUMBER_SIGN | C_FULL_STOP | C_COLON | C_AT_SIGN) {
-        break;
-      }
-      if validating
-        && matches!(byte, C_LEFT_CURLY | C_RIGHT_PARENTHESIS | C_RIGHT_SQUARE)
-        && !value_is_nested(state, &block_item)
-      {
-        break;
-      }
       match byte {
-        C_COMMA if preserve_selector => {
-          // Selector arms need the comma when a declaration candidate is replayed.
-          observe_opaque_value(
-            &mut block_item,
-            TokenKind::Comma,
-            position,
-            position + 1,
-            self.value,
-            leading,
-            FunctionKind::Other,
-          );
-          position += 1;
-        }
         C_NUMBER_SIGN => {
-          note_opaque_value(&mut block_item);
           let name_start = position + 1;
           if self.starts_ident_at(name_start)
             || self
@@ -605,144 +494,58 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
           if preserve_delimiters {
             break;
           }
-          observe_opaque_value(
-            &mut block_item,
-            TokenKind::LeftParenthesis,
-            position,
-            position + 1,
-            self.value,
-            leading,
-            FunctionKind::Other,
-          );
-          if !validating {
-            state.consume(TokenKind::LeftParenthesis);
-          }
+          state.consume(TokenKind::LeftParenthesis);
           position += 1;
         }
         C_RIGHT_PARENTHESIS => {
           if preserve_delimiters {
             break;
           }
-          observe_opaque_value(
-            &mut block_item,
-            TokenKind::RightParenthesis,
-            position,
-            position + 1,
-            self.value,
-            leading,
-            FunctionKind::Other,
-          );
-          if !validating {
-            state.consume(TokenKind::RightParenthesis);
-          }
+          state.consume(TokenKind::RightParenthesis);
           position += 1;
         }
         C_LEFT_SQUARE => {
           if preserve_delimiters {
             break;
           }
-          observe_opaque_value(
-            &mut block_item,
-            TokenKind::LeftSquareBracket,
-            position,
-            position + 1,
-            self.value,
-            leading,
-            FunctionKind::Other,
-          );
-          if !validating {
-            state.consume(TokenKind::LeftSquareBracket);
-          }
+          state.consume(TokenKind::LeftSquareBracket);
           position += 1;
         }
         C_RIGHT_SQUARE => {
           if preserve_delimiters {
             break;
           }
-          observe_opaque_value(
-            &mut block_item,
-            TokenKind::RightSquareBracket,
-            position,
-            position + 1,
-            self.value,
-            leading,
-            FunctionKind::Other,
-          );
-          if !validating {
-            state.consume(TokenKind::RightSquareBracket);
-          }
+          state.consume(TokenKind::RightSquareBracket);
           position += 1;
         }
-        C_LEFT_CURLY
-          if options.stop_at_top_level_left_curly && !value_is_nested(state, &block_item) =>
-        {
+        C_LEFT_CURLY if options.stop_at_top_level_left_curly && !state.is_nested() => {
           break;
         }
         C_LEFT_CURLY => {
           if preserve_delimiters {
             break;
           }
-          observe_opaque_value(
-            &mut block_item,
-            TokenKind::LeftCurlyBracket,
-            position,
-            position + 1,
-            self.value,
-            leading,
-            FunctionKind::Other,
-          );
-          if !validating {
-            state.consume(TokenKind::LeftCurlyBracket);
-          }
+          state.consume(TokenKind::LeftCurlyBracket);
           position += 1;
         }
-        C_RIGHT_CURLY
-          if value_expects(state, &block_item, TokenKind::RightCurlyBracket)
-            && !preserve_delimiters =>
-        {
-          observe_opaque_value(
-            &mut block_item,
-            TokenKind::RightCurlyBracket,
-            position,
-            position + 1,
-            self.value,
-            leading,
-            FunctionKind::Other,
-          );
-          if !validating {
-            state.consume(TokenKind::RightCurlyBracket);
-          }
+        C_RIGHT_CURLY if state.expects(TokenKind::RightCurlyBracket) && !preserve_delimiters => {
+          state.consume(TokenKind::RightCurlyBracket);
           position += 1;
-          if block_item
-            .as_ref()
-            .is_some_and(|candidate| !candidate.can_scan_value())
-          {
-            break;
-          }
         }
-        C_RIGHT_CURLY if preserve_delimiters || !value_is_nested(state, &block_item) => {
+        C_RIGHT_CURLY if preserve_delimiters || !state.is_nested() => {
           break;
         }
         C_RIGHT_CURLY => position += 1,
-        C_SEMICOLON
-          if RecoveryBoundary::at(TokenKind::Semicolon, value_is_nested(state, &block_item))
-            .is_some() =>
-        {
+        C_SEMICOLON if RecoveryBoundary::at(TokenKind::Semicolon, state.is_nested()).is_some() => {
           break;
         }
         _ => {
-          note_opaque_value(&mut block_item);
           position += 1;
         }
       }
       trivia_start = position;
       trivia_comment = None;
       trivia_whitespace = false;
-    }
-    // A surviving selector uses this trivia for :local/:global whitespace
-    // validation. It has not been tokenized, so leave it to the next token.
-    if preserve_selector && candidate_token.is_none() && position < self.value.len() {
-      position = trivia_start;
     }
     self.scan_pos = position as Pos;
     debug_assert!(
@@ -1885,111 +1688,18 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
   }
 }
 
-/// The single forward stream used by dependency extraction.
-///
-/// The stream owns the scanner, buffered lookahead, and the rule alternative
-/// events without cloning the lexer for every decision. Special
-/// parsers use the same stream through `next_parser_token`, so consuming a
-/// subgrammar never creates a second scanner over the source.
-///
-/// The source cursor is strictly one-directional:
-///
-/// ```text
-/// Lexer::scan_pos         farthest tokenized position, only advances
-/// TokenStream::consumed   semantic position of the currently selected grammar
-/// buffered lookahead      tokens scanned but not yet consumed
-/// ```
-///
-/// `next` consumes from the buffer first and only calls `lexer.next_token`
-/// when the buffer is empty; it never moves the scanner backwards, so every
-/// source range is tokenized at most once. A speculative declaration consumes
-/// tokens immediately; a surviving rule can replay its saved semantic events
-/// after declaration effects are rolled back. The source scanner never rewinds.
+/// The forward stream used by dependency extraction. It owns semantic
+/// lookahead and the value scanner. Ambiguous block items are classified by a
+/// separate visitor-free probe before their dependency handlers run; the
+/// semantic scanner never rewinds or replays dependency effects.
 pub(crate) struct TokenStream<'a, 's, V: LexerVisitor = ()> {
   lexer: &'a mut Lexer<'s, V>,
   consumed: Pos,
   buffered: VecDeque<BufferedToken>,
   value_state: GenericValueScanState,
   at_rule_state: GenericValueScanState,
-  pub(crate) block_item: Option<BlockItemCandidates>,
-  rule_events: Vec<BufferedToken>,
   function_kind: FunctionKind,
   parsed_value_end: Option<Pos>,
-}
-
-/// The raw scanner can save selector events without dispatching them through
-/// declaration semantics. Syntax still advances on the same component stack.
-struct BlockItemScan<'a> {
-  candidate: &'a mut BlockItemCandidates,
-  events: &'a mut Vec<BufferedToken>,
-}
-
-impl std::ops::Deref for BlockItemScan<'_> {
-  type Target = BlockItemCandidates;
-
-  fn deref(&self) -> &Self::Target {
-    self.candidate
-  }
-}
-
-impl std::ops::DerefMut for BlockItemScan<'_> {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    self.candidate
-  }
-}
-
-/// While ambiguous, syntax and raw value scanning use the same component stack.
-#[inline]
-fn value_is_nested(state: &ComponentValues, candidate: &Option<BlockItemScan<'_>>) -> bool {
-  candidate
-    .as_ref()
-    .map_or_else(|| state.is_nested(), |candidate| candidate.is_nested())
-}
-
-#[inline]
-fn value_expects(
-  state: &ComponentValues,
-  candidate: &Option<BlockItemScan<'_>>,
-  kind: TokenKind,
-) -> bool {
-  candidate
-    .as_ref()
-    .map_or_else(|| state.expects(kind), |candidate| candidate.expects(kind))
-}
-
-#[inline]
-fn note_opaque_value(candidate: &mut Option<BlockItemScan<'_>>) {
-  if let Some(candidate) = candidate {
-    candidate.opaque_value();
-  }
-}
-
-#[inline]
-fn observe_opaque_value(
-  candidate: &mut Option<BlockItemScan<'_>>,
-  kind: TokenKind,
-  start: usize,
-  end: usize,
-  source: &[u8],
-  leading: Trivia,
-  function: FunctionKind,
-) {
-  if let Some(candidate) = candidate {
-    let range = Range::new(start as Pos, end as Pos);
-    let value_range = if kind == TokenKind::Function {
-      Range::new(start as Pos, end as Pos - 1)
-    } else {
-      range
-    };
-    let token = Token::with_flags(kind, range, value_range, TokenFlags::ascii());
-    candidate.observe(token, source);
-    if candidate.preserve_selector_tokens() {
-      candidate.events.push(BufferedToken::new(
-        TokenWithTrivia { token, leading },
-        function,
-      ));
-    }
-  }
 }
 
 pub(crate) type GenericValueScanState = ComponentValues;
@@ -2001,7 +1711,6 @@ struct GenericValueScanOptions {
   preserve_delimiters: bool,
   property: Option<PropertyKind>,
   stop_at_top_level_left_curly: bool,
-  allow_flat_scan: bool,
 }
 
 /// Classification shared by tokenization, raw scanning and semantic parsing.
@@ -2049,7 +1758,7 @@ impl FunctionKind {
   }
 }
 
-/// Compact metadata shared by lookahead, raw scanning and rule replay.
+/// Compact metadata shared by lookahead and raw value scanning.
 /// Trivia endpoints coincide with the token start and are reconstructed on use.
 #[derive(Debug, Clone, Copy)]
 struct BufferedToken {
@@ -2101,8 +1810,6 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       buffered: VecDeque::new(),
       value_state: GenericValueScanState::default(),
       at_rule_state: GenericValueScanState::default(),
-      block_item: None,
-      rule_events: Vec::new(),
       function_kind: FunctionKind::Other,
       parsed_value_end: None,
     }
@@ -2121,14 +1828,6 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       token.token.range,
       self.consumed
     );
-    if let Some(candidate) = &mut self.block_item
-      && !matches!(candidate.progress, BlockItemProgress::Finished(_))
-    {
-      candidate.observe(token.token, self.lexer.value);
-      if candidate.retain_rule_event(token.token.kind) {
-        self.rule_events.push(token);
-      }
-    }
     self.function_kind = token.function;
     self
       .lexer
@@ -2148,115 +1847,69 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
     self.function_kind
   }
 
-  #[inline(always)]
-  pub(crate) fn next_with_progress(
-    &mut self,
-    keep_comments: bool,
-  ) -> (TokenWithTrivia, BlockItemProgress) {
-    let token = self.next(keep_comments);
-    (token, self.block_item_progress())
-  }
-
-  #[inline(always)]
-  pub(crate) fn block_item_progress(&self) -> BlockItemProgress {
-    self
-      .block_item
-      .as_ref()
-      .map_or(BlockItemProgress::Continue, |candidate| candidate.progress)
-  }
-
   /// Resolve cheap prefixes with their semantic result. The validated range
   /// is consumed by the value parser, so it never scans this text again.
-  /// Return whether the declaration is prepared and, on failure, the attempted
-  /// flat scan's start so candidate parsing can avoid repeating it.
+  /// Return whether the declaration can skip structural lookahead.
   pub(crate) fn prepare_declaration(
     &mut self,
     ident: Token,
     custom: bool,
     flat: bool,
     collect_dashed: bool,
-  ) -> (bool, Option<Pos>) {
-    let mut flat_probe_start = None;
+  ) -> bool {
     if self.byte_at(ident.range.end) != Some(C_COLON) {
-      return (false, flat_probe_start);
+      return false;
     }
     if !custom && !flat {
-      return (false, flat_probe_start);
+      return false;
     }
     let end = if custom {
       None
     } else {
-      flat_probe_start = Some(ident.range.end + 1);
       let Some(end) = self.lexer.scan_flat_value(ident.range.end as usize + 1) else {
-        return (false, flat_probe_start);
+        return false;
       };
       if collect_dashed
         && self.lexer.value[ident.range.end as usize + 1..end]
           .windows(2)
           .any(|bytes| bytes == b"--")
       {
-        return (false, flat_probe_start);
+        return false;
       }
       Some(end as Pos)
     };
     // `peek` has already buffered the identifier. Its colon is read once too.
     if self.buffered.len() != 1 {
-      return (false, flat_probe_start);
+      return false;
     }
     let colon = self.read_significant(false);
     debug_assert_eq!(colon.token.kind, TokenKind::Colon);
     self.buffered.push_back(colon);
     self.parsed_value_end = end;
-    (true, None)
+    true
   }
 
-  pub(crate) fn begin_block_item(
+  pub(crate) fn classify_block_item(
     &mut self,
+    ident: Token,
     custom: bool,
     has_mode: bool,
-    collect_dashed: bool,
-    flat_probe_start: Option<Pos>,
-  ) {
-    let mut candidate = BlockItemCandidates::new(custom, has_mode);
-    candidate.flat_probe_start = flat_probe_start;
-    candidate.collect_dashed = collect_dashed;
-    self.block_item = Some(candidate);
-  }
-
-  /// Select the semantic result without re-tokenizing the source. A declaration
-  /// is already consumed; only a surviving rule alternative needs its events.
-  pub(crate) fn finish_block_item(&mut self) -> BlockItemKind {
-    let candidate = self.block_item.take().expect("an active block item");
-    let BlockItemProgress::Finished(selected) = candidate.progress else {
-      unreachable!("the block item has been resolved");
+  ) -> BlockItemKind {
+    let mut probe = Lexer {
+      value: self.lexer.value,
+      scan_pos: ident.range.end,
+      visitor: (),
+      function_kind: FunctionKind::Other,
     };
-    match selected {
-      BlockItemKind::Declaration => {}
-      BlockItemKind::Rule => {
-        self.consumed = self
-          .rule_events
-          .first()
-          .expect("a rule has a prefix")
-          .token
-          .range
-          .start;
-        for event in self.rule_events.drain(..).rev() {
-          self.buffered.push_front(event);
-        }
-        self.reset_value_scan_states();
-      }
-      BlockItemKind::Invalid => {
-        let boundary = *self
-          .rule_events
-          .last()
-          .expect("an invalid item ends at a boundary");
-        self.consumed = boundary.token.range.start;
-        self.buffered.push_front(boundary);
-        self.reset_value_scan_states();
-      }
+    let (kind, boundary) = classify_block_item(|| probe.next_token(), self.lexer.value, custom);
+    if kind == BlockItemKind::Invalid || (kind == BlockItemKind::Rule && !has_mode) {
+      // Invalid prefixes have no effects. Plain CSS also needs no selector
+      // dependencies: resume at the rule body without interpreting its URLs.
+      self.buffered.clear();
+      self.lexer.scan_pos = boundary;
+      self.consumed = boundary;
     }
-    self.rule_events.clear();
-    selected
+    kind
   }
 
   pub(crate) fn reset_value_scan_states(&mut self) {
@@ -2265,10 +1918,6 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
 
   pub(crate) fn value_is_nested(&self) -> bool {
     self.value_state.is_nested()
-      || self
-        .block_item
-        .as_ref()
-        .is_some_and(BlockItemCandidates::is_nested)
   }
 
   /// Consume the next parser token while folding comments into its leading
@@ -2401,15 +2050,10 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
         preserve_delimiters,
         property: None,
         stop_at_top_level_left_curly: false,
-        allow_flat_scan: false,
       },
       &mut is_candidate,
       &mut is_comment_candidate,
       None,
-      self.block_item.as_mut().map(|candidate| BlockItemScan {
-        candidate,
-        events: &mut self.rule_events,
-      }),
     );
     self.finish_value_fast_forward(candidate);
   }
@@ -2437,15 +2081,10 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
         preserve_delimiters,
         property: None,
         stop_at_top_level_left_curly: false,
-        allow_flat_scan: true,
       },
       never_fast_forward_candidate,
       never_fast_forward_candidate,
       None,
-      self.block_item.as_mut().map(|candidate| BlockItemScan {
-        candidate,
-        events: &mut self.rule_events,
-      }),
     );
     self.finish_value_fast_forward(candidate);
   }
@@ -2473,11 +2112,9 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
         preserve_delimiters,
         property: None,
         stop_at_top_level_left_curly: true,
-        allow_flat_scan: false,
       },
       &mut is_candidate,
       &mut is_comment_candidate,
-      None,
       None,
     );
     self.finish_value_fast_forward(candidate);
@@ -2493,7 +2130,6 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
     &mut self,
     keep_comments: bool,
     preserve_strings: bool,
-    preserve_delimiters: bool,
     property: PropertyKind,
     icss_symbols: Option<&FxHashSet<&str>>,
   ) {
@@ -2505,18 +2141,14 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       GenericValueScanOptions {
         keep_comments,
         preserve_strings,
-        preserve_delimiters,
+        // Property handlers distinguish top-level names from component values.
+        preserve_delimiters: true,
         property: Some(property),
         stop_at_top_level_left_curly: false,
-        allow_flat_scan: false,
       },
       never_fast_forward_candidate,
       is_css_modules_pure_magic_comment,
       icss_symbols,
-      self.block_item.as_mut().map(|candidate| BlockItemScan {
-        candidate,
-        events: &mut self.rule_events,
-      }),
     );
     self.finish_value_fast_forward(candidate);
   }

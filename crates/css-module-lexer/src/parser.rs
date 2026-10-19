@@ -1,11 +1,10 @@
-//! Block-item candidates and their shared error-recovery boundaries.
+//! Structural block-item classification before dependency collection.
 
 use smallvec::SmallVec;
 
 use crate::{
   Pos, Token, TokenKind,
   css_syntax::{MAX_CSS_KEYWORD_LEN, decode_css_keyword},
-  lexer::TokenStream,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -62,15 +61,6 @@ pub(crate) enum BlockItemKind {
   Declaration,
   Rule,
   Invalid,
-}
-
-/// A grammar transition, published by token consumption and raw scanning.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum BlockItemProgress {
-  #[default]
-  Continue,
-  ResolveRule,
-  Finished(BlockItemKind),
 }
 
 #[derive(Debug)]
@@ -157,202 +147,52 @@ impl DeclarationCandidate {
 
 enum RuleCandidate {
   Prelude,
-  Body,
+  Body(Pos),
   Rejected,
 }
 
 impl RuleCandidate {
-  fn advance(&mut self, kind: TokenKind, nested: bool) {
+  fn advance(&mut self, token: Token, nested: bool) {
     let Self::Prelude = self else {
       return;
     };
-    if RecoveryBoundary::at(kind, nested).is_some() {
+    if RecoveryBoundary::at(token.kind, nested).is_some() {
       *self = Self::Rejected;
-    } else if !nested && kind == TokenKind::LeftCurlyBracket {
+    } else if !nested && token.kind == TokenKind::LeftCurlyBracket {
       // The rule body belongs to the existing block parser once selected.
-      *self = Self::Body;
+      *self = Self::Body(token.range.start);
     }
   }
 }
 
-/// Candidates advance beside semantic parsing, including its raw value scanner.
-/// Only semantically significant tokens are retained for the rule alternative;
-/// accepting a declaration commits effects without replaying its tokens.
-/// https://drafts.csswg.org/css-syntax/#consume-block-contents
-pub(crate) struct BlockItemCandidates {
-  declaration: DeclarationCandidate,
-  rule: RuleCandidate,
+/// Classify the ambiguous identifier prefix without collecting dependencies.
+/// The selected grammar is parsed once afterwards, so selector modes, warnings
+/// and declaration dependencies never need speculative state or rollback.
+pub(crate) fn classify_block_item(
+  mut next: impl FnMut() -> Token,
+  source: &[u8],
   custom: bool,
-  first: bool,
-  has_mode: bool,
-  pub(crate) progress: BlockItemProgress,
-  retain_next_atom: bool,
-  retain_current_atom: bool,
-  preserve_next_ident: bool,
-  pub(crate) flat_probe_start: Option<Pos>,
-  pub(crate) collect_dashed: bool,
-}
-
-impl BlockItemCandidates {
-  pub(crate) fn new(custom: bool, has_mode: bool) -> Self {
-    Self {
-      declaration: DeclarationCandidate {
-        state: DeclarationState::Colon,
-        components: ComponentValues::default(),
+) -> (BlockItemKind, Pos) {
+  let mut declaration = DeclarationCandidate {
+    state: DeclarationState::Colon,
+    components: ComponentValues::default(),
+  };
+  let mut rule = RuleCandidate::Prelude;
+  loop {
+    let token = next();
+    rule.advance(token, declaration.components.is_nested());
+    declaration.advance(token, source);
+    if custom && matches!(declaration.state, DeclarationState::Value { .. }) {
+      return (BlockItemKind::Declaration, token.range.end);
+    }
+    match declaration.state {
+      DeclarationState::Accepted => return (BlockItemKind::Declaration, token.range.start),
+      DeclarationState::Rejected => match rule {
+        RuleCandidate::Body(start) => return (BlockItemKind::Rule, start),
+        RuleCandidate::Rejected => return (BlockItemKind::Invalid, token.range.start),
+        RuleCandidate::Prelude => declaration.components.consume(token.kind),
       },
-      rule: RuleCandidate::Prelude,
-      custom,
-      first: true,
-      has_mode,
-      progress: BlockItemProgress::Continue,
-      retain_next_atom: true,
-      retain_current_atom: true,
-      preserve_next_ident: false,
-      flat_probe_start: None,
-      collect_dashed: false,
+      _ => {}
     }
-  }
-
-  #[inline]
-  pub(crate) fn observe(&mut self, token: Token, source: &[u8]) {
-    if matches!(self.progress, BlockItemProgress::Finished(_)) {
-      return;
-    }
-    if !token.kind.is_trivia() && token.kind != TokenKind::BadComment {
-      self.retain_current_atom = self.retain_next_atom;
-      // Selector helpers peek immediately after names, dots and colons.
-      // Keep that token even when it otherwise has no semantic effect.
-      self.retain_next_atom = matches!(
-        token.kind,
-        TokenKind::Ident | TokenKind::Function | TokenKind::Colon | TokenKind::Delim
-      );
-    }
-    self.preserve_next_ident = token.kind == TokenKind::Colon
-      || (token.kind == TokenKind::Delim
-        && source
-          .get(token.range.start as usize)
-          .is_some_and(|byte| matches!(byte, b'.' | b'#')));
-    // Ordinary atoms cannot select a rule or change nesting. The semantic
-    // scanner already classified them; only the first value atom matters.
-    if !self.first
-      && matches!(
-        token.kind,
-        TokenKind::Ident
-          | TokenKind::Number
-          | TokenKind::Dimension
-          | TokenKind::Percentage
-          | TokenKind::Hash
-          | TokenKind::IdHash
-          | TokenKind::Url
-          | TokenKind::QuotedString
-          | TokenKind::Delim
-      )
-    {
-      if let DeclarationState::Value { has_value } = &mut self.declaration.state {
-        *has_value = true;
-        return;
-      }
-      if self.declaration.components.is_nested() {
-        return;
-      }
-    }
-    self
-      .rule
-      .advance(token.kind, self.declaration.components.is_nested());
-    if self.first {
-      self.first = false;
-      return;
-    }
-    self.declaration.advance(token, source);
-    if self.declaration_rejected() && matches!(self.rule, RuleCandidate::Prelude) {
-      self.declaration.components.consume(token.kind);
-    }
-    self.progress = match self.declaration.state {
-      DeclarationState::Accepted => BlockItemProgress::Finished(BlockItemKind::Declaration),
-      DeclarationState::Rejected => match self.rule {
-        RuleCandidate::Body => BlockItemProgress::Finished(BlockItemKind::Rule),
-        RuleCandidate::Rejected => BlockItemProgress::Finished(BlockItemKind::Invalid),
-        RuleCandidate::Prelude => BlockItemProgress::ResolveRule,
-      },
-      DeclarationState::Value { .. } if self.custom && token.kind == TokenKind::Colon => {
-        BlockItemProgress::Finished(BlockItemKind::Declaration)
-      }
-      _ => BlockItemProgress::Continue,
-    };
-  }
-
-  /// The raw scanner has already proved this atom cannot change structure.
-  /// Reuse that proof rather than dispatching through both grammar states.
-  #[inline]
-  pub(crate) fn opaque_value(&mut self) {
-    if let DeclarationState::Value { has_value } = &mut self.declaration.state {
-      *has_value = true;
-    }
-    self.preserve_next_ident = false;
-    self.retain_next_atom = false;
-  }
-
-  #[inline]
-  pub(crate) fn is_nested(&self) -> bool {
-    self.declaration.components.is_nested()
-  }
-
-  #[inline]
-  pub(crate) fn expects(&self, kind: TokenKind) -> bool {
-    self.declaration.components.expects(kind)
-  }
-
-  #[inline]
-  pub(crate) fn retain_rule_event(&self, kind: TokenKind) -> bool {
-    if self.declaration_rejected() || matches!(self.rule, RuleCandidate::Body) {
-      // The selected rule body is parsed as block contents, not as a selector.
-      return true;
-    }
-    self.has_mode
-      && (self.retain_current_atom
-        || !matches!(
-          kind,
-          TokenKind::Number
-            | TokenKind::Percentage
-            | TokenKind::Dimension
-            | TokenKind::IncludeMatch
-            | TokenKind::DashMatch
-            | TokenKind::PrefixMatch
-            | TokenKind::SuffixMatch
-            | TokenKind::SubstringMatch
-        ))
-  }
-
-  pub(crate) fn declaration_rejected(&self) -> bool {
-    matches!(self.declaration.state, DeclarationState::Rejected)
-  }
-
-  pub(crate) fn can_scan_value(&self) -> bool {
-    self.progress == BlockItemProgress::Continue
-      && !matches!(self.rule, RuleCandidate::Body)
-      && matches!(
-        self.declaration.state,
-        DeclarationState::Value { .. } | DeclarationState::CurlyValue
-      )
-  }
-
-  pub(crate) fn preserve_selector_tokens(&self) -> bool {
-    self.has_mode && self.progress == BlockItemProgress::Continue
-  }
-
-  #[inline]
-  pub(crate) fn preserve_ident(&self) -> bool {
-    self.preserve_selector_tokens() && self.preserve_next_ident
-  }
-}
-
-/// Once the declaration fails, finish the rule candidate on the same stream.
-/// No semantic effects are applied to this rejected declaration suffix.
-pub(crate) fn resolve_block_item<V: crate::LexerVisitor>(
-  stream: &mut TokenStream<'_, '_, V>,
-  keep_comments: bool,
-) {
-  while stream.block_item_progress() == BlockItemProgress::ResolveRule {
-    stream.next(keep_comments);
   }
 }
