@@ -7,7 +7,7 @@ pub mod min_size;
 mod module_group;
 mod residual;
 
-use std::{borrow::Cow, cmp::Ordering, collections::VecDeque, fmt::Debug, sync::Arc};
+use std::{borrow::Cow, cmp::Ordering, fmt::Debug, sync::Arc};
 
 use futures::future::BoxFuture;
 use itertools::Itertools;
@@ -94,12 +94,9 @@ impl SplitChunksPlugin {
     let residual_enabled = std::env::var("RSPACK_RESIDUAL_REUSE").is_ok_and(|value| value == "1");
     let residual_audit = std::env::var_os("RSPACK_RESIDUAL_AUDIT").is_some();
     let residual_started = std::time::Instant::now();
-    let residual_snapshots = 0usize;
-    let mut residual_candidates = 0usize;
     let mut residual_selected = 0usize;
     let mut residual_committed = 0usize;
     let mut residual_rejected = 0usize;
-    let mut residual_prepare_seconds = 0.0;
     let mut residual_cleanup_seconds = 0.0;
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module data");
@@ -184,8 +181,6 @@ impl SplitChunksPlugin {
 
     let mut max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting> = Default::default();
     let mut removed_module_chunks: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
-    let mut residual_pools = Vec::<ModuleGroupMap>::new();
-    let residual_update_seconds = 0.0;
 
     // Each priority uses the remaining original module-chunk edges. Destinations
     // created by earlier splits never become inputs to candidate enumeration.
@@ -194,31 +189,14 @@ impl SplitChunksPlugin {
 
     let start = logger.time("process cache groups");
     let priority_len = priority_cache_groups.len();
-    let mut jobs = priority_cache_groups
-      .into_iter()
-      .enumerate()
-      .map(|(index, (_, groups))| (index, Some(groups), None::<usize>))
-      .collect::<VecDeque<_>>();
-    while let Some((index, cache_groups, deferred_originals)) = jobs.pop_front() {
+    for (index, (_, cache_groups)) in priority_cache_groups.into_iter().enumerate() {
       for (module, removed) in removed_module_chunks.drain() {
         let remaining = &mut module_chunks[module_indices[&module]];
         for chunk in removed {
           remaining.remove(&chunk);
         }
       }
-      let supplemental = deferred_originals.is_some();
-      let mut module_group_map = if let Some(originals) = deferred_originals {
-        let projection_started = std::time::Instant::now();
-        let candidates = residual::finish(
-          std::mem::take(&mut residual_pools[originals]),
-          self,
-          &module_sizes,
-        );
-        residual_candidates += candidates.len();
-        residual_prepare_seconds += projection_started.elapsed().as_secs_f64();
-        candidates
-      } else {
-        let cache_groups = cache_groups.expect("original cache group job");
+      let mut module_group_map = {
         let available_module_chunks = &module_chunks;
         // Precompute once for this priority, then reuse the prepared combinations
         // throughout candidate preparation and selection.
@@ -317,7 +295,8 @@ impl SplitChunksPlugin {
       while let Some((module_group_key, mut module_group)) =
         self.find_best_module_group(&mut module_group_map)
       {
-        if supplemental {
+        let changed_candidate = module_group.placement_changed;
+        if changed_candidate {
           residual_selected += 1;
         }
 
@@ -509,7 +488,7 @@ impl SplitChunksPlugin {
           continue;
         }
 
-        if supplemental
+        if changed_candidate
           && !residual::placement_preserves_copies(
             &placed_module_chunks,
             &used_chunks,
@@ -520,7 +499,7 @@ impl SplitChunksPlugin {
           residual_rejected += 1;
           continue;
         }
-        if supplemental {
+        if changed_candidate {
           residual_committed += 1;
           if std::env::var_os("RSPACK_RESIDUAL_PLACEMENTS").is_some() {
             let mut edges = match &placed_module_chunks {
@@ -591,20 +570,8 @@ impl SplitChunksPlugin {
           &placed_module_chunks,
           &mut module_group_map,
           &module_sizes,
-          residual_enabled && !supplemental,
+          residual_enabled,
         );
-        // Deferred candidates use the same cleanup routine; no module index or
-        // copied snapshot of the native queue is maintained.
-        for deferred in &mut residual_pools {
-          if !deferred.is_empty() {
-            self.remove_all_modules_from_other_module_groups(
-              &placed_module_chunks,
-              deferred,
-              &module_sizes,
-              false,
-            );
-          }
-        }
         residual_cleanup_seconds += cleanup_started.elapsed().as_secs_f64();
 
         if index != priority_len - 1 {
@@ -628,26 +595,16 @@ impl SplitChunksPlugin {
           }
         }
       }
-      if residual_enabled && !supplemental {
-        // Appended jobs run only after all original priorities are exhausted.
-        let deferred_index = residual_pools.len();
-        residual_pools.push(module_group_map);
-        jobs.push_back((index, None, Some(deferred_index)));
-      }
     }
     logger.time_end(start);
     if residual_audit {
       eprintln!(
-        "[residual-reuse] {{\"enabled\":{},\"modules\":{},\"snapshots\":{},\"candidates\":{},\"selected\":{},\"committed\":{},\"rejected\":{},\"projectionSeconds\":{},\"updateSeconds\":{},\"cleanupSeconds\":{},\"splitChunksSeconds\":{}}}",
+        "[residual-reuse] {{\"enabled\":{},\"modules\":{},\"changedSelected\":{},\"committed\":{},\"rejected\":{},\"cleanupSeconds\":{},\"splitChunksSeconds\":{}}}",
         residual_enabled,
         all_modules.len(),
-        residual_snapshots,
-        residual_candidates,
         residual_selected,
         residual_committed,
         residual_rejected,
-        residual_prepare_seconds,
-        residual_update_seconds,
         residual_cleanup_seconds,
         residual_started.elapsed().as_secs_f64()
       );

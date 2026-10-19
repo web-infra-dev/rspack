@@ -1,23 +1,9 @@
-//! Residual candidates share the native queue and its committed-placement cleanup.
+//! Consumer check for candidates updated by committed placements.
 
 use rspack_core::{ChunkGroupUkey, ChunkUkey, Compilation};
 use rustc_hash::FxHashSet;
 
-use super::ModuleGroupMap;
-use crate::{
-  SplitChunksPlugin,
-  common::{ModuleChunkMap, ModuleSizes},
-};
-
-pub(super) fn finish(
-  mut groups: ModuleGroupMap,
-  plugin: &SplitChunksPlugin,
-  sizes: &ModuleSizes,
-) -> ModuleGroupMap {
-  groups.retain(|_, group| group.residual_changed && group.prepare_residual());
-  plugin.ensure_min_size_fit(&mut groups, sizes, false);
-  groups
-}
+use crate::common::ModuleChunkMap;
 
 /// Each replacement copy must retain the union of the consumers of its removed
 /// copies. Also check existing target modules when extending a reused target.

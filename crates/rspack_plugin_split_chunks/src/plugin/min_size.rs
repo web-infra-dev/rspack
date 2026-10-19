@@ -183,7 +183,7 @@ impl SplitChunksPlugin {
     &self,
     module_group_map: &mut ModuleGroupMap,
     module_sizes: &ModuleSizes,
-    retain_residual: bool,
+    update_candidates: bool,
   ) {
     let invalidated_module_groups = module_group_map
       .par_iter_mut()
@@ -221,8 +221,9 @@ impl SplitChunksPlugin {
         }
         // A mixed-type candidate can recover when a later placement removes
         // the source type that fails minSizeReduction. Keep the candidate itself.
-        if retain_residual && module_group.can_recover(cache_group, module_sizes, chunks_len) {
-          module_group.deferred = true;
+        if update_candidates && module_group.can_recover(cache_group, module_sizes, chunks_len) {
+          module_group.selectable = false;
+          module_group.placement_changed = true;
           None
         } else {
           Some(module_group_key.clone())

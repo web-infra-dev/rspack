@@ -877,13 +877,13 @@ impl SplitChunksPlugin {
   ) -> Option<(ModuleGroupKey, ModuleGroup)> {
     let mut best_entry_index = module_group_map
       .iter()
-      .position(|(_, group)| !group.deferred)?;
+      .position(|(_, group)| group.selectable)?;
     for entry_index in best_entry_index + 1..module_group_map.len() {
-      if module_group_map
+      if !module_group_map
         .get_index(entry_index)
         .expect("candidate")
         .1
-        .deferred
+        .selectable
       {
         continue;
       }
@@ -896,13 +896,11 @@ impl SplitChunksPlugin {
       }
     }
 
-    let (key, mut group) = module_group_map
-      .swap_remove_index(best_entry_index)
-      .expect("selected candidate");
-    if let Some(residual) = group.residual.take() {
-      module_group_map.insert(key.clone(), *residual);
-    }
-    Some((key, group))
+    Some(
+      module_group_map
+        .swap_remove_index(best_entry_index)
+        .expect("selected candidate"),
+    )
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -1284,7 +1282,7 @@ impl SplitChunksPlugin {
     placed_module_chunks: &ModuleChunkMap,
     module_group_map: &mut ModuleGroupMap,
     module_sizes: &ModuleSizes,
-    retain_residual: bool,
+    update_candidates: bool,
   ) {
     // remove all modules from other entries and update size
     let placed_chunk_mask = placed_module_chunks.chunk_mask();
@@ -1298,82 +1296,29 @@ impl SplitChunksPlugin {
           return None;
         }
         let cache = other_module_group.get_cache_group(&self.cache_groups);
-        if other_module_group.deferred {
-          let changed = other_module_group.update_residual(placed_module_chunks, cache, module_sizes);
-          return (changed && !other_module_group.can_recover(cache, module_sizes, other_module_group.chunks.len()))
-            .then(|| key.clone());
-        }
-        if let Some(residual) = &mut other_module_group.residual
-          && residual.update_residual(placed_module_chunks, cache, module_sizes)
-          && !residual.can_recover(cache, module_sizes, residual.chunks.len())
-        {
-          other_module_group.residual = None;
-        }
-        let original_module_count = other_module_group.modules.len();
-        match (
-          placed_module_chunks,
-          other_module_group.shared_module_chunks(),
-        ) {
-          (
-            ModuleChunkMap::Shared {
-              modules,
-              chunks: placed_chunks,
-            },
-            Some(other_chunks),
-          ) => {
-            other_chunks.intersection(placed_chunks).next()?;
-            let all = other_module_group.modules.is_subset(modules);
-            if retain_residual && other_module_group.residual.is_none()
-              && (all || !other_module_group.modules.is_disjoint(modules))
-              && other_module_group.can_shrink(placed_module_chunks, cache, module_sizes)
-            {
-              if all {
-                other_module_group.deferred = true;
-                other_module_group.update_residual(placed_module_chunks, cache, module_sizes);
-                return None;
-              }
-              let mut residual = other_module_group.fork_residual(cache);
-              residual.update_residual(placed_module_chunks, cache, module_sizes);
-              other_module_group.residual = Some(Box::new(residual));
-            }
-            if all { return Some(key.clone()); }
-            other_module_group.remove_shared_modules(modules);
+        if update_candidates {
+          if !other_module_group.update_candidate(placed_module_chunks, cache, module_sizes, duplicated_modules) {
+            return None;
           }
-          _ => {
-            duplicated_modules.extend(other_module_group
-            .modules
-            .iter()
-            .filter(|module| {
-              let Some(placed_chunks) = placed_module_chunks.get(module) else {
-                return false;
-              };
-              let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
-                return false;
-              };
-              placed_chunks.intersection(other_chunks).next().is_some()
-            })
-            .copied());
-            let all = duplicated_modules.len() == original_module_count;
-            if retain_residual && other_module_group.residual.is_none()
-              && !duplicated_modules.is_empty()
-              && other_module_group.can_shrink(placed_module_chunks, cache, module_sizes)
-            {
-              if all {
-                other_module_group.deferred = true;
-                other_module_group.update_residual(placed_module_chunks, cache, module_sizes);
-                return None;
-              }
-              let mut residual = other_module_group.fork_residual(cache);
-              residual.update_residual(placed_module_chunks, cache, module_sizes);
-              other_module_group.residual = Some(Box::new(residual));
+        } else {
+          let original_module_count = other_module_group.modules.len();
+          match (placed_module_chunks, other_module_group.shared_module_chunks()) {
+            (ModuleChunkMap::Shared { modules, chunks: placed_chunks }, Some(other_chunks)) => {
+              other_chunks.intersection(placed_chunks).next()?;
+              if other_module_group.modules.is_subset(modules) { return Some(key.clone()); }
+              other_module_group.remove_shared_modules(modules);
             }
-            if all { return Some(key.clone()); }
-            other_module_group.remove_modules(duplicated_modules.iter().copied());
+            _ => {
+              duplicated_modules.extend(other_module_group.modules.iter().filter(|module| {
+                let Some(placed_chunks) = placed_module_chunks.get(module) else { return false; };
+                let Some(other_chunks) = other_module_group.get_module_chunks(module) else { return false; };
+                !placed_chunks.is_disjoint(other_chunks)
+              }).copied());
+              if duplicated_modules.len() == original_module_count { return Some(key.clone()); }
+              other_module_group.remove_modules(duplicated_modules.iter().copied());
+            }
           }
-        };
-
-        if other_module_group.modules.len() == original_module_count {
-          return None;
+          if other_module_group.modules.len() == original_module_count { return None; }
         }
 
         if other_module_group.modules.is_empty() {
@@ -1421,11 +1366,11 @@ impl SplitChunksPlugin {
           // Deleting one source type can temporarily leave another below
           // minSizeReduction. Further native placements may remove that type;
           // keep the remaining candidate in place when another type still fits.
-          if retain_residual && other_module_group.residual.is_none()
+          if update_candidates
             && other_module_group.can_recover(cache_group, module_sizes, chunks_len)
           {
-            other_module_group.deferred = true;
-            other_module_group.residual_changed = true;
+            other_module_group.selectable = false;
+            other_module_group.placement_changed = true;
             return None;
           }
           tracing::trace!(
@@ -1435,6 +1380,7 @@ impl SplitChunksPlugin {
           return Some(key.clone());
         }
 
+        other_module_group.selectable = true;
         None
       })
       .filter_map(std::convert::identity)
@@ -1442,15 +1388,7 @@ impl SplitChunksPlugin {
 
     let removed = keys_of_invalid_group
       .into_iter()
-      .filter_map(|key| {
-        let group = module_group_map.get_mut(&key).expect("invalid candidate");
-        if let Some(residual) = group.residual.take() {
-          *group = *residual;
-          None
-        } else {
-          module_group_map.swap_remove(&key)
-        }
-      })
+      .filter_map(|key| module_group_map.swap_remove(&key))
       .collect::<Vec<_>>();
     removed.into_par_iter().for_each(drop);
   }
