@@ -6,9 +6,7 @@ use swc_next_ecma_ast::*;
 
 use super::{DestructuringAssignmentProperty, JavascriptParser, PatRef};
 use crate::{
-  Atom,
-  parser_plugin::JavascriptParserPlugin,
-  utils::eval::{BasicEvaluatedExpression, parse_bigint_literal},
+  Atom, parser_plugin::JavascriptParserPlugin, utils::eval::BasicEvaluatedExpression,
   visitors::DestructuringAssignmentProperties,
 };
 
@@ -25,7 +23,7 @@ fn eval_property_key<'parser>(
     }
     PropertyKeyValue::NumericLiteral(number) => evaluated.set_number(number.value(ast)),
     PropertyKeyValue::BigIntLiteral(bigint) => {
-      if let Some(value) = parse_bigint_literal(ast.get_utf8(bigint.raw(ast))) {
+      if let Some(value) = bigint.value(ast) {
         evaluated.set_bigint(value);
       }
     }

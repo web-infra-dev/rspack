@@ -302,37 +302,22 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ModuleType::JsDynamic => SwcSourceType::CommonJs,
       _ => SwcSourceType::Unambiguous,
     };
-    let parse_with_source_type = |source_type| {
-      Parser::init(
-        &allocator,
-        source_string.as_ref(),
-        Options {
-          source_type,
-          lang: if jsx { Lang::Jsx } else { Lang::Js },
-          preserve_parens: false,
-          comments: CommentMode::Flat,
-        },
-        TokenParserConfig,
-      )
-      .parse()
-    };
-    let mut parse_return = parse_with_source_type(source_type);
-    // The legacy `JsAuto` parser allowed a CommonJS-style top-level return.
-    // SWC Next's unambiguous mode resolves non-ESM input as `Script`, where
-    // return is rejected. Retry only this compatibility case as CommonJS;
-    // other parse errors and files containing ESM syntax remain diagnostics.
-    if module_type.is_js_auto()
-      && parse_return.diagnostics.iter().any(|diagnostic| {
-        diagnostic.message == "'return' statement is only valid inside a function"
-      })
-    {
-      parse_return = parse_with_source_type(SwcSourceType::CommonJs);
-    }
     let ParseReturn {
       ast,
       tokens,
       diagnostics: parse_diagnostics,
-    } = parse_return;
+    } = Parser::init(
+      &allocator,
+      source_string.as_ref(),
+      Options {
+        source_type,
+        lang: if jsx { Lang::Jsx } else { Lang::Js },
+        preserve_parens: false,
+        comments: CommentMode::Flat,
+      },
+      TokenParserConfig,
+    )
+    .parse();
 
     if !parse_diagnostics.is_empty() {
       append_swc_next_diagnostics(&mut diagnostics, &source_string, parse_diagnostics);

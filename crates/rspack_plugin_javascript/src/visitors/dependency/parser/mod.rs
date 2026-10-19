@@ -80,9 +80,7 @@ pub(crate) fn member_property_to_atom(ast: &Ast<'_>, expr: Expr) -> Option<Atom>
     ExprData::NumericLiteral(node) => {
       Atom::from(rspack_util::ryu_js::Buffer::new().format(node.value(ast)))
     }
-    ExprData::BigIntLiteral(node) => {
-      Atom::from(eval::parse_bigint_literal(ast.get_utf8(node.raw(ast)))?.to_string())
-    }
+    ExprData::BigIntLiteral(node) => Atom::from(node.value(ast)?.to_string()),
     ExprData::RegExpLiteral(node) => {
       let pattern = ast.get_utf8(node.pattern(ast));
       let mut flags = ast.get_utf8(node.flags(ast)).chars().collect::<Vec<_>>();
