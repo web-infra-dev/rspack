@@ -183,6 +183,7 @@ impl SplitChunksPlugin {
     &self,
     module_group_map: &mut ModuleGroupMap,
     module_sizes: &ModuleSizes,
+    retain_residual: bool,
   ) {
     let invalidated_module_groups = module_group_map
       .par_iter_mut()
@@ -199,24 +200,41 @@ impl SplitChunksPlugin {
           return None;
         }
 
-        if remove_min_size_violating_modules(
+        let can_recover = retain_residual
+          && module_group.can_recover(cache_group, module_sizes, module_group.chunks.len());
+        if can_recover
+          && module_group
+            .get_sizes(module_sizes)
+            .iter()
+            .any(|(ty, size)| *size < cache_group.min_size.get(ty).copied().unwrap_or_default())
+        {
+          module_group.residual = Some(Box::new(module_group.fork_residual(cache_group)));
+        }
+        let invalid = if remove_min_size_violating_modules(
           module_group_key,
           module_group,
           cache_group,
           module_sizes,
         ) {
-          Some(module_group_key.clone())
+          true
         } else {
           let chunks_len = module_group.chunks.len();
-          if !Self::check_min_size_reduction(
+          !Self::check_min_size_reduction(
             module_group.get_sizes(module_sizes),
             &cache_group.min_size_reduction,
             chunks_len,
-          ) {
-            Some(module_group_key.clone())
-          } else {
-            None
+          )
+        };
+        if invalid && can_recover {
+          if let Some(residual) = module_group.residual.take() {
+            *module_group = *residual;
           }
+          module_group.deferred = true;
+          None
+        } else if invalid {
+          Some(module_group_key.clone())
+        } else {
+          None
         }
       })
       .collect::<Vec<_>>();

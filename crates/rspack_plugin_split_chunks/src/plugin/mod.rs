@@ -94,7 +94,7 @@ impl SplitChunksPlugin {
     let residual_enabled = std::env::var("RSPACK_RESIDUAL_REUSE").is_ok_and(|value| value == "1");
     let residual_audit = std::env::var_os("RSPACK_RESIDUAL_AUDIT").is_some();
     let residual_started = std::time::Instant::now();
-    let mut residual_snapshots = 0usize;
+    let residual_snapshots = 0usize;
     let mut residual_candidates = 0usize;
     let mut residual_selected = 0usize;
     let mut residual_committed = 0usize;
@@ -184,8 +184,8 @@ impl SplitChunksPlugin {
 
     let mut max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting> = Default::default();
     let mut removed_module_chunks: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
-    let mut residual_pools = Vec::<residual::ResidualCandidates>::new();
-    let mut residual_update_seconds = 0.0;
+    let mut residual_pools = Vec::<ModuleGroupMap>::new();
+    let residual_update_seconds = 0.0;
 
     // Each priority uses the remaining original module-chunk edges. Destinations
     // created by earlier splits never become inputs to candidate enumeration.
@@ -207,12 +207,16 @@ impl SplitChunksPlugin {
         }
       }
       let supplemental = deferred_originals.is_some();
-      let (mut module_group_map, residual_originals) = if let Some(originals) = deferred_originals {
+      let mut module_group_map = if let Some(originals) = deferred_originals {
         let projection_started = std::time::Instant::now();
-        let candidates = std::mem::take(&mut residual_pools[originals]).finish(self, &module_sizes);
+        let candidates = residual::finish(
+          std::mem::take(&mut residual_pools[originals]),
+          self,
+          &module_sizes,
+        );
         residual_candidates += candidates.len();
         residual_prepare_seconds += projection_started.elapsed().as_secs_f64();
-        (candidates, None)
+        candidates
       } else {
         let cache_groups = cache_groups.expect("original cache group job");
         let available_module_chunks = &module_chunks;
@@ -304,37 +308,18 @@ impl SplitChunksPlugin {
             &chunk_index_map,
           )
           .await?;
-        module_group_map
-          .par_iter_mut()
-          .for_each(|(_, module_group)| {
-            module_group.prepare_modules_for_sizes_and_compare();
-            if residual_enabled {
-              let _ = module_group.get_sizes(&module_sizes);
-            }
-          });
-        let supports = residual_enabled.then(|| {
-          let pool = residual::ResidualCandidates::capture(
-            &mut module_group_map,
-            &self.cache_groups,
-            &module_sizes,
-          );
-          residual_snapshots += pool.len();
-          let index = residual_pools.len();
-          residual_pools.push(pool);
-          index
+        module_group_map.par_iter_mut().for_each(|(_, group)| {
+          group.prepare_modules_for_sizes_and_compare();
         });
-        tracing::trace!("prepared module_group_map {:#?}", module_group_map);
-
-        self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
-
-        (module_group_map, supports)
+        self.ensure_min_size_fit(&mut module_group_map, &module_sizes, residual_enabled);
+        module_group_map
       };
-      while !module_group_map.is_empty() {
+      while let Some((module_group_key, mut module_group)) =
+        self.find_best_module_group(&mut module_group_map)
+      {
         if supplemental {
           residual_selected += 1;
         }
-        let (module_group_key, mut module_group) =
-          self.find_best_module_group(&mut module_group_map);
 
         tracing::trace!(
           "ModuleGroup({}) wins, {:?} `ModuleGroup` remains",
@@ -601,25 +586,25 @@ impl SplitChunksPlugin {
 
         self.split_from_original_chunks(&module_group, &used_chunks, new_chunk, compilation);
 
-        if residual_enabled {
-          let update_started = std::time::Instant::now();
-          for pool in &mut residual_pools {
-            pool.remove(
-              &placed_module_chunks,
-              &self.cache_groups,
-              &chunk_index_map,
-              &module_sizes,
-            );
-          }
-          residual_update_seconds += update_started.elapsed().as_secs_f64();
-        }
-
         let cleanup_started = std::time::Instant::now();
         self.remove_all_modules_from_other_module_groups(
           &placed_module_chunks,
           &mut module_group_map,
           &module_sizes,
+          residual_enabled && !supplemental,
         );
+        // Deferred candidates use the same cleanup routine; no module index or
+        // copied snapshot of the native queue is maintained.
+        for deferred in &mut residual_pools {
+          if !deferred.is_empty() {
+            self.remove_all_modules_from_other_module_groups(
+              &placed_module_chunks,
+              deferred,
+              &module_sizes,
+              false,
+            );
+          }
+        }
         residual_cleanup_seconds += cleanup_started.elapsed().as_secs_f64();
 
         if index != priority_len - 1 {
@@ -645,7 +630,9 @@ impl SplitChunksPlugin {
       }
       if residual_enabled && !supplemental {
         // Appended jobs run only after all original priorities are exhausted.
-        jobs.push_back((index, None, residual_originals));
+        let deferred_index = residual_pools.len();
+        residual_pools.push(module_group_map);
+        jobs.push_back((index, None, Some(deferred_index)));
       }
     }
     logger.time_end(start);

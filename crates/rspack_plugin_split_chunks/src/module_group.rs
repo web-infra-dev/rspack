@@ -7,7 +7,7 @@ use rustc_hash::FxHashSet;
 
 use crate::{
   CacheGroup,
-  common::{ModuleSizes, SplitChunkSizes, chunk_mask},
+  common::{ModuleChunkMap, ModuleSizes, SplitChunkSizes, chunk_mask},
 };
 
 pub(crate) struct IndexedCacheGroup<'a> {
@@ -126,6 +126,12 @@ enum ModuleGroupChunks {
 #[derive(Debug)]
 pub(crate) struct ModuleGroup {
   pub modules: IdentifierSet,
+  /// An alternative is allocated only when cleanup must retain both the native
+  /// module subset and a smaller source set. It shares the native queue's lifetime
+  /// and update traversal, rather than a compilation-wide snapshot/index.
+  pub residual: Option<Box<ModuleGroup>>,
+  pub deferred: bool,
+  pub residual_changed: bool,
   /// The chunks selected for each module. Anonymous groups structurally share their exact chunk
   /// combination instead of allocating one set per module.
   #[debug(skip)]
@@ -192,6 +198,9 @@ impl ModuleGroup {
     };
     Self {
       modules: Default::default(),
+      residual: None,
+      deferred: false,
+      residual_changed: false,
       module_chunks,
       cache_group_index,
       cache_group_reuse_existing_chunk: cache_group.reuse_existing_chunk,
@@ -340,6 +349,153 @@ impl ModuleGroup {
         self.modules.remove(module);
       }
     }
+  }
+
+  /// Shrinking can only reduce a source type's size/reduction. Keep mixed-type
+  /// candidates only if removing another type could leave an eligible one.
+  pub fn can_recover(&mut self, cache: &CacheGroup, sizes: &ModuleSizes, chunks: usize) -> bool {
+    chunks >= (cache.min_chunks as usize).max(1)
+      && self.get_sizes(sizes).iter().any(|(ty, size)| {
+        *size > 0.0
+          && *size >= cache.min_size.get(ty).copied().unwrap_or_default()
+          && *size * chunks as f64
+            >= cache
+              .min_size_reduction
+              .get(ty)
+              .copied()
+              .unwrap_or_default()
+      })
+  }
+
+  /// Copy only an actually affected candidate whose native and residual branches
+  /// both survive. Whole-candidate removals transfer ownership instead.
+  pub fn fork_residual(&self, cache: &CacheGroup) -> Self {
+    let mut result = Self::new(self.chunk_name.clone(), self.cache_group_index, cache);
+    result.modules = self.modules.clone();
+    result.chunks = self.chunks.clone();
+    result.module_chunks = match &self.module_chunks {
+      ModuleGroupChunks::Shared(chunks) => ModuleGroupChunks::Shared(chunks.clone()),
+      ModuleGroupChunks::ByModule(chunks) => ModuleGroupChunks::ByModule(chunks.clone()),
+    };
+    result.deferred = true;
+    result.prepare_modules_for_sizes_and_compare();
+    result
+  }
+
+  pub fn can_shrink(
+    &mut self,
+    placed: &ModuleChunkMap,
+    cache: &CacheGroup,
+    sizes: &ModuleSizes,
+  ) -> bool {
+    let minimum = (cache.min_chunks as usize).max(1);
+    match (&self.module_chunks, placed) {
+      (ModuleGroupChunks::Shared(_), ModuleChunkMap::Shared { chunks, .. }) => {
+        let remaining = self.chunks.len() - self.chunks.intersection(chunks).count();
+        self.can_recover(cache, sizes, remaining)
+      }
+      _ => {
+        let has_remaining = self.modules.iter().any(|module| {
+          let Some(removed) = placed.get(module) else {
+            return false;
+          };
+          let sources = self.get_module_chunks(module).expect("selected sources");
+          !sources.is_disjoint(removed)
+            && sources.len() - sources.intersection(removed).count() >= minimum
+        });
+        has_remaining && self.can_recover(cache, sizes, self.chunks.len())
+      }
+    }
+  }
+
+  /// Apply the exact committed edges without changing candidate identity or
+  /// rebuilding a module-to-candidate index. There is at most one alternative
+  /// per native candidate; alternatives never recursively fork.
+  pub fn update_residual(&mut self, placed: &ModuleChunkMap, minimum: usize) {
+    if let ModuleGroupChunks::ByModule(sources) = &mut self.module_chunks {
+      let mut changed = false;
+      sources.retain(|module, chunks| {
+        let Some(removed) = placed.get(module) else {
+          return true;
+        };
+        let before = chunks.len();
+        chunks.retain(|chunk| !removed.contains(chunk));
+        changed |= chunks.len() != before;
+        if chunks.len() < minimum {
+          self.modules.remove(module);
+          self.removed.push(*module);
+          false
+        } else {
+          true
+        }
+      });
+      if changed {
+        self.rebuild_chunks();
+        self.residual_changed = true;
+      }
+      return;
+    }
+    match placed {
+      ModuleChunkMap::Shared { modules, chunks } => {
+        if self.modules.is_disjoint(modules) || self.chunks.is_disjoint(chunks) {
+          return;
+        }
+        self.residual_changed = true;
+        if self.chunks.len() - self.chunks.intersection(chunks).count() < minimum {
+          self.remove_shared_modules(modules);
+        } else {
+          self.chunks.retain(|chunk| !chunks.contains(chunk));
+        }
+      }
+      ModuleChunkMap::ByModule(placed) => {
+        let mut modules = placed
+          .keys()
+          .filter(|module| self.modules.contains(module))
+          .copied()
+          .collect::<Vec<_>>();
+        modules.sort_unstable_by_key(|module| (module.precomputed_hash(), *module));
+        for module in modules {
+          let removed = &placed[&module];
+          if self.chunks.is_disjoint(removed) {
+            continue;
+          }
+          self.residual_changed = true;
+          if self.chunks.len() - self.chunks.intersection(removed).count() < minimum {
+            self.remove_module(module);
+          } else {
+            self.chunks.retain(|chunk| !removed.contains(chunk));
+          }
+        }
+      }
+    }
+  }
+
+  pub fn prepare_residual(&mut self) -> bool {
+    if let ModuleGroupChunks::ByModule(sources) = &mut self.module_chunks {
+      let mut common = sources.values();
+      let Some(first) = common.next() else {
+        return false;
+      };
+      self.chunks.clone_from(first);
+      for source in common {
+        self.chunks.retain(|chunk| source.contains(chunk));
+      }
+      // Each named module must be selected from the common support too.
+      for source in sources.values_mut() {
+        source.clone_from(&self.chunks);
+      }
+    }
+    if self.chunks.is_empty() || self.modules.is_empty() {
+      return false;
+    }
+    self.deferred = false;
+    self.modules_for_compare = ModulesForCompare::default();
+    self.sizes.clear();
+    self.total_size = 0.0;
+    self.removed.clear();
+    self.has_modules_without_source_types = false;
+    self.prepare_modules_for_sizes_and_compare();
+    true
   }
 
   pub fn rebuild_chunks(&mut self) {
