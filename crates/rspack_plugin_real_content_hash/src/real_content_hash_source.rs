@@ -82,7 +82,7 @@ impl RealContentHashInput {
 }
 
 impl RealContentHashSource {
-  pub fn new(inner: BoxSource) -> Self {
+  pub(super) fn new(inner: BoxSource) -> Self {
     Self(Arc::new(RealContentHashSourceData {
       inner: RealContentHashInput::new(inner),
       replacements: Vec::new(),
@@ -91,30 +91,28 @@ impl RealContentHashSource {
     }))
   }
 
-  pub fn is_text(&self) -> bool {
+  fn is_text(&self) -> bool {
     !matches!(self.0.inner, RealContentHashInput::Binary(_))
   }
 
   /// Whether byte streaming agrees with the source's UTF-8 text view.
   pub fn can_stream_as_text(&self) -> bool {
     self.is_text()
-      && (matches!(self.0.inner, RealContentHashInput::StreamingText(_))
-        || self.0.normalized
-        || !self.0.replacements.is_empty())
+      && (matches!(self.0.inner, RealContentHashInput::StreamingText(_)) || self.is_rewritten())
   }
 
   /// Find non-overlapping matches, including patterns split across writer calls.
-  pub fn matches(&self, matcher: &AhoCorasick) -> (Vec<Match>, usize) {
+  pub(super) fn matches(&self, matcher: &AhoCorasick) -> (Vec<Match>, usize) {
     if !self.is_text() {
       return (Vec::new(), self.size());
     }
-    let (matches, size) = if let Some(bytes) = borrowed_bytes(self.input().as_ref()) {
+    let input = self.0.inner.content();
+    let (matches, size) = if let Some(bytes) = borrowed_bytes(input.as_ref()) {
       (matcher.find_iter(bytes).collect(), bytes.len())
     } else {
       let mut matches = Vec::new();
       let mut writer = StreamingMatcher::new(matcher, |found| matches.push(found));
-      self
-        .input()
+      input
         .to_writer(&mut writer)
         .expect("scan real content hash source");
       let size = writer.finish();
@@ -126,13 +124,14 @@ impl RealContentHashSource {
     (matches, size)
   }
 
-  /// Create a view of sorted, non-overlapping byte edits in the scanned input.
-  pub fn with_replacements(
+  /// Create a result from the original scanned input, never from another result.
+  pub(super) fn with_replacements(
     &self,
     replacements: Vec<(usize, usize, String)>,
     input_size: usize,
     normalized: bool,
   ) -> Self {
+    debug_assert!(!self.is_rewritten());
     let mut end = 0;
     let mut size = input_size;
     for (start, stop, text) in &replacements {
@@ -143,15 +142,8 @@ impl RealContentHashSource {
     if !normalized && replacements.is_empty() {
       return self.clone();
     }
-    let inner = if self.0.replacements.is_empty() && !self.0.normalized {
-      self.0.inner.clone()
-    } else if self.is_text() {
-      RealContentHashInput::StreamingText(self.clone().boxed())
-    } else {
-      RealContentHashInput::Binary(self.clone().boxed())
-    };
     Self(Arc::new(RealContentHashSourceData {
-      inner,
+      inner: self.0.inner.clone(),
       replacements,
       normalized,
       size: OnceLock::from(size),
@@ -159,31 +151,27 @@ impl RealContentHashSource {
   }
 
   /// Unmodified assets keep their original source-map and cache identity.
-  pub fn into_source(self) -> BoxSource {
-    if self.0.normalized || !self.0.replacements.is_empty() {
+  pub(super) fn into_source(self) -> BoxSource {
+    if self.is_rewritten() {
       self.boxed()
     } else {
       Arc::clone(self.0.inner.original())
     }
   }
 
-  pub fn original_is_mapping(&self) -> bool {
-    self.0.inner.original().as_any().is::<MappingSource>()
-      || self
-        .0
-        .inner
-        .original()
-        .as_any()
+  pub(super) fn original_is_mapping(&self) -> bool {
+    let inner = self.0.inner.original().as_any();
+    inner.is::<MappingSource>()
+      || inner
         .downcast_ref::<Self>()
         .is_some_and(Self::original_is_mapping)
   }
 
   /// Preserve RCH's former RawStringSource normalization when deduplicating
   /// adjacent assets. Untouched non-raw sources retain structural equality.
-  pub fn eq_for_hash(&self, other: &Self) -> bool {
+  pub(super) fn eq_for_hash(&self, other: &Self) -> bool {
     let by_content = |s: &Self| {
-      s.0.normalized
-        || !s.0.replacements.is_empty()
+      s.is_rewritten()
         || s.original_is_mapping()
         || s.0.inner.original().as_any().is::<RawStringSource>()
     };
@@ -194,7 +182,7 @@ impl RealContentHashSource {
     }
   }
 
-  pub fn content_eq(&self, other: &Self) -> bool {
+  fn content_eq(&self, other: &Self) -> bool {
     if Arc::ptr_eq(&self.0, &other.0) {
       return true;
     }
@@ -204,12 +192,11 @@ impl RealContentHashSource {
     let mut writer = CompareWriter {
       chunks: self.byte_chunks(),
       chunk: &[],
-      offset: 0,
     };
     other.to_writer(&mut writer).is_ok() && writer.is_finished()
   }
 
-  pub fn update_content_hash(&self, hasher: &mut dyn Hasher) {
+  pub(super) fn update_content_hash(&self, hasher: &mut dyn Hasher) {
     if self.0.replacements.is_empty()
       && let Some(bytes) = borrowed_bytes(self.output_input().as_ref())
     {
@@ -223,13 +210,13 @@ impl RealContentHashSource {
     writer.flush().expect("flush real content hash source hash");
   }
 
-  fn input(&self) -> &BoxSource {
-    self.0.inner.content()
+  fn is_rewritten(&self) -> bool {
+    self.0.normalized || !self.0.replacements.is_empty()
   }
 
   fn output_input(&self) -> &BoxSource {
-    if self.0.normalized || !self.0.replacements.is_empty() {
-      self.input()
+    if self.is_rewritten() {
+      self.0.inner.content()
     } else {
       self.0.inner.original()
     }
@@ -242,10 +229,8 @@ impl RealContentHashSource {
     } else {
       Box::new(EditedChunks {
         inner: chunks,
-        replacements: &self.0.replacements,
+        edits: ReplacementCursor::new(&self.0.replacements),
         chunk: &[],
-        position: 0,
-        skip_until: 0,
       })
     }
   }
@@ -367,15 +352,43 @@ fn source_chunks(source: &dyn Source) -> Box<dyn Iterator<Item = &[u8]> + '_> {
 
 struct EditedChunks<'a> {
   inner: Box<dyn Iterator<Item = &'a [u8]> + 'a>,
-  replacements: &'a [(usize, usize, String)],
+  edits: ReplacementCursor<'a>,
   chunk: &'a [u8],
-  position: usize,
-  skip_until: usize,
 }
 
 impl<'a> Iterator for EditedChunks<'a> {
   type Item = &'a [u8];
+
   fn next(&mut self) -> Option<Self::Item> {
+    loop {
+      if let Some(chunk) = self.edits.next_chunk(&mut self.chunk) {
+        return Some(chunk);
+      }
+      self.chunk = self.inner.next()?;
+    }
+  }
+}
+
+/// One byte-edit cursor shared by borrowed chunks and writer output.
+struct ReplacementCursor<'a> {
+  replacements: &'a [(usize, usize, String)],
+  position: usize,
+  skip_until: usize,
+}
+
+impl<'a> ReplacementCursor<'a> {
+  fn new(replacements: &'a [(usize, usize, String)]) -> Self {
+    Self {
+      replacements,
+      position: 0,
+      skip_until: 0,
+    }
+  }
+
+  fn next_chunk<'b>(&mut self, bytes: &mut &'b [u8]) -> Option<&'b [u8]>
+  where
+    'a: 'b,
+  {
     loop {
       if self.position >= self.skip_until
         && let Some((start, stop, text)) = self.replacements.first()
@@ -385,28 +398,21 @@ impl<'a> Iterator for EditedChunks<'a> {
         self.replacements = &self.replacements[1..];
         return Some(text.as_bytes());
       }
-      if self.chunk.is_empty() {
-        match self.inner.next() {
-          Some(chunk) => self.chunk = chunk,
-          None => {
-            let (_, stop, text) = self.replacements.first()?;
-            self.skip_until = *stop;
-            self.replacements = &self.replacements[1..];
-            return Some(text.as_bytes());
-          }
-        }
+      if bytes.is_empty() {
+        return None;
       }
       if self.position < self.skip_until {
-        let n = self.chunk.len().min(self.skip_until - self.position);
-        self.chunk = &self.chunk[n..];
+        let n = bytes.len().min(self.skip_until - self.position);
+        *bytes = &bytes[n..];
         self.position += n;
         continue;
       }
-      let n = self.replacements.first().map_or(self.chunk.len(), |r| {
-        self.chunk.len().min(r.0 - self.position)
-      });
-      let chunk = &self.chunk[..n];
-      self.chunk = &self.chunk[n..];
+      let n = self
+        .replacements
+        .first()
+        .map_or(bytes.len(), |r| bytes.len().min(r.0 - self.position));
+      let (chunk, rest) = bytes.split_at(n);
+      *bytes = rest;
       self.position += n;
       return Some(chunk);
     }
@@ -415,41 +421,22 @@ impl<'a> Iterator for EditedChunks<'a> {
 
 struct ReplacementWriter<'a> {
   writer: &'a mut dyn Write,
-  replacements: &'a [(usize, usize, String)],
-  position: usize,
-  consumed: usize,
+  edits: ReplacementCursor<'a>,
 }
 impl ReplacementWriter<'_> {
-  fn finish(self) -> io::Result<()> {
-    for (_, _, text) in self.replacements {
-      self.writer.write_all(text.as_bytes())?;
-    }
-    Ok(())
+  fn finish(mut self) -> io::Result<()> {
+    // An empty input may never call write(), including an insertion at EOF.
+    self.write(&[]).map(|_| ())
   }
 }
 impl Write for ReplacementWriter<'_> {
   fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-    let end = self.position + bytes.len();
-    while let Some((start, stop, text)) = self.replacements.first()
-      && *start <= end
-    {
-      if *start > self.consumed.max(self.position) {
-        self.writer.write_all(
-          &bytes[self.consumed.max(self.position) - self.position..start - self.position],
-        )?;
-      }
-      self.writer.write_all(text.as_bytes())?;
-      self.consumed = *stop;
-      self.replacements = &self.replacements[1..];
+    let len = bytes.len();
+    let mut remaining = bytes;
+    while let Some(chunk) = self.edits.next_chunk(&mut remaining) {
+      self.writer.write_all(chunk)?;
     }
-    if self.consumed < end {
-      self
-        .writer
-        .write_all(&bytes[self.consumed.max(self.position) - self.position..])?;
-      self.consumed = end;
-    }
-    self.position = end;
-    Ok(bytes.len())
+    Ok(len)
   }
   fn flush(&mut self) -> io::Result<()> {
     self.writer.flush()
@@ -459,29 +446,27 @@ impl Write for ReplacementWriter<'_> {
 struct CompareWriter<'a> {
   chunks: Box<dyn Iterator<Item = &'a [u8]> + 'a>,
   chunk: &'a [u8],
-  offset: usize,
 }
 impl CompareWriter<'_> {
   fn is_finished(&mut self) -> bool {
-    self.offset == self.chunk.len() && self.chunks.all(|c| c.is_empty())
+    self.chunk.is_empty() && self.chunks.all(|c| c.is_empty())
   }
 }
 impl Write for CompareWriter<'_> {
   fn write(&mut self, mut bytes: &[u8]) -> io::Result<usize> {
     let len = bytes.len();
     while !bytes.is_empty() {
-      while self.offset == self.chunk.len() {
+      while self.chunk.is_empty() {
         self.chunk = self
           .chunks
           .next()
           .ok_or_else(|| io::Error::other("source contents differ"))?;
-        self.offset = 0;
       }
-      let n = bytes.len().min(self.chunk.len() - self.offset);
-      if bytes[..n] != self.chunk[self.offset..self.offset + n] {
+      let n = bytes.len().min(self.chunk.len());
+      if bytes[..n] != self.chunk[..n] {
         return Err(io::Error::other("source contents differ"));
       }
-      self.offset += n;
+      self.chunk = &self.chunk[n..];
       bytes = &bytes[n..];
     }
     Ok(len)
@@ -544,9 +529,7 @@ impl Source for RealContentHashSource {
     }
     let mut writer = ReplacementWriter {
       writer,
-      replacements: &self.0.replacements,
-      position: 0,
-      consumed: 0,
+      edits: ReplacementCursor::new(&self.0.replacements),
     };
     self.output_input().to_writer(&mut writer)?;
     writer.finish()
