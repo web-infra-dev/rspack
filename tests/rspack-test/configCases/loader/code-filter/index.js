@@ -1,3 +1,7 @@
+import bomJsHit from "./bom.js?bom-js-hit";
+import bomJsMiss from "./bom.js?bom-js-miss";
+import bomRustHit from "./bom.js?bom-rust-hit";
+import bomRustMiss from "./bom.js?bom-rust-miss";
 import cachedHit from "./cached-hit";
 import cachedMiss from "./cached-miss";
 import direct from "./direct";
@@ -33,6 +37,13 @@ it("should filter normal loader execution using its current input", () => {
 	expect(cachedHit).toBe("cached-hit");
 	expect(cachedMiss).toBe("__VALUE__");
 	expect(mixedNative).toBe("mixed-native");
+});
+
+it("should ignore a leading UTF-8 buffer BOM when matching in JS and Rust", () => {
+	expect(bomJsHit).toBe("bom-js-hit");
+	expect(bomRustHit).toBe("bom-rust-hit");
+	expect(bomJsMiss).toBe("__VALUE__");
+	expect(bomRustMiss).toBe("__VALUE__");
 });
 
 it("should preserve loader state on a miss or undecodable input", () => {

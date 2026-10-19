@@ -190,7 +190,8 @@ impl<C: Send> LoaderItem<C> {
         let Ok(content) = simdutf8::basic::from_utf8(content) else {
           return false;
         };
-        content
+        // Match the JS filter's TextDecoder view of a UTF-8 buffer.
+        content.strip_prefix('\u{feff}').unwrap_or(content)
       }
     };
     let matched = entry.filter.matches(content);

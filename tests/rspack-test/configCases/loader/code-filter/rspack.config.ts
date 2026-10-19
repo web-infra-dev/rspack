@@ -17,10 +17,32 @@ const filtered = (
   ],
 });
 
+const bomFiltered = (
+  query: string,
+  code: RuleSetLoaderCodeFilter,
+  value: string,
+  rustBoundary: boolean,
+) => ({
+  resourceQuery: new RegExp(`^\\?${query}$`),
+  use: [
+    {
+      loader: './transform-loader.mjs',
+      options: { value },
+      filter: { code },
+    },
+    ...(rustBoundary ? ['builtin:test-passthrough-loader'] : []),
+    './bom-producer-loader.mjs',
+  ],
+});
+
 export default defineConfig({
   context: import.meta.dirname,
   module: {
     rules: [
+      bomFiltered('bom-js-hit', /^export/, 'bom-js-hit', false),
+      bomFiltered('bom-rust-hit', /^export/, 'bom-rust-hit', true),
+      bomFiltered('bom-js-miss', /^\uFEFFexport/, 'should-not-run', false),
+      bomFiltered('bom-rust-miss', /^\uFEFFexport/, 'should-not-run', true),
       filtered(/[\\/]direct\.js$/, /marker:direct/, 'direct'),
       filtered(/regexp-[ab]\.js$/, /marker:regexp/g, 'regexp'),
       filtered(/include\.js$/, 'marker:include', 'include'),
