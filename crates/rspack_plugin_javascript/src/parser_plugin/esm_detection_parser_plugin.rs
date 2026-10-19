@@ -53,10 +53,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMDetectionParserPlugin {
   fn program(&self, parser: &mut JavascriptParser<'p>, _program: Program) -> Option<bool> {
     let is_strict_esm = matches!(parser.module_type, ModuleType::JsEsm);
     let ast = parser.ast.ast;
-    // `SourceType::Unambiguous` in SWC Next classifies `import.meta`-only input
-    // as a module. Rspack's legacy parser only enabled ESM semantics when the
-    // program contained an actual import/export declaration (or the module
-    // type was explicitly `javascript/esm`). Preserve that distinction here.
     let has_esm_declaration = ast.nodes(_program.body(ast)).any(|statement| {
       matches!(
         ast.stmt_data(statement),
