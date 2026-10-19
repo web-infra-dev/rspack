@@ -235,20 +235,19 @@ Important implementation details:
   Unedited `source()` and `buffer()` use the existing `SourceMap::to_json()` serializer on demand
   and cache only its byte length. Construction must not scan the map to compute its exact JSON
   size; `size()` computes it lazily if needed, and this cache must not affect equality or hashing.
-  Rope APIs expose borrowed JSON fragments, including splits at escapes, and rope and JSON chunk
-  iteration share one lazy edit overlay so the two views cannot diverge. RCH scans serialized bytes
-  with bounded buffering and retains edits in another `MappingSource`, including custom digests
-  and maps participating in content-hash groups. Reuse the scan's byte count when creating edited
-  views so their size calculation does not serialize the input again. Edited writers apply byte
-  ranges to the original SIMD serializer's output; do not route them through the scalar rope escaper.
-  SRI computes all requested digests in one serialization pass. Content equality retains field references and
-  advances through escapes lazily, rather than retaining a reference per escaped fragment.
-  Content hashing and equality consume the exact rendered bytes; structural Source hashing remains
-  separate. Persistent cache stores map fields and edit layers directly, preserving empty fields
-  without JSON encoding or parsing. Its map record is boxed so other cached source nodes do not
-  grow. For external `noSources` maps, own the remaining borrowed metadata before releasing the
-  owner of the removed contents. Do not retain the whole JSON in either the map asset or its
-  replacement result. JS binding content requests remain an explicit materialization boundary.
+  Rope APIs expose borrowed JSON fragments, including splits at escapes.
+  RCH wraps inputs in `RealContentHashSource` from `rspack_plugin_real_content_hash`; that
+  content-only view owns bounded-buffer matching, byte edits, content comparison and hashing.
+  Its writer applies edits to the original SIMD serializer's byte stream. Unchanged assets keep
+  their original Source; rewritten assets retain the view for emission. Render/devtool caches
+  capture their inputs before RCH and therefore persist the original graph and map fields.
+  SRI streams both map JSON and rewritten RCH views directly into its digest writers.
+  `MappingSource` content hashing/comparison remain available for Devtool filenames and duplicate
+  asset checks outside RCH. They consume rendered bytes rather than structural Source hashes.
+  Persistent cache stores map fields without JSON encoding or parsing, with the map record boxed
+  to avoid enlarging every cached source node. For external `noSources` maps, own the remaining
+  metadata before releasing the removed contents' owner. JS content requests remain an explicit
+  materialization boundary.
 - `ConcatSource::add` uses `&mut self` and `Mutex::get_mut`; reads lazily optimize children. Mapping
   shifts generated positions and remaps child-local indices into global deduplicated tables.
 - `ReplaceSource` ranges are half-open byte ranges. Edits are ordered by

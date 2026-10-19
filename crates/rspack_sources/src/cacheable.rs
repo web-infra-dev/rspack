@@ -4,7 +4,7 @@
 use crate::{
   BoxSource, CachedSource, ConcatSource, MappingSource, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap,
-  SourceMapFields, SourceMapSource, SourceMapSourceOptions, mapping_source::Data,
+  SourceMapFields, SourceMapSource, SourceMapSourceOptions,
 };
 
 /// Source map fields stored without an intermediate JSON representation.
@@ -157,31 +157,16 @@ pub enum CacheableSource {
     /// Keep map metadata from enlarging every cached source node.
     map: Box<CacheableSourceMap>,
   },
-  /// An edited [`MappingSource`] remains a structural view of its input.
-  EditedMapping {
-    #[rkyv(omit_bounds)]
-    inner: Box<CacheableSource>,
-    replacements: Vec<(usize, usize, String)>,
-  },
 }
 
 /// Convert a [`Source`] trait object into a serializable [`CacheableSource`].
 pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
   if let Some(s) = source.as_any().downcast_ref::<MappingSource>() {
-    return match s.data() {
-      Data::Map(data) => CacheableSource::Mapping {
-        map: Box::new((&data.map).into()),
-      },
-      Data::Edited {
-        inner,
-        replacements,
-        ..
-      } => CacheableSource::EditedMapping {
-        inner: Box::new(to_cacheable(inner)),
-        replacements: replacements.clone(),
-      },
+    return CacheableSource::Mapping {
+      map: Box::new((&s.data().map).into()),
     };
   }
+
   if let Some(s) = source.as_any().downcast_ref::<CachedSource>() {
     return CacheableSource::Cached {
       inner: Box::new(to_cacheable(s.inner().as_ref())),
@@ -259,18 +244,6 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
 pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
   match cacheable {
     CacheableSource::Mapping { map } => MappingSource::new((*map).into()).boxed(),
-    CacheableSource::EditedMapping {
-      inner,
-      replacements,
-    } => {
-      let inner = from_cacheable(*inner);
-      inner
-        .as_any()
-        .downcast_ref::<MappingSource>()
-        .expect("edited mapping source must retain a mapping source")
-        .with_replacements(replacements, inner.size())
-        .boxed()
-    }
     CacheableSource::RawBuffer { buffer } => RawBufferSource::from(buffer).boxed(),
     CacheableSource::RawString { value } => RawStringSource::from(value).boxed(),
     CacheableSource::Original { value, name } => OriginalSource::new(value, name).boxed(),
