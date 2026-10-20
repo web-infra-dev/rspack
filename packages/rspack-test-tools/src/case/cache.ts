@@ -137,7 +137,7 @@ function createCacheProcessor(
                 'Directory relocation requires a legacy cache case',
               );
             }
-            movedTemp = `${compileTemp}-relocated`;
+            movedTemp = await fs.mkdtemp(`${compileTemp}-relocated-`);
             const relocated = path.join(movedTemp, 'nested', 'project');
             await fs.move(compileTemp, relocated);
             const options = manager.getOptions() as RspackOptions;
