@@ -35,7 +35,7 @@ export type TCacheCaseOptions = {
 
 interface CacheState {
   compilerIndex: number;
-  nextStart: (advance?: boolean) => Promise<StatsCompilation>;
+  nextStart: (advance?: boolean, move?: boolean) => Promise<StatsCompilation>;
   nextHmr: (module: any, options?: any) => Promise<StatsCompilation>;
 }
 
@@ -48,7 +48,7 @@ function createCacheProcessor(
 ): ITestProcessor {
   const type = caseOptions.type || 'cache';
   const compileTemp = caseOptions.newCache ? path.join(temp, 'src') : temp;
-  const updatePlugin =
+  let updatePlugin =
     type === 'cache' ? new HotUpdatePlugin(src, compileTemp) : undefined;
   const base: ITestProcessor =
     type === 'normal'
@@ -88,6 +88,7 @@ function createCacheProcessor(
           };
   let buildIndex = 0;
   let testEnv: ITestEnv;
+  let movedTemp: string | undefined;
 
   const checkCache = (
     env: ITestEnv,
@@ -122,7 +123,7 @@ function createCacheProcessor(
       await updatePlugin?.initialize();
       const state: CacheState = {
         compilerIndex: 0,
-        nextStart: async (advance = true) => {
+        nextStart: async (advance = true, move = false) => {
           const env = testEnv;
           if (state.compilerIndex >= 100) {
             throw new Error('NEXT_START has been called more than 100 times');
@@ -130,6 +131,23 @@ function createCacheProcessor(
           const manager = context.getCompiler();
           // close() flushes the filesystem cache before a fresh compiler reads it.
           await manager.close();
+          if (move) {
+            if (type !== 'cache' || caseOptions.newCache || movedTemp) {
+              throw new Error(
+                'Directory relocation requires a legacy cache case',
+              );
+            }
+            movedTemp = `${compileTemp}-relocated`;
+            const relocated = path.join(movedTemp, 'nested', 'project');
+            await fs.move(compileTemp, relocated);
+            const options = manager.getOptions() as RspackOptions;
+            const previousPlugin = updatePlugin;
+            updatePlugin = new HotUpdatePlugin(src, relocated);
+            options.context = relocated;
+            options.plugins = options.plugins?.map((plugin) =>
+              plugin === previousPlugin ? updatePlugin! : plugin,
+            );
+          }
           const advanceUpdate = !!(
             advance &&
             updatePlugin &&
@@ -198,7 +216,10 @@ function createCacheProcessor(
         });
       }
     },
-    after: base.after,
+    after: async (context) => {
+      await base.after?.(context);
+      if (movedTemp) await fs.remove(movedTemp);
+    },
     afterAll: () => {
       if (!updatePlugin) return;
       const updateIndex = updatePlugin.getUpdateIndex();
@@ -228,6 +249,8 @@ function createCacheProcessor(
       modules: true,
       entrypoints: true,
       chunkGroups: true,
+      logging: 'verbose',
+      loggingDebug: /^rspack\.persistentCache$/,
     });
     if (type === 'cache' && advance) {
       const updateIndex = updatePlugin!.getUpdateIndex();
@@ -463,7 +486,9 @@ function createRunner(
       const scope = testConfig.moduleScope?.(ms, stats, options) || ms;
       scope.COMPILER_INDEX = compilerIndex;
       scope.NEXT_HMR = state.nextHmr;
-      scope.NEXT_START = () => state.nextStart();
+      scope.NEXT_START = (advance?: boolean) => state.nextStart(advance);
+      scope.NEXT_MOVE_DIR_START = () => state.nextStart(false, true);
+      scope.CURRENT_CONTEXT = options?.context;
       return scope;
     },
   };
