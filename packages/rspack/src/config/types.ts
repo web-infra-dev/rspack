@@ -2230,6 +2230,21 @@ export type FileSystemCacheOptions = {
   /** Read existing cache data without writing to disk. Defaults to `false`. */
   readonly?: boolean;
   /**
+   * Experimental read-only fallback for root compiler module and loader entries.
+   * The producer must be closed before opening this cache. Paths resolve against context.
+   */
+  readonlyFrom?: { cacheLocation: string; version?: string };
+  /**
+   * Explicit module build compatibility contract, including parser plugins and compiler inputs.
+   * Both producers and consumers must specify the same profile to share NormalModules.
+   */
+  moduleProfile?: string;
+  /**
+   * Explicit loader compatibility contract, including loader hooks and environment inputs.
+   * Both producers and consumers must specify the same profile to share loader results.
+   */
+  loaderProfile?: string;
+  /**
    * Generations to retain unused entries in memory. Use 0 to disable the memory
    * cache or Infinity to retain entries forever. Defaults to 5 in development,
    * Infinity otherwise.

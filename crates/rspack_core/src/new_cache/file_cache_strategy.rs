@@ -266,6 +266,10 @@ impl FileCacheStrategy {
       .extend(dependencies);
   }
 
+  pub(super) fn build_dependencies(&self) -> InternedPathSet {
+    self.validator.build_dependencies()
+  }
+
   pub(super) fn restore(
     &self,
     key: &CacheKey,

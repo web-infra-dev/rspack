@@ -229,6 +229,10 @@ impl IdleFileCache {
     restored.and_then(ErasedCacheValue::downcast)
   }
 
+  pub(super) fn build_dependencies(&self) -> InternedPathSet {
+    self.strategy.build_dependencies()
+  }
+
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
     self.strategy.store_build_dependencies(dependencies);
   }

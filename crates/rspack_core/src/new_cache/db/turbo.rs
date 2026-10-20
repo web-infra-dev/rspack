@@ -339,6 +339,11 @@ fn stale_directory(base_path: &Utf8PathBuf) -> Utf8PathBuf {
 
 fn open_database(path: &Utf8PathBuf, readonly: bool) -> Result<Inner> {
   let config = database_config();
+  // The backend initializes missing directories even in read-only mode. An
+  // unavailable source must stay absent rather than creating an empty database.
+  if readonly && !path.exists() {
+    return Ok(Inner::empty_in_memory_with_config(config));
+  }
   let db = if readonly {
     Inner::open_read_only_with_config(path.as_std_path().to_path_buf(), config)
   } else {

@@ -173,6 +173,24 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
     return value;
   };
   if (cache.type === 'filesystem') {
+    if (cache.readonlyFrom) {
+      const contains = (parent: string, child: string) => {
+        const relative = path.relative(parent, child);
+        return (
+          relative === '' ||
+          (relative !== '..' &&
+            !relative.startsWith(`..${path.sep}`) &&
+            !path.isAbsolute(relative))
+        );
+      };
+      const source = cache.readonlyFrom.cacheLocation;
+      const destination = cache.cacheLocation!;
+      if (contains(source, destination) || contains(destination, source)) {
+        throw new Error(
+          'cache.readonlyFrom.cacheLocation and cache.cacheLocation must not overlap.',
+        );
+      }
+    }
     const toRawTimeout = (name: string, value: number) => {
       if (!Number.isSafeInteger(value) || value < 0) {
         throw new Error(
@@ -188,6 +206,9 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
       cacheLocation: cache.cacheLocation!,
       version: cache.version!,
       readonly: cache.readonly!,
+      readonlyFrom: cache.readonlyFrom,
+      moduleProfile: cache.moduleProfile,
+      loaderProfile: cache.loaderProfile,
       maxMemoryGenerations: toRawMemoryGenerations(cache.maxMemoryGenerations!),
       idleTimeout: toRawTimeout('cache.idleTimeout', cache.idleTimeout!),
       idleTimeoutForInitialStore: toRawTimeout(

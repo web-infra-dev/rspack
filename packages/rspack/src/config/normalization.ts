@@ -301,6 +301,21 @@ export const getNormalizedRspackOptions = (
             name: cache.name,
             version: cache.version,
             readonly: cache.readonly,
+            ...(cache.moduleProfile !== undefined && {
+              moduleProfile: cache.moduleProfile,
+            }),
+            ...(cache.loaderProfile !== undefined && {
+              loaderProfile: cache.loaderProfile,
+            }),
+            ...(cache.readonlyFrom !== undefined && {
+              readonlyFrom: {
+                ...cache.readonlyFrom,
+                cacheLocation: path.resolve(
+                  context,
+                  cache.readonlyFrom.cacheLocation,
+                ),
+              },
+            }),
             maxMemoryGenerations: cache.maxMemoryGenerations,
             idleTimeout: cache.idleTimeout,
             idleTimeoutForInitialStore: cache.idleTimeoutForInitialStore,

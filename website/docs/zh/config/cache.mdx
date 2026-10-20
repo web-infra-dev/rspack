@@ -85,6 +85,48 @@ export default {
 };
 ```
 
+## 实验性跨构建复用
+
+启用 `experiments.newCache: true` 和 `cache.type: 'filesystem'` 后，构建可以将已完成的 app 构建缓存作为只读来源，复用 make 阶段的缓存条目。这是草案 API，双方必须使用同一 Rspack 二进制和相同的项目绝对路径。
+
+```js
+// app 的 Rspack 配置
+export const app = {
+  experiments: { newCache: true },
+  cache: {
+    type: 'filesystem',
+    cacheLocation: '.cache/app',
+    version: 'app-config-v1',
+    loaderProfile: 'shared-transforms-v1',
+  },
+};
+
+// 测试工具传给 Rspack 的配置
+export const tests = {
+  experiments: { newCache: true },
+  cache: {
+    type: 'filesystem',
+    cacheLocation: '.cache/tests',
+    version: 'test-config-v1',
+    loaderProfile: 'shared-transforms-v1',
+    readonlyFrom: {
+      cacheLocation: '.cache/app',
+      version: 'app-config-v1',
+    },
+  },
+};
+```
+
+先调用 app compiler 的 `close()`，再启动消费方。消费方先检查自己的缓存，未命中时再检查来源。来源路径相对于 `context` 解析，必须与消费方缓存位置分离，两个目录不能相同或互为父子目录。`readonlyFrom.version` 默认为 `''`，必须与 app 的 `cache.version` 一致。
+
+`loaderProfile` 是调用方显式声明的兼容性约定：只有 loader hooks、环境输入和转换语义一致时，双方才能使用相同值。loader 链中的条目还必须设置 `cache: true`。Rspack 仍会检查 loader 选项、版本、输入内容和依赖快照。省略 profile 将禁用这一层的导入。消费方可以复用 app 的转换结果，再使用自己的 parser（包括 Rstest 的 parser 插件）解析。
+
+可选的 `moduleProfile` 用于导入完整的 `NormalModule` 构建结果。双方必须使用相同的 module profile；Rspack 额外检查生效的 parser/generator/resolve 选项、loader 选项和模块快照。profile 必须覆盖其他构建输入，包括 mode、target、define、parser 插件、module hooks 和 loader context。这些输入变化时必须更新 profile。带有 loader filter 或未设置 `cache: true` 的 loader 的模块不支持导入。**普通 app 解析与 Rstest 解析不能共用 module profile**，这类场景应使用 loader 复用。
+
+导入条目通过验证后写入消费方独立缓存，并保留 app 的 build dependencies 失效条件。导入的 DependencyId 会重新分配，避免与消费方模块图冲突。来源缺失或失效时执行正常构建，不会修改来源数据库。消费方自己的缓存仍需要正确配置 `cache.version` 和 build dependencies。
+
+草案只支持一个来源和根 compiler，不导入 resolver、code generation、chunk、runtime 或优化结果，不支持生产方同时写入、路径迁移或自动识别任意插件的兼容性。Rstest 需要将上述配置传给内部 Rspack compiler；当前尚未提供 Rstest 配置层的自动接入。
+
 ## 持久化缓存
 
 将 `cache` 设置为 `{ type: 'persistent' }` 可以启用基于文件系统的持久化缓存。持久化缓存会将缓存数据写入磁盘，以便后续构建进程复用。

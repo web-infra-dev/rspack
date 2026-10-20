@@ -8,7 +8,9 @@ use napi::{
 };
 use napi_derive::napi;
 use raw_storage::RawStorageOptions;
-use rspack_core::{CacheOptions, FileSystemCacheOptions, PersistentCacheOptions};
+use rspack_core::{
+  CacheOptions, FileSystemCacheOptions, PersistentCacheOptions, ReadOnlyCacheSource,
+};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -52,12 +54,22 @@ pub struct RawCacheOptionsMemory {
 
 #[derive(Debug)]
 #[napi(object)]
+pub struct RawReadOnlyCacheSource {
+  pub cache_location: String,
+  pub version: Option<String>,
+}
+
+#[derive(Debug)]
+#[napi(object)]
 pub struct RawFileSystemCacheOptions {
   pub build_dependencies: Vec<String>,
   pub cache_directory: String,
   pub cache_location: String,
   pub version: String,
   pub readonly: bool,
+  pub readonly_from: Option<RawReadOnlyCacheSource>,
+  pub module_profile: Option<String>,
+  pub loader_profile: Option<String>,
   pub max_memory_generations: Option<u32>,
   pub idle_timeout: f64,
   pub idle_timeout_for_initial_store: f64,
@@ -76,6 +88,12 @@ impl From<RawFileSystemCacheOptions> for FileSystemCacheOptions {
       cache_location: value.cache_location.into(),
       version: value.version,
       readonly: value.readonly,
+      readonly_from: value.readonly_from.map(|source| ReadOnlyCacheSource {
+        cache_location: source.cache_location.into(),
+        version: source.version.unwrap_or_default(),
+      }),
+      module_profile: value.module_profile,
+      loader_profile: value.loader_profile,
       max_memory_generations: value.max_memory_generations.into(),
       idle_timeout: Duration::from_millis(value.idle_timeout as u64),
       idle_timeout_for_initial_store: Duration::from_millis(
