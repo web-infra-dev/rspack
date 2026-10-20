@@ -3,7 +3,10 @@ use rspack_core::{Compilation, CssExportType, Dependency, DependencyId, Dependen
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
-use crate::dependency::{CssIcssExportDependency, CssIcssImportDependency, CssImportDependency};
+use crate::{
+  css_exports::find_css_export_target,
+  dependency::{CssIcssExportDependency, CssIcssImportDependency, CssImportDependency},
+};
 
 #[derive(Default, Clone, Copy)]
 pub(super) struct CssExportRequirements {
@@ -26,7 +29,7 @@ impl<'g> CssModuleGraphWalker<'g> {
     }
   }
 
-  pub(super) fn resolve_css_export_dependency<S: CssModuleGraphSink<'g>>(
+  pub(super) fn visit_css_export_dependency<S: CssModuleGraphSink<'g>>(
     &mut self,
     sink: &mut S,
     id: DependencyId,
@@ -39,9 +42,9 @@ impl<'g> CssModuleGraphWalker<'g> {
     self.active_exports.insert(id);
     let dependency = self.compilation.get_module_graph().dependency_by_id(&id);
     let result = if let Some(import) = dependency.downcast_ref::<CssIcssImportDependency>() {
-      sink.resolve_icss_import(self, import, requirements, follow_self_imports)
+      self.visit_icss_import(sink, import, requirements, follow_self_imports)
     } else if let Some(export) = dependency.downcast_ref::<CssIcssExportDependency>() {
-      resolve_definition(self, sink, export, requirements, follow_self_imports)
+      visit_definition(self, sink, export, requirements, follow_self_imports)
     } else {
       Ok(S::ExportValue::default())
     };
@@ -49,7 +52,23 @@ impl<'g> CssModuleGraphWalker<'g> {
     result
   }
 
-  fn resolve_css_import(
+  fn visit_icss_import<S: CssModuleGraphSink<'g>>(
+    &mut self,
+    sink: &mut S,
+    import: &'g CssIcssImportDependency,
+    requirements: CssExportRequirements,
+    follow_self_imports: bool,
+  ) -> Result<S::ExportValue> {
+    let Some(module) = find_css_export_target(self.compilation, import.id()) else {
+      return Ok(S::ExportValue::default());
+    };
+    if sink.visit_module(module) {
+      self.walk_css_imports(sink, module, true)?;
+    }
+    sink.visit_icss_import(self, import, module, requirements, follow_self_imports)
+  }
+
+  fn find_css_import(
     &self,
     id: &DependencyId,
   ) -> Option<(&'g CssImportDependency, &'g dyn Module)> {
@@ -87,7 +106,7 @@ impl<'g> CssModuleGraphWalker<'g> {
   /// Visit source imports in parser order. The sink controls global dedup and
   /// whether an import is embedded; recursively embedded CSS includes its own
   /// source imports before the sink consumes its output.
-  pub(super) fn walk_css_imports<S: CssModuleImportSink<'g>>(
+  pub(super) fn walk_css_imports<S: CssModuleGraphSink<'g>>(
     &mut self,
     sink: &mut S,
     module: &dyn Module,
@@ -102,17 +121,37 @@ impl<'g> CssModuleGraphWalker<'g> {
     result
   }
 
-  fn walk_css_import_dependencies<S: CssModuleImportSink<'g>>(
+  fn walk_css_import_dependencies<S: CssModuleGraphSink<'g>>(
     &mut self,
     sink: &mut S,
     module: &dyn Module,
     include_import_sources: bool,
   ) -> Result<()> {
     for dependency in module.get_dependencies() {
+      match dependency.dependency_type() {
+        DependencyType::CssIcssImport => {
+          self.visit_css_export_dependency(
+            sink,
+            *dependency.id(),
+            CssExportRequirements::default(),
+            true,
+          )?;
+        }
+        DependencyType::CssUrl => {
+          if let Some(module) = self
+            .compilation
+            .get_module_graph()
+            .get_module_by_dependency_id(dependency.id())
+          {
+            sink.visit_module(module.as_ref());
+          }
+        }
+        _ => {}
+      }
       if dependency.dependency_type() != &DependencyType::CssImport {
         continue;
       }
-      let Some((dependency, module)) = self.resolve_css_import(dependency.id()) else {
+      let Some((dependency, module)) = self.find_css_import(dependency.id()) else {
         continue;
       };
       let identifier = module.identifier();
@@ -135,6 +174,12 @@ impl<'g> CssModuleGraphWalker<'g> {
 
 pub(super) trait CssModuleGraphSink<'g>: Send {
   type ExportValue: Default + Send;
+  type State: Send;
+
+  /// Visit a dependency target. Return whether to follow an ICSS target's imports.
+  fn visit_module(&mut self, _module: &dyn Module) -> bool {
+    false
+  }
 
   fn should_visit_export(&mut self, _id: DependencyId) -> bool {
     true
@@ -157,34 +202,37 @@ pub(super) trait CssModuleGraphSink<'g>: Send {
   }
   fn append_reference(&self, _value: &mut Self::ExportValue, _reference: Self::ExportValue) {}
   fn append_compose(&self, _value: &mut Self::ExportValue, _compose: Self::ExportValue) {}
-  fn resolve_icss_import(
+  fn visit_icss_import(
     &mut self,
-    walker: &mut CssModuleGraphWalker<'g>,
-    import: &'g CssIcssImportDependency,
-    requirements: CssExportRequirements,
-    follow_self_imports: bool,
-  ) -> Result<Self::ExportValue>;
-}
-
-pub(super) trait CssModuleImportSink<'g>: Send {
-  type State: Send;
+    _walker: &mut CssModuleGraphWalker<'g>,
+    _import: &'g CssIcssImportDependency,
+    _module: &'g dyn Module,
+    _requirements: CssExportRequirements,
+    _follow_self_imports: bool,
+  ) -> Result<Self::ExportValue> {
+    Ok(Self::ExportValue::default())
+  }
 
   fn enter_import(
     &mut self,
-    walker: &mut CssModuleGraphWalker<'g>,
-    dependency: &'g CssImportDependency,
-    module: &'g dyn Module,
-    include_import_sources: bool,
-  ) -> Result<Option<Self::State>>;
+    _walker: &mut CssModuleGraphWalker<'g>,
+    _dependency: &'g CssImportDependency,
+    _module: &'g dyn Module,
+    _include_import_sources: bool,
+  ) -> Result<Option<Self::State>> {
+    Ok(None)
+  }
   fn leave_import(
     &mut self,
-    dependency: &'g CssImportDependency,
-    module: &'g dyn Module,
-    state: Self::State,
-  ) -> Result<()>;
+    _dependency: &'g CssImportDependency,
+    _module: &'g dyn Module,
+    _state: Self::State,
+  ) -> Result<()> {
+    Ok(())
+  }
 }
 
-fn resolve_definition<'g, S: CssModuleGraphSink<'g>>(
+fn visit_definition<'g, S: CssModuleGraphSink<'g>>(
   walker: &mut CssModuleGraphWalker<'g>,
   sink: &mut S,
   export: &'g CssIcssExportDependency,
@@ -202,7 +250,7 @@ fn resolve_definition<'g, S: CssModuleGraphSink<'g>>(
       if (requirements.css || requirements.js) && !text.is_empty() {
         sink.append_literal(&mut resolved, text, requirements);
       }
-      let value = walker.resolve_css_export_dependency(
+      let value = walker.visit_css_export_dependency(
         sink,
         reference.dependency_id,
         requirements,
@@ -219,8 +267,7 @@ fn resolve_definition<'g, S: CssModuleGraphSink<'g>>(
   };
   for id in &export.composes {
     sink.compose(*export.id(), *id);
-    let value =
-      walker.resolve_css_export_dependency(sink, *id, requirements, follow_self_imports)?;
+    let value = walker.visit_css_export_dependency(sink, *id, requirements, follow_self_imports)?;
     sink.append_compose(&mut resolved, value);
   }
   Ok(resolved)

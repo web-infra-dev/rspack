@@ -15,9 +15,7 @@ use rspack_util::{fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str}
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use smol_str::SmolStr;
 
-use super::walker::{
-  CssExportRequirements, CssModuleGraphSink, CssModuleGraphWalker, CssModuleImportSink,
-};
+use super::walker::{CssExportRequirements, CssModuleGraphSink, CssModuleGraphWalker};
 use crate::{
   css_exports::{css_export_dependency, css_export_name, find_css_export_target, find_export},
   css_syntax::{escape_identifier, unescape_identifier},
@@ -308,7 +306,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     self.outputs_prepared = true;
 
     let roots = self.collect_css_export_roots(render_css);
-    let css_values = self.resolve_css_exports(roots)?;
+    let css_values = self.visit_css_exports(roots)?;
     if render_css {
       self.render_css_dependencies(&css_values);
       self.css_output_prepared = true;
@@ -346,19 +344,19 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     roots
   }
 
-  fn resolve_css_exports(
+  fn visit_css_exports(
     &mut self,
     roots: FxIndexMap<DependencyId, CssExportRequirements>,
   ) -> Result<HashMap<DependencyId, Option<String>>> {
     let mut walker = CssModuleGraphWalker::new(self.generate_context.compilation);
     let mut css_values = HashMap::default();
     for (id, requirements) in roots {
-      let mut value = walker.resolve_css_export_dependency(self, id, requirements, true)?;
+      let mut value = walker.visit_css_export_dependency(self, id, requirements, true)?;
       if requirements.js {
         if value.js.is_none() {
           // A pure self-import cycle still needs a valid runtime expression.
           value.js = walker
-            .resolve_css_export_dependency(
+            .visit_css_export_dependency(
               self,
               id,
               CssExportRequirements {
@@ -828,57 +826,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .clone()
   }
 
-  fn resolve_css_import(
-    &mut self,
-    walker: &mut CssModuleGraphWalker<'g>,
-    import: &CssIcssImportDependency,
-    requirements: CssExportRequirements,
-    follow_self_imports: bool,
-  ) -> Result<CssExportValue<'g>> {
-    let compilation = self.generate_context.compilation;
-    let id = *import.id();
-    let Some(target) = find_css_export_target(compilation, &id) else {
-      // Factorization already reported the unresolved import. Code generation
-      // must still finish without trying to render a reference to its target.
-      return Ok(CssExportValue::default());
-    };
-    let target_export = find_export(target, import.import_name());
-    let is_self_import = target.identifier() == self.module.identifier();
-    let mut value = if let Some(target_export) = target_export {
-      if is_self_import {
-        walker.resolve_css_export_dependency(
-          self,
-          target_export,
-          CssExportRequirements {
-            css: requirements.css,
-            js: requirements.js && follow_self_imports,
-          },
-          follow_self_imports,
-        )?
-      } else if requirements.css {
-        self.resolve_imported_css_export(walker, target, target_export)?
-      } else {
-        CssExportValue::default()
-      }
-    } else {
-      CssExportValue::default()
-    };
-
-    if requirements.js && (!is_self_import || !follow_self_imports) {
-      value.js = Some(vec![Cow::Owned(self.render_css_import_expression(
-        walker,
-        id,
-        import.import_name(),
-        &mut value.css,
-      )?)]);
-    }
-    if !requirements.css {
-      value.css = None;
-    }
-    Ok(value)
-  }
-
-  fn resolve_imported_css_export(
+  fn visit_imported_css_export(
     &mut self,
     walker: &mut CssModuleGraphWalker<'g>,
     target: &dyn Module,
@@ -898,7 +846,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     );
     // The walker owns cycle detection across modules. The child generator only
     // tracks local output and identifier usage for its module.
-    let value = walker.resolve_css_export_dependency(
+    let value = walker.visit_css_export_dependency(
       &mut child,
       id,
       CssExportRequirements {
@@ -1001,7 +949,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       if css_value.is_none() {
         let export = find_export(from.as_ref(), ident).expect("should have CSS export");
         *css_value = self
-          .resolve_imported_css_export(walker, from.as_ref(), export)?
+          .visit_imported_css_export(walker, from.as_ref(), export)?
           .css;
       }
       Ok(json_stringify_str(
@@ -1087,6 +1035,7 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
 
 impl<'g> CssModuleGraphSink<'g> for CssModuleGenerator<'_, 'g> {
   type ExportValue = CssExportValue<'g>;
+  type State = ();
 
   fn local(
     &mut self,
@@ -1146,14 +1095,49 @@ impl<'g> CssModuleGraphSink<'g> for CssModuleGenerator<'_, 'g> {
     }
   }
 
-  fn resolve_icss_import(
+  fn visit_icss_import(
     &mut self,
     walker: &mut CssModuleGraphWalker<'g>,
     import: &'g CssIcssImportDependency,
+    target: &'g dyn Module,
     requirements: CssExportRequirements,
     follow_self_imports: bool,
-  ) -> Result<Self::ExportValue> {
-    self.resolve_css_import(walker, import, requirements, follow_self_imports)
+  ) -> Result<CssExportValue<'g>> {
+    let id = *import.id();
+    let target_export = find_export(target, import.import_name());
+    let is_self_import = target.identifier() == self.module.identifier();
+    let mut value = if let Some(target_export) = target_export {
+      if is_self_import {
+        walker.visit_css_export_dependency(
+          self,
+          target_export,
+          CssExportRequirements {
+            css: requirements.css,
+            js: requirements.js && follow_self_imports,
+          },
+          follow_self_imports,
+        )?
+      } else if requirements.css {
+        self.visit_imported_css_export(walker, target, target_export)?
+      } else {
+        CssExportValue::default()
+      }
+    } else {
+      CssExportValue::default()
+    };
+
+    if requirements.js && (!is_self_import || !follow_self_imports) {
+      value.js = Some(vec![Cow::Owned(self.render_css_import_expression(
+        walker,
+        id,
+        import.import_name(),
+        &mut value.css,
+      )?)]);
+    }
+    if !requirements.css {
+      value.css = None;
+    }
+    Ok(value)
   }
 }
 
@@ -1162,7 +1146,8 @@ struct CssSourceSink<'v, 'a, 'g> {
   builder: &'v mut CssSourceBuilder,
 }
 
-impl<'g> CssModuleImportSink<'g> for CssSourceSink<'_, '_, 'g> {
+impl<'g> CssModuleGraphSink<'g> for CssSourceSink<'_, '_, 'g> {
+  type ExportValue = ();
   type State = ();
 
   fn enter_import(
@@ -1216,7 +1201,8 @@ struct CssStyleSink<'v, 'a, 'g> {
   require: (String, &'static str, &'static str),
 }
 
-impl<'g> CssModuleImportSink<'g> for CssStyleSink<'_, '_, 'g> {
+impl<'g> CssModuleGraphSink<'g> for CssStyleSink<'_, '_, 'g> {
+  type ExportValue = ();
   type State = (String, Vec<CssModuleRenderCondition>);
 
   fn enter_import(
