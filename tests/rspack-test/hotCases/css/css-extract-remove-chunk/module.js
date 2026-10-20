@@ -5,3 +5,7 @@ export default function () {
 export default function () {
 	return Promise.resolve();
 }
+---
+export default function () {
+	return import(/* webpackChunkName: "lazy" */ "./lazy");
+}

@@ -5,7 +5,7 @@ const COLOR_GREEN = 'rgb(0, 128, 0)';
 const COLOR_RED = 'rgb(255, 0, 0)';
 const COLOR_NONE = 'rgba(0, 0, 0, 0)';
 
-test('removing the css import removes the stylesheet link', async ({
+test('removing the css import disables the stylesheet link', async ({
   page,
   fileAction,
 }) => {
@@ -17,7 +17,11 @@ test('removing the css import removes the stylesheet link', async ({
   );
 
   await expect(page.locator('body')).toHaveCSS('background-color', COLOR_NONE);
-  await expect(page.locator('link[rel="stylesheet"]')).toHaveCount(0);
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveCount(1);
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveJSProperty(
+    'disabled',
+    true,
+  );
 });
 
 test('js-only update does not touch the stylesheet', async ({
