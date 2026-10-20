@@ -136,7 +136,7 @@ wasmparser          = { version = "0.236.1", default-features = false }
 winnow              = { version = "1.0.4", default-features = false, features = ["std", "simd", "ascii"] }
 xxhash-rust         = { version = "0.8.19", default-features = false }
 
-allocative = { package = "rspack_allocative", path = "crates/rspack_allocative", version = "=0.102.9", default-features = false, features = ["camino", "dashmap", "indexmap", "tokio", "once_cell", "ustr", "atomic_refcell"] }
+allocative        = { package = "rspack_allocative", path = "crates/rspack_allocative", version = "=0.102.9", default-features = false, features = ["camino", "dashmap", "indexmap", "tokio", "once_cell", "ustr", "atomic_refcell"] }
 allocative_derive = { package = "rspack_allocative_derive", path = "crates/rspack_allocative_derive", version = "=0.102.9", default-features = false }
 
 # Pinned
