@@ -2427,18 +2427,6 @@ export interface RawFallbackCacheGroupOptions {
   automaticNameDelimiter?: string
 }
 
-export interface RawFileSystemCacheOptions {
-  buildDependencies: Array<string>
-  cacheDirectory: string
-  cacheLocation: string
-  version: string
-  readonly: boolean
-  maxMemoryGenerations?: number
-  idleTimeout: number
-  idleTimeoutForInitialStore: number
-  idleTimeoutAfterLargeChanges: number
-}
-
 export interface RawFlagAllModulesAsUsedPluginOptions {
   explanation: string
 }
@@ -2895,7 +2883,7 @@ export interface RawOptions {
   module: RawModuleOptions
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent) | ({ type: "filesystem" } & RawFileSystemCacheOptions)
+  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   snapshot: RawSnapshotOptions
   experiments: RawExperiments
 incremental?: false | { [key: string]: boolean }
@@ -3235,6 +3223,7 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+  location: string
 }
 
 export interface RawSubresourceIntegrityPluginOptions {

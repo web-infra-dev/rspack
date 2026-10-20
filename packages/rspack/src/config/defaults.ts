@@ -114,15 +114,6 @@ export const applyRspackOptionsDefaults = (
   applyIncrementalDefaults(options);
 
   applyExperimentsDefaults(options.experiments, { production });
-  if (
-    options.cache &&
-    options.cache.type === 'filesystem' &&
-    !options.experiments.newCache
-  ) {
-    throw new Error(
-      `${ERROR_PREFIX} "cache.type: 'filesystem'" requires "experiments.newCache" to be enabled.`,
-    );
-  }
   applySnapshotDefaults(options.snapshot, {
     production,
     newCache: Boolean(options.experiments.newCache),
@@ -240,7 +231,7 @@ const applyCacheDefaults = (
   },
 ) => {
   if (cache === false) return;
-  if (cache.type === 'persistent' || cache.type === 'filesystem') {
+  if (cache.type === 'persistent') {
     F(cache, 'name', () => {
       const cacheName = name ? `${name}-${mode}` : mode;
       return compilerIndex !== undefined && compilerIndex > 0
@@ -265,18 +256,6 @@ const applyCacheDefaults = (
       D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
       F(cache, 'buildDependencies', () => []);
       D(cache, 'portable', false);
-      break;
-    case 'filesystem':
-      F(cache, 'cacheDirectory', () =>
-        path.resolve(context, 'node_modules/.cache/rspack'),
-      );
-      F(cache, 'cacheLocation', () =>
-        path.resolve(cache.cacheDirectory!, cache.name!),
-      );
-      F(cache, 'buildDependencies', () => ({}));
-      D(cache, 'idleTimeout', 60000);
-      D(cache, 'idleTimeoutForInitialStore', 5000);
-      D(cache, 'idleTimeoutAfterLargeChanges', 1000);
       break;
   }
 };
