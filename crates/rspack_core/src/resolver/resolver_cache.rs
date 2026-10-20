@@ -10,8 +10,11 @@ use rspack_util::{fx_hash::FxDashMap, time::current_time};
 use rustc_hash::FxHasher;
 use tokio::sync::Mutex;
 
-use super::{CacheFacade, CacheValue, FileSystemInfo, Snapshot, SnapshotValidationResult};
-use crate::{CacheCount, Logger, ResolveDependencies, ResolveInnerError, ResolveResult};
+use super::{ResolveDependencies, ResolveInnerError, ResolveResult};
+use crate::{
+  CacheCount, Logger,
+  new_cache::{CacheFacade, CacheValue, FileSystemInfo, Snapshot, SnapshotValidationResult},
+};
 
 #[cacheable]
 struct CachedResolution {
