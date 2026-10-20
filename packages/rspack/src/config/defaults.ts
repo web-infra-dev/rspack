@@ -255,6 +255,26 @@ const applyCacheDefaults = (
       D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
       F(cache, 'buildDependencies', () => []);
       D(cache, 'portable', false);
+      if (cache.portable) {
+        let root =
+          typeof cache.portable === 'object' ? cache.portable.root : undefined;
+        if (root === undefined) {
+          root = path.resolve(context);
+          while (!fs.existsSync(path.join(root, '.git'))) {
+            const parent = path.dirname(root);
+            if (parent === root) {
+              root = path.resolve(context);
+              break;
+            }
+            root = parent;
+          }
+        } else {
+          root = path.resolve(context, root);
+        }
+        cache.portable = {
+          root: fs.existsSync(root) ? fs.realpathSync.native(root) : root,
+        };
+      }
       break;
   }
 };

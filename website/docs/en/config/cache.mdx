@@ -29,7 +29,7 @@ type CacheOptions =
       maxAge?: number;
       maxMemoryGenerations?: number;
       maxVersions?: number;
-      portable?: boolean;
+      portable?: boolean | { root?: string };
       readonly?: boolean;
       snapshot?: {
         immutablePaths?: Array<string | RegExp>;
@@ -224,12 +224,12 @@ export default {
 
 ### portable
 
-- **Type:** `boolean`
+- **Type:** `boolean | { root?: string }`
 - **Default:** `false`
 
-Enable portable cache mode. When enabled, the generated cache content can be shared across different platforms and paths within the same project.
+Enable portable path encoding with `true` or `{ root }`. The default root is the nearest ancestor of `context` (including itself) containing a `.git` file or directory, or `context` if none exists. Using the git toplevel includes sibling packages and repository-level dependencies in monorepos. An explicit `root` is resolved against `context`; existing roots are resolved to their real path.
 
-Portable cache is built on top of persistent cache and makes the cache platform-independent by converting platform-specific data (e.g., absolute paths to relative paths) during serialization and deserialization.
+Only paths under the root are rebased when the cache is restored elsewhere. Paths outside it stay verbatim, replacing the earlier behavior that rebased outside paths by directory depth.
 
 In the legacy cache backend, entries that still depend on the writer's project root are rebuilt when the root changes. This includes `import.meta.url`, loader output containing absolute project paths, and references outside the project root. Unchanged builds at the same root can still reuse these entries.
 
@@ -243,22 +243,10 @@ Loaders that derive output from a path without including that path in the output
 export default {
   cache: {
     type: 'persistent',
-    portable: true,
+    portable: { root: '../..' },
   },
 };
 ```
-
-:::tip Use cases
-
-A typical use case is in CI environments where Windows, Linux, and macOS can share the same cache for acceleration without generating three separate cache copies.
-
-:::
-
-:::warning Limitations
-
-Files outside the project directory (outside `config.context`) will be converted to relative paths. If these files don't exist in the new environment, it will trigger a rebuild of the related modules.
-
-:::
 
 ### readonly
 

@@ -16,7 +16,7 @@ pub struct RawCacheOptionsPersistent {
   pub max_age: u32,
   pub max_memory_generations: Option<u32>,
   pub storage: Option<RawStorageOptions>,
-  pub portable: Option<bool>,
+  pub portable_root: Option<String>,
   pub readonly: Option<bool>,
 }
 
@@ -34,7 +34,7 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
         .collect(),
       version: value.version.unwrap_or_default(),
       storage,
-      portable: value.portable.unwrap_or_default(),
+      portable_root: value.portable_root.map(Into::into),
       readonly: value.readonly.unwrap_or_default(),
       max_age: value.max_age.into(),
       max_memory_generations: value.max_memory_generations.into(),
