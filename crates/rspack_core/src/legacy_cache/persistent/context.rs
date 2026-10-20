@@ -304,7 +304,7 @@ impl CacheContext {
       let start = self
         .logger()
         .time(read_occasion_timing_label(occasion.name()));
-      match occasion.recovery(&*self.storage).await {
+      match occasion.recovery(&*self.storage, self.logger()).await {
         Ok(cache_item) => {
           self.logger().info(format!(
             "{} persistent cache recovery succeeded",
