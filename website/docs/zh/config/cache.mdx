@@ -33,7 +33,7 @@ type CacheOptions =
       maxAge?: number;
       maxMemoryGenerations?: number;
       maxVersions?: number;
-      portable?: boolean;
+      portable?: boolean | { root?: string };
       readonly?: boolean;
       snapshot?: {
         immutablePaths?: Array<string | RegExp>;
@@ -217,16 +217,16 @@ export default {
 
 ### portable
 
-- **类型：** `boolean`
+- **类型：** `boolean | { root?: string }`
 - **默认值：** `false`
 
-启用可移植缓存模式。启用后，生成的缓存内容可以在同一项目的不同平台和路径之间共享使用。
+设置为 `true` 或 `{ root }` 可启用可移植路径编码。默认根目录是从 `context`（含自身）向上查找的第一个包含 `.git` 文件或目录的祖先目录；找不到时使用 `context`。使用 Git 顶层目录可以涵盖 monorepo 中的兄弟包和仓库级依赖。显式指定的 `root` 相对于 `context` 解析；已存在的根目录会解析为真实路径。
+
+在其他位置恢复缓存时，只有根目录内的路径会被重定位，根目录外的路径保持原样。
 
 当 `portable` 为 `false` 时，缓存与项目的 [context](/config/context) 绑定。复制或共享到其他路径下的项目时，缓存会被视为失效，Rspack 会重新构建缓存。
 
 [experiments.newCache](/config/experiments#experimentsnewcache) 启用的缓存后端尚不支持路径转换，因此即使 `portable` 为 `true`，它也始终与项目 context 绑定。
-
-可移植缓存构建在持久化缓存之上，通过在序列化和反序列化过程中转换平台特定的数据（例如，将绝对路径转换为相对路径），使缓存具有平台无关性。
 
 在旧版缓存后端中，仍依赖写入时项目根目录的缓存条目会在根目录变化时重新构建。这包括 `import.meta.url`、包含项目绝对路径的 loader 输出，以及对项目根目录之外路径的引用。在同一根目录下，未发生变化的构建仍可复用这些条目。
 
@@ -238,22 +238,10 @@ Rspack 通过在缓存数据中查找根目录的原生写法、正斜杠写法�
 export default {
   cache: {
     type: 'persistent',
-    portable: true,
+    portable: { root: '../..' },
   },
 };
 ```
-
-:::tip 使用场景
-
-典型的使用场景是在 CI 环境中，Windows、Linux 和 macOS 可以使用同一份缓存进行加速，而不需要生成三份独立的缓存副本。
-
-:::
-
-:::warning 限制
-
-项目目录之外的文件（`config.context` 之外）会被转换为相对路径。如果这些文件在新环境中不存在，将会触发相关模块的重新构建。
-
-:::
 
 ### readonly
 

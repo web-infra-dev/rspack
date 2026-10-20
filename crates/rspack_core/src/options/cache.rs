@@ -36,7 +36,7 @@ pub struct PersistentCacheOptions {
   pub build_dependencies: BuildDepsOptions,
   pub version: String,
   pub storage: StorageOptions,
-  pub portable: bool,
+  pub portable_root: Option<Utf8PathBuf>,
   pub readonly: bool,
   /// Filesystem cache max age in seconds.
   pub max_age: u64,

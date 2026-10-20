@@ -183,7 +183,8 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
       directory: cache.storage.directory!,
       location: cache.storage.location!,
     },
-    portable: cache.portable,
+    portableRoot:
+      typeof cache.portable === 'object' ? cache.portable.root : undefined,
     readonly: cache.readonly,
   };
 }
