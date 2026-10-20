@@ -7491,9 +7491,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_allocator"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc5be81841a7b9f62c74ca4f281a9879d4dffc583562f48e6233f2f008795eb1"
+checksum = "96fed82154bd10edc6e786734f293cd2474c6fdf56b4283b4874f8bc60533749"
 dependencies = [
  "allocator-api2",
  "bumpalo",
@@ -7514,9 +7514,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_ast"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12d5ea9d2c4cf3aceb9ebeb009466e91f2ebef50b7105974a998bb97593fe8ed"
+checksum = "e9bcfec5b406750954db0389db8d4ce942e77109d8d7a4bcfd2e85dbf5de6189"
 dependencies = [
  "cow-utils",
  "num-bigint 0.5.1",
@@ -7528,9 +7528,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_parser"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bb7e75e3a935374351716446644442195e9c675516d65a85802dda2e8677d09"
+checksum = "a4e92fbbcfcbb659ceb6e01faa3af3e2bb24042a59f24a84cef1325faffee0da"
 dependencies = [
  "bitflags 2.13.2",
  "memchr",
@@ -7543,9 +7543,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_semantic"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53271ed694930fb087c1b48c489759ac19af50dfd390fbdefdf8a51115e03555"
+checksum = "1d0b65b886f368b94046902b50757333625f4c1929b3bc7e9b8ae8cd38366ac6"
 dependencies = [
  "bitflags 2.13.2",
  "hashbrown 0.17.1",

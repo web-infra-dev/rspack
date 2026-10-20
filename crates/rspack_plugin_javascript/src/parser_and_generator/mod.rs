@@ -324,20 +324,25 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return default_with_diagnostics(source, diagnostics);
     }
 
-    // The legacy parser accepted several redeclaration combinations that the
-    // SWC Next semantic checker rejects (for example `var a` followed by
-    // `export function a`, and an exported binding shadowing an import). The
-    // parser has already emitted its own early errors, so run the remaining
-    // semantic syntax checks without this stricter-than-legacy category;
-    // `TS_IMPORT_ALIAS_CONFLICTS` reports the same errors for conflicting
-    // TypeScript import aliases. Rspack also intentionally parses regexp
-    // literals as raw pattern/flags and lets consumers such as
-    // import.meta.webpackContext downgrade an invalid constructed regexp to a
-    // warning, matching the legacy path.
+    // Keep the legacy SWC parser's permissive behavior for these semantic checks.
     let check_syntax = SyntaxChecks::all()
       - SyntaxChecks::REDECLARATIONS
       - SyntaxChecks::TS_IMPORT_ALIAS_CONFLICTS
-      - SyntaxChecks::REGEXP_LITERALS;
+      - SyntaxChecks::REGEXP_LITERALS
+      - SyntaxChecks::PRIVATE_NAME_REFERENCES
+      - SyntaxChecks::DUPLICATE_PRIVATE_NAMES
+      - SyntaxChecks::DELETE_PRIVATE_FIELDS
+      - SyntaxChecks::SUPER_CALLS
+      - SyntaxChecks::FUNCTION_DECLARATIONS
+      - SyntaxChecks::CLASS_MEMBER_NAMES
+      - SyntaxChecks::STRICT_BINDING_NAMES
+      - SyntaxChecks::STRICT_ASSIGNMENT_TARGETS
+      - SyntaxChecks::DUPLICATE_EXPORTS
+      - SyntaxChecks::UNRESOLVED_EXPORTS
+      - SyntaxChecks::CONTINUE_STATEMENTS
+      - SyntaxChecks::BREAK_STATEMENTS
+      - SyntaxChecks::AWAIT_EXPRESSIONS
+      - SyntaxChecks::YIELD_EXPRESSIONS;
     let SemanticReturn {
       semantic,
       diagnostics: semantic_diagnostics,
