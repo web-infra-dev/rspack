@@ -9,3 +9,28 @@
 		}, [])
 	);
 };
+<% if (_hmr) { %>
+<%- var("blockChunks") %> = <%- _blocks %>;
+// undefined = not loaded, Promise = loading, 0 = loaded.
+<%- var("installedBlocks") %> = <%- _state_expression %> = <%- _state_expression %> || Object.create(null);
+Object.keys(installedBlocks).forEach(<%- basicFunction("blockId") %> {
+	if (!<%- HAS_OWN_PROPERTY %>(blockChunks, blockId)) delete installedBlocks[blockId];
+});
+<%- define(ENSURE_CHUNK_GROUP) %> = <%- basicFunction("blockId, fetchPriority") %> {
+	var promises = [];
+	var chunks = blockChunks[blockId] || [];
+	chunks.forEach(<%- basicFunction("chunkId") %> {
+		promises.push(<%- ENSURE_CHUNK %>(chunkId, fetchPriority));
+	});
+	var promise = Promise.all(promises);
+	if (installedBlocks[blockId] !== 0) {
+		installedBlocks[blockId] = promise;
+		promise.then(<%- basicFunction("") %> {
+			if (installedBlocks[blockId] === promise) installedBlocks[blockId] = 0;
+		}, <%- basicFunction("") %> {
+			if (installedBlocks[blockId] === promise) delete installedBlocks[blockId];
+		});
+	}
+	return promise;
+};
+<% } %>

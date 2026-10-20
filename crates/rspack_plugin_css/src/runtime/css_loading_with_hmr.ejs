@@ -23,7 +23,7 @@
 <%- var("cssChunkIsLoaded") %> = <%- basicFunction("chunkId") %> {
 	return typeof <%- _js_state_expression %> !== "undefined" && <%- _js_state_expression %> && <%- _js_state_expression %>[chunkId] === 0;
 };
-<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, update") %> {
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, _, update") %> {
 	if (typeof document === 'undefined') return;
 	applyHandlers.push(cssApplyHandler);
 	// `css` is the hot-update manifest's css namespace (aligned with webpack):
@@ -32,10 +32,9 @@
 	// no CSS work at all — notably the runtime chunk is in `chunkIds` on every
 	// update (its full hash always changes) while its stylesheet rarely does.
 	var cssRemovedChunkIds = (css && css.r) || [];
-	var cssChunkIds = ((css && css.c) || []).slice();
+	var cssChunkIds = (css && css.c) || [];
 	var files = (css && css.f) || {};
 	var oldFiles = (css && css.o) || {};
-	var requiredCssChunks = Object.create(null);
 	var seen = {};
 	cssRemovedChunkIds.forEach(<%- basicFunction("chunkId") %> {
 		var filename = oldFiles[chunkId] || <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
@@ -43,7 +42,7 @@
 		var oldTag = cssLoadStylesheet(chunkId, <%- PUBLIC_PATH %> + filename);
 		if (oldTag) cssOldTags.push(oldTag);
 	});
-	var prepareCss = <%- basicFunction("chunkId, promises") %> {
+	var prepareCss = <%- basicFunction("chunkId, promises, required") %> {
 		var filename = files[chunkId] || <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
 		if (!filename) return;
 		var url = <%- PUBLIC_PATH %> + filename;
@@ -56,7 +55,7 @@
 		// page never loaded. A missing tag is legitimate only for a chunk that is
 		// actually on the page: an initial chunk gaining its first stylesheet, or
 		// a loaded async chunk whose stylesheet was removed by an earlier update.
-		if (!oldTag && !requiredCssChunks[chunkId] && !cssInitialChunkIds[chunkId] && !cssChunkIsLoaded(chunkId)) return;
+		if (!oldTag && !required && !cssInitialChunkIds[chunkId] && !cssChunkIsLoaded(chunkId)) return;
 		seen[url] = true;
 		promises.push(
 			new Promise(<%- basicFunction("resolve, reject") %> {
@@ -94,7 +93,6 @@
 	};
 	cssChunkIds.forEach(function (id) { prepareCss(id, promises); });
 	if (update) update.chunkHandlers.push(<%- basicFunction("chunkId, promises") %> {
-		requiredCssChunks[chunkId] = true;
-		if (files[chunkId]) prepareCss(chunkId, promises);
+		if (files[chunkId]) prepareCss(chunkId, promises, true);
 	});
 };

@@ -33,10 +33,9 @@
 		rarely does.
 	 */
 	var cssRemovedChunkIds = (miniCss && miniCss.r) || [];
-	var cssChunkIds = ((miniCss && miniCss.c) || []).slice();
+	var cssChunkIds = (miniCss && miniCss.c) || [];
 	var files = (miniCss && miniCss.f) || {};
 	var oldFiles = (miniCss && miniCss.o) || {};
-	var requiredCssChunks = Object.create(null);
 	var seen = {};
 	cssRemovedChunkIds.forEach(function (chunkId) {
 		var href = oldFiles[chunkId] || <%- _get_chunk_css_filename %>(chunkId);
@@ -44,7 +43,7 @@
 		var oldTag = extractCssFindStylesheet(href, <%- PUBLIC_PATH %> + href);
 		if (oldTag) extractCssOldTags.push(oldTag);
 	});
-	var prepareCss = function (chunkId, promises) {
+	var prepareCss = function (chunkId, promises, required) {
 		var href = files[chunkId] || <%- _get_chunk_css_filename %>(chunkId);
 		if (!href) return;
 		var fullhref = <%- PUBLIC_PATH %> + href;
@@ -55,7 +54,7 @@
 		// page never loaded. A missing tag is legitimate only for a chunk that is
 		// actually on the page: an initial chunk gaining its first stylesheet, or
 		// a loaded async chunk whose stylesheet was removed by an earlier update.
-		if (!oldTag && !requiredCssChunks[chunkId] && !extractCssInitialChunkIds[chunkId] && !extractCssChunkIsLoaded(chunkId)) return;
+		if (!oldTag && !required && !extractCssInitialChunkIds[chunkId] && !extractCssChunkIsLoaded(chunkId)) return;
 		seen[fullhref] = true;
 		promises.push(new Promise(function (resolve, reject) {
 			var tag = extractCssCreateStylesheet(
@@ -82,7 +81,6 @@
 	};
 	cssChunkIds.forEach(function (id) { prepareCss(id, promises); });
 	if (update) update.chunkHandlers.push(function (chunkId, promises) {
-		requiredCssChunks[chunkId] = true;
-		if (files[chunkId]) prepareCss(chunkId, promises);
+		if (files[chunkId]) prepareCss(chunkId, promises, true);
 	});
 };

@@ -762,10 +762,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .cloned()
           .collect();
         if !needed.is_empty() {
-          info
-            .load_chunks
-            .entries
-            .insert(old_entry_id.clone(), needed);
+          info.load_entries.insert(old_entry_id.clone(), needed);
         }
       }
     }
@@ -782,7 +779,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .filter(|id| info.needs_loading(id))
         .collect();
       if !needed.is_empty() {
-        info.load_chunks.blocks.insert(block_id, needed);
+        info.load_blocks.insert(block_id, needed);
       }
     }
   }
@@ -832,14 +829,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         old_content
           .mini_css_removed_chunk_ids
           .extend(content.mini_css_removed_chunk_ids);
-        old_content
-          .load_chunks
-          .entries
-          .extend(content.load_chunks.entries);
-        old_content
-          .load_chunks
-          .blocks
-          .extend(content.load_chunks.blocks);
+        old_content.load_entries.extend(content.load_entries);
+        old_content.load_blocks.extend(content.load_blocks);
         old_content.css_files.extend(content.css_files);
         old_content.css_old_files.extend(content.css_old_files);
         old_content.mini_css_files.extend(content.mini_css_files);
@@ -873,17 +864,14 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       "m": m,
     });
     let mut load = serde_json::Map::new();
-    if !content.load_chunks.entries.is_empty() {
+    if !content.load_entries.is_empty() {
       load.insert(
         "entries".to_string(),
-        serde_json::json!(content.load_chunks.entries),
+        serde_json::json!(content.load_entries),
       );
     }
-    if !content.load_chunks.blocks.is_empty() {
-      load.insert(
-        "blocks".to_string(),
-        serde_json::json!(content.load_chunks.blocks),
-      );
+    if !content.load_blocks.is_empty() {
+      load.insert("blocks".to_string(), serde_json::json!(content.load_blocks));
     }
     if !load.is_empty() {
       manifest_json["load"] = load.into();
@@ -1012,17 +1000,12 @@ struct HotUpdateContent {
   css_removed_chunk_ids: ChunkIdSet,
   mini_css_updated_chunk_ids: ChunkIdSet,
   mini_css_removed_chunk_ids: ChunkIdSet,
-  load_chunks: LoadChunks,
+  load_entries: ChunkIdMap<Vec<ChunkId>>,
+  load_blocks: BlockChunks,
   css_files: ChunkIdMap<String>,
   css_old_files: ChunkIdMap<String>,
   mini_css_files: ChunkIdMap<String>,
   mini_css_old_files: ChunkIdMap<String>,
-}
-
-#[derive(Default)]
-struct LoadChunks {
-  entries: ChunkIdMap<Vec<ChunkId>>,
-  blocks: BlockChunks,
 }
 
 impl HotUpdateContent {

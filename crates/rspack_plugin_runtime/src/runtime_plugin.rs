@@ -26,10 +26,10 @@ use crate::{
     ChunkPrefetchPreloadFunctionRuntimeModule, CompatGetDefaultExportRuntimeModule,
     CreateFakeNamespaceObjectRuntimeModule, CreateScriptRuntimeModule,
     CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule,
-    ESMModuleDecoratorRuntimeModule, EnsureChunkGroupRuntimeModule, EnsureChunkRuntimeModule,
-    GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
-    GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
-    HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule, MakeDeferredNamespaceObjectRuntimeModule,
+    ESMModuleDecoratorRuntimeModule, EnsureChunkRuntimeModule, GetChunkFilenameRuntimeModule,
+    GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
+    GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
+    LoadScriptRuntimeModule, MakeDeferredNamespaceObjectRuntimeModule,
     MakeNamespaceObjectRuntimeModule, MakeOptimizedDeferredNamespaceObjectRuntimeModule,
     NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, OnChunkLoadedRuntimeModule,
     PublicPathRuntimeModule, ReexportRuntimeModule, RelativeUrlRuntimeModule,
@@ -177,7 +177,8 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
   }
 
-  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK)
+  if runtime_requirements
+    .intersects(RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_GROUP)
     || (!compilation.options.output.module
       && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS))
   {
@@ -208,12 +209,6 @@ async fn runtime_requirements_in_tree(
   #[allow(clippy::collapsible_match)]
   for runtime_requirement in runtime_requirements.iter() {
     match runtime_requirement {
-      RuntimeGlobals::ENSURE_CHUNK_GROUP => {
-        runtime_modules_to_add.push((
-          *chunk_ukey,
-          EnsureChunkGroupRuntimeModule::new(&compilation.runtime_template).boxed(),
-        ));
-      }
       RuntimeGlobals::ASYNC_MODULE => {
         runtime_modules_to_add.push((
           *chunk_ukey,

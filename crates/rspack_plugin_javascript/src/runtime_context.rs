@@ -240,7 +240,7 @@ fn render_runtime_chunk_runtime_modules_sync(
       .expect("should have runtime module");
     let Some(key) = (match runtime_module.get_constructor_name().as_str() {
       "JsonpChunkLoadingRuntimeModule" => Some("jsonp"),
-      "EnsureChunkGroupRuntimeModule" => Some("blocks"),
+      "EnsureChunkRuntimeModule" => Some("blocks"),
       "ModuleChunkLoadingRuntimeModule" => Some("module"),
       "ImportScriptsChunkLoadingRuntimeModule" => Some("importScripts"),
       "ReadFileChunkLoadingRuntimeModule" => Some("readFileVm"),
@@ -543,7 +543,7 @@ pub async fn render_hot_update_chunk_runtime_modules(
       .expect("should have runtime module");
     let Some(key) = (match runtime_module.get_constructor_name().as_str() {
       "JsonpChunkLoadingRuntimeModule" => Some("jsonp"),
-      "EnsureChunkGroupRuntimeModule" => Some("blocks"),
+      "EnsureChunkRuntimeModule" => Some("blocks"),
       "ModuleChunkLoadingRuntimeModule" => Some("module"),
       "ImportScriptsChunkLoadingRuntimeModule" => Some("importScripts"),
       "ReadFileChunkLoadingRuntimeModule" => Some("readFileVm"),
