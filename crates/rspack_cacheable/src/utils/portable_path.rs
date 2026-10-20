@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Component, Path};
 
 use sugar_path::SugarPath;
 
@@ -7,7 +7,7 @@ use crate::{ContextGuard, Result, cacheable, with::AsConverter};
 /// A portable path representation that can be serialized and deserialized across different
 /// environments with different project roots.
 ///
-/// When serializing with a `project_root`, absolute paths are converted to relative paths.
+/// When serializing with a `project_root`, absolute paths under that root are converted to relative paths.
 /// When deserializing, relative paths are resolved back to absolute paths.
 ///
 /// # Example
@@ -32,13 +32,14 @@ impl PortablePath {
   /// path representation is preserved.
   pub fn new(path: &Path, guard: &ContextGuard) -> Self {
     let portable_project_root = guard.project_root();
+    if path.is_absolute() && portable_project_root.is_some_and(|root| !path.starts_with(root)) {
+      guard.mark_outside_root();
+    }
     if path.is_absolute()
       && let Some(portable_project_root) = portable_project_root
+      && let Ok(relative) = path.strip_prefix(portable_project_root)
+      && !relative.components().any(|c| c == Component::ParentDir)
     {
-      let relative = path.relative(portable_project_root);
-      if !path.starts_with(portable_project_root) || relative.starts_with("..") {
-        guard.mark_outside_root();
-      }
       return Self {
         path: relative.to_slash_lossy().into_owned(),
         transformed: true,
@@ -46,11 +47,7 @@ impl PortablePath {
     }
 
     Self {
-      path: if portable_project_root.is_some() {
-        path.to_slash_lossy().into_owned()
-      } else {
-        path.to_string_lossy().into_owned()
-      },
+      path: path.to_string_lossy().into_owned(),
       transformed: false,
     }
   }

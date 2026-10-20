@@ -69,10 +69,14 @@ fn test_basic_feature() {
       "/home/user".into(),
       "/home".into(),
       "/root".into(),
+      "https://x/ /other/path with space/a.js /home/user/projectish/a.js".into(),
+      "/home/user/project/path with space/a.js".into(),
     ],
   };
 
   let bytes = rspack_cacheable::to_bytes(&data, &context).unwrap();
+  let original: Data = rspack_cacheable::from_bytes(&bytes, &context).unwrap();
+  assert_eq!(original, data);
 
   // Deserialize with different project_root
   let new_context = TestContext(Some(PathBuf::from("/workspace")));
@@ -83,20 +87,22 @@ fn test_basic_feature() {
     vec![
       "ignored|/workspace/src/",
       "ignored|/workspace/src/a.js",
-      "home/home/user/project/src/",
+      "home/workspace/src/",
       "/workspace/src/",
       "/workspace/a.js",
       "/workspace/src/a.js",
       "ignored|/workspace/a/ other|/workspace/b/c.js",
-      "ignored|/aaa/?name=/bbb/d.txt",
+      "ignored|/home/user/aaa/?name=/home/user/bbb/d.txt",
       "javascript/auto|/workspace/src/|layer1",
       "just a regular string without any paths",
       "/workspace/src/文本.txt",
       "ignored|./a/b/c/d?query=./e/f/g",
       "/workspace/src/loader.js!/workspace/index.js",
-      "/user",
+      "/home/user",
       "/home",
-      "/root"
+      "/root",
+      "https://x/ /other/path with space/a.js /home/user/projectish/a.js",
+      "/workspace/path with space/a.js"
     ]
   );
 }
@@ -111,6 +117,8 @@ fn test_no_project_root() {
   };
 
   let bytes = rspack_cacheable::to_bytes(&data, &context).unwrap();
+  let original: Data = rspack_cacheable::from_bytes(&bytes, &context).unwrap();
+  assert_eq!(original, data);
   let new_data: Data = rspack_cacheable::from_bytes(&bytes, &context).unwrap();
 
   // Without project_root, paths should remain unchanged
@@ -140,10 +148,14 @@ fn test_windows() {
       "C:\\Users".into(),
       "C:\\".into(),
       "C:\\Windows".into(),
+      r"C:/Users/project/path with space/a.js".into(),
+      r"C:\\Users\\project\\src\\a.js".into(),
     ],
   };
 
   let bytes = rspack_cacheable::to_bytes(&data, &context).unwrap();
+  let original: Data = rspack_cacheable::from_bytes(&bytes, &context).unwrap();
+  assert_eq!(original, data);
 
   let new_context = TestContext(Some(PathBuf::from("D:\\other")));
   let new_data: Data = rspack_cacheable::from_bytes(&bytes, &new_context).unwrap();
@@ -153,20 +165,22 @@ fn test_windows() {
     vec![
       "ignored|D:\\other\\src\\",
       "ignored|D:\\other\\src\\a.js",
-      "cC:\\Users\\project\\src\\",
+      "cD:\\other\\src\\",
       "D:\\other\\src\\",
       "D:\\other\\a.js",
       "D:\\other\\src\\a.js",
       "ignored|D:\\other\\a\\ other|D:\\other\\b\\c.js",
-      "ignored|D:\\aaa\\?name=D:\\bbb\\d.txt",
+      "ignored|C:\\Users\\aaa\\?name=C:\\Users\\bbb\\d.txt",
       "javascript/auto|D:\\other\\src\\|layer1",
       "just a regular string without any paths",
       "D:\\other\\src\\文本.txt",
       "ignored|.\\a\\b\\c\\d?query=.\\e\\f\\g",
       "D:\\other\\src\\loader.js!D:\\other\\index.js",
-      "D:\\Users".into(),
-      "D:\\".into(),
-      "D:\\Windows".into(),
+      "C:\\Users".into(),
+      "C:\\".into(),
+      "C:\\Windows".into(),
+      r"D:/other/path with space/a.js".into(),
+      r"D:\\other\\src\\a.js".into(),
     ]
   );
 }
