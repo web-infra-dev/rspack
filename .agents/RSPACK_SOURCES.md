@@ -250,8 +250,9 @@ Important implementation details:
   owner of the removed contents. Do not retain the whole JSON in either the map asset or its
   replacement result. JS binding content requests remain an explicit materialization boundary.
 - `ConcatSource::add` uses `&mut self` and `Mutex::get_mut`; reads lazily optimize children.
-  Coalescing raw strings is bounded to 64 KiB per newly merged string; larger inputs retain their
-  existing `Arc` rather than being copied to append a small suffix. Adjacent raw children remain
+  Raw strings larger than 64 KiB terminate a merge run and retain their existing `Arc` rather
+  than being copied to append a small suffix. Smaller inputs still coalesce, even when their total
+  exceeds 64 KiB; splitting these copies would not save text bytes. Adjacent raw children remain
   one logical run for equality and structural hashing, including after cache restoration. Equality
   compares borrowed spans; hashing temporarily materializes a split run to preserve the previous
   contiguous hash input because generic hashers can observe write boundaries. This temporary is

@@ -22,7 +22,7 @@ fn test_rspack_source() {
 }
 
 #[test]
-fn bounded_concat_preserves_large_inputs_and_logical_raw_runs() {
+fn concat_preserves_large_inputs_and_logical_raw_runs() {
   use std::hash::{Hash, Hasher};
 
   use rspack_sources::{ConcatSource, OriginalSource, Source};
@@ -71,22 +71,21 @@ fn bounded_concat_preserves_large_inputs_and_logical_raw_runs() {
 }
 
 #[test]
-fn bounded_concat_coalesces_small_fragments_without_large_copies() {
+fn concat_still_coalesces_small_fragments() {
   use std::hash::{Hash, Hasher};
 
   use rspack_sources::{ConcatSource, Source};
 
   let part = "é".repeat(1024);
-  let source = ConcatSource::new((0..100).map(|_| RawStringSource::from(part.clone())));
+  let mut source = ConcatSource::new((0..100).map(|_| RawStringSource::from(part.clone())));
   let expected = part.repeat(100);
   assert_eq!(source.size(), expected.len());
-  assert_eq!(source.children().len(), 4);
-  assert!(
-    source
-      .children()
-      .iter()
-      .all(|child| child.size() <= 64 * 1024)
-  );
+  assert_eq!(source.children().len(), 1);
+  // A merged run can exceed the threshold and must survive later normalization.
+  let merged = source.children()[0].clone();
+  source.add(RawStringSource::from_static(""));
+  assert_eq!(source.children().len(), 2);
+  assert!(std::sync::Arc::ptr_eq(&source.children()[0], &merged));
   let split = source.boxed();
   let flat = ConcatSource::new([RawStringSource::from(expected)]).boxed();
   assert_eq!(split.as_ref(), flat.as_ref());
@@ -107,4 +106,47 @@ fn bounded_concat_coalesces_small_fragments_without_large_copies() {
   ])
   .boxed();
   assert_ne!(split.as_ref(), empty.as_ref());
+}
+
+#[test]
+fn concat_preserves_maps_through_replacements() {
+  use rspack_sources::{ConcatSource, MapOptions, OriginalSource, ReplaceSource, Source};
+
+  for prefix in ["é".repeat(40_000), "😀".repeat(20_000)] {
+    for suffix in ["é😀tail", "\r\né😀tail"] {
+      let split = ConcatSource::new([
+        RawStringSource::from(prefix.clone()).boxed(),
+        RawStringSource::from_static("").boxed(),
+        RawStringSource::from(suffix).boxed(),
+        OriginalSource::new("after", "after.js").boxed(),
+      ])
+      .boxed();
+      let flat = ConcatSource::new([
+        RawStringSource::from(format!("{prefix}{suffix}")).boxed(),
+        OriginalSource::new("after", "after.js").boxed(),
+      ])
+      .boxed();
+      let mut split = ReplaceSource::new(split);
+      let mut flat = ReplaceSource::new(flat);
+      split.insert_static(prefix.len() as u32, "X😀\n", None);
+      flat.insert_static(prefix.len() as u32, "X😀\n", None);
+      assert_eq!(split.source(), flat.source());
+      for columns in [false, true] {
+        let options = MapOptions::new(columns);
+        let map = split.map(&options).unwrap();
+        assert_eq!(Some(&map), flat.map(&options).as_ref());
+        if columns {
+          let after = map
+            .decoded_mappings()
+            .find(|mapping| mapping.original.is_some())
+            .unwrap();
+          assert_eq!(
+            after.generated_line,
+            if suffix.starts_with('\r') { 3 } else { 2 }
+          );
+          assert_eq!(after.generated_column, 7);
+        }
+      }
+    }
+  }
 }

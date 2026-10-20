@@ -242,12 +242,11 @@ impl Hash for ConcatSource {
         // Preserve the hash of the formerly merged RawStringSource. A generic
         // Hasher need not treat multiple write calls like one contiguous write.
         // Keep this materialization temporary rather than in optimized_children.
-        let mut bytes = Vec::with_capacity(run.iter().map(|s| s.size()).sum());
+        let mut text = String::with_capacity(run.iter().map(|s| s.size()).sum());
         for source in run {
-          bytes.extend_from_slice(raw_text(source).unwrap().as_bytes());
+          text.push_str(raw_text(source).unwrap());
         }
-        "RawStringSource".hash(state);
-        bytes.hash(state);
+        RawStringSource::from(text).hash(state);
       }
     }
   }
@@ -255,23 +254,20 @@ impl Hash for ConcatSource {
 
 impl PartialEq for ConcatSource {
   fn eq(&self, other: &Self) -> bool {
-    let mut left = raw_runs(self.optimized_children());
     let mut right = raw_runs(other.optimized_children());
-    loop {
-      match (left.next(), right.next()) {
-        (None, None) => return true,
-        (Some(a), Some(b)) => {
-          if raw_text(&a[0]).is_some() && raw_text(&b[0]).is_some() {
-            if !raw_runs_equal(a, b) {
-              return false;
-            }
-          } else if a != b {
-            return false;
-          }
+    for a in raw_runs(self.optimized_children()) {
+      let Some(b) = right.next() else {
+        return false;
+      };
+      if a.len() == 1 && b.len() == 1 {
+        if !Arc::ptr_eq(&a[0], &b[0]) && a != b {
+          return false;
         }
-        _ => return false,
+      } else if raw_text(&a[0]).is_none() || raw_text(&b[0]).is_none() || !raw_runs_equal(a, b) {
+        return false;
       }
     }
+    right.next().is_none()
   }
 }
 impl Eq for ConcatSource {}
@@ -459,8 +455,8 @@ impl StreamChunks for ConcatSource {
   }
 }
 
-// Bound copies of small adjacent fragments; large inputs keep their original Arc.
-const MAX_RAW_MERGE_SIZE: usize = 64 * 1024;
+// Large inputs are merge barriers, so appending a short suffix cannot copy them.
+const MAX_MERGEABLE_RAW_SIZE: usize = 64 * 1024;
 
 fn raw_text(source: &BoxSource) -> Option<&str> {
   source
@@ -470,12 +466,15 @@ fn raw_text(source: &BoxSource) -> Option<&str> {
 }
 
 // A raw run is one logical node for equality and hashing, regardless of how its
-// bytes are partitioned by the bounded storage optimization.
+// bytes are partitioned by the storage optimization.
 fn raw_runs(children: &[BoxSource]) -> impl Iterator<Item = &[BoxSource]> {
   children.chunk_by(|a, b| raw_text(a).is_some() && raw_text(b).is_some())
 }
 
 fn raw_runs_equal(left: &[BoxSource], right: &[BoxSource]) -> bool {
+  if left.len() == right.len() && left.iter().zip(right).all(|(a, b)| Arc::ptr_eq(a, b)) {
+    return true;
+  }
   let mut left = left
     .iter()
     .map(|s| raw_text(s).unwrap().as_bytes())
@@ -514,27 +513,13 @@ fn optimize(children: &mut Vec<BoxSource>) -> Vec<BoxSource> {
 
   let mut new_children = Vec::with_capacity(original_children.len());
   let mut current_raw_sources = Vec::with_capacity(original_children.len());
-  let mut current_raw_size = 0;
 
   for child in original_children {
-    if let Some(text) = raw_text(&child) {
-      let size = text.len();
-      if size > MAX_RAW_MERGE_SIZE {
-        merge_raw_sources(&mut current_raw_sources, &mut new_children);
-        current_raw_size = 0;
-        new_children.push(child);
-        continue;
-      }
-      if size > MAX_RAW_MERGE_SIZE - current_raw_size {
-        merge_raw_sources(&mut current_raw_sources, &mut new_children);
-        current_raw_size = 0;
-      }
-      current_raw_size += size;
+    if raw_text(&child).is_some_and(|text| text.len() <= MAX_MERGEABLE_RAW_SIZE) {
       current_raw_sources.push(child);
     } else {
-      // Flush any pending raw sources before adding the non-raw source
+      // Large raw strings and non-raw sources terminate the current merge run.
       merge_raw_sources(&mut current_raw_sources, &mut new_children);
-      current_raw_size = 0;
       new_children.push(child);
     }
   }
@@ -554,14 +539,12 @@ fn merge_raw_sources(raw_sources: &mut Vec<BoxSource>, new_children: &mut Vec<Bo
       new_children.push(raw_sources.pop().unwrap());
     }
     _ => {
-      // Multiple sources - merge them
       let capacity = raw_sources.iter().map(|s| s.size()).sum();
-      let mut merged_content = String::with_capacity(capacity);
+      let mut text = String::with_capacity(capacity);
       for source in raw_sources.drain(..) {
-        merged_content.push_str(source.source().into_string_lossy().as_ref());
+        text.push_str(raw_text(&source).unwrap());
       }
-      let merged_source = RawStringSource::from(merged_content);
-      new_children.push(merged_source.boxed());
+      new_children.push(RawStringSource::from(text).boxed());
     }
   }
 }
