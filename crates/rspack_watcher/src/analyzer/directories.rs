@@ -189,7 +189,7 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
       .collect()
   }
 
-  fn on_directory_event(&self, path: &InternedPath) {
+  fn invalidate_directory(&self, path: &InternedPath) {
     let mut state = self.state.lock().expect("directory analyzer lock poisoned");
     let affected: InternedPathSet = state
       .requirements

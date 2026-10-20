@@ -142,6 +142,7 @@ impl DiskWatcher {
   pub fn watch(
     &mut self,
     patterns: impl Iterator<Item = WatchPattern>,
+    on_watch_error: impl Fn(&InternedPath),
   ) -> rspack_error::Result<()> {
     let new_patterns: HashSet<WatchPattern> = patterns.collect();
     // Collect stale paths that are no longer needed, then unwatch and remove them.
@@ -157,6 +158,7 @@ impl DiskWatcher {
         && let Err(e) = watcher.unwatch(path)
         && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
       {
+        on_watch_error(path);
         return Err(rspack_error::error!(e.to_string()));
       }
     }
@@ -171,9 +173,10 @@ impl DiskWatcher {
       }
 
       if let Some(watcher) = &mut self.inner {
-        watcher
-          .watch(&pattern.path, pattern.mode)
-          .map_err(|e| rspack_error::error!(e.to_string()))?;
+        watcher.watch(&pattern.path, pattern.mode).map_err(|e| {
+          on_watch_error(&pattern.path);
+          rspack_error::error!(e.to_string())
+        })?;
       }
 
       self.watch_patterns.insert(pattern);
@@ -232,6 +235,7 @@ mod tests {
           },
         ]
         .into_iter(),
+        |_| {},
       )
       .unwrap();
     assert_eq!(watcher.watch_patterns.len(), 2);
@@ -250,6 +254,7 @@ mod tests {
           },
         ]
         .into_iter(),
+        |_| {},
       )
       .unwrap();
 
@@ -264,10 +269,13 @@ mod tests {
       notify::RecursiveMode::NonRecursive,
     ] {
       watcher
-        .watch(std::iter::once(WatchPattern {
-          path: InternedPath::from(dir_b.clone()),
-          mode,
-        }))
+        .watch(
+          std::iter::once(WatchPattern {
+            path: InternedPath::from(dir_b.clone()),
+            mode,
+          }),
+          |_| {},
+        )
         .unwrap();
       assert_eq!(
         watcher.watch_patterns.len(),

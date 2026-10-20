@@ -419,12 +419,14 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
 
 impl FsWatcherInner {
   fn refresh_root_watch(&mut self, event: disk_watcher::RootEvent) -> Result<()> {
+    self.analyzer.invalidate_directory(&event.path);
     if !event.appeared {
       self.disk_watcher.invalidate_root(&event.path)?;
     }
-    self.analyzer.on_directory_event(&event.path);
     let patterns = self.analyzer.analyze(self.state.registry.access());
-    let result = self.disk_watcher.watch(patterns.into_iter());
+    let result = self.disk_watcher.watch(patterns.into_iter(), |path| {
+      self.analyzer.invalidate_directory(path);
+    });
     // Attach first: processing the old root event then observes changes made
     // while inotify had no watch, including a replacement at the same path.
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
@@ -533,7 +535,11 @@ impl FsWatcherInner {
       polling.update(self.state.registry.access());
     } else {
       let watch_patterns = self.analyzer.analyze(self.state.registry.access());
-      self.disk_watcher.watch(watch_patterns.into_iter())?;
+      self
+        .disk_watcher
+        .watch(watch_patterns.into_iter(), |path| {
+          self.analyzer.invalidate_directory(path);
+        })?;
     }
     let changed_in_contexts = self.state.scan_contexts(start_time).await;
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
