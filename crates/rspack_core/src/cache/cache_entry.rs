@@ -51,7 +51,6 @@ impl CachedSourceMapDevToolPluginEntry {
   pub fn restore(
     &self,
     asset: &CompilationAsset,
-    source_only: bool,
   ) -> Option<(
     CompilationAsset,
     Option<(String, CompilationAsset)>,
@@ -60,11 +59,7 @@ impl CachedSourceMapDevToolPluginEntry {
     let source = asset.get_source()?.clone();
     // Match Devtool's initial graph: suppress mappings on the generated code,
     // then append the sourceMappingURL comment outside that boundary.
-    let source = if source_only {
-      SourceOnlySource::new(source).boxed()
-    } else {
-      source
-    };
+    let source = SourceOnlySource::new(source).boxed();
     let source = if self.asset_append.is_empty() {
       source
     } else {

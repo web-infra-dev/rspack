@@ -16,8 +16,8 @@ use rspack_core::{
   cache::CachedSourceMapDevToolPluginEntry,
   legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, MappingSource, RawBufferSource, RawStringSource, Source,
-    SourceExt, SourceMap, SourceOnlySource, SourceValue,
+    BoxSource, ConcatSource, MapOptions, MappingSource, RawStringSource, Source, SourceExt,
+    SourceMap, SourceOnlySource,
   },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -461,8 +461,7 @@ impl SourceMapDevToolPlugin {
       };
 
       if let Some(cached) = cached
-        && let Some((source_asset, source_map, asset_append)) =
-          cached.restore(asset, !compilation.platform.is_node())
+        && let Some((source_asset, source_map, asset_append)) = cached.restore(asset)
       {
         if let Some(counter) = cache_counter {
           counter.hit();
@@ -537,9 +536,7 @@ impl SourceMapDevToolPlugin {
     let mut vanilla_assets = Vec::new();
 
     for (index, (filename, asset)) in compilation_assets.into_iter().enumerate() {
-      if let Some((source_asset, source_map, asset_append)) =
-        cache.take(&filename, asset, !compilation.platform.is_node())
-      {
+      if let Some((source_asset, source_map, asset_append)) = cache.take(&filename, asset) {
         if let Some(counter) = cache_counter {
           counter.hit();
         }
@@ -685,17 +682,10 @@ impl SourceMapDevToolPlugin {
                 ));
               }
 
-              let raw_source = if compilation.platform.is_node() {
-                match source.source() {
-                  SourceValue::String(cow) => RawStringSource::from(cow.into_owned()).boxed(),
-                  SourceValue::Buffer(cow) => RawBufferSource::from(cow.into_owned()).boxed(),
-                }
-              } else {
-                SourceOnlySource::new(source).boxed()
-              };
+              let source = SourceOnlySource::new(source).boxed();
               let task = SourceMapTask {
                 asset_filename,
-                source: raw_source,
+                source,
                 source_map,
                 unresolved_source_map_path,
                 source_references,
@@ -773,17 +763,10 @@ impl SourceMapDevToolPlugin {
                 ));
               }
 
-              let raw_source = if compilation.platform.is_node() {
-                match source.source() {
-                  SourceValue::String(cow) => RawStringSource::from(cow.into_owned()).boxed(),
-                  SourceValue::Buffer(cow) => RawBufferSource::from(cow.into_owned()).boxed(),
-                }
-              } else {
-                SourceOnlySource::new(source).boxed()
-              };
+              let source = SourceOnlySource::new(source).boxed();
               let task = SourceMapTask {
                 asset_filename,
-                source: raw_source,
+                source,
                 source_map,
                 unresolved_source_map_path,
                 source_references,
