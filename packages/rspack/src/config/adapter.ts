@@ -172,34 +172,6 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
     }
     return value;
   };
-  if (cache.type === 'filesystem') {
-    const toRawTimeout = (name: string, value: number) => {
-      if (!Number.isSafeInteger(value) || value < 0) {
-        throw new Error(
-          `Invalid Rspack configuration: "${name}" must be a non-negative safe integer in milliseconds, get \`${value}\`.`,
-        );
-      }
-      return value;
-    };
-    return {
-      type: cache.type,
-      buildDependencies: Object.values(cache.buildDependencies!).flat(),
-      cacheDirectory: cache.cacheDirectory!,
-      cacheLocation: cache.cacheLocation!,
-      version: cache.version!,
-      readonly: cache.readonly!,
-      maxMemoryGenerations: toRawMemoryGenerations(cache.maxMemoryGenerations!),
-      idleTimeout: toRawTimeout('cache.idleTimeout', cache.idleTimeout!),
-      idleTimeoutForInitialStore: toRawTimeout(
-        'cache.idleTimeoutForInitialStore',
-        cache.idleTimeoutForInitialStore!,
-      ),
-      idleTimeoutAfterLargeChanges: toRawTimeout(
-        'cache.idleTimeoutAfterLargeChanges',
-        cache.idleTimeoutAfterLargeChanges!,
-      ),
-    };
-  }
   return {
     type: cache.type,
     buildDependencies: cache.buildDependencies,
@@ -208,8 +180,8 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
     maxMemoryGenerations: toRawMemoryGenerations(cache.maxMemoryGenerations!),
     storage: {
       type: cache.storage.type,
-      // Raw `directory` expects the final cache path; normalized `directory` is only the base.
-      directory: cache.storage.location!,
+      directory: cache.storage.directory!,
+      location: cache.storage.location!,
     },
     portable: cache.portable,
     readonly: cache.readonly,

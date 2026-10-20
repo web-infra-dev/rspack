@@ -65,6 +65,15 @@ impl JavascriptParser<'_> {
         NodeKindData::VariableDeclaration(declaration) => {
           parser.block_pre_walk_variable_declaration(declaration)
         }
+        NodeKindData::Function(function) => {
+          if parser.is_block_scoped_function(function)
+            && let Some(identifier) = function.id(parser.ast.ast)
+          {
+            // Semantic bindings are already active; run declaration hooks in
+            // the block so runtime-name collisions are handled in that scope.
+            parser.enter_ident(identifier, |_, _, _| {});
+          }
+        }
         NodeKindData::ExpressionStatement(expression) => {
           parser.block_pre_walk_expression_statement(expression)
         }

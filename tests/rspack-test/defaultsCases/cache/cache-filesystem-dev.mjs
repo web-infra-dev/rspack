@@ -51,6 +51,9 @@ export default {
 			+     "moduleIds": "named",
 			+     "nodeEnv": "development",
 			@@ ... @@
+			-       "minRemainingSize": undefined,
+			+       "minRemainingSize": 0,
+			@@ ... @@
 			-           "production",
 			+           "development",
 			@@ ... @@

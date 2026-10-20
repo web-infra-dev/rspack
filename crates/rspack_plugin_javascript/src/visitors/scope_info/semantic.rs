@@ -1,7 +1,7 @@
 use std::num::NonZeroU32;
 
-use swc_next_ecma_ast::{BindingIdentifier, IdentifierReference, NodeId, ScopeId, SymbolId};
-use swc_next_ecma_semantic::{ReferenceSpace, Semantic, SymbolFlags, scope::ScopeKind};
+use swc_next_ecma_ast::{BindingIdentifier, IdentifierReference, ScopeId, SymbolId};
+use swc_next_ecma_semantic::{ReferenceSpace, Semantic, SymbolFlags};
 
 use super::{
   Atom, AtomRef, BindingState, ParsedJavaScriptAst, ScopeInfoDB, ScopeInfoId, SemanticScopeId,
@@ -53,10 +53,6 @@ impl Default for SemanticContext<'_> {
 struct AstSemantic<'ast> {
   /// Borrowed parsed AST and its existing SWC semantic analysis, without cloning either.
   ast: &'ast ParsedJavaScriptAst<'ast>,
-  /// Innermost SWC scope owned by each AST node, used when entering walker scopes.
-  scopes_by_node: Vec<Option<ScopeId>>,
-  /// Block-function compatibility aliases sorted by their enclosing hoist scope.
-  function_aliases: Vec<(ScopeId, SymbolId)>,
   /// Start of this AST's disjoint binding-state range in `ScopeInfoDB::symbols`.
   symbol_start: u32,
   /// Start of this AST's disjoint scope range in `ScopeInfoDB::semantic_scope_owners`.
@@ -76,7 +72,7 @@ fn symbol_binding(
     index: NonZeroU32::new(symbol_start + symbol.index() as u32 + 1)
       .expect("semantic symbol indices start at one"),
     scope: SemanticScopeId(
-      NonZeroU32::new(scope_start + semantic.scope_of(symbol).raw())
+      NonZeroU32::new(scope_start + semantic.scope_of_symbol(symbol).raw())
         .expect("semantic scope indices start at one"),
     ),
   }
@@ -93,28 +89,16 @@ pub(crate) enum IdentifierResolution {
 impl<'ast> SemanticStore<'ast> {
   /// Registers semantic lookup tables and reserves a disjoint range for this AST's symbols.
   fn register_ast(&mut self, ast: &'ast ParsedJavaScriptAst<'ast>) -> usize {
-    let mut info = AstSemantic {
+    let info = AstSemantic {
       ast,
-      scopes_by_node: Vec::new(),
-      function_aliases: Vec::new(),
       symbol_start: self.symbol_count,
       scope_start: self.scope_count,
-      root_scope: ScopeId::ROOT,
+      root_scope: ast
+        .semantic
+        .scope_of(ast.program.node_id())
+        .expect("program has a semantic scope"),
     };
-    let mut scope_count = 0;
-    for entry in ast.semantic.iter_scopes() {
-      scope_count += 1;
-      let index = entry.scope.node.index();
-      info
-        .scopes_by_node
-        .resize(info.scopes_by_node.len().max(index + 1), None);
-      // Named function expressions can own multiple scopes. The last scope
-      // created for a node is its innermost scope, used while walking the body.
-      info.scopes_by_node[index] = Some(entry.id);
-      if entry.scope.node == ast.program.node_id() {
-        info.root_scope = entry.id;
-      }
-    }
+    let scope_count = ast.semantic.iter_scopes().count() as u32;
     self.scope_count = self
       .scope_count
       .checked_add(scope_count)
@@ -123,22 +107,7 @@ impl<'ast> SemanticStore<'ast> {
     let mut symbol_count = 0;
     for entry in ast.semantic.iter_symbols() {
       symbol_count = symbol_count.max(entry.id.index() + 1);
-      if !entry.symbol.flags.contains(SymbolFlags::FUNCTION) {
-        continue;
-      }
-      let owner = ast.semantic.scope(ast.semantic.scope_of(entry.id));
-      if matches!(owner.kind, ScopeKind::Block | ScopeKind::With)
-        && matches!(
-          ast.semantic.scope(owner.hoist_target).kind,
-          ScopeKind::Global | ScopeKind::Module | ScopeKind::Function | ScopeKind::FunctionBody
-        )
-      {
-        info.function_aliases.push((owner.hoist_target, entry.id));
-      }
     }
-    info
-      .function_aliases
-      .sort_unstable_by_key(|(scope, symbol)| (*scope, symbol.index()));
     let symbol_end = info
       .symbol_start
       .checked_add(u32::try_from(symbol_count).expect("too many semantic bindings"))
@@ -198,19 +167,6 @@ impl<'ast> SemanticStore<'ast> {
         })
     })
   }
-
-  /// Returns the innermost semantic scope owned by a node in the active AST.
-  pub(crate) fn scope_for_node(
-    &self,
-    context: &SemanticContext<'_>,
-    node: NodeId,
-  ) -> Option<ScopeId> {
-    self.asts[context.active_ast]
-      .scopes_by_node
-      .get(node.index())
-      .copied()
-      .flatten()
-  }
 }
 
 impl<'ast> SemanticContext<'ast> {
@@ -250,9 +206,6 @@ impl<'ast> SemanticContext<'ast> {
       return IdentifierResolution::Name;
     };
     let reference = semantic.reference(reference);
-    if reference.flags.is_dynamic() {
-      return IdentifierResolution::Name;
-    }
     match reference.symbol {
       Some(symbol) => IdentifierResolution::Symbol(symbol),
       // A fragment is evaluated in its caller's environment, not as a separate module.
@@ -401,7 +354,7 @@ impl<'ast> ScopeInfoDB<'ast> {
         return state.defined();
       }
       let scope = self.semantic_context.scope_start as usize
-        + parsed.semantic.scope_of(symbol).raw() as usize
+        + parsed.semantic.scope_of_symbol(symbol).raw() as usize
         - 1;
       if let Some(owner) = self.semantic_scope_owners[scope] {
         return Some(BindingState::Normal(owner));
@@ -480,55 +433,15 @@ impl<'ast> ScopeInfoDB<'ast> {
     self.set(scope, name, BindingState::Normal(scope));
   }
 
-  /// Activates shared default owners and initializes legacy block-function aliases.
+  /// Activates shared default owners for the current scope.
   pub fn initialize_scope_bindings(&mut self) {
-    let active_ast = self.semantic_context.active_ast;
-    let parsed = self.semantic_context.ast.expect("active AST");
     let scope = self.current_scope();
-    let semantic = parsed.semantic;
-    let semantic_scope = self.semantic_context.scope;
-    let node = semantic.scope(semantic_scope).node;
-
-    // Activate only scopes owned by this node, including expression-name scopes.
-    for semantic_scope in std::iter::successors(Some(semantic_scope), |scope| {
-      semantic
-        .scope(*scope)
-        .parent
-        .filter(|parent| semantic.scope(*parent).node == node)
-    }) {
-      let id = SemanticScopeId::from_index(
-        self.semantic_context.scope_start as usize + semantic_scope.raw() as usize - 1,
-      );
-      if self.semantic_scope_owners[id.index()].is_none() {
-        self.semantic_scope_owners[id.index()] = Some(scope);
-        self.scope_activations.push(id);
-      }
-    }
-
-    // Preserve legacy block-function aliases for this scope, not its ancestors.
-    let aliases = &self.semantic.asts[active_ast].function_aliases;
-    let start = aliases.partition_point(|(target, _)| *target < semantic_scope);
-    for index in start..aliases.len() {
-      let (target, symbol) = self.semantic.asts[active_ast].function_aliases[index];
-      if target != semantic_scope {
-        break;
-      }
-      let name = parsed
-        .ast
-        .get_wtf8(semantic.symbol(symbol).name)
-        .to_string_lossy();
-      if self
-        .bindings
-        .get(name.as_ref())
-        .and_then(|bindings| bindings.last())
-        .is_none_or(|binding| binding.scope != scope)
-      {
-        self.set(
-          scope,
-          Atom::from(name.as_ref()),
-          BindingState::Normal(scope),
-        );
-      }
+    let id = SemanticScopeId::from_index(
+      self.semantic_context.scope_start as usize + self.semantic_context.scope.raw() as usize - 1,
+    );
+    if self.semantic_scope_owners[id.index()].is_none() {
+      self.semantic_scope_owners[id.index()] = Some(scope);
+      self.scope_activations.push(id);
     }
   }
 

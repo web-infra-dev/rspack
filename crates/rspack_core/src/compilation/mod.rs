@@ -381,7 +381,6 @@ impl Compilation {
       crate::ResolverCache::new(
         cache.facade("ResolverCache"),
         file_system_info.clone(),
-        options.snapshot.resolve,
         &CompilationLogger::new("rspack.ResolverCache", logging.clone()),
       )
     });

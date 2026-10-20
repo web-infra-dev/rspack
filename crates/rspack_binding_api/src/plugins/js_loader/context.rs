@@ -2,7 +2,8 @@ use std::{ptr::NonNull, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_core::{Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
+use rspack_collections::Identifiable;
+use rspack_core::{CodeFilter, Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::ThreadsafeOneShotRef;
@@ -11,7 +12,6 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{error::RspackError, module::ModuleObject};
 
 #[napi(object)]
-#[derive(Hash)]
 pub struct JsLoaderItem {
   pub loader: String,
   pub r#type: String,
@@ -24,7 +24,18 @@ pub struct JsLoaderItem {
   pub normal_executed: bool,
   pub pitch_executed: bool,
 
+  #[napi(ts_type = "string | RegExp")]
+  pub code_filter: Option<Either<String, rspack_regex::RspackRegex>>,
+  pub filter_matched: bool,
+
   pub no_pitch: bool,
+}
+
+fn into_js_code_filter(value: &CodeFilter) -> Either<String, rspack_regex::RspackRegex> {
+  match value {
+    CodeFilter::String(value) => Either::A(value.clone()),
+    CodeFilter::Regexp(value) => Either::B(value.clone()),
+  }
 }
 
 impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
@@ -37,6 +48,10 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
       data: value.data().clone(),
       normal_executed: value.normal_executed(),
       pitch_executed: value.pitch_executed(),
+      code_filter: value
+        .filter()
+        .and_then(|filter| filter.code().map(into_js_code_filter)),
+      filter_matched: value.filter_matched(),
 
       no_pitch: false,
     }
@@ -58,6 +73,8 @@ where
         cache: false,
         pitch_executed: false,
         normal_executed: false,
+        code_filter: None,
+        filter_matched: false,
         no_pitch: false,
       };
     }
@@ -68,6 +85,8 @@ where
       cache: false,
       pitch_executed: false,
       normal_executed: false,
+      code_filter: None,
+      filter_matched: false,
       no_pitch: false,
     }
   }
