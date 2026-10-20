@@ -11,9 +11,20 @@ pub fn create_storage(
   cache_directory: CacheDirectory,
   max_age: u64,
   fs: Arc<dyn IntermediateFileSystem>,
-) -> BoxStorage {
+  seed_from: Option<&str>,
+) -> (BoxStorage, Option<String>) {
   match options {
     StorageOptions::FileSystem { location, .. } => {
+      let seed_message = seed_from.map(|donor| {
+        match rspack_storage::seed_cache(
+          location.as_std_path(),
+          std::path::Path::new(donor),
+          &cache_directory,
+        ) {
+          Ok(outcome) => format!("portable cache seed from {donor}: {outcome}"),
+          Err(error) => format!("portable cache seed from {donor} skipped: {error}"),
+        }
+      });
       let option = FileSystemOptions {
         directory: location,
         cache_directory,
@@ -21,7 +32,7 @@ pub fn create_storage(
         expire: max_age,
         fs,
       };
-      Box::new(FileSystemStorage::new(option))
+      (Box::new(FileSystemStorage::new(option)), seed_message)
     }
   }
 }

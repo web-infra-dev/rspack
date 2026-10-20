@@ -2003,6 +2003,7 @@ export interface RawCacheOptionsPersistent {
   maxAge: number
   maxMemoryGenerations?: number
   storage?: RawStorageOptions
+  seedFrom?: string
   portableRoot?: string
   readonly?: boolean
 }
