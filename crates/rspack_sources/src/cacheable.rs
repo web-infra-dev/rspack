@@ -4,7 +4,7 @@
 use crate::{
   BoxSource, CachedSource, ConcatSource, MappingSource, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap,
-  SourceMapFields, SourceMapSource, SourceMapSourceOptions,
+  SourceMapFields, SourceMapSource, SourceMapSourceOptions, SourceOnlySource,
 };
 
 /// Source map fields stored without an intermediate JSON representation.
@@ -152,6 +152,12 @@ pub enum CacheableSource {
     #[rkyv(omit_bounds)]
     inner: Box<CacheableSource>,
   },
+  /// [`SourceOnlySource`], preserving its map boundary and structural identity.
+  SourceOnly {
+    /// The inner source.
+    #[rkyv(omit_bounds)]
+    inner: Box<CacheableSource>,
+  },
   /// [`MappingSource`], preserving every field, including omitted empty arrays.
   Mapping {
     /// Keep map metadata from enlarging every cached source node.
@@ -164,6 +170,12 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
   if let Some(s) = source.as_any().downcast_ref::<MappingSource>() {
     return CacheableSource::Mapping {
       map: Box::new((&s.data().map).into()),
+    };
+  }
+
+  if let Some(s) = source.as_any().downcast_ref::<SourceOnlySource>() {
+    return CacheableSource::SourceOnly {
+      inner: Box::new(to_cacheable(s.inner().as_ref())),
     };
   }
 
@@ -243,6 +255,7 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
 /// Convert a [`CacheableSource`] back into a [`BoxSource`].
 pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
   match cacheable {
+    CacheableSource::SourceOnly { inner } => SourceOnlySource::new(from_cacheable(*inner)).boxed(),
     CacheableSource::Mapping { map } => MappingSource::new((*map).into()).boxed(),
     CacheableSource::RawBuffer { buffer } => RawBufferSource::from(buffer).boxed(),
     CacheableSource::RawString { value } => RawStringSource::from(value).boxed(),

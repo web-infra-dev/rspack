@@ -9,7 +9,7 @@ use aho_corasick::{AhoCorasick, Match};
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, MappingSource, OriginalSource,
   RawBufferSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
-  SourceValue,
+  SourceOnlySource, SourceValue,
   stream_chunks::{
     Chunks, GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks, stream_chunks_of_raw_rope,
   },
@@ -255,6 +255,9 @@ enum SourceContentKind {
 
 fn content_kind(source: &dyn Source) -> SourceContentKind {
   let any = source.as_any();
+  if let Some(source) = any.downcast_ref::<SourceOnlySource>() {
+    return content_kind(source.inner().as_ref());
+  }
   if any.is::<RawStringSource>()
     || any.is::<OriginalSource>()
     || any.is::<SourceMapSource>()
@@ -332,6 +335,9 @@ fn borrowed_bytes(source: &dyn Source) -> Option<&[u8]> {
 }
 
 fn source_chunks(source: &dyn Source) -> Box<dyn Iterator<Item = &[u8]> + '_> {
+  if let Some(source) = source.as_any().downcast_ref::<SourceOnlySource>() {
+    return source_chunks(source.inner().as_ref());
+  }
   if let Some(source) = source.as_any().downcast_ref::<RealContentHashSource>() {
     return source.byte_chunks();
   }

@@ -220,6 +220,7 @@ representation optimizations.
 | `RawBufferSource` | binary leaf          | exact bytes; lazy lossy rope view                                   |
 | `OriginalSource`  | mapped text leaf     | lazily creates token-like or line mappings                          |
 | `SourceMapSource` | existing/nested map  | directly borrows one map or composes outer and inner maps           |
+| `SourceOnlySource` | map-free view of an existing source | forwards content without flattening; suppresses maps |
 | `MappingSource`   | external map JSON    | retains the original map and serializes JSON on demand              |
 | `ConcatSource`    | ordered composition  | flattens nested concats, merges adjacent raw strings, remaps tables |
 | `ReplaceSource`   | byte-range transform | maintains sorted edits and repairs mappings                         |
@@ -346,3 +347,5 @@ vector of boxed slices. The vector stays empty when the entire source is ASCII.
 Offsets use `u32`, following Rspack's assumption that source files fit in 4 GiB.
 Mapping streams drop the index after use rather
 than retaining line-sized buffers in a pool.
+
+`SourceOnlySource` retains its inner graph and suppresses mapping callbacks and map APIs. Devtool uses it for non-Node assets; Node assets retain the flat-source path. Persistent cache preserves the wrapper and structural identity. Real content hashing classifies and streams its inner source recursively, retaining the map-free boundary for unchanged output.

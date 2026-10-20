@@ -112,10 +112,16 @@ export default defineConfig(
       { devtool: false, hashFunction: 'xxhash64', overrideHash: false },
       { devtool: 'source-map', hashFunction: 'sha256', overrideHash: false },
       { devtool: 'source-map', hashFunction: 'md4', overrideHash: true },
+      {
+        devtool: 'hidden-source-map',
+        hashFunction: 'xxhash64',
+        overrideHash: false,
+      },
     ] as const
   ).map(({ devtool, hashFunction, overrideHash }) => ({
     mode: 'production',
-    devtool: devtool as false | 'source-map',
+    target: 'web',
+    devtool,
     output: {
       filename: 'main.[contenthash:8].js',
       sourceMapFilename: '[file].[contenthash:8].map',
