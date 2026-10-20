@@ -129,7 +129,7 @@ impl Dependency for ESMExportExpressionDependency {
   }
 
   fn lazy(&self) -> Option<LazyUntil> {
-    Some(LazyUntil::LocalDefault)
+    Some(LazyUntil::Local(JS_DEFAULT_KEYWORD.clone()))
   }
 }
 

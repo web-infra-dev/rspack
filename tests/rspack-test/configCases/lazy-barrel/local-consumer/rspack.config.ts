@@ -21,7 +21,8 @@ export default defineConfig(
           const modules = [...stats.compilation.modules].map((m) =>
             path.basename(m.identifier()),
           );
-          // An explicitly reexported default still bypasses its barrel.
+          // A local default stops star lookup unless lazy compilation expands
+          // the barrel. An explicitly reexported default still bypasses its barrel.
           expect(
             modules.filter((name) => name.endsWith('-deferred.js')).sort(),
           ).toEqual(

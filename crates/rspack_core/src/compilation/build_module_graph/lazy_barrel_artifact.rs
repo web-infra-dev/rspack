@@ -67,8 +67,6 @@ pub enum LazyUntil {
   NoUntil,
   Id(Atom),
   Local(Atom),
-  /// Local default expressions retain star fallback outside lazy compilation.
-  LocalDefault,
 }
 
 #[cacheable]
@@ -80,7 +78,6 @@ pub struct LazyDependencies {
   request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
   #[cacheable(with=AsVec<AsPreset>)]
   terminal_forward_ids: FxHashSet<Atom>,
-  has_local_default: bool,
   fallback_dependencies: FxHashSet<DependencyId>,
 }
 
@@ -94,8 +91,6 @@ impl LazyDependencies {
       self.fallback_dependencies.insert(*dependency.id());
     } else if let LazyUntil::Local(forward_id) = &until {
       self.terminal_forward_ids.insert(forward_id.clone());
-    } else if matches!(&until, LazyUntil::LocalDefault) {
-      self.has_local_default = true;
     } else if let Some(dep) = dependency.as_module_dependency() {
       let request = Atom::from(dep.request());
       if let LazyUntil::Id(forward_id) = until {
@@ -129,10 +124,9 @@ impl LazyDependencies {
       ForwardedIdSet::All => self.all_lazy_dependencies().collect(),
       ForwardedIdSet::IdSet(set)
         if eager_on_local_reference
-          && set.iter().any(|forward_id| {
-            self.terminal_forward_ids.contains(forward_id)
-              || (forward_id == "default" && self.has_local_default)
-          }) =>
+          && set
+            .iter()
+            .any(|forward_id| self.terminal_forward_ids.contains(forward_id)) =>
       {
         self.all_lazy_dependencies().collect()
       }
