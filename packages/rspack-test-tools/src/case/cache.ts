@@ -218,7 +218,10 @@ function createCacheProcessor(
     },
     after: async (context) => {
       await base.after?.(context);
-      if (movedTemp) await fs.remove(movedTemp);
+      if (movedTemp) {
+        await context.getCompiler().close();
+        await fs.remove(movedTemp);
+      }
     },
     afterAll: () => {
       if (!updatePlugin) return;
