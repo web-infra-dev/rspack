@@ -10,8 +10,8 @@
 - Bundle: data_b_json.chunk.CURRENT_HASH.js
 - Bundle: data_b_json_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 65
-- Update: data_b_json_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1039
-- Update: main.LAST_HASH.hot-update.js, size: 470
+- Update: data_b_json_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 2809
+- Update: main.LAST_HASH.hot-update.js, size: 2910
 
 ## Manifest
 
@@ -37,9 +37,10 @@
 ```js
 self["rspackHotUpdate"]("data_b_json_lazy-compilation-proxy", {
 "./data/b.json!lazy-compilation-proxy"(module, __unused_rspack_exports, __webpack_require__) {
+if (__webpack_require__.eb && __webpack_require__.eb.has && __webpack_require__.eb.has("lazy-compilation-proxy|json|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/data/b.json|dep=")) {
 var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2F_rspack%2Flazy%2Ftrigger");
 var data = "lazy-compilation-proxy|json|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/data/b.json";
-        module.exports = __webpack_require__.e(/* import() */ "data_b_json").then(__webpack_require__.t.bind(__webpack_require__, "./data/b.json", 19));
+        module.exports = __webpack_require__.eb(/* import() */ "lazy-compilation-proxy|json|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/data/b.json|dep=", __webpack_require__.e).then(__webpack_require__.t.bind(__webpack_require__, "./data/b.json", 19));
         if (module.hot) {
           module.hot.accept();
           module.hot.accept("./data/b.json", function() { module.hot.invalidate(); });
@@ -48,6 +49,24 @@ var data = "lazy-compilation-proxy|json|<TEST_TOOLS_ROOT>/dist/helper/hot-update
             module.hot.data.resolveSelf(module.exports);
         }
         
+} else {
+var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2F_rspack%2Flazy%2Ftrigger");
+var data = "lazy-compilation-proxy|json|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/data/b.json";
+        var resolveSelf, onError;
+        module.exports = new Promise(function(resolve, reject) { resolveSelf = resolve; onError = reject; });
+        if (module.hot) {
+          module.hot.accept();
+          if (module.hot.data && module.hot.data.resolveSelf) module.hot.data.resolveSelf(module.exports);
+          var onStatus = function(status) {
+            if (status === "abort" || status === "fail") onError(new Error("Lazy compilation of " + data + " cannot finish because hot module replacement is in " + status + " status. Reload the page."));
+          };
+          onStatus(module.hot.status());
+          module.hot.addStatusHandler(onStatus);
+          module.hot.dispose(function(data) { module.hot.removeStatusHandler(onStatus); data.resolveSelf = resolveSelf; dispose(data); });
+        }
+        var dispose = client.activate({ data: data, active: false, module: module, onError: onError })
+
+}
 
 },
 
@@ -62,6 +81,7 @@ var data = "lazy-compilation-proxy|json|<TEST_TOOLS_ROOT>/dist/helper/hot-update
 - ./generation.js
 
 #### Changed Runtime Modules
+- webpack/runtime/ensure_async_block
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -79,6 +99,32 @@ __webpack_require__.d(__webpack_exports__, {
 },
 
 },function(__webpack_require__) {
+// webpack/runtime/ensure_async_block
+(() => {
+
+__webpack_require__.eb = (function(chunks, rows) {
+  var previous = "";
+  chunks = chunks.map(function(row) {
+    return typeof row === "number" ? row : (previous = previous.slice(0, row[0]) + row[1]);
+  });
+  var blocks = Object.create(null);
+  previous = "";
+  rows.forEach(function(row) {
+    previous = previous.slice(0, row[0]) + row[1];
+    blocks[previous] = [row[2], row[3]];
+  });
+  var ensureBlock = function(blockId, ensureChunk) {
+    var block = blocks[blockId];
+    if (!block) return Promise.reject(new Error("Missing async block " + blockId));
+    return Promise.all(block[0].map(function(chunkId) {
+      return ensureChunk(chunks[chunkId], block[1] || undefined);
+    }));
+  };
+  ensureBlock.has = function(blockId) { return blocks[blockId] !== undefined; };
+  return ensureBlock;
+})([[0,"data_a_json"],[11,"_lazy-compilation-proxy"],[5,"b_json"],[11,"_lazy-compilation-proxy"]], [[0,"<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/index.js|dep=esm|./data/a.json|attrs=1|4:type|4:json|loc=7:18-69",[1],null],[0,"<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/data|lazy|/^\\.\\/.*\\.json$/|referencedExports: |groupOptions: {}|namespace object|importAttributes: {\"type\":\"json\"}|importPhase: evaluation|dep=context<ROOT>/tests/rspack-test/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/data|./a.json{\"type\":\"json\"}|modifier=./a.json",[1],null],[0,"<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/data|lazy|/^\\.\\/.*\\.json$/|referencedExports: |groupOptions: {}|namespace object|importAttributes: {\"type\":\"json\"}|importPhase: evaluation|dep=context<ROOT>/tests/rspack-test/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/data|./b.json{\"type\":\"json\"}|modifier=./b.json",[3],null],[0,"lazy-compilation-proxy|json|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/data/a.json|dep=",[0],null],[0,"lazy-compilation-proxy|json|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/data/b.json|dep=",[2],null]]);
+
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -125,6 +171,7 @@ Updated Modules:
 - ./generation.js
 
 Updated Runtime:
+- `__webpack_require__.eb`
 - `__webpack_require__.h`
 
 

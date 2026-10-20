@@ -9,8 +9,8 @@
 - Bundle: data_issuer_txt_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Bundle: data_resolve_txt_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 69
-- Update: data_issuer_txt_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1017
-- Update: main.LAST_HASH.hot-update.js, size: 470
+- Update: data_issuer_txt_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 2657
+- Update: main.LAST_HASH.hot-update.js, size: 1997
 
 ## Manifest
 
@@ -36,9 +36,10 @@
 ```js
 self["rspackHotUpdate"]("data_issuer_txt_lazy-compilation-proxy", {
 "./data/issuer.txt!lazy-compilation-proxy"(module, __unused_rspack_exports, __webpack_require__) {
+if (__webpack_require__.eb && __webpack_require__.eb.has && __webpack_require__.eb.has("lazy-compilation-proxy|asset/source|<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/issuer-resolve/data/issuer.txt|dep=")) {
 var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2F_rspack%2Flazy%2Ftrigger");
 var data = "lazy-compilation-proxy|asset/source|<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/issuer-resolve/data/issuer.txt";
-        module.exports = __webpack_require__.e(/* import() */ "data_issuer_txt").then(__webpack_require__.t.bind(__webpack_require__, "./data/issuer.txt", 17));
+        module.exports = __webpack_require__.eb(/* import() */ "lazy-compilation-proxy|asset/source|<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/issuer-resolve/data/issuer.txt|dep=", __webpack_require__.e).then(__webpack_require__.t.bind(__webpack_require__, "./data/issuer.txt", 17));
         if (module.hot) {
           module.hot.accept();
           module.hot.accept("./data/issuer.txt", function() { module.hot.invalidate(); });
@@ -47,6 +48,24 @@ var data = "lazy-compilation-proxy|asset/source|<TEST_ROOT>/js/temp/hot-snapshot
             module.hot.data.resolveSelf(module.exports);
         }
         
+} else {
+var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2F_rspack%2Flazy%2Ftrigger");
+var data = "lazy-compilation-proxy|asset/source|<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/issuer-resolve/data/issuer.txt";
+        var resolveSelf, onError;
+        module.exports = new Promise(function(resolve, reject) { resolveSelf = resolve; onError = reject; });
+        if (module.hot) {
+          module.hot.accept();
+          if (module.hot.data && module.hot.data.resolveSelf) module.hot.data.resolveSelf(module.exports);
+          var onStatus = function(status) {
+            if (status === "abort" || status === "fail") onError(new Error("Lazy compilation of " + data + " cannot finish because hot module replacement is in " + status + " status. Reload the page."));
+          };
+          onStatus(module.hot.status());
+          module.hot.addStatusHandler(onStatus);
+          module.hot.dispose(function(data) { module.hot.removeStatusHandler(onStatus); data.resolveSelf = resolveSelf; dispose(data); });
+        }
+        var dispose = client.activate({ data: data, active: false, module: module, onError: onError })
+
+}
 
 },
 
@@ -61,6 +80,7 @@ var data = "lazy-compilation-proxy|asset/source|<TEST_ROOT>/js/temp/hot-snapshot
 - ./generation.js
 
 #### Changed Runtime Modules
+- webpack/runtime/ensure_async_block
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -78,6 +98,32 @@ __webpack_require__.d(__webpack_exports__, {
 },
 
 },function(__webpack_require__) {
+// webpack/runtime/ensure_async_block
+(() => {
+
+__webpack_require__.eb = (function(chunks, rows) {
+  var previous = "";
+  chunks = chunks.map(function(row) {
+    return typeof row === "number" ? row : (previous = previous.slice(0, row[0]) + row[1]);
+  });
+  var blocks = Object.create(null);
+  previous = "";
+  rows.forEach(function(row) {
+    previous = previous.slice(0, row[0]) + row[1];
+    blocks[previous] = [row[2], row[3]];
+  });
+  var ensureBlock = function(blockId, ensureChunk) {
+    var block = blocks[blockId];
+    if (!block) return Promise.reject(new Error("Missing async block " + blockId));
+    return Promise.all(block[0].map(function(chunkId) {
+      return ensureChunk(chunks[chunkId], block[1] || undefined);
+    }));
+  };
+  ensureBlock.has = function(blockId) { return blocks[blockId] !== undefined; };
+  return ensureBlock;
+})([[0,"data_issuer_txt"],[15,"_lazy-compilation-proxy"],[5,"resolve_txt_lazy-compilation-proxy"]], [[0,"<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/issuer-resolve/index.js|dep=esm|./data/issuer.txt|loc=7:18-45",[1],null],[0,"<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/issuer-resolve/index.js|dep=esm|./data/resolve|loc=20:18-42",[2],null],[0,"lazy-compilation-proxy|asset/source|<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/issuer-resolve/data/issuer.txt|dep=",[0],null]]);
+
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

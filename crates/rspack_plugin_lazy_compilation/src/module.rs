@@ -282,8 +282,27 @@ impl Module for LazyCompilationProxyModule {
     let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
 
     let keep_active = format!(
-      "var dispose = client.activate({{ data: data, active: {}, module: {module_argument}, onError: onError }})",
-      block.is_some()
+      "var dispose = client.activate({{ data: data, active: false, module: {module_argument}, onError: onError }})"
+    );
+
+    // The pending promise settles only through a hot update. Once the runtime
+    // reaches a terminal status no update can apply, so reject instead of hanging.
+    let pending = format!(
+        "{client}
+        var resolveSelf, onError;
+        {module_argument}.exports = new Promise(function(resolve, reject) {{ resolveSelf = resolve; onError = reject; }});
+        if ({module_argument}.hot) {{
+          {module_argument}.hot.accept();
+          if ({module_argument}.hot.data && {module_argument}.hot.data.resolveSelf) {module_argument}.hot.data.resolveSelf({module_argument}.exports);
+          var onStatus = function(status) {{
+            if (status === \"abort\" || status === \"fail\") onError(new Error(\"Lazy compilation of \" + data + \" cannot finish because hot module replacement is in \" + status + \" status. Reload the page.\"));
+          }};
+          onStatus({module_argument}.hot.status());
+          {module_argument}.hot.addStatusHandler(onStatus);
+          {module_argument}.hot.dispose(function(data) {{ {module_argument}.hot.removeStatusHandler(onStatus); data.resolveSelf = resolveSelf; dispose(data); }});
+        }}
+        {keep_active}
+"
     );
 
     let source = if let Some(block_id) = block {
@@ -299,7 +318,7 @@ impl Module for LazyCompilationProxyModule {
         .module_identifier_by_dependency_id(dep_id)
         .expect("should have module");
 
-      RawStringSource::from(format!(
+      let active = format!(
         "{client}
         {module_argument}.exports = {};
         if ({module_argument}.hot) {{
@@ -324,20 +343,21 @@ impl Module for LazyCompilationProxyModule {
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
             .expect("should have module id")
         ),
-      ))
+      );
+      RawStringSource::from(if compilation.uses_stable_async_block_map() {
+        // A normal chunk can contain an active proxy before this page has applied
+        // its activation update. Reuse the inactive handoff until metadata arrives.
+        let ensure_block =
+          runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_ASYNC_BLOCK);
+        format!(
+          "if ({ensure_block} && {ensure_block}.has && {ensure_block}.has({})) {{\n{active}\n}} else {{\n{pending}\n}}",
+          json_stringify(&block_id.as_str()),
+        )
+      } else {
+        active
+      })
     } else {
-      RawStringSource::from(format!(
-        "{client}
-        var resolveSelf, onError;
-        {module_argument}.exports = new Promise(function(resolve, reject) {{ resolveSelf = resolve; onError = reject; }});
-        if ({module_argument}.hot) {{
-          {module_argument}.hot.accept();
-          if ({module_argument}.hot.data && {module_argument}.hot.data.resolveSelf) {module_argument}.hot.data.resolveSelf({module_argument}.exports);
-          {module_argument}.hot.dispose(function(data) {{ data.resolveSelf = resolveSelf; dispose(data); }});
-        }}
-        {keep_active}
-      "
-      ))
+      RawStringSource::from(pending)
     };
 
     let mut code_generation_result = CodeGenerationResultBuilder::default();
