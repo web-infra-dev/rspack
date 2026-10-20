@@ -10,15 +10,24 @@ use super::{Cache, CacheKey, CacheValue, Etag, cache_value::CacheValueData};
 pub struct CacheFacade {
   cache: Arc<Cache>,
   name: String,
+  allow_import: bool,
 }
 
 impl CacheFacade {
-  pub(crate) fn new(cache: Arc<Cache>, name: String) -> Self {
-    Self { cache, name }
+  pub(crate) fn new(cache: Arc<Cache>, name: String, allow_import: bool) -> Self {
+    Self {
+      cache,
+      name,
+      allow_import,
+    }
   }
 
   pub(crate) fn get_child_cache(&self, name: &str) -> Self {
-    Self::new(Arc::clone(&self.cache), format!("{}|{name}", self.name))
+    Self::new(
+      Arc::clone(&self.cache),
+      format!("{}|{name}", self.name),
+      self.allow_import,
+    )
   }
 
   pub fn get_item_cache(&self, identifier: &str, etag: Option<Etag>) -> ItemCacheFacade {
@@ -44,6 +53,27 @@ impl CacheFacade {
     value: CacheValue<T>,
   ) {
     self.cache.store(self.key(identifier), etag, value)
+  }
+
+  pub(crate) fn module_profile(&self) -> Option<&str> {
+    self.cache.module_profile()
+  }
+
+  pub(crate) fn loader_profile(&self) -> Option<&str> {
+    self.cache.loader_profile()
+  }
+
+  pub(crate) fn get_imported<T: CacheValueData>(
+    &self,
+    identifier: &str,
+    etag: Etag,
+  ) -> Option<CacheValue<T>> {
+    // Child compilers have independent dependency ID allocators and build contracts.
+    // The draft supports only the root compiler's namespace.
+    if !self.allow_import {
+      return None;
+    }
+    self.cache.get_imported(self.key(identifier), etag)
   }
 
   fn key(&self, identifier: &str) -> CacheKey {

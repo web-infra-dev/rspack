@@ -1,4 +1,7 @@
-use std::path::Path;
+use std::{
+  path::Path,
+  sync::{Arc, Mutex},
+};
 
 use rspack_cacheable::{
   __private::rkyv::{Archive, Deserialize, Serialize, bytecheck::CheckBytes},
@@ -6,11 +9,13 @@ use rspack_cacheable::{
 };
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
+use rustc_hash::FxHashMap;
 
 /// Internal cacheable context for serialization
 #[derive(Debug, Clone)]
 struct Context {
   portable_project_root: Option<Utf8PathBuf>,
+  imported_dependency_ids: Option<Arc<Mutex<FxHashMap<u32, u32>>>>,
 }
 
 impl rspack_cacheable::CacheableContext for Context {
@@ -45,8 +50,32 @@ impl CacheCodec {
     Self {
       context: Context {
         portable_project_root,
+        imported_dependency_ids: None,
       },
     }
+  }
+
+  pub(crate) fn for_import() -> Self {
+    Self {
+      context: Context {
+        portable_project_root: None,
+        imported_dependency_ids: Some(Default::default()),
+      },
+    }
+  }
+
+  pub(crate) fn restore_dependency_id(id: u32, guard: &rspack_cacheable::ContextGuard) -> u32 {
+    let Ok(context) = guard.downcast_context::<Context>() else {
+      return id;
+    };
+    let Some(ids) = &context.imported_dependency_ids else {
+      return id;
+    };
+    *ids
+      .lock()
+      .expect("imported dependency ID lock poisoned")
+      .entry(id)
+      .or_insert_with(rspack_tasks::fetch_new_dependency_id)
   }
 
   pub fn encode<T>(&self, data: &T) -> Result<Vec<u8>>

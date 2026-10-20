@@ -69,6 +69,24 @@ pub fn create_cache(
   );
   let base_path = options.cache_directory.clone();
   let database_path = options.cache_location.clone();
+  let readonly_from = options.readonly_from.as_ref().map(|source| {
+    let strategy = FileCacheStrategy::new(
+      true,
+      rspack_workspace::rspack_pkg_version!().to_string(),
+      source.version.clone(),
+      Arc::new(CacheCodec::for_import()),
+      file_system_info.clone(),
+      logger.clone(),
+    );
+    IdleFileCache::new(
+      (source.cache_location.clone(), source.cache_location.clone()),
+      strategy,
+      logger.clone(),
+      None,
+      None,
+      None,
+    )
+  });
   let strategy = FileCacheStrategy::new(
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
@@ -91,5 +109,9 @@ pub fn create_cache(
     MaxMemoryGenerations::Finite(max_generations) => Some(MemoryCache::new(max_generations)),
   };
 
-  Cache::new(memory_cache, Some(idle_file_cache))
+  Cache::new(memory_cache, Some(idle_file_cache)).with_reuse(
+    readonly_from,
+    options.module_profile.clone(),
+    options.loader_profile.clone(),
+  )
 }

@@ -316,6 +316,43 @@ impl NormalModule {
     self.parser_and_generator_options.generator_options()
   }
 
+  /// A profile is the caller's contract for hooks and compiler-wide inputs. The
+  /// effective per-module options are additionally checked rather than trusting
+  /// the module identifier (which may contain only an options reference).
+  pub(crate) fn reuse_etag(
+    &self,
+    profile: Option<&str>,
+    loader_profile: Option<&str>,
+  ) -> Option<crate::Etag> {
+    if self.loader_filters.is_some()
+      || (!self.loaders.is_empty()
+        && !self.loader_options.as_ref().is_some_and(|options| {
+          options.len() == self.loaders.len() && options.iter().all(|option| option.cache)
+        }))
+    {
+      return None;
+    }
+    let bytes = crate::cache::CacheCodec::new(None)
+      .encode(&(
+        self.get_parser_options().cloned(),
+        self.get_generator_options().cloned(),
+        self.resolve_options.as_deref().cloned(),
+        self.loader_options.clone(),
+        self.context.clone(),
+        self.match_resource.clone(),
+        self.source_map_kind,
+        self.extract_source_map,
+      ))
+      .ok()?;
+    let mut hasher = RspackHasher::new(&rspack_hash::HashFunction::Xxhash64);
+    rspack_hash::rspack_hash_object!(&mut hasher, {
+      "profile" => profile,
+      "loader_profile" => loader_profile,
+      "options" => bytes,
+    });
+    Some(crate::Etag::from(format!("{:016x}", hasher.finish())))
+  }
+
   pub fn asset_filename_override(&self) -> Option<crate::Filename> {
     self
       .asset_filename_override

@@ -56,6 +56,9 @@ impl Task<TaskContext> for BuildTask {
     }
 
     let build_start_time = module_build_cache.as_ref().map(|_| current_time());
+    let etag = module_build_cache
+      .as_ref()
+      .and_then(|cache| cache.etag(&module));
 
     plugin_driver
       .compilation_hooks
@@ -72,7 +75,7 @@ impl Task<TaskContext> for BuildTask {
     if let (Some(module_build_cache), Some(build_start_time)) =
       (module_build_cache, build_start_time)
     {
-      module_build_cache.mark_pending(result.identifier(), build_start_time);
+      module_build_cache.mark_pending(result.identifier(), build_start_time, etag);
     }
 
     Ok(vec![Box::new(BuildResultTask {

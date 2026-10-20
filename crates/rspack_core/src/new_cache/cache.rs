@@ -22,6 +22,9 @@ struct CacheStorage {
 #[derive(Debug)]
 pub struct Cache {
   storage: Option<CacheStorage>,
+  readonly_from: Option<IdleFileCache>,
+  module_profile: Option<String>,
+  loader_profile: Option<String>,
 }
 
 impl Cache {
@@ -35,7 +38,47 @@ impl Cache {
     } else {
       None
     };
-    Self { storage }
+    Self {
+      storage,
+      readonly_from: None,
+      module_profile: None,
+      loader_profile: None,
+    }
+  }
+
+  pub(super) fn with_reuse(
+    mut self,
+    readonly_from: Option<IdleFileCache>,
+    module_profile: Option<String>,
+    loader_profile: Option<String>,
+  ) -> Self {
+    self.readonly_from = readonly_from;
+    self.module_profile = module_profile;
+    self.loader_profile = loader_profile;
+    self
+  }
+
+  pub(crate) fn module_profile(&self) -> Option<&str> {
+    self.module_profile.as_deref()
+  }
+
+  pub(crate) fn loader_profile(&self) -> Option<&str> {
+    self.loader_profile.as_deref()
+  }
+
+  /// Only make-stage callers may consult this source. Promotion is deferred until
+  /// the caller has validated the entry's file and value dependencies.
+  pub(crate) fn get_imported<T: CacheValueData>(
+    &self,
+    key: CacheKey,
+    etag: Etag,
+  ) -> Option<CacheValue<T>> {
+    let source = self.readonly_from.as_ref()?;
+    let value = source.restore(key, Some(etag))?;
+    // Promotion must preserve invalidation of the producer's configuration and
+    // plugins, even when subsequent builds only read the consumer's own cache.
+    self.store_build_dependencies(source.build_dependencies());
+    Some(value)
   }
 
   pub fn new_disabled() -> Self {
@@ -127,6 +170,9 @@ impl Cache {
   }
 
   pub async fn shutdown(&self) {
+    if let Some(source) = &self.readonly_from {
+      source.shutdown().await;
+    }
     let Some(storage) = &self.storage else {
       return;
     };
@@ -164,6 +210,10 @@ impl CompilerCache {
 
   pub fn facade(&self, name: &str) -> CacheFacade {
     let cache_name = [self.compiler_path.as_ref(), name].join("|");
-    CacheFacade::new(Arc::clone(&self.cache), cache_name)
+    CacheFacade::new(
+      Arc::clone(&self.cache),
+      cache_name,
+      self.compiler_path.is_empty(),
+    )
   }
 }

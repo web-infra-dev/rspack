@@ -26,10 +26,21 @@ pub struct FileSystemCacheOptions {
   pub cache_location: Utf8PathBuf,
   pub version: String,
   pub readonly: bool,
+  pub readonly_from: Option<ReadOnlyCacheSource>,
+  pub module_profile: Option<String>,
+  pub loader_profile: Option<String>,
   pub max_memory_generations: MaxMemoryGenerations,
   pub idle_timeout: Duration,
   pub idle_timeout_for_initial_store: Duration,
   pub idle_timeout_after_large_changes: Duration,
+}
+
+/// An independently validated, read-only source of reusable make-stage entries.
+/// Cloned with compiler options so child compilers can retain owned configuration.
+#[derive(Debug, Clone)]
+pub struct ReadOnlyCacheSource {
+  pub cache_location: Utf8PathBuf,
+  pub version: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

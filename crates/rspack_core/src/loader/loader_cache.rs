@@ -43,7 +43,11 @@ fn sorted_dependency_paths(paths: &InternedPathSet) -> Vec<&Path> {
   paths
 }
 
-fn loader_cache_etag(content: &Content, existing: &LoaderDependencies) -> Etag {
+fn loader_cache_etag(
+  content: &Content,
+  existing: &LoaderDependencies,
+  profile: Option<&str>,
+) -> Etag {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
   // Context and missing dependencies intentionally invalidate the minimal cache: inherited values
   // disable lookup, and entries that add either kind are skipped at store time. This trade-off lets
@@ -56,6 +60,9 @@ fn loader_cache_etag(content: &Content, existing: &LoaderDependencies) -> Etag {
     "build_dependencies" => sorted_dependency_paths(&existing.build),
     "rspack_version" => rspack_workspace::rspack_pkg_version!(),
   });
+  if let Some(profile) = profile {
+    rspack_hash::rspack_hash_object!(&mut hasher, { "profile" => profile });
+  }
   Etag::from(format!("{:016x}", hasher.finish()))
 }
 
@@ -177,6 +184,7 @@ fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
   Some(loader_cache_etag(
     context.content()?,
     context.existing_dependencies(),
+    context.context.loader_cache.loader_profile(),
   ))
 }
 
@@ -218,13 +226,32 @@ pub(crate) async fn before_normal_chain(
   };
   let item_cache = loader_cache_item(&context.context.loader_cache, &cache_key, etag.clone());
 
-  if let Some(entry) = item_cache.get::<LoaderCacheEntry>()
-    && loader_cache_dependency_snapshot_is_valid(
+  let mut entry = item_cache.get::<LoaderCacheEntry>();
+  if let Some(local) = &entry
+    && !loader_cache_dependency_snapshot_is_valid(
       &context.context.file_system_info,
-      &entry.dependency_snapshot,
+      &local.dependency_snapshot,
     )
     .await
   {
+    entry = None;
+  }
+  if entry.is_none()
+    && context.context.loader_cache.loader_profile().is_some()
+    && let Some(imported) = context
+      .context
+      .loader_cache
+      .get_imported::<LoaderCacheEntry>(&cache_key, etag.clone())
+    && loader_cache_dependency_snapshot_is_valid(
+      &context.context.file_system_info,
+      &imported.dependency_snapshot,
+    )
+    .await
+  {
+    item_cache.store(imported.clone());
+    entry = Some(imported);
+  }
+  if let Some(entry) = entry {
     let content = match (&entry.content, entry.content_is_string) {
       (Some(content), true) => {
         // SAFETY: String cache entries are written exclusively from `Content::String`.

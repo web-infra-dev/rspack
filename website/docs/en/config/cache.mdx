@@ -88,6 +88,74 @@ export default {
 };
 ```
 
+## Experimental reuse between builds
+
+With `experiments.newCache: true` and `cache.type: 'filesystem'`, a build can use a
+completed app build as a read-only source of make-stage cache entries. This is a
+draft API. Both builds must use the same Rspack binary and absolute project paths.
+
+```js
+// App's Rspack configuration
+export const app = {
+  experiments: { newCache: true },
+  cache: {
+    type: 'filesystem',
+    cacheLocation: '.cache/app',
+    version: 'app-config-v1',
+    loaderProfile: 'shared-transforms-v1',
+  },
+};
+
+// Rspack configuration supplied by the test integration
+export const tests = {
+  experiments: { newCache: true },
+  cache: {
+    type: 'filesystem',
+    cacheLocation: '.cache/tests',
+    version: 'test-config-v1',
+    loaderProfile: 'shared-transforms-v1',
+    readonlyFrom: {
+      cacheLocation: '.cache/app',
+      version: 'app-config-v1',
+    },
+  },
+};
+```
+
+Call the app compiler's `close()` before starting the consumer. The consumer first
+checks its own cache, then the source. Source paths resolve against `context` and
+must not overlap the consumer's cache location, including parent/child directories. `readonlyFrom.version` defaults
+to `''` and must match the producer's `cache.version`.
+
+`loaderProfile` is an explicit compatibility contract: use the same value only
+when loader hooks, environment inputs and transform semantics are equivalent.
+The loader chain must opt in with `cache: true` on its loader items. Loader options,
+versions, input content and dependency snapshots are still checked. Omit the
+profile to disable importing this tier. A consumer can then reuse app transforms
+while running its own parser, including Rstest's parser plugins.
+
+`moduleProfile` optionally enables importing complete `NormalModule` build results.
+Both builds must declare the same module profile. Rspack additionally checks
+effective parser/generator/resolve options, loader options and module snapshots.
+The profile must cover all other build inputs, including mode, target, defines,
+parser plugins, module hooks and loader context. Changing these inputs requires a
+new profile. Modules with loader filters or loaders without `cache: true` are not
+imported. **Do not share a module profile between ordinary app parsing and Rstest
+parsing.** Use loader reuse for that case.
+
+Imported entries are validated and copied into the consumer's private cache.
+Producer build dependencies remain tracked there, and imported dependency IDs are
+remapped to avoid collisions with the consumer's graph. Invalid or absent source
+data falls back to a normal build without changing the source database. Existing
+`cache.version` and build-dependency configuration remain necessary for the
+consumer's own cache.
+
+The draft supports one source and the root compiler only. It does not import
+resolver, code-generation, chunk, runtime or optimization results, and does not
+support concurrent producer writes, relocation or automatic compatibility
+detection for arbitrary plugins. Rstest must pass this configuration to its
+Rspack compiler; there is no automatic Rstest configuration integration yet.
+
 ## Persistent cache
 
 Set `cache` to `{ type: 'persistent' }` to enable filesystem-backed persistent cache. Persistent cache stores cache data on disk so later build processes can reuse it.

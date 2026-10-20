@@ -2433,6 +2433,9 @@ export interface RawFileSystemCacheOptions {
   cacheLocation: string
   version: string
   readonly: boolean
+  readonlyFrom?: RawReadOnlyCacheSource
+  moduleProfile?: string
+  loaderProfile?: string
   maxMemoryGenerations?: number
   idleTimeout: number
   idleTimeoutForInitialStore: number
@@ -2995,6 +2998,11 @@ export interface RawProvideOptions {
   requiredVersion?: string | false | undefined
   strictVersion?: boolean
   treeShakingMode?: string
+}
+
+export interface RawReadOnlyCacheSource {
+  cacheLocation: string
+  version?: string
 }
 
 export interface RawRelated {

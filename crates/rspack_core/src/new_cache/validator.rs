@@ -71,6 +71,10 @@ impl CacheValidator {
     self.data.lock().expect("should lock")
   }
 
+  pub(super) fn build_dependencies(&self) -> InternedPathSet {
+    self.data().build_dependencies.clone()
+  }
+
   /// See webpack's persistent build snapshot validation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/cache/PackFileCacheStrategy.js#L1345-L1429
   pub(super) async fn validate(&self, data: Option<&[u8]>) -> Result<CacheValidatorResult> {

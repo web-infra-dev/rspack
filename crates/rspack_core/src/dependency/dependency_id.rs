@@ -1,10 +1,27 @@
-use rspack_cacheable::cacheable;
+use rspack_cacheable::{
+  ContextGuard, cacheable,
+  with::{Custom, CustomConverter},
+};
 use rspack_tasks::fetch_new_dependency_id;
 use serde::Serialize;
 
-#[cacheable(hashable)]
+#[cacheable(with=Custom)]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct DependencyId(u32);
+
+impl CustomConverter for DependencyId {
+  type Target = u32;
+
+  fn serialize(&self, _guard: &ContextGuard) -> rspack_cacheable::Result<u32> {
+    Ok(self.0)
+  }
+
+  fn deserialize(id: u32, guard: &ContextGuard) -> rspack_cacheable::Result<Self> {
+    Ok(Self(crate::cache::CacheCodec::restore_dependency_id(
+      id, guard,
+    )))
+  }
+}
 
 impl DependencyId {
   pub fn new() -> Self {
