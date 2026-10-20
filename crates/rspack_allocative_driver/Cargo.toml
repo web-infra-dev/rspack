@@ -1,9 +1,10 @@
 [package]
-edition.workspace = true
-license.workspace = true
-name              = "rspack_allocative_driver"
-publish           = false
-version.workspace = true
+description          = "Compiler driver for Rspack allocative instrumentation"
+edition.workspace    = true
+license.workspace    = true
+name                 = "rspack_allocative_driver"
+repository.workspace = true
+version.workspace    = true
 
 [lib]
 doctest = false

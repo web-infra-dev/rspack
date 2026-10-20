@@ -112,6 +112,16 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       .current_root_chain()
       .expect("normal execution requires a current root chain");
     let range = chain.range();
+    if chain.is_cache() && context.loader_index == chain.end() as i32 - 1 {
+      let loader_index = context.loader_index as usize;
+      if context.loader_items[loader_index].filter().is_some()
+        && context.loader_items[loader_index].should_skip_normal(context.content())
+      {
+        context.loader_items[loader_index].set_normal_executed();
+        context.loader_index -= 1;
+        return Ok(());
+      }
+    }
     let cache_action = if chain.is_cache() && context.loader_index == chain.end() as i32 - 1 {
       before_normal_chain(context).await?
     } else {

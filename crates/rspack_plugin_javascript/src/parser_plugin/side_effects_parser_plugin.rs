@@ -609,10 +609,9 @@ fn resolve_explicit_side_effects_free_callee(
       .reference_of(identifier.node_id())
       .map(|reference| parser.ast.semantic.reference(reference));
     return match reference {
-      Some(reference) if reference.flags.is_dynamic() => ExplicitSideEffectsFreeCallee::Invalid,
       Some(reference) if reference.symbol.is_some() => {
         if reference.symbol.is_some_and(|symbol| {
-          parser.ast.semantic.scope_of(symbol) == top_level_scope(parser.ast.ast)
+          parser.ast.semantic.scope_of_symbol(symbol) == top_level_scope(parser.ast.ast)
         }) {
           ExplicitSideEffectsFreeCallee::Direct
         } else {

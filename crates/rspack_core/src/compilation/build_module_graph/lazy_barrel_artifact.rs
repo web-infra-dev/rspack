@@ -118,9 +118,18 @@ impl LazyDependencies {
   pub fn requested_lazy_dependencies(
     &self,
     forwarded_ids: &ForwardedIdSet,
+    eager_on_local_reference: bool,
   ) -> FxHashSet<DependencyId> {
     match forwarded_ids {
       ForwardedIdSet::All => self.all_lazy_dependencies().collect(),
+      ForwardedIdSet::IdSet(set)
+        if eager_on_local_reference
+          && set
+            .iter()
+            .any(|forward_id| self.terminal_forward_ids.contains(forward_id)) =>
+      {
+        self.all_lazy_dependencies().collect()
+      }
       ForwardedIdSet::IdSet(set) => set
         .iter()
         .filter(|forward_id| !self.terminal_forward_ids.contains(*forward_id))
@@ -145,6 +154,9 @@ pub enum HasLazyDependencies {
 
 #[derive(Debug, Default)]
 pub struct ModuleToLazyMake {
+  /// Expand a barrel before its local exports make its factory observable.
+  /// Enabled by lazy compilation to avoid changing that factory on activation.
+  pub eager_on_local_reference: bool,
   module_to_lazy_dependencies: IdentifierMap<HasLazyDependencies>,
 }
 

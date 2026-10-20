@@ -15,7 +15,8 @@ use swc_next_ecma_ast::{Argument, Ast, BindingPattern, CallExpression, Expr, Get
 use crate::{
   JavascriptParserPlugin,
   dependency::{
-    AMDRequireContextDependency,
+    AMDRequireContextDependency, ModuleArgumentDependency,
+    amd_exports_dependency::AMDExportsDependency,
     amd_require_array_dependency::{AMDRequireArrayDependency, AMDRequireArrayItem},
     amd_require_dependency::AMDRequireDependency,
     amd_require_item_dependency::AMDRequireItemDependency,
@@ -77,8 +78,10 @@ impl AMDRequireDependenciesBlockParserPlugin {
       for request in array.iter() {
         if request == "require" {
           deps.push(AMDRequireArrayItem::Require);
-        } else if request == "exports" || request == "module" {
-          deps.push(AMDRequireArrayItem::String(request.into()));
+        } else if request == "module" {
+          deps.push(AMDRequireArrayItem::Module);
+        } else if request == "exports" {
+          deps.push(AMDRequireArrayItem::Exports);
         } else if let Some(local_module) = parser.get_local_module_mut(request) {
           local_module.flag_used();
           deps.push(AMDRequireArrayItem::LocalModuleDependency {
@@ -128,16 +131,10 @@ impl AMDRequireDependenciesBlockParserPlugin {
         ));
         parser.add_presentational_dependency(dep);
       } else if param_str == "module" {
-        let dep = Arc::new(RuntimeRequirementsDependency::new(
-          range.into(),
-          RuntimeGlobals::MODULE,
-        ));
+        let dep = Arc::new(ModuleArgumentDependency::new(None, range.into(), None));
         parser.add_presentational_dependency(dep);
       } else if param_str == "exports" {
-        let dep = Arc::new(RuntimeRequirementsDependency::new(
-          range.into(),
-          RuntimeGlobals::EXPORTS,
-        ));
+        let dep = Arc::new(AMDExportsDependency::new(range.into()));
         parser.add_presentational_dependency(dep);
       } else if let Some(local_module) = parser.get_local_module_mut(param_str) {
         local_module.flag_used();

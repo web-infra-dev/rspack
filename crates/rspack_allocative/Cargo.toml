@@ -1,19 +1,21 @@
 [package]
-authors           = ["Meta"]
-description       = "Inspect Rspack object ownership and memory usage"
-edition.workspace = true
-license           = "MIT OR Apache-2.0"
-name              = "rspack-allocative"
-publish           = false
-repository        = "https://github.com/facebookexperimental/allocative"
-version           = "0.3.5"
+authors.workspace       = true
+categories.workspace    = true
+description             = "rspack allocative"
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack-allocative"
+repository.workspace    = true
+version.workspace       = true
 
 [lib]
 # Workspace regression cases live in rspack_allocative_testing.
 test = false
 
 [dependencies]
-allocative_derive = { package = "rspack-allocative_derive", path = "../rspack_allocative_derive", version = "=0.3.3" }
+allocative_derive = { workspace = true }
 arc-swap          = { workspace = true }
 atomic_refcell    = { workspace = true, optional = true }
 camino            = { workspace = true, optional = true }
