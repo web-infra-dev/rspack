@@ -1,0 +1,4 @@
+@media screen {
+	button:hover:local .commaLocal, .commaRaw { color: blue; }
+	button:hover:local .commentLocal /* before */, /* after */ .commentRaw { color: green; }
+}
