@@ -758,6 +758,7 @@ impl Chunk {
         .get_hash(&module_identifier, Some(&self.runtime))
       {
         hash.hash(hasher);
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module_identifier).hash(hasher);
       }
     }
 
