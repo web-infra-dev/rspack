@@ -360,16 +360,20 @@ impl ModuleGroup {
   /// candidates only if removing another type could leave an eligible one.
   pub fn can_recover(&mut self, cache: &CacheGroup, sizes: &ModuleSizes, chunks: usize) -> bool {
     chunks >= (cache.min_chunks as usize).max(1)
-      && self.get_sizes(sizes).iter().any(|(ty, size)| {
-        *size > 0.0
-          && *size >= cache.min_size.get(ty).copied().unwrap_or_default()
-          && *size * chunks as f64
-            >= cache
-              .min_size_reduction
-              .get(ty)
-              .copied()
-              .unwrap_or_default()
-      })
+      && Self::has_recoverable_size(self.get_sizes(sizes), cache, chunks)
+  }
+
+  fn has_recoverable_size(sizes: &SplitChunkSizes, cache: &CacheGroup, chunks: usize) -> bool {
+    sizes.iter().any(|(ty, size)| {
+      *size > 0.0
+        && *size >= cache.min_size.get(ty).copied().unwrap_or_default()
+        && *size * chunks as f64
+          >= cache
+            .min_size_reduction
+            .get(ty)
+            .copied()
+            .unwrap_or_default()
+    })
   }
 
   /// Choose which dimension to delete without materializing either alternative.
@@ -469,28 +473,43 @@ impl ModuleGroup {
     let mut chunks_changed = false;
     match placed {
       ModuleChunkMap::Shared { modules, chunks } => {
-        let overlap = self.chunks.intersection(chunks).count();
-        if overlap == 0 {
-          return CandidateUpdate::Unchanged;
-        }
-        let remaining = self.chunks.len() - overlap;
-        let shrink_chunks = if self.can_recover(cache, module_sizes, remaining) {
-          let Some(remove_modules) = self.prefer_module_removal(
-            self.modules.intersection(modules).copied(),
-            remaining,
-            cache,
-            module_sizes,
-          ) else {
+        let shrink_chunks = if self.chunks.len() <= minimum {
+          // Any overlap invalidates the chunk remainder. Keep the original
+          // first-hit check and module-deletion path without counting chunks.
+          if self.chunks.is_disjoint(chunks) {
             return CandidateUpdate::Unchanged;
-          };
-          !remove_modules
-        } else {
-          // No viable chunk remainder: use the original module-deletion path.
-          // Discard covered groups without filling their pending-removal buffer.
+          }
           if self.modules.is_subset(modules) {
             return CandidateUpdate::Discard;
           }
           false
+        } else {
+          // Finish deferred size bookkeeping before borrowing both iterators.
+          self.get_sizes(module_sizes);
+          let mut overlap = self.chunks.intersection(chunks);
+          if overlap.next().is_none() {
+            return CandidateUpdate::Unchanged;
+          }
+          let mut affected = self.modules.intersection(modules).copied();
+          let Some(first) = affected.next() else {
+            return CandidateUpdate::Unchanged;
+          };
+          // Count only candidates that share a module. Both first-hit checks
+          // continue their existing iterators instead of starting another scan.
+          let remaining = self.chunks.len() - 1 - overlap.count();
+          if remaining >= minimum && Self::has_recoverable_size(&self.sizes, cache, remaining) {
+            self.prefer_module_removal(
+              std::iter::once(first).chain(affected),
+              remaining,
+              cache,
+              module_sizes,
+            ) == Some(false)
+          } else {
+            if self.modules.is_subset(modules) {
+              return CandidateUpdate::Discard;
+            }
+            false
+          }
         };
         if shrink_chunks {
           self.chunks.retain(|chunk| !chunks.contains(chunk));
