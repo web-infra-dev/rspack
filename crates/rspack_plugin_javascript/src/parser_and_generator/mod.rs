@@ -26,14 +26,19 @@ use rspack_error::{
 use rspack_util::swc::RspackComments;
 use rustc_hash::FxHashSet;
 use swc_next_allocator::Allocator;
-use swc_next_ecma_ast::{Lang, Severity as SwcSeverity, SourceType as SwcSourceType};
-use swc_next_ecma_parser::{CommentMode, Options, ParseReturn, Parser, TokenParserConfig};
-use swc_next_ecma_semantic::{AnalyzeOptions, SemanticReturn, analyze};
+use swc_next_ecma_ast::{
+  Ast, Diagnostic as SwcDiagnostic, GetSpan, Lang, NodeId, NodeKindData, Severity as SwcSeverity,
+  SourceType as SwcSourceType, Span,
+};
+use swc_next_ecma_parser::{
+  CommentMode, Options, ParseReturn, Parser, Token, TokenParserConfig, TokenTag,
+};
+use swc_next_ecma_semantic::{AnalyzeOptions, SemanticReturn, SyntaxChecks, analyze};
 
 use crate::{
   BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
-  visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
+  visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies},
 };
 
 #[derive(Debug)]
@@ -302,66 +307,64 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ModuleType::JsDynamic => SwcSourceType::CommonJs,
       _ => SwcSourceType::Unambiguous,
     };
-    let parse_with_source_type = |source_type| {
-      Parser::init(
-        &allocator,
-        source_string.as_ref(),
-        Options {
-          source_type,
-          lang: if jsx { Lang::Jsx } else { Lang::Js },
-          preserve_parens: false,
-          comments: CommentMode::Flat,
-        },
-        TokenParserConfig,
-      )
-      .parse()
-    };
-    let mut parse_return = parse_with_source_type(source_type);
-    // The legacy `JsAuto` parser allowed a CommonJS-style top-level return.
-    // SWC Next's unambiguous mode resolves non-ESM input as `Script`, where
-    // return is rejected. Retry only this compatibility case as CommonJS;
-    // other parse errors and files containing ESM syntax remain diagnostics.
-    if module_type.is_js_auto()
-      && parse_return.diagnostics.iter().any(|diagnostic| {
-        diagnostic.message == "'return' statement is only valid inside a function"
-      })
-    {
-      parse_return = parse_with_source_type(SwcSourceType::CommonJs);
-    }
     let ParseReturn {
       ast,
       tokens,
       diagnostics: parse_diagnostics,
-    } = parse_return;
+    } = Parser::init(
+      &allocator,
+      source_string.as_ref(),
+      Options {
+        source_type,
+        lang: if jsx { Lang::Jsx } else { Lang::Js },
+        preserve_parens: false,
+        comments: CommentMode::Flat,
+      },
+      TokenParserConfig,
+    )
+    .parse();
 
     if !parse_diagnostics.is_empty() {
       append_swc_next_diagnostics(&mut diagnostics, &source_string, parse_diagnostics);
       return default_with_diagnostics(source, diagnostics);
     }
 
+    let mut semicolons = Default::default();
+    let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(&ast);
+    if !scan_diagnostics.is_empty() {
+      append_swc_next_diagnostics(&mut diagnostics, &source_string, scan_diagnostics);
+      return default_with_diagnostics(source, diagnostics);
+    }
+
+    // Keep the legacy SWC parser's permissive behavior for these semantic checks.
+    let check_syntax = SyntaxChecks::all()
+      - SyntaxChecks::REDECLARATIONS
+      - SyntaxChecks::TS_IMPORT_ALIAS_CONFLICTS
+      - SyntaxChecks::REGEXP_LITERALS
+      - SyntaxChecks::PRIVATE_NAME_REFERENCES
+      - SyntaxChecks::DUPLICATE_PRIVATE_NAMES
+      - SyntaxChecks::DELETE_PRIVATE_FIELDS
+      - SyntaxChecks::SUPER_CALLS
+      - SyntaxChecks::FUNCTION_DECLARATIONS
+      - SyntaxChecks::CLASS_MEMBER_NAMES
+      - SyntaxChecks::STRICT_BINDING_NAMES
+      - SyntaxChecks::STRICT_ASSIGNMENT_TARGETS
+      - SyntaxChecks::DUPLICATE_EXPORTS
+      - SyntaxChecks::UNRESOLVED_EXPORTS
+      - SyntaxChecks::CONTINUE_STATEMENTS
+      - SyntaxChecks::BREAK_STATEMENTS
+      - SyntaxChecks::AWAIT_EXPRESSIONS
+      - SyntaxChecks::YIELD_EXPRESSIONS;
     let SemanticReturn {
       semantic,
-      diagnostics: mut semantic_diagnostics,
+      diagnostics: semantic_diagnostics,
     } = analyze(
       &ast,
       AnalyzeOptions {
-        check_syntax: true,
+        check_syntax,
         build_module_record: false,
       },
     );
-    // The legacy parser accepted several redeclaration combinations that the
-    // SWC Next semantic checker rejects (for example `var a` followed by
-    // `export function a`, and an exported binding shadowing an import). The
-    // parser has already emitted its own early errors, so retain the semantic
-    // syntax checks while excluding this stricter-than-legacy category.
-    semantic_diagnostics.retain(|diagnostic| {
-      !(diagnostic.message.starts_with("Identifier '")
-        && diagnostic.message.ends_with("' has already been declared"))
-        // Rspack intentionally parses regexp literals as raw pattern/flags
-        // and lets consumers such as import.meta.webpackContext downgrade an
-        // invalid constructed regexp to a warning, matching the legacy path.
-        && diagnostic.message != "Invalid regular expression literal"
-    });
     if !semantic_diagnostics.is_empty() {
       append_swc_next_diagnostics(&mut diagnostics, &source_string, semantic_diagnostics);
       return default_with_diagnostics(source, diagnostics);
@@ -369,8 +372,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let program = ast.root_program();
     let comments = RspackComments::from_ast(&ast);
-    let mut semicolons = Default::default();
-    semicolon::collect(&ast, &mut semicolons, &tokens);
     let parsed_ast = ParsedJavaScriptAst {
       ast: &ast,
       comments: &comments,
@@ -504,5 +505,111 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
     self.concatenation_bailout_reason(module, false)
+  }
+}
+
+/// Collects inserted semicolon positions and rejects syntax unsupported by the
+/// legacy parser in a single pass over the flat AST.
+pub struct AstScanner<'view> {
+  semicolons: &'view mut FxHashSet<u32>,
+  tokens: &'view [Token],
+}
+
+impl<'view> AstScanner<'view> {
+  pub fn new(semicolons: &'view mut FxHashSet<u32>, tokens: &'view [Token]) -> Self {
+    Self { semicolons, tokens }
+  }
+
+  #[inline]
+  fn curr_token(&self, span: Span) -> Option<usize> {
+    self
+      .tokens
+      .binary_search_by(|token| token.span().start.cmp(&span.start))
+      .ok()
+  }
+
+  #[inline]
+  fn next_token(&self, span: Span) -> Option<usize> {
+    self
+      .tokens
+      .binary_search_by(|token| token.span().end.cmp(&span.end))
+      .ok()
+      .map(|index| index + 1)
+  }
+
+  #[inline]
+  fn can_insert_semi(&self, token_index: usize) -> bool {
+    if token_index == self.tokens.len() {
+      return true;
+    }
+    let token = self.tokens[token_index];
+    token.tag() == TokenTag::RightBrace || token.has_line_terminator_before()
+  }
+
+  #[inline]
+  fn semi(&mut self, span: Span) {
+    let Some(index) = self.curr_token(span) else {
+      return;
+    };
+    if index > 0 {
+      let previous = self.tokens[index - 1];
+      if previous.tag() != TokenTag::Semicolon && self.can_insert_semi(index) {
+        self.semicolons.insert(previous.span().end);
+      }
+    }
+  }
+
+  #[inline]
+  fn post_semi(&mut self, span: Span) {
+    let Some(index) = self.next_token(span) else {
+      return;
+    };
+    if index > 0 {
+      let previous = self.tokens[index - 1];
+      if previous.tag() != TokenTag::Semicolon && self.can_insert_semi(index) {
+        self.semicolons.insert(previous.span().end);
+      }
+    }
+  }
+
+  /// Requires successful parser output before transformations can detach nodes.
+  pub fn scan(&mut self, ast: &Ast<'_>) -> Vec<SwcDiagnostic<'static>> {
+    let mut diagnostics = Vec::new();
+    for index in 0..ast.node_count() {
+      let node = NodeId::from_raw_unchecked(index as u32);
+      match ast.kind_data(node) {
+        NodeKindData::Decorator(_) => {
+          let start = ast.span(node).start;
+          diagnostics.push(SwcDiagnostic::error(
+            "Decorators are not supported",
+            Span::new(start, start + 1),
+          ));
+        }
+        NodeKindData::PropertyDefinition(property) => {
+          if property.accessor(ast) {
+            diagnostics.push(SwcDiagnostic::error(
+              "Auto-accessors are not supported",
+              property.key(ast).span(ast),
+            ));
+          }
+          self.post_semi(ast.span(node));
+        }
+        NodeKindData::UpdateExpression(_) => self.semi(ast.span(node)),
+        NodeKindData::ExpressionStatement(_)
+        | NodeKindData::VariableDeclaration(_)
+        | NodeKindData::ContinueStatement(_)
+        | NodeKindData::BreakStatement(_)
+        | NodeKindData::ReturnStatement(_)
+        | NodeKindData::ThrowStatement(_)
+        | NodeKindData::YieldExpression(_)
+        | NodeKindData::ImportDeclaration(_)
+        | NodeKindData::ExportNamedDeclaration(_)
+        | NodeKindData::ExportDefaultDeclaration(_)
+        | NodeKindData::ExportAllDeclaration(_)
+        | NodeKindData::DebuggerStatement(_) => self.post_semi(ast.span(node)),
+        _ => {}
+      }
+    }
+    diagnostics
   }
 }

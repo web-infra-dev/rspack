@@ -20,6 +20,7 @@ rspack_error       = { workspace = true }
 rspack_fs          = { workspace = true }
 rspack_hash        = { workspace = true }
 rspack_paths       = { workspace = true, features = ["cacheable"] }
+rspack_regex       = { workspace = true }
 rspack_sources     = { workspace = true }
 rspack_util        = { workspace = true }
 serde_json         = { workspace = true }

@@ -94,10 +94,6 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
     if concatenation_scope.is_some() {
       return;
     }
-    let module_graph = compilation.get_module_graph();
-    let module = module_graph
-      .module_by_identifier(&module.identifier())
-      .expect("should have mgm");
     let name = Atom::from("__esModule");
     let exports_info = compilation
       .exports_info_artifact
@@ -123,7 +119,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       add_async_module_boundary(
         init_fragments,
         compilation,
-        module.as_ref(),
+        *module,
         runtime_template,
         false,
       );

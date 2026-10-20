@@ -117,11 +117,6 @@ impl DependencyTemplate for ModuleDecoratorDependencyTemplate {
       ..
     } = code_generatable_context;
 
-    let module_graph = compilation.get_module_graph();
-    let module = module_graph
-      .module_by_identifier(&module.identifier())
-      .expect("should have mgm");
-
     // ref: tests/webpack-test/cases/scope-hoisting/issue-5096 will return a `null` as module id
     let module_id =
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())

@@ -1928,6 +1928,7 @@ impl<'context> CssModuleParser<'context> {
           warning.kind(),
           css_module_lexer::WarningKind::NotPrecededAtImport
             | css_module_lexer::WarningKind::NotPure { .. }
+            | css_module_lexer::WarningKind::InvalidSelector { .. }
         ) {
           Severity::Error
         } else {

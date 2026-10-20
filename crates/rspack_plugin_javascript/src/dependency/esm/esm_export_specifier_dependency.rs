@@ -169,11 +169,6 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       scope.register_export(dep.name.clone(), dep.value.to_string());
       return;
     }
-    let module_graph = compilation.get_module_graph();
-    let module = module_graph
-      .module_by_identifier(&module.identifier())
-      .expect("should have module graph module");
-
     // remove the enum decl export if all the enum members are inlined
     if let Some(enum_value) = &dep.enum_value {
       let all_enum_member_inlined = enum_value.iter().all(|(enum_key, enum_member)| {

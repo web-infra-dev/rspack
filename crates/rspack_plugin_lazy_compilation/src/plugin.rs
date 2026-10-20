@@ -237,6 +237,13 @@ async fn normal_module_factory_module(
 
 #[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]
 async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
+  // Set this after artifact recovery, including full rebuilds and cache hits.
+  // Local consumers must see a complete barrel before its first execution.
+  compilation
+    .build_module_graph_artifact
+    .module_to_lazy_make
+    .eager_on_local_reference = true;
+
   let newly_active_modules = self
     .backend
     .lock()
