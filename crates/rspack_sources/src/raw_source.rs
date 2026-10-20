@@ -32,6 +32,10 @@ pub struct RawStringSource(Cow<'static, str>);
 static_assertions::assert_eq_size!(RawStringSource, [u8; 24]);
 
 impl RawStringSource {
+  pub(crate) fn value(&self) -> &str {
+    &self.0
+  }
+
   /// Create a new [RawStringSource] from a static &str.
   ///
   /// ```

@@ -221,7 +221,7 @@ representation optimizations.
 | `OriginalSource`  | mapped text leaf     | lazily creates token-like or line mappings                          |
 | `SourceMapSource` | existing/nested map  | directly borrows one map or composes outer and inner maps           |
 | `MappingSource`   | external map JSON    | retains the original map and serializes JSON on demand              |
-| `ConcatSource`    | ordered composition  | flattens nested concats, merges adjacent raw strings, remaps tables |
+| `ConcatSource`    | ordered composition  | flattens nested concats, coalesces small adjacent raw strings, remaps tables |
 | `ReplaceSource`   | byte-range transform | maintains sorted edits and repairs mappings                         |
 | `CachedSource`    | memoization wrapper  | owns cross-call memoized state                                      |
 
@@ -249,7 +249,13 @@ Important implementation details:
   grow. For external `noSources` maps, own the remaining borrowed metadata before releasing the
   owner of the removed contents. Do not retain the whole JSON in either the map asset or its
   replacement result. JS binding content requests remain an explicit materialization boundary.
-- `ConcatSource::add` uses `&mut self` and `Mutex::get_mut`; reads lazily optimize children. Mapping
+- `ConcatSource::add` uses `&mut self` and `Mutex::get_mut`; reads lazily optimize children.
+  Coalescing raw strings is bounded to 64 KiB per newly merged string; larger inputs retain their
+  existing `Arc` rather than being copied to append a small suffix. Adjacent raw children remain
+  one logical run for equality and structural hashing, including after cache restoration. Equality
+  compares borrowed spans; hashing temporarily materializes a split run to preserve the previous
+  contiguous hash input because generic hashers can observe write boundaries. This temporary is
+  not retained in the source graph. Explicit `source()`/`buffer()` requests may also materialize. Mapping
   shifts generated positions and remaps child-local indices into global deduplicated tables.
 - `ReplaceSource` ranges are half-open byte ranges. Edits are ordered by
   `(start, end, enforce, insertion_order)`; ordered producers get the append fast path. Mapping

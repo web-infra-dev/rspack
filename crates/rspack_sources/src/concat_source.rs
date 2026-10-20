@@ -235,15 +235,43 @@ impl Source for ConcatSource {
 impl Hash for ConcatSource {
   fn hash<H: Hasher>(&self, state: &mut H) {
     "ConcatSource".hash(state);
-    for child in self.optimized_children().iter() {
-      child.hash(state);
+    for run in raw_runs(self.optimized_children()) {
+      if run.len() == 1 {
+        run[0].hash(state);
+      } else {
+        // Preserve the hash of the formerly merged RawStringSource. A generic
+        // Hasher need not treat multiple write calls like one contiguous write.
+        // Keep this materialization temporary rather than in optimized_children.
+        let mut bytes = Vec::with_capacity(run.iter().map(|s| s.size()).sum());
+        for source in run {
+          bytes.extend_from_slice(raw_text(source).unwrap().as_bytes());
+        }
+        "RawStringSource".hash(state);
+        bytes.hash(state);
+      }
     }
   }
 }
 
 impl PartialEq for ConcatSource {
   fn eq(&self, other: &Self) -> bool {
-    self.optimized_children() == other.optimized_children()
+    let mut left = raw_runs(self.optimized_children());
+    let mut right = raw_runs(other.optimized_children());
+    loop {
+      match (left.next(), right.next()) {
+        (None, None) => return true,
+        (Some(a), Some(b)) => {
+          if raw_text(&a[0]).is_some() && raw_text(&b[0]).is_some() {
+            if !raw_runs_equal(a, b) {
+              return false;
+            }
+          } else if a != b {
+            return false;
+          }
+        }
+        _ => return false,
+      }
+    }
   }
 }
 impl Eq for ConcatSource {}
@@ -431,6 +459,52 @@ impl StreamChunks for ConcatSource {
   }
 }
 
+// Bound copies of small adjacent fragments; large inputs keep their original Arc.
+const MAX_RAW_MERGE_SIZE: usize = 64 * 1024;
+
+fn raw_text(source: &BoxSource) -> Option<&str> {
+  source
+    .as_any()
+    .downcast_ref::<RawStringSource>()
+    .map(RawStringSource::value)
+}
+
+// A raw run is one logical node for equality and hashing, regardless of how its
+// bytes are partitioned by the bounded storage optimization.
+fn raw_runs(children: &[BoxSource]) -> impl Iterator<Item = &[BoxSource]> {
+  children.chunk_by(|a, b| raw_text(a).is_some() && raw_text(b).is_some())
+}
+
+fn raw_runs_equal(left: &[BoxSource], right: &[BoxSource]) -> bool {
+  let mut left = left
+    .iter()
+    .map(|s| raw_text(s).unwrap().as_bytes())
+    .filter(|s| !s.is_empty());
+  let mut right = right
+    .iter()
+    .map(|s| raw_text(s).unwrap().as_bytes())
+    .filter(|s| !s.is_empty());
+  let mut a = left.next().unwrap_or_default();
+  let mut b = right.next().unwrap_or_default();
+  loop {
+    if a.is_empty() || b.is_empty() {
+      return a.is_empty() && b.is_empty();
+    }
+    let n = a.len().min(b.len());
+    if a[..n] != b[..n] {
+      return false;
+    }
+    a = &a[n..];
+    b = &b[n..];
+    if a.is_empty() {
+      a = left.next().unwrap_or_default();
+    }
+    if b.is_empty() {
+      b = right.next().unwrap_or_default();
+    }
+  }
+}
+
 fn optimize(children: &mut Vec<BoxSource>) -> Vec<BoxSource> {
   let original_children = std::mem::take(children);
 
@@ -440,13 +514,27 @@ fn optimize(children: &mut Vec<BoxSource>) -> Vec<BoxSource> {
 
   let mut new_children = Vec::with_capacity(original_children.len());
   let mut current_raw_sources = Vec::with_capacity(original_children.len());
+  let mut current_raw_size = 0;
 
   for child in original_children {
-    if child.as_ref().as_any().is::<RawStringSource>() {
+    if let Some(text) = raw_text(&child) {
+      let size = text.len();
+      if size > MAX_RAW_MERGE_SIZE {
+        merge_raw_sources(&mut current_raw_sources, &mut new_children);
+        current_raw_size = 0;
+        new_children.push(child);
+        continue;
+      }
+      if size > MAX_RAW_MERGE_SIZE - current_raw_size {
+        merge_raw_sources(&mut current_raw_sources, &mut new_children);
+        current_raw_size = 0;
+      }
+      current_raw_size += size;
       current_raw_sources.push(child);
     } else {
       // Flush any pending raw sources before adding the non-raw source
       merge_raw_sources(&mut current_raw_sources, &mut new_children);
+      current_raw_size = 0;
       new_children.push(child);
     }
   }
