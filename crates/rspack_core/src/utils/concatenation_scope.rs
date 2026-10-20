@@ -29,6 +29,8 @@ pub struct ModuleReferenceOptions {
   pub call: bool,
   pub direct_import: bool,
   pub deferred_import: bool,
+  /// Allows a whole-namespace value to use getters keyed by the original export names.
+  pub mangleable_namespace: bool,
   pub asi_safe: Option<bool>,
   pub index: usize,
 }
@@ -209,6 +211,9 @@ impl ConcatenationScope {
     if options.deferred_import {
       module_ref.push_str("_deferredImport");
     }
+    if options.mangleable_namespace {
+      module_ref.push_str("_mangleableNamespace");
+    }
     if let Some(asi_safe) = options.asi_safe {
       module_ref.push_str(if asi_safe { "_asiSafe1" } else { "_asiSafe0" });
     }
@@ -255,6 +260,12 @@ impl ConcatenationScope {
     } else {
       false
     };
+    let mangleable_namespace = if let Some(stripped) = flags.strip_prefix("_mangleableNamespace") {
+      flags = stripped;
+      true
+    } else {
+      false
+    };
     let asi_safe = if let Some(stripped) = flags.strip_prefix("_asiSafe") {
       let (flag, rest) = stripped.split_at(1);
       flags = rest;
@@ -276,6 +287,7 @@ impl ConcatenationScope {
       call,
       direct_import,
       deferred_import,
+      mangleable_namespace,
       asi_safe,
       index,
     })
@@ -323,6 +335,7 @@ mod tests {
     assert_eq!(actual.call, expected.call);
     assert_eq!(actual.direct_import, expected.direct_import);
     assert_eq!(actual.deferred_import, expected.deferred_import);
+    assert_eq!(actual.mangleable_namespace, expected.mangleable_namespace);
     assert_eq!(actual.asi_safe, expected.asi_safe);
     assert_eq!(actual.index, expected.index);
   }
@@ -335,6 +348,7 @@ mod tests {
       call: true,
       direct_import: true,
       deferred_import: true,
+      mangleable_namespace: true,
       asi_safe: Some(false),
       ..Default::default()
     };

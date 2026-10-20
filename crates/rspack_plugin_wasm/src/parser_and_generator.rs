@@ -310,6 +310,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                   false,
                   Some(true),
                   ImportPhase::Evaluation,
+                  false,
                 );
                 let name = json_stringify_str(&export_name);
                 format!("{name}: {export}")

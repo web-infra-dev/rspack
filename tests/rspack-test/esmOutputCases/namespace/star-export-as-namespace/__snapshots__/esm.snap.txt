@@ -4,8 +4,14 @@ import { __webpack_require__ } from "./runtime.mjs";
 var foo_namespaceObject = {};
 __webpack_require__.r(foo_namespaceObject);
 __webpack_require__.d(foo_namespaceObject, { 
-  foo: () => (foo) });
+  p: () => (foo) });
 
+
+var foo_namespaceObject_0 = {};
+__webpack_require__.r(foo_namespaceObject_0);
+__webpack_require__.d(foo_namespaceObject_0, {
+foo: () => (foo_namespaceObject.p)
+});
 
 // ./foo.js
 const foo = 123;
@@ -15,7 +21,7 @@ const foo = 123;
 let index_foo = 234
 
 it('should compile', () => {
-	expect(foo_namespaceObject).toHaveProperty('foo')
+	expect(foo_namespaceObject_0).toHaveProperty('foo')
 	expect(foo).toBe(123)
 	expect(index_foo).toBe(234)
 });

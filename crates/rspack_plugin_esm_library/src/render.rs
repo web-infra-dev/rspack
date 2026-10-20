@@ -364,6 +364,7 @@ var {} = {{}};
     let mut namespace_object_sources = chunk_link
       .namespace_object_sources
       .iter()
+      .chain(chunk_link.escape_namespace_object_sources.iter())
       .collect::<Vec<_>>();
     namespace_object_sources.sort_by_key(|(a, _)| *a);
     for (_, namespace) in namespace_object_sources {

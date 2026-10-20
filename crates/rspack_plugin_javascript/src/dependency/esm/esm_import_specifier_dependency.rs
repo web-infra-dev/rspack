@@ -288,6 +288,9 @@ impl Dependency for ESMImportSpecifierDependency {
     let mut ids = self.get_ids(module_graph);
     // namespace import
     if ids.is_empty() {
+      if self.referenced_properties_in_destructuring.is_none() && !self.phase.is_defer() {
+        return vec![ReferencedExport::mangleable_namespace()];
+      }
       return self.get_referenced_exports_in_destructuring(None);
     }
 
@@ -449,6 +452,8 @@ impl ESMImportSpecifierDependencyTemplate {
           ModuleReferenceOptions {
             asi_safe: Some(dep.asi_safe),
             deferred_import: dep.phase.is_defer(),
+            mangleable_namespace: dep.referenced_properties_in_destructuring.is_none()
+              && !dep.phase.is_defer(),
             ..Default::default()
           },
         )
@@ -525,6 +530,9 @@ impl ESMImportSpecifierDependencyTemplate {
         !dep.direct_import,
         Some(dep.shorthand || dep.asi_safe),
         dep.phase,
+        ids.is_empty()
+          && dep.referenced_properties_in_destructuring.is_none()
+          && !dep.phase.is_defer(),
       )
     }
   }

@@ -4,8 +4,14 @@ import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./run
 var foo_namespaceObject = {};
 makeNamespaceObject(foo_namespaceObject);
 definePropertyGetters(foo_namespaceObject, { 
-  foo: () => (foo) });
+  p: () => (foo) });
 
+
+var foo_namespaceObject_0 = {};
+makeNamespaceObject(foo_namespaceObject_0);
+definePropertyGetters(foo_namespaceObject_0, {
+foo: () => (foo_namespaceObject.p)
+});
 
 // ./foo.js
 const foo = 123;
@@ -16,7 +22,7 @@ const foo = 123;
 const value = 234;
 
 it("should keep the namespace object when a direct import is captured", () => {
-  expect(foo_namespaceObject).toHaveProperty("foo");
+  expect(foo_namespaceObject_0).toHaveProperty("foo");
   expect(foo).toBe(123);
   expect(value).toBe(234);
 });

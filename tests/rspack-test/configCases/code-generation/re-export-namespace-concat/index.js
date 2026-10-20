@@ -53,38 +53,38 @@ it("should use/preserve accessor form for import object and namespaces", functio
 	// Imported objects and import namespaces should use dot notation.  Any references to the properties of exports
 	// should be preserved as either quotes or dot notation, depending on the original source.
 
-	expectSourceToContain(source, 'const x1 = module1;');
-	expectSourceToContain(source, 'const x2 = module1.obj1;');
+	expectSourceToContain(source, 'const x1 = module1_namespaceObject;');
+	expectSourceToContain(source, 'const x2 = module1/* .obj1 */.c;');
 
-	expectSourceToContain(source, 'const z1 = module1.obj1.plants;');
-	expectSourceToContain(source, 'const z2 = module1.obj1.funcs();');
-	expectSourceToContain(source, 'const z3 = module1.obj1.pots;');
-	expectSourceToContain(source, 'const z4 = module1.obj1.subs();');
+	expectSourceToContain(source, 'const z1 = module1/* .obj1.plants */.c.plants;');
+	expectSourceToContain(source, 'const z2 = module1/* .obj1.funcs */.c.funcs();');
+	expectSourceToContain(source, 'const z3 = module1/* .obj1.pots */.c.pots;');
+	expectSourceToContain(source, 'const z4 = module1/* .obj1.subs */.c.subs();');
 
-	expectSourceToContain(source, 'const a = module1.obj1.flip.flap;');
-	expectSourceToContain(source, 'const b = module1.obj1.zip.zap;');
-	expectSourceToContain(source, 'const c = module1.obj1.ding.dong();');
-	expectSourceToContain(source, 'const d = module1.obj1.sing.song();');
+	expectSourceToContain(source, 'const a = module1/* .obj1.flip.flap */.c.flip.flap;');
+	expectSourceToContain(source, 'const b = module1/* .obj1.zip.zap */.c.zip.zap;');
+	expectSourceToContain(source, 'const c = module1/* .obj1.ding.dong */.c.ding.dong();');
+	expectSourceToContain(source, 'const d = module1/* .obj1.sing.song */.c.sing.song();');
 
-	expectSourceToContain(source, 'const aa = module1.obj1.zoom;');
+	expectSourceToContain(source, 'const aa = module1/* .obj1.zoom */.c.zoom;');
 
-	expectSourceToContain(source, 'const bb = module1.obj1.up.down?.left.right;');
+	expectSourceToContain(source, 'const bb = module1/* .obj1.up.down */.c.up.down?.left.right;');
 
 	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
-		expectSourceToMatch(source, `${regexEscape('const ww = (__rspack_context.r(')}\\d+${regexEscape(')/* .obj1.bing.bang */.obj1.bing.bang);')}`);
-		expectSourceToMatch(source, `${regexEscape('const xx = (__rspack_context.r(')}\\d+${regexEscape(')/* .obj1.pip.pop */.obj1.pip.pop)();')}`);
-		expectSourceToMatch(source, `${regexEscape('const yy = (__rspack_context.r(')}\\d+${regexEscape(')/* .m_2.m_1.obj1.tip.top */.a.a.obj1.tip.top)();')}`);
+		expectSourceToMatch(source, `${regexEscape('const ww = (__rspack_context.r(')}\\d+${regexEscape(')/* .obj1.bing.bang */.c.bing.bang);')}`);
+		expectSourceToMatch(source, `${regexEscape('const xx = (__rspack_context.r(')}\\d+${regexEscape(')/* .obj1.pip.pop */.c.pip.pop)();')}`);
+		expectSourceToMatch(source, `${regexEscape('const yy = (__rspack_context.r(')}\\d+${regexEscape(')/* .m_2.m_1.obj1.tip.top */.a.a.c.tip.top)();')}`);
 	} else {
-		expectSourceToMatch(source, `${regexEscape('const ww = (__webpack_require__(')}\\d+${regexEscape(')/* .obj1.bing.bang */.obj1.bing.bang);')}`);
-		expectSourceToMatch(source, `${regexEscape('const xx = (__webpack_require__(')}\\d+${regexEscape(')/* .obj1.pip.pop */.obj1.pip.pop)();')}`);
-		expectSourceToMatch(source, `${regexEscape('const yy = (__webpack_require__(')}\\d+${regexEscape(')/* .m_2.m_1.obj1.tip.top */.a.a.obj1.tip.top)();')}`);
+		expectSourceToMatch(source, `${regexEscape('const ww = (__webpack_require__(')}\\d+${regexEscape(')/* .obj1.bing.bang */.c.bing.bang);')}`);
+		expectSourceToMatch(source, `${regexEscape('const xx = (__webpack_require__(')}\\d+${regexEscape(')/* .obj1.pip.pop */.c.pip.pop)();')}`);
+		expectSourceToMatch(source, `${regexEscape('const yy = (__webpack_require__(')}\\d+${regexEscape(')/* .m_2.m_1.obj1.tip.top */.a.a.c.tip.top)();')}`);
 	}
 
 	expectSourceToContain(source, 'data_namespaceObject.a.a.unknownProperty.depth = "deep";');
 
-	expectSourceToContain(source, 'module1.obj1.aaa.bbb;');
-	expectSourceToContain(source, 'module1.obj1.ccc.ddd;');
-	expectSourceToContain(source, 'module1.obj1.eee.fff;');
-	expectSourceToContain(source, 'module1.obj1.ggg.hhh;');
-	expectSourceToContain(source, 'module1.obj1.iii.jjj;');
+	expectSourceToContain(source, 'module1/* .obj1.aaa.bbb */.c.aaa.bbb;');
+	expectSourceToContain(source, 'module1/* .obj1.ccc.ddd */.c.ccc.ddd;');
+	expectSourceToContain(source, 'module1/* .obj1.eee.fff */.c.eee.fff;');
+	expectSourceToContain(source, 'module1/* .obj1.ggg.hhh */.c.ggg.hhh;');
+	expectSourceToContain(source, 'module1/* .obj1.iii.jjj */.c.iii.jjj;');
 });

@@ -13,6 +13,8 @@ bitflags! {
     const CAN_MANGLE = 1 << 0;
     const CAN_INLINE = 1 << 1;
     const NS_ACCESS = 1 << 2;
+    /// A whole namespace reference that code generation can materialize with original names.
+    const MANGLEABLE_NAMESPACE = 1 << 3;
   }
 }
 
@@ -36,6 +38,11 @@ impl ReferencedExportFlags {
     self.set(
       Self::NS_ACCESS,
       self.contains(Self::NS_ACCESS) || other.contains(Self::NS_ACCESS),
+    );
+    // An ordinary whole-object reference must win over a materializable one.
+    self.set(
+      Self::MANGLEABLE_NAMESPACE,
+      self.contains(Self::MANGLEABLE_NAMESPACE) && other.contains(Self::MANGLEABLE_NAMESPACE),
     );
   }
 }
@@ -110,6 +117,20 @@ impl From<&Atom> for ReferencedExport {
 }
 
 impl ReferencedExport {
+  pub fn mangleable_namespace() -> Self {
+    Self {
+      flags: ReferencedExportFlags::default() | ReferencedExportFlags::MANGLEABLE_NAMESPACE,
+      ..Default::default()
+    }
+  }
+
+  pub fn is_mangleable_namespace(&self) -> bool {
+    self.name.is_empty()
+      && self
+        .flags
+        .contains(ReferencedExportFlags::MANGLEABLE_NAMESPACE)
+  }
+
   #[inline]
   pub fn with_can_mangle(mut self, can_mangle: bool) -> Self {
     self

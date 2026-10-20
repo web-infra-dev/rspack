@@ -4,8 +4,14 @@ import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./run
 var bar_namespaceObject = {};
 makeNamespaceObject(bar_namespaceObject);
 definePropertyGetters(bar_namespaceObject, { 
-  foo: () => ((/* inlined export .foo */123)) });
+  p: () => ((/* inlined export .foo */123)) });
 
+
+var bar_namespaceObject_0 = {};
+makeNamespaceObject(bar_namespaceObject_0);
+definePropertyGetters(bar_namespaceObject_0, {
+foo: () => (bar_namespaceObject.p)
+});
 
 // ./bar.js
 
@@ -16,7 +22,7 @@ definePropertyGetters(bar_namespaceObject, {
 const value = 234;
 
 it("should keep a namespace imported from a star re-export when captured", () => {
-  expect(bar_namespaceObject).toHaveProperty("foo");
+  expect(bar_namespaceObject_0).toHaveProperty("foo");
   expect((/* inlined export .foo */123)).toBe(123);
   expect(value).toBe(234);
 });

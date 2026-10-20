@@ -36,8 +36,8 @@ use swc_experimental_ecma_ast::{ClassExpr, Ident, ObjectPatProp, Program, Prop, 
 use swc_experimental_ecma_semantic::resolver::Semantic;
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, ChunkInitFragments,
-  CodeGenerationDataChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, ChunkGraph,
+  ChunkInitFragments, CodeGenerationDataChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResultBuilder,
   CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent,
   ConcatenationBindingPlan, ConcatenationBindingResolver, ConcatenationBindingTarget,
@@ -1293,6 +1293,66 @@ impl Module for ConcatenatedModule {
       }
     }
 
+    // Only whole-namespace values need original names. Tracked member access and
+    // destructuring continue to use the regular namespace with mangled keys.
+    let mut escape_namespace_names = IdentifierIndexMap::default();
+    if compilation.options.optimization.mangle_exports.is_enable() {
+      for info in module_to_info_map
+        .values()
+        .filter_map(ModuleInfo::try_as_concatenated)
+      {
+        for reference in &info.global_scope_ident {
+          let Some(options) = ConcatenationScope::match_module_reference(&reference.name) else {
+            continue;
+          };
+          if !options.mangleable_namespace || !options.ids.is_empty() {
+            continue;
+          }
+          let module_id = references_info[options.index].0;
+          if escape_namespace_names.contains_key(&module_id) {
+            continue;
+          }
+          let target_info = module_to_info_map
+            .get(&module_id)
+            .expect("should have module info");
+          if target_info
+            .try_as_concatenated()
+            .is_some_and(|info| info.namespace_export_symbol.is_some())
+            || target_info
+              .try_as_external()
+              .is_some_and(|info| info.deferred)
+          {
+            continue;
+          }
+          let module = module_graph
+            .module_by_identifier(&module_id)
+            .expect("should have module");
+          if module.build_meta().exports_type() != BuildMetaExportsType::Namespace {
+            continue;
+          }
+          let exports_info = compilation
+            .exports_info_artifact
+            .get_exports_info_data(&module_id);
+          let mangled = exports_info.exports().values().any(|export| {
+            !matches!(export.provided(), Some(ExportProvided::NotProvided))
+              && match export.get_used_name(None, runtime) {
+                Some(UsedNameItem::Str(name)) => export.name() != Some(&name),
+                Some(UsedNameItem::Inlined(_)) => true,
+                None => false,
+              }
+          });
+          if mangled {
+            let name = name_allocator.find_new_name(
+              "namespaceObject",
+              concatenation_context.module_identifier(&module_id),
+            );
+            top_level_declarations.insert(name.clone());
+            escape_namespace_names.insert(module_id, name);
+          }
+        }
+      }
+    }
+
     // `ConcatenationNameAllocator` can retain a large amount of temporary name state.
     // Move it off the critical path once naming is complete.
     drop(name_allocator);
@@ -1347,6 +1407,7 @@ impl Module for ConcatenatedModule {
               match_info.deferred_import,
               build_meta.strict_esm_module(),
               match_info.asi_safe,
+              match_info.mangleable_namespace,
             ));
           }
         }
@@ -1361,18 +1422,34 @@ impl Module for ConcatenatedModule {
           deferred_import,
           strict_esm_module,
           asi_safe,
+          mangleable_namespace,
         ) in refs
         {
-          let final_name = self.get_final_name(
-            &binding_resolver,
-            referenced_info_id,
-            export_name,
-            deferred_import,
-            call,
-            call_context,
-            strict_esm_module,
-            asi_safe,
-          );
+          let final_name = if mangleable_namespace
+            && export_name.is_empty()
+            && let Some(name) = escape_namespace_names.get(referenced_info_id)
+          {
+            FinalNameResult {
+              name: name.to_string(),
+              info_id: *referenced_info_id,
+              interop_namespace_object_used: None,
+              interop_namespace_object2_used: None,
+              interop_default_access_used: None,
+              deferred_namespace_object_used: None,
+              needed_namespace_object: None,
+            }
+          } else {
+            self.get_final_name(
+              &binding_resolver,
+              referenced_info_id,
+              export_name,
+              deferred_import,
+              call,
+              call_context,
+              strict_esm_module,
+              asi_safe,
+            )
+          };
 
           // We assume this should be concatenated module info because previous loop
           let span = reference_ident.id.span();
@@ -1575,6 +1652,88 @@ impl Module for ConcatenatedModule {
       )));
     }
 
+    // Build these first: resolving their getters can request nested namespace objects.
+    let mut escape_namespace_sources = IdentifierMap::default();
+    for (module_id, name) in &escape_namespace_names {
+      let info = binding_resolver
+        .module_to_info_map
+        .get(module_id)
+        .expect("should have module info");
+      if let Some(info) = info.try_as_external() {
+        if let Some(source) = runtime_template.materialized_namespace_object(
+          compilation,
+          runtime,
+          *module_id,
+          info.name.as_ref().expect("should have import name"),
+          name,
+        ) {
+          escape_namespace_sources.insert(*module_id, source);
+        }
+        continue;
+      }
+      let module = module_graph
+        .module_by_identifier(module_id)
+        .expect("should have module");
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_exports_info_data(module_id);
+      let mut definitions = Vec::new();
+      for export in exports_info.exports().values() {
+        if matches!(export.provided(), Some(ExportProvided::NotProvided)) {
+          continue;
+        }
+        let Some(used_name) = export.get_used_name(None, runtime) else {
+          continue;
+        };
+        let Some(export_name) = export.name() else {
+          continue;
+        };
+        if self.is_missing_star_export(
+          &binding_resolver,
+          module_id,
+          export,
+          &mut missing_star_export_cache,
+        ) {
+          continue;
+        }
+        let value = match used_name {
+          UsedNameItem::Inlined(inlined) => inlined.render(&to_normal_comment(&format!(
+            "inlined export {}",
+            property_access([export_name], 0)
+          ))),
+          UsedNameItem::Str(_) => {
+            let final_name = self.get_final_name(
+              &binding_resolver,
+              module_id,
+              vec![export_name.clone()],
+              false,
+              false,
+              false,
+              module.build_meta().strict_esm_module(),
+              Some(true),
+            );
+            final_name.apply_to_info(
+              &mut *binding_resolver.module_to_info_map,
+              &mut needed_namespace_objects,
+              &mut needed_namespace_objects_queue,
+            );
+            final_name.name
+          }
+        };
+        definitions.push(format!(
+          "{}: {}",
+          property_name(export_name).expect("should have property name"),
+          runtime_template.returning_function(&value, "")
+        ));
+      }
+      escape_namespace_sources.insert(*module_id, format!(
+        "// NAMESPACE OBJECT (decoupled)\nvar {name} = {{}};\n{}({name});\n{}({name}, {{\n{}\n}});\n",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+        definitions.join(",\n"),
+      ));
+    }
+
     let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
 
     while let Some(module_info_id) = needed_namespace_objects_queue.pop_front() {
@@ -1672,6 +1831,11 @@ impl Module for ConcatenatedModule {
       // Define required namespace objects
       if let Some(info) = info.try_as_concatenated()
         && let Some(source) = namespace_object_sources.get(&info.module)
+      {
+        result.add(RawStringSource::from(source.as_str()));
+      }
+      if let Some(info) = info.try_as_concatenated()
+        && let Some(source) = escape_namespace_sources.get(&info.module)
       {
         result.add(RawStringSource::from(source.as_str()));
       }
@@ -1799,6 +1963,9 @@ impl Module for ConcatenatedModule {
             )));
 
             name.clone_from(&info.name);
+            if let Some(source) = escape_namespace_sources.get(&info.module) {
+              result.add(RawStringSource::from(source.as_str()));
+            }
           }
           // If a module is deferred in other places, but used as non-deferred here,
           // the module itself will be emitted as mod_deferred (in the case "external"),

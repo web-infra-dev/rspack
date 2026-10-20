@@ -4,8 +4,14 @@ import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./run
 var foo_namespaceObject = {};
 makeNamespaceObject(foo_namespaceObject);
 definePropertyGetters(foo_namespaceObject, { 
-  bar: () => (bar) });
+  M: () => (bar) });
 
+
+var foo_namespaceObject_0 = {};
+makeNamespaceObject(foo_namespaceObject_0);
+definePropertyGetters(foo_namespaceObject_0, {
+bar: () => (foo_namespaceObject.M)
+});
 
 // ./foo.js
 const bar = 42;
@@ -14,8 +20,8 @@ const bar = 42;
 
 
 /* export default */ const index = ({
-  tag: foo_namespaceObject[Symbol.toStringTag],
-  text: Object.prototype.toString.call(foo_namespaceObject),
+  tag: foo_namespaceObject_0[Symbol.toStringTag],
+  text: Object.prototype.toString.call(foo_namespaceObject_0),
   bar: bar,
 });
 

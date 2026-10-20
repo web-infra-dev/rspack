@@ -7,12 +7,13 @@ use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
-  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
-  ExportsInfoArtifact, ExportsInfoData, GroupOptions, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, Plugin, ReferencedExport, ReferencedExportFlags, ReferencedExportPath,
-  RuntimeSpec, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, UsageState,
-  build_module_graph::BuildModuleGraphArtifact, get_entry_runtime, incremental::IncrementalPasses,
-  is_exports_object_referenced, is_no_exports_referenced, module_declared_side_effect_free,
+  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
+  ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData, GroupOptions, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, Plugin, ReferencedExport, ReferencedExportFlags,
+  ReferencedExportPath, RuntimeSpec, SideEffectsOptimizeArtifact, SideEffectsStateArtifact,
+  UsageState, build_module_graph::BuildModuleGraphArtifact, get_entry_runtime,
+  incremental::IncrementalPasses, is_exports_object_referenced, is_no_exports_referenced,
+  module_declared_side_effect_free,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -244,10 +245,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             let module = mg
               .module_by_identifier(&module_id)
               .expect("should have module");
-            let is_exports_type_unset = matches!(
-              module.build_meta().exports_type(),
-              BuildMetaExportsType::Unset
-            );
+            let exports_type = module.build_meta().exports_type();
             let is_side_effect_free =
               module_declared_side_effect_free(module.as_ref()).unwrap_or_default();
 
@@ -255,8 +253,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             for (runtime, force_side_effects, exports) in tasks {
               let module_res = process_referenced_module_without_nested(
                 module_id,
-                is_exports_type_unset,
+                exports_type,
                 is_side_effect_free,
+                compilation.options.optimization.mangle_exports.is_enable(),
                 &mut exports_info,
                 exports,
                 runtime,
@@ -467,14 +466,24 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
 
       for used_export_info in used_exports {
+        let mangleable_namespace = used_export_info.is_mangleable_namespace()
+          && self
+            .compilation
+            .options
+            .optimization
+            .mangle_exports
+            .is_enable()
+          && module.build_meta().exports_type() == BuildMetaExportsType::Namespace;
         let can_mangle = used_export_info.can_mangle();
         let can_inline = used_export_info.can_inline();
         let ns_access = used_export_info.ns_access();
         let used_exports = used_export_info.name;
         if used_exports.is_empty() {
-          let flag = mgm_exports_info
-            .as_data_mut(self.exports_info_artifact)
-            .set_used_in_unknown_way(runtime.as_deref());
+          let flag = process_namespace_reference(
+            mgm_exports_info.as_data_mut(self.exports_info_artifact),
+            runtime.as_deref(),
+            mangleable_namespace,
+          );
 
           if flag {
             queue.push((
@@ -636,9 +645,17 @@ fn merge_referenced_exports(
   old_referenced_exports: Option<ProcessModuleReferencedExports>,
   referenced_exports: Vec<ReferencedExport>,
 ) -> Option<ProcessModuleReferencedExports> {
+  if matches!(
+    &old_referenced_exports,
+    Some(ProcessModuleReferencedExports::ExtendRef(exports))
+      if is_exports_object_referenced(exports) && !exports[0].is_mangleable_namespace()
+  ) {
+    return old_referenced_exports;
+  }
   if old_referenced_exports.is_none()
     || matches!(old_referenced_exports, Some(ProcessModuleReferencedExports::ExtendRef(ref v)) if is_no_exports_referenced(v))
-    || is_exports_object_referenced(&referenced_exports)
+    || (is_exports_object_referenced(&referenced_exports)
+      && !referenced_exports[0].is_mangleable_namespace())
   {
     return Some(ProcessModuleReferencedExports::ExtendRef(
       referenced_exports,
@@ -771,10 +788,12 @@ fn get_dependency_referenced_exports(
   }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn process_referenced_module_without_nested(
   module_id: ModuleIdentifier,
-  is_exports_type_unset: bool,
+  exports_type: BuildMetaExportsType,
   is_side_effect_free: bool,
+  mangle_escaping_namespaces: bool,
   exports_info: &mut ExportsInfoData,
   used_exports: Vec<ReferencedExport>,
   runtime: SharedRuntimeSpec,
@@ -782,7 +801,7 @@ fn process_referenced_module_without_nested(
 ) -> Vec<ProcessBlockTask> {
   let mut queue = vec![];
   if !used_exports.is_empty() {
-    if is_exports_type_unset {
+    if exports_type == BuildMetaExportsType::Unset {
       let flag = exports_info.set_used_without_info(runtime.as_deref());
       if flag {
         queue.push((
@@ -795,12 +814,16 @@ fn process_referenced_module_without_nested(
     }
 
     for used_export_info in used_exports {
+      let mangleable_namespace = used_export_info.is_mangleable_namespace()
+        && mangle_escaping_namespaces
+        && exports_type == BuildMetaExportsType::Namespace;
       let can_mangle = used_export_info.can_mangle();
       let can_inline = used_export_info.can_inline();
       let ns_access = used_export_info.ns_access();
       let used_exports = used_export_info.name;
       if used_exports.is_empty() {
-        let flag = exports_info.set_used_in_unknown_way(runtime.as_deref());
+        let flag =
+          process_namespace_reference(exports_info, runtime.as_deref(), mangleable_namespace);
 
         if flag {
           queue.push((
@@ -856,4 +879,33 @@ fn process_referenced_module_without_nested(
     }
   }
   queue
+}
+
+fn process_namespace_reference(
+  exports_info: &mut ExportsInfoData,
+  runtime: Option<&RuntimeSpec>,
+  mangleable_namespace: bool,
+) -> bool {
+  if !mangleable_namespace
+    || !matches!(
+      exports_info.other_exports_info().provided(),
+      Some(ExportProvided::NotProvided)
+    )
+  {
+    return exports_info.set_used_in_unknown_way(runtime);
+  }
+
+  let mut changed = exports_info.set_all_known_exports_used(runtime);
+  // Preserve the namespace marker even though other exports are no longer used in an unknown way.
+  changed |= exports_info
+    .ensure_owned_export_info(&"__esModule".into())
+    .set_used(UsageState::Used, runtime);
+  for export_info in exports_info.exports_mut().values_mut() {
+    // Namespace member accesses must retain real bindings, including delete expressions.
+    if export_info.can_inline_use() != Some(CanInlineUse::No) {
+      export_info.set_can_inline_use(Some(CanInlineUse::No));
+      changed = true;
+    }
+  }
+  changed
 }

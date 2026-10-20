@@ -307,6 +307,7 @@ pub struct ChunkLinkContext {
   pub needed_namespace_objects: IdentifierIndexSet,
 
   pub namespace_object_sources: IdentifierMap<String>,
+  pub escape_namespace_object_sources: IdentifierMap<String>,
 
   pub init_fragments: Vec<BoxChunkInitFragment>,
 
@@ -352,6 +353,7 @@ impl ChunkLinkContext {
       required: Default::default(),
       needed_namespace_objects: Default::default(),
       namespace_object_sources: Default::default(),
+      escape_namespace_object_sources: Default::default(),
       init_fragments: Default::default(),
       hashbang: None,
       directives: Default::default(),

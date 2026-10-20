@@ -7,7 +7,7 @@ use std::{
 use rayon::iter::Either;
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, SsoHashSet};
 use rspack_core::{
-  ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
+  BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
   CodeGenerationDataPreservedAssetImport, CodeGenerationPublicPathAutoReplace, Compilation,
   ConcatenationBindingPlan, ConcatenationBindingResolver, ConcatenationBindingTarget,
@@ -2490,6 +2490,7 @@ var {} = {{}};
     // calculate exports based on imports
     for (chunk, chunk_link) in link.iter_mut() {
       let mut refs = FxIndexMap::default();
+      let mut mangleable_namespace_refs = FxIndexMap::default();
       let needed_namespace_objects = needed_namespace_objects_by_ukey.entry(*chunk).or_default();
       let chunk_imports = imports.entry(*chunk).or_default();
       let required = required.entry(*chunk).or_default();
@@ -2648,13 +2649,14 @@ var {} = {{}};
               continue;
             };
 
-            refs.insert(
-              ref_string
-                .strip_suffix("._")
-                .expect("should have prefix: '._'")
-                .to_string(),
-              binding,
-            );
+            let ref_string = ref_string
+              .strip_suffix("._")
+              .expect("should have suffix: '._'")
+              .to_string();
+            if options.mangleable_namespace && options.ids.is_empty() {
+              mangleable_namespace_refs.insert(ref_string.clone(), (*ref_module, *m));
+            }
+            refs.insert(ref_string, binding);
           }
         }
       }
@@ -2736,6 +2738,55 @@ var {} = {{}};
 
         for (ref_str, cur_ref) in all_refs {
           refs.insert(ref_str, Ref::Symbol(cur_ref));
+        }
+      }
+
+      // Render after imported symbols have their final local names. Keep the
+      // regular namespace for tracked destructuring and cross-chunk imports.
+      if compilation.options.optimization.mangle_exports.is_enable() {
+        let mut escape_namespace_names = IdentifierMap::<Atom>::default();
+        let mut runtime_template = compilation.runtime_template.create_module_code_template();
+        for (reference, (target, origin)) in mangleable_namespace_refs {
+          let module = module_graph
+            .module_by_identifier(&target)
+            .expect("should have module");
+          if module.build_meta().exports_type() != BuildMetaExportsType::Namespace
+            || binding_resolver.module_to_info_map[&target]
+              .try_as_concatenated()
+              .is_some_and(|info| info.namespace_export_symbol.is_some())
+          {
+            continue;
+          }
+          let Some(binding) = refs.get(&reference) else {
+            continue;
+          };
+          let name = if let Some(name) = escape_namespace_names.get(&target) {
+            name.clone()
+          } else {
+            let name = name_allocator.find_new_name(
+              "namespaceObject",
+              binding_resolver.context.module_identifier(&target),
+            );
+            let Some(source) = runtime_template.materialized_namespace_object(
+              compilation,
+              None,
+              target,
+              &binding.render(),
+              &name,
+            ) else {
+              continue;
+            };
+            chunk_link
+              .escape_namespace_object_sources
+              .insert(target, source);
+            escape_namespace_names.insert(target, name.clone());
+            binding_resolver.module_to_info_map[&origin]
+              .as_concatenated_mut()
+              .runtime_requirements
+              .insert(*runtime_template.runtime_requirements());
+            name
+          };
+          refs.insert(reference, Ref::Inline(name.to_string()));
         }
       }
 

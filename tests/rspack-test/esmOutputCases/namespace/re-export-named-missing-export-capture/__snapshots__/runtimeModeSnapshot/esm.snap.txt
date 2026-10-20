@@ -9,8 +9,14 @@ makeNamespaceObject(bar_namespaceObject);
 var foo_namespaceObject = {};
 makeNamespaceObject(foo_namespaceObject);
 definePropertyGetters(foo_namespaceObject, { 
-  foo: () => (bar_namespaceObject.foo) });
+  p: () => (bar_namespaceObject.foo) });
 
+
+var foo_namespaceObject_0 = {};
+makeNamespaceObject(foo_namespaceObject_0);
+definePropertyGetters(foo_namespaceObject_0, {
+foo: () => (foo_namespaceObject.p)
+});
 
 // ./bar.js
 const x = 123;
@@ -22,7 +28,7 @@ const x = 123;
 
 
 it("should keep the namespace object for a module with an invalid named re-export", () => {
-  expect(foo_namespaceObject).toBeDefined();
+  expect(foo_namespaceObject_0).toBeDefined();
   expect(bar_namespaceObject.foo).toBeUndefined();
 });
 

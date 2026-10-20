@@ -4,8 +4,14 @@ import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./run
 var foo_namespaceObject = {};
 makeNamespaceObject(foo_namespaceObject);
 definePropertyGetters(foo_namespaceObject, { 
-  bar: () => (bar) });
+  M: () => (bar) });
 
+
+var foo_namespaceObject_0 = {};
+makeNamespaceObject(foo_namespaceObject_0);
+definePropertyGetters(foo_namespaceObject_0, {
+bar: () => (foo_namespaceObject.M)
+});
 
 // ./foo.js
 const bar = 42;
@@ -16,7 +22,7 @@ const bar = 42;
 const keep = bar;
 
 it("should keep namespace toStringTag visible for static resolution", () => {
-  expect(Boolean(foo_namespaceObject[Symbol.toStringTag])).toBe(true);
+  expect(Boolean(foo_namespaceObject_0[Symbol.toStringTag])).toBe(true);
   expect(Boolean(bar)).toBe(true);
   expect(Boolean(foo_namespaceObject.foo)).toBe(false);
 });

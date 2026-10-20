@@ -18,11 +18,12 @@ use serde_json::{Value, json};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsType,
+  DependencyId, DependencyType, ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType,
   FakeNamespaceObjectMode, ImportPhase, InitFragment, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, Module, ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleId,
   ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  UsedName, compile_boolean_matcher_from_lists, contextify, property_access,
+  UsedName, UsedNameItem, compile_boolean_matcher_from_lists, contextify, property_access,
+  property_name,
   runtime_globals::{
     RuntimeVariable, rspack_export_runtime_variable_name, rspack_runtime_variable_name,
     runtime_globals_to_string, runtime_variable_name,
@@ -1366,7 +1367,7 @@ impl ModuleCodeTemplate {
     (import_content, String::new())
   }
 
-  #[allow(clippy::too_many_arguments)]
+  #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
   pub fn export_from_import(
     &mut self,
     compilation: &Compilation,
@@ -1382,6 +1383,7 @@ impl ModuleCodeTemplate {
     call_context: bool,
     asi_safe: Option<bool>,
     phase: ImportPhase,
+    mangleable_namespace: bool,
   ) -> String {
     let mg = compilation.get_module_graph();
     let Some(target_module) = mg.get_module_by_dependency_id(id) else {
@@ -1591,9 +1593,89 @@ impl ModuleCodeTemplate {
         json_stringify(&module_id),
         mode,
       )
+    } else if mangleable_namespace
+      && matches!(exports_type, ExportsType::Namespace)
+      && compilation.options.optimization.mangle_exports.is_enable()
+    {
+      let name = format!("{import_var}_namespace_object");
+      if let Some(source) = self.materialized_namespace_object(
+        compilation,
+        runtime,
+        target_module_identifier,
+        import_var,
+        &name,
+      ) {
+        init_fragments.push(
+          NormalInitFragment::new(
+            source,
+            InitFragmentStage::StageProvides,
+            0,
+            InitFragmentKey::ESMFakeNamespaceObjectFragment(name.clone()),
+            None,
+          )
+          .boxed(),
+        );
+        name
+      } else {
+        import_var.to_string()
+      }
     } else {
       import_var.to_string()
     }
+  }
+
+  /// Creates getters with the original export names when the raw exports object uses mangled names.
+  pub fn materialized_namespace_object(
+    &mut self,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+    module: ModuleIdentifier,
+    import_var: &str,
+    name: &str,
+  ) -> Option<String> {
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module);
+    let mut definitions = Vec::new();
+    let mut mangled = false;
+    for export_info in exports_info.exports().values() {
+      if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
+        continue;
+      }
+      let Some(export_name) = export_info.name() else {
+        continue;
+      };
+      let Some(used_name) = export_info.get_used_name(None, runtime) else {
+        continue;
+      };
+      let value = match used_name {
+        UsedNameItem::Str(used_name) => {
+          mangled |= used_name != *export_name;
+          format!("{import_var}{}", property_access([used_name], 0))
+        }
+        UsedNameItem::Inlined(inlined) => {
+          mangled = true;
+          inlined.render(&to_normal_comment(&format!(
+            "inlined export {}",
+            property_access([export_name], 0)
+          )))
+        }
+      };
+      definitions.push(format!(
+        "{}: {}",
+        property_name(export_name).expect("should have property name"),
+        self.returning_function(&value, "")
+      ));
+    }
+    if !mangled {
+      return None;
+    }
+    Some(format!(
+      "var {name} = {{}};\n{}({name});\n{}({name}, {{\n{}\n}});\n",
+      self.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+      self.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+      definitions.join(",\n")
+    ))
   }
 
   #[allow(clippy::too_many_arguments)]
