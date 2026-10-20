@@ -330,11 +330,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     }
 
     let mut semicolons = Default::default();
-    let scan_diagnostics = AstScanner {
-      semicolons: &mut semicolons,
-      tokens: &tokens,
-    }
-    .scan(&ast);
+    let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(&ast);
     if !scan_diagnostics.is_empty() {
       append_swc_next_diagnostics(&mut diagnostics, &source_string, scan_diagnostics);
       return default_with_diagnostics(source, diagnostics);
@@ -514,12 +510,16 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
 /// Collects inserted semicolon positions and rejects syntax unsupported by the
 /// legacy parser in a single pass over the flat AST.
-struct AstScanner<'view> {
+pub struct AstScanner<'view> {
   semicolons: &'view mut FxHashSet<u32>,
   tokens: &'view [Token],
 }
 
-impl AstScanner<'_> {
+impl<'view> AstScanner<'view> {
+  pub fn new(semicolons: &'view mut FxHashSet<u32>, tokens: &'view [Token]) -> Self {
+    Self { semicolons, tokens }
+  }
+
   #[inline]
   fn curr_token(&self, span: Span) -> Option<usize> {
     self
@@ -573,7 +573,7 @@ impl AstScanner<'_> {
   }
 
   /// Requires successful parser output before transformations can detach nodes.
-  fn scan(&mut self, ast: &Ast<'_>) -> Vec<SwcDiagnostic<'static>> {
+  pub fn scan(&mut self, ast: &Ast<'_>) -> Vec<SwcDiagnostic<'static>> {
     let mut diagnostics = Vec::new();
     for index in 0..ast.node_count() {
       let node = NodeId::from_raw_unchecked(index as u32);
