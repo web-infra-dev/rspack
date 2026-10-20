@@ -881,6 +881,8 @@ export type RuleSetLoader = string;
 
 export type RuleSetLoaderOptions = string | Record<string, any>;
 
+export type RuleSetLoaderCodeFilter = string | RegExp;
+
 export type RuleSetLoaderWithOptions = {
   /**
    * Stable identifier used to reference object-form loader options.
@@ -907,6 +909,14 @@ export type RuleSetLoaderWithOptions = {
    * @experimental
    */
   cache?: boolean;
+
+  /**
+   * Filters the current input before calling the normal loader handler.
+   * The loader pitch function is not filtered.
+   */
+  filter?: {
+    code: RuleSetLoaderCodeFilter;
+  };
 
   options?: RuleSetLoaderOptions;
 };
