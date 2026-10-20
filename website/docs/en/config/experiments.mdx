@@ -433,3 +433,23 @@ When access to `virtual-entry.js` and `src/another-virtual.js` which match the r
 Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk-file.js` will be accessed by the native file system.
 
 <Attribution url="https://webpack.js.org/configuration/experiments/" />
+
+## experiments.portableCache
+
+- **Type:** `boolean | { seedFrom?: string; seed?: boolean }`
+- **Default:** `false`
+
+With `cache: { type: 'persistent' }`, enables portable paths and seeds an absent legacy cache from another worktree. `true` means `{ seed: true }`. It implies [`cache.portable`](/config/cache#portable); explicitly setting `cache.portable: false` is an error. The default `snapshot.module`, `snapshot.resolve`, and `snapshot.contextModule` strategies become `{ timestamp: true, hash: true }`. Explicit snapshot strategies are preserved.
+
+```js
+export default {
+  cache: { type: 'persistent' },
+  experiments: { portableCache: true },
+};
+```
+
+Rspack reads Git's worktree metadata without running Git, excludes locked or unavailable worktrees, and chooses the sibling cache with the newest location `_meta` modification time. Each compiler seeds only its own unit. Set `seedFrom` to another cache's **location** (including its cache name, such as `/other/repo/node_modules/.cache/rspack/development`) to select a donor without Git discovery. Relative paths resolve from `context`.
+
+Each worktree owns an independent cache. On supported filesystems, reflinks share disk blocks until either copy changes, while keeping separate file identities. Other filesystems fall back to copying; hardlinks are never used. An active or unfinished donor transaction, changing donor metadata, or a copy failure causes a cold build. Seeding outcomes are logged at info level under `rspack.persistentCache`.
+
+The destination storage location must be inside the portable root. A location outside it (including through a symlink) produces an infrastructure warning and disables seeding, since worktrees must not share a writable cache directory. Set `portableCache: { seed: false }` to disable seeding; remove the local cache as well when you want a cold build. Seeding currently applies only to the legacy cache backend with the native intermediate filesystem. Reuse still depends on normal cache validation and portable entry support.

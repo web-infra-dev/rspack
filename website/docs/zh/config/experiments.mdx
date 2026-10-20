@@ -433,3 +433,23 @@ export default {
 当访问 `virtual-entry.js` 和 `src/another-virtual.js` 时，它们匹配了 `experiments.useInputFileSystem` 中的正则规则，Rspack 会通过 `VirtualModulesPlugin` 包装的输入文件系统读取它们；而像 `src/disk-file.js`，则会使用原生文件系统读取。
 
 <Attribution url="https://webpack.js.org/configuration/experiments/" />
+
+## experiments.portableCache
+
+- **类型：** `boolean | { seedFrom?: string; seed?: boolean }`
+- **默认值：** `false`
+
+与 `cache: { type: 'persistent' }` 一起使用时，启用可移植路径，并从其他 worktree 初始化尚不存在的旧版缓存。`true` 等同于 `{ seed: true }`。此选项隐式启用 [`cache.portable`](/config/cache#portable)，显式设置 `cache.portable: false` 会报错。`snapshot.module`、`snapshot.resolve` 和 `snapshot.contextModule` 默认采用 `{ timestamp: true, hash: true }`，显式设置的快照策略不受影响。
+
+```js
+export default {
+  cache: { type: 'persistent' },
+  experiments: { portableCache: true },
+};
+```
+
+Rspack 直接读取 Git worktree 元数据，不运行 Git 命令，排除已锁定或不可用的 worktree，并选择缓存位置 `_meta` 修改时间最新的来源。每个编译器只初始化自身的缓存单元。`seedFrom` 可指定来源缓存的 **location**（包括缓存名称，例如 `/other/repo/node_modules/.cache/rspack/development`），无需 Git 自动发现。相对路径基于 `context` 解析。
+
+每个 worktree 拥有独立缓存。在支持 reflink 的文件系统上，副本使用独立的文件标识，但共享磁盘数据块，直到任一副本被修改；其他文件系统回退到普通复制，绝不使用硬链接。来源缓存存在活动或未完成的事务、复制期间元数据变化或复制失败时，会回退到冷构建。初始化结果以 info 级别记录在 `rspack.persistentCache` 中。
+
+目标缓存位置必须位于可移植根目录内。位于根目录之外的位置（包括通过符号链接指向外部）会产生基础设施日志警告并禁用初始化，以避免多个 worktree 共用可写缓存。设置 `portableCache: { seed: false }` 可禁用初始化；如需冷构建，还应删除本地缓存。目前仅使用原生中间文件系统的旧版缓存后端支持初始化，缓存复用仍取决于正常的缓存校验及条目的可移植性。
