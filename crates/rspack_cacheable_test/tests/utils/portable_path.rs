@@ -81,6 +81,27 @@ fn test_relative_path_outside_project() {
 }
 
 #[test]
+fn test_root_binding_is_reset_for_each_encode() {
+  let root = std::env::temp_dir().join("rspack-binding-project");
+  let context = TestContext(Some(root.clone()));
+  let inside = PathData {
+    path1: root.join("src/main.rs"),
+    path2: Utf8PathBuf::from_path_buf(root.join("src/lib.rs")).unwrap(),
+  };
+  let outside = PathData {
+    path1: root.parent().unwrap().join("outside.rs"),
+    path2: Utf8PathBuf::from_path_buf(root.join("src/lib.rs")).unwrap(),
+  };
+
+  let (_, bound) = rspack_cacheable::to_bytes_with_binding(&outside, &context).unwrap();
+  assert!(bound);
+  let (_, bound) = rspack_cacheable::to_bytes_with_binding(&inside, &context).unwrap();
+  assert!(!bound);
+  let (_, bound) = rspack_cacheable::to_bytes_with_binding(&outside, &TestContext(None)).unwrap();
+  assert!(!bound);
+}
+
+#[test]
 #[cfg(windows)]
 fn test_windows_path() {
   let context = TestContext(Some(PathBuf::from("C:\\Users\\test\\project")));

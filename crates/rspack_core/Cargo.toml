@@ -75,6 +75,7 @@ tokio                      = { workspace = true, features = ["rt", "macros", "sy
 tracing                    = { workspace = true }
 triomphe                   = { workspace = true }
 unsize                     = { workspace = true }
+url                        = { workspace = true }
 urlencoding                = { workspace = true }
 ustr                       = { workspace = true }
 winnow                     = { workspace = true }
