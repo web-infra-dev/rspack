@@ -4,6 +4,7 @@ use derive_more::Debug;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
 use rustc_hash::FxHashSet;
+use smallvec::SmallVec;
 
 use crate::{
   CacheGroup,
@@ -121,6 +122,12 @@ enum ModuleGroupChunks {
   Shared(Option<FxHashSet<ChunkUkey>>),
   /// A named group can merge modules selected from different chunk combinations.
   ByModule(IdentifierMap<FxHashSet<ChunkUkey>>),
+}
+
+pub(crate) enum CandidateUpdate {
+  Unchanged,
+  Updated,
+  Discard,
 }
 
 #[derive(Debug)]
@@ -366,14 +373,24 @@ impl ModuleGroup {
   }
 
   /// Choose which dimension to delete without materializing either alternative.
-  /// Only affected modules and the existing source-type totals are inspected.
+  /// Inspect the affected modules once, including the overlap check. The small
+  /// source-type totals preserve each type's original subtraction order.
   fn prefer_module_removal(
     &self,
-    affected: impl Iterator<Item = ModuleIdentifier> + Clone,
+    mut affected: impl Iterator<Item = ModuleIdentifier>,
     remaining_chunks: usize,
     cache: &CacheGroup,
     module_sizes: &ModuleSizes,
-  ) -> bool {
+  ) -> Option<bool> {
+    let first = affected.next()?;
+    let mut remaining_sizes: SmallVec<[(SourceType, f64); 2]> =
+      self.sizes.iter().map(|(ty, size)| (*ty, *size)).collect();
+    for module in std::iter::once(first).chain(affected) {
+      let sizes = &module_sizes[&module];
+      for (ty, remaining) in &mut remaining_sizes {
+        *remaining = (*remaining - sizes.get(ty).copied().unwrap_or_default()).max(0.0);
+      }
+    }
     let reduction = |ty, size: f64, chunks: usize| {
       if size >= cache.min_size.get(ty).copied().unwrap_or_default()
         && size * chunks as f64
@@ -390,14 +407,11 @@ impl ModuleGroup {
     };
     let mut keep_chunks = 0.0;
     let mut keep_modules = 0.0;
-    for (ty, size) in self.sizes.iter() {
-      let remaining = affected.clone().fold(*size, |total, module| {
-        (total - module_sizes[&module].get(ty).copied().unwrap_or_default()).max(0.0)
-      });
+    for ((ty, size), (_, remaining)) in self.sizes.iter().zip(remaining_sizes) {
       keep_chunks += reduction(ty, remaining, self.chunks.len());
       keep_modules += reduction(ty, *size, remaining_chunks);
     }
-    keep_chunks > keep_modules
+    Some(keep_chunks > keep_modules)
   }
 
   /// Subtract committed placements from this candidate in the existing cleanup
@@ -408,7 +422,7 @@ impl ModuleGroup {
     cache: &CacheGroup,
     module_sizes: &ModuleSizes,
     scratch: &mut Vec<ModuleIdentifier>,
-  ) -> bool {
+  ) -> CandidateUpdate {
     let minimum = (cache.min_chunks as usize).max(1);
     if let ModuleGroupChunks::ByModule(sources) = &mut self.module_chunks {
       let mut changed = false;
@@ -428,8 +442,12 @@ impl ModuleGroup {
         }
       });
       if changed {
+        if self.modules.is_empty() {
+          return CandidateUpdate::Discard;
+        }
         // A changed named group must not introduce consumers of a module that
         // was already extracted elsewhere. Narrow its existing support in place.
+        let before = self.chunks.len();
         self
           .chunks
           .retain(|chunk| sources.values().all(|chunks| chunks.contains(chunk)));
@@ -437,31 +455,53 @@ impl ModuleGroup {
           chunks.retain(|chunk| self.chunks.contains(chunk));
         }
         self.placement_changed = true;
-        self.chunk_mask = chunk_mask(self.chunks.iter());
+        if self.chunks.len() != before {
+          self.chunk_mask = chunk_mask(self.chunks.iter());
+        }
       }
-      return changed;
+      return if changed {
+        CandidateUpdate::Updated
+      } else {
+        CandidateUpdate::Unchanged
+      };
     }
     let mut changed = false;
+    let mut chunks_changed = false;
     match placed {
       ModuleChunkMap::Shared { modules, chunks } => {
-        if self.chunks.is_disjoint(chunks) || self.modules.is_disjoint(modules) {
-          return false;
+        let overlap = self.chunks.intersection(chunks).count();
+        if overlap == 0 {
+          return CandidateUpdate::Unchanged;
         }
-        changed = true;
-        let remaining = self.chunks.len() - self.chunks.intersection(chunks).count();
-        if self.can_recover(cache, module_sizes, remaining)
-          && !self.prefer_module_removal(
+        let remaining = self.chunks.len() - overlap;
+        let shrink_chunks = if self.can_recover(cache, module_sizes, remaining) {
+          let Some(remove_modules) = self.prefer_module_removal(
             self.modules.intersection(modules).copied(),
             remaining,
             cache,
             module_sizes,
-          )
-        {
+          ) else {
+            return CandidateUpdate::Unchanged;
+          };
+          !remove_modules
+        } else {
+          // No viable chunk remainder: use the original module-deletion path.
+          // Discard covered groups without filling their pending-removal buffer.
+          if self.modules.is_subset(modules) {
+            return CandidateUpdate::Discard;
+          }
+          false
+        };
+        if shrink_chunks {
           self.chunks.retain(|chunk| !chunks.contains(chunk));
           self.placement_changed = true;
+          changed = true;
+          chunks_changed = true;
         } else {
           // The original module deletion is the viable or more beneficial update.
+          let before = self.modules.len();
           self.remove_shared_modules(modules);
+          changed = self.modules.len() != before;
         }
       }
       ModuleChunkMap::ByModule(placed) => {
@@ -474,16 +514,19 @@ impl ModuleGroup {
         scratch.sort_unstable_by_key(|module| (module.precomputed_hash(), *module));
         for module in scratch.iter().copied() {
           let removed = &placed[&module];
-          if self.chunks.is_disjoint(removed) {
+          let overlap = self.chunks.intersection(removed).count();
+          if overlap == 0 {
             continue;
           }
           changed = true;
-          let remaining = self.chunks.len() - self.chunks.intersection(removed).count();
+          let remaining = self.chunks.len() - overlap;
           if self.can_recover(cache, module_sizes, remaining)
-            && !self.prefer_module_removal(std::iter::once(module), remaining, cache, module_sizes)
+            && self.prefer_module_removal(std::iter::once(module), remaining, cache, module_sizes)
+              == Some(false)
           {
             self.chunks.retain(|chunk| !removed.contains(chunk));
             self.placement_changed = true;
+            chunks_changed = true;
           } else {
             self.remove_module(module);
           }
@@ -491,12 +534,19 @@ impl ModuleGroup {
       }
     }
     if changed {
+      if self.modules.is_empty() {
+        return CandidateUpdate::Discard;
+      }
       // Pending candidates have not selected a reused destination, so their
       // shared per-module support is exactly the updated candidate support.
       self.module_chunks = ModuleGroupChunks::Shared(None);
-      self.chunk_mask = chunk_mask(self.chunks.iter());
+      if chunks_changed {
+        self.chunk_mask = chunk_mask(self.chunks.iter());
+      }
+      CandidateUpdate::Updated
+    } else {
+      CandidateUpdate::Unchanged
     }
-    changed
   }
 
   pub fn rebuild_chunks(&mut self) {

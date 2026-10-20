@@ -36,7 +36,9 @@ use crate::{
     is_default_module_type_filter,
   },
   min_size::remove_min_size_violating_modules,
-  module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries},
+  module_group::{
+    CandidateUpdate, IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries,
+  },
   options::{
     cache_group::CacheGroup,
     cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx},
@@ -1297,8 +1299,10 @@ impl SplitChunksPlugin {
         }
         let cache = other_module_group.get_cache_group(&self.cache_groups);
         if update_candidates {
-          if !other_module_group.update_candidate(placed_module_chunks, cache, module_sizes, duplicated_modules) {
-            return None;
+          match other_module_group.update_candidate(placed_module_chunks, cache, module_sizes, duplicated_modules) {
+            CandidateUpdate::Unchanged => return None,
+            CandidateUpdate::Discard => return Some(key.clone()),
+            CandidateUpdate::Updated => {},
           }
         } else {
           let original_module_count = other_module_group.modules.len();
