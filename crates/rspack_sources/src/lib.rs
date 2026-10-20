@@ -30,6 +30,7 @@ mod replace_source;
 mod source;
 mod source_content_lines;
 mod source_map_source;
+mod source_only_source;
 
 /// Feature for rspack persistent cache serialization/deserialization.
 #[cfg(feature = "rspack_cacheable")]
@@ -47,11 +48,13 @@ pub use source::{
   BoxSource, MapOptions, Mapping, OriginalLocation, Source, SourceExt, SourceMap, SourceValue,
 };
 pub use source_map_source::{SourceMapSource, SourceMapSourceOptions, WithoutOriginalOptions};
+pub use source_only_source::SourceOnlySource;
 
 /// Reexport `StreamChunks` related types.
 pub mod stream_chunks {
   pub use super::helpers::{
-    Chunks, GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks, TextSpan, stream_chunks_default,
+    Chunks, GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks, TextSpan,
+    stream_chunks_default, stream_chunks_of_raw_rope,
   };
 }
 

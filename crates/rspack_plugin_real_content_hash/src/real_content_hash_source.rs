@@ -1,0 +1,595 @@
+use std::{
+  borrow::Cow,
+  hash::{Hash, Hasher},
+  io::{self, Write},
+  sync::{Arc, OnceLock},
+};
+
+use aho_corasick::{AhoCorasick, Match};
+use rspack_core::rspack_sources::{
+  BoxSource, CachedSource, ConcatSource, MapOptions, MappingSource, OriginalSource,
+  RawBufferSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
+  SourceOnlySource, SourceValue,
+  stream_chunks::{
+    Chunks, GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks, stream_chunks_of_raw_rope,
+  },
+};
+use rspack_util::streaming_matcher::StreamingMatcher;
+
+/// A content-only view used by real content hashing and final asset emission.
+///
+/// Clones share the input and edits. The view is created after render/devtool cache
+/// entries have captured their inputs; it is not a persistent cache payload.
+#[derive(Clone)]
+pub struct RealContentHashSource(Arc<RealContentHashSourceData>);
+
+struct RealContentHashSourceData {
+  inner: RealContentHashInput,
+  replacements: Vec<(usize, usize, String)>,
+  // Previously, any rewritten ordinary source became a RawStringSource, even
+  // when all replacements happened to preserve their original hash strings.
+  normalized: bool,
+  size: OnceLock<usize>,
+}
+
+#[derive(Clone)]
+enum RealContentHashInput {
+  StreamingText(BoxSource),
+  Binary(BoxSource),
+  // No hash matched the materialized text, so retain only the original source.
+  // Its writer still must not be treated as the text view.
+  UnmatchedText(BoxSource),
+  // source() text can differ from writer bytes, e.g. for non-UTF-8 buffer
+  // children in ConcatSource. Scan/edit the text, but keep untouched output
+  // and source-map identity on the original source.
+  MaterializedText {
+    original: BoxSource,
+    text: BoxSource,
+  },
+}
+
+impl RealContentHashInput {
+  fn new(source: BoxSource) -> Self {
+    match content_kind(source.as_ref()) {
+      SourceContentKind::StreamingText => Self::StreamingText(source),
+      SourceContentKind::Binary => Self::Binary(source),
+      SourceContentKind::NeedsMaterialization => {
+        let text = match source.source() {
+          SourceValue::String(text) => Some(RawStringSource::from(text.into_owned()).boxed()),
+          SourceValue::Buffer(_) => None,
+        };
+        match text {
+          Some(text) => Self::MaterializedText {
+            original: source,
+            text,
+          },
+          None => Self::Binary(source),
+        }
+      }
+    }
+  }
+
+  fn original(&self) -> &BoxSource {
+    match self {
+      Self::StreamingText(source) | Self::Binary(source) | Self::UnmatchedText(source) => source,
+      Self::MaterializedText { original, .. } => original,
+    }
+  }
+
+  fn content(&self) -> &BoxSource {
+    match self {
+      Self::StreamingText(source) | Self::Binary(source) | Self::UnmatchedText(source) => source,
+      Self::MaterializedText { text, .. } => text,
+    }
+  }
+}
+
+impl RealContentHashSource {
+  /// Scan once before sharing the view, releasing unmatched text snapshots here.
+  pub(super) fn new(inner: BoxSource, matcher: &AhoCorasick) -> (Self, Vec<Match>, usize) {
+    let inner = RealContentHashInput::new(inner);
+    let input = inner.content();
+    let (matches, source_size) = if matches!(inner, RealContentHashInput::Binary(_)) {
+      (Vec::new(), input.size())
+    } else if let Some(bytes) = borrowed_bytes(input.as_ref()) {
+      (matcher.find_iter(bytes).collect(), bytes.len())
+    } else {
+      let mut matches = Vec::new();
+      let mut writer = StreamingMatcher::new(matcher, |found| matches.push(found));
+      input
+        .to_writer(&mut writer)
+        .expect("scan real content hash source");
+      let size = writer.finish();
+      (matches, size)
+    };
+    let size = match inner {
+      RealContentHashInput::StreamingText(_) | RealContentHashInput::Binary(_) => {
+        OnceLock::from(source_size)
+      }
+      _ => OnceLock::new(),
+    };
+    let inner = match inner {
+      RealContentHashInput::MaterializedText { original, .. } if matches.is_empty() => {
+        RealContentHashInput::UnmatchedText(original)
+      }
+      inner => inner,
+    };
+    let source = Self(Arc::new(RealContentHashSourceData {
+      inner,
+      replacements: Vec::new(),
+      normalized: false,
+      size,
+    }));
+    (source, matches, source_size)
+  }
+
+  fn is_text(&self) -> bool {
+    !matches!(self.0.inner, RealContentHashInput::Binary(_))
+  }
+
+  /// Whether byte streaming agrees with the source's UTF-8 text view.
+  pub fn can_stream_as_text(&self) -> bool {
+    self.is_text()
+      && (matches!(self.0.inner, RealContentHashInput::StreamingText(_)) || self.is_rewritten())
+  }
+
+  /// Create a result from the original scanned input, never from another result.
+  pub(super) fn with_replacements(
+    &self,
+    replacements: Vec<(usize, usize, String)>,
+    input_size: usize,
+    normalized: bool,
+  ) -> Self {
+    debug_assert!(!self.is_rewritten());
+    let mut end = 0;
+    let mut size = input_size;
+    for (start, stop, text) in &replacements {
+      assert!(end <= *start && start <= stop && *stop <= input_size);
+      size = size - (stop - start) + text.len();
+      end = *stop;
+    }
+    if !normalized && replacements.is_empty() {
+      return self.clone();
+    }
+    Self(Arc::new(RealContentHashSourceData {
+      inner: self.0.inner.clone(),
+      replacements,
+      normalized,
+      size: OnceLock::from(size),
+    }))
+  }
+
+  /// Unmodified assets keep their original source-map and cache identity.
+  pub(super) fn into_source(self) -> BoxSource {
+    if self.is_rewritten() {
+      self.boxed()
+    } else {
+      Arc::clone(self.0.inner.original())
+    }
+  }
+
+  pub(super) fn original_is_mapping(&self) -> bool {
+    let inner = self.0.inner.original().as_any();
+    inner.is::<MappingSource>()
+      || inner
+        .downcast_ref::<Self>()
+        .is_some_and(Self::original_is_mapping)
+  }
+
+  /// Preserve RCH's former RawStringSource normalization when deduplicating
+  /// adjacent assets, including devtool outputs that used to be flattened.
+  /// Other untouched non-raw sources retain structural equality.
+  pub(super) fn eq_for_hash(&self, other: &Self) -> bool {
+    let by_content = |s: &Self| {
+      s.is_rewritten()
+        || s.original_is_mapping()
+        || s.0.inner.original().as_any().is::<RawStringSource>()
+        || s.0.inner.original().as_any().is::<SourceOnlySource>()
+    };
+    match (by_content(self), by_content(other)) {
+      (true, true) => self.content_eq(other),
+      (false, false) => self.0.inner.original().as_ref() == other.0.inner.original().as_ref(),
+      _ => false,
+    }
+  }
+
+  fn content_eq(&self, other: &Self) -> bool {
+    if Arc::ptr_eq(&self.0, &other.0) {
+      return true;
+    }
+    if self.size() != other.size() {
+      return false;
+    }
+    let mut writer = CompareWriter {
+      chunks: self.byte_chunks(),
+      chunk: &[],
+    };
+    other.to_writer(&mut writer).is_ok() && writer.is_finished()
+  }
+
+  pub(super) fn update_content_hash(&self, hasher: &mut dyn Hasher) {
+    if self.0.replacements.is_empty()
+      && let Some(bytes) = borrowed_bytes(self.output_input().as_ref())
+    {
+      hasher.write(bytes);
+      return;
+    }
+    let mut writer = io::BufWriter::with_capacity(64 * 1024, HashWriter(hasher));
+    self
+      .to_writer(&mut writer)
+      .expect("hash real content hash source");
+    writer.flush().expect("flush real content hash source hash");
+  }
+
+  fn is_rewritten(&self) -> bool {
+    self.0.normalized || !self.0.replacements.is_empty()
+  }
+
+  fn output_input(&self) -> &BoxSource {
+    if self.is_rewritten() {
+      self.0.inner.content()
+    } else {
+      self.0.inner.original()
+    }
+  }
+
+  fn byte_chunks(&self) -> Box<dyn Iterator<Item = &[u8]> + '_> {
+    let chunks = source_chunks(self.output_input().as_ref());
+    if self.0.replacements.is_empty() {
+      chunks
+    } else {
+      Box::new(EditedChunks {
+        inner: chunks,
+        edits: ReplacementCursor::new(&self.0.replacements),
+        chunk: &[],
+      })
+    }
+  }
+}
+
+enum SourceContentKind {
+  StreamingText,
+  Binary,
+  // Inspect source() for unknown implementations and composite text whose
+  // byte writer differs from its lossy rope view.
+  NeedsMaterialization,
+}
+
+fn content_kind(source: &dyn Source) -> SourceContentKind {
+  let any = source.as_any();
+  if let Some(source) = any.downcast_ref::<SourceOnlySource>() {
+    return content_kind(source.inner().as_ref());
+  }
+  if any.is::<RawStringSource>()
+    || any.is::<OriginalSource>()
+    || any.is::<SourceMapSource>()
+    || any.is::<MappingSource>()
+  {
+    return SourceContentKind::StreamingText;
+  }
+  if any.is::<RawBufferSource>() {
+    return SourceContentKind::Binary;
+  }
+  if let Some(s) = any.downcast_ref::<RealContentHashSource>() {
+    return if !s.is_text() {
+      SourceContentKind::Binary
+    } else if s.can_stream_as_text() {
+      SourceContentKind::StreamingText
+    } else {
+      SourceContentKind::NeedsMaterialization
+    };
+  }
+  if let Some(s) = any.downcast_ref::<ConcatSource>() {
+    let children = s.children();
+    if children.len() == 1 {
+      return content_kind(children[0].as_ref());
+    }
+    return if children.iter().all(|s| utf8_writer(s.as_ref())) {
+      SourceContentKind::StreamingText
+    } else {
+      SourceContentKind::NeedsMaterialization
+    };
+  }
+  if let Some(s) = any.downcast_ref::<CachedSource>() {
+    if s.inner().as_any().is::<RawBufferSource>() {
+      return SourceContentKind::Binary;
+    }
+    return if utf8_writer(s.inner().as_ref()) {
+      SourceContentKind::StreamingText
+    } else {
+      SourceContentKind::NeedsMaterialization
+    };
+  }
+  if let Some(s) = any.downcast_ref::<ReplaceSource>() {
+    if s.replacements().is_empty() {
+      return content_kind(s.inner().as_ref());
+    }
+    return SourceContentKind::StreamingText;
+  }
+  SourceContentKind::NeedsMaterialization
+}
+
+fn utf8_writer(source: &dyn Source) -> bool {
+  if let Some(buffer) = source.as_any().downcast_ref::<RawBufferSource>() {
+    return std::str::from_utf8(&buffer.buffer()).is_ok();
+  }
+  if let Some(cached) = source.as_any().downcast_ref::<CachedSource>() {
+    return utf8_writer(cached.inner().as_ref());
+  }
+  matches!(content_kind(source), SourceContentKind::StreamingText)
+}
+
+fn borrowed_bytes(source: &dyn Source) -> Option<&[u8]> {
+  let any = source.as_any();
+  if let Some(source) = any.downcast_ref::<OriginalSource>() {
+    return Some(source.value().as_bytes());
+  }
+  if let Some(source) = any.downcast_ref::<SourceMapSource>() {
+    return Some(source.value().as_bytes());
+  }
+  if any.is::<RawStringSource>() || any.is::<RawBufferSource>() {
+    let Cow::Borrowed(bytes) = source.buffer() else {
+      unreachable!("raw sources borrow their bytes")
+    };
+    return Some(bytes);
+  }
+  None
+}
+
+fn source_chunks(source: &dyn Source) -> Box<dyn Iterator<Item = &[u8]> + '_> {
+  if let Some(source) = source.as_any().downcast_ref::<SourceOnlySource>() {
+    return source_chunks(source.inner().as_ref());
+  }
+  if let Some(source) = source.as_any().downcast_ref::<RealContentHashSource>() {
+    return source.byte_chunks();
+  }
+  if let Some(mapping) = source.as_any().downcast_ref::<MappingSource>() {
+    return Box::new(mapping.json_chunks_iter().map(str::as_bytes));
+  }
+  if let Some(bytes) = borrowed_bytes(source) {
+    return Box::new(std::iter::once(bytes));
+  }
+  if let Some(source) = source.as_any().downcast_ref::<CachedSource>() {
+    return source_chunks(source.inner().as_ref());
+  }
+  if let Some(concat) = source.as_any().downcast_ref::<ConcatSource>() {
+    return Box::new(
+      concat
+        .children()
+        .iter()
+        .flat_map(|s| source_chunks(s.as_ref())),
+    );
+  }
+  // rope() lends source-owned slices. Retain references rather than rendered
+  // bytes for ReplaceSource and existing/custom leaf implementations.
+  let mut chunks = Vec::new();
+  source.rope(&mut |chunk| chunks.push(chunk.as_bytes()));
+  Box::new(chunks.into_iter())
+}
+
+struct EditedChunks<'a> {
+  inner: Box<dyn Iterator<Item = &'a [u8]> + 'a>,
+  edits: ReplacementCursor<'a>,
+  chunk: &'a [u8],
+}
+
+impl<'a> Iterator for EditedChunks<'a> {
+  type Item = &'a [u8];
+
+  fn next(&mut self) -> Option<Self::Item> {
+    loop {
+      if let Some(chunk) = self.edits.next_chunk(&mut self.chunk) {
+        return Some(chunk);
+      }
+      self.chunk = self.inner.next()?;
+    }
+  }
+}
+
+/// One byte-edit cursor shared by borrowed chunks and writer output.
+struct ReplacementCursor<'a> {
+  replacements: &'a [(usize, usize, String)],
+  position: usize,
+  skip_until: usize,
+}
+
+impl<'a> ReplacementCursor<'a> {
+  fn new(replacements: &'a [(usize, usize, String)]) -> Self {
+    Self {
+      replacements,
+      position: 0,
+      skip_until: 0,
+    }
+  }
+
+  fn next_chunk<'b>(&mut self, bytes: &mut &'b [u8]) -> Option<&'b [u8]>
+  where
+    'a: 'b,
+  {
+    loop {
+      if self.position >= self.skip_until
+        && let Some((start, stop, text)) = self.replacements.first()
+        && *start == self.position
+      {
+        self.skip_until = *stop;
+        self.replacements = &self.replacements[1..];
+        return Some(text.as_bytes());
+      }
+      if bytes.is_empty() {
+        return None;
+      }
+      if self.position < self.skip_until {
+        let n = bytes.len().min(self.skip_until - self.position);
+        *bytes = &bytes[n..];
+        self.position += n;
+        continue;
+      }
+      let n = self
+        .replacements
+        .first()
+        .map_or(bytes.len(), |r| bytes.len().min(r.0 - self.position));
+      let (chunk, rest) = bytes.split_at(n);
+      *bytes = rest;
+      self.position += n;
+      return Some(chunk);
+    }
+  }
+}
+
+struct ReplacementWriter<'a> {
+  writer: &'a mut dyn Write,
+  edits: ReplacementCursor<'a>,
+}
+impl ReplacementWriter<'_> {
+  fn finish(mut self) -> io::Result<()> {
+    // An empty input may never call write(), including an insertion at EOF.
+    self.write(&[]).map(|_| ())
+  }
+}
+impl Write for ReplacementWriter<'_> {
+  fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+    let len = bytes.len();
+    let mut remaining = bytes;
+    while let Some(chunk) = self.edits.next_chunk(&mut remaining) {
+      self.writer.write_all(chunk)?;
+    }
+    Ok(len)
+  }
+  fn flush(&mut self) -> io::Result<()> {
+    self.writer.flush()
+  }
+}
+
+struct CompareWriter<'a> {
+  chunks: Box<dyn Iterator<Item = &'a [u8]> + 'a>,
+  chunk: &'a [u8],
+}
+impl CompareWriter<'_> {
+  fn is_finished(&mut self) -> bool {
+    self.chunk.is_empty() && self.chunks.all(|c| c.is_empty())
+  }
+}
+impl Write for CompareWriter<'_> {
+  fn write(&mut self, mut bytes: &[u8]) -> io::Result<usize> {
+    let len = bytes.len();
+    while !bytes.is_empty() {
+      while self.chunk.is_empty() {
+        self.chunk = self
+          .chunks
+          .next()
+          .ok_or_else(|| io::Error::other("source contents differ"))?;
+      }
+      let n = bytes.len().min(self.chunk.len());
+      if bytes[..n] != self.chunk[..n] {
+        return Err(io::Error::other("source contents differ"));
+      }
+      self.chunk = &self.chunk[n..];
+      bytes = &bytes[n..];
+    }
+    Ok(len)
+  }
+  fn flush(&mut self) -> io::Result<()> {
+    Ok(())
+  }
+}
+struct HashWriter<'a>(&'a mut dyn Hasher);
+impl Write for HashWriter<'_> {
+  fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+    self.0.write(bytes);
+    Ok(bytes.len())
+  }
+  fn flush(&mut self) -> io::Result<()> {
+    Ok(())
+  }
+}
+
+impl Source for RealContentHashSource {
+  fn source(&self) -> SourceValue<'_> {
+    if self.0.replacements.is_empty() {
+      return self.output_input().source();
+    }
+    SourceValue::String(Cow::Owned(
+      String::from_utf8(self.buffer().into_owned()).expect("RCH text must be UTF-8"),
+    ))
+  }
+  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
+    if self.0.replacements.is_empty() {
+      self.output_input().rope(on_chunk);
+      return;
+    }
+    for chunk in self.byte_chunks() {
+      on_chunk(std::str::from_utf8(chunk).expect("RCH edits preserve UTF-8 boundaries"));
+    }
+  }
+  fn buffer(&self) -> Cow<'_, [u8]> {
+    if self.0.replacements.is_empty() {
+      return self.output_input().buffer();
+    }
+    let mut bytes = Vec::with_capacity(self.size());
+    self
+      .to_writer(&mut bytes)
+      .expect("write real content hash source");
+    Cow::Owned(bytes)
+  }
+  fn size(&self) -> usize {
+    *self.0.size.get_or_init(|| self.output_input().size())
+  }
+  fn map(&self, _: &MapOptions) -> Option<SourceMap<'_>> {
+    None
+  }
+  fn map_static(self: Arc<Self>, _: &MapOptions) -> Option<SourceMap<'static>> {
+    None
+  }
+  fn to_writer(&self, writer: &mut dyn Write) -> io::Result<()> {
+    if self.0.replacements.is_empty() {
+      return self.output_input().to_writer(writer);
+    }
+    let mut writer = ReplacementWriter {
+      writer,
+      edits: ReplacementCursor::new(&self.0.replacements),
+    };
+    self.output_input().to_writer(&mut writer)?;
+    writer.finish()
+  }
+}
+struct RealContentHashChunks<'a>(&'a RealContentHashSource);
+impl<'source> Chunks<'source> for RealContentHashChunks<'source> {
+  fn stream<'chunk>(
+    &'chunk self,
+    options: &MapOptions,
+    on_chunk: OnChunk<'_, 'chunk>,
+    _on_source: OnSource<'_, 'source>,
+    _on_name: OnName<'_, 'source>,
+  ) -> GeneratedInfo {
+    stream_chunks_of_raw_rope(self.0, options, on_chunk)
+  }
+}
+impl StreamChunks for RealContentHashSource {
+  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
+    Box::new(RealContentHashChunks(self))
+  }
+}
+impl Hash for RealContentHashSource {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    "RealContentHashSource".hash(state);
+    self.0.inner.original().as_ref().hash(state);
+    self.0.replacements.hash(state);
+    self.0.normalized.hash(state);
+  }
+}
+impl PartialEq for RealContentHashSource {
+  fn eq(&self, other: &Self) -> bool {
+    Arc::ptr_eq(&self.0, &other.0)
+      || (self.0.inner.original().as_ref() == other.0.inner.original().as_ref()
+        && self.0.replacements == other.0.replacements
+        && self.0.normalized == other.0.normalized)
+  }
+}
+impl Eq for RealContentHashSource {}
+impl std::fmt::Debug for RealContentHashSource {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("RealContentHashSource")
+      .field("replacements", &self.0.replacements)
+      .finish_non_exhaustive()
+  }
+}

@@ -499,7 +499,7 @@ pub fn stream_chunks_of_raw_source<'chunk, 'source>(
 }
 
 /// Stream unmapped borrowed fragments without constructing a contiguous source.
-pub(crate) fn stream_chunks_of_raw_rope<'a>(
+pub fn stream_chunks_of_raw_rope<'a>(
   source: &'a dyn crate::Source,
   options: &MapOptions,
   on_chunk: OnChunk<'_, 'a>,
