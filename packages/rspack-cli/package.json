@@ -51,7 +51,7 @@
   },
   "peerDependencies": {
     "@rspack/core": "^2.3.0-0",
-    "@rspack/dev-server": "^2.3.0-0"
+    "@rspack/dev-server": "^2.0.0-0"
   },
   "peerDependenciesMeta": {
     "@rspack/dev-server": {
