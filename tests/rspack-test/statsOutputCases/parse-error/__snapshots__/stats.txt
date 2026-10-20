@@ -13,19 +13,4 @@ ERROR in ./b.js
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./b.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parse error: 'in' is reserved and cannot be used as an identifier
-          ╭─[8:0]
-        6 │ parser )
-        7 │ error
-        8 │ in
-          · ──
-        9 │ some
-       10 │ line
-          ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
-Rspack compiled with 2 errors
+Rspack compiled with 1 error

@@ -38,48 +38,5 @@ ERROR in ./app.ts
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./app.ts
-  × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expected '(' to start parameter list, but found '<'
-         ╭─[4:18]
-       2 │     createElement(elm: any) {}
-       3 │ };
-       4 │ function Component<T>() {
-         ·                   ─
-       5 │   return <div></div>
-       6 │ }
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
-ERROR in ./app.ts
-  × Module parse failed:
-  ╰─▶   × JavaScript parse error: Unexpected token '<'
-         ╭─[5:9]
-       3 │ };
-       4 │ function Component<T>() {
-       5 │   return <div></div>
-         ·          ─
-       6 │ }
-       7 │ export const App = () => <Component<any>></Component>;
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
-ERROR in ./app.ts
-  × Module parse failed:
-  ╰─▶   × JavaScript parse error: Unexpected token '<'
-         ╭─[7:25]
-       5 │   return <div></div>
-       6 │ }
-       7 │ export const App = () => <Component<any>></Component>;
-         ·                          ─
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
 ERROR in ./index.js 34:12-23
   × No parser registered for 'ts'

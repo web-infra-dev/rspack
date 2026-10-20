@@ -14,6 +14,8 @@ export type CustomPluginName = string;
 
 export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
+export const MODULE_BUILD_INFO_SYMBOL: unique symbol;
+
 export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
 
 export const BUILD_INFO_ASSETS_SYMBOL: unique symbol;
@@ -1020,6 +1022,8 @@ export interface JsLoaderItem {
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
+  codeFilter?: string | RegExp
+  filterMatched: boolean
   noPitch: boolean
 }
 
@@ -1976,6 +1980,7 @@ export interface RawCacheGroupOptions {
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
   enforceSizeThreshold?: number | RawSplitChunkSizes
+  minRemainingSize?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
@@ -2423,18 +2428,6 @@ export interface RawFallbackCacheGroupOptions {
   automaticNameDelimiter?: string
 }
 
-export interface RawFileSystemCacheOptions {
-  buildDependencies: Array<string>
-  cacheDirectory: string
-  cacheLocation: string
-  version: string
-  readonly: boolean
-  maxMemoryGenerations?: number
-  idleTimeout: number
-  idleTimeoutForInitialStore: number
-  idleTimeoutAfterLargeChanges: number
-}
-
 export interface RawFlagAllModulesAsUsedPluginOptions {
   explanation: string
 }
@@ -2832,6 +2825,7 @@ export interface RawModuleRuleUse {
   options?: string
   cache: boolean
   optionsCacheKey: string
+  codeFilter?: string | RegExp
 }
 
 export interface RawNewCache {
@@ -2890,7 +2884,7 @@ export interface RawOptions {
   module: RawModuleOptions
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent) | ({ type: "filesystem" } & RawFileSystemCacheOptions)
+  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   snapshot: RawSnapshotOptions
   experiments: RawExperiments
 incremental?: false | { [key: string]: boolean }
@@ -3230,6 +3224,7 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+  location: string
 }
 
 export interface RawSubresourceIntegrityPluginOptions {

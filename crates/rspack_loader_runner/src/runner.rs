@@ -7,13 +7,16 @@ use rspack_sources::SourceMap;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  LoaderExecutionKind, LoaderRunnerOptions, ParseMeta,
+  LoaderExecutionKind, LoaderFilter, LoaderRunnerOptions, ParseMeta,
   chain::LoaderChains,
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, LoaderDependencies, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
 };
+
+/// Normal-stage preconditions aligned with the loaders in the chain.
+pub type LoaderFilters = Box<[Option<Arc<LoaderFilter>>]>;
 
 impl<Context: Send> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
@@ -95,6 +98,17 @@ impl<Context: Send> LoaderContext<Context> {
 
     async {
       while cx.loader_index >= chain_start {
+        if cx.current_loader().normal_executed() {
+          cx.loader_index -= 1;
+          continue;
+        }
+
+        if cx.current_loader().should_skip_normal(cx.content.as_ref()) {
+          cx.current_loader().set_normal_executed();
+          cx.loader_index -= 1;
+          continue;
+        }
+
         let yield_span = info_span!("run_loader:yield_to_js", resource = cx.resource());
         if cx.start_yielding().instrument(yield_span).await? {
           continue;
@@ -199,25 +213,42 @@ fn create_loader_context<Context: Send>(
 pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
   loader_options: Option<Vec<LoaderRunnerOptions>>,
+  loader_filters: Option<LoaderFilters>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
-  let loaders = if let Some(loader_options) = loader_options {
+  if let Some(loader_options) = &loader_options {
     assert_eq!(
       loaders.len(),
       loader_options.len(),
       "loader options must stay aligned with loaders"
     );
-    loaders
-      .into_iter()
-      .zip(loader_options)
-      .map(|(loader, options)| LoaderItem::new(loader, options))
-      .collect::<Vec<LoaderItem<Context>>>()
-  } else {
-    loaders.into_iter().map(LoaderItem::from).collect()
-  };
+  }
+  if let Some(loader_filters) = &loader_filters {
+    assert_eq!(
+      loaders.len(),
+      loader_filters.len(),
+      "loader filters must stay aligned with loaders"
+    );
+  }
+  let mut loader_options = loader_options.map(Vec::into_iter);
+  let mut loader_filters = loader_filters.map(|filters| filters.into_vec().into_iter());
+  let loaders = loaders
+    .into_iter()
+    .map(|loader| {
+      let options = loader_options
+        .as_mut()
+        .map_or_else(LoaderRunnerOptions::default, |options| {
+          options
+            .next()
+            .expect("loader options must stay aligned with loaders")
+        });
+      let filter = loader_filters.as_mut().and_then(Iterator::next).flatten();
+      LoaderItem::new(loader, options, filter)
+    })
+    .collect::<Vec<LoaderItem<Context>>>();
   let mut cx = create_loader_context(loaders, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
   (LoaderResult::new(cx), result.err())
@@ -510,6 +541,7 @@ mod test {
       run_loaders(
         vec![p1, p2, c1, c2],
         None,
+        None,
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -530,6 +562,7 @@ mod test {
     assert!(
       run_loaders(
         vec![p1, p2, p3],
+        None,
         None,
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
@@ -605,6 +638,7 @@ mod test {
       run_loaders(
         vec![Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
         None,
+        None,
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -662,6 +696,7 @@ mod test {
     assert!(
       run_loaders(
         vec![Arc::new(Normal2), Arc::new(Normal)],
+        None,
         None,
         rs,
         Some(Arc::new(TestContentPlugin)),

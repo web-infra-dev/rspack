@@ -12,6 +12,11 @@ import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
 import { absolutify, contextify } from '../util/identifier';
 import { memoize } from '../util/memoize';
+import {
+  createCodeFilterTextCache,
+  invalidateCodeFilterTextCache,
+  matchesCodeFilter,
+} from './codeFilter';
 import loadLoader from './loadLoader';
 import {
   deserializeError,
@@ -524,15 +529,32 @@ async function loaderImpl(
       break;
     }
     case JsLoaderState.Normal: {
+      const codeFilterTextCache = createCodeFilterTextCache();
       while (loaderContext.loaderIndex >= loaderContext.loaderChainStart) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
 
-        if (shouldYieldToMainThread(currentLoaderObject)) break;
         if (currentLoaderObject.normalExecuted) {
           loaderContext.loaderIndex--;
           continue;
         }
+        const { loaderItem } = currentLoaderObject;
+        const codeFilter = loaderItem.codeFilter;
+        if (codeFilter && !loaderItem.filterMatched) {
+          const matched = matchesCodeFilter(
+            codeFilter,
+            args[0],
+            codeFilterTextCache,
+          );
+          if (matched === false) {
+            currentLoaderObject.normalExecuted = true;
+            loaderContext.loaderIndex--;
+            continue;
+          }
+          if (matched) loaderItem.filterMatched = true;
+        }
+
+        if (shouldYieldToMainThread(currentLoaderObject)) break;
 
         await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
         const fn = currentLoaderObject.normal;
@@ -540,6 +562,7 @@ async function loaderImpl(
         if (!fn) continue;
         convertArgs(args, !!currentLoaderObject.raw);
         args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+        invalidateCodeFilterTextCache(codeFilterTextCache);
       }
     }
   }
@@ -551,6 +574,7 @@ async function loaderImpl(
         data: item.loaderItem.data,
         normalExecuted: item.normalExecuted,
         pitchExecuted: item.pitchExecuted,
+        filterMatched: item.loaderItem.filterMatched,
       };
     }),
   );

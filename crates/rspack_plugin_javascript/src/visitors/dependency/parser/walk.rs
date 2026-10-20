@@ -39,7 +39,7 @@ impl JavascriptParser<'_> {
   pub(crate) fn in_semantic_scope<T>(&mut self, node: NodeId, f: impl FnOnce(&mut Self) -> T) -> T {
     let db = &mut self.definitions_db;
     let previous = db.semantic_context.scope;
-    if let Some(scope) = db.semantic.scope_for_node(&db.semantic_context, node) {
+    if let Some(scope) = self.ast.semantic.scope_of(node) {
       db.semantic_context.scope = scope;
     }
     let result = f(self);
@@ -1462,11 +1462,7 @@ impl JavascriptParser<'_> {
     self.in_semantic_scope(body.node_id(), |this| {
       // Only parameter expressions create a separate function-body environment.
       let db = &mut this.definitions_db;
-      if db
-        .semantic
-        .scope_for_node(&db.semantic_context, body.node_id())
-        .is_some()
-      {
+      if this.ast.semantic.scope_of(body.node_id()).is_some() {
         db.initialize_scope_bindings();
       }
       let ast = this.ast.ast;

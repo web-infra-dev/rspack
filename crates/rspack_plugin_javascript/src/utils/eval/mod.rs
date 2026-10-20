@@ -12,7 +12,6 @@ mod eval_unary_expr;
 use std::{borrow::Cow, fmt};
 
 use bitflags::bitflags;
-use cow_utils::CowUtils;
 use num_bigint::BigInt;
 use rspack_core::{DependencyId, DependencyRange};
 use swc_next_ecma_ast::{Expr, Span};
@@ -40,35 +39,6 @@ type Bigint = num_bigint::BigInt;
 // type Array<'a> = &'a ast::ArrayLit;
 type String = std::string::String;
 type Regexp = (String, String); // (expr, flags)
-
-/// Parse the source spelling stored by SWC Next for a JavaScript BigInt literal.
-///
-/// The AST keeps radix prefixes and numeric separators while omitting the trailing
-/// `n`, whereas `num_bigint::BigInt`'s `FromStr` implementation accepts decimal
-/// digits only. Decode the JavaScript spelling once and reuse it for evaluation
-/// and property-key normalization.
-pub(crate) fn parse_bigint_literal(raw: &str) -> Option<BigInt> {
-  let digits = raw.cow_replace('_', "");
-  let (digits, radix) = if let Some(digits) = digits
-    .strip_prefix("0x")
-    .or_else(|| digits.strip_prefix("0X"))
-  {
-    (digits, 16)
-  } else if let Some(digits) = digits
-    .strip_prefix("0o")
-    .or_else(|| digits.strip_prefix("0O"))
-  {
-    (digits, 8)
-  } else if let Some(digits) = digits
-    .strip_prefix("0b")
-    .or_else(|| digits.strip_prefix("0B"))
-  {
-    (digits, 2)
-  } else {
-    (digits.as_ref(), 10)
-  };
-  BigInt::parse_bytes(digits.as_bytes(), radix)
-}
 
 #[derive(Debug, Clone)]
 struct IdentifierData {
