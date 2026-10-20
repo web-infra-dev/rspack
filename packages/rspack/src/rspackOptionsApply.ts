@@ -48,6 +48,7 @@ import {
   HttpExternalsRspackPlugin,
   HttpUriPlugin,
   InferAsyncModulesPlugin,
+  ImportedByDeferModulesPlugin,
   InlineExportsPlugin,
   JavascriptModulesPlugin,
   JsonModulesPlugin,
@@ -260,6 +261,9 @@ export class RspackOptionsApply {
     }
 
     new InferAsyncModulesPlugin().apply(compiler);
+    if (options.experiments.deferImport) {
+      new ImportedByDeferModulesPlugin().apply(compiler);
+    }
     new APIPlugin().apply(compiler);
 
     new DataUriPlugin().apply(compiler);

@@ -11,6 +11,11 @@ import * as defaultFnExports from "./default-fn-export";
 import * as mutatedDefaultFnExports from "./mutated-default-fn-export";
 import * as renameAssignExports from "./rename-assign-export";
 import * as evalAliasExports from "./eval-alias-export";
+import * as eagerThenExports from "./deferred-then-export";
+import * as unrelatedValueExports from "./unrelated-value-export";
+// Keep a defer edge so deferred-then-export is recorded as a defer target.
+import defer * as _deferredThenExports from "./deferred-then-export";
+void _deferredThenExports;
 
 it("should bind const exports as readonly values", () => {
 	expectValueDescriptor(constExports, "literal", "literal");
@@ -79,6 +84,17 @@ it("should keep const exports in circular modules as getters", () => {
 it("should keep const default exports in circular modules as getters", () => {
 	expectGetterDescriptor(cyclicDefaultExports, "default");
 	expect(cyclicDefaultExports.readFromDefaultCycle()).toBe("cyclic-default");
+});
+
+it("should keep defer-target exports as getters when concatenateModules is disabled", () => {
+	expectGetterDescriptor(eagerThenExports, "then");
+	expectGetterDescriptor(eagerThenExports, "literal");
+	expect(eagerThenExports.then()).toBe("then");
+	expect(eagerThenExports.literal).toBe("deferred-literal");
+});
+
+it("should still bind unrelated exports as values when deferImport is enabled", () => {
+	expectValueDescriptor(unrelatedValueExports, "literal", "unrelated-literal");
 });
 
 function expectValueDescriptor(ns, key, value) {

@@ -608,6 +608,7 @@ export declare enum BuiltinPluginName {
   RuntimePlugin = 'RuntimePlugin',
   JsonModulesPlugin = 'JsonModulesPlugin',
   InferAsyncModulesPlugin = 'InferAsyncModulesPlugin',
+  ImportedByDeferModulesPlugin = 'ImportedByDeferModulesPlugin',
   JavascriptModulesPlugin = 'JavascriptModulesPlugin',
   AsyncWebAssemblyModulesPlugin = 'AsyncWebAssemblyModulesPlugin',
   AssetModulesPlugin = 'AssetModulesPlugin',

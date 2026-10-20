@@ -12,10 +12,10 @@ use rspack_collections::{
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, ConstDependency, Dependency,
   DependencyId, DependencyType, ExportInfoData, ExportMode, ExportProvided, ExportsInfoArtifact,
-  GetTargetResult, ImportPhase, ImportedByDeferModulesArtifact, LibIdentOptions, Logger,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphConnectionId,
-  ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin, ProvidedExports,
-  RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact, SourceType,
+  GetTargetResult, ImportPhase, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleGraphConnectionId, ModuleGraphModule, ModuleIdentifier,
+  OptimizationBailoutItem, Plugin, ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap,
+  SideEffectsStateArtifact, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -1047,23 +1047,6 @@ impl ModuleConcatenationPlugin {
 
   async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger("rspack.ModuleConcatenationPlugin");
-
-    if compilation.options.experiments.defer_import {
-      let mut imported_by_defer_modules_artifact = ImportedByDeferModulesArtifact::default();
-      let module_graph = compilation.get_module_graph();
-      for (_, dep) in module_graph.dependencies() {
-        if dep.get_phase().is_defer()
-          && matches!(
-            dep.dependency_type(),
-            DependencyType::EsmImport | DependencyType::EsmExportImport
-          )
-          && let Some(module) = module_graph.module_identifier_by_dependency_id(dep.id())
-        {
-          imported_by_defer_modules_artifact.insert(*module);
-        }
-      }
-      compilation.imported_by_defer_modules_artifact = imported_by_defer_modules_artifact.into();
-    }
 
     let mut relevant_modules = vec![];
     let mut possible_inners = IdentifierSet::default();
