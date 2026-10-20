@@ -85,7 +85,11 @@ impl PersistentCache {
       ),
       validation: CacheValidation::new(
         codec.clone(),
-        format!("{}|{}", rspack_pkg_version!(), option.version),
+        format!(
+          "{}|{}",
+          rspack_pkg_version!(),
+          option.validation_version(&compiler_options.context)
+        ),
         BuildDeps::new(
           &option.build_dependencies,
           input_filesystem,
