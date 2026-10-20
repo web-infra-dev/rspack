@@ -1,11 +1,14 @@
 [package]
-authors              = ["Meta"]
-description          = "Inspect Rspack object ownership and memory usage"
-edition.workspace    = true
-license              = "MIT OR Apache-2.0"
-name                 = "rspack-allocative"
-repository.workspace = true
-version.workspace    = true
+authors.workspace       = true
+categories.workspace    = true
+description             = "rspack allocative"
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack_allocative"
+repository.workspace    = true
+version.workspace       = true
 
 [lib]
 # Workspace regression cases live in rspack_allocative_testing.
