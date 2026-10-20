@@ -943,7 +943,7 @@ jsonpChunkLoadingGlobal.push = __rspack_jsonp.bind(null, jsonpChunkLoadingGlobal
 ### Status
 
 ```txt
-check => prepare => dispose => apply => idle
+check => prepare => ready => dispose => apply => idle
 ```
 
 

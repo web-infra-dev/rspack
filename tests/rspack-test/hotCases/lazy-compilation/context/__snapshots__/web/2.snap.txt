@@ -95,7 +95,7 @@ var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/load
 ### Status
 
 ```txt
-check => prepare => dispose => apply => idle
+check => prepare => ready => dispose => apply => idle
 ```
 
 
