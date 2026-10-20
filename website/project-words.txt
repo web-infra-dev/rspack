@@ -5,6 +5,8 @@ ahabhgk
 Akait
 alexander-akait
 alibaba
+allocative
+ALLOCATIVE
 analysable
 ansi
 antd
@@ -222,6 +224,7 @@ systemjs
 tailwind
 tailwindcss
 Terser
+threejs
 tiktok
 tokio
 Towhk
@@ -236,6 +239,7 @@ ulivz
 unaccessed
 Undelayed
 unplugin
+Ustr
 valorkin
 vant
 verkada

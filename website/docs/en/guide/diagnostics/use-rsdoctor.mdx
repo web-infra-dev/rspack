@@ -4,26 +4,26 @@ description: 'Use Rsdoctor to analyze Rspack build output and performance.'
 
 # Use Rsdoctor
 
-[Rsdoctor](https://rsdoctor.rs/) is a build analyzer tailored for the Rspack ecosystem.
+[Rsdoctor](https://rsdoctor.rs/) is a build analysis tool for the Rspack ecosystem. It visualizes the build process and output to help developers investigate build issues and identify performance bottlenecks. It also provides build data to agents for automated diagnosis and optimization of JavaScript programs.
 
-Rsdoctor is committed to being a one-stop, intelligent build analyzer that makes the build process transparent, predictable, and optimizable through visualization and smart analysis, helping development teams precisely identify bottlenecks, optimize performance, and improve engineering quality.
+## Requirements
 
-If you need to debug the build outputs or build process, you can use Rsdoctor for troubleshooting.
+Rsdoctor 2.0 requires Node.js `^20.19.0 || >=22.12.0` and Rspack 2.0 or later. If your project uses Rspack 1.x or webpack, use Rsdoctor 1.x instead.
 
 ## How to use
 
-In an Rspack project, you can enable Rsdoctor by following these steps:
-
-1. Install the `@rsdoctor/rspack-plugin` plugin:
+1. Install `@rsdoctor/core`:
 
 import { PackageManagerTabs } from '@theme';
 
-<PackageManagerTabs command="add @rsdoctor/rspack-plugin -D" />
+<PackageManagerTabs command="add @rsdoctor/core@latest -D" />
 
-2. Register the `RsdoctorRspackPlugin` plugin in the [plugins](/config/plugins) option of Rspack:
+To upgrade from Rsdoctor 1.x, see the [Rsdoctor 2.0 migration guide](https://rsdoctor.rs/guide/migration/migration-v2).
 
-```ts title="rspack.config.mjs"
-import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
+2. Register `RsdoctorRspackPlugin` in the Rspack [plugins](/config/plugins) option. Rsdoctor 2.0 packages are ESM-only, so use an ESM config and import:
+
+```js title="rspack.config.mjs"
+import { RsdoctorRspackPlugin } from '@rsdoctor/core';
 
 export default {
   plugins: [
@@ -36,32 +36,18 @@ export default {
 };
 ```
 
-3. Add the `RSDOCTOR=true` variable before the build command:
+3. Set `RSDOCTOR=true` when running Rspack:
 
 ```bash
-# dev
 RSDOCTOR=true rspack serve
-
-# build
 RSDOCTOR=true rspack build
 ```
 
-As Windows does not support the above usage, you can also use [cross-env](https://npmjs.com/package/cross-env) to set environment variables. This ensures compatibility across different systems:
+On Windows, use [cross-env](https://npmjs.com/package/cross-env) to set environment variables:
 
 ```bash
-# dev
 cross-env RSDOCTOR=true rspack serve
-
-# build
 cross-env RSDOCTOR=true rspack build
 ```
 
-Rsdoctor will open the build analysis page after the build is complete. For complete features, please refer to [Rsdoctor documentation](https://rsdoctor.rs/).
-
-## Configure Rsdoctor
-
-See the [Options](https://rsdoctor.rs/config/options/options) documentation of Rsdoctor to configure the options of the RsdoctorRspackPlugin.
-
-## More features
-
-See the [Rsdoctor features](https://rsdoctor.rs/guide/start/features) to learn about all the features of Rsdoctor.
+After the build, Rsdoctor opens the analysis page. See the [Rsdoctor 2.0 quick start](https://rsdoctor.rs/guide/start/quick-start) for more details.

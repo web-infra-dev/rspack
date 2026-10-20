@@ -749,7 +749,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         }
 
         let comment = to_normal_comment(prop.id.as_str());
-        let key = format!("{comment}{new_name}");
+        let key = format!("{comment}{}", json_stringify_str(new_name.as_str()));
         let content = if prop.shorthand {
           format!("{key}: {}", prop.id)
         } else {

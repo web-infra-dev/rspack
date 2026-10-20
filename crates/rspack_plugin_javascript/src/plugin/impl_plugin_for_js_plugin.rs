@@ -40,6 +40,7 @@ use crate::{
     RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
     URLContextDependencyTemplate, URLDependencyTemplate, WorkerDependencyTemplate,
     amd_define_dependency::AMDDefineDependencyTemplate,
+    amd_exports_dependency::AMDExportsDependencyTemplate,
     amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
     amd_require_dependency::AMDRequireDependencyTemplate,
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
@@ -411,6 +412,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ModuleArgumentDependencyTemplate::template_type(),
     Arc::new(ModuleArgumentDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    AMDExportsDependencyTemplate::template_type(),
+    Arc::new(AMDExportsDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     PureExpressionDependencyTemplate::template_type(),

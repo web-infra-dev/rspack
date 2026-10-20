@@ -36,7 +36,7 @@ use swc_next_ecma_ast::{
   ArrayPattern, AssignmentPattern, Ast, BindingIdentifier, BindingPattern, BindingPatternData,
   BindingRestElement, CallExpression, Decl, DeclData, Expr, ExprData, GetSpan, IdentifierReference,
   MemberExpression, MetaProperty, NodeId, ObjectPattern, Program, PropertyKey, PropertyKeyData,
-  Span, StmtData, ThisExpression,
+  SourceType, Span, ThisExpression,
 };
 
 use crate::{
@@ -81,9 +81,7 @@ pub(crate) fn member_property_to_atom(ast: &Ast<'_>, expr: Expr) -> Option<Atom>
     ExprData::NumericLiteral(node) => {
       Atom::from(rspack_util::ryu_js::Buffer::new().format(node.value(ast)))
     }
-    ExprData::BigIntLiteral(node) => {
-      Atom::from(eval::parse_bigint_literal(ast.get_utf8(node.raw(ast)))?.to_string())
-    }
+    ExprData::BigIntLiteral(node) => Atom::from(node.value(ast)?.to_string()),
     ExprData::RegExpLiteral(node) => {
       let pattern = ast.get_utf8(node.pattern(ast));
       let mut flags = ast.get_utf8(node.flags(ast)).chars().collect::<Vec<_>>();
@@ -1660,22 +1658,7 @@ impl<'parser> JavascriptParser<'parser> {
     if drive.program(self, program).is_none() {
       let ast = self.ast.ast;
       let body = program.body(ast);
-      // Match the legacy `Program::Module` traversal without treating an
-      // `import.meta`-only unambiguous parse as ESM. Do not set `self.is_esm`
-      // early: legacy parsing only flipped that state during pre-walk.
-      let is_esm_program = matches!(self.module_type, ModuleType::JsEsm)
-        || ast.nodes(body).any(|statement| {
-          matches!(
-            ast.stmt_data(statement),
-            StmtData::ImportDeclaration(_)
-              | StmtData::ExportNamedDeclaration(_)
-              | StmtData::ExportDefaultDeclaration(_)
-              | StmtData::ExportAllDeclaration(_)
-              | StmtData::TsExportAssignment(_)
-              | StmtData::TsNamespaceExportDeclaration(_)
-          )
-        });
-      if is_esm_program {
+      if matches!(ast.source_type(), SourceType::Module) {
         self.set_strict(true);
         self.prev_statement = None;
         self.module_pre_walk_module_items(body);
