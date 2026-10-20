@@ -2101,6 +2101,7 @@ fn create_split_chunks_plugin(
         priority: -(index as f64),
         min_size: SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], min_size),
         min_size_reduction: js_zero_sizes.clone(),
+        min_remaining_size: SplitChunkSizes::default(),
         enforce_size_threshold: SplitChunkSizes::default(),
         reuse_existing_chunk: false,
         min_chunks: 2,

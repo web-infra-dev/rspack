@@ -120,6 +120,9 @@ pub(crate) fn merge_loader_context(
       if from.pitch_executed {
         to.set_pitch_executed()
       }
+      if from.filter_matched {
+        to.set_filter_matched();
+      }
       to.set_data(from.data);
       // JS loader should always be considered as finished
       to.set_finish_called();

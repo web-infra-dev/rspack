@@ -173,8 +173,12 @@ fn plan_loader_chains<Context: Send>(loaders: &[LoaderItem<Context>]) -> LoaderC
     let root_chain_index = chains.len() as u8;
     if loaders[index].cache() {
       let mut end = index + 1;
-      while end < loaders.len() && loaders[end].cache() {
-        end += 1;
+      // A filtered loader needs its own cache boundary so its current input can
+      // be checked before looking up a cached normal-chain result.
+      if loaders[index].filter().is_none() {
+        while end < loaders.len() && loaders[end].cache() && loaders[end].filter().is_none() {
+          end += 1;
+        }
       }
       let range = index..end;
       chains.push(LoaderChain::cache(index as u8..end as u8));

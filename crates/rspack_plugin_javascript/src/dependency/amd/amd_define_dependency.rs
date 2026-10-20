@@ -69,6 +69,7 @@ impl Branch {
     &self,
     local_module_var: &Option<String>,
     named_module: &Option<Atom>,
+    module_argument: ModuleArgument,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let local_module_var = match local_module_var {
@@ -86,10 +87,10 @@ impl Branch {
 		__rspack_amd_exports !== undefined && ({module}.exports = __rspack_amd_exports))",
           require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
           exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
-          module = runtime_template.render_module_argument(ModuleArgument::Module),
+          module = runtime_template.render_module_argument(module_argument),
         )
       }
-      o if o == Branch::O => format!("!({}.exports = #)", runtime_template.render_module_argument(ModuleArgument::Module)),
+      o if o == Branch::O => format!("!({}.exports = #)", runtime_template.render_module_argument(module_argument)),
       o_f if o_f == (Branch::O | Branch::F) => {
         format!(
           "!(__rspack_amd_factory = (#),
@@ -99,22 +100,22 @@ impl Branch {
 		__rspack_amd_exports !== undefined && ({module}.exports = __rspack_amd_exports))",
           require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
           exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
-          module = runtime_template.render_module_argument(ModuleArgument::Module),
+          module = runtime_template.render_module_argument(module_argument),
         )
       }
       a_f if a_f == (Branch::A | Branch::F) => format!("!(__rspack_amd_deps = #, __rspack_amd_exports = (#).apply({exports}, __rspack_amd_deps),
 		__rspack_amd_exports !== undefined && ({module}.exports = __rspack_amd_exports))", 
         exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
-        module = runtime_template.render_module_argument(ModuleArgument::Module),
+        module = runtime_template.render_module_argument(module_argument),
       ),
-      a_o if a_o == (Branch::A | Branch::O) => format!("!(#, {}.exports = #)", runtime_template.render_module_argument(ModuleArgument::Module)),
+      a_o if a_o == (Branch::A | Branch::O) => format!("!(#, {}.exports = #)", runtime_template.render_module_argument(module_argument)),
       a_o_f if a_o_f == (Branch::A | Branch::O | Branch::F) => {
         format!("!(__rspack_amd_deps = #, __rspack_amd_factory = (#),
 		__rspack_amd_exports = (typeof __rspack_amd_factory === 'function' ?
 		(__rspack_amd_factory.apply({exports}, __rspack_amd_deps)) : __rspack_amd_factory),
 		__rspack_amd_exports !== undefined && ({module}.exports = __rspack_amd_exports))",
           exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
-          module = runtime_template.render_module_argument(ModuleArgument::Module),
+          module = runtime_template.render_module_argument(module_argument),
         )
       }
       l_f if l_f == (Branch::L | Branch::F) => {
@@ -274,9 +275,12 @@ impl DependencyTemplate for AMDDefineDependencyTemplate {
 
     let local_module_var = dep.local_module_var();
 
+    let module_argument = code_generatable_context.module.get_module_argument();
+
     let text = branch.get_content(
       &local_module_var,
       &dep.named_module,
+      module_argument,
       code_generatable_context.runtime_template,
     );
     let definition = branch.get_definition(&local_module_var);
