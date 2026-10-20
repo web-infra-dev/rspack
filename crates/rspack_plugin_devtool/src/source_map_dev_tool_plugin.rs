@@ -461,15 +461,11 @@ impl SourceMapDevToolPlugin {
       };
 
       if let Some(cached) = cached
-        && let Some((mut source_asset, source_map, asset_append)) = cached.restore(asset)
+        && let Some((source_asset, source_map, asset_append)) =
+          cached.restore(asset, !compilation.platform.is_node())
       {
         if let Some(counter) = cache_counter {
           counter.hit();
-        }
-        if !compilation.platform.is_node() {
-          source_asset.source = source_asset
-            .source
-            .map(|source| SourceOnlySource::new(source).boxed());
         }
         mapped_assets.push(MappedAsset {
           asset: (Arc::from(filename), source_asset),
@@ -541,14 +537,11 @@ impl SourceMapDevToolPlugin {
     let mut vanilla_assets = Vec::new();
 
     for (index, (filename, asset)) in compilation_assets.into_iter().enumerate() {
-      if let Some((mut source_asset, source_map, asset_append)) = cache.take(&filename, asset) {
+      if let Some((source_asset, source_map, asset_append)) =
+        cache.take(&filename, asset, !compilation.platform.is_node())
+      {
         if let Some(counter) = cache_counter {
           counter.hit();
-        }
-        if !compilation.platform.is_node() {
-          source_asset.source = source_asset
-            .source
-            .map(|source| SourceOnlySource::new(source).boxed());
         }
         mapped_assets.push(MappedAsset {
           asset: (Arc::from(filename), source_asset),

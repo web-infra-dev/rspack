@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsCacheable, AsOption, AsPreset, AsTuple2, AsVec},
 };
-use rspack_sources::{BoxSource, ConcatSource, SourceExt};
+use rspack_sources::{BoxSource, ConcatSource, SourceExt, SourceOnlySource};
 
 use crate::{AssetInfo, CompilationAsset};
 
@@ -51,12 +51,20 @@ impl CachedSourceMapDevToolPluginEntry {
   pub fn restore(
     &self,
     asset: &CompilationAsset,
+    source_only: bool,
   ) -> Option<(
     CompilationAsset,
     Option<(String, CompilationAsset)>,
     Vec<BoxSource>,
   )> {
     let source = asset.get_source()?.clone();
+    // Match Devtool's initial graph: suppress mappings on the generated code,
+    // then append the sourceMappingURL comment outside that boundary.
+    let source = if source_only {
+      SourceOnlySource::new(source).boxed()
+    } else {
+      source
+    };
     let source = if self.asset_append.is_empty() {
       source
     } else {
