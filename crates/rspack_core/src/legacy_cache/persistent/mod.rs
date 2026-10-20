@@ -34,6 +34,7 @@ const LOGGER_NAME: &str = "rspack.persistentCache";
 pub struct PersistentCache {
   /// Guards `initialize` from running more than once per compiler instance
   initialized: bool,
+  seed_message: Option<String>,
 
   ctx: CacheContext,
   validation: CacheValidation,
@@ -59,11 +60,13 @@ impl PersistentCache {
       compiler_path.hash(&mut hasher);
       CacheDirectory::new(hex::encode(hasher.finish().to_ne_bytes()))
     };
-    let storage = create_storage(
+    let logger = CompilationLogger::new(LOGGER_NAME.to_string(), compilation_logging);
+    let (storage, seed_message) = create_storage(
       option.storage.clone(),
       cache_directory,
       option.max_age,
       intermediate_filesystem,
+      option.seed_from.as_deref(),
     );
     let snapshot = Arc::new(Snapshot::new(
       compiler_options.snapshot.clone(),
@@ -74,11 +77,8 @@ impl PersistentCache {
 
     Self {
       initialized: false,
-      ctx: CacheContext::new(
-        storage,
-        option.readonly,
-        CompilationLogger::new(LOGGER_NAME.to_string(), compilation_logging),
-      ),
+      seed_message,
+      ctx: CacheContext::new(storage, option.readonly, logger),
       validation: CacheValidation::new(
         codec.clone(),
         // Portable entries use the `BoundEntry` envelope, so the two encodings must not share a cache.
@@ -116,6 +116,9 @@ impl Cache for PersistentCache {
   async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
     self.ctx.start_build();
     self.ctx.logger().info("persistent cache enabled");
+    if let Some(message) = self.seed_message.take() {
+      self.ctx.logger().info(message);
+    }
     self.initialize().await;
 
     if compilation.is_rebuild {

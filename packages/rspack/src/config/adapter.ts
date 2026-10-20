@@ -1,3 +1,4 @@
+import { findCacheSeed } from './portableCache';
 import path from 'node:path';
 import {
   type RawAssetGeneratorDataUrlFnCtx,
@@ -115,7 +116,7 @@ export const getRawOptions = (
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
-    cache: getRawCache(cache),
+    cache: getRawCache(cache, compiler),
     snapshot: getRawSnapshot(options.snapshot),
     experiments,
     incremental: mode === 'development' && options.incremental,
@@ -147,7 +148,10 @@ function getRawSnapshot(
   };
 }
 
-function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
+function getRawCache(
+  cache: CacheNormalized,
+  compiler: Compiler,
+): RawOptions['cache'] {
   if (cache === false) return false;
   if (cache.type === 'memory') {
     return {
@@ -185,6 +189,7 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
     },
     portableRoot:
       typeof cache.portable === 'object' ? cache.portable.root : undefined,
+    seedFrom: findCacheSeed(cache, compiler),
     readonly: cache.readonly,
   };
 }

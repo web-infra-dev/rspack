@@ -16,12 +16,14 @@ async-trait       = { workspace = true }
 cow-utils         = { workspace = true }
 futures           = { workspace = true }
 itertools         = { workspace = true }
+reflink-copy      = { workspace = true }
 rspack-allocative = { workspace = true, optional = true }
 rspack_error      = { workspace = true }
 rspack_fs         = { workspace = true }
 rspack_parallel   = { workspace = true }
 rspack_paths      = { workspace = true }
 rustc-hash        = { workspace = true }
+tempfile          = { workspace = true }
 tokio             = { workspace = true, features = ["time"] }
 
 [lints]
