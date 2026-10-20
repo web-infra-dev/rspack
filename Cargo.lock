@@ -4418,6 +4418,7 @@ dependencies = [
  "tracing",
  "triomphe",
  "unsize",
+ "url",
  "urlencoding",
  "ustr-fxhash",
  "winnow",

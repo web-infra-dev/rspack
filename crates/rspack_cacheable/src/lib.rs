@@ -36,6 +36,16 @@ pub fn from_bytes<T, C: CacheableContext>(_bytes: &[u8], _context: &C) -> Result
 
 #[cfg(not(feature = "noop"))]
 pub use serialize::to_bytes;
+#[cfg(not(feature = "noop"))]
+pub use serialize::to_bytes_with_binding;
+#[cfg(feature = "noop")]
+pub fn to_bytes_with_binding<T, C: CacheableContext>(
+  _value: &T,
+  _ctx: &C,
+) -> Result<(Vec<u8>, bool)> {
+  let _ = serialize::to_bytes_with_binding::<u8, C>;
+  panic!("Cannot use to_bytes_with_binding when noop feature is enabled")
+}
 #[cfg(feature = "noop")]
 pub fn to_bytes<T, C: CacheableContext>(_value: &T, _ctx: &C) -> Result<Vec<u8>> {
   let _ = serialize::to_bytes::<u8, C>;
