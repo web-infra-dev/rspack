@@ -1,12 +1,11 @@
 [package]
-authors           = ["Meta"]
-description       = "Ownership adapters and active enum variant selection for Rspack allocative"
-edition.workspace = true
-license           = "MIT OR Apache-2.0"
-name              = "rspack-allocative_derive"
-publish           = false
-repository        = "https://github.com/facebookexperimental/allocative"
-version           = "0.3.3"
+authors              = ["Meta"]
+description          = "Ownership adapters and active enum variant selection for Rspack allocative"
+edition.workspace    = true
+license              = "MIT OR Apache-2.0"
+name                 = "rspack-allocative_derive"
+repository.workspace = true
+version.workspace    = true
 
 [lib]
 doctest    = false

@@ -3976,7 +3976,7 @@ dependencies = [
 
 [[package]]
 name = "rspack-allocative"
-version = "0.3.5"
+version = "0.102.9"
 dependencies = [
  "arc-swap",
  "atomic_refcell",
@@ -4010,7 +4010,7 @@ dependencies = [
 
 [[package]]
 name = "rspack-allocative_derive"
-version = "0.3.3"
+version = "0.102.9"
 dependencies = [
  "cow-utils",
  "proc-macro2",
