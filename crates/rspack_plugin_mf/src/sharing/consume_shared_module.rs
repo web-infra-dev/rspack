@@ -19,7 +19,7 @@ use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
-use crate::{ConsumeOptions, ConsumeVersion, ShareScope, utils::module_identifier_namespace};
+use crate::{ConsumeOptions, ShareScope, utils::module_identifier_namespace};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -58,22 +58,7 @@ impl ConsumeSharedModule {
   pub fn new(context: Context, options: ConsumeOptions, runtime_mode: RuntimeMode) -> Self {
     let scopes_key = options.share_scope.key();
     let namespace = module_identifier_namespace(runtime_mode);
-    let required_version = match &options.required_version {
-      Some(ConsumeVersion::Version(version)) => version.as_str(),
-      Some(ConsumeVersion::False) => "false",
-      None => "undefined",
-    };
     let identifier = format!(
-      "consume-shared-module|{}|{}|{}|{}|{}|{}|{}",
-      &scopes_key,
-      &options.share_key,
-      required_version,
-      options.strict_version,
-      options.import_resolved.as_deref().unwrap_or("undefined"),
-      options.singleton,
-      options.eager,
-    );
-    let readable_identifier = format!(
       "consume shared module ({}) {}@{}{}{}{}{}",
       &scopes_key,
       &options.share_key,
@@ -87,7 +72,7 @@ impl ConsumeSharedModule {
         Default::default()
       },
       if options.singleton {
-        " (singleton)"
+        " (strict)"
       } else {
         Default::default()
       },
@@ -115,7 +100,7 @@ impl ConsumeSharedModule {
           .map(|r| format!("/{r}"))
           .unwrap_or_default()
       ),
-      readable_identifier,
+      readable_identifier: identifier,
       context,
       options,
       configured_share_key: None,
