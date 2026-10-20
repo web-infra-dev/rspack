@@ -86,10 +86,6 @@ To enable lazy compilation for only one group, use an object and configure [`ent
 
 To narrow the scope further, use [`test`](#test) to filter modules. It accepts a regular expression or a function that receives a `Module` and returns a `boolean`.
 
-When lazy compilation is enabled, consuming an export defined locally in a barrel module (including a local default export) also builds that barrel's deferred reexport dependencies. This prepares the barrel before it executes, preventing later lazy activation from adding reexports to an already loaded module and triggering a full reload. Consuming only forwarded exports continues to build their dependencies on demand. This can build more dependencies upfront for barrels that mix local exports and reexports.
-
-Local default exports are treated like other local exports. When lazy compilation is disabled, importing a local default does not activate unrelated `export *` dependencies in a side-effect-free barrel.
-
 ## Options
 
 ### entries
