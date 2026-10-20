@@ -46,7 +46,7 @@ catalog:
   '@rspress/plugin-client-redirects': '2.1.0-beta.1'
   '@rspress/plugin-rss': '2.1.0-beta.1'
   '@rstackjs/doc-ui': '1.14.11'
-  '@rstackjs/create-toolkit': '2.2.7'
+  '@rstackjs/create-toolkit': '2.2.11'
   '@rstackjs/load-config': '^1.0.2'
   '@rstest/core': '0.12.3'
   '@rstest/playwright': '0.12.3'
