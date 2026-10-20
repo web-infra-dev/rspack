@@ -231,6 +231,10 @@ Enable portable cache mode. When enabled, the generated cache content can be sha
 
 Portable cache is built on top of persistent cache and makes the cache platform-independent by converting platform-specific data (e.g., absolute paths to relative paths) during serialization and deserialization.
 
+In the legacy cache backend, entries that still depend on the writer's project root are rebuilt when the root changes. This includes `import.meta.url`, loader output containing absolute project paths, and references outside the project root. Unchanged builds at the same root can still reuse these entries.
+
+Loaders that derive output from a path without including that path in the output (for example, a hash of `this.resourcePath`) should call `this.cacheable(false)` or use an appropriate `cache.version`.
+
 **Example:**
 
 ```js title="rspack.config.mjs"
