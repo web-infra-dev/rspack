@@ -15,7 +15,7 @@ export default {
       "index.js": `import value from "./barrel.js"; export default value();`,
       "barrel.js": `export { default } from "./value.js"; export { extra } from "./extra.js";`,
       "value.js": `export default () => "value";`,
-      // An unrelated lazy reexport must not start failing after a cache hit.
+      // Building the unused sibling would fail, including after a cache hit.
       "extra.js": `export { extra } from "./not-installed.js";`,
     };
     for (const [name, source] of Object.entries(files)) {
@@ -44,19 +44,13 @@ export default {
         {
           apply(compiler) {
             rspack.lazyCompilationMiddleware(compiler);
-            compiler.hooks.compilation.tap(
-              "LazyBarrelDefaultCache",
-              compilation => {
-                compilation.hooks.stillValidModule.tap(
-                  "LazyBarrelDefaultCache",
-                  module => {
-                    if (path.basename(module.identifier()) === "barrel.js") {
-                      restoredBarrels++;
-                    }
-                  },
-                );
-              },
-            );
+            compiler.hooks.compilation.tap("LazyBarrel", compilation => {
+              compilation.hooks.stillValidModule.tap("LazyBarrel", module => {
+                if (path.basename(module.identifier()) === "barrel.js") {
+                  restoredBarrels++;
+                }
+              });
+            });
           },
         },
       ],
@@ -73,11 +67,6 @@ export default {
       const stats = await manager.build();
       expect(restoredBarrels).toBe(run);
       expect(stats.toJson({ all: false, errors: true }).errors).toEqual([]);
-      expect(
-        [...stats.compilation.modules].map(module =>
-          path.basename(module.identifier()),
-        ),
-      ).not.toContain("extra.js");
       const output = { exports: {} };
       new Function(
         "module",

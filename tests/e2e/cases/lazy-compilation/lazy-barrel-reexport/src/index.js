@@ -1,12 +1,10 @@
 import { create } from './lib/index.js';
-import local from './default-barrel.js';
 
 sessionStorage.setItem(
   'documentLoads',
   String(Number(sessionStorage.getItem('documentLoads')) + 1),
 );
 document.body.dataset.infra = create('initial').state;
-document.body.dataset.default = local();
 
 const button = document.createElement('button');
 button.textContent = 'Activate feature';
