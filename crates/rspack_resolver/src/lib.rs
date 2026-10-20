@@ -967,13 +967,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     if cached_path.path().file_name() == Some("node_modules")
       && specifier == package_name
       && !self.options.resolve_to_context
-      && !file_cached.path().extension().is_some_and(|extension| {
-        self
-          .options
-          .extension_alias
-          .iter()
-          .any(|(alias, _)| alias.trim_start_matches('.') == extension)
-      })
+      && !self.matches_extension_alias(file_cached.path())
       && file_cached.is_dir(&self.cache.fs, ctx).await
     {
       if self.options.enforce_extension.is_disabled() {
@@ -981,21 +975,14 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           return Ok(Some(path));
         }
       }
-      let file_dependencies = ctx.file_dependencies.take();
-      let missing_dependencies = ctx.missing_dependencies.take();
-      let mut directory_ctx = ctx.clone();
-      directory_ctx.file_dependencies = file_dependencies;
-      directory_ctx.missing_dependencies = missing_dependencies;
-      let result = self
-        .load_as_directory(&file_cached, &mut directory_ctx)
-        .await;
-      if let Ok(Some(path)) = result {
-        *ctx = directory_ctx;
+      // Failed directory resolution can mutate query, fragment, and alias state.
+      // Keep its dependencies without leaking those changes into file resolution.
+      if let Some(path) = ctx
+        .trace_dependencies_only(async |ctx| self.load_as_directory(&file_cached, ctx).await)
+        .await?
+      {
         return Ok(Some(path));
       }
-      ctx.file_dependencies = directory_ctx.file_dependencies.take();
-      ctx.missing_dependencies = directory_ctx.missing_dependencies.take();
-      result?;
     }
     self
       .load_as_file_or_directory(&file_cached, specifier, ctx)
@@ -1447,6 +1434,16 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       };
     }
     Ok(None)
+  }
+
+  fn matches_extension_alias(&self, path: &Utf8Path) -> bool {
+    path.extension().is_some_and(|extension| {
+      self
+        .options
+        .extension_alias
+        .iter()
+        .any(|(alias, _)| alias.trim_start_matches('.') == extension)
+    })
   }
 
   /// Given an extension alias map `{".js": [".ts", ".js"]}`,
