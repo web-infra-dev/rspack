@@ -11,6 +11,28 @@ it("should mangle export when destructuring module", () => {
 	expect(objCanMangle).toBe(true)
 });
 
+it("should mangle computed destructuring keys with comments and defaults", () => {
+	const {
+		[ /* before */ "a" + "aa" /* after */ ]: value = "fallback",
+		[
+			// before
+			"default"
+			// after
+		]: defaultValue
+	} = module;
+	expect(value).toBe("aaa");
+	expect(defaultValue).toBe("default");
+	expect(module.aaaCanMangle).toBe(true);
+	expect(module.defaultCanMangle).toBe(true);
+});
+
+it("should mangle nested computed keys in destructuring assignments", () => {
+	let value;
+	({ ["o" + "bj"]: { ["a"]: value } } = module);
+	expect(value).toBe("a");
+	expect(module.objCanMangle).toBe(true);
+});
+
 it("should mangle export when destructuring module's property", () => {
 	const { a, b } = module.obj2
 	const { obj2CanMangle } = module

@@ -149,10 +149,6 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       runtime_template,
       ..
     } = code_generatable_context;
-    let module_graph = compilation.get_module_graph();
-    let module = module_graph
-      .module_by_identifier(&module.identifier())
-      .expect("should have mgm");
 
     let used = if !dep.names.is_empty() {
       let exports_info = compilation

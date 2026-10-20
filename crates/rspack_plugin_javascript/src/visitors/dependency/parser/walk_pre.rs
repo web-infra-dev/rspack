@@ -6,9 +6,7 @@ use swc_next_ecma_ast::*;
 
 use super::{DestructuringAssignmentProperty, JavascriptParser, PatRef};
 use crate::{
-  Atom,
-  parser_plugin::JavascriptParserPlugin,
-  utils::eval::{BasicEvaluatedExpression, parse_bigint_literal},
+  Atom, parser_plugin::JavascriptParserPlugin, utils::eval::BasicEvaluatedExpression,
   visitors::DestructuringAssignmentProperties,
 };
 
@@ -25,7 +23,7 @@ fn eval_property_key<'parser>(
     }
     PropertyKeyValue::NumericLiteral(number) => evaluated.set_number(number.value(ast)),
     PropertyKeyValue::BigIntLiteral(bigint) => {
-      if let Some(value) = parse_bigint_literal(ast.get_utf8(bigint.raw(ast))) {
+      if let Some(value) = bigint.value(ast) {
         evaluated.set_bigint(value);
       }
     }
@@ -38,57 +36,6 @@ fn eval_property_key<'parser>(
     PropertyKeyValue::OtherExpr(expression) => return parser.evaluate_expression(expression),
   }
   evaluated
-}
-
-fn is_ecmascript_whitespace_or_line_terminator(character: char) -> bool {
-  character.is_whitespace() || character == '\u{feff}'
-}
-
-fn is_ecmascript_line_terminator(character: char) -> bool {
-  matches!(character, '\n' | '\r' | '\u{2028}' | '\u{2029}')
-}
-
-fn skip_js_trivia(source: &str, mut offset: usize, end: usize) -> usize {
-  let bytes = source.as_bytes();
-  while offset < end {
-    let Some(character) = source
-      .get(offset..end)
-      .and_then(|remaining| remaining.chars().next())
-    else {
-      break;
-    };
-    if is_ecmascript_whitespace_or_line_terminator(character) {
-      offset += character.len_utf8();
-      continue;
-    }
-    if offset + 1 < end && bytes[offset] == b'/' && bytes[offset + 1] == b'/' {
-      offset += 2;
-      while offset < end {
-        let Some(character) = source
-          .get(offset..end)
-          .and_then(|remaining| remaining.chars().next())
-        else {
-          offset = end;
-          break;
-        };
-        if is_ecmascript_line_terminator(character) {
-          break;
-        }
-        offset += character.len_utf8();
-      }
-      continue;
-    }
-    if offset + 1 < end && bytes[offset] == b'/' && bytes[offset + 1] == b'*' {
-      offset += 2;
-      while offset + 1 < end && !(bytes[offset] == b'*' && bytes[offset + 1] == b'/') {
-        offset += 1;
-      }
-      offset = (offset + 2).min(end);
-      continue;
-    }
-    break;
-  }
-  offset
 }
 
 impl JavascriptParser<'_> {
@@ -282,39 +229,9 @@ impl JavascriptParser<'_> {
         let evaluated = eval_property_key(self, key);
         (Atom::from(evaluated.as_string()?), false)
       };
-      let key_span = key.span(ast);
-      let range = if property.computed(ast) {
-        // SWC Next stores a computed PropertyKey span for the expression
-        // inside `[...]`, while the legacy AST span included the brackets.
-        // The export-mangling template replaces the key with an identifier,
-        // so include the brackets to avoid emitting `[mangledName]` (a runtime
-        // variable lookup) instead of `mangledName` (a property key).
-        let property_span = property.span(ast);
-        let source = self.source();
-        let source_bytes = source.as_bytes();
-        let property_start = property_span.real_lo() as usize;
-        let property_end = property_span.real_hi() as usize;
-        let key_start = key_span.real_lo() as usize;
-        let key_end = key_span.real_hi() as usize;
-        let opening_bracket = skip_js_trivia(source, property_start, key_start);
-        let closing_bracket = skip_js_trivia(source, key_end, property_end);
-        let start = if source_bytes.get(opening_bracket) == Some(&b'[') {
-          opening_bracket
-        } else {
-          key_start
-        };
-        let end = if source_bytes.get(closing_bracket) == Some(&b']') {
-          closing_bracket + 1
-        } else {
-          key_end
-        };
-        (start as u32, end as u32).into()
-      } else {
-        key_span.into()
-      };
       keys.insert(DestructuringAssignmentProperty {
         id,
-        range,
+        range: key.span(ast).into(),
         pattern: self.collect_destructuring_assignment_properties(value),
         shorthand,
       });

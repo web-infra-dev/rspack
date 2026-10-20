@@ -14,7 +14,7 @@ use rspack_core::{
   runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_util::placeholder::PlaceholderFinder;
+use rspack_util::{identifier::make_paths_relative, placeholder::PlaceholderFinder};
 
 pub use crate::runtime_context::{
   render_hot_update_chunk_runtime_modules as render_rspack_hot_update_chunk_runtime_modules,
@@ -101,7 +101,9 @@ pub async fn render_chunk_modules(
     return Ok(None);
   }
 
-  module_code_array.sort_unstable_by_key(|(module_identifier, _, _)| *module_identifier);
+  module_code_array.sort_by_cached_key(|(module_identifier, _, _)| {
+    make_paths_relative(&compilation.options.context, module_identifier.as_str())
+  });
 
   let mut chunk_init_fragments = ChunkInitFragments::default();
   let mut module_sources = Vec::with_capacity(module_code_array.len());

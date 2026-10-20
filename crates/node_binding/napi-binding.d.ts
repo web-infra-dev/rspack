@@ -14,6 +14,8 @@ export type CustomPluginName = string;
 
 export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
+export const MODULE_BUILD_INFO_SYMBOL: unique symbol;
+
 export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
 
 export const BUILD_INFO_ASSETS_SYMBOL: unique symbol;
@@ -1020,6 +1022,8 @@ export interface JsLoaderItem {
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
+  codeFilter?: string | RegExp
+  filterMatched: boolean
   noPitch: boolean
 }
 
@@ -2832,6 +2836,7 @@ export interface RawModuleRuleUse {
   options?: string
   cache: boolean
   optionsCacheKey: string
+  codeFilter?: string | RegExp
 }
 
 export interface RawNewCache {

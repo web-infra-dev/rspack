@@ -403,7 +403,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       let module_type = module.module_type();
-      let identifier = module_identifier.to_string();
+      let identifier = module.readable_identifier(&compilation.options.context);
 
       if matches!(module_type, ModuleType::Remote) {
         remote_module_ids.push(module_identifier);
