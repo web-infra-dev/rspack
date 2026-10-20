@@ -177,12 +177,14 @@ impl RealContentHashSource {
   }
 
   /// Preserve RCH's former RawStringSource normalization when deduplicating
-  /// adjacent assets. Untouched non-raw sources retain structural equality.
+  /// adjacent assets, including devtool outputs that used to be flattened.
+  /// Other untouched non-raw sources retain structural equality.
   pub(super) fn eq_for_hash(&self, other: &Self) -> bool {
     let by_content = |s: &Self| {
       s.is_rewritten()
         || s.original_is_mapping()
         || s.0.inner.original().as_any().is::<RawStringSource>()
+        || s.0.inner.original().as_any().is::<SourceOnlySource>()
     };
     match (by_content(self), by_content(other)) {
       (true, true) => self.content_eq(other),
