@@ -70,6 +70,7 @@ pub fn get_url_request(
     };
     let arg2 = arg2.as_member_expression(ast)?;
     if is_meta_url(parser, arg2) {
+      parser.build_info.root_sensitive = true;
       return parser
         .evaluate_expression(arg1)
         .as_string()
@@ -79,6 +80,7 @@ pub fn get_url_request(
     // new URL(import.meta.url)
     let arg1 = arg1.as_member_expression(ast)?;
     if is_meta_url(parser, arg1) {
+      parser.build_info.root_sensitive = true;
       return Some((
         Url::from_file_path(parser.resource_data.resource())
           .expect("should be a path")

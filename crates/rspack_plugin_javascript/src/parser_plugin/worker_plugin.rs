@@ -278,6 +278,7 @@ fn handle_worker(
     } else {
       return None;
     };
+    parser.build_info.root_sensitive = true;
     let mut options = ast
       .second(args)
       // new Worker(new URL("worker.js"), options)
