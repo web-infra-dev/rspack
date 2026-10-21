@@ -106,6 +106,7 @@ struct EventProcessor {
   path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
   tx: UnboundedSender<EventBatch>,
+  analyzer: Arc<RecommendedAnalyzer>,
 }
 
 /// `Trigger` is responsible for sending file system events to the event channel
@@ -134,7 +135,12 @@ impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<EventBatch>) -> Self {
     let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
-    let processor = EventProcessor { path_manager, tx };
+    let analyzer = Arc::default();
+    let processor = EventProcessor {
+      path_manager,
+      tx,
+      analyzer: Arc::clone(&analyzer),
+    };
 
     // One event at a time, in arrival order: the JS `ignored` predicate is
     // awaited, not blocked on, and the next event is not started until the
@@ -157,10 +163,7 @@ impl Trigger {
       })
       .expect("spawn watcher event filter thread");
 
-    Self {
-      pending,
-      analyzer: Arc::default(),
-    }
+    Self { pending, analyzer }
   }
 
   /// Hands a raw event to the filter thread. Never blocks — this runs straight
@@ -298,6 +301,7 @@ impl EventProcessor {
         && std::fs::symlink_metadata(&*associated).is_err()
       {
         *associated_kind = FsEventKind::Remove;
+        self.analyzer.invalidate_path(associated);
         let may_contain_records = self.path_manager.may_contain_records(associated);
         self.path_manager.remove_file_time(associated);
         if may_contain_records {

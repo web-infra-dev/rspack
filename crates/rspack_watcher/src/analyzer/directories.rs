@@ -48,8 +48,9 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
       |path: &InternedPath| subscriptions.iter().any(|(all, _, _)| all.contains(path));
     let mut dirty = InternedPathSet::default();
     for (_, added, removed) in subscriptions {
-      for path in added.iter().chain(removed.iter()) {
-        if is_registered(&path) != state.paths.contains_key(&*path) {
+      dirty.extend(added.iter().map(|path| path.clone()));
+      for path in removed.iter() {
+        if !is_registered(&path) && state.paths.contains_key(&*path) {
           dirty.insert(path.clone());
         }
       }
