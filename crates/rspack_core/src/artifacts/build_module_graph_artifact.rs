@@ -279,6 +279,7 @@ impl ArtifactExt for BuildModuleGraphArtifact {
     if incremental.mutations_readable(Self::PASS) {
       std::mem::swap(new, old);
       new.get_module_graph_mut().reset();
+      new.built_modules_for_stats = None;
       new.side_effects_state_artifact = Default::default();
     }
   }

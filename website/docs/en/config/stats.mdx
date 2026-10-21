@@ -78,34 +78,15 @@ Sets the [preset](/config/stats#stats-presets) for the type of information that 
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-Set `stats: { cacheInfo: true }` before creating the compiler to count module builds. Read the report with `stats.toJson({ all: false, cacheInfo: true }).cacheInfo`. Requesting JSON stats after the build, or using `stats.all` or the `verbose` preset alone, leaves the count unavailable.
+Set `stats: { cacheInfo: true }` before creating the compiler to measure module builds. Read `stats.toJson({ all: false, cacheInfo: true }).cacheInfo` after compiling. Using `stats.all` or the `verbose` preset alone leaves module counts unavailable.
 
-#### Module build reuse
+- `moduleBuilds` reports `{ reused, total }` for distinct modules in the main graph after `finishModules`, including externals and modules ineligible for caching. Runtime modules and separate module-execution graphs fall outside this count. `reused` counts modules whose build step never ran, whether restored from memory or disk. Editing one dependency in a two-module graph can yield `{ reused: 1, total: 2 }`. Incremental rebuilds, late graph changes, and builds without persistent module caching return `null`.
+- `mode` is `disabled`, `memory`, or `persistent`. In persistent mode, `persistent` reports recovery errors from this compilation and the legacy cache’s first validation result. The filesystem backend also reports `persistentSessionInitialization` when it opens a shared cache. Later compilations can still report the session’s initial `cold` result. A field that does not apply is `null`.
+- `counters` lists `{ logger, label, hit, total }` for each cache event, including repeated labels. Each logger defines its unit, such as resolver requests or module-runtime pairs for code generation.
 
-`moduleBuilds.total` counts distinct modules in the main graph after `finishModules`, before sealing and optimization. It includes externals and modules ineligible for caching. Runtime modules and separate module-execution graphs fall outside the count.
+Validation reports `cold` for missing metadata, `valid` for matching metadata, `invalidated` for a changed `version` or `buildDependencies`, `error` for failed validation or `recovery`, and `unknown` when no result is available. `reason` is `null` unless Rspack identifies the cause.
 
-`moduleBuilds.reused` counts those modules whose build step never ran during this compilation. Results can come from memory or disk. If an entry imports one dependency and you edit that dependency, `{ reused: 1, total: 2 }` means Rspack reused the entry's build. A module built and later restored in the same compilation counts as built once.
-
-`moduleBuilds` is `null` when Rspack cannot measure reuse, including incremental rebuilds, builds without persistent module caching, and changes to the graph after `finishModules`.
-
-#### Persistent cache validation
-
-`mode` is `disabled`, `memory`, or `persistent`. In persistent mode, two fields describe validation at different points:
-
-- `persistent` reports `error` with reason `recovery` when this compilation encounters a cache read error. The legacy backend also reports validation on the compiler's first build. Without either result, the status is `unknown`. Outside persistent mode, the field is `null`.
-- `persistentSessionInitialization` is the new filesystem cache's session validation, captured when compilation starts. Compilers can share a session: a later build can report its initial `cold` status and still reuse modules. Later reads and writes do not update this field. Other backends report `null`.
-
-Both fields use `{ status, reason }`. The `reason` is `null` unless listed below.
-
-- `cold`: no previous cache metadata.
-- `valid`: the version and tracked build dependencies matched. See `moduleBuilds` for actual reuse.
-- `invalidated`: the `version` or `buildDependencies` changed.
-- `error`: validation or recovery failed. The reason is `recovery` if a snapshot or cache entry could not be restored.
-- `unknown`: no validation result was available.
-
-#### Cache counters
-
-`counters` lists `{ logger, label, hit, total }` events from compilation logs, including repeated labels. The resolver counts requests, while code generation counts module-runtime pairs. Some counters include work that cannot be cached, even when caching is disabled. An empty array means no counter was reported.
+For raw diagnostics, the legacy cache uses `stats.loggingDebug: /^rspack\.persistentCache$/` and the filesystem backend uses the `rspack.cache.IdleFileCache` infrastructure logger.
 
 ## Asset options
 

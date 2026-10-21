@@ -78,34 +78,15 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-在创建编译器前设置 `stats: { cacheInfo: true }` 即可统计模块构建次数。通过 `stats.toJson({ all: false, cacheInfo: true }).cacheInfo` 读取报告。仅在构建后请求 JSON 统计信息，或只设置 `stats.all` 或使用 `verbose` 预设，都不会启用计数。
+在创建编译器前设置 `stats: { cacheInfo: true }` 即可统计模块构建次数。编译后通过 `stats.toJson({ all: false, cacheInfo: true }).cacheInfo` 读取报告。仅使用 `stats.all` 或 `verbose` 预设不会开启计数。
 
-#### 模块构建结果的复用
+- `moduleBuilds` 报告 `{ reused, total }`，统计 `finishModules` 结束后主模块图中的不同模块，包括外部模块和不可缓存的模块。运行时模块和独立的模块执行图不在统计范围内。`reused` 是本次从未执行构建步骤的模块数，结果可以来自内存或磁盘。在仅有两个模块的项目中修改一个依赖后，结果可能为 `{ reused: 1, total: 2 }`。增量重建、模块图随后发生变化或未启用持久化模块缓存时，返回 `null`。
+- `mode` 为 `disabled`、`memory` 或 `persistent`。在持久化模式下，`persistent` 报告本次编译的缓存恢复错误，以及旧版缓存首次验证的结果。文件系统后端通过 `persistentSessionInitialization` 报告打开共享缓存时的验证结果，后续编译仍可能看到会话最初的 `cold` 状态。不适用的字段为 `null`。
+- `counters` 列出每个缓存事件的 `{ logger, label, hit, total }`，保留重复标签。各日志记录器的计数单位不同，例如解析器统计请求次数，代码生成统计模块与运行时的组合数。
 
-`moduleBuilds.total` 是 `finishModules` 结束后、封存和优化前主模块图中的不同模块数，包括外部模块和不可缓存的模块。运行时模块和单独的模块执行图不在统计范围内。
+验证状态 `cold` 表示没有已有的缓存元数据，`valid` 表示元数据匹配，`invalidated` 表示 `version` 或 `buildDependencies` 发生了变化，`error` 表示验证或恢复（`recovery`）失败，`unknown` 表示没有可用结果。仅当 Rspack 确定原因时，`reason` 才有值，否则为 `null`。
 
-`moduleBuilds.reused` 统计上述模块中本次编译从未执行构建步骤的模块数。结果可以来自内存或磁盘。如果入口只导入一个依赖，修改该依赖后，`{ reused: 1, total: 2 }` 表示 Rspack 复用了入口的构建结果。在同一次编译中先构建后从缓存读取的模块仍算作已构建一次。
-
-无法统计复用情况时，`moduleBuilds` 为 `null`，例如执行增量重建、未启用持久化模块缓存，或主模块图在 `finishModules` 之后又发生变化。
-
-#### 持久化缓存验证
-
-`mode` 为 `disabled`、`memory` 或 `persistent`。在持久化模式下，以下两个字段分别描述不同时刻的验证结果：
-
-- 本次编译读取缓存失败时，`persistent` 的状态为 `error`，原因为 `recovery`。旧版缓存还会报告编译器首次构建时的验证结果。如果没有上述结果，状态为 `unknown`。不使用持久化缓存时，此字段为 `null`。
-- `persistentSessionInitialization` 是编译开始时记录的新版文件系统缓存的会话验证结果。多个编译器可以共享同一会话，因此后续构建即使复用了模块，仍可能报告会话开始时的 `cold` 状态。后续读写不会更新此字段。其他后端报告 `null`。
-
-两个字段均使用 `{ status, reason }`。除下列明确说明的情况外，`reason` 为 `null`。
-
-- `cold`：未找到之前的缓存元数据。
-- `valid`：版本和跟踪的构建依赖均匹配。实际复用了多少个模块请看 `moduleBuilds`。
-- `invalidated`：版本（`version`）或构建依赖（`buildDependencies`）已变更。
-- `error`：验证或恢复失败。如果无法恢复快照或缓存条目，原因为 `recovery`。
-- `unknown`：没有可用的验证结果。
-
-#### 缓存计数器
-
-`counters` 列出编译日志中的 `{ logger, label, hit, total }` 事件，标签相同的事件也会分别列出。请按各计数器的单位解读：例如，解析器统计请求次数，代码生成统计模块与运行时的组合数。即使禁用了缓存，有些计数器仍会计入不可缓存的操作。空数组表示没有上报计数器。
+如需查看原始诊断日志，旧版缓存使用 `stats.loggingDebug: /^rspack\.persistentCache$/`，文件系统后端使用 `rspack.cache.IdleFileCache` 基础设施日志记录器。
 
 ## 产物选项
 

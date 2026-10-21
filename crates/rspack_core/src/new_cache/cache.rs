@@ -34,15 +34,15 @@ pub struct Cache {
 }
 
 impl Cache {
+  fn file_cache(&self) -> Option<&IdleFileCache> {
+    self.storage.as_ref()?.idle_file_cache.as_ref()
+  }
+
   pub(crate) fn initial_validation(&self) -> PersistentCacheState {
     self
-      .storage
-      .as_ref()
-      .and_then(|storage| storage.idle_file_cache.as_ref())
-      .map_or(
-        PersistentCacheState::Unknown,
-        IdleFileCache::initial_validation,
-      )
+      .file_cache()
+      .map(|cache| cache.strategy.initial_validation())
+      .unwrap_or_default()
   }
 
   /// Creates storage from the configured memory and filesystem caches.
@@ -81,21 +81,30 @@ impl Cache {
       }
     }
 
-    let restored = storage.idle_file_cache.as_ref().and_then(|file_cache| {
-      file_cache
-        .restore::<T>(&key, etag.as_ref())
-        .unwrap_or_else(|_| {
-          self.read_failed.store(true, Ordering::Relaxed);
-          None
-        })
+    let Some(file_cache) = &storage.idle_file_cache else {
+      if let Some(memory_cache) = &storage.memory_cache {
+        memory_cache.store_miss(key);
+      }
+      return None;
+    };
+
+    let value = file_cache.restore::<T>(&key, etag.as_ref(), || {
+      self.read_failed.store(true, Ordering::Relaxed);
     });
-    if let Some(memory_cache) = &storage.memory_cache {
-      match &restored {
-        Some(value) => memory_cache.store(key, etag, value.clone()),
-        None => memory_cache.store_miss(key),
+    match value {
+      Some(value) => {
+        if let Some(memory_cache) = &storage.memory_cache {
+          memory_cache.store(key, etag, value.clone());
+        }
+        Some(value)
+      }
+      None => {
+        if let Some(memory_cache) = &storage.memory_cache {
+          memory_cache.store_miss(key);
+        }
+        None
       }
     }
-    restored
   }
 
   pub fn store<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>, value: CacheValue<T>) {
@@ -120,10 +129,7 @@ impl Cache {
   }
 
   pub fn has_file_cache(&self) -> bool {
-    self
-      .storage
-      .as_ref()
-      .is_some_and(|storage| storage.idle_file_cache.is_some())
+    self.file_cache().is_some()
   }
 
   pub fn begin_idle(&self, build_time: Duration) {

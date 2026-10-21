@@ -377,8 +377,8 @@ impl Compilation {
     if options.stats.cache_info
       && !is_rebuild
       && match options.cache {
-        crate::CacheOptions::Persistent(_) => true,
-        crate::CacheOptions::FileSystem(_) => options.experiments.new_cache.module,
+        CacheOptions::Persistent(_) => !options.experiments.new_cache.is_enabled(),
+        CacheOptions::FileSystem(_) => options.experiments.new_cache.module,
         _ => false,
       }
     {
@@ -783,7 +783,6 @@ impl Compilation {
   where
     D: Into<DependencyRef>,
   {
-    self.module_build_cache_stats = None;
     if !self.in_finish_make.load(Ordering::Acquire) {
       return Err(rspack_error::Error::error(
         "You can only call `add_include` during the finish make stage".into(),

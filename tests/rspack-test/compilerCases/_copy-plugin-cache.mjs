@@ -89,20 +89,10 @@ function asset(compilation, filename) {
 }
 
 function reusedPatterns(compilation) {
-	const logging = new Stats(compilation).toJson({
-		all: false,
-		logging: false,
-		loggingDebug: [/CopyRspackPlugin/]
-	}).logging;
-
-	const entries = Object.values(logging || {})
-		.flatMap(group => group.entries || [])
-		.map(entry => entry.message || "");
-	const summary = entries.find(message =>
-		message.startsWith("copy pattern cache: ")
-	);
-	const hits = summary?.match(/\((\d+)\/\d+\)$/);
-	return hits ? Number(hits[1]) : 0;
+	const { counters } = new Stats(compilation).toJson({ all: false, cacheInfo: true }).cacheInfo;
+	return counters.find(
+		counter => counter.logger === "rspack.CopyRspackPlugin" && counter.label === "copy pattern cache"
+	).hit;
 }
 
 export {

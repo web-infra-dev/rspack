@@ -33,17 +33,6 @@ impl PassExt for BuildModuleGraphPhasePass {
 
   async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache.before_build_module_graph(compilation).await;
-    if matches!(
-      compilation.options.cache,
-      crate::CacheOptions::Persistent(_)
-    ) && matches!(
-      compilation.persistent_cache_state,
-      crate::PersistentCacheState::Unknown
-    ) {
-      compilation
-        .build_module_graph_artifact
-        .built_modules_for_stats = None;
-    }
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {

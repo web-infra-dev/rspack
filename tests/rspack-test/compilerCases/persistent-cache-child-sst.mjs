@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { promisify } from "node:util";
 
 /** @type {import("@rspack/test-tools").TCompilerCaseConfig} */
@@ -14,7 +16,10 @@ export default {
 		};
 	},
 	async build(context, compiler) {
-		const run = async parent => {
+		const unknown = { status: "unknown", reason: null };
+		const manager = context.getCompiler();
+		const run = async (parent, session, childState = unknown) => {
+			parent.outputFileSystem = compiler.outputFileSystem;
 			const built = { parent: 0, child: 0 };
 			const track = (target, name) => {
 				target.hooks.thisCompilation.tap("ChildSstTest", compilation => {
@@ -32,16 +37,31 @@ export default {
 			try {
 				const stats = await promisify(parent.run.bind(parent))();
 				expect(stats.hasErrors()).toBe(false);
+				const { cacheInfo, children } = stats.toJson({ all: false, cacheInfo: true, children: true });
+				expect(cacheInfo.persistent).toEqual(unknown);
+				expect(children[0].cacheInfo.persistent).toEqual(childState);
+				for (const info of [cacheInfo, children[0].cacheInfo]) {
+					expect(info.persistentSessionInitialization).toEqual({ status: session, reason: null });
+				}
 				return built;
 			} finally {
 				await promisify(parent.close.bind(parent))();
 			}
 		};
 
-		expect(await run(compiler)).toEqual({ parent: 1, child: 1 });
+		expect(await run(compiler, "cold")).toEqual({ parent: 1, child: 1 });
 		// Reopening the same directory must recover both compilers' data from disk.
-		const reopened = context.getCompiler().createCompiler();
-		reopened.outputFileSystem = compiler.outputFileSystem;
-		expect(await run(reopened)).toEqual({ parent: 0, child: 0 });
+		expect(await run(manager.createCompiler(), "valid")).toEqual({ parent: 0, child: 0 });
+
+		// Damage the data table (family 0) while leaving the validator table intact.
+		const cache = context.getDist("cache");
+		const tables = fs.readFileSync(path.join(cache, "LOG"), "utf8");
+		const [, id] = /^\s*0\s*\|\s*\d+\s*\|\s*(\d+) SST/m.exec(tables);
+		const file = path.join(cache, `${id}.sst`);
+		fs.writeFileSync(file, Buffer.alloc(fs.statSync(file).size, 0xa5));
+		// Only the child has a module to read from the damaged table.
+		manager.mergeOptions({ entry: {} });
+		const damaged = await run(manager.createCompiler(), "valid", { status: "error", reason: "recovery" });
+		expect(damaged).toEqual({ parent: 0, child: 1 });
 	}
 };
