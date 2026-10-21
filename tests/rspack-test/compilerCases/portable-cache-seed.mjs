@@ -141,6 +141,27 @@ async function withFixture(run) {
 	}
 }
 
+async function checkReadonlySeeding(root, donorRoot, portableCache) {
+	const donor = contents(cacheLocation(donorRoot));
+	expect(fs.existsSync(cacheLocation(root))).toBe(false);
+	const result = await build(root, {
+		cache: { type: "persistent", readonly: true },
+		portableCache,
+		beforeModules() {
+			expect(contents(cacheLocation(root))).toEqual({});
+		}
+	});
+	expect(result.built).toHaveLength(5);
+	expect(result.logs.join("\n")).not.toContain("portable cache seed from");
+	expect(contents(cacheLocation(root))).toEqual({});
+	const warm = await build(donorRoot, {
+		cache: { type: "persistent", readonly: true }
+	});
+	expect(warm.built).toEqual([]);
+	expect(contents(cacheLocation(donorRoot))).toEqual(donor);
+	fs.rmSync(cacheLocation(root), { recursive: true });
+}
+
 async function checkGitSeeding() {
 	return await withFixture(async (temp) => {
 		const main = path.join(temp, "main");
@@ -192,6 +213,7 @@ async function checkGitSeeding() {
 			);
 		}
 		const donor = contents(cacheLocation(main));
+		await checkReadonlySeeding(wt, main, true);
 		let checked = false;
 		const seeded = await build(wt, {
 			beforeModules() {
@@ -245,6 +267,7 @@ async function checkExplicitSeeding() {
 		await build(main);
 		const donor = contents(cacheLocation(main));
 		const portableCache = { seedFrom: cacheLocation(main) };
+		await checkReadonlySeeding(target, main, portableCache);
 		const result = await build(target, {
 			portableCache,
 			beforeModules() {
@@ -314,7 +337,7 @@ export default [
 	{
 		name: "git-worktree-mechanics",
 		description:
-			"seeds a separate compiler unit before modules build without modifying the donor",
+			"honors readonly before automatically seeding an independent compiler unit",
 		skip: !gitAvailable,
 		run: checkGitSeeding
 	},
@@ -360,7 +383,7 @@ export default [
 	{
 		name: "explicit-seed-without-git",
 		description:
-			"seeds from an explicit location without git and honors seed false",
+			"honors readonly and seed false with an explicit donor without git",
 		run: checkExplicitSeeding
 	},
 	{
