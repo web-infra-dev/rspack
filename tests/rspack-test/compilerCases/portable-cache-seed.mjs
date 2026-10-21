@@ -316,9 +316,7 @@ export default [
 					snapshot: { resolve: { hash: true } }
 				});
 				try {
-					expect(fs.realpathSync.native(compiler.options.cache.portable.root)).toBe(
-						fs.realpathSync.native(root)
-					);
+					expect(compiler.options.cache.portable.root).toBe(root);
 					expect(compiler.options.snapshot.module).toEqual({
 						timestamp: true,
 						hash: true
