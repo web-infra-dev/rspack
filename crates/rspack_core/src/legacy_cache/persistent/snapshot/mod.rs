@@ -45,6 +45,7 @@ impl Snapshot {
     helper: &Arc<StrategyHelper>,
     path: &InternedPath,
     scope: SnapshotScope,
+    portable: bool,
   ) -> Option<Strategy> {
     let path_str = path.to_string_lossy();
     if options.is_immutable_path(&path_str) {
@@ -64,7 +65,14 @@ impl Snapshot {
       SnapshotScope::MISSING => Strategy::Missing,
       SnapshotScope::CONTEXT => {
         helper
-          .dir_strategy(path, SnapshotStrategyOptions::timestamp())
+          .dir_strategy(
+            path,
+            if portable {
+              SnapshotStrategyOptions::hash()
+            } else {
+              SnapshotStrategyOptions::timestamp()
+            },
+          )
           .await
       }
       SnapshotScope::BUILD => {
@@ -102,7 +110,9 @@ impl Snapshot {
         let options = self.options.clone();
         let codec = codec.clone();
         async move {
-          let strategy = Self::calc_strategy(&options, &helper, &path, scope).await?;
+          let strategy =
+            Self::calc_strategy(&options, &helper, &path, scope, codec.root_hash().is_some())
+              .await?;
           Some((
             codec.encode(&path).expect("should encode success"),
             codec.encode(&strategy).expect("should encode success"),
@@ -124,7 +134,10 @@ impl Snapshot {
     paths: impl Iterator<Item = InternedPath>,
   ) {
     for item in paths {
-      storage.remove(scope.name(), item.as_os_str().as_encoded_bytes())
+      storage.remove(
+        scope.name(),
+        &self.codec.encode(&item).expect("should encode path"),
+      )
     }
   }
 
@@ -134,10 +147,17 @@ impl Snapshot {
     &self,
     storage: &dyn Storage,
     scope: SnapshotScope,
-  ) -> Result<(bool, InternedPathSet, InternedPathSet, InternedPathSet)> {
+  ) -> Result<(
+    bool,
+    InternedPathSet,
+    InternedPathSet,
+    InternedPathSet,
+    InternedPathSet,
+  )> {
     let mut modified_path = InternedPathSet::default();
     let mut deleted_path = InternedPathSet::default();
     let mut no_change_path = InternedPathSet::default();
+    let mut refresh_path = InternedPathSet::default();
     let helper = Arc::new(StrategyHelper::new(
       self.fs.clone(),
       self.options.clone(),
@@ -168,13 +188,23 @@ impl Snapshot {
         ValidateResult::Deleted => {
           deleted_path.insert(path);
         }
+        ValidateResult::NoChangedRefresh => {
+          refresh_path.insert(path.clone());
+          no_change_path.insert(path);
+        }
         ValidateResult::NoChanged => {
           no_change_path.insert(path);
         }
       })
       .await?;
 
-    Ok((is_hot_start, modified_path, deleted_path, no_change_path))
+    Ok((
+      is_hot_start,
+      modified_path,
+      deleted_path,
+      no_change_path,
+      refresh_path,
+    ))
   }
 }
 
@@ -264,7 +294,7 @@ mod tests {
       .await
       .unwrap();
 
-    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) = snapshot
+    let (is_hot_start, modified_paths, deleted_paths, no_change_paths, _) = snapshot
       .calc_modified_paths(&storage, SnapshotScope::FILE)
       .await
       .unwrap();
@@ -289,7 +319,7 @@ mod tests {
         [p!("/file1")].into_iter(),
       )
       .await;
-    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) = snapshot
+    let (is_hot_start, modified_paths, deleted_paths, no_change_paths, _) = snapshot
       .calc_modified_paths(&storage, SnapshotScope::FILE)
       .await
       .unwrap();
