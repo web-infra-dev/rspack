@@ -1,14 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@rspack/cli';
+import type { Compiler } from '@rspack/core';
 
 export default defineConfig({
   cache: { type: 'persistent', portable: { root: '.' } },
-  experiments: { incremental: false },
+  incremental: false,
   devtool: 'source-map',
   module: { rules: [{ test: /importer\.js$/, use: ['./loader.cjs'] }] },
   plugins: [
-    (compiler) => {
+    (compiler: Compiler) => {
       compiler.hooks.afterCompile.tap('ChangeGeneratedInput', (compilation) => {
         const input = path.join(compiler.context, 'generated.txt');
         compilation.fileDependencies.add(input);

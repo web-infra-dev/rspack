@@ -8,14 +8,17 @@ export default defineConfig({
     rules: [
       {
         test: /resource\.js$/,
-        use: (info) => [
-          {
-            loader: './loader.cjs',
-            options: {
-              input: path.join(path.dirname(info.resource), 'value.txt'),
+        use: (info) => {
+          if (info.resource === undefined) return [];
+          return [
+            {
+              loader: './loader.cjs',
+              options: {
+                input: path.join(path.dirname(info.resource), 'value.txt'),
+              },
             },
-          },
-        ],
+          ];
+        },
       },
     ],
   },
