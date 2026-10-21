@@ -46,6 +46,13 @@ export default async function action({ github, context, limit }) {
 
 const PER_PAGE = 30;
 const MAX_PAGES = 4;
+const PARENT_PR_PAGE_SIZE = 100;
+const MAX_PARENT_PR_PAGES = 4;
+const MAX_STACK_DEPTH = 20;
+
+// Must match the push branches in ci.yml, whose upload-binary-size job publishes
+// the only commits usable as authoritative baselines.
+const PUBLISHED_TRUNKS = new Set(['main', 'v1.x', 'release/2.3.0']);
 
 // The parent's own CI publishes its size about four minutes in, so a commit merged
 // right behind it can reach this job first. Observed window is one to two minutes;
@@ -178,17 +185,20 @@ export async function resolveBaseSha(github, owner, repo, context) {
     return base.sha;
   }
 
-  const stack = await resolveStack(github, owner, repo, pr);
-  const trunk = stack?.base?.ref ?? context.payload.repository.default_branch;
-  if (!trunk) {
-    throw new Error(`Cannot identify the trunk branch for PR #${pr.number}`);
-  }
-
   if (commit.parents?.length !== 2 || head?.sha !== pr.head.sha) {
     throw new Error(
       `Commit ${context.sha} is not the merge commit for PR #${pr.number}; cannot identify its trunk baseline`,
     );
   }
+
+  const stack = await resolveStack(github, owner, repo, pr);
+  const trunk = stack
+    ? stack.base?.ref
+    : await resolvePublishedTrunk(github, owner, repo, pr, base.sha);
+  if (!trunk) {
+    throw new Error(`Cannot identify the trunk branch for PR #${pr.number}`);
+  }
+  context.binaryLimitTrunk = trunk;
 
   // A PR targeting trunk uses the exact first parent of the binding's merge ref.
   if (pr.base.ref === trunk) {
@@ -213,6 +223,71 @@ export async function resolveBaseSha(github, owner, repo, context) {
     );
   }
   return trunkSha;
+}
+
+// Follow the exact base branch through open PRs until it reaches a branch whose
+// push workflow publishes binary sizes. A branch name alone is insufficient:
+// forks can use the same name, and a stale merge ref can point at an older tip.
+async function resolvePublishedTrunk(github, owner, repo, pr, baseSha) {
+  const repoId = pr.base.repo?.id;
+  const repoOwner = pr.base.repo?.owner?.login;
+  if (!repoId || !repoOwner) {
+    throw new Error(`Cannot identify the base repository of PR #${pr.number}`);
+  }
+
+  let branch = pr.base.ref;
+  const visited = new Set();
+  for (let depth = 0; depth < MAX_STACK_DEPTH; depth++) {
+    if (PUBLISHED_TRUNKS.has(branch)) return branch;
+    if (visited.has(branch)) {
+      throw new Error(
+        `Cycle in parent PR branches at ${branch} for PR #${pr.number}`,
+      );
+    }
+    visited.add(branch);
+
+    const matches = [];
+    for (let page = 1; page <= MAX_PARENT_PR_PAGES; page++) {
+      const { data: parents } = await github.rest.pulls.list({
+        owner,
+        repo,
+        state: 'open',
+        head: `${repoOwner}:${branch}`,
+        per_page: PARENT_PR_PAGE_SIZE,
+        page,
+      });
+      matches.push(
+        ...parents.filter(
+          (parent) =>
+            parent.head.ref === branch &&
+            parent.head.repo?.id === repoId &&
+            parent.base.repo?.id === repoId,
+        ),
+      );
+      if (matches.length > 1) {
+        throw new Error(
+          `Ambiguous parent PR for branch ${branch} of PR #${pr.number}`,
+        );
+      }
+      if (parents.length < PARENT_PR_PAGE_SIZE) break;
+      if (page === MAX_PARENT_PR_PAGES) {
+        throw new Error(
+          `Parent PR search exceeded ${MAX_PARENT_PR_PAGES} pages for ${branch}`,
+        );
+      }
+    }
+
+    if (matches.length !== 1 || matches[0].head.sha !== baseSha) {
+      throw new Error(
+        `Cannot resolve parent PR at ${branch} and ${baseSha} for PR #${pr.number}`,
+      );
+    }
+    branch = matches[0].base.ref;
+    baseSha = matches[0].base.sha;
+  }
+  throw new Error(
+    `Parent PR chain exceeds ${MAX_STACK_DEPTH} branches for PR #${pr.number}`,
+  );
 }
 
 // `stack` is missing from the payload when a PR's `opened` event outruns the stack
@@ -355,7 +430,7 @@ function comparingInfo(context, baseCommit) {
   const headSha = context.payload.pull_request?.head.sha || context.sha;
   return (
     `> Comparing [\`${headSha.slice(0, 7)}\`](${context.payload.repository.html_url}/commit/${headSha}) to  [${message} by ${author}](${baseCommit.html_url})\n\n` +
-    stackNote(context.payload.pull_request, context.payload.repository.default_branch)
+    stackNote(context.payload.pull_request, context.binaryLimitTrunk)
   );
 }
 
