@@ -914,9 +914,7 @@ export type RuleSetLoaderWithOptions = {
    * Filters the current input before calling the normal loader handler.
    * The loader pitch function is not filtered.
    */
-  filter?: {
-    code: RuleSetLoaderCodeFilter;
-  };
+  codeFilter?: RuleSetLoaderCodeFilter;
 
   options?: RuleSetLoaderOptions;
 };

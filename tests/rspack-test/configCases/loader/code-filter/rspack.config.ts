@@ -12,7 +12,7 @@ const filtered = (
     {
       loader: './transform-loader.mjs',
       options: { value },
-      filter: { code },
+      codeFilter: code,
     },
   ],
 });
@@ -28,7 +28,7 @@ const bomFiltered = (
     {
       loader: './transform-loader.mjs',
       options: { value },
-      filter: { code },
+      codeFilter: code,
     },
     ...(rustBoundary ? ['builtin:test-passthrough-loader'] : []),
     './bom-producer-loader.mjs',
@@ -56,7 +56,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'empty-content' },
-            filter: { code: '' },
+            codeFilter: '',
           },
           './empty-producer-loader.mjs',
         ],
@@ -69,7 +69,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'functional' },
-            filter: { code: /marker:functional/ },
+            codeFilter: /marker:functional/,
           },
         ],
       },
@@ -80,7 +80,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'right-output' },
-            filter: { code: 'generated:marker' },
+            codeFilter: 'generated:marker',
           },
           './marker-producer-loader.mjs',
         ],
@@ -92,7 +92,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'cached-hit' },
-            filter: { code: /generated:marker/ },
+            codeFilter: /generated:marker/,
             cache: true,
           },
           {
@@ -108,7 +108,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'should-not-run' },
-            filter: { code: /not-present/ },
+            codeFilter: /not-present/,
             cache: true,
           },
           {
@@ -124,7 +124,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'should-not-run' },
-            filter: { code: /not present/ },
+            codeFilter: /not present/,
           },
           './metadata-producer-loader.mjs',
         ],
@@ -136,7 +136,7 @@ export default defineConfig({
           {
             loader: './transform-loader.mjs',
             options: { value: 'mixed-native' },
-            filter: { code: /-simple/ },
+            codeFilter: /-simple/,
           },
           'builtin:test-simple-loader',
         ],
@@ -148,7 +148,7 @@ export default defineConfig({
           './pitch-observer-loader.mjs',
           {
             loader: './invalid-utf8-transform-loader.mjs',
-            filter: { code: /(?:)/ },
+            codeFilter: /(?:)/,
           },
           './invalid-producer-loader.mjs',
         ],
@@ -158,7 +158,7 @@ export default defineConfig({
         use: [
           {
             loader: 'builtin:test-simple-loader',
-            filter: { code: /marker/ },
+            codeFilter: /marker/,
           },
         ],
       },
@@ -167,7 +167,7 @@ export default defineConfig({
         use: [
           {
             loader: 'builtin:test-simple-loader',
-            filter: { code: /not present/ },
+            codeFilter: /not present/,
           },
         ],
       },
@@ -176,7 +176,7 @@ export default defineConfig({
         use: [
           {
             loader: './pitch-result-loader.mjs',
-            filter: { code: /not present/ },
+            codeFilter: /not present/,
           },
         ],
       },
