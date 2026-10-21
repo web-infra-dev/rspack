@@ -838,10 +838,24 @@ export default {
 
 ## rules[].use.filter.code
 
-- **Type:** `RuleSetLoaderCodeFilter`
+- **Type:**
+
+```ts
+type RuleSetLoaderCodeFilter = string | RegExp;
+```
+
 - **Default:** `undefined`
 
-Skips a loader's normal function when its current input code does not match. It is useful for transforms that only apply to modules containing specific syntax:
+Controls whether a loader runs based on its current input code. When the code does not match the filter, Rspack skips that loader's code transformation and passes the input to the next loader unchanged. Use this to avoid unnecessary transformations for modules that do not contain the relevant syntax.
+
+- `string`: matches if the code contains the given substring.
+- `RegExp`: matches if the code satisfies the regular expression.
+
+Rspack checks the filter immediately before the loader transforms the code. Since loaders run from right to left, the filter checks the output of loaders to its right, if any. The filter does not affect the loader's pitch function.
+
+**String matching**
+
+For a custom loader that removes console logs, run it only when the input code contains `console.log`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -851,10 +865,8 @@ export default {
         test: /\.[cm]?[jt]sx?$/,
         use: [
           {
-            loader: './transform-loader.js',
-            filter: {
-              code: /\b(createServerFn|createMiddleware)\b/,
-            },
+            loader: './remove-console-loader.js',
+            filter: { code: 'console.log' },
           },
         ],
       },
@@ -863,9 +875,50 @@ export default {
 };
 ```
 
-Use a string for substring matching, such as `filter: { code: 'createMiddleware' }`, or a regular expression for more precise matching.
+**Regular expression matching**
 
-The code filter is evaluated immediately before this loader's normal function. It therefore sees the output of loaders to its right. The loader's pitch function is not filtered and keeps its existing behavior.
+Run `remove-console-loader.js` only when the input code contains `console.log` or `console.debug`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './remove-console-loader.js',
+            filter: { code: /\bconsole\.(log|debug)\b/ },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+**Matching another loader's output**
+
+Here, `generate-loader.js` runs first. Rspack then runs `transform-loader.js` only if the generated code contains `generated:marker`, even if that substring was absent from the original source:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: './transform-loader.js',
+            filter: { code: 'generated:marker' },
+          },
+          './generate-loader.js',
+        ],
+      },
+    ],
+  },
+};
+```
 
 ## rules[].use.ident
 
