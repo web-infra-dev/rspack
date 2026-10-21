@@ -12,6 +12,7 @@ workspace = true
 
 [dev-dependencies]
 camino             = { workspace = true }
+cow-utils          = { workspace = true }
 dashmap            = { workspace = true }
 json               = { workspace = true }
 lightningcss       = { workspace = true }
