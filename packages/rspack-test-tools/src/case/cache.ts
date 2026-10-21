@@ -42,7 +42,11 @@ const builtModulesByCompilation = new WeakMap<Compilation, Set<string>>();
 
 interface CacheState {
   compilerIndex: number;
-  nextStart: (advance?: boolean, move?: boolean) => Promise<StatsCompilation>;
+  nextStart: (
+    advance?: boolean,
+    move?: boolean,
+    cold?: boolean,
+  ) => Promise<StatsCompilation>;
   nextHmr: (module: any, options?: any) => Promise<StatsCompilation>;
 }
 
@@ -139,7 +143,7 @@ function createCacheProcessor(
       await updatePlugin?.initialize();
       const state: CacheState = {
         compilerIndex: 0,
-        nextStart: async (advance = true, move = false) => {
+        nextStart: async (advance = true, move = false, cold = false) => {
           const env = testEnv;
           if (state.compilerIndex >= 100) {
             throw new Error('NEXT_START has been called more than 100 times');
@@ -158,6 +162,19 @@ function createCacheProcessor(
             // Copy rather than move: the cache must not be invalidated by the
             // original files disappearing, only by its own root binding.
             await fs.copy(compileTemp, relocated);
+            const touch = async (directory: string): Promise<void> => {
+              for (const entry of await fs.readdir(directory, {
+                withFileTypes: true,
+              })) {
+                if (entry.name === 'node_modules' || entry.name === '.cache')
+                  continue;
+                const filename = path.join(directory, entry.name);
+                if (entry.isDirectory()) await touch(filename);
+                if (entry.isFile())
+                  await fs.utimes(filename, new Date(), new Date());
+              }
+            };
+            await touch(relocated);
             const options = manager.getOptions() as RspackOptions;
             const previousPlugin = updatePlugin;
             updatePlugin = new HotUpdatePlugin(src, relocated);
@@ -166,6 +183,7 @@ function createCacheProcessor(
               plugin === previousPlugin ? updatePlugin! : plugin,
             );
           }
+          if (cold) (manager.getOptions() as RspackOptions).cache = false;
           const advanceUpdate = !!(
             advance &&
             updatePlugin &&
@@ -660,6 +678,28 @@ function createRunner(
       scope.NEXT_HMR = state.nextHmr;
       scope.NEXT_START = (advance?: boolean) => state.nextStart(advance);
       scope.NEXT_MOVE_DIR_START = () => state.nextStart(false, true);
+      scope.NEXT_COLD_START = () => state.nextStart(false, false, true);
+      scope.READ_ASSETS = () => {
+        const current = context.getCompiler().getStats()!;
+        const children = 'stats' in current ? current.stats : [current];
+        return children.map((child) =>
+          Object.fromEntries(
+            child.compilation
+              .getAssets()
+              .map((asset) => [
+                asset.name,
+                fs
+                  .readFileSync(
+                    path.join(
+                      child.compilation.outputOptions.path!,
+                      asset.name,
+                    ),
+                  )
+                  .toString('base64'),
+              ]),
+          ),
+        );
+      };
       scope.CURRENT_CONTEXT = options?.context;
       return scope;
     },
