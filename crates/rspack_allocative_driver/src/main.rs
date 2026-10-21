@@ -109,12 +109,12 @@ fn run() -> io::Result<ExitCode> {
       arg.starts_with(&format!("{name}=")) || arg.starts_with(&format!("--extern={name}="))
     })
   };
-  let crate_path = if dependency("allocative") {
-    Some("::allocative")
+  let crate_path = if dependency("rspack_allocative") {
+    Some("::rspack_allocative")
   } else if dependency("rspack_util") {
-    Some("::rspack_util::allocative")
+    Some("::rspack_util::rspack_allocative")
   } else if dependency("rspack_core") {
-    Some("::rspack_core::allocative")
+    Some("::rspack_core::rspack_allocative")
   } else {
     None
   };

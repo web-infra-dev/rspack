@@ -13,7 +13,7 @@ macro_rules! generated { () => { enum Generated { Text(String) } }; }
   assert!(output.contains("// 内存检查：keep this comment and its line."));
   assert_eq!(
     output
-      .matches("#[derive(::allocative::Allocative)]")
+      .matches("#[derive(::rspack_allocative::Allocative)]")
       .count(),
     2
   );
@@ -27,11 +27,11 @@ macro_rules! generated { () => { enum Generated { Text(String) } }; }
 #[test]
 fn explicit_and_typed_adapters_are_not_duplicated() {
   let source = r#"
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 enum Explicit { Text(String) }
 enum Manual { Text(String) }
-impl allocative::Allocative for Manual {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {}
+impl rspack_allocative::Allocative for Manual {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_allocative::Visitor<'b>) {}
 }
 enum Borrowed<'a> { Text(&'a str) }
 enum Array<const N: usize> { Data([String; N]) }
@@ -52,20 +52,20 @@ mod model {
 }
 mod adapters {
   use crate::model::{Aliased as OwnedValue};
-  impl allocative::Allocative for crate::model::Direct {}
-  impl allocative::Allocative for super::model::Parent {}
-  impl allocative::Allocative for OwnedValue {}
+  impl rspack_allocative::Allocative for crate::model::Direct {}
+  impl rspack_allocative::Allocative for super::model::Parent {}
+  impl rspack_allocative::Allocative for OwnedValue {}
 }
 mod unrelated { pub enum Aliased { Text(String) } }
 "#;
   let output = instrument(source).expect("manual adapter paths are resolved");
   assert_eq!(
     output
-      .matches("#[derive(::allocative::Allocative)]")
+      .matches("#[derive(::rspack_allocative::Allocative)]")
       .count(),
     1
   );
-  assert!(output.contains("mod unrelated { #[derive(::allocative::Allocative)]"));
+  assert!(output.contains("mod unrelated { #[derive(::rspack_allocative::Allocative)]"));
 }
 #[test]
 fn enums_with_const_sized_array_fields_are_instrumented() {
@@ -76,7 +76,7 @@ enum Unevaluated { Data([String; CAPACITY]), Nested(Vec<[String; CAPACITY + 1]>)
   let output = instrument(source).expect("const-sized arrays use typed derives");
   assert_eq!(
     output
-      .matches("#[derive(::allocative::Allocative)]")
+      .matches("#[derive(::rspack_allocative::Allocative)]")
       .count(),
     2
   );
@@ -102,7 +102,7 @@ enum Conditional {
   assert!(output.contains("#[cfg(any())]\n  Removed(String)"));
   assert_eq!(
     output
-      .matches("#[derive(::allocative::Allocative)]")
+      .matches("#[derive(::rspack_allocative::Allocative)]")
       .count(),
     1
   );
@@ -115,22 +115,28 @@ fn ownership_traits_are_instrumented_only_in_their_library() {
 #[async_trait::async_trait]
 pub trait Plugin: /* existing bound */ Send + Sync { async fn apply(&self); }
 pub trait Module<T> where T: Send { fn name(&self) -> &str; }
-trait Dependency: ::rspack_util::allocative::Visit {}
+trait Dependency: ::rspack_util::rspack_allocative::Visit {}
 trait Helper: Send {}
 macro_rules! generated { () => { trait Plugin: Send {} }; }
 "#;
-  let path = "::rspack_util::allocative";
+  let path = "::rspack_util::rspack_allocative";
   let output = instrument_crate(source, path, "rspack_core").expect("valid traits");
   syn_check(&output);
   assert_eq!(output.lines().count(), source.lines().count());
   assert!(
-    output.contains("trait Plugin: ::rspack_util::allocative::Visit + /* existing bound */ Send")
+    output.contains(
+      "trait Plugin: ::rspack_util::rspack_allocative::Visit + /* existing bound */ Send"
+    )
   );
-  assert!(output.contains("trait Module<T>: ::rspack_util::allocative::Visit where T: Send"));
+  assert!(
+    output.contains("trait Module<T>: ::rspack_util::rspack_allocative::Visit where T: Send")
+  );
   assert!(output.contains("trait Helper: Send {}"));
   assert!(output.contains("macro_rules! generated { () => { trait Plugin: Send {} }; }"));
   assert_eq!(
-    output.matches("::rspack_util::allocative::Visit").count(),
+    output
+      .matches("::rspack_util::rspack_allocative::Visit")
+      .count(),
     3
   );
   assert_eq!(
@@ -147,18 +153,18 @@ macro_rules! generated { () => { trait Plugin: Send {} }; }
 #[test]
 fn source_trait_and_enums_share_instrumentation_without_feature_guards() {
   let source = "pub trait Source { fn size(&self) -> usize; }\nenum Owner { Text(String) }";
-  let output = instrument_crate(source, "::allocative", "rspack_sources").unwrap();
+  let output = instrument_crate(source, "::rspack_allocative", "rspack_sources").unwrap();
   syn_check(&output);
-  assert!(output.contains("trait Source: ::allocative::Visit {"));
+  assert!(output.contains("trait Source: ::rspack_allocative::Visit {"));
   assert_eq!(
     output
-      .matches("#[derive(::allocative::Allocative)]")
+      .matches("#[derive(::rspack_allocative::Allocative)]")
       .count(),
     1
   );
   assert!(!output.contains("feature ="));
   assert_eq!(
-    instrument_crate(&output, "::allocative", "rspack_sources").unwrap(),
+    instrument_crate(&output, "::rspack_allocative", "rspack_sources").unwrap(),
     output
   );
 }

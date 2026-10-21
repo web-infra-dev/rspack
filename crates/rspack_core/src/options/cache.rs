@@ -1,8 +1,7 @@
-use std::{path::PathBuf, time::Duration};
+use std::path::PathBuf;
 
+use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_paths::Utf8PathBuf;
-
-pub use crate::legacy_cache::{BuildDepsOptions, PersistentCacheOptions, StorageOptions};
 
 #[derive(Debug, Clone)]
 pub enum CacheOptions {
@@ -14,22 +13,35 @@ pub enum CacheOptions {
     /// the cache will be removed if it's not accessed for 1 compilation generation.
     max_generations: u32,
   },
-  FileSystem(FileSystemCacheOptions),
   Persistent(PersistentCacheOptions),
 }
 
-/// Filesystem cache configuration, cloned with the compiler's cache options.
+pub type BuildDepsOptions = Vec<PathBuf>;
+
+/// Storage options shared by the cache backends.
+#[cacheable]
+#[derive(Debug, Clone, Hash)]
+pub enum StorageOptions {
+  FileSystem {
+    #[cacheable(with=As<PortablePath>)]
+    directory: Utf8PathBuf,
+    #[cacheable(with=As<PortablePath>)]
+    location: Utf8PathBuf,
+  },
+}
+
+/// Options shared by the cache backends.
 #[derive(Debug, Clone)]
-pub struct FileSystemCacheOptions {
-  pub build_dependencies: Vec<PathBuf>,
-  pub cache_directory: Utf8PathBuf,
-  pub cache_location: Utf8PathBuf,
+pub struct PersistentCacheOptions {
+  pub build_dependencies: BuildDepsOptions,
   pub version: String,
+  pub storage: StorageOptions,
+  pub portable: bool,
   pub readonly: bool,
+  /// Filesystem cache max age in seconds.
+  pub max_age: u64,
+  /// Number of generations to retain entries in the memory front cache.
   pub max_memory_generations: MaxMemoryGenerations,
-  pub idle_timeout: Duration,
-  pub idle_timeout_for_initial_store: Duration,
-  pub idle_timeout_after_large_changes: Duration,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

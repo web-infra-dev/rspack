@@ -6,7 +6,7 @@ use std::sync::{
 use micromegas_perfetto::protos::{self as idl, TracePacket};
 use rustc_hash::FxHashMap;
 
-#[cfg_attr(allocative, allocative::root)]
+#[cfg_attr(allocative, rspack_allocative::root)]
 static CUSTOM_SCOPE_NAMES: LazyLock<Mutex<FxHashMap<String, u64>>> =
   LazyLock::new(|| Mutex::new(FxHashMap::default()));
 

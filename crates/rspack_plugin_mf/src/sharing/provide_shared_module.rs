@@ -62,10 +62,6 @@ impl ProvideSharedModule {
     let scopes_key = share_scope.key();
     let namespace = module_identifier_namespace(runtime_mode);
     let identifier = format!(
-      "provide-shared-module|{}|{}|{}|{}|{}",
-      &scopes_key, &name, &version, &request, eager
-    );
-    let readable_identifier = format!(
       "provide shared module ({}) {}@{} = {}",
       &scopes_key, &name, &version, &request
     );
@@ -73,7 +69,7 @@ impl ProvideSharedModule {
       dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!("{namespace}/sharing/provide/{scopes_key}/{name}"),
-      readable_identifier,
+      readable_identifier: identifier,
       name,
       share_scope,
       version,
