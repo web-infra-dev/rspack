@@ -266,6 +266,7 @@
 			}
 		},
 		apply: function (reportError) {
+			var acceptPromises = [];
 			// insert new code
 			for (var updateModuleId in appliedUpdate) {
 				if (<%- HAS_OWN_PROPERTY %>(appliedUpdate, updateModuleId)) {
@@ -320,8 +321,9 @@
 							}
 						}
 						for (var k = 0; k < callbacks.length; k++) {
+							var result;
 							try {
-								callbacks[k].call(null, moduleOutdatedDependencies);
+								result = callbacks[k].call(null, moduleOutdatedDependencies);
 							} catch (err) {
 								if (typeof errorHandlers[k] === "function") {
 									try {
@@ -358,54 +360,58 @@
 									}
 								}
 							}
+							if (result && typeof result.then === "function") {
+								acceptPromises.push(result);
+							}
 						}
 					}
 				}
 			}
 
-			// Load self accepted modules
-			for (var o = 0; o < outdatedSelfAcceptedModules.length; o++) {
-				var item = outdatedSelfAcceptedModules[o];
-				var moduleId = item.module;
-				try {
-					item.require(moduleId);
-				} catch (err) {
-					if (typeof item.errorHandler === "function") {
-						try {
-							item.errorHandler(err, {
-								moduleId: moduleId,
-								module: <%- MODULE_CACHE %>[moduleId]
-							});
-						} catch (err1) {
+			return Promise.all(acceptPromises).then(function () {
+				// Load self accepted modules
+				for (var o = 0; o < outdatedSelfAcceptedModules.length; o++) {
+					var item = outdatedSelfAcceptedModules[o];
+					var moduleId = item.module;
+					try {
+						item.require(moduleId);
+					} catch (err) {
+						if (typeof item.errorHandler === "function") {
+							try {
+								item.errorHandler(err, {
+									moduleId: moduleId,
+									module: <%- MODULE_CACHE %>[moduleId]
+								});
+							} catch (err1) {
+								if (options.onErrored) {
+									options.onErrored({
+										type: "self-accept-error-handler-errored",
+										moduleId: moduleId,
+										error: err1,
+										originalError: err
+									});
+								}
+								if (!options.ignoreErrored) {
+									reportError(err1);
+									reportError(err);
+								}
+							}
+						} else {
 							if (options.onErrored) {
 								options.onErrored({
-									type: "self-accept-error-handler-errored",
+									type: "self-accept-errored",
 									moduleId: moduleId,
-									error: err1,
-									originalError: err
+									error: err
 								});
 							}
 							if (!options.ignoreErrored) {
-								reportError(err1);
 								reportError(err);
 							}
 						}
-					} else {
-						if (options.onErrored) {
-							options.onErrored({
-								type: "self-accept-errored",
-								moduleId: moduleId,
-								error: err
-							});
-						}
-						if (!options.ignoreErrored) {
-							reportError(err);
-						}
 					}
 				}
-			}
-
-			return outdatedModules;
+				return outdatedModules;
+			});
 		}
 	};
 }

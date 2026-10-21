@@ -8,7 +8,7 @@
 - Bundle: async_js.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 27405
+- Update: main.LAST_HASH.hot-update.js, size: 27724
 
 ## Manifest
 
@@ -143,7 +143,6 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 	hasAwait && ((queue = []).d = -1);
 	var depQueues = new Set();
 	var exports = module.exports;
-	var currentDeps;
 	var outerResolve;
 	var reject;
 	var promise = new Promise((resolve, rej) => {
@@ -159,7 +158,8 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 		asyncModule.exports = exports;
 	}
 	var handle = (deps) => {
-		currentDeps = wrapDeps(deps);
+		var currentDeps = wrapDeps(deps);
+		var currentDepQueues = new Set();
 		var fn;
 		var getResult = () => {
 			return currentDeps.map((d) => {
@@ -171,7 +171,7 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 		var promise = new Promise((resolve) => {
 			fn = () => (resolve(getResult));
 			fn.r = 0;
-			var fnQueue = (q) => (q !== queue && !depQueues.has(q) && (depQueues.add(q), q && !q.d && (fn.r++, q.push(fn))));
+			var fnQueue = (q) => (q !== queue && !currentDepQueues.has(q) && (currentDepQueues.add(q), depQueues.add(q), q && !q.d && (fn.r++, q.push(fn))));
 			currentDeps.map((dep) => (dep[rspackDefer] || dep[rspackQueues](fnQueue)));
 		});
 		return fn.r ? promise : getResult();
@@ -690,6 +690,7 @@ function hotApplyHandler(options) {
 			}
 		},
 		apply: function (reportError) {
+			var acceptPromises = [];
 			// insert new code
 			for (var updateModuleId in appliedUpdate) {
 				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
@@ -742,8 +743,9 @@ function hotApplyHandler(options) {
 							}
 						}
 						for (var k = 0; k < callbacks.length; k++) {
+							var result;
 							try {
-								callbacks[k].call(null, moduleOutdatedDependencies);
+								result = callbacks[k].call(null, moduleOutdatedDependencies);
 							} catch (err) {
 								if (typeof errorHandlers[k] === "function") {
 									try {
@@ -780,54 +782,58 @@ function hotApplyHandler(options) {
 									}
 								}
 							}
+							if (result && typeof result.then === "function") {
+								acceptPromises.push(result);
+							}
 						}
 					}
 				}
 			}
 
-			// Load self accepted modules
-			for (var o = 0; o < outdatedSelfAcceptedModules.length; o++) {
-				var item = outdatedSelfAcceptedModules[o];
-				var moduleId = item.module;
-				try {
-					item.require(moduleId);
-				} catch (err) {
-					if (typeof item.errorHandler === "function") {
-						try {
-							item.errorHandler(err, {
-								moduleId: moduleId,
-								module: __webpack_require__.c[moduleId]
-							});
-						} catch (err1) {
+			return Promise.all(acceptPromises).then(function () {
+				// Load self accepted modules
+				for (var o = 0; o < outdatedSelfAcceptedModules.length; o++) {
+					var item = outdatedSelfAcceptedModules[o];
+					var moduleId = item.module;
+					try {
+						item.require(moduleId);
+					} catch (err) {
+						if (typeof item.errorHandler === "function") {
+							try {
+								item.errorHandler(err, {
+									moduleId: moduleId,
+									module: __webpack_require__.c[moduleId]
+								});
+							} catch (err1) {
+								if (options.onErrored) {
+									options.onErrored({
+										type: "self-accept-error-handler-errored",
+										moduleId: moduleId,
+										error: err1,
+										originalError: err
+									});
+								}
+								if (!options.ignoreErrored) {
+									reportError(err1);
+									reportError(err);
+								}
+							}
+						} else {
 							if (options.onErrored) {
 								options.onErrored({
-									type: "self-accept-error-handler-errored",
+									type: "self-accept-errored",
 									moduleId: moduleId,
-									error: err1,
-									originalError: err
+									error: err
 								});
 							}
 							if (!options.ignoreErrored) {
-								reportError(err1);
 								reportError(err);
 							}
 						}
-					} else {
-						if (options.onErrored) {
-							options.onErrored({
-								type: "self-accept-errored",
-								moduleId: moduleId,
-								error: err
-							});
-						}
-						if (!options.ignoreErrored) {
-							reportError(err);
-						}
 					}
 				}
-			}
-
-			return outdatedModules;
+				return outdatedModules;
+			});
 		}
 	};
 }
