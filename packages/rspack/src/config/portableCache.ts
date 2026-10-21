@@ -78,8 +78,9 @@ export function findCacheSeed(
   if (!root) return;
   const logger = compiler.getInfrastructureLogger('rspack.persistentCache');
   try {
+    const realRoot = realLocation(root);
     const location = realLocation(path.resolve(cache.storage.location!));
-    const relative = path.relative(root, location);
+    const relative = path.relative(realRoot, location);
     if (
       relative === '..' ||
       relative.startsWith(`..${path.sep}`) ||
@@ -101,7 +102,10 @@ export function findCacheSeed(
     for (const candidate of worktrees(root)) {
       try {
         const candidateRoot = fs.realpathSync.native(candidate);
-        if (candidateRoot === root || !fs.statSync(candidateRoot).isDirectory())
+        if (
+          candidateRoot === realRoot ||
+          !fs.statSync(candidateRoot).isDirectory()
+        )
           continue;
         const candidateLocation = realLocation(
           path.join(candidateRoot, relative),
