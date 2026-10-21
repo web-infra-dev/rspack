@@ -30,39 +30,26 @@ pub(super) fn placement_preserves_copies(
   };
   let mut after = consumers(source_chunks);
   after.extend(target_chunk.groups().iter().copied());
-  let mut modules = artifact
-    .chunk_graph
-    .get_chunk_modules_identifier(&target)
-    .clone();
-  match placed {
-    ModuleChunkMap::Shared {
-      modules: moving, ..
-    } => modules.extend(moving.iter().copied()),
-    ModuleChunkMap::ByModule(moving) => modules.extend(moving.keys().copied()),
-  }
-  let mut checked_shared = false;
-  for module in &modules {
-    let in_target = artifact.chunk_graph.is_module_in_chunk(module, target);
-    if let Some(sources) = placed.get(module) {
-      if matches!(placed, ModuleChunkMap::Shared { .. }) && !in_target {
-        if checked_shared {
-          continue;
-        }
-        checked_shared = true;
-      }
-      let mut before = consumers(sources);
-      if in_target {
-        before.extend(target_chunk.groups().iter().copied());
-      }
-      if before != after {
-        return false;
-      }
-    } else {
-      let before: FxHashSet<_> = target_chunk.groups().iter().copied().collect();
-      if before != after {
-        return false;
-      }
+  let target_modules = artifact.chunk_graph.get_chunk_modules_identifier(&target);
+  for module in target_modules {
+    let mut before = placed.get(module).map(&consumers).unwrap_or_default();
+    before.extend(target_chunk.groups().iter().copied());
+    if before != after {
+      return false;
     }
   }
-  !modules.is_empty()
+  // Existing target modules have already been checked. New shared modules all
+  // have the same source chunks, so check their consumers only once.
+  match placed {
+    ModuleChunkMap::Shared { modules, chunks } => {
+      (!target_modules.is_empty() || !modules.is_empty())
+        && (modules.is_subset(target_modules) || consumers(chunks) == after)
+    }
+    ModuleChunkMap::ByModule(modules) => {
+      (!target_modules.is_empty() || !modules.is_empty())
+        && modules
+          .iter()
+          .all(|(module, chunks)| target_modules.contains(module) || consumers(chunks) == after)
+    }
+  }
 }

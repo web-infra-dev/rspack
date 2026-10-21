@@ -92,12 +92,6 @@ impl SplitChunksPlugin {
   #[instrument(name = "Compilation:SplitChunks",target=TRACING_BENCH_TARGET, skip_all)]
   async fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let residual_enabled = std::env::var("RSPACK_RESIDUAL_REUSE").is_ok_and(|value| value == "1");
-    let residual_audit = std::env::var_os("RSPACK_RESIDUAL_AUDIT").is_some();
-    let residual_started = std::time::Instant::now();
-    let mut residual_selected = 0usize;
-    let mut residual_committed = 0usize;
-    let mut residual_rejected = 0usize;
-    let mut residual_cleanup_seconds = 0.0;
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module data");
 
@@ -196,110 +190,104 @@ impl SplitChunksPlugin {
           remaining.remove(&chunk);
         }
       }
-      let mut module_group_map = {
-        let available_module_chunks = &module_chunks;
-        // Precompute once for this priority, then reuse the prepared combinations
-        // throughout candidate preparation and selection.
-        let previous = std::mem::take(&mut combinator);
-        rayon::spawn(move || drop(previous));
-        let intersection_settings = |used_exports| {
-          if self.dedup_depth == 0 {
-            return None;
-          }
-          let intersection_cache_groups = cache_groups
-            .iter()
-            .filter(|indexed_cache_group| {
-              let cache_group = indexed_cache_group.cache_group;
-              let has_name_batch_getter =
-                self.name_batch_getters.as_deref().is_some_and(|getters| {
-                  getters
-                    .get(indexed_cache_group.cache_group_index as usize)
-                    .is_some_and(Option::is_some)
-                });
-              cache_group.used_exports == used_exports
-                && module_group::cache_group_uses_intersections(cache_group, has_name_batch_getter)
-            })
-            .collect::<Vec<_>>();
-          let min_chunks = intersection_cache_groups
-            .iter()
-            .map(|indexed_cache_group| (indexed_cache_group.cache_group.min_chunks as usize).max(1))
-            .min();
-          min_chunks.map(|min_chunks| {
-            (
-              min_chunks,
-              intersection_cache_groups
-                .into_iter()
-                .map(|group| group.cache_group)
-                .collect(),
-            )
+      let available_module_chunks = &module_chunks;
+      // Precompute once for this priority, then reuse the prepared combinations
+      // throughout candidate preparation and selection.
+      let previous = std::mem::take(&mut combinator);
+      rayon::spawn(move || drop(previous));
+      let intersection_settings = |used_exports| {
+        if self.dedup_depth == 0 {
+          return None;
+        }
+        let intersection_cache_groups = cache_groups
+          .iter()
+          .filter(|indexed_cache_group| {
+            let cache_group = indexed_cache_group.cache_group;
+            let has_name_batch_getter = self.name_batch_getters.as_deref().is_some_and(|getters| {
+              getters
+                .get(indexed_cache_group.cache_group_index as usize)
+                .is_some_and(Option::is_some)
+            });
+            cache_group.used_exports == used_exports
+              && module_group::cache_group_uses_intersections(cache_group, has_name_batch_getter)
           })
-        };
-        let non_used_exports_intersection_settings = intersection_settings(false);
-        let used_exports_intersection_settings = intersection_settings(true);
-        let non_used_exports_min_chunks = cache_groups
+          .collect::<Vec<_>>();
+        let min_chunks = intersection_cache_groups
           .iter()
-          .filter(|cache_group| !cache_group.cache_group.used_exports)
-          .map(|cache_group| cache_group.cache_group.min_chunks as usize)
+          .map(|indexed_cache_group| (indexed_cache_group.cache_group.min_chunks as usize).max(1))
           .min();
-
-        if let Some(min_chunks) = non_used_exports_min_chunks {
-          combinator.prepare_group_by_chunks(
-            &all_modules,
-            available_module_chunks,
-            &chunk_index_map,
+        min_chunks.map(|min_chunks| {
+          (
             min_chunks,
-            module_group::IntersectionPreparation {
-              dedup_depth: self.dedup_depth,
-              settings: non_used_exports_intersection_settings,
-              module_sizes: &module_sizes,
-              compilation,
-            },
-          );
-        }
-
-        if cache_groups
-          .iter()
-          .any(|cache_group| cache_group.cache_group.used_exports)
-        {
-          combinator.prepare_group_by_used_exports(
-            &all_modules,
-            &compilation.exports_info_artifact,
-            &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-            available_module_chunks,
-            &chunk_index_map,
-            module_group::IntersectionPreparation {
-              dedup_depth: self.dedup_depth,
-              settings: used_exports_intersection_settings,
-              module_sizes: &module_sizes,
-              compilation,
-            },
-          );
-        }
-
-        let mut module_group_map = self
-          .prepare_module_group_map(
-            &combinator,
-            &all_modules,
-            cache_groups,
-            compilation,
-            available_module_chunks,
-            &chunk_index_map,
+            intersection_cache_groups
+              .into_iter()
+              .map(|group| group.cache_group)
+              .collect(),
           )
-          .await?;
-        module_group_map.par_iter_mut().for_each(|(_, group)| {
-          group.prepare_modules_for_sizes_and_compare();
-        });
-        self.ensure_min_size_fit(&mut module_group_map, &module_sizes, residual_enabled);
-        module_group_map
+        })
       };
+      let non_used_exports_intersection_settings = intersection_settings(false);
+      let used_exports_intersection_settings = intersection_settings(true);
+      let non_used_exports_min_chunks = cache_groups
+        .iter()
+        .filter(|cache_group| !cache_group.cache_group.used_exports)
+        .map(|cache_group| cache_group.cache_group.min_chunks as usize)
+        .min();
+
+      if let Some(min_chunks) = non_used_exports_min_chunks {
+        combinator.prepare_group_by_chunks(
+          &all_modules,
+          available_module_chunks,
+          &chunk_index_map,
+          min_chunks,
+          module_group::IntersectionPreparation {
+            dedup_depth: self.dedup_depth,
+            settings: non_used_exports_intersection_settings,
+            module_sizes: &module_sizes,
+            compilation,
+          },
+        );
+      }
+
+      if cache_groups
+        .iter()
+        .any(|cache_group| cache_group.cache_group.used_exports)
+      {
+        combinator.prepare_group_by_used_exports(
+          &all_modules,
+          &compilation.exports_info_artifact,
+          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+          available_module_chunks,
+          &chunk_index_map,
+          module_group::IntersectionPreparation {
+            dedup_depth: self.dedup_depth,
+            settings: used_exports_intersection_settings,
+            module_sizes: &module_sizes,
+            compilation,
+          },
+        );
+      }
+
+      let mut module_group_map = self
+        .prepare_module_group_map(
+          &combinator,
+          &all_modules,
+          cache_groups,
+          compilation,
+          available_module_chunks,
+          &chunk_index_map,
+        )
+        .await?;
+      tracing::trace!("prepared module_group_map {:#?}", module_group_map);
+
+      module_group_map
+        .par_iter_mut()
+        .for_each(|(_, module_group)| module_group.prepare_modules_for_sizes_and_compare());
+      self.ensure_min_size_fit(&mut module_group_map, &module_sizes, residual_enabled);
+
       while let Some((module_group_key, mut module_group)) =
         self.find_best_module_group(&mut module_group_map)
       {
-        let changed_candidate = module_group.placement_changed;
-        if changed_candidate {
-          residual_selected += 1;
-        }
-
         tracing::trace!(
           "ModuleGroup({}) wins, {:?} `ModuleGroup` remains",
           module_group_key,
@@ -488,7 +476,7 @@ impl SplitChunksPlugin {
           continue;
         }
 
-        if changed_candidate
+        if module_group.placement_changed
           && !residual::placement_preserves_copies(
             &placed_module_chunks,
             &used_chunks,
@@ -496,37 +484,8 @@ impl SplitChunksPlugin {
             compilation,
           )
         {
-          residual_rejected += 1;
           continue;
         }
-        if changed_candidate {
-          residual_committed += 1;
-          if std::env::var_os("RSPACK_RESIDUAL_PLACEMENTS").is_some() {
-            let mut edges = match &placed_module_chunks {
-              ModuleChunkMap::Shared { modules, chunks } => modules
-                .iter()
-                .map(|module| (*module, chunks))
-                .collect::<Vec<_>>(),
-              ModuleChunkMap::ByModule(modules) => modules
-                .iter()
-                .map(|(module, chunks)| (*module, chunks))
-                .collect::<Vec<_>>(),
-            }
-            .into_iter()
-            .map(|(module, chunks)| {
-              let mut sources = chunks
-                .iter()
-                .filter_map(|chunk| chunk_index_map.get(chunk).copied())
-                .collect::<Vec<_>>();
-              sources.sort_unstable();
-              (module.to_string(), sources)
-            })
-            .collect::<Vec<_>>();
-            edges.sort_unstable();
-            eprintln!("[residual-placement] ({:?}, {:?})", cache_group.key, edges);
-          }
-        }
-
         // Only mutate metadata on an existing destination after the winning group has passed all
         // checks. A group skipped after max-request pruning must not leave cache-group metadata on
         // a chunk it did not actually use.
@@ -565,14 +524,12 @@ impl SplitChunksPlugin {
 
         self.split_from_original_chunks(&module_group, &used_chunks, new_chunk, compilation);
 
-        let cleanup_started = std::time::Instant::now();
         self.remove_all_modules_from_other_module_groups(
           &placed_module_chunks,
           &mut module_group_map,
           &module_sizes,
           residual_enabled,
         );
-        residual_cleanup_seconds += cleanup_started.elapsed().as_secs_f64();
 
         if index != priority_len - 1 {
           match &placed_module_chunks {
@@ -597,18 +554,6 @@ impl SplitChunksPlugin {
       }
     }
     logger.time_end(start);
-    if residual_audit {
-      eprintln!(
-        "[residual-reuse] {{\"enabled\":{},\"modules\":{},\"changedSelected\":{},\"committed\":{},\"rejected\":{},\"cleanupSeconds\":{},\"splitChunksSeconds\":{}}}",
-        residual_enabled,
-        all_modules.len(),
-        residual_selected,
-        residual_committed,
-        residual_rejected,
-        residual_cleanup_seconds,
-        residual_started.elapsed().as_secs_f64()
-      );
-    }
 
     let start = logger.time("ensure max size fit");
     self

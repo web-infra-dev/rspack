@@ -59,10 +59,6 @@ name    = "rspack_sources"
 harness = false
 name    = "walltime"
 
-[[bench]]
-harness = false
-name    = "residual_reuse"
-
 [package.metadata.cargo-shear]
 ignored = ["rspack_cacheable"]
 

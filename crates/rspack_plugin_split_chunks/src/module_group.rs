@@ -377,19 +377,17 @@ impl ModuleGroup {
   }
 
   /// Choose which dimension to delete without materializing either alternative.
-  /// Inspect the affected modules once, including the overlap check. The small
-  /// source-type totals preserve each type's original subtraction order.
+  /// The caller has found an overlap; preserve each source type's subtraction order.
   fn prefer_module_removal(
     &self,
-    mut affected: impl Iterator<Item = ModuleIdentifier>,
+    affected: impl Iterator<Item = ModuleIdentifier>,
     remaining_chunks: usize,
     cache: &CacheGroup,
     module_sizes: &ModuleSizes,
-  ) -> Option<bool> {
-    let first = affected.next()?;
+  ) -> bool {
     let mut remaining_sizes: SmallVec<[(SourceType, f64); 2]> =
       self.sizes.iter().map(|(ty, size)| (*ty, *size)).collect();
-    for module in std::iter::once(first).chain(affected) {
+    for module in affected {
       let sizes = &module_sizes[&module];
       for (ty, remaining) in &mut remaining_sizes {
         *remaining = (*remaining - sizes.get(ty).copied().unwrap_or_default()).max(0.0);
@@ -415,7 +413,7 @@ impl ModuleGroup {
       keep_chunks += reduction(ty, remaining, self.chunks.len());
       keep_modules += reduction(ty, *size, remaining_chunks);
     }
-    Some(keep_chunks > keep_modules)
+    keep_chunks > keep_modules
   }
 
   /// Subtract committed placements from this candidate in the existing cleanup
@@ -445,29 +443,26 @@ impl ModuleGroup {
           true
         }
       });
-      if changed {
-        if self.modules.is_empty() {
-          return CandidateUpdate::Discard;
-        }
-        // A changed named group must not introduce consumers of a module that
-        // was already extracted elsewhere. Narrow its existing support in place.
-        let before = self.chunks.len();
-        self
-          .chunks
-          .retain(|chunk| sources.values().all(|chunks| chunks.contains(chunk)));
-        for chunks in sources.values_mut() {
-          chunks.retain(|chunk| self.chunks.contains(chunk));
-        }
-        self.placement_changed = true;
-        if self.chunks.len() != before {
-          self.chunk_mask = chunk_mask(self.chunks.iter());
-        }
+      if !changed {
+        return CandidateUpdate::Unchanged;
       }
-      return if changed {
-        CandidateUpdate::Updated
-      } else {
-        CandidateUpdate::Unchanged
-      };
+      if self.modules.is_empty() {
+        return CandidateUpdate::Discard;
+      }
+      // A changed named group must not introduce consumers of a module that
+      // was already extracted elsewhere. Narrow its existing support in place.
+      let before = self.chunks.len();
+      self
+        .chunks
+        .retain(|chunk| sources.values().all(|chunks| chunks.contains(chunk)));
+      for chunks in sources.values_mut() {
+        chunks.retain(|chunk| self.chunks.contains(chunk));
+      }
+      self.placement_changed = true;
+      if self.chunks.len() != before {
+        self.chunk_mask = chunk_mask(self.chunks.iter());
+      }
+      return CandidateUpdate::Updated;
     }
     let mut changed = false;
     let mut chunks_changed = false;
@@ -498,12 +493,12 @@ impl ModuleGroup {
           // continue their existing iterators instead of starting another scan.
           let remaining = self.chunks.len() - 1 - overlap.count();
           if remaining >= minimum && Self::has_recoverable_size(&self.sizes, cache, remaining) {
-            self.prefer_module_removal(
+            !self.prefer_module_removal(
               std::iter::once(first).chain(affected),
               remaining,
               cache,
               module_sizes,
-            ) == Some(false)
+            )
           } else {
             if self.modules.is_subset(modules) {
               return CandidateUpdate::Discard;
@@ -540,8 +535,7 @@ impl ModuleGroup {
           changed = true;
           let remaining = self.chunks.len() - overlap;
           if self.can_recover(cache, module_sizes, remaining)
-            && self.prefer_module_removal(std::iter::once(module), remaining, cache, module_sizes)
-              == Some(false)
+            && !self.prefer_module_removal(std::iter::once(module), remaining, cache, module_sizes)
           {
             self.chunks.retain(|chunk| !removed.contains(chunk));
             self.placement_changed = true;

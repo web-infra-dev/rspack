@@ -87,15 +87,6 @@ function createConfig(
               expect(lowerPriorityChunk).toBeNull();
               expect(utilChunks).toHaveLength(1);
               expect(utilChunks).toContain(samePriorityChunk);
-            } else if (process.env.RSPACK_RESIDUAL_REUSE === '1') {
-              // The claimed reused destination stays in place. Its remaining Foo
-              // source is eligible immediately at the same priority, so the
-              // lower-priority group no longer wins that source.
-              expect(samePriorityChunk).toBeDefined();
-              expect(lowerPriorityChunk).toBeNull();
-              expect(utilChunks).toHaveLength(2);
-              expect(utilChunks).toContain(reusableChunk);
-              expect(utilChunks).toContain(samePriorityChunk);
             } else {
               expect(samePriorityChunk).toBeNull();
               expect(lowerPriorityChunk).toBeDefined();
