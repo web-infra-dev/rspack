@@ -161,7 +161,7 @@ async function findBaseCommit(github, context) {
 
 // Size data only exists for trunk commits, so the baseline must be a trunk commit
 // — the newest one the binding under test actually contains.
-async function resolveBaseSha(github, owner, repo, context) {
+export async function resolveBaseSha(github, owner, repo, context) {
   const pr = context.payload.pull_request;
   const { data: commit } = await github.rest.repos.getCommit({
     owner,
@@ -178,34 +178,41 @@ async function resolveBaseSha(github, owner, repo, context) {
     return base.sha;
   }
 
-  if (commit.parents?.length !== 2 || head?.sha !== pr.head.sha) {
-    console.log('context.sha is not a PR merge commit, using pr.base.sha');
-    return pr.base.sha;
+  const stack = await resolveStack(github, owner, repo, pr);
+  const trunk = stack?.base?.ref ?? context.payload.repository.default_branch;
+  if (!trunk) {
+    throw new Error(`Cannot identify the trunk branch for PR #${pr.number}`);
   }
 
-  // For a standalone PR the base branch is the trunk, so the merged first parent
-  // is the baseline outright.
-  const stack = await resolveStack(github, owner, repo, pr);
-  if (!stack) {
+  if (commit.parents?.length !== 2 || head?.sha !== pr.head.sha) {
+    throw new Error(
+      `Commit ${context.sha} is not the merge commit for PR #${pr.number}; cannot identify its trunk baseline`,
+    );
+  }
+
+  // A PR targeting trunk uses the exact first parent of the binding's merge ref.
+  if (pr.base.ref === trunk) {
     return base.sha;
   }
 
-  // In a stack the merge commits chain — each PR's merges into the one below —
-  // so the first parent is another merge commit rather than a trunk commit. Take
-  // the merge base with the trunk instead. Anchoring on the branch rather than on
-  // the payload's `stack.base.sha` is deliberate: that sha is frozen at event time
-  // while `refs/pull/N/merge` keeps being recomputed as the trunk advances, so it
-  // can end up behind the trunk commit the binding contains and silently drag the
-  // baseline backwards. The branch tip is always at or ahead of that commit, and
-  // the merge base is the same however far ahead it is.
-  console.log(`Stack trunk: ${stack.base.ref}`);
+  // GitHub's native stack metadata may be absent for ordinary branch-based stacks.
+  // Their PR base is a feature branch, which never publishes binary size data.
+  // The merge base of the binding's merge ref and trunk is the newest trunk
+  // commit actually contained in that binding, including changes from its head.
+  console.log(`Stack trunk: ${trunk}`);
   const { data: comparison } =
     await github.rest.repos.compareCommitsWithBasehead({
       owner,
       repo,
-      basehead: `${stack.base.ref}...${context.sha}`,
+      basehead: `${trunk}...${context.sha}`,
     });
-  return comparison.merge_base_commit.sha;
+  const trunkSha = comparison.merge_base_commit?.sha;
+  if (!trunkSha) {
+    throw new Error(
+      `Cannot identify the common ${trunk} ancestor of merge commit ${context.sha} for PR #${pr.number}`,
+    );
+  }
+  return trunkSha;
 }
 
 // `stack` is missing from the payload when a PR's `opened` event outruns the stack
@@ -348,16 +355,16 @@ function comparingInfo(context, baseCommit) {
   const headSha = context.payload.pull_request?.head.sha || context.sha;
   return (
     `> Comparing [\`${headSha.slice(0, 7)}\`](${context.payload.repository.html_url}/commit/${headSha}) to  [${message} by ${author}](${baseCommit.html_url})\n\n` +
-    stackNote(context.payload.pull_request)
+    stackNote(context.payload.pull_request, context.payload.repository.default_branch)
   );
 }
 
 // Only the bottom PR of a stack sits directly on the trunk; for the ones above it
 // the baseline is still the trunk, so the reported diff covers every PR below as
 // well. Say so, otherwise the number reads as this PR's own contribution.
-function stackNote(pr) {
-  const trunk = pr?.stack?.base?.ref;
-  if (!trunk || pr.base.ref === trunk) return '';
+export function stackNote(pr, defaultBranch) {
+  const trunk = pr?.stack?.base?.ref ?? defaultBranch;
+  if (!pr || !trunk || pr.base.ref === trunk) return '';
   return (
     '> [!NOTE]\n' +
     `> This PR is stacked on \`${pr.base.ref}\`. Sizes are compared against \`${trunk}\`, ` +
