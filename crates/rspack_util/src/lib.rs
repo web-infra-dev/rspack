@@ -26,10 +26,10 @@ pub mod tracing_preset;
 
 use std::{future::Future, sync::LazyLock};
 
-#[cfg(allocative)]
-pub use allocative;
 pub use merge::{MergeFrom, merge_from_optional_with};
 use regex::Regex;
+#[cfg(allocative)]
+pub use rspack_allocative;
 pub use span::SpanExt;
 pub use time::current_time;
 

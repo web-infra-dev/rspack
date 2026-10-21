@@ -1,28 +1,13 @@
-import fs from "node:fs";
-import path from "node:path";
 import { rspack } from "@rspack/core";
-
-let restoredBarrels = 0;
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 export default {
   description:
     "should keep unused reexports lazy when restoring a barrel with a forwarded default",
   options(context) {
-    const root = context.getDist("src");
-    fs.mkdirSync(root, { recursive: true });
-    const files = {
-      "index.js": `import value from "./barrel.js"; export default value();`,
-      "barrel.js": `export { default } from "./value.js"; export { extra } from "./extra.js";`,
-      "value.js": `export default () => "value";`,
-      // Building the unused sibling would fail, including after a cache hit.
-      "extra.js": `export { extra } from "./not-installed.js";`,
-    };
-    for (const [name, source] of Object.entries(files)) {
-      fs.writeFileSync(path.join(root, name), source);
-    }
+    const barrel = context.getSource("barrel.js");
     return {
-      context: root,
+      context: context.getSource(),
       entry: "./index.js",
       mode: "development",
       devtool: false,
@@ -32,6 +17,8 @@ export default {
         type: "persistent",
         storage: { directory: context.getDist("cache") },
       },
+      // Cache restoration must not depend on checkout times or filesystem precision.
+      snapshot: { module: { timestamp: false, hash: true } },
       lazyCompilation: { entries: false, imports: true },
       module: { rules: [{ test: /barrel\.js$/, sideEffects: false }] },
       optimization: { usedExports: false, sideEffects: "flag" },
@@ -45,9 +32,16 @@ export default {
           apply(compiler) {
             rspack.lazyCompilationMiddleware(compiler);
             compiler.hooks.compilation.tap("LazyBarrel", compilation => {
+              const events = { built: 0, restored: 0 };
+              context.setValue("barrelCacheEvents", events);
+              compilation.hooks.buildModule.tap("LazyBarrel", module => {
+                if (module.identifier() === barrel) {
+                  events.built++;
+                }
+              });
               compilation.hooks.stillValidModule.tap("LazyBarrel", module => {
-                if (path.basename(module.identifier()) === "barrel.js") {
-                  restoredBarrels++;
+                if (module.identifier() === barrel) {
+                  events.restored++;
                 }
               });
             });
@@ -60,13 +54,20 @@ export default {
     const manager = context.getCompiler();
     for (let run = 0; run < 2; run++) {
       if (run > 0) {
-        // A new compiler restores the module cache instead of the incremental graph.
+        // close() flushes the persistent cache before a fresh compiler reads it.
         await manager.close();
         manager.createCompiler();
       }
       const stats = await manager.build();
-      expect(restoredBarrels).toBe(run);
       expect(stats.toJson({ all: false, errors: true }).errors).toEqual([]);
+      expect(context.getValue("barrelCacheEvents")).toEqual(
+        run === 0 ? { built: 1, restored: 0 } : { built: 0, restored: 1 },
+      );
+      expect(
+        [...stats.compilation.modules].some(
+          module => module.identifier() === context.getSource("extra.js"),
+        ),
+      ).toBe(false);
       const output = { exports: {} };
       new Function(
         "module",

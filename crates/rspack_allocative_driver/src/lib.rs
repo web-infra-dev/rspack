@@ -15,7 +15,7 @@ pub use source_tree::instrument_source_tree;
 /// Insert attributes without pretty-printing the file, preserving comments and line numbers.
 /// Rustc subsequently evaluates cfg attributes and expands the injected derive normally.
 pub fn instrument(source: &str) -> syn::Result<String> {
-  instrument_with_path(source, "::allocative")
+  instrument_with_path(source, "::rspack_allocative")
 }
 
 /// Select the dependency path when a workspace crate reexports allocative through rspack_util.

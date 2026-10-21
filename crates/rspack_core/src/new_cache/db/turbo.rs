@@ -195,17 +195,17 @@ pub struct TurboDatabase {
 // vtable for Inner's unevaluated const argument. Avoid that vtable while keeping
 // the other fields visible; this backend's nested allocations remain unobserved.
 #[cfg(allocative)]
-impl allocative::Allocative for TurboDatabase {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+impl rspack_allocative::Allocative for TurboDatabase {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_allocative::Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);
     visitor.visit_field_with(
-      allocative::ident_key!(inner),
+      rspack_allocative::ident_key!(inner),
       std::mem::size_of_val(&self.inner),
       |visitor| visitor.visit_opaque(&self.inner),
     );
-    visitor.visit_field(allocative::ident_key!(base_path), &self.base_path);
-    visitor.visit_field(allocative::ident_key!(path), &self.path);
-    visitor.visit_field(allocative::ident_key!(readonly), &self.readonly);
+    visitor.visit_field(rspack_allocative::ident_key!(base_path), &self.base_path);
+    visitor.visit_field(rspack_allocative::ident_key!(path), &self.path);
+    visitor.visit_field(rspack_allocative::ident_key!(readonly), &self.readonly);
     visitor.exit();
   }
 }

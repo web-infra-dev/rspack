@@ -6,7 +6,7 @@ use rspack_cacheable::{
 };
 use rspack_hash::RspackHasher;
 #[cfg(allocative)]
-use rspack_util::allocative;
+use rspack_util::rspack_allocative;
 use rustc_hash::FxHashMap;
 use smol_str::{SmolStr, SmolStrBuilder};
 use ustr::{Ustr, UstrSet};
@@ -15,7 +15,7 @@ use crate::{EntryOptions, EntryRuntime};
 
 #[cacheable]
 #[derive(Debug, Default, Clone, rspack_hash::RspackHash)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
   #[rspack_hash(skip)]

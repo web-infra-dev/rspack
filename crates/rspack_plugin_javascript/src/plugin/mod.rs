@@ -41,7 +41,7 @@ use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::plugin;
 use rspack_util::SpanExt;
 #[cfg(allocative)]
-use rspack_util::allocative;
+use rspack_util::rspack_allocative;
 pub use side_effects_flag_plugin::*;
 use tokio::sync::RwLock;
 
@@ -51,7 +51,7 @@ use crate::{
   runtime::{render_chunk_modules, render_module, render_runtime_modules, stringify_array},
 };
 
-#[cfg_attr(allocative, allocative::root)]
+#[cfg_attr(allocative, rspack_allocative::root)]
 static COMPILATION_HOOKS_MAP: LazyLock<
   SyncRwLock<FxHashMap<CompilationId, Arc<RwLock<JavascriptModulesPluginHooks>>>>,
 > = LazyLock::new(Default::default);

@@ -14,7 +14,7 @@ use rspack_core::{
   FileReplacements, FilenameRenderValue, GeneratorOptions, ImportAttributes, LocalIdentName,
   Module, ModuleType, NormalModuleCreateData, PathData, PlaceholderKind, ResourceData,
 };
-use rspack_error::{Diagnostic, Error, Result, Severity};
+use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
 use rspack_util::{
   identifier::{make_paths_relative, split_at_query_mark},
@@ -167,8 +167,7 @@ pub struct LocalIdentModuleHashOptions<'a> {
 /// rendered for the module.
 #[derive(Debug, Clone)]
 struct LocalIdentRenderCache {
-  /// Static templates are looked up once; function templates are evaluated for each render.
-  compiled_template: Option<Arc<CompiledStringTemplate<'static>>>,
+  compiled_template: Arc<CompiledStringTemplate<'static>>,
   has_local_placeholder: bool,
   /// Replacement values for the filename placeholders of the local ident template.
   file_replacements: FileReplacements,
@@ -217,7 +216,11 @@ impl LocalIdentRenderCache {
     );
 
     Self {
-      compiled_template: options.local_ident_name.template.compiled_template(),
+      compiled_template: options
+        .local_ident_name
+        .template
+        .compiled_template()
+        .expect("CSS local ident name should be a string template"),
       has_local_placeholder: options
         .local_ident_name
         .template
@@ -388,11 +391,11 @@ impl<'a> LocalIdentOptions<'a> {
       .to_string()
   }
 
-  pub async fn get_local_ident(
+  pub fn get_local_ident(
     &self,
     local: &str,
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
-  ) -> Result<String> {
+  ) -> String {
     let output = &self.compiler_options.output;
     let local_ident_hash = {
       let mut hasher =
@@ -416,7 +419,7 @@ impl<'a> LocalIdentOptions<'a> {
       local_ident_hash.as_str()
     };
     let local_ident = LocalIdentNameRenderOptions {
-      compiled_template: cache.compiled_template.as_deref(),
+      compiled_template: &cache.compiled_template,
       path_data: PathData::default()
         .filename(&self.relative_resource)
         .chunk_name(&cache.chunk_name)
@@ -429,13 +432,10 @@ impl<'a> LocalIdentOptions<'a> {
       unique_name: &output.unique_name,
       folder: &cache.folder,
     }
-    .render_local_ident_name(self.local_ident_name)
-    .await?;
-    Ok(
-      LEADING_DIGIT_REGEX
-        .replace(&local_ident, "_${1}")
-        .into_owned(),
-    )
+    .render_local_ident_name();
+    LEADING_DIGIT_REGEX
+      .replace(&local_ident, "_${1}")
+      .into_owned()
   }
 }
 
@@ -526,7 +526,7 @@ fn prepare_css_module_id(v: &str) -> Cow<'_, str> {
 }
 
 struct LocalIdentNameRenderOptions<'a> {
-  compiled_template: Option<&'a CompiledStringTemplate<'static>>,
+  compiled_template: &'a CompiledStringTemplate<'static>,
   path_data: PathData<'a>,
   /// Replacements shared by every local ident of the module.
   file_replacements: &'a FileReplacements,
@@ -555,34 +555,25 @@ fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
 }
 
 impl LocalIdentNameRenderOptions<'_> {
-  pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
-    let dynamic_template;
-    let compiled_template = match self.compiled_template {
-      Some(template) => template,
-      None => {
-        dynamic_template = local_ident_name
-          .template
-          .compiled(self.path_data, None)
-          .await?;
-        dynamic_template.as_ref()
-      }
-    };
-    Ok(compiled_template.render_with_path_data_and_replacements(
-      self.path_data,
-      self.file_replacements,
-      None,
-      |placeholder| match placeholder.kind() {
-        PlaceholderKind::FullHash => Some(FilenameRenderValue::Value(Cow::Borrowed(
-          self.local_ident_hash,
-        ))),
-        PlaceholderKind::UniqueName => {
-          Some(FilenameRenderValue::Value(Cow::Borrowed(self.unique_name)))
-        }
-        PlaceholderKind::Local => Some(FilenameRenderValue::Value(Cow::Borrowed(self.local))),
-        PlaceholderKind::Folder => Some(FilenameRenderValue::Value(Cow::Borrowed(self.folder))),
-        _ => None,
-      },
-    ))
+  pub fn render_local_ident_name(self) -> String {
+    self
+      .compiled_template
+      .render_with_path_data_and_replacements(
+        self.path_data,
+        self.file_replacements,
+        None,
+        |placeholder| match placeholder.kind() {
+          PlaceholderKind::FullHash => Some(FilenameRenderValue::Value(Cow::Borrowed(
+            self.local_ident_hash,
+          ))),
+          PlaceholderKind::UniqueName => {
+            Some(FilenameRenderValue::Value(Cow::Borrowed(self.unique_name)))
+          }
+          PlaceholderKind::Local => Some(FilenameRenderValue::Value(Cow::Borrowed(self.local))),
+          PlaceholderKind::Folder => Some(FilenameRenderValue::Value(Cow::Borrowed(self.folder))),
+          _ => None,
+        },
+      )
   }
 }
 
