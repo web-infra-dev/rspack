@@ -1,6 +1,8 @@
 [workspace]
-members  = ["crates/*", "xtask/benchmark", "xtask"]
-resolver = "2"                                      # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
+members = ["crates/*", "xtask/benchmark", "xtask"]
+# Version-matched napi-rs macro sources with an allocative conversion hook.
+exclude  = ["crates/rspack_napi_derive"]
+resolver = "2"                           # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 
 [workspace.package]
 authors = ["Rspack Teams"]
@@ -139,7 +141,7 @@ xxhash-rust         = { version = "0.8.19", default-features = false }
 # Pinned
 napi        = { version = "3.10.5", default-features = false }
 napi-build  = { version = "2.3.2", default-features = false }
-napi-derive = { version = "3.5.10", default-features = false }
+napi-derive = { path = "crates/rspack_napi_derive", version = "=3.5.10", default-features = false }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17", default-features = false }
