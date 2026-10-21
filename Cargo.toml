@@ -136,9 +136,6 @@ wasmparser          = { version = "0.236.1", default-features = false }
 winnow              = { version = "1.0.4", default-features = false, features = ["std", "simd", "ascii"] }
 xxhash-rust         = { version = "0.8.19", default-features = false }
 
-allocative        = { package = "rspack-allocative", path = "crates/rspack_allocative", version = "=0.102.9", default-features = false, features = ["camino", "dashmap", "indexmap", "tokio", "once_cell", "ustr", "atomic_refcell"] }
-allocative_derive = { package = "rspack-allocative_derive", path = "crates/rspack_allocative_derive", version = "=0.102.9", default-features = false }
-
 # Pinned
 napi        = { version = "3.10.5", default-features = false }
 napi-build  = { version = "2.3.2", default-features = false }
@@ -173,6 +170,8 @@ wasmtime     = { version = "36.0.17", default-features = false }
 # all rspack workspace dependencies
 css-module-lexer                       = { version = "=0.103.0-beta.0", path = "crates/css-module-lexer", default-features = false }
 rspack                                 = { version = "=0.103.0-beta.0", path = "crates/rspack", default-features = false }
+rspack_allocative                      = { version = "=0.103.0-beta.0", path = "crates/rspack_allocative", default-features = false, features = ["camino", "dashmap", "indexmap", "tokio", "once_cell", "ustr", "atomic_refcell"] }
+rspack_allocative_derive               = { version = "=0.103.0-beta.0", path = "crates/rspack_allocative_derive", default-features = false }
 rspack_allocative_driver               = { version = "=0.103.0-beta.0", path = "crates/rspack_allocative_driver", default-features = false }
 rspack_allocator                       = { version = "=0.103.0-beta.0", path = "crates/rspack_allocator", default-features = false }
 rspack_binding_api                     = { version = "=0.103.0-beta.0", path = "crates/rspack_binding_api", default-features = false }

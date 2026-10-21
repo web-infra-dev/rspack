@@ -1,5 +1,5 @@
 #[derive(Debug)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 struct WideChar {
   utf16_start: u32,
   byte_start: u32,
@@ -7,7 +7,7 @@ struct WideChar {
 
 /// UTF-16 columns for a whole source. Only non-ASCII lines have character indexes.
 #[derive(Debug)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub struct LineIndex<'text> {
   #[cfg_attr(allocative, allocative(skip))]
   text: &'text str,

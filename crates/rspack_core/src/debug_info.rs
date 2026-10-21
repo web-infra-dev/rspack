@@ -1,7 +1,7 @@
 use std::{fmt::Display, sync::Mutex};
 
 #[cfg(allocative)]
-use rspack_util::allocative;
+use rspack_util::rspack_allocative;
 
 /// Debug info used when programs panics
 /// Only works with #[cfg(debug_assertions)]
@@ -43,5 +43,5 @@ impl Display for DebugInfo {
   }
 }
 
-#[cfg_attr(allocative, allocative::root)]
+#[cfg_attr(allocative, rspack_allocative::root)]
 pub static DEBUG_INFO: Mutex<DebugInfo> = Mutex::new(DebugInfo::new());

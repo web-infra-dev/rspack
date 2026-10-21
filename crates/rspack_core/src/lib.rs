@@ -1,7 +1,7 @@
 use std::{fmt, sync::Arc};
 
 #[cfg(allocative)]
-pub use rspack_util::allocative;
+pub use rspack_util::rspack_allocative;
 mod artifacts;
 mod binding;
 mod compilation;
