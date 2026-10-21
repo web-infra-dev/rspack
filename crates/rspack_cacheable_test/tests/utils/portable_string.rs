@@ -546,3 +546,55 @@ fn test_typed_context_regex_content_is_not_rewritten() {
     rspack_cacheable::from_bytes(&bytes, &TestContext(Some("/moved/project".into()))).unwrap();
   assert_eq!(moved.as_str(), format!("/moved/project/dir|sync|{pattern}"));
 }
+
+#[test]
+#[cfg(not(windows))]
+fn test_typed_context_regex_literal_markers() {
+  for literal in [
+    "\0",
+    "\0root/\0",
+    "\0root\\\0",
+    "\0root\\\\\0",
+    "\0escape",
+    "文本\0escape\0root/\0",
+  ] {
+    let pattern = format!("/^/project/{literal}.*$/");
+    for outside in ["", "/outside/file.js"] {
+      let prefix = format!("/project/dir|{literal}|sync|");
+      let suffix = format!("|{outside}|/project/tail|{literal}");
+      let identifier = format!("{prefix}{pattern}{suffix}");
+      let context = StructuredIdentifierContext {
+        root: "/project".into(),
+        identifier: identifier.clone(),
+        non_path: prefix.len()..prefix.len() + pattern.len(),
+      };
+      let data = rspack_collections::Identifier::from(identifier.as_str());
+      let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&data, &context).unwrap();
+      assert_eq!(bound, !outside.is_empty());
+      let restored: rspack_collections::Identifier =
+        rspack_cacheable::from_bytes(&bytes, &context).unwrap();
+      assert_eq!(restored, data);
+      let moved: rspack_collections::Identifier =
+        rspack_cacheable::from_bytes(&bytes, &TestContext(Some("/moved/deeper/project".into())))
+          .unwrap();
+      assert_eq!(
+        moved.as_str(),
+        format!(
+          "{}{pattern}{}",
+          prefix.cow_replace("/project/", "/moved/deeper/project/"),
+          suffix.cow_replace("/project/", "/moved/deeper/project/")
+        )
+      );
+
+      let unrelated_context = StructuredIdentifierContext {
+        identifier: format!("{identifier}|other"),
+        ..context
+      };
+      let (_, bound) = rspack_cacheable::to_bytes_with_binding(&data, &unrelated_context).unwrap();
+      assert!(
+        bound,
+        "metadata for a different identifier must not exempt its regex"
+      );
+    }
+  }
+}

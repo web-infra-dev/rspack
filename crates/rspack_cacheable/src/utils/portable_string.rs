@@ -120,7 +120,7 @@ impl PortableString {
       )
     {
       let mut converted = Self::new(prefix, guard).content;
-      converted.push_str(pattern);
+      converted.push_str(&pattern.cow_replace('\0', ESCAPE));
       converted.push_str(&Self::new(suffix, guard).content);
       return Self { content: converted };
     }
