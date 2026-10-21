@@ -1,10 +1,10 @@
 use std::{fmt::Write as _, time::Duration};
 
-use rspack_paths::{InternedPath, InternedPathSet};
+use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
 
 use super::{
   occasion::{Occasion, Recovered},
-  snapshot::{Snapshot, SnapshotScope},
+  snapshot::{Snapshot, SnapshotScope, Strategy},
   storage::BoxStorage,
   validation::{CacheValidation, CacheValidationResult},
 };
@@ -38,7 +38,7 @@ pub struct CacheContext {
 
   logger: CompilationLogger,
   storage: BoxStorage,
-  refresh_file_paths: InternedPathSet,
+  refresh_file_snapshots: InternedPathMap<Strategy>,
 }
 
 impl CacheContext {
@@ -49,7 +49,7 @@ impl CacheContext {
       readonly,
       logger,
       storage,
-      refresh_file_paths: InternedPathSet::default(),
+      refresh_file_snapshots: InternedPathMap::default(),
     }
   }
 
@@ -198,7 +198,7 @@ impl CacheContext {
     &mut self,
     snapshot: &Snapshot,
   ) -> Option<(bool, InternedPathSet, InternedPathSet)> {
-    self.refresh_file_paths.clear();
+    self.refresh_file_snapshots.clear();
     if !self.load_failed {
       let start = self.logger().time("read snapshot from persistent cache");
       let mut is_hot_start = false;
@@ -218,7 +218,7 @@ impl CacheContext {
       for item in data {
         match item {
           Ok((a, b, c, _, refresh)) => {
-            self.refresh_file_paths.extend(refresh);
+            self.refresh_file_snapshots.extend(refresh);
             is_hot_start = is_hot_start || a;
             modified_paths.extend(b);
             removed_paths.extend(c);
@@ -250,7 +250,7 @@ impl CacheContext {
       self.logger().time_end(start);
     }
 
-    self.refresh_file_paths.clear();
+    self.refresh_file_snapshots.clear();
     // load_failed: reset snapshot scopes so they are fully rewritten this build.
     if !self.readonly {
       snapshot.reset(&mut *self.storage);
@@ -288,7 +288,7 @@ impl CacheContext {
       &mut *self.storage,
       SnapshotScope::FILE,
       file_removed.inspect(|path| {
-        self.refresh_file_paths.remove(path);
+        self.refresh_file_snapshots.remove(path);
       }),
     );
     snapshot.remove(&mut *self.storage, SnapshotScope::CONTEXT, context_removed);
@@ -297,9 +297,15 @@ impl CacheContext {
       .add(
         &mut *self.storage,
         SnapshotScope::FILE,
-        file_added.chain(std::mem::take(&mut self.refresh_file_paths)),
+        file_added.inspect(|path| {
+          self.refresh_file_snapshots.remove(path);
+        }),
       )
       .await;
+    snapshot.refresh_files(
+      &mut *self.storage,
+      std::mem::take(&mut self.refresh_file_snapshots).into_iter(),
+    );
     snapshot
       .add(&mut *self.storage, SnapshotScope::CONTEXT, context_added)
       .await;
@@ -403,7 +409,7 @@ impl CacheContext {
   /// loads are skipped on the next build as well.  Transient errors
   /// (`load_failed` without `invalid`) are cleared so the next build retries.
   pub fn reset(&mut self) {
-    self.refresh_file_paths.clear();
+    self.refresh_file_snapshots.clear();
     if !self.readonly {
       self.invalid = false;
       self.load_failed = false

@@ -91,7 +91,7 @@ pub enum ValidateResult {
   /// The target file has no changed
   NoChanged,
   /// The content is unchanged but the stored file timestamp needs refreshing.
-  NoChangedRefresh,
+  NoChangedRefresh(Strategy),
 }
 
 pub struct StrategyHelper {
@@ -262,12 +262,18 @@ impl StrategyHelper {
         if &modified_time == mtime {
           return ValidateResult::NoChanged;
         }
-        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.file_hash(path).await
+        let Some(ContentHash {
+          hash: cur_hash,
+          mtime: cur_mtime,
+        }) = self.hash_helper.file_hash(path).await
         else {
           return ValidateResult::Deleted;
         };
         if &cur_hash == hash {
-          ValidateResult::NoChangedRefresh
+          ValidateResult::NoChangedRefresh(Strategy::FileTimestampAndHash {
+            mtime: cur_mtime,
+            hash: cur_hash,
+          })
         } else {
           ValidateResult::Modified
         }

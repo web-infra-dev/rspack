@@ -6,7 +6,7 @@ use std::sync::Arc;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_parallel::TryFutureConsumer;
-use rspack_paths::{InternedPath, InternedPathSet};
+use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
 
 pub(crate) use self::strategy::{StrategyHelper, ValidateResult};
 pub use self::{scope::SnapshotScope, strategy::Strategy};
@@ -127,6 +127,24 @@ impl Snapshot {
       .await;
   }
 
+  /// Keep the observation that justified reuse: inputs can change after compilation.
+  pub fn refresh_files(
+    &self,
+    storage: &mut dyn Storage,
+    snapshots: impl Iterator<Item = (InternedPath, Strategy)>,
+  ) {
+    for (path, strategy) in snapshots {
+      storage.set(
+        SnapshotScope::FILE.name(),
+        self.codec.encode(&path).expect("should encode path"),
+        self
+          .codec
+          .encode(&strategy)
+          .expect("should encode strategy"),
+      );
+    }
+  }
+
   pub fn remove(
     &self,
     storage: &mut dyn Storage,
@@ -152,12 +170,12 @@ impl Snapshot {
     InternedPathSet,
     InternedPathSet,
     InternedPathSet,
-    InternedPathSet,
+    InternedPathMap<Strategy>,
   )> {
     let mut modified_path = InternedPathSet::default();
     let mut deleted_path = InternedPathSet::default();
     let mut no_change_path = InternedPathSet::default();
-    let mut refresh_path = InternedPathSet::default();
+    let mut refresh_path = InternedPathMap::default();
     let helper = Arc::new(StrategyHelper::new(
       self.fs.clone(),
       self.options.clone(),
@@ -188,8 +206,8 @@ impl Snapshot {
         ValidateResult::Deleted => {
           deleted_path.insert(path);
         }
-        ValidateResult::NoChangedRefresh => {
-          refresh_path.insert(path.clone());
+        ValidateResult::NoChangedRefresh(strategy) => {
+          refresh_path.insert(path.clone(), strategy);
           no_change_path.insert(path);
         }
         ValidateResult::NoChanged => {
