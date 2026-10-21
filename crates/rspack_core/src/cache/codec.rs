@@ -1,5 +1,6 @@
 use std::{
   hash::{Hash, Hasher},
+  ops::Range,
   path::Path,
   sync::Arc,
 };
@@ -11,7 +12,7 @@ use rspack_cacheable::{
   utils::root_patterns,
 };
 use rspack_error::Result;
-use rustc_hash::FxHasher;
+use rustc_hash::{FxHashMap, FxHasher};
 
 use crate::PortableRoot;
 
@@ -35,6 +36,7 @@ struct RootPatterns {
 #[derive(Debug, Clone)]
 struct Context {
   portable_root: Option<PortableRoot>,
+  context_identifier_regex_ranges: Option<Arc<FxHashMap<String, Range<usize>>>>,
 }
 
 impl rspack_cacheable::CacheableContext for Context {
@@ -47,6 +49,14 @@ impl rspack_cacheable::CacheableContext for Context {
       .portable_root
       .as_ref()
       .map(|p| p.canonical_root.as_std_path())
+  }
+
+  fn context_identifier_regex_range(&self, value: &str) -> Option<Range<usize>> {
+    self
+      .context_identifier_regex_ranges
+      .as_ref()?
+      .get(value)
+      .cloned()
   }
 }
 
@@ -94,8 +104,20 @@ impl CacheCodec {
     });
     Self {
       root_patterns,
-      context: Context { portable_root },
+      context: Context {
+        portable_root,
+        context_identifier_regex_ranges: None,
+      },
     }
+  }
+
+  pub(crate) fn with_context_identifier_regex_ranges(
+    &self,
+    ranges: FxHashMap<String, Range<usize>>,
+  ) -> Self {
+    let mut codec = self.clone();
+    codec.context.context_identifier_regex_ranges = Some(Arc::new(ranges));
+    codec
   }
 
   pub fn is_portable(&self) -> bool {

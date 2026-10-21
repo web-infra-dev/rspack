@@ -65,6 +65,28 @@ pub fn save_module_graph(
     );
   }
 
+  let node_codec = if codec.root_hash().is_some() && !need_update_modules.is_empty() {
+    let ranges = mg
+      .modules()
+      .filter_map(|(identifier, module)| {
+        let range = module.as_context_module()?.identifier_regex_range()?;
+        Some((identifier.to_string(), range))
+      })
+      .chain(mg.dependencies().filter_map(|(_, dependency)| {
+        let dependency = dependency.as_context_dependency()?;
+        let range = dependency.resource_identifier_regex_range()?;
+        Some((
+          crate::ContextDependency::resource_identifier(dependency).to_string(),
+          range,
+        ))
+      }))
+      .collect();
+    Some(codec.with_context_identifier_regex_ranges(ranges))
+  } else {
+    None
+  };
+  let node_codec = node_codec.as_ref().unwrap_or(codec);
+
   // save module_graph
   let saved_count = AtomicUsize::new(0);
   need_update_modules
@@ -118,7 +140,7 @@ pub fn save_module_graph(
       };
       let key = codec.encode(identifier).expect("should encode identifier");
       let root_sensitive = module.build_info().root_sensitive;
-      match BoundEntry::encode(codec, &node, root_sensitive) {
+      match BoundEntry::encode(node_codec, &node, root_sensitive) {
         Ok(bytes) => (key, bytes),
         Err(err) if err.to_string().contains("unsupported field") => {
           tracing::warn!("to bytes failed {:?}", err);
@@ -132,7 +154,7 @@ pub fn save_module_graph(
             })
             .collect();
           node.blocks = vec![];
-          if let Ok(bytes) = BoundEntry::encode(codec, &node, root_sensitive) {
+          if let Ok(bytes) = BoundEntry::encode(node_codec, &node, root_sensitive) {
             (key, bytes)
           } else {
             panic!("alternatives serialize failed")
