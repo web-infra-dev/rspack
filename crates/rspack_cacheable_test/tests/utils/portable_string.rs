@@ -150,6 +150,8 @@ fn test_windows() {
       "C:\\Windows".into(),
       r"C:/Users/project/path with space/a.js".into(),
       r"C:\\Users\\project\\src\\a.js".into(),
+      "C:\\Users\\project\\a.js|\0root\\\0|\0escape".into(),
+      "C:\\\\Users\\\\project\\\\a.js|\0root\\\\\0".into(),
     ],
   };
 
@@ -181,6 +183,76 @@ fn test_windows() {
       "C:\\Windows".into(),
       r"D:/other/path with space/a.js".into(),
       r"D:\\other\\src\\a.js".into(),
+      "D:\\other\\a.js|\0root\\\0|\0escape".into(),
+      "D:\\\\other\\\\a.js|\0root\\\\\0".into(),
     ]
   );
+}
+
+#[test]
+fn test_literal_markers() {
+  let root = std::env::temp_dir().join("rspack-marker-project");
+  let other_root = std::env::temp_dir().join("rspack-marker-relocated");
+  let context = TestContext(Some(root.clone()));
+  let other_context = TestContext(Some(other_root.clone()));
+  let no_root = TestContext(None);
+  let literals = [
+    "",
+    "文本",
+    "\0",
+    "\0root/\0",
+    "\0root\\\0",
+    "\0root\\\\\0",
+    "\0escape",
+    "\0escape\0escapeescape\0",
+    "\0root/\0\0root/\0",
+    "\0root/\0|\0escape|\0root\\\0|\0root\\\\\0",
+    "\0\0root/\0escape\0root/\0\0文本",
+  ];
+  let data = Data {
+    paths: literals
+      .iter()
+      .flat_map(|left| literals.iter().map(move |right| format!("{left}{right}")))
+      .collect(),
+  };
+  for encode_context in [&no_root, &context] {
+    let bytes = rspack_cacheable::to_bytes(&data, encode_context).unwrap();
+    for decode_context in [&no_root, &context, &other_context] {
+      let decoded: Data = rspack_cacheable::from_bytes(&bytes, decode_context).unwrap();
+      assert_eq!(decoded, data);
+    }
+  }
+
+  // NormalModule identifiers append the layer verbatim after the resource.
+  for literal in literals {
+    let path = root.join("src/a.js").to_string_lossy().into_owned();
+    let relocated = other_root.join("src/a.js").to_string_lossy().into_owned();
+    let outside = root.with_file_name("outside").join("b.js");
+    let outside = outside.to_string_lossy();
+    let data = Data {
+      paths: vec![
+        format!("javascript/auto|{path}|{literal}"),
+        format!("{literal}|{path}!{path}|{literal}"),
+        format!("{outside}|{literal}|{path}"),
+      ],
+    };
+    let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&data, &context).unwrap();
+    assert!(bound);
+    let decoded: Data = rspack_cacheable::from_bytes(&bytes, &context).unwrap();
+    assert_eq!(decoded, data);
+    let decoded: Data = rspack_cacheable::from_bytes(&bytes, &other_context).unwrap();
+    assert_eq!(
+      decoded.paths,
+      vec![
+        format!("javascript/auto|{relocated}|{literal}"),
+        format!("{literal}|{relocated}!{relocated}|{literal}"),
+        format!("{outside}|{literal}|{relocated}"),
+      ]
+    );
+    let bytes = rspack_cacheable::to_bytes(&data, &no_root).unwrap();
+    for decode_context in [&no_root, &context, &other_context] {
+      let decoded: Data = rspack_cacheable::from_bytes(&bytes, decode_context).unwrap();
+      assert_eq!(decoded, data);
+    }
+  }
 }

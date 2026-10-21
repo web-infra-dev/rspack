@@ -4,7 +4,11 @@ use cow_utils::CowUtils;
 
 use crate::{ContextGuard, Result, cacheable, with::AsConverter};
 
-/// NUL cannot occur in a filesystem path; distinct markers preserve Windows separator forms.
+// Escape literal NULs before inserting root markers, including when portability is disabled.
+// The escape has no trailing NUL, so escaped data cannot form a root marker.
+const ESCAPE: &str = "\0escape";
+
+/// Distinct markers preserve Windows separator forms.
 const ROOT: &str = "\0root/\0";
 #[cfg(windows)]
 const ROOT_NATIVE: &str = "\0root\\\0";
@@ -19,10 +23,11 @@ pub struct PortableString {
 
 impl PortableString {
   pub fn new(content: &str, guard: &ContextGuard) -> Self {
+    let content = content.cow_replace('\0', ESCAPE);
     let project_root = guard.project_root();
     let Some(project_root) = project_root else {
       return Self {
-        content: content.to_string(),
+        content: content.into_owned(),
       };
     };
     for part in content.split(['|', '!', '?', '=', ' ', '\t', '\n', '\r']) {
@@ -51,7 +56,7 @@ impl PortableString {
 
   pub fn into_path_string(self, project_root: Option<&Path>) -> String {
     let Some(project_root) = project_root else {
-      return self.content;
+      return self.content.cow_replace(ESCAPE, "\0").into_owned();
     };
     let root = project_root.to_string_lossy();
     #[cfg(windows)]
@@ -69,6 +74,7 @@ impl PortableString {
     let root = root.cow_replace('\\', "/");
     content
       .cow_replace(ROOT, &format!("{}/", root.trim_end_matches('/')))
+      .cow_replace(ESCAPE, "\0")
       .into_owned()
   }
 }
