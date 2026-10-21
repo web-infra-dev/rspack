@@ -18,7 +18,7 @@ const cases = [false, true].map(newCache => {
         'import { value } from "./dep.js"; import { value as again } from "./dep.js"; console.log(value, again);'
       );
       const dependency = path.join(root, "dep.js");
-      fs.writeFileSync(dependency, 'export const value = "dep-v1";');
+      fs.writeFileSync(dependency, 'export const value = { label: "dep-v1" };');
       // Make the first build's snapshot eligible for reuse during finishModules.
       fs.utimesSync(dependency, 1, 1);
       fs.writeFileSync(path.join(root, "build-dependency.js"), 'module.exports = "first";');
@@ -127,7 +127,7 @@ const cases = [false, true].map(newCache => {
       await restart("first");
       expect(await build({ reused: 2, total: 2 }, "valid")).toEqual(cold);
       await restart("first");
-      fs.writeFileSync(path.join(root, "dep.js"), 'export const value = "dependency-v2";');
+      fs.writeFileSync(path.join(root, "dep.js"), 'export const value = { label: "dependency-v2" };');
       const changed = await build({ reused: 1, total: 2 }, "valid");
       expect(changed[0]).toContain("dependency-v2");
       expect(changed[1]).not.toEqual(cold[1]);
