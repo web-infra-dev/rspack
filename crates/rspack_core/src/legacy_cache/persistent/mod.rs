@@ -66,7 +66,11 @@ impl PersistentCache {
       cache_directory,
       option.max_age,
       intermediate_filesystem,
-      option.seed_from.as_deref(),
+      if option.readonly {
+        None
+      } else {
+        option.seed_from.as_deref()
+      },
     );
     let snapshot = Arc::new(Snapshot::new(
       compiler_options.snapshot.clone(),
