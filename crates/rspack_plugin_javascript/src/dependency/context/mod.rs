@@ -36,6 +36,13 @@ fn create_resource_identifier_for_context_dependency(
   context: Option<&str>,
   options: &ContextOptions,
 ) -> ResourceIdentifier {
+  create_resource_identifier_and_regex_range(context, options).0
+}
+
+fn create_resource_identifier_and_regex_range(
+  context: Option<&str>,
+  options: &ContextOptions,
+) -> (ResourceIdentifier, Option<std::ops::Range<usize>>) {
   let context = context
     .and_then(|context| context_identifier(&options.compiler_context, context))
     .unwrap_or_default();
@@ -108,10 +115,15 @@ fn create_resource_identifier_for_context_dependency(
     group_options += "}";
   }
 
+  let prefix = format!("context{context}|ctx request{request} {recursive} ");
+  let regex_range = options
+    .pattern
+    .reg_exp()
+    .map(|_| prefix.len()..prefix.len() + pattern.len());
   let id = format!(
-    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive}{glob_case_sensitive}",
+    "{prefix}{pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive}{glob_case_sensitive}",
   );
-  id.into()
+  (id.into(), regex_range)
 }
 
 fn context_dependency_template_as_require_call(

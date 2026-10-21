@@ -431,3 +431,117 @@ fn test_nested_spellings_prefer_the_longest() {
     ]
   );
 }
+
+#[cfg(not(windows))]
+struct StructuredIdentifierContext {
+  root: PathBuf,
+  identifier: String,
+  non_path: std::ops::Range<usize>,
+}
+
+#[cfg(not(windows))]
+impl CacheableContext for StructuredIdentifierContext {
+  fn project_root(&self) -> Option<&Path> {
+    Some(&self.root)
+  }
+
+  fn context_identifier_regex_range(&self, value: &str) -> Option<std::ops::Range<usize>> {
+    (value == self.identifier).then(|| self.non_path.clone())
+  }
+}
+
+#[test]
+#[cfg(not(windows))]
+fn test_typed_context_regex_does_not_hide_outside_paths() {
+  let pattern = r"/^\.\/.*$/";
+  for (identifier, bound) in [
+    (format!("/project/dir|sync|{pattern}"), false),
+    (format!("/outside/dir|sync|{pattern}"), true),
+    (
+      format!("context|ctx request./dir true {pattern}   sync  "),
+      false,
+    ),
+    (
+      format!("context|ctx request./dir true {pattern} /outside/file.js  sync  "),
+      true,
+    ),
+    (
+      format!("/project/dir|sync|{pattern}|/outside/file.js"),
+      true,
+    ),
+    (
+      format!("/outside/loader.js!/project/dir|sync|{pattern}"),
+      true,
+    ),
+  ] {
+    let start = identifier.find(pattern).unwrap();
+    let context = StructuredIdentifierContext {
+      root: "/project".into(),
+      identifier: identifier.clone(),
+      non_path: start..start + pattern.len(),
+    };
+    let data = rspack_collections::Identifier::from(identifier.as_str());
+    let (bytes, actual_bound) = rspack_cacheable::to_bytes_with_binding(&data, &context).unwrap();
+    assert_eq!(actual_bound, bound, "{identifier}");
+    let generic = Data {
+      paths: vec![identifier.clone()],
+    };
+    let (_, generic_bound) = rspack_cacheable::to_bytes_with_binding(&generic, &context).unwrap();
+    assert!(
+      generic_bound,
+      "ordinary string fields must remain conservative"
+    );
+    let moved: rspack_collections::Identifier =
+      rspack_cacheable::from_bytes(&bytes, &TestContext(Some("/moved/deeper/project".into())))
+        .unwrap();
+    assert_eq!(
+      moved.as_str(),
+      identifier.replace("/project/", "/moved/deeper/project/")
+    );
+  }
+
+  let ambiguous = rspack_collections::Identifier::from(format!("/project/dir|sync|{pattern}"));
+  let (_, bound) =
+    rspack_cacheable::to_bytes_with_binding(&ambiguous, &TestContext(Some("/project".into())))
+      .unwrap();
+  assert!(bound);
+}
+
+#[test]
+#[cfg(not(windows))]
+fn test_invalid_context_regex_span_stays_bound() {
+  let identifier = "/project/文本|sync|/outside/file.js";
+  for non_path in [0..0, 9..10, 0..identifier.len() + 1] {
+    let context = StructuredIdentifierContext {
+      root: "/project".into(),
+      identifier: identifier.into(),
+      non_path,
+    };
+    let data = rspack_collections::Identifier::from(identifier);
+    let (_, bound) = rspack_cacheable::to_bytes_with_binding(&data, &context).unwrap();
+    assert!(bound);
+  }
+}
+
+#[test]
+#[cfg(not(windows))]
+fn test_typed_context_regex_content_is_not_rewritten() {
+  let pattern = "/^/project/.*$/";
+  let prefix = "/project/dir|sync|";
+  let identifier = format!("{prefix}{pattern}");
+  let context = StructuredIdentifierContext {
+    root: "/project".into(),
+    identifier: identifier.clone(),
+    non_path: prefix.len()..identifier.len(),
+  };
+  let data = rspack_collections::Identifier::from(identifier);
+  let bytes = rspack_cacheable::to_bytes(&data, &context).unwrap();
+  assert!(
+    bytes
+      .windows(pattern.len())
+      .any(|bytes| bytes == pattern.as_bytes())
+  );
+  let moved: rspack_collections::Identifier =
+    rspack_cacheable::from_bytes(&bytes, &TestContext(Some("/moved/project".into()))).unwrap();
+  assert_eq!(moved.as_str(), format!("/moved/project/dir|sync|{pattern}"));
+}

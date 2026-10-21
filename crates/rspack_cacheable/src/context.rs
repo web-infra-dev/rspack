@@ -25,6 +25,12 @@ pub trait CacheableContext: Any {
   fn canonical_project_root(&self) -> Option<&Path> {
     self.project_root()
   }
+
+  /// Returns the verbatim regex span of a known, typed context-module identifier.
+  /// Unknown strings must return `None`; their absolute path tokens remain root-bound.
+  fn context_identifier_regex_range(&self, _value: &str) -> Option<std::ops::Range<usize>> {
+    None
+  }
 }
 
 /// A spelling of the project root that a portable path is stored relative to.

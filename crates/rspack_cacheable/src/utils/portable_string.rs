@@ -108,6 +108,25 @@ pub struct PortableString {
 }
 
 impl PortableString {
+  /// Preserves the regex token of a typed context identifier without treating it as a path.
+  pub fn from_identifier(content: &str, guard: &ContextGuard) -> Self {
+    if guard.project_root().is_some()
+      && let Some(range) = guard.context_identifier_regex_range(content)
+      && range.start < range.end
+      && let (Some(prefix), Some(pattern), Some(suffix)) = (
+        content.get(..range.start),
+        content.get(range.clone()),
+        content.get(range.end..),
+      )
+    {
+      let mut converted = Self::new(prefix, guard).content;
+      converted.push_str(pattern);
+      converted.push_str(&Self::new(suffix, guard).content);
+      return Self { content: converted };
+    }
+    Self::new(content, guard)
+  }
+
   pub fn new(content: &str, guard: &ContextGuard) -> Self {
     let roots = guard
       .root_spellings()

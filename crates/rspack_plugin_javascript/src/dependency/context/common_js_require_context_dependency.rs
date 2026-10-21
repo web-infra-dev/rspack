@@ -9,7 +9,8 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 
 use super::{
-  context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
+  context_dependency_template_as_require_call, create_resource_identifier_and_regex_range,
+  create_resource_identifier_for_context_dependency,
 };
 
 #[cacheable]
@@ -125,6 +126,18 @@ impl ContextDependency for CommonJsRequireContextDependency {
 
   fn resource_identifier(&self) -> &str {
     &self.resource_identifier
+  }
+
+  fn resource_identifier_regex_range(&self) -> Option<std::ops::Range<usize>> {
+    let (identifier, range) = create_resource_identifier_and_regex_range(
+      self.context.as_ref().map(|context| context.as_str()),
+      &self.options,
+    );
+    if identifier == self.resource_identifier {
+      range
+    } else {
+      None
+    }
   }
 
   fn get_optional(&self) -> bool {
