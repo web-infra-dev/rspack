@@ -28,6 +28,7 @@ struct InvalidatedPaths {
 struct DirectoryAnalyzerState {
   paths: InternedPathMap<Option<WatchPattern>>,
   patterns: FxHashMap<WatchPattern, usize>,
+  paths_with_unresolved_symlinks: InternedPathSet,
 }
 
 impl Analyzer for WatcherDirectoriesAnalyzer {
@@ -46,7 +47,7 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
     ];
     let is_registered =
       |path: &InternedPath| subscriptions.iter().any(|(all, _, _)| all.contains(path));
-    let mut dirty = InternedPathSet::default();
+    let mut dirty = state.paths_with_unresolved_symlinks.clone();
     for (_, added, removed) in subscriptions {
       dirty.extend(added.iter().map(|path| path.clone()));
       for path in removed.iter() {
@@ -69,6 +70,7 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
 
     let mut resolutions = InternedPathMap::default();
     for path in dirty {
+      state.paths_with_unresolved_symlinks.remove(&path);
       if let Some(Some(pattern)) = state.paths.remove(&path) {
         let count = state.patterns.get_mut(&pattern).expect("watch requirement");
         *count -= 1;
@@ -77,8 +79,11 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
         }
       }
       if is_registered(&path) {
-        let pattern =
-          find_existing_directory(path.clone(), &mut resolutions).map(|(dir, depth)| {
+        let pattern = find_existing_directory(path.clone(), &mut resolutions).map(
+          |(dir, depth, unresolved)| {
+            if unresolved {
+              state.paths_with_unresolved_symlinks.insert(path.clone());
+            }
             WatchPattern {
               path: dir,
               mode: if depth >= DIRECTORY_WATCH_DEPTH {
@@ -87,7 +92,8 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
                 notify::RecursiveMode::NonRecursive
               },
             }
-          });
+          },
+        );
         if let Some(pattern) = &pattern {
           *state.patterns.entry(pattern.clone()).or_default() += 1;
         }
@@ -131,18 +137,23 @@ const MAX_INVALIDATED_PATHS: usize = 1024;
 
 fn find_existing_directory(
   path: InternedPath,
-  resolutions: &mut InternedPathMap<Option<(InternedPath, u32)>>,
-) -> Option<(InternedPath, u32)> {
+  resolutions: &mut InternedPathMap<Option<(InternedPath, u32, bool)>>,
+) -> Option<(InternedPath, u32, bool)> {
   if let Some(resolution) = resolutions.get(&path) {
     return resolution.clone();
   }
-  let resolution = if path.is_dir() {
-    Some((path.clone(), 0))
+  let metadata = path.metadata();
+  let resolution = if metadata.as_ref().is_ok_and(|metadata| metadata.is_dir()) {
+    Some((path.clone(), 0, false))
   } else {
+    // A dangling link's target can appear outside the native watch coverage.
+    let unresolved_symlink = metadata.is_err() && path.is_symlink();
     path
       .parent()
       .and_then(|parent| find_existing_directory(InternedPath::from(parent), resolutions))
-      .map(|(directory, depth)| (directory, depth + 1))
+      .map(|(directory, depth, unresolved)| {
+        (directory, depth + 1, unresolved || unresolved_symlink)
+      })
   };
   resolutions.insert(path, resolution.clone());
   resolution

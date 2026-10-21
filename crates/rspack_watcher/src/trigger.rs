@@ -352,6 +352,12 @@ impl EventProcessor {
       }
     }
 
+    if matches!(origin, Origin::Scan) {
+      self.analyzer.invalidate_path(path);
+      for (associated, _) in &associated_event {
+        self.analyzer.invalidate_path(associated);
+      }
+    }
     self.trigger_events(associated_event);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.
