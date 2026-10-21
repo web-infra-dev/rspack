@@ -39,7 +39,10 @@ fn make_path(i: usize) -> InternedPath {
 
 /// (median, min) over batches. Under machine load the min is the better estimate.
 fn summarize(mut v: Vec<f64>) -> (f64, f64) {
-  v.sort_by(|a, b| a.partial_cmp(b).unwrap());
+  v.sort_by(|a, b| {
+    a.partial_cmp(b)
+      .expect("benchmark durations should not be NaN")
+  });
   (v[v.len() / 2], v[0])
 }
 
@@ -65,14 +68,17 @@ fn main() {
     for distinct in [1usize, 128, 8192] {
       let paths: Vec<InternedPath> = (0..REFS).map(|i| make_path(i % distinct)).collect();
       let deps = Deps { paths };
-      let bytes = to_bytes(&deps, &ctx).unwrap();
-      let restored: Deps = from_bytes(&bytes, &ctx).unwrap();
+      let bytes = to_bytes(&deps, &ctx).expect("should serialize benchmark paths");
+      let restored: Deps = from_bytes(&bytes, &ctx).expect("should deserialize benchmark paths");
       assert_eq!(restored.paths, deps.paths);
       let ser = time_batches(|| {
-        black_box(to_bytes(black_box(&deps), &ctx).unwrap());
+        black_box(to_bytes(black_box(&deps), &ctx).expect("should serialize benchmark paths"));
       });
       let de = time_batches(|| {
-        black_box(from_bytes::<Deps, _>(black_box(&bytes), &ctx).unwrap());
+        black_box(
+          from_bytes::<Deps, _>(black_box(&bytes), &ctx)
+            .expect("should deserialize benchmark paths"),
+        );
       });
       println!(
         "| {} | {distinct} | {:.1} / {:.1} | {:.1} / {:.1} | {} |",
