@@ -1130,19 +1130,15 @@ pub struct CssGeneratorOptions {
 }
 
 #[cacheable]
-#[derive(Default, Debug, Clone, MergeFrom, RspackHash)]
+#[derive(Default, Debug, Clone, MergeFrom)]
 pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
-  // Hashed from the effective value in CssParserAndGenerator::update_hash.
-  #[rspack_hash(skip)]
   pub exports_only: Option<bool>,
   pub local_ident_hash_digest: Option<HashDigest>,
   pub local_ident_hash_digest_length: Option<u32>,
   pub local_ident_hash_function: Option<HashFunction>,
   pub local_ident_hash_salt: HashSalt,
   pub local_ident_name: Option<LocalIdentName>,
-  // Hashed from the effective value in CssParserAndGenerator::update_hash.
-  #[rspack_hash(skip)]
   pub es_module: Option<bool>,
 }
 
@@ -1177,7 +1173,7 @@ pub struct JsonGeneratorOptions {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom, RspackHash)]
+#[derive(Debug, Clone, MergeFrom)]
 pub struct LocalIdentName {
   pub template: Filename,
 }
@@ -1199,7 +1195,7 @@ impl From<&str> for LocalIdentName {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Copy, RspackHash)]
+#[derive(Debug, Clone, Copy)]
 struct ExportsConventionFlags(u8);
 bitflags! {
   impl ExportsConventionFlags: u8 {
@@ -1216,7 +1212,7 @@ impl MergeFrom for ExportsConventionFlags {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Copy, MergeFrom, RspackHash)]
+#[derive(Debug, Clone, Copy, MergeFrom)]
 pub struct CssExportsConvention(ExportsConventionFlags);
 
 impl CssExportsConvention {

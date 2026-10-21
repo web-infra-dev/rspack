@@ -17,9 +17,9 @@ use rspack_cacheable::{
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Compilation,
   CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType, ExportsInfoArtifact,
-  GenerateContext, GeneratorOptions, Module, ModuleGraph, ModuleIdentifier, NO_SOURCE_TYPE_LIST,
-  NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
-  ResolvedModuleOptions, RuntimeSpec, SourceType, UsageState,
+  GenerateContext, Module, ModuleGraph, ModuleIdentifier, NO_SOURCE_TYPE_LIST, NormalModule,
+  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, ResolvedModuleOptions, RuntimeSpec,
+  SourceType, UsageState,
   rspack_sources::{BoxSource, Source},
 };
 use rspack_error::{Result, TWithDiagnosticArray};
@@ -86,17 +86,6 @@ impl CssParserAndGenerator {
       .as_deref()
       .and_then(|css| css.export_type)
       .or(self.export_type)
-  }
-
-  /// Shared by the module runtime hash and fingerprints of inlined CSS targets.
-  pub(crate) fn update_hash(&self, module: &NormalModule, hasher: &mut RspackHasher) {
-    self.es_module.hash(hasher);
-    self.exports_only.hash(hasher);
-    self.effective_export_type(module).hash(hasher);
-    module
-      .get_generator_options()
-      .and_then(GeneratorOptions::get_css_module)
-      .hash(hasher);
   }
 }
 
@@ -314,7 +303,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    Ok(hash::hash_css_modules(module, compilation))
+    let mut hasher = RspackHasher::from(&compilation.options.output);
+    self.es_module.hash(&mut hasher);
+    self.exports_only.hash(&mut hasher);
+    self.effective_export_type(module).hash(&mut hasher);
+    hash::hash_css_modules(module, compilation, &mut hasher);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 
   fn has_runtime_hash(&self) -> bool {

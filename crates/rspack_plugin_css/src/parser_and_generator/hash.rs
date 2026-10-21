@@ -1,27 +1,26 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{Compilation, Module};
 use rspack_error::Result;
-use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
+use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::{
   dependency::CssImportDependency,
-  parser_and_generator::{
-    CssParserAndGenerator,
-    walker::{CssModuleGraphSink, CssModuleGraphWalker},
-  },
+  parser_and_generator::walker::{CssModuleGraphSink, CssModuleGraphWalker},
 };
 
-pub(crate) fn hash_css_modules(module: &dyn Module, compilation: &Compilation) -> RspackHashDigest {
-  let mut hasher = RspackHasher::from(&compilation.options.output);
+pub(crate) fn hash_css_modules(
+  module: &dyn Module,
+  compilation: &Compilation,
+  hasher: &mut RspackHasher,
+) {
   let mut sink = CssHashSink {
-    hasher: &mut hasher,
+    hasher,
     visited: IdentifierSet::default(),
   };
   sink.visit_module(module);
   CssModuleGraphWalker::new(compilation)
     .walk_css_imports(&mut sink, module, true)
     .expect("CSS hash sink should not fail");
-  hasher.digest(&compilation.options.output.hash_digest)
 }
 
 struct CssHashSink<'a> {
@@ -38,13 +37,6 @@ impl<'g> CssModuleGraphSink<'g> for CssHashSink<'_> {
       return false;
     }
     module.build_info().hash.hash(self.hasher);
-    if let Some(normal_module) = module.as_normal_module()
-      && let Some(generator) = normal_module
-        .parser_and_generator()
-        .downcast_ref::<CssParserAndGenerator>()
-    {
-      generator.update_hash(normal_module, self.hasher);
-    }
     true
   }
 

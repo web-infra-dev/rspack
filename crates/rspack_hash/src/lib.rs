@@ -15,8 +15,7 @@ use xxhash_rust::xxh64::Xxh64;
 mod hashable;
 
 #[cacheable]
-#[derive(Debug, Clone, Copy, RspackHash)]
-#[rspack_hash(crate = crate)]
+#[derive(Debug, Clone, Copy)]
 pub enum HashFunction {
   Xxhash64,
   MD4,
@@ -41,8 +40,7 @@ impl MergeFrom for HashFunction {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Copy, RspackHash)]
-#[rspack_hash(crate = crate)]
+#[derive(Debug, Clone, Copy)]
 pub enum HashDigest {
   Hex,
   Base64,
@@ -83,8 +81,7 @@ impl MergeFrom for HashDigest {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, Default, RspackHash)]
-#[rspack_hash(crate = crate)]
+#[derive(Debug, Clone, Hash, Default)]
 pub enum HashSalt {
   #[default]
   None,
