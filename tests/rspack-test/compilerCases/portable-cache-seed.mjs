@@ -9,6 +9,14 @@ const cacheLocation = (root) =>
 	path.join(root, "node_modules/.cache/rspack/development");
 const units = (root) =>
 	fs.readdirSync(cacheLocation(root)).filter((name) => /^rspack_v_/.test(name));
+const expectSeededFrom = (logs, donor) => {
+	const line = logs.find((entry) => entry.includes("portable cache seed from "));
+	const match = line?.match(
+		/portable cache seed from (.*?): (directory reflink|per-file reflink or copy)/
+	);
+	expect(match).toBeTruthy();
+	expect(fs.realpathSync.native(match[1])).toBe(fs.realpathSync.native(donor));
+};
 const contents = (root) =>
 	Object.fromEntries(
 		fs
@@ -58,7 +66,7 @@ function fixture(root) {
 		`const fs = require("node:fs");
 const path = require("node:path");
 module.exports = function(source) {
-  fs.appendFileSync(path.join(this.rootContext, ".builds"), path.relative(this.rootContext, this.resourcePath) + "\\n");
+  fs.appendFileSync(path.join(this.rootContext, ".builds"), path.relative(this.rootContext, this.resourcePath).split(path.sep).join("/") + "\\n");
   return source;
 };`
 	);
@@ -232,12 +240,7 @@ async function checkGitSeeding() {
 			}
 		});
 		expect(checked).toBe(true);
-		expect(seeded.logs.join("\n")).toContain(
-			`portable cache seed from ${cacheLocation(main)}`
-		);
-		expect(seeded.logs.join("\n")).toMatch(
-			/: (directory reflink|per-file reflink or copy)/
-		);
+		expectSeededFrom(seeded.logs, cacheLocation(main));
 		const context = seeded.modules.find((module) =>
 			module.name?.includes("./children|sync")
 		);
@@ -274,12 +277,7 @@ async function checkExplicitSeeding() {
 				expect(units(target)).toEqual(units(main));
 			}
 		});
-		expect(result.logs.join("\n")).toContain(
-			`portable cache seed from ${cacheLocation(main)}`
-		);
-		expect(result.logs.join("\n")).toMatch(
-			/: (directory reflink|per-file reflink or copy)/
-		);
+		expectSeededFrom(result.logs, cacheLocation(main));
 		expect(result.built).toEqual(["index.js"]);
 		const cold = await build(target, { cache: false });
 		expect(result.output).toEqual(cold.output);
@@ -318,7 +316,9 @@ export default [
 					snapshot: { resolve: { hash: true } }
 				});
 				try {
-					expect(compiler.options.cache.portable).toEqual({ root });
+					expect(fs.realpathSync.native(compiler.options.cache.portable.root)).toBe(
+						fs.realpathSync.native(root)
+					);
 					expect(compiler.options.snapshot.module).toEqual({
 						timestamp: true,
 						hash: true
