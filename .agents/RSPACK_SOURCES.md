@@ -214,17 +214,17 @@ representation optimizations.
 
 ### Type selection
 
-| Type               | Role                                | Important behavior                                                  |
-| ------------------ | ----------------------------------- | ------------------------------------------------------------------- |
-| `RawStringSource`  | text leaf                           | no mappings; use `from_static` for literals                         |
-| `RawBufferSource`  | binary leaf                         | exact bytes; lazy lossy rope view                                   |
-| `OriginalSource`   | mapped text leaf                    | lazily creates token-like or line mappings                          |
-| `SourceMapSource`  | existing/nested map                 | directly borrows one map or composes outer and inner maps           |
-| `SourceOnlySource` | map-free view of an existing source | forwards content without flattening; suppresses maps                |
-| `MappingSource`    | external map JSON                   | retains the original map and serializes JSON on demand              |
+| Type               | Role                                | Important behavior                                                           |
+| ------------------ | ----------------------------------- | ---------------------------------------------------------------------------- |
+| `RawStringSource`  | text leaf                           | no mappings; use `from_static` for literals                                  |
+| `RawBufferSource`  | binary leaf                         | exact bytes; lazy lossy rope view                                            |
+| `OriginalSource`   | mapped text leaf                    | lazily creates token-like or line mappings                                   |
+| `SourceMapSource`  | existing/nested map                 | directly borrows one map or composes outer and inner maps                    |
+| `SourceOnlySource` | map-free view of an existing source | forwards content without flattening; suppresses maps                         |
+| `MappingSource`    | external map JSON                   | retains the original map and serializes JSON on demand                       |
 | `ConcatSource`     | ordered composition                 | flattens nested concats, coalesces small adjacent raw strings, remaps tables |
-| `ReplaceSource`    | byte-range transform                | maintains sorted edits and repairs mappings                         |
-| `CachedSource`     | memoization wrapper                 | owns cross-call memoized state                                      |
+| `ReplaceSource`    | byte-range transform                | maintains sorted edits and repairs mappings                                  |
+| `CachedSource`     | memoization wrapper                 | owns cross-call memoized state                                               |
 
 Important implementation details:
 
