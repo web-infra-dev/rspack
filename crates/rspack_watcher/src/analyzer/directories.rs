@@ -80,8 +80,12 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
       }
       if is_registered(&path) {
         let pattern = find_existing_directory(path.clone(), &mut resolutions).map(
-          |(dir, depth, unresolved)| {
-            if unresolved {
+          |(dir, depth, unresolved, non_directory_symlink)| {
+            if unresolved
+              || (non_directory_symlink
+                && (path_accessor.directories().0.contains(&path)
+                  || path_accessor.missing().0.contains(&path)))
+            {
               state.paths_with_unresolved_symlinks.insert(path.clone());
             }
             WatchPattern {
@@ -137,22 +141,28 @@ const MAX_INVALIDATED_PATHS: usize = 1024;
 
 fn find_existing_directory(
   path: InternedPath,
-  resolutions: &mut InternedPathMap<Option<(InternedPath, u32, bool)>>,
-) -> Option<(InternedPath, u32, bool)> {
+  resolutions: &mut InternedPathMap<Option<(InternedPath, u32, bool, bool)>>,
+) -> Option<(InternedPath, u32, bool, bool)> {
   if let Some(resolution) = resolutions.get(&path) {
     return resolution.clone();
   }
   let metadata = path.metadata();
   let resolution = if metadata.as_ref().is_ok_and(|metadata| metadata.is_dir()) {
-    Some((path.clone(), 0, false))
+    Some((path.clone(), 0, false, false))
   } else {
-    // A dangling link's target can appear outside the native watch coverage.
-    let unresolved_symlink = metadata.is_err() && path.is_symlink();
+    // A non-directory link can become a directory outside native watch coverage.
+    let non_directory_symlink = path.is_symlink();
+    let unresolved_symlink = metadata.is_err() && non_directory_symlink;
     path
       .parent()
       .and_then(|parent| find_existing_directory(InternedPath::from(parent), resolutions))
-      .map(|(directory, depth, unresolved)| {
-        (directory, depth + 1, unresolved || unresolved_symlink)
+      .map(|(directory, depth, unresolved, parent_symlink)| {
+        (
+          directory,
+          depth + 1,
+          unresolved || unresolved_symlink || parent_symlink,
+          non_directory_symlink,
+        )
       })
   };
   resolutions.insert(path, resolution.clone());
