@@ -308,6 +308,95 @@ mod symlinks {
   }
 
   #[tokio::test]
+  async fn test_resolved_directory_symlink_retarget_refreshes_a_missing_dependency() {
+    for has_subdirectory in [true, false] {
+      let (_temp, project, target) = external_link();
+      fs::create_dir(&target).expect("create initial target");
+      if has_subdirectory {
+        fs::create_dir(target.join("sub")).expect("create initial subdirectory");
+      }
+      let replacement = target.with_file_name("replacement");
+      fs::create_dir(&replacement).expect("create replacement target");
+      if !has_subdirectory {
+        fs::create_dir(replacement.join("sub")).expect("create replacement subdirectory");
+      }
+      let missing = InternedPath::from(project.join("link/sub/a.js"));
+      let analyzer = DirectoryAnalyzer::default();
+      analyzer
+        .update(empty(), empty(), added(&missing))
+        .await
+        .expect("register missing dependency");
+      assert_patterns(
+        &analyzer,
+        vec![(
+          InternedPath::from(project.join(if has_subdirectory { "link/sub" } else { "link" })),
+          if has_subdirectory {
+            RecursiveMode::NonRecursive
+          } else {
+            RecursiveMode::Recursive
+          },
+        )],
+      );
+
+      fs::remove_file(project.join("link")).expect("remove initial link");
+      std::os::unix::fs::symlink(&replacement, project.join("link")).expect("retarget link");
+      analyzer
+        .update(empty(), empty(), empty())
+        .await
+        .expect("empty update after retargeting");
+      assert_patterns(
+        &analyzer,
+        vec![(
+          InternedPath::from(project.join(if has_subdirectory { "link" } else { "link/sub" })),
+          if has_subdirectory {
+            RecursiveMode::Recursive
+          } else {
+            RecursiveMode::NonRecursive
+          },
+        )],
+      );
+    }
+  }
+
+  #[tokio::test]
+  async fn test_resolved_directory_symlink_unlink_refreshes_a_missing_dependency() {
+    for has_subdirectory in [true, false] {
+      let (_temp, project, target) = external_link();
+      fs::create_dir(&target).expect("create target directory");
+      if has_subdirectory {
+        fs::create_dir(target.join("sub")).expect("create target subdirectory");
+      }
+      let missing = InternedPath::from(project.join("link/sub/a.js"));
+      let analyzer = DirectoryAnalyzer::default();
+      analyzer
+        .update(empty(), empty(), added(&missing))
+        .await
+        .expect("register missing dependency");
+      assert_patterns(
+        &analyzer,
+        vec![(
+          InternedPath::from(project.join(if has_subdirectory { "link/sub" } else { "link" })),
+          if has_subdirectory {
+            RecursiveMode::NonRecursive
+          } else {
+            RecursiveMode::Recursive
+          },
+        )],
+      );
+
+      fs::remove_file(project.join("link")).expect("unlink resolved directory symlink");
+      analyzer
+        .update(empty(), empty(), empty())
+        .await
+        .expect("empty update after unlinking");
+      assert_patterns(
+        &analyzer,
+        vec![(InternedPath::from(project), RecursiveMode::Recursive)],
+      );
+    }
+  }
+
+  #[tokio::test]
   async fn test_dangling_symlink_recovery_refreshes_an_unchanged_missing_dependency() {
     let (_temp, project, target) = external_link();
     let missing = InternedPath::from(project.join("link/a.js"));

@@ -162,10 +162,11 @@ jobs:
           echo '[profile.test]' >> Cargo.toml
           echo 'debug = false' >> Cargo.toml
 
-      - name: Run rspack test
-        run: |
-          cargo test -p rspack_watcher -- --nocapture
-          cargo test -p rspack_watcher_testing -- --nocapture
+      - name: Run watcher tests
+        run: cargo test -p rspack_watcher -- --nocapture
+
+      - name: Run directory analyzer regression tests
+        run: cargo test -p rspack_watcher_testing -- --nocapture
 
   test_required_check:
     name: Rust Test Required Check

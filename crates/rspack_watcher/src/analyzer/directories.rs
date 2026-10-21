@@ -28,7 +28,7 @@ struct InvalidatedPaths {
 struct DirectoryAnalyzerState {
   paths: InternedPathMap<Option<WatchPattern>>,
   patterns: FxHashMap<WatchPattern, usize>,
-  paths_with_unresolved_symlinks: InternedPathSet,
+  symlink_dependent_paths: InternedPathSet,
 }
 
 impl Analyzer for WatcherDirectoriesAnalyzer {
@@ -47,7 +47,7 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
     ];
     let is_registered =
       |path: &InternedPath| subscriptions.iter().any(|(all, _, _)| all.contains(path));
-    let mut dirty = state.paths_with_unresolved_symlinks.clone();
+    let mut dirty = state.symlink_dependent_paths.clone();
     for (_, added, removed) in subscriptions {
       dirty.extend(added.iter().map(|path| path.clone()));
       for path in removed.iter() {
@@ -69,8 +69,9 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
     }
 
     let mut resolutions = InternedPathMap::default();
+    let mut symlink_ancestors = InternedPathMap::default();
     for path in dirty {
-      state.paths_with_unresolved_symlinks.remove(&path);
+      state.symlink_dependent_paths.remove(&path);
       if let Some(Some(pattern)) = state.paths.remove(&path) {
         let count = state.patterns.get_mut(&pattern).expect("watch requirement");
         *count -= 1;
@@ -79,25 +80,26 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
         }
       }
       if is_registered(&path) {
-        let pattern = find_existing_directory(path.clone(), &mut resolutions).map(
-          |(dir, depth, unresolved, non_directory_symlink)| {
-            if unresolved
-              || (non_directory_symlink
-                && (path_accessor.directories().0.contains(&path)
-                  || path_accessor.missing().0.contains(&path)))
-            {
-              state.paths_with_unresolved_symlinks.insert(path.clone());
-            }
-            WatchPattern {
-              path: dir,
-              mode: if depth >= DIRECTORY_WATCH_DEPTH {
-                notify::RecursiveMode::Recursive
-              } else {
-                notify::RecursiveMode::NonRecursive
-              },
-            }
-          },
-        );
+        let pattern =
+          find_existing_directory(path.clone(), &mut resolutions, &mut symlink_ancestors).map(
+            |(dir, depth, recheck, non_directory_symlink)| {
+              if recheck
+                || (non_directory_symlink
+                  && (path_accessor.directories().0.contains(&path)
+                    || path_accessor.missing().0.contains(&path)))
+              {
+                state.symlink_dependent_paths.insert(path.clone());
+              }
+              WatchPattern {
+                path: dir,
+                mode: if depth >= DIRECTORY_WATCH_DEPTH {
+                  notify::RecursiveMode::Recursive
+                } else {
+                  notify::RecursiveMode::NonRecursive
+                },
+              }
+            },
+          );
         if let Some(pattern) = &pattern {
           *state.patterns.entry(pattern.clone()).or_default() += 1;
         }
@@ -142,31 +144,54 @@ const MAX_INVALIDATED_PATHS: usize = 1024;
 fn find_existing_directory(
   path: InternedPath,
   resolutions: &mut InternedPathMap<Option<(InternedPath, u32, bool, bool)>>,
+  symlink_ancestors: &mut InternedPathMap<bool>,
 ) -> Option<(InternedPath, u32, bool, bool)> {
   if let Some(resolution) = resolutions.get(&path) {
     return resolution.clone();
   }
   let metadata = path.metadata();
   let resolution = if metadata.as_ref().is_ok_and(|metadata| metadata.is_dir()) {
-    Some((path.clone(), 0, false, false))
+    Some((
+      path.clone(),
+      0,
+      has_symlink_ancestor(&path, symlink_ancestors),
+      false,
+    ))
   } else {
     // A non-directory link can become a directory outside native watch coverage.
     let non_directory_symlink = path.is_symlink();
     let unresolved_symlink = metadata.is_err() && non_directory_symlink;
     path
       .parent()
-      .and_then(|parent| find_existing_directory(InternedPath::from(parent), resolutions))
-      .map(|(directory, depth, unresolved, parent_symlink)| {
+      .and_then(|parent| {
+        find_existing_directory(InternedPath::from(parent), resolutions, symlink_ancestors)
+      })
+      .map(|(directory, depth, recheck, parent_symlink)| {
         (
           directory,
           depth + 1,
-          unresolved || unresolved_symlink || parent_symlink,
+          recheck || unresolved_symlink || parent_symlink,
           non_directory_symlink,
         )
       })
   };
   resolutions.insert(path, resolution.clone());
   resolution
+}
+
+fn has_symlink_ancestor(
+  path: &InternedPath,
+  symlink_ancestors: &mut InternedPathMap<bool>,
+) -> bool {
+  if let Some(has_symlink) = symlink_ancestors.get(path) {
+    return *has_symlink;
+  }
+  let has_symlink = path.is_symlink()
+    || path
+      .parent()
+      .is_some_and(|parent| has_symlink_ancestor(&InternedPath::from(parent), symlink_ancestors));
+  symlink_ancestors.insert(path.clone(), has_symlink);
+  has_symlink
 }
 
 #[cfg(test)]
