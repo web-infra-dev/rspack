@@ -5877,7 +5877,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_watcher_testing"
-version = "0.102.9"
+version = "0.1.0"
 dependencies = [
  "notify",
  "rspack_paths",
