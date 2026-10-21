@@ -30,12 +30,38 @@ function fixture(root) {
 		path.join(root, "package.json"),
 		'{"name":"portable-cache-seed"}'
 	);
-	fs.writeFileSync(path.join(root, ".gitignore"), "node_modules\ndist\n");
+	fs.writeFileSync(
+		path.join(root, ".gitignore"),
+		"node_modules\ndist\n.builds\n"
+	);
 	fs.writeFileSync(
 		path.join(root, "index.js"),
-		'import value from "./value.js"; console.log(value, import.meta.url);'
+		'import value from "./value.js"; import context from "./context.js"; import asset from "./asset.txt"; console.log(value, import.meta.url, context, asset);'
 	);
-	fs.writeFileSync(path.join(root, "value.js"), 'export default "seed";');
+	fs.writeFileSync(
+		path.join(root, "value.js"),
+		'import value from "./value-two.js"; export default value;'
+	);
+	fs.writeFileSync(path.join(root, "value-two.js"), 'export default "seed";');
+	fs.writeFileSync(
+		path.join(root, "context.js"),
+		'const context = require.context("./children", false, /\\.js$/); export default context.keys().map(context);'
+	);
+	fs.mkdirSync(path.join(root, "children"));
+	fs.writeFileSync(
+		path.join(root, "children/child.js"),
+		'module.exports = "child";'
+	);
+	fs.writeFileSync(path.join(root, "asset.txt"), "portable asset");
+	fs.writeFileSync(
+		path.join(root, "count.cjs"),
+		`const fs = require("node:fs");
+const path = require("node:path");
+module.exports = function(source) {
+  fs.appendFileSync(path.join(this.rootContext, ".builds"), path.relative(this.rootContext, this.resourcePath) + "\\n");
+  return source;
+};`
+	);
 }
 
 async function build(
@@ -43,6 +69,7 @@ async function build(
 	{ cache = { type: "persistent" }, portableCache = true, beforeModules } = {}
 ) {
 	const logs = [];
+	fs.writeFileSync(path.join(root, ".builds"), "");
 	const compiler = rspack({
 		context: root,
 		mode: "development",
@@ -51,6 +78,12 @@ async function build(
 		incremental: false,
 		output: { path: path.join(root, "dist"), clean: true },
 		cache,
+		module: {
+			rules: [
+				{ test: /\.js$/, use: path.join(root, "count.cjs") },
+				{ test: /\.txt$/, type: "asset/resource" }
+			]
+		},
 		experiments: { portableCache },
 		infrastructureLogging: {
 			level: "info",
@@ -78,7 +111,18 @@ async function build(
 		for (const entry of Object.values(logging || {})) {
 			for (const line of entry.entries || []) logs.push(line.message);
 		}
-		return { logs, output: contents(path.join(root, "dist")) };
+		return {
+			logs,
+			modules: stats.toJson({ all: false, modules: true, cachedModules: true })
+				.modules,
+			built: fs
+				.readFileSync(path.join(root, ".builds"), "utf8")
+				.trim()
+				.split("\n")
+				.filter(Boolean)
+				.sort(),
+			output: contents(path.join(root, "dist"))
+		};
 	} finally {
 		await new Promise((resolve, reject) =>
 			compiler.close((error) => (error ? reject(error) : resolve()))
@@ -117,13 +161,51 @@ async function checkGitSeeding() {
 			"-m",
 			"fixture"
 		);
+		const sources = [
+			"index.js",
+			"value.js",
+			"value-two.js",
+			"context.js",
+			"children/child.js"
+		];
+		for (const source of [
+			...sources,
+			"count.cjs",
+			"asset.txt",
+			"package.json"
+		]) {
+			fs.utimesSync(
+				path.join(main, source),
+				new Date("2020-01-01"),
+				new Date("2020-01-01")
+			);
+		}
+		const original = await build(main);
+		expect(original.built).toEqual([...sources].sort());
 		git("worktree", "add", wt, "-b", "wt");
-		await build(main);
+		for (const source of sources) {
+			expect(fs.readFileSync(path.join(wt, source))).toEqual(
+				fs.readFileSync(path.join(main, source))
+			);
+			expect(fs.statSync(path.join(wt, source)).mtimeMs).not.toBe(
+				fs.statSync(path.join(main, source)).mtimeMs
+			);
+		}
 		const donor = contents(cacheLocation(main));
 		let checked = false;
 		const seeded = await build(wt, {
 			beforeModules() {
 				expect(units(wt)).toEqual(units(main));
+				for (const unit of units(main)) {
+					const donorUnit = path.join(cacheLocation(main), unit);
+					const targetUnit = path.join(cacheLocation(wt), unit);
+					expect(contents(targetUnit)).toEqual(contents(donorUnit));
+					for (const relative of ["", ...Object.keys(contents(donorUnit))]) {
+						const a = fs.statSync(path.join(donorUnit, relative));
+						const b = fs.statSync(path.join(targetUnit, relative));
+						expect([b.dev, b.ino]).not.toEqual([a.dev, a.ino]);
+					}
+				}
 				checked = true;
 			}
 		});
@@ -134,8 +216,22 @@ async function checkGitSeeding() {
 		expect(seeded.logs.join("\n")).toMatch(
 			/: (directory reflink|per-file reflink or copy)/
 		);
+		const context = seeded.modules.find((module) =>
+			module.name?.includes("./children|sync")
+		);
+		expect(context).toBeDefined();
+		expect(context.built).toBe(false);
 		const cold = await build(wt, { cache: false });
+		expect(cold.built).toEqual([...sources].sort());
+		expect(Object.keys(seeded.output)).toEqual(
+			expect.arrayContaining(["main.js", "main.js.map"])
+		);
+		expect(
+			Object.keys(seeded.output).some((name) => name.endsWith(".txt"))
+		).toBe(true);
+		expect(seeded.output).toEqual(cold.output);
 		expect(contents(cacheLocation(main))).toEqual(donor);
+		expect(seeded.built).toEqual(["index.js"]);
 		return { seeded: seeded.output, cold: cold.output };
 	});
 }
@@ -161,13 +257,17 @@ async function checkExplicitSeeding() {
 		expect(result.logs.join("\n")).toMatch(
 			/: (directory reflink|per-file reflink or copy)/
 		);
+		expect(result.built).toEqual(["index.js"]);
 		const cold = await build(target, { cache: false });
+		expect(result.output).toEqual(cold.output);
 		expect(contents(cacheLocation(main))).toEqual(donor);
 		fs.rmSync(cacheLocation(target), { recursive: true });
 		const disabled = await build(target, {
 			portableCache: { ...portableCache, seed: false }
 		});
 		expect(disabled.logs.join("\n")).not.toContain("portable cache seed from");
+		expect(disabled.built).toEqual(cold.built);
+		expect(disabled.output).toEqual(cold.output);
 		return { seeded: result.output, cold: cold.output };
 	});
 }
@@ -228,11 +328,11 @@ export default [
 		}
 	},
 	{
-		name: "cached-modules-hit-after-seeding-requires-pr4",
+		name: "cached-modules-hit-after-seeding",
 		description:
-			"cached modules hit after seeding: skipped until PR4 root binding and identity sweep are restacked",
-		skip: true,
-		run() {}
+			"fresh git worktree reuses plain modules and rebuilds root-sensitive modules",
+		skip: !gitAvailable,
+		run: checkGitSeeding
 	},
 	{
 		name: "outside-root-warning",
