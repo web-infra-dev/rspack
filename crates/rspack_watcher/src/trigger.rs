@@ -4,7 +4,11 @@ use rspack_paths::{InternedPath, InternedPathDashSet};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use super::{FsEvent, FsEventKind};
-use crate::{EventBatch, paths::PathManager};
+use crate::{
+  EventBatch,
+  analyzer::{Analyzer, RecommendedAnalyzer},
+  paths::PathManager,
+};
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
 /// allowing efficient lookup and dependency resolution for a given path.
 ///
@@ -111,6 +115,7 @@ struct EventProcessor {
 /// immediately, and a dedicated thread drains the buffer one event at a time.
 pub struct Trigger {
   pending: UnboundedSender<(InternedPath, FsEventKind, Origin)>,
+  pub(crate) analyzer: Arc<RecommendedAnalyzer>,
 }
 
 /// Where an event comes from.
@@ -152,12 +157,16 @@ impl Trigger {
       })
       .expect("spawn watcher event filter thread");
 
-    Self { pending }
+    Self {
+      pending,
+      analyzer: Arc::default(),
+    }
   }
 
   /// Hands a raw event to the filter thread. Never blocks — this runs straight
   /// from the OS watcher callback.
   pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
+    self.analyzer.invalidate_path(path);
     self.on_disk_event(path, kind, kind == FsEventKind::Create);
   }
 

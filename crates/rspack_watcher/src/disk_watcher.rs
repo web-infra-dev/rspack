@@ -7,7 +7,7 @@ use notify::{
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
-use crate::{FsEventKind, WatchPattern, trigger};
+use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
 
 /// `DiskWatcher` is responsible for managing the underlying file system watcher
 /// and keeping track of the currently watched paths.
@@ -63,6 +63,11 @@ impl DiskWatcher {
             _ => return,
           };
           for path in event.paths.into_iter().map(InternedPath::from) {
+            // Content writes cannot change which ancestor directory exists.
+            // Invalidate before filtering so suppressed events still refresh watch coverage.
+            if !matches!(event.kind, EventKind::Modify(ModifyKind::Data(_))) {
+              trigger.analyzer.invalidate_path(&path);
+            }
             trigger.on_disk_event(&path, kind, appeared);
           }
         }
