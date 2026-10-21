@@ -200,6 +200,7 @@ fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder:
         directory: cache_dir.to_string_lossy().to_string().into(),
         location: cache_dir.to_string_lossy().to_string().into(),
       },
+      seed_from: None,
       portable_root: None,
       readonly: false,
       max_age: 0,
