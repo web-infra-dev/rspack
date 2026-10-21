@@ -836,10 +836,24 @@ export default {
 
 ## rules[].use.filter.code
 
-- **类型：** `RuleSetLoaderCodeFilter`
+- **类型：**
+
+```ts
+type RuleSetLoaderCodeFilter = string | RegExp;
+```
+
 - **默认值：** `undefined`
 
-当 loader 的当前输入代码不匹配时，跳过其 normal 函数。它适用于仅在模块包含特定语法时才需要执行的转换：
+根据 loader 的当前输入代码决定是否执行该 loader。如果代码不匹配过滤条件，Rspack 会跳过该 loader 的代码转换，并将输入原样传递给下一个 loader。对于仅需处理特定语法的 loader，可以用此选项跳过不包含相关语法的模块，减少不必要的转换。
+
+- `string`：代码包含指定子串时匹配。
+- `RegExp`：代码满足正则表达式时匹配。
+
+Rspack 会在 loader 转换代码前检查过滤条件。由于 loader 按从右到左的顺序执行，如果右侧还有其他 loader，过滤条件匹配的是它们处理后的代码。此选项不影响 loader 的 pitch 函数。
+
+**字符串匹配**
+
+假设自定义 loader `remove-console-loader.js` 用于移除控制台日志，仅当输入代码包含 `console.log` 时才执行它：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -849,10 +863,8 @@ export default {
         test: /\.[cm]?[jt]sx?$/,
         use: [
           {
-            loader: './transform-loader.js',
-            filter: {
-              code: /\b(createServerFn|createMiddleware)\b/,
-            },
+            loader: './remove-console-loader.js',
+            filter: { code: 'console.log' },
           },
         ],
       },
@@ -861,9 +873,50 @@ export default {
 };
 ```
 
-字符串按子串匹配，例如 `filter: { code: 'createMiddleware' }`；如需更精确的匹配，可使用正则表达式。
+**正则表达式匹配**
 
-code filter 会在该 loader 的 normal 函数执行前立即求值，因此可以看到其右侧 loader 的输出。loader 的 pitch 函数不会被过滤，并保持原有行为。
+仅当输入代码包含 `console.log` 或 `console.debug` 时，才执行 `remove-console-loader.js`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './remove-console-loader.js',
+            filter: { code: /\bconsole\.(log|debug)\b/ },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+**匹配其他 loader 的输出**
+
+以下配置会先执行 `generate-loader.js`。只有生成的代码包含 `generated:marker` 时，Rspack 才会执行 `transform-loader.js`，即使原始源码中没有这个子串：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: './transform-loader.js',
+            filter: { code: 'generated:marker' },
+          },
+          './generate-loader.js',
+        ],
+      },
+    ],
+  },
+};
+```
 
 ## rules[].use.ident
 
