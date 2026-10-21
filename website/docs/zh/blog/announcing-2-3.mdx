@@ -28,21 +28,26 @@ Rspack 2.3 Beta 现已推出！本次更新将 JavaScript 解析器迁移至 SWC
 
 值得关注的变更如下：
 
-- [SWC Next 解析器](#swc-next)
-- [构建流程优化](#build-performance)
-- [按代码内容过滤 loader](#loader-code-filter)
-- [实验性缓存改进](#cache-improvements)
-- [CSS 打包能力](#css-bundling)
-- [SplitChunks 优化](#split-chunks)
-- [依赖解析与按需编译](#resolution-and-lazy-compilation)
-- [Watcher 兼容性改进](#watcher-compatibility)
-- [内存优化与分析](#memory-improvements)
-- [插件与工具集成](#plugin-integration)
-- [其他改进](#other-improvements)
+- 性能
+  - [SWC Next 解析器](#swc-next)
+  - [构建流程优化](#build-performance)
+  - [实验性缓存改进](#cache-improvements)
+  - [SplitChunks 优化](#split-chunks)
+  - [内存占用优化](#memory-improvements)
+- 新特性
+  - [按代码内容过滤 loader](#loader-code-filter)
+  - [CSS 打包能力](#css-bundling)
+  - [依赖解析与按需编译](#resolution-and-lazy-compilation)
+  - [Watcher 兼容性改进](#watcher-compatibility)
+  - [内存分析](#memory-diagnostics)
+  - [插件与工具集成](#plugin-integration)
+  - [其他改进](#other-improvements)
 - [生态](#ecosystem)
-- [试用 Beta 版本](#try-the-beta)
+- [升级指南](#upgrade-guide)
 
-## JavaScript 解析器迁移 \{#swc-next}
+## 性能 \{#performance}
+
+### JavaScript 解析器迁移 \{#swc-next}
 
 Rspack 2.3 将 JavaScript 解析器迁移至 SWC Next，并围绕新的 AST 优化了依赖扫描、作用域分析和模块合并等流程，减少解析过程中的内存分配和重复计算。
 
@@ -52,7 +57,7 @@ Rspack 2.3 将 JavaScript 解析器迁移至 SWC Next，并围绕新的 AST 优�
 
 更多实现背景可参考 [#16089](https://github.com/web-infra-dev/rspack/pull/16089)。
 
-## 构建流程优化 \{#build-performance}
+### 构建流程优化 \{#build-performance}
 
 在 2.2.0 之后的迭代中，Rspack 持续优化了模块图、chunk 图和产物生成流程：
 
@@ -65,7 +70,123 @@ Rspack 2.3 将 JavaScript 解析器迁移至 SWC Next，并围绕新的 AST 优�
 
 > 性能数据待补充：在相同环境和配置下，对比 2.2.0 与当前版本的开发冷构建、生产构建、重建耗时和产物写入耗时，记录多次运行结果与测试项目规模。
 
-## 按代码内容过滤 loader \{#loader-code-filter}
+### 实验性缓存改进 \{#cache-improvements}
+
+#### 复用更多构建结果 \{#module-cache}
+
+实验性的 `experiments.newCache` 现在可以缓存普通模块和 context 模块的构建结果，并使用文件系统快照验证其依赖。对于目录上下文导入，缓存也会跟踪文件新增、删除等变化，避免在重启 compiler 后复用过期结果。
+
+持久化缓存还完善了父子 compiler 的共享存储和隔离，并支持在 HMR 重建后保存更新过的模块。这样，重新启动 compiler 时可以恢复最近一次重建的结果，而不是退回首次构建时的状态。
+
+使用现有的 [`cache.type: 'persistent'`](https://rspack.rs/zh/config/cache) 配置即可试用新的缓存后端：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  experiments: {
+    newCache: true,
+  },
+};
+```
+
+这项实现仍处于实验阶段，建议在项目中验证缓存命中、失效和重启后的行为。模块与 loader 的解析结果也可以缓存，通过 `experiments.newCache.resolver` 单独开启；当前默认关闭。
+
+#### 缓存单个 loader 的结果 \{#loader-cache}
+
+新缓存后端还完善了单个 loader 的缓存。通过 `module.rules[].use.cache` 开启后，缓存会记录该 loader 的转换结果，以及它声明的文件依赖和构建依赖。依赖发生变化时，相关结果会失效。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  experiments: {
+    newCache: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        use: [{ loader: 'builtin:swc-loader', cache: true }],
+      },
+    ],
+  },
+};
+```
+
+`builtin:swc-loader` 的缓存现在能够保留转换产生的 TypeScript 元数据，让后续分析在缓存命中时仍然获得这些信息。对于无法完整恢复依赖行为的 loader，缓存会跳过存储，避免不正确的复用。
+
+此外，持久化缓存的 [`maxMemoryGenerations`](https://rspack.rs/zh/config/cache#maxmemorygenerations) 默认值和新缓存后端的行为进一步与 webpack 对齐。这个选项控制未使用条目在额外内存缓存中的保留代数；设置为 `0` 时，新后端也会关闭这层内存缓存，在内存占用和磁盘读取之间做取舍。
+
+> 性能数据待补充：分别记录普通模块、context 模块和 loader 缓存的命中率，比较首次构建、重启后命中缓存及修改依赖后的构建耗时。
+
+### SplitChunks 优化 \{#split-chunks}
+
+#### 发现更多共享模块组合 \{#dedup-depth}
+
+新增的 [`splitChunks.dedupDepth`](https://rspack.rs/zh/plugins/split-chunks-plugin#splitchunksdedupdepth) 可以控制寻找共享模块组合的深度，发现原有模块图中没有直接出现的 chunk 交集。
+
+例如，一组模块被页面 A、B、C 使用，另一组模块被页面 A、B、D 使用。即使此前没有模块恰好只被 A、B 使用，新的算法也可以发现 `{ A, B }` 这个共同组合，并在满足体积、请求数等拆分条件时提取共享模块。
+
+生产模式下 `dedupDepth` 默认为 `1`，开发模式和 `none` 模式下默认为 `0`。更深的搜索会带来额外计算开销，可以根据产物重复情况与构建耗时调整，而不必一味增加深度。
+
+#### 减少重复模块 \{#deduplicate-modules}
+
+Rspack 2.3 改进了具名 cache group 的模块去重。在多个入口使用同一模块的不同导出时，部分入口中的模块可能已被提取到共享 chunk，而另一个已经连接到该共享 chunk 的入口仍保留了一份副本。
+
+现在，SplitChunks 会在满足拆分条件时移除这些剩余副本，减少受影响项目中的重复代码。这项改进会自动生效，无需更改配置，详见 [#16075](https://github.com/web-infra-dev/rspack/pull/16075)。
+
+此外，当多个动态导入复用同一个具名异步 chunk 时，Rspack 会继续向后代 chunk 传播新加入的可用模块信息。已经由父 chunk 提供的模块不必在子 chunk 中重复打包，同时保留其他模块的顺序，避免影响无关 CSS 的排列。详见 [#15885](https://github.com/web-infra-dev/rspack/pull/15885)。
+
+#### 避免拆分后留下过小的 chunk \{#min-remaining-size}
+
+Rspack 2.3 支持了 [`splitChunks.minRemainingSize`](https://rspack.rs/zh/plugins/split-chunks-plugin#splitchunksminremainingsize)，用于限制拆分后来源 chunk 中剩余模块的最小体积，使拆分行为进一步与 webpack 对齐。
+
+例如，从一个名为 `controls` 的异步 chunk 中提取 CSS 后，原 chunk 可能只剩下很小的 JavaScript 模块。此前，这种拆分可能导致 CSS 输出为数字命名的文件。现在，剩余体积检查可以阻止这次拆分，让相关场景下的 CSS 保留在原来的具名 chunk 中，输出预期的 `controls.css`。
+
+这个选项在开发模式下默认为 `0`，其他模式下回退到 `minSize`，也可以在全局或 cache group 中显式配置：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      minRemainingSize: {
+        javascript: 20 * 1000,
+      },
+    },
+  },
+};
+```
+
+这表示在需要进行剩余体积检查时，不拆出会让来源 chunk 剩余 JavaScript 模块小于 20,000 字节的候选模块。检查仅适用于拆分涉及一个来源 chunk 的情况；具体规则和 cache group 的继承行为请参考配置文档。
+
+> 性能与体积数据待补充：比较默认配置及不同 `dedupDepth` 下的 chunk 拆分耗时、重复模块数、JS/CSS 产物体积和压缩后体积，并区分全量产物与页面实际加载的资源。
+
+### 内存占用优化 \{#memory-improvements}
+
+#### 降低源码映射的内存开销 \{#source-map-memory}
+
+大型项目的 Source Map 往往包含大量源码内容。此前，外部 `.map` 资源会在保留源码结构的同时，长期保留一份完整的 JSON 字符串，导致源码内容在内存中重复存储。
+
+Rspack 2.3 改为保留结构化 Source Map，避免长期持有完整的序列化副本，仅在 API 明确请求完整内容时才生成 JSON 字符串。这可以降低构建完成后仍保留 compilation 的场景下的内存占用。
+
+插件通过 JavaScript API 读取模块源码时，Source Map 也改为按需生成和解析。只读取源码内容的插件，不再为没有访问过的 Source Map 额外分配和保留 JSON 数据，减少 JavaScript 堆中的内存占用。
+
+此外，源码处理改为复用整份源码的 UTF-16 索引，减少逐行索引的存储开销，并移除了对象池。完成编辑或编码后的源码与映射结果也会收紧多余容量，避免长期保留暂时分配的空间。更多背景可参考 [#16072](https://github.com/web-infra-dev/rspack/pull/16072)、[#15882](https://github.com/web-infra-dev/rspack/pull/15882) 和 [#16083](https://github.com/web-infra-dev/rspack/pull/16083)。
+
+#### 减少模块元数据的常驻开销 \{#module-memory}
+
+模块图、导出信息和依赖记录也进行了多项存储优化：为导出较少的模块使用更紧凑的结构，减少解析结果的预分配容量，共享相同的依赖列表、路径和请求字符串，并延迟创建不需要的模块属性与回调对象。
+
+这些变化降低了每个模块都要承担的基础开销，也减少了构建过程中跨语言传递数据时的复制。compiler 关闭时会释放 loader 等临时回调，避免在开发服务器反复启动或重建时继续持有它们。
+
+> 内存数据待补充：在相同项目和配置下，对比构建峰值 RSS、构建后保留 compilation 时的 RSS、GC 后 JavaScript 堆，以及多轮 HMR 后的内存变化。各指标单独报告，不将不同优化的测量结果直接相加。
+
+## 新特性 \{#features}
+
+### 按代码内容过滤 loader \{#loader-code-filter}
 
 有些 loader 只需要处理包含特定语法的模块，例如转换宏调用、服务端函数或框架专用 API。过去，即使大部分模块没有这些语法，loader 仍需要逐个执行，再自行判断是否需要转换。
 
@@ -97,61 +218,9 @@ export default {
 
 过滤器在当前 loader 执行前求值，因此可以匹配其右侧 loader 转换后的代码。loader 的 pitch 函数保持原有行为，不受过滤器影响。配置过滤条件时，应覆盖 loader 需要处理的所有语法，避免跳过必要的转换。
 
-## 实验性缓存改进 \{#cache-improvements}
+### CSS 打包能力 \{#css-bundling}
 
-### 复用更多构建结果 \{#module-cache}
-
-实验性的 `experiments.newCache` 现在可以缓存普通模块和 context 模块的构建结果，并使用文件系统快照验证其依赖。对于目录上下文导入，缓存也会跟踪文件新增、删除等变化，避免在重启 compiler 后复用过期结果。
-
-持久化缓存还完善了父子 compiler 的共享存储和隔离，并支持在 HMR 重建后保存更新过的模块。这样，重新启动 compiler 时可以恢复最近一次重建的结果，而不是退回首次构建时的状态。
-
-使用现有的 [`cache.type: 'persistent'`](https://rspack.rs/zh/config/cache) 配置即可试用新的缓存后端：
-
-```js title="rspack.config.mjs"
-export default {
-  cache: {
-    type: 'persistent',
-  },
-  experiments: {
-    newCache: true,
-  },
-};
-```
-
-这项实现仍处于实验阶段，建议在项目中验证缓存命中、失效和重启后的行为。模块与 loader 的解析结果也可以缓存，通过 `experiments.newCache.resolver` 单独开启；当前默认关闭。
-
-### 缓存单个 loader 的结果 \{#loader-cache}
-
-新缓存后端还完善了单个 loader 的缓存。通过 `module.rules[].use.cache` 开启后，缓存会记录该 loader 的转换结果，以及它声明的文件依赖和构建依赖。依赖发生变化时，相关结果会失效。
-
-```js title="rspack.config.mjs"
-export default {
-  cache: {
-    type: 'persistent',
-  },
-  experiments: {
-    newCache: true,
-  },
-  module: {
-    rules: [
-      {
-        test: /\.tsx?$/,
-        use: [{ loader: 'builtin:swc-loader', cache: true }],
-      },
-    ],
-  },
-};
-```
-
-`builtin:swc-loader` 的缓存现在能够保留转换产生的 TypeScript 元数据，让后续分析在缓存命中时仍然获得这些信息。对于无法完整恢复依赖行为的 loader，缓存会跳过存储，避免不正确的复用。
-
-此外，持久化缓存的 [`maxMemoryGenerations`](https://rspack.rs/zh/config/cache#maxmemorygenerations) 默认值和新缓存后端的行为进一步与 webpack 对齐。这个选项控制未使用条目在额外内存缓存中的保留代数；设置为 `0` 时，新后端也会关闭这层内存缓存，在内存占用和磁盘读取之间做取舍。
-
-> 性能数据待补充：分别记录普通模块、context 模块和 loader 缓存的命中率，比较首次构建、重启后命中缓存及修改依赖后的构建耗时。
-
-## CSS 打包能力 \{#css-bundling}
-
-### 独立构建样式入口 \{#css-entry}
+#### 独立构建样式入口 \{#css-entry}
 
 使用内置 CSS 支持时，纯 CSS 入口现在可以只输出样式文件，不再附带无用的 JavaScript 入口文件。对于样式库、主题包或独立维护的页面样式，这可以省去额外清理空 JS 产物的步骤。
 
@@ -171,7 +240,7 @@ export default {
 
 上面的配置会输出 `styles.css`，不再生成多余的 `styles.js`。当所有入口都不需要 JavaScript 时，也不会生成独立的 JS runtime；混合 JS 与 CSS 入口仍会保留所需的脚本和运行时。详见 [#14879](https://github.com/web-infra-dev/rspack/pull/14879)。
 
-### 保留外部样式和资源引用 \{#css-externals}
+#### 保留外部样式和资源引用 \{#css-externals}
 
 CSS 现在支持 `css-import` 和 `asset-url` 类型的 external。可以将外部样式保留为 CSS 导入，也可以让 `url()` 直接引用 CDN 上的图片或字体，避免把这些资源当作 JavaScript 模块处理。
 
@@ -187,57 +256,15 @@ CSS 现在支持 `css-import` 和 `asset-url` 类型的 external。可以将外�
 
 这些引用会保留给运行时处理。原有的 `webpackIgnore` 写法同样支持，便于迁移已有样式。更多背景可参考 [#15431](https://github.com/web-infra-dev/rspack/pull/15431) 和 [#15314](https://github.com/web-infra-dev/rspack/pull/15314)。
 
-### 改进样式兼容性 \{#css-compatibility}
+#### 改进样式兼容性 \{#css-compatibility}
 
 内置 CSS Modules 进一步对齐了 webpack css-loader 的行为，覆盖局部与全局作用域、组合声明、值引用和嵌套选择器等场景。同时，异步样式现在使用共享的加载运行时，修复了相关加载问题；CSS 提取也修正了 `publicPath` 回调返回相对路径时的处理。
 
 如果项目之前依赖 CSS loader 的这些细节行为，本轮改进有助于减少迁移到内置 CSS 支持时的差异。详见 [#15816](https://github.com/web-infra-dev/rspack/pull/15816) 和 [#15869](https://github.com/web-infra-dev/rspack/pull/15869)。
 
-## SplitChunks 优化 \{#split-chunks}
+### 依赖解析与按需编译 \{#resolution-and-lazy-compilation}
 
-### 发现更多共享模块组合 \{#dedup-depth}
-
-新增的 [`splitChunks.dedupDepth`](https://rspack.rs/zh/plugins/split-chunks-plugin#splitchunksdedupdepth) 可以控制寻找共享模块组合的深度，发现原有模块图中没有直接出现的 chunk 交集。
-
-例如，一组模块被页面 A、B、C 使用，另一组模块被页面 A、B、D 使用。即使此前没有模块恰好只被 A、B 使用，新的算法也可以发现 `{ A, B }` 这个共同组合，并在满足体积、请求数等拆分条件时提取共享模块。
-
-生产模式下 `dedupDepth` 默认为 `1`，开发模式和 `none` 模式下默认为 `0`。更深的搜索会带来额外计算开销，可以根据产物重复情况与构建耗时调整，而不必一味增加深度。
-
-### 减少重复模块 \{#deduplicate-modules}
-
-Rspack 2.3 改进了具名 cache group 的模块去重。在多个入口使用同一模块的不同导出时，部分入口中的模块可能已被提取到共享 chunk，而另一个已经连接到该共享 chunk 的入口仍保留了一份副本。
-
-现在，SplitChunks 会在满足拆分条件时移除这些剩余副本，减少受影响项目中的重复代码。这项改进会自动生效，无需更改配置，详见 [#16075](https://github.com/web-infra-dev/rspack/pull/16075)。
-
-此外，当多个动态导入复用同一个具名异步 chunk 时，Rspack 会继续向后代 chunk 传播新加入的可用模块信息。已经由父 chunk 提供的模块不必在子 chunk 中重复打包，同时保留其他模块的顺序，避免影响无关 CSS 的排列。详见 [#15885](https://github.com/web-infra-dev/rspack/pull/15885)。
-
-### 避免拆分后留下过小的 chunk \{#min-remaining-size}
-
-Rspack 2.3 支持了 [`splitChunks.minRemainingSize`](https://rspack.rs/zh/plugins/split-chunks-plugin#splitchunksminremainingsize)，用于限制拆分后来源 chunk 中剩余模块的最小体积，使拆分行为进一步与 webpack 对齐。
-
-例如，从一个名为 `controls` 的异步 chunk 中提取 CSS 后，原 chunk 可能只剩下很小的 JavaScript 模块。此前，这种拆分可能导致 CSS 输出为数字命名的文件。现在，剩余体积检查可以阻止这次拆分，让相关场景下的 CSS 保留在原来的具名 chunk 中，输出预期的 `controls.css`。
-
-这个选项在开发模式下默认为 `0`，其他模式下回退到 `minSize`，也可以在全局或 cache group 中显式配置：
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    splitChunks: {
-      minRemainingSize: {
-        javascript: 20 * 1000,
-      },
-    },
-  },
-};
-```
-
-这表示在需要进行剩余体积检查时，不拆出会让来源 chunk 剩余 JavaScript 模块小于 20,000 字节的候选模块。检查仅适用于拆分涉及一个来源 chunk 的情况；具体规则和 cache group 的继承行为请参考配置文档。
-
-> 性能与体积数据待补充：比较默认配置及不同 `dedupDepth` 下的 chunk 拆分耗时、重复模块数、JS/CSS 产物体积和压缩后体积，并区分全量产物与页面实际加载的资源。
-
-## 依赖解析与按需编译 \{#resolution-and-lazy-compilation}
-
-### 更灵活的资源路径处理 \{#resource-resolution}
+#### 更灵活的资源路径处理 \{#resource-resolution}
 
 新增的 [`module.parser.javascript.dynamicUrl`](https://rspack.rs/zh/config/module-parser#javascriptdynamicurl) 可以单独关闭动态 `new URL()` 的依赖分析。如果资源由服务端或运行时提供，可以让动态路径保留到运行时求值，同时继续打包静态 URL：
 
@@ -263,13 +290,13 @@ const icon = new URL('./icon.png', import.meta.url);
 
 与此同时，`import.meta.glob` 现在能够正确解析 pattern 中的路径别名。tsconfig 解析也修正了相对路径的基准目录，以及通过软链接查找 `extends` 的行为，改善 Monorepo 和共享配置包中的路径解析。
 
-### 更可靠的懒编译和异步模块 \{#lazy-compilation}
+#### 更可靠的懒编译和异步模块 \{#lazy-compilation}
 
 [懒编译](https://rspack.rs/zh/guide/advanced/lazy-compilation)在模块激活后会保留其导入属性、导入阶段、issuer 和解析选项，并在重建之间保留已激活模块，避免后续修改反复回到首次激活流程。激活模块时也会减少不必要的 barrel 模块重新加载。
 
 异步模块的处理同时得到完善：嵌套的 `require.ensure` 和其中的 `import()` 可以保留正确的父子关系；lazy barrel 的再导出会正确传播异步状态；热更新引入的延迟导入也会继续使用相应的求值语义。
 
-## Watcher 兼容性改进 \{#watcher-compatibility}
+### Watcher 兼容性改进 \{#watcher-compatibility}
 
 文件时间戳是部分 loader 和插件判断文件是否变化的依据。此前，启用 [`experiments.nativeWatcher`](https://rspack.rs/zh/config/experiments#experimentsnativewatcher) 后，`compiler.fileTimestamps` 和 `compiler.contextTimestamps` 会返回空 Map，依赖这些信息的工具可能无法按预期工作。
 
@@ -281,33 +308,13 @@ Rspack 2.3 为原生 watcher 补齐了真实的文件和目录时间信息，并
 
 如果你的项目已经启用原生 watcher，升级即可获得这些改进；使用默认 watcher 的项目不需要切换配置。实现细节可参考 [#15754](https://github.com/web-infra-dev/rspack/pull/15754) 和 [#16126](https://github.com/web-infra-dev/rspack/pull/16126)。
 
-## 内存优化与分析 \{#memory-improvements}
-
-### 降低源码映射的内存开销 \{#source-map-memory}
-
-大型项目的 Source Map 往往包含大量源码内容。此前，外部 `.map` 资源会在保留源码结构的同时，长期保留一份完整的 JSON 字符串，导致源码内容在内存中重复存储。
-
-Rspack 2.3 改为保留结构化 Source Map，避免长期持有完整的序列化副本，仅在 API 明确请求完整内容时才生成 JSON 字符串。这可以降低构建完成后仍保留 compilation 的场景下的内存占用。
-
-插件通过 JavaScript API 读取模块源码时，Source Map 也改为按需生成和解析。只读取源码内容的插件，不再为没有访问过的 Source Map 额外分配和保留 JSON 数据，减少 JavaScript 堆中的内存占用。
-
-此外，源码处理改为复用整份源码的 UTF-16 索引，减少逐行索引的存储开销，并移除了对象池。完成编辑或编码后的源码与映射结果也会收紧多余容量，避免长期保留暂时分配的空间。更多背景可参考 [#16072](https://github.com/web-infra-dev/rspack/pull/16072)、[#15882](https://github.com/web-infra-dev/rspack/pull/15882) 和 [#16083](https://github.com/web-infra-dev/rspack/pull/16083)。
-
-### 减少模块元数据的常驻开销 \{#module-memory}
-
-模块图、导出信息和依赖记录也进行了多项存储优化：为导出较少的模块使用更紧凑的结构，减少解析结果的预分配容量，共享相同的依赖列表、路径和请求字符串，并延迟创建不需要的模块属性与回调对象。
-
-这些变化降低了每个模块都要承担的基础开销，也减少了构建过程中跨语言传递数据时的复制。compiler 关闭时会释放 loader 等临时回调，避免在开发服务器反复启动或重建时继续持有它们。
-
-> 内存数据待补充：在相同项目和配置下，对比构建峰值 RSS、构建后保留 compilation 时的 RSS、GC 后 JavaScript 堆，以及多轮 HMR 后的内存变化。各指标单独报告，不将不同优化的测量结果直接相加。
-
 ### 定位内存占用来源 \{#memory-diagnostics}
 
 Rspack 2.3 新增了基于 allocative 的内存分析能力，帮助定位构建和 HMR 更新期间哪些 Rust 数据结构保留了内存，便于排查内存占用较高或持续增长的问题。
 
 这项能力需要使用启用了 allocative 的 debug 或 profiling 构建。采集和分析方法请参考[内存诊断指南](https://rspack.rs/zh/guide/diagnostics/memory)。
 
-## 插件与工具集成 \{#plugin-integration}
+### 插件与工具集成 \{#plugin-integration}
 
 面向框架、loader 和插件作者，本轮更新还补齐了多项集成能力：
 
@@ -319,7 +326,7 @@ Rspack 2.3 新增了基于 allocative 的内存分析能力，帮助定位构建
 
 相关接口会随各自的实验性能力继续演进，升级时可以结合项目使用到的 hook 和 loader 行为进行验证。
 
-## 其他改进 \{#other-improvements}
+### 其他改进 \{#other-improvements}
 
 从 2.2.0 之后的版本升级，还可以获得以下改进：
 
@@ -337,7 +344,7 @@ Rspack 2.3 新增了基于 allocative 的内存分析能力，帮助定位构建
 
 > 待补充：生态项目的重要更新与相关发布链接。
 
-## 试用 Beta 版本 \{#try-the-beta}
+## 升级指南 \{#upgrade-guide}
 
 直接使用 Rspack CLI 的项目，可以将 `@rspack/core` 和 `@rspack/cli` 一起升级至本次 Beta：
 
