@@ -12,6 +12,7 @@ it("should handle HMR for exportType style", async () => {
 	const styleElement2 = styles[styles.length - 2];
 	expect(styleElement2.textContent).toContain("background-color: red");
 
+	expect(styleElement.textContent).toContain("https://test.cases/path/assets/image.svg");
 	const originalTextContent = styleElement.textContent;
 
 	await NEXT_HMR();
@@ -22,6 +23,7 @@ it("should handle HMR for exportType style", async () => {
 	expect(updatedStyleElement.textContent).toContain("background-color: yellow");
 	expect(updatedStyleElement.textContent).toContain("padding: 20px");
 	expect(updatedStyleElement.textContent).not.toBe(originalTextContent);
+	expect(updatedStyleElement.textContent).toContain("https://test.cases/path/assets/image.svg");
 
 	const updatedStyleElement2 = updatedStyles[updatedStyles.length - 2];
 	expect(updatedStyleElement2).toBeUndefined();

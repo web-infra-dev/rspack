@@ -1092,6 +1092,12 @@ export type CssParserOptions = {
    * @default "link"
    */
   exportType?: CssParserExportType;
+  /**
+   * Use the runtime public path for emitted asset URLs with exportType: "style".
+   * Explicit asset generator publicPath values take precedence.
+   * @default false
+   */
+  runtimePublicPath?: boolean;
 
   /**
    * Use ES modules named export for CSS exports.
@@ -1128,6 +1134,12 @@ export type CssModuleParserOptions = {
    * @default "link"
    */
   exportType?: CssParserExportType;
+  /**
+   * Use the runtime public path for emitted asset URLs with exportType: "style".
+   * Explicit asset generator publicPath values take precedence.
+   * @default false
+   */
+  runtimePublicPath?: boolean;
 
   /**
    * Use ES modules named export for CSS exports.

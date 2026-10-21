@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 39
-- Update: main.LAST_HASH.hot-update.js, size: 830
+- Update: main.LAST_HASH.hot-update.js, size: 907
 
 ## Manifest
 
@@ -33,7 +33,7 @@
 "use strict";
 self["rspackHotUpdate"]("main", {
 "./style.css"(module, __unused_rspack_exports, __webpack_require__) {
-__webpack_require__.is("./style.css", ".style_css-style-class {\n\tcolor: green;\n\tbackground-color: yellow;\n\tpadding: 20px;\n}\n");
+__webpack_require__.is("./style.css", ".style_css-style-class {\n\tbackground-image: url(\"" + __webpack_require__.p + "assets/image.svg\");\n\tcolor: green;\n\tbackground-color: yellow;\n\tpadding: 20px;\n}\n");
 var exports = {
   "style-class": "style_css-style-class",
 };
