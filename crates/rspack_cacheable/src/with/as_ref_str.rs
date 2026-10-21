@@ -72,7 +72,7 @@ use std::sync::{Arc, LazyLock};
 
 use dashmap::DashSet;
 
-#[cfg_attr(allocative, allocative::root)]
+#[cfg_attr(allocative, rspack_allocative::root)]
 pub static CACHED_ARC_STR: LazyLock<DashSet<Arc<str>, BuildHasherDefault<FxHasher>>> =
   LazyLock::new(Default::default);
 

@@ -4,7 +4,7 @@
 /// A temporary borrow must not use the vtable for a static-only adapter.
 ///
 /// ```compile_fail,E0597
-/// use allocative::{Allocative, FlameGraphBuilder, Visitor};
+/// use rspack_allocative::{Allocative, FlameGraphBuilder, Visitor};
 ///
 /// struct Borrowed<'a>(&'a str);
 /// impl Allocative for Borrowed<'static> {
@@ -20,7 +20,7 @@
 /// The same protection applies when the temporary borrow is inside a container.
 ///
 /// ```compile_fail,E0597
-/// use allocative::{Allocative, FlameGraphBuilder, Visitor};
+/// use rspack_allocative::{Allocative, FlameGraphBuilder, Visitor};
 ///
 /// struct Borrowed<'a>(&'a str);
 /// impl Allocative for Borrowed<'static> {
@@ -38,7 +38,7 @@ pub struct BorrowedReflection;
 /// Owned pointers must not erase the lifetime of a static-only adapter.
 ///
 /// ```compile_fail,E0597
-/// use allocative::FlameGraphBuilder;
+/// use rspack_allocative::FlameGraphBuilder;
 /// use rspack_allocative_testing::StaticOnlyBorrowed;
 /// let text = String::from("temporary");
 /// let value = Box::new(StaticOnlyBorrowed(&text));
@@ -46,7 +46,7 @@ pub struct BorrowedReflection;
 /// ```
 ///
 /// ```compile_fail,E0597
-/// use allocative::FlameGraphBuilder;
+/// use rspack_allocative::FlameGraphBuilder;
 /// use rspack_allocative_testing::StaticOnlyBorrowed;
 /// let text = String::from("temporary");
 /// let value = std::sync::Arc::new(StaticOnlyBorrowed(&text));
@@ -54,7 +54,7 @@ pub struct BorrowedReflection;
 /// ```
 ///
 /// ```compile_fail,E0597
-/// use allocative::FlameGraphBuilder;
+/// use rspack_allocative::FlameGraphBuilder;
 /// use rspack_allocative_testing::StaticOnlyBorrowed;
 /// let text = String::from("temporary");
 /// let value = std::rc::Rc::new(StaticOnlyBorrowed(&text));
@@ -63,8 +63,8 @@ pub struct BorrowedReflection;
 pub struct StaticOnlyBorrowed<'a>(pub &'a str);
 
 #[cfg(feature = "allocative")]
-impl allocative::Allocative for StaticOnlyBorrowed<'static> {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+impl rspack_allocative::Allocative for StaticOnlyBorrowed<'static> {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_allocative::Visitor<'b>) {
     visitor.enter_self(self).exit();
   }
 }
