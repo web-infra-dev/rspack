@@ -1,7 +1,8 @@
 //! Ported from webpack/test/FileSystemInfo.unittest.js (MIT licensed):
 //! https://github.com/webpack/webpack/blob/fc90789fdf089a5de71671f8d10155fcd32dc027/test/FileSystemInfo.unittest.js
 //!
-//! Keep webpack's assertions as the compatibility target. Tests for missing Rust
+//! Path matching and package versions follow the legacy cache; other assertions
+//! use webpack as the compatibility target. Tests for missing Rust
 //! interfaces use explicit `todo!`s; behavioral mismatches remain failing tests.
 //! Remove each TODO's `should_panic` attribute when implementing that test.
 //! Run the baseline with `cargo test -p rspack_core file_system_info::tests`.
@@ -189,7 +190,7 @@ fn fs_info_with_options(
   let log = Arc::new(TestLog::default());
   let logger = InfrastructureLogger::new("FileSystemInfo.unittest", log.clone());
   (
-    FileSystemInfo::new(fs, logger, options, HashFunction::SHA256),
+    FileSystemInfo::new(fs, logger, options, "/".into(), HashFunction::SHA256),
     log,
   )
 }
@@ -390,9 +391,13 @@ mod path_classification_cache {
         .expect("classified"),
       PathClassification::Immutable
     ));
+    // webpack caches the managed package root here. The legacy package lookup
+    // runs after classification, so this cache only records the Managed category.
     assert!(matches!(
-      &*cache.get(&InternedPath::from("/path/node_modules/package/file.txt")).expect("classified"),
-      PathClassification::Managed(item) if *item == InternedPath::from("/path/node_modules/package")
+      &*cache
+        .get(&InternedPath::from("/path/node_modules/package/file.txt"))
+        .expect("classified"),
+      PathClassification::Managed
     ));
     let managed = first.managed_files.as_ref().expect("managed files");
     assert!(managed.contains(&InternedPath::from("/path/node_modules/package/file.txt")));
@@ -1083,6 +1088,9 @@ mod managed_item_info {
 
   #[tokio::test]
   async fn captures_a_normal_package_and_a_nested_grouping_folder() {
+    // webpack stores "name@version" by package root and marks grouping folders
+    // as "*nested". The shared lookup stores the same identity by dependency path
+    // and uses normal snapshots when no ancestor package provides a name.
     let (fs_info, _) = setup_managed(|fs| fs.mkdir("/root/node_modules/group/node_modules"));
     let snapshot = snapshot_paths(
       &fs_info,
@@ -1098,20 +1106,23 @@ mod managed_item_info {
     let info = snapshot.managed_item_info.expect("managed info");
     assert_eq!(
       info
-        .get(&InternedPath::from("/root/node_modules/normal"))
+        .get(&InternedPath::from("/root/node_modules/normal/index.js"))
         .map(String::as_str),
       Some("normal@1.0.0")
     );
     assert_eq!(
-      info
-        .get(&InternedPath::from("/root/node_modules/group"))
-        .map(String::as_str),
-      Some("*nested")
+      snapshot
+        .file_timestamps
+        .expect("normal snapshots")
+        .get(&InternedPath::from("/root/node_modules/group/index.js")),
+      Some(&None)
     );
   }
 
   #[tokio::test]
   async fn treats_a_nested_node_modules_directory_as_node_modules() {
+    // webpack records a "*node_modules" marker for this directory. The legacy
+    // lookup finds no named ancestor package here, so it snapshots it normally.
     let (fs_info, _) = setup_managed(|fs| fs.mkdir("/root/node_modules/sub/node_modules"));
     let snapshot = snapshot_paths(
       &fs_info,
@@ -1121,17 +1132,19 @@ mod managed_item_info {
       SnapshotStrategyOptions::timestamp(),
     )
     .await;
-    let info = snapshot.managed_item_info.expect("managed info");
-    assert_eq!(
-      info
-        .get(&InternedPath::from("/root/node_modules/sub/node_modules"))
-        .map(String::as_str),
-      Some("*node_modules")
+    assert!(snapshot.managed_item_info.is_none());
+    assert!(
+      snapshot
+        .file_timestamps
+        .expect("normal snapshots")
+        .contains_key(&InternedPath::from("/root/node_modules/sub/node_modules"))
     );
   }
 
   #[tokio::test]
   async fn warns_on_a_package_json_without_a_name_and_on_a_non_package_folder() {
+    // webpack warns for both paths. The shared lookup searches for a named
+    // ancestor package and silently uses normal snapshots when none is found.
     let (fs_info, log) = setup_managed(|fs| {
       fs.write(
         "/root/node_modules/noname/package.json",
@@ -1139,7 +1152,7 @@ mod managed_item_info {
       );
       fs.write("/root/node_modules/bare/file.txt", "x");
     });
-    snapshot_paths(
+    let snapshot = snapshot_paths(
       &fs_info,
       &[
         "/root/node_modules/noname/index.js",
@@ -1150,28 +1163,15 @@ mod managed_item_info {
       SnapshotStrategyOptions::timestamp(),
     )
     .await;
-    let warnings = log.0.lock().expect("log lock");
-    assert!(
-      warnings
-        .iter()
-        .any(|message| message.contains("doesn't contain a \"name\""))
-    );
-    assert!(
-      warnings
-        .iter()
-        .any(|message| message.contains("isn't a directory or doesn't contain a package.json"))
-    );
-  }
-
-  #[test]
-  #[should_panic(
-    expected = "webpack L1756: malformed /root/node_modules/broken/package.json aborts with a null snapshot; create_snapshot returns Result<Snapshot>, so the successful no-snapshot outcome is not representable yet"
-  )]
-  fn propagates_a_package_json_json_parse_error() {
-    todo!(
-      "{}",
-      "webpack L1756: malformed /root/node_modules/broken/package.json aborts with a null snapshot; create_snapshot returns Result<Snapshot>, so the successful no-snapshot outcome is not representable yet"
-    );
+    assert!(snapshot.managed_item_info.is_none());
+    let timestamps = snapshot.file_timestamps.expect("normal snapshots");
+    for path in [
+      "/root/node_modules/noname/index.js",
+      "/root/node_modules/bare/index.js",
+    ] {
+      assert_eq!(timestamps.get(&InternedPath::from(path)), Some(&None));
+    }
+    assert!(log.0.lock().expect("log lock").is_empty());
   }
 }
 

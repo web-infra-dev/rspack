@@ -116,7 +116,6 @@ export const applyRspackOptionsDefaults = (
   applyExperimentsDefaults(options.experiments, { production });
   applySnapshotDefaults(options.snapshot, {
     production,
-    newCache: Boolean(options.experiments.newCache),
   });
 
   applyOptimizationDefaults(options.optimization, {
@@ -262,15 +261,11 @@ const applyCacheDefaults = (
 
 const applySnapshotDefaults = (
   snapshot: SnapshotOptions,
-  { production, newCache }: { production: boolean; newCache: boolean },
+  { production }: { production: boolean },
 ) => {
   F(snapshot, 'immutablePaths', () => []);
   F(snapshot, 'unmanagedPaths', () => []);
-  F(snapshot, 'managedPaths', () =>
-    newCache
-      ? [/^(.+?[\\/]node_modules[\\/])/]
-      : [/[\\/]node_modules[\\/][^.]/],
-  );
+  F(snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
   F(snapshot, 'resolveBuildDependencies', () => ({
     timestamp: true,
     hash: true,

@@ -60,6 +60,7 @@ pub fn create_cache(
     input_filesystem,
     logger.get_child("rspack.FileSystemInfo"),
     compiler_options.snapshot.clone(),
+    compiler_options.context.clone(),
     compiler_options.output.hash_function,
   );
   let (base_path, database_path) = match &options.storage {
