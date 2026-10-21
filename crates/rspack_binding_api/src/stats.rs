@@ -976,20 +976,22 @@ pub struct JsStatsGetAssets<'a> {
   pub assets_by_chunk_name: Vec<JsStatsAssetsByChunkName<'a>>,
 }
 
-#[napi(object, object_from_js = false)]
+#[napi(object, object_from_js = false, use_nullable = true)]
 pub struct JsStatsCacheInfo {
   #[napi(ts_type = "'disabled' | 'memory' | 'persistent'")]
   pub mode: &'static str,
-  #[napi(ts_type = "'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined")]
-  pub status: Option<&'static str>,
-  #[napi(ts_type = "'version' | 'buildDependencies' | 'recovery' | undefined")]
-  pub reason: Option<&'static str>,
-  #[napi(ts_type = "'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined")]
-  pub session_status: Option<&'static str>,
-  #[napi(ts_type = "'version' | 'buildDependencies' | 'recovery' | undefined")]
-  pub session_reason: Option<&'static str>,
   pub module_builds: Option<JsStatsModuleBuilds>,
   pub counters: Vec<JsStatsCacheCounter>,
+  pub persistent_session_initialization: Option<JsStatsCacheValidation>,
+  pub persistent: Option<JsStatsCacheValidation>,
+}
+
+#[napi(object, object_from_js = false, use_nullable = true)]
+pub struct JsStatsCacheValidation {
+  #[napi(ts_type = "'cold' | 'valid' | 'invalidated' | 'error' | 'unknown'")]
+  pub status: &'static str,
+  #[napi(ts_type = "'version' | 'buildDependencies' | 'recovery'")]
+  pub reason: Option<&'static str>,
 }
 
 #[napi(object, object_from_js = false)]
@@ -1116,33 +1118,26 @@ impl JsStats {
   }
 
   fn cache_info(&self) -> JsStatsCacheInfo {
-    let mode = match &self.inner.options().cache {
+    let cache = &self.inner.options().cache;
+    let mode = match cache {
       CacheOptions::Disabled => "disabled",
       CacheOptions::Memory { .. } => "memory",
       CacheOptions::FileSystem(_) | CacheOptions::Persistent(_) => "persistent",
     };
-    let convert = |state| match state {
-      PersistentCacheState::Unknown => ("unknown", None),
-      PersistentCacheState::Cold => ("cold", None),
-      PersistentCacheState::Valid => ("valid", None),
-      PersistentCacheState::InvalidVersion => ("invalidated", Some("version")),
-      PersistentCacheState::InvalidBuildDependencies => ("invalidated", Some("buildDependencies")),
-      PersistentCacheState::ValidationError => ("error", None),
-      PersistentCacheState::RecoveryError => ("error", Some("recovery")),
-    };
-    let (status, reason) = if mode == "persistent" {
-      let (status, reason) = convert(self.inner.persistent_cache_state());
-      (Some(status), reason)
-    } else {
-      (None, None)
-    };
-    let (session_status, session_reason) =
-      if matches!(&self.inner.options().cache, CacheOptions::FileSystem(_)) {
-        let (status, reason) = convert(self.inner.cache_session_initial_validation());
-        (Some(status), reason)
-      } else {
-        (None, None)
+    let validation = |state| {
+      let (status, reason) = match state {
+        PersistentCacheState::Unknown => ("unknown", None),
+        PersistentCacheState::Cold => ("cold", None),
+        PersistentCacheState::Valid => ("valid", None),
+        PersistentCacheState::InvalidVersion => ("invalidated", Some("version")),
+        PersistentCacheState::InvalidBuildDependencies => {
+          ("invalidated", Some("buildDependencies"))
+        }
+        PersistentCacheState::ValidationError => ("error", None),
+        PersistentCacheState::RecoveryError => ("error", Some("recovery")),
       };
+      JsStatsCacheValidation { status, reason }
+    };
     let mut counters = Vec::new();
     for logging in self.inner.logging().iter() {
       let (logger, events) = logging.pair();
@@ -1161,10 +1156,9 @@ impl JsStats {
 
     JsStatsCacheInfo {
       mode,
-      status,
-      reason,
-      session_status,
-      session_reason,
+      persistent: (mode == "persistent").then(|| validation(self.inner.persistent_cache_state())),
+      persistent_session_initialization: matches!(cache, CacheOptions::FileSystem(_))
+        .then(|| validation(self.inner.cache_session_initial_validation())),
       module_builds: self
         .inner
         .module_build_cache_stats()

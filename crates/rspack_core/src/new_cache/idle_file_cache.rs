@@ -224,14 +224,13 @@ impl IdleFileCache {
 
   pub fn restore<T: CacheValueData>(
     &self,
-    key: CacheKey,
-    etag: Option<Etag>,
-    on_error: impl FnOnce(),
-  ) -> Option<CacheValue<T>> {
+    key: &CacheKey,
+    etag: Option<&Etag>,
+  ) -> rspack_error::Result<Option<CacheValue<T>>> {
     let restored = self
       .strategy
-      .restore(&key, etag.as_ref(), CacheValue::<T>::decoder(), on_error);
-    restored.and_then(ErasedCacheValue::downcast)
+      .restore(key, etag, CacheValue::<T>::decoder())?;
+    Ok(restored.and_then(ErasedCacheValue::downcast))
   }
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {

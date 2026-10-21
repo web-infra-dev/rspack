@@ -1426,12 +1426,15 @@ export interface JsStatsCacheCounter {
 
 export interface JsStatsCacheInfo {
   mode: 'disabled' | 'memory' | 'persistent'
-  status?: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined
-  reason?: 'version' | 'buildDependencies' | 'recovery' | undefined
-  sessionStatus?: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown' | undefined
-  sessionReason?: 'version' | 'buildDependencies' | 'recovery' | undefined
-  moduleBuilds?: JsStatsModuleBuilds
+  moduleBuilds: JsStatsModuleBuilds | null
   counters: Array<JsStatsCacheCounter>
+  persistentSessionInitialization: JsStatsCacheValidation | null
+  persistent: JsStatsCacheValidation | null
+}
+
+export interface JsStatsCacheValidation {
+  status: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown'
+  reason: 'version' | 'buildDependencies' | 'recovery' | null
 }
 
 export interface JsStatsChildGroupChildAssets {

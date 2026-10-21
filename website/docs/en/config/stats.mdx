@@ -78,15 +78,15 @@ Sets the [preset](/config/stats#stats-presets) for the type of information that 
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-Include cache diagnostics in JSON stats. To measure module reuse, set `stats: { cacheInfo: true }` before creating the compiler. Rspack then tracks module identifiers during the build. Neither `stats.all` nor the `verbose` preset enables collection.
-
-Read the report with `stats.toJson({ all: false, cacheInfo: true }).cacheInfo`. If collection was disabled during the build, `moduleBuilds` is `null`.
+Set `stats: { cacheInfo: true }` before creating the compiler to count module builds. Read the report with `stats.toJson({ all: false, cacheInfo: true }).cacheInfo`. Requesting JSON stats after the build, or using `stats.all` or the `verbose` preset alone, leaves the count unavailable.
 
 #### Module build reuse
 
-`reused` counts modules whose build step never ran during this compilation. Their results can come from memory or disk. If an entry imports one module and you edit that module, `{ reused: 1, total: 2 }` means Rspack reused the entry's build and rebuilt the edited module. A module built during this compilation still counts as built if Rspack later reads it from cache.
+`moduleBuilds.total` counts distinct modules in the main graph after `finishModules`, before sealing and optimization. It includes externals and modules ineligible for caching. Runtime modules and separate module-execution graphs fall outside the count.
 
-`total` counts distinct modules in the main graph after `finishModules`, before sealing and optimization. It includes externals and modules ineligible for caching, but excludes runtime modules and separate module-execution graphs. `null` means the count is unavailable, for example on an incremental rebuild, without persistent module caching, or when the graph changes after `finishModules`.
+`moduleBuilds.reused` counts those modules whose build step never ran during this compilation. Results can come from memory or disk. If an entry imports one dependency and you edit that dependency, `{ reused: 1, total: 2 }` means Rspack reused the entry's build. A module built and later restored in the same compilation counts as built once.
+
+`moduleBuilds` is `null` when Rspack cannot measure reuse, including incremental rebuilds, builds without persistent module caching, and changes to the graph after `finishModules`.
 
 #### Persistent cache validation
 

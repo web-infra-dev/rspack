@@ -872,26 +872,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       }
     },
     cacheInfo: (object, compilation, context: KnownStatsFactoryContext) => {
-      const cacheInfo = context.getStatsCompilation(compilation).cacheInfo;
+      const { cacheInfo } = context.getStatsCompilation(compilation);
       if (cacheInfo) {
-        object.cacheInfo = {
-          mode: cacheInfo.mode,
-          moduleBuilds: cacheInfo.moduleBuilds ?? null,
-          counters: cacheInfo.counters,
-          persistentSessionInitialization: cacheInfo.sessionStatus
-            ? {
-                status: cacheInfo.sessionStatus,
-                reason: cacheInfo.sessionReason ?? null,
-              }
-            : null,
-          persistent:
-            cacheInfo.mode === 'persistent'
-              ? {
-                  status: cacheInfo.status ?? 'unknown',
-                  reason: cacheInfo.reason ?? null,
-                }
-              : null,
-        };
+        object.cacheInfo = cacheInfo;
       }
     },
     hash: (object, compilation, context: KnownStatsFactoryContext) => {

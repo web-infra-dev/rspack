@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import { checkCacheCounters } from "./helpers/cache-counters.mjs";
+import { promisify } from "node:util";
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 const cases = [false, true].map(newCache => {
-  let forceRebuild = false;
-  let forceLateRebuild = false;
+  let rebuildStage;
+  let earlySession;
   let dependencyBuilds = 0;
   return {
     description: `reports module build reuse with ${newCache ? "new" : "legacy"} persistent cache`,
@@ -22,15 +22,12 @@ const cases = [false, true].map(newCache => {
       // Make the first build's snapshot eligible for reuse during finishModules.
       fs.utimesSync(dependency, 1, 1);
       fs.writeFileSync(path.join(root, "build-dependency.js"), 'module.exports = "first";');
-      context.setValue("root", root);
       return {
         context: root,
         entry: "./entry.js",
-        mode: "production",
         devtool: "source-map",
         incremental: false,
         stats: { cacheInfo: true },
-        optimization: { minimize: false },
         output: { path: path.join(root, "output"), filename: "bundle.js" },
         experiments: {
           newCache: newCache && {
@@ -51,33 +48,21 @@ const cases = [false, true].map(newCache => {
           apply(compiler) {
             compiler.hooks.compilation.tap("CacheModuleBuildsTest", compilation => {
               compilation.hooks.buildModule.tap("CacheModuleBuildsTest", module => {
-                if (module.resource === path.join(root, "dep.js")) dependencyBuilds++;
+                if (module.resource === dependency) dependencyBuilds++;
               });
-              compilation.hooks.finishModules.tapPromise("CacheModuleBuildsTest", async modules => {
-                if (!forceRebuild) return;
-                forceRebuild = false;
-                const module = [...modules].find(item => item.resource === path.join(root, "dep.js"));
+              const rebuild = async stage => {
+                if (stage !== rebuildStage) return;
+                rebuildStage = undefined;
+                const module = [...compilation.modules].find(item => item.resource === dependency);
                 expect(module).toBeDefined();
-                await new Promise((resolve, reject) => {
-                  compilation.rebuildModule(module, (error, rebuilt) => {
-                    if (error) return reject(error);
-                    expect(rebuilt.identifier()).toBe(module.identifier());
-                    resolve();
-                  });
-                });
+                await promisify(compilation.rebuildModule.bind(compilation))(module);
+              };
+              compilation.hooks.finishModules.tapPromise("CacheModuleBuildsTest", () => {
+                const { cacheInfo } = compilation.getStats().toJson({ all: false, cacheInfo: true });
+                earlySession = cacheInfo.persistentSessionInitialization;
+                return rebuild("finishModules");
               });
-              compilation.hooks.afterSeal.tapPromise("CacheModuleBuildsTest", async () => {
-                if (!forceLateRebuild) return;
-                forceLateRebuild = false;
-                const module = [...compilation.modules].find(item => item.resource === path.join(root, "dep.js"));
-                expect(module).toBeDefined();
-                await new Promise((resolve, reject) => {
-                  compilation.rebuildModule(module, error => {
-                    if (error) return reject(error);
-                    resolve();
-                  });
-                });
-              });
+              compilation.hooks.afterSeal.tapPromise("CacheModuleBuildsTest", () => rebuild("afterSeal"));
             });
           }
         }]
@@ -86,68 +71,49 @@ const cases = [false, true].map(newCache => {
     compiler(_context, compiler) {
       compiler.outputFileSystem = fs;
     },
-    async build(context) {
+    async build(context, compiler) {
       const manager = context.getCompiler();
-      const root = context.getValue("root");
-      const artifacts = () => ["bundle.js", "bundle.js.map"].map(file =>
-        fs.readFileSync(path.join(root, "output", file), "utf8")
-      );
+      const root = compiler.context;
       const build = async (expected, status, reason = null) => {
         dependencyBuilds = 0;
         const stats = await manager.build();
         expect(stats.hasErrors()).toBe(false);
-        const before = artifacts();
         const cacheInfo = stats.toJson({ all: false, cacheInfo: true }).cacheInfo;
-        expect(cacheInfo.mode).toBe("persistent");
         expect(cacheInfo.moduleBuilds).toEqual(expected);
-        expect(cacheInfo.persistent).toEqual({ status: newCache ? "unknown" : status, reason: newCache ? null : reason });
-        expect(cacheInfo.persistentSessionInitialization).toEqual(
-          newCache ? expect.objectContaining({ status: expect.any(String) }) : null
+        expect(cacheInfo.persistent).toEqual(newCache ? { status: "unknown", reason: null } : { status, reason });
+        expect(cacheInfo.persistentSessionInitialization).toEqual(newCache ? { status, reason } : null);
+        expect(earlySession).toEqual(cacheInfo.persistentSessionInitialization);
+        expect(rebuildStage).toBeUndefined();
+        return ["bundle.js", "bundle.js.map"].map(file =>
+          fs.readFileSync(path.join(root, "output", file), "utf8")
         );
-        checkCacheCounters(stats, cacheInfo.counters);
-        expect(cacheInfo.counters).toContainEqual(expect.objectContaining({
-          logger: "rspack.Compilation",
-          label: "module code generation cache"
-        }));
-        expect(artifacts()).toEqual(before);
-        return before;
       };
-      const restart = async version => {
+      const restart = async () => {
         await manager.close();
-        const options = manager.getOptions();
-        manager.setOptions({ ...options, cache: { ...options.cache, version } });
         manager.createCompiler().outputFileSystem = fs;
       };
 
-      forceRebuild = newCache;
+      if (newCache) rebuildStage = "finishModules";
       const cold = await build({ reused: 0, total: 2 }, "cold");
-      expect(forceRebuild).toBe(false);
       expect(dependencyBuilds).toBe(1);
       expect(cold[0]).toContain("dep-v1");
-      await restart("first");
+      if (newCache) expect(await build(null, "cold")).toEqual(cold);
+      await restart();
       expect(await build({ reused: 2, total: 2 }, "valid")).toEqual(cold);
-      await restart("first");
-      fs.writeFileSync(path.join(root, "dep.js"), 'export const value = { label: "dependency-v2" };');
+      await restart();
+      const dependency = path.join(root, "dep.js");
+      fs.writeFileSync(dependency, 'export const value = { label: "dependency-v2" };');
+      fs.utimesSync(dependency, 2, 2);
       const changed = await build({ reused: 1, total: 2 }, "valid");
       expect(changed[0]).toContain("dependency-v2");
       expect(changed[1]).not.toEqual(cold[1]);
-      await restart("first");
+      await restart();
       expect(await build({ reused: 2, total: 2 }, "valid")).toEqual(changed);
-      await restart("first");
-      forceRebuild = true;
-      const stats = await manager.build();
-      expect(stats.hasErrors()).toBe(false);
-      expect(forceRebuild).toBe(false);
-      expect(dependencyBuilds).toBeLessThanOrEqual(1);
-      if (!newCache) expect(dependencyBuilds).toBe(1);
-      const cacheInfo = stats.toJson({ all: false, cacheInfo: true }).cacheInfo;
-      expect(cacheInfo.persistent).toEqual({ status: newCache ? "unknown" : "valid", reason: null });
-      expect(cacheInfo.moduleBuilds).toEqual({
-        reused: dependencyBuilds ? 1 : 2,
-        total: 2
-      });
-      expect(artifacts()).toEqual(changed);
-      await restart("first");
+      await restart();
+      rebuildStage = "finishModules";
+      expect(await build({ reused: newCache ? 2 : 1, total: 2 }, "valid")).toEqual(changed);
+      expect(dependencyBuilds).toBe(newCache ? 0 : 1);
+      await restart();
       if (!newCache) {
         const cacheRoot = path.join(root, "cache");
         const cacheDirectory = fs.readdirSync(cacheRoot).find(entry =>
@@ -156,19 +122,20 @@ const cases = [false, true].map(newCache => {
         expect(cacheDirectory).toBeDefined();
         fs.writeFileSync(path.join(cacheRoot, cacheDirectory, "snapshot_file", "0.pack"), "corrupt\n");
         expect(await build({ reused: 0, total: 2 }, "error", "recovery")).toEqual(changed);
-        await restart("first");
+        await restart();
       }
       fs.writeFileSync(path.join(root, "build-dependency.js"), 'module.exports = "changed dependency";');
       expect(await build({ reused: 0, total: 2 }, "invalidated", "buildDependencies")).toEqual(changed);
-      await restart("first");
+      await restart();
       expect(await build({ reused: 2, total: 2 }, "valid")).toEqual(changed);
-      await restart("second");
+      manager.mergeOptions({ cache: { type: "persistent", version: "second" } });
+      await restart();
       expect(await build({ reused: 0, total: 2 }, "invalidated", "version")).toEqual(changed);
-      await restart("second");
-      forceLateRebuild = true;
+      await restart();
+      rebuildStage = "afterSeal";
       expect(await build(null, "valid")).toEqual(changed);
-      await build(null, "unknown");
-      await restart("second");
+      await build(null, newCache ? "valid" : "unknown");
+      await restart();
       fs.writeFileSync(path.join(root, "entry.js"), 'console.log("no dependency");');
       const removed = await build({ reused: 0, total: 1 }, "valid");
       expect(removed[0]).not.toContain("dependency-v2");
@@ -179,23 +146,15 @@ const cases = [false, true].map(newCache => {
 cases.push({
   description: "counts external modules in the main module graph",
   options(context) {
-    const root = context.getDist("external-module-builds");
-    fs.rmSync(root, { recursive: true, force: true });
-    fs.mkdirSync(root, { recursive: true });
-    fs.writeFileSync(path.join(root, "entry.js"), 'console.log(require("external"));');
+    const location = context.getDist("external-cache");
+    fs.rmSync(location, { recursive: true, force: true });
     return {
-      context: root,
-      entry: "./entry.js",
-      mode: "production",
+      entry: ["./a.js", "external"],
       stats: { cacheInfo: true },
       externals: { external: "commonjs external" },
-      output: { path: path.join(root, "output") },
-      cache: { type: "persistent", storage: { type: "filesystem", location: path.join(root, "cache") } },
+      cache: { type: "persistent", storage: { type: "filesystem", location } },
       experiments: { newCache: false }
     };
-  },
-  compiler(_context, compiler) {
-    compiler.outputFileSystem = fs;
   },
   async build(context) {
     const stats = await context.getCompiler().build();

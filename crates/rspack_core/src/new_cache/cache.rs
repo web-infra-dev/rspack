@@ -81,29 +81,21 @@ impl Cache {
       }
     }
 
-    let Some(file_cache) = &storage.idle_file_cache else {
-      if let Some(memory_cache) = &storage.memory_cache {
-        memory_cache.store_miss(key);
-      }
-      return None;
-    };
-
-    match file_cache.restore::<T>(key.clone(), etag.clone(), || {
-      self.read_failed.store(true, Ordering::Relaxed);
-    }) {
-      Some(value) => {
-        if let Some(memory_cache) = &storage.memory_cache {
-          memory_cache.store(key, etag, value.clone());
-        }
-        Some(value)
-      }
-      None => {
-        if let Some(memory_cache) = &storage.memory_cache {
-          memory_cache.store_miss(key);
-        }
-        None
+    let restored = storage.idle_file_cache.as_ref().and_then(|file_cache| {
+      file_cache
+        .restore::<T>(&key, etag.as_ref())
+        .unwrap_or_else(|_| {
+          self.read_failed.store(true, Ordering::Relaxed);
+          None
+        })
+    });
+    if let Some(memory_cache) = &storage.memory_cache {
+      match &restored {
+        Some(value) => memory_cache.store(key, etag, value.clone()),
+        None => memory_cache.store_miss(key),
       }
     }
+    restored
   }
 
   pub fn store<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>, value: CacheValue<T>) {

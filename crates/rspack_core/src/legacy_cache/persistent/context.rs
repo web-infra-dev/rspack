@@ -108,18 +108,16 @@ impl CacheContext {
         self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
       }
       CacheValidationResult::InvalidVersion { message } => {
-        self.state = PersistentCacheState::InvalidVersion;
         self
           .logger()
           .warn(format!("meta persistent cache recovery failed: {message}"));
         self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
-        self.invalidate();
+        self.invalidate(PersistentCacheState::InvalidVersion);
       }
       CacheValidationResult::InvalidBuildDependencies {
         modified_files,
         removed_files,
       } => {
-        self.state = PersistentCacheState::InvalidBuildDependencies;
         let reason = format_path_changes(&modified_files, &removed_files);
         self.logger().warn(format!(
           "persistent cache invalidated because build dependencies changed:\n{reason}"
@@ -130,18 +128,16 @@ impl CacheContext {
             .build_dependencies_duration
             .expect("build dependencies should have been validated"),
         );
-        self.invalidate();
+        self.invalidate(PersistentCacheState::InvalidBuildDependencies);
       }
       CacheValidationResult::VersionError(error) => {
-        self.state = PersistentCacheState::ValidationError;
         self
           .logger()
           .warn(format!("meta persistent cache recovery failed: {error}"));
         self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
-        self.invalidate();
+        self.invalidate(PersistentCacheState::ValidationError);
       }
       CacheValidationResult::BuildDependenciesError(error) => {
-        self.state = PersistentCacheState::ValidationError;
         self
           .logger()
           .warn(format!("build dependencies validation failed: {error}"));
@@ -151,7 +147,7 @@ impl CacheContext {
             .build_dependencies_duration
             .expect("build dependencies should have been validated"),
         );
-        self.invalidate();
+        self.invalidate(PersistentCacheState::ValidationError);
       }
     }
   }
@@ -164,7 +160,8 @@ impl CacheContext {
     });
   }
 
-  fn invalidate(&mut self) {
+  fn invalidate(&mut self, reason: PersistentCacheState) {
+    self.state = reason;
     self.invalid = true;
     self.load_failed = true;
     if self.readonly {

@@ -101,6 +101,7 @@ impl PersistentCache {
 
   async fn initialize(&mut self) {
     if self.initialized {
+      self.ctx.clear_state();
       return;
     }
     self.initialized = true;
@@ -114,9 +115,6 @@ impl PersistentCache {
 impl Cache for PersistentCache {
   async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
     self.ctx.logger().info("persistent cache enabled");
-    if self.initialized {
-      self.ctx.clear_state();
-    }
     self.initialize().await;
 
     if compilation.is_rebuild {
