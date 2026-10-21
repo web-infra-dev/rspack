@@ -111,7 +111,7 @@ pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage
       continue;
     }
 
-    let storage = create_storage(
+    let (storage, _) = create_storage(
       StorageOptions::FileSystem {
         directory: path.clone(),
         location: path.clone(),
@@ -119,6 +119,7 @@ pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage
       cache_directory,
       0,
       fs.clone(),
+      None,
     );
 
     storages.insert(cache_directory_name, storage);
