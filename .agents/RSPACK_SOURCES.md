@@ -355,4 +355,4 @@ Offsets use `u32`, following Rspack's assumption that source files fit in 4 GiB.
 Mapping streams drop the index after use rather
 than retaining line-sized buffers in a pool.
 
-`SourceOnlySource` retains its inner graph and suppresses mapping callbacks and map APIs. Devtool uses it for generated assets on every target, including Node. Persistent cache preserves the wrapper and structural identity. Real content hashing classifies and streams its inner source recursively, retaining the map-free boundary for unchanged output.
+`SourceOnlySource` retains UTF-8 source graphs and suppresses mapping callbacks and map APIs. Binary/text composites and unknown source implementations fall back to the previous `source()` materialization so buffer and writer output preserve Devtool byte semantics. Devtool uses it for generated assets on every target, including Node. Persistent cache preserves the wrapper and structural identity. Real content hashing classifies and streams its inner source recursively, retaining the map-free boundary for unchanged output.

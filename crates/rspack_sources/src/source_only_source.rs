@@ -5,7 +5,9 @@ use std::{
 };
 
 use crate::{
-  BoxSource, MapOptions, Source, SourceMap, SourceValue,
+  BoxSource, CachedSource, ConcatSource, MapOptions, MappingSource, OriginalSource,
+  RawBufferSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
+  SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, stream_chunks_of_raw_rope},
 };
 
@@ -14,12 +16,24 @@ use crate::{
 /// Devtool emits an asset's map as a separate asset. Keeping the rendered
 /// source graph instead of flattening it avoids a full copy of the asset text,
 /// while this wrapper keeps `source.map()` behavior identical to the flattened
-/// source that had no map.
+/// source that had no map. Binary/text composites and unknown implementations
+/// are normalized through `source()` when byte equivalence cannot be established.
 #[derive(Clone)]
 pub struct SourceOnlySource(BoxSource);
 
 impl SourceOnlySource {
   pub fn new(inner: BoxSource) -> Self {
+    // Devtool used to store source(), not buffer() or writer output. Those can
+    // differ for binary/text composites and custom sources. Preserve the graph
+    // only when its byte APIs agree with that value.
+    let inner = if inner.as_any().is::<RawBufferSource>() || has_utf8_text(inner.as_ref()) {
+      inner
+    } else {
+      match inner.source() {
+        SourceValue::String(text) => RawStringSource::from(text.into_owned()).boxed(),
+        SourceValue::Buffer(bytes) => RawBufferSource::from(bytes.into_owned()).boxed(),
+      }
+    };
     Self(inner)
   }
 
@@ -97,4 +111,33 @@ impl std::fmt::Debug for SourceOnlySource {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_tuple("SourceOnlySource").field(&self.0).finish()
   }
+}
+
+// A conservative check: unknown implementations retain the old source()
+// materialization boundary rather than assuming writer/text equivalence.
+fn has_utf8_text(source: &dyn Source) -> bool {
+  let any = source.as_any();
+  if any.is::<RawStringSource>()
+    || any.is::<OriginalSource>()
+    || any.is::<SourceMapSource>()
+    || any.is::<MappingSource>()
+  {
+    return true;
+  }
+  if let Some(source) = any.downcast_ref::<RawBufferSource>() {
+    return std::str::from_utf8(&source.buffer()).is_ok();
+  }
+  if let Some(source) = any.downcast_ref::<SourceOnlySource>() {
+    return has_utf8_text(source.inner().as_ref());
+  }
+  if let Some(source) = any.downcast_ref::<CachedSource>() {
+    return has_utf8_text(source.inner().as_ref());
+  }
+  if let Some(source) = any.downcast_ref::<ConcatSource>() {
+    return source.children().iter().all(|s| has_utf8_text(s.as_ref()));
+  }
+  if let Some(source) = any.downcast_ref::<ReplaceSource>() {
+    return has_utf8_text(source.inner().as_ref());
+  }
+  false
 }

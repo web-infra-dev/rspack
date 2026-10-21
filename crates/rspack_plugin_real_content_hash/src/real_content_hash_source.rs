@@ -214,6 +214,13 @@ impl RealContentHashSource {
       hasher.write(bytes);
       return;
     }
+    if !self.can_stream_as_text() {
+      // Binary and unmatched fallback sources may expose different writer and
+      // buffer bytes (e.g. an empty ReplaceSource around a non-UTF-8 buffer).
+      // Hash the same bytes as emission, as the previous RCH implementation did.
+      hasher.write(&self.buffer());
+      return;
+    }
     let mut writer = io::BufWriter::with_capacity(64 * 1024, HashWriter(hasher));
     self
       .to_writer(&mut writer)
