@@ -368,7 +368,7 @@ impl ContextModule {
       .sorted_unstable_by_key(|(module_id, _)| module_id.clone());
     for (module_id, dep) in sorted_modules {
       let exports_type = get_exports_type_with_strict(
-        compilation.get_module_graph(),
+        module_graph,
         &compilation.module_graph_cache_artifact,
         &compilation.exports_info_artifact,
         dep,

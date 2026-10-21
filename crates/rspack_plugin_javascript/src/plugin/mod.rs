@@ -478,7 +478,6 @@ var {} = {{}};
             let codegen = compilation
               .code_generation_results
               .get(module, Some(chunk.runtime()));
-            let module_graph = compilation.get_module_graph();
             let top_level_decls = codegen
               .data()
               .get::<CodeGenerationDataTopLevelDeclarations>()

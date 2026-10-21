@@ -499,14 +499,7 @@ impl Compilation {
     if self.build_module_graph_artifact.is_stolen() {
       return None;
     }
-    if let Some(module) = self.get_module_graph().module_by_identifier(identifier) {
-      return Some(module);
-    };
-
-    self
-      .build_module_graph_artifact
-      .get_module_graph()
-      .module_by_identifier(identifier)
+    self.get_module_graph().module_by_identifier(identifier)
   }
   pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
     self.build_module_graph_artifact.get_module_graph_mut()
