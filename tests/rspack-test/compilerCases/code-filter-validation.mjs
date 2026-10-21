@@ -20,6 +20,8 @@ export default {
 			{ exclude: [/marker/] },
 			() => true,
 			42,
+			false,
+			{ code: /marker/ },
 			null
 		]) {
 			const error = await new Promise(resolve => {
@@ -29,13 +31,15 @@ export default {
 						entry,
 						output: { path: context.getDist("code-filter-validation") },
 						module: {
-							rules: [{ use: [{ loader, filter: { code } }] }]
+							rules: [{ use: [{ loader, codeFilter: code }] }]
 						}
 					},
 					resolve
 				);
 			});
-			expect(error?.message).toMatch(/Expected a string or RegExp/);
+			expect(error?.message).toBe(
+				"Expected a string or RegExp at `ruleSet[1].rules[0].use[0].codeFilter`."
+			);
 		}
 	}
 };
