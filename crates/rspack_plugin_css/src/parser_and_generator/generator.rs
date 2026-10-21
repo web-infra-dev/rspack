@@ -1,4 +1,4 @@
-use std::borrow::{Borrow, Cow};
+use std::borrow::Cow;
 
 use concat_string::concat_string;
 use rspack_core::{
@@ -57,31 +57,17 @@ fn render_dependency_template(
 // Each temporary result is moved into its parent when the traversal returns.
 #[derive(Default)]
 pub(super) struct CssExportValue<'a> {
-  css: Option<Vec<CssExportText<'a>>>,
+  css: Option<Vec<Cow<'a, str>>>,
   js: Option<Vec<Cow<'a, str>>>,
 }
 
-// Raw literals borrow dependency data; generated identifiers retain their
-// shared storage when a child generator returns its value to the parent.
-enum CssExportText<'a> {
-  Text(Cow<'a, str>),
-}
-
-impl Borrow<str> for CssExportText<'_> {
-  fn borrow(&self) -> &str {
-    match self {
-      Self::Text(text) => text,
-    }
-  }
-}
-
 impl<'a> CssExportValue<'a> {
-  fn append_text(&mut self, text: CssExportText<'a>, requirements: CssExportRequirements) {
+  fn append_text(&mut self, text: Cow<'a, str>, requirements: CssExportRequirements) {
     if requirements.js {
       self
         .js
         .get_or_insert_with(Vec::new)
-        .push(Cow::Owned(json_stringify_str(text.borrow())));
+        .push(Cow::Owned(json_stringify_str(&text)));
     }
     if requirements.css {
       self.css.get_or_insert_with(Vec::new).push(text);
@@ -863,7 +849,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     walker: &mut CssModuleGraphWalker<'g>,
     id: DependencyId,
     import_name: &str,
-    css_value: &mut Option<Vec<CssExportText<'g>>>,
+    css_value: &mut Option<Vec<Cow<'g, str>>>,
   ) -> Result<String> {
     if self.generate_context.concatenation_scope.is_some() {
       return self.render_concat_reexport(walker, import_name, &id, css_value);
@@ -884,7 +870,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     walker: &mut CssModuleGraphWalker<'g>,
     ident: &str,
     id: &DependencyId,
-    css_value: &mut Option<Vec<CssExportText<'g>>>,
+    css_value: &mut Option<Vec<Cow<'g, str>>>,
   ) -> Result<String> {
     let compilation = self.generate_context.compilation;
     let module = self.module;
@@ -1045,11 +1031,11 @@ impl<'g> CssModuleGraphSink<'g> for CssModuleGenerator<'_, 'g> {
     self.used_local_idents.insert(*export.id());
     let mut resolved = CssExportValue::default();
     if requirements.css || requirements.js {
-      let text = CssExportText::Text(replace_css_module_id_placeholder(
+      let text = replace_css_module_id_placeholder(
         &export.value,
         self.generate_context.compilation,
         self.module,
-      ));
+      );
       resolved.append_text(text, requirements);
     }
     resolved
@@ -1062,11 +1048,7 @@ impl<'g> CssModuleGraphSink<'g> for CssModuleGenerator<'_, 'g> {
     requirements: CssExportRequirements,
   ) {
     value.append_text(
-      CssExportText::Text(replace_css_module_id_placeholder(
-        text,
-        self.generate_context.compilation,
-        self.module,
-      )),
+      replace_css_module_id_placeholder(text, self.generate_context.compilation, self.module),
       requirements,
     );
   }
@@ -1083,7 +1065,7 @@ impl<'g> CssModuleGraphSink<'g> for CssModuleGenerator<'_, 'g> {
   fn append_compose(&self, value: &mut Self::ExportValue, compose: Self::ExportValue) {
     if let Some(parts) = compose.css {
       if let Some(parts) = &mut value.css {
-        parts.push(CssExportText::Text(Cow::Borrowed(" ")));
+        parts.push(Cow::Borrowed(" "));
       }
       value.css.get_or_insert_with(Vec::new).extend(parts);
     }
