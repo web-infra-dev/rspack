@@ -22,8 +22,14 @@ pub(crate) trait Analyzer: Default {
   fn invalidate_all(&self) {}
 }
 
-#[cfg(any(target_os = "macos", target_os = "windows"))]
+#[cfg(all(
+  not(feature = "testing"),
+  any(target_os = "macos", target_os = "windows")
+))]
 pub type RecommendedAnalyzer = root::WatcherRootAnalyzer;
 
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(any(
+  feature = "testing",
+  not(any(target_os = "macos", target_os = "windows"))
+))]
 pub type RecommendedAnalyzer = directories::WatcherDirectoriesAnalyzer;

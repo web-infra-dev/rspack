@@ -5876,6 +5876,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_watcher_testing"
+version = "0.102.9"
+dependencies = [
+ "notify",
+ "rspack_paths",
+ "rspack_watcher",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "rspack_workspace"
 version = "0.102.9"
 

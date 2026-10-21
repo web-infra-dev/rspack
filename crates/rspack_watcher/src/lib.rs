@@ -6,6 +6,10 @@ mod paths;
 mod scanner;
 mod trigger;
 
+#[cfg(feature = "testing")]
+#[doc(hidden)]
+pub mod testing;
+
 use std::{
   future::Future,
   pin::Pin,
