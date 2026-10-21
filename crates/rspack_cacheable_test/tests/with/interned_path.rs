@@ -35,14 +35,14 @@ fn relocate(paths: &[&str]) -> Vec<InternedPath> {
       project_root: PathBuf::from(ROOT_A),
     },
   )
-  .unwrap();
+  .expect("should serialize interned paths relative to the source root");
   let restored: Module = from_bytes(
     &bytes,
     &Context {
       project_root: PathBuf::from(ROOT_B),
     },
   )
-  .unwrap();
+  .expect("should deserialize interned paths relative to the relocated root");
   restored.paths
 }
 
