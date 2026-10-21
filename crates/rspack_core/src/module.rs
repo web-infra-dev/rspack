@@ -823,6 +823,12 @@ pub trait Module:
     None
   }
 
+  /// Optional context-relative identity for module and chunk ID hashing.
+  #[doc(hidden)]
+  fn identifier_for_id(&self, _context: &str) -> Option<Cow<'_, str>> {
+    None
+  }
+
   /// Code generation dependencies of the module, which means the code generation of this module
   /// depends on the code generation results of dependencies which are returned by this function.
   /// e.g `Css` module may rely on the code generation result of `CssUrlDependency` to re-direct
