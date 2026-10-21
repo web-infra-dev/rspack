@@ -105,11 +105,11 @@ fn derive_allocative_impl(
   };
 
   let generated = quote_spanned! {input.span()=>
-      impl #impl_generics allocative::Allocative for #name #type_generics #where_clause {
+      impl #impl_generics rspack_allocative::Allocative for #name #type_generics #where_clause {
           #[allow(unused, warnings)]
           fn visit<'allocative_a, 'allocative_b: 'allocative_a>(
               &self,
-              visitor: &'allocative_a mut allocative::Visitor<'allocative_b>,
+              visitor: &'allocative_a mut rspack_allocative::Visitor<'allocative_b>,
           ) {
               let mut visitor = visitor.enter_self::<Self>(self);
               #body
@@ -133,7 +133,7 @@ fn typed_field_bounds(data: &Data) -> syn::Result<Vec<syn::WherePredicate>> {
       let attrs = extract_attrs(&field.attrs)?;
       if !attrs.skip && attrs.visit.is_none() {
         let ty = &field.ty;
-        bounds.push(syn::parse_quote_spanned! { field.span() => #ty: allocative::Visit });
+        bounds.push(syn::parse_quote_spanned! { field.span() => #ty: rspack_allocative::Visit });
       }
     }
     Ok(())
@@ -159,7 +159,7 @@ impl syn::visit_mut::VisitMut for CratePath {
     if path
       .segments
       .first()
-      .is_some_and(|segment| segment.ident == "allocative")
+      .is_some_and(|segment| segment.ident == "rspack_allocative")
     {
       let tail = path.segments.iter().skip(1).cloned().collect::<Vec<_>>();
       *path = self.0.clone();
@@ -224,7 +224,7 @@ fn gen_reflected_enum(input: &DataEnum) -> proc_macro2::TokenStream {
         #pattern => {
             // SAFETY: This match arm proves the active variant's declaration-order index.
             unsafe {
-                allocative::__macro_refs::visit_enum_variant::<Self, #index>(self, &mut visitor);
+                rspack_allocative::__macro_refs::visit_enum_variant::<Self, #index>(self, &mut visitor);
             }
         },
     }
@@ -268,7 +268,7 @@ fn allocative_key(s: &str) -> proc_macro2::TokenStream {
   // Compile hash at proc macro time, otherwise it will have to be computed by MIRI.
   let hash = hash(s);
   quote_spanned! {proc_macro2::Span::call_site()=>
-      allocative::Key::new_unchecked(#hash, #s)
+      rspack_allocative::Key::new_unchecked(#hash, #s)
   }
 }
 

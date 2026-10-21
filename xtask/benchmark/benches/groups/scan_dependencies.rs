@@ -17,10 +17,9 @@ use rspack_core::{
 };
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin,
-  parser_and_generator::ParserRuntimeRequirementsData,
+  parser_and_generator::{AstScanner, ParserRuntimeRequirementsData},
   visitors::{
     ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies as run_scan_dependencies,
-    semicolon,
   },
 };
 use rspack_tasks::within_compiler_context_for_testing_sync;
@@ -227,7 +226,11 @@ fn parse_benchmark_program(
   let program = ast.root_program();
 
   let mut semicolons = FxHashSet::default();
-  semicolon::collect(ast, &mut semicolons, &tokens);
+  let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(ast);
+  assert!(
+    scan_diagnostics.is_empty(),
+    "scan_dependencies benchmark source should pass AST scanning: {scan_diagnostics:#?}"
+  );
 
   PreparedScanDependenciesProgram {
     parsed_ast: ParsedJavaScriptAst {

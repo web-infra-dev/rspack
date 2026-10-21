@@ -124,7 +124,7 @@ impl AsciiHit {
 
 /// A borrowed text span with ASCII metadata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub struct TextSpan<'a> {
   #[cfg_attr(allocative, allocative(skip))]
   text: &'a str,
@@ -356,7 +356,7 @@ pub fn utf8_column_to_utf16_column(line: &str, utf8_column: usize) -> Option<usi
   line.get(..utf8_column).map(utf16_len)
 }
 
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub struct PotentialTokens<'a> {
   #[cfg_attr(allocative, allocative(skip))]
   text: &'a str,
@@ -409,7 +409,7 @@ pub fn split_into_potential_tokens<'a>(text: &'a str) -> PotentialTokens<'a> {
 ///
 /// Copied and modified from https://github.com/rust-lang/cargo/blob/30efe860c0e4adc1a6d7057ad223dc6e47d34edf/src/cargo/sources/registry/index.rs#L1048-L1072
 fn split(haystack: &str, needle: u8) -> impl Iterator<Item = &str> {
-  #[cfg_attr(allocative, derive(allocative::Allocative))]
+  #[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
   struct Split<'a> {
     #[cfg_attr(allocative, allocative(skip))]
     haystack: &'a str,

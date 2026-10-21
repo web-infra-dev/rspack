@@ -1980,6 +1980,7 @@ export interface RawCacheGroupOptions {
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
   enforceSizeThreshold?: number | RawSplitChunkSizes
+  minRemainingSize?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
@@ -2425,18 +2426,6 @@ export interface RawFallbackCacheGroupOptions {
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
   automaticNameDelimiter?: string
-}
-
-export interface RawFileSystemCacheOptions {
-  buildDependencies: Array<string>
-  cacheDirectory: string
-  cacheLocation: string
-  version: string
-  readonly: boolean
-  maxMemoryGenerations?: number
-  idleTimeout: number
-  idleTimeoutForInitialStore: number
-  idleTimeoutAfterLargeChanges: number
 }
 
 export interface RawFlagAllModulesAsUsedPluginOptions {
@@ -2895,7 +2884,7 @@ export interface RawOptions {
   module: RawModuleOptions
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent) | ({ type: "filesystem" } & RawFileSystemCacheOptions)
+  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   snapshot: RawSnapshotOptions
   experiments: RawExperiments
 incremental?: false | { [key: string]: boolean }
@@ -3235,6 +3224,7 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+  location: string
 }
 
 export interface RawSubresourceIntegrityPluginOptions {

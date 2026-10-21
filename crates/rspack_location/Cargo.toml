@@ -6,11 +6,14 @@ name              = "rspack_location"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[features]
+allocative = ["dep:rspack_allocative"]
+
 [dependencies]
-allocative       = { workspace = true, optional = true }
-itoa             = { workspace = true }
-memchr           = { workspace = true }
-rspack_cacheable = { workspace = true }
+itoa              = { workspace = true }
+memchr            = { workspace = true }
+rspack_allocative = { workspace = true, optional = true }
+rspack_cacheable  = { workspace = true }
 
 [lints]
 workspace = true
@@ -20,4 +23,4 @@ doctest = false
 
 [package.metadata.cargo-shear]
 # The allocative compiler driver injects enum derives that use this dependency.
-ignored = ["allocative"]
+ignored = ["rspack_allocative"]

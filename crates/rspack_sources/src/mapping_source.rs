@@ -11,7 +11,7 @@ use crate::{
   source::is_all_empty,
 };
 
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
+#[cfg_attr(feature = "allocative", derive(rspack_allocative::Allocative))]
 pub(crate) struct MapData {
   pub(crate) map: SourceMap<'static>,
   version: String,
@@ -40,7 +40,7 @@ impl Hash for MapData {
 /// and all streaming APIs borrow fragments without flattening the JSON asset.
 /// The JSON asset itself has no source map.
 #[derive(Clone)]
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
+#[cfg_attr(feature = "allocative", derive(rspack_allocative::Allocative))]
 pub struct MappingSource(Arc<MapData>);
 
 impl MappingSource {

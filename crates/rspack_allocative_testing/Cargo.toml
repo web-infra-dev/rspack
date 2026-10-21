@@ -9,11 +9,11 @@ version.workspace = true
 test = false
 
 [features]
-allocative = ["dep:allocative", "rspack_sources/allocative", "allocative/smallvec"]
+allocative = ["dep:rspack_allocative", "rspack_sources/allocative", "rspack_allocative/smallvec"]
 default    = []
 
 [dependencies]
-allocative = { workspace = true, optional = true }
+rspack_allocative = { workspace = true, optional = true }
 
 [dev-dependencies]
 cow-utils                = { workspace = true }

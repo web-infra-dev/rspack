@@ -7,7 +7,6 @@ import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
 import type { SharedConfig, ShareScope } from '../sharing/SharePlugin';
 import { TreeShakingSharedPlugin } from '../sharing/TreeShakingSharedPlugin';
 import { isRequiredVersion } from '../sharing/utils';
-import { contextify } from '../util/identifier';
 import {
   ModuleFederationManifestPlugin,
   type ModuleFederationManifestPluginOptions,
@@ -341,7 +340,6 @@ function getDefaultEntryRuntimeSource(
   options: ModuleFederationPluginOptions,
   compiler: Compiler,
   treeShakingShareFallbacks?: ShareFallback,
-  context?: string,
 ) {
   const runtimePlugins = getRuntimePlugins(options);
   const remoteInfos = getRemoteInfos(options);
@@ -358,9 +356,7 @@ function getDefaultEntryRuntimeSource(
     const pluginParams = Array.isArray(pluginSpec) ? pluginSpec[1] : undefined;
 
     runtimePluginImports.push(
-      `import ${runtimePluginVar} from ${JSON.stringify(
-        context ? contextify(context, pluginPath, compiler) : pluginPath,
-      )}`,
+      `import ${runtimePluginVar} from ${JSON.stringify(pluginPath)}`,
     );
     const paramsCode =
       pluginParams === undefined ? 'undefined' : JSON.stringify(pluginParams);
@@ -393,9 +389,7 @@ function getDefaultEntryRuntimeSource(
   );
   const content = [
     `import __module_federation_bundler_runtime__ from ${JSON.stringify(
-      context
-        ? contextify(context, paths.bundlerRuntime, compiler)
-        : paths.bundlerRuntime,
+      paths.bundlerRuntime,
     )}`,
     ...runtimePluginImports,
     shouldInitializePublicPath
@@ -444,15 +438,12 @@ function getDefaultEntryRuntime(
   compiler: Compiler,
   treeShakingShareFallbacks?: ShareFallback,
 ) {
-  // Imports from data: modules resolve from compiler.context. Keep their requests
-  // relative so absolute paths do not become part of the encoded module identifier.
   return `${MF_RUNTIME_LOADER}!=!data:text/javascript,${encodeURIComponent(
     getDefaultEntryRuntimeSource(
       paths,
       options,
       compiler,
       treeShakingShareFallbacks,
-      compiler.context,
     ),
   )}`;
 }
