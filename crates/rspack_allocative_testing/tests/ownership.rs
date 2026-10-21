@@ -1664,3 +1664,34 @@ fn custom_module_count_labels_are_reversible_valid_and_distinct() {
     );
   }
 }
+
+#[test]
+fn object_addresses_preserve_type_identity_without_changing_byte_weights() {
+  let value = Box::new(String::from("native object"));
+  let mut builder = FlameGraphBuilder::with_shared_ownership();
+  builder.visit_root(&value);
+  let output = builder.finish();
+  let address = format!("{:p}", &*value);
+  let object = output
+    .objects()
+    .iter()
+    .find(|object| object.address == address && object.type_name == std::any::type_name::<String>())
+    .expect("the boxed string has an identity record");
+  assert!(object.path.iter().any(|frame| frame.contains("Box")));
+  assert_eq!(
+    output.flamegraph().total_size(),
+    size_of::<Box<String>>() + size_of::<String>() + value.capacity()
+  );
+}
+
+#[test]
+fn binding_identities_do_not_traverse_targets_or_charge_native_memory_twice() {
+  let mut builder = FlameGraphBuilder::with_shared_ownership();
+  builder.record_binding(0x1234, "Binding");
+  builder.record_binding(0x1234, "Binding");
+  let output = builder.finish();
+  assert_eq!(output.flamegraph().total_size(), 0);
+  assert_eq!(output.objects().len(), 1);
+  assert_eq!(output.objects()[0].address, "0x1234");
+  assert_eq!(output.objects()[0].path, ["Bindings", "Binding"]);
+}

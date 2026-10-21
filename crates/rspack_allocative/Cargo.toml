@@ -33,6 +33,7 @@ parking_lot              = { workspace = true, optional = true }
 pnp                      = { workspace = true, optional = true }
 rspack_allocative_derive = { workspace = true }
 rustc-hash               = { workspace = true, features = ["std"] }
+serde                    = { workspace = true, features = ["derive"] }
 serde_json               = { workspace = true }
 simd-json                = { workspace = true }
 smallvec                 = { workspace = true, optional = true }
