@@ -635,6 +635,41 @@ export default {
 };
 ```
 
+## rules[].priority
+
+- **Type:** `number`
+- **Default:** `0`
+
+Sets the priority of a rule. The value must be an integer from `0` to `4294967295`.
+
+For each module, only matching rules with the highest priority contribute their effects, including loaders, module type, parser, generator, and resolve options. Matching rules with the same priority are combined in their original order. Rules without `priority` use `0`, preserving the existing behavior when no priorities are specified. A higher-priority rule that does not match has no effect.
+
+For example, use a higher priority for `?url` imports to emit the original file without running SWC:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[jt]s$/,
+        use: 'builtin:swc-loader',
+      },
+      {
+        resourceQuery: /url/,
+        priority: 1,
+        type: 'asset/resource',
+      },
+    ],
+  },
+};
+```
+
+An import such as `import url from './file.js?url'` matches both rules, but only the rule with `priority: 1` applies. An import of `./file.js` uses SWC as usual.
+
+Unlike [`oneOf`](#rulesoneof), which uses only the first matching rule in its array, `priority` compares matching rules regardless of their position and allows multiple rules at the highest priority to apply together.
+
+Nested [`rules`](#rulesrules) and `oneOf` entries use their own priority, defaulting to `0`; they do not inherit the parent's priority. Parent and child rules participate in the same priority comparison as top-level rules. Child conditions are evaluated only when their parent matches, even if the parent's effects are excluded by priority. Within `oneOf`, the first matching child still stops the search, even if its effects are excluded by a higher-priority rule elsewhere.
+
 ## rules[].enforce
 
 <PropertyType type="'pre' | 'post'" />
