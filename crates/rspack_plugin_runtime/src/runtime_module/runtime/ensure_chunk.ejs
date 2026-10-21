@@ -10,7 +10,15 @@
 	);
 };
 <% if (_hmr) { %>
-<%- var("blockChunks") %> = <%- _blocks %>;
+<%- var("blockChunks") %> = (<%- basicFunction("blocks") %> {
+	var map = Object.create(null);
+	var blockId = "";
+	blocks.forEach(<%- basicFunction("block") %> {
+		blockId = blockId.slice(0, block[0]) + block[1];
+		map[blockId] = block[2];
+	});
+	return map;
+})(<%- _blocks %>);
 // undefined = not loaded, Promise = loading, 0 = loaded.
 <%- var("installedBlocks") %> = <%- _state_expression %> = <%- _state_expression %> || Object.create(null);
 Object.keys(installedBlocks).forEach(<%- basicFunction("blockId") %> {
