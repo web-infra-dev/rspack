@@ -1,10 +1,4 @@
-use std::{
-  borrow::Cow,
-  sync::{
-    Arc,
-    atomic::{AtomicUsize, Ordering},
-  },
-};
+use std::{borrow::Cow, sync::Arc};
 
 use derive_more::Debug;
 use rspack_cacheable::{
@@ -129,8 +123,6 @@ pub struct NormalModule {
   /// enable/disable extracting source map
   extract_source_map: Option<bool>,
 
-  #[allow(unused)]
-  debug_id: usize,
   #[cacheable(with=As<SourceSizeCacheSerde>)]
   cached_source_sizes: SourceSizeCache,
 
@@ -150,8 +142,6 @@ pub struct NormalModule {
   #[cacheable(with=rspack_cacheable::with::Skip)]
   asset_filename_override: std::sync::RwLock<Option<crate::Filename>>,
 }
-
-static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
   pub(crate) fn restore_build_meta(&self, build_meta: crate::SharedBuildMeta) {
@@ -226,7 +216,6 @@ impl NormalModule {
       loaders,
       loader_options,
       loader_filters,
-      debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
       extract_source_map,
 
       cached_source_sizes: SourceSizeCache::default(),
@@ -396,7 +385,7 @@ impl Module for NormalModule {
     Cow::Owned(context.shorten(self.user_request()))
   }
 
-  fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, source_type: Option<&SourceType>) -> f64 {
     if let Some(source_type) = source_type {
       // Fast-path: lock-free builtin slots / tiny fallback map for custom source types.
       if let Some(size) = self.cached_source_sizes.get(source_type) {
@@ -610,16 +599,11 @@ impl Module for NormalModule {
       .parser_and_generator
       .parse(ParseContext {
         source: source.clone(),
-        module_context: &self.context,
         module_identifier: self.id,
         module_parser_options: self.parser_and_generator_options.parser_options(),
         module_generator_options: self.parser_and_generator_options.generator_options(),
         module_type: &self.module_type,
         module_layer: self.layer.as_ref(),
-        module_user_request: self
-          .user_request
-          .as_deref()
-          .unwrap_or_else(|| self.resource_data.resource()),
         module_match_resource: self.match_resource.as_deref(),
         module_source_map_kind: self.source_map_kind,
         loaders: &self.loaders,

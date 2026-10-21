@@ -164,7 +164,7 @@ impl Module for LazyCompilationProxyModule {
     self.layer.as_ref()
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     200f64
   }
 
@@ -312,7 +312,10 @@ impl Module for LazyCompilationProxyModule {
         ",
         runtime_template.module_namespace_promise(
           compilation,
-          *module,
+          module_graph
+            .module_by_identifier(module)
+            .expect("should have module")
+            .get_strict_esm_module(),
           dep_id,
           Some(block_id),
           &self.resource,

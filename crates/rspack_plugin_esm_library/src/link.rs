@@ -1452,7 +1452,6 @@ var {} = {{}};
                   .into_owned();
                 analyze_module_scope(&source_str, jsx, &mut concate_info)?;
                 concate_info.source = Some(ReplaceSource::new(render_source.source.clone()));
-                concate_info.internal_source = Some(render_source.source.clone());
                 concate_info.runtime_requirements = runtime_requirements;
                 concate_info.chunk_init_fragments = codegen_res
                   .data()
@@ -2739,7 +2738,6 @@ var {} = {{}};
         }
       }
 
-      chunk_link.needed_namespace_objects = needed_namespace_objects.clone();
       chunk_link.refs = refs;
 
       // ensure imports external module

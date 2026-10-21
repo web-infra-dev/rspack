@@ -5,7 +5,7 @@ use rspack_core::{
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExportsType,
   FakeNamespaceObjectMode, ImportAttributes, ImportPhase, ModuleCodeTemplate, ModuleDependency,
   ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource, get_exports_type,
+  TemplateReplaceSource, get_exports_type_with_strict,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 use rspack_util::json_stringify_str;
@@ -219,12 +219,12 @@ fn module_namespace_promise_rstest(
   };
 
   let promise = runtime_template.block_promise(block, compilation, message);
-  let exports_type = get_exports_type(
+  let exports_type = get_exports_type_with_strict(
     compilation.get_module_graph(),
     &compilation.module_graph_cache_artifact,
     &compilation.exports_info_artifact,
     dep_id,
-    &module.identifier(),
+    module.get_strict_esm_module(),
   );
 
   let module_id_expr = module_id_rstest(compilation, runtime_template, dep_id, request, weak);

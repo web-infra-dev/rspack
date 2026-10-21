@@ -670,7 +670,7 @@ impl ContextModule {
         for (i, info) in block_info.iter().enumerate() {
           let mut import_promise = runtime_template.module_namespace_promise(
             compilation,
-            self.identifier,
+            self.get_strict_esm_module(),
             &info.dep_id,
             Some(&info.block_id),
             &info.user_request,
@@ -1362,11 +1362,7 @@ impl Module for ContextModule {
       .into()
   }
 
-  fn size(
-    &self,
-    _source_type: Option<&crate::SourceType>,
-    _compilation: Option<&Compilation>,
-  ) -> f64 {
+  fn size(&self, _source_type: Option<&crate::SourceType>) -> f64 {
     160.0
   }
 

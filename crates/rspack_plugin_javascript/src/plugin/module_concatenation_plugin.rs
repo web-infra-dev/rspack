@@ -1984,10 +1984,7 @@ async fn create_concatenated_module(
 
       ConcatenatedInnerModule {
         id: *id,
-        size: module.size(
-          Some(&rspack_core::SourceType::JavaScript),
-          Some(compilation),
-        ),
+        size: module.size(Some(&rspack_core::SourceType::JavaScript)),
         shorten_id: get_cached_readable_identifier(
           id,
           module_graph,

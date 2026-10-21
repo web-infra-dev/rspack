@@ -529,24 +529,6 @@ impl Filename {
     let compiled = self.compiled(options, asset_info.as_deref()).await?;
     Ok(compiled.render_with_path_data(options, asset_info, renderer))
   }
-
-  /// Same as [`Self::render_with`], but reuses `file_replacements` that the caller computed
-  /// from `options.filename` once.
-  pub async fn render_with_replacements<'value>(
-    &self,
-    options: PathData<'_>,
-    file_replacements: &FileReplacements,
-    asset_info: Option<&mut AssetInfo>,
-    renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
-  ) -> rspack_error::Result<String> {
-    let compiled = self.compiled(options, asset_info.as_deref()).await?;
-    Ok(compiled.render_with_path_data_and_replacements(
-      options,
-      file_replacements,
-      asset_info,
-      renderer,
-    ))
-  }
 }
 
 impl rspack_hash::RspackHash for Filename {

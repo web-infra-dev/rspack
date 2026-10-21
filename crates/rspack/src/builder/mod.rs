@@ -485,7 +485,7 @@ impl CompilerBuilder {
     let cache = Arc::new(create_cache(
       &compiler_options,
       input_filesystem.clone(),
-      infrastructure_log_sink.clone(),
+      infrastructure_log_sink,
     ));
 
     Ok(Compiler::new(
@@ -501,7 +501,6 @@ impl CompilerBuilder {
       compiler_context,
       Arc::new(platform),
       cache,
-      infrastructure_log_sink,
     ))
   }
 }
