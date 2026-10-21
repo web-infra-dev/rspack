@@ -521,6 +521,13 @@ impl<'a> Iterator for JsonStringChunks<'a> {
 }
 
 impl Source for MappingSource {
+  fn clear_cached_sources(&self, clearer: &mut crate::SourceCacheClearer) {
+    match self.0.as_ref() {
+      Data::Map(data) => data.map.clear_cached_sources(clearer),
+      Data::Edited { inner, .. } => inner.clear_cached_sources(clearer),
+    }
+  }
+
   fn source(&self) -> SourceValue<'_> {
     let value = match self.0.as_ref() {
       Data::Map(data) => data.to_json(),

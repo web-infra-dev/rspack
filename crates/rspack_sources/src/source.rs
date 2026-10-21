@@ -113,6 +113,10 @@ impl<'a> SourceValue<'a> {
 
 /// [Source] abstraction, [webpack-sources docs](https://github.com/webpack/webpack-sources/#source).
 pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send {
+  /// Release CachedSource memoization reachable through this source.
+  /// Composite implementations should visit their children with `clearer.clear`.
+  fn clear_cached_sources(&self, _clearer: &mut crate::SourceCacheClearer) {}
+
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
 
@@ -141,6 +145,10 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
 }
 
 impl Source for BoxSource {
+  fn clear_cached_sources(&self, clearer: &mut crate::SourceCacheClearer) {
+    clearer.clear(self);
+  }
+
   #[inline]
   fn source(&self) -> SourceValue<'_> {
     self.as_ref().source()
@@ -385,6 +393,7 @@ impl Hash for SourceMapFields<'_> {
 
 #[allow(dead_code)]
 enum SourceMapOwner {
+  Map(Arc<SourceMap<'static>>),
   Bytes(Vec<u8>),
   Source(BoxSource),
 }
@@ -413,8 +422,32 @@ impl<'a> SourceMap<'a> {
     let fields =
       unsafe { std::mem::transmute::<SourceMapFields<'a>, SourceMapFields<'static>>(self.fields) };
     SourceMap {
-      owner: Some(SourceMapOwner::Source(owner)),
+      owner: self.owner.or(Some(SourceMapOwner::Source(owner))),
       fields,
+    }
+  }
+
+  pub(crate) fn from_shared(map: Arc<SourceMap<'static>>) -> SourceMap<'a> {
+    #[allow(unsafe_code)]
+    // SAFETY: the immutable map owns every field borrowed by this view and is
+    // retained by the returned owner, independently of any evictable cache.
+    let fields = unsafe {
+      std::mem::transmute::<SourceMapFields<'_>, SourceMapFields<'a>>(map.fields.as_borrowed())
+    };
+    SourceMap {
+      owner: Some(SourceMapOwner::Map(map)),
+      fields,
+    }
+  }
+
+  pub(crate) fn clear_cached_sources(&self, clearer: &mut crate::SourceCacheClearer) {
+    if !clearer.maps.insert(self as *const Self as usize) {
+      return;
+    }
+    match &self.owner {
+      Some(SourceMapOwner::Source(source)) => clearer.clear(source),
+      Some(SourceMapOwner::Map(map)) => map.clear_cached_sources(clearer),
+      _ => {}
     }
   }
 

@@ -316,6 +316,10 @@ impl ReplaceSource {
 }
 
 impl Source for ReplaceSource {
+  fn clear_cached_sources(&self, clearer: &mut crate::SourceCacheClearer) {
+    clearer.clear(&self.inner);
+  }
+
   fn source(&self) -> SourceValue<'_> {
     if self.replacements.is_empty() {
       return self.inner.source();

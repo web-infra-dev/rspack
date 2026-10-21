@@ -5,6 +5,7 @@ use std::{
   sync::{Arc, OnceLock},
 };
 
+use arc_swap::ArcSwapOption;
 use rustc_hash::FxHasher;
 
 use crate::{
@@ -22,8 +23,17 @@ struct CachedData {
   size: OnceLock<usize>,
   is_ascii: OnceLock<bool>,
   chunks: OnceLock<Box<[&'static str]>>,
-  columns_map: OnceLock<Option<SourceMap<'static>>>,
-  line_only_map: OnceLock<Option<SourceMap<'static>>>,
+  columns_map: OnceLock<Option<Arc<SourceMap<'static>>>>,
+  line_only_map: OnceLock<Option<Arc<SourceMap<'static>>>>,
+}
+
+// Streaming callbacks can borrow map fields for the lifetime of the source.
+// Keep only those maps stable; they must not pin the evictable rope/hash cache.
+#[derive(Default)]
+struct CacheState {
+  data: ArcSwapOption<CachedData>,
+  streamed_columns_map: OnceLock<Option<Arc<SourceMap<'static>>>>,
+  streamed_line_only_map: OnceLock<Option<Arc<SourceMap<'static>>>>,
 }
 
 /// It tries to reused cached results from other methods to avoid calculations,
@@ -61,7 +71,7 @@ struct CachedData {
 /// ```
 pub struct CachedSource {
   inner: BoxSource,
-  cache: Arc<CachedData>,
+  cache: Arc<CacheState>,
 }
 
 impl CachedSource {
@@ -75,7 +85,7 @@ impl CachedSource {
 
     Self {
       inner: box_source,
-      cache: Arc::new(CachedData::default()),
+      cache: Arc::new(CacheState::default()),
     }
   }
 
@@ -84,8 +94,26 @@ impl CachedSource {
     &self.inner
   }
 
-  fn get_or_init_chunks(&self) -> &[&str] {
-    self.cache.chunks.get_or_init(|| {
+  fn cached_data(&self) -> Arc<CachedData> {
+    if let Some(data) = self.cache.data.load_full() {
+      return data;
+    }
+    let data = Arc::new(CachedData::default());
+    let previous = self
+      .cache
+      .data
+      .compare_and_swap(&None::<Arc<CachedData>>, Some(Arc::clone(&data)));
+    previous.as_ref().cloned().unwrap_or(data)
+  }
+
+  /// Discard memoized results without changing the underlying source.
+  /// Existing map views and in-flight readers retain their own owners.
+  pub fn clear_cached_data(&self) {
+    self.cache.data.store(None);
+  }
+
+  fn get_or_init_chunks<'a>(&self, cache: &'a CachedData) -> &'a [&'static str] {
+    cache.chunks.get_or_init(|| {
       let mut chunks = Vec::new();
       self.inner.rope(&mut |chunk| {
         chunks.push(chunk);
@@ -102,8 +130,9 @@ impl CachedSource {
   }
 
   fn is_ascii(&self) -> bool {
-    *self.cache.is_ascii.get_or_init(|| {
-      if let Some(chunks) = self.cache.chunks.get() {
+    let cache = self.cached_data();
+    *cache.is_ascii.get_or_init(|| {
+      if let Some(chunks) = cache.chunks.get() {
         return chunks.iter().all(|chunk| chunk.is_ascii());
       }
       let mut is_ascii = true;
@@ -112,22 +141,31 @@ impl CachedSource {
     })
   }
 
-  fn map_cache(&self, options: &MapOptions) -> &OnceLock<Option<SourceMap<'static>>> {
-    if options.columns {
-      &self.cache.columns_map
+  fn get_or_init_map<'a>(&self, options: &MapOptions) -> Option<SourceMap<'a>> {
+    let cache = self.cached_data();
+    let (cell, streamed) = if options.columns {
+      (&cache.columns_map, &self.cache.streamed_columns_map)
     } else {
-      &self.cache.line_only_map
-    }
-  }
-
-  fn get_or_init_map(&self, options: &MapOptions) -> &Option<SourceMap<'static>> {
-    self
-      .map_cache(options)
-      .get_or_init(|| self.inner.clone().map_static(options))
+      (&cache.line_only_map, &self.cache.streamed_line_only_map)
+    };
+    cell
+      .get_or_init(|| {
+        if let Some(map) = streamed.get() {
+          return map.clone();
+        }
+        self.inner.clone().map_static(options).map(Arc::new)
+      })
+      .as_ref()
+      .map(|map| SourceMap::from_shared(Arc::clone(map)))
   }
 }
 
 impl Source for CachedSource {
+  fn clear_cached_sources(&self, clearer: &mut crate::SourceCacheClearer) {
+    self.clear_cached_data();
+    clearer.clear(&self.inner);
+  }
+
   fn source(&self) -> SourceValue<'_> {
     // Check if it's a RawBufferSource containing a CachedSource
     if let Some(buffer_source) = self
@@ -139,9 +177,13 @@ impl Source for CachedSource {
       return buffer_source.source();
     }
 
-    let chunks = self.get_or_init_chunks();
-    let mut string = String::with_capacity(self.size());
-    if self.cache.is_ascii.get().is_none() {
+    let cache = self.cached_data();
+    let chunks = self.get_or_init_chunks(&cache);
+    let size = *cache
+      .size
+      .get_or_init(|| chunks.iter().map(|chunk| chunk.len()).sum());
+    let mut string = String::with_capacity(size);
+    if cache.is_ascii.get().is_none() {
       let mut is_ascii = true;
       for chunk in chunks {
         if is_ascii {
@@ -149,7 +191,7 @@ impl Source for CachedSource {
         }
         string.push_str(chunk);
       }
-      let _ = self.cache.is_ascii.set(is_ascii);
+      let _ = cache.is_ascii.set(is_ascii);
     } else {
       for chunk in chunks {
         string.push_str(chunk);
@@ -159,7 +201,8 @@ impl Source for CachedSource {
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    let chunks = self.get_or_init_chunks();
+    let cache = self.cached_data();
+    let chunks = self.get_or_init_chunks(&cache);
     chunks.iter().for_each(|chunk| on_chunk(chunk));
   }
 
@@ -168,8 +211,9 @@ impl Source for CachedSource {
   }
 
   fn size(&self) -> usize {
-    *self.cache.size.get_or_init(|| {
-      if let Some(chunks) = self.cache.chunks.get() {
+    let cache = self.cached_data();
+    *cache.size.get_or_init(|| {
+      if let Some(chunks) = cache.chunks.get() {
         return chunks.iter().fold(0, |acc, chunk| acc + chunk.len());
       }
       self.inner.size()
@@ -177,17 +221,11 @@ impl Source for CachedSource {
   }
 
   fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
-    self
-      .get_or_init_map(options)
-      .as_ref()
-      .map(SourceMap::as_borrowed)
+    self.get_or_init_map(options)
   }
 
   fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
-    self
-      .get_or_init_map(options)
-      .as_ref()
-      .map(|map| map.as_borrowed().into_static(self.clone()))
+    self.get_or_init_map(options)
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -234,11 +272,21 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
     on_source: crate::helpers::OnSource<'_, 'source>,
     on_name: crate::helpers::OnName<'_, 'source>,
   ) -> GeneratedInfo {
-    let cell = if options.columns {
-      &self.cache_source.cache.columns_map
+    let cache = self.cache_source.cached_data();
+    let (cell, cached_cell) = if options.columns {
+      (
+        &self.cache_source.cache.streamed_columns_map,
+        &cache.columns_map,
+      )
     } else {
-      &self.cache_source.cache.line_only_map
+      (
+        &self.cache_source.cache.streamed_line_only_map,
+        &cache.line_only_map,
+      )
     };
+    if let Some(map) = cached_cell.get() {
+      cell.get_or_init(|| map.clone());
+    }
     match cell.get() {
       Some(Some(map)) => {
         let source = self.get_or_init_source();
@@ -253,9 +301,12 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
           on_source,
           on_name,
         );
-        cell.get_or_init(|| {
-          map.map(|map| SourceMap::from_fields(map).into_static(self.cache_source.inner.clone()))
+        let map = cell.get_or_init(|| {
+          map.map(|map| {
+            Arc::new(SourceMap::from_fields(map).into_static(self.cache_source.inner.clone()))
+          })
         });
+        cached_cell.get_or_init(|| map.clone());
         generated_info
       }
     }
@@ -279,7 +330,8 @@ impl Clone for CachedSource {
 
 impl Hash for CachedSource {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    (self.cache.hash.get_or_init(|| {
+    let cache = self.cached_data();
+    (cache.hash.get_or_init(|| {
       let mut hasher = FxHasher::default();
       self.inner.hash(&mut hasher);
       hasher.finish()
@@ -353,12 +405,8 @@ mod tests {
     source.size();
     source.map(&map_options);
 
-    let cached_map = clone
-      .cache
-      .columns_map
-      .get()
-      .and_then(Option::as_ref)
-      .unwrap();
+    let cache = clone.cached_data();
+    let cached_map = cache.columns_map.get().and_then(Option::as_ref).unwrap();
     let map = source.map(&map_options).unwrap();
     assert!(cached_map.fields() == map.fields());
   }

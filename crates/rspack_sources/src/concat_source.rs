@@ -170,6 +170,23 @@ impl ConcatSource {
 }
 
 impl Source for ConcatSource {
+  fn clear_cached_sources(&self, clearer: &mut crate::SourceCacheClearer) {
+    // Do not initialize the optimized representation just to clear caches.
+    if let Some(children) = self.is_optimized.get() {
+      for child in children {
+        clearer.clear(child);
+      }
+    }
+    for child in self
+      .children
+      .lock()
+      .expect("concat children lock poisoned")
+      .iter()
+    {
+      clearer.clear(child);
+    }
+  }
+
   fn source(&self) -> SourceValue<'_> {
     let children = self.optimized_children();
     if children.len() == 1 {

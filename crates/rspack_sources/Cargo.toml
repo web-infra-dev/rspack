@@ -18,6 +18,7 @@ codspeed         = []
 rspack_cacheable = ["dep:rkyv"]
 
 [dependencies]
+arc-swap          = { workspace = true }
 memchr            = { workspace = true, features = ["std"] }
 rkyv              = { workspace = true, optional = true }
 rspack_allocative = { workspace = true, optional = true }

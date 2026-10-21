@@ -28,6 +28,7 @@ mod original_source;
 mod raw_source;
 mod replace_source;
 mod source;
+mod source_cache;
 mod source_content_lines;
 mod source_map_source;
 
@@ -46,6 +47,7 @@ pub(crate) use source::SourceMapFields;
 pub use source::{
   BoxSource, MapOptions, Mapping, OriginalLocation, Source, SourceExt, SourceMap, SourceValue,
 };
+pub use source_cache::SourceCacheClearer;
 pub use source_map_source::{SourceMapSource, SourceMapSourceOptions, WithoutOriginalOptions};
 
 /// Reexport `StreamChunks` related types.

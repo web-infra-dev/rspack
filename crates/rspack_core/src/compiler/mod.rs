@@ -494,7 +494,24 @@ impl Compiler {
       .compiler_hooks
       .after_emit
       .call(&mut self.compilation)
-      .await
+      .await?;
+
+    let mut clearer = rspack_sources::SourceCacheClearer::default();
+    for asset in self.compilation.assets().values() {
+      if let Some(source) = asset.get_source() {
+        clearer.clear(source);
+      }
+    }
+    // Plugins may replace asset sources; module code generation still owns the
+    // original graphs. Clear those roots too, without touching other compilers.
+    for runtimes in self.compilation.code_generation_results.inner().values() {
+      for result in runtimes.values() {
+        for source in result.sources().values() {
+          clearer.clear(source);
+        }
+      }
+    }
+    Ok(())
   }
   async fn emit_asset(
     &self,

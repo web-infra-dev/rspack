@@ -44,7 +44,7 @@ bundle-sized flat string.
 
 The graph can be a DAG because `BoxSource` is `Arc<dyn Source>`. Build mutable `ConcatSource` and
 `ReplaceSource` values first, then box/share/cache them. `CachedSource` assumes its inner graph will
-not change and has no invalidation mechanism.
+not change. Its memoized data can be released after emission and recreated on demand.
 
 This crate owns source representation, transformation, map streaming, encoding/decoding, and
 source-local caching. Output filenames, devtool policy, source-map comments, filesystem lookup,
@@ -254,7 +254,11 @@ Important implementation details:
 - `ReplaceSource` ranges are half-open byte ranges. Edits are ordered by
   `(start, end, enforce, insertion_order)`; ordered producers get the append fast path. Mapping
   repair uses lazy source-content identity checks.
-- `CachedSource` shares hash, size, ASCII, rope, full-map, and line-map caches across clones.
+- `CachedSource` shares an atomic cache-generation slot across clones. Emission clears
+  memoized hash, size, ASCII, rope and map views reachable from the compilation assets and
+  code-generation results. Returned map views retain their map owner, independently of
+  the evictable generation. Maps used by streaming callbacks have separate stable storage
+  because callback borrows can outlive a stream handle; clearing must not invalidate them.
 
 ### Cache placement and the `ReplaceSource` cost model
 
@@ -320,8 +324,11 @@ These rules keep the strings returned by `rope()` immutable and address-stable.
 
 The `'static` extension in `CachedSource::get_or_init_chunks` is safe only because every clone
 sharing the cache also retains the same inner `BoxSource`; the inner graph cannot be mutated or
-dropped independently. Adding removal or interior content mutation requires redesigning this
-cache.
+dropped independently. Readers retain their cache generation while iterating its slice array.
+Releasing that array does not invalidate previously returned text spans: they borrow immutable
+inner-source bytes, not the array. Map views separately retain an `Arc<SourceMap>` so they do
+not keep the entire cache generation alive. Streaming maps remain pinned to the source because
+the streaming API permits metadata borrows for the source lifetime.
 
 The same owner-retention pattern appears in other narrowly scoped `unsafe` paths:
 

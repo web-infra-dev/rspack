@@ -119,6 +119,13 @@ impl SourceMapSource {
 }
 
 impl Source for SourceMapSource {
+  fn clear_cached_sources(&self, clearer: &mut crate::SourceCacheClearer) {
+    self.source_map.clear_cached_sources(clearer);
+    if let Some(map) = &self.inner_source_map {
+      map.clear_cached_sources(clearer);
+    }
+  }
+
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.value))
   }

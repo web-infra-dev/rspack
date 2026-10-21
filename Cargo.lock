@@ -5719,6 +5719,7 @@ dependencies = [
 name = "rspack_sources"
 version = "0.103.0-beta.0"
 dependencies = [
+ "arc-swap",
  "memchr",
  "regex",
  "rkyv 0.8.18",
@@ -5729,6 +5730,13 @@ dependencies = [
  "simd-utf16-len",
  "static_assertions",
  "twox-hash",
+]
+
+[[package]]
+name = "rspack_sources_test"
+version = "0.103.0-beta.0"
+dependencies = [
+ "rspack_sources",
 ]
 
 [[package]]
