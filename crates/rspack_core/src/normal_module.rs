@@ -107,6 +107,7 @@ pub struct NormalModule {
   #[cacheable(with=AsOption<As<PortableString>>)]
   user_request: Option<Box<str>>,
   /// Request without resolving
+  #[cacheable(with=As<PortableString>)]
   raw_request: Box<str>,
   /// The resolved module type of a module
   module_type: ModuleType,

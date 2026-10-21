@@ -8,7 +8,8 @@ use indoc::formatdoc;
 use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsOption, AsPreset, AsVec, Skip},
+  utils::{PortablePath, PortableString},
+  with::{As, AsCacheable, AsOption, AsPreset, AsVec, Skip},
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -174,10 +175,12 @@ pub struct ContextOptions {
   pub exclude: Option<RspackRegex>,
   pub category: DependencyCategory,
   /// The context request passed to the resolver.
+  #[cacheable(with=As<PortableString>)]
   pub request: String,
   /// The base directory used to resolve relative context requests. For glob patterns, this is the
   /// parser-derived request context (the importer directory or the explicit `base`) and remains
   /// the matching coordinate even when context module factory hooks relocate the scan request.
+  #[cacheable(with=As<PortablePath>)]
   pub context: String,
   /// The compiler `options.context`. Root-relative glob patterns are resolved from this directory.
   /// This value is stable for the lifetime of a compilation and must not be changed by context
