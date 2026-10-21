@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use cow_utils::CowUtils;
 use rspack_cacheable::{
   CacheableContext, cacheable,
   utils::PortableString,
@@ -496,7 +497,7 @@ fn test_typed_context_regex_does_not_hide_outside_paths() {
         .unwrap();
     assert_eq!(
       moved.as_str(),
-      identifier.replace("/project/", "/moved/deeper/project/")
+      identifier.cow_replace("/project/", "/moved/deeper/project/")
     );
   }
 

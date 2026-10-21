@@ -4314,6 +4314,7 @@ name = "rspack_cacheable_test"
 version = "0.103.0-beta.1"
 dependencies = [
  "camino",
+ "cow-utils",
  "dashmap",
  "json",
  "lightningcss",
