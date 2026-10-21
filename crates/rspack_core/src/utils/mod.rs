@@ -272,7 +272,7 @@ pub fn snapshot_allocative(name: &str, compiler: &crate::Compiler) -> rspack_err
   };
 
   use rspack_error::ToStringResultToRspackResultExt;
-  use rspack_util::allocative;
+  use rspack_util::rspack_allocative;
 
   static COUNT: AtomicUsize = AtomicUsize::new(0);
   let Some(dir) = std::env::var_os("RSPACK_ALLOCATIVE_DIR") else {
@@ -281,21 +281,21 @@ pub fn snapshot_allocative(name: &str, compiler: &crate::Compiler) -> rspack_err
   let dir = PathBuf::from(dir);
   std::fs::create_dir_all(&dir).to_rspack_result()?;
   let snapshot = format!("{}-{name}", COUNT.fetch_add(1, Ordering::Relaxed));
-  let mut builder = allocative::FlameGraphBuilder::with_shared_ownership();
+  let mut builder = rspack_allocative::FlameGraphBuilder::with_shared_ownership();
   builder.visit_root(compiler);
   builder.visit_global_roots();
   // Ustr handles borrow process-global interned strings. Charge the pool once
   // under its real owner, rather than once for each module/dependency handle.
   struct UstrStringArena;
-  impl allocative::Allocative for UstrStringArena {
-    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+  impl rspack_allocative::Allocative for UstrStringArena {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_allocative::Visitor<'b>) {
       let used = ustr::total_allocated();
       let capacity = ustr::total_capacity();
-      let mut root = visitor.enter(allocative::Key::new("GlobalUstrStringArena"), 0);
-      let mut arena = root.enter_unique(allocative::Key::new("arena"), 0);
-      arena.visit_simple(allocative::Key::new("used"), used);
+      let mut root = visitor.enter(rspack_allocative::Key::new("GlobalUstrStringArena"), 0);
+      let mut arena = root.enter_unique(rspack_allocative::Key::new("arena"), 0);
+      arena.visit_simple(rspack_allocative::Key::new("used"), used);
       arena.visit_simple(
-        allocative::Key::new("unused_capacity"),
+        rspack_allocative::Key::new("unused_capacity"),
         capacity.saturating_sub(used),
       );
       arena.exit();

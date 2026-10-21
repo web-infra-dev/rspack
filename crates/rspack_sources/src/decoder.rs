@@ -30,7 +30,7 @@ const B64: [u8; 256] = [
    ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR,  // F
 ];
 
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub(crate) struct MappingsDecoder<'a> {
   #[cfg_attr(allocative, allocative(skip))]
   mappings_iter: Iter<'a, u8>,

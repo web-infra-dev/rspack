@@ -19,11 +19,11 @@ doctest = false
 workspace = true
 
 [dependencies]
-allocative = { workspace = true, optional = true }
-dashmap    = { workspace = true }
-serde      = { workspace = true, features = ["derive"] }            # derive for Deserialize from package.json
-serde_json = { workspace = true, features = ["preserve_order"] }    # preserve_order: package_json.exports requires order such as `["require", "import", "default"]`
-tracing    = { workspace = true, features = ["attributes", "std"] }
+dashmap           = { workspace = true }
+rspack_allocative = { workspace = true, optional = true }
+serde             = { workspace = true, features = ["derive"] }            # derive for Deserialize from package.json
+serde_json        = { workspace = true, features = ["preserve_order"] }    # preserve_order: package_json.exports requires order such as `["require", "import", "default"]`
+tracing           = { workspace = true, features = ["attributes", "std"] }
 
 simd-json = { workspace = true }
 
@@ -57,7 +57,7 @@ regex          = { workspace = true }
 vfs            = { workspace = true } # for testing with in memory file system
 
 [features]
-allocative = ["dep:allocative", "allocative/pnp"]
+allocative = ["dep:rspack_allocative", "rspack_allocative/pnp"]
 default    = ["yarn_pnp"]
 ## Enables the [PackageJson::raw_json] API,
 ## which returns the `package.json` with `serde_json::Value`.
@@ -73,4 +73,4 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.cargo-shear]
 # The allocative compiler driver injects enum derives that use this dependency.
-ignored = ["allocative"]
+ignored = ["rspack_allocative"]
