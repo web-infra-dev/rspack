@@ -84,7 +84,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 #### 模块构建结果的复用
 
-假设入口只导入一个模块，而你只修改了这个模块。`moduleBuilds: { reused: 1, total: 2 }` 表示 Rspack 复用了入口的构建结果，重新构建了修改过的模块。复用的数据可能来自磁盘、内存或尚未写入磁盘的缓存。
+`reused` 统计本次编译中从未执行构建步骤的模块数，它们的构建结果可以来自内存或磁盘。假设入口只导入一个模块，而你只修改了这个模块，`{ reused: 1, total: 2 }` 表示 Rspack 复用了入口的构建结果，重新构建了修改过的模块。如果一个模块在本次编译中已经构建过，即使随后从缓存中读取，它仍算作已构建。
 
 `total` 是 `finishModules` 结束后、封存和优化前，主模块图中的不同模块数。它包含外部模块和不可缓存的模块，不包含运行时模块和单独的模块执行图。`null` 表示无法统计，例如执行增量重建、未启用持久化模块缓存，或在 `finishModules` 之后又修改了模块图。
 
@@ -92,7 +92,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 `mode` 为 `disabled`、`memory` 或 `persistent`。在持久化模式下，以下两个字段分别描述不同时刻的验证结果：
 
-- `persistent` 描述旧版缓存在本次编译中的验证结果。同一编译器的后续编译以及新版缓存后端均报告 `unknown`。不使用持久化缓存时，此字段为 `null`。
+- 本次编译读取缓存失败时，`persistent` 的状态为 `error`，原因为 `recovery`。旧版缓存还会报告编译器首次构建时的验证结果。如果没有上述结果，状态为 `unknown`。不使用持久化缓存时，此字段为 `null`。
 - `persistentSessionInitialization` 是编译开始时记录的新版文件系统缓存的会话验证结果。多个编译器可以共享同一会话，因此后续构建即使复用了模块，仍可能报告会话开始时的 `cold` 状态。后续读写不会更新此字段。其他后端报告 `null`。
 
 两个字段均使用 `{ status, reason }`。除下列明确说明的情况外，`reason` 为 `null`。

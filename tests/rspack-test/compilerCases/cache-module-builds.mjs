@@ -7,7 +7,6 @@ const cases = [false, true].map(newCache => {
   let forceRebuild = false;
   let forceLateRebuild = false;
   let dependencyBuilds = 0;
-  let forcedRebuilds = 0;
   return {
     description: `reports module build reuse with ${newCache ? "new" : "legacy"} persistent cache`,
     options(context) {
@@ -18,7 +17,10 @@ const cases = [false, true].map(newCache => {
         path.join(root, "entry.js"),
         'import { value } from "./dep.js"; import { value as again } from "./dep.js"; console.log(value, again);'
       );
-      fs.writeFileSync(path.join(root, "dep.js"), 'export const value = "dep-v1";');
+      const dependency = path.join(root, "dep.js");
+      fs.writeFileSync(dependency, 'export const value = "dep-v1";');
+      // Make the first build's snapshot eligible for reuse during finishModules.
+      fs.utimesSync(dependency, 1, 1);
       fs.writeFileSync(path.join(root, "build-dependency.js"), 'module.exports = "first";');
       context.setValue("root", root);
       return {
@@ -60,7 +62,6 @@ const cases = [false, true].map(newCache => {
                   compilation.rebuildModule(module, (error, rebuilt) => {
                     if (error) return reject(error);
                     expect(rebuilt.identifier()).toBe(module.identifier());
-                    forcedRebuilds++;
                     resolve();
                   });
                 });
@@ -118,7 +119,10 @@ const cases = [false, true].map(newCache => {
         manager.createCompiler().outputFileSystem = fs;
       };
 
+      forceRebuild = newCache;
       const cold = await build({ reused: 0, total: 2 }, "cold");
+      expect(forceRebuild).toBe(false);
+      expect(dependencyBuilds).toBe(1);
       expect(cold[0]).toContain("dep-v1");
       await restart("first");
       expect(await build({ reused: 2, total: 2 }, "valid")).toEqual(cold);
@@ -133,7 +137,7 @@ const cases = [false, true].map(newCache => {
       forceRebuild = true;
       const stats = await manager.build();
       expect(stats.hasErrors()).toBe(false);
-      expect(forcedRebuilds).toBe(1);
+      expect(forceRebuild).toBe(false);
       expect(dependencyBuilds).toBeLessThanOrEqual(1);
       if (!newCache) expect(dependencyBuilds).toBe(1);
       const cacheInfo = stats.toJson({ all: false, cacheInfo: true }).cacheInfo;

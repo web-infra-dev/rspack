@@ -3,7 +3,7 @@ import path from "node:path";
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 export default {
-  description: "reports shared cache session initialization for parent and child compilers",
+  description: "shares cache validation and attributes read errors to the compilation that encountered them",
   options(context) {
     const root = context.getDist("cache-session-child");
     fs.rmSync(root, { recursive: true, force: true });
@@ -40,19 +40,28 @@ export default {
   },
   async build(context) {
     const manager = context.getCompiler();
-    const build = async status => {
+    const unknown = { status: "unknown", reason: null };
+    const build = async (status, parentState = unknown) => {
       const stats = await manager.build();
       expect(stats.hasErrors()).toBe(false);
       const parent = stats.toJson({ all: false, cacheInfo: true }).cacheInfo;
       const child = context.getValue("childCacheInfo");
+      expect(parent.persistent).toEqual(parentState);
+      expect(child.persistent).toEqual(unknown);
       for (const info of [parent, child]) {
-        expect(info.persistent).toEqual({ status: "unknown", reason: null });
         expect(info.persistentSessionInitialization).toEqual({ status, reason: null });
       }
     };
     await build("cold");
     await manager.close();
+    // Damage the data table (family 0) while leaving the validator table intact.
+    const cache = context.getDist("cache-session-child/cache");
+    const tables = fs.readFileSync(path.join(cache, "LOG"), "utf8");
+    const [, dataTable] = /^\s*0\s*\|\s*\d+\s*\|\s*(\d+) SST/m.exec(tables);
+    const file = path.join(cache, `${dataTable}.sst`);
+    fs.writeFileSync(file, Buffer.alloc(fs.statSync(file).size, 0xa5));
     manager.createCompiler().outputFileSystem = fs;
+    await build("valid", { status: "error", reason: "recovery" });
     await build("valid");
   }
 };

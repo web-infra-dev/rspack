@@ -22,21 +22,20 @@ impl PassExt for FinishModulesPhasePass {
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     finish_modules_pass(compilation).await?;
 
-    if let Some(reused) = compilation
+    if let Some(built) = compilation
       .build_module_graph_artifact
-      .reused_module_builds
+      .built_modules_for_stats
       .take()
     {
       let graph = compilation.get_module_graph();
-      let total = u32::try_from(graph.modules_len()).ok();
-      let reused = u32::try_from(
-        reused
-          .iter()
-          .filter(|id| graph.module_by_identifier(id).is_some())
-          .count(),
-      )
-      .ok();
-      compilation.module_build_cache_stats = reused.zip(total);
+      let total = graph.modules_len();
+      let built = built
+        .iter()
+        .filter(|id| graph.module_by_identifier(id).is_some())
+        .count();
+      compilation.module_build_cache_stats = u32::try_from(total - built)
+        .ok()
+        .zip(u32::try_from(total).ok());
     }
 
     use crate::incremental::IncrementalPasses;

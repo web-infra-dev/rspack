@@ -1,4 +1,11 @@
-use std::{ops::Deref, sync::Arc, time::Duration};
+use std::{
+  ops::Deref,
+  sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  },
+  time::Duration,
+};
 
 use rspack_paths::InternedPathSet;
 
@@ -22,7 +29,8 @@ struct CacheStorage {
 /// including misses, are recorded in memory for subsequent reads.
 #[derive(Debug)]
 pub struct Cache {
-  storage: Option<CacheStorage>,
+  storage: Option<Arc<CacheStorage>>,
+  read_failed: AtomicBool,
 }
 
 impl Cache {
@@ -40,14 +48,21 @@ impl Cache {
   /// Creates storage from the configured memory and filesystem caches.
   pub fn new(memory_cache: Option<MemoryCache>, idle_file_cache: Option<IdleFileCache>) -> Self {
     let storage = if memory_cache.is_some() || idle_file_cache.is_some() {
-      Some(CacheStorage {
+      Some(Arc::new(CacheStorage {
         memory_cache,
         idle_file_cache,
-      })
+      }))
     } else {
       None
     };
-    Self { storage }
+    Self {
+      storage,
+      read_failed: Default::default(),
+    }
+  }
+
+  pub(crate) fn read_failed(&self) -> bool {
+    self.read_failed.load(Ordering::Relaxed)
   }
 
   pub fn new_disabled() -> Self {
@@ -73,7 +88,9 @@ impl Cache {
       return None;
     };
 
-    match file_cache.restore::<T>(key.clone(), etag.clone()) {
+    match file_cache.restore::<T>(key.clone(), etag.clone(), || {
+      self.read_failed.store(true, Ordering::Relaxed);
+    }) {
       Some(value) => {
         if let Some(memory_cache) = &storage.memory_cache {
           memory_cache.store(key, etag, value.clone());
@@ -171,6 +188,16 @@ impl CompilerCache {
     Self {
       cache,
       compiler_path,
+    }
+  }
+
+  pub(crate) fn begin_compilation(&mut self) {
+    if self.has_file_cache() {
+      // Child compilers share entries, but a read failure belongs to its caller.
+      self.cache = Arc::new(Cache {
+        storage: self.cache.storage.clone(),
+        read_failed: Default::default(),
+      });
     }
   }
 

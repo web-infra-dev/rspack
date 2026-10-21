@@ -302,6 +302,7 @@ impl FileCacheStrategy {
     key: &CacheKey,
     etag: Option<&Etag>,
     decoder: CacheValueDecoder,
+    on_error: impl FnOnce(),
   ) -> Option<ErasedCacheValue> {
     let state_guard = self.read_state();
     let state = state_guard.as_ref()?;
@@ -317,6 +318,7 @@ impl FileCacheStrategy {
       Ok(entry) => entry,
       Err(e) => {
         drop(state_guard);
+        on_error();
         self.session_unavailable(Some(&e));
         return None;
       }
@@ -325,6 +327,7 @@ impl FileCacheStrategy {
     match decoder(&entry, etag, &self.codec) {
       Ok(decoded) => decoded,
       Err(e) => {
+        on_error();
         self
           .logger
           .warn(format!("Failed to decode cache entry for key {key}: {e}"));

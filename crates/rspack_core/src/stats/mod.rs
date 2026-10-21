@@ -175,7 +175,7 @@ impl<'compilation> Stats<'compilation> {
   }
 
   pub fn persistent_cache_state(&self) -> crate::PersistentCacheState {
-    self.context.0.persistent_cache_state
+    self.context.0.persistent_cache_state()
   }
 
   pub fn cache_session_initial_validation(&self) -> crate::PersistentCacheState {

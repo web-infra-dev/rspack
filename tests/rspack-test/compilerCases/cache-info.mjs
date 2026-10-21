@@ -40,6 +40,7 @@ export default [
     expect(stats.toJson({ all: true }).cacheInfo).toEqual(cacheInfo);
     checkCacheCounters(stats, cacheInfo.counters);
     if (name === "disabled") {
+      expect(stats.toJson({ all: true }, true).cacheInfo).toBeUndefined();
       expect(cacheInfo.counters.some(counter => counter.label === "module code generation cache")).toBe(false);
       expect(cacheInfo.counters).toContainEqual({
         logger: "rspack.CopyRspackPlugin",

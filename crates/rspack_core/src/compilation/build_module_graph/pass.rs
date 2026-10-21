@@ -40,7 +40,9 @@ impl PassExt for BuildModuleGraphPhasePass {
       compilation.persistent_cache_state,
       crate::PersistentCacheState::Unknown
     ) {
-      compilation.build_module_graph_artifact.reused_module_builds = None;
+      compilation
+        .build_module_graph_artifact
+        .built_modules_for_stats = None;
     }
   }
 

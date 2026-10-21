@@ -179,17 +179,10 @@ impl Cache for PersistentCache {
     }
 
     if let Some(mut cache_item) = self.ctx.load_occasion(&self.make_occasion).await {
-      if compilation.options.stats.cache_info
-        && !matches!(self.ctx.state(), crate::PersistentCacheState::Unknown)
-      {
-        cache_item.reused_module_builds = Some(
-          cache_item
-            .module_graph
-            .modules()
-            .map(|(id, _)| *id)
-            .collect(),
-        );
-      }
+      cache_item.built_modules_for_stats = compilation
+        .build_module_graph_artifact
+        .built_modules_for_stats
+        .take();
       *compilation.build_module_graph_artifact = cache_item;
       for (module, _) in compilation
         .build_module_graph_artifact

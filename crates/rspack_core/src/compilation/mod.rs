@@ -382,7 +382,7 @@ impl Compilation {
         _ => false,
       }
     {
-      build_module_graph_artifact.reused_module_builds = Some(Default::default());
+      build_module_graph_artifact.built_modules_for_stats = Some(Default::default());
     }
     // Rebuilds own their invalidation path, so skip module restoration while
     // still publishing rebuilt modules for subsequent compilations.
@@ -502,6 +502,14 @@ impl Compilation {
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {
     self.cache.facade(name)
+  }
+
+  pub(crate) fn persistent_cache_state(&self) -> PersistentCacheState {
+    if self.cache.read_failed() {
+      PersistentCacheState::RecoveryError
+    } else {
+      self.persistent_cache_state
+    }
   }
 
   pub fn id(&self) -> CompilationId {

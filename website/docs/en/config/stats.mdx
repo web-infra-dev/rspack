@@ -84,7 +84,7 @@ Read the report with `stats.toJson({ all: false, cacheInfo: true }).cacheInfo`. 
 
 #### Module build reuse
 
-Suppose an entry imports one module, and you change only that module. A result of `moduleBuilds: { reused: 1, total: 2 }` means Rspack reused the entry's build result and rebuilt the changed module. Reuse can come from disk, memory, or a pending write.
+`reused` counts modules whose build step never ran during this compilation. Their results can come from memory or disk. If an entry imports one module and you edit that module, `{ reused: 1, total: 2 }` means Rspack reused the entry's build and rebuilt the edited module. A module built during this compilation still counts as built if Rspack later reads it from cache.
 
 `total` counts distinct modules in the main graph after `finishModules`, before sealing and optimization. It includes externals and modules ineligible for caching, but excludes runtime modules and separate module-execution graphs. `null` means the count is unavailable, for example on an incremental rebuild, without persistent module caching, or when the graph changes after `finishModules`.
 
@@ -92,7 +92,7 @@ Suppose an entry imports one module, and you change only that module. A result o
 
 `mode` is `disabled`, `memory`, or `persistent`. In persistent mode, two fields describe validation at different points:
 
-- `persistent` describes this compilation's validation with the legacy cache. It is `unknown` on later compilations with the same compiler or with the new cache backend, and `null` outside persistent mode.
+- `persistent` reports `error` with reason `recovery` when this compilation encounters a cache read error. The legacy backend also reports validation on the compiler's first build. Without either result, the status is `unknown`. Outside persistent mode, the field is `null`.
 - `persistentSessionInitialization` is the new filesystem cache's session validation, captured when compilation starts. Compilers can share a session: a later build can report its initial `cold` status and still reuse modules. Later reads and writes do not update this field. Other backends report `null`.
 
 Both fields use `{ status, reason }`. The `reason` is `null` unless listed below.
@@ -105,7 +105,7 @@ Both fields use `{ status, reason }`. The `reason` is `null` unless listed below
 
 #### Cache counters
 
-`counters` lists `{ logger, label, hit, total }` events from compilation logs, including repeated labels. Read each counter in its own units: the resolver counts requests, while code generation counts module-runtime pairs. Some counters include uncacheable work even when caching is disabled. An empty array means no counter was reported.
+`counters` lists `{ logger, label, hit, total }` events from compilation logs, including repeated labels. The resolver counts requests, while code generation counts module-runtime pairs. Some counters include work that cannot be cached, even when caching is disabled. An empty array means no counter was reported.
 
 ## Asset options
 

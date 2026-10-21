@@ -226,10 +226,11 @@ impl IdleFileCache {
     &self,
     key: CacheKey,
     etag: Option<Etag>,
+    on_error: impl FnOnce(),
   ) -> Option<CacheValue<T>> {
     let restored = self
       .strategy
-      .restore(&key, etag.as_ref(), CacheValue::<T>::decoder());
+      .restore(&key, etag.as_ref(), CacheValue::<T>::decoder(), on_error);
     restored.and_then(ErasedCacheValue::downcast)
   }
 
