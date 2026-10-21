@@ -11,22 +11,24 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use initial_chunks::{EntryChunks, collect_entry_chunks};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  AssetInfo, Chunk, ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationContentHash,
   CompilationParams, CompilationProcessAssets, CompilationRecords, CompilerCompilation,
-  DependencyType, LoaderContext, ManifestAssetType, ModuleId, ModuleIdentifier, ModuleType,
+  DependencyType, LoaderContext, ManifestAssetType, Module, ModuleId, ModuleIdentifier, ModuleType,
   NormalModuleFactoryParser, NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData,
-  Plugin, RunnerContext, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
+  Plugin, RunnerContext, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
+  RuntimeSpec, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
   chunk_graph_module::ModuleIdSet,
   incremental::{IncrementalPasses, Mutation},
-  rspack_sources::{RawStringSource, SourceExt},
+  rspack_sources::{RawStringSource, ReplaceSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::parser_and_generator::CssParserAndGenerator;
 use rspack_plugin_javascript::{
+  JavascriptModulesRenderModuleContainer, JsPlugin, RenderSource,
   hot_module_replacement_plugin::{
     ImportMetaHotReplacementParserPlugin, ModuleHotReplacementParserPlugin,
   },
@@ -48,6 +50,8 @@ struct ChunkLoadingPlans {
 /// runs serially (each compiler owns its plugin instance and drives one
 /// compilation at a time). The content_hash tap runs concurrently across
 /// chunks, so `collected_css_hashes` uses a `Mutex` instead.
+/// `hot_update_module_additions` is written before and after rendering each
+/// hot-update chunk; parallel render hooks only borrow it immutably.
 #[plugin]
 #[derive(Debug)]
 pub struct HotModuleReplacementPlugin {
@@ -64,11 +68,14 @@ pub struct HotModuleReplacementPlugin {
   // Keep the last recorded build and the current candidate. A failed build
   // may not advance CompilationRecords, so key these snapshots by its hash.
   chunk_loading_plans: AtomicRefCell<HashMap<RspackHashDigest, Arc<ChunkLoadingPlans>>>,
+  // Unchanged factories included only to supply missing dependencies during HMR.
+  hot_update_module_additions: AtomicRefCell<HashMap<ChunkUkey, IdentifierSet>>,
 }
 
 impl Default for HotModuleReplacementPlugin {
   fn default() -> Self {
     Self::new_inner(
+      Default::default(),
       Default::default(),
       Default::default(),
       Default::default(),
@@ -146,6 +153,50 @@ async fn compilation(
     DependencyType::ModuleHotDecline,
     params.normal_module_factory.clone(),
   );
+  JsPlugin::get_compilation_hooks_mut(compilation.id())
+    .write()
+    .await
+    .render_module_container
+    .tap(render_module_container::new(self));
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesRenderModuleContainer for HotModuleReplacementPlugin, stage = -100, tracing = false)]
+async fn render_module_container(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  module: &dyn Module,
+  source: &mut RenderSource,
+  _init_fragments: &mut ChunkInitFragments,
+  _runtime_template: &RuntimeCodeTemplate,
+) -> Result<()> {
+  if !self
+    .hot_update_module_additions
+    .borrow()
+    .get(chunk_ukey)
+    .is_some_and(|modules| modules.contains(&module.identifier()))
+  {
+    return Ok(());
+  }
+
+  // The container omits the module ID and ends with `,\n`. Wrap the factory
+  // before other container hooks run, preserving its source map.
+  let end = (source.source.size() - 2) as u32;
+  let mut replacement = ReplaceSource::new(source.source.clone());
+  if compilation
+    .options
+    .output
+    .environment
+    .supports_method_shorthand()
+  {
+    replacement.insert_static(0, ": [(function ", None);
+    replacement.insert_static(end, ")]", None);
+  } else {
+    replacement.insert_static(2, "[", None);
+    replacement.insert_static(end, "]", None);
+  }
+  source.source = replacement.boxed();
   Ok(())
 }
 
@@ -614,7 +665,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
       let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
       hot_update_chunk.set_id(chunk_id.clone());
-      hot_update_chunk.set_hot_update_module_additions(install_only);
       hot_update_chunk.set_runtime(if let Some(current_chunk) = current_chunk {
         current_chunk.runtime().clone()
       } else {
@@ -665,12 +715,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       let mut manifest = Vec::new();
       let mut diagnostics = Vec::new();
-      compilation
+      if !install_only.is_empty() {
+        self
+          .hot_update_module_additions
+          .borrow_mut()
+          .insert(ukey, install_only);
+      }
+      let render_result = compilation
         .plugin_driver
         .compilation_hooks
         .render_manifest
         .call(compilation, &ukey, &mut manifest, &mut diagnostics)
-        .await?;
+        .await;
+      self.hot_update_module_additions.borrow_mut().remove(&ukey);
+      render_result?;
 
       // Manually clean up ChunkGraph and chunks
       for module_identifier in new_modules {

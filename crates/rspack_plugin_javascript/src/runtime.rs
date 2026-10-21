@@ -225,15 +225,11 @@ pub async fn render_module(
   Otherwise render as:
   "./module.js": (function(module) { code })
   */
-  let install_only = chunk
-    .hot_update_module_additions()
-    .is_some_and(|modules| modules.contains(&module_identifier));
-  let use_method_shorthand = !install_only
-    && compilation
-      .options
-      .output
-      .environment
-      .supports_method_shorthand();
+  let use_method_shorthand = compilation
+    .options
+    .output
+    .environment
+    .supports_method_shorthand();
 
   hooks
     .render_module_content
@@ -307,11 +303,7 @@ pub async fn render_module(
         container_prefix.push_str(&args);
         container_prefix.push_str(") {\n");
       } else {
-        container_prefix.push_str(if install_only {
-          ": [(function ("
-        } else {
-          ": (function ("
-        });
+        container_prefix.push_str(": (function (");
         container_prefix.push_str(&args);
         container_prefix.push_str(") {\n");
       }
@@ -324,11 +316,7 @@ pub async fn render_module(
       if use_method_shorthand {
         container_sources.add(RawStringSource::from_static("\n\n},\n"));
       } else {
-        container_sources.add(RawStringSource::from_static(if install_only {
-          "\n\n})],\n"
-        } else {
-          "\n\n}),\n"
-        }));
+        container_sources.add(RawStringSource::from_static("\n\n}),\n"));
       }
 
       RenderSource {
