@@ -1,6 +1,7 @@
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsOption, AsVec},
+  utils::PortableString,
+  with::{As, AsCacheable, AsOption, AsVec},
 };
 use rspack_util::json_stringify;
 
@@ -18,6 +19,7 @@ use crate::{
 pub struct ContextElementDependency {
   pub id: DependencyId,
   pub weak: bool,
+  #[cacheable(with=As<PortableString>)]
   pub request: String,
   pub user_request: String,
   pub category: DependencyCategory,
