@@ -14,6 +14,8 @@ export type CustomPluginName = string;
 
 export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
+export const MODULE_BUILD_INFO_SYMBOL: unique symbol;
+
 export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
 
 export const BUILD_INFO_ASSETS_SYMBOL: unique symbol;
@@ -416,11 +418,6 @@ export declare class JsExportsInfo {
   getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
-export declare class JsLoaderCache {
-  get(loaderIndex: number, content: string | Uint8Array, existing: JsLoaderDependencies): Promise<JsLoaderCacheEntry | null>
-  store(loaderIndex: number, output: JsLoaderCacheEntry): Promise<void>
-}
-
 export declare class JsModuleGraph {
   getModule(dependency: Dependency | EntryDependency): Module | null
   getResolvedModule(dependency: Dependency | EntryDependency): Module | null
@@ -487,6 +484,19 @@ export declare class NativeWatcher {
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   close(): Promise<void>
+  /**
+   * watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
+   * arrived since the last aggregated batch (while paused), read without
+   * draining them.
+   */
+  peekAggregated(): NativeWatchResult
+  /**
+   * watchpack's `getAggregated`: the same events, drained, for the build
+   * that folds them in.
+   */
+  getAggregated(): NativeWatchResult
+  /** watchpack's `collectTimeInfoEntries`, over every registered path. */
+  collectTimeInfoEntries(): NativeTimeInfoEntries
   pause(): void
 }
 
@@ -977,14 +987,6 @@ export interface JsLinkPreloadData {
   chunk: Chunk
 }
 
-export interface JsLoaderCacheEntry {
-  content: null | string | Uint8Array
-  sourceMap?: Uint8Array
-  addedDependencies: JsLoaderDependencies
-  removedDependencies: JsLoaderDependencies
-  parseMeta: Record<string, string>
-}
-
 export interface JsLoaderContext {
   resource: string
   _module: Module
@@ -996,11 +998,14 @@ export interface JsLoaderContext {
   sourceMap?: Buffer
   cacheable: boolean
   dependencies: JsLoaderDependencies
+  addedDependencies: JsLoaderDependencies
+  removedDependencies: JsLoaderDependencies
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
+  loaderChainStart: number
+  loaderChainEnd: number
   __internal__error?: RspackError
-  __internal__loaderCache?: JsLoaderCache | undefined
 }
 
 export interface JsLoaderDependencies {
@@ -1017,6 +1022,8 @@ export interface JsLoaderItem {
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
+  codeFilter?: string | RegExp
+  filterMatched: boolean
   noPitch: boolean
 }
 
@@ -1831,6 +1838,25 @@ export interface NapiResolveOptions {
   enablePnp?: boolean
 }
 
+export interface NativeTimeInfoEntries {
+  fileTimestamps: Array<NativeTimeInfoEntry>
+  directoryTimestamps: Array<NativeTimeInfoEntry>
+}
+
+/**
+ * One row of watchpack's `TimeInfoEntries`, flattened for napi: a file's
+ * `Entry` carries all three times, a directory's `OnlySafeTimeEntry` only
+ * `safe_time`, an `ExistenceOnlyTimeEntry` sets `existence_only`, and `null`
+ * (a watched path absent on disk) carries nothing.
+ */
+export interface NativeTimeInfoEntry {
+  path: string
+  safeTime?: number
+  timestamp?: number
+  accuracy?: number
+  existenceOnly: boolean
+}
+
 export interface NativeWatcherOptions {
   followSymlinks?: boolean
   pollInterval?: number
@@ -1954,6 +1980,7 @@ export interface RawCacheGroupOptions {
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
   enforceSizeThreshold?: number | RawSplitChunkSizes
+  minRemainingSize?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
@@ -2401,18 +2428,6 @@ export interface RawFallbackCacheGroupOptions {
   automaticNameDelimiter?: string
 }
 
-export interface RawFileSystemCacheOptions {
-  buildDependencies: Array<string>
-  cacheDirectory: string
-  cacheLocation: string
-  version: string
-  readonly: boolean
-  maxMemoryGenerations?: number
-  idleTimeout: number
-  idleTimeoutForInitialStore: number
-  idleTimeoutAfterLargeChanges: number
-}
-
 export interface RawFlagAllModulesAsUsedPluginOptions {
   explanation: string
 }
@@ -2548,6 +2563,7 @@ export interface RawJavascriptParserCommonjsOptions {
 
 export interface RawJavascriptParserOptions {
   dynamicImportMode?: string
+  dynamicUrl?: boolean
   dynamicImportPreload?: string
   dynamicImportPrefetch?: string
   dynamicImportFetchPriority?: string
@@ -2809,6 +2825,7 @@ export interface RawModuleRuleUse {
   options?: string
   cache: boolean
   optionsCacheKey: string
+  codeFilter?: string | RegExp
 }
 
 export interface RawNewCache {
@@ -2867,7 +2884,7 @@ export interface RawOptions {
   module: RawModuleOptions
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent) | ({ type: "filesystem" } & RawFileSystemCacheOptions)
+  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   snapshot: RawSnapshotOptions
   experiments: RawExperiments
 incremental?: false | { [key: string]: boolean }
@@ -3207,6 +3224,7 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+  location: string
 }
 
 export interface RawSubresourceIntegrityPluginOptions {

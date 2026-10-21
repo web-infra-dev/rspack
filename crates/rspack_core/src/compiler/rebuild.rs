@@ -45,7 +45,7 @@ impl Compiler {
         failed.and(Err(e))
       }
     };
-    self.store_cache_metadata();
+    self.store_cache_metadata(result.is_ok());
     result
   }
 
@@ -134,7 +134,7 @@ impl Compiler {
     self.cache.after_compile(&self.compilation).await;
 
     #[cfg(allocative)]
-    crate::utils::snapshot_allocative("rebuild", &self.compilation);
+    crate::utils::snapshot_allocative("rebuild", self)?;
 
     Ok(())
   }

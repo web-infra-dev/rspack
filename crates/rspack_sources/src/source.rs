@@ -12,7 +12,6 @@ use simd_json::{BorrowedValue, ErrorType, prelude::*};
 use crate::{
   ReplaceSource, Result,
   helpers::{Chunks, StreamChunks, decode_mappings_fields},
-  object_pool::ObjectPool,
 };
 
 /// An alias for `Box<dyn Source>`.
@@ -24,12 +23,17 @@ pub type BoxSource = Arc<dyn Source>;
 /// it's originally stored as a string or raw bytes. This is particularly useful for
 /// build tools and bundlers that need to process various types of source files.
 #[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub enum SourceValue<'a> {
   /// Text content stored as a UTF-8 string.
-  String(Cow<'a, str>),
+  String(
+    // Use the typed Cow adapter: this value can contain a temporary borrow.
+    #[cfg_attr(allocative, allocative(visit = rspack_allocative::Allocative::visit))] Cow<'a, str>,
+  ),
   /// Binary content stored as raw bytes.
-  Buffer(Cow<'a, [u8]>),
+  Buffer(
+    #[cfg_attr(allocative, allocative(visit = rspack_allocative::Allocative::visit))] Cow<'a, [u8]>,
+  ),
 }
 
 impl<'a> SourceValue<'a> {
@@ -108,9 +112,7 @@ impl<'a> SourceValue<'a> {
 }
 
 /// [Source] abstraction, [webpack-sources docs](https://github.com/webpack/webpack-sources/#source).
-pub trait Source:
-  StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send + SourceAllocative
-{
+pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send {
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
 
@@ -124,14 +126,10 @@ pub trait Source:
   fn size(&self) -> usize;
 
   /// Get the [SourceMap].
-  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>>;
+  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>>;
 
   /// Get a [SourceMap] that can outlive the borrowed source reference.
-  fn map_static(
-    self: Arc<Self>,
-    object_pool: &ObjectPool,
-    options: &MapOptions,
-  ) -> Option<SourceMap<'static>>;
+  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>>;
 
   /// Update hash based on the source.
   fn update_hash(&self, state: &mut dyn Hasher) {
@@ -141,22 +139,6 @@ pub trait Source:
   /// Writes the source into a writer, preferably a `std::io::BufWriter<std::io::Write>`.
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()>;
 }
-
-/// Allocative support for source trait objects in profiling builds.
-#[doc(hidden)]
-#[cfg(feature = "allocative")]
-pub trait SourceAllocative: allocative::Allocative {}
-
-#[cfg(feature = "allocative")]
-impl<T: allocative::Allocative + ?Sized> SourceAllocative for T {}
-
-/// No additional bound is needed in regular builds.
-#[doc(hidden)]
-#[cfg(not(feature = "allocative"))]
-pub trait SourceAllocative {}
-
-#[cfg(not(feature = "allocative"))]
-impl<T: ?Sized> SourceAllocative for T {}
 
 impl Source for BoxSource {
   #[inline]
@@ -180,17 +162,13 @@ impl Source for BoxSource {
   }
 
   #[inline]
-  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
-    self.as_ref().map(object_pool, options)
+  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
+    self.as_ref().map(options)
   }
 
   #[inline]
-  fn map_static(
-    self: Arc<Self>,
-    object_pool: &ObjectPool,
-    options: &MapOptions,
-  ) -> Option<SourceMap<'static>> {
-    self.as_ref().clone().map_static(object_pool, options)
+  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
+    self.as_ref().clone().map_static(options)
   }
 
   #[inline]
@@ -284,7 +262,6 @@ impl<T: Source + 'static> SourceExt for T {
 
 /// Options for [Source::map].
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct MapOptions {
   /// Whether have columns info in generated [SourceMap] mappings.
   pub columns: bool,
@@ -311,7 +288,7 @@ impl MapOptions {
   }
 }
 
-fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
+pub(crate) fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
   if val.is_empty() {
     return true;
   }
@@ -320,7 +297,6 @@ fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
 
 /// The source map created by [Source::map].
 #[derive(Serialize)]
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub(crate) struct SourceMapFields<'a> {
   pub(crate) version: u8,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -408,14 +384,12 @@ impl Hash for SourceMapFields<'_> {
 }
 
 #[allow(dead_code)]
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 enum SourceMapOwner {
   Bytes(Vec<u8>),
   Source(BoxSource),
 }
 
 /// The source map created by [Source::map].
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct SourceMap<'a> {
   // Kept to retain data borrowed by `fields`; it is intentionally not read.
   #[allow(dead_code)]
@@ -569,6 +543,40 @@ impl<'a> SourceMap<'a> {
   /// Set the sourcesContent field in [SourceMap].
   pub fn set_sources_content(&mut self, sources_content: Vec<Cow<'a, str>>) {
     self.fields.sources_content = Cow::Owned(sources_content);
+  }
+
+  /// Remove source contents without retaining the source or JSON buffer that owned them.
+  ///
+  /// Borrowed metadata is copied before releasing its owner; owned fields are reused.
+  #[doc(hidden)]
+  pub fn remove_sources_content(&mut self) {
+    self.fields.sources_content = Cow::Owned(Vec::new());
+    if self.owner.is_none() {
+      return;
+    }
+
+    // Clearing sourcesContent alone leaves the owner alive for the remaining borrows.
+    // Own every remaining field before releasing that source graph or parsed JSON buffer.
+    if let Some(file) = &mut self.fields.file {
+      file.to_mut();
+    }
+    for source in self.fields.sources.to_mut() {
+      source.to_mut();
+    }
+    for name in self.fields.names.to_mut() {
+      name.to_mut();
+    }
+    self.fields.mappings.to_mut();
+    if let Some(source_root) = &mut self.fields.source_root {
+      source_root.to_mut();
+    }
+    if let Some(debug_id) = &mut self.fields.debug_id {
+      debug_id.to_mut();
+    }
+    if let Some(ignore_list) = &mut self.fields.ignore_list {
+      ignore_list.to_mut();
+    }
+    self.owner = None;
   }
 
   /// Get the source content by index from sourcesContent field in [SourceMap].
@@ -834,7 +842,6 @@ fn optional_u32_array_field<'a>(
 
 /// Represent a [Mapping] information of source map.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct Mapping {
   /// Generated line.
   pub generated_line: u32,
@@ -846,7 +853,6 @@ pub struct Mapping {
 
 /// Represent original position information of a [Mapping].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
 pub struct OriginalLocation {
   /// Source index.
   pub source_index: u32,

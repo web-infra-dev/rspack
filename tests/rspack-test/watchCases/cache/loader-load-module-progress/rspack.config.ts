@@ -3,7 +3,7 @@ import { rspack } from '@rspack/core';
 
 export default defineConfig({
   cache: {
-    type: 'filesystem',
+    type: 'persistent',
   },
   module: {
     rules: [

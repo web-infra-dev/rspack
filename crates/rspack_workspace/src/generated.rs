@@ -1,10 +1,10 @@
 //! This is a generated file. Don't modify it by hand! Run 'cargo codegen' to re-generate the file.
 /// The version of the `swc_core` package used in the current workspace.
 pub const fn rspack_swc_core_version() -> &'static str {
-  "82.0.0"
+  "82.1.1"
 }
 
 /// The version of the JavaScript `@rspack/core` package.
 pub const fn rspack_pkg_version() -> &'static str {
-  "2.2.8"
+  "2.3.0-beta.0"
 }

@@ -1,6 +1,5 @@
 use rspack_intern::AtomRef;
-use rspack_util::SpanExt;
-pub mod ast;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
 mod call_hooks_name;
 pub mod estree;
 mod location_advancer;
@@ -12,7 +11,6 @@ mod walk_pre;
 use std::{
   fmt::Display,
   hash::{Hash, Hasher},
-  rc::Rc,
   sync::Arc,
 };
 
@@ -28,17 +26,17 @@ use rspack_core::{
   DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
   ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
   ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
-  SideEffectsBailoutItemWithSpan,
+  ResourceIdentifier, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
-use swc_experimental_allocator::{Allocator, CloneIn};
-use swc_experimental_ecma_ast::{
-  ArrayPat, AssignPat, AssignTarget, AssignTargetPat, CallExpr, Callee, Decl, Expr, GetSpan, Ident,
-  Lit, MemberExpr, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase,
-  OptChainExpr, Pat, Program, RestPat, Span, Stmt, ThisExpr,
+use swc_next_ecma_ast::{
+  ArrayPattern, AssignmentPattern, Ast, BindingIdentifier, BindingPattern, BindingPatternData,
+  BindingRestElement, CallExpression, Decl, DeclData, Expr, ExprData, GetSpan, IdentifierReference,
+  MemberExpression, MetaProperty, NodeId, ObjectPattern, Program, PropertyKey, PropertyKeyData,
+  SourceType, Span, ThisExpression,
 };
 
 use crate::{
@@ -52,10 +50,10 @@ use crate::{
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    ParsedJavaScriptAst, ScanDependenciesResult,
-    dependency::parser::{ast::ExprRef, location_advancer::DependencyLocationAdvancer},
+    ParsedJavaScriptAst, PatternIdentifier, ScanDependenciesResult,
+    dependency::parser::location_advancer::DependencyLocationAdvancer,
     scope_info::{
-      ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
+      BindingState, ScopeInfoDB, SymbolBinding, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags,
     },
   },
 };
@@ -70,44 +68,74 @@ pub trait TagInfoData: Clone + Sized + 'static {
   fn downcast_mut(any: &mut dyn anymap::CloneAny) -> &mut Self;
 }
 
-fn atom_from_wtf8(value: swc_experimental_allocator::atom::Wtf8Atom<'_>) -> Atom {
-  Atom::from(value.as_wtf8().to_string_lossy().as_ref())
+fn atom_from_wtf8(value: &swc_next_allocator::wtf8::Wtf8) -> Atom {
+  Atom::from(value.to_string_lossy().as_ref())
 }
 
-pub(crate) fn member_property_to_atom(expr: &Expr) -> Option<Atom> {
-  match expr {
-    Expr::Lit(lit) => Some(match &**lit {
-      Lit::Str(s) => atom_from_wtf8(s.value),
-      Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
-      Lit::Null(_) => Atom::from("null"),
-      Lit::Num(n) => Atom::from(rspack_util::ryu_js::Buffer::new().format(n.value)),
-      Lit::BigInt(i) => Atom::from(i.value.as_str()),
-      Lit::Regex(r) => {
-        let mut flags = r.flags.as_str().chars().collect::<Vec<_>>();
-        flags.sort_unstable();
-        let mut property = String::with_capacity(r.exp.len() + flags.len() + 2);
-        property.push('/');
-        property.push_str(r.exp.as_str());
-        property.push('/');
-        property.extend(flags);
-        Atom::from(property)
-      }
-    }),
-    Expr::Tpl(tpl) if tpl.exprs.is_empty() && tpl.quasis.len() == 1 => {
-      let quasi = tpl.quasis.first()?;
-      Some(
-        quasi
-          .cooked
-          .map_or_else(|| Atom::from(quasi.raw.as_str()), atom_from_wtf8),
-      )
+pub(crate) fn member_property_to_atom(ast: &Ast<'_>, expr: Expr) -> Option<Atom> {
+  Some(match ast.expr_data(expr) {
+    ExprData::StringLiteral(node) => atom_from_wtf8(ast.get_wtf8(node.value(ast))),
+    ExprData::BooleanLiteral(node) => Atom::from(if node.value(ast) { "true" } else { "false" }),
+    ExprData::NullLiteral(_) => Atom::from("null"),
+    ExprData::NumericLiteral(node) => {
+      Atom::from(rspack_util::ryu_js::Buffer::new().format(node.value(ast)))
     }
-    _ => None,
+    ExprData::BigIntLiteral(node) => Atom::from(node.value(ast)?.to_string()),
+    ExprData::RegExpLiteral(node) => {
+      let pattern = ast.get_utf8(node.pattern(ast));
+      let mut flags = ast.get_utf8(node.flags(ast)).chars().collect::<Vec<_>>();
+      flags.sort_unstable();
+      let mut property = String::with_capacity(pattern.len() + flags.len() + 2);
+      property.push('/');
+      property.push_str(pattern);
+      property.push('/');
+      property.extend(flags);
+      Atom::from(property)
+    }
+    ExprData::TemplateLiteral(node)
+      if node.expressions(ast).is_empty() && node.quasis(ast).len() == 1 =>
+    {
+      let quasi = ast.first(node.quasis(ast))?;
+      if quasi.is_cooked_undefined(ast) {
+        Atom::from(ast.get_utf8(quasi.raw(ast)))
+      } else {
+        atom_from_wtf8(ast.get_wtf8(quasi.cooked(ast)))
+      }
+    }
+    _ => return None,
+  })
+}
+
+/// Resolve the key of a computed member expression.
+///
+/// SWC Next 0.2.2+ exposes every expression key (including literals such as
+/// `obj["key"]`) through `PropertyKeyData::Expr`.
+pub(crate) fn member_property_key_to_atom(ast: &Ast<'_>, key: PropertyKey) -> Option<Atom> {
+  member_property_key_data_to_atom(ast, ast.property_key_data(key))
+}
+
+fn member_property_key_data_to_atom(ast: &Ast<'_>, key: PropertyKeyData) -> Option<Atom> {
+  match key {
+    PropertyKeyData::Expr(expr) => member_property_to_atom(ast, expr),
+    PropertyKeyData::IdentifierName(_) => None,
   }
 }
 
-impl GetSpan for estree::Statement<'_> {
-  fn span(&self) -> Span {
-    self.span()
+fn member_property_key_data_can_be_atom(ast: &Ast<'_>, key: PropertyKeyData) -> bool {
+  match key {
+    PropertyKeyData::Expr(expr) => match ast.expr_data(expr) {
+      ExprData::StringLiteral(_)
+      | ExprData::BooleanLiteral(_)
+      | ExprData::NullLiteral(_)
+      | ExprData::NumericLiteral(_)
+      | ExprData::BigIntLiteral(_)
+      | ExprData::RegExpLiteral(_) => true,
+      ExprData::TemplateLiteral(template) => {
+        template.expressions(ast).is_empty() && template.quasis(ast).len() == 1
+      }
+      _ => false,
+    },
+    PropertyKeyData::IdentifierName(_) => false,
   }
 }
 
@@ -144,10 +172,50 @@ where
 pub type AtomMembers = SmallVec<[Atom; 2]>;
 pub type OptionalMembers = SmallVec<[bool; 2]>;
 pub type MemberRanges = SmallVec<[Span; 2]>;
+type RawMembers = SmallVec<[RawMember; 2]>;
+
+/// Keep each segment together until its root needs member hooks. Spans and
+/// owned names are only read when materializing the parallel hook arguments.
+struct RawMember {
+  property: PropertyKeyData,
+  object: Expr,
+  optional: bool,
+}
+
+impl RawMember {
+  fn atom(&self, ast: &Ast<'_>) -> Atom {
+    match self.property {
+      PropertyKeyData::IdentifierName(identifier) => Atom::from(ast.get_utf8(identifier.name(ast))),
+      property => member_property_key_data_to_atom(ast, property)
+        .expect("validated computed member property should convert to an atom"),
+    }
+  }
+}
+
+struct RawExtractedMemberExpressionChainData {
+  object: Expr,
+  members: RawMembers,
+}
+
+/// Preserve extraction order (outermost first) for consumers that reverse it.
+fn materialize_members(
+  ast: &Ast<'_>,
+  members: RawMembers,
+) -> (AtomMembers, OptionalMembers, MemberRanges) {
+  let mut atoms = AtomMembers::with_capacity(members.len());
+  let mut optionals = OptionalMembers::with_capacity(members.len());
+  let mut ranges = MemberRanges::with_capacity(members.len());
+  for member in members {
+    atoms.push(member.atom(ast));
+    optionals.push(member.optional);
+    ranges.push(member.object.span(ast));
+  }
+  (atoms, optionals, ranges)
+}
 
 #[derive(Debug)]
-pub struct ExtractedMemberExpressionChainData<'ast> {
-  pub object: ExprRef<'ast>,
+pub struct ExtractedMemberExpressionChainData {
+  pub object: Expr,
   pub members: AtomMembers,
   pub members_optionals: OptionalMembers,
   pub member_ranges: MemberRanges,
@@ -162,14 +230,14 @@ bitflags! {
 }
 
 #[derive(Debug)]
-pub enum MemberExpressionInfo<'ast> {
-  Call(CallExpressionInfo<'ast>),
+pub enum MemberExpressionInfo {
+  Call(CallExpressionInfo),
   Expression(ExpressionExpressionInfo),
 }
 
 #[derive(Debug)]
-pub struct CallExpressionInfo<'ast> {
-  pub call: &'ast CallExpr<'ast>,
+pub struct CallExpressionInfo {
+  pub call: CallExpression,
   pub root_info: ExportedVariableInfo,
   pub callee_members: AtomMembers,
   pub members: AtomMembers,
@@ -189,7 +257,7 @@ pub struct ExpressionExpressionInfo {
 #[derive(Debug, Clone)]
 pub enum ExportedVariableInfo {
   Name(Atom),
-  VariableInfo(VariableInfoId),
+  VariableInfo(BindingState),
 }
 
 fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]) -> String {
@@ -211,69 +279,61 @@ fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]
 }
 
 pub trait RootName {
-  fn get_root_name(&self) -> Option<Atom> {
+  fn get_root_name<'ast>(&self, _ast: &'ast Ast<'_>) -> Option<&'ast str> {
     None
   }
 }
 
-impl RootName for Expr<'_> {
-  fn get_root_name(&self) -> Option<Atom> {
-    match self {
-      Expr::Ident(ident) => ident.get_root_name(),
-      Expr::This(this) => this.get_root_name(),
-      Expr::MetaProp(meta) => meta.get_root_name(),
+impl RootName for Expr {
+  fn get_root_name<'ast>(&self, ast: &'ast Ast<'_>) -> Option<&'ast str> {
+    match ast.expr_data(*self) {
+      ExprData::IdentifierReference(ident) => ident.get_root_name(ast),
+      ExprData::ThisExpression(this) => this.get_root_name(ast),
+      ExprData::MetaProperty(meta) => meta.get_root_name(ast),
       _ => None,
     }
   }
 }
 
-impl RootName for ExprRef<'_> {
-  fn get_root_name(&self) -> Option<Atom> {
-    match self {
-      ExprRef::Ident(ident) => ident.get_root_name(),
-      ExprRef::This(this) => this.get_root_name(),
-      ExprRef::MetaProp(meta) => meta.get_root_name(),
+impl RootName for ThisExpression {
+  fn get_root_name<'ast>(&self, _ast: &'ast Ast<'_>) -> Option<&'ast str> {
+    Some("this")
+  }
+}
+
+impl RootName for IdentifierReference {
+  fn get_root_name<'ast>(&self, ast: &'ast Ast<'_>) -> Option<&'ast str> {
+    Some(ast.get_utf8(self.name(ast)))
+  }
+}
+
+impl RootName for MetaProperty {
+  fn get_root_name<'ast>(&self, ast: &'ast Ast<'_>) -> Option<&'ast str> {
+    match (
+      ast.get_utf8(self.meta(ast).name(ast)),
+      ast.get_utf8(self.property(ast).name(ast)),
+    ) {
+      ("new", "target") => Some("new.target"),
+      ("import", "meta") => Some("import.meta"),
       _ => None,
-    }
-  }
-}
-
-impl RootName for ThisExpr {
-  fn get_root_name(&self) -> Option<Atom> {
-    Some("this".into())
-  }
-}
-
-impl RootName for Ident<'_> {
-  fn get_root_name(&self) -> Option<Atom> {
-    Some(Atom::from(&self.sym))
-  }
-}
-
-impl RootName for MetaPropExpr {
-  fn get_root_name(&self) -> Option<Atom> {
-    match self.kind {
-      MetaPropKind::NewTarget => Some("new.target".into()),
-      MetaPropKind::ImportMeta => Some("import.meta".into()),
     }
   }
 }
 
 pub struct NameInfo<'a> {
   pub name: &'a str,
-  pub info: Option<&'a VariableInfo>,
+  pub info: Option<VariableInfo<'a>>,
 }
 
-pub enum PatRef<'a> {
-  Borrowed(&'a Pat<'a>),
-  Owned(Pat<'a>),
+pub enum PatRef {
+  Borrowed(BindingPattern),
+  Owned(BindingPattern),
 }
 
-impl<'a> PatRef<'a> {
-  pub(crate) fn as_pat(&self) -> &Pat<'a> {
+impl PatRef {
+  pub(crate) fn as_pat(&self) -> BindingPattern {
     match self {
-      PatRef::Borrowed(pat) => pat,
-      PatRef::Owned(pat) => pat,
+      PatRef::Borrowed(pattern) | PatRef::Owned(pattern) => *pattern,
     }
   }
 }
@@ -422,6 +482,9 @@ pub struct JavascriptParser<'parser> {
   // ===== inputs =======
   pub(crate) source: &'parser str,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
+  synthetic_asts: Vec<(&'parser ParsedJavaScriptAst<'parser>, usize)>,
+  /// Active replacement AST index; `None` means the original module AST.
+  pub(crate) active_synthetic_ast: Option<usize>,
   pub parse_meta: ParseMeta,
   pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser mut BuildMeta,
@@ -433,10 +496,13 @@ pub struct JavascriptParser<'parser> {
   pub module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
-  pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
+  /// The drive is owned by the caller and borrowed here for the parser lifetime.
+  /// Hot paths hand the drive to a hook while `&mut self` goes to the same hook;
+  /// an Rc field could only express that by cloning the handle on every call,
+  /// while a reference field is copied out for free.
+  pub(crate) plugin_drive: &'parser JavaScriptParserPluginDrive,
   // ===== states =======
-  pub(crate) definitions_db: ScopeInfoDB,
-  pub(crate) definitions: ScopeInfoId,
+  pub(crate) definitions_db: ScopeInfoDB<'parser>,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
@@ -452,11 +518,14 @@ pub struct JavascriptParser<'parser> {
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) common_js_require_references: RequireReferencesState,
-  pub(crate) created_require_references: CreatedRequireReferencesState<'parser>,
+  pub(crate) created_require_references: CreatedRequireReferencesState,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
   pub(crate) last_esm_import_order: i32,
+  /// Resource identifier built for the import declaration currently being
+  /// visited, shared by its side effect dependency and all specifier dependencies.
+  pub(crate) last_import_resource_identifier: Option<(NodeId, ResourceIdentifier)>,
   pub(crate) inner_graph: InnerGraphState,
   pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   pub(crate) is_renaming: Option<Atom>,
@@ -467,37 +536,24 @@ pub struct JavascriptParser<'parser> {
 }
 
 impl<'parser> JavascriptParser<'parser> {
-  #[allow(clippy::too_many_arguments)]
-  pub fn new(
-    source: &'parser str,
-    ast: &'parser ParsedJavaScriptAst<'parser>,
-    compiler_options: &'parser CompilerOptions,
-    javascript_options: &'parser JavascriptParserOptions,
-    import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
-    module_identifier: &'parser ModuleIdentifier,
-    module_type: &'parser ModuleType,
-    module_layer: Option<&'parser ModuleLayer>,
-    resource_data: &'parser ResourceData,
-    factory_meta: Option<&'parser FactoryMeta>,
-    build_meta: &'parser mut BuildMeta,
-    build_info: &'parser mut BuildInfo,
-    semicolons: &'parser mut FxHashSet<u32>,
-    parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
-    parse_meta: ParseMeta,
-    parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
-  ) -> Self {
-    let warning_diagnostics: Vec<Diagnostic> = Vec::new();
-    let errors = Vec::new();
-    // These three vectors are moved into the scan result and stay alive for the
-    // whole build, so their capacity is a per-module constant cost. Most modules
-    // have a handful of dependencies and no async blocks, while presentational
-    // dependencies average around seven in a large app, so start small without
-    // going all the way down to one element and let the rare large module grow.
-    let dependencies = Vec::with_capacity(16);
-    let blocks = Vec::with_capacity(4);
-    let presentational_dependencies = Vec::with_capacity(8);
-    let parser_exports_state: Option<bool> = None;
+  /// Borrows the parser plugin drive without borrowing the parser itself, so a
+  /// hook can take `&mut parser` while the drive stays borrowed.
+  #[inline]
+  pub(crate) fn plugin_drive(&self) -> &'parser JavaScriptParserPluginDrive {
+    self.plugin_drive
+  }
 
+  /// Assembles the per-module plugin list and its hook dispatch table.
+  ///
+  /// The drive is returned by value so the caller owns it for the parser lifetime.
+  pub(crate) fn build_plugin_drive(
+    compiler_options: &CompilerOptions,
+    javascript_options: &JavascriptParserOptions,
+    module_type: &ModuleType,
+    import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
+    build_info: &mut BuildInfo,
+    parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
+  ) -> JavaScriptParserPluginDrive {
     let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32 + parser_plugins.len());
 
     plugins.append(parser_plugins);
@@ -604,12 +660,45 @@ impl<'parser> JavascriptParser<'parser> {
       )));
     }
 
-    let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
-    let mut db = ScopeInfoDB::new();
+    JavaScriptParserPluginDrive::new(plugins)
+  }
+
+  #[allow(clippy::too_many_arguments)]
+  pub fn new(
+    source: &'parser str,
+    ast: &'parser ParsedJavaScriptAst<'parser>,
+    compiler_options: &'parser CompilerOptions,
+    javascript_options: &'parser JavascriptParserOptions,
+    plugin_drive: &'parser JavaScriptParserPluginDrive,
+    module_identifier: &'parser ModuleIdentifier,
+    module_type: &'parser ModuleType,
+    module_layer: Option<&'parser ModuleLayer>,
+    resource_data: &'parser ResourceData,
+    factory_meta: Option<&'parser FactoryMeta>,
+    build_meta: &'parser mut BuildMeta,
+    build_info: &'parser mut BuildInfo,
+    semicolons: &'parser mut FxHashSet<u32>,
+    parse_meta: ParseMeta,
+    parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
+  ) -> Self {
+    let warning_diagnostics: Vec<Diagnostic> = Vec::new();
+    let errors = Vec::new();
+    // These three vectors are moved into the scan result and stay alive for the
+    // whole build, so their capacity is a per-module constant cost. Most modules
+    // have a handful of dependencies and no async blocks, while presentational
+    // dependencies average around seven in a large app, so start small without
+    // going all the way down to one element and let the rare large module grow.
+    let dependencies = Vec::with_capacity(16);
+    let blocks = Vec::with_capacity(4);
+    let presentational_dependencies = Vec::with_capacity(8);
+    let parser_exports_state: Option<bool> = None;
 
     Self {
       last_esm_import_order: 0,
+      last_import_resource_identifier: None,
       ast,
+      synthetic_asts: Vec::new(),
+      active_synthetic_ast: None,
       javascript_options,
       source,
       errors,
@@ -624,8 +713,7 @@ impl<'parser> JavascriptParser<'parser> {
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
-      definitions: db.create(),
-      definitions_db: db,
+      definitions_db: ScopeInfoDB::with_semantic(ast),
       plugin_drive,
       resource_data,
       factory_meta,
@@ -903,9 +991,9 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn get_variable_info<'key>(
     &mut self,
     name: impl Into<AtomRef<'key>>,
-  ) -> Option<&VariableInfo> {
-    let id = self.definitions_db.get(self.definitions, name)?;
-    Some(self.definitions_db.expect_get_variable(id))
+  ) -> Option<VariableInfo<'_>> {
+    let state = self.definitions_db.resolve(name)?;
+    Some(self.definitions_db.expect_get_variable(state))
   }
 
   fn get_tag_data_by_id<Data: TagInfoData>(
@@ -976,12 +1064,12 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn get_variable_tag_data<Data: TagInfoData>(
     &self,
-    id: VariableInfoId,
+    state: BindingState,
     tag: &'static str,
   ) -> Option<&Data> {
     self
       .definitions_db
-      .expect_get_variable(id)
+      .expect_get_variable(state)
       .tag_info
       .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
   }
@@ -997,9 +1085,7 @@ impl<'parser> JavascriptParser<'parser> {
         info: None,
       });
     };
-    let Some(name) = &info.name else {
-      return None;
-    };
+    let name = info.name?;
     if !info.is_free() {
       return None;
     }
@@ -1020,9 +1106,7 @@ impl<'parser> JavascriptParser<'parser> {
         info: None,
       });
     };
-    let Some(name) = &info.name else {
-      return None;
-    };
+    let name = info.name?;
     if !info.is_free() && !info.is_tagged() {
       return None;
     }
@@ -1032,32 +1116,45 @@ impl<'parser> JavascriptParser<'parser> {
     })
   }
 
-  pub fn get_all_variables_from_current_scope(
-    &self,
-  ) -> impl Iterator<Item = (&str, VariableInfoId)> {
-    self.definitions_db.scope_variables(self.definitions)
+  /// Resolves a member-chain root for alias- and tag-aware hook dispatch.
+  fn get_name_info_from_root(&mut self, root: Expr) -> Option<NameInfo<'_>> {
+    let ExprData::IdentifierReference(identifier) = self.ast.ast.expr_data(root) else {
+      return self.get_name_info_from_variable(root.get_root_name(self.ast.ast)?);
+    };
+    let resolution = self
+      .definitions_db
+      .semantic_context
+      .identifier_resolution(self.ast, identifier);
+    let Some(state) = self
+      .definitions_db
+      .resolve_identifier(self.ast, identifier, resolution)
+    else {
+      let ast = self.ast.ast;
+      return Some(NameInfo {
+        name: ast.get_utf8(identifier.name(ast)),
+        info: None,
+      });
+    };
+    let info = self.definitions_db.expect_get_variable(state);
+    if !info.is_free() && !info.is_tagged() {
+      return None;
+    }
+    Some(NameInfo {
+      name: info.name?,
+      info: Some(info),
+    })
   }
 
-  pub fn define_variable(&mut self, name: Atom) {
-    let definitions = self.definitions;
-    if let Some(variable_info) = self.get_variable_info(&name)
-      && variable_info.tag_info.is_some()
-      && definitions == variable_info.declared_scope
-    {
-      return;
-    }
-    let info = VariableInfo::create(
-      &mut self.definitions_db,
-      definitions,
-      None,
-      VariableInfoFlags::NORMAL,
-      None,
-    );
-    self.definitions_db.set(definitions, name, info);
+  /// Captures a variable's current binding state, or keeps its free name for an alias.
+  pub(crate) fn get_variable_alias(&mut self, name: Atom) -> ExportedVariableInfo {
+    self
+      .get_variable_info(&name)
+      .map(|info| ExportedVariableInfo::VariableInfo(info.binding_state()))
+      .unwrap_or(ExportedVariableInfo::Name(name))
   }
 
   pub fn set_variable(&mut self, name: Atom, variable: ExportedVariableInfo) {
-    let scope_id = self.definitions;
+    let scope_id = self.definitions_db.current_scope();
     match variable {
       ExportedVariableInfo::Name(variable) => {
         if name == variable {
@@ -1080,7 +1177,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn undefined_variable(&mut self, name: &Atom) {
-    self.definitions_db.delete(self.definitions, name)
+    self
+      .definitions_db
+      .delete(self.definitions_db.current_scope(), name)
   }
 
   pub fn tag_variable<Data: TagInfoData>(
@@ -1114,85 +1213,105 @@ impl<'parser> JavascriptParser<'parser> {
     flags: Option<VariableInfoFlags>,
   ) {
     let flags = flags.unwrap_or(VariableInfoFlags::TAGGED);
-    let new_info = if let Some(old_info_id) = self.definitions_db.get(self.definitions, &name) {
-      let old_info = self.definitions_db.expect_get_variable(old_info_id);
-      if let Some(old_tag_info) = old_info.tag_info {
-        let declared_scope = old_info.declared_scope;
-        // FIXME: remove `.clone`
-        let name = old_info.name.clone();
-        let flags = old_info.flags | flags;
-        let tag_info = Some(TagInfo::create(
-          &mut self.definitions_db,
-          tag,
-          data,
-          Some(old_tag_info),
-        ));
-        VariableInfo::create(
-          &mut self.definitions_db,
-          declared_scope,
-          name,
-          flags,
-          tag_info,
-        )
+    let resolution = self.definitions_db.resolve_with_symbol(&name);
+    self.tag_variable_resolved(name, tag, data, flags, resolution);
+  }
+
+  /// Attaches a tag using an immediate binding lookup, preserving aliases and scope restoration.
+  pub(crate) fn tag_variable_resolved(
+    &mut self,
+    name: Atom,
+    tag: &'static str,
+    data: Option<Box<dyn anymap::CloneAny>>,
+    flags: VariableInfoFlags,
+    (state, symbol): (Option<BindingState>, Option<SymbolBinding>),
+  ) {
+    let scope = self.definitions_db.current_scope();
+    let new_info =
+      if let Some(old_info) = state.map(|state| self.definitions_db.expect_get_variable(state)) {
+        if let Some(old_tag_info) = old_info.tag_info {
+          let declared_scope = old_info.declared_scope;
+          // FIXME: remove `.clone`
+          let name = old_info.name.cloned();
+          let flags = old_info.flags | flags;
+          let tag_info = Some(TagInfo::create(
+            &mut self.definitions_db,
+            tag,
+            data,
+            Some(old_tag_info),
+          ));
+          VariableInfo::create(
+            &mut self.definitions_db,
+            declared_scope,
+            name,
+            flags,
+            tag_info,
+          )
+        } else {
+          let declared_scope = old_info.declared_scope;
+          let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
+          VariableInfo::create(
+            &mut self.definitions_db,
+            declared_scope,
+            Some(name.clone()),
+            flags,
+            tag_info,
+          )
+        }
       } else {
-        let declared_scope = old_info.declared_scope;
         let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
         VariableInfo::create(
           &mut self.definitions_db,
-          declared_scope,
+          scope,
           Some(name.clone()),
           flags,
           tag_info,
         )
-      }
-    } else {
-      let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
-      VariableInfo::create(
-        &mut self.definitions_db,
-        self.definitions,
-        Some(name.clone()),
-        flags,
-        tag_info,
-      )
-    };
-    self.definitions_db.set(self.definitions, name, new_info);
+      };
+    self
+      .definitions_db
+      .set_resolved(scope, name, new_info, Some(symbol));
   }
 
-  fn _get_member_expression_info<'ast>(
+  fn _get_member_expression_info(
     &mut self,
-    object: ExprRef<'ast>,
-    mut members: AtomMembers,
-    mut members_optionals: OptionalMembers,
-    mut member_ranges: MemberRanges,
+    object: Expr,
+    members: RawMembers,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo<'ast>> {
-    match object {
-      ExprRef::Call(expr) => {
+  ) -> Option<MemberExpressionInfo> {
+    let ast = self.ast.ast;
+    match ast.expr_data(object) {
+      ExprData::CallExpression(expr) => {
         if !allowed_types.contains(AllowedMemberTypes::CallExpression) {
           return None;
         }
-        let callee = expr.callee.as_expr()?;
-        let (root_name, mut root_members) = if let Some(member) = callee.as_member() {
-          let extracted = self.extract_member_expression_chain(ExprRef::Member(member));
-          let root_name = extracted.object.get_root_name()?;
-          (root_name, extracted.members)
+        let callee = expr.callee(ast);
+        let (root, root_members) = if let Some(member) = callee.as_member_expression(ast) {
+          let extracted = self.extract_member_expression_chain_raw(Expr::MemberExpression(member));
+          (extracted.object, extracted.members)
         } else {
-          (callee.get_root_name()?, AtomMembers::new())
+          (callee, RawMembers::new())
         };
         let NameInfo {
-          info: root_info, ..
-        } = self.get_name_info_from_variable(&root_name)?;
+          name: resolved_root,
+          info: root_info,
+        } = self.get_name_info_from_root(root)?;
 
-        root_members.reverse();
+        let root_members = root_members
+          .iter()
+          .rev()
+          .map(|member| member.atom(ast))
+          .collect();
+        let (mut members, mut members_optionals, mut member_ranges) =
+          materialize_members(ast, members);
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
-        let root_name_for_info = root_name.clone();
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
           root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(root_name_for_info),
-            |i| ExportedVariableInfo::VariableInfo(i.id()),
+            || ExportedVariableInfo::Name(Atom::from(resolved_root)),
+            |i| ExportedVariableInfo::VariableInfo(i.binding_state()),
           ),
           callee_members: root_members,
           members,
@@ -1200,27 +1319,28 @@ impl<'parser> JavascriptParser<'parser> {
           member_ranges,
         }))
       }
-      ExprRef::MetaProp(_) | ExprRef::Ident(_) | ExprRef::This(_) => {
+      ExprData::MetaProperty(_)
+      | ExprData::IdentifierReference(_)
+      | ExprData::ThisExpression(_) => {
         if !allowed_types.contains(AllowedMemberTypes::Expression) {
           return None;
         }
-        let root_name = object.get_root_name()?;
-
         let NameInfo {
           name: resolved_root,
           info: root_info,
-        } = self.get_name_info_from_variable(&root_name)?;
+        } = self.get_name_info_from_root(object)?;
 
+        let (mut members, mut members_optionals, mut member_ranges) =
+          materialize_members(ast, members);
         let name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
-        let root_name_for_info = root_name.clone();
         Some(MemberExpressionInfo::Expression(ExpressionExpressionInfo {
           name,
           root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(root_name_for_info),
-            |i| ExportedVariableInfo::VariableInfo(i.id()),
+            || ExportedVariableInfo::Name(Atom::from(resolved_root)),
+            |i| ExportedVariableInfo::VariableInfo(i.binding_state()),
           ),
           members,
           members_optionals,
@@ -1231,86 +1351,33 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn get_member_expression_info_from_expr<'ast>(
+  pub fn get_member_expression_info_from_expr(
     &mut self,
-    expr: &'ast Expr,
+    expr: Expr,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo<'ast>> {
-    match expr {
-      Expr::Member(_) | Expr::OptChain(_) => {
-        self.get_member_expression_info(expr.into(), allowed_types)
+  ) -> Option<MemberExpressionInfo> {
+    match self.ast.ast.expr_data(expr) {
+      ExprData::MemberExpression(_) | ExprData::ChainExpression(_) => {
+        self.get_member_expression_info(expr, allowed_types)
       }
-      _ => self._get_member_expression_info(
-        expr.into(),
-        AtomMembers::new(),
-        OptionalMembers::new(),
-        MemberRanges::new(),
-        allowed_types,
-      ),
+      _ => self._get_member_expression_info(expr, RawMembers::new(), allowed_types),
     }
   }
 
-  pub fn get_member_expression_info<'ast>(
+  pub fn get_member_expression_info(
     &mut self,
-    expr: ExprRef<'ast>,
+    expr: Expr,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo<'ast>> {
-    let ExtractedMemberExpressionChainData {
-      object,
-      members,
-      members_optionals,
-      member_ranges,
-    } = self.extract_member_expression_chain(expr);
-    self._get_member_expression_info(
-      object,
-      members,
-      members_optionals,
-      member_ranges,
-      allowed_types,
-    )
+  ) -> Option<MemberExpressionInfo> {
+    let RawExtractedMemberExpressionChainData { object, members } =
+      self.extract_member_expression_chain_raw(expr);
+    self._get_member_expression_info(object, members, allowed_types)
   }
 
-  pub fn extract_member_expression_chain<'ast>(
-    &self,
-    expr: ExprRef<'ast>,
-  ) -> ExtractedMemberExpressionChainData<'ast> {
-    let mut object = expr;
-    let mut members = AtomMembers::new();
-    let mut members_optionals = OptionalMembers::new();
-    let mut member_ranges = MemberRanges::new();
-    let mut in_optional_chain = self.member_expr_in_optional_chain;
-    loop {
-      match object {
-        ExprRef::Member(expr) => {
-          if let Some(computed) = expr.prop.as_computed() {
-            let Some(value) = member_property_to_atom(&computed.expr) else {
-              break;
-            };
-            // Since members are not used across rspack javascript parser plugin,
-            // we directly makes it atom here
-            members.push(value);
-            member_ranges.push(expr.obj.span());
-          } else if let Some(ident) = expr.prop.as_ident() {
-            members.push(Atom::from(&ident.sym));
-            member_ranges.push(expr.obj.span());
-          } else {
-            break;
-          }
-          members_optionals.push(in_optional_chain);
-          object = (&expr.obj).into();
-          in_optional_chain = false;
-        }
-        ExprRef::OptChain(expr) => {
-          in_optional_chain = expr.optional;
-          if let OptChainBase::Member(member) = &expr.base {
-            object = ExprRef::Member(member);
-          } else {
-            break;
-          }
-        }
-        _ => break,
-      }
-    }
+  pub fn extract_member_expression_chain(&self, expr: Expr) -> ExtractedMemberExpressionChainData {
+    let RawExtractedMemberExpressionChainData { object, members } =
+      self.extract_member_expression_chain_raw(expr);
+    let (members, members_optionals, member_ranges) = materialize_members(self.ast.ast, members);
     ExtractedMemberExpressionChainData {
       object,
       members,
@@ -1319,166 +1386,202 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn enter_ident<F>(&mut self, ident: &Ident, on_ident: F)
+  fn extract_member_expression_chain_raw(
+    &self,
+    expr: Expr,
+  ) -> RawExtractedMemberExpressionChainData {
+    let ast = self.ast.ast;
+    let mut object = expr;
+    let mut members = RawMembers::new();
+    let mut in_optional_chain = self.member_expr_in_optional_chain;
+    loop {
+      match ast.expr_data(object) {
+        ExprData::MemberExpression(expr) => {
+          let property = expr.property(ast);
+          let property_data = if expr.computed(ast) {
+            let property_data = ast.property_key_data(property);
+            if !member_property_key_data_can_be_atom(ast, property_data) {
+              break;
+            }
+            property_data
+          } else if let Some(identifier) = property.as_identifier_name(ast) {
+            PropertyKeyData::IdentifierName(identifier)
+          } else {
+            break;
+          };
+          let member_object = expr.object(ast);
+          members.push(RawMember {
+            property: property_data,
+            object: member_object,
+            optional: in_optional_chain || expr.optional(ast),
+          });
+          object = member_object;
+          in_optional_chain = false;
+        }
+        ExprData::ChainExpression(expr) => {
+          let expression = expr.expression(ast);
+          if let Some(member) = expression.as_member_expression(ast) {
+            in_optional_chain = member.optional(ast);
+            object = Expr::MemberExpression(member);
+          } else {
+            break;
+          }
+        }
+        _ => break,
+      }
+    }
+    RawExtractedMemberExpressionChainData { object, members }
+  }
+
+  fn enter_ident<F>(&mut self, ident: BindingIdentifier, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident),
+    F: FnOnce(&mut Self, BindingIdentifier, &str),
   {
-    let drive = self.plugin_drive.clone();
-    if !ident
-      .sym
-      .call_hooks_name(self, |parser, for_name| {
-        drive.pattern(parser, ident, for_name)
-      })
+    let ast = self.ast.ast;
+    let name = ast.get_utf8(ident.name(ast));
+    let drive = self.plugin_drive();
+    // Declaration hooks inspect the declared name, even when its semantic
+    // binding is already initialized as a normal local variable.
+    if !drive
+      .pattern(self, PatternIdentifier::Binding(ident), name)
       .unwrap_or_default()
     {
-      on_ident(self, ident);
+      on_ident(self, ident, name);
     }
   }
 
-  fn enter_array_pattern<F>(&mut self, array_pat: &ArrayPat, on_ident: F)
+  fn enter_array_pattern<F>(&mut self, array_pat: ArrayPattern, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
-    array_pat
-      .elems
-      .iter()
-      .flatten()
-      .for_each(|ele| self.enter_pattern(PatRef::Borrowed(ele), on_ident));
+    let ast = self.ast.ast;
+    for element in ast.nodes(array_pat.elements(ast)).flatten() {
+      self.enter_pattern(PatRef::Borrowed(element), on_ident);
+    }
+    if let Some(rest) = array_pat.rest(ast) {
+      self.enter_rest_pattern(rest, on_ident);
+    }
   }
 
-  fn enter_assignment_pattern<F>(&mut self, assign: &AssignPat, on_ident: F)
+  fn enter_assignment_pattern<F>(&mut self, assign: AssignmentPattern, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
-    self.enter_pattern(PatRef::Borrowed(&assign.left), on_ident);
+    self.enter_pattern(PatRef::Borrowed(assign.left(self.ast.ast)), on_ident);
   }
 
-  fn enter_object_pattern<F>(&mut self, obj: &ObjectPat, on_ident: F)
+  fn enter_object_pattern<F>(&mut self, object: ObjectPattern, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
-    for prop in &obj.props {
-      match prop {
-        ObjectPatProp::KeyValue(kv) => self.enter_pattern(PatRef::Borrowed(&kv.value), on_ident),
-        ObjectPatProp::Assign(assign) => {
-          let old = self.in_short_hand;
-          // Defaulted shorthand bindings must also preserve their property key.
-          self.in_short_hand = true;
-          self.enter_ident(&assign.key.id, on_ident);
-          self.in_short_hand = old;
-        }
-        ObjectPatProp::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
+    let ast = self.ast.ast;
+    for property in ast.nodes(object.properties(ast)) {
+      let value = property.value(ast);
+      let old = self.in_short_hand;
+      if property.shorthand(ast) {
+        self.in_short_hand = true;
       }
+      self.enter_pattern(PatRef::Borrowed(value), on_ident);
+      self.in_short_hand = old;
+    }
+    if let Some(rest) = object.rest(ast) {
+      self.enter_rest_pattern(rest, on_ident);
     }
   }
 
-  fn enter_rest_pattern<F>(&mut self, rest: &RestPat, on_ident: F)
+  fn enter_rest_pattern<F>(&mut self, rest: BindingRestElement, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
-    self.enter_pattern(PatRef::Borrowed(&rest.arg), on_ident)
+    self.enter_pattern(PatRef::Borrowed(rest.argument(self.ast.ast)), on_ident)
   }
 
-  pub(crate) fn enter_pattern<F>(&mut self, pattern: PatRef<'_>, on_ident: F)
+  pub(crate) fn enter_pattern<F>(&mut self, pattern: PatRef, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
-    match pattern.as_pat() {
-      Pat::Ident(ident) => self.enter_ident(&ident.id, on_ident),
-      Pat::Array(array) => self.enter_array_pattern(array, on_ident),
-      Pat::Assign(assign) => self.enter_assignment_pattern(assign, on_ident),
-      Pat::Object(obj) => self.enter_object_pattern(obj, on_ident),
-      Pat::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
-      Pat::Invalid(_) => (),
-      Pat::Expr(_) => (),
-    }
-  }
-
-  fn enter_assignment_target<F>(&mut self, target: &AssignTarget, on_ident: F)
-  where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-  {
-    let old = self.in_assignment_pattern;
-    self.in_assignment_pattern = true;
-    match target {
-      AssignTarget::Simple(simple) => {
-        if let Some(ident) = simple.as_ident() {
-          self.enter_ident(&ident.id, on_ident);
-        }
+    match self.ast.ast.binding_pattern_data(pattern.as_pat()) {
+      BindingPatternData::BindingIdentifier(ident) => self.enter_ident(ident, on_ident),
+      BindingPatternData::ArrayPattern(array) => self.enter_array_pattern(array, on_ident),
+      BindingPatternData::AssignmentPattern(assign) => {
+        self.enter_assignment_pattern(assign, on_ident)
       }
-      AssignTarget::Pat(pattern) => match &**pattern {
-        AssignTargetPat::Array(array) => self.enter_array_pattern(array, on_ident),
-        AssignTargetPat::Object(obj) => self.enter_object_pattern(obj, on_ident),
-        AssignTargetPat::Invalid(_) => (),
-      },
+      BindingPatternData::ObjectPattern(object) => self.enter_object_pattern(object, on_ident),
+      BindingPatternData::BindingRestElement(rest) => self.enter_rest_pattern(rest, on_ident),
+      BindingPatternData::SimpleAssignmentTarget(_) => (),
     }
-    self.in_assignment_pattern = old;
   }
 
-  fn enter_patterns<'a, I, F>(&mut self, patterns: I, on_ident: F)
+  fn enter_patterns<I, F>(&mut self, patterns: I, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident) + Copy,
-    I: Iterator<Item = PatRef<'a>>,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
+    I: Iterator<Item = PatRef>,
   {
     for pattern in patterns {
       self.enter_pattern(pattern, on_ident);
     }
   }
 
-  fn enter_optional_chain<'a, C, M, R>(
+  fn enter_optional_chain<C, M, R>(
     &mut self,
-    expr: &'a OptChainExpr<'a>,
+    expr: swc_next_ecma_ast::ChainExpression,
     on_call: C,
     on_member: M,
   ) -> R
   where
-    C: FnOnce(&mut Self, &'a OptCall<'a>) -> R,
-    M: FnOnce(&mut Self, &'a MemberExpr<'a>) -> R,
+    C: FnOnce(&mut Self, CallExpression) -> R,
+    M: FnOnce(&mut Self, MemberExpression) -> R,
   {
     let member_expr_in_optional_chain = self.member_expr_in_optional_chain;
-    let ret = match &expr.base {
-      OptChainBase::Call(call) => {
-        if call.callee.is_member() {
-          self.member_expr_in_optional_chain = expr.optional;
-        }
-        on_call(self, call)
+    let ast = self.ast.ast;
+    let expression = expr.expression(ast);
+    let ret = if let Some(call) = expression.as_call_expression(ast) {
+      if call.callee(ast).is_member_expression(ast) {
+        self.member_expr_in_optional_chain = call.optional(ast);
       }
-      OptChainBase::Member(member) => {
-        self.member_expr_in_optional_chain = expr.optional;
-        on_member(self, member)
-      }
+      on_call(self, call)
+    } else if let Some(member) = expression.as_member_expression(ast) {
+      self.member_expr_in_optional_chain = member.optional(ast);
+      on_member(self, member)
+    } else {
+      unreachable!("chain expression must contain a call or member expression")
     };
     self.member_expr_in_optional_chain = member_expr_in_optional_chain;
     ret
   }
 
-  fn enter_declaration<F>(&mut self, decl: &Decl, on_ident: F)
+  fn enter_declaration<F>(&mut self, decl: Decl, on_ident: F)
   where
-    F: FnOnce(&mut Self, &Ident) + Copy,
+    F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
-    match decl {
-      Decl::Class(c) => {
-        self.enter_ident(&c.ident, on_ident);
-      }
-      Decl::Fn(f) => {
-        self.enter_ident(&f.ident, on_ident);
-      }
-      Decl::Var(var) => {
-        for decl in &var.decls {
-          self.enter_pattern(PatRef::Borrowed(&decl.name), on_ident);
+    let ast = self.ast.ast;
+    match ast.decl_data(decl) {
+      DeclData::Class(class) => {
+        if let Some(id) = class.id(ast) {
+          self.enter_ident(id, on_ident);
         }
       }
-      Decl::Using(_) => (),
+      DeclData::Function(function) => {
+        if let Some(id) = function.id(ast) {
+          self.enter_ident(id, on_ident);
+        }
+      }
+      DeclData::VariableDeclaration(variable) => {
+        for declarator in ast.nodes(variable.declarators(ast)) {
+          self.enter_pattern(PatRef::Borrowed(declarator.id(ast)), on_ident);
+        }
+      }
+      _ => (),
     }
   }
 
-  fn enter_statement<S, H, F>(&mut self, statement: &S, call_hook: H, on_statement: F)
+  fn enter_statement<S, H, F>(&mut self, span: Span, statement: S, call_hook: H, on_statement: F)
   where
-    S: GetSpan,
-    H: FnOnce(&mut Self, &S) -> bool,
-    F: FnOnce(&mut Self, &S),
+    S: Copy,
+    H: FnOnce(&mut Self, S) -> bool,
+    F: FnOnce(&mut Self, S),
   {
-    self.statement_path.push(statement.span().into());
+    self.statement_path.push(span.into());
     if call_hook(self, statement) {
       self.prev_statement = self.statement_path.pop();
       return;
@@ -1487,29 +1590,29 @@ impl<'parser> JavascriptParser<'parser> {
     self.prev_statement = self.statement_path.pop();
   }
 
-  pub fn enter_destructuring_assignment<'a>(
+  pub fn enter_destructuring_assignment(
     &mut self,
-    pattern: &ObjectPat<'a>,
-    expr: &'a Expr<'a>,
-  ) -> Option<&'a Expr<'a>> {
-    let drive = self.plugin_drive.clone();
-    let expr = if let Expr::Await(await_expr) = expr {
-      &await_expr.arg
+    pattern: ObjectPattern,
+    expr: Expr,
+  ) -> Option<Expr> {
+    let ast = self.ast.ast;
+    let drive = self.plugin_drive();
+    let expr = if let Some(await_expr) = expr.as_await_expression(ast) {
+      await_expr.argument(ast)
     } else {
       expr
     };
-    let destructuring = if let Some(assign) = expr.as_assign()
-      && let Some(pat) = assign.left.as_pat()
-      && let Some(obj_pat) = pat.as_object()
+    let destructuring = if let Some(assign) = expr.as_assignment_expression(ast)
+      && let Some(obj_pat) = assign.left(ast).as_object_assignment_target(ast)
     {
-      self.enter_destructuring_assignment(obj_pat, &assign.right)
+      self.enter_destructuring_assignment(obj_pat, assign.right(ast))
     } else {
       let can_collect = drive
         .can_collect_destructuring_assignment_properties(self, expr)
         .unwrap_or_default();
       can_collect.then_some(expr)
     };
-    let destructuring_span = destructuring.map(|destructuring| destructuring.span());
+    let destructuring_span = destructuring.map(|destructuring| destructuring.span(ast));
     if let Some(destructuring_span) = destructuring_span
       && let Some(keys) =
         self.collect_destructuring_assignment_properties_from_object_pattern(pattern)
@@ -1521,56 +1624,60 @@ impl<'parser> JavascriptParser<'parser> {
     destructuring
   }
 
-  pub fn walk_program(&mut self, ast: &Program) {
-    let drive = self.plugin_drive.clone();
-    if drive.program(self, ast).is_none() {
-      match ast {
-        Program::Module(m) => {
-          self.set_strict(true);
-          self.prev_statement = None;
-          self.module_pre_walk_module_items(&m.body);
-          self.prev_statement = None;
-          self.pre_walk_module_items(&m.body);
-          self.prev_statement = None;
-          self.block_pre_walk_module_items(&m.body);
-          self.prev_statement = None;
-          self.walk_module_items(&m.body);
-        }
-        Program::Script(s) => {
-          self.detect_mode(&s.body);
-          self.prev_statement = None;
-          self.pre_walk_statements(&s.body);
-          self.prev_statement = None;
-          self.block_pre_walk_statements(&s.body);
-          self.prev_statement = None;
-          self.walk_statements(&s.body);
-        }
+  pub fn walk_program(&mut self, program: Program) {
+    let drive = self.plugin_drive();
+    if drive.program(self, program).is_none() {
+      let ast = self.ast.ast;
+      let body = program.body(ast);
+      if matches!(ast.source_type(), SourceType::Module) {
+        self.set_strict(true);
+        self.prev_statement = None;
+        self.module_pre_walk_module_items(body);
+      } else {
+        self.detect_mode(program);
       }
+      self.prev_statement = None;
+      self.pre_walk_module_items(body);
+      self.prev_statement = None;
+      self.block_pre_walk_module_items(body);
+      self.prev_statement = None;
+      self.walk_module_items(body);
     }
     drive.finish(self);
   }
 
   fn set_strict(&mut self, value: bool) {
-    let current_scope = self.definitions_db.expect_get_mut_scope(self.definitions);
+    let current_scope = self
+      .definitions_db
+      .expect_get_mut_scope(self.definitions_db.current_scope());
     current_scope.is_strict = value;
   }
 
-  pub fn detect_mode(&mut self, stmts: &[Stmt]) {
-    let Some(Lit::Str(str)) = stmts
-      .first()
-      .and_then(|stmt| stmt.as_expr())
-      .and_then(|expr_stmt| expr_stmt.expr.as_lit())
-    else {
+  pub fn detect_mode(&mut self, program: Program) {
+    // Semantic can rule out strict directives; module classification still follows Rspack.
+    if self.is_strict()
+      || !self
+        .ast
+        .semantic
+        .scope(self.definitions_db.semantic_context.scope)
+        .flags
+        .strict
+    {
       return;
-    };
-
-    if str.value.as_wtf8().to_string_lossy().as_ref() == "use strict" {
-      self.set_strict(true);
+    }
+    let ast = self.ast.ast;
+    for directive in ast.nodes(program.directives(ast)) {
+      if ast.get_utf8(directive.value(ast)) == "use strict" {
+        self.set_strict(true);
+        return;
+      }
     }
   }
 
   pub fn is_strict(&mut self) -> bool {
-    let scope = self.definitions_db.expect_get_scope(self.definitions);
+    let scope = self
+      .definitions_db
+      .expect_get_scope(self.definitions_db.current_scope());
     scope.is_strict
   }
 
@@ -1583,15 +1690,52 @@ impl<'parser> JavascriptParser<'parser> {
 }
 
 impl<'parser> JavascriptParser<'parser> {
-  pub fn evaluate_expression<'a>(&mut self, expr: &'a Expr<'a>) -> BasicEvaluatedExpression<'a>
-  where
-    'parser: 'a,
-  {
+  pub fn evaluate_expression(&mut self, expr: Expr) -> BasicEvaluatedExpression<'parser> {
+    let span = expr.span(self.ast.ast);
     match self.evaluating(expr) {
-      Some(evaluated) => evaluated.with_expression(Some(expr)),
-      None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span().real_hi())
-        .with_expression(Some(expr)),
+      Some(evaluated) => evaluated.with_expression_ast(Some(expr), self.active_synthetic_ast),
+      None => BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi())
+        .with_expression_ast(Some(expr), self.active_synthetic_ast),
     }
+  }
+
+  fn add_synthetic_ast(&mut self, ast: &'parser ParsedJavaScriptAst<'parser>) -> usize {
+    let index = self.synthetic_asts.len();
+    let semantic = self.definitions_db.register_ast(ast);
+    self.synthetic_asts.push((ast, semantic));
+    index
+  }
+
+  pub(crate) fn evaluate_expression_in_ast(
+    &mut self,
+    expression: Expr,
+    ast: &'parser ParsedJavaScriptAst<'parser>,
+  ) -> BasicEvaluatedExpression<'parser> {
+    let ast = self.add_synthetic_ast(ast);
+    let (synthetic_ast, semantic) = self.synthetic_asts[ast];
+    let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
+    let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
+    self.definitions_db.enter_ast(semantic);
+    let evaluated = self.evaluate_expression(expression);
+    self.definitions_db.leave_ast();
+    self.active_synthetic_ast = previous_synthetic_ast;
+    self.ast = previous_ast;
+    evaluated
+  }
+
+  pub(crate) fn walk_expression_in_ast(&mut self, expression: Expr, ast: Option<usize>) {
+    let Some(ast) = ast else {
+      self.walk_expression(expression);
+      return;
+    };
+    let (synthetic_ast, semantic) = self.synthetic_asts[ast];
+    let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
+    let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
+    self.definitions_db.enter_ast(semantic);
+    self.walk_expression(expression);
+    self.definitions_db.leave_ast();
+    self.active_synthetic_ast = previous_synthetic_ast;
+    self.ast = previous_ast;
   }
 
   pub fn evaluate<T: Display>(
@@ -1604,96 +1748,98 @@ impl<'parser> JavascriptParser<'parser> {
 
   // same as `JavascriptParser._initializeEvaluating` in webpack
   // FIXME: should mv it to plugin(for example `parse.hooks.evaluate for`)
-  fn evaluating<'a>(&mut self, expr: &'a Expr<'a>) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'parser: 'a,
-  {
-    match expr {
-      Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
-      Expr::TaggedTpl(tagged_tpl) => eval::eval_tagged_tpl_expression(self, tagged_tpl),
-      Expr::Lit(lit) => eval::eval_lit_expr(lit),
-      Expr::Cond(cond) => eval::eval_cond_expression(self, cond),
-      Expr::Unary(unary) => eval::eval_unary_expression(self, unary),
-      Expr::Bin(binary) => eval::eval_binary_expression(self, binary),
-      Expr::Array(array) => eval::eval_array_expression(self, array),
-      Expr::New(new) => eval::eval_new_expression(self, new),
-      Expr::Call(call) => eval::eval_call_expression(self, call),
-      Expr::OptChain(opt_chain) => self.enter_optional_chain(
-        opt_chain,
-        |parser, call| {
-          let allocator: &'a Allocator = parser.ast.allocator;
-          let call_expr = allocator.alloc(CallExpr {
-            span: call.span,
-            callee: Callee::Expr(allocator.boxed(call.callee.clone_in(allocator))),
-            args: call.args.clone_in(allocator),
-          });
-          eval::eval_call_expression(parser, call_expr)
-        },
-        |parser, member| eval::eval_member_expression(parser, member, expr),
-      ),
-      Expr::Member(member) => eval::eval_member_expression(self, member, expr),
-      Expr::Ident(ident) => {
-        let name = Atom::from(&ident.sym);
+  fn evaluating(&mut self, expr: Expr) -> Option<BasicEvaluatedExpression<'parser>> {
+    let ast = self.ast.ast;
+    match ast.expr_data(expr) {
+      ExprData::TemplateLiteral(tpl) => eval::eval_tpl_expression(self, tpl),
+      ExprData::TaggedTemplateExpression(tagged_tpl) => {
+        eval::eval_tagged_tpl_expression(self, tagged_tpl)
+      }
+      ExprData::StringLiteral(_)
+      | ExprData::NumericLiteral(_)
+      | ExprData::BigIntLiteral(_)
+      | ExprData::BooleanLiteral(_)
+      | ExprData::NullLiteral(_)
+      | ExprData::RegExpLiteral(_) => eval::eval_lit_expr(ast, expr),
+      ExprData::ConditionalExpression(cond) => eval::eval_cond_expression(self, cond),
+      ExprData::UnaryExpression(unary) => eval::eval_unary_expression(self, unary),
+      ExprData::BinaryExpression(binary) => eval::eval_binary_expression(self, binary),
+      ExprData::LogicalExpression(logical) => eval::eval_logical_expression(self, logical),
+      ExprData::ArrayExpression(array) => eval::eval_array_expression(self, array),
+      ExprData::NewExpression(new) => eval::eval_new_expression(self, new),
+      ExprData::CallExpression(call) => eval::eval_call_expression(self, call),
+      ExprData::ChainExpression(chain) => {
+        let inner = chain.expression(ast);
+        match ast.expr_data(inner) {
+          ExprData::CallExpression(call) => eval::eval_call_expression(self, call),
+          ExprData::MemberExpression(member) => eval::eval_member_expression(self, member, expr),
+          _ => None,
+        }
+      }
+      ExprData::MemberExpression(member) => eval::eval_member_expression(self, member, expr),
+      ExprData::IdentifierReference(ident) => {
+        let span = ident.span(ast);
+        let name = ast.get_utf8(ident.name(ast));
         if name == "undefined" {
-          let mut eval =
-            BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
+          let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
           eval.set_undefined();
           return Some(eval);
         }
-        let drive = self.plugin_drive.clone();
-        name
-          .call_hooks_name(self, |parser, name| {
-            drive.evaluate_identifier(
-              parser,
-              name,
-              None,
-              ident.span.real_lo(),
-              ident.span.real_hi(),
-            )
-          })
-          .or_else(|| {
-            let info = self.get_variable_info(&name);
-            if let Some(info) = info {
-              if let Some(name) = &info.name
-                && (info.is_free() || info.is_tagged())
-              {
-                let mut eval =
-                  BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
-                eval.set_identifier(
-                  name.to_owned(),
-                  ExportedVariableInfo::VariableInfo(info.id()),
-                  None,
-                  None,
-                  None,
-                );
-                Some(eval)
-              } else {
-                None
-              }
-            } else {
-              let mut eval =
-                BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
+        let drive = self.plugin_drive();
+        let resolution = self
+          .definitions_db
+          .semantic_context
+          .identifier_resolution(self.ast, ident);
+        let evaluate = |parser: &mut Self, name: &str| {
+          drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
+        };
+        let result = if let Some(state) = self
+          .definitions_db
+          .resolve_identifier(self.ast, ident, resolution)
+        {
+          call_hooks_name::call_hooks_info(state, self, evaluate)
+        } else {
+          evaluate(self, name)
+        };
+        result.or_else(|| {
+          // Hooks can change binding state, but not this AST's resolution.
+          let state = self
+            .definitions_db
+            .resolve_identifier(self.ast, ident, resolution);
+          if matches!(state, Some(BindingState::Normal(_))) {
+            return None;
+          }
+          let info = state.map(|state| self.definitions_db.expect_get_variable(state));
+          if let Some(info) = info {
+            if let Some(name) = info.name
+              && (info.is_free() || info.is_tagged())
+            {
+              let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
               eval.set_identifier(
-                Atom::from(&ident.sym),
-                ExportedVariableInfo::Name(name.clone()),
-                None,
-                None,
+                name.to_owned(),
+                ExportedVariableInfo::VariableInfo(info.binding_state()),
                 None,
               );
               Some(eval)
+            } else {
+              None
             }
-          })
+          } else {
+            let name = Atom::from(name);
+            let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
+            eval.set_identifier(name.clone(), ExportedVariableInfo::Name(name), None);
+            Some(eval)
+          }
+        })
       }
-      Expr::This(this) => {
-        let drive = self.plugin_drive.clone();
+      ExprData::ThisExpression(this) => {
+        let span = this.span(ast);
+        let drive = self.plugin_drive();
         let default_eval = || {
-          let mut eval =
-            BasicEvaluatedExpression::with_range(this.span.real_lo(), this.span.real_hi());
+          let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
           eval.set_identifier(
             "this".into(),
             ExportedVariableInfo::Name("this".into()),
-            None,
-            None,
             None,
           );
           Some(eval)
@@ -1701,15 +1847,15 @@ impl<'parser> JavascriptParser<'parser> {
         let Some(info) = self.get_variable_info("this") else {
           // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
           return drive
-            .evaluate_identifier(self, "this", None, this.span.real_lo(), this.span.real_hi())
+            .evaluate_identifier(self, "this", None, span.real_lo(), span.real_hi())
             .or_else(default_eval);
         };
-        if let Some(name) = &info.name
+        if let Some(name) = info.name
           && (info.is_free() || info.is_tagged())
         {
           let name = name.clone();
           return drive
-            .evaluate_identifier(self, &name, None, this.span.real_lo(), this.span.real_hi())
+            .evaluate_identifier(self, &name, None, span.real_lo(), span.real_hi())
             .or_else(default_eval);
         }
         None

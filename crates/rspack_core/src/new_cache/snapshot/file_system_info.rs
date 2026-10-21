@@ -3,6 +3,7 @@ mod tests;
 
 use std::{collections::VecDeque, fmt, sync::Arc};
 
+use futures::future::BoxFuture;
 use rspack_error::{Result, error};
 use rspack_fs::{Error as FsError, FileMetadata, ReadableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, RspackHashDigest, RspackHasher};
@@ -121,9 +122,11 @@ pub struct FileSystemInfo {
 struct FileSystemInfoInner {
   fs: Arc<dyn ReadableFileSystem>,
   logger: FileSystemInfoLogger,
+  resolve_build_dependencies: SnapshotStrategyOptions,
+  build_dependencies: SnapshotStrategyOptions,
+  resolve: SnapshotStrategyOptions,
   module: SnapshotStrategyOptions,
   context_module: SnapshotStrategyOptions,
-  build_dependencies: SnapshotStrategyOptions,
   unmanaged_paths_with_slash: Vec<String>,
   unmanaged_paths_reg_exps: Vec<RspackRegex>,
   managed_paths_with_slash: Vec<String>,
@@ -167,9 +170,11 @@ impl FileSystemInfo {
       inner: Arc::new(FileSystemInfoInner {
         fs,
         logger: logger.into(),
+        resolve_build_dependencies: options.resolve_build_dependencies,
+        build_dependencies: options.build_dependencies,
+        resolve: options.resolve,
         module: options.module,
         context_module: options.context_module,
-        build_dependencies: options.build_dependencies,
         unmanaged_paths_with_slash,
         unmanaged_paths_reg_exps,
         managed_paths_with_slash,
@@ -193,7 +198,18 @@ impl FileSystemInfo {
   /// Corresponds to webpack's `FileSystemInfo.createSnapshot`: classify paths,
   /// snapshot unmanaged paths, then read each managed item's metadata once.
   /// https://github.com/webpack/webpack/blob/fc90789fdf089a5de71671f8d10155fcd32dc027/lib/FileSystemInfo.js#L2534-L3079
-  pub async fn create_snapshot(
+  pub fn create_snapshot<'a>(
+    &'a self,
+    start_time: Option<u64>,
+    files: &'a InternedPathSet,
+    contexts: &'a InternedPathSet,
+    missing: &'a InternedPathSet,
+    strategy: SnapshotStrategyOptions,
+  ) -> BoxFuture<'a, Result<Snapshot>> {
+    Box::pin(self.create_snapshot_impl(start_time, files, contexts, missing, strategy))
+  }
+
+  async fn create_snapshot_impl(
     &self,
     start_time: Option<u64>,
     files: &InternedPathSet,
@@ -278,12 +294,20 @@ impl FileSystemInfo {
     first
   }
 
+  pub fn resolve_strategy(&self) -> SnapshotStrategyOptions {
+    self.inner.resolve
+  }
+
   pub fn module_strategy(&self) -> SnapshotStrategyOptions {
     self.inner.module
   }
 
   pub fn context_module_strategy(&self) -> SnapshotStrategyOptions {
     self.inner.context_module
+  }
+
+  pub fn resolve_build_dependencies_strategy(&self) -> SnapshotStrategyOptions {
+    self.inner.resolve_build_dependencies
   }
 
   pub fn build_dependencies_strategy(&self) -> SnapshotStrategyOptions {

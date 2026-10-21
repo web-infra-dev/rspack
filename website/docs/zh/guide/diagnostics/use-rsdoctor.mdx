@@ -4,26 +4,26 @@ description: '使用 Rsdoctor 分析 Rspack 的构建产物和构建性能。'
 
 # 使用 Rsdoctor
 
-[Rsdoctor](https://rsdoctor.rs/) 是一款为 Rspack 生态量身打造的构建分析工具。
+[Rsdoctor](https://rsdoctor.rs/zh/) 是为 Rspack 生态打造的构建分析工具，通过可视化呈现构建过程与产物，帮助开发者排查构建问题、定位性能瓶颈；同时为 Agent 提供构建数据，支持对 JavaScript 程序的自动诊断与优化。
 
-Rsdoctor 致力于成为一站式、智能化的构建分析工具，通过可视化与智能分析，使整个构建流程变得透明、可预测和可优化，从而帮助开发团队精准定位瓶颈、优化性能并提升工程质量。
+## 环境要求
 
-当你需要调试构建产物或构建过程时，可以借助 Rsdoctor 来提升排查问题的效率。
+Rsdoctor 2.0 要求 Node.js `^20.19.0 || >=22.12.0` 和 Rspack 2.0 及以上版本。使用 Rspack 1.x 或 webpack 的项目应继续使用 Rsdoctor 1.x。
 
 ## 如何使用
 
-在使用 Rspack 的项目中，你可以通过以下方式开启 Rsdoctor：
-
-1. 安装 `@rsdoctor/rspack-plugin` 插件：
+1. 安装 `@rsdoctor/core`：
 
 import { PackageManagerTabs } from '@theme';
 
-<PackageManagerTabs command="add @rsdoctor/rspack-plugin -D" />
+<PackageManagerTabs command="add @rsdoctor/core@latest -D" />
 
-2. 在 Rspack 的 [plugins](/config/plugins) 选项中注册 `RsdoctorRspackPlugin` 插件：
+从 Rsdoctor 1.x 升级时，请参考 [Rsdoctor 2.0 迁移指南](https://rsdoctor.rs/zh/guide/migration/migration-v2)。
 
-```ts title="rspack.config.mjs"
-import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
+2. 在 Rspack 的 [plugins](/config/plugins) 选项中注册 `RsdoctorRspackPlugin`。Rsdoctor 2.0 的包仅支持 ESM，因此请使用 ESM 配置文件和导入语法：
+
+```js title="rspack.config.mjs"
+import { RsdoctorRspackPlugin } from '@rsdoctor/core';
 
 export default {
   plugins: [
@@ -36,32 +36,18 @@ export default {
 };
 ```
 
-3. 在构建命令之前添加 `RSDOCTOR=true` 变量：
+3. 运行 Rspack 时设置 `RSDOCTOR=true`：
 
 ```bash
-# dev
 RSDOCTOR=true rspack serve
-
-# build
 RSDOCTOR=true rspack build
 ```
 
-由于 Windows 不支持上述用法，你也可以使用 [cross-env](https://npmjs.com/package/cross-env) 来设置环境变量，这可以确保在不同的操作系统中都能正常使用：
+在 Windows 上，使用 [cross-env](https://npmjs.com/package/cross-env) 设置环境变量：
 
 ```bash
-# dev
 cross-env RSDOCTOR=true rspack serve
-
-# build
 cross-env RSDOCTOR=true rspack build
 ```
 
-在构建完成后，Rsdoctor 会打开构建分析页面。请参考 [Rsdoctor 文档](https://rsdoctor.rs/) 来了解完整功能。
-
-## 配置 Rsdoctor
-
-查看 Rsdoctor 的 [Options](https://rsdoctor.rs/zh/config/options/options) 文档来配置 RsdoctorRspackPlugin 的选项。
-
-## 更多特性
-
-查看 [Rsdoctor 功能导航](https://rsdoctor.rs/zh/guide/start/features) 来了解 Rsdoctor 的所有特性。
+构建完成后，Rsdoctor 会打开分析页面。更多用法请参考 [Rsdoctor 2.0 快速开始](https://rsdoctor.rs/zh/guide/start/quick-start)。

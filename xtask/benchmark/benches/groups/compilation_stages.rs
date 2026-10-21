@@ -33,8 +33,9 @@ use rspack_hash::RspackHasher;
 use rspack_plugin_split_chunks::{
   CacheGroup, CacheGroupTest, ChunkNameGetter, FallbackCacheGroup, PluginOptions, SplitChunkSizes,
   SplitChunksPlugin, create_all_chunk_filter, create_default_module_layer_filter,
-  create_default_module_type_filter,
+  create_default_module_type_filter, create_regex_chunk_filter_from_str,
 };
+use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap;
 use tokio::runtime::Runtime;
 
@@ -226,7 +227,36 @@ pub(crate) fn create_named_module_ids_benchmark(c: &mut Criterion, rt: &Runtime)
 }
 
 pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
-  split_chunks_benchmark_with_min_size(c, rt, 0.0, 0, "rust@split_chunks");
+  split_chunks_benchmark_with_min_size(
+    c,
+    rt,
+    0.0,
+    0,
+    SplitChunksCase::Anonymous,
+    "rust@split_chunks",
+  );
+}
+
+pub(crate) fn split_chunks_named_benchmark(c: &mut Criterion, rt: &Runtime) {
+  split_chunks_benchmark_with_min_size(
+    c,
+    rt,
+    0.0,
+    0,
+    SplitChunksCase::Named,
+    "rust@split_chunks_named",
+  );
+}
+
+pub(crate) fn split_chunks_priorities_benchmark(c: &mut Criterion, rt: &Runtime) {
+  split_chunks_benchmark_with_min_size(
+    c,
+    rt,
+    0.0,
+    0,
+    SplitChunksCase::Priorities,
+    "rust@split_chunks_priorities",
+  );
 }
 
 pub(crate) fn split_chunks_dedup_depth_benchmark(c: &mut Criterion, rt: &Runtime) {
@@ -236,8 +266,22 @@ pub(crate) fn split_chunks_dedup_depth_benchmark(c: &mut Criterion, rt: &Runtime
     (2, "rust@split_chunks_dedup_depth_2"),
     (3, "rust@split_chunks_dedup_depth_3"),
   ] {
-    split_chunks_benchmark_with_min_size(c, rt, 128.0, dedup_depth, name);
+    split_chunks_benchmark_with_min_size(
+      c,
+      rt,
+      128.0,
+      dedup_depth,
+      SplitChunksCase::Anonymous,
+      name,
+    );
   }
+}
+
+#[derive(Clone, Copy)]
+enum SplitChunksCase {
+  Anonymous,
+  Named,
+  Priorities,
 }
 
 fn split_chunks_benchmark_with_min_size(
@@ -245,10 +289,11 @@ fn split_chunks_benchmark_with_min_size(
   rt: &Runtime,
   min_size: f64,
   dedup_depth: u32,
+  case: SplitChunksCase,
   name: &str,
 ) {
   let fs = Arc::new(MemoryFileSystem::default());
-  let mut compiler = create_split_chunks_stage_compiler(fs.clone(), min_size, dedup_depth);
+  let mut compiler = create_split_chunks_stage_compiler(fs.clone(), min_size, dedup_depth, case);
 
   rt.block_on(async {
     fs.create_dir_all("/src".into())
@@ -324,6 +369,24 @@ fn split_chunks_benchmark_with_min_size(
     chunk_count_after > chunk_count_before,
     "split_chunks setup should create additional shared chunks"
   );
+  if matches!(case, SplitChunksCase::Priorities) {
+    // Both priorities must do work: the second extracts copies left in the other entries.
+    for key in ["shared-modules", "remaining-shared-modules"] {
+      assert!(
+        compiler
+          .compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .values()
+          .any(|chunk| {
+            chunk
+              .chunk_reason()
+              .is_some_and(|reason| reason.contains(&format!("cache group: {key}")))
+          }),
+        "split_chunks setup should extract from {key}"
+      );
+    }
+  }
 
   restore_initial_chunk_state(&mut compiler.compilation);
 
@@ -1120,6 +1183,7 @@ fn create_split_chunks_stage_compiler(
   fs: Arc<MemoryFileSystem>,
   min_size: f64,
   dedup_depth: u32,
+  case: SplitChunksCase,
 ) -> Compiler {
   let mut builder = Compiler::builder();
   builder
@@ -1137,7 +1201,11 @@ fn create_split_chunks_stage_compiler(
         .concatenate_modules(false),
     )
     .incremental(IncrementalOptions::empty_passes())
-    .plugin(Box::new(create_split_chunks_plugin(min_size, dedup_depth)));
+    .plugin(Box::new(create_split_chunks_plugin(
+      min_size,
+      dedup_depth,
+      case,
+    )));
   for entry_index in 0..SPLIT_CHUNKS_ENTRY_COUNT {
     builder.entry(
       format!("entry-{entry_index}"),
@@ -1993,33 +2061,60 @@ fn count_assigned_export_used_names(compilation: &Compilation) -> usize {
     .sum()
 }
 
-fn create_split_chunks_plugin(min_size: f64, dedup_depth: u32) -> SplitChunksPlugin {
+fn create_split_chunks_plugin(
+  min_size: f64,
+  dedup_depth: u32,
+  case: SplitChunksCase,
+) -> SplitChunksPlugin {
   let js_zero_sizes = SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], 0.0);
 
   SplitChunksPlugin::new(PluginOptions {
     dedup_depth,
-    cache_groups: vec![CacheGroup {
-      key: "shared-modules".to_string(),
-      chunk_filter: create_all_chunk_filter(),
-      test: CacheGroupTest::String("/src/shared/".to_string()),
-      r#type: create_default_module_type_filter(),
-      layer: create_default_module_layer_filter(),
-      name: ChunkNameGetter::Disabled,
-      priority: 0.0,
-      min_size: SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], min_size),
-      min_size_reduction: js_zero_sizes.clone(),
-      enforce_size_threshold: SplitChunkSizes::default(),
-      reuse_existing_chunk: false,
-      min_chunks: 2,
-      id_hint: "shared-modules".to_string(),
-      max_initial_requests: f64::INFINITY,
-      max_async_requests: f64::INFINITY,
-      max_async_size: SplitChunkSizes::default(),
-      max_initial_size: SplitChunkSizes::default(),
-      filename: None,
-      automatic_name_delimiter: DEFAULT_DELIMITER.to_string(),
-      used_exports: false,
-    }],
+    cache_groups: (0..if matches!(case, SplitChunksCase::Priorities) {
+      2
+    } else {
+      1
+    })
+      .map(|index| CacheGroup {
+        key: if index == 0 {
+          "shared-modules"
+        } else {
+          "remaining-shared-modules"
+        }
+        .to_string(),
+        chunk_filter: if matches!(case, SplitChunksCase::Priorities) && index == 0 {
+          // Restrict the higher priority to half of the original entry chunks.
+          create_regex_chunk_filter_from_str(
+            RspackRegex::new("^entry-(?:[0-9]|1[0-9]|2[0-3])$").unwrap(),
+          )
+        } else {
+          create_all_chunk_filter()
+        },
+        test: CacheGroupTest::String("/src/shared/".to_string()),
+        r#type: create_default_module_type_filter(),
+        layer: create_default_module_layer_filter(),
+        name: if matches!(case, SplitChunksCase::Named) {
+          ChunkNameGetter::String("shared".to_string())
+        } else {
+          ChunkNameGetter::Disabled
+        },
+        priority: -(index as f64),
+        min_size: SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], min_size),
+        min_size_reduction: js_zero_sizes.clone(),
+        min_remaining_size: SplitChunkSizes::default(),
+        enforce_size_threshold: SplitChunkSizes::default(),
+        reuse_existing_chunk: false,
+        min_chunks: 2,
+        id_hint: "shared-modules".to_string(),
+        max_initial_requests: f64::INFINITY,
+        max_async_requests: f64::INFINITY,
+        max_async_size: SplitChunkSizes::default(),
+        max_initial_size: SplitChunkSizes::default(),
+        filename: None,
+        automatic_name_delimiter: DEFAULT_DELIMITER.to_string(),
+        used_exports: false,
+      })
+      .collect(),
     fallback_cache_group: FallbackCacheGroup {
       chunks_filter: create_all_chunk_filter(),
       min_size: js_zero_sizes,

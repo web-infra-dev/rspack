@@ -50,7 +50,7 @@ it("should compile type: css/global", () => {
 
 it("should not parse css modules in type: css/auto", () => {
     const style = getComputedStyle(document.body);
-    expect(style.getPropertyValue("background")).toBe("red");
+    expect(style.getPropertyValue("background-color")).toBe("rgb(255, 0, 0)");
     const links = Array.from(document.getElementsByTagName("link"));
     const css = [];
 

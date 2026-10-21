@@ -79,7 +79,17 @@ pub(super) type CacheValueDecoder =
 
 /// Type-erased value used only inside the shared cache layers.
 #[derive(Clone)]
-pub(super) struct ErasedCacheValue(Arc<dyn Any + Send + Sync>);
+pub(super) struct ErasedCacheValue(Arc<ErasedValue>);
+
+#[cfg(allocative)]
+type ErasedValue = dyn CacheValueObject;
+#[cfg(not(allocative))]
+type ErasedValue = dyn Any + Send + Sync;
+
+#[cfg(allocative)]
+trait CacheValueObject: Any + Send + Sync {}
+#[cfg(allocative)]
+impl<T: Any + Send + Sync> CacheValueObject for T {}
 
 impl ErasedCacheValue {
   fn new<T: Any + Send + Sync>(value: Arc<T>) -> Self {
@@ -143,11 +153,7 @@ fn encode_cache_entry<T: CacheValueData>(
   entry: &CacheEntry,
   codec: &CacheCodec,
 ) -> Result<Vec<u8>> {
-  let value = entry
-    .value
-    .0
-    .clone()
-    .downcast::<T>()
+  let value = Arc::downcast::<T>(entry.value.0.clone())
     .map_err(|_| rspack_error::error!("Cache value type mismatch"))?;
   codec.encode(&StoredCacheEntry {
     etag: entry.etag.clone(),

@@ -6,12 +6,16 @@ name              = "rspack_swc_plugin_import"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[features]
+allocative = ["dep:rspack_allocative"]
+
 [dependencies]
-cow-utils  = { workspace = true }
-heck       = { workspace = true }
-rustc-hash = { workspace = true }
-serde      = { workspace = true }
-swc_core   = { workspace = true, features = ["common", "ecma_ast", "ecma_visit"] }
+cow-utils         = { workspace = true }
+heck              = { workspace = true }
+rspack_allocative = { workspace = true, optional = true }
+rustc-hash        = { workspace = true }
+serde             = { workspace = true }
+swc_core          = { workspace = true, features = ["common", "ecma_ast", "ecma_visit"] }
 
 [package.metadata.cargo-machete]
 ignored = ["Inflector"]
@@ -21,3 +25,7 @@ workspace = true
 
 [lib]
 doctest = false
+
+[package.metadata.cargo-shear]
+# The allocative compiler driver injects enum derives that use this dependency.
+ignored = ["rspack_allocative"]

@@ -31,7 +31,7 @@ For maximum speed, `builtin:swc-loader` transpiles TypeScript source code withou
 
 ## Enable isolatedModules
 
-To maximize parallelism, `builtin:swc-loader` will transpile each module separately. This requires that [`isolatedModules`](https://www.typescriptlang.org/tsconfig#isolatedModules) must be enabled in your TypeScript configuration to ensure type check of source code by tsc. Certain language features such as [const enums](https://www.typescriptlang.org/docs/handbook/enums.html#const-enums) rely on parsing the entire project, and thus cannot be used with isolated module transpilation. Enable `isolatedModules` in your `tsconfig.json ` file to ensure that your IDE hints and type checker accurately reflect Rspack's module handling behavior:
+`builtin:swc-loader` transpiles each module independently. Enable [`isolatedModules`](https://www.typescriptlang.org/tsconfig#isolatedModules) in `tsconfig.json` so TypeScript reports code that cannot be safely transpiled in isolation.
 
 ```json title="tsconfig.json"
 {

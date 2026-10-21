@@ -7,7 +7,7 @@ use rspack_error::Result;
 use rspack_fs::WritableFileSystem;
 use rspack_paths::Utf8PathBuf;
 #[cfg(allocative)]
-use rspack_util::allocative;
+use rspack_util::rspack_allocative;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::integrity::SubresourceIntegrityHashFunction;
@@ -48,7 +48,7 @@ pub struct SubresourceIntegrityPluginOptions {
 
 pub type ArcFs = Arc<dyn WritableFileSystem + Send + Sync>;
 
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub struct SRICompilationContext {
   #[cfg_attr(allocative, allocative(skip))]
   pub fs: ArcFs,

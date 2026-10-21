@@ -22,8 +22,35 @@ use std::{
 };
 
 use crate::{
-  Visit, allocative_trait::Allocative, impls::common::PTR_NAME, key::Key, visitor::Visitor,
+  Visit, allocative_trait::Allocative, impls::common::PTR_NAME, key::Key, reflection::VisitInner,
+  visitor::Visitor,
 };
+
+impl<T: 'static + ?Sized> VisitInner for Arc<T> {
+  default fn visit_inner<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    visitor.visit_opaque(&**self);
+  }
+}
+
+impl<T: Visit + ?Sized> VisitInner for Arc<T> {
+  fn visit_inner<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    let value: &T = self;
+    value.visit_memory(visitor);
+  }
+}
+
+impl<T: 'static + ?Sized> VisitInner for Rc<T> {
+  default fn visit_inner<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    visitor.visit_opaque(&**self);
+  }
+}
+
+impl<T: Visit + ?Sized> VisitInner for Rc<T> {
+  fn visit_inner<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    let value: &T = self;
+    value.visit_memory(visitor);
+  }
+}
 
 impl<T: Visit, F: FnOnce() -> T> Allocative for LazyLock<T, F> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
@@ -101,7 +128,10 @@ fn visit_retained_weak<T: ?Sized>(
   }
 }
 
-impl<T: Visit + ?Sized> Allocative for Arc<T> {
+impl<T: ?Sized> Allocative for Arc<T>
+where
+  Self: VisitInner,
+{
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);
     {
@@ -117,7 +147,7 @@ impl<T: Visit + ?Sized> Allocative for Arc<T> {
         {
           let val: &T = self;
           let mut visitor = visitor.enter(Key::new("ArcInner"), RcBox::layout(val).size());
-          val.visit_memory(&mut visitor);
+          self.visit_inner(&mut visitor);
           visitor.exit();
         }
         visitor.exit();
@@ -127,13 +157,13 @@ impl<T: Visit + ?Sized> Allocative for Arc<T> {
   }
 }
 
-impl<T: Visit + ?Sized> Allocative for Weak<T> {
+impl<T: ?Sized> Allocative for Weak<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);
     {
-      if let Some(arc) = self.upgrade() {
-        arc.visit(&mut visitor);
-      } else {
+      // A live target belongs to its strong owners. Only account for the
+      // allocation retained by weak pointers after the payload is dropped.
+      if self.upgrade().is_none() {
         visit_retained_weak(
           self.as_ptr(),
           Weak::<()>::new().as_ptr().cast(),
@@ -146,7 +176,10 @@ impl<T: Visit + ?Sized> Allocative for Weak<T> {
   }
 }
 
-impl<T: Visit + ?Sized> Allocative for Rc<T> {
+impl<T: ?Sized> Allocative for Rc<T>
+where
+  Self: VisitInner,
+{
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);
     {
@@ -162,7 +195,7 @@ impl<T: Visit + ?Sized> Allocative for Rc<T> {
         {
           let val: &T = self;
           let mut visitor = visitor.enter(Key::new("RcInner"), RcBox::layout(val).size());
-          val.visit_memory(&mut visitor);
+          self.visit_inner(&mut visitor);
           visitor.exit();
         }
         visitor.exit();
@@ -172,13 +205,11 @@ impl<T: Visit + ?Sized> Allocative for Rc<T> {
   }
 }
 
-impl<T: Visit + ?Sized> Allocative for rc::Weak<T> {
+impl<T: ?Sized> Allocative for rc::Weak<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let mut visitor = visitor.enter_self(self);
     {
-      if let Some(rc) = self.upgrade() {
-        rc.visit(&mut visitor);
-      } else {
+      if self.upgrade().is_none() {
         visit_retained_weak(
           self.as_ptr(),
           rc::Weak::<()>::new().as_ptr().cast(),

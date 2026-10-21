@@ -114,15 +114,6 @@ export const applyRspackOptionsDefaults = (
   applyIncrementalDefaults(options);
 
   applyExperimentsDefaults(options.experiments, { production });
-  if (
-    options.cache &&
-    options.cache.type === 'filesystem' &&
-    !options.experiments.newCache
-  ) {
-    throw new Error(
-      `${ERROR_PREFIX} "cache.type: 'filesystem'" requires "experiments.newCache" to be enabled.`,
-    );
-  }
   applySnapshotDefaults(options.snapshot, {
     production,
     newCache: Boolean(options.experiments.newCache),
@@ -240,7 +231,7 @@ const applyCacheDefaults = (
   },
 ) => {
   if (cache === false) return;
-  if (cache.type === 'persistent' || cache.type === 'filesystem') {
+  if (cache.type === 'persistent') {
     F(cache, 'name', () => {
       const cacheName = name ? `${name}-${mode}` : mode;
       return compilerIndex !== undefined && compilerIndex > 0
@@ -265,18 +256,6 @@ const applyCacheDefaults = (
       D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
       F(cache, 'buildDependencies', () => []);
       D(cache, 'portable', false);
-      break;
-    case 'filesystem':
-      F(cache, 'cacheDirectory', () =>
-        path.resolve(context, 'node_modules/.cache/rspack'),
-      );
-      F(cache, 'cacheLocation', () =>
-        path.resolve(cache.cacheDirectory!, cache.name!),
-      );
-      F(cache, 'buildDependencies', () => ({}));
-      D(cache, 'idleTimeout', 60000);
-      D(cache, 'idleTimeoutForInitialStore', 5000);
-      D(cache, 'idleTimeoutAfterLargeChanges', 1000);
       break;
   }
 };
@@ -337,7 +316,7 @@ const applyExperimentsDefaults = (
     D(experiments.newCache, 'devtool', true);
     D(experiments.newCache, 'loader', true);
     D(experiments.newCache, 'minimize', true);
-    D(experiments.newCache, 'resolver', true);
+    D(experiments.newCache, 'resolver', false);
   }
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
@@ -394,6 +373,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'dynamicImportPrefetch', false);
   D(parserOptions, 'dynamicImportPreload', false);
   D(parserOptions, 'url', true);
+  D(parserOptions, 'dynamicUrl', true);
   D(parserOptions, 'exprContextCritical', true);
   D(parserOptions, 'unknownContextCritical', true);
   D(parserOptions, 'wrappedContextCritical', false);
@@ -1276,7 +1256,7 @@ const applyOptimizationDefaults = (
     D(splitChunks, 'usedExports', optimization.usedExports === true);
     D(splitChunks, 'minChunks', 1);
     F(splitChunks, 'minSize', () => (production ? 20000 : 10000));
-    // F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
+    F(splitChunks, 'minRemainingSize', () => (development ? 0 : undefined));
     F(splitChunks, 'enforceSizeThreshold', () => (production ? 50000 : 30000));
     F(splitChunks, 'maxAsyncRequests', () =>
       production ? 30 : Number.POSITIVE_INFINITY,
