@@ -125,11 +125,12 @@ impl HashHelper {
         let mut hasher = FxHasher::default();
         children.sort();
         for item in children {
-          let child_path = InternedPath::from(path.join(item));
+          let child_path = InternedPath::from(path.join(&item));
           let child_path_str = child_path.to_string_lossy();
           if self.snapshot_options.is_immutable_path(&child_path_str) {
             continue;
           }
+          item.hash(&mut hasher);
           if self.snapshot_options.is_managed_path(&child_path_str) {
             if let Some(version) = self.package_helper.package_version(&child_path).await {
               version.hash(&mut hasher);

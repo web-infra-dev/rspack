@@ -90,6 +90,8 @@ pub enum ValidateResult {
   Modified,
   /// The target file has no changed
   NoChanged,
+  /// The content is unchanged but the stored file timestamp needs refreshing.
+  NoChangedRefresh,
 }
 
 pub struct StrategyHelper {
@@ -265,7 +267,7 @@ impl StrategyHelper {
           return ValidateResult::Deleted;
         };
         if &cur_hash == hash {
-          ValidateResult::NoChanged
+          ValidateResult::NoChangedRefresh
         } else {
           ValidateResult::Modified
         }
