@@ -1186,9 +1186,22 @@ impl<'parser> JavascriptParser<'parser> {
         if name == variable {
           self.definitions_db.delete(scope_id, &name);
         } else {
+          // Preserve the original declaration scope when overlaying a FREE
+          // alias (e.g. `var current = URL` inside a block). Otherwise
+          // mark_mutated_binding would treat later assignments as non-top-level.
+          let declared_scope = self
+            .definitions_db
+            .resolve(&name)
+            .map(|state| {
+              self
+                .definitions_db
+                .expect_get_variable(state)
+                .declared_scope
+            })
+            .unwrap_or(scope_id);
           let variable = VariableInfo::create(
             &mut self.definitions_db,
-            scope_id,
+            declared_scope,
             Some(variable),
             VariableInfoFlags::FREE,
             None,

@@ -10,6 +10,7 @@ import * as mutatedVarExports from "./mutated-var-export";
 import * as defaultFnExports from "./default-fn-export";
 import * as mutatedDefaultFnExports from "./mutated-default-fn-export";
 import * as renameAssignExports from "./rename-assign-export";
+import * as blockVarRenameExports from "./block-var-rename-export";
 import * as evalAliasExports from "./eval-alias-export";
 import * as eagerThenExports from "./deferred-then-export";
 import * as unrelatedValueExports from "./unrelated-value-export";
@@ -67,6 +68,13 @@ it("should keep exports mutated via rename-assignment as getters", () => {
 	expect(renameAssignExports.current).toBe(null);
 	renameAssignExports.init();
 	expect(renameAssignExports.current).toBe(URL);
+});
+
+it("should keep block-scoped var rename aliases mutated in closures as getters", () => {
+	expectGetterDescriptor(blockVarRenameExports, "current");
+	expect(blockVarRenameExports.current).toBe(URL);
+	blockVarRenameExports.reset();
+	expect(blockVarRenameExports.current).toBe(null);
 });
 
 it("should keep exports in modules with direct eval as getters", () => {
