@@ -297,9 +297,8 @@ impl CacheContext {
       .add(
         &mut *self.storage,
         SnapshotScope::FILE,
-        file_added.inspect(|path| {
-          self.refresh_file_snapshots.remove(path);
-        }),
+        // Plugin dependencies can overlap reused modules; registration does not prove a rebuild.
+        file_added.filter(|path| !self.refresh_file_snapshots.contains_key(path)),
       )
       .await;
     snapshot.refresh_files(
