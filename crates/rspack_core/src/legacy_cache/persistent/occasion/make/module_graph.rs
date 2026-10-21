@@ -59,7 +59,10 @@ pub fn save_module_graph(
   codec: &CacheCodec,
 ) {
   for identifier in removed_modules {
-    storage.remove(SCOPE, identifier.as_bytes());
+    storage.remove(
+      SCOPE,
+      &codec.encode(identifier).expect("should encode identifier"),
+    );
   }
 
   // save module_graph
@@ -113,9 +116,10 @@ pub fn save_module_graph(
         blocks,
         lazy_info,
       };
+      let key = codec.encode(identifier).expect("should encode identifier");
       let root_sensitive = module.build_info().root_sensitive;
       match BoundEntry::encode(codec, &node, root_sensitive) {
-        Ok(bytes) => (identifier.as_bytes().to_vec(), bytes),
+        Ok(bytes) => (key, bytes),
         Err(err) if err.to_string().contains("unsupported field") => {
           tracing::warn!("to bytes failed {:?}", err);
           // try use alternatives
@@ -129,7 +133,7 @@ pub fn save_module_graph(
             .collect();
           node.blocks = vec![];
           if let Ok(bytes) = BoundEntry::encode(codec, &node, root_sensitive) {
-            (identifier.as_bytes().to_vec(), bytes)
+            (key, bytes)
           } else {
             panic!("alternatives serialize failed")
           }
