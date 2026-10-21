@@ -95,7 +95,16 @@ impl Snapshot {
     &self,
     storage: &mut dyn Storage,
     scope: SnapshotScope,
-    paths: impl Iterator<Item = InternedPath>,
+    mut paths: impl Iterator<Item = InternedPath> + Send,
+  ) {
+    self.add_paths(storage, scope, &mut paths).await;
+  }
+
+  async fn add_paths(
+    &self,
+    storage: &mut dyn Storage,
+    scope: SnapshotScope,
+    paths: &mut (dyn Iterator<Item = InternedPath> + Send),
   ) {
     let helper = Arc::new(StrategyHelper::new(
       self.fs.clone(),

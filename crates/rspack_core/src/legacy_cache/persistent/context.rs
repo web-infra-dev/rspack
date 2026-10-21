@@ -264,15 +264,15 @@ impl CacheContext {
     &mut self,
     snapshot: &Snapshot,
     file_deps: (
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath> + Send,
       impl Iterator<Item = InternedPath>,
     ),
     context_deps: (
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath> + Send,
       impl Iterator<Item = InternedPath>,
     ),
     missing_deps: (
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath> + Send,
       impl Iterator<Item = InternedPath>,
     ),
   ) {
