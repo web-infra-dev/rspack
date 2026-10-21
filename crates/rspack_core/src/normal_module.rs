@@ -9,6 +9,7 @@ use std::{
 use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
+  utils::PortableString,
   with::{As, AsInner, AsOption, AsPreset},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
@@ -99,9 +100,11 @@ pub struct NormalModule {
   context: Box<Context>,
   /// Request with loaders from config
   /// Omitted when identical to the interned module identifier.
+  #[cacheable(with=AsOption<As<PortableString>>)]
   request: Option<Box<str>>,
   /// Request intended by user (without loaders from config)
   /// Omitted when identical to the resolved resource.
+  #[cacheable(with=AsOption<As<PortableString>>)]
   user_request: Option<Box<str>>,
   /// Request without resolving
   raw_request: Box<str>,
