@@ -1273,7 +1273,6 @@ impl SplitChunksPlugin {
     placed_module_chunks: &ModuleChunkMap,
     module_group_map: &mut ModuleGroupMap,
     module_sizes: &ModuleSizes,
-    update_candidates: bool,
   ) {
     // remove all modules from other entries and update size
     let placed_chunk_mask = placed_module_chunks.chunk_mask();
@@ -1287,60 +1286,15 @@ impl SplitChunksPlugin {
           return None;
         }
         let cache_group = other_module_group.get_cache_group(&self.cache_groups);
-        if update_candidates {
-          match other_module_group.update_candidate(
-            placed_module_chunks,
-            cache_group,
-            module_sizes,
-            duplicated_modules,
-          ) {
-            CandidateUpdate::Unchanged => return None,
-            CandidateUpdate::Discard => return Some(key.clone()),
-            CandidateUpdate::Updated => {}
-          }
-        } else {
-          let original_module_count = other_module_group.modules.len();
-          match (
-            placed_module_chunks,
-            other_module_group.shared_module_chunks(),
-          ) {
-            (
-              ModuleChunkMap::Shared {
-                modules,
-                chunks: placed_chunks,
-              },
-              Some(other_chunks),
-            ) => {
-              other_chunks.intersection(placed_chunks).next()?;
-              if other_module_group.modules.is_subset(modules) {
-                return Some(key.clone());
-              }
-              other_module_group.remove_shared_modules(modules);
-            }
-            _ => {
-              duplicated_modules.extend(other_module_group
-              .modules
-              .iter()
-              .filter(|module| {
-                let Some(placed_chunks) = placed_module_chunks.get(module) else {
-                  return false;
-                };
-                let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
-                  return false;
-                };
-                placed_chunks.intersection(other_chunks).next().is_some()
-              })
-              .copied());
-              if duplicated_modules.len() == original_module_count {
-                return Some(key.clone());
-              }
-              other_module_group.remove_modules(duplicated_modules.iter().copied());
-            }
-          };
-
-          if other_module_group.modules.len() == original_module_count {
-            return None;
-          }
+        match other_module_group.update_candidate(
+          placed_module_chunks,
+          cache_group,
+          module_sizes,
+          duplicated_modules,
+        ) {
+          CandidateUpdate::Unchanged => return None,
+          CandidateUpdate::Discard => return Some(key.clone()),
+          CandidateUpdate::Updated => {}
         }
 
         if other_module_group.modules.is_empty() {
@@ -1386,9 +1340,7 @@ impl SplitChunksPlugin {
           // Deleting one source type can temporarily leave another below
           // minSizeReduction. Further native placements may remove that type;
           // keep the remaining candidate in place when another type still fits.
-          if update_candidates
-            && other_module_group.can_recover(cache_group, module_sizes, chunks_len)
-          {
+          if other_module_group.can_recover(cache_group, module_sizes, chunks_len) {
             other_module_group.selectable = false;
             other_module_group.placement_changed = true;
             return None;

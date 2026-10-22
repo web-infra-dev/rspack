@@ -91,7 +91,6 @@ impl SplitChunksPlugin {
   }
   #[instrument(name = "Compilation:SplitChunks",target=TRACING_BENCH_TARGET, skip_all)]
   async fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
-    let residual_enabled = std::env::var("RSPACK_RESIDUAL_REUSE").is_ok_and(|value| value == "1");
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module data");
 
@@ -296,7 +295,7 @@ impl SplitChunksPlugin {
       module_group_map
         .par_iter_mut()
         .for_each(|(_, module_group)| module_group.prepare_modules_for_sizes_and_compare());
-      self.ensure_min_size_fit(&mut module_group_map, &module_sizes, residual_enabled);
+      self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
 
       while let Some((module_group_key, mut module_group)) =
         self.find_best_module_group(&mut module_group_map)
@@ -600,7 +599,6 @@ impl SplitChunksPlugin {
           &placed_module_chunks,
           &mut module_group_map,
           &module_sizes,
-          residual_enabled,
         );
 
         if has_named_groups && (has_lower_priority || !module_group_map.is_empty()) {

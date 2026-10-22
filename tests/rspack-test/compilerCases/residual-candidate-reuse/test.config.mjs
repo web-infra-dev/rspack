@@ -24,42 +24,27 @@ export default {
     },
   }),
   async build(_context, compiler) {
-    const previous = process.env.RSPACK_RESIDUAL_REUSE;
-    const run = async (enabled) => {
-      process.env.RSPACK_RESIDUAL_REUSE = enabled ? '1' : '0';
-      const stats = await runCompiler(compiler);
-      assert.equal(stats.hasErrors(), false, stats.toString());
-      const { compilation } = stats;
-      const placements = { 'm1.js': [], 'm2.js': [], 'p.js': [] };
-      for (const chunk of compilation.chunks) {
-        const consumers = [...chunk.groupsIterable]
-          .map((group) => group.name)
-          .sort()
-          .join('');
-        for (const module of compilation.chunkGraph.getChunkModules(chunk)) {
-          const name = path.basename(module.nameForCondition?.() || '');
-          placements[name]?.push(consumers);
-        }
+    const stats = await runCompiler(compiler);
+    assert.equal(stats.hasErrors(), false, stats.toString());
+    const { compilation } = stats;
+    const placements = { 'm1.js': [], 'm2.js': [], 'p.js': [] };
+    for (const chunk of compilation.chunks) {
+      const consumers = [...chunk.groupsIterable]
+        .map((group) => group.name)
+        .sort()
+        .join('');
+      for (const module of compilation.chunkGraph.getChunkModules(chunk)) {
+        const name = path.basename(module.nameForCondition?.() || '');
+        placements[name]?.push(consumers);
       }
-      for (const groups of Object.values(placements)) groups.sort();
-      return placements;
-    };
-    try {
-      assert.deepEqual(await run(false), {
-        'm1.js': ['A', 'B', 'CDE'],
-        'm2.js': ['A', 'B', 'C'],
-        'p.js': ['CDE'],
-      });
-      // CDE extracts m1 + p first. The original ABC candidate can then shrink
-      // to AB and extract m1 + m2 together, without making C load that chunk.
-      assert.deepEqual(await run(true), {
-        'm1.js': ['AB', 'CDE'],
-        'm2.js': ['AB', 'C'],
-        'p.js': ['CDE'],
-      });
-    } finally {
-      if (previous === undefined) delete process.env.RSPACK_RESIDUAL_REUSE;
-      else process.env.RSPACK_RESIDUAL_REUSE = previous;
     }
+    for (const groups of Object.values(placements)) groups.sort();
+    // CDE extracts m1 + p first. The original ABC candidate can then shrink
+    // to AB and extract m1 + m2 together, without making C load that chunk.
+    assert.deepEqual(placements, {
+      'm1.js': ['AB', 'CDE'],
+      'm2.js': ['AB', 'C'],
+      'p.js': ['CDE'],
+    });
   },
 };
