@@ -46,6 +46,7 @@ import { Logger, LogType } from './logging/Logger';
 import type { Module } from './Module';
 import ModuleGraph from './ModuleGraph';
 import type { NormalModuleFactory } from './NormalModuleFactory';
+import { ReadonlySetImpl } from './ReadonlySet';
 import type { ResolverFactory } from './ResolverFactory';
 import type { RspackError } from './RspackError';
 import { RuntimeModule } from './RuntimeModule';
@@ -597,7 +598,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   get builtModules(): ReadonlySet<Module> {
-    return new Set(this.#inner.builtModules);
+    return new ReadonlySetImpl(this.#inner.builtModules);
   }
 
   get chunks(): ReadonlySet<Chunk> {
