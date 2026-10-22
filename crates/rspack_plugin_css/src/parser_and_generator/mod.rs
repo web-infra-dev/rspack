@@ -1,4 +1,5 @@
 pub mod generator;
+pub(crate) mod hash;
 mod parser;
 mod source_builder;
 mod walker;
@@ -306,7 +307,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     self.es_module.hash(&mut hasher);
     self.exports_only.hash(&mut hasher);
     self.effective_export_type(module).hash(&mut hasher);
-    crate::css_exports::hash_icss_imports(compilation, module, &mut hasher);
+    hash::hash_css_modules(module, compilation, &mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 
