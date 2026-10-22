@@ -9,14 +9,14 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-allocative = ["dep:rspack_allocative"]
+allocative = ["dep:rspack-allocative"]
 
 [dependencies]
 dashmap           = { workspace = true }
 either            = { workspace = true }
 hashlink          = { workspace = true }
 indexmap          = { workspace = true }
-rspack_allocative = { workspace = true, optional = true }
+rspack-allocative = { workspace = true, optional = true }
 rspack_cacheable  = { workspace = true }
 rustc-hash        = { workspace = true }
 serde             = { workspace = true, features = ["derive"] }
