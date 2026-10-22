@@ -7,12 +7,12 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [features]
-allocative = ["dep:rspack_allocative"]
+allocative = ["dep:rspack-allocative"]
 
 [dependencies]
 cow-utils         = { workspace = true }
 heck              = { workspace = true }
-rspack_allocative = { workspace = true, optional = true }
+rspack-allocative = { workspace = true, optional = true }
 rustc-hash        = { workspace = true }
 serde             = { workspace = true }
 swc_core          = { workspace = true, features = ["common", "ecma_ast", "ecma_visit"] }
@@ -28,4 +28,4 @@ doctest = false
 
 [package.metadata.cargo-shear]
 # The allocative compiler driver injects enum derives that use this dependency.
-ignored = ["rspack_allocative"]
+ignored = ["rspack-allocative"]

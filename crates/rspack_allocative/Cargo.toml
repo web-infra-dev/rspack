@@ -31,7 +31,7 @@ napi                     = { workspace = true, optional = true, features = ["nap
 once_cell                = { workspace = true, optional = true, features = ["std"] }
 parking_lot              = { workspace = true, optional = true }
 pnp                      = { workspace = true, optional = true }
-rspack_allocative_derive = { workspace = true }
+rspack-allocative_derive = { workspace = true }
 rustc-hash               = { workspace = true, features = ["std"] }
 serde_json               = { workspace = true }
 simd-json                = { workspace = true }
