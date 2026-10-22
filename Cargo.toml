@@ -66,7 +66,7 @@ itoa                = { version = "1.0.18", default-features = false }
 json                = { version = "0.12.4", default-features = false }
 json-escape-simd    = { version = "3.1.2", default-features = false }
 json-strip-comments = { version = "3.1.2", default-features = false }
-lightningcss        = { version = "1.0.0-alpha.72", default-features = false, features = ["serde"] }
+lightningcss        = { package = "rspack_lightningcss", version = "0.1.0", git = "https://github.com/rstackjs/lightningcss.git", rev = "a3cf0d9b0e12d566501819c768e037585747894d", default-features = false, features = ["serde", "custom_sourcemap"] }
 linked-hash-map     = { version = "0.5.6", default-features = false }
 md4                 = { version = "0.10.2", default-features = false }
 memchr              = { version = "2.8.3", default-features = false }
@@ -80,7 +80,6 @@ num-bigint          = { version = "0.5.1", default-features = false }
 once_cell           = { version = "1.21.4", default-features = false }
 oneshot             = { version = "0.2.1", default-features = false, features = ["std", "async"] }
 owo-colors          = { version = "4.0.0", default-features = false, features = ["supports-colors"] }
-parcel_sourcemap    = { version = "2.1.1", default-features = false }
 parking_lot         = { version = "0.12.5", default-features = false, features = ["send_guard"] }
 paste               = { version = "1.0.15", default-features = false }
 path-clean          = { version = "1.0.1", default-features = false }
@@ -349,7 +348,7 @@ opt-level = "s"
 [profile.release.package.swc_ecma_react_compiler]
 opt-level = "s"
 
-[profile.release.package.lightningcss]
+[profile.release.package.rspack_lightningcss]
 opt-level = "s"
 
 [profile.release.package.regex-syntax]
@@ -477,9 +476,6 @@ opt-level = "s"
 opt-level = "s"
 
 [profile.release.package.notify]
-opt-level = "s"
-
-[profile.release.package.parcel_sourcemap]
 opt-level = "s"
 
 [profile.release.package.rspack_plugin_esm_library]
