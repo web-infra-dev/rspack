@@ -53,8 +53,6 @@ use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathSet};
 use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
-#[cfg(allocative)]
-use rspack_util::allocative;
 use rspack_util::{fx_hash::FxIndexMap, itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use smol_str::SmolStr;
@@ -192,7 +190,6 @@ pub struct CompilationHooks {
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompilationId(pub u32);
 
 impl CompilationId {
@@ -372,6 +369,7 @@ impl Compilation {
       input_filesystem.clone(),
       CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
       options.snapshot.clone(),
+      options.context.clone(),
       options.output.hash_function,
     );
     let resolver_cache = (options.experiments.new_cache.resolver
@@ -380,7 +378,6 @@ impl Compilation {
       crate::ResolverCache::new(
         cache.facade("ResolverCache"),
         file_system_info.clone(),
-        options.snapshot.resolve,
         &CompilationLogger::new("rspack.ResolverCache", logging.clone()),
       )
     });

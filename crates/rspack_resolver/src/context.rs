@@ -1,4 +1,4 @@
-use std::ops::{Deref, DerefMut};
+use std::ops::{AsyncFnOnce, Deref, DerefMut};
 
 use rspack_paths::InternedPath;
 
@@ -43,6 +43,26 @@ impl DerefMut for ResolveContext {
 }
 
 impl ResolveContext {
+  /// Preserve dependency changes from every attempt; commit other state only for `Ok(Some(_))`.
+  pub async fn trace_dependencies_only<T>(
+    &mut self,
+    resolve: impl AsyncFnOnce(&mut Self) -> Result<Option<T>, ResolveError>,
+  ) -> Result<Option<T>, ResolveError> {
+    let file_dependencies = self.file_dependencies.take();
+    let missing_dependencies = self.missing_dependencies.take();
+    let mut ctx = self.clone();
+    ctx.file_dependencies = file_dependencies;
+    ctx.missing_dependencies = missing_dependencies;
+    let result = resolve(&mut ctx).await;
+    if matches!(result, Ok(Some(_))) {
+      *self = ctx;
+    } else {
+      self.file_dependencies = ctx.file_dependencies.take();
+      self.missing_dependencies = ctx.missing_dependencies.take();
+    }
+    result
+  }
+
   pub fn with_fully_specified(&mut self, yes: bool) {
     self.fully_specified = yes;
   }

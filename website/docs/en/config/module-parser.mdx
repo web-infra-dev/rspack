@@ -1,5 +1,5 @@
 ---
-description: 'Configure parser options by module type.'
+description: 'Configure module.parser for JavaScript, CSS, JSON, and assets to control dependency collection and syntax handling.'
 ---
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
@@ -226,6 +226,14 @@ export default {
   },
 };
 ```
+
+### javascript.dynamicUrl
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Enable context dependencies for dynamic `new URL()` requests, such as ``new URL(`./assets/${name}.png`, import.meta.url)``.
+
+When set to `false`, dynamic requests are evaluated at runtime. Static requests such as `new URL('./icon.png', import.meta.url)` are still bundled. To disable all URL parsing, set [`javascript.url`](#javascripturl) to `false`.
 
 ### javascript.url
 

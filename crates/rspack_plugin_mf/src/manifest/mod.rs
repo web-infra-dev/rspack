@@ -311,6 +311,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut expose_fallback_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> =
       HashMap::default();
     let mut shared_map: HashMap<SharedIdentity, StatsShared> = HashMap::default();
+    let mut consumed_singletons: HashMap<SharedIdentity, bool> = HashMap::default();
     let mut shared_usage_links: Vec<(SharedIdentity, ModuleIdentifier)> = Vec::new();
     let mut shared_module_targets: HashMap<SharedIdentity, IdentifierSet> = HashMap::default();
     let mut module_ids_by_name: HashMap<String, ModuleIdentifier> = HashMap::default();
@@ -491,11 +492,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           if entry.version.is_empty() {
             entry.version = ver;
           }
-          // overlay user-configured shared options (singleton/requiredVersion/version)
+          entry.singleton = Some(provide.singleton().unwrap_or(true));
+          // overlay user-configured shared version options
           if let Some(opt) = find_shared_option(&identity) {
-            if let Some(singleton) = opt.singleton {
-              entry.singleton = Some(singleton);
-            }
             if entry.requiredVersion.is_none() {
               entry.requiredVersion = opt.required_version.clone();
             }
@@ -574,6 +573,16 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           &module_identifier,
           module_graph,
         );
+        // Read the original configuration so an omitted singleton retains the manifest default.
+        let configured_identity = SharedIdentity::new(
+          &identity.share_scope,
+          consume.configured_share_key(),
+          identity.layer.as_deref(),
+        );
+        let singleton = find_shared_option(&configured_identity)
+          .and_then(|s| s.singleton)
+          .unwrap_or(true);
+        consumed_singletons.insert(identity, singleton);
       }
     }
 
@@ -793,8 +802,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       })
       .collect::<Vec<_>>();
     let shared = shared_map
-      .into_values()
-      .map(|mut v| {
+      .into_iter()
+      .map(|(identity, mut v)| {
+        // Consumer options take precedence regardless of module traversal order.
+        if let Some(singleton) = consumed_singletons.get(&identity) {
+          v.singleton = Some(*singleton);
+        }
         v.usedIn.sort_unstable();
         v.usedIn.dedup();
         v

@@ -1,0 +1,25 @@
+[package]
+authors.workspace       = true
+categories.workspace    = true
+description             = "rspack allocative derive"
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack-allocative_derive"
+repository.workspace    = true
+version.workspace       = true
+
+[lib]
+doctest    = false
+proc-macro = true
+test       = false
+
+[dependencies]
+cow-utils   = { workspace = true }
+proc-macro2 = { workspace = true, features = ["proc-macro"] }
+quote       = { workspace = true, features = ["proc-macro"] }
+syn         = { workspace = true, features = ["derive", "full", "visit", "visit-mut", "printing", "parsing", "clone-impls", "proc-macro"] }
+
+[lints]
+workspace = true

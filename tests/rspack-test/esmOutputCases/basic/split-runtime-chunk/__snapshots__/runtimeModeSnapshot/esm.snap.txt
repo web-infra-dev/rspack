@@ -7,7 +7,7 @@ setPublicPath(('/assets/'))
 scriptNonce ?? setScriptNonce('nonce')
 scriptNonce || setScriptNonce('fallback')
 scriptNonce && setScriptNonce('nonce-updated')
-setPublicPath(publicPath + ('nested/'))
+setPublicPath(publicPath + ('nested/'));
 
 // ./index.js
 const other = rspackRequire("./other.js");
@@ -21,7 +21,7 @@ it('should have correct value', () => {
   expect(rspackPublicPath).toBe('/assets/nested/')
   expect(rspackRequire.custom).toBeUndefined()
   expect(scriptNonce).toBe('nonce-updated')
-})
+});
 
 export {};
 

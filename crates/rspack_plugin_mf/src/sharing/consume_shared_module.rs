@@ -36,6 +36,8 @@ pub struct ConsumeSharedModule {
   readable_identifier: String,
   context: Context,
   options: EnhancedConsumeOptions,
+  // Preserve the original configuration key when a prefix share is expanded.
+  configured_share_key: Option<String>,
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
   build_meta: FreezeLock<BuildMeta>,
@@ -52,6 +54,17 @@ impl ConsumeSharedModule {
 
   pub fn share_scope(&self) -> &ShareScope {
     &self.options.share_scope
+  }
+
+  pub(crate) fn configured_share_key(&self) -> &str {
+    self
+      .configured_share_key
+      .as_deref()
+      .unwrap_or(&self.options.share_key)
+  }
+
+  pub(crate) fn set_configured_share_key(&mut self, key: String) {
+    self.configured_share_key = Some(key);
   }
 
   pub(crate) fn required_version(&self) -> Option<&ConsumeVersion> {
@@ -141,6 +154,7 @@ impl ConsumeSharedModule {
       readable_identifier,
       context,
       options,
+      configured_share_key: None,
       factory_meta: Default::default(),
       build_info: Default::default(),
       build_meta: Default::default(),

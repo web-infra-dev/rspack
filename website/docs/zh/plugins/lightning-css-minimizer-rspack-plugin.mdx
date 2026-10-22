@@ -84,12 +84,12 @@ document.body.className = styles.a;
 
 :::info
 
-1. `targets` 选项按照以下优先级解析：
-   - 用户在插件选项中指定的 `targets`（最高优先级）
-   - 当 Rspack 的 [`target`](/config/target) 配置使用与 browserslist 相关的 targets（例如 `browserslist` 或 `browserslist:modern`）时，从 Rspack 的 [`target`](/config/target) 配置中推断出。因为 Lightning CSS 仅支持浏览器相关的 targets，像 `node` 这样的非浏览器 target 不会为此插件提供默认 targets。
-   - 如果上述均未提供，则回退到 `"fully supports es6"`
+1. 插件按以下顺序确定 `targets`：
+   - 优先使用显式配置的 `minimizerOptions.targets`。
+   - 未配置时，继承 Rspack 的 [`target`](/config/target#default-behavior) 提供的目标信息，只保留支持的浏览器。如果目标中不包含支持的浏览器（如 `browserslist:node 18`），则使用空目标。
+   - 如果 Rspack 未提供目标信息（如 `web`），则默认使用 `"fully supports es6"`。
 
-   回退机制确保压缩过程不会引入可能导致浏览器不兼容的高级语法（压缩可能会因为高级语法更短而将低级语法转换为高级语法）。
+   为了减小体积，Lightning CSS 在压缩时可能会改用更短的新语法。这个默认值限定了可以使用的语法范围，让压缩后的代码也能兼容上述浏览器。
 
 2. `exclude` 选项默认配置了所有的 features。我们通常会在 [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) 或其他 loaders 中进行语法降级，所以此插件默认 exclude 所有的 features，避免在 minimize 过程中进行语法降级。
 

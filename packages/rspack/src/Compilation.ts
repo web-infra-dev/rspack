@@ -76,6 +76,7 @@ import {
   type FileSystemDependencies,
 } from './FileSystemDependencies';
 import type { CodeGenerationResult } from './taps/compilation';
+import { COMPILATION_HOOKS_MAP_SYMBOL } from './util/symbols';
 
 export type Assets = Record<string, Source>;
 export interface Asset {
@@ -142,6 +143,26 @@ export interface LogEntry {
   time?: number;
   trace?: string[];
 }
+
+const logEntryTraceDescriptor = Object.getOwnPropertyDescriptor(
+  {
+    get trace() {
+      return cutOffLoaderExecution(new Error('Trace').stack!)
+        .split('\n')
+        .slice(3);
+    },
+  },
+  'trace',
+)!;
+
+const logEntryNoTraceDescriptor = Object.getOwnPropertyDescriptor(
+  {
+    get trace() {
+      return undefined;
+    },
+  },
+  'trace',
+)!;
 
 export interface CompilationParams {
   normalModuleFactory: NormalModuleFactory;
@@ -248,7 +269,7 @@ export const getOrCreateCompilationHooks = <T>(
   key: object,
   createHooks: () => T,
 ): T => {
-  const compilationHooksMap = compilation[binding.COMPILATION_HOOKS_MAP_SYMBOL];
+  const compilationHooksMap = compilation[COMPILATION_HOOKS_MAP_SYMBOL];
   let hooks = compilationHooksMap.get(key) as T | undefined;
   if (hooks === undefined) {
     hooks = createHooks();
@@ -347,7 +368,7 @@ export class Compilation {
   #addIncludeDispatcher: AddEntryItemDispatcher;
   #addEntryDispatcher: AddEntryItemDispatcher;
 
-  [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<object, unknown>;
+  [COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<object, unknown>;
 
   constructor(compiler: Compiler, inner: JsCompilation) {
     this.#inner = inner;
@@ -512,7 +533,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     this.#addEntryDispatcher = new AddEntryItemDispatcher(
       inner.addEntry.bind(inner),
     );
-    this[binding.COMPILATION_HOOKS_MAP_SYMBOL] = new WeakMap();
+    this[COMPILATION_HOOKS_MAP_SYMBOL] = new WeakMap();
   }
 
   get hash(): Readonly<string | null> {
@@ -888,19 +909,18 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
           time: Date.now(),
           type,
           args,
-          get trace() {
-            switch (type) {
-              case LogType.warn:
-              case LogType.error:
-              case LogType.trace:
-                return cutOffLoaderExecution(new Error('Trace').stack!)
-                  .split('\n')
-                  .slice(3);
-              default:
-                return undefined;
-            }
-          },
         };
+        // Share the accessor and object shape without capturing each log call.
+        // Select by the original type: hooks can subsequently change logEntry.type.
+        Object.defineProperty(
+          logEntry,
+          'trace',
+          type === LogType.warn ||
+            type === LogType.error ||
+            type === LogType.trace
+            ? logEntryTraceDescriptor
+            : logEntryNoTraceDescriptor,
+        );
 
         if (this.hooks.log.call(logName, logEntry) === undefined) {
           if (logEntry.type === LogType.profileEnd) {
@@ -1013,7 +1033,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   createChildCompiler(
     name: string,
     outputOptions: OutputNormalized,
-    plugins: (RspackPluginInstance | Falsy)[],
+    plugins?: (RspackPluginInstance | Falsy)[],
   ) {
     const idx = this.childrenCounters[name] || 0;
     this.childrenCounters[name] = idx + 1;

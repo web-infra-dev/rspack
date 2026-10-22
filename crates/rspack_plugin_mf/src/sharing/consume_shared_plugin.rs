@@ -495,7 +495,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   if let Some((options, remainder)) =
     find_prefix_match(&consumes.prefixed, request, data.issuer_layer.as_deref())
   {
-    let module = self
+    let mut module = self
       .create_consume_shared_module(
         &data.context,
         request,
@@ -518,6 +518,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         |d| data.diagnostics.push(d),
       )
       .await;
+    module.set_configured_share_key(options.share_key.clone());
     return Ok(Some(module.boxed()));
   }
   Ok(None)

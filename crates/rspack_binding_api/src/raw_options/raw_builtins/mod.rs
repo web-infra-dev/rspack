@@ -77,10 +77,10 @@ use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin,
-  InlineExportsPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
-  SideEffectsFlagPlugin, api_plugin::APIPlugin, define_plugin::DefinePlugin,
-  provide_plugin::ProvidePlugin, url_plugin::URLPlugin,
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, ImportedByDeferModulesPlugin,
+  InferAsyncModulesPlugin, InlineExportsPlugin, JsPlugin, MangleExportsPlugin,
+  ModuleConcatenationPlugin, SideEffectsFlagPlugin, api_plugin::APIPlugin,
+  define_plugin::DefinePlugin, provide_plugin::ProvidePlugin, url_plugin::URLPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -215,6 +215,7 @@ pub enum BuiltinPluginName {
   RuntimePlugin,
   JsonModulesPlugin,
   InferAsyncModulesPlugin,
+  ImportedByDeferModulesPlugin,
   JavascriptModulesPlugin,
   AsyncWebAssemblyModulesPlugin,
   AssetModulesPlugin,
@@ -664,6 +665,9 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => {
         plugins.push(InferAsyncModulesPlugin::default().boxed())
+      }
+      BuiltinPluginName::ImportedByDeferModulesPlugin => {
+        plugins.push(ImportedByDeferModulesPlugin::default().boxed())
       }
       BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::default().boxed()),
       BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {

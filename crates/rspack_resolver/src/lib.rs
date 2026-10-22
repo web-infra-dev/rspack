@@ -963,6 +963,27 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // c. LOAD_AS_DIRECTORY(DIR/X)
     let node_module_file = cached_path.path().normalize_with(specifier);
     let file_cached = self.cache.value(&node_module_file);
+    // No modern package manager creates `node_modules/foo.js`, so a bare package is looked up as a directory first.
+    if cached_path.path().file_name() == Some("node_modules")
+      && specifier == package_name
+      && !self.options.resolve_to_context
+      && !self.matches_extension_alias(file_cached.path())
+      && file_cached.is_dir(&self.cache.fs, ctx).await
+    {
+      if self.options.enforce_extension.is_disabled() {
+        if let Some(path) = self.load_alias_or_file(&file_cached, ctx).await? {
+          return Ok(Some(path));
+        }
+      }
+      // Failed directory resolution can mutate query, fragment, and alias state.
+      // Keep its dependencies without leaking those changes into file resolution.
+      if let Some(path) = ctx
+        .trace_dependencies_only(async |ctx| self.load_as_directory(&file_cached, ctx).await)
+        .await?
+      {
+        return Ok(Some(path));
+      }
+    }
     self
       .load_as_file_or_directory(&file_cached, specifier, ctx)
       .await
@@ -1415,6 +1436,16 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     Ok(None)
   }
 
+  fn matches_extension_alias(&self, path: &Utf8Path) -> bool {
+    path.extension().is_some_and(|extension| {
+      self
+        .options
+        .extension_alias
+        .iter()
+        .any(|(alias, _)| alias.trim_start_matches('.') == extension)
+    })
+  }
+
   /// Given an extension alias map `{".js": [".ts", ".js"]}`,
   /// load the mapping instead of the provided extension
   ///
@@ -1711,20 +1742,28 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       ))),
       Some(b'/') => Ok(Utf8PathBuf::from(specifier)),
       Some(b'.') => Ok(tsconfig.directory().normalize_with(specifier)),
-      _ => self
-        .clone_with_options(ResolveOptions {
-          description_files: vec![],
-          extensions: vec![".json".into()],
-          main_files: vec!["tsconfig.json".into()],
-          ..ResolveOptions::default()
-        })
-        .load_package_self_or_node_modules(directory, specifier, &mut Ctx::default())
-        .await
-        .map(|p| p.to_path_buf())
-        .map_err(|err| match err {
-          ResolveError::NotFound(_) => ResolveError::TsconfigNotFound(PathBuf::from(specifier)),
-          _ => err,
-        }),
+      _ => {
+        let cached_path = self
+          .clone_with_options(ResolveOptions {
+            description_files: vec![],
+            extensions: vec![".json".into()],
+            main_files: vec!["tsconfig.json".into()],
+            ..ResolveOptions::default()
+          })
+          .load_package_self_or_node_modules(directory, specifier, &mut Ctx::default())
+          .await
+          .map_err(|err| match err {
+            ResolveError::NotFound(_) => ResolveError::TsconfigNotFound(PathBuf::from(specifier)),
+            _ => err,
+          })?;
+        // `tsc` resolves a package `extends` through the file's real path, so
+        // an `extends` nested inside that package is looked up from its real
+        // directory. Without this, a pnpm-style symlinked package
+        // (`node_modules/pkg` -> `node_modules/.pnpm/pkg@x/node_modules/pkg`)
+        // would walk up to the root `node_modules`, where the package's own
+        // dependencies do not exist.
+        self.load_realpath(&cached_path, &mut Ctx::default()).await
+      }
     }
   }
 

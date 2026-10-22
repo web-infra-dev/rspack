@@ -3,23 +3,24 @@ mod tests;
 
 use std::{collections::VecDeque, fmt, sync::Arc};
 
-use rspack_error::{Result, error};
+use futures::future::BoxFuture;
+use rspack_error::Result;
 use rspack_fs::{Error as FsError, FileMetadata, ReadableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, RspackHashDigest, RspackHasher};
 use rspack_parallel::TryFutureConsumer;
-use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap, InternedPathSet, Utf8Path};
-use rspack_regex::RspackRegex;
+use rspack_paths::{
+  AssertUtf8, InternedPath, InternedPathDashMap, InternedPathMap, InternedPathSet,
+};
 use rspack_util::{node_path::NodePath, time::mtime_accuracy};
-use simd_json::prelude::{ValueAsScalar, ValueObjectAccess};
 
 use super::{
   ContextFileSystemInfoEntry, ContextTimestampAndHash, FileHash, FileSystemInfoEntry, Snapshot,
   TimestampAndHash,
 };
 use crate::{
-  CompilationLogger, InfrastructureLogger, LogType, Logger, PathMatcher, SnapshotOptions,
+  CompilationLogger, Context, InfrastructureLogger, LogType, Logger, SnapshotOptions,
   SnapshotStrategyOptions,
-  cache::{BuildDependencyHelper, is_node_package_path},
+  cache::{BuildDependencyHelper, PackageHelper, is_node_package_path},
 };
 
 #[derive(Debug, Clone)]
@@ -88,13 +89,11 @@ impl From<SnapshotStrategyOptions> for SnapshotMode {
   }
 }
 
-/// The path categories checked by webpack's `createSnapshot` -> `checkManaged`.
-/// Cloning a cached classification only copies the interned managed-path handle.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 enum PathClassification {
   Unmanaged,
   Immutable,
-  Managed(InternedPath),
+  Managed,
 }
 
 #[derive(Debug)]
@@ -121,15 +120,8 @@ pub struct FileSystemInfo {
 struct FileSystemInfoInner {
   fs: Arc<dyn ReadableFileSystem>,
   logger: FileSystemInfoLogger,
-  module: SnapshotStrategyOptions,
-  context_module: SnapshotStrategyOptions,
-  build_dependencies: SnapshotStrategyOptions,
-  unmanaged_paths_with_slash: Vec<String>,
-  unmanaged_paths_reg_exps: Vec<RspackRegex>,
-  managed_paths_with_slash: Vec<String>,
-  managed_paths_reg_exps: Vec<RspackRegex>,
-  immutable_paths_with_slash: Vec<String>,
-  immutable_paths_reg_exps: Vec<RspackRegex>,
+  snapshot_options: SnapshotOptions,
+  package_helper: PackageHelper,
   path_classification_cache: InternedPathDashMap<PathClassification>,
   hash_function: HashFunction,
   file_timestamps: InternedPathDashMap<Option<FileSystemInfoEntry>>,
@@ -138,8 +130,6 @@ struct FileSystemInfoInner {
   context_timestamps: InternedPathDashMap<Option<ContextFileSystemInfoEntry>>,
   context_hashes: InternedPathDashMap<Option<RspackHashDigest>>,
   context_timestamp_hashes: InternedPathDashMap<Option<ContextTimestampAndHash>>,
-  managed_items: InternedPathDashMap<Option<String>>,
-  managed_item_directory_info: InternedPathDashMap<Arc<InternedPathSet>>,
 }
 
 impl fmt::Debug for FileSystemInfo {
@@ -155,27 +145,15 @@ impl FileSystemInfo {
     fs: Arc<dyn ReadableFileSystem>,
     logger: impl Into<FileSystemInfoLogger>,
     options: SnapshotOptions,
+    context: Context,
     hash_function: HashFunction,
   ) -> Self {
-    let (unmanaged_paths_with_slash, unmanaged_paths_reg_exps) =
-      split_snapshot_paths(options.unmanaged_paths);
-    let (managed_paths_with_slash, managed_paths_reg_exps) =
-      split_snapshot_paths(options.managed_paths);
-    let (immutable_paths_with_slash, immutable_paths_reg_exps) =
-      split_snapshot_paths(options.immutable_paths);
     Self {
       inner: Arc::new(FileSystemInfoInner {
+        package_helper: PackageHelper::new(fs.clone(), context),
         fs,
         logger: logger.into(),
-        module: options.module,
-        context_module: options.context_module,
-        build_dependencies: options.build_dependencies,
-        unmanaged_paths_with_slash,
-        unmanaged_paths_reg_exps,
-        managed_paths_with_slash,
-        managed_paths_reg_exps,
-        immutable_paths_with_slash,
-        immutable_paths_reg_exps,
+        snapshot_options: options,
         path_classification_cache: Default::default(),
         hash_function,
         file_timestamps: Default::default(),
@@ -184,16 +162,26 @@ impl FileSystemInfo {
         context_timestamps: Default::default(),
         context_hashes: Default::default(),
         context_timestamp_hashes: Default::default(),
-        managed_items: Default::default(),
-        managed_item_directory_info: Default::default(),
       }),
     }
   }
 
-  /// Corresponds to webpack's `FileSystemInfo.createSnapshot`: classify paths,
-  /// snapshot unmanaged paths, then read each managed item's metadata once.
+  /// Classify paths, capture managed package versions, and snapshot other paths.
+  /// Snapshot storage follows webpack's `FileSystemInfo.createSnapshot`, while
+  /// path matching and package version lookup are shared with the legacy cache.
   /// https://github.com/webpack/webpack/blob/fc90789fdf089a5de71671f8d10155fcd32dc027/lib/FileSystemInfo.js#L2534-L3079
-  pub async fn create_snapshot(
+  pub fn create_snapshot<'a>(
+    &'a self,
+    start_time: Option<u64>,
+    files: &'a InternedPathSet,
+    contexts: &'a InternedPathSet,
+    missing: &'a InternedPathSet,
+    strategy: SnapshotStrategyOptions,
+  ) -> BoxFuture<'a, Result<Snapshot>> {
+    Box::pin(self.create_snapshot_impl(start_time, files, contexts, missing, strategy))
+  }
+
+  async fn create_snapshot_impl(
     &self,
     start_time: Option<u64>,
     files: &InternedPathSet,
@@ -210,10 +198,16 @@ impl FileSystemInfo {
     let mut managed_files = InternedPathSet::default();
     let mut managed_contexts = InternedPathSet::default();
     let mut managed_missing = InternedPathSet::default();
-    let mut managed_items = InternedPathSet::default();
-    let files = self.capture_non_managed(files, &mut managed_files, &mut managed_items);
-    let contexts = self.capture_non_managed(contexts, &mut managed_contexts, &mut managed_items);
-    let missing = self.capture_non_managed(missing, &mut managed_missing, &mut managed_items);
+    let mut managed_items = InternedPathMap::default();
+    let files = self
+      .capture_non_managed(files, &mut managed_files, &mut managed_items)
+      .await;
+    let contexts = self
+      .capture_non_managed(contexts, &mut managed_contexts, &mut managed_items)
+      .await;
+    let missing = self
+      .capture_non_managed(missing, &mut managed_missing, &mut managed_items)
+      .await;
 
     self
       .process_captured_files(&mut snapshot, files, mode)
@@ -225,39 +219,8 @@ impl FileSystemInfo {
       .process_captured_missing(&mut snapshot, missing)
       .await?;
 
-    // The managedItems loop at the end of webpack's createSnapshot.
-    // https://github.com/webpack/webpack/blob/fc90789fdf089a5de71671f8d10155fcd32dc027/lib/FileSystemInfo.js#L3018-L3075
-    for path in managed_items {
-      if let Some(info) = self.get_managed_item_info(&path).await? {
-        if !info.starts_with('*') {
-          managed_files.insert(InternedPath::from(path.join("package.json")));
-        } else if info == "*nested" {
-          managed_missing.insert(InternedPath::from(path.join("package.json")));
-        }
-        snapshot
-          .managed_item_info
-          .get_or_insert_default()
-          .insert(path, info);
-      } else {
-        // Fall back to normal snapshotting for paths under this managed item.
-        let path_str = path.to_string_lossy();
-        let capture = |paths: &InternedPathSet| {
-          paths
-            .iter()
-            .filter(|file| file.to_string_lossy().starts_with(path_str.as_ref()))
-            .cloned()
-            .collect()
-        };
-        self
-          .process_captured_files(&mut snapshot, capture(&managed_files), mode)
-          .await?;
-        self
-          .process_captured_directories(&mut snapshot, capture(&managed_contexts), mode)
-          .await?;
-        self
-          .process_captured_missing(&mut snapshot, capture(&managed_missing))
-          .await?;
-      }
+    if !managed_items.is_empty() {
+      snapshot.managed_item_info = Some(managed_items);
     }
     if !managed_files.is_empty() {
       snapshot.managed_files = Some(managed_files);
@@ -278,16 +241,24 @@ impl FileSystemInfo {
     first
   }
 
+  pub fn resolve_strategy(&self) -> SnapshotStrategyOptions {
+    self.inner.snapshot_options.resolve
+  }
+
   pub fn module_strategy(&self) -> SnapshotStrategyOptions {
-    self.inner.module
+    self.inner.snapshot_options.module
   }
 
   pub fn context_module_strategy(&self) -> SnapshotStrategyOptions {
-    self.inner.context_module
+    self.inner.snapshot_options.context_module
+  }
+
+  pub fn resolve_build_dependencies_strategy(&self) -> SnapshotStrategyOptions {
+    self.inner.snapshot_options.resolve_build_dependencies
   }
 
   pub fn build_dependencies_strategy(&self) -> SnapshotStrategyOptions {
-    self.inner.build_dependencies
+    self.inner.snapshot_options.build_dependencies
   }
 
   /// See webpack's snapshot validation implementation:
@@ -358,76 +329,35 @@ impl FileSystemInfo {
     resolved
   }
 
-  /// Corresponds to `checkManaged` inside webpack's `FileSystemInfo.createSnapshot`.
-  /// The classification is returned here so snapshot creation and context reads
-  /// can share the same path checks.
-  /// https://github.com/webpack/webpack/blob/fc90789fdf089a5de71671f8d10155fcd32dc027/lib/FileSystemInfo.js#L2627-L2687
+  /// Use the legacy cache's path matching with webpack's precedence:
+  /// unmanaged paths, then immutable paths, then managed paths.
   fn check_managed(&self, path: &InternedPath) -> PathClassification {
     let classification_cache = &self.inner.path_classification_cache;
     if let Some(cached) = classification_cache.get(path) {
-      return cached.clone();
+      return *cached;
     }
     let path_str = path.to_string_lossy();
-    for unmanaged_path in &self.inner.unmanaged_paths_reg_exps {
-      if unmanaged_path.test(&path_str) {
-        classification_cache.insert(path.clone(), PathClassification::Unmanaged);
-        return PathClassification::Unmanaged;
-      }
-    }
-    for unmanaged_path in &self.inner.unmanaged_paths_with_slash {
-      if path_str.starts_with(unmanaged_path) {
-        classification_cache.insert(path.clone(), PathClassification::Unmanaged);
-        return PathClassification::Unmanaged;
-      }
-    }
-    for immutable_path in &self.inner.immutable_paths_reg_exps {
-      if immutable_path.test(&path_str) {
-        classification_cache.insert(path.clone(), PathClassification::Immutable);
-        return PathClassification::Immutable;
-      }
-    }
-    for immutable_path in &self.inner.immutable_paths_with_slash {
-      if path_str.starts_with(immutable_path) {
-        classification_cache.insert(path.clone(), PathClassification::Immutable);
-        return PathClassification::Immutable;
-      }
-    }
-    for managed_path in &self.inner.managed_paths_reg_exps {
-      // webpack passes `managedPath.exec(path)[1]` to getManagedItem.
-      if let Some(managed_path) = managed_path.capture(&path_str, 1)
-        && let Some(managed_item) = get_managed_item(managed_path, &path_str)
-      {
-        let managed_item = InternedPath::from(managed_item);
-        classification_cache.insert(
-          path.clone(),
-          PathClassification::Managed(managed_item.clone()),
-        );
-        return PathClassification::Managed(managed_item);
-      }
-    }
-    for managed_path in &self.inner.managed_paths_with_slash {
-      if path_str.starts_with(managed_path)
-        && let Some(managed_item) = get_managed_item(managed_path, &path_str)
-      {
-        let managed_item = InternedPath::from(managed_item);
-        classification_cache.insert(
-          path.clone(),
-          PathClassification::Managed(managed_item.clone()),
-        );
-        return PathClassification::Managed(managed_item);
-      }
-    }
-    classification_cache.insert(path.clone(), PathClassification::Unmanaged);
-    PathClassification::Unmanaged
+    let options = &self.inner.snapshot_options;
+    let classification = if options.is_unmanaged_path(&path_str) {
+      PathClassification::Unmanaged
+    } else if options.is_immutable_path(&path_str) {
+      PathClassification::Immutable
+    } else if options.is_managed_path(&path_str) {
+      PathClassification::Managed
+    } else {
+      PathClassification::Unmanaged
+    };
+    classification_cache.insert(path.clone(), classification);
+    classification
   }
 
-  /// Corresponds to `captureNonManaged` inside webpack's `FileSystemInfo.createSnapshot`.
-  /// https://github.com/webpack/webpack/blob/fc90789fdf089a5de71671f8d10155fcd32dc027/lib/FileSystemInfo.js#L2694-L2701
-  fn capture_non_managed(
+  /// Capture package identities using the legacy cache's ancestor lookup.
+  /// Paths without a named package fall back to normal snapshotting.
+  async fn capture_non_managed(
     &self,
     items: &InternedPathSet,
     managed_set: &mut InternedPathSet,
-    managed_items: &mut InternedPathSet,
+    managed_items: &mut InternedPathMap<String>,
   ) -> Vec<InternedPath> {
     let mut captured_items = Vec::with_capacity(items.len());
     for path in items {
@@ -435,9 +365,13 @@ impl FileSystemInfo {
         PathClassification::Immutable => {
           managed_set.insert(path.clone());
         }
-        PathClassification::Managed(managed_item) => {
-          managed_items.insert(managed_item);
-          managed_set.insert(path.clone());
+        PathClassification::Managed => {
+          if let Some(version) = self.inner.package_helper.package_version(path).await {
+            managed_items.insert(path.clone(), version);
+            managed_set.insert(path.clone());
+          } else {
+            captured_items.push(path.clone());
+          }
         }
         PathClassification::Unmanaged => {
           captured_items.push(path.clone());
@@ -858,9 +792,9 @@ impl FileSystemInfo {
       let child_path = InternedPath::from(path.join(child));
       let child_value = match self.check_managed(&child_path) {
         PathClassification::Immutable => None,
-        PathClassification::Managed(managed_item) => {
-          match self.get_managed_item_info(&managed_item).await? {
-            Some(info) => Some(self.context_leaf(info.as_bytes(), mode, 0)),
+        PathClassification::Managed => {
+          match self.inner.package_helper.package_version(&child_path).await {
+            Some(version) => Some(self.context_leaf(version.as_bytes(), mode, 0)),
             None => self.context_value(&child_path, mode, visiting).await?,
           }
         }
@@ -947,106 +881,6 @@ impl FileSystemInfo {
     let mut hasher = RspackHasher::new(&self.inner.hash_function);
     hasher.write(bytes);
     digest_hasher(hasher)
-  }
-
-  /// Corresponds to webpack's `FileSystemInfo._getManagedItemDirectoryInfo`.
-  /// The cache serves the same purpose as webpack's `managedItemDirectoryQueue`.
-  /// https://github.com/webpack/webpack/blob/fc90789fdf089a5de71671f8d10155fcd32dc027/lib/FileSystemInfo.js#L4488-L4502
-  async fn get_managed_item_directory_info(
-    &self,
-    path: &InternedPath,
-  ) -> Result<Arc<InternedPathSet>> {
-    if let Some(elements) = self.inner.managed_item_directory_info.get(path) {
-      return Ok(Arc::clone(&elements));
-    }
-    let elements = match self.inner.fs.read_dir(path.assert_utf8()).await {
-      Ok(elements) => elements
-        .into_iter()
-        .map(|element| InternedPath::from(path.join(element)))
-        .collect(),
-      Err(error) if is_not_found_or_not_a_directory(&error) => InternedPathSet::default(),
-      Err(error) => return Err(error.into()),
-    };
-    let elements = Arc::new(elements);
-    self
-      .inner
-      .managed_item_directory_info
-      .insert(path.clone(), Arc::clone(&elements));
-    Ok(elements)
-  }
-
-  /// Corresponds to webpack's `FileSystemInfo._getManagedItemInfo`.
-  /// https://github.com/webpack/webpack/blob/fc90789fdf089a5de71671f8d10155fcd32dc027/lib/FileSystemInfo.js#L4508-L4576
-  async fn get_managed_item_info(&self, path: &InternedPath) -> Result<Option<String>> {
-    if let Some(info) = self.inner.managed_items.get(path) {
-      return Ok(info.clone());
-    }
-    let dir = InternedPath::from(path.parent().unwrap_or(path));
-    let elements = self.get_managed_item_directory_info(&dir).await?;
-    if !elements.contains(path) {
-      let info = "*missing".to_string();
-      self
-        .inner
-        .managed_items
-        .insert(path.clone(), Some(info.clone()));
-      return Ok(Some(info));
-    }
-    if path.file_name().is_some_and(|name| name == "node_modules") {
-      let info = "*node_modules".to_string();
-      self
-        .inner
-        .managed_items
-        .insert(path.clone(), Some(info.clone()));
-      return Ok(Some(info));
-    }
-    let package_json_path = InternedPath::from(path.join("package.json"));
-    let mut content = match self.inner.fs.read(package_json_path.assert_utf8()).await {
-      Ok(content) => content,
-      Err(error) if is_not_found_or_not_a_directory(&error) => {
-        if let Ok(elements) = self.inner.fs.read_dir(path.assert_utf8()).await
-          && elements.len() == 1
-          && elements[0] == "node_modules"
-        {
-          let info = "*nested".to_string();
-          self
-            .inner
-            .managed_items
-            .insert(path.clone(), Some(info.clone()));
-          return Ok(Some(info));
-        }
-        self.inner.logger.warn(format!(
-          "Managed item {} isn't a directory or doesn't contain a package.json (see snapshot.managedPaths option)",
-          path.display()
-        ));
-        self.inner.managed_items.insert(path.clone(), None);
-        return Ok(None);
-      }
-      Err(error) => return Err(error.into()),
-    };
-    let data = simd_json::to_borrowed_value(&mut content)
-      .map_err(|error| error!("Failed to parse {package_json_path:?}: {error}"))?;
-    let Some(name) = data
-      .get("name")
-      .and_then(|value| value.as_str())
-      .filter(|name| !name.is_empty())
-    else {
-      self.inner.logger.warn(format!(
-        "{} doesn't contain a \"name\" property (see snapshot.managedPaths option)",
-        package_json_path.display()
-      ));
-      self.inner.managed_items.insert(path.clone(), None);
-      return Ok(None);
-    };
-    let version = data
-      .get("version")
-      .and_then(|value| value.as_str())
-      .unwrap_or_default();
-    let info = format!("{name}@{version}");
-    self
-      .inner
-      .managed_items
-      .insert(path.clone(), Some(info.clone()));
-    Ok(Some(info))
   }
 
   #[async_recursion::async_recursion]
@@ -1156,7 +990,7 @@ impl FileSystemInfo {
     }
     if let Some(entries) = &snapshot.managed_item_info {
       for (path, expected) in entries {
-        let current = self.get_managed_item_info(path).await?;
+        let current = self.inner.package_helper.package_version(path).await;
         if current.as_ref() != Some(expected) {
           record_invalid(path, current.is_some(), modified_files, removed_files);
         }
@@ -1174,83 +1008,6 @@ impl SnapshotMode {
   fn uses_hash(self) -> bool {
     !matches!(self, Self::Timestamp)
   }
-}
-
-/// Corresponds to webpack's constructor initialization of `*PathsWithSlash`
-/// (`join(fs, path, "_").slice(0, -1)`) and `*PathsRegExps`.
-/// https://github.com/webpack/webpack/blob/fc90789fdf089a5de71671f8d10155fcd32dc027/lib/FileSystemInfo.js#L1448-L1476
-fn split_snapshot_paths(paths: Vec<PathMatcher>) -> (Vec<String>, Vec<RspackRegex>) {
-  let mut paths_with_slash = Vec::new();
-  let mut paths_reg_exps = Vec::new();
-  for path in paths {
-    match path {
-      PathMatcher::String(path) => {
-        let path = Utf8Path::new(&path);
-        let path = if path.node_is_absolute_posix() {
-          path.node_join_posix("_").node_normalize_posix()
-        } else if path.node_is_absolute_win32() {
-          path.node_join_win32("_").node_normalize_win32()
-        } else {
-          path.node_join("_").node_normalize()
-        };
-        let mut path = path.into_string();
-        path.pop();
-        paths_with_slash.push(path);
-      }
-      PathMatcher::Regexp(regex) => paths_reg_exps.push(regex),
-    }
-  }
-  (paths_with_slash, paths_reg_exps)
-}
-
-/// Corresponds to the top-level `getManagedItem` in webpack's `FileSystemInfo.js`.
-/// https://github.com/webpack/webpack/blob/fc90789fdf089a5de71671f8d10155fcd32dc027/lib/FileSystemInfo.js#L1148-L1207
-fn get_managed_item<'a>(managed_path: &str, path: &'a str) -> Option<&'a str> {
-  let bytes = path.as_bytes();
-  let mut i = managed_path.len();
-  let mut slashes = 1;
-  let mut starting_position = true;
-  while i < bytes.len() {
-    match bytes[i] {
-      b'/' | b'\\' => {
-        slashes -= 1;
-        if slashes == 0 {
-          break;
-        }
-        starting_position = true;
-      }
-      b'.' => {
-        if starting_position {
-          return None;
-        }
-      }
-      b'@' => {
-        if !starting_position {
-          return None;
-        }
-        slashes += 1;
-      }
-      _ => starting_position = false,
-    }
-    i += 1;
-  }
-  if i == bytes.len() {
-    slashes -= 1;
-  }
-  if slashes != 0 {
-    return None;
-  }
-  if let Some(rest) = path.get(i + 1..)
-    && let Some(rest) = rest.strip_prefix("node_modules")
-  {
-    if rest.is_empty() {
-      return Some(path);
-    }
-    if rest.starts_with(['/', '\\']) {
-      return get_managed_item(&path[..i + "/node_modules/".len()], path);
-    }
-  }
-  path.get(..i)
 }
 
 fn file_timestamp_matches(
@@ -1326,8 +1083,4 @@ fn digest_hasher(hasher: RspackHasher) -> RspackHashDigest {
 
 fn is_not_found(error: &FsError) -> bool {
   matches!(error, FsError::Io(error) if error.kind() == std::io::ErrorKind::NotFound)
-}
-
-fn is_not_found_or_not_a_directory(error: &FsError) -> bool {
-  matches!(error, FsError::Io(error) if matches!(error.kind(), std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory))
 }
