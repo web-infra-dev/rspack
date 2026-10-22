@@ -4,23 +4,27 @@ use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap};
 use simd_json::prelude::{ValueAsScalar, ValueObjectAccess};
 
-/// A helper for finding package.json versions in directory hierarchies.
+use crate::Context;
+
+/// A helper for finding package names and versions in directory hierarchies.
 #[derive(Debug)]
-pub struct PackageHelper {
+pub(crate) struct PackageHelper {
   fs: Arc<dyn ReadableFileSystem>,
+  context: Context,
   version_cache: InternedPathDashMap<Option<String>>,
 }
 
 impl PackageHelper {
   /// Creates a new PackageHelper instance with the given file system.
-  pub fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
+  pub fn new(fs: Arc<dyn ReadableFileSystem>, context: Context) -> Self {
     Self {
       fs,
+      context,
       version_cache: Default::default(),
     }
   }
 
-  /// Finds the package.json version for the given path by traversing up the directory tree.
+  /// Finds a package's `name@version`, stopping after checking the compiler context.
   #[async_recursion::async_recursion]
   pub async fn package_version(&self, path: &InternedPath) -> Option<String> {
     if let Some(version) = self.version_cache.get(path) {
@@ -30,12 +34,18 @@ impl PackageHelper {
     let mut res = None;
     if let Ok(mut content) = self.fs.read(&path.join("package.json").assert_utf8()).await
       && let Ok(package_json) = simd_json::to_borrowed_value(&mut content)
-      && let Some(version) = package_json.get("version").and_then(|v| v.as_str())
+      && let Some(name) = package_json.get("name").and_then(|v| v.as_str())
+      && !name.is_empty()
     {
-      res = Some(version.to_string());
+      let version = package_json
+        .get("version")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default();
+      res = Some(format!("{name}@{version}"));
     }
 
     if res.is_none()
+      && path.assert_utf8() != self.context.as_path()
       && let Some(p) = path.parent()
     {
       res = self.package_version(&InternedPath::from(p)).await;
@@ -61,17 +71,25 @@ mod tests {
     fs.create_dir_all("/packages/p1".into()).await.unwrap();
     fs.write(
       "/packages/p1/package.json".into(),
-      r#"{"version": "1.2.0"}"#.as_bytes(),
+      r#"{"name": "p1"}"#.as_bytes(),
     )
     .await
     .unwrap();
 
-    let helper = PackageHelper::new(fs.clone());
+    // A package above the compiler context must not supply a fallback identity.
+    fs.write(
+      "/package.json".into(),
+      r#"{"name": "root", "version": "9.9.9"}"#.as_bytes(),
+    )
+    .await
+    .unwrap();
+
+    let helper = PackageHelper::new(fs.clone(), "/packages".into());
     assert_eq!(
       helper
         .package_version(&InternedPath::from("/packages/p1/file.js"))
         .await,
-      Some("1.2.0".into())
+      Some("p1@".into())
     );
     assert_eq!(
       helper
