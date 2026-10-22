@@ -18,8 +18,9 @@ use modules::Modules;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  BindingCell, Compilation, CompilationId, DependencyRef, EntryOptions, ExportsInfoArtifact,
-  ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
+  BindingCell, Compilation, CompilationId, CompilerId, DependencyRef, EntryOptions,
+  ExportsInfoArtifact, ModuleIdentifier, OptimizationBailoutItem, Reflector,
+  rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
 use rspack_napi::{WeakRef, napi::bindgen_prelude::*};
@@ -50,6 +51,7 @@ use crate::{
 #[napi]
 pub struct JsCompilation {
   pub(crate) id: CompilationId,
+  compiler_id: CompilerId,
   pub(crate) inner: NonNull<Compilation>,
   modules_jsobject: Option<WeakRef>,
   built_modules_jsobject: Option<WeakRef>,
@@ -57,10 +59,15 @@ pub struct JsCompilation {
 }
 
 impl JsCompilation {
-  pub(crate) fn new(id: CompilationId, inner: NonNull<Compilation>) -> Self {
+  pub(crate) fn new(
+    id: CompilationId,
+    compiler_id: CompilerId,
+    inner: NonNull<Compilation>,
+  ) -> Self {
     #[allow(clippy::unwrap_used)]
     Self {
       id,
+      compiler_id,
       inner,
       modules_jsobject: None,
       built_modules_jsobject: None,
@@ -293,7 +300,9 @@ impl JsCompilation {
     {
       return Ok(object);
     }
-    let mut object = Chunks::new(self.id).into_instance(env)?.as_object(env);
+    let mut object = Chunks::new(self.compiler_id)
+      .into_instance(env)?
+      .as_object(env);
     self.chunks_jsobject = Some(WeakRef::new(env.raw(), &mut object)?);
     Ok(object)
   }
@@ -1172,6 +1181,7 @@ thread_local! {
 // This means that when transferring a JsCompilation from Rust to JS, you must use JsCompilationWrapper instead.
 pub struct JsCompilationWrapper {
   id: CompilationId,
+  compiler_id: CompilerId,
   inner: NonNull<Compilation>,
 }
 
@@ -1182,6 +1192,7 @@ impl JsCompilationWrapper {
     #[allow(clippy::unwrap_used)]
     Self {
       id: compilation.id(),
+      compiler_id: compilation.compiler_id(),
       inner: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
     }
   }
@@ -1206,7 +1217,7 @@ impl ToNapiValue for JsCompilationWrapper {
             ToNapiValue::to_napi_value(env, r.clone())
           }
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let js_compilation = JsCompilation::new(val.id, val.inner);
+            let js_compilation = JsCompilation::new(val.id, val.compiler_id, val.inner);
             let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
             let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
             let weak_reference = entry.insert(reference.downgrade());

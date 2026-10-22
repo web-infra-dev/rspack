@@ -55,8 +55,12 @@ policy before dereferencing native data. Current binding classes do not share on
   the compiler can access the latest native compilation through accessors using that slot.
   This preserves compatibility with webpack plugins that continue using a build's `Compilation`
   after `done`, when the next watch rebuild may already have started. This behavior does not apply
-  to every accessor: module graph access and the collection views below use `CompilationId`.
-- `Compilation.modules`, `builtModules`, and `chunks` are live views scoped to the originating
+  to every accessor: module graph access and module collection views use `CompilationId`.
+- `Compilation.chunks` stores `CompilerId` and resolves the compiler's current compilation on
+  every operation, preserving the previous weak-reference wrapper's behavior across watch rebuilds.
+  Retaining the view does not keep the compiler alive. Its array cache includes `CompilationId`
+  because reused chunk identifiers must not return wrappers from the previous compilation.
+- `Compilation.modules` and `builtModules` are live views scoped to the originating
   `CompilationId`. Once a rebuild replaces that compilation, `size`, `has`, and any operation
   requesting values throw, even on a cache hit. They deliberately do not follow the compiler's
   current compilation. Obtain these views from the new build's `Compilation`; retaining the old
