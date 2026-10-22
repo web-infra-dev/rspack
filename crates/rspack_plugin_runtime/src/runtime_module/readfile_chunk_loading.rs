@@ -321,15 +321,15 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
     }
 
     if with_loading {
-      let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) && !compilation.hot {
+      let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
         "readFileVmInstalledChunks[chunkId] = 0;".to_string()
       } else {
         runtime_template.render(
           &self.template_id(TemplateId::WithLoading),
           Some(serde_json::json!({
-            "_js_matcher": crate::render_chunk_matcher(context, &has_js_matcher.render("chunkId"), 0),
+            "_js_matcher": &has_js_matcher.render("chunkId"),
             "_output_dir": &root_output_dir,
-            "_match_fallback": if matches!(has_js_matcher, BooleanMatcher::Condition(true)) && !compilation.hot {
+            "_match_fallback": if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
             } else {
               "else readFileVmInstalledChunks[chunkId] = 0;\n"

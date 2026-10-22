@@ -343,7 +343,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
     if with_loading {
       let chunks = self.get_css_chunks(compilation);
-      if chunks.is_empty() && !compilation.hot {
+      if chunks.is_empty() {
         res.push("// no chunk loading".to_string());
       } else {
         let loading = runtime_template.render(
@@ -353,7 +353,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
               "{}: 0,\n",
               rspack_util::json_stringify(chunk.expect_id())
             ),
-            "_css_matcher": rspack_plugin_runtime::render_chunk_matcher(context, "cssChunks[chunkId]", 2),
             "_css_chunks": format!(
               "{{\n{}\n}}",
               chunks

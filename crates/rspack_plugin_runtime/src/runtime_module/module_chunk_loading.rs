@@ -361,16 +361,16 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     }
 
     if with_loading {
-      let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) && !compilation.hot {
+      let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
         "moduleInstalledChunks[chunkId] = 0;".to_string()
       } else {
         runtime_template.render(
           &self.template(TemplateId::WithLoading),
           Some(serde_json::json!({
-            "_js_matcher": crate::render_chunk_matcher(context, &has_js_matcher.render("chunkId"), 0),
+            "_js_matcher": &has_js_matcher.render("chunkId"),
             "_import_function_name":&compilation.options.output.import_function_name,
             "_output_dir": &root_output_dir,
-            "_match_fallback":    if matches!(has_js_matcher, BooleanMatcher::Condition(true)) && !compilation.hot {
+            "_match_fallback":    if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
             } else {
               "else moduleInstalledChunks[chunkId] = 0;\n"
@@ -392,7 +392,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     }
 
     if !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-      let js_matcher = crate::render_chunk_matcher(context, &has_js_matcher.render("chunkId"), 0);
+      let js_matcher = has_js_matcher.render("chunkId");
       let cross_origin_loading = &compilation.options.output.cross_origin_loading;
       if with_prefetch {
         let link_prefetch_code = runtime_template.render(

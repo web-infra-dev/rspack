@@ -1,8 +1,17 @@
 (<%- basicFunction("blocks") %> {
 	var map = <%- REQUIRE_SCOPE %>.hmrS_blockChunks;
+	<% if (_full) { %>Object.keys(map).forEach(<%- basicFunction("id") %> {
+		delete map[id];
+	});
+	<% } %>
 	var blockId = "";
 	blocks.forEach(<%- basicFunction("block") %> {
 		blockId = blockId.slice(0, block[0]) + block[1];
-		map[blockId] = block[2];
+		if (block[2] === null) delete map[blockId];
+		else map[blockId] = block[2];
+	});
+	var installedBlocks = <%- REQUIRE_SCOPE %>.hmrS_blocks;
+	Object.keys(installedBlocks).forEach(<%- basicFunction("id") %> {
+		if (!map[id]) delete installedBlocks[id];
 	});
 })(<%- _blocks %>);

@@ -52,7 +52,7 @@ pub use amd_options::AmdOptionsRuntimeModule;
 pub use async_module::AsyncRuntimeModule;
 pub use auto_public_path::AutoPublicPathRuntimeModule;
 pub use base_uri::BaseUriRuntimeModule;
-pub use block_chunk_map::{BlockChunkMapRuntimeModule, encode_block_chunks};
+pub use block_chunk_map::BlockChunkMapRuntimeModule;
 pub use chunk_name::ChunkNameRuntimeModule;
 pub use chunk_prefetch_preload_function::ChunkPrefetchPreloadFunctionRuntimeModule;
 pub use chunk_prefetch_startup::ChunkPrefetchStartupRuntimeModule;

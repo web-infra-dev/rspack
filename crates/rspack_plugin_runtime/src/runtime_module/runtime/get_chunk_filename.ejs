@@ -1,8 +1,6 @@
 // This function allow to reference chunks
 <%- _global %> = <%- basicFunction("chunkId") %> {
-<% if (_hmr_files) { %>  var files = <%- _hmr_files %>;
-  if (files && files[chunkId]) return files[chunkId][<%- _file_index %>];
-<% } %>  // return url for filenames not based on template
+  // return url for filenames not based on template
   <%- _static_urls %>
   // return url for filenames based on template
   return <%- _dynamic_url %>

@@ -2,7 +2,7 @@ use std::fmt::Write as _;
 
 use rspack_core::{
   Chunk, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate,
-  RuntimeGlobals, RuntimeModuleGenerateContext, SourceType,
+  SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
 };
@@ -11,24 +11,6 @@ use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
   test::is_hot_test,
 };
-
-/// Imports during HMR preparation use the published file membership, while
-/// installed-chunk state and the loading handlers retain their usual lifetime.
-pub fn render_chunk_matcher(
-  context: &RuntimeModuleGenerateContext<'_>,
-  matcher: &str,
-  file_index: usize,
-) -> String {
-  if !context.compilation.hot {
-    return matcher.to_string();
-  }
-  let require = context
-    .runtime_template
-    .render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
-  format!(
-    "({require}.hmrS_chunkFiles && {require}.hmrS_chunkFiles[chunkId] ? {require}.hmrS_chunkFiles[chunkId][{file_index}] : ({matcher}))"
-  )
-}
 
 pub fn get_initial_chunk_ids(
   chunk: Option<ChunkUkey>,

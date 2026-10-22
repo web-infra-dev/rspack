@@ -167,11 +167,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: {
-        let mut dependencies = if compilation.hot {
-          RuntimeGlobals::REQUIRE_SCOPE
-        } else {
-          RuntimeGlobals::default()
-        };
         if (self.source_type == SourceType::JavaScript
           && compilation
             .options
@@ -185,9 +180,10 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               .css_chunk_filename
               .has_hash_placeholder())
         {
-          dependencies.insert(RuntimeGlobals::GET_FULL_HASH);
+          RuntimeGlobals::GET_FULL_HASH
+        } else {
+          RuntimeGlobals::default()
         }
-        dependencies
       },
       define: {
         match self.source_type {
@@ -438,8 +434,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         }
         _ => custom_global,
       },
-      "_hmr_files": compilation.hot.then(|| format!("{}.hmrS_chunkFiles", runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE))),
-      "_file_index": match self.source_type { SourceType::JavaScript => 0, SourceType::Css => 1, _ => 2 },
       "_static_urls": static_urls
                         .iter()
                         .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))

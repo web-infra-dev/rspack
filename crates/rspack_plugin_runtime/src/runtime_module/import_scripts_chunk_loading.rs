@@ -290,7 +290,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       let render_source = runtime_template.render(
         &self.template_id(TemplateId::WithLoading),
         Some(serde_json::json!({
-          "_js_matcher": crate::render_chunk_matcher(context, &has_js_matcher.render("chunkId"), 0),
+          "_js_matcher": has_js_matcher.render("chunkId"),
           "_with_create_script_url": self.with_create_script_url,
         })),
       )?;
