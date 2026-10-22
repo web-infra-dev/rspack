@@ -148,9 +148,6 @@ async fn render_chunk(
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
-    "export const __rspack_esm_id = {chunk_id_expr};\n",
-  )));
-  sources.add(RawStringSource::from(format!(
     "export const __rspack_esm_ids = [{chunk_id_expr}];\n",
   )));
   sources.add(RawStringSource::from(format!(
