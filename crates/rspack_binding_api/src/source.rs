@@ -1,4 +1,4 @@
-use std::{cell::Cell, hash::Hash, sync::Arc};
+use std::{cell::Cell, collections::BTreeSet, hash::Hash, sync::Arc};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
@@ -10,39 +10,148 @@ use rspack_napi::napi::bindgen_prelude::*;
 
 use crate::error::RspackResultToNapiResultExt;
 
-/// Zero copy `JsSourceFromJs` slice shared between Rust and Node.js if buffer is used.
+/// Source data transferred from JavaScript.
 ///
-/// It can only be used in non-async context and the lifetime is bound to the fn closure.
-///
-/// If you want to use Node.js Buffer in async context or want to extend the lifetime, use `JsSourceToJs` instead.
-#[napi(object)]
-pub struct JsSourceFromJs<'jsobject> {
-  pub source: Either<String, BufferSlice<'jsobject>>,
-  pub map: Option<String>,
+/// Raw content is borrowed for the duration of the binding call. Structured sources
+/// recursively reference native source handles, concatenations, or byte-range edits.
+pub enum JsSourceFromJs<'jsobject> {
+  Raw {
+    content: Either<String, BufferSlice<'jsobject>>,
+    map: Option<String>,
+  },
+  Native {
+    handle: ClassInstance<'jsobject, JsNativeSource>,
+  },
+  Concat {
+    children: Vec<JsSourceFromJs<'jsobject>>,
+  },
+  Replace {
+    original: Box<JsSourceFromJs<'jsobject>>,
+    replacements: Vec<JsSourceEdit>,
+  },
+}
+
+impl TypeName for JsSourceFromJs<'_> {
+  fn type_name() -> &'static str {
+    "JsSourceFromJs"
+  }
+
+  fn value_type() -> napi::ValueType {
+    napi::ValueType::Object
+  }
+}
+
+impl ValidateNapiValue for JsSourceFromJs<'_> {}
+
+impl FromNapiValue for JsSourceFromJs<'_> {
+  unsafe fn from_napi_value(env: sys::napi_env, value: sys::napi_value) -> Result<Self> {
+    let object = unsafe { Object::from_napi_value(env, value)? };
+    let kind: String = object.get_named_property("kind")?;
+    match kind.as_str() {
+      "raw" => Ok(Self::Raw {
+        content: object.get_named_property("content")?,
+        map: object.get_named_property("map")?,
+      }),
+      "native" => Ok(Self::Native {
+        handle: object.get_named_property("handle")?,
+      }),
+      "concat" => Ok(Self::Concat {
+        children: object.get_named_property("children")?,
+      }),
+      "replace" => Ok(Self::Replace {
+        original: Box::new(object.get_named_property("original")?),
+        replacements: object.get_named_property("replacements")?,
+      }),
+      _ => Err(napi::Error::from_reason(format!(
+        "Unknown source kind: {kind}"
+      ))),
+    }
+  }
 }
 
 impl<'jsobject> TryFrom<JsSourceFromJs<'jsobject>> for BoxSource {
   type Error = napi::Error;
 
   fn try_from(value: JsSourceFromJs<'jsobject>) -> Result<Self> {
-    match value.source {
-      Either::A(string) => {
-        if let Some(json) = value.map {
-          let source_map =
-            SourceMap::from_json(json).map_err(|e| napi::Error::from_reason(format!("{e}")))?;
-          Ok(
-            SourceMapSource::new(WithoutOriginalOptions {
-              value: string,
-              name: "inmemory://from js",
-              source_map,
-            })
-            .boxed(),
-          )
-        } else {
-          Ok(RawStringSource::from(string).boxed())
-        }
+    match value {
+      JsSourceFromJs::Native { handle } => Ok(Arc::clone(&handle.inner)),
+      JsSourceFromJs::Concat { children } => {
+        let children = children
+          .into_iter()
+          .map(BoxSource::try_from)
+          .collect::<Result<Vec<_>>>()?;
+        Ok(ConcatSource::new(children).boxed())
       }
-      Either::B(buffer) => Ok(RawBufferSource::from(buffer.to_vec()).boxed()),
+      JsSourceFromJs::Replace {
+        original,
+        replacements,
+      } => {
+        let inner = BoxSource::try_from(*original)?;
+        if replacements.is_empty() {
+          return Ok(inner);
+        }
+
+        let size = inner.size();
+        let mut previous = 0;
+        let mut endpoints = BTreeSet::new();
+        for replacement in &replacements {
+          if replacement.start < previous
+            || replacement.end < replacement.start
+            || replacement.end as usize > size
+          {
+            return Err(napi::Error::from_reason(
+              "Invalid or overlapping source edit",
+            ));
+          }
+          endpoints.insert(replacement.start as usize);
+          endpoints.insert(replacement.end as usize);
+          previous = replacement.end;
+        }
+
+        let mut offset = 0;
+        let mut invalid_boundary = false;
+        inner.rope(&mut |chunk| {
+          for point in endpoints.range(offset..=offset + chunk.len()) {
+            invalid_boundary |= !chunk.is_char_boundary(point - offset);
+          }
+          offset += chunk.len();
+        });
+        if invalid_boundary {
+          return Err(napi::Error::from_reason(
+            "Source edit splits a UTF-8 character",
+          ));
+        }
+
+        let mut source = ReplaceSource::new(inner);
+        for replacement in replacements {
+          source.replace(
+            replacement.start,
+            replacement.end,
+            replacement.content,
+            None,
+          );
+        }
+        Ok(source.boxed())
+      }
+      JsSourceFromJs::Raw { content, map } => match content {
+        Either::A(string) => {
+          if let Some(json) = map {
+            let source_map =
+              SourceMap::from_json(json).map_err(|e| napi::Error::from_reason(format!("{e}")))?;
+            Ok(
+              SourceMapSource::new(WithoutOriginalOptions {
+                value: string,
+                name: "inmemory://from js",
+                source_map,
+              })
+              .boxed(),
+            )
+          } else {
+            Ok(RawStringSource::from(string).boxed())
+          }
+        }
+        Either::B(buffer) => Ok(RawBufferSource::from(buffer.to_vec()).boxed()),
+      },
     }
   }
 }
@@ -188,4 +297,19 @@ impl LazySourceMap {
       Self::Map(map) => Ok(map.to_json()),
     }
   }
+}
+
+/// An owned source reference transferred from the compiler to JavaScript.
+///
+/// JavaScript uses this as an opaque handle when updating an existing asset.
+#[napi]
+pub struct JsNativeSource {
+  pub(crate) inner: BoxSource,
+}
+
+#[napi(object)]
+pub struct JsSourceEdit {
+  pub start: u32,
+  pub end: u32,
+  pub content: String,
 }

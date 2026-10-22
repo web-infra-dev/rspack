@@ -544,7 +544,7 @@ impl Module {
   #[napi(
     js_name = "_emitFile",
     enumerable = false,
-    ts_args_type = "filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null"
+    ts_args_type = "filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null"
   )]
   pub fn emit_file(
     &mut self,
