@@ -1,4 +1,5 @@
 use std::{
+  ffi::OsStr,
   fmt::Debug,
   ops::Deref,
   path::{Path, PathBuf},
@@ -1015,6 +1016,11 @@ impl PathManager {
   /// absent is stat'ed, to see whether it came back.
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
     let accessor = self.access();
+    let path_to_string = |path: &Path| {
+      path
+        .to_str()
+        .map_or_else(|| path.to_string_lossy().into_owned(), str::to_owned)
+    };
 
     let file_paths: Vec<InternedPath> = accessor.files().0.iter().map(|p| p.clone()).collect();
     let mut file_timestamps = TimeInfoEntries::with_capacity(file_paths.len());
@@ -1026,7 +1032,7 @@ impl PathManager {
       if let TimeInfoEntry::Entry { safe_time, .. } = entry {
         file_safe_times.push((path.clone(), safe_time));
       }
-      file_timestamps.push((path.to_string_lossy().to_string(), entry));
+      file_timestamps.push((path_to_string(path.as_path()), entry));
     }
     // webpack registers `files` and `missing` as disjoint sets, so a null
     // missing entry never clobbers a real file entry sharing the same key.
@@ -1038,7 +1044,7 @@ impl PathManager {
       if let TimeInfoEntry::Entry { safe_time, .. } = entry {
         file_safe_times.push((path.clone(), safe_time));
       }
-      file_timestamps.push((path.to_string_lossy().to_string(), entry));
+      file_timestamps.push((path_to_string(path.as_path()), entry));
     }
     // Files found below contexts, like watchpack's `DirectoryWatcher.files`.
     for path in self.context_files.iter() {
@@ -1049,7 +1055,7 @@ impl PathManager {
         continue;
       };
       file_safe_times.push((path.clone(), time.narrowed().safe_time));
-      file_timestamps.push((path.to_string_lossy().to_string(), Self::entry(time)));
+      file_timestamps.push((path_to_string(path.as_path()), Self::entry(time)));
     }
 
     let mut dir_paths: Vec<InternedPath> =
@@ -1081,12 +1087,23 @@ impl PathManager {
     // times; a record cannot resurrect a directory gone from disk. Files are
     // folded into their parent first, so each ancestor chain is walked once.
     if !dir_safe_times.is_empty() {
-      let mut parent_safe_times: FxHashMap<&Path, u64> = FxHashMap::default();
+      let mut parent_indices: FxHashMap<&OsStr, usize> = FxHashMap::default();
+      let mut raw_parent_safe_times: Vec<(&Path, u64)> = Vec::new();
       for (file, safe_time) in &file_safe_times {
         if let Some(parent) = file.parent() {
-          let latest = parent_safe_times.entry(parent).or_default();
+          let index = *parent_indices.entry(parent.as_os_str()).or_insert_with(|| {
+            raw_parent_safe_times.push((parent, 0));
+            raw_parent_safe_times.len() - 1
+          });
+          let latest = &mut raw_parent_safe_times[index].1;
           *latest = (*latest).max(*safe_time);
         }
+      }
+      // Preserve the first spelling of Path-equal parents when merging the raw groups.
+      let mut parent_safe_times: FxHashMap<&Path, u64> = FxHashMap::default();
+      for (parent, safe_time) in raw_parent_safe_times {
+        let latest = parent_safe_times.entry(parent).or_default();
+        *latest = (*latest).max(safe_time);
       }
       for (parent, safe_time) in parent_safe_times {
         for dir in parent.ancestors() {
@@ -1098,7 +1115,7 @@ impl PathManager {
     }
     let mut directory_timestamps = TimeInfoEntries::with_capacity(dir_paths.len());
     for dir in &dir_paths {
-      let path = dir.to_string_lossy().to_string();
+      let path = path_to_string(dir.as_path());
       match dir_safe_times.get(dir).copied().flatten() {
         Some(safe_time) => {
           file_timestamps.push((path.clone(), TimeInfoEntry::ExistenceOnlyTimeEntry));

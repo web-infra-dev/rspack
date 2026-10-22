@@ -14,6 +14,7 @@ use rspack_watcher::{
   FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions, IgnoredFn, TimeInfoEntries,
   TimeInfoEntry,
 };
+use rustc_hash::FxHashSet;
 
 type JsWatcherIgnored = Either4<String, Vec<String>, RspackRegex, ThreadsafeFunction<String, bool>>;
 
@@ -68,21 +69,138 @@ pub struct NativeWatchResult {
 
 /// One row of watchpack's `TimeInfoEntries`, flattened for napi: a file's
 /// `Entry` carries all three times, a directory's `OnlySafeTimeEntry` only
-/// `safe_time`, an `ExistenceOnlyTimeEntry` sets `existence_only`, and `null`
-/// (a watched path absent on disk) carries nothing.
+/// `safe_time`, and an `ExistenceOnlyTimeEntry` sets `existence_only`.
 #[napi(object)]
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NativeTimeInfoEntry {
   pub path: String,
-  pub safe_time: Option<f64>,
-  pub timestamp: Option<f64>,
-  pub accuracy: Option<f64>,
   pub existence_only: bool,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub safe_time: Option<f64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub timestamp: Option<f64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub accuracy: Option<f64>,
 }
 
 #[napi(object)]
+#[derive(serde::Serialize)]
+pub struct NativeTimeInfoTable {
+  pub entries: Vec<NativeTimeInfoEntry>,
+  pub missing: Vec<String>,
+}
+
+/// Owns the timestamp snapshot so either table can be converted after the watcher closes.
+#[napi]
 pub struct NativeTimeInfoEntries {
-  pub file_timestamps: Vec<NativeTimeInfoEntry>,
-  pub directory_timestamps: Vec<NativeTimeInfoEntry>,
+  file_timestamps: TimeInfoEntries,
+  directory_timestamps: TimeInfoEntries,
+}
+
+#[napi]
+impl NativeTimeInfoEntries {
+  #[napi(getter, ts_return_type = "NativeTimeInfoTable")]
+  pub fn file_timestamps<'env>(
+    &mut self,
+    env: &'env Env,
+    this: This<'env>,
+  ) -> napi::Result<Object<'env>> {
+    cache_time_info_table(
+      env,
+      this,
+      "fileTimestamps",
+      std::mem::take(&mut self.file_timestamps),
+    )
+  }
+
+  #[napi(getter, ts_return_type = "NativeTimeInfoTable")]
+  pub fn directory_timestamps<'env>(
+    &mut self,
+    env: &'env Env,
+    this: This<'env>,
+  ) -> napi::Result<Object<'env>> {
+    cache_time_info_table(
+      env,
+      this,
+      "directoryTimestamps",
+      std::mem::take(&mut self.directory_timestamps),
+    )
+  }
+}
+
+fn cache_time_info_table<'env>(
+  env: &'env Env,
+  mut this: This<'env>,
+  name: &str,
+  entries: TimeInfoEntries,
+) -> napi::Result<Object<'env>> {
+  let json = serde_json::to_string(&to_native_time_info_table(entries))
+    .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+  let json_object: Object = env.get_global()?.get_named_property("JSON")?;
+  let parse: Function<String, Object<'env>> = json_object.get_named_property("parse")?;
+  let value = parse.call(json)?;
+  this.define_properties(&[Property::new()
+    .with_utf8_name(name)?
+    .with_value(&value)
+    .with_property_attributes(PropertyAttributes::Enumerable)])?;
+  Ok(value)
+}
+
+fn to_native_time_info_table(entries: TimeInfoEntries) -> NativeTimeInfoTable {
+  let missing_rows = {
+    let mut missing_paths = FxHashSet::default();
+    for (path, entry) in &entries {
+      if matches!(entry, TimeInfoEntry::Null) {
+        missing_paths.insert(path.as_str());
+      } else {
+        missing_paths.remove(path.as_str());
+      }
+    }
+    entries
+      .iter()
+      .map(|(path, entry)| {
+        matches!(entry, TimeInfoEntry::Null) && missing_paths.contains(path.as_str())
+      })
+      .collect::<Vec<_>>()
+  };
+  let mut table = NativeTimeInfoTable {
+    entries: Vec::new(),
+    missing: Vec::new(),
+  };
+  for ((path, entry), missing) in entries.into_iter().zip(missing_rows) {
+    if matches!(entry, TimeInfoEntry::Null) {
+      if missing {
+        table.missing.push(path);
+      }
+      continue;
+    }
+    let mut row = NativeTimeInfoEntry {
+      path,
+      existence_only: false,
+      safe_time: None,
+      timestamp: None,
+      accuracy: None,
+    };
+    match entry {
+      TimeInfoEntry::Entry {
+        safe_time,
+        timestamp,
+        accuracy,
+      } => {
+        row.safe_time = Some(safe_time as f64);
+        row.timestamp = Some(timestamp as f64);
+        row.accuracy = Some(accuracy as f64);
+      }
+      TimeInfoEntry::OnlySafeTimeEntry { safe_time } => {
+        row.safe_time = Some(safe_time as f64);
+      }
+      TimeInfoEntry::ExistenceOnlyTimeEntry => row.existence_only = true,
+      TimeInfoEntry::Null => unreachable!(),
+    }
+    table.entries.push(row);
+  }
+  table
 }
 
 /// A single, undelayed file system event delivered to the `callbackUndelayed`
@@ -218,40 +336,9 @@ impl NativeWatcher {
   #[napi]
   pub fn collect_time_info_entries(&self) -> NativeTimeInfoEntries {
     let (file_timestamps, directory_timestamps) = self.watcher.collect_time_info_entries();
-    let to_js = |entries: TimeInfoEntries| {
-      entries
-        .into_iter()
-        .map(|(path, entry)| {
-          let mut row = NativeTimeInfoEntry {
-            path,
-            safe_time: None,
-            timestamp: None,
-            accuracy: None,
-            existence_only: false,
-          };
-          match entry {
-            TimeInfoEntry::Entry {
-              safe_time,
-              timestamp,
-              accuracy,
-            } => {
-              row.safe_time = Some(safe_time as f64);
-              row.timestamp = Some(timestamp as f64);
-              row.accuracy = Some(accuracy as f64);
-            }
-            TimeInfoEntry::OnlySafeTimeEntry { safe_time } => {
-              row.safe_time = Some(safe_time as f64);
-            }
-            TimeInfoEntry::ExistenceOnlyTimeEntry => row.existence_only = true,
-            TimeInfoEntry::Null => {}
-          }
-          row
-        })
-        .collect::<Vec<_>>()
-    };
     NativeTimeInfoEntries {
-      file_timestamps: to_js(file_timestamps),
-      directory_timestamps: to_js(directory_timestamps),
+      file_timestamps,
+      directory_timestamps,
     }
   }
 
