@@ -68,14 +68,18 @@ export const lazyCompilationMiddleware = (
 
       const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
       options.prefix = `${prefix}__${i++}`;
-      const activeModules = new Set<string>();
+      const newlyActiveModules = new Set<string>();
 
       middlewareByCompiler.set(
         options.prefix,
-        lazyCompilationMiddlewareInternal(c, activeModules, options.prefix),
+        lazyCompilationMiddlewareInternal(
+          c,
+          newlyActiveModules,
+          options.prefix,
+        ),
       );
 
-      applyPlugin(c, options, activeModules);
+      applyPlugin(c, options, newlyActiveModules);
     }
 
     const keys = [...middlewareByCompiler.keys()];
@@ -97,18 +101,18 @@ export const lazyCompilationMiddleware = (
     return noop;
   }
 
-  const activeModules: Set<string> = new Set();
+  const newlyActiveModules: Set<string> = new Set();
 
   const options = {
     ...compiler.options.lazyCompilation,
   };
 
-  applyPlugin(compiler, options, activeModules);
+  applyPlugin(compiler, options, newlyActiveModules);
 
   const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
   return lazyCompilationMiddlewareInternal(
     compiler,
-    activeModules,
+    newlyActiveModules,
     lazyCompilationPrefix,
   );
 };
@@ -116,12 +120,14 @@ export const lazyCompilationMiddleware = (
 function applyPlugin(
   compiler: Compiler,
   options: LazyCompilationOptions,
-  activeModules: Set<string>,
+  newlyActiveModules: Set<string>,
 ) {
   const plugin = new BuiltinLazyCompilationPlugin(
+    // Hand over the modules reported since the last compilation; the native
+    // plugin keeps every activated module and skips the ones already active.
     () => {
-      const res = new Set(activeModules);
-      activeModules.clear();
+      const res = new Set(newlyActiveModules);
+      newlyActiveModules.clear();
       return res;
     },
     options.entries ?? true,
@@ -228,7 +234,7 @@ function readModuleIdsFromBody(
 
 const lazyCompilationMiddlewareInternal = (
   compiler: Compiler | MultiCompiler,
-  activeModules: Set<string>,
+  newlyActiveModules: Set<string>,
   lazyCompilationPrefix: string,
 ): DevServerMiddlewareHandler => {
   const logger = compiler.getInfrastructureLogger('LazyCompilation');
@@ -254,9 +260,8 @@ const lazyCompilationMiddlewareInternal = (
 
     const moduleActivated = [];
     for (const key of modules) {
-      const activated = activeModules.has(key);
-      activeModules.add(key);
-      if (!activated) {
+      if (!newlyActiveModules.has(key)) {
+        newlyActiveModules.add(key);
         logger.log(`${key} is now in use and will be compiled.`);
         moduleActivated.push(key);
       }

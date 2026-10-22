@@ -15,12 +15,27 @@ use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
-use super::{LoaderContext, LoaderRunnerOptions};
+use super::{Content, LoaderContext, LoaderFilter, LoaderRunnerOptions};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoaderExecutionKind {
   Native,
   JavaScript,
+}
+
+#[derive(Debug)]
+struct LoaderFilterExecution {
+  filter: Arc<LoaderFilter>,
+  matched: AtomicBool,
+}
+
+impl LoaderFilterExecution {
+  fn new(filter: Arc<LoaderFilter>) -> Self {
+    Self {
+      filter,
+      matched: AtomicBool::new(false),
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -45,6 +60,7 @@ pub struct LoaderItem<Context: Send> {
   data: serde_json::Value,
   r#type: String,
   cache_options: Option<Box<LoaderRunnerOptions>>,
+  filter: Option<LoaderFilterExecution>,
   execution_kind: LoaderExecutionKind,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
@@ -145,6 +161,47 @@ impl<C: Send> LoaderItem<C> {
   }
 
   #[inline]
+  pub fn filter(&self) -> Option<&LoaderFilter> {
+    self.filter.as_ref().map(|entry| entry.filter.as_ref())
+  }
+
+  #[inline]
+  pub fn filter_matched(&self) -> bool {
+    self
+      .filter
+      .as_ref()
+      .is_some_and(|entry| entry.matched.load(Ordering::Relaxed))
+  }
+
+  #[inline]
+  pub fn should_skip_normal(&self, content: Option<&Content>) -> bool {
+    let Some(entry) = &self.filter else {
+      return false;
+    };
+    if entry.matched.load(Ordering::Relaxed) {
+      return false;
+    }
+    let Some(content) = content else {
+      return false;
+    };
+    let content = match content {
+      Content::String(content) => content.as_str(),
+      Content::Buffer(content) => {
+        let Ok(content) = simdutf8::basic::from_utf8(content) else {
+          return false;
+        };
+        // Match the JS filter's TextDecoder view of a UTF-8 buffer.
+        content.strip_prefix('\u{feff}').unwrap_or(content)
+      }
+    };
+    let matched = entry.filter.matches(content);
+    if matched {
+      entry.matched.store(true, Ordering::Relaxed);
+    }
+    !matched
+  }
+
+  #[inline]
   #[doc(hidden)]
   pub fn finish_called(&self) -> bool {
     self.finish_called.load(Ordering::Relaxed)
@@ -160,6 +217,14 @@ impl<C: Send> LoaderItem<C> {
   #[doc(hidden)]
   pub fn set_normal_executed(&self) {
     self.normal_executed.store(true, Ordering::Relaxed)
+  }
+
+  #[inline]
+  #[doc(hidden)]
+  pub fn set_filter_matched(&self) {
+    if let Some(entry) = &self.filter {
+      entry.matched.store(true, Ordering::Relaxed);
+    }
   }
 
   #[inline]
@@ -257,13 +322,18 @@ where
 
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
-    Self::new(loader, LoaderRunnerOptions::default())
+    Self::new(loader, LoaderRunnerOptions::default(), None)
   }
 }
 
 impl<C: Send> LoaderItem<C> {
-  pub(crate) fn new(loader: Arc<dyn Loader<C>>, options: LoaderRunnerOptions) -> Self {
+  pub(crate) fn new(
+    loader: Arc<dyn Loader<C>>,
+    options: LoaderRunnerOptions,
+    filter: Option<Arc<LoaderFilter>>,
+  ) -> Self {
     let cache_options = options.cache.then(|| Box::new(options));
+    let filter = filter.map(LoaderFilterExecution::new);
     let ident = &**loader.identifier();
     let execution_kind = loader.execution_kind();
     if let Some(r#type) = loader.r#type() {
@@ -282,6 +352,7 @@ impl<C: Send> LoaderItem<C> {
         data: serde_json::Value::Null,
         r#type: ty,
         cache_options,
+        filter,
         execution_kind,
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
@@ -303,6 +374,7 @@ impl<C: Send> LoaderItem<C> {
       data: serde_json::Value::Null,
       r#type: String::default(),
       cache_options,
+      filter,
       execution_kind,
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),

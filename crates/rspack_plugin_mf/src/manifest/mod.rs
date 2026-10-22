@@ -292,6 +292,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut expose_fallback_chunk_keys: HashMap<String, rspack_core::ChunkUkey> =
       HashMap::default();
     let mut shared_map: HashMap<String, StatsShared> = HashMap::default();
+    let mut consumed_singletons: HashMap<String, bool> = HashMap::default();
     let mut shared_usage_links: Vec<(String, String)> = Vec::new();
     let mut shared_module_targets: HashMap<String, IdentifierSet> = HashMap::default();
     let mut module_ids_by_name: HashMap<String, ModuleIdentifier> = HashMap::default();
@@ -419,11 +420,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           if entry.version.is_empty() {
             entry.version = provide_shared.manifest_version().to_string();
           }
-          // overlay user-configured shared options (singleton/requiredVersion/version)
+          entry.singleton = Some(provide_shared.singleton().unwrap_or(true));
+          // overlay user-configured shared version options
           if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
-            if let Some(singleton) = opt.singleton {
-              entry.singleton = Some(singleton);
-            }
             if entry.requiredVersion.is_none() {
               entry.requiredVersion = opt.required_version.clone();
             }
@@ -482,9 +481,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         // overlay user-configured shared options
         if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
-          if let Some(singleton) = opt.singleton {
-            entry.singleton = Some(singleton);
-          }
           // prefer parsed requiredVersion but fill from config if still None
           if entry.requiredVersion.is_none() {
             entry.requiredVersion = opt.required_version.clone();
@@ -500,6 +496,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           module_graph,
           compilation,
         );
+        // Read the original configuration so an omitted singleton retains the manifest default.
+        let singleton = self
+          .options
+          .shared
+          .iter()
+          .find(|s| s.name == consume_shared.configured_share_key())
+          .and_then(|s| s.singleton)
+          .unwrap_or(true);
+        consumed_singletons.insert(pkg, singleton);
       }
     }
 
@@ -712,6 +717,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let shared = shared_map
       .into_values()
       .map(|mut v| {
+        // Consumer options take precedence regardless of module traversal order.
+        if let Some(singleton) = consumed_singletons.get(&v.name) {
+          v.singleton = Some(*singleton);
+        }
         v.usedIn.sort();
         v.usedIn.dedup();
         v

@@ -46,7 +46,7 @@ const lib = __webpack_require__("./lib.js");
 
 it('should have correct value', () => {
   expect(lib.U).toBe(42)
-})
+});
 
 export {};
 

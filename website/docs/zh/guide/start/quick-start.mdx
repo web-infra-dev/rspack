@@ -1,5 +1,5 @@
 ---
-description: '作为一个底层打包工具，Rspack 拥有丰富的技术生态，包含多种框架、工具和解决方案。这些生态项目涵盖了从框架到开发工具的各个方面，能够满足不同场景下的开发需求，提供开箱即用的体验。'
+description: '创建 Rspack 或 Rsbuild 项目，检查环境要求，或手动安装 Rspack 并运行首次构建。'
 ---
 
 import { PackageManagerTabs } from '@theme';
@@ -60,23 +60,21 @@ Rspack 支持使用 [Node.js](https://nodejs.org/)、[Deno](https://deno.com/) �
 
 ### 使用 Rsbuild
 
-Rsbuild 是由 Rspack 驱动的高性能构建工具，由 Rspack 团队开发。它默认包含了一套精心设计的构建配置，提供开箱即用的开发体验，并能够充分发挥出 Rspack 的性能优势。
+我们推荐使用 [Rsbuild](https://rsbuild.rs/) 创建新项目。Rsbuild 是基于 Rspack 的构建工具，内置构建配置和开发服务器，并提供 React、Vue 等框架的集成，帮助你快速上手。
 
-我们推荐使用 [Rsbuild](https://rsbuild.rs/) 来创建新项目，执行如下命令即可：
+执行如下命令并按照提示操作：
 
 <PackageManagerTabs command="create rsbuild@latest" />
 
-> 更多信息参考 [Rsbuild - 快速上手](https://rsbuild.rs/zh/guide/start/quick-start)。
+> 查看 [Rsbuild - 快速上手](https://rsbuild.rs/zh/guide/start/quick-start) 了解更多。
 
 ### 使用 Rspack CLI
 
-Rspack CLI 是对标 webpack CLI 的工具，提供基础的 `serve` 和 `build` 构建命令。
+Rspack CLI 提供直接使用 Rspack 的命令行入口，你需要自行配置 loader、插件等构建能力，适合希望从底层配置入手、搭建自定义构建流程的项目。
 
-执行如下命令即可创建基于 Rspack CLI 的项目：
+执行如下命令并按照提示操作：
 
 <PackageManagerTabs command="create rspack@latest" />
-
-然后按照提示操作。
 
 ### 非交互模式
 

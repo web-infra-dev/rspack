@@ -12,7 +12,7 @@ pub enum PathMatcher {
 impl PathMatcher {
   fn try_match(&self, path: &str) -> bool {
     match self {
-      Self::String(string) => path.contains(string),
+      Self::String(string) => path.starts_with(string),
       Self::Regexp(regex) => regex.test(path),
     }
   }
@@ -71,11 +71,18 @@ impl SnapshotOptions {
     false
   }
 
-  pub fn is_managed_path(&self, path_str: &str) -> bool {
+  pub fn is_unmanaged_path(&self, path_str: &str) -> bool {
     for item in &self.unmanaged_paths {
       if item.try_match(path_str) {
-        return false;
+        return true;
       }
+    }
+    false
+  }
+
+  pub fn is_managed_path(&self, path_str: &str) -> bool {
+    if self.is_unmanaged_path(path_str) {
+      return false;
     }
 
     for item in &self.managed_paths {
@@ -97,9 +104,9 @@ mod tests {
   #[test]
   fn should_path_matcher_works() {
     let matcher = PathMatcher::String("abc".into());
-    assert!(matcher.try_match("aabcc"));
+    assert!(!matcher.try_match("aabcc"));
     assert!(matcher.try_match("abccd"));
-    assert!(matcher.try_match("xxabc"));
+    assert!(!matcher.try_match("xxabc"));
     assert!(!matcher.try_match("aadcc"));
 
     let matcher = PathMatcher::Regexp(RspackRegex::new("[0-9]").unwrap());
@@ -112,15 +119,15 @@ mod tests {
   fn should_snapshot_options_works() {
     let options = SnapshotOptions {
       immutable_paths: vec![
-        PathMatcher::String("constant".into()),
+        PathMatcher::String("/root/project/constant".into()),
         PathMatcher::Regexp(RspackRegex::new("global/[A-Z]+").unwrap()),
       ],
       unmanaged_paths: vec![
-        PathMatcher::String("node_modules/test1".into()),
+        PathMatcher::String("/root/project/node_modules/test1".into()),
         PathMatcher::Regexp(RspackRegex::new("test_modules/test.+").unwrap()),
       ],
       managed_paths: vec![
-        PathMatcher::String("node_modules".into()),
+        PathMatcher::String("/root/project/node_modules".into()),
         PathMatcher::Regexp(RspackRegex::new("test_modules/.+").unwrap()),
       ],
       resolve_build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
@@ -132,7 +139,7 @@ mod tests {
 
     assert!(options.is_immutable_path("/root/project/constant/var.js"));
     assert!(options.is_immutable_path("/root/project/constant1/var.js"));
-    assert!(options.is_immutable_path("/root/project/1constant/var.js"));
+    assert!(!options.is_immutable_path("/root/project/1constant/var.js"));
 
     assert!(options.is_immutable_path("/root/project/global/NAME.js"));
     assert!(options.is_immutable_path("/root/project/global/Name.js"));

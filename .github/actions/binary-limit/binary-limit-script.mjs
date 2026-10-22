@@ -46,6 +46,13 @@ export default async function action({ github, context, limit }) {
 
 const PER_PAGE = 30;
 const MAX_PAGES = 4;
+const PARENT_PR_PAGE_SIZE = 100;
+const MAX_PARENT_PR_PAGES = 4;
+const MAX_STACK_DEPTH = 20;
+
+// Must match the push branches in ci.yml, whose upload-binary-size job publishes
+// the only commits usable as authoritative baselines.
+const PUBLISHED_TRUNKS = new Set(['main', 'v1.x', 'release/2.3.0']);
 
 // The parent's own CI publishes its size about four minutes in, so a commit merged
 // right behind it can reach this job first. Observed window is one to two minutes;
@@ -161,7 +168,7 @@ async function findBaseCommit(github, context) {
 
 // Size data only exists for trunk commits, so the baseline must be a trunk commit
 // — the newest one the binding under test actually contains.
-async function resolveBaseSha(github, owner, repo, context) {
+export async function resolveBaseSha(github, owner, repo, context) {
   const pr = context.payload.pull_request;
   const { data: commit } = await github.rest.repos.getCommit({
     owner,
@@ -179,33 +186,108 @@ async function resolveBaseSha(github, owner, repo, context) {
   }
 
   if (commit.parents?.length !== 2 || head?.sha !== pr.head.sha) {
-    console.log('context.sha is not a PR merge commit, using pr.base.sha');
-    return pr.base.sha;
+    throw new Error(
+      `Commit ${context.sha} is not the merge commit for PR #${pr.number}; cannot identify its trunk baseline`,
+    );
   }
 
-  // For a standalone PR the base branch is the trunk, so the merged first parent
-  // is the baseline outright.
   const stack = await resolveStack(github, owner, repo, pr);
-  if (!stack) {
+  const trunk = stack
+    ? stack.base?.ref
+    : await resolvePublishedTrunk(github, owner, repo, pr, base.sha);
+  if (!trunk) {
+    throw new Error(`Cannot identify the trunk branch for PR #${pr.number}`);
+  }
+  context.binaryLimitTrunk = trunk;
+
+  // A PR targeting trunk uses the exact first parent of the binding's merge ref.
+  if (pr.base.ref === trunk) {
     return base.sha;
   }
 
-  // In a stack the merge commits chain — each PR's merges into the one below —
-  // so the first parent is another merge commit rather than a trunk commit. Take
-  // the merge base with the trunk instead. Anchoring on the branch rather than on
-  // the payload's `stack.base.sha` is deliberate: that sha is frozen at event time
-  // while `refs/pull/N/merge` keeps being recomputed as the trunk advances, so it
-  // can end up behind the trunk commit the binding contains and silently drag the
-  // baseline backwards. The branch tip is always at or ahead of that commit, and
-  // the merge base is the same however far ahead it is.
-  console.log(`Stack trunk: ${stack.base.ref}`);
+  // GitHub's native stack metadata may be absent for ordinary branch-based stacks.
+  // Their PR base is a feature branch, which never publishes binary size data.
+  // The merge base of the binding's merge ref and trunk is the newest trunk
+  // commit actually contained in that binding, including changes from its head.
+  console.log(`Stack trunk: ${trunk}`);
   const { data: comparison } =
     await github.rest.repos.compareCommitsWithBasehead({
       owner,
       repo,
-      basehead: `${stack.base.ref}...${context.sha}`,
+      basehead: `${trunk}...${context.sha}`,
     });
-  return comparison.merge_base_commit.sha;
+  const trunkSha = comparison.merge_base_commit?.sha;
+  if (!trunkSha) {
+    throw new Error(
+      `Cannot identify the common ${trunk} ancestor of merge commit ${context.sha} for PR #${pr.number}`,
+    );
+  }
+  return trunkSha;
+}
+
+// Follow the exact base branch through open PRs until it reaches a branch whose
+// push workflow publishes binary sizes. A branch name alone is insufficient:
+// forks can use the same name, and a stale merge ref can point at an older tip.
+async function resolvePublishedTrunk(github, owner, repo, pr, baseSha) {
+  const repoId = pr.base.repo?.id;
+  const repoOwner = pr.base.repo?.owner?.login;
+  if (!repoId || !repoOwner) {
+    throw new Error(`Cannot identify the base repository of PR #${pr.number}`);
+  }
+
+  let branch = pr.base.ref;
+  const visited = new Set();
+  for (let depth = 0; depth < MAX_STACK_DEPTH; depth++) {
+    if (PUBLISHED_TRUNKS.has(branch)) return branch;
+    if (visited.has(branch)) {
+      throw new Error(
+        `Cycle in parent PR branches at ${branch} for PR #${pr.number}`,
+      );
+    }
+    visited.add(branch);
+
+    const matches = [];
+    for (let page = 1; page <= MAX_PARENT_PR_PAGES; page++) {
+      const { data: parents } = await github.rest.pulls.list({
+        owner,
+        repo,
+        state: 'open',
+        head: `${repoOwner}:${branch}`,
+        per_page: PARENT_PR_PAGE_SIZE,
+        page,
+      });
+      matches.push(
+        ...parents.filter(
+          (parent) =>
+            parent.head.ref === branch &&
+            parent.head.repo?.id === repoId &&
+            parent.base.repo?.id === repoId,
+        ),
+      );
+      if (matches.length > 1) {
+        throw new Error(
+          `Ambiguous parent PR for branch ${branch} of PR #${pr.number}`,
+        );
+      }
+      if (parents.length < PARENT_PR_PAGE_SIZE) break;
+      if (page === MAX_PARENT_PR_PAGES) {
+        throw new Error(
+          `Parent PR search exceeded ${MAX_PARENT_PR_PAGES} pages for ${branch}`,
+        );
+      }
+    }
+
+    if (matches.length !== 1 || matches[0].head.sha !== baseSha) {
+      throw new Error(
+        `Cannot resolve parent PR at ${branch} and ${baseSha} for PR #${pr.number}`,
+      );
+    }
+    branch = matches[0].base.ref;
+    baseSha = matches[0].base.sha;
+  }
+  throw new Error(
+    `Parent PR chain exceeds ${MAX_STACK_DEPTH} branches for PR #${pr.number}`,
+  );
 }
 
 // `stack` is missing from the payload when a PR's `opened` event outruns the stack
@@ -348,16 +430,16 @@ function comparingInfo(context, baseCommit) {
   const headSha = context.payload.pull_request?.head.sha || context.sha;
   return (
     `> Comparing [\`${headSha.slice(0, 7)}\`](${context.payload.repository.html_url}/commit/${headSha}) to  [${message} by ${author}](${baseCommit.html_url})\n\n` +
-    stackNote(context.payload.pull_request)
+    stackNote(context.payload.pull_request, context.binaryLimitTrunk)
   );
 }
 
 // Only the bottom PR of a stack sits directly on the trunk; for the ones above it
 // the baseline is still the trunk, so the reported diff covers every PR below as
 // well. Say so, otherwise the number reads as this PR's own contribution.
-function stackNote(pr) {
-  const trunk = pr?.stack?.base?.ref;
-  if (!trunk || pr.base.ref === trunk) return '';
+export function stackNote(pr, defaultBranch) {
+  const trunk = pr?.stack?.base?.ref ?? defaultBranch;
+  if (!pr || !trunk || pr.base.ref === trunk) return '';
   return (
     '> [!NOTE]\n' +
     `> This PR is stacked on \`${pr.base.ref}\`. Sizes are compared against \`${trunk}\`, ` +

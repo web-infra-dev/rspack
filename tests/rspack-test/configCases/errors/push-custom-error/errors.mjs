@@ -1,3 +1,1 @@
-export default [
-	[/test/]
-];
+export default [{ code: /test error/ }];

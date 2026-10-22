@@ -370,9 +370,7 @@ export class NodeRunner implements ITestRunner {
       if (!file) {
         return this.requirers.get('miss')!(currentDirectory, modulePath);
       }
-      return JSON.parse(
-        fs.readFileSync(path.join(this._options.dist, modulePath), 'utf-8'),
-      );
+      return JSON.parse(fs.readFileSync(file.path, 'utf-8'));
     };
   }
 

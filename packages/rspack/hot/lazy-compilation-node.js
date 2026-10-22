@@ -104,6 +104,6 @@ export const activate = function (options) {
   return function () {
     errorHandlers.delete(onError);
     compiling.delete(data);
-    sendActiveRequest();
+    // The trigger endpoint only adds IDs; don't resend the remaining set.
   };
 };

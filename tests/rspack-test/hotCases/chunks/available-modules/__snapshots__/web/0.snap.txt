@@ -1,0 +1,16 @@
+# Case available-modules: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: child.chunk.CURRENT_HASH.js
+- Bundle: parent.chunk.CURRENT_HASH.js
+- Bundle: q.chunk.CURRENT_HASH.js
+- Bundle: r.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

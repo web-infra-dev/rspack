@@ -239,16 +239,16 @@ mod tests {
     HashHelper::new(
       fs.clone(),
       Arc::new(SnapshotOptions {
-        immutable_paths: vec![PathMatcher::String("immutable".into())],
+        immutable_paths: vec![PathMatcher::String("/immutable".into())],
         unmanaged_paths: vec![],
-        managed_paths: vec![PathMatcher::String("node_modules".into())],
+        managed_paths: vec![PathMatcher::String("/node_modules".into())],
         resolve_build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
         build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
         resolve: SnapshotStrategyOptions::hash_and_timestamp(),
         module: SnapshotStrategyOptions::hash_and_timestamp(),
         context_module: SnapshotStrategyOptions::timestamp(),
       }),
-      Arc::new(PackageHelper::new(fs)),
+      Arc::new(PackageHelper::new(fs, "/".into())),
     )
   }
 
@@ -326,7 +326,7 @@ mod tests {
     .unwrap();
     fs.write(
       "/node_modules/lib/package.json".into(),
-      r#"{"version": "0.0.1"}"#.as_bytes(),
+      r#"{"name": "lib", "version": "0.0.1"}"#.as_bytes(),
     )
     .await
     .unwrap();
@@ -363,7 +363,7 @@ mod tests {
     // update package.json
     fs.write(
       "/node_modules/lib/package.json".into(),
-      r#"{"version": "0.0.2"}"#.as_bytes(),
+      r#"{"name": "lib", "version": "0.0.2"}"#.as_bytes(),
     )
     .await
     .unwrap();
@@ -403,7 +403,7 @@ mod tests {
     let helper = new_helper(fs.clone());
     fs.write(
       "/node_modules/lib/package.json".into(),
-      r#"{"version": "0.0.3"}"#.as_bytes(),
+      r#"{"name": "lib", "version": "0.0.3"}"#.as_bytes(),
     )
     .await
     .unwrap();

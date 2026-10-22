@@ -49,7 +49,16 @@ export default defineConfig(
       ...(request
         ? [
             new sharing.ProvideSharedPlugin({
-              provides: { [request]: { shareKey: request, version: '1.0.0' } },
+              enhanced: true,
+              provides: {
+                [request]: {
+                  shareKey: request,
+                  version: '1.0.0',
+                  ...(index < 3
+                    ? { singleton: request === './static.js' }
+                    : {}),
+                },
+              },
             }),
           ]
         : []),
