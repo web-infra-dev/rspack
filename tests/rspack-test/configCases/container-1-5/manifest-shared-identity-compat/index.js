@@ -82,7 +82,7 @@ it('preserves legacy IDs and analyzed/disabled identity parity', () => {
     disabledStats,
     disabledManifest,
   ]) {
-    const layered = output.shared.find((shared) => shared.name === 'pkg');
+    const layered = output.shared.find((shared) => shared.name === 'pkg' && shared.layer === 'server');
     const legacy = output.shared.find(
       (shared) => shared.name === 'shared:10:s7:defaultl6:server3:pkg',
     );
@@ -140,6 +140,7 @@ it('loads the configured shared identities after an async boundary', async () =>
     import('legacy-a'),
     import('legacy-b'),
     import('layered'),
+    import('layered-other'),
     import('structural-collision'),
   ]);
   expect(modules.map((module) => module.default)).toEqual([
@@ -148,5 +149,18 @@ it('loads the configured shared identities after an async boundary', async () =>
     'legacy-b',
     'legacy-a',
     'legacy-b',
+    'legacy-b',
   ]);
+});
+
+it('keeps singleton metadata separate across scopes and layers', () => {
+  for (const output of [analyzedStats, analyzedManifest, disabledStats, disabledManifest]) {
+    const find = (name, scope, layer) => output.shared.find(
+      shared => shared.name === name && (shared.shareScope ?? 'default') === scope && shared.layer === layer,
+    );
+    expect(find('collision', 'scope-a', undefined).singleton).toBe(false);
+    expect(find('collision', 'scope-b', undefined).singleton).toBe(true);
+    expect(find('pkg', 'default', 'server').singleton).toBe(false);
+    expect(find('pkg', 'default', 'client').singleton).toBe(true);
+  }
 });

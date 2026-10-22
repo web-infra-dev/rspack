@@ -60,6 +60,15 @@ const createConfig = (fileName, disableAssetsAnalyze) => ({
           version: '1.0.0',
           shareKey: 'pkg',
           layer: 'server',
+          singleton: false,
+          requiredVersion: false,
+        },
+        'layered-other': {
+          import: 'legacy-b',
+          version: '1.0.0',
+          shareKey: 'pkg',
+          layer: 'client',
+          singleton: true,
           requiredVersion: false,
         },
         'structural-collision': {
@@ -79,6 +88,7 @@ const createConfig = (fileName, disableAssetsAnalyze) => ({
           version: '1.0.0',
           requiredVersion: false,
           shareScope: 'scope-a',
+          singleton: false,
         },
         'legacy-b': {
           request: 'legacy-b',
@@ -86,6 +96,7 @@ const createConfig = (fileName, disableAssetsAnalyze) => ({
           version: '1.0.0',
           requiredVersion: false,
           shareScope: 'scope-b',
+          singleton: true,
         },
       },
     }),

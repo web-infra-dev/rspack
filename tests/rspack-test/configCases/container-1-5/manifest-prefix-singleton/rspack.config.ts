@@ -2,14 +2,19 @@ import { defineConfig } from '@rspack/cli';
 import { container, DefinePlugin } from '@rspack/core';
 
 export default defineConfig(
-  [false, true].map((consumeOnly, index) => {
+  [false, true, false, true].map((consumeOnly, index) => {
+    const layer = index >= 2 ? 'background' : undefined;
     const defaultSharedOptions = {
       requiredVersion: '^1.0.0',
+      layer,
+      issuerLayer: layer,
       ...(consumeOnly ? { import: false as const } : {}),
     };
     const sharedOptions = { ...defaultSharedOptions, singleton: false };
 
     return {
+      experiments: { layers: true },
+      module: { rules: [{ test: /\.js$/, layer }] },
       externals: {
         fs: 'node-commonjs fs',
         path: 'node-commonjs path',
