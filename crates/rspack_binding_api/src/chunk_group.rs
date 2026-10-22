@@ -1,9 +1,12 @@
 use std::cell::RefCell;
 
-use napi::{Either, Env, JsString, bindgen_prelude::ToNapiValue};
+use napi::{
+  Either, Env, JsString,
+  bindgen_prelude::{Array, This, ToNapiValue},
+};
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId};
-use rspack_napi::OneShotRef;
+use rspack_core::{Compilation, CompilationId, OriginRecord};
+use rspack_napi::{MemoizedJsArray, OneShotRef};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -17,6 +20,37 @@ use crate::{
 pub struct ChunkGroup {
   chunk_group_ukey: rspack_core::ChunkGroupUkey,
   compilation_id: CompilationId,
+  chunks_jsobject: MemoizedJsArray<Vec<rspack_core::ChunkUkey>>,
+  children_jsobject: MemoizedJsArray<Vec<rspack_core::ChunkGroupUkey>>,
+  parents_jsobject: MemoizedJsArray<Vec<rspack_core::ChunkGroupUkey>>,
+  origins_jsobject: MemoizedJsArray<Vec<ChunkGroupOriginSnapshot>>,
+  files_jsobject: MemoizedJsArray<Vec<String>>,
+}
+
+struct ChunkGroupOriginSnapshot {
+  origin: OriginRecord,
+  module_exists: bool,
+}
+
+fn with_chunk_group<R>(
+  compilation_id: CompilationId,
+  chunk_group_ukey: rspack_core::ChunkGroupUkey,
+  f: impl FnOnce(&Compilation, &rspack_core::ChunkGroup) -> napi::Result<R>,
+) -> napi::Result<R> {
+  with_compilation(compilation_id, |compilation| {
+    if let Some(value) = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .get(&chunk_group_ukey)
+    {
+      f(compilation, value)
+    } else {
+      Err(napi::Error::from_reason(format!(
+        "Unable to access chunk_group with id = {:?} now. The chunk group has been removed on the Rust side.",
+        chunk_group_ukey
+      )))
+    }
+  })
 }
 
 impl ChunkGroup {
@@ -24,36 +58,34 @@ impl ChunkGroup {
     &self,
     f: impl FnOnce(&Compilation, &rspack_core::ChunkGroup) -> napi::Result<R>,
   ) -> napi::Result<R> {
-    with_compilation(self.compilation_id, |compilation| {
-      if let Some(chunk_group) = compilation
-        .build_chunk_graph_artifact
-        .chunk_group_by_ukey
-        .get(&self.chunk_group_ukey)
-      {
-        f(compilation, chunk_group)
-      } else {
-        Err(napi::Error::from_reason(format!(
-          "Unable to access chunk_group with id = {:?} now. The chunk group has been removed on the Rust side.",
-          self.chunk_group_ukey
-        )))
-      }
-    })
+    with_chunk_group(self.compilation_id, self.chunk_group_ukey, f)
   }
 }
 
 #[napi]
 impl ChunkGroup {
-  #[napi(getter, ts_return_type = "Chunk[]")]
-  pub fn chunks(&self) -> napi::Result<Vec<ChunkWrapper>> {
-    self.with_ref(|compilation, chunk_group| {
-      Ok(
-        chunk_group
-          .chunks
-          .iter()
-          .map(|ukey| ChunkWrapper::new(*ukey, compilation))
-          .collect::<Vec<_>>(),
-      )
-    })
+  #[napi(getter, ts_return_type = "ReadonlyArray<Chunk>")]
+  pub fn chunks<'a>(&mut self, env: &'a Env, mut this: This<'a>) -> napi::Result<Array<'a>> {
+    with_chunk_group(
+      self.compilation_id,
+      self.chunk_group_ukey,
+      |compilation, chunk_group| {
+        // Validate the owner before consulting any cached JS graph objects.
+        let chunks = &chunk_group.chunks;
+        self.chunks_jsobject.get_or_update(
+          env,
+          &mut this.object,
+          "rspack.chunkGroup.chunks",
+          |cached| cached == chunks,
+          |array| {
+            for (i, ukey) in chunks.iter().enumerate() {
+              array.set(i as u32, ChunkWrapper::new(*ukey, compilation))?;
+            }
+            Ok((chunks.clone(), chunks.len() as u32))
+          },
+        )
+      },
+    )
   }
 
   #[napi(getter)]
@@ -76,52 +108,95 @@ impl ChunkGroup {
     })
   }
 
-  #[napi(getter)]
-  pub fn origins<'a>(&self, env: &'a Env) -> napi::Result<Vec<JsChunkGroupOrigin<'a>>> {
-    self.with_ref(|compilation, chunk_group| {
-      let origins = chunk_group.origins();
-      let mut js_origins = Vec::with_capacity(origins.len());
-
-      for origin in origins {
-        let loc = if let Some(loc) = &origin.loc {
-          Some(match loc {
-            rspack_core::DependencyLocation::Real(real) => Either::B(real.into()),
-            rspack_core::DependencyLocation::Synthetic(synthetic) => {
-              Either::A(env.create_string(&synthetic.name)?)
-            }
-          })
-        } else {
-          None
-        };
-
-        js_origins.push(JsChunkGroupOrigin {
-          module: origin.module.and_then(|module_id| {
-            compilation
-              .module_by_identifier(&module_id)
-              .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
-          }),
-          request: match &origin.request {
-            Some(request) => Some(env.create_string(request)?),
-            None => None,
+  #[napi(getter, ts_return_type = "ReadonlyArray<Readonly<JsChunkGroupOrigin>>")]
+  pub fn origins<'a>(&mut self, env: &'a Env, mut this: This<'a>) -> napi::Result<Array<'a>> {
+    with_chunk_group(
+      self.compilation_id,
+      self.chunk_group_ukey,
+      |compilation, chunk_group| {
+        let origins = chunk_group.origins();
+        self.origins_jsobject.get_or_update(
+          env,
+          &mut this.object,
+          "rspack.chunkGroup.origins",
+          |cached| {
+            cached.len() == origins.len()
+              && cached.iter().zip(origins).all(|(cached, origin)| {
+                cached.origin.module == origin.module
+                  && cached.origin.request == origin.request
+                  && cached.origin.loc == origin.loc
+                  // Module availability can change independently of the origin record.
+                  && cached.module_exists
+                    == origin
+                      .module
+                      .is_some_and(|id| compilation.module_by_identifier(&id).is_some())
+              })
           },
-          loc,
-        })
-      }
-
-      Ok(js_origins)
-    })
+          |array| {
+            let mut snapshot = Vec::with_capacity(origins.len());
+            for (i, origin) in origins.iter().enumerate() {
+              let loc = match &origin.loc {
+                Some(rspack_core::DependencyLocation::Real(real)) => Some(Either::B(real.into())),
+                Some(rspack_core::DependencyLocation::Synthetic(synthetic)) => {
+                  Some(Either::A(env.create_string(&synthetic.name)?))
+                }
+                None => None,
+              };
+              let module = origin
+                .module
+                .and_then(|id| compilation.module_by_identifier(&id));
+              array.set(
+                i as u32,
+                JsChunkGroupOrigin {
+                  module: module.map(|module| {
+                    ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())
+                  }),
+                  request: origin
+                    .request
+                    .as_ref()
+                    .map(|request| env.create_string(request))
+                    .transpose()?,
+                  loc,
+                },
+              )?;
+              snapshot.push(ChunkGroupOriginSnapshot {
+                origin: origin.clone(),
+                module_exists: module.is_some(),
+              });
+            }
+            Ok((snapshot, origins.len() as u32))
+          },
+        )
+      },
+    )
   }
 
-  #[napi(getter, ts_return_type = "ChunkGroup[]")]
-  pub fn children_iterable(&self) -> napi::Result<Vec<ChunkGroupWrapper>> {
-    self.with_ref(|compilation, chunk_group| {
-      Ok(
-        chunk_group
-          .children_iterable()
-          .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation))
-          .collect::<Vec<_>>(),
-      )
-    })
+  #[napi(getter, ts_return_type = "ReadonlyArray<ChunkGroup>")]
+  pub fn children_iterable<'a>(
+    &mut self,
+    env: &'a Env,
+    mut this: This<'a>,
+  ) -> napi::Result<Array<'a>> {
+    with_chunk_group(
+      self.compilation_id,
+      self.chunk_group_ukey,
+      |compilation, chunk_group| {
+        self.children_jsobject.get_or_update(
+          env,
+          &mut this.object,
+          "rspack.chunkGroup.childrenIterable",
+          |cached| cached.iter().eq(chunk_group.children_iterable()),
+          |array| {
+            let children = chunk_group.children_iterable().copied().collect::<Vec<_>>();
+            for (i, ukey) in children.iter().enumerate() {
+              array.set(i as u32, ChunkGroupWrapper::new(*ukey, compilation))?;
+            }
+            let len = children.len() as u32;
+            Ok((children, len))
+          },
+        )
+      },
+    )
   }
 
   #[napi]
@@ -129,17 +204,29 @@ impl ChunkGroup {
     self.with_ref(|_, chunk_group| Ok(chunk_group.is_initial()))
   }
 
-  #[napi(ts_return_type = "ChunkGroup[]")]
-  pub fn get_parents(&self) -> napi::Result<Vec<ChunkGroupWrapper>> {
-    self.with_ref(|compilation, chunk_group| {
-      Ok(
-        chunk_group
-          .parents
-          .iter()
-          .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation))
-          .collect(),
-      )
-    })
+  #[napi(ts_return_type = "ReadonlyArray<ChunkGroup>")]
+  pub fn get_parents<'a>(&mut self, env: &'a Env, mut this: This<'a>) -> napi::Result<Array<'a>> {
+    with_chunk_group(
+      self.compilation_id,
+      self.chunk_group_ukey,
+      |compilation, chunk_group| {
+        self.parents_jsobject.get_or_update(
+          env,
+          &mut this.object,
+          "rspack.chunkGroup.parents",
+          // Preserve iteration order as well as membership in the snapshot.
+          |cached| cached.iter().eq(chunk_group.parents.iter()),
+          |array| {
+            let parents = chunk_group.parents.iter().copied().collect::<Vec<_>>();
+            for (i, ukey) in parents.iter().enumerate() {
+              array.set(i as u32, ChunkGroupWrapper::new(*ukey, compilation))?;
+            }
+            let len = parents.len() as u32;
+            Ok((parents, len))
+          },
+        )
+      },
+    )
   }
 
   #[napi(ts_return_type = "Chunk")]
@@ -159,25 +246,41 @@ impl ChunkGroup {
     })
   }
 
-  #[napi]
-  pub fn get_files(&self) -> napi::Result<Vec<String>> {
-    self.with_ref(|compilation, chunk_group| {
-      Ok(
-        chunk_group
-          .chunks
-          .iter()
-          .filter_map(|chunk_ukey| {
-            compilation
-              .build_chunk_graph_artifact
-              .chunk_by_ukey
-              .get(chunk_ukey)
-              .map(|chunk| chunk.files().iter())
-          })
-          .flatten()
-          .cloned()
-          .collect::<Vec<_>>(),
-      )
-    })
+  #[napi(ts_return_type = "ReadonlyArray<string>")]
+  pub fn get_files<'a>(&mut self, env: &'a Env, mut this: This<'a>) -> napi::Result<Array<'a>> {
+    with_chunk_group(
+      self.compilation_id,
+      self.chunk_group_ukey,
+      |compilation, chunk_group| {
+        let files = || {
+          chunk_group
+            .chunks
+            .iter()
+            .filter_map(|ukey| {
+              compilation
+                .build_chunk_graph_artifact
+                .chunk_by_ukey
+                .get(ukey)
+            })
+            .flat_map(|chunk| chunk.files().iter())
+        };
+        self.files_jsobject.get_or_update(
+          env,
+          &mut this.object,
+          "rspack.chunkGroup.files",
+          |cached| cached.iter().eq(files()),
+          |array| {
+            let mut snapshot = Vec::new();
+            for (i, file) in files().enumerate() {
+              array.set(i as u32, file.as_str())?;
+              snapshot.push(file.clone());
+            }
+            let len = snapshot.len() as u32;
+            Ok((snapshot, len))
+          },
+        )
+      },
+    )
   }
 
   #[napi(ts_args_type = "module: Module")]
@@ -242,6 +345,11 @@ impl ToNapiValue for ChunkGroupWrapper {
             let js_module = ChunkGroup {
               chunk_group_ukey: val.chunk_group_ukey,
               compilation_id: val.compilation_id,
+              chunks_jsobject: Default::default(),
+              children_jsobject: Default::default(),
+              parents_jsobject: Default::default(),
+              origins_jsobject: Default::default(),
+              files_jsobject: Default::default(),
             };
             let r = entry.insert(OneShotRef::new(env, js_module)?);
             ToNapiValue::to_napi_value(env, r)

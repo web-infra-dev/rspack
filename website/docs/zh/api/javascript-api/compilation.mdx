@@ -700,6 +700,16 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   </CollapsePanel>
 </Collapse>
 
+`ChunkGroup.chunks`、`ChunkGroup.childrenIterable`、`ChunkGroup.origins`、
+`ChunkGroup.getParents()` 和 `ChunkGroup.getFiles()`
+返回类型为 `ReadonlyArray` 的共享数组。当 Rust 侧集合的成员或迭代顺序变化时，
+下一次读取属性或调用方法会原地更新同一数组，之前持有的引用也会看到更新后的内容。
+数组没有冻结，调用方不得修改或冻结它。如需独立快照或可修改的副本，请使用
+`[...array]`。未变化的 `origins` 还会复用其中的 origin 和 location 对象；这些记录
+同样应视为只读，需要修改时请复制对应记录。每次访问仍会检查 compilation 的生命周期，缓存数组不会延长
+compilation 的存活时间。数组由 JavaScript 对象持有，不再可达时由 GC 回收，
+包括 chunk 与 chunk group 对象之间形成的循环引用。
+
 ### entrypoints
 
 **类型：** `ReadonlyMap<string, Entrypoint>`
@@ -775,6 +785,19 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
     <ChunkType />
   </CollapsePanel>
 </Collapse>
+
+`chunk.files`、`chunk.runtime`、`chunk.auxiliaryFiles` 和 `chunk.groupsIterable`
+使用通用的数组式 `ReadonlySet<T>` 包装器，类似于
+`FileSystemDependencies`。底层数组相同时，重复读取会复用同一个只读视图。迭代、`size`、`has`、
+`keys`、`values`、`entries` 和 `forEach` 都不会构造原生 JavaScript `Set`，
+其中 `has` 会线性扫描数组。资源重命名和删除会在下一次读取属性时原地更新底层数组，
+之前持有的视图也会看到更新后的内容。
+
+包装器不是原生 `Set`：`chunk.files instanceof Set` 为 `false`，也不能直接将它作为
+`Set.prototype` 方法的接收者。视图不提供 `add`、`delete` 和 `clear`。
+需要独立快照、可修改的副本或原生 `Set` 时，请使用 `new Set(chunk.files)`。
+当 JavaScript 运行时支持集合组合方法时，包装器也会提供这些方法，并在调用时构造原生 `Set`。
+Group 成员视图保留原有 `ChunkGroup` 对象身份；这些对象仍受编译生命周期约束，缓存不会延长其有效期。
 
 ### namedChunks
 
