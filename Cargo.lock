@@ -3802,6 +3802,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack-allocative"
+version = "0.103.0-beta.0"
+dependencies = [
+ "arc-swap",
+ "atomic_refcell",
+ "camino",
+ "ctor 0.1.26",
+ "dashmap",
+ "either",
+ "fixedbitset",
+ "halfbrown",
+ "hashlink",
+ "hstr",
+ "indexmap",
+ "json",
+ "napi",
+ "once_cell",
+ "parking_lot",
+ "pnp",
+ "rspack-allocative_derive",
+ "rustc-hash",
+ "serde_json",
+ "simd-json",
+ "smallvec",
+ "smol_str",
+ "swc_config",
+ "swc_core",
+ "swc_ecma_minifier",
+ "tokio",
+ "triomphe",
+ "ustr-fxhash",
+]
+
+[[package]]
+name = "rspack-allocative_derive"
+version = "0.103.0-beta.0"
+dependencies = [
+ "cow-utils",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "rspack-turbo-persistence"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3831,50 +3875,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_allocative"
-version = "0.103.0-beta.0"
-dependencies = [
- "arc-swap",
- "atomic_refcell",
- "camino",
- "ctor 0.1.26",
- "dashmap",
- "either",
- "fixedbitset",
- "halfbrown",
- "hashlink",
- "hstr",
- "indexmap",
- "json",
- "napi",
- "once_cell",
- "parking_lot",
- "pnp",
- "rspack_allocative_derive",
- "rustc-hash",
- "serde_json",
- "simd-json",
- "smallvec",
- "smol_str",
- "swc_config",
- "swc_core",
- "swc_ecma_minifier",
- "tokio",
- "triomphe",
- "ustr-fxhash",
-]
-
-[[package]]
-name = "rspack_allocative_derive"
-version = "0.103.0-beta.0"
-dependencies = [
- "cow-utils",
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
 name = "rspack_allocative_driver"
 version = "0.103.0-beta.0"
 dependencies = [
@@ -3891,7 +3891,7 @@ dependencies = [
  "cow-utils",
  "hashlink",
  "indexmap",
- "rspack_allocative",
+ "rspack-allocative",
  "rspack_allocative_driver",
  "rspack_sources",
  "rspack_tasks",
@@ -4110,7 +4110,7 @@ dependencies = [
  "once_cell",
  "regex",
  "rkyv",
- "rspack_allocative",
+ "rspack-allocative",
  "rspack_cacheable_macros",
  "rspack_intern",
  "rspack_lightningcss",
@@ -4159,7 +4159,7 @@ dependencies = [
  "either",
  "hashlink",
  "indexmap",
- "rspack_allocative",
+ "rspack-allocative",
  "rspack_cacheable",
  "rustc-hash",
  "serde",
@@ -4203,8 +4203,8 @@ dependencies = [
  "rayon",
  "regex",
  "rkyv",
+ "rspack-allocative",
  "rspack-turbo-persistence",
- "rspack_allocative",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_dojang",
@@ -4255,7 +4255,7 @@ name = "rspack_dojang"
 version = "0.103.0-beta.0"
 dependencies = [
  "html-escape",
- "rspack_allocative",
+ "rspack-allocative",
  "rustc-hash",
  "serde_json",
 ]
@@ -4267,7 +4267,7 @@ dependencies = [
  "anyhow",
  "miette",
  "owo-colors",
- "rspack_allocative",
+ "rspack-allocative",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_location",
@@ -4356,7 +4356,7 @@ dependencies = [
  "hstr",
  "indexmap",
  "ref-cast",
- "rspack_allocative",
+ "rspack-allocative",
  "rustc-hash",
  "serde",
  "swc_core",
@@ -4536,7 +4536,7 @@ version = "0.103.0-beta.0"
 dependencies = [
  "itoa",
  "memchr",
- "rspack_allocative",
+ "rspack-allocative",
  "rspack_cacheable",
 ]
 
@@ -4575,7 +4575,7 @@ version = "0.103.0-beta.0"
 dependencies = [
  "napi",
  "oneshot",
- "rspack_allocative",
+ "rspack-allocative",
  "rspack_error",
  "scopeguard",
  "serde_json",
@@ -5247,7 +5247,7 @@ dependencies = [
  "indoc",
  "once_cell",
  "regex",
- "rspack_allocative",
+ "rspack-allocative",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -5530,7 +5530,7 @@ dependencies = [
  "regex",
  "regex-syntax",
  "regress",
- "rspack_allocative",
+ "rspack-allocative",
  "rspack_cacheable",
  "rspack_error",
  "swc_core",
@@ -5554,7 +5554,7 @@ dependencies = [
  "normalize-path",
  "pnp",
  "regex",
- "rspack_allocative",
+ "rspack-allocative",
  "rspack_paths",
  "rustc-hash",
  "serde",
@@ -5573,7 +5573,7 @@ dependencies = [
  "memchr",
  "regex",
  "rkyv",
- "rspack_allocative",
+ "rspack-allocative",
  "rustc-hash",
  "serde",
  "simd-json",
@@ -5590,7 +5590,7 @@ dependencies = [
  "cow-utils",
  "futures",
  "itertools 0.14.0",
- "rspack_allocative",
+ "rspack-allocative",
  "rspack_error",
  "rspack_fs",
  "rspack_parallel",
@@ -5605,7 +5605,7 @@ version = "0.103.0-beta.0"
 dependencies = [
  "cow-utils",
  "heck",
- "rspack_allocative",
+ "rspack-allocative",
  "rustc-hash",
  "serde",
  "swc_core",
@@ -5663,7 +5663,7 @@ dependencies = [
  "bytes",
  "micromegas-perfetto",
  "prost",
- "rspack_allocative",
+ "rspack-allocative",
  "rustc-hash",
  "tracing",
  "tracing-subscriber",
@@ -5687,7 +5687,7 @@ dependencies = [
  "memchr",
  "once_cell",
  "regex",
- "rspack_allocative",
+ "rspack-allocative",
  "rspack_cacheable",
  "rspack_intern",
  "rspack_paths",
