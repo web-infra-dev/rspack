@@ -168,7 +168,6 @@ pub struct LocalIdentModuleHashOptions<'a> {
 #[derive(Debug, Clone)]
 struct LocalIdentRenderCache {
   compiled_template: Arc<CompiledStringTemplate<'static>>,
-  has_local_placeholder: bool,
   /// Replacement values for the filename placeholders of the local ident template.
   file_replacements: FileReplacements,
   /// `[contenthash]` of the module source, empty unless the template uses it.
@@ -180,14 +179,20 @@ struct LocalIdentRenderCache {
 }
 
 impl LocalIdentRenderCache {
+  fn has_local_placeholder(&self) -> bool {
+    self
+      .compiled_template
+      .has_placeholder(PlaceholderKind::Local)
+  }
+
   fn new(options: &LocalIdentOptions<'_>) -> Self {
     let output = &options.compiler_options.output;
-    let content_hash = if options
+    let compiled_template = options
       .local_ident_name
       .template
-      .as_str()
-      .contains("[contenthash")
-    {
+      .compiled_template()
+      .expect("CSS local ident name should be a string template");
+    let content_hash = if compiled_template.has_placeholder(PlaceholderKind::ContentHash) {
       let mut hasher = RspackHasher::new(&output.hash_function);
       hasher.write(options.source.as_bytes());
       let hash = hasher.digest(&output.hash_digest);
@@ -216,16 +221,7 @@ impl LocalIdentRenderCache {
     );
 
     Self {
-      compiled_template: options
-        .local_ident_name
-        .template
-        .compiled_template()
-        .expect("CSS local ident name should be a string template"),
-      has_local_placeholder: options
-        .local_ident_name
-        .template
-        .template()
-        .is_some_and(|template| template.contains("[local]")),
+      compiled_template,
       file_replacements,
       content_hash,
       module_id: PathData::prepare_id(CSS_MODULE_ID_PLACEHOLDER),
@@ -413,7 +409,7 @@ impl<'a> LocalIdentOptions<'a> {
     let cache = self
       .render_cache
       .get_or_init(|| LocalIdentRenderCache::new(self));
-    let hash = if cache.has_local_placeholder {
+    let hash = if cache.has_local_placeholder() {
       self.module_hash(module_hash_options)
     } else {
       local_ident_hash.as_str()
