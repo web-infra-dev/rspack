@@ -11,11 +11,11 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-allocative = ["dep:rspack_allocative"]
+allocative = ["dep:rspack-allocative"]
 
 [dependencies]
 html-escape       = { workspace = true }
-rspack_allocative = { workspace = true, optional = true }
+rspack-allocative = { workspace = true, optional = true }
 rustc-hash        = { workspace = true, features = ["std"] }
 serde_json        = { workspace = true }
 
@@ -27,4 +27,4 @@ doctest = false
 
 [package.metadata.cargo-shear]
 # The allocative compiler driver injects enum derives that use this dependency.
-ignored = ["rspack_allocative"]
+ignored = ["rspack-allocative"]
