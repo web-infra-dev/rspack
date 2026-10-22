@@ -1,5 +1,5 @@
 #[cfg(allocative)]
-use rspack_util::allocative;
+use rspack_util::rspack_allocative;
 use swc_next_ecma_ast::{
   AssignmentExpression, AwaitExpression, BinaryExpression, CallExpression, ChainExpression, Class,
   ClassElement, ConditionalExpression, ExportDefaultDeclarationKind, Expr, ForOfStatement,
@@ -22,7 +22,7 @@ use crate::{
 const PLUGIN_BITMASK_BITS: usize = u64::BITS as usize;
 
 // Keep typed array traversal: the pinned reflection compiler does not normalize const lengths.
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub struct JavaScriptParserPluginDrive {
   plugins: Vec<BoxJavascriptParserPlugin>,
   // Each bit stores whether the plugin at the same index implements the hook.

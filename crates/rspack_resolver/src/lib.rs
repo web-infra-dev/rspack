@@ -963,6 +963,27 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // c. LOAD_AS_DIRECTORY(DIR/X)
     let node_module_file = cached_path.path().normalize_with(specifier);
     let file_cached = self.cache.value(&node_module_file);
+    // No modern package manager creates `node_modules/foo.js`, so a bare package is looked up as a directory first.
+    if cached_path.path().file_name() == Some("node_modules")
+      && specifier == package_name
+      && !self.options.resolve_to_context
+      && !self.matches_extension_alias(file_cached.path())
+      && file_cached.is_dir(&self.cache.fs, ctx).await
+    {
+      if self.options.enforce_extension.is_disabled() {
+        if let Some(path) = self.load_alias_or_file(&file_cached, ctx).await? {
+          return Ok(Some(path));
+        }
+      }
+      // Failed directory resolution can mutate query, fragment, and alias state.
+      // Keep its dependencies without leaking those changes into file resolution.
+      if let Some(path) = ctx
+        .trace_dependencies_only(async |ctx| self.load_as_directory(&file_cached, ctx).await)
+        .await?
+      {
+        return Ok(Some(path));
+      }
+    }
     self
       .load_as_file_or_directory(&file_cached, specifier, ctx)
       .await
@@ -1413,6 +1434,16 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       };
     }
     Ok(None)
+  }
+
+  fn matches_extension_alias(&self, path: &Utf8Path) -> bool {
+    path.extension().is_some_and(|extension| {
+      self
+        .options
+        .extension_alias
+        .iter()
+        .any(|(alias, _)| alias.trim_start_matches('.') == extension)
+    })
   }
 
   /// Given an extension alias map `{".js": [".ts", ".js"]}`,

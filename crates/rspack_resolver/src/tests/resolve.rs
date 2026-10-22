@@ -1,6 +1,6 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/resolve.test.js>
 
-use crate::{ResolveError, ResolveOptions, Resolver};
+use crate::{AliasValue, EnforceExtension, ResolveError, ResolveOptions, Resolver};
 
 #[tokio::test]
 async fn resolve() {
@@ -140,4 +140,84 @@ async fn resolve_hash_as_module() {
   let resolver = Resolver::new(ResolveOptions::default());
   let resolution = resolver.resolve(f, "#a").await;
   assert_eq!(resolution, Err(ResolveError::NotFound("#a".into())));
+}
+
+#[tokio::test]
+async fn bare_package_in_node_modules_prefers_directory() {
+  let f = super::fixture().join("prefer-dir-over-file");
+  let resolver = Resolver::default();
+
+  #[rustfmt::skip]
+  let pass = [
+    ("directory over sibling file", "bar", f.join("node_modules/bar/index.js")),
+    ("scoped directory over sibling file", "@foo/bar", f.join("node_modules/@foo/bar/index.js")),
+    ("file when directory has no entry", "baz", f.join("node_modules/baz.js")),
+  ];
+
+  for (comment, request, expected) in pass {
+    let resolved_path = resolver.resolve(&f, request).await.map(|r| r.full_path());
+    assert_eq!(resolved_path, Ok(expected), "{comment} {request}");
+  }
+}
+
+#[tokio::test]
+async fn bare_specifier_in_custom_modules_dir_prefers_file() {
+  let f = super::fixture();
+  let resolver = Resolver::new(ResolveOptions {
+    modules: vec![f.to_str().expect("path should be UTF-8").to_string()],
+    ..ResolveOptions::default()
+  });
+
+  #[rustfmt::skip]
+  let pass = [
+    ("file over directory without entry", "lib", f.join("lib.js")),
+    ("file over directory with index", "dirOrFile", f.join("dirOrFile.js")),
+  ];
+
+  for (comment, request, expected) in pass {
+    let resolved_path = resolver.resolve(&f, request).await.map(|r| r.full_path());
+    assert_eq!(resolved_path, Ok(expected), "{comment} {request}");
+  }
+}
+
+#[tokio::test]
+async fn bare_package_in_absolute_node_modules_dir_prefers_directory() {
+  let f = super::fixture().join("prefer-dir-over-file");
+  let node_modules = f.join("node_modules");
+  let resolver = Resolver::new(ResolveOptions {
+    modules: vec![
+      node_modules
+        .to_str()
+        .expect("path should be UTF-8")
+        .to_string(),
+    ],
+    ..ResolveOptions::default()
+  });
+  let resolved_path = resolver.resolve(&f, "bar").await.map(|r| r.full_path());
+  assert_eq!(resolved_path, Ok(node_modules.join("bar/index.js")));
+}
+
+#[tokio::test]
+async fn bare_package_directory_alias_respects_enforce_extension() {
+  let f = super::fixture().join("prefer-dir-over-file");
+  let utf8 = |path: std::path::PathBuf| path.to_str().expect("path should be UTF-8").to_string();
+  let alias = vec![(
+    utf8(f.join("node_modules").join("bar")),
+    vec![AliasValue::Path(utf8(f.join("shim.js")))],
+  )];
+
+  let resolver = Resolver::new(ResolveOptions {
+    alias: alias.clone(),
+    ..ResolveOptions::default()
+  });
+  let resolved_path = resolver.resolve(&f, "bar").await.map(|r| r.full_path());
+  assert_eq!(resolved_path, Ok(f.join("shim.js")));
+
+  let resolver = Resolver::new(ResolveOptions {
+    alias,
+    enforce_extension: EnforceExtension::Enabled,
+    ..ResolveOptions::default()
+  });
+  let resolved_path = resolver.resolve(&f, "bar").await.map(|r| r.full_path());
+  assert_eq!(resolved_path, Ok(f.join("node_modules/bar/index.js")));
 }

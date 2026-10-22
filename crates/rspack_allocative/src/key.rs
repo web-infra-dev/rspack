@@ -50,7 +50,7 @@ impl Deref for Key {
 }
 
 impl Key {
-  /// Must be identical to `allocative_derive::hash`.
+  /// Must be identical to `rspack_allocative_derive::hash`.
   const fn hash(s: &str) -> u64 {
     let mut hash = 0xcbf2_9ce4_8422_2325;
     let mut i = 0;

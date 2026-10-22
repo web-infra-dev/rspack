@@ -14,9 +14,9 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JsPlugin, impl_plugin_for_js_plugin::chunk_has_js,
 };
-#[cfg(allocative)]
-use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
+#[cfg(allocative)]
+use rspack_util::rspack_allocative;
 
 use crate::{
   RuntimePluginHooks,
@@ -43,7 +43,7 @@ use crate::{
 /// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [RuntimePlugin::get_compilation_hooks_mut]
 type ArcRuntimePluginHooks = Arc<AtomicRefCell<RuntimePluginHooks>>;
 
-#[cfg_attr(allocative, allocative::root)]
+#[cfg_attr(allocative, rspack_allocative::root)]
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcRuntimePluginHooks>> =
   LazyLock::new(Default::default);
 

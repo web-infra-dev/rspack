@@ -479,6 +479,12 @@ export declare class Modules {
   values(): ReadonlyArray<Module>
 }
 
+/** Owns the timestamp snapshot so either table can be converted after the watcher closes. */
+export declare class NativeTimeInfoEntries {
+  get fileTimestamps(): NativeTimeInfoTable
+  get directoryTimestamps(): NativeTimeInfoTable
+}
+
 export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
@@ -1838,23 +1844,22 @@ export interface NapiResolveOptions {
   enablePnp?: boolean
 }
 
-export interface NativeTimeInfoEntries {
-  fileTimestamps: Array<NativeTimeInfoEntry>
-  directoryTimestamps: Array<NativeTimeInfoEntry>
-}
-
 /**
  * One row of watchpack's `TimeInfoEntries`, flattened for napi: a file's
  * `Entry` carries all three times, a directory's `OnlySafeTimeEntry` only
- * `safe_time`, an `ExistenceOnlyTimeEntry` sets `existence_only`, and `null`
- * (a watched path absent on disk) carries nothing.
+ * `safe_time`, and an `ExistenceOnlyTimeEntry` sets `existence_only`.
  */
 export interface NativeTimeInfoEntry {
   path: string
+  existenceOnly: boolean
   safeTime?: number
   timestamp?: number
   accuracy?: number
-  existenceOnly: boolean
+}
+
+export interface NativeTimeInfoTable {
+  entries: Array<NativeTimeInfoEntry>
+  missing: Array<string>
 }
 
 export interface NativeWatcherOptions {
@@ -1980,6 +1985,7 @@ export interface RawCacheGroupOptions {
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
   enforceSizeThreshold?: number | RawSplitChunkSizes
+  minRemainingSize?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
@@ -2425,18 +2431,6 @@ export interface RawFallbackCacheGroupOptions {
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
   automaticNameDelimiter?: string
-}
-
-export interface RawFileSystemCacheOptions {
-  buildDependencies: Array<string>
-  cacheDirectory: string
-  cacheLocation: string
-  version: string
-  readonly: boolean
-  maxMemoryGenerations?: number
-  idleTimeout: number
-  idleTimeoutForInitialStore: number
-  idleTimeoutAfterLargeChanges: number
 }
 
 export interface RawFlagAllModulesAsUsedPluginOptions {
@@ -2895,7 +2889,7 @@ export interface RawOptions {
   module: RawModuleOptions
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent) | ({ type: "filesystem" } & RawFileSystemCacheOptions)
+  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   snapshot: RawSnapshotOptions
   experiments: RawExperiments
 incremental?: false | { [key: string]: boolean }
@@ -3235,6 +3229,7 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+  location: string
 }
 
 export interface RawSubresourceIntegrityPluginOptions {

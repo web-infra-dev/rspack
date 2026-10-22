@@ -1,8 +1,5 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-import type {
-  FileSystemCacheOptions,
-  PersistentCacheOptions,
-} from '@rspack/core';
+import type { PersistentCacheOptions } from '@rspack/core';
 
 const loaderOptions = { count: 0 };
 let index = 0;
@@ -26,8 +23,7 @@ export default defineConfig({
   plugins: [
     definePlugin({
       apply(compiler) {
-        const cache = compiler.options.cache as
-          PersistentCacheOptions | FileSystemCacheOptions;
+        const cache = compiler.options.cache as PersistentCacheOptions;
         let shouldRebuildFile = true;
         if (index == 0) {
           cache.readonly = false;

@@ -68,7 +68,16 @@ impl JavascriptParser<'_> {
     self.enter_statement(
       statement.span(self.ast.ast),
       statement,
-      |parser, node| drive.pre_statement(parser, node).unwrap_or_default(),
+      |parser, node| {
+        // Lexical block functions belong to the block pass. Hoisting hooks
+        // would otherwise register them in the enclosing scope.
+        if let NodeKindData::Function(function) = parser.ast.ast.kind_data(node.node_id())
+          && parser.is_block_scoped_function(function)
+        {
+          return true;
+        }
+        drive.pre_statement(parser, node).unwrap_or_default()
+      },
       |parser, node| match parser.ast.ast.kind_data(node.node_id()) {
         NodeKindData::BlockStatement(stmt) => parser.pre_walk_block_statement(stmt),
         NodeKindData::DoWhileStatement(stmt) => parser.pre_walk_do_while_statement(stmt),
@@ -85,6 +94,37 @@ impl JavascriptParser<'_> {
         _ => (),
       },
     );
+  }
+
+  pub(super) fn is_block_scoped_function(&self, function: Function) -> bool {
+    let ast = self.ast.ast;
+    let Some(identifier) = function.id(ast) else {
+      return false;
+    };
+    let semantic = self.ast.semantic;
+    let Some(symbol) = semantic.symbol_of(identifier.node_id()) else {
+      return false;
+    };
+    let scope_id = semantic.scope_of_symbol(symbol);
+    let scope = semantic.scope(scope_id);
+    let hoist_target = scope.hoist_target;
+    if scope_id == hoist_target {
+      return false;
+    }
+    // These functions cannot have an Annex B companion binding.
+    if scope.flags.strict || function.r#async(ast) || function.generator(ast) {
+      return true;
+    }
+    // SWC records an eligible Annex B function's companion var declaration
+    // at the same identifier node, separately from its lexical block symbol.
+    let name = ast.get_utf8(identifier.name(ast));
+    !semantic
+      .binding(hoist_target, name.as_bytes())
+      .is_some_and(|symbol| {
+        semantic.declarations(symbol).any(|declaration| {
+          declaration.scope == hoist_target && declaration.node == identifier.node_id()
+        })
+      })
   }
 
   fn pre_walk_with_statement(&mut self, stmt: WithStatement) {
