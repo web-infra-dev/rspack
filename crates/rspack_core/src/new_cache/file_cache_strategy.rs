@@ -16,7 +16,7 @@ use super::{
   snapshot::FileSystemInfo,
   validator::{CacheValidator, CacheValidatorResult},
 };
-use crate::{InfrastructureLogger, Logger, PersistentCacheState, cache::CacheCodec};
+use crate::{CacheCount, InfrastructureLogger, Logger, PersistentCacheState, cache::CacheCodec};
 
 const VALIDATOR_KEY: &str = "validator";
 
@@ -296,6 +296,7 @@ impl FileCacheStrategy {
     key: &CacheKey,
     etag: Option<&Etag>,
     decoder: CacheValueDecoder,
+    counter: Option<&CacheCount>,
     on_error: impl FnOnce(),
   ) -> Option<ErasedCacheValue> {
     let state_guard = self.read_state();
@@ -307,27 +308,33 @@ impl FileCacheStrategy {
         .then(|| pending.entry.value().clone());
     }
 
-    let result = state.database.get(DatabaseFamily::Cache, key);
-    let entry = match result {
-      Ok(entry) => entry,
+    let value = match state.database.get(DatabaseFamily::Cache, key) {
+      Ok(Some(entry)) => match decoder(&entry, etag, &self.codec) {
+        Ok(decoded) => decoded,
+        Err(e) => {
+          on_error();
+          self
+            .logger
+            .warn(format!("Failed to decode cache entry for key {key}: {e}"));
+          None
+        }
+      },
+      Ok(None) => None,
       Err(e) => {
         on_error();
         drop(state_guard);
         self.session_unavailable(Some(&e));
-        return None;
-      }
-    };
-    let entry = entry?;
-    match decoder(&entry, etag, &self.codec) {
-      Ok(decoded) => decoded,
-      Err(e) => {
-        on_error();
-        self
-          .logger
-          .warn(format!("Failed to decode cache entry for key {key}: {e}"));
         None
       }
+    };
+    if let Some(counter) = counter {
+      if value.is_some() {
+        counter.hit();
+      } else {
+        counter.miss();
+      }
     }
+    value
   }
 
   pub(super) async fn after_all_stored(

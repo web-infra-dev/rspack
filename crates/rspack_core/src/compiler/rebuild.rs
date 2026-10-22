@@ -58,7 +58,9 @@ impl Compiler {
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
-    self.new_cache.begin_compilation();
+    self
+      .new_cache
+      .begin_compilation(self.options.stats.cache_info);
     let records = self.last_records.clone();
 
     // build without stats

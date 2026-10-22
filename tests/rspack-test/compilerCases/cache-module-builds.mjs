@@ -3,6 +3,9 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 const statsOptions = { all: false, cacheInfo: true };
+const fileReads = ({ counters }) => counters.find(
+  ({ logger, label }) => logger === "rspack.Compiler" && label === "filesystem cache reads"
+);
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 export default [false, true].map(newCache => ({
@@ -26,6 +29,7 @@ export default [false, true].map(newCache => ({
       stats: { cacheInfo: true },
       cache: {
         type: "persistent",
+        ...(newCache && { maxMemoryGenerations: 0 }),
         buildDependencies: [context.getDist("config.js")],
         storage: { type: "filesystem", location: context.getDist("cache") }
       }
@@ -58,16 +62,21 @@ export default [false, true].map(newCache => ({
       expect(stats.hasErrors()).toBe(false);
       const { cacheInfo } = stats.toJson(statsOptions);
       expect(cacheInfo.moduleBuilds).toEqual(reused === null ? null : { reused, total: 2 });
+      if (newCache && status === "cold") expect(fileReads(cacheInfo).hit).toBe(0);
       expect(cacheInfo.persistent).toEqual(newCache ? { status: "unknown", reason: null } : { status, reason });
       expect(cacheInfo.persistentSessionInitialization).toEqual(session);
       if (twice) {
         const next = await manager.build();
-        expect(next.toJson(statsOptions).cacheInfo).toMatchObject({ moduleBuilds: null, persistentSessionInitialization: session });
+        const nextInfo = next.toJson(statsOptions).cacheInfo;
+        expect(nextInfo).toMatchObject({ moduleBuilds: null, persistentSessionInitialization: session });
+        expect(fileReads(nextInfo)).toBeUndefined();
       }
       await manager.close();
     };
 
     await build(0, "cold", { forceAt: newCache ? "finishModules" : undefined });
+    // The cold forced rebuild reads a pending entry. The next in-process rebuild uses memory.
+    if (newCache) manager.mergeOptions({ cache: { type: "persistent", maxMemoryGenerations: Infinity } });
     const cold = assets();
     expect(cold[0]).toContain("dep-v1");
     await build(2, "valid", { twice: true });
@@ -98,5 +107,16 @@ export default [false, true].map(newCache => ({
     fs.writeFileSync(context.getDist("entry.js"), 'import "external";');
     await build(0, "valid"); // The final graph contains the entry and the external.
     expect(assets()[0]).not.toContain("dependency-v2");
+
+    if (newCache) {
+      // Without an entry, the only database lookup is the compiler's metadata.
+      manager.mergeOptions({ entry: {}, cache: { type: "persistent", version: "empty-graph" } });
+      for (const hit of [0, 1]) {
+        manager.createCompiler();
+        const stats = await manager.build();
+        expect(fileReads(stats.toJson(statsOptions).cacheInfo)).toMatchObject({ hit, total: 1 });
+        await manager.close();
+      }
+    }
   }
 }));

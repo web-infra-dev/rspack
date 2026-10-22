@@ -17,7 +17,7 @@ use super::{
   CacheKey, CacheValue, Etag, FileCacheStrategy,
   cache_value::{CacheValueData, ErasedCacheValue},
 };
-use crate::{InfrastructureLogger, Logger};
+use crate::{CacheCount, InfrastructureLogger, Logger};
 
 const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE: Duration = Duration::from_secs(5);
@@ -222,11 +222,12 @@ impl IdleFileCache {
     &self,
     key: &CacheKey,
     etag: Option<&Etag>,
+    counter: Option<&CacheCount>,
     on_error: impl FnOnce(),
   ) -> Option<CacheValue<T>> {
     let restored = self
       .strategy
-      .restore(key, etag, CacheValue::<T>::decoder(), on_error);
+      .restore(key, etag, CacheValue::<T>::decoder(), counter, on_error);
     restored.and_then(ErasedCacheValue::downcast)
   }
 

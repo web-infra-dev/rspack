@@ -220,11 +220,7 @@ pub trait Logger {
   }
 
   fn cache(&self, label: &'static str) -> CacheCount {
-    CacheCount {
-      label,
-      total: AtomicU32::new(0),
-      hit: AtomicU32::new(0),
-    }
+    CacheCount::new(label)
   }
 
   fn cache_end(&self, count: impl std::borrow::Borrow<CacheCount>) {
@@ -358,6 +354,14 @@ pub struct CacheCount {
 }
 
 impl CacheCount {
+  pub(crate) fn new(label: &'static str) -> Self {
+    Self {
+      label,
+      total: AtomicU32::new(0),
+      hit: AtomicU32::new(0),
+    }
+  }
+
   pub fn hit(&self) {
     self.total.fetch_add(1, Ordering::Relaxed);
     self.hit.fetch_add(1, Ordering::Relaxed);

@@ -13,7 +13,7 @@ use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
   cache_value::CacheValueData,
 };
-use crate::PersistentCacheState;
+use crate::{CacheCount, PersistentCacheState};
 
 /// Storage shared by all compiler-scoped cache views.
 #[derive(Debug)]
@@ -31,6 +31,7 @@ struct CacheStorage {
 pub struct Cache {
   storage: Option<Arc<CacheStorage>>,
   read_failed: AtomicBool,
+  pub(crate) file_reads: Option<CacheCount>,
 }
 
 impl Cache {
@@ -58,6 +59,7 @@ impl Cache {
     Self {
       storage,
       read_failed: Default::default(),
+      file_reads: None,
     }
   }
 
@@ -88,7 +90,7 @@ impl Cache {
       return None;
     };
 
-    let value = file_cache.restore::<T>(&key, etag.as_ref(), || {
+    let value = file_cache.restore::<T>(&key, etag.as_ref(), self.file_reads.as_ref(), || {
       self.read_failed.store(true, Ordering::Relaxed);
     });
     match value {
@@ -189,12 +191,13 @@ impl CompilerCache {
     }
   }
 
-  pub(crate) fn begin_compilation(&mut self) {
+  pub(crate) fn begin_compilation(&mut self, track_reads: bool) {
     if self.has_file_cache() {
-      // Child compilers share entries, but a read failure belongs to its caller.
+      // Child compilers share entries. Attribute each database read to its caller.
       self.cache = Arc::new(Cache {
         storage: self.cache.storage.clone(),
         read_failed: Default::default(),
+        file_reads: track_reads.then(|| CacheCount::new("filesystem cache reads")),
       });
     }
   }
