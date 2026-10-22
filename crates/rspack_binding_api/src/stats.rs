@@ -1118,11 +1118,11 @@ impl JsStats {
   }
 
   fn cache_info(&self) -> JsStatsCacheInfo {
-    let cache = &self.inner.options().cache;
-    let mode = match cache {
+    let options = self.inner.options();
+    let mode = match options.cache {
       CacheOptions::Disabled => "disabled",
       CacheOptions::Memory { .. } => "memory",
-      CacheOptions::FileSystem(_) | CacheOptions::Persistent(_) => "persistent",
+      CacheOptions::Persistent(_) => "persistent",
     };
     let validation = |state| {
       let (status, reason) = match state {
@@ -1157,8 +1157,9 @@ impl JsStats {
     JsStatsCacheInfo {
       mode,
       persistent: (mode == "persistent").then(|| validation(self.inner.persistent_cache_state())),
-      persistent_session_initialization: matches!(cache, CacheOptions::FileSystem(_))
-        .then(|| validation(self.inner.cache_session_initial_validation())),
+      persistent_session_initialization: (mode == "persistent"
+        && options.experiments.new_cache.is_enabled())
+      .then(|| validation(self.inner.cache_session_initial_validation())),
       module_builds: self
         .inner
         .module_build_cache_stats()

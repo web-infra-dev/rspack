@@ -376,11 +376,8 @@ impl Compilation {
     let mut build_module_graph_artifact = BuildModuleGraphArtifact::new();
     if options.stats.cache_info
       && !is_rebuild
-      && match options.cache {
-        CacheOptions::Persistent(_) => !options.experiments.new_cache.is_enabled(),
-        CacheOptions::FileSystem(_) => options.experiments.new_cache.module,
-        _ => false,
-      }
+      && matches!(options.cache, CacheOptions::Persistent(_))
+      && (!options.experiments.new_cache.is_enabled() || options.experiments.new_cache.module)
     {
       build_module_graph_artifact.built_modules_for_stats = Some(Default::default());
     }
