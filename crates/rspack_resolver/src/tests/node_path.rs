@@ -197,6 +197,35 @@ mod posix {
   }
 
   #[tokio::test]
+  async fn node_modules_dir_prefers_directory_over_file() {
+    let resolver = new_resolver(
+      vec![PathBuf::from("/global/node_modules")],
+      &[
+        ("/global/node_modules/foo.js", ""),
+        ("/global/node_modules/foo/index.js", ""),
+      ],
+    );
+    let result = resolver.resolve(Path::new("/project"), "foo").await;
+    assert_eq!(
+      result.map(|r| r.full_path()),
+      Ok(PathBuf::from("/global/node_modules/foo/index.js"))
+    );
+  }
+
+  #[tokio::test]
+  async fn other_dir_prefers_file_over_directory() {
+    let resolver = new_resolver(
+      vec![PathBuf::from("/global/lib")],
+      &[("/global/lib/foo.js", ""), ("/global/lib/foo/index.js", "")],
+    );
+    let result = resolver.resolve(Path::new("/project"), "foo").await;
+    assert_eq!(
+      result.map(|r| r.full_path()),
+      Ok(PathBuf::from("/global/lib/foo.js"))
+    );
+  }
+
+  #[tokio::test]
   async fn resolve_with_extensions() {
     let resolver = ResolverGeneric::<MemoryFS>::new_with_file_system(
       MemoryFS::new(&[("/global/lib/foo.json", "{}")]),

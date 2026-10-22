@@ -881,6 +881,8 @@ export type RuleSetLoader = string;
 
 export type RuleSetLoaderOptions = string | Record<string, any>;
 
+export type RuleSetLoaderCodeFilter = string | RegExp;
+
 export type RuleSetLoaderWithOptions = {
   /**
    * Stable identifier used to reference object-form loader options.
@@ -907,6 +909,12 @@ export type RuleSetLoaderWithOptions = {
    * @experimental
    */
   cache?: boolean;
+
+  /**
+   * Filters the current input before calling the normal loader handler.
+   * The loader pitch function is not filtered.
+   */
+  codeFilter?: RuleSetLoaderCodeFilter;
 
   options?: RuleSetLoaderOptions;
 };
@@ -2204,35 +2212,6 @@ export type MemoryCacheOptions = {
   type: 'memory';
 };
 
-/** Filesystem cache options. Requires `experiments.newCache` to be enabled. */
-export type FileSystemCacheOptions = {
-  type: 'filesystem';
-  /** Name for the cache. Different names create coexisting caches. */
-  name?: string;
-  /** Build dependencies grouped by category. Changes invalidate the cache. */
-  buildDependencies?: Record<string, string[]>;
-  /** Base directory for the cache. Defaults to `node_modules/.cache/rspack`. */
-  cacheDirectory?: string;
-  /** Cache location. Defaults to `<cacheDirectory>/<name>`. */
-  cacheLocation?: string;
-  /** Cache version. Changing this value invalidates the cache. Defaults to `""`. */
-  version?: string;
-  /** Read existing cache data without writing to disk. Defaults to `false`. */
-  readonly?: boolean;
-  /**
-   * Generations to retain unused entries in memory. Use 0 to disable the memory
-   * cache or Infinity to retain entries forever. Defaults to 5 in development,
-   * Infinity otherwise.
-   */
-  maxMemoryGenerations?: number;
-  /** Idle time before writing to disk, in milliseconds. Defaults to 60000. */
-  idleTimeout?: number;
-  /** Idle time before the initial write, in milliseconds. Defaults to 5000. */
-  idleTimeoutForInitialStore?: number;
-  /** Idle time after large changes, in milliseconds. Defaults to 1000. */
-  idleTimeoutAfterLargeChanges?: number;
-};
-
 /**
  * Options for caching snapshots and intermediate products during the build process.
  * @description Controls whether caching is enabled or disabled.
@@ -2245,10 +2224,7 @@ export type FileSystemCacheOptions = {
  * cache: false
  */
 export type CacheOptions =
-  | boolean
-  | MemoryCacheOptions
-  | PersistentCacheOptions
-  | FileSystemCacheOptions;
+  boolean | MemoryCacheOptions | PersistentCacheOptions;
 //#endregion
 
 //#region Stats
@@ -2783,6 +2759,12 @@ type SharedOptimizationSplitChunksCacheGroup = {
   minSize?: OptimizationSplitChunksSizes;
 
   minSizeReduction?: OptimizationSplitChunksSizes;
+
+  /**
+   * Minimum size of the chunk remaining after splitting from a single chunk.
+   * Defaults to 0 in development mode and minSize otherwise.
+   */
+  minRemainingSize?: OptimizationSplitChunksSizes;
 
   /**
    * Size threshold at which splitting is enforced and other restrictions

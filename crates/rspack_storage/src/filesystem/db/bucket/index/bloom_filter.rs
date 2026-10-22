@@ -4,7 +4,7 @@ const SEGMENT_SIZE: u64 = 64;
 const SEGMENT_NUM: usize = 4;
 
 // Keep typed array traversal: the pinned reflection compiler does not normalize const lengths.
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 /// A 256-bit Bloom filter implementation using 4 u64 values
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct BloomFilter {

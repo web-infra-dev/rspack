@@ -4,13 +4,17 @@ import type { Source } from 'webpack-sources';
 import type { Chunk } from './Chunk';
 import { type Compilation, getOrCreateCompilationHooks } from './Compilation';
 import { SourceAdapter } from './util/source';
+import {
+  COMPILATION_HOOKS_MAP_SYMBOL,
+  MODULE_IDENTIFIER_SYMBOL,
+} from './util/symbols';
 
 Object.defineProperty(binding.ExternalModule.prototype, 'identifier', {
   enumerable: true,
   configurable: true,
   value(this: binding.ExternalModule): string {
     // @ts-expect-error
-    return this[binding.MODULE_IDENTIFIER_SYMBOL];
+    return this[MODULE_IDENTIFIER_SYMBOL];
   },
 });
 Object.defineProperty(binding.ExternalModule.prototype, 'originalSource', {
@@ -53,7 +57,7 @@ const ExternalModule =
   };
 
 ExternalModule.getCompilationHooks = (compilation: Compilation) => {
-  if (!(binding.COMPILATION_HOOKS_MAP_SYMBOL in compilation)) {
+  if (!(COMPILATION_HOOKS_MAP_SYMBOL in compilation)) {
     throw new TypeError(
       "The 'compilation' argument must be an instance of Compilation",
     );

@@ -8,8 +8,8 @@
 - Bundle: hi_txt.chunk.CURRENT_HASH.js
 - Bundle: stylesheet_css.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 45
-- Update: main.LAST_HASH.hot-update.js, size: 397
-- Update: stylesheet_css.LAST_HASH.hot-update.js, size: 344
+- Update: main.LAST_HASH.hot-update.js, size: 763
+- Update: stylesheet_css.LAST_HASH.hot-update.js, size: 799
 
 ## Manifest
 
@@ -27,6 +27,7 @@
 
 #### Changed Modules
 - ./imported.css?6c24
+- ./text.css
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -39,6 +40,15 @@ self["rspackHotUpdate"]("main", {
 __webpack_require__.r(module.exports = {
 	"default": ".imported-class-updated {\n\tcolor: purple;\n\tfont-style: italic;\n}\n"
 });
+
+
+},
+"./text.css"(module, __unused_rspack_exports, __webpack_require__) {
+var exports = {
+  "text-class": "text_css-text-class",
+};
+__webpack_require__.r(module.exports = Object.assign({}, exports));
+module.exports.default = ".imported-class-updated {\n\tcolor: purple;\n\tfont-style: italic;\n}\n\n.text_css-text-class {\n\tcolor: red;\n\tfont-size: 14px;\n}\n\n";
 
 
 },
@@ -59,6 +69,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 
 #### Changed Modules
 - ./imported.css?4c2a
+- ./stylesheet.css
 
 #### Changed Runtime Modules
 
@@ -72,6 +83,16 @@ var __css_style_sheet = __webpack_require__.css(".imported-class-updated {\n\tco
 __webpack_require__.r(module.exports = {
 	"default": __css_style_sheet
 });
+
+
+},
+"./stylesheet.css"(module, __unused_rspack_exports, __webpack_require__) {
+var __css_style_sheet = __webpack_require__.css(".imported-class-updated {\n\tcolor: purple;\n\tfont-style: italic;\n}\n\n.stylesheet_css-sheet-class {\n\tcolor: green;\n\tpadding: 10px;\n}\n\n");
+var exports = {
+  "sheet-class": "stylesheet_css-sheet-class",
+};
+__webpack_require__.r(module.exports = Object.assign({}, exports));
+module.exports.default = __css_style_sheet;
 
 
 },

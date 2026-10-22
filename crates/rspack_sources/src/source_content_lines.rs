@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::line_index::{IndexedLine, LineIndex};
 
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub struct SourceContentLines<'source> {
   text: Cow<'source, str>,
   // Self-referential data structure: the index borrows from the text.

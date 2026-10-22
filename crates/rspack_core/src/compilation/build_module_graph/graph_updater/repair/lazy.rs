@@ -16,7 +16,7 @@ pub fn process_unlazy_dependencies(
     .expect("only module has lazy dependencies should run into process_unlazy_dependencies");
 
   let dependencies_to_process: Vec<DependencyId> = lazy_dependencies
-    .requested_lazy_dependencies(&forwarded_ids)
+    .requested_lazy_dependencies(&forwarded_ids, module_to_lazy_make.eager_on_local_reference)
     .into_iter()
     .filter(|dep| module_graph.dependency_by_id(dep).unset_lazy())
     .collect();

@@ -74,6 +74,7 @@ import {
   type FileSystemDependencies,
 } from './FileSystemDependencies';
 import type { CodeGenerationResult } from './taps/compilation';
+import { COMPILATION_HOOKS_MAP_SYMBOL } from './util/symbols';
 
 export type Assets = Record<string, Source>;
 export interface Asset {
@@ -266,7 +267,7 @@ export const getOrCreateCompilationHooks = <T>(
   key: object,
   createHooks: () => T,
 ): T => {
-  const compilationHooksMap = compilation[binding.COMPILATION_HOOKS_MAP_SYMBOL];
+  const compilationHooksMap = compilation[COMPILATION_HOOKS_MAP_SYMBOL];
   let hooks = compilationHooksMap.get(key) as T | undefined;
   if (hooks === undefined) {
     hooks = createHooks();
@@ -366,7 +367,7 @@ export class Compilation {
   #addIncludeDispatcher: AddEntryItemDispatcher;
   #addEntryDispatcher: AddEntryItemDispatcher;
 
-  [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<object, unknown>;
+  [COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<object, unknown>;
 
   constructor(compiler: Compiler, inner: JsCompilation) {
     this.#inner = inner;
@@ -531,7 +532,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     this.#addEntryDispatcher = new AddEntryItemDispatcher(
       inner.addEntry.bind(inner),
     );
-    this[binding.COMPILATION_HOOKS_MAP_SYMBOL] = new WeakMap();
+    this[COMPILATION_HOOKS_MAP_SYMBOL] = new WeakMap();
   }
 
   get hash(): Readonly<string | null> {

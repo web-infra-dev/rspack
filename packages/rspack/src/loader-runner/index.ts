@@ -8,7 +8,7 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 import querystring from 'node:querystring';
-import binding, {
+import {
   formatDiagnostic,
   type JsLoaderContext,
   type JsLoaderItem,
@@ -57,6 +57,11 @@ import {
 } from '../util/identifier';
 import { memoize } from '../util/memoize';
 import { ModuleError, ModuleWarning } from './ModuleError';
+import {
+  createCodeFilterTextCache,
+  invalidateCodeFilterTextCache,
+  matchesCodeFilter,
+} from './codeFilter';
 import { LoaderDependenciesState } from './dependencies';
 import * as pool from './service';
 import { type HandleIncomingRequest, RequestType } from './service';
@@ -66,6 +71,7 @@ import {
   loadLoader,
   runSyncOrAsync,
 } from './utils';
+import { MODULE_BUILD_INFO_SYMBOL } from '../util/symbols';
 
 const LOADER_PROCESS_NAME = 'Loader Analysis';
 const IS_WASM = Boolean(process.env.WASM);
@@ -176,6 +182,18 @@ export class LoaderObject {
       throw new Error('noPitch should be true');
     }
     this.loaderItem.noPitch = true;
+  }
+
+  shouldSkipNormal(
+    content: unknown,
+    cache: ReturnType<typeof createCodeFilterTextCache>,
+  ) {
+    const codeFilter = this.loaderItem.codeFilter;
+    if (!codeFilter || this.loaderItem.filterMatched) return false;
+    const matched = matchesCodeFilter(codeFilter, content, cache);
+    if (matched === false) return true;
+    if (matched) this.loaderItem.filterMatched = true;
+    return false;
   }
 
   static __from_binding(
@@ -960,6 +978,9 @@ export async function runLoaders(
               if (update.normalExecuted) {
                 item.normalExecuted = true;
               }
+              if (update.filterMatched) {
+                item.loaderItem.filterMatched = true;
+              }
               return item;
             });
             break;
@@ -1141,17 +1162,24 @@ export async function runLoaders(
         let sourceMap: string | object | undefined;
         let sourceMapParsed = false;
         let additionalData = context.additionalData;
+        const codeFilterTextCache = createCodeFilterTextCache();
 
         while (loaderContext.loaderIndex >= loaderChainStart) {
           const currentLoaderObject =
             loaderContext.loaders[loaderContext.loaderIndex];
-          const parallelism = enableParallelism(currentLoaderObject);
-
           if (currentLoaderObject.normalExecuted) {
             loaderContext.loaderIndex--;
             continue;
           }
+          if (
+            currentLoaderObject.shouldSkipNormal(content, codeFilterTextCache)
+          ) {
+            currentLoaderObject.normalExecuted = true;
+            loaderContext.loaderIndex--;
+            continue;
+          }
 
+          const parallelism = enableParallelism(currentLoaderObject);
           try {
             await loadLoader(currentLoaderObject, compiler);
             const fn = currentLoaderObject.normal;
@@ -1173,6 +1201,7 @@ export async function runLoaders(
               sourceMap,
               additionalData,
             ]);
+            invalidateCodeFilterTextCache(codeFilterTextCache);
           } finally {
             dependencies.mergeChanges();
           }
@@ -1223,7 +1252,7 @@ export async function runLoaders(
 
   if (
     compiler.options?.cache &&
-    Object.hasOwn(context._module, binding.MODULE_BUILD_INFO_SYMBOL)
+    Object.hasOwn(context._module, MODULE_BUILD_INFO_SYMBOL)
   ) {
     commitCustomFieldsToRust(context._module.buildInfo);
   }

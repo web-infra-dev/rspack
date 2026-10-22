@@ -83,8 +83,8 @@ catalogs:
       specifier: 2.1.0-beta.1
       version: 2.1.0-beta.1
     '@rstackjs/create-toolkit':
-      specifier: 2.2.7
-      version: 2.2.7
+      specifier: 2.2.11
+      version: 2.2.11
     '@rstackjs/doc-ui':
       specifier: 1.14.11
       version: 1.14.11
@@ -695,7 +695,7 @@ importers:
     dependencies:
       '@rstackjs/create-toolkit':
         specifier: 'catalog:'
-        version: 2.2.7
+        version: 2.2.11
     devDependencies:
       rstack:
         specifier: 'catalog:'
@@ -3399,8 +3399,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@rstackjs/create-toolkit@2.2.7':
-    resolution: {integrity: sha512-rxprP/B80f7iFjlCGAKjuR1BFDyXYBNKJU26l2rPdlJVnUqAcZ7Kal/cUHhgMR3QkWiSuxxafh+ckGFAyJl8sA==}
+  '@rstackjs/create-toolkit@2.2.11':
+    resolution: {integrity: sha512-8HpHnU9k+kjQVoxNAtLJE4RLcrIZwkz7skViD41CQNfojoUfY/qEUu0BkVYZEWBu1Lnor1LurqO8JaWiknxaRg==}
     engines: {node: ^20.19.0 || >=22.12.0}
 
   '@rstackjs/doc-ui@1.14.11':
@@ -9664,7 +9664,7 @@ snapshots:
   '@rstackjs/cli-win32-x64-msvc@0.8.4':
     optional: true
 
-  '@rstackjs/create-toolkit@2.2.7': {}
+  '@rstackjs/create-toolkit@2.2.11': {}
 
   '@rstackjs/doc-ui@1.14.11(@rspress/core@2.1.0-beta.1)':
     optionalDependencies:

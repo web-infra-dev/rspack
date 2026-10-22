@@ -7,8 +7,8 @@
 - Bundle: main.mjs
 - Bundle: runtime.mjs
 - Manifest: runtime.LAST_HASH.hot-update.json.mjs, size: 75
-- Update: main.LAST_HASH.hot-update.mjs, size: 647
-- Update: runtime.LAST_HASH.hot-update.mjs, size: 294
+- Update: main.LAST_HASH.hot-update.mjs, size: 608
+- Update: runtime.LAST_HASH.hot-update.mjs, size: 252
 
 ## Manifest
 
@@ -32,7 +32,6 @@
 
 #### Changed Content
 ```js
-export const __rspack_esm_id = "main";
 export const __rspack_esm_ids = ["main"];
 export const __webpack_modules__ = {
 "./style.module.css"(module, __unused_rspack_exports, __webpack_require__) {
@@ -68,7 +67,6 @@ __webpack_require__.r(module.exports = exports);
 
 #### Changed Content
 ```js
-export const __rspack_esm_id = "runtime";
 export const __rspack_esm_ids = ["runtime"];
 export const __webpack_modules__ = {};
 export const __rspack_esm_runtime = function(__webpack_require__) {

@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: main.mjs
 - Manifest: main.LAST_HASH.hot-update.json.mjs, size: 44
-- Update: main.LAST_HASH.hot-update.mjs, size: 530
+- Update: main.LAST_HASH.hot-update.mjs, size: 491
 
 ## Manifest
 
@@ -30,7 +30,6 @@
 
 #### Changed Content
 ```js
-export const __rspack_esm_id = "main";
 export const __rspack_esm_ids = ["main"];
 export const __webpack_modules__ = {
 "./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {

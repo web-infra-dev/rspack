@@ -14,7 +14,7 @@ use swc_next_ecma_ast::{Ast, CallExpression, Expr, ExprData, GetSpan, PropertyKe
 use crate::{
   JavascriptParserPlugin,
   dependency::{
-    AMDRequireContextDependency,
+    AMDRequireContextDependency, ModuleArgumentDependency,
     amd_define_dependency::AMDDefineDependency,
     amd_exports_dependency::AMDExportsDependency,
     amd_require_array_dependency::{AMDRequireArrayDependency, AMDRequireArrayItem},
@@ -146,10 +146,10 @@ impl AMDDefineDependencyParserPlugin {
           deps.push(AMDRequireArrayItem::Require);
         } else if request == "exports" {
           identifiers.insert(i, EXPORTS.into());
-          deps.push(AMDRequireArrayItem::String(request.into()));
+          deps.push(AMDRequireArrayItem::Exports);
         } else if request == "module" {
           identifiers.insert(i, MODULE.into());
-          deps.push(AMDRequireArrayItem::String(request.into()));
+          deps.push(AMDRequireArrayItem::Module);
         } else if let Some(local_module) = parser.get_local_module_mut(request) {
           local_module.flag_used();
           deps.push(AMDRequireArrayItem::LocalModuleDependency {
@@ -199,10 +199,7 @@ impl AMDDefineDependencyParserPlugin {
       } else if param_str == "exports" {
         Arc::new(AMDExportsDependency::new(range.into()))
       } else if param_str == "module" {
-        Arc::new(RuntimeRequirementsDependency::new(
-          range.into(),
-          RuntimeGlobals::MODULE,
-        ))
+        Arc::new(ModuleArgumentDependency::new(None, range.into(), None))
       } else if let Some(local_module) = parser.get_local_module_mut(
         &named_module
           .as_ref()

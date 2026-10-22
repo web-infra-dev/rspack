@@ -11,9 +11,9 @@ use std::{
   },
 };
 
-use allocative::{Allocative, FlameGraph, FlameGraphBuilder, Key, Visit, Visitor};
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use indexmap::{IndexMap, IndexSet};
+use rspack_allocative::{Allocative, FlameGraph, FlameGraphBuilder, Key, Visit, Visitor};
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceValue,
 };
@@ -615,7 +615,7 @@ fn allocative_trait_objects_preserve_auto_traits_and_borrowed_payloads() {
 #[test]
 fn explicit_enum_bounds_preserve_borrows_carried_by_generic_payloads() {
   #[derive(Allocative)]
-  #[allocative(bound = "T: allocative::Visit")]
+  #[allocative(bound = "T: rspack_allocative::Visit")]
   enum Value<T> {
     Data(T),
   }
@@ -837,8 +837,8 @@ fn reflected_enum_variants_match_typed_traversal_with_custom_discriminants() {
       match &value {
         Value::Empty => {}
         Value::Text(text) => {
-          let mut variant = visitor.enter(allocative::Key::new("Text"), size_of::<Value>());
-          variant.visit_field(allocative::Key::new("0"), text);
+          let mut variant = visitor.enter(rspack_allocative::Key::new("Text"), size_of::<Value>());
+          variant.visit_field(rspack_allocative::Key::new("0"), text);
           variant.exit();
         }
         Value::Named {
@@ -846,10 +846,10 @@ fn reflected_enum_variants_match_typed_traversal_with_custom_discriminants() {
           bytes,
           text,
         } => {
-          let mut variant = visitor.enter(allocative::Key::new("Named"), size_of::<Value>());
-          variant.visit_field(allocative::Key::new("marker"), marker);
-          variant.visit_field(allocative::Key::new("bytes"), bytes);
-          variant.visit_field(allocative::Key::new("text"), text);
+          let mut variant = visitor.enter(rspack_allocative::Key::new("Named"), size_of::<Value>());
+          variant.visit_field(rspack_allocative::Key::new("marker"), marker);
+          variant.visit_field(rspack_allocative::Key::new("bytes"), bytes);
+          variant.visit_field(rspack_allocative::Key::new("text"), text);
           variant.exit();
         }
       }
