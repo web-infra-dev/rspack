@@ -4,7 +4,7 @@ import util from 'node:util';
  * A read-only view over an array whose values are already unique.
  * Callers must not mutate the backing array.
  */
-export class ReadonlySet<T> implements globalThis.ReadonlySet<T> {
+export class ReadonlySetImpl<T> implements ReadonlySet<T> {
   readonly #values: readonly T[];
 
   constructor(values: readonly T[]) {
@@ -38,7 +38,7 @@ export class ReadonlySet<T> implements globalThis.ReadonlySet<T> {
   }
 
   forEach(
-    callback: (value: T, key: T, set: globalThis.ReadonlySet<T>) => void,
+    callback: (value: T, key: T, set: ReadonlySet<T>) => void,
     thisArg?: unknown,
   ): void {
     if (typeof callback !== 'function') {
@@ -71,10 +71,10 @@ for (const name of [
 ]) {
   const method = Reflect.get(Set.prototype, name);
   if (typeof method === 'function') {
-    Object.defineProperty(ReadonlySet.prototype, name, {
+    Object.defineProperty(ReadonlySetImpl.prototype, name, {
       configurable: true,
       writable: true,
-      value<T>(this: ReadonlySet<T>, other: globalThis.ReadonlySet<T>) {
+      value<T>(this: ReadonlySetImpl<T>, other: ReadonlySet<T>) {
         return method.call(new Set(this), other);
       },
     });
