@@ -67,7 +67,7 @@ json                = { version = "0.12.4", default-features = false }
 json-escape-simd    = { version = "3.1.3", default-features = false }
 json-strip-comments = { version = "3.1.2", default-features = false }
 libc                = { version = "0.2.183", default-features = false }
-lightningcss        = { package = "rspack_lightningcss", git = "https://github.com/rstackjs/lightningcss.git", rev = "a3cf0d9b0e12d566501819c768e037585747894d", default-features = false, features = ["serde", "custom_sourcemap"] }
+lightningcss        = { package = "rspack_lightningcss", version = "0.1.0", git = "https://github.com/rstackjs/lightningcss.git", rev = "a3cf0d9b0e12d566501819c768e037585747894d", default-features = false, features = ["serde", "custom_sourcemap"] }
 linked-hash-map     = { version = "0.5.6", default-features = false }
 md4                 = { version = "0.10.2", default-features = false }
 memchr              = { version = "2.8.3", default-features = false }

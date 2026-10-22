@@ -177,7 +177,7 @@ impl LightningCssLoader {
 
     let mut source_map = if loader_context.context.source_map_kind.enabled() {
       let mut sm = RspackSourceMap::default();
-      let source_index = sm.add_source(&filename);
+      let source_index = sm.add_source(&filename.cow_replace("\\", "/"));
       sm.set_source_content(source_index, &content_str);
       Some(sm)
     } else {
