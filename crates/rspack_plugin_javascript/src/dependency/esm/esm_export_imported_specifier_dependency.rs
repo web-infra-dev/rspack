@@ -602,12 +602,11 @@ impl ESMExportImportedSpecifierDependency {
           && let Some(target_module) = target_module
           && !target_module.build_meta().has_top_level_await()
         {
-          let exports_type = get_exports_type(
+          let exports_type = target_module.get_exports_type(
             mg,
             mg_cache,
             exports_info_artifact,
-            &self.id,
-            &module_identifier,
+            module.get_strict_esm_module(),
           );
           let (namespace_cache, namespace_expr) = self
             .get_reexport_deferred_namespace_object_fragments(
@@ -647,12 +646,11 @@ impl ESMExportImportedSpecifierDependency {
           && let Some(target_module) = target_module
           && !target_module.build_meta().has_top_level_await()
         {
-          let exports_type = get_exports_type(
+          let exports_type = target_module.get_exports_type(
             mg,
             mg_cache,
             exports_info_artifact,
-            &self.id,
-            &module_identifier,
+            module.get_strict_esm_module(),
           );
           let (namespace_cache, namespace_expr) = self
             .get_reexport_deferred_namespace_object_fragments(
@@ -697,6 +695,36 @@ impl ESMExportImportedSpecifierDependency {
           .module_identifier_by_dependency_id(&self.id)
           .expect("should have imported module identifier");
         let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
+        let imported_exports_info = exports_info_artifact.get_exports_info_data(imported_module);
+        let checked_runtime_condition = mode
+          .items
+          .iter()
+          .any(|item| item.checked && !item.hidden)
+          .then(|| {
+            if self.weak() {
+              RuntimeCondition::Boolean(false)
+            } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
+              filter_runtime(runtime, |r| {
+                connection.is_target_active(
+                  mg,
+                  r,
+                  mg_cache,
+                  &compilation
+                    .build_module_graph_artifact
+                    .side_effects_state_artifact,
+                  exports_info_artifact,
+                )
+              })
+            } else {
+              RuntimeCondition::Boolean(true)
+            }
+          });
+        let checked_stage =
+          if ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier) {
+            InitFragmentStage::StageAsyncESMImports
+          } else {
+            InitFragmentStage::StageESMImports
+          };
         for item in mode.items {
           let NormalReexportItem {
             name,
@@ -716,24 +744,9 @@ impl ESMExportImportedSpecifierDependency {
 
           if checked {
             let key = InitFragmentKey::ESMImport(format!("reexport (checked) {import_var} {name}"));
-            let runtime_condition = if self.weak() {
-              RuntimeCondition::Boolean(false)
-            } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
-              filter_runtime(ctxt.runtime, |r| {
-                connection.is_target_active(
-                  mg,
-                  r,
-                  mg_cache,
-                  &ctxt
-                    .compilation
-                    .build_module_graph_artifact
-                    .side_effects_state_artifact,
-                  exports_info_artifact,
-                )
-              })
-            } else {
-              RuntimeCondition::Boolean(true)
-            };
+            let runtime_condition = checked_runtime_condition
+              .clone()
+              .expect("should have runtime condition for checked reexport");
             let stmt = self.get_conditional_reexport_statement(
               ctxt,
               name,
@@ -741,25 +754,19 @@ impl ESMExportImportedSpecifierDependency {
               ids[0].clone(),
               ValueKey::UsedName(UsedName::Normal(ids)),
             );
-            let is_async =
-              ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier);
             ctxt
               .init_fragments
               .push(Box::new(ConditionalInitFragment::new(
                 stmt,
-                if is_async {
-                  InitFragmentStage::StageAsyncESMImports
-                } else {
-                  InitFragmentStage::StageESMImports
-                },
+                checked_stage,
                 self.source_order,
                 key,
                 None,
                 runtime_condition,
               )));
           } else {
-            let exports_info = exports_info_artifact.get_exports_info_data(imported_module);
-            let used_name = exports_info.get_used_name(exports_info_artifact, runtime, &ids);
+            let used_name =
+              imported_exports_info.get_used_name(exports_info_artifact, runtime, &ids);
             let init_fragment = self
               .get_reexport_fragment(ctxt, "reexport safe", key, &import_var, used_name.into())
               .boxed();

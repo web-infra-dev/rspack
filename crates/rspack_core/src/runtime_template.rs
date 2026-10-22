@@ -1338,12 +1338,11 @@ impl ModuleCodeTemplate {
 
     let opt_declaration = if update { "" } else { "var " };
 
-    let exports_type = get_exports_type(
+    let exports_type = target_module.get_exports_type(
       mg,
       &compilation.module_graph_cache_artifact,
       &compilation.exports_info_artifact,
-      id,
-      &module.identifier(),
+      module.get_strict_esm_module(),
     );
 
     if phase.is_defer() && !target_module.build_meta().has_top_level_await() {
@@ -1376,7 +1375,7 @@ impl ModuleCodeTemplate {
     &mut self,
     compilation: &Compilation,
     init_fragments: &mut Vec<Box<dyn InitFragment>>,
-    module_id: Identifier,
+    origin_module: &dyn Module,
     runtime: Option<&RuntimeSpec>,
     default_interop: bool,
     request: &str,
@@ -1393,12 +1392,11 @@ impl ModuleCodeTemplate {
       return self.missing_module(request);
     };
 
-    let exports_type = get_exports_type(
+    let exports_type = target_module.get_exports_type(
       mg,
       &compilation.module_graph_cache_artifact,
       &compilation.exports_info_artifact,
-      id,
-      &module_id,
+      origin_module.get_strict_esm_module(),
     );
 
     let target_module_identifier = target_module.identifier();
@@ -1605,7 +1603,7 @@ impl ModuleCodeTemplate {
   pub fn module_namespace_promise(
     &mut self,
     compilation: &Compilation,
-    module_id: Identifier,
+    strict: bool,
     dep_id: &DependencyId,
     block: Option<&AsyncDependenciesBlockIdentifier>,
     request: &str,
@@ -1627,12 +1625,11 @@ impl ModuleCodeTemplate {
     }
 
     let promise = self.block_promise(block, compilation, message);
-    let exports_type = get_exports_type(
+    let exports_type = target_module.get_exports_type(
       mg,
       &compilation.module_graph_cache_artifact,
       &compilation.exports_info_artifact,
-      dep_id,
-      &module_id,
+      strict,
     );
     let module_id_expr = self.module_id(compilation, dep_id, request, weak);
 
@@ -1746,10 +1743,7 @@ impl ModuleCodeTemplate {
         }
         if ModuleGraph::is_async(
           &compilation.async_modules_artifact,
-          compilation
-            .get_module_graph()
-            .module_identifier_by_dependency_id(dep_id)
-            .expect("should have module"),
+          &target_module.identifier(),
         ) {
           if let Some(header) = header {
             appending = format!(
