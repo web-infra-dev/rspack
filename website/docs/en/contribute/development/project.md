@@ -38,7 +38,7 @@ hook bridge, and lifecycle relationships between these crates and `@rspack/core`
 - **`rspack_ids`**: ID generation and management for creating unique identifiers for modules, chunks, etc.
 - **`rspack_collections`**: Collection data structures providing optimized HashMap, HashSet, etc.
 - **`rspack_util`**: Utility function collection containing various helper functions
-- **`rspack_futures`**: Async utilities providing asynchronous programming support
+- **`rspack_parallel`**: Parallel execution utilities for consuming iterators with Rayon or async tasks and running scoped async work
 - **`rspack_workspace`**: Workspace support for handling monorepo scenarios
 
 ### Caching & storage
@@ -130,7 +130,7 @@ hook bridge, and lifecycle relationships between these crates and `@rspack/core`
 - **`rspack_plugin_size_limits`**: Size limits plugin for checking bundle sizes
 - **`rspack_plugin_sri`**: Subresource Integrity (SRI) plugin
 - **`rspack_plugin_module_info_header`**: Module info header plugin
-- **`rspack_plugin_warn_sensitive_module`**: Warn sensitive module plugin
+- **`rspack_plugin_case_sensitive`**: Warns about module names and output filenames that differ only in casing
 
 #### Debug & testing plugins
 

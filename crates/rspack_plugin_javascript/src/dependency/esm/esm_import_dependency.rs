@@ -20,7 +20,6 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Error, Severity};
 
-use super::create_resource_identifier_for_esm_dependency;
 use crate::Atom;
 
 // TODO: find a better way to implement this for performance
@@ -32,9 +31,9 @@ pub mod import_emitted_runtime {
   use rspack_collections::{IdentifierDashMap, IdentifierMap};
   use rspack_core::{ModuleIdentifier, RuntimeCondition};
   #[cfg(allocative)]
-  use rspack_util::allocative;
+  use rspack_util::rspack_allocative;
 
-  #[cfg_attr(allocative, allocative::root)]
+  #[cfg_attr(allocative, rspack_allocative::root)]
   static IMPORT_EMITTED_MAP: OnceCell<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
     OnceCell::new();
 
@@ -89,11 +88,10 @@ impl ESMImportSideEffectDependency {
     dependency_type: DependencyType,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
+    resource_identifier: ResourceIdentifier,
     loc: Option<DependencyLocation>,
     star_export: bool,
   ) -> Self {
-    let resource_identifier =
-      create_resource_identifier_for_esm_dependency(&request, phase, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,

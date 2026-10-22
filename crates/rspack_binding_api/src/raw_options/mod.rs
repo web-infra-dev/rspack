@@ -57,7 +57,7 @@ pub struct RawOptions {
   pub stats: RawStatsOptions,
   // For now, memory.max_generation will not be exposed to the js side.
   #[napi(
-    ts_type = r#"boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent) | ({ type: "filesystem" } & RawFileSystemCacheOptions)"#
+    ts_type = r#"boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)"#
   )]
   pub cache: RawCacheOptions,
   pub snapshot: RawSnapshotOptions,

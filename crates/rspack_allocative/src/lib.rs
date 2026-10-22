@@ -53,7 +53,7 @@ mod key;
 mod reflection;
 mod visitor;
 
-pub use allocative_derive::{Allocative, root};
+pub use rspack_allocative_derive::{Allocative, root};
 
 pub use crate::{
   allocative_trait::Allocative,
@@ -79,8 +79,8 @@ pub mod __macro_refs {
 /// The main use case is manual implementations of [`Allocative`], like so:
 ///
 /// ```
-/// # extern crate rspack_allocative as allocative;
-/// use allocative::{Allocative, Visitor, ident_key};
+/// # extern crate rspack_allocative;
+/// use rspack_allocative::{Allocative, Visitor, ident_key};
 ///
 /// struct MyStruct {
 ///   foo: usize,

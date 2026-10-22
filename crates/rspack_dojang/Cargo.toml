@@ -10,11 +10,14 @@ name                    = "rspack_dojang"
 repository.workspace    = true
 version.workspace       = true
 
+[features]
+allocative = ["dep:rspack-allocative"]
+
 [dependencies]
-allocative  = { workspace = true, optional = true }
-html-escape = { workspace = true }
-rustc-hash  = { workspace = true, features = ["std"] }
-serde_json  = { workspace = true }
+html-escape       = { workspace = true }
+rspack-allocative = { workspace = true, optional = true }
+rustc-hash        = { workspace = true, features = ["std"] }
+serde_json        = { workspace = true }
 
 [lints]
 workspace = true
@@ -24,4 +27,4 @@ doctest = false
 
 [package.metadata.cargo-shear]
 # The allocative compiler driver injects enum derives that use this dependency.
-ignored = ["allocative"]
+ignored = ["rspack-allocative"]

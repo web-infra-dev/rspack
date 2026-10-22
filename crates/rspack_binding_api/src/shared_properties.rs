@@ -7,7 +7,10 @@ use napi::{
 use rustc_hash::FxHashMap;
 
 thread_local! {
-  static SHARED_PROPERTIES: RefCell<FxHashMap<(napi::sys::napi_env, TypeId), ObjectRef>> = RefCell::default();
+  // These references live until env cleanup. Main-thread process.exit() skips cleanup hooks,
+  // so thread-local destruction must not report them as leaks or call into N-API.
+  // Normal env teardown (including workers) still explicitly unreferences them.
+  static SHARED_PROPERTIES: RefCell<FxHashMap<(napi::sys::napi_env, TypeId), ObjectRef<false>>> = RefCell::default();
 }
 
 /// Install own properties using the same JavaScript accessor functions in each env.

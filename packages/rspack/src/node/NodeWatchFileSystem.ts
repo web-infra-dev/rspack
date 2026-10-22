@@ -14,8 +14,8 @@ import util from 'node:util';
 import type Watchpack from 'watchpack';
 
 import type {
-  FileSystemInfoEntry,
   InputFileSystem,
+  TimeInfoEntries,
   Watcher,
   WatchFileSystem,
 } from '../util/fs';
@@ -24,6 +24,13 @@ import { isInternalCallback } from '../util/watchTimeInfo';
 const require = createRequire(import.meta.url);
 
 type WatchpackInstance = InstanceType<typeof Watchpack>;
+
+/**
+ * `{}` marks a path known to exist without any time info; real entries always
+ * carry a `safeTime`.
+ */
+const isExistenceOnlyEntry = (entry: unknown): boolean =>
+  typeof entry === 'object' && entry !== null && !('safeTime' in entry);
 
 export default class NodeWatchFileSystem implements WatchFileSystem {
   inputFileSystem: InputFileSystem;
@@ -49,8 +56,8 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
     options: Watchpack.WatchOptions,
     callback: (
       error: Error | null,
-      fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
-      contextTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
+      fileTimeInfoEntries: TimeInfoEntries,
+      contextTimeInfoEntries: TimeInfoEntries,
       changedFiles: Set<string>,
       removedFiles: Set<string>,
     ) => void,
@@ -220,6 +227,46 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
         };
       },
     };
+  }
+
+  // watchpack's times API, forwarded from the current cycle's watcher.
+  getTimes(): Record<string, number | null> {
+    return this.watcher?.getTimes() ?? {};
+  }
+
+  getTimeInfoEntries(): TimeInfoEntries {
+    const entries: TimeInfoEntries = new Map();
+    const watcher = this.watcher;
+    if (!watcher) {
+      return entries;
+    }
+    // Collect files straight into the result and merge contexts over them
+    // afterwards, instead of asking watchpack for its combined map: there,
+    // which entry wins for a path depends on the order the directory watchers
+    // are collected in, so a plain directory watcher can report a context as
+    // existence-only (`{}`) after the context's own watcher recorded its
+    // `safeTime`. Files first, contexts last, as the native file system
+    // merges them, so a context entry always wins over the file table.
+    const contextEntries: TimeInfoEntries = new Map();
+    watcher.collectTimeInfoEntries(entries, contextEntries);
+    for (const [path, entry] of contextEntries) {
+      // Like watchpack, an entry that only says a path is absent (`null`), or
+      // a context only that it exists (`{}`), never replaces what the caller
+      // already has.
+      if (entry !== null && !isExistenceOnlyEntry(entry)) {
+        entries.set(path, entry);
+      } else if (!entries.has(path)) {
+        entries.set(path, entry);
+      }
+    }
+    return entries;
+  }
+
+  collectTimeInfoEntries(
+    fileTimestamps: TimeInfoEntries,
+    directoryTimestamps: TimeInfoEntries,
+  ): void {
+    this.watcher?.collectTimeInfoEntries(fileTimestamps, directoryTimestamps);
   }
 
   on(

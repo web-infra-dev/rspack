@@ -39,7 +39,10 @@ export default {
       "__rspack_context.r = __webpack_require__;",
     );
     expect(mainSource).toContain("module.exports, __rspack_context");
+    // Unmutated const is value-bound via `.d`'s values arg; the async chunk
+    // still needs the `.d` runtime helper (provided by the parent).
     expect(asyncChunkSource).toContain("__rspack_context.d");
+    expect(asyncChunkSource).toContain("value: value");
     expect(asyncChunkSource).not.toContain("__rspack_install_runtime");
     expect(asyncChunkSource).not.toMatch(/function __webpack_require__\s*\(/);
     expect(asyncChunkSource).not.toMatch(/var __webpack_module_cache__\s*=/);

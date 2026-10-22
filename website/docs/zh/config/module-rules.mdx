@@ -769,11 +769,17 @@ type RuleSetUse =
 
 type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
 
+type RuleSetLoaderCodeFilter = string | RegExp;
+
 type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
   parallel?: boolean | { maxWorkers?: number };
+  cache?: boolean;
+  filter?: {
+    code: RuleSetLoaderCodeFilter;
+  };
 };
 ```
 
@@ -828,6 +834,90 @@ export default {
 };
 ```
 
+## rules[].use.codeFilter
+
+- **类型：**
+
+```ts
+type RuleSetLoaderCodeFilter = string | RegExp;
+```
+
+- **默认值：** `undefined`
+
+根据 loader 的当前输入代码决定是否执行该 loader。如果代码不匹配过滤条件，Rspack 会跳过该 loader 的代码转换，并将输入原样传递给下一个 loader。对于仅需处理特定语法的 loader，可以用此选项跳过不包含相关语法的模块，减少不必要的转换。
+
+- `string`：代码包含指定子串时匹配。
+- `RegExp`：代码满足正则表达式时匹配。
+
+Rspack 会在 loader 转换代码前检查过滤条件。由于 loader 按从右到左的顺序执行，如果右侧还有其他 loader，过滤条件匹配的是它们处理后的代码。此选项不影响 loader 的 pitch 函数。
+
+**字符串匹配**
+
+假设自定义 loader `remove-console-loader.js` 用于移除控制台日志，仅当输入代码包含 `console.log` 时才执行它：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './remove-console-loader.js',
+            codeFilter: 'console.log',
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+**正则表达式匹配**
+
+仅当输入代码包含 `console.log` 或 `console.debug` 时，才执行 `remove-console-loader.js`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './remove-console-loader.js',
+            codeFilter: /\bconsole\.(log|debug)\b/,
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+**匹配其他 loader 的输出**
+
+以下配置会先执行 `generate-loader.js`。只有生成的代码包含 `generated:marker` 时，Rspack 才会执行 `transform-loader.js`，即使原始源码中没有这个子串：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: './transform-loader.js',
+            codeFilter: 'generated:marker',
+          },
+          './generate-loader.js',
+        ],
+      },
+    ],
+  },
+};
+```
+
 ## rules[].use.ident
 
 - **类型：** `string`
@@ -871,37 +961,7 @@ export default {
 - 设置为 `{ maxWorkers }` 时，可以手动控制最大 worker 的数量。
 - 设置为 `false` 或省略时，该 loader 默认会在主线程中执行。
 
-例如，将 `less-loader` 配置为并行执行：
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'less-loader',
-            parallel: true,
-            options: {
-              // loader options
-            },
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-当同一条 Rule 下有多个 loader 开启了 `parallel` 选项，Rspack 会在同一个 worker 中按顺序依次运行这些 loader，直到遇到未启用 parallel 的 loader 或 Rust 实现的 builtin loader。这样可以在保证 loader 顺序的前提下最大化并行效率。
-
-:::tip
-
-- loader 的选项需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
-- 目前 loader 在 worker 中不支持 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的大多数方法。
-
-:::
+使用示例和限制请参考 [并行 Loader](/guide/features/loader#parallel-loader)。
 
 ## rules[].use.parallel.maxWorkers
 

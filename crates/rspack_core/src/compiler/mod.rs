@@ -216,7 +216,7 @@ impl Compiler {
     if self.new_cache.has_file_cache() {
       // A fatal error can leave the module graph artifact unavailable.
       if build_succeeded {
-        if let CacheOptions::FileSystem(options) = &self.options.cache {
+        if let CacheOptions::Persistent(options) = &self.options.cache {
           self.compilation.build_dependencies.extend(
             options
               .build_dependencies

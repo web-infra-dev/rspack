@@ -7,8 +7,10 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+allocative = ["dep:rspack-allocative"]
+
 [dependencies]
-allocative               = { workspace = true, optional = true }
 async-trait              = { workspace = true }
 atomic_refcell           = { workspace = true }
 cow-utils                = { workspace = true }
@@ -19,6 +21,7 @@ futures                  = { workspace = true }
 indoc                    = { workspace = true }
 once_cell                = { workspace = true }
 regex                    = { workspace = true }
+rspack-allocative        = { workspace = true, optional = true }
 rspack_cacheable         = { workspace = true }
 rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
@@ -46,4 +49,4 @@ test    = false
 
 [package.metadata.cargo-shear]
 # The allocative compiler driver injects enum derives that use this dependency.
-ignored = ["allocative"]
+ignored = ["rspack-allocative"]

@@ -5,16 +5,16 @@
       "total": 1
     },
     "module build cache": {
-      "hits": 2,
-      "total": 8
+      "hits": 13,
+      "total": 31
     },
     "module code generation cache": {
-      "hits": 2,
-      "total": 8
+      "hits": 13,
+      "total": 31
     },
     "resolver cache": {
-      "hits": 23,
-      "total": 23
+      "hits": 92,
+      "total": 92
     }
   }
 ]

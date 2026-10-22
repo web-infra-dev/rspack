@@ -169,11 +169,6 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       scope.register_export(dep.name.clone(), dep.value.to_string());
       return;
     }
-    let module_graph = compilation.get_module_graph();
-    let module = module_graph
-      .module_by_identifier(&module.identifier())
-      .expect("should have module graph module");
-
     // remove the enum decl export if all the enum members are inlined
     if let Some(enum_value) = &dep.enum_value {
       let all_enum_member_inlined = enum_value.iter().all(|(enum_key, enum_member)| {
@@ -214,7 +209,17 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
     let is_circular_module = compilation
       .circular_modules
       .is_circular_module(&module.identifier());
-    let binding = if matches!(is_circular_module, Some(false)) && dep.const_value.is_some() {
+    let is_mutated = module.build_info().mutated_bindings.contains(&dep.value);
+    let is_deferred = compilation.get_module_graph().is_deferred(
+      &compilation.imported_by_defer_modules_artifact,
+      &module.identifier(),
+    );
+    let has_direct_eval = module.build_info().has_direct_eval;
+    let binding = if matches!(is_circular_module, Some(false))
+      && !is_mutated
+      && !is_deferred
+      && !has_direct_eval
+    {
       ESMExportBinding::Value(dep.value.clone())
     } else {
       ESMExportBinding::Getter(dep.value.clone())

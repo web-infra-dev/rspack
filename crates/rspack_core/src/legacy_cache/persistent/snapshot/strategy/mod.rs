@@ -1,5 +1,4 @@
 mod hash_helper;
-mod package_helper;
 
 use std::sync::Arc;
 
@@ -7,11 +6,8 @@ use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, InternedPath};
 
-use self::{
-  hash_helper::{ContentHash, HashHelper, TimestampHash},
-  package_helper::PackageHelper,
-};
-use crate::{SnapshotOptions, SnapshotStrategyOptions};
+use self::hash_helper::{ContentHash, HashHelper, TimestampHash};
+use crate::{Context, SnapshotOptions, SnapshotStrategyOptions, cache::PackageHelper};
 
 /// Snapshot check strategy
 #[cacheable]
@@ -20,7 +16,7 @@ pub enum Strategy {
   /// Check by package version
   ///
   /// This strategy will find the package.json in the parent directory, and
-  /// compares the version field.
+  /// compares the name and version fields.
   PackageVersion(String),
 
   /// Check by file hash
@@ -103,8 +99,12 @@ pub struct StrategyHelper {
 }
 
 impl StrategyHelper {
-  pub fn new(fs: Arc<dyn ReadableFileSystem>, snapshot_options: Arc<SnapshotOptions>) -> Self {
-    let package_helper = Arc::new(PackageHelper::new(fs.clone()));
+  pub fn new(
+    fs: Arc<dyn ReadableFileSystem>,
+    snapshot_options: Arc<SnapshotOptions>,
+    context: Context,
+  ) -> Self {
+    let package_helper = Arc::new(PackageHelper::new(fs.clone(), context));
     Self {
       fs: fs.clone(),
       hash_helper: HashHelper::new(fs, snapshot_options, package_helper.clone()),

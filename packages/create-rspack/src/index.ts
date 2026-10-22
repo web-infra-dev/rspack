@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -12,6 +13,9 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
+const { version } = JSON.parse(
+  fs.readFileSync(path.join(root, 'package.json'), 'utf-8'),
+) as { version: string };
 
 async function getTemplateName({ template }: Argv) {
   if (typeof template === 'string') {
@@ -82,6 +86,7 @@ function mapRslintTemplate(templateName: string): RslintTemplateName {
 create({
   root,
   name: 'rspack',
+  banner: `create-rspack v${version}`,
   templates: [
     'vanilla-js',
     'vanilla-ts',

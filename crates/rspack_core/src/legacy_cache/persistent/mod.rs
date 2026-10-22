@@ -72,6 +72,7 @@ impl PersistentCache {
     );
     let snapshot = Arc::new(Snapshot::new(
       compiler_options.snapshot.clone(),
+      compiler_options.context.clone(),
       input_filesystem.clone(),
       codec.clone(),
     ));
