@@ -13,7 +13,6 @@ export default defineConfig(
     const sharedOptions = { ...defaultSharedOptions, singleton: false };
 
     return {
-      experiments: { layers: true },
       module: { rules: [{ test: /\.js$/, layer }] },
       externals: {
         fs: 'node-commonjs fs',
