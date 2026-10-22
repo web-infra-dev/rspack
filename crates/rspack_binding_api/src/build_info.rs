@@ -10,7 +10,7 @@ use rspack_core::WeakBindingCell;
 use rspack_napi::unknown_to_json_value;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{module::Module, shared_properties::define_shared_properties};
+use crate::{module::Module, shared_properties::define_shared_properties, symbols};
 
 // Record<string, Source>
 #[napi]
@@ -138,7 +138,7 @@ impl BuildInfo {
 fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) -> napi::Result<()> {
   properties.push(
     Property::new()
-      .with_name(env, env.symbol_for("rspack.buildInfo.assets")?)?
+      .with_name(env, env.symbol_for(symbols::BUILD_INFO_ASSETS_SYMBOL)?)?
       .with_getter_closure(|env, this| {
         let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
         wrapped_value.with_ref(|module| Ok(module.build_info().assets.reflector()))
@@ -148,7 +148,10 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
 
   properties.push(
     Property::new()
-      .with_name(env, env.symbol_for("rspack.buildInfo.fileDependencies")?)?
+      .with_name(
+        env,
+        env.symbol_for(symbols::BUILD_INFO_FILE_DEPENDENCIES_SYMBOL)?,
+      )?
       .with_getter_closure(|env, this| {
         let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
         let env_ref = &env;
@@ -168,7 +171,10 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
 
   properties.push(
     Property::new()
-      .with_name(env, env.symbol_for("rspack.buildInfo.contextDependencies")?)?
+      .with_name(
+        env,
+        env.symbol_for(symbols::BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL)?,
+      )?
       .with_getter_closure(|env, this| {
         let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
         let env_ref = &env;
@@ -188,7 +194,10 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
 
   properties.push(
     Property::new()
-      .with_name(env, env.symbol_for("rspack.buildInfo.missingDependencies")?)?
+      .with_name(
+        env,
+        env.symbol_for(symbols::BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL)?,
+      )?
       .with_getter_closure(|env, this| {
         let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
         let env_ref = &env;
@@ -208,7 +217,10 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
 
   properties.push(
     Property::new()
-      .with_name(env, env.symbol_for("rspack.buildInfo.buildDependencies")?)?
+      .with_name(
+        env,
+        env.symbol_for(symbols::BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL)?,
+      )?
       .with_getter_closure(|env, this| {
         let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
         let env_ref = &env;
@@ -283,7 +295,7 @@ impl ToNapiValue for BuildInfo {
             Property::new()
               .with_name(
                 &env_wrapper,
-                env_wrapper.symbol_for("rspack.buildInfo.commitCustomFields")?,
+                env_wrapper.symbol_for(symbols::COMMIT_CUSTOM_FIELDS_SYMBOL)?,
               )?
               .with_value(&commit_custom_fields_fn)
               .with_property_attributes(PropertyAttributes::Configurable),

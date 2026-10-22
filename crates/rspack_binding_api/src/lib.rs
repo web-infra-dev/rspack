@@ -102,6 +102,7 @@ mod shared_properties;
 mod source;
 mod stats;
 mod swc;
+mod symbols;
 mod trace_event;
 mod utils;
 mod virtual_modules;

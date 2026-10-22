@@ -1,4 +1,4 @@
-// Keep these registry keys in sync with rspack_binding_api.
+// Keep these registry keys in sync with crates/rspack_binding_api/src/symbols.rs.
 export const MODULE_IDENTIFIER_SYMBOL = Symbol.for('rspack.module.identifier');
 export const MODULE_BUILD_INFO_SYMBOL = Symbol.for('rspack.module.buildInfo');
 export const COMPILATION_HOOKS_MAP_SYMBOL = Symbol.for(

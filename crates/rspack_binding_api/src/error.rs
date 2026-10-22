@@ -10,7 +10,7 @@ use rspack_core::Compilation;
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_napi::napi::check_status;
 
-use crate::{location::DependencyLocation, module::ModuleObject};
+use crate::{location::DependencyLocation, module::ModuleObject, symbols};
 
 pub enum ErrorCode {
   Napi(napi::Status),
@@ -145,7 +145,10 @@ impl ToNapiValue for RspackError {
         let napi_val = ToNapiValue::to_napi_value(env, External::new(rust_diagnostic))?;
         let unknown = Unknown::from_napi_value(env, napi_val)?;
         obj.define_properties(&[Property::new()
-          .with_name(&env_wrapper, env_wrapper.symbol_for("rspack.error.rust")?)?
+          .with_name(
+            &env_wrapper,
+            env_wrapper.symbol_for(symbols::RUST_ERROR_SYMBOL)?,
+          )?
           .with_value(&unknown)
           .with_property_attributes(PropertyAttributes::Configurable)])?;
       }
@@ -208,7 +211,7 @@ impl FromNapiValue for RspackError {
       let file: Option<String> = obj.get("file").ok().flatten();
       let error: Option<RspackError> = obj.get("error").ok().flatten();
       let env_wrapper = Env::from_raw(env);
-      let symbol = env_wrapper.symbol_for("rspack.error.rust")?;
+      let symbol = env_wrapper.symbol_for(symbols::RUST_ERROR_SYMBOL)?;
       let rust_diagnostic = if let Ok(unknown) = obj.get_property::<_, Unknown>(symbol) {
         if unknown.get_type()? == napi::ValueType::External {
           let external =

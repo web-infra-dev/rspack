@@ -32,6 +32,7 @@ use crate::{
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
   shared_properties::define_shared_properties,
   source::{JsSourceFromJs, JsSourceToJs, JsSourceWithLazyMap},
+  symbols,
 };
 
 #[napi(object)]
@@ -142,7 +143,10 @@ fn module_build_info_getter(ctx: CallContext) -> napi::Result<Object> {
     return r.as_object(env);
   }
   let mut build_info = BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
-  this.set_property(env.symbol_for("rspack.module.buildInfo")?, build_info)?;
+  this.set_property(
+    env.symbol_for(symbols::MODULE_BUILD_INFO_SYMBOL)?,
+    build_info,
+  )?;
   let r = WeakRef::new(raw_env, &mut build_info)?;
   let result = r.as_object(env);
   reference.build_info_ref = Some(r);
@@ -178,7 +182,10 @@ fn module_build_info_setter(ctx: CallContext) -> napi::Result<()> {
     }
   }
 
-  this.set_property(env.symbol_for("rspack.module.buildInfo")?, new_instance)?;
+  this.set_property(
+    env.symbol_for(symbols::MODULE_BUILD_INFO_SYMBOL)?,
+    new_instance,
+  )?;
   reference.build_info_ref = Some(WeakRef::new(raw_env, &mut new_instance)?);
   Ok(())
 }
@@ -229,7 +236,7 @@ pub(crate) fn define_module_properties(
     let identifier = env.create_string(module.identifier().as_str())?;
     properties.push(
       Property::new()
-        .with_name(env, env.symbol_for("rspack.module.identifier")?)?
+        .with_name(env, env.symbol_for(symbols::MODULE_IDENTIFIER_SYMBOL)?)?
         .with_value(&identifier)
         .with_property_attributes(PropertyAttributes::Configurable),
     );

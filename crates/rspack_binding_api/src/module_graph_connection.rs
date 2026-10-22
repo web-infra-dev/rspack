@@ -9,7 +9,7 @@ use rspack_core::{
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap;
 
-use crate::{dependency::DependencyWrapper, module::ModuleObject, with_compilation};
+use crate::{dependency::DependencyWrapper, module::ModuleObject, symbols, with_compilation};
 
 /// Wrapper for ConnectionState that serializes to JS as `boolean | symbol`.
 pub enum JsConnectionState {
@@ -28,11 +28,11 @@ impl ToNapiValue for JsConnectionState {
         JsConnectionState::Bool(b) => ToNapiValue::to_napi_value(env, b),
         JsConnectionState::CircularConnection => ToNapiValue::to_napi_value(
           env,
-          napi::Env::from_raw(env).symbol_for("rspack.moduleGraphConnection.circularConnection")?,
+          napi::Env::from_raw(env).symbol_for(symbols::CIRCULAR_CONNECTION_SYMBOL)?,
         ),
         JsConnectionState::TransitiveOnly => ToNapiValue::to_napi_value(
           env,
-          napi::Env::from_raw(env).symbol_for("rspack.moduleGraphConnection.transitiveOnly")?,
+          napi::Env::from_raw(env).symbol_for(symbols::TRANSITIVE_ONLY_SYMBOL)?,
         ),
       }
     }
