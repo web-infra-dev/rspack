@@ -2739,7 +2739,6 @@ var {} = {{}};
         }
       }
 
-      chunk_link.needed_namespace_objects = needed_namespace_objects.clone();
       chunk_link.refs = refs;
 
       // ensure imports external module

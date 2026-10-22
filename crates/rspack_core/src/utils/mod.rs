@@ -10,8 +10,6 @@ use crate::{
 };
 #[cfg(allocative)]
 mod allocative_count_labels;
-#[cfg(feature = "codspeed")]
-mod codspeed;
 mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
@@ -47,8 +45,6 @@ pub use memory_gc::MemoryGCStorage;
 pub use rspack_parallel::{FutureConsumer, RayonConsumer};
 pub use steal_cell::StealCell;
 
-#[cfg(feature = "codspeed")]
-pub use self::codspeed::*;
 pub use self::{
   comment::*, extract_source_map::*, extract_url_and_global::*, fast_actions::*,
   file_counter::FileCounter, find_graph_roots::*, identifier::*, module_rules::*,

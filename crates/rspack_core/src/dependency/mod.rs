@@ -62,7 +62,6 @@ pub struct ExportSpec {
   pub priority: Option<u8>,
   pub hidden: Option<bool>,
   pub from: Option<ModuleGraphConnection>,
-  pub from_export: Option<ModuleGraphConnection>,
   pub inlinable: Option<EvaluatedInlinableValue>,
 }
 
@@ -71,8 +70,6 @@ pub enum Nullable<T> {
   Null,
   Value(T),
 }
-
-impl ExportSpec {}
 
 #[derive(Debug)]
 pub enum ExportNameOrSpec {

@@ -107,7 +107,7 @@ fn get_modules_size(modules: &[&ModuleRef], compilation: &Compilation) -> f64 {
   let module_graph = compilation.get_module_graph();
   for module in modules {
     for source_type in module.source_types(module_graph) {
-      size += module.size(Some(source_type), Some(compilation));
+      size += module.size(Some(source_type));
     }
   }
   size

@@ -304,8 +304,6 @@ pub struct ChunkLinkContext {
   /**
   which module needs namespace objects
   */
-  pub needed_namespace_objects: IdentifierIndexSet,
-
   pub namespace_object_sources: IdentifierMap<String>,
 
   pub init_fragments: Vec<BoxChunkInitFragment>,
@@ -350,7 +348,6 @@ impl ChunkLinkContext {
       re_exports: Default::default(),
       imports: Default::default(),
       required: Default::default(),
-      needed_namespace_objects: Default::default(),
       namespace_object_sources: Default::default(),
       init_fragments: Default::default(),
       hashbang: None,

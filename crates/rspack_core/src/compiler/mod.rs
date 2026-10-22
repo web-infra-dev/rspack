@@ -17,8 +17,8 @@ use tracing::instrument;
 pub use self::rebuild::CompilationRecords;
 use crate::{
   BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
-  CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, InfrastructureLogSink,
-  KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, KeepPattern,
+  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
   artifacts::IncrementalArtifacts,
   compilation::build_module_graph::ModuleExecutor,
   fast_set,
@@ -135,7 +135,6 @@ impl Compiler {
     compiler_context: Option<Arc<CompilerContext>>,
     platform: Arc<CompilerPlatform>,
     cache: Arc<Cache>,
-    _infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
   ) -> Self {
     #[cfg(debug_assertions)]
     {
@@ -365,11 +364,7 @@ impl Compiler {
     let start = logger.time("seal compilation");
     self
       .compilation
-      .run_passes_with_incremental_artifacts(
-        self.plugin_driver.clone(),
-        &mut self.incremental_artifacts,
-        &mut *self.cache,
-      )
+      .run_passes_with_incremental_artifacts(&mut self.incremental_artifacts, &mut *self.cache)
       .await?;
     logger.time_end(start);
 

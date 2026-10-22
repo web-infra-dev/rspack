@@ -517,9 +517,9 @@ impl Module {
 
   #[napi]
   pub fn size(&mut self, ty: Option<String>) -> napi::Result<f64> {
-    self.with_ref(|compilation, module| {
+    self.with_ref(|_compilation, module| {
       let ty = ty.map(|s| SourceType::from(s.as_str()));
-      Ok(module.size(ty.as_ref(), Some(compilation)))
+      Ok(module.size(ty.as_ref()))
     })
   }
 

@@ -15,7 +15,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, ChunkGraph,
-  CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
+  CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope,
   DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange,
   EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
   ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
@@ -24,11 +24,9 @@ use crate::{
 #[derive(Debug)]
 pub struct ParseContext<'a> {
   pub source: BoxSource,
-  pub module_context: &'a Context,
   pub module_identifier: ModuleIdentifier,
   pub module_type: &'a ModuleType,
   pub module_layer: Option<&'a ModuleLayer>,
-  pub module_user_request: &'a str,
   pub module_parser_options: Option<&'a ParserOptions>,
   pub module_generator_options: Option<&'a GeneratorOptions>,
   pub module_source_map_kind: SourceMapKind,
