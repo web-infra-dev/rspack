@@ -1,0 +1,35 @@
+[package]
+authors      = ["LongYinan <lynweklm@gmail.com>", "Forehalo <forehalo@gmail.com>"]
+description  = "N-API procedural macros"
+edition      = "2021"
+keywords     = ["NodeJS", "FFI", "NAPI", "n-api"]
+license      = "MIT"
+name         = "napi-derive"
+repository   = "https://github.com/napi-rs/napi-rs"
+rust-version = "1.88"
+version      = "3.5.10"
+
+[package.metadata.workspaces]
+independent = true
+
+[features]
+compat-mode = []
+default     = ["type-def", "strict"]
+full        = ["type-def", "strict", "compat-mode"]
+noop        = ["napi-derive-backend/noop"]
+strict      = ["napi-derive-backend/strict"]
+tracing     = ["napi-derive-backend/tracing"]
+type-def    = ["napi-derive-backend/type-def", "ctor"]
+
+[dependencies]
+convert_case        = "0.11"
+ctor                = { version = "1.0.0", default-features = false, optional = true }
+napi-derive-backend = { version = "=5.1.2" }
+proc-macro2         = "1"
+quote               = "1"
+syn                 = { version = "2", features = ["fold", "full", "extra-traits", "visit-mut"] }
+
+[lib]
+doctest    = false
+proc-macro = true
+test       = false

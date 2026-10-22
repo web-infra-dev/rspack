@@ -120,11 +120,22 @@ impl FlameGraph {
 
 #[derive(Debug)]
 pub struct FlameGraphOutput {
+  objects: Vec<ObjectIdentity>,
   flamegraph: FlameGraph,
   warnings: String,
 }
 
+#[derive(Debug, serde::Serialize)]
+pub struct ObjectIdentity {
+  pub address: String,
+  pub type_name: &'static str,
+  pub path: Vec<String>,
+}
+
 impl FlameGraphOutput {
+  pub fn objects(&self) -> &[ObjectIdentity] {
+    &self.objects
+  }
   /// Flamegraph source, can be fed to `flamegraph.pl` or `inferno`.
   pub fn flamegraph(&self) -> &FlameGraph {
     &self.flamegraph
@@ -331,6 +342,7 @@ unsafe impl Send for VisitedSharedPointer {}
 /// [inferno]: https://github.com/jonhoo/inferno
 #[derive(Debug)]
 pub struct FlameGraphBuilder {
+  objects: std::collections::BTreeMap<(usize, &'static str), Vec<Key>>,
   shared_under_first_owner: bool,
   opaque: std::collections::BTreeSet<(&'static str, Vec<Key>)>,
   /// Visited shared pointers.
@@ -357,6 +369,7 @@ impl Default for FlameGraphBuilder {
     let mut trees = Trees::default();
     let root = trees.new_tree();
     FlameGraphBuilder {
+      objects: Default::default(),
       trees,
       visited_shared: FxHashSet::default(),
       current: TreeStack {
@@ -380,6 +393,15 @@ impl FlameGraphBuilder {
       shared_under_first_owner: true,
       ..Self::default()
     }
+  }
+
+  /// Record a binding's identity without traversing a potentially mutable target.
+  /// The compiler traversal accounts for native bytes separately.
+  pub fn record_binding(&mut self, address: usize, type_name: &'static str) {
+    self
+      .objects
+      .entry((address, type_name))
+      .or_insert_with(|| vec![Key::new("Bindings"), Key::new(type_name)]);
   }
 
   pub fn root_visitor(&mut self) -> Visitor<'_> {
@@ -418,7 +440,15 @@ impl FlameGraphBuilder {
   }
 
   /// Finish building the flamegraph.
-  pub fn finish(self) -> FlameGraphOutput {
+  pub fn finish(mut self) -> FlameGraphOutput {
+    let objects = std::mem::take(&mut self.objects)
+      .into_iter()
+      .map(|((address, type_name), path)| ObjectIdentity {
+        address: format!("0x{address:x}"),
+        type_name,
+        path: path.iter().map(|key| key.to_string()).collect(),
+      })
+      .collect();
     let opaque = self
       .opaque
       .iter()
@@ -431,6 +461,7 @@ impl FlameGraphBuilder {
     let (flamegraph, mut warnings) = tree.to_flame_graph();
     warnings.push_str(&opaque);
     FlameGraphOutput {
+      objects,
       flamegraph,
       warnings,
     }
@@ -485,6 +516,17 @@ impl FlameGraphBuilder {
 }
 
 impl VisitorImpl for FlameGraphBuilder {
+  fn object_impl(&mut self, address: usize, type_name: &'static str) {
+    self.objects.entry((address, type_name)).or_insert_with(|| {
+      self
+        .shared
+        .iter()
+        .chain(std::iter::once(&self.current))
+        .flat_map(|stack| stack.stack.iter().map(|(_, key)| key.clone()))
+        .chain(std::iter::once(Key::new(type_name)))
+        .collect()
+    });
+  }
   fn opaque_impl(&mut self, name: &'static str) {
     // Include the owning edges even when the legacy shared-allocation mode
     // relocates the payload to a separate flamegraph root.

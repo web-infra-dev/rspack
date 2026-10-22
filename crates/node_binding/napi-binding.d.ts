@@ -3300,6 +3300,9 @@ export interface RealDependencyLocation {
   end?: SourcePosition
 }
 
+/** Internal profiling bridge. Returns false in a binding built without allocative. */
+export declare function registerAllocativeSnapshotCallback(callback: (path: string) => void): boolean
+
 /** * this is a process level tracing, which means it would be shared by all compilers in the same process
  * only the first call would take effect, the following calls would be ignored
  * Some code is modified based on
