@@ -651,6 +651,14 @@ impl Plugin for SideEffectsFlagPlugin {
     "SideEffectsFlagPlugin"
   }
 
+  fn clear_cache(&self, _id: rspack_core::CompilationId) {
+    self
+      .owning_side_effects_cache
+      .write()
+      .expect("sideEffects cache lock should not be poisoned")
+      .clear();
+  }
+
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
       .normal_module_factory_hooks
