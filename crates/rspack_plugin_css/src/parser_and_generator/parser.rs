@@ -832,30 +832,22 @@ impl<'context> CssModuleParser<'context> {
       | css_module_lexer::Dependency::LocalId { name, range, .. } => {
         self.reset_current_composes_rule();
         let (_prefix, name) = name.split_at(1);
-        self
-          .handle_local_ident_declaration(name, range.start + 1, range.end, module_hash_options)
-          .await
+        self.handle_local_ident_declaration(name, range.start + 1, range.end, module_hash_options)
       }
-      css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
-        self
-          .handle_optional_local_ident_usage(
-            self.animation() && local_css_ident_declarations.has_keyframes(name),
-            name,
-            *range,
-            module_hash_options,
-          )
-          .await
-      }
-      css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
-        self
-          .handle_optional_local_ident_declaration(
-            self.animation(),
-            name,
-            *range,
-            module_hash_options,
-          )
-          .await
-      }
+      css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => self
+        .handle_optional_local_ident_usage(
+          self.animation() && local_css_ident_declarations.has_keyframes(name),
+          name,
+          *range,
+          module_hash_options,
+        ),
+      css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => self
+        .handle_optional_local_ident_declaration(
+          self.animation(),
+          name,
+          *range,
+          module_hash_options,
+        ),
       css_module_lexer::Dependency::Composes {
         local_classes,
         names,
@@ -910,81 +902,58 @@ impl<'context> CssModuleParser<'context> {
         Ok(())
       }
       css_module_lexer::Dependency::LocalCounterStyle { name, range, .. }
-      | css_module_lexer::Dependency::LocalFontPalette { name, range, .. } => {
-        self
-          .handle_optional_local_ident_usage(
-            self.custom_idents() && local_css_ident_declarations.has_custom_ident(name),
-            name,
-            *range,
-            module_hash_options,
-          )
-          .await
-      }
+      | css_module_lexer::Dependency::LocalFontPalette { name, range, .. } => self
+        .handle_optional_local_ident_usage(
+          self.custom_idents() && local_css_ident_declarations.has_custom_ident(name),
+          name,
+          *range,
+          module_hash_options,
+        ),
       css_module_lexer::Dependency::LocalCounterStyleDecl { name, range, .. }
-      | css_module_lexer::Dependency::LocalFontPaletteDecl { name, range, .. } => {
-        self
-          .handle_optional_local_ident_declaration(
-            self.custom_idents(),
-            name,
-            *range,
-            module_hash_options,
-          )
-          .await
-      }
-      css_module_lexer::Dependency::LocalContainer { name, range, .. } => {
-        self
-          .handle_optional_local_ident_usage(
-            self.container() && local_css_ident_declarations.has_container(name),
-            name,
-            *range,
-            module_hash_options,
-          )
-          .await
-      }
-      css_module_lexer::Dependency::LocalContainerDecl { name, range, .. } => {
-        self
-          .handle_optional_local_ident_declaration(
-            self.container(),
-            name,
-            *range,
-            module_hash_options,
-          )
-          .await
-      }
-      css_module_lexer::Dependency::LocalFunction { name, range, .. } => {
-        self
-          .handle_optional_local_dashed_ident_usage(
-            self.function() && local_css_ident_declarations.has_function(name),
-            name,
-            *range,
-            module_hash_options,
-          )
-          .await
-      }
-      css_module_lexer::Dependency::LocalFunctionDecl { name, range, .. } => {
-        self
-          .handle_optional_local_dashed_ident_declaration(
-            self.function(),
-            name,
-            *range,
-            module_hash_options,
-          )
-          .await
-      }
-      css_module_lexer::Dependency::LocalGrid { name, range, .. } => {
-        self
-          .handle_optional_local_ident_usage(
-            self.grid() && local_css_ident_declarations.has_grid(name),
-            name,
-            *range,
-            module_hash_options,
-          )
-          .await
-      }
+      | css_module_lexer::Dependency::LocalFontPaletteDecl { name, range, .. } => self
+        .handle_optional_local_ident_declaration(
+          self.custom_idents(),
+          name,
+          *range,
+          module_hash_options,
+        ),
+      css_module_lexer::Dependency::LocalContainer { name, range, .. } => self
+        .handle_optional_local_ident_usage(
+          self.container() && local_css_ident_declarations.has_container(name),
+          name,
+          *range,
+          module_hash_options,
+        ),
+      css_module_lexer::Dependency::LocalContainerDecl { name, range, .. } => self
+        .handle_optional_local_ident_declaration(
+          self.container(),
+          name,
+          *range,
+          module_hash_options,
+        ),
+      css_module_lexer::Dependency::LocalFunction { name, range, .. } => self
+        .handle_optional_local_dashed_ident_usage(
+          self.function() && local_css_ident_declarations.has_function(name),
+          name,
+          *range,
+          module_hash_options,
+        ),
+      css_module_lexer::Dependency::LocalFunctionDecl { name, range, .. } => self
+        .handle_optional_local_dashed_ident_declaration(
+          self.function(),
+          name,
+          *range,
+          module_hash_options,
+        ),
+      css_module_lexer::Dependency::LocalGrid { name, range, .. } => self
+        .handle_optional_local_ident_usage(
+          self.grid() && local_css_ident_declarations.has_grid(name),
+          name,
+          *range,
+          module_hash_options,
+        ),
       css_module_lexer::Dependency::LocalGridDecl { name, range, .. } => {
-        self
-          .handle_optional_local_ident_declaration(self.grid(), name, *range, module_hash_options)
-          .await
+        self.handle_optional_local_ident_declaration(self.grid(), name, *range, module_hash_options)
       }
       css_module_lexer::Dependency::LocalVar {
         name,
@@ -995,28 +964,23 @@ impl<'context> CssModuleParser<'context> {
         if !self.dashed_idents() {
           return Ok(());
         }
-        self
-          .handle_local_var_usage(
-            name,
-            *range,
-            *from,
-            *from_is_global,
-            module_hash_options,
-            local_css_ident_declarations,
-          )
-          .await
+        self.handle_local_var_usage(
+          name,
+          *range,
+          *from,
+          *from_is_global,
+          module_hash_options,
+          local_css_ident_declarations,
+        )
       }
       css_module_lexer::Dependency::LocalVarDecl { name, range, .. }
-      | css_module_lexer::Dependency::LocalPropertyDecl { name, range, .. } => {
-        self
-          .handle_optional_local_var_declaration(
-            self.dashed_idents(),
-            name,
-            *range,
-            module_hash_options,
-          )
-          .await
-      }
+      | css_module_lexer::Dependency::LocalPropertyDecl { name, range, .. } => self
+        .handle_optional_local_var_declaration(
+          self.dashed_idents(),
+          name,
+          *range,
+          module_hash_options,
+        ),
     }
   }
 
@@ -1272,24 +1236,22 @@ impl<'context> CssModuleParser<'context> {
     })
   }
 
-  async fn handle_local_ident_usage(
+  fn handle_local_ident_usage(
     &mut self,
     name: &str,
     range: css_module_lexer::Range,
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
     let name = unescape_identifier(name);
-    self
-      .add_local_symbol(
-        name.as_ref(),
-        range,
-        LocalCssIdentKind::Ident,
-        module_hash_options,
-      )
-      .await
+    self.add_local_symbol(
+      name.as_ref(),
+      range,
+      LocalCssIdentKind::Ident,
+      module_hash_options,
+    )
   }
 
-  async fn handle_optional_local_ident_usage(
+  fn handle_optional_local_ident_usage(
     &mut self,
     enabled: bool,
     name: &str,
@@ -1299,12 +1261,10 @@ impl<'context> CssModuleParser<'context> {
     if !enabled {
       return Ok(());
     }
-    self
-      .handle_local_ident_usage(name, range, module_hash_options)
-      .await
+    self.handle_local_ident_usage(name, range, module_hash_options)
   }
 
-  async fn handle_local_ident_declaration(
+  fn handle_local_ident_declaration(
     &mut self,
     name: &str,
     start: u32,
@@ -1312,17 +1272,15 @@ impl<'context> CssModuleParser<'context> {
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
     let name = unescape_identifier(name);
-    self
-      .add_local_declaration(
-        name.as_ref(),
-        (start, end).into(),
-        LocalCssIdentKind::Ident,
-        module_hash_options,
-      )
-      .await
+    self.add_local_declaration(
+      name.as_ref(),
+      (start, end).into(),
+      LocalCssIdentKind::Ident,
+      module_hash_options,
+    )
   }
 
-  async fn handle_local_var_usage(
+  fn handle_local_var_usage(
     &mut self,
     name: &str,
     range: css_module_lexer::Range,
@@ -1341,28 +1299,24 @@ impl<'context> CssModuleParser<'context> {
       return Ok(());
     }
 
-    self
-      .add_local_symbol(
-        name.as_ref(),
-        range,
-        LocalCssIdentKind::DashedIdent,
-        module_hash_options,
-      )
-      .await?;
+    self.add_local_symbol(
+      name.as_ref(),
+      range,
+      LocalCssIdentKind::DashedIdent,
+      module_hash_options,
+    )?;
     Ok(())
   }
 
   // `name` is decoded by the syntax-specific caller exactly once.
-  async fn add_local_symbol(
+  fn add_local_symbol(
     &mut self,
     name: &str,
     range: css_module_lexer::Range,
     kind: LocalCssIdentKind,
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
-    let id = self
-      .ensure_local_definition(name, kind, false, module_hash_options)
-      .await?;
+    let id = self.ensure_local_definition(name, kind, false, module_hash_options)?;
     self.add_dependency(CssIcssSymbolDependency::new(
       id,
       (range.start, range.end).into(),
@@ -1371,7 +1325,7 @@ impl<'context> CssModuleParser<'context> {
     Ok(())
   }
 
-  async fn handle_optional_local_dashed_ident_usage(
+  fn handle_optional_local_dashed_ident_usage(
     &mut self,
     enabled: bool,
     name: &str,
@@ -1382,17 +1336,15 @@ impl<'context> CssModuleParser<'context> {
       return Ok(());
     }
     let name = unescape_identifier(name);
-    self
-      .add_local_symbol(
-        name.as_ref(),
-        range,
-        LocalCssIdentKind::DashedIdent,
-        module_hash_options,
-      )
-      .await
+    self.add_local_symbol(
+      name.as_ref(),
+      range,
+      LocalCssIdentKind::DashedIdent,
+      module_hash_options,
+    )
   }
 
-  async fn handle_local_var_declaration(
+  fn handle_local_var_declaration(
     &mut self,
     name: &str,
     start: u32,
@@ -1400,26 +1352,22 @@ impl<'context> CssModuleParser<'context> {
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
     let name = unescape_identifier(name);
-    self
-      .add_local_declaration(
-        name.as_ref(),
-        (start, end).into(),
-        LocalCssIdentKind::DashedIdent,
-        module_hash_options,
-      )
-      .await
+    self.add_local_declaration(
+      name.as_ref(),
+      (start, end).into(),
+      LocalCssIdentKind::DashedIdent,
+      module_hash_options,
+    )
   }
 
-  async fn add_local_declaration(
+  fn add_local_declaration(
     &mut self,
     name: &str,
     range: DependencyRange,
     kind: LocalCssIdentKind,
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
-    let id = self
-      .ensure_local_definition(name, kind, true, module_hash_options)
-      .await?;
+    let id = self.ensure_local_definition(name, kind, true, module_hash_options)?;
     self.add_dependency(CssIcssSymbolDependency::new(
       id,
       range,
@@ -1428,7 +1376,7 @@ impl<'context> CssModuleParser<'context> {
     Ok(())
   }
 
-  async fn handle_optional_local_var_declaration(
+  fn handle_optional_local_var_declaration(
     &mut self,
     enabled: bool,
     name: &str,
@@ -1438,12 +1386,10 @@ impl<'context> CssModuleParser<'context> {
     if !enabled {
       return Ok(());
     }
-    self
-      .handle_local_var_declaration(name, range.start, range.end, module_hash_options)
-      .await
+    self.handle_local_var_declaration(name, range.start, range.end, module_hash_options)
   }
 
-  async fn handle_optional_local_dashed_ident_declaration(
+  fn handle_optional_local_dashed_ident_declaration(
     &mut self,
     enabled: bool,
     name: &str,
@@ -1453,12 +1399,10 @@ impl<'context> CssModuleParser<'context> {
     if !enabled {
       return Ok(());
     }
-    self
-      .handle_local_var_declaration(name, range.start, range.end, module_hash_options)
-      .await
+    self.handle_local_var_declaration(name, range.start, range.end, module_hash_options)
   }
 
-  async fn handle_optional_local_ident_declaration(
+  fn handle_optional_local_ident_declaration(
     &mut self,
     enabled: bool,
     name: &str,
@@ -1468,9 +1412,7 @@ impl<'context> CssModuleParser<'context> {
     if !enabled {
       return Ok(());
     }
-    self
-      .handle_local_ident_declaration(name, range.start, range.end, module_hash_options)
-      .await
+    self.handle_local_ident_declaration(name, range.start, range.end, module_hash_options)
   }
 
   fn add_dependency(&mut self, dependency: impl Dependency + 'static) -> DependencyId {
@@ -1524,7 +1466,7 @@ impl<'context> CssModuleParser<'context> {
     }
   }
 
-  async fn ensure_local_definition(
+  fn ensure_local_definition(
     &mut self,
     name: &str,
     kind: LocalCssIdentKind,
@@ -1540,8 +1482,7 @@ impl<'context> CssModuleParser<'context> {
     } else {
       let ident = self
         .get_local_ident_options()
-        .get_local_ident(name, module_hash_options)
-        .await?;
+        .get_local_ident(name, module_hash_options);
       let ident = match kind {
         LocalCssIdentKind::Ident => ident,
         LocalCssIdentKind::DashedIdent => {
