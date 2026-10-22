@@ -2356,34 +2356,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "lightningcss"
-version = "1.0.0-alpha.71"
-source = "git+https://github.com/intellild/lightningcss.git?rev=0bac61168acfba545e0378731ebce05809c57c64#0bac61168acfba545e0378731ebce05809c57c64"
-dependencies = [
- "ahash",
- "bitflags 2.13.2",
- "const-str",
- "cssparser",
- "cssparser-color",
- "data-encoding",
- "getrandom 0.3.2",
- "indexmap",
- "itertools 0.10.5",
- "lazy_static",
- "lightningcss-derive",
- "parcel_selectors",
- "pastey",
- "pathdiff",
- "serde",
- "serde-content",
- "smallvec",
- "static-self",
-]
-
-[[package]]
 name = "lightningcss-derive"
 version = "1.0.0-alpha.43"
-source = "git+https://github.com/intellild/lightningcss.git?rev=0bac61168acfba545e0378731ebce05809c57c64#0bac61168acfba545e0378731ebce05809c57c64"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=a3cf0d9b0e12d566501819c768e037585747894d#a3cf0d9b0e12d566501819c768e037585747894d"
 dependencies = [
  "convert_case 0.6.0",
  "proc-macro2",
@@ -2968,8 +2943,8 @@ dependencies = [
 
 [[package]]
 name = "parcel_selectors"
-version = "0.28.2"
-source = "git+https://github.com/intellild/lightningcss.git?rev=0bac61168acfba545e0378731ebce05809c57c64#0bac61168acfba545e0378731ebce05809c57c64"
+version = "0.28.3"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=a3cf0d9b0e12d566501819c768e037585747894d#a3cf0d9b0e12d566501819c768e037585747894d"
 dependencies = [
  "bitflags 2.13.2",
  "cssparser",
@@ -4140,8 +4115,8 @@ name = "rspack_browserslist"
 version = "0.103.0"
 dependencies = [
  "browserslist-rs",
- "lightningcss",
  "regex",
+ "rspack_lightningcss",
 ]
 
 [[package]]
@@ -4155,13 +4130,13 @@ dependencies = [
  "indexmap",
  "inventory",
  "json",
- "lightningcss",
  "once_cell",
  "regex",
  "rkyv 0.8.18",
  "rspack-allocative",
  "rspack_cacheable_macros",
  "rspack_intern",
+ "rspack_lightningcss",
  "rspack_sources",
  "rustc-hash",
  "serde_json",
@@ -4188,10 +4163,10 @@ dependencies = [
  "camino",
  "dashmap",
  "json",
- "lightningcss",
  "once_cell",
  "rspack_cacheable",
  "rspack_intern",
+ "rspack_lightningcss",
  "rspack_sources",
  "rustc-hash",
  "serde_json",
@@ -4349,11 +4324,11 @@ version = "0.103.0"
 dependencies = [
  "base64-simd",
  "itoa",
- "lightningcss",
  "md4",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_intern",
+ "rspack_lightningcss",
  "rspack_macros",
  "rspack_util",
  "serde",
@@ -4433,18 +4408,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_lightningcss"
+version = "0.1.0"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=a3cf0d9b0e12d566501819c768e037585747894d#a3cf0d9b0e12d566501819c768e037585747894d"
+dependencies = [
+ "ahash",
+ "bitflags 2.13.2",
+ "const-str",
+ "cssparser",
+ "cssparser-color",
+ "data-encoding",
+ "getrandom 0.3.2",
+ "indexmap",
+ "itertools 0.10.5",
+ "lazy_static",
+ "lightningcss-derive",
+ "parcel_selectors",
+ "pastey",
+ "pathdiff",
+ "rustc-hash",
+ "serde",
+ "serde-content",
+ "smallvec",
+ "static-self",
+]
+
+[[package]]
 name = "rspack_loader_lightningcss"
 version = "0.103.0"
 dependencies = [
  "async-trait",
  "cow-utils",
  "derive_more",
- "lightningcss",
  "rspack_browserslist",
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_lightningcss",
  "rspack_loader_runner",
  "serde",
  "serde_json",
@@ -6174,7 +6175,7 @@ dependencies = [
 [[package]]
 name = "static-self"
 version = "0.1.2"
-source = "git+https://github.com/intellild/lightningcss.git?rev=0bac61168acfba545e0378731ebce05809c57c64#0bac61168acfba545e0378731ebce05809c57c64"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=a3cf0d9b0e12d566501819c768e037585747894d#a3cf0d9b0e12d566501819c768e037585747894d"
 dependencies = [
  "indexmap",
  "smallvec",
@@ -6184,7 +6185,7 @@ dependencies = [
 [[package]]
 name = "static-self-derive"
 version = "0.1.1"
-source = "git+https://github.com/intellild/lightningcss.git?rev=0bac61168acfba545e0378731ebce05809c57c64#0bac61168acfba545e0378731ebce05809c57c64"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=a3cf0d9b0e12d566501819c768e037585747894d#a3cf0d9b0e12d566501819c768e037585747894d"
 dependencies = [
  "proc-macro2",
  "quote",
