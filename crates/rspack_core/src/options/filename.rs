@@ -137,8 +137,7 @@ pub struct CompiledStringTemplate<'template> {
   template: Cow<'template, str>,
   placeholder_data: Vec<PlaceholderData>,
   segments: Vec<StringTemplateSegment>,
-  has_hash_placeholder: bool,
-  has_content_hash_placeholder: bool,
+  placeholder_flags: u32,
 }
 
 impl<'template> CompiledStringTemplate<'template> {
@@ -153,8 +152,7 @@ impl<'template> CompiledStringTemplate<'template> {
     let mut segments = Vec::new();
     let mut plain_start = 0;
     let mut placeholder_start = None;
-    let mut has_hash_placeholder = false;
-    let mut has_content_hash_placeholder = false;
+    let mut placeholder_flags = 0;
     let bytes = template.as_bytes();
 
     for index in memchr2_iter(b'[', b']', bytes) {
@@ -173,8 +171,7 @@ impl<'template> CompiledStringTemplate<'template> {
         continue;
       };
 
-      has_hash_placeholder |= matches!(kind, PlaceholderKind::Hash | PlaceholderKind::FullHash);
-      has_content_hash_placeholder |= kind == PlaceholderKind::ContentHash;
+      placeholder_flags |= 1 << kind as u8;
 
       if plain_start < start {
         segments.push(StringTemplateSegment::Plain(to_u16_range(
@@ -205,13 +202,16 @@ impl<'template> CompiledStringTemplate<'template> {
       template,
       placeholder_data,
       segments,
-      has_hash_placeholder,
-      has_content_hash_placeholder,
+      placeholder_flags,
     }
   }
 
   pub fn template(&self) -> &str {
     self.template.as_ref()
+  }
+
+  pub fn has_placeholder(&self, kind: PlaceholderKind) -> bool {
+    self.placeholder_flags & (1 << kind as u8) != 0
   }
 
   pub fn has_full_hash_digest(&self) -> bool {
@@ -486,14 +486,20 @@ impl Filename {
 
   pub fn has_hash_placeholder(&self) -> bool {
     match self.0 {
-      FilenameKind::Template(template) => get_or_compile(template).has_hash_placeholder,
+      FilenameKind::Template(template) => {
+        let compiled = get_or_compile(template);
+        compiled.has_placeholder(PlaceholderKind::Hash)
+          || compiled.has_placeholder(PlaceholderKind::FullHash)
+      }
       FilenameKind::Fn(_) => true,
     }
   }
 
   pub fn has_content_hash_placeholder(&self) -> bool {
     match self.0 {
-      FilenameKind::Template(template) => get_or_compile(template).has_content_hash_placeholder,
+      FilenameKind::Template(template) => {
+        get_or_compile(template).has_placeholder(PlaceholderKind::ContentHash)
+      }
       FilenameKind::Fn(_) => true,
     }
   }

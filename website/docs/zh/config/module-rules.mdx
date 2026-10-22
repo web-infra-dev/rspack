@@ -834,7 +834,7 @@ export default {
 };
 ```
 
-## rules[].use.filter.code
+## rules[].use.codeFilter
 
 - **类型：**
 
@@ -864,7 +864,7 @@ export default {
         use: [
           {
             loader: './remove-console-loader.js',
-            filter: { code: 'console.log' },
+            codeFilter: 'console.log',
           },
         ],
       },
@@ -886,7 +886,7 @@ export default {
         use: [
           {
             loader: './remove-console-loader.js',
-            filter: { code: /\bconsole\.(log|debug)\b/ },
+            codeFilter: /\bconsole\.(log|debug)\b/,
           },
         ],
       },
@@ -908,7 +908,7 @@ export default {
         use: [
           {
             loader: './transform-loader.js',
-            filter: { code: 'generated:marker' },
+            codeFilter: 'generated:marker',
           },
           './generate-loader.js',
         ],

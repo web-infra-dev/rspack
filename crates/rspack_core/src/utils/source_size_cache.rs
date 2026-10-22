@@ -11,7 +11,7 @@ use rspack_cacheable::{
   with::{AsConverter, AsMap, AsPreset},
 };
 #[cfg(allocative)]
-use rspack_util::allocative;
+use rspack_util::rspack_allocative;
 use ustr::UstrMap;
 
 use crate::SourceType;
@@ -20,7 +20,7 @@ const SOURCE_SIZE_CACHE_SLOTS: usize = 13;
 const SOURCE_SIZE_UNSET: u64 = u64::MAX;
 
 // Keep typed array traversal: the pinned reflection compiler does not normalize const lengths.
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 #[derive(Debug)]
 pub struct SourceSizeCache {
   // Fixed slots for builtin SourceType variants to avoid hashing/locking overhead.

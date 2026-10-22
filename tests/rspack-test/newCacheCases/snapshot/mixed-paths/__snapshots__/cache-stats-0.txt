@@ -6,15 +6,15 @@
     },
     "module build cache": {
       "hits": 0,
-      "total": 8
+      "total": 31
     },
     "module code generation cache": {
       "hits": 0,
-      "total": 8
+      "total": 31
     },
     "resolver cache": {
-      "hits": 13,
-      "total": 23
+      "hits": 59,
+      "total": 92
     }
   }
 ]

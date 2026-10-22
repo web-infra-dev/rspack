@@ -4,7 +4,11 @@ use rspack_paths::{InternedPath, InternedPathDashSet};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use super::{FsEvent, FsEventKind};
-use crate::{EventBatch, paths::PathManager};
+use crate::{
+  EventBatch,
+  analyzer::{Analyzer, RecommendedAnalyzer},
+  paths::PathManager,
+};
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
 /// allowing efficient lookup and dependency resolution for a given path.
 ///
@@ -102,6 +106,7 @@ struct EventProcessor {
   path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
   tx: UnboundedSender<EventBatch>,
+  analyzer: Arc<RecommendedAnalyzer>,
 }
 
 /// `Trigger` is responsible for sending file system events to the event channel
@@ -111,6 +116,7 @@ struct EventProcessor {
 /// immediately, and a dedicated thread drains the buffer one event at a time.
 pub struct Trigger {
   pending: UnboundedSender<(InternedPath, FsEventKind, Origin)>,
+  pub(crate) analyzer: Arc<RecommendedAnalyzer>,
 }
 
 /// Where an event comes from.
@@ -129,7 +135,12 @@ impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<EventBatch>) -> Self {
     let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
-    let processor = EventProcessor { path_manager, tx };
+    let analyzer = Arc::default();
+    let processor = EventProcessor {
+      path_manager,
+      tx,
+      analyzer: Arc::clone(&analyzer),
+    };
 
     // One event at a time, in arrival order: the JS `ignored` predicate is
     // awaited, not blocked on, and the next event is not started until the
@@ -152,12 +163,13 @@ impl Trigger {
       })
       .expect("spawn watcher event filter thread");
 
-    Self { pending }
+    Self { pending, analyzer }
   }
 
   /// Hands a raw event to the filter thread. Never blocks — this runs straight
   /// from the OS watcher callback.
   pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
+    self.analyzer.invalidate_path(path);
     self.on_disk_event(path, kind, kind == FsEventKind::Create);
   }
 
@@ -289,6 +301,7 @@ impl EventProcessor {
         && std::fs::symlink_metadata(&*associated).is_err()
       {
         *associated_kind = FsEventKind::Remove;
+        self.analyzer.invalidate_path(associated);
         let may_contain_records = self.path_manager.may_contain_records(associated);
         self.path_manager.remove_file_time(associated);
         if may_contain_records {
@@ -339,6 +352,12 @@ impl EventProcessor {
       }
     }
 
+    if matches!(origin, Origin::Scan) {
+      self.analyzer.invalidate_path(path);
+      for (associated, _) in &associated_event {
+        self.analyzer.invalidate_path(associated);
+      }
+    }
     self.trigger_events(associated_event);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.

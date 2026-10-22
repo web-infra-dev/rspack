@@ -57,15 +57,15 @@ pub struct InternedSlice<T: SliceInternable> {
 // Avoid reflecting ThinArc's private layout: the pinned nightly emits duplicate
 // drop symbols for that field. Traverse the live allocation through its API.
 #[cfg(allocative)]
-impl<T: SliceInternable> allocative::Allocative for InternedSlice<T>
+impl<T: SliceInternable> rspack_allocative::Allocative for InternedSlice<T>
 where
-  T::Header: allocative::Visit,
-  T::Item: allocative::Visit,
+  T::Header: rspack_allocative::Visit,
+  T::Item: rspack_allocative::Visit,
 {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut allocative::Visitor<'b>) {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_allocative::Visitor<'b>) {
     use std::{alloc::Layout, mem::size_of};
 
-    use allocative::Key;
+    use rspack_allocative::Key;
 
     let mut visitor = visitor.enter_self(self);
     if let Some(mut shared) = visitor.enter_shared(

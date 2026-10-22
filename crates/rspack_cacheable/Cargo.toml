@@ -7,11 +7,10 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [features]
-allocative = ["dep:allocative", "rspack_sources/allocative"]
+allocative = ["dep:rspack_allocative", "rspack_sources/allocative"]
 noop       = []
 
 [dependencies]
-allocative              = { workspace = true, optional = true }
 arc-swap                = { workspace = true }
 camino                  = { workspace = true }
 dashmap                 = { workspace = true }
@@ -23,6 +22,7 @@ lightningcss            = { workspace = true }
 once_cell               = { workspace = true }
 regex                   = { workspace = true }
 rkyv                    = { workspace = true, features = ["triomphe-0_1"] }
+rspack_allocative       = { workspace = true, optional = true }
 rspack_cacheable_macros = { workspace = true }
 rspack_intern           = { workspace = true, features = ["atom"] }
 rspack_sources          = { workspace = true }

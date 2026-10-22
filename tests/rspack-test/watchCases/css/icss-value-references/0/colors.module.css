@@ -2,3 +2,7 @@
 @value secondary: #2ecc71;
 @value third: #c1c2c3;
 @value danger from "./colors-more.module.css";
+
+.forward {
+	composes: tone from "./colors-more.module.css";
+}

@@ -369,6 +369,7 @@ impl Compilation {
       input_filesystem.clone(),
       CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
       options.snapshot.clone(),
+      options.context.clone(),
       options.output.hash_function,
     );
     let resolver_cache = (options.experiments.new_cache.resolver

@@ -6,6 +6,9 @@ name              = "rspack_watcher"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[features]
+testing = []
+
 [dependencies]
 cow-utils    = { workspace = true }
 dashmap      = { workspace = true }

@@ -568,35 +568,22 @@ function createRawModuleRuleUsesImpl(
         ? (JSON.stringify(fingerprintOptions) ?? '')
         : '',
       codeFilter: createRawLoaderCodeFilter(
-        use.filter,
-        `${path}[${index}].filter`,
+        use.codeFilter,
+        `${path}[${index}].codeFilter`,
       ),
     };
   });
 }
 
 function createRawLoaderCodeFilter(
-  filter: RuleSetLoaderWithOptions['filter'],
+  codeFilter: RuleSetLoaderWithOptions['codeFilter'],
   path: string,
 ): string | RegExp | undefined {
-  if (filter === undefined) return undefined;
-  if (!filter || typeof filter !== 'object' || Array.isArray(filter)) {
-    throw new Error(`Expected an object at \`${path}\`.`);
+  if (codeFilter === undefined) return undefined;
+  if (typeof codeFilter === 'string' || codeFilter instanceof RegExp) {
+    return codeFilter;
   }
-  for (const key of Object.keys(filter)) {
-    if (key !== 'code') {
-      throw new Error(
-        `Unexpected property \`${path}.${key}\`. Loader filters only support \`code\`.`,
-      );
-    }
-  }
-  if (filter.code === undefined) {
-    throw new Error(`Expected a code filter at \`${path}.code\`.`);
-  }
-  if (typeof filter.code === 'string' || filter.code instanceof RegExp) {
-    return filter.code;
-  }
-  throw new Error(`Expected a string or RegExp at \`${path}.code\`.`);
+  throw new Error(`Expected a string or RegExp at \`${path}\`.`);
 }
 
 function resolveStringifyLoaders(

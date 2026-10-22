@@ -23,15 +23,17 @@ pub type BoxSource = Arc<dyn Source>;
 /// it's originally stored as a string or raw bytes. This is particularly useful for
 /// build tools and bundlers that need to process various types of source files.
 #[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub enum SourceValue<'a> {
   /// Text content stored as a UTF-8 string.
   String(
     // Use the typed Cow adapter: this value can contain a temporary borrow.
-    #[cfg_attr(allocative, allocative(visit = allocative::Allocative::visit))] Cow<'a, str>,
+    #[cfg_attr(allocative, allocative(visit = rspack_allocative::Allocative::visit))] Cow<'a, str>,
   ),
   /// Binary content stored as raw bytes.
-  Buffer(#[cfg_attr(allocative, allocative(visit = allocative::Allocative::visit))] Cow<'a, [u8]>),
+  Buffer(
+    #[cfg_attr(allocative, allocative(visit = rspack_allocative::Allocative::visit))] Cow<'a, [u8]>,
+  ),
 }
 
 impl<'a> SourceValue<'a> {
