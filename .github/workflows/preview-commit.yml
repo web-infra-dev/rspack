@@ -24,6 +24,7 @@ on:
         default: x86_64-unknown-linux-gnu
         description: 'Rust target or target group to build and publish'
         options:
+          - linux-x64-windows-x64-macos-arm64
           - linux-x64-and-macos-arm64
           - x86_64-unknown-linux-gnu
           - aarch64-unknown-linux-gnu
@@ -66,7 +67,7 @@ jobs:
   build:
     strategy:
       matrix:
-        target: ${{ fromJSON(inputs.target == 'linux-x64-and-macos-arm64' && '["x86_64-unknown-linux-gnu","aarch64-apple-darwin"]' || format('["{0}"]', inputs.target)) }}
+        target: ${{ fromJSON(inputs.target == 'linux-x64-windows-x64-macos-arm64' && '["x86_64-unknown-linux-gnu","x86_64-pc-windows-msvc","aarch64-apple-darwin"]' || inputs.target == 'linux-x64-and-macos-arm64' && '["x86_64-unknown-linux-gnu","aarch64-apple-darwin"]' || format('["{0}"]', inputs.target)) }}
     needs: [get-runner-labels, resolve-ref]
     uses: ./.github/workflows/reusable-build.yml
     with:
