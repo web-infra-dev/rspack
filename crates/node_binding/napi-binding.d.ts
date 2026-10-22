@@ -470,6 +470,7 @@ export declare class ModuleGraphConnection {
   getActiveState(runtime: string | string[] | undefined): ConnectionState
 }
 
+/** Read-only operations on a compilation's module collection. */
 export declare class Modules {
   size(): number
   has(value: Module): boolean
