@@ -1192,13 +1192,12 @@ impl<'parser> JavascriptParser<'parser> {
           let declared_scope = self
             .definitions_db
             .resolve(&name)
-            .map(|state| {
+            .map_or(scope_id, |state| {
               self
                 .definitions_db
                 .expect_get_variable(state)
                 .declared_scope
-            })
-            .unwrap_or(scope_id);
+            });
           let variable = VariableInfo::create(
             &mut self.definitions_db,
             declared_scope,
