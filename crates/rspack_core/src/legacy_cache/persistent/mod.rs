@@ -89,7 +89,7 @@ impl PersistentCache {
         format!(
           "{}|{}",
           rspack_pkg_version!(),
-          option.validation_version(&compiler_options.context)
+          codec.validation_version(&option.version, compiler_options.context.as_path())
         ),
         BuildDeps::new(
           &option.build_dependencies,

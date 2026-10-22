@@ -5,7 +5,7 @@ use rspack_cacheable::{
   Deserializer, Serializer, Validator, from_bytes, to_bytes,
 };
 use rspack_error::Result;
-use rspack_paths::Utf8PathBuf;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 /// Internal cacheable context for serialization
 #[derive(Debug, Clone)]
@@ -46,6 +46,19 @@ impl CacheCodec {
       context: Context {
         portable_project_root,
       },
+    }
+  }
+
+  /// The cache version to store and compare on restore.
+  ///
+  /// Without a portable project root, encoded data holds absolute paths under `context`,
+  /// so a cache moved or shared to another root must fail validation instead of
+  /// restoring the other root's paths.
+  pub fn validation_version(&self, version: &str, context: &Utf8Path) -> String {
+    if self.context.portable_project_root.is_some() {
+      version.to_string()
+    } else {
+      format!("{version}|{context}")
     }
   }
 
