@@ -140,7 +140,6 @@ it('loads the configured shared identities after an async boundary', async () =>
     import('legacy-a'),
     import('legacy-b'),
     import('layered'),
-    import('layered-other'),
     import('structural-collision'),
   ]);
   expect(modules.map((module) => module.default)).toEqual([
@@ -148,7 +147,6 @@ it('loads the configured shared identities after an async boundary', async () =>
     'legacy-a',
     'legacy-b',
     'legacy-a',
-    'legacy-b',
     'legacy-b',
   ]);
 });

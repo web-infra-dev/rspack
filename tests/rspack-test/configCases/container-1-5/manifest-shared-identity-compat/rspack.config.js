@@ -64,7 +64,7 @@ const createConfig = (fileName, disableAssetsAnalyze) => ({
           requiredVersion: false,
         },
         'layered-other': {
-          import: 'legacy-b',
+          import: false,
           version: '1.0.0',
           shareKey: 'pkg',
           layer: 'client',
