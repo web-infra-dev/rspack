@@ -9,25 +9,29 @@ mod eval_source;
 mod eval_tpl_expr;
 mod eval_unary_expr;
 
+use std::{borrow::Cow, fmt};
+
 use bitflags::bitflags;
 use num_bigint::BigInt;
 use rspack_core::{DependencyId, DependencyRange};
-use swc_experimental_allocator::{Allocator, CloneIn};
-use swc_experimental_ecma_ast::{Expr, Span};
+use swc_next_ecma_ast::{Expr, Span};
 
 pub use self::{
   eval_array_expr::eval_array_expression,
-  eval_binary_expr::eval_binary_expression,
+  eval_binary_expr::{eval_binary_expression, eval_logical_expression},
   eval_call_expr::eval_call_expression,
   eval_cond_expr::eval_cond_expression,
-  eval_lit_expr::{eval_bigint, eval_bool, eval_lit_expr, eval_number, eval_str},
-  eval_member_expr::eval_member_expression,
+  eval_lit_expr::eval_lit_expr,
+  eval_member_expr::{eval_member_expression, eval_member_expression_with_info},
   eval_new_expr::eval_new_expression,
   eval_source::eval_source,
   eval_tpl_expr::{TemplateStringKind, eval_tagged_tpl_expression, eval_tpl_expression},
   eval_unary_expr::eval_unary_expression,
 };
-use crate::{Atom, visitors::ExportedVariableInfo};
+use crate::{
+  Atom,
+  visitors::{AtomMembers, ExportedVariableInfo, MemberRanges, OptionalMembers},
+};
 
 type Boolean = bool;
 type Number = f64;
@@ -40,21 +44,27 @@ type Regexp = (String, String); // (expr, flags)
 struct IdentifierData {
   identifier: Atom,
   root_info: ExportedVariableInfo,
-  members: Option<Vec<Atom>>,
-  members_optionals: Option<Vec<bool>>,
-  member_ranges: Option<Vec<Span>>,
+  member_path: Option<MemberPathData>,
 }
 
-#[derive(Debug)]
+/// Keeps short member paths inline when transferring them from the parser.
+#[derive(Debug, Clone)]
+struct MemberPathData {
+  members: AtomMembers,
+  members_optionals: OptionalMembers,
+  member_ranges: MemberRanges,
+}
+
+#[derive(Debug, Clone)]
 struct WrappedData<'a> {
   prefix: Option<Box<BasicEvaluatedExpression<'a>>>,
   postfix: Option<Box<BasicEvaluatedExpression<'a>>>,
   inner_expressions: Vec<BasicEvaluatedExpression<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct TemplateStringData<'a> {
-  quasis: Vec<BasicEvaluatedExpression<'a>>,
+  // Static quasis occupy the even slots; intervening slots are dynamic expressions.
   parts: Vec<BasicEvaluatedExpression<'a>>,
   kind: TemplateStringKind,
 }
@@ -89,12 +99,13 @@ impl DependencyData {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Payload<'a> {
   // Compile time value
   Undefined,
   Null,
-  String(String),
+  // AST-backed strings borrow their storage; computed strings own it.
+  String(Cow<'a, str>),
   Number(Number),
   Boolean(Boolean),
   RegExp(Box<Regexp>),
@@ -110,12 +121,27 @@ enum Payload<'a> {
   Unknown,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
+struct EvaluatedExpression {
+  expression: Expr,
+  /// Synthetic expressions are handles into a separately parsed flat AST.
+  /// Ordinary expressions use the parser's current AST and leave this empty.
+  ast: Option<usize>,
+}
+
+impl fmt::Debug for EvaluatedExpression {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("EvaluatedExpression")
+      .field("expression", &self.expression)
+      .field("has_synthetic_ast", &self.ast.is_some())
+      .finish()
+  }
+}
+
+#[derive(Debug, Clone)]
 pub struct BasicEvaluatedExpression<'a> {
-  // For 'static-lifetime usage, any reference fields must originate from this owned expression.
-  owned_expression: Option<Box<Expr<'a>>>,
-  // During Tpl parsing, this may switch from Some(...) to None, hence separate from owned_expression.
-  expression: Option<&'a Expr<'a>>,
+  // The handle is meaningful only with the parser-owned AST used for this evaluation.
+  expression: Option<EvaluatedExpression>,
   payload: Payload<'a>,
   range: Option<DependencyRange>,
   falsy: bool,
@@ -130,114 +156,9 @@ impl Default for BasicEvaluatedExpression<'_> {
   }
 }
 
-impl<'a> CloneIn<'a> for IdentifierData {
-  type Cloned = Self;
-
-  fn clone_in(&self, _allocator: &'a Allocator) -> Self::Cloned {
-    Self {
-      identifier: self.identifier.clone(),
-      root_info: self.root_info.clone(),
-      members: self.members.clone(),
-      members_optionals: self.members_optionals.clone(),
-      member_ranges: self.member_ranges.clone(),
-    }
-  }
-}
-
-impl<'alloc: 'a, 'a> CloneIn<'alloc> for WrappedData<'a> {
-  type Cloned = Self;
-
-  fn clone_in(&self, allocator: &'alloc Allocator) -> Self::Cloned {
-    Self {
-      prefix: self
-        .prefix
-        .as_ref()
-        .map(|expr| Box::new(expr.clone_in(allocator))),
-      postfix: self
-        .postfix
-        .as_ref()
-        .map(|expr| Box::new(expr.clone_in(allocator))),
-      inner_expressions: self
-        .inner_expressions
-        .iter()
-        .map(|expr| expr.clone_in(allocator))
-        .collect(),
-    }
-  }
-}
-
-impl<'alloc: 'a, 'a> CloneIn<'alloc> for TemplateStringData<'a> {
-  type Cloned = Self;
-
-  fn clone_in(&self, allocator: &'alloc Allocator) -> Self::Cloned {
-    Self {
-      quasis: self
-        .quasis
-        .iter()
-        .map(|expr| expr.clone_in(allocator))
-        .collect(),
-      parts: self
-        .parts
-        .iter()
-        .map(|expr| expr.clone_in(allocator))
-        .collect(),
-      kind: self.kind,
-    }
-  }
-}
-
-impl<'alloc: 'a, 'a> CloneIn<'alloc> for Payload<'a> {
-  type Cloned = Self;
-
-  fn clone_in(&self, allocator: &'alloc Allocator) -> Self::Cloned {
-    match self {
-      Self::Unknown => Self::Unknown,
-      Self::Undefined => Self::Undefined,
-      Self::Null => Self::Null,
-      Self::String(value) => Self::String(value.clone()),
-      Self::Number(value) => Self::Number(*value),
-      Self::Boolean(value) => Self::Boolean(*value),
-      Self::RegExp(value) => Self::RegExp(value.clone()),
-      Self::Conditional(value) => {
-        Self::Conditional(value.iter().map(|expr| expr.clone_in(allocator)).collect())
-      }
-      Self::Array(value) => {
-        Self::Array(value.iter().map(|expr| expr.clone_in(allocator)).collect())
-      }
-      Self::Wrapped(value) => Self::Wrapped(Box::new(value.clone_in(allocator))),
-      Self::ConstArray(value) => Self::ConstArray(value.clone()),
-      Self::BigInt(value) => Self::BigInt(value.clone()),
-      Self::Identifier(value) => Self::Identifier(Box::new(value.clone_in(allocator))),
-      Self::Dependency(value) => Self::Dependency(value.clone()),
-      Self::TemplateString(value) => Self::TemplateString(Box::new(value.clone_in(allocator))),
-    }
-  }
-}
-
-impl<'alloc: 'a, 'a> CloneIn<'alloc> for BasicEvaluatedExpression<'a> {
-  type Cloned = Self;
-
-  fn clone_in(&self, allocator: &'alloc Allocator) -> Self::Cloned {
-    Self {
-      owned_expression: self
-        .owned_expression
-        .as_ref()
-        .map(|expr| Box::new(expr.clone_in(allocator))),
-      expression: self.expression,
-      payload: self.payload.clone_in(allocator),
-      range: self.range,
-      falsy: self.falsy,
-      truthy: self.truthy,
-      side_effects: self.side_effects,
-      nullish: self.nullish,
-    }
-  }
-}
-
 impl<'a> BasicEvaluatedExpression<'a> {
   pub fn new() -> Self {
     Self {
-      owned_expression: None,
       expression: None,
       payload: Payload::Unknown,
       range: None,
@@ -387,7 +308,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
     } else if self.is_undefined() {
       Some("undefined".to_string())
     } else if self.is_string() {
-      Some(self.string().clone())
+      Some(self.string().to_owned())
     } else if self.is_number() {
       Some(self.number().to_string())
     } else if self.is_array() {
@@ -541,16 +462,18 @@ impl<'a> BasicEvaluatedExpression<'a> {
     &mut self,
     name: Atom,
     root_info: ExportedVariableInfo,
-    members: Option<Vec<Atom>>,
-    members_optionals: Option<Vec<bool>>,
-    member_ranges: Option<Vec<Span>>,
+    member_path: Option<(AtomMembers, OptionalMembers, MemberRanges)>,
   ) {
     self.payload = Payload::Identifier(Box::new(IdentifierData {
       identifier: name,
       root_info,
-      members,
-      members_optionals,
-      member_ranges,
+      member_path: member_path.map(
+        |(members, members_optionals, member_ranges)| MemberPathData {
+          members,
+          members_optionals,
+          member_ranges,
+        },
+      ),
     }));
     self.side_effects = true;
   }
@@ -571,20 +494,15 @@ impl<'a> BasicEvaluatedExpression<'a> {
 
   pub fn set_template_string(
     &mut self,
-    quasis: Vec<BasicEvaluatedExpression<'a>>,
     parts: Vec<BasicEvaluatedExpression<'a>>,
     kind: TemplateStringKind,
   ) {
     self.side_effects = parts.iter().any(|p| p.side_effects);
-    self.payload = Payload::TemplateString(Box::new(TemplateStringData {
-      quasis,
-      parts,
-      kind,
-    }));
+    self.payload = Payload::TemplateString(Box::new(TemplateStringData { parts, kind }));
   }
 
-  pub fn set_string(&mut self, string: String) {
-    self.payload = Payload::String(string);
+  pub fn set_string(&mut self, string: impl Into<Cow<'a, str>>) {
+    self.payload = Payload::String(string.into());
     self.side_effects = false;
   }
 
@@ -607,7 +525,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
     self.side_effects = true;
   }
 
-  pub fn string(&self) -> &String {
+  pub fn string(&self) -> &str {
     match &self.payload {
       Payload::String(string) => string,
       _ => panic!("make sure string exist"),
@@ -637,26 +555,24 @@ impl<'a> BasicEvaluatedExpression<'a> {
     }
   }
 
-  pub fn members(&self) -> Option<&Vec<Atom>> {
+  pub fn members(&self) -> Option<&AtomMembers> {
     assert!(self.is_identifier());
     match &self.payload {
-      Payload::Identifier(identifier) => identifier.members.as_ref(),
+      Payload::Identifier(identifier) => identifier.member_path.as_ref().map(|path| &path.members),
       _ => panic!("make sure identifier exist"),
     }
   }
 
-  pub fn members_optionals(&self) -> Option<&Vec<bool>> {
+  pub fn member_path(&self) -> Option<(&[Atom], &[bool], &[Span])> {
     assert!(self.is_identifier());
     match &self.payload {
-      Payload::Identifier(identifier) => identifier.members_optionals.as_ref(),
-      _ => panic!("make sure identifier exist"),
-    }
-  }
-
-  pub fn member_ranges(&self) -> Option<&Vec<Span>> {
-    assert!(self.is_identifier());
-    match &self.payload {
-      Payload::Identifier(identifier) => identifier.member_ranges.as_ref(),
+      Payload::Identifier(identifier) => identifier.member_path.as_ref().map(|path| {
+        (
+          path.members.as_slice(),
+          path.members_optionals.as_slice(),
+          path.member_ranges.as_slice(),
+        )
+      }),
       _ => panic!("make sure identifier exist"),
     }
   }
@@ -730,12 +646,10 @@ impl<'a> BasicEvaluatedExpression<'a> {
     }
   }
 
-  pub fn quasis(&self) -> &Vec<BasicEvaluatedExpression<'a>> {
-    assert!(self.is_template_string(),);
-    match &self.payload {
-      Payload::TemplateString(tpl) => &tpl.quasis,
-      _ => panic!("quasis must exists for template string"),
-    }
+  pub fn quasis(
+    &self,
+  ) -> impl DoubleEndedIterator<Item = &BasicEvaluatedExpression<'a>> + ExactSizeIterator {
+    self.parts().iter().step_by(2)
   }
 
   pub fn items(&self) -> &Vec<BasicEvaluatedExpression<'_>> {
@@ -790,39 +704,42 @@ impl<'a> BasicEvaluatedExpression<'a> {
     self.range.as_ref()
   }
 
-  pub fn set_expression(&mut self, expression: Option<&'a Expr<'a>>) {
-    self.expression = expression;
+  pub fn set_expression(&mut self, expression: Option<Expr>) {
+    self.set_expression_with_ast(expression, None);
   }
 
-  pub fn with_expression(mut self, expression: Option<&'a Expr<'a>>) -> Self {
-    self.expression = expression;
+  pub fn with_expression(mut self, expression: Option<Expr>) -> Self {
+    self.set_expression(expression);
     self
   }
 
-  pub fn expression(&self) -> Option<&'a Expr<'a>> {
-    self.expression
+  pub fn expression(&self) -> Option<Expr> {
+    self.expression.map(|expression| expression.expression)
   }
 
-  pub fn with_owned_expression<F>(expr: Expr<'a>, f: F) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    F: FnOnce(&'a Expr<'a>) -> Option<BasicEvaluatedExpression<'a>>,
-  {
-    let expr = Box::new(expr);
-    let raw_ptr = Box::into_raw(expr);
-    // SAFETY: We are the only owner of the Box, and we are converting it to a raw pointer
-    let expr_ref: &'a Expr<'a> = unsafe { &*raw_ptr };
-    let mut basic_evaluated_expression = f(expr_ref)?;
+  pub(crate) fn expression_ast(&self) -> Option<usize> {
+    self.expression.and_then(|expression| expression.ast)
+  }
 
-    if basic_evaluated_expression.owned_expression.is_none() {
-      // SAFETY: If reference fields exist, they must originate from this owned expression.
-      basic_evaluated_expression.owned_expression = Some(unsafe { Box::from_raw(raw_ptr) });
-    }
+  pub(crate) fn with_expression_ast(
+    mut self,
+    expression: Option<Expr>,
+    ast: Option<usize>,
+  ) -> Self {
+    self.set_expression_with_ast(expression, ast);
+    self
+  }
 
-    Some(basic_evaluated_expression)
+  fn set_expression_with_ast(&mut self, expression: Option<Expr>, ast: Option<usize>) {
+    self.expression = expression.map(|expression| EvaluatedExpression { expression, ast });
   }
 }
 
-pub fn evaluate_to_string<'a>(value: String, start: u32, end: u32) -> BasicEvaluatedExpression<'a> {
+pub fn evaluate_to_string<'a>(
+  value: impl Into<Cow<'a, str>>,
+  start: u32,
+  end: u32,
+) -> BasicEvaluatedExpression<'a> {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_string(value);
   eval
@@ -860,13 +777,7 @@ pub fn evaluate_to_identifier<'a>(
   end: u32,
 ) -> BasicEvaluatedExpression<'a> {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
-  eval.set_identifier(
-    identifier,
-    ExportedVariableInfo::Name(root_info),
-    None,
-    None,
-    None,
-  );
+  eval.set_identifier(identifier, ExportedVariableInfo::Name(root_info), None);
   eval.set_side_effects(false);
   match truthy {
     Some(v) => {

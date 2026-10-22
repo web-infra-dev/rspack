@@ -432,7 +432,7 @@ fn get_actions_from_build_info(
 fn get_module_rsc_information(
   module: &dyn Module,
 ) -> Option<rspack_core::FreezeReadGuard<'_, RscMeta>> {
-  module.build_info().try_map(|info| info.rsc.as_ref())
+  module.build_info().try_map(|info| info.rsc.as_deref())
 }
 
 fn is_client_component_entry_module(module: &dyn Module) -> bool {

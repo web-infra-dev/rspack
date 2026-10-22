@@ -1,4 +1,5 @@
 import binding from '@rspack/binding';
+import type { Source } from 'webpack-sources';
 import { SourceAdapter } from './util/source';
 
 Object.defineProperty(binding.Sources.prototype, 'get', {
@@ -12,3 +13,9 @@ Object.defineProperty(binding.Sources.prototype, 'get', {
     return null;
   },
 });
+
+declare module '@rspack/binding' {
+  interface Sources {
+    get(sourceType: string): Source | null;
+  }
+}

@@ -37,7 +37,7 @@ export default {
               'PLUGIN',
               async (resolveData) => {
                 if (resolveData.request == './file.js') {
-                  resolveData.request = `./loader.cjs?time=${sharedObj.time}!./file.js`;
+                  resolveData.request = `./loader.mjs?time=${sharedObj.time}!./file.js`;
                 }
               },
             );

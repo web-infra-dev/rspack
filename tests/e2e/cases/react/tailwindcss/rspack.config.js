@@ -46,7 +46,7 @@ export default {
                   tailwindcss: {
                     config: path.join(
                       import.meta.dirname,
-                      './tailwind.config.js',
+                      './tailwind.config.mjs',
                     ),
                   },
                 },

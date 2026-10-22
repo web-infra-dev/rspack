@@ -176,11 +176,12 @@ mod napi_binding {
     jsobject: OnceCell<ThreadsafeOneShotRef>,
   }
 
-  unsafe impl Send for Heap {}
-  unsafe impl Sync for Heap {}
-
   #[derive(Debug)]
+  #[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
+  #[cfg_attr(allocative, allocative(bound = ""))]
   pub struct BindingCell<T: ?Sized> {
+    // Projection into heap.variant; the owning Arc is visited below.
+    #[cfg_attr(allocative, allocative(skip))]
     ptr: *mut T,
     heap: Arc<Heap>,
   }

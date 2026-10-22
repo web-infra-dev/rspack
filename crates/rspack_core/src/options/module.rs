@@ -504,6 +504,7 @@ pub struct JavascriptParserOptions {
   pub dynamic_import_prefetch: Option<JavascriptParserOrder>,
   pub dynamic_import_fetch_priority: Option<DynamicImportFetchPriority>,
   pub url: Option<JavascriptParserUrl>,
+  pub dynamic_url: Option<bool>,
   pub unknown_context_critical: Option<bool>,
   pub expr_context_critical: Option<bool>,
   pub wrapped_context_critical: Option<bool>,
@@ -1682,6 +1683,8 @@ pub struct ModuleRuleUseLoader {
   pub cache: bool,
   /// Stable serialization of the public loader options.
   pub options_cache_key: String,
+  /// Preconditions for running the normal loader handler.
+  pub filter: Option<Arc<rspack_loader_runner::LoaderFilter>>,
 }
 
 pub type FnUse =

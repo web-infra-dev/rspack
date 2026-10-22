@@ -141,12 +141,21 @@ export class MultiCompiler {
           this.hooks.done.call(new MultiStats(compilerStats as Stats[]));
         }
       });
-      compiler.hooks.invalid.tap('MultiCompiler', () => {
+
+      const resetDoneState = () => {
         if (compilerDone) {
           compilerDone = false;
           doneCompilers--;
         }
-      });
+      };
+
+      compiler.hooks.invalid.tap('MultiCompiler', resetDoneState);
+      // A queued watch run can restart after done without another invalid hook.
+      // Reset before async watchRun taps can delay the new compilation.
+      compiler.hooks.watchRun.tap(
+        { name: 'MultiCompiler', stage: -Infinity },
+        resetDoneState,
+      );
     }
   }
 

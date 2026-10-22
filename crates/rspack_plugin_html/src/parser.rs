@@ -10,7 +10,7 @@ use swc_core::common::{
   DUMMY_SP, FileName, FilePathMapping, GLOBALS, SourceFile, SourceMap, sync::Lrc,
 };
 use swc_html::{
-  ast::{Document, DocumentFragment, DocumentMode, Element, Namespace},
+  ast::{Child, Document, DocumentFragment, DocumentMode, Element, Namespace},
   codegen::{
     CodeGenerator, CodegenConfig, Emit,
     writer::basic::{BasicHtmlWriter, BasicHtmlWriterConfig},
@@ -71,10 +71,14 @@ impl<'a> HtmlCompiler<'a> {
   ) -> Result<TWithDiagnosticArray<CompiledDocument>> {
     let cm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
     let doc = source.trim_start().cow_to_ascii_lowercase();
-    let has_doctype = doc.starts_with("<!doctype");
+    // Comments and whitespace are allowed before the doctype, e.g.
+    // `<!-- comment --><!DOCTYPE html>` is a valid document, so they are skipped when
+    // detecting the doctype and the root element.
+    let doc_content = skip_leading_whitespace_and_comments(&doc);
+    let has_doctype = doc_content.starts_with("<!doctype");
     let is_document = has_doctype
       || source.is_empty()
-      || doc.starts_with("<html")
+      || doc_content.starts_with("<html")
       || (doc.contains("<body") && doc.contains("</body>"))
       || (doc.contains("<head") && doc.contains("</head>"));
     let fm = cm.new_source_file(
@@ -135,6 +139,13 @@ impl<'a> HtmlCompiler<'a> {
       tag_omission: Some(false),
       ..Default::default()
     };
+    if let CompiledDocument::DocumentWithoutDoctype(ast) = ast {
+      // The doctype was only injected to make the template parse as a document, it is not
+      // part of the template, so it must not be emitted.
+      ast
+        .children
+        .retain(|child| !matches!(child, Child::DocumentType(_)));
+    }
     if minify {
       // Minify can't leak to user land because it doesn't implement `ToNapiValue` Trait
       GLOBALS.set(&Default::default(), || match ast {
@@ -161,12 +172,33 @@ impl<'a> HtmlCompiler<'a> {
     let wr = BasicHtmlWriter::new(&mut output, None, writer_config);
     let mut r#gen = CodeGenerator::new(wr, codegen_config);
     ast.emit_to_codegen(&mut r#gen)?;
-    if matches!(ast, CompiledDocument::DocumentWithoutDoctype(_)) {
-      Ok(output.cow_replace("<!DOCTYPE html>", "").to_string())
-    } else {
-      Ok(output)
-    }
+    Ok(output)
   }
+}
+
+/// Skips the leading whitespace and comments of `source`.
+///
+/// Whitespace and comments are allowed before the doctype (see the "initial" insertion
+/// mode of the HTML parsing spec), e.g. `<!-- comment --><!DOCTYPE html>` is a valid
+/// document.
+fn skip_leading_whitespace_and_comments(source: &str) -> &str {
+  let mut content = source.trim_start();
+
+  while let Some(comment) = content.strip_prefix("<!--") {
+    // `<!-->` and `<!--->` close an empty comment abruptly.
+    let rest = comment
+      .strip_prefix("->")
+      .or_else(|| comment.strip_prefix('>'))
+      .or_else(|| comment.find("-->").map(|end| &comment[end + "-->".len()..]));
+
+    content = match rest {
+      Some(rest) => rest.trim_start(),
+      // An unterminated comment consumes the rest of the input.
+      None => return "",
+    };
+  }
+
+  content
 }
 
 fn create_html_content_element() -> Element {

@@ -384,6 +384,10 @@ mod tests {
       self.inner.symlink_metadata(path).await
     }
 
+    async fn read_link(&self, path: &Utf8Path) -> rspack_fs::Result<Utf8PathBuf> {
+      self.inner.read_link(path).await
+    }
+
     async fn canonicalize(&self, path: &Utf8Path) -> rspack_fs::Result<Utf8PathBuf> {
       self.inner.canonicalize(path).await
     }

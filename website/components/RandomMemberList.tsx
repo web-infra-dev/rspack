@@ -254,9 +254,9 @@ export const RandomMemberList = ({ list = coreTeam }: { list?: Member[] }) => {
 export const RandomContributorsList = () => {
   const list: Member[] = [
     {
-      id: 'hyf0',
-      avatar: 'https://github.com/hyf0.png',
-      x: 'https://x.com/_hyf0',
+      id: 'hyfdev',
+      avatar: 'https://github.com/hyfdev.png',
+      x: 'https://x.com/hyfdev',
       desc: 'Rspack & Rolldown core team',
     },
     {

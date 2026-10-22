@@ -40,6 +40,7 @@ use crate::{
     RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
     URLContextDependencyTemplate, URLDependencyTemplate, WorkerDependencyTemplate,
     amd_define_dependency::AMDDefineDependencyTemplate,
+    amd_exports_dependency::AMDExportsDependencyTemplate,
     amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
     amd_require_dependency::AMDRequireDependencyTemplate,
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
@@ -413,6 +414,10 @@ async fn compilation(
     Arc::new(ModuleArgumentDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
+    AMDExportsDependencyTemplate::template_type(),
+    Arc::new(AMDExportsDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
     PureExpressionDependencyTemplate::template_type(),
     Arc::new(PureExpressionDependencyTemplate::default()),
   );
@@ -708,7 +713,10 @@ pub struct ExtractedCommentsInfo {
   pub comments_file_name: String,
 }
 
-fn module_has_js(module_identifier: &ModuleIdentifier, module_graph: &ModuleGraph) -> bool {
+pub(super) fn module_has_js(
+  module_identifier: &ModuleIdentifier,
+  module_graph: &ModuleGraph,
+) -> bool {
   module_graph
     .module_by_identifier(module_identifier)
     .is_some_and(|module| {

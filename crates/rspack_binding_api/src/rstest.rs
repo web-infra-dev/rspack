@@ -53,6 +53,13 @@ pub struct RawRstestPluginOptions {
   #[napi(ts_type = "boolean | { functionName?: string }")]
   pub inject_dynamic_import_origin: Option<Either<bool, RawRstestDynamicImportOriginOptions>>,
 
+  // When enabled, rewrite non-string-literal `rs.importMock()` calls and append
+  // the source module path for request-keyed mock lookup.
+  #[napi(js_name = "updateImportMockAPI")]
+  pub update_import_mock_api: Option<bool>,
+  #[napi(js_name = "updateRequireMockAPI")]
+  pub update_require_mock_api: Option<bool>,
+
   // When enabled, rewrite `require.resolve()` calls to the configured callee
   // and append the source module's absolute path as an extra argument. The
   // runtime uses it as the base for relative specifier resolution so paths
@@ -91,6 +98,8 @@ impl From<RawRstestPluginOptions> for RstestPluginOptions {
       globals: value.globals.unwrap_or(true),
       inject_import_meta_rstest_origin: value.inject_import_meta_rstest_origin.unwrap_or(false),
       inject_dynamic_import_origin,
+      update_import_mock_api: value.update_import_mock_api.unwrap_or(false),
+      update_require_mock_api: value.update_require_mock_api.unwrap_or(false),
       inject_require_resolve_origin,
     }
   }

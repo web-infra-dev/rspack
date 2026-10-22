@@ -18,8 +18,6 @@ use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMet
 use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
-#[cfg(allocative)]
-use rspack_util::allocative;
 pub use rspack_workspace::rspack_swc_core_version;
 use sugar_path::SugarPath;
 use swc_config::{merge::Merge, types::MergingOption};
@@ -36,10 +34,8 @@ use crate::{
 
 #[cacheable]
 #[derive(Debug)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SwcLoader {
   identifier: Identifier,
-  #[cfg_attr(allocative, allocative(skip))]
   options_with_additional: SwcCompilerOptionsWithAdditional,
 }
 
@@ -256,7 +252,7 @@ impl SwcLoader {
 
     if let Some(rsc) = rsc_meta.borrow_mut().take() {
       let module = &mut loader_context.context.module;
-      module.build_info_mut().rsc = Some(rsc);
+      module.build_info_mut().rsc = Some(Box::new(rsc));
       if let Some(code) = to_server_entry(module)? {
         loader_context.finish_with(code);
         return Ok(());
@@ -293,6 +289,11 @@ impl SwcLoader {
       );
     }
 
+    // Earlier loaders may collect metadata (for example, feature flags) for later loaders
+    // and plugins. SWC does not consume it, but must preserve it across the transform.
+    // This matches swc-loader >= 0.2.7; see the metadata passthrough fixes:
+    // https://github.com/swc-project/pkgs/pull/121
+    // https://github.com/web-infra-dev/rspack/pull/13661 (fixes #13654).
     let additional_data = loader_context.take_additional_data();
     loader_context.finish_with((code, map, additional_data));
 

@@ -1,4 +1,4 @@
-import value from "./file";
+import value from "./immutable/file";
 
 it("should build dependencies resolve work", async () => {
 	if (COMPILER_INDEX == 0) {

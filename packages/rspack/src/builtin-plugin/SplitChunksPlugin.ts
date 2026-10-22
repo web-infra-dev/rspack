@@ -42,6 +42,16 @@ export function toRawSplitChunksOptions(
     return;
   }
 
+  const { dedupDepth } = sc;
+  if (
+    dedupDepth !== undefined &&
+    (!Number.isInteger(dedupDepth) || dedupDepth < 0 || dedupDepth > 0xffffffff)
+  ) {
+    throw new Error(
+      `Invalid Rspack configuration: "optimization.splitChunks.dedupDepth" must be an integer between 0 and 4294967295, get \`${dedupDepth}\`.`,
+    );
+  }
+
   function getName(name: any) {
     interface Context {
       module: Module;
@@ -131,6 +141,7 @@ export function toRawSplitChunksOptions(
     fallbackCacheGroup,
     minSize,
     minSizeReduction,
+    minRemainingSize,
     enforceSizeThreshold,
     maxSize,
     maxAsyncSize,
@@ -151,6 +162,7 @@ export function toRawSplitChunksOptions(
           chunks,
           minSize,
           minSizeReduction,
+          minRemainingSize,
           enforceSizeThreshold,
           maxSize,
           maxAsyncSize,
@@ -164,6 +176,7 @@ export function toRawSplitChunksOptions(
           chunks: getChunks(chunks),
           minSize: JsSplitChunkSizes.__to_binding(minSize),
           minSizeReduction: JsSplitChunkSizes.__to_binding(minSizeReduction),
+          minRemainingSize: JsSplitChunkSizes.__to_binding(minRemainingSize),
           enforceSizeThreshold:
             JsSplitChunkSizes.__to_binding(enforceSizeThreshold),
           maxSize: JsSplitChunkSizes.__to_binding(maxSize),
@@ -179,10 +192,17 @@ export function toRawSplitChunksOptions(
     },
     minSize: JsSplitChunkSizes.__to_binding(minSize),
     minSizeReduction: JsSplitChunkSizes.__to_binding(minSizeReduction),
+    minRemainingSize: JsSplitChunkSizes.__to_binding(minRemainingSize),
     enforceSizeThreshold: JsSplitChunkSizes.__to_binding(enforceSizeThreshold),
     maxSize: JsSplitChunkSizes.__to_binding(maxSize),
     maxAsyncSize: JsSplitChunkSizes.__to_binding(maxAsyncSize),
     maxInitialSize: JsSplitChunkSizes.__to_binding(maxInitialSize),
     ...passThrough,
+    dedupDepth:
+      dedupDepth ??
+      (compiler.options.mode === 'development' ||
+      compiler.options.mode === 'none'
+        ? 0
+        : 1),
   };
 }

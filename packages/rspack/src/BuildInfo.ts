@@ -108,3 +108,30 @@ export const commitCustomFieldsToRust = (buildInfo: binding.BuildInfo) => {
     buildInfo[binding.COMMIT_CUSTOM_FIELDS_SYMBOL]();
   }
 };
+
+export const pickCustomBuildInfoFields = (
+  buildInfo: Record<string, unknown> | undefined,
+): Record<string, unknown> => {
+  if (!buildInfo) {
+    return {};
+  }
+  const custom: Record<string, unknown> = {};
+  for (const key of Object.keys(buildInfo)) {
+    if (!knownBuildInfoFields.has(key)) {
+      custom[key] = buildInfo[key];
+    }
+  }
+  return custom;
+};
+
+export const replaceCustomBuildInfoFields = (
+  buildInfo: Record<string, unknown>,
+  custom: Record<string, unknown>,
+) => {
+  for (const key of Object.keys(buildInfo)) {
+    if (!knownBuildInfoFields.has(key) && !Object.hasOwn(custom, key)) {
+      delete buildInfo[key];
+    }
+  }
+  Object.assign(buildInfo, custom);
+};

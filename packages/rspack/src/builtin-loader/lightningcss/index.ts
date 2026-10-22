@@ -218,7 +218,10 @@ export const getLightningcssLoaderOptions: GetLoaderOptions = (
   o,
   composeOptions,
 ) => {
-  const options = o ?? {};
+  // Work on a shallow copy: the same rule options object can be processed more
+  // than once (e.g. by child compilers), and re-encoding the already encoded
+  // `targets` would throw.
+  const options = typeof o === 'object' && o !== null ? { ...o } : (o ?? {});
   if (typeof options === 'object') {
     if (typeof options.targets === 'string') {
       options.targets = [options.targets];

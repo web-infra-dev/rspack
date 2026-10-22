@@ -54,4 +54,36 @@ it('routes external dynamic import() of a mocked module through rstest_dynamic_r
 		/\.then\(__webpack_require__\.bind\(__webpack_require__,\s*"\.\/src\/internal\.js"\)\)/,
 	);
 	expect(content).not.toMatch(/rstest_dynamic_require\.bind\([^)]*internal/);
+
+	// A variable `rs.importMock` carries the source origin and calls the
+	// request-keyed helper instead of the untransformed runtime placeholder.
+	expect(content).toMatch(
+		/rstest_import_mock\(request,\s*"[^"]+fixture\.js"\)/,
+	);
+
+	// If the manual mock is missing, an older runtime cannot require the
+	// unresolved __mocks__ source path. Keep the fallback an explicit rejected
+	// promise so the importMock error reports the runtime compatibility issue.
+	expect(content).toContain(
+		'requires an Rstest runtime with rstest_import_mock when no manual mock is bundled',
+	);
+	expect(content).toContain('Promise.reject(new Error(');
+	expect(content).toMatch(
+		/rstest_require_mock\(request,\s*"[^"]+fixture\.js"\)/,
+	);
+
+	// Imported `rs` uses the same transform as the global API for both literal
+	// and variable importMock calls.
+	expect(content).toMatch(
+		/rstest_import_mock\.bind\([^)]*,\s*"node:child_process"/,
+	);
+	expect(content).toMatch(
+		/rstest_import_mock\(request,\s*"[^"]+fixture\.js"\)/,
+	);
+
+	// CommonJS manual mocks use the same helper and preserve the original
+	// request instead of routing through __webpack_require__.t without it.
+	expect(content).toMatch(
+		/rstest_import_mock\.bind\([^)]*,\s*"\.\/__mocks__\/os\.js",\s*"node:os",\s*null\)/,
+	);
 });

@@ -24,8 +24,8 @@ use rspack_fs::ReadableFileSystem;
 pub use snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult};
 
 use crate::{
-  CompilerOptions, InfrastructureLogSink, InfrastructureLogger,
-  cache::{CacheCodec, MaxMemoryGenerations},
+  CompilerOptions, InfrastructureLogSink, InfrastructureLogger, MaxMemoryGenerations,
+  cache::CacheCodec,
 };
 
 /// Creates cache storage independently of a compiler's namespace.
@@ -51,12 +51,7 @@ pub fn create_cache(
     crate::CacheOptions::Persistent(options) => options,
   };
 
-  let project_root = if options.portable {
-    Some(compiler_options.context.as_path().to_path_buf())
-  } else {
-    None
-  };
-  let codec = Arc::new(CacheCodec::new(project_root));
+  let codec = Arc::new(CacheCodec::new(None));
   let logger = Arc::new(InfrastructureLogger::new(
     "rspack.cache.IdleFileCache",
     infrastructure_log_sink,
@@ -64,16 +59,15 @@ pub fn create_cache(
   let file_system_info = FileSystemInfo::new(
     input_filesystem,
     logger.get_child("rspack.FileSystemInfo"),
-    options.snapshot.clone(),
+    compiler_options.snapshot.clone(),
+    compiler_options.context.clone(),
     compiler_options.output.hash_function,
   );
   let (base_path, database_path) = match &options.storage {
-    crate::cache::StorageOptions::FileSystem { directory } => {
-      let base_path = directory.parent().unwrap_or_else(|| {
-        panic!("Persistent cache directory must have a parent directory: {directory}")
-      });
-      (base_path.to_path_buf(), directory.clone())
-    }
+    crate::StorageOptions::FileSystem {
+      directory,
+      location,
+    } => (directory.clone(), location.clone()),
   };
   let strategy = FileCacheStrategy::new(
     options.readonly,

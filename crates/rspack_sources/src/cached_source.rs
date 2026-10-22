@@ -11,9 +11,8 @@ use crate::{
   BoxSource, MapOptions, RawBufferSource, Source, SourceExt, SourceMap,
   helpers::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, stream_and_get_source_and_map,
-    stream_chunks_of_raw_source, stream_chunks_of_source_map,
+    stream_chunks_of_raw_rope, stream_chunks_of_source_map,
   },
-  object_pool::ObjectPool,
   source::SourceValue,
 };
 
@@ -22,7 +21,7 @@ struct CachedData {
   hash: OnceLock<u64>,
   size: OnceLock<usize>,
   is_ascii: OnceLock<bool>,
-  chunks: OnceLock<Vec<&'static str>>,
+  chunks: OnceLock<Box<[&'static str]>>,
   columns_map: OnceLock<Option<SourceMap<'static>>>,
   line_only_map: OnceLock<Option<SourceMap<'static>>>,
 }
@@ -91,12 +90,13 @@ impl CachedSource {
       self.inner.rope(&mut |chunk| {
         chunks.push(chunk);
       });
+      let chunks = chunks.into_boxed_slice();
       #[allow(unsafe_code)]
       // SAFETY: CachedSource guarantees that the underlying source outlives the cache,
-      // so transmuting Vec<&str> to Vec<&'static str> is safe in this context.
-      // This allows us to store string slices in the cache without additional allocations.
+      // so transmuting Box<[&str]> to Box<[&'static str]> is safe in this context.
+      // The boxed slice retains only the used references instead of Vec's spare capacity.
       unsafe {
-        std::mem::transmute::<Vec<&str>, Vec<&'static str>>(chunks)
+        std::mem::transmute::<Box<[&str]>, Box<[&'static str]>>(chunks)
       }
     })
   }
@@ -106,7 +106,9 @@ impl CachedSource {
       if let Some(chunks) = self.cache.chunks.get() {
         return chunks.iter().all(|chunk| chunk.is_ascii());
       }
-      self.inner.source().as_bytes().is_ascii()
+      let mut is_ascii = true;
+      self.inner.rope(&mut |chunk| is_ascii &= chunk.is_ascii());
+      is_ascii
     })
   }
 
@@ -118,14 +120,10 @@ impl CachedSource {
     }
   }
 
-  fn get_or_init_map(
-    &self,
-    object_pool: &ObjectPool,
-    options: &MapOptions,
-  ) -> &Option<SourceMap<'static>> {
+  fn get_or_init_map(&self, options: &MapOptions) -> &Option<SourceMap<'static>> {
     self
       .map_cache(options)
-      .get_or_init(|| self.inner.clone().map_static(object_pool, options))
+      .get_or_init(|| self.inner.clone().map_static(options))
   }
 }
 
@@ -178,20 +176,16 @@ impl Source for CachedSource {
     })
   }
 
-  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
+  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
     self
-      .get_or_init_map(object_pool, options)
+      .get_or_init_map(options)
       .as_ref()
       .map(SourceMap::as_borrowed)
   }
 
-  fn map_static(
-    self: Arc<Self>,
-    object_pool: &ObjectPool,
-    options: &MapOptions,
-  ) -> Option<SourceMap<'static>> {
+  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
     self
-      .get_or_init_map(object_pool, options)
+      .get_or_init_map(options)
       .as_ref()
       .map(|map| map.as_borrowed().into_static(self.clone()))
   }
@@ -235,7 +229,6 @@ impl<'source> CachedSourceChunks<'source> {
 impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
   fn stream<'chunk>(
     &'chunk self,
-    object_pool: &ObjectPool,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
     on_source: crate::helpers::OnSource<'_, 'source>,
@@ -247,26 +240,14 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
       &self.cache_source.cache.line_only_map
     };
     match cell.get() {
-      Some(map) => {
+      Some(Some(map)) => {
         let source = self.get_or_init_source();
-        if let Some(map) = map {
-          stream_chunks_of_source_map(
-            options,
-            object_pool,
-            source,
-            map.fields(),
-            on_chunk,
-            on_source,
-            on_name,
-          )
-        } else {
-          stream_chunks_of_raw_source(source, options, on_chunk, on_source, on_name)
-        }
+        stream_chunks_of_source_map(options, source, map.fields(), on_chunk, on_source, on_name)
       }
+      Some(None) => stream_chunks_of_raw_rope(self.cache_source.inner.as_ref(), options, on_chunk),
       None => {
         let (generated_info, map) = stream_and_get_source_and_map(
           options,
-          object_pool,
           self.get_or_init_chunks(),
           on_chunk,
           on_source,
@@ -355,9 +336,7 @@ mod tests {
       })
       .boxed(),
     ]);
-    let map = source
-      .map(&ObjectPool::default(), &Default::default())
-      .unwrap();
+    let map = source.map(&Default::default()).unwrap();
     assert_eq!(map.mappings(), ";;AACA");
   }
 
@@ -372,7 +351,7 @@ mod tests {
     source.source();
     source.buffer();
     source.size();
-    source.map(&ObjectPool::default(), &map_options);
+    source.map(&map_options);
 
     let cached_map = clone
       .cache
@@ -380,7 +359,7 @@ mod tests {
       .get()
       .and_then(Option::as_ref)
       .unwrap();
-    let map = source.map(&ObjectPool::default(), &map_options).unwrap();
+    let map = source.map(&map_options).unwrap();
     assert!(cached_map.fields() == map.fields());
   }
 
@@ -431,10 +410,8 @@ mod tests {
     let mut on_source_count = 0;
     let mut on_name_count = 0;
     let generated_info = {
-      let object_pool = ObjectPool::default();
       let chunks = source.stream_chunks();
       chunks.stream(
-        &object_pool,
         &map_options,
         &mut |_chunk, _mapping| {
           on_chunk_count += 1;
@@ -450,7 +427,6 @@ mod tests {
 
     let cached_source = CachedSource::new(source);
     cached_source.stream_chunks().stream(
-      &ObjectPool::default(),
       &map_options,
       &mut |_chunk, _mapping| {},
       &mut |_source_index, _source, _source_content| {},
@@ -461,7 +437,6 @@ mod tests {
     let mut cached_on_source_count = 0;
     let mut cached_on_name_count = 0;
     let cached_generated_info = cached_source.stream_chunks().stream(
-      &ObjectPool::default(),
       &map_options,
       &mut |_chunk, _mapping| {
         cached_on_chunk_count += 1;

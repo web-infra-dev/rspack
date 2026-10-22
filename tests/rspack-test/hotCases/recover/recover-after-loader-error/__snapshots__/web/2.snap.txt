@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 926
+- Update: main.LAST_HASH.hot-update.js, size: 927
 
 ## Manifest
 
@@ -23,7 +23,7 @@
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
-- ./loader.js!./a.js
+- ./loader.mjs!./a.js
 
 #### Changed Runtime Modules
 - webpack/runtime/define_property_getters
@@ -33,7 +33,7 @@
 ```js
 "use strict";
 self["rspackHotUpdate"]("main", {
-"./loader.js!./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+"./loader.mjs!./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -86,14 +86,14 @@ check => prepare => dispose => apply => idle
 #### Outdated
 
 Outdated Modules:
-- ./loader.js!./a.js
+- ./loader.mjs!./a.js
 
 
 Outdated Dependencies:
 ```json
 {
   "./index.js": [
-    "./loader.js!./a.js"
+    "./loader.mjs!./a.js"
   ]
 }
 ```
@@ -101,7 +101,7 @@ Outdated Dependencies:
 #### Updated
 
 Updated Modules:
-- ./loader.js!./a.js
+- ./loader.mjs!./a.js
 
 Updated Runtime:
 - `__webpack_require__.h`
@@ -110,6 +110,6 @@ Updated Runtime:
 #### Callback
 
 Accepted Callback:
-- ./loader.js!./a.js
+- ./loader.mjs!./a.js
 
 Disposed Callback:

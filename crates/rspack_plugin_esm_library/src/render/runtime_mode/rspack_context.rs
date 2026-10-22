@@ -43,6 +43,7 @@ impl RuntimeModeRenderer for RspackContextRuntimeRenderer {
     let should_render_runtime_context = context.runtime_requirements.intersects(
       RuntimeGlobals::MODULE_FACTORIES
         | RuntimeGlobals::MODULE_CACHE
+        | RuntimeGlobals::DEFERRED_MODULE_EXPORTS
         | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
         | RuntimeGlobals::REQUIRE
         | RuntimeGlobals::REQUIRE_SCOPE

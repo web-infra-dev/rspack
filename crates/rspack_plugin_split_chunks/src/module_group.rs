@@ -3,7 +3,7 @@ use std::{cmp::Ordering, fmt};
 use derive_more::Debug;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use crate::{
   CacheGroup,
@@ -42,6 +42,12 @@ impl Default for ModulesForCompare {
 }
 
 impl ModulesForCompare {
+  fn as_slice(&self) -> &[ModuleIdentifier] {
+    match self {
+      Self::Unsorted(modules) | Self::Sorted(modules) => modules,
+    }
+  }
+
   fn prepare(&mut self, modules: Vec<ModuleIdentifier>) {
     if modules.is_empty() {
       return;
@@ -131,7 +137,6 @@ pub(crate) struct ModuleGroup {
   /// A module
   pub chunk_name: Option<String>,
 
-  pub source_types_modules: FxHashMap<SourceType, IdentifierSet>,
   /// `Chunk`s which `Module`s in this ModuleGroup belong to
   #[debug(skip)]
   pub chunks: FxHashSet<ChunkUkey>,
@@ -140,10 +145,42 @@ pub(crate) struct ModuleGroup {
   /// negatives to cleanup filtering.
   chunk_mask: u64,
   modules_for_compare: ModulesForCompare,
-  added: Vec<ModuleIdentifier>,
+  pending_initial_sizes: bool,
+  has_modules_without_source_types: bool,
   removed: Vec<ModuleIdentifier>,
   sizes: SplitChunkSizes,
   total_size: f64,
+}
+
+// Most consecutive module sizes have the same source type. Keep that running
+// total in a local value instead of hashing the type for every module. Flush on
+// type changes so insertion order and each floating-point operation stay intact.
+struct SizeAccumulator<'a> {
+  sizes: &'a mut SplitChunkSizes,
+  cached: Option<(SourceType, f64)>,
+}
+
+impl SizeAccumulator<'_> {
+  fn get(&mut self, ty: SourceType) -> &mut f64 {
+    if self
+      .cached
+      .as_ref()
+      .is_some_and(|(cached, _)| *cached != ty)
+    {
+      let (ty, size) = self.cached.take().expect("cached source type");
+      self.sizes.insert(ty, size);
+    }
+    &mut self
+      .cached
+      .get_or_insert_with(|| (ty, *self.sizes.entry(ty).or_default()))
+      .1
+  }
+
+  fn finish(self) {
+    if let Some((ty, size)) = self.cached {
+      self.sizes.insert(ty, size);
+    }
+  }
 }
 
 impl ModuleGroup {
@@ -159,12 +196,12 @@ impl ModuleGroup {
       cache_group_index,
       cache_group_reuse_existing_chunk: cache_group.reuse_existing_chunk,
       sizes: Default::default(),
-      source_types_modules: Default::default(),
       chunks: Default::default(),
       chunk_mask: 0,
       modules_for_compare: Default::default(),
       chunk_name,
-      added: Default::default(),
+      pending_initial_sizes: false,
+      has_modules_without_source_types: false,
       removed: Default::default(),
       total_size: 0.0,
     }
@@ -175,28 +212,28 @@ impl ModuleGroup {
     ty: &[SourceType],
     module_sizes: &ModuleSizes,
   ) -> IdentifierSet {
-    // if there is only one source type, we can just use the `source_types_modules` directly
-    // instead of iterating over all modules
-    if ty.len() == 1 {
-      self
-        .source_types_modules
-        .get(ty.first().expect("should have at least one source type"))
-        .cloned()
-        .unwrap_or_default()
-    } else {
-      self
-        .modules
-        .iter()
-        .filter_map(|module| {
-          let sizes = module_sizes.get(module).expect("should have module size");
-          if ty.iter().any(|ty| sizes.contains_key(ty)) {
-            Some(*module)
-          } else {
-            None
-          }
-        })
-        .collect()
-    }
+    // Most candidates never violate a source-type threshold. Materialize this
+    // filtered membership only when needed instead of duplicating every
+    // candidate's module set while calculating its size.
+    self
+      .modules
+      .iter()
+      .filter_map(|module| {
+        let sizes = module_sizes.get(module).expect("should have module size");
+        if ty.iter().any(|ty| sizes.contains_key(ty)) {
+          Some(*module)
+        } else {
+          None
+        }
+      })
+      .collect()
+  }
+
+  pub fn has_only_source_types(&self, source_types: &[SourceType]) -> bool {
+    debug_assert!(!self.pending_initial_sizes);
+    // Size keys are never removed. They conservatively cover every remaining
+    // module, including after partial removals, without rescanning the modules.
+    !self.has_modules_without_source_types && self.sizes.keys().all(|ty| source_types.contains(ty))
   }
 
   pub fn add_module(
@@ -286,6 +323,25 @@ impl ModuleGroup {
     }
   }
 
+  pub fn remove_shared_modules(&mut self, modules: &IdentifierSet) {
+    debug_assert!(self.uses_shared_module_chunks());
+    if self.modules.len() > modules.len() {
+      // The original intersection walks `modules` in this case. Remove while
+      // walking the same set to avoid probing the group twice per match.
+      self.remove_modules(modules.iter().copied());
+    } else {
+      // Preserve the group's intersection order when it is the smaller set.
+      // Append straight to the size-update queue, avoiding a second buffer.
+      let start = self.removed.len();
+      self
+        .removed
+        .extend(self.modules.intersection(modules).copied());
+      for module in &self.removed[start..] {
+        self.modules.remove(module);
+      }
+    }
+  }
+
   pub fn rebuild_chunks(&mut self) {
     let ModuleGroupChunks::ByModule(module_chunks) = &self.module_chunks else {
       return;
@@ -299,9 +355,8 @@ impl ModuleGroup {
   pub fn prepare_modules_for_sizes_and_compare(&mut self) {
     self.chunk_mask = chunk_mask(self.chunks.iter());
     let modules = self.modules.iter().copied().collect::<Vec<_>>();
-    self.added = modules.clone();
+    self.pending_initial_sizes = !modules.is_empty();
     self.modules_for_compare.prepare(modules);
-    self.removed.reserve(self.modules.len());
   }
 
   pub fn sorted_modules_for_compare(&mut self) -> &[ModuleIdentifier] {
@@ -317,47 +372,49 @@ impl ModuleGroup {
   }
 
   pub fn get_total_size(&self) -> f64 {
-    if !self.added.is_empty() || !self.removed.is_empty() {
+    if self.pending_initial_sizes || !self.removed.is_empty() {
       unreachable!("should update sizes before get total size");
     }
     self.total_size
   }
 
   pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
-    if !self.added.is_empty() {
-      let added = std::mem::take(&mut self.added);
-      for module in added {
-        let module_sizes = module_sizes.get(&module).expect("should have module size");
+    if !self.pending_initial_sizes && self.removed.is_empty() {
+      return &self.sizes;
+    }
+    let mut sizes = SizeAccumulator {
+      sizes: &mut self.sizes,
+      cached: None,
+    };
+    if self.pending_initial_sizes {
+      // The comparison snapshot is captured before any module is removed and
+      // before the first size comparison. It also supplies the initial size
+      // accumulation in the original iteration order without a second copy.
+      for module in self.modules_for_compare.as_slice() {
+        let module_sizes = module_sizes.get(module).expect("should have module size");
+        self.has_modules_without_source_types |= module_sizes.is_empty();
         for (ty, s) in module_sizes.iter() {
-          let size = self.sizes.entry(*ty).or_default();
+          let size = sizes.get(*ty);
           *size += s;
           self.total_size += s;
-          self
-            .source_types_modules
-            .entry(*ty)
-            .or_default()
-            .insert(module);
         }
       }
+      self.pending_initial_sizes = false;
     }
     if !self.removed.is_empty() {
       let removed = std::mem::take(&mut self.removed);
       for module in removed {
         let module_sizes = module_sizes.get(&module).expect("should have module size");
         for (ty, s) in module_sizes.iter() {
-          let size = self.sizes.entry(*ty).or_default();
+          let size = sizes.get(*ty);
           *size -= s;
           *size = size.max(0.0);
           self.total_size -= s;
-          self
-            .source_types_modules
-            .entry(*ty)
-            .or_default()
-            .remove(&module);
         }
       }
     }
 
+    sizes.finish();
     &self.sizes
   }
 }

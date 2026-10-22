@@ -1,0 +1,75 @@
+import { defineConfig } from '@rspack/cli';
+import { type Compiler, type Module, NormalModule } from '@rspack/core';
+
+const pluginName = 'plugin';
+
+class Plugin {
+  apply(compiler: Compiler) {
+    let initial = true;
+    compiler.hooks.compilation.tap(pluginName, (compilation) => {
+      compilation.hooks.finishModules.tapPromise(
+        pluginName,
+        async (modules) => {
+          const oldModule = [...modules].find(
+            (item) =>
+              item instanceof NormalModule && item.resource.endsWith('a.js'),
+          );
+          if (!oldModule) {
+            throw new Error('module not found');
+          }
+          if (initial) {
+            initial = false;
+
+            const oldSource = oldModule.originalSource();
+            const oldBinding = oldModule._originalSource();
+            expect(oldModule._originalSource()).toBe(oldBinding);
+            expect(oldModule.originalSource()?.source().includes('a = 1')).toBe(
+              true,
+            );
+            Object.freeze(oldModule);
+
+            const newModule = await new Promise<Module>((res, rej) => {
+              compilation.rebuildModule(oldModule, function (err, m) {
+                if (err) {
+                  rej(err);
+                } else {
+                  res(m!);
+                }
+              });
+            });
+
+            expect(newModule.originalSource()?.source().includes('a = 2')).toBe(
+              true,
+            );
+            const newBinding = newModule._originalSource();
+            expect(newBinding).not.toBe(oldBinding);
+            expect(newModule._originalSource()).toBe(newBinding);
+            // Read the old map for the first time after the module replaces its native source.
+            expect(oldSource?.source().includes('a = 1')).toBe(true);
+            expect(oldSource?.map()?.sourcesContent?.[0]).toContain('a = 1');
+            expect(
+              newModule.originalSource()?.map()?.sourcesContent?.[0],
+            ).toContain('a = 2');
+          }
+        },
+      );
+    });
+  }
+}
+
+export default defineConfig({
+  devtool: 'source-map',
+  module: {
+    rules: [
+      {
+        test: /a\.js$/,
+        use: [
+          {
+            loader: './loader.mjs',
+          },
+        ],
+      },
+    ],
+  },
+  plugins: [new Plugin()],
+});

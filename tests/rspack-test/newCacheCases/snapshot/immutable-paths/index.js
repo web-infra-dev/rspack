@@ -1,4 +1,4 @@
-import value from "./file";
+import value from "./immutable/file";
 
 it("should snapshot immutable-paths work", async () => {
 	if (COMPILER_INDEX == 0) {
@@ -14,4 +14,4 @@ it("should snapshot immutable-paths work", async () => {
 	}
 });
 
-module.hot.accept("./file");
+module.hot.accept("./immutable/file");

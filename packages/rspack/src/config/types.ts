@@ -842,7 +842,7 @@ export type ResolveOptions = {
    * A list of resolve restrictions to restrict the paths that a request can be resolved on.
    * @default []
    * */
-  restrictions?: string[];
+  restrictions?: (string | RegExp)[];
 
   /**
    * A list of directories where server-relative URLs (beginning with '/') are resolved.
@@ -881,6 +881,8 @@ export type RuleSetLoader = string;
 
 export type RuleSetLoaderOptions = string | Record<string, any>;
 
+export type RuleSetLoaderCodeFilter = string | RegExp;
+
 export type RuleSetLoaderWithOptions = {
   /**
    * Stable identifier used to reference object-form loader options.
@@ -908,15 +910,21 @@ export type RuleSetLoaderWithOptions = {
    */
   cache?: boolean;
 
+  /**
+   * Filters the current input before calling the normal loader handler.
+   * The loader pitch function is not filtered.
+   */
+  codeFilter?: RuleSetLoaderCodeFilter;
+
   options?: RuleSetLoaderOptions;
 };
 
-export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions;
+export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions | Falsy;
 
 export type RuleSetUse =
   | RuleSetUseItem
   | RuleSetUseItem[]
-  | ((data: RawFuncUseCtx) => RuleSetUseItem[]);
+  | ((data: RawFuncUseCtx) => RuleSetUseItem | RuleSetUseItem[]);
 
 export type RuleSetRuleUseAndLoader =
   | {
@@ -1343,6 +1351,12 @@ export type JavascriptParserOptions = {
    * @default true
    * */
   url?: 'relative' | 'new-url-relative' | boolean;
+
+  /**
+   * Enable parsing of dynamic requests in new URL().
+   * @default true
+   */
+  dynamicUrl?: boolean;
 
   /**
    * Enable warnings for full dynamic dependencies
@@ -1868,12 +1882,12 @@ export type ExternalItemFunctionData = {
   };
   /**
    * Get a resolve function with the current resolver options.
+   * The returned function accepts a callback or returns a Promise when called without one.
    */
   getResolve?: (
     options?: ResolveOptions,
-  ) =>
-    | ((context: string, request: string, callback: ResolveCallback) => void)
-    | ((context: string, request: string) => Promise<string>);
+  ) => ((context: string, request: string, callback: ResolveCallback) => void) &
+    ((context: string, request: string) => Promise<string | undefined>);
 };
 
 /**
@@ -1893,16 +1907,14 @@ export type ExternalItem =
   | string
   | RegExp
   | ExternalItemObjectUnknown
-  | ((data: ExternalItemFunctionData) => ExternalItemValue)
   | ((
       data: ExternalItemFunctionData,
       callback: (
-        err?: Error,
+        err?: Error | null,
         result?: ExternalItemValue,
         type?: ExternalsType,
       ) => void,
-    ) => void)
-  | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>);
+    ) => ExternalItemValue | void | Promise<ExternalItemValue | void>);
 
 /**
  * Prevent bundling of certain imported packages and instead retrieve these external dependencies at runtime.
@@ -2072,7 +2084,7 @@ export type Loader = Record<string, any>;
 /**
  * Snapshot options for determining which files have been modified.
  */
-export type CacheSnapshotOptions = {
+export type SnapshotOptions = {
   /**
    * An array of paths to immutable files, changes to these paths will be ignored during hot restart.
    */
@@ -2086,7 +2098,27 @@ export type CacheSnapshotOptions = {
    * @default [/[\\/]node_modules[\\/][^.]/]
    */
   managedPaths?: (string | RegExp)[];
+  /** Snapshot strategy for build dependencies. */
+  buildDependencies?: SnapshotStrategyOptions;
+  /** Snapshot strategy for resolving build dependencies. */
+  resolveBuildDependencies?: SnapshotStrategyOptions;
+  /** Snapshot strategy for module dependencies. */
+  module?: SnapshotStrategyOptions;
+  /** Snapshot strategy for context modules. */
+  contextModule?: SnapshotStrategyOptions;
+  /** Snapshot strategy for resolving requests. */
+  resolve?: SnapshotStrategyOptions;
 };
+
+export type SnapshotStrategyOptions = {
+  /** Use content hashes to detect changes. */
+  hash?: boolean;
+  /** Use timestamps to detect changes. */
+  timestamp?: boolean;
+};
+
+/** @deprecated Use `SnapshotOptions` and the top-level `snapshot` option. */
+export type CacheSnapshotOptions = SnapshotOptions;
 
 /**
  * Storage options for persistent cache.
@@ -2150,9 +2182,7 @@ export type PersistentCacheOptions = {
    * cache per compiler path.
    */
   maxVersions?: number;
-  /**
-   * Snapshot options for determining which files have been modified.
-   */
+  /** @deprecated Use the top-level `snapshot` option instead. */
   snapshot?: CacheSnapshotOptions;
   /**
    * Storage options for cache.
@@ -2180,10 +2210,6 @@ export type MemoryCacheOptions = {
    * Cache type.
    */
   type: 'memory';
-  /**
-   * Snapshot options for determining which files have been modified.
-   */
-  snapshot?: CacheSnapshotOptions;
 };
 
 /**
@@ -2735,6 +2761,12 @@ type SharedOptimizationSplitChunksCacheGroup = {
   minSizeReduction?: OptimizationSplitChunksSizes;
 
   /**
+   * Minimum size of the chunk remaining after splitting from a single chunk.
+   * Defaults to 0 in development mode and minSize otherwise.
+   */
+  minRemainingSize?: OptimizationSplitChunksSizes;
+
+  /**
    * Size threshold at which splitting is enforced and other restrictions
    * (minRemainingSize, maxAsyncRequests, maxInitialRequests) are ignored.
    * The value is `50000` in production mode.
@@ -2815,6 +2847,14 @@ export type OptimizationSplitChunksCacheGroup = {
 
 /** Tell Rspack how to splitting chunks. */
 export type OptimizationSplitChunksOptions = {
+  /**
+   * Maximum rounds of intersection discovery for additional shared-module groups.
+   * Defaults to `1` (pairwise intersections) in production and `0` otherwise.
+   * Set `0` to disable discovery.
+   * Higher depths allow newly discovered intersections to participate in the next round.
+   */
+  dedupDepth?: number;
+
   /**
    * Options for module cache group
    * */
@@ -3161,6 +3201,8 @@ export type NewCache = {
   loader?: boolean;
   /** Enable the asset minimization cache. @default true */
   minimize?: boolean;
+  /** Enable the module and loader resolution cache. @default true */
+  resolver?: boolean;
 };
 
 export type NewCachePresets = boolean;
@@ -3428,6 +3470,8 @@ export type RspackOptions = {
    * Options for caching.
    */
   cache?: CacheOptions;
+  /** Options for detecting changes to dependencies. */
+  snapshot?: SnapshotOptions;
   /**
    * The context in which the compilation should occur.
    */

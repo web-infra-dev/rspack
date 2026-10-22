@@ -139,10 +139,12 @@ pub fn cutout_dyn_import_externals(
   let mg = build_module_graph_artifact.get_module_graph();
   let mut connections_to_disable = Vec::new();
   for (_, module) in mg.modules() {
-    for block_id in module.get_blocks() {
-      let Some(block) = mg.block_by_id(block_id) else {
+    let mut blocks = module.get_blocks().to_vec();
+    while let Some(block_id) = blocks.pop() {
+      let Some(block) = mg.block_by_id(&block_id) else {
         continue;
       };
+      blocks.extend_from_slice(block.get_blocks());
       for block_dep in block.get_dependencies() {
         let block_dep_id = block_dep.id();
         if block_dep.as_any().is::<ImportDependency>() {

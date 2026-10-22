@@ -32,6 +32,7 @@ use crate::{
 #[napi(object, object_to_js = false)]
 #[derive(Debug)]
 pub struct RawSplitChunksOptions<'a> {
+  pub dedup_depth: Option<u32>,
   pub fallback_cache_group: Option<RawFallbackCacheGroupOptions<'a>>,
   #[napi(ts_type = "string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)")]
   #[debug(skip)]
@@ -94,7 +95,7 @@ pub struct RawCacheGroupOptions<'a> {
   pub min_size_reduction: Option<Either<f64, RawSplitChunkSizes>>,
   //   pub min_size_reduction: usize,
   pub enforce_size_threshold: Option<Either<f64, RawSplitChunkSizes>>,
-  //   pub min_remaining_size: usize,
+  pub min_remaining_size: Option<Either<f64, RawSplitChunkSizes>>,
   // layer: String,
   pub max_size: Option<Either<f64, RawSplitChunkSizes>>,
   pub max_async_size: Option<Either<f64, RawSplitChunkSizes>>,
@@ -154,6 +155,9 @@ impl<'a> RawSplitChunksOptions<'a> {
 
     let overall_min_size_reduction = create_sizes(raw_opts.min_size_reduction);
 
+    let overall_min_remaining_size =
+      create_sizes(raw_opts.min_remaining_size).merge(&overall_min_size);
+
     let overall_enforce_size_threshold = create_sizes(raw_opts.enforce_size_threshold);
 
     let overall_max_size = create_sizes(raw_opts.max_size);
@@ -161,6 +165,9 @@ impl<'a> RawSplitChunksOptions<'a> {
     let overall_max_async_size = create_sizes(raw_opts.max_async_size).merge(&overall_max_size);
 
     let overall_max_initial_size = create_sizes(raw_opts.max_initial_size).merge(&overall_max_size);
+
+    let overall_max_async_requests = raw_opts.max_async_requests.unwrap_or(f64::INFINITY);
+    let overall_max_initial_requests = raw_opts.max_initial_requests.unwrap_or(f64::INFINITY);
 
     let overall_automatic_name_delimiter = raw_opts
       .automatic_name_delimiter
@@ -174,7 +181,16 @@ impl<'a> RawSplitChunksOptions<'a> {
         .map(|v| {
           let enforce = v.enforce.unwrap_or_default();
 
-          let min_size = create_sizes(v.min_size).merge(if enforce {
+          let min_size = create_sizes(v.min_size);
+          let min_remaining_size =
+            create_sizes(v.min_remaining_size)
+              .merge(&min_size)
+              .merge(if enforce {
+                &empty_sizes
+              } else {
+                &overall_min_remaining_size
+              });
+          let min_size = min_size.merge(if enforce {
             &empty_sizes
           } else {
             &overall_min_size
@@ -247,8 +263,12 @@ impl<'a> RawSplitChunksOptions<'a> {
             min_chunks,
             min_size,
             min_size_reduction,
-            enforce_size_threshold: create_sizes(v.enforce_size_threshold)
-              .merge(&overall_enforce_size_threshold),
+            min_remaining_size,
+            enforce_size_threshold: create_sizes(v.enforce_size_threshold).merge(if enforce {
+              &empty_sizes
+            } else {
+              &overall_enforce_size_threshold
+            }),
             automatic_name_delimiter: v
               .automatic_name_delimiter
               .unwrap_or(overall_automatic_name_delimiter.clone()),
@@ -257,8 +277,16 @@ impl<'a> RawSplitChunksOptions<'a> {
               .map(Filename::from)
               .or_else(|| overall_filename.clone()),
             reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(false),
-            max_async_requests: v.max_async_requests.unwrap_or(f64::INFINITY),
-            max_initial_requests: v.max_initial_requests.unwrap_or(f64::INFINITY),
+            max_async_requests: v.max_async_requests.unwrap_or(if enforce {
+              f64::INFINITY
+            } else {
+              overall_max_async_requests
+            }),
+            max_initial_requests: v.max_initial_requests.unwrap_or(if enforce {
+              f64::INFINITY
+            } else {
+              overall_max_initial_requests
+            }),
             max_async_size,
             max_initial_size,
             r#type,
@@ -291,6 +319,7 @@ impl<'a> RawSplitChunksOptions<'a> {
 
     NormalizedSplitChunksOptions {
       options: rspack_plugin_split_chunks::PluginOptions {
+        dedup_depth: raw_opts.dedup_depth.unwrap_or(1),
         cache_groups,
         fallback_cache_group: rspack_plugin_split_chunks::FallbackCacheGroup {
           chunks_filter: fallback_chunks_filter.unwrap_or_else(|| {

@@ -1,5 +1,5 @@
 ---
-description: 'Loader 是一种模块转换器，它将各种类型的模块转换为 Rspack 支持的类型。通过使用不同类型的 loader，你可以扩展 Rspack 来处理额外的模块类型，例如 JSX、Markdown、Sass、Less 等。'
+description: '配置 loader 来转换模块，组合多个 loader、传递选项，并使用自定义或内置 loader。'
 ---
 
 import { Stability } from '@components/ApiMeta';
@@ -155,3 +155,43 @@ export default {
 
 - [builtin:swc-loader](/guide/features/builtin-swc-loader)
 - [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader)
+
+## 并行 Loader \{#parallel-loader}
+
+Rspack 支持将 loader 放入 worker threads 中并行执行，可以更好地利用多核 CPU，提升构建性能。
+
+要为 loader 启用并行执行，请在 [rules[].use](/config/module-rules#rulesuse) 中设置 `parallel` 选项：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+            parallel: true,
+            options: {},
+          },
+        ],
+        type: 'css',
+      },
+    ],
+  },
+};
+```
+
+设置 `parallel: true` 会启用并行执行，并由 Rspack 自动选择合适的线程数量。
+
+当同一条 Rule 下多个 loader 都开启了 `parallel` 选项，Rspack 会在同一个 worker 中按顺序依次运行这些 loader，直到遇到未启用 parallel 的 loader 或 Rust 实现的 builtin loader。这样可以在保证 loader 顺序的前提下最大化并行效率。
+
+:::tip
+
+- 启用并行执行时，`options` 必须是对象。即使 loader 不需要配置项，也必须显式设置 `options: {}`，省略 `options` 会导致配置错误。
+- loader 的选项需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
+- 在 worker 模式下，`LoaderContext._compilation`、`LoaderContext._compiler`、`LoaderContext._module` 上的大多数方法不被支持。
+
+:::
+
+更多细节请参考 [rules[].use.parallel](/config/module-rules#rulesuseparallel)。

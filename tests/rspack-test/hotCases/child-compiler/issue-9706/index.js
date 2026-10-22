@@ -1,4 +1,4 @@
-import value, { assets } from "./report-child-assets-loader!./file";
+import value, { assets } from "./report-child-assets-loader.mjs!./file";
 
 it("should not emit hot updates from child compilers", async () => {
 	expect(value).toBe(1);
@@ -8,4 +8,4 @@ it("should not emit hot updates from child compilers", async () => {
 	expect(assets).toEqual(["test.js"]);
 });
 
-module.hot.accept("./report-child-assets-loader!./file");
+module.hot.accept("./report-child-assets-loader.mjs!./file");

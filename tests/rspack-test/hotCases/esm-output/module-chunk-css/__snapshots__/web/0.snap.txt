@@ -4,7 +4,8 @@
 
 
 ## Asset Files
-
+- Bundle: main.mjs
+- Bundle: runtime.mjs
 
 ## Manifest
 

@@ -10,9 +10,8 @@ use serde::{Serialize, Serializer};
 use simd_json::{BorrowedValue, ErrorType, prelude::*};
 
 use crate::{
-  Result,
+  ReplaceSource, Result,
   helpers::{Chunks, StreamChunks, decode_mappings_fields},
-  object_pool::ObjectPool,
 };
 
 /// An alias for `Box<dyn Source>`.
@@ -24,11 +23,17 @@ pub type BoxSource = Arc<dyn Source>;
 /// it's originally stored as a string or raw bytes. This is particularly useful for
 /// build tools and bundlers that need to process various types of source files.
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub enum SourceValue<'a> {
   /// Text content stored as a UTF-8 string.
-  String(Cow<'a, str>),
+  String(
+    // Use the typed Cow adapter: this value can contain a temporary borrow.
+    #[cfg_attr(allocative, allocative(visit = rspack_allocative::Allocative::visit))] Cow<'a, str>,
+  ),
   /// Binary content stored as raw bytes.
-  Buffer(Cow<'a, [u8]>),
+  Buffer(
+    #[cfg_attr(allocative, allocative(visit = rspack_allocative::Allocative::visit))] Cow<'a, [u8]>,
+  ),
 }
 
 impl<'a> SourceValue<'a> {
@@ -121,14 +126,10 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   fn size(&self) -> usize;
 
   /// Get the [SourceMap].
-  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>>;
+  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>>;
 
   /// Get a [SourceMap] that can outlive the borrowed source reference.
-  fn map_static(
-    self: Arc<Self>,
-    object_pool: &ObjectPool,
-    options: &MapOptions,
-  ) -> Option<SourceMap<'static>>;
+  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>>;
 
   /// Update hash based on the source.
   fn update_hash(&self, state: &mut dyn Hasher) {
@@ -161,17 +162,13 @@ impl Source for BoxSource {
   }
 
   #[inline]
-  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
-    self.as_ref().map(object_pool, options)
+  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
+    self.as_ref().map(options)
   }
 
   #[inline]
-  fn map_static(
-    self: Arc<Self>,
-    object_pool: &ObjectPool,
-    options: &MapOptions,
-  ) -> Option<SourceMap<'static>> {
-    self.as_ref().clone().map_static(object_pool, options)
+  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
+    self.as_ref().clone().map_static(options)
   }
 
   #[inline]
@@ -250,9 +247,14 @@ pub trait SourceExt {
 }
 
 impl<T: Source + 'static> SourceExt for T {
-  fn boxed(self) -> BoxSource {
+  fn boxed(mut self) -> BoxSource {
     if let Some(source) = self.as_any().downcast_ref::<BoxSource>() {
       return source.clone();
+    }
+    // The replacement list cannot be mutated after the source is shared.
+    // Compact it here instead of adding interior mutability to source()/map().
+    if let Some(source) = (&mut self as &mut dyn Any).downcast_mut::<ReplaceSource>() {
+      source.shrink_to_fit();
     }
     Arc::from(self)
   }
@@ -286,7 +288,7 @@ impl MapOptions {
   }
 }
 
-fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
+pub(crate) fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
   if val.is_empty() {
     return true;
   }
@@ -541,6 +543,40 @@ impl<'a> SourceMap<'a> {
   /// Set the sourcesContent field in [SourceMap].
   pub fn set_sources_content(&mut self, sources_content: Vec<Cow<'a, str>>) {
     self.fields.sources_content = Cow::Owned(sources_content);
+  }
+
+  /// Remove source contents without retaining the source or JSON buffer that owned them.
+  ///
+  /// Borrowed metadata is copied before releasing its owner; owned fields are reused.
+  #[doc(hidden)]
+  pub fn remove_sources_content(&mut self) {
+    self.fields.sources_content = Cow::Owned(Vec::new());
+    if self.owner.is_none() {
+      return;
+    }
+
+    // Clearing sourcesContent alone leaves the owner alive for the remaining borrows.
+    // Own every remaining field before releasing that source graph or parsed JSON buffer.
+    if let Some(file) = &mut self.fields.file {
+      file.to_mut();
+    }
+    for source in self.fields.sources.to_mut() {
+      source.to_mut();
+    }
+    for name in self.fields.names.to_mut() {
+      name.to_mut();
+    }
+    self.fields.mappings.to_mut();
+    if let Some(source_root) = &mut self.fields.source_root {
+      source_root.to_mut();
+    }
+    if let Some(debug_id) = &mut self.fields.debug_id {
+      debug_id.to_mut();
+    }
+    if let Some(ignore_list) = &mut self.fields.ignore_list {
+      ignore_list.to_mut();
+    }
+    self.owner = None;
   }
 
   /// Get the source content by index from sourcesContent field in [SourceMap].

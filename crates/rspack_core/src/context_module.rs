@@ -8,7 +8,7 @@ use indoc::formatdoc;
 use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsOption, AsPreset, AsVec, Unsupported},
+  with::{AsCacheable, AsOption, AsPreset, AsVec, Skip},
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -33,9 +33,12 @@ use crate::{
   DependencyRef, DynamicImportMode, ExportsType, FactoryMetaStore, FakeNamespaceObjectMode,
   FreezeLock, GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
-  ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify, get_exports_type_with_strict,
-  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, property_access, to_path,
+  ModuleLayer, ModuleType, NeedBuildContext, RealDependencyLocation, ReferencedSpecifier, Resolve,
+  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify,
+  get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
+  module_update_hash,
+  new_cache::{FileSystemInfo, Snapshot, SnapshotValidationResult},
+  property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -275,9 +278,11 @@ pub struct ContextModule {
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
   build_meta: FreezeLock<BuildMeta>,
+  force_build: bool,
+  // Only needed before building. Cache misses build a fresh module from the factory.
   #[debug(skip)]
-  #[cacheable(with=Unsupported)]
-  resolve_dependencies: ResolveContextModuleDependencies,
+  #[cacheable(with=Skip)]
+  resolve_dependencies: Option<ResolveContextModuleDependencies>,
 }
 
 impl ContextModule {
@@ -301,9 +306,33 @@ impl ContextModule {
         .with_exports_type(BuildMetaExportsType::Default)
         .with_default_object(BuildMetaDefaultObject::RedirectWarn)
         .into(),
+      force_build: true,
       source_map_kind: SourceMapKind::empty(),
-      resolve_dependencies,
+      resolve_dependencies: Some(resolve_dependencies),
     }
+  }
+
+  async fn create_cache_snapshot(
+    &self,
+    file_system_info: &FileSystemInfo,
+    build_start_time: u64,
+  ) -> Result<Option<Snapshot>> {
+    let build_info = self.build_info.read();
+    if !build_info.cacheable || self.options.resource.as_str().is_empty() {
+      return Ok(None);
+    }
+
+    Ok(Some(
+      file_system_info
+        .create_snapshot(
+          Some(build_start_time),
+          &build_info.dependencies.file,
+          &build_info.dependencies.context,
+          &build_info.dependencies.missing,
+          file_system_info.context_module_strategy(),
+        )
+        .await?,
+    ))
   }
 
   fn get_module_id<'a>(&self, module_ids: &'a ModuleIdsArtifact) -> &'a ModuleId {
@@ -1405,12 +1434,62 @@ impl Module for ContextModule {
     Some(Cow::Owned(id))
   }
 
+  async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    if self.force_build {
+      return Ok(true);
+    }
+
+    let Some(build_info) = self.build_info.frozen() else {
+      return Ok(true);
+    };
+    if !build_info.cacheable {
+      return Ok(true);
+    }
+
+    let Some(snapshot) = &build_info.snapshot else {
+      return Ok(!self.options.resource.as_str().is_empty());
+    };
+
+    if context
+      .value_cache_versions
+      .has_diff(&build_info.value_dependencies)
+    {
+      return Ok(true);
+    }
+
+    Ok(matches!(
+      context
+        .file_system_info
+        .check_snapshot_valid(snapshot)
+        .await?,
+      SnapshotValidationResult::Invalid { .. }
+    ))
+  }
+
+  async fn prepare_for_cache(
+    &self,
+    file_system_info: &FileSystemInfo,
+    build_start_time: u64,
+  ) -> Result<()> {
+    let snapshot = self
+      .create_cache_snapshot(file_system_info, build_start_time)
+      .await?;
+    self
+      .build_info
+      .update(|build_info| build_info.snapshot = snapshot);
+    Ok(())
+  }
+
   async fn build(
     mut self: Box<Self>,
     _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
-    let resolve_dependencies = &self.resolve_dependencies;
+    self.build_info.get_mut().snapshot = None;
+    let resolve_dependencies = self
+      .resolve_dependencies
+      .take()
+      .expect("context module should have a resolver before building");
     let context_element_dependencies = resolve_dependencies(self.options.clone()).await?;
 
     let mut dependencies: Vec<BoxDependency> = vec![];
@@ -1500,6 +1579,7 @@ impl Module for ContextModule {
       self.build_info.get_mut().dependencies.context = context_dependencies;
     }
 
+    self.force_build = false;
     Ok(BoxModule::new(self).with_dependencies(
       dependencies.into_iter().map(Into::into).collect(),
       blocks.into_iter().map(Into::into).collect(),

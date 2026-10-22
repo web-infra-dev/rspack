@@ -2,8 +2,7 @@ use std::{borrow::Cow, ops::Deref, sync::Arc};
 
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{Loader, LoaderRunnerOptions, Scheme, get_scheme};
-use rspack_paths::InternedPathSet;
+use rspack_loader_runner::{Loader, LoaderFilter, LoaderRunnerOptions, Scheme, get_scheme};
 use rspack_util::{
   MergeFrom,
   fx_hash::{FxDashMap, FxHashMap as HashMap},
@@ -34,7 +33,7 @@ define_hook!(NormalModuleFactoryAfterResolve: SeriesBail(data: &mut ModuleFactor
 define_hook!(NormalModuleFactoryCreateModule: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule,tracing=false);
 define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &NormalModuleCreateData, module: &mut BoxModule),tracing=false);
 define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut Box<dyn ParserAndGenerator>, parser_options: Option<&ParserOptions>),tracing=false);
-define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader,tracing=false);
+define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader, data: &mut ModuleFactoryCreateData) -> BoxLoader,tracing=false);
 define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryCreateData, module: &mut BoxModule),tracing=false);
 
 pub enum NormalModuleFactoryResolveResult {
@@ -652,6 +651,11 @@ mod tests {
       match_resource: None,
       side_effects: None,
       context: None,
+      module_options: Arc::new(ResolvedModuleOptions::new(
+        ResolvedModuleOptionsCacheKey::new(&[], ModuleType::JsAuto),
+        None,
+        None,
+      )),
     };
 
     let resource_data = create_data.resource_resolve_data.take_shared();
@@ -730,8 +734,7 @@ impl NormalModuleFactory {
     let importer = data.issuer_identifier;
     let raw_request = data.request.clone();
 
-    let mut file_dependencies: InternedPathSet = Default::default();
-    let mut missing_dependencies: InternedPathSet = Default::default();
+    let context = data.context.clone();
 
     let plugin_driver = &self.plugin_driver;
     let loader_resolver = self.get_loader_resolver();
@@ -858,6 +861,7 @@ impl NormalModuleFactory {
             }),
             cache: false,
             options_cache_key: String::new(),
+            filter: None,
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -914,8 +918,12 @@ impl NormalModuleFactory {
         };
 
         let (resource_data, resolve_dependencies) = resolve(resolve_args, plugin_driver).await;
-        file_dependencies = resolve_dependencies.file_dependencies;
-        missing_dependencies = resolve_dependencies.missing_dependencies;
+        data
+          .file_dependencies
+          .extend(resolve_dependencies.file_dependencies);
+        data
+          .missing_dependencies
+          .extend(resolve_dependencies.missing_dependencies);
 
         match resource_data {
           Ok(ResolveResult::Resource(resource)) => resource.into(),
@@ -954,11 +962,7 @@ module.exports = "data:,";
 
             return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
           }
-          Err(err) => {
-            data.file_dependencies = file_dependencies;
-            data.missing_dependencies = missing_dependencies;
-            return Err(err);
-          }
+          Err(err) => return Err(err),
         }
       }
     };
@@ -988,7 +992,7 @@ module.exports = "data:,";
     let mut resolved_inline_loaders = vec![];
     for l in inline_loaders {
       resolved_inline_loaders
-        .push(resolve_each(plugin_driver, &data.context, &loader_resolver, &l).await?)
+        .push(resolve_each(plugin_driver, &context, &loader_resolver, &l, data).await?)
     }
 
     let user_request = {
@@ -1055,14 +1059,16 @@ module.exports = "data:,";
 
       for l in post_loaders {
         all_loaders.push(
-          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l).await?,
+          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l, data)
+            .await?,
         )
       }
 
       let mut resolved_normal_loaders = vec![];
       for l in normal_loaders {
         resolved_normal_loaders.push(
-          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l).await?,
+          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l, data)
+            .await?,
         )
       }
 
@@ -1084,7 +1090,8 @@ module.exports = "data:,";
 
       for l in pre_loaders {
         all_loaders.push(
-          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l).await?,
+          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l, data)
+            .await?,
         )
       }
 
@@ -1101,9 +1108,19 @@ module.exports = "data:,";
     } else {
       resource_data.resource().to_owned()
     };
-    let has_cached_loader = resolved_loaders
-      .iter()
-      .any(|resolved| resolved.options.cache);
+    let mut has_cached_loader = false;
+    let mut has_filter = false;
+    for resolved in &resolved_loaders {
+      has_cached_loader |= resolved.options.cache;
+      has_filter |= resolved.filter.is_some();
+    }
+    let loader_filters = has_filter.then(|| {
+      resolved_loaders
+        .iter()
+        .map(|resolved| resolved.filter.clone())
+        .collect::<Vec<_>>()
+        .into_boxed_slice()
+    });
     let (loaders, loader_options) = if has_cached_loader {
       let (loaders, loader_options) = resolved_loaders
         .into_iter()
@@ -1165,6 +1182,7 @@ module.exports = "data:,";
           .map(|d| d.resource().to_owned()),
         side_effects: resolved_side_effects,
         context: resource_data.context().map(|c| c.to_owned()),
+        module_options: resolved_options.clone(),
         resource_resolve_data: NormalModuleCreateDataResource::Owned(resource_data),
       };
       if let Some(plugin_result) = self
@@ -1206,6 +1224,7 @@ module.exports = "data:,";
         resolved_resolve_options,
         loaders,
         loader_options,
+        loader_filters,
         create_data.context.clone().map(|x| x.into()),
         resolved_extract_source_map,
         dependency_phase,
@@ -1220,9 +1239,6 @@ module.exports = "data:,";
       .call(data, &create_data, &mut module)
       .await?;
 
-    data.file_dependencies = file_dependencies;
-    data.missing_dependencies = missing_dependencies;
-
     Ok(Some(ModuleFactoryResult::new_with_module(module)))
   }
 
@@ -1230,8 +1246,8 @@ module.exports = "data:,";
     &'a self,
     resource_data: &ResourceData,
     dependency: &dyn Dependency,
-    issuer: Option<&'a str>,
-    issuer_layer: Option<&'a str>,
+    issuer: Option<&str>,
+    issuer_layer: Option<&str>,
   ) -> Result<Vec<&'a ModuleRuleEffect>> {
     let mut rules = Vec::new();
     let match_ctx = MatchContext {
@@ -1365,11 +1381,12 @@ async fn resolve_each(
   context: &Context,
   loader_resolver: &Resolver,
   l: &ModuleRuleUseLoader,
+  data: &mut ModuleFactoryCreateData,
 ) -> Result<Arc<dyn Loader<RunnerContext>>> {
   plugin_driver
     .normal_module_factory_hooks
     .resolve_loader
-    .call(context, loader_resolver, l)
+    .call(context, loader_resolver, l, data)
     .await?
     .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
 }
@@ -1377,6 +1394,7 @@ async fn resolve_each(
 struct ResolvedLoader {
   loader: BoxLoader,
   options: LoaderRunnerOptions,
+  filter: Option<Arc<LoaderFilter>>,
 }
 
 impl ResolvedLoader {
@@ -1384,6 +1402,7 @@ impl ResolvedLoader {
     Self {
       loader,
       options: LoaderRunnerOptions::default(),
+      filter: None,
     }
   }
 }
@@ -1393,6 +1412,7 @@ async fn resolve_each_with_options(
   options: &CompilerOptions,
   loader_resolver: &Resolver,
   loader: &ModuleRuleUseLoader,
+  data: &mut ModuleFactoryCreateData,
 ) -> Result<ResolvedLoader> {
   let uncached_loader;
   let loader = if options.experiments.new_cache.loader {
@@ -1404,9 +1424,20 @@ async fn resolve_each_with_options(
     };
     &uncached_loader
   };
-  let resolved = resolve_each(plugin_driver, &options.context, loader_resolver, loader).await?;
+  let resolved = resolve_each(
+    plugin_driver,
+    &options.context,
+    loader_resolver,
+    loader,
+    data,
+  )
+  .await?;
   if !loader.cache {
-    return Ok(ResolvedLoader::uncached(resolved));
+    return Ok(ResolvedLoader {
+      loader: resolved,
+      options: LoaderRunnerOptions::default(),
+      filter: loader.filter.clone(),
+    });
   }
   let loader_name = parse_resource(&loader.loader).map_or_else(
     || loader.loader.clone(),
@@ -1424,11 +1455,13 @@ async fn resolve_each_with_options(
       options_cache_key: loader.options_cache_key.clone(),
       loader_version,
     },
+    filter: loader.filter.clone(),
   })
 }
 
 #[derive(Debug)]
 pub struct NormalModuleCreateData {
+  pub module_options: Arc<ResolvedModuleOptions>,
   pub raw_request: String,
   pub request: String,
   pub user_request: String,

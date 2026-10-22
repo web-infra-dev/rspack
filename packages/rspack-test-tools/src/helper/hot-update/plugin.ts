@@ -123,7 +123,7 @@ export class HotUpdatePlugin {
       test: /\.(js|css|json)/,
       use: [
         {
-          loader: path.resolve(__dirname, './loader.js'),
+          loader: path.resolve(import.meta.dirname, './loader.js'),
         },
       ],
     });

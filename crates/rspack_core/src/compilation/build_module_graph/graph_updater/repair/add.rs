@@ -2,11 +2,7 @@ use std::sync::Arc;
 
 use rspack_error::Result;
 
-use super::{
-  TaskContext,
-  build::{BuildResultTask, BuildTask, ModuleBuildResult},
-  lazy::process_unlazy_dependencies,
-};
+use super::{TaskContext, build::BuildTask, lazy::process_unlazy_dependencies};
 use crate::{
   BoxModule, BuildContext, DependencyRef, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
@@ -113,17 +109,6 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let cached_module = if let Some(module_build_cache) = &context.module_build_cache {
-      module_build_cache
-        .restore(
-          &module,
-          &context.build_context.file_system_info,
-          &context.value_cache_versions,
-        )
-        .await?
-    } else {
-      None
-    };
     context
       .artifact
       .module_graph
@@ -146,19 +131,12 @@ impl Task<TaskContext> for AddTask {
       .affected_modules
       .mark_as_add(&module_identifier);
 
-    if let Some(module) = cached_module {
-      return Ok(vec![Box::new(BuildResultTask {
-        build_result: ModuleBuildResult::Cached(module),
-        plugin_driver: context.build_context.plugin_driver.clone(),
-        forwarded_ids,
-      })]);
-    }
-
     Ok(vec![Box::new(BuildTask {
       build_context,
       module,
       forwarded_ids,
       module_build_cache: context.module_build_cache.clone(),
+      value_cache_versions: context.value_cache_versions.clone(),
     })])
   }
 }

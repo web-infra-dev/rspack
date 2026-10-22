@@ -82,9 +82,6 @@ pub struct JsResolveData {
   pub context_info: ContextInfo,
   /// The import attributes of the dependency that triggered this resolution, read-only.
   pub attributes: Option<HashMap<String, String>>,
-  pub file_dependencies: Vec<String>,
-  pub context_dependencies: Vec<String>,
-  pub missing_dependencies: Vec<String>,
   pub create_data: Option<JsCreateData>,
 }
 
@@ -114,21 +111,6 @@ impl JsResolveData {
             .map(|(key, value)| (key.to_owned(), value.to_owned()))
             .collect()
         }),
-      file_dependencies: data
-        .file_dependencies
-        .iter()
-        .map(|item| item.to_string_lossy().into_owned())
-        .collect::<Vec<_>>(),
-      context_dependencies: data
-        .context_dependencies
-        .iter()
-        .map(|item| item.to_string_lossy().into_owned())
-        .collect::<Vec<_>>(),
-      missing_dependencies: data
-        .missing_dependencies
-        .iter()
-        .map(|item| item.to_string_lossy().into_owned())
-        .collect::<Vec<_>>(),
       create_data: create_data.map(|create_data| JsCreateData {
         request: create_data.request.clone(),
         user_request: create_data.user_request.clone(),

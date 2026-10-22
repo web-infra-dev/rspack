@@ -19,9 +19,21 @@ export function validateShareScope(
 }
 
 export type SharePluginOptions = {
+  /**
+   * Share scope(s) used for modules that do not specify their own `shareScope`.
+   * @default 'default'
+   */
   shareScope?: ShareScope;
+  /**
+   * Modules to consume from a share scope and provide as local fallbacks.
+   * Set a module's `import` to `false` to consume it without a local fallback.
+   */
   shared: Shared;
-  enhanced: boolean;
+  /**
+   * Whether to generate sharing code for the enhanced Module Federation runtime.
+   * @default false
+   */
+  enhanced?: boolean;
 };
 export type Shared = (SharedItem | SharedObject)[] | SharedObject;
 export type SharedItem = string;

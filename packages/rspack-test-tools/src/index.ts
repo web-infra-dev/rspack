@@ -1,3 +1,5 @@
+import { disableIconvLiteWarning } from './helper/disable-iconv-lite-warning';
+
 export * from './case';
 export * from './helper';
 export * from './plugin';
@@ -8,4 +10,4 @@ export * from './test/creator';
 export * from './test/tester';
 export * from './type';
 
-require('./helper/disable-iconv-lite-warning').disableIconvLiteWarning();
+disableIconvLiteWarning();

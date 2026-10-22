@@ -1,5 +1,5 @@
 ---
-description: 'Rspack has built-in support for JavaScript, CSS, JSON, and static assets modules'
+description: 'Configure loaders to transform modules, combine multiple loaders, pass options, and use custom or built-in loaders.'
 ---
 
 # Loader
@@ -153,3 +153,43 @@ Built-in Loaders offer superior performance compared to JS Loaders, without sacr
 
 - [builtin:swc-loader](/guide/features/builtin-swc-loader)
 - [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader)
+
+## Parallel loader
+
+Rspack supports running loaders in worker threads for parallel execution, which can better utilize multi-core CPUs and improve overall build performance.
+
+To enable parallel execution for a loader, set the `parallel` option in [rules[].use](/config/module-rules#rulesuse):
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+            parallel: true,
+            options: {},
+          },
+        ],
+        type: 'css',
+      },
+    ],
+  },
+};
+```
+
+Setting `parallel: true` enables parallel execution with an automatically chosen number of worker threads.
+
+When multiple loaders within the same rule have `parallel` enabled, Rspack executes them sequentially inside the same worker until it encounters a non-parallel loader or a Rust-implemented builtin loader. This preserves the loader execution order while maximizing parallel efficiency.
+
+:::tip
+
+- When parallel execution is enabled, `options` must be an object. Even if the loader has no options, you must explicitly set `options: {}`. Omitting `options` causes a configuration error.
+- The loader options must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
+- In worker mode, most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, and `LoaderContext._module` are not supported.
+
+:::
+
+For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparallel).

@@ -1,4 +1,4 @@
-import value from "./loader!./file";
+import value from "./loader.mjs!./immutable/file";
 
 it("should snapshot context dependencies work", async () => {
 	if (COMPILER_INDEX === 0) {
@@ -14,4 +14,4 @@ it("should snapshot context dependencies work", async () => {
 	}
 });
 
-module.hot.accept("./file");
+module.hot.accept("./immutable/file");

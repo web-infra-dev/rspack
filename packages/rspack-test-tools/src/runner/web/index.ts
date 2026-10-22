@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
+import iconv from 'iconv-lite';
 import {
   JSDOM,
   requestInterceptor,
@@ -19,7 +20,7 @@ export interface IWebRunnerOptions extends INodeRunnerOptions {
 }
 
 // Compatibility code to suppress iconv-lite warnings
-require('iconv-lite').skipDecodeWarning = true;
+iconv.skipDecodeWarning = true;
 
 const FAKE_HOSTS = [
   'https://example.com/public/path',
@@ -85,18 +86,18 @@ export class WebRunner extends NodeRunner {
       Object.defineProperty(document.head, "_children", {
         get: function() {
           return Array.from(document.head.children).map(function(ele) {
-            var type = ele.tagName.toLowerCase();
-            return new Proxy(ele, {
-              get(target, prop, receiver) {
-                if (prop === "_type") {
-                  return target.tagName.toLowerCase();
-                }
-                if (prop === "_href") {
-                  return Reflect.get(target, "href", receiver);
-                }
-                return Reflect.get(target, prop, receiver);
+            // Keep real DOM nodes so they also work as DOM API arguments.
+            Object.defineProperties(ele, {
+              _type: {
+                configurable: true,
+                get() { return this.tagName.toLowerCase(); },
+              },
+              _href: {
+                configurable: true,
+                get() { return this.href; },
               },
             });
+            return ele;
           });
         }
       });
@@ -303,15 +304,25 @@ export class WebRunner extends NodeRunner {
 			var $$g$$ = new Proxy(window, {
 				get(target, prop, receiver) {
 					if (prop === "document") {
+						var boundMethods = new WeakMap();
 						return new Proxy(window.document, {
-							get(target, prop, receiver) {
+							get(target, prop) {
 								if (prop === "currentScript") {
 									var script = target.createElement("script");
 									script.src = "https://test.cases/path/${escapeSep(file.subPath)}index.js";
 									return script;
 								}
-								return Reflect.get(target, prop, receiver);
-							}
+								// DOM getters and methods require the real document as their receiver.
+								var value = Reflect.get(target, prop, target);
+								if (typeof value === "function" && prop !== "constructor") {
+									if (!boundMethods.has(value)) boundMethods.set(value, value.bind(target));
+									return boundMethods.get(value);
+								}
+									return value;
+							},
+							set(target, prop, value) {
+								return Reflect.set(target, prop, value, target);
+							},
 						});
 					}
 					return Reflect.get(target, prop, receiver);

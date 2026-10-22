@@ -17,11 +17,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
 use rspack_intern::{Atom, AtomSet, IndexAtomMap};
 use rspack_sources::BoxSource;
-use rspack_util::{
-  ext::AsAny,
-  fx_hash::{FxIndexMap, FxIndexSet},
-  source_map::ModuleSourceMapConfig,
-};
+use rspack_util::{ext::AsAny, fx_hash::FxIndexMap, source_map::ModuleSourceMapConfig};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 use smol_str::SmolStr;
@@ -141,20 +137,9 @@ impl CanonicalizedDataUrlOption {
   }
 }
 
-#[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CssExport {
-  #[cacheable(with=AsPreset)]
-  pub ident: SmolStr,
-  #[cacheable(with=AsOption<AsPreset>)]
-  pub from: Option<SmolStr>,
-  pub id: Option<DependencyId>,
-  #[cacheable(with=AsPreset)]
-  pub orig_name: SmolStr,
-}
-
-pub type CssExports = FxIndexMap<SmolStr, FxIndexSet<CssExport>>;
-pub type CssLocalNames = HashMap<SmolStr, SmolStr>;
+/// Index into the module graph; CSS export dependencies own the values.
+pub type CssExports = FxIndexMap<SmolStr, DependencyId>;
+pub type CssLocalNames = HashMap<SmolStr, DependencyId>;
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -237,9 +222,9 @@ pub struct CssBuildInfo {
   pub export_type: Option<CssExportType>,
   pub has_charset: bool,
   pub css_import_dependency: bool,
-  #[cacheable(with=AsMap<AsPreset, AsVec>)]
+  #[cacheable(with=AsMap<AsPreset>)]
   pub exports: CssExports,
-  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
+  #[cacheable(with=AsMap<AsPreset>)]
   pub local_names: CssLocalNames,
   /// Conditions inherited from parent CSS modules.
   ///
@@ -292,15 +277,20 @@ pub struct BuildInfo {
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
   pub dependencies: crate::LoaderDependencies,
-  /// Snapshot used by full `need_build` validation. `NormalModule` populates
-  /// this when the module build cache is enabled; other builds leave it empty
-  /// to avoid snapshot creation overhead.
+  /// Snapshot used by full `need_build` validation. Modules populate this when
+  /// the module build cache is enabled; other builds leave it empty to avoid
+  /// snapshot creation overhead.
   pub snapshot: Option<Snapshot>,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
+  /// Whether parsing observed access to the current CommonJS factory's export surface or an
+  /// escape path that may expose it.
+  /// `Some(false)` means an eligible `javascript/auto` module was parsed without observing an
+  /// access. `None` means this signal is unavailable and must not relax concatenation bailouts.
+  pub module_exports_accessed: Option<bool>,
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
   pub asset: Option<Box<AssetBuildInfo>>,
@@ -316,7 +306,7 @@ pub struct BuildInfo {
   pub module: bool,
   pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
-  pub rsc: Option<RscMeta>,
+  pub rsc: Option<Box<RscMeta>>,
   pub import_phase: ImportPhase,
   pub isolated_dts: Option<Box<IsolatedDts>>,
   /// Stores external fields from the JS side (Record<string, any>),
@@ -341,6 +331,7 @@ impl Default for BuildInfo {
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
       need_create_require: false,
+      module_exports_accessed: None,
       json_data: None,
       asset: None,
       css: None,

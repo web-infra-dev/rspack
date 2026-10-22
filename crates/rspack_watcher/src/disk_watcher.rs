@@ -1,10 +1,13 @@
 use std::{sync::Arc, time::Duration};
 
-use notify::{Event, EventKind, RecommendedWatcher, Watcher, event::ModifyKind};
+use notify::{
+  Event, EventKind, RecommendedWatcher, Watcher,
+  event::{ModifyKind, RenameMode},
+};
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
-use crate::{FsEventKind, WatchPattern, trigger};
+use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
 
 /// `DiskWatcher` is responsible for managing the underlying file system watcher
 /// and keeping track of the currently watched paths.
@@ -31,33 +34,7 @@ impl DiskWatcher {
 
     let inner = RecommendedWatcher::new(
       move |result: notify::Result<Event>| match result {
-        Ok(event) => {
-          tracing::debug!(
-            target: "rspack_watcher::fs_event",
-            kind = ?event.kind,
-            paths = ?event.paths,
-            "fs_event",
-          );
-
-          if event.paths.is_empty() {
-            return;
-          }
-
-          let kind = match event.kind {
-            EventKind::Create(_) => FsEventKind::Create,
-            EventKind::Modify(
-              ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_) | ModifyKind::Metadata(_),
-            ) => FsEventKind::Change,
-            EventKind::Remove(_) => FsEventKind::Remove,
-            // TODO: handle this case /path/to/index.js -> /path/to/index.js.map
-            // path/to/index.js should be removed, and path/to/index.js.map should be changed
-            // Now /path/to/index.js and /path/to/index.js.map will both be changed
-            _ => return,
-          };
-          for path in event.paths.into_iter().map(InternedPath::from) {
-            trigger.on_event(&path, kind);
-          }
-        }
+        Ok(event) => handle_event(event, &trigger),
 
         Err(e) => {
           tracing::error!(target: "rspack_watcher::fs_event", "file watcher error: {e:?}");
@@ -128,6 +105,46 @@ impl DiskWatcher {
   pub fn close(&mut self) {
     // the trigger.tx is dropped in the FsWatcher
     std::mem::drop(self.inner.take());
+  }
+}
+
+pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {
+  tracing::debug!(
+    target: "rspack_watcher::fs_event",
+    kind = ?event.kind,
+    paths = ?event.paths,
+    "fs_event",
+  );
+
+  if event.need_rescan() {
+    trigger.analyzer.invalidate_all();
+  }
+  if event.paths.is_empty() {
+    return;
+  }
+
+  let appeared = matches!(
+    event.kind,
+    EventKind::Create(_) | EventKind::Modify(ModifyKind::Name(RenameMode::To | RenameMode::Any))
+  );
+  let kind = match event.kind {
+    EventKind::Create(_) => FsEventKind::Create,
+    EventKind::Modify(
+      ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_) | ModifyKind::Metadata(_),
+    ) => FsEventKind::Change,
+    EventKind::Remove(_) => FsEventKind::Remove,
+    // TODO: handle this case /path/to/index.js -> /path/to/index.js.map
+    // path/to/index.js should be removed, and path/to/index.js.map should be changed
+    // Now /path/to/index.js and /path/to/index.js.map will both be changed
+    _ => return,
+  };
+  for path in event.paths.into_iter().map(InternedPath::from) {
+    // Content writes cannot change which ancestor directory exists.
+    // Invalidate before filtering so suppressed events still refresh watch coverage.
+    if !matches!(event.kind, EventKind::Modify(ModifyKind::Data(_))) {
+      trigger.analyzer.invalidate_path(&path);
+    }
+    trigger.on_disk_event(&path, kind, appeared);
   }
 }
 

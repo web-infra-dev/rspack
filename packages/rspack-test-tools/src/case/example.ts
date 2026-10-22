@@ -1,5 +1,6 @@
 import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
+import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv, ITestProcessor } from '../type';
 import { build, compiler, configMultiCompiler } from './common';
@@ -24,7 +25,7 @@ function createExampleProcessor(name: string): ITestProcessor {
       configMultiCompiler(
         context,
         name,
-        ['rspack.config.js', 'webpack.config.js'],
+        RSPACK_CONFIG_FILES,
         () => ({}),
         overrideOptions,
       );

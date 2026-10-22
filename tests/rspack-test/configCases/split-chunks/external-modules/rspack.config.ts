@@ -1,0 +1,50 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
+import { rspack } from '@rspack/core';
+
+export default defineConfig({
+  entry: {
+    main: {
+      import: ['./index'],
+      library: {
+        type: 'system',
+      },
+    },
+  },
+  node: {
+    __dirname: false,
+    __filename: false,
+  },
+  target: 'web',
+  output: {
+    filename: '[name].js',
+  },
+  optimization: {
+    sideEffects: false,
+    concatenateModules: false,
+    splitChunks: {
+      cacheGroups: {
+        default: {
+          chunks: 'all',
+          minSize: 0,
+          maxSize: 0,
+        },
+      },
+    },
+  },
+  plugins: [
+    new rspack.ExternalsPlugin('system', ({ request }, callback) => {
+      if (request === './external') {
+        callback(undefined, 'system ' + request);
+        return;
+      }
+      callback();
+    }),
+    definePlugin((compiler) => {
+      compiler.hooks.afterEmit.tap('PLUGIN', (compilation) => {
+        const stats = compilation.getStats().toJson({ chunks: true });
+        const entryChunk = stats.chunks?.find((chunk) => chunk.entry);
+        expect(entryChunk?.modules?.[0].name).toBe('external "./external"');
+      });
+    }),
+  ],
+});

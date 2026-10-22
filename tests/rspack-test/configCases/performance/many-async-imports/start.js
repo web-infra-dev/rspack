@@ -1,1 +1,1 @@
-export { default } from "./reexport.loader.js!";
+export { default } from "./reexport.loader.mjs!";

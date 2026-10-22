@@ -1,5 +1,5 @@
 ---
-description: 'SplitChunksPlugin 是一个内置插件，用于将代码拆分成多个 chunk，以优化应用的加载性能，实现更好的缓存策略和并行加载效果。'
+description: '通过 optimization.splitChunks 提取共享模块、定义缓存组，并控制 chunk 大小与加载请求数量。'
 ---
 
 import Attribution from '@components/Attribution';
@@ -54,7 +54,7 @@ Rspack 的默认配置符合 Web 性能最佳实践，但是项目的最佳策�
 
 ### optimization.splitChunks
 
-下面这个配置对象代表 `SplitChunksPlugin` 的默认行为。
+下面这个配置对象代表 `SplitChunksPlugin` 在生产模式下的默认行为。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -62,6 +62,7 @@ export default {
   optimization: {
     splitChunks: {
       chunks: 'async',
+      dedupDepth: 1,
       minChunks: 1,
       minSize: 20000,
       maxAsyncRequests: 30,
@@ -94,6 +95,67 @@ export default {
 Rspack 不允许将 entry 名称传递给 `{cacheGroup}.test` 或者为 `{cacheGroup}.name` 使用现有的 chunk 的名称。
 
 :::
+
+### splitChunks.dedupDepth
+
+- **类型：** `number`
+- **默认值：** `production` 模式下为 `1`，`development` 或 `none` 模式下为 `0`。
+
+该配置指定 Rspack 寻找不同 chunk 共享的模块算法。
+
+举个例子：假设每个页面先生成一个 chunk。`{ A, B }` 表示这段代码被页面 `A` 和 `B` 使用。把他们共同使用的模块放进共享包，可以减少重复。
+
+**`dedupDepth: 0`：利用已经出现过的页面组合**
+
+假设模块 `x` 被页面 `A`、`B` 使用，模块 `y` 被页面 `A`、`B`、`C` 使用：
+
+```text
+x → { A, B }
+y → { A, B, C }
+```
+
+`{ A, B }` 已经是 `x` 的使用范围，而 `y` 也被这两个页面使用，因此 Rspack 可以考虑把 `x` 和 `y` 放进供 `A`、`B` 共用的包中。深度 `0` 会利用这种包含关系，但不会主动找出尚未出现过的页面组合。
+
+**`dedupDepth: 1`：再找一轮共同组合**
+
+换一个例子，三个模块分别被以下页面使用：
+
+| 模块 | 使用它的页面       |
+| ---- | ------------------ |
+| `x`  | `A`、`B`、`C`、`D` |
+| `y`  | `A`、`B`、`C`、`E` |
+| `z`  | `A`、`B`、`D`、`E` |
+
+每次比较两个模块，找出共同使用它们的页面：
+
+```text
+x 和 y → { A, B, C }
+x 和 z → { A, B, D }
+y 和 z → { A, B, E }
+```
+
+这些组合原本没有单独出现过。深度 `1` 可以发现它们，Rspack 也许会尝试把 `x` 和 `y` 抽出形成一个单独 chunk，供 `A`、`B`、`C` 依赖。
+
+**`dedupDepth: 2`：让上一轮找到的组合继续计算**
+
+在同一个例子中，上一轮找到的 `{ A, B, C }` 和 `{ A, B, D }` 都包含 `A`、`B`。再比较一次，就能找到新的组合 `{ A, B }`。由于 `x`、`y`、`z` 都被这两个页面使用，Rspack 便可以考虑将三个模块一起放进供 `A`、`B` 共用的包中。这个组合在第一轮还找不到。
+
+更大的深度会继续这个过程。如果没有找到新组合，就提前结束。以上例子说明的是寻找共享代码的过程，最终是否生成共享包还取决于 `splitChunks` 的其他配置。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      dedupDepth: 1,
+    },
+  },
+};
+```
+
+一般 `dedupDepth: 1` 足够用了，每次增加 1 次计算，是指数级别的计算耗时增加，体积增加也许并不明显。
+
+此选项配置在 `splitChunks` 上，不支持配置在单个缓存组中。
 
 ### splitChunks.cacheGroups
 
@@ -210,17 +272,25 @@ export default {
 
 ### splitChunks.maxAsyncRequests
 
+#### splitChunks.cacheGroups.\{cacheGroup\}.maxAsyncRequests
+
 - **类型：** `number`
-- **默认值：** `30`
+- **默认值：** 生产模式下为 `30`，其他模式下为 `Infinity`
 
 按需加载时的最大并行请求数。
 
+cache group 默认继承此限制，除非自行设置 `maxAsyncRequests` 或启用 `enforce`。即使设置了 `enforce: true`，cache group 显式配置的限制仍然生效。
+
 ### splitChunks.maxInitialRequests
 
-- **类型：** `number`
-- **默认值：** `30`
+#### splitChunks.cacheGroups.\{cacheGroup\}.maxInitialRequests
 
-每一个入口点所允许的的最大并行请求数。
+- **类型：** `number`
+- **默认值：** 生产模式下为 `30`，其他模式下为 `Infinity`
+
+每个入口点所允许的最大并行请求数。
+
+cache group 默认继承此限制，除非自行设置 `maxInitialRequests` 或启用 `enforce`。即使设置了 `enforce: true`，cache group 显式配置的限制仍然生效。
 
 ### splitChunks.enforceSizeThreshold
 
@@ -231,7 +301,7 @@ export default {
 
 设置一个体积阈值，让 Rspack 在拆分候选 chunk 足够大时继续拆分。
 
-当候选 chunk 达到这个阈值后，Rspack 会忽略 [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) 和 [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests) 这类请求数量限制。
+当候选 chunk 达到这个阈值后，Rspack 会忽略 [`splitChunks.minRemainingSize`](#splitchunksminremainingsize)，以及 [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) 和 [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests) 这类请求数量限制。
 
 相比 [`splitChunks.cacheGroups.{cacheGroup}.enforce`](#splitchunkscachegroupscachegroupenforce)，这个选项更克制一些：只有体积已经足够大的候选才会继续被强制拆分，较小的候选仍然遵循默认启发式规则。
 
@@ -292,6 +362,33 @@ export default {
 ```
 
 例如上面的配置表示拆分出的 chunk 中 javascript 模块的最小体积需要满足 100KB，css 模块的最小体积需要满足 300KB。
+
+### splitChunks.minRemainingSize
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.minRemainingSize
+
+- **类型：** `number | Record<string, number>`
+- **默认值：** 开发模式下为 `0`，其他模式下回退到 `minSize`
+
+拆分后来源 chunk 中剩余模块的最小体积，单位为字节。排除复用的目标 chunk 并应用请求数量限制后，仅在拆分涉及一个来源 chunk 时进行此检查，避免拆分后留下过小的 chunk。
+
+例如，从已命名的异步 chunk 中抽取 CSS，可能会让原 chunk 只剩下很小的 JavaScript 模块。生产模式下，`minRemainingSize` 可以阻止此次拆分，让 CSS 保留在原来已命名的 chunk 中。
+
+体积按 source type 分别检查。数字形式应用于 [`defaultSizeTypes`](#splitchunksdefaultsizetypes) 中的类型，对象形式可以分别设置阈值。没有剩余模块或剩余体积为零的 source type 会跳过检查。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      minRemainingSize: {
+        javascript: 20 * 1000,
+      },
+    },
+  },
+};
+```
+
+cache group 显式配置的 `minRemainingSize` 优先于该组自身的 `minSize`，后者又优先于全局的 `minRemainingSize`。设置 `enforce: true` 的 cache group 不继承全局值，但该组自身的 `minRemainingSize` 和 `minSize` 仍然生效。达到 [`enforceSizeThreshold`](#splitchunksenforcesizethreshold) 时会跳过剩余体积检查。
 
 ### splitChunks.minSizeReduction
 
@@ -641,7 +738,7 @@ export default {
 
 - **类型：** `boolean`
 
-告诉 Rspack 忽略 `splitChunks.minSize`、`splitChunks.minChunks`、`splitChunks.maxAsyncRequests` 和 `splitChunks.maxInitialRequests` 选项，并始终为此 cacheGroup 创建 chunk。
+告诉 Rspack 对此 cache group 忽略全局的 `splitChunks.minSize`、`splitChunks.minRemainingSize`、`splitChunks.minChunks`、`splitChunks.maxAsyncRequests` 和 `splitChunks.maxInitialRequests` 选项。cache group 自身显式配置的值仍然生效。
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.idHint
 

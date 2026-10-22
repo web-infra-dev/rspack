@@ -1,4 +1,4 @@
-import a from "./loader.js!./a";
+import a from "./loader.mjs!./a";
 
 it("module and its loader-referencing module should update in right order", async () => {
   expect(a).toBe(1);
@@ -6,4 +6,4 @@ it("module and its loader-referencing module should update in right order", asyn
   expect(a).toBe(2);
 });
 
-module.hot.accept('./loader.js!./a');
+module.hot.accept('./loader.mjs!./a');

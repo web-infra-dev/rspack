@@ -1,4 +1,4 @@
-import value from './loader!./file';
+import value from './loader.mjs!./file';
 
 it('should snapshot context dependency timestamp changes', async () => {
   if (COMPILER_INDEX === 0) {

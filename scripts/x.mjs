@@ -173,12 +173,10 @@ program
       'workspaces',
       'version',
       '--exact', // Use exact version `=`
-      '--allow-branch',
-      '{release*,chore/release*}', // Specify which branches to allow from
-      '--no-git-push', // Do not push generated commit and tags to git remote
-      '--no-git-tag', // Do not tag versions in git, we will tag them in `crate-publish`
+      '--all', // Keep private workspace crates and their dependency pins in sync
+      '--no-git-commit', // Commit Rust and JS version changes together after confirmation
       '--force',
-      '*', // Published crates share `[workspace.package].version`; include them all so `[workspace.dependencies]` exact pins stay in sync
+      '*', // Include every crate sharing the workspace version so exact dependency pins stay in sync
       '--yes', // Skip confirmation prompt
       bump, // Bump type
     ];

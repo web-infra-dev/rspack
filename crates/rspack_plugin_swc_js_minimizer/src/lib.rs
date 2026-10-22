@@ -10,14 +10,14 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, CacheOptions, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
+  AssetInfo, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilerCompilation, Etag, Logger, Plugin,
   cache::{CachedExtractedComments, CachedMinimizeEntry},
   diagnostics::MinifyError,
   legacy_cache::persistent::occasion::minimize::MinimizeCacheKey,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt,
-    SourceMapSource, SourceMapSourceOptions,
+    BoxSource, ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
+    SourceMapSourceOptions,
   },
 };
 use rspack_error::{Diagnostic, Result};
@@ -28,7 +28,7 @@ use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash
 use rspack_regex::RspackRegex;
 use rspack_util::{
   asset_condition::AssetConditions,
-  fx_hash::{FxHashMap, FxHasher},
+  fx_hash::{FxHashMap, FxHashSet, FxHasher},
 };
 use swc_config::types::BoolOrDataConfig;
 use swc_core::{
@@ -39,7 +39,6 @@ pub use swc_ecma_minifier::option::{
   MangleOptions,
   terser::{TerserCompressorOptions, TerserEcmaVersion},
 };
-use thread_local::ThreadLocal;
 
 const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 
@@ -225,9 +224,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
 
-  let new_cache = (compilation.options.experiments.new_cache.minimize
-    && !matches!(&compilation.options.cache, CacheOptions::Disabled))
-  .then(|| compilation.get_cache(PLUGIN_NAME));
+  let new_cache = compilation
+    .options
+    .experiments
+    .new_cache
+    .minimize
+    .then(|| compilation.get_cache(PLUGIN_NAME));
   let minimize_persistent_cache = compilation.minimize_persistent_cache.take();
   let legacy_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
     Mutex::new(Vec::new());
@@ -252,7 +254,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   });
   let enter_span = tracing::Span::current();
 
-  let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   compilation
     .assets_mut()
     .par_iter_mut()
@@ -322,9 +323,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           counter.miss();
         }
         let input = original_source.source().into_string_lossy().into_owned();
-        let object_pool = tls.get_or(ObjectPool::default);
         let input_source_map =
-          Source::map_static(original_source.clone(), object_pool, &MapOptions::default());
+          Source::map_static(original_source.clone(), &MapOptions::default());
 
         let js_minify_options = rspack_javascript_compiler::minify::JsMinifyOptions {
           minify: minimizer_options.minify.unwrap_or(true),
@@ -359,7 +359,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let javascript_compiler = JavaScriptCompiler::new();
         let comments_op = |comments: &SingleThreadedComments| {
           if let Some(ref extract_comments) = extract_comments_option {
-            let mut extracted_comments = vec![];
+            let mut extracted_comments = FxHashSet::default();
             // add all matched comments to source
 
             let (leading_trivial, trailing_trivial) = comments.borrow_all();
@@ -375,9 +375,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                       format!("/*{}*/", c.text)
                     }
                   };
-                  if !extracted_comments.contains(&comment) {
-                    extracted_comments.push(comment);
-                  }
+                  extracted_comments.insert(comment);
                 }
               });
             });
@@ -392,15 +390,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                       format!("/*{}*/", c.text)
                     }
                   };
-                  if !extracted_comments.contains(&comment) {
-                    extracted_comments.push(comment);
-                  }
+                  extracted_comments.insert(comment);
                 }
               });
             });
 
             // if not matched comments, we don't need to emit .License.txt file
             if !extracted_comments.is_empty() {
+              let mut extracted_comments = extracted_comments.into_iter().collect::<Vec<_>>();
               extracted_comments.sort();
               all_extracted_comments
                 .lock()

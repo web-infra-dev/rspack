@@ -20,18 +20,18 @@ it("verify es6 (esmodule) bundle source map", async () => {
 			!source.startsWith("webpack:///webpack/runtime/") &&
 			!source.startsWith("rspack:///rspack/runtime/")
 		)).toEqual([
-			sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`),
 			sourceUrl("./b-dir/c-dir/c.js"),
 			sourceUrl("./b-dir/b.js"),
 			sourceUrl("./a.js"),
+			sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.cjs`),
 			sourceUrl("./index.js"),
 		]);
 	} else {
 		expect(map.sources).toEqual([
-			sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`),
 			sourceUrl("./b-dir/c-dir/c.js"),
 			sourceUrl("./b-dir/b.js"),
 			sourceUrl("./a.js"),
+			sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.cjs`),
 			sourceUrl("./index.js"),
 		]);
 	}

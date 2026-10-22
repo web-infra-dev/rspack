@@ -36,10 +36,11 @@ pub fn is_export_inlined(
     let export_info = exports_info
       .named_exports(export_name)
       .unwrap_or_else(|| exports_info.other_exports_info());
-    return matches!(
-      export_info.get_used_name(Some(export_name), runtime),
-      Some(UsedNameItem::Inlined(_))
-    );
+    return matches!(export_info.used_name(), Some(UsedNameItem::Inlined(_)))
+      && matches!(
+        export_info.get_used_name(Some(export_name), runtime),
+        Some(UsedNameItem::Inlined(_))
+      );
   }
 
   let exports_info = exports_info_artifact.get_exports_info_data(module);

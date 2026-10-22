@@ -1,0 +1,44 @@
+import svgToMiniDataURI from 'mini-svg-data-uri';
+import mimeTypes from 'mime-types';
+
+/** @type {import("@rspack/core").Configuration} */
+export default {
+  mode: 'development',
+  module: {
+    parser: {
+      asset: {
+        dataUrlCondition: (source, { filename }) => {
+          return filename.includes('?inline');
+        },
+      },
+    },
+    generator: {
+      asset: {
+        dataUrl: (source, { module }) => {
+          const mimeType = mimeTypes.lookup(module.nameForCondition());
+          if (mimeType === 'image/svg+xml') {
+            if (typeof source !== 'string') {
+              source = source.toString();
+            }
+
+            return svgToMiniDataURI(source);
+          }
+
+          const encodedContent = source.toString('base64');
+
+          return `DATA:${mimeType};base64,${encodedContent}`;
+        },
+      },
+    },
+    rules: [
+      {
+        test: /\.(png|svg)$/,
+        type: 'asset',
+      },
+      {
+        test: /\.jpg$/,
+        type: 'asset/inline',
+      },
+    ],
+  },
+};

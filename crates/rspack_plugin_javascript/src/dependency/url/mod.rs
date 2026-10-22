@@ -1,7 +1,6 @@
-use std::sync::LazyLock;
+use std::sync::Arc;
 
 use concat_string::concat_string;
-use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, CodeGenerationPublicPathAutoReplace, ConnectionState, Dependency,
@@ -22,7 +21,7 @@ pub struct URLDependency {
   request: Atom,
   range: DependencyRange,
   range_url: DependencyRange,
-  used_by_exports: Option<UsedByExports>,
+  used_by_exports: Option<Arc<UsedByExports>>,
   mode: Option<JavascriptParserUrl>,
 }
 
@@ -43,12 +42,12 @@ impl URLDependency {
     }
   }
 
-  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<Arc<UsedByExports>>) {
     self.used_by_exports = used_by_exports;
   }
 
   pub fn used_by_exports(&self) -> Option<&UsedByExports> {
-    self.used_by_exports.as_ref()
+    self.used_by_exports.as_deref()
   }
 
   /// Replace the arguments of `new URL(request, import.meta.url)` with the given
@@ -119,9 +118,6 @@ impl AsContextDependency for URLDependency {}
 pub struct URLDependencyTemplate;
 
 pub static URL_STATIC_PLACEHOLDER: &str = "RSPACK_AUTO_URL_STATIC_PLACEHOLDER_";
-pub static URL_STATIC_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(&format!(r#"{URL_STATIC_PLACEHOLDER}(?<dep>\d+)"#)).expect("should be valid regex")
-});
 
 impl URLDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
@@ -216,7 +212,7 @@ impl DependencyConditionFn for URLDependencyCondition {
       runtime,
       module_graph,
       exports_info_artifact,
-      dependency.used_by_exports.as_ref(),
+      dependency.used_by_exports.as_deref(),
     ))
   }
 }

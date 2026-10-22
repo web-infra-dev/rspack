@@ -3,14 +3,16 @@ mod code_generation_results;
 mod dependencies;
 mod diagnostics;
 pub mod entries;
+mod modules;
 
-use std::{cell::RefCell, path::Path, ptr::NonNull};
+use std::{cell::RefCell, ptr::NonNull};
 
 use chunks::Chunks;
 pub use code_generation_results::*;
-use dependencies::JsDependencies;
+use dependencies::FileSystemDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
+use modules::Modules;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -31,6 +33,7 @@ use crate::{
   chunk_group::ChunkGroupWrapper,
   dependencies::EntryDependency,
   error::{ErrorCode, JsRspackDiagnostic, RspackError, RspackResultToNapiResultExt},
+  file_system_dependency_strings::intern_js_values,
   filename::JsFilename,
   module::{JsAddingRuntimeModule, ModuleObject},
   module_graph::JsModuleGraph,
@@ -67,14 +70,7 @@ impl JsCompilation {
     &self,
     f: impl FnOnce(&Compilation) -> napi::Result<R>,
   ) -> napi::Result<R> {
-    with_compilation(self.id, |compilation| {
-      if compilation.build_module_graph_artifact.is_stolen() {
-        return Err(napi::Error::from_reason(
-          "ModuleGraph is not available while a compilation pass is holding the module graph artifact".to_string(),
-        ));
-      }
-      f(compilation)
-    })
+    with_module_graph(self.id, f)
   }
 
   pub(crate) fn as_ref(&self) -> napi::Result<&'static Compilation> {
@@ -105,6 +101,20 @@ impl JsCompilation {
       "Cannot mutate exports info artifact after it was stolen from compilation.".to_string(),
     ))
   }
+}
+
+fn with_module_graph<R>(
+  compilation_id: CompilationId,
+  f: impl FnOnce(&Compilation) -> napi::Result<R>,
+) -> napi::Result<R> {
+  with_compilation(compilation_id, |compilation| {
+    if compilation.build_module_graph_artifact.is_stolen() {
+      return Err(napi::Error::from_reason(
+        "ModuleGraph is not available while a compilation pass is holding the module graph artifact",
+      ));
+    }
+    f(compilation)
+  })
 }
 
 #[napi]
@@ -219,21 +229,9 @@ impl JsCompilation {
       .transpose()
   }
 
-  #[napi(getter, ts_return_type = "Array<Module>")]
-  pub fn modules<'a>(&self, env: &'a Env) -> Result<Array<'a>> {
-    self.with_module_graph(|compilation| {
-      let module_graph = compilation.get_module_graph();
-      let mut arr = env.create_array(module_graph.modules_len() as u32)?;
-      for (i, identifier) in module_graph.modules_keys().enumerate() {
-        arr.set(
-          i as u32,
-          compilation
-            .module_by_identifier(identifier)
-            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())),
-        )?;
-      }
-      Ok(arr)
-    })
+  #[napi(getter)]
+  pub fn modules(&self) -> Modules {
+    Modules::new(self.id)
   }
 
   #[napi(getter, ts_return_type = "Array<Module>")]
@@ -467,11 +465,60 @@ impl JsCompilation {
     Ok(compilation.get_hash().map(|hash| hash.to_owned()))
   }
 
-  #[napi]
-  pub fn dependencies(&'static self) -> Result<JsDependencies> {
-    let compilation = self.as_ref()?;
+  #[napi(getter)]
+  pub fn file_dependencies(&self) -> Result<FileSystemDependencies> {
+    Ok(FileSystemDependencies::new(
+      self.as_ref()?.compiler_id(),
+      |compilation| {
+        (
+          &compilation.build_module_graph_artifact.file_dependencies,
+          &compilation.file_dependencies,
+        )
+      },
+      |compilation| &mut compilation.file_dependencies,
+    ))
+  }
 
-    Ok(JsDependencies::new(compilation))
+  #[napi(getter)]
+  pub fn context_dependencies(&self) -> Result<FileSystemDependencies> {
+    Ok(FileSystemDependencies::new(
+      self.as_ref()?.compiler_id(),
+      |compilation| {
+        (
+          &compilation.build_module_graph_artifact.context_dependencies,
+          &compilation.context_dependencies,
+        )
+      },
+      |compilation| &mut compilation.context_dependencies,
+    ))
+  }
+
+  #[napi(getter)]
+  pub fn missing_dependencies(&self) -> Result<FileSystemDependencies> {
+    Ok(FileSystemDependencies::new(
+      self.as_ref()?.compiler_id(),
+      |compilation| {
+        (
+          &compilation.build_module_graph_artifact.missing_dependencies,
+          &compilation.missing_dependencies,
+        )
+      },
+      |compilation| &mut compilation.missing_dependencies,
+    ))
+  }
+
+  #[napi(getter)]
+  pub fn build_dependencies(&self) -> Result<FileSystemDependencies> {
+    Ok(FileSystemDependencies::new(
+      self.as_ref()?.compiler_id(),
+      |compilation| {
+        (
+          &compilation.build_module_graph_artifact.build_dependencies,
+          &compilation.build_dependencies,
+        )
+      },
+      |compilation| &mut compilation.build_dependencies,
+    ))
   }
 
   #[napi]
@@ -599,42 +646,38 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn add_file_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation
-      .file_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+  pub fn add_file_dependencies(&mut self, env: Env, deps: Vec<napi::JsString<'_>>) -> Result<()> {
+    let paths = intern_js_values(&env, self.as_ref()?.compiler_id(), deps)?;
+    self.as_mut()?.file_dependencies.extend(paths);
     Ok(())
   }
 
   #[napi]
-  pub fn add_context_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation
-      .context_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+  pub fn add_context_dependencies(
+    &mut self,
+    env: Env,
+    deps: Vec<napi::JsString<'_>>,
+  ) -> Result<()> {
+    let paths = intern_js_values(&env, self.as_ref()?.compiler_id(), deps)?;
+    self.as_mut()?.context_dependencies.extend(paths);
     Ok(())
   }
 
   #[napi]
-  pub fn add_missing_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation
-      .missing_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+  pub fn add_missing_dependencies(
+    &mut self,
+    env: Env,
+    deps: Vec<napi::JsString<'_>>,
+  ) -> Result<()> {
+    let paths = intern_js_values(&env, self.as_ref()?.compiler_id(), deps)?;
+    self.as_mut()?.missing_dependencies.extend(paths);
     Ok(())
   }
 
   #[napi]
-  pub fn add_build_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation
-      .build_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+  pub fn add_build_dependencies(&mut self, env: Env, deps: Vec<napi::JsString<'_>>) -> Result<()> {
+    let paths = intern_js_values(&env, self.as_ref()?.compiler_id(), deps)?;
+    self.as_mut()?.build_dependencies.extend(paths);
     Ok(())
   }
 
@@ -679,7 +722,7 @@ impl JsCompilation {
 
         Ok(modules)
       }),
-      Some(|| drop(reference)),
+      Some(|_: &Env, _: &mut _| drop(reference)),
     )
   }
 
@@ -687,12 +730,13 @@ impl JsCompilation {
   #[napi(
     ts_args_type = "request: string, layer: string | undefined, public_path: JsFilename | undefined, base_uri: string | undefined, original_module: string, original_module_context: string | undefined | null, callback: (...args: any[]) => any"
   )]
-  pub fn import_module(
+  pub fn import_module<'a>(
     &self,
+    env: &'a Env,
     reference: Reference<JsCompilation>,
     request: String,
     layer: Option<String>,
-    public_path: Option<JsFilename>,
+    public_path: Option<Unknown<'a>>,
     base_uri: Option<String>,
     original_module: String,
     original_module_context: Option<String>,
@@ -701,6 +745,31 @@ impl JsCompilation {
     let compilation = self
       .as_ref()
       .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
+    let public_path = if let Some(public_path) = public_path {
+      let mut compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+        let references = ref_cell.borrow();
+        references.get(&compilation.compiler_id()).cloned()
+      });
+      let js_compiler = compiler_reference
+        .as_mut()
+        .and_then(|reference| reference.get_mut())
+        .ok_or_else(|| {
+          napi::Error::new(
+            napi::Status::GenericFailure.into(),
+            "Unable to importModule now. The Compiler has been garbage collected by JavaScript.",
+          )
+        })?;
+      // Convert function-valued public paths in their owning compiler's scope so
+      // their callbacks are released when the compiler closes.
+      Some(
+        js_compiler
+          .compiler_scoped_tsfn_manager
+          .scope(|| unsafe { JsFilename::from_napi_value(env.raw(), public_path.raw()) })
+          .map_err(|err| napi::Error::new(err.status.into(), err.reason))?,
+      )
+    } else {
+      None
+    };
     let compiler_context = compilation.compiler_context.clone();
     callbackify(
       callback,
@@ -725,22 +794,22 @@ impl JsCompilation {
           file_dependencies: res
             .file_dependencies
             .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
+            .map(|dependency| dependency.to_string_lossy().into_owned())
             .collect(),
           context_dependencies: res
             .context_dependencies
             .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
+            .map(|dependency| dependency.to_string_lossy().into_owned())
             .collect(),
           build_dependencies: res
             .build_dependencies
             .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
+            .map(|dependency| dependency.to_string_lossy().into_owned())
             .collect(),
           missing_dependencies: res
             .missing_dependencies
             .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
+            .map(|dependency| dependency.to_string_lossy().into_owned())
             .collect(),
           id: res.id,
           errors: res
@@ -752,7 +821,7 @@ impl JsCompilation {
         };
         Ok(js_result)
       }),
-      Some(|| {
+      Some(|_: &Env, _: &mut _| {
         drop(reference);
       }),
     )
@@ -908,7 +977,7 @@ impl JsCompilation {
 
           Ok(JsAddEntryItemCallbackArgs(results))
         }),
-        Some(|| {
+        Some(|_: &Env, _: &mut _| {
           drop(reference);
         }),
       )
@@ -1011,7 +1080,7 @@ impl JsCompilation {
 
           Ok(JsAddEntryItemCallbackArgs(results))
         }),
-        Some(|| {
+        Some(|_: &Env, _: &mut _| {
           drop(reference);
         }),
       )
