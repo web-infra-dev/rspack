@@ -6,6 +6,10 @@ mod paths;
 mod scanner;
 mod trigger;
 
+#[cfg(feature = "testing")]
+#[doc(hidden)]
+pub mod testing;
+
 use std::{
   future::Future,
   pin::Pin,
@@ -28,7 +32,7 @@ use scanner::Scanner;
 use tokio::sync::{mpsc, oneshot};
 use trigger::Trigger;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct WatchPattern {
   path: InternedPath,
   mode: notify::RecursiveMode,
@@ -147,7 +151,7 @@ struct FsWatcherInner {
   disk_watcher: DiskWatcher,
   executor: Executor,
   scanner: Scanner,
-  analyzer: RecommendedAnalyzer,
+  analyzer: Arc<RecommendedAnalyzer>,
   trigger: Arc<Mutex<Option<Arc<Trigger>>>>,
 }
 
@@ -159,6 +163,7 @@ impl FsWatcher {
     let path_manager =
       Arc::new(PathManager::new(ignored).with_follow_symlinks(options.follow_symlinks));
     let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx));
+    let analyzer = Arc::clone(&trigger.analyzer);
     let disk_watcher = DiskWatcher::new(
       options.follow_symlinks,
       options.poll_interval,
@@ -175,7 +180,7 @@ impl FsWatcher {
       disk_watcher,
       executor,
       scanner,
-      analyzer: RecommendedAnalyzer::default(),
+      analyzer,
       trigger: Arc::clone(&trigger),
     };
 
@@ -430,7 +435,10 @@ impl FsWatcherInner {
     self.record_initial_file_mtimes();
 
     let watch_patterns = self.analyzer.analyze(self.path_manager.access());
-    self.disk_watcher.watch(watch_patterns.into_iter())?;
+    if let Err(error) = self.disk_watcher.watch(watch_patterns.into_iter()) {
+      self.analyzer.invalidate_all();
+      return Err(error);
+    }
     let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
       for path in &changed_in_contexts {
