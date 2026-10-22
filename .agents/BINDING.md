@@ -52,9 +52,15 @@ policy before dereferencing native data. Current binding classes do not share on
 
 - `Compilation` JS Object deliberately stores the stable address of `Compiler.compilation`. Rebuild replaces
   the `Compilation` value at that address, so every retained JavaScript `Compilation` wrapper for
-  the compiler accesses the latest native compilation. Its stored `CompilationId` is not currently
-  used as a stale-access check. This preserves compatibility with webpack plugins that continue
-  using a build's `Compilation` after `done`, when the next watch rebuild may already have started.
+  the compiler can access the latest native compilation through accessors using that slot.
+  This preserves compatibility with webpack plugins that continue using a build's `Compilation`
+  after `done`, when the next watch rebuild may already have started. This behavior does not apply
+  to every accessor: module graph access and the collection views below use `CompilationId`.
+- `Compilation.modules`, `builtModules`, and `chunks` are live views scoped to the originating
+  `CompilationId`. Once a rebuild replaces that compilation, `size`, `has`, and any operation
+  requesting values throw, even on a cache hit. They deliberately do not follow the compiler's
+  current compilation. Obtain these views from the new build's `Compilation`; retaining the old
+  `Compilation` and reading its collection getters again does not retarget them.
 - Wrappers that store an identifier, including module wrappers, may resolve that identifier against
   the current compilation. An old wrapper can therefore expose the current matching object's data
   instead of historical data. If the current target cannot be found, the API may fail according to
