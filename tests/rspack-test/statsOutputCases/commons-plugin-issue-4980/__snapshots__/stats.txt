@@ -1,9 +1,9 @@
-asset app.bc096b9179cd7011-1.js xx bytes [emitted] [immutable] (name: app)
+asset app.d7b3bfb48d3f9961-1.js xx bytes [emitted] [immutable] (name: app)
 orphan modules xx bytes [orphan] 3 modules
 ./entry-1.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
-asset app.2fa70a5d9ac21be0-2.js xx bytes [emitted] [immutable] (name: app)
+asset app.aa49d8a7cd0d931e-2.js xx bytes [emitted] [immutable] (name: app)
 orphan modules xx bytes [orphan] 3 modules
 ./entry-2.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
