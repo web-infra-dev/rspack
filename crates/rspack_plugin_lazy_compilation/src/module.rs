@@ -312,7 +312,10 @@ impl Module for LazyCompilationProxyModule {
         ",
         runtime_template.module_namespace_promise(
           compilation,
-          *module,
+          module_graph
+            .module_by_identifier(module)
+            .expect("should have module")
+            .get_strict_esm_module(),
           dep_id,
           Some(block_id),
           &self.resource,
