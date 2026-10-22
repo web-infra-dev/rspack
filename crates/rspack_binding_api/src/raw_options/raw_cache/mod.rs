@@ -1,14 +1,12 @@
 mod raw_storage;
 
-use std::time::Duration;
-
 use napi::{
   Either,
   bindgen_prelude::{FromNapiValue, JsObjectValue, Object, TypeName, ValidateNapiValue},
 };
 use napi_derive::napi;
 use raw_storage::RawStorageOptions;
-use rspack_core::{CacheOptions, FileSystemCacheOptions, PersistentCacheOptions};
+use rspack_core::{CacheOptions, PersistentCacheOptions};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -51,48 +49,9 @@ pub struct RawCacheOptionsMemory {
 }
 
 #[derive(Debug)]
-#[napi(object)]
-pub struct RawFileSystemCacheOptions {
-  pub build_dependencies: Vec<String>,
-  pub cache_directory: String,
-  pub cache_location: String,
-  pub version: String,
-  pub readonly: bool,
-  pub max_memory_generations: Option<u32>,
-  pub idle_timeout: f64,
-  pub idle_timeout_for_initial_store: f64,
-  pub idle_timeout_after_large_changes: f64,
-}
-
-impl From<RawFileSystemCacheOptions> for FileSystemCacheOptions {
-  fn from(value: RawFileSystemCacheOptions) -> Self {
-    Self {
-      build_dependencies: value
-        .build_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect(),
-      cache_directory: value.cache_directory.into(),
-      cache_location: value.cache_location.into(),
-      version: value.version,
-      readonly: value.readonly,
-      max_memory_generations: value.max_memory_generations.into(),
-      idle_timeout: Duration::from_millis(value.idle_timeout as u64),
-      idle_timeout_for_initial_store: Duration::from_millis(
-        value.idle_timeout_for_initial_store as u64,
-      ),
-      idle_timeout_after_large_changes: Duration::from_millis(
-        value.idle_timeout_after_large_changes as u64,
-      ),
-    }
-  }
-}
-
-#[derive(Debug)]
 pub enum InnerCacheOptions {
   Memory(RawCacheOptionsMemory),
   Persistent(RawCacheOptionsPersistent),
-  FileSystem(RawFileSystemCacheOptions),
 }
 
 impl TypeName for InnerCacheOptions {
@@ -117,9 +76,6 @@ impl FromNapiValue for InnerCacheOptions {
       let t = o.get_named_property::<String>("type")?;
 
       let v = match &*t {
-        "filesystem" => {
-          Self::FileSystem(RawFileSystemCacheOptions::from_napi_value(env, napi_val)?)
-        }
         "persistent" => {
           let o = RawCacheOptionsPersistent::from_napi_value(env, napi_val)?;
           Self::Persistent(o)
@@ -130,7 +86,7 @@ impl FromNapiValue for InnerCacheOptions {
         }
         _ => {
           return Err(napi::Error::from_reason(format!(
-            "Unexpected cache type: {t}, expected 'persistent', 'filesystem' or 'memory'"
+            "Unexpected cache type: {t}, expected 'persistent' or 'memory'"
           )));
         }
       };
@@ -153,7 +109,6 @@ pub fn normalize_raw_cache(options: RawCacheOptions) -> rspack_error::Result<Cac
     }
     Either::B(options) => match options {
       InnerCacheOptions::Persistent(options) => CacheOptions::Persistent(options.try_into()?),
-      InnerCacheOptions::FileSystem(options) => CacheOptions::FileSystem(options.into()),
       InnerCacheOptions::Memory(options) => CacheOptions::Memory {
         max_generations: options.max_generations.unwrap_or(1),
       },

@@ -1,5 +1,5 @@
 ---
-description: '注意 HMR 不能被用于生产构建，因此你需要通过 process.env.NODEENV 来判断当前是否是开发环境。'
+description: '通过 HotModuleReplacementPlugin 启用模块热替换（HMR），在开发时无需刷新整个页面即可更新模块。'
 ---
 
 # HotModuleReplacementPlugin
@@ -38,3 +38,34 @@ export default {
 为了在 Preact 项目中启用 Fast Refresh 能力，你还需要使用 [@rspack/plugin-preact-refresh](https://www.npmjs.com/package/@rspack/plugin-preact-refresh) 插件。
 
 请参考 [Preact - Fast Refresh](/guide/integrations/preact#preact-refresh) 了解更多信息。
+
+## 热更新清单 \{#hot-update-manifest}
+
+热更新时，运行时会读取 `hot-update.json`，确定需要更新的 chunk，以及需要移除的 chunk 或模块。清单中记录了它们的 ID，JavaScript 更新代码则存放在单独的 `*.hot-update.(js|mjs)` 文件中。
+
+下面的示例表示更新 `main` chunk 的 JavaScript 和内置 CSS，无需移除任何 chunk 或模块：
+
+```json
+{
+  "c": ["main"],
+  "r": [],
+  "m": [],
+  "css": { "c": ["main"] }
+}
+```
+
+下表中的字段均为 ID 数组：
+
+| 字段        | 含义和作用                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| `c`         | 需要更新 JavaScript 的 chunk，运行时会按需加载对应的更新文件。                                 |
+| `r`         | 需要从当前运行时移除的 chunk。                                                                 |
+| `m`         | 需要从当前运行时移除的模块。                                                                   |
+| `css.c`     | 内置 CSS 发生变化的 chunk，运行时会重新加载对应的样式表。                                      |
+| `css.r`     | 内置 CSS 已被移除的 chunk，运行时会移除对应的旧样式表。                                        |
+| `miniCss.c` | 含义同 `css.c`，用于 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) 提取的 CSS。 |
+| `miniCss.r` | 含义同 `css.r`，用于 `CssExtractRspackPlugin` 提取的 CSS。                                     |
+
+`css` 和 `miniCss` 是可选对象，其中的 `c`、`r` 字段为空时会省略。
+
+你可以通过 [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename) 自定义清单文件的名称。如果将 `output.module` 设为 `true`，Rspack 会将清单生成为 ES 模块，并通过默认导出提供清单内容。

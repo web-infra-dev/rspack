@@ -13,9 +13,9 @@ pub fn create_storage(
   fs: Arc<dyn IntermediateFileSystem>,
 ) -> BoxStorage {
   match options {
-    StorageOptions::FileSystem { directory } => {
+    StorageOptions::FileSystem { location, .. } => {
       let option = FileSystemOptions {
-        directory,
+        directory: location,
         cache_directory,
         max_pack_size: 500 * 1024,
         expire: max_age,

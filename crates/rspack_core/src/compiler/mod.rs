@@ -212,20 +212,24 @@ impl Compiler {
     self.new_cache.facade(name)
   }
 
-  fn store_cache_metadata(&mut self) {
+  fn store_cache_metadata(&mut self, build_succeeded: bool) {
     if self.new_cache.has_file_cache() {
-      if let CacheOptions::FileSystem(options) = &self.options.cache {
-        self.compilation.build_dependencies.extend(
-          options
-            .build_dependencies
-            .iter()
-            .map(|path| InternedPath::from(path.as_path())),
-        );
+      // A fatal error can leave the module graph artifact unavailable.
+      if build_succeeded {
+        if let CacheOptions::Persistent(options) = &self.options.cache {
+          self.compilation.build_dependencies.extend(
+            options
+              .build_dependencies
+              .iter()
+              .map(|path| InternedPath::from(path.as_path())),
+          );
+        }
+        let (build_dependencies, _, _, _) = self.compilation.build_dependencies();
+        self
+          .new_cache
+          .store_build_dependencies(build_dependencies.cloned().collect());
       }
-      let (build_dependencies, _, _, _) = self.compilation.build_dependencies();
-      self
-        .new_cache
-        .store_build_dependencies(build_dependencies.cloned().collect());
+
       self.get_cache("meta").store(
         "state",
         None,
@@ -262,7 +266,7 @@ impl Compiler {
         failed.and(Err(e))
       }
     };
-    self.store_cache_metadata();
+    self.store_cache_metadata(result.is_ok());
     result
   }
 
@@ -329,7 +333,7 @@ impl Compiler {
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
     #[cfg(allocative)]
-    crate::utils::snapshot_allocative("build");
+    crate::utils::snapshot_allocative("build", self)?;
 
     Ok(())
   }

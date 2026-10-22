@@ -6,6 +6,12 @@
     var a = 123;
     console.log(a);
   </script>
+  <script>
+    throw new Error("first script");
+  </script>
+  <script>
+    window.secondScript = document.currentScript;
+  </script>
   <title>test</title>
   <style>
     .test {

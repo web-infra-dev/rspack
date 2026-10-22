@@ -1,5 +1,5 @@
 ---
-description: "Rspack uses the higher-performance rspack-resolver written in Rust to replace webpack's enhanced-resolve, and experimentally re-exports these APIs through..."
+description: 'Resolve module paths synchronously or asynchronously with the experimental rspack.experiments.resolver API and ResolverFactory.'
 ---
 
 # Resolver API
@@ -14,11 +14,14 @@ import { rspack } from '@rspack/core';
 const { resolver } = rspack.experiments;
 
 // Directly use Resolver API with default options
-const { path: resolvedPath } = resolver.sync(contextPath, './index.js');
-const { path: resolvedPath } = await resolver.async(contextPath, './index.js');
+const { path: syncResolvedPath } = resolver.sync(contextPath, './index.js');
+const { path: asyncResolvedPath } = await resolver.async(
+  contextPath,
+  './index.js',
+);
 
 // Use ResolverFactory with custom options
 const customResolver = new resolver.ResolverFactory(resolveOptions);
-const result = customResolver.sync(contextPath, './request.js');
-const result = await customResolver.async(contextPath, './request.js');
+const syncResult = customResolver.sync(contextPath, './request.js');
+const asyncResult = await customResolver.async(contextPath, './request.js');
 ```

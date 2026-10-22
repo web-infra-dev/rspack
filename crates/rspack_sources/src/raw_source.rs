@@ -10,7 +10,6 @@ use crate::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, get_generated_source_info,
     stream_chunks_of_raw_source,
   },
-  object_pool::ObjectPool,
 };
 
 /// A string variant of [RawStringSource].
@@ -18,12 +17,12 @@ use crate::{
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#rawsource).
 ///
 /// ```
-/// use rspack_sources::{MapOptions, ObjectPool, RawStringSource, Source, SourceExt};
+/// use rspack_sources::{MapOptions, RawStringSource, Source, SourceExt};
 ///
 /// let code = "some source code";
 /// let s = RawStringSource::from(code.to_string());
 /// assert_eq!(s.source().into_string_lossy(), code);
-/// assert_eq!(s.map(&ObjectPool::default(), &MapOptions::default()), None);
+/// assert_eq!(s.map(&MapOptions::default()), None);
 /// assert_eq!(s.size(), 16);
 /// ```
 #[derive(Clone, PartialEq, Eq)]
@@ -78,11 +77,11 @@ impl Source for RawStringSource {
     self.0.len()
   }
 
-  fn map(&self, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap<'_>> {
+  fn map(&self, _: &MapOptions) -> Option<SourceMap<'_>> {
     None
   }
 
-  fn map_static(self: Arc<Self>, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap<'static>> {
+  fn map_static(self: Arc<Self>, _: &MapOptions) -> Option<SourceMap<'static>> {
     None
   }
 
@@ -121,7 +120,6 @@ impl<'source> RawStringChunks<'source> {
 impl<'source> Chunks<'source> for RawStringChunks<'source> {
   fn stream<'chunk>(
     &'chunk self,
-    _object_pool: &ObjectPool,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
     on_source: crate::helpers::OnSource<'_, 'source>,
@@ -147,12 +145,12 @@ impl StreamChunks for RawStringSource {
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#rawsource).
 ///
 /// ```
-/// use rspack_sources::{MapOptions, ObjectPool, RawBufferSource, Source, SourceExt};
+/// use rspack_sources::{MapOptions, RawBufferSource, Source, SourceExt};
 ///
 /// let code = "some source code".as_bytes();
 /// let s = RawBufferSource::from(code);
 /// assert_eq!(s.buffer(), code);
-/// assert_eq!(s.map(&ObjectPool::default(), &MapOptions::default()), None);
+/// assert_eq!(s.map(&MapOptions::default()), None);
 /// assert_eq!(s.size(), 16);
 /// ```
 pub struct RawBufferSource {
@@ -226,11 +224,11 @@ impl Source for RawBufferSource {
     self.value.len()
   }
 
-  fn map(&self, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap<'_>> {
+  fn map(&self, _: &MapOptions) -> Option<SourceMap<'_>> {
     None
   }
 
-  fn map_static(self: Arc<Self>, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap<'static>> {
+  fn map_static(self: Arc<Self>, _: &MapOptions) -> Option<SourceMap<'static>> {
     None
   }
 
@@ -263,7 +261,6 @@ struct RawBufferSourceChunks<'a>(&'a RawBufferSource);
 impl<'source> Chunks<'source> for RawBufferSourceChunks<'source> {
   fn stream<'chunk>(
     &'chunk self,
-    _object_pool: &ObjectPool,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
     on_source: crate::helpers::OnSource<'_, 'source>,
@@ -297,9 +294,7 @@ mod tests {
     let source1 = ReplaceSource::new(source1);
     let source2 = OriginalSource::new("world".to_string(), "world.txt");
     let concat = ConcatSource::new([source1.boxed(), source2.boxed()]);
-    let map = concat
-      .map(&ObjectPool::default(), &MapOptions::new(false))
-      .unwrap();
+    let map = concat.map(&MapOptions::new(false)).unwrap();
     assert_eq!(map.mappings(), ";;AAAA",);
   }
 }

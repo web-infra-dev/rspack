@@ -1,5 +1,5 @@
 ---
-description: 'Used to configure the Rspack module resolution logic'
+description: 'Configure module resolution with aliases, extensions, package conditions, search directories, and TypeScript paths.'
 ---
 
 import Attribution from '@components/Attribution';
@@ -665,6 +665,8 @@ Entries are tried in array order, and can be directory names, relative paths, or
 - A directory name or relative path is searched from the directory containing the importing file, and then from each parent directory. For example, `node_modules` searches `<importer-directory>/node_modules`, then each ancestor's `node_modules` directory.
 - An absolute path refers to that exact directory; it is not resolved again from each ancestor.
 
+When resolving a package root such as `foo` or `@scope/foo` from a directory named `node_modules`, Rspack tries the package directory before sibling files with appended extensions, such as `foo.js`. If the directory has no resolvable entry, Rspack falls back to file resolution. Requests matched by `resolve.extensionAlias` retain their existing resolution order. Other module directories and package subpath requests keep file-first resolution.
+
 For example, the following configuration allows modules inside `src` to be imported with bare requests, while preserving the normal lookup of third-party packages from `node_modules`:
 
 ```js title="rspack.config.mjs"
@@ -800,5 +802,71 @@ Supports [tsconfig project references](https://www.typescriptlang.org/docs/handb
 The list of tsconfig paths can be provided manually, or you may specify `auto` to read the paths list from `tsconfig.references` automatically.
 
 This feature is disabled when the value is `undefined`.
+
+#### Reference matching rules
+
+When resolving a non-relative request, Rspack checks the referenced tsconfig files one by one before falling back to the main tsconfig. They are checked in the order they appear in `references`, and the references of a referenced tsconfig are checked before that tsconfig itself:
+
+1. The base path of each reference defaults to the directory containing that tsconfig (or its `baseUrl`, if configured).
+2. The first reference whose base path contains the directory of the importing file wins. Rspack uses the `paths` of that reference and stops there, even if that reference defines no `paths`.
+3. Only when no reference matches does Rspack use the `paths` of the main tsconfig.
+
+The match is based on directories only. Unlike `tsc`, Rspack does not read `include`, `files` or `exclude` to decide which project a file belongs to.
+
+For example, with the following layout:
+
+```
+.
+├── tsconfig.json             # paths: { "@/*": ["./src/*"] }
+│                             # references: [{ "path": "./packages/ui" }, { "path": "./packages/utils" }]
+├── src/
+│   └── index.ts
+└── packages/
+    ├── ui/
+    │   ├── tsconfig.json     # paths: { "@ui/*": ["./src/*"] }
+    │   └── src/button.ts
+    └── utils/
+        ├── tsconfig.json     # no paths
+        └── src/format.ts
+```
+
+| Importing file                 | Matched tsconfig                       | Result                                                   |
+| ------------------------------ | -------------------------------------- | -------------------------------------------------------- |
+| `src/index.ts`                 | `tsconfig.json` (no reference matches) | `@/*` resolves                                           |
+| `packages/ui/src/button.ts`    | `packages/ui/tsconfig.json`            | `@ui/*` resolves, `@/*` does not                         |
+| `packages/utils/src/format.ts` | `packages/utils/tsconfig.json`         | No alias resolves, not even `@/*` from the main tsconfig |
+
+:::tip
+When using `references: 'auto'`, Rspack loads every entry in the `references` field of the tsconfig. Avoid placing multiple referenced tsconfig files (or a referenced tsconfig and the main tsconfig) in the same directory, because files in that directory can only match one of them. Instead, place each referenced tsconfig in the directory of the files it covers, as in the example above. This only affects how Rspack resolves `paths` aliases. Relative imports and `tsc` are not affected.
+
+For example, if several tsconfig files are placed side by side in the project root:
+
+```
+.
+├── tsconfig.json         # references: [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
+├── tsconfig.app.json     # include: ["src"], paths: { "@/*": ["./src/*"] }
+├── tsconfig.node.json    # include: ["scripts"], paths: { "@scripts/*": ["./scripts/*"] }
+├── src/
+└── scripts/
+```
+
+both references have the project root as their base path, so files under `src/` and under `scripts/` all match `tsconfig.app.json`, which comes first in `references`. As a result, `@/*` also resolves in `scripts/`, while `@scripts/*` from `tsconfig.node.json` and any `paths` in the main `tsconfig.json` never take effect.
+
+If the layout cannot be changed, you can also set `references` to an array and list only the references whose directories do not overlap, so that the matched reference is explicit:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    tsConfig: {
+      configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
+      references: [path.resolve(import.meta.dirname, './tsconfig.app.json')],
+    },
+  },
+};
+```
+
+:::
 
 <Attribution url="https://webpack.js.org/configuration/resolve/" />

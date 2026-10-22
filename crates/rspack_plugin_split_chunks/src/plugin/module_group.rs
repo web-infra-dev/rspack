@@ -22,6 +22,7 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::{fx_hash::FxDashMap, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+use tokio::sync::OnceCell;
 use tracing::instrument;
 
 use super::{
@@ -197,6 +198,13 @@ impl Deref for ChunkCombination {
     &self.data.chunks
   }
 }
+
+struct SelectedChunksCacheEntry {
+  combination: Arc<ChunkCombinationData>,
+  selected: Arc<OnceCell<FxHashSet<ChunkUkey>>>,
+}
+
+type SelectedChunksCache = FxDashMap<(u32, ChunksKey), Vec<SelectedChunksCacheEntry>>;
 
 enum SelectedChunks<'a> {
   All(&'a ChunkCombination),
@@ -898,6 +906,12 @@ impl SplitChunksPlugin {
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
     let module_group_map: FxDashMap<ModuleGroupKey, ModuleGroup> = FxDashMap::default();
+    // Only function filters use this preparation-scoped memo. Native-only
+    // preparation does not allocate a table or change its Rayon fast path.
+    let selected_chunks_cache = cache_groups
+      .iter()
+      .any(|indexed| indexed.cache_group.chunk_filter.is_func())
+      .then(SelectedChunksCache::default);
     let name_batch_getters = self.name_batch_getters.as_deref();
     // Module callbacks still run once in the existing asynchronous pass.
     // Anonymous all-chunk candidates can then be assembled independently,
@@ -1050,21 +1064,61 @@ impl SplitChunksPlugin {
 
           let selected_chunks = match &cache_group.chunk_filter {
             ChunkFilter::All => SelectedChunks::All(chunk_combination),
-            ChunkFilter::Func(_) => SelectedChunks::Filtered(
-              join_all(chunk_combination.iter().map(|chunk| async move {
-                cache_group
-                  .chunk_filter
-                  .test_func(chunk, compilation)
+            ChunkFilter::Func(_) => {
+              let selected = {
+                let mut entries = selected_chunks_cache
+                  .as_ref()
+                  .expect("function filters should have a selected chunks cache")
+                  .entry((indexed_cache_group.cache_group_index, chunk_combination.key))
+                  .or_default();
+                // ChunksKey is a hash, not exact set identity. Compare membership
+                // on every hit, including combinations from used-export grouping.
+                if let Some(entry) = entries.iter().find(|entry| {
+                  Arc::ptr_eq(&entry.combination, &chunk_combination.data)
+                    || entry.combination.chunks == chunk_combination.data.chunks
+                }) {
+                  Arc::clone(&entry.selected)
+                } else {
+                  let selected = Arc::new(OnceCell::new());
+                  entries.push(SelectedChunksCacheEntry {
+                    combination: Arc::clone(&chunk_combination.data),
+                    selected: Arc::clone(&selected),
+                  });
+                  selected
+                }
+              };
+              // Drop the map guard before awaiting the single-flight initializer.
+              // Failed/cancelled initializations leave the cell empty for retries.
+              let selected = selected
+                .get_or_try_init(|| async {
+                  let chunks = join_all(chunk_combination.iter().map(|chunk| async move {
+                    cache_group
+                      .chunk_filter
+                      .test_func(chunk, compilation)
+                      .await
+                      .map(|matched| (chunk, matched))
+                  }))
                   .await
-                  .map(|matched| (chunk, matched))
-              }))
-              .await
-              .into_iter()
-              .collect::<Result<Vec<_>>>()?
-              .into_iter()
-              .filter_map(|(chunk, matched)| matched.then_some(*chunk))
-              .collect(),
-            ),
+                  .into_iter()
+                  .collect::<Result<Vec<_>>>()?
+                  .into_iter()
+                  .filter_map(|(chunk, matched)| matched.then_some(*chunk))
+                  .collect::<FxHashSet<_>>();
+                  Ok::<_, rspack_error::Error>(chunks)
+                })
+                .await?;
+              // Equal memberships can have different hash-set layouts. Keep
+              // only filter results in the cell, never the initializer's order.
+              // Every module follows its own combination, exactly as uncached
+              // filtering does, including the original Filtered/key() path.
+              SelectedChunks::Filtered(
+                chunk_combination
+                  .iter()
+                  .filter(|chunk| selected.contains(chunk))
+                  .copied()
+                  .collect(),
+              )
+            }
             _ => SelectedChunks::Filtered(
               chunk_combination
                 .iter()

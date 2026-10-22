@@ -770,11 +770,17 @@ type RuleSetUse =
 
 type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
 
+type RuleSetLoaderCodeFilter = string | RegExp;
+
 type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
   parallel?: boolean | { maxWorkers?: number };
+  cache?: boolean;
+  filter?: {
+    code: RuleSetLoaderCodeFilter;
+  };
 };
 ```
 
@@ -804,6 +810,8 @@ export default {
 A function can also be used to select loaders for each module. It can return a loader name, a loader options object, or an array of these:
 
 ```js title="rspack.config.mjs"
+import { basename } from 'node:path';
+
 export default {
   module: {
     rules: [
@@ -821,6 +829,90 @@ export default {
               ],
             },
           },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## rules[].use.codeFilter
+
+- **Type:**
+
+```ts
+type RuleSetLoaderCodeFilter = string | RegExp;
+```
+
+- **Default:** `undefined`
+
+Controls whether a loader runs based on its current input code. When the code does not match the filter, Rspack skips that loader's code transformation and passes the input to the next loader unchanged. Use this to avoid unnecessary transformations for modules that do not contain the relevant syntax.
+
+- `string`: matches if the code contains the given substring.
+- `RegExp`: matches if the code satisfies the regular expression.
+
+Rspack checks the filter immediately before the loader transforms the code. Since loaders run from right to left, the filter checks the output of loaders to its right, if any. The filter does not affect the loader's pitch function.
+
+**String matching**
+
+For a custom loader that removes console logs, run it only when the input code contains `console.log`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './remove-console-loader.js',
+            codeFilter: 'console.log',
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+**Regular expression matching**
+
+Run `remove-console-loader.js` only when the input code contains `console.log` or `console.debug`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './remove-console-loader.js',
+            codeFilter: /\bconsole\.(log|debug)\b/,
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+**Matching another loader's output**
+
+Here, `generate-loader.js` runs first. Rspack then runs `transform-loader.js` only if the generated code contains `generated:marker`, even if that substring was absent from the original source:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: './transform-loader.js',
+            codeFilter: 'generated:marker',
+          },
+          './generate-loader.js',
         ],
       },
     ],
@@ -871,37 +963,7 @@ Controls whether a given loader should run in worker threads for parallel execut
 - When set to `{ maxWorkers }`, you can explicitly define the maximum number of workers to use.
 - When set to `false` or omitted, the loader runs on the main thread.
 
-For example, enabling parallel execution for `less-loader`:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'less-loader',
-            parallel: true,
-            options: {
-              // loader options
-            },
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-When multiple loaders within the same rule have `parallel` enabled, Rspack executes them sequentially inside the same worker until it encounters a non-parallel loader or a Rust-implemented builtin loader. This preserves loader order while maximizing parallel efficiency.
-
-:::tip
-
-- The loader options must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
-- In worker mode, most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` are not supported.
-
-:::
+For usage examples and limitations, see [Parallel loader](/guide/features/loader#parallel-loader).
 
 ## rules[].use.parallel.maxWorkers
 

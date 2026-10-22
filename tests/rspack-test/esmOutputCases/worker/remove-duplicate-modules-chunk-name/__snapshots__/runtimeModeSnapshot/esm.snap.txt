@@ -1,5 +1,4 @@
 ```mjs title=lib_js.mjs
-export const __rspack_esm_id = "lib_js";
 export const __rspack_esm_ids = ["lib_js"];
 export const __rspack_modules = {
 "./lib.js"
@@ -29,7 +28,6 @@ if (node_worker_threads__rspack_import_0.parentPort) node_worker_threads__rspack
 ```
 
 ```mjs title=main.mjs
-export const __rspack_esm_id = "main";
 export const __rspack_esm_ids = ["main"];
 export const __rspack_modules = {
 "./index.js"
