@@ -3,8 +3,6 @@ use std::path::PathBuf;
 use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_paths::Utf8PathBuf;
 
-use crate::Context;
-
 #[derive(Debug, Clone)]
 pub enum CacheOptions {
   Disabled,
@@ -44,21 +42,6 @@ pub struct PersistentCacheOptions {
   pub max_age: u64,
   /// Number of generations to retain entries in the memory front cache.
   pub max_memory_generations: MaxMemoryGenerations,
-}
-
-impl PersistentCacheOptions {
-  /// The version both backends store and compare on restore.
-  ///
-  /// Without `portable`, cache entries hold absolute paths under `context`, so a
-  /// cache moved or shared to another root must fail validation instead of
-  /// restoring the other root's paths.
-  pub fn validation_version(&self, context: &Context) -> String {
-    if self.portable {
-      self.version.clone()
-    } else {
-      format!("{}|{}", self.version, context.as_str())
-    }
-  }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
