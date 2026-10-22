@@ -6,7 +6,7 @@
 <%- ENSURE_CHUNK_HANDLERS %>.miniCss = function (chunkId, promises, fetchPriority) {
 	var cssChunks = <%- _css_chunks %>;
 	if (installedCssChunks[chunkId]) promises.push(installedCssChunks[chunkId])
-	else if (installedCssChunks[chunkId] !== 0 && cssChunks[chunkId])
+	else if (installedCssChunks[chunkId] !== 0 && (<%- _css_matcher %>))
 		promises.push(
 			installedCssChunks[chunkId] = extractCssLoadStylesheet(chunkId, fetchPriority).then(
 				function () {

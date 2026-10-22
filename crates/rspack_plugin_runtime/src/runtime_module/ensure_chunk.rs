@@ -64,41 +64,11 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
       } else {
         ""
       };
-      let blocks = if compilation.hot {
-        let graph = &compilation.build_chunk_graph_artifact;
-        let chunk = graph.chunk_by_ukey.expect_get(&chunk_ukey);
-        graph
-          .chunk_graph
-          .get_block_chunks(compilation, Some(chunk.runtime()))
-      } else {
-        Default::default()
-      };
-      let mut previous = "";
-      let encoded_blocks = blocks
-        .iter()
-        .map(|(id, chunks)| {
-          let mut prefix_bytes = 0;
-          let mut prefix_units = 0;
-          // BTreeMap order makes adjacent identifiers share their loader and path prefixes.
-          // JavaScript's slice() counts UTF-16 code units, while Rust slices use byte offsets.
-          for ((offset, current), old) in id.char_indices().zip(previous.chars()) {
-            if current != old {
-              break;
-            }
-            prefix_bytes = offset + current.len_utf8();
-            prefix_units += current.len_utf16();
-          }
-          previous = id;
-          (prefix_units, &id[prefix_bytes..], chunks)
-        })
-        .collect::<Vec<_>>();
-
       runtime_template.render(
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
           "_fetch_priority": fetch_priority,
           "_hmr": compilation.hot,
-          "_blocks": rspack_util::json_stringify(&encoded_blocks),
           "_state_expression": runtime_template.render_hmr_runtime_state_expression("blocks"),
         })),
       )?
@@ -119,7 +89,6 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
       dependencies.insert(
         RuntimeGlobals::REQUIRE_SCOPE
           | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-          | RuntimeGlobals::HAS_OWN_PROPERTY
           | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX,
       );
       define.insert(RuntimeGlobals::ENSURE_CHUNK_GROUP);

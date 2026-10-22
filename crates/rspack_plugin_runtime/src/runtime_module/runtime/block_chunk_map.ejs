@@ -1,0 +1,8 @@
+(<%- basicFunction("blocks") %> {
+	var map = <%- REQUIRE_SCOPE %>.hmrS_blockChunks;
+	var blockId = "";
+	blocks.forEach(<%- basicFunction("block") %> {
+		blockId = blockId.slice(0, block[0]) + block[1];
+		map[blockId] = block[2];
+	});
+})(<%- _blocks %>);

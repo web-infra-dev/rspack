@@ -321,7 +321,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let has_js_matcher = compile_boolean_matcher(&condition_map);
     let initial_chunks = get_initial_chunk_ids(self.chunk(), compilation, chunk_has_js);
 
-    let js_matcher = has_js_matcher.render("chunkId");
+    let js_matcher = crate::render_chunk_matcher(context, &has_js_matcher.render("chunkId"), 0);
 
     let mut source = String::default();
 
@@ -347,7 +347,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     ));
 
     if with_loading {
-      let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
+      let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) && !compilation.hot {
         "jsonpInstalledChunks[chunkId] = 0;".to_string()
       } else {
         runtime_template.render(

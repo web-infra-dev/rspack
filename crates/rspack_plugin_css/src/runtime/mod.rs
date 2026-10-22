@@ -266,7 +266,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let with_loading = with_css_modules
         && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-        && !matches!(has_css_matcher, BooleanMatcher::Condition(false));
+        && (compilation.hot || !matches!(has_css_matcher, BooleanMatcher::Condition(false)));
       let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
       let initial_chunks =
@@ -367,7 +367,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           let source_with_loading = context.runtime_template.render(
             &self.template_id(TemplateId::WithLoading),
             Some(serde_json::json!({
-              "_css_matcher": &has_css_matcher.render("chunkId"),
+              "_css_matcher": rspack_plugin_runtime::render_chunk_matcher(context, &has_css_matcher.render("chunkId"), 1),
               "_is_neutral_platform": is_neutral_platform
             })),
           )?;
@@ -397,7 +397,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           let source_with_prefetch = context.runtime_template.render(
             &self.template_id(TemplateId::WithPrefetch),
             Some(serde_json::json!({
-              "_css_matcher": &has_css_matcher.render("chunkId"),
+              "_css_matcher": rspack_plugin_runtime::render_chunk_matcher(context, &has_css_matcher.render("chunkId"), 1),
               "_create_prefetch_link": &link_prefetch.code,
               "_is_neutral_platform": is_neutral_platform
             })),
@@ -428,7 +428,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           let source_with_preload = context.runtime_template.render(
             &self.template_id(TemplateId::WithPreload),
             Some(serde_json::json!({
-              "_css_matcher": &has_css_matcher.render("chunkId"),
+              "_css_matcher": rspack_plugin_runtime::render_chunk_matcher(context, &has_css_matcher.render("chunkId"), 1),
               "_create_preload_link": &link_preload.code,
               "_is_neutral_platform": is_neutral_platform
             })),

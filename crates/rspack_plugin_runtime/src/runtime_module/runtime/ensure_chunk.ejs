@@ -10,20 +10,9 @@
 	);
 };
 <% if (_hmr) { %>
-<%- var("blockChunks") %> = (<%- basicFunction("blocks") %> {
-	var map = Object.create(null);
-	var blockId = "";
-	blocks.forEach(<%- basicFunction("block") %> {
-		blockId = blockId.slice(0, block[0]) + block[1];
-		map[blockId] = block[2];
-	});
-	return map;
-})(<%- _blocks %>);
+<%- var("blockChunks") %> = <%- REQUIRE_SCOPE %>.hmrS_blockChunks = <%- REQUIRE_SCOPE %>.hmrS_blockChunks || Object.create(null);
 // undefined = not loaded, Promise = loading, 0 = loaded.
 <%- var("installedBlocks") %> = <%- _state_expression %> = <%- _state_expression %> || Object.create(null);
-Object.keys(installedBlocks).forEach(<%- basicFunction("blockId") %> {
-	if (!<%- HAS_OWN_PROPERTY %>(blockChunks, blockId)) delete installedBlocks[blockId];
-});
 <%- define(ENSURE_CHUNK_GROUP) %> = <%- basicFunction("blockId, fetchPriority") %> {
 	var promises = [];
 	var chunks = blockChunks[blockId] || [];

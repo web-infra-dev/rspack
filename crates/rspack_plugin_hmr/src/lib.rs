@@ -37,11 +37,13 @@ use rspack_plugin_javascript::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 type BlockChunks = BTreeMap<String, Vec<ChunkId>>;
+type ChunkFiles = ChunkIdMap<[Option<String>; 3]>;
 
 #[derive(Debug, Default)]
 struct ChunkLoadingPlans {
   entries: EntryChunks,
-  blocks: BlockChunks,
+  blocks: HashMap<String, BlockChunks>,
+  files: ChunkFiles,
 }
 
 /// Safety with [atomic_refcell::AtomicRefCell]:
@@ -120,6 +122,36 @@ fn collect_css_files(compilation: &Compilation) -> ChunkIdMap<ChunkCssFiles> {
         }
       }
       (files.css.is_some() || files.mini_css.is_some()).then(|| (chunk.expect_id().clone(), files))
+    })
+    .collect()
+}
+
+// Ordinary filenames are needed by imports started before the filename runtimes apply.
+// The tuple positions are JavaScript, native CSS, and extracted CSS.
+fn collect_chunk_files(compilation: &Compilation) -> ChunkFiles {
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values()
+    .filter(|chunk| chunk.kind() != ChunkKind::HotUpdate)
+    .filter_map(|chunk| {
+      let mut files = [None, None, None];
+      for filename in chunk.files() {
+        let Some(asset) = compilation.assets().get(filename) else {
+          continue;
+        };
+        if asset.info.hot_module_replacement == Some(true) {
+          continue;
+        }
+        let index = match &asset.info.asset_type {
+          ManifestAssetType::JavaScript => 0,
+          ManifestAssetType::Css => 1,
+          ManifestAssetType::Custom(kind) if kind.as_str() == "extract-css" => 2,
+          _ => continue,
+        };
+        files[index] = Some(filename.clone());
+      }
+      chunk.id().map(|id| (id.clone(), files))
     })
     .collect()
 }
@@ -284,12 +316,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     Arc::clone(&current_css_files),
   );
 
+  let graph = &compilation.build_chunk_graph_artifact;
+  let runtimes = graph
+    .chunk_by_ukey
+    .values()
+    .flat_map(|chunk| chunk.runtime().iter().copied())
+    .collect::<HashSet<_>>();
   let current_plans = Arc::new(ChunkLoadingPlans {
     entries: collect_entry_chunks(compilation),
-    blocks: compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_block_chunks(compilation, None),
+    blocks: runtimes
+      .into_iter()
+      .map(|runtime| {
+        let spec = [runtime].into_iter().collect();
+        (
+          runtime.to_string(),
+          graph.chunk_graph.get_block_chunks(compilation, Some(&spec)),
+        )
+      })
+      .collect(),
+    files: collect_chunk_files(compilation),
   });
   let old_plans = {
     let old_hash = compilation
@@ -419,9 +464,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       collect_additions(chunks, previous);
     }
   }
-  for (block_id, chunks) in &current_plans.blocks {
-    if let Some(previous) = old_plans.blocks.get(block_id) {
-      collect_additions(chunks, previous);
+  for (runtime, blocks) in &current_plans.blocks {
+    if let Some(previous_blocks) = old_plans.blocks.get(runtime) {
+      for (block_id, chunks) in blocks {
+        if let Some(previous) = previous_blocks.get(block_id) {
+          collect_additions(chunks, previous);
+        }
+      }
     }
   }
   // New chunks also get incremental hot-update assets. Their download is
@@ -528,7 +577,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_runtime_modules_in_order(&current_chunk.ukey(), compilation)
-        .filter(|(module, _)| updated_runtime_modules.contains(module))
+        .filter(|(id, module)| {
+          updated_runtime_modules.contains(id)
+            // The full map still participates in normal rendering and hashing.
+            // Its HMR update is represented by load.map instead of runtime code.
+            && (module.get_constructor_name() != "BlockChunkMapRuntimeModule"
+              || module.get_custom_source().is_some())
+        })
         .map(|(&module, _)| module)
         .collect::<Vec<_>>();
 
@@ -825,19 +880,42 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
   }
+  let empty_blocks = BlockChunks::default();
   for (runtime, info) in &mut hot_update_main_content_by_runtime {
-    let runtime = [*runtime].into_iter().collect();
-    for (block_id, chunks) in compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_block_chunks(compilation, Some(&runtime))
-    {
+    let current = current_plans
+      .blocks
+      .get(runtime.as_str())
+      .unwrap_or(&empty_blocks);
+    let previous = old_plans
+      .blocks
+      .get(runtime.as_str())
+      .unwrap_or(&empty_blocks);
+    let previous_chunks = previous.values().flatten().collect::<HashSet<_>>();
+    for (block_id, chunks) in current {
+      if previous.get(block_id) != Some(chunks) {
+        info
+          .block_map
+          .insert(block_id.clone(), Some(chunks.clone()));
+      }
+      for chunk_id in chunks {
+        if let Some(files) = current_plans.files.get(chunk_id)
+          && (!previous_chunks.contains(chunk_id) || old_plans.files.get(chunk_id) != Some(files))
+        {
+          info.load_files.insert(chunk_id.clone(), files.clone());
+        }
+      }
       let needed: Vec<_> = chunks
-        .into_iter()
+        .iter()
         .filter(|id| info.needs_loading(id))
+        .cloned()
         .collect();
       if !needed.is_empty() {
-        info.load_blocks.insert(block_id, needed);
+        info.load_blocks.insert(block_id.clone(), needed);
+      }
+    }
+    for block_id in previous.keys() {
+      if !current.contains_key(block_id) {
+        info.block_map.insert(block_id.clone(), None);
       }
     }
   }
@@ -889,6 +967,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .extend(content.mini_css_removed_chunk_ids);
         old_content.load_entries.extend(content.load_entries);
         old_content.load_blocks.extend(content.load_blocks);
+        old_content.block_map.extend(content.block_map);
+        old_content.load_files.extend(content.load_files);
         old_content.css_files.extend(content.css_files);
         old_content.css_old_files.extend(content.css_old_files);
         old_content.mini_css_files.extend(content.mini_css_files);
@@ -930,6 +1010,20 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
     }
     if !content.load_blocks.is_empty() {
       load.insert("blocks".to_string(), serde_json::json!(content.load_blocks));
+    }
+    if !content.block_map.is_empty() {
+      load.insert(
+        "map".to_string(),
+        serde_json::json!(rspack_plugin_runtime::encode_block_chunks(
+          content
+            .block_map
+            .iter()
+            .map(|(id, chunks)| (id.as_str(), chunks))
+        )),
+      );
+    }
+    if !content.load_files.is_empty() {
+      load.insert("files".to_string(), serde_json::json!(content.load_files));
     }
     if !load.is_empty() {
       manifest_json["load"] = load.into();
@@ -1060,6 +1154,8 @@ struct HotUpdateContent {
   mini_css_removed_chunk_ids: ChunkIdSet,
   load_entries: ChunkIdMap<Vec<ChunkId>>,
   load_blocks: BlockChunks,
+  block_map: BTreeMap<String, Option<Vec<ChunkId>>>,
+  load_files: ChunkFiles,
   css_files: ChunkIdMap<String>,
   css_old_files: ChunkIdMap<String>,
   mini_css_files: ChunkIdMap<String>,

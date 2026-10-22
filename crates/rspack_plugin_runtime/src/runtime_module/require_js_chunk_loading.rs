@@ -332,7 +332,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     }
 
     if with_loading {
-      if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
+      if matches!(has_js_matcher, BooleanMatcher::Condition(false)) && !compilation.hot {
         let source_with_loading =
           runtime_template.render(&self.template_id(TemplateId::WithLoading), None)?;
 
@@ -341,7 +341,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
         let source_with_loading_matcher = runtime_template.render(
           &self.template_id(TemplateId::WithLoadingMatcher),
           Some(serde_json::json!({
-            "_js_matcher": &has_js_matcher.render("chunkId"),
+            "_js_matcher": crate::render_chunk_matcher(context, &has_js_matcher.render("chunkId"), 0),
             "_output_dir": &root_output_dir,
           })),
         )?;

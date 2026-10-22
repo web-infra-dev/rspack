@@ -17,6 +17,7 @@
 <%- var("currentUpdateApplyHandlers") %>;
 <%- var("queuedInvalidatedModules") %>;
 <%- var("hotUpdateBlock") %>;
+<%- var("rollbackLoadingPlan") %>;
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
 <% if (_is_rspack_runtime_mode) { %><%- define(INTERCEPT_MODULE_EXECUTION) %> = [];
@@ -43,6 +44,33 @@
 
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.load = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss, update) {
 	if (!update || !update.load) return;
+	var map = <%- REQUIRE_SCOPE %>.hmrS_blockChunks;
+	var previous = Object.create(null);
+	var removed = [];
+	var blockId = "";
+	(update.load.map || []).forEach(function (block) {
+		blockId = blockId.slice(0, block[0]) + block[1];
+		if (block[2] === null) {
+			// Old factories, including dispose callbacks, may still use this block.
+			removed.push(blockId);
+		} else {
+			previous[blockId] = map[blockId];
+			map[blockId] = block[2];
+		}
+	});
+	var files = <%- REQUIRE_SCOPE %>.hmrS_chunkFiles = Object.create(null);
+	Object.keys(update.load.files || {}).forEach(function (id) { files[id] = update.load.files[id]; });
+	rollbackLoadingPlan = function () {
+		Object.keys(previous).forEach(function (id) {
+			if (previous[id] === undefined) {
+				delete map[id];
+				delete <%- _blocks_state_expression %>[id];
+			} else map[id] = previous[id];
+		});
+		delete <%- REQUIRE_SCOPE %>.hmrS_chunkFiles;
+		rollbackLoadingPlan = undefined;
+		hotUpdateBlock = undefined;
+	};
 	var prepareChunks = function (chunks, promises) {
 		if (!chunks) return;
 		// Download handlers register their preparers before this microtask runs.
@@ -70,7 +98,18 @@
 	}));
 	applyHandlers.push(function () {
 		hotUpdateBlock = undefined;
-		return {};
+		return {
+			// This handler is registered before the JS/CSS handlers. Commit after
+			// all dispose callbacks and before any accept callback can run.
+			apply: function () {
+				removed.forEach(function (id) {
+					delete map[id];
+					delete <%- _blocks_state_expression %>[id];
+				});
+				delete <%- REQUIRE_SCOPE %>.hmrS_chunkFiles;
+				rollbackLoadingPlan = undefined;
+			}
+		};
 	});
 };
 
@@ -228,6 +267,7 @@
 
 <%- fn("setStatus") %>(newStatus) {
 	currentStatus = newStatus;
+	if (newStatus === "abort" && rollbackLoadingPlan) rollbackLoadingPlan();
 	<% if (_is_hot_test) { %>
 	if (self.__HMR_UPDATED_RUNTIME__) {
 		self.__HMR_UPDATED_RUNTIME__.statusPath.push(newStatus);
@@ -343,6 +383,9 @@
 					});
 				});
 			});
+		}).catch(function (error) {
+			if (rollbackLoadingPlan) rollbackLoadingPlan();
+			throw error;
 		});
 }
 
