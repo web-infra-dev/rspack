@@ -209,17 +209,11 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
     let is_circular_module = compilation
       .circular_modules
       .is_circular_module(&module.identifier());
-    let is_mutated = module.build_info().mutated_bindings.contains(&dep.value);
-    let is_deferred = compilation.get_module_graph().is_deferred(
-      &compilation.imported_by_defer_modules_artifact,
+    let binding = if rspack_core::can_emit_stable_binding(
+      compilation,
       &module.identifier(),
-    );
-    let has_direct_eval = module.build_info().has_direct_eval;
-    let binding = if matches!(is_circular_module, Some(false))
-      && !is_mutated
-      && !is_deferred
-      && !has_direct_eval
-    {
+      Some(&dep.value),
+    ) {
       ESMExportBinding::Value(dep.value.clone())
     } else {
       ESMExportBinding::Getter(dep.value.clone())

@@ -22,7 +22,8 @@ use crate::{
   FakeNamespaceObjectMode, ImportPhase, InitFragment, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, Module, ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleId,
   ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  UsedName, compile_boolean_matcher_from_lists, contextify, property_access,
+  UsedName, can_emit_stable_binding, compile_boolean_matcher_from_lists, contextify,
+  property_access,
   runtime_globals::{
     RuntimeVariable, rspack_export_runtime_variable_name, rspack_runtime_variable_name,
     runtime_globals_to_string, runtime_variable_name,
@@ -1360,13 +1361,16 @@ impl ModuleCodeTemplate {
       self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
     );
     if matches!(exports_type, ExportsType::Dynamic) {
-      return (
-        import_content,
-        format!(
-          "/* import */ {opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
-          self.render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
-        ),
+      let mut interop = format!(
+        "/* import */ {opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
+        self.render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
       );
+      if can_emit_stable_binding(compilation, &target_module.identifier(), None) {
+        interop.push_str(&format!(
+          "/* import */ {opt_declaration}{import_var}_default_value = {import_var}_default();\n",
+        ));
+      }
+      return (import_content, interop);
     }
     (import_content, String::new())
   }
@@ -1442,6 +1446,13 @@ impl ModuleCodeTemplate {
         }
         match exports_type {
           ExportsType::Dynamic => {
+            if !is_deferred && can_emit_stable_binding(compilation, &target_module_identifier, None)
+            {
+              return format!(
+                "{import_var}_default_value{}",
+                property_access(export_name, 1)
+              );
+            }
             if is_call {
               return format!("{import_var}_default(){}", property_access(export_name, 1));
             } else {
@@ -1553,7 +1564,7 @@ impl ModuleCodeTemplate {
       } else {
         String::new()
       };
-      let property = property_access(used_name, 0);
+      let property = property_access(&used_name, 0);
       let access = format!(
         "{import_var}{}{comment}{property}",
         if is_deferred { ".a" } else { "" }
