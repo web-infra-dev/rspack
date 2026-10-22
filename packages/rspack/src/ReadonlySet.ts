@@ -1,22 +1,25 @@
 import util from 'node:util';
 
-/**
- * A read-only view over an array whose values are already unique.
- * Callers must not mutate the backing array.
- */
-export class ReadonlySetImpl<T> implements ReadonlySet<T> {
-  readonly #values: readonly T[];
+export interface ReadonlySetBinding<T> {
+  size(): number;
+  has(value: T): boolean;
+  values(): readonly T[];
+}
 
-  constructor(values: readonly T[]) {
-    this.#values = values;
+/** A read-only facade over a source of unique values. */
+export class ReadonlySetImpl<T> implements ReadonlySet<T> {
+  readonly #binding: ReadonlySetBinding<T>;
+
+  constructor(binding: ReadonlySetBinding<T>) {
+    this.#binding = binding;
   }
 
   get size() {
-    return this.#values.length;
+    return this.#binding.size();
   }
 
   has(value: T) {
-    return this.#values.includes(value);
+    return this.#binding.has(value);
   }
 
   keys(): IterableIterator<T> {
@@ -24,17 +27,17 @@ export class ReadonlySetImpl<T> implements ReadonlySet<T> {
   }
 
   values(): IterableIterator<T> {
-    return this.#values.values();
+    return this.#binding.values().values();
   }
 
   *entries(): IterableIterator<[T, T]> {
-    for (const value of this.#values) {
+    for (const value of this.#binding.values()) {
       yield [value, value];
     }
   }
 
-  [Symbol.iterator](): IterableIterator<T> {
-    return this.values();
+  *[Symbol.iterator](): IterableIterator<T> {
+    yield* this.#binding.values();
   }
 
   forEach(
@@ -44,7 +47,7 @@ export class ReadonlySetImpl<T> implements ReadonlySet<T> {
     if (typeof callback !== 'function') {
       throw new TypeError('callback must be a function');
     }
-    for (const value of this.#values) {
+    for (const value of this.#binding.values()) {
       callback.call(thisArg, value, value, this);
     }
   }

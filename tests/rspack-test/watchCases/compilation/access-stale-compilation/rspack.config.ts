@@ -1,11 +1,12 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-import { type Compilation } from '@rspack/core';
+import { type Chunk, type Compilation } from '@rspack/core';
 
 const TOTAL_BUILDS = 3;
 
 let build = 0;
 let staleCompilation: Compilation | null = null;
 let staleRead: ReturnType<typeof capture> | null = null;
+let staleChunks: ReadonlySet<Chunk> | null = null;
 let midMakeReads: {
   modules: ReturnType<typeof capture>;
   builtModules: ReturnType<typeof capture>;
@@ -43,6 +44,17 @@ export default defineConfig({
         });
 
         compiler.hooks.make.tap('PLUGIN', () => {
+          if (staleChunks) {
+            expect(() => staleChunks!.size).toThrow(
+              'Unable to access compilation with id',
+            );
+            expect(() => staleChunks!.has({} as Chunk)).toThrow(
+              'Unable to access compilation with id',
+            );
+            expect(() => Array.from(staleChunks!)).toThrow(
+              'Unable to access compilation with id',
+            );
+          }
           if (!staleCompilation || staleRead) return;
           // Read a Compilation the compiler has already replaced, from a timer, i.e. from
           // the JS thread with no Rust -> JS tap on the stack. That is what a dev server
@@ -80,6 +92,10 @@ export default defineConfig({
         compiler.hooks.done.tap('PLUGIN', (stats) => {
           if (!staleCompilation) {
             staleCompilation = stats.compilation;
+            staleChunks = stats.compilation.chunks;
+            expect(staleChunks.size).toBeGreaterThan(0);
+            // Warm the native array cache before the compilation is replaced.
+            expect(Array.from(staleChunks).length).toBe(staleChunks.size);
           }
         });
       },

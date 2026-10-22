@@ -73,8 +73,12 @@ export default __napiModule.exports
 export const Assets = __napiModule.exports.Assets
 export const AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
 export const Chunk = __napiModule.exports.Chunk
+export const BuiltModules = __napiModule.exports.BuiltModules
+export const ChunkAuxiliaryFiles = __napiModule.exports.ChunkAuxiliaryFiles
+export const ChunkFiles = __napiModule.exports.ChunkFiles
 export const ChunkGraph = __napiModule.exports.ChunkGraph
 export const ChunkGroup = __napiModule.exports.ChunkGroup
+export const ChunkRuntime = __napiModule.exports.ChunkRuntime
 export const Chunks = __napiModule.exports.Chunks
 export const CodeGenerationResult = __napiModule.exports.CodeGenerationResult
 export const CodeGenerationResults = __napiModule.exports.CodeGenerationResults

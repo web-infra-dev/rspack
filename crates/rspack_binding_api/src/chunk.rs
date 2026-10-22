@@ -1,17 +1,23 @@
+mod auxiliary_files;
+mod files;
+mod runtime;
+
 use std::cell::RefCell;
 
 use napi::{
   Either, Env, JsString,
   bindgen_prelude::{
-    Array, Either3, FromNapiValue, Object, ToNapiValue, TypeName, ValidateNapiValue,
+    Array, Either3, FromNapiValue, JavaScriptClassExt, Object, ToNapiValue, TypeName,
+    ValidateNapiValue,
   },
   sys,
 };
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, chunk_graph_chunk::ChunkId};
-use rspack_napi::OneShotRef;
+use rspack_napi::{OneShotRef, WeakRef};
 use rustc_hash::FxHashMap;
 
+pub use self::{auxiliary_files::ChunkAuxiliaryFiles, files::ChunkFiles, runtime::ChunkRuntime};
 use crate::{
   chunk_group::ChunkGroupWrapper, compilation::entries::EntryOptionsDTO, with_compilation,
 };
@@ -20,6 +26,9 @@ use crate::{
 pub struct Chunk {
   pub(crate) chunk_ukey: rspack_core::ChunkUkey,
   compilation_id: CompilationId,
+  files_jsobject: Option<WeakRef>,
+  runtime_jsobject: Option<WeakRef>,
+  auxiliary_files_jsobject: Option<WeakRef>,
 }
 
 impl Chunk {
@@ -34,21 +43,28 @@ impl Chunk {
     &self,
     f: impl FnOnce(&Compilation, &rspack_core::Chunk) -> napi::Result<R>,
   ) -> napi::Result<R> {
-    self.with_compilation(|compilation| {
-      if let Some(chunk) = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .get(&self.chunk_ukey)
-      {
-        f(compilation, chunk)
-      } else {
-        Err(napi::Error::from_reason(format!(
-          "Unable to access chunk with id = {:?} now. The chunk have been removed on the Rust side.",
-          self.chunk_ukey
-        )))
-      }
-    })
+    with_chunk(self.compilation_id, self.chunk_ukey, f)
   }
+}
+
+fn with_chunk<R>(
+  compilation_id: CompilationId,
+  chunk_ukey: rspack_core::ChunkUkey,
+  f: impl FnOnce(&Compilation, &rspack_core::Chunk) -> napi::Result<R>,
+) -> napi::Result<R> {
+  with_compilation(compilation_id, |compilation| {
+    if let Some(chunk) = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(&chunk_ukey)
+    {
+      f(compilation, chunk)
+    } else {
+      Err(napi::Error::from_reason(format!(
+        "Unable to access chunk with id = {chunk_ukey:?} now. The chunk have been removed on the Rust side.",
+      )))
+    }
+  })
 }
 
 #[napi]
@@ -125,29 +141,32 @@ impl Chunk {
     })
   }
 
-  #[napi(getter, js_name = "_files", ts_return_type = "Array<string>")]
-  pub fn files<'a>(&self, env: &'a Env) -> napi::Result<Array<'a>> {
-    self.with_ref(|_, chunk| {
-      let mut files = chunk.files().iter().collect::<Vec<_>>();
-      files.sort_unstable();
-      let mut array = env.create_array(files.len() as u32)?;
-      for (i, file) in files.iter().enumerate() {
-        array.set(i as u32, file.as_str())?;
-      }
-      Ok(array)
-    })
+  #[napi(getter, js_name = "_files", ts_return_type = "ChunkFiles")]
+  pub fn files<'env>(&mut self, env: &'env Env) -> napi::Result<Object<'env>> {
+    if let Some(reference) = &self.files_jsobject
+      && let Ok(object) = reference.as_object(env)
+    {
+      return Ok(object);
+    }
+    let mut object = ChunkFiles::new(self.compilation_id, self.chunk_ukey)
+      .into_instance(env)?
+      .as_object(env);
+    self.files_jsobject = Some(WeakRef::new(env.raw(), &mut object)?);
+    Ok(object)
   }
 
-  #[napi(getter, js_name = "_runtime", ts_return_type = "Array<string>")]
-  pub fn runtime<'a>(&self, env: &'a Env) -> napi::Result<Array<'a>> {
-    self.with_ref(|_, chunk| {
-      let runtime = chunk.runtime();
-      let mut array = env.create_array(runtime.len() as u32)?;
-      for (i, runtime) in runtime.iter().enumerate() {
-        array.set(i as u32, runtime.as_str())?;
-      }
-      Ok(array)
-    })
+  #[napi(getter, js_name = "_runtime", ts_return_type = "ChunkRuntime")]
+  pub fn runtime<'env>(&mut self, env: &'env Env) -> napi::Result<Object<'env>> {
+    if let Some(reference) = &self.runtime_jsobject
+      && let Ok(object) = reference.as_object(env)
+    {
+      return Ok(object);
+    }
+    let mut object = ChunkRuntime::new(self.compilation_id, self.chunk_ukey)
+      .into_instance(env)?
+      .as_object(env);
+    self.runtime_jsobject = Some(WeakRef::new(env.raw(), &mut object)?);
+    Ok(object)
   }
 
   #[napi(getter)]
@@ -203,16 +222,22 @@ impl Chunk {
     })
   }
 
-  #[napi(getter, js_name = "_auxiliaryFiles", ts_return_type = "Array<string>")]
-  pub fn auxiliary_files<'a>(&self, env: &'a Env) -> napi::Result<Array<'a>> {
-    self.with_ref(|_, chunk| {
-      let auxiliary_files = chunk.auxiliary_files();
-      let mut array = env.create_array(auxiliary_files.len() as u32)?;
-      for (i, file) in auxiliary_files.iter().enumerate() {
-        array.set(i as u32, file.as_str())?;
-      }
-      Ok(array)
-    })
+  #[napi(
+    getter,
+    js_name = "_auxiliaryFiles",
+    ts_return_type = "ChunkAuxiliaryFiles"
+  )]
+  pub fn auxiliary_files<'env>(&mut self, env: &'env Env) -> napi::Result<Object<'env>> {
+    if let Some(reference) = &self.auxiliary_files_jsobject
+      && let Ok(object) = reference.as_object(env)
+    {
+      return Ok(object);
+    }
+    let mut object = ChunkAuxiliaryFiles::new(self.compilation_id, self.chunk_ukey)
+      .into_instance(env)?
+      .as_object(env);
+    self.auxiliary_files_jsobject = Some(WeakRef::new(env.raw(), &mut object)?);
+    Ok(object)
   }
 }
 
@@ -399,6 +424,9 @@ impl ToNapiValue for ChunkWrapper {
             let js_chunk = Chunk {
               chunk_ukey: val.chunk_ukey,
               compilation_id: val.compilation_id,
+              files_jsobject: None,
+              runtime_jsobject: None,
+              auxiliary_files_jsobject: None,
             };
             let r = entry.insert(OneShotRef::new(env, js_chunk)?);
             ToNapiValue::to_napi_value(env, r)

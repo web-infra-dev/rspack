@@ -1,69 +1,100 @@
 use napi::{
-  Env,
-  bindgen_prelude::{Object, ToNapiValue, WeakReference},
+  Either, Env, Property, PropertyAttributes,
+  bindgen_prelude::{Array, JsObjectValue, This, Unknown},
 };
-use rspack_core::Compilation;
+use rspack_core::{ChunkUkey, CompilationId};
 
 use crate::{
   chunk::{Chunk, ChunkWrapper},
-  compilation::JsCompilation,
+  with_compilation,
 };
+
+const VALUES_SYMBOL: &str = "rspack.Chunks.values";
 
 #[napi]
 pub struct Chunks {
-  compiler_reference: WeakReference<JsCompilation>,
+  compilation_id: CompilationId,
+  snapshot: Option<Vec<ChunkUkey>>,
 }
 
 impl Chunks {
-  pub fn new(compiler_reference: WeakReference<JsCompilation>) -> Self {
-    Self { compiler_reference }
-  }
-
-  fn as_ref(&self) -> napi::Result<&Compilation> {
-    match self.compiler_reference.get() {
-      Some(wrapped_value) => Ok(wrapped_value.as_ref()?),
-      None => Err(napi::Error::from_reason(
-        "Unable to access compilation.chunks now. The Compilation has been garbage collected by JavaScript.",
-      )),
+  pub fn new(compilation_id: CompilationId) -> Self {
+    Self {
+      compilation_id,
+      snapshot: None,
     }
-  }
-
-  pub fn get_jsobject(self, env: &Env) -> napi::Result<Object<'_>> {
-    let raw_env = env.raw();
-    let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, self)? };
-    Ok(Object::from_raw(raw_env, napi_val))
   }
 }
 
 #[napi]
 impl Chunks {
-  #[napi(getter)]
+  #[napi]
   pub fn size(&self) -> napi::Result<u32> {
-    let compilation = self.as_ref()?;
-    Ok(compilation.build_chunk_graph_artifact.chunk_by_ukey.len() as u32)
+    with_compilation(self.compilation_id, |compilation| {
+      Ok(compilation.build_chunk_graph_artifact.chunk_by_ukey.len() as u32)
+    })
   }
 
-  #[napi(js_name = "_values", ts_return_type = "Chunk[]")]
-  pub fn values(&self) -> napi::Result<Vec<ChunkWrapper>> {
-    let compilation = self.as_ref()?;
-    Ok(
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .keys()
-        .map(|chunk_ukey| ChunkWrapper::new(*chunk_ukey, compilation))
-        .collect::<Vec<_>>(),
-    )
+  #[napi(ts_return_type = "Chunk[]")]
+  pub fn values<'env>(
+    &mut self,
+    env: &'env Env,
+    mut this: This<'env>,
+  ) -> napi::Result<Array<'env>> {
+    with_compilation(self.compilation_id, |compilation| {
+      let chunks = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+      let identifiers = || chunks.keys();
+      let symbol = env.symbol_for(VALUES_SYMBOL)?;
+      // Validate the live owner before cache lookup. Compare identifiers in
+      // iteration order, without allocating or converting JS values on a hit.
+      if self
+        .snapshot
+        .as_ref()
+        .is_some_and(|snapshot| identifiers().eq(snapshot.iter()))
+      {
+        return this.get_property(symbol);
+      }
+
+      let snapshot: Vec<_> = identifiers().copied().collect();
+      let mut array: Array = if this.has_own_property_js(symbol)? {
+        this.get_property(symbol)?
+      } else {
+        let array = env.create_array(snapshot.len() as u32)?;
+        // V8 owns the array through the collection object; Rust retains only IDs.
+        this.define_properties(&[Property::new()
+          .with_name(env, symbol)?
+          .with_value(&array)
+          .with_property_attributes(PropertyAttributes::Writable)])?;
+        array
+      };
+      // Reuse the array even when membership changes. Invalidate the snapshot
+      // before writing so a failed conversion cannot validate a partial update.
+      self.snapshot = None;
+      for (index, identifier) in snapshot.iter().enumerate() {
+        array.set(index as u32, ChunkWrapper::new(*identifier, compilation))?;
+      }
+      // Truncate removed entries as well as growing the array. Existing JS
+      // iterators keep this same array and observe its updated contents.
+      array.set_named_property("length", snapshot.len() as u32)?;
+      // Array caches its length in Rust; read it again after changing JS length.
+      let array = this.get_property(symbol)?;
+      self.snapshot = Some(snapshot);
+      Ok(array)
+    })
   }
 
-  #[napi(js_name = "_has")]
-  pub fn has(&self, chunk: &Chunk) -> napi::Result<bool> {
-    let compilation = self.as_ref()?;
-    Ok(
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .contains(&chunk.chunk_ukey),
-    )
+  #[napi(ts_args_type = "value: Chunk")]
+  pub fn has(&self, value: Either<&Chunk, Unknown<'_>>) -> napi::Result<bool> {
+    with_compilation(self.compilation_id, |compilation| {
+      let Either::A(chunk) = value else {
+        return Ok(false);
+      };
+      Ok(
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .contains(&chunk.chunk_ukey),
+      )
+    })
   }
 }

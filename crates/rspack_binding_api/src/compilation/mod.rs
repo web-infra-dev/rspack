@@ -1,3 +1,4 @@
+mod built_modules;
 mod chunks;
 mod code_generation_results;
 mod dependencies;
@@ -7,6 +8,7 @@ mod modules;
 
 use std::{cell::RefCell, ptr::NonNull};
 
+use built_modules::BuiltModules;
 use chunks::Chunks;
 pub use code_generation_results::*;
 use dependencies::FileSystemDependencies;
@@ -20,7 +22,7 @@ use rspack_core::{
   ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
-use rspack_napi::napi::bindgen_prelude::*;
+use rspack_napi::{WeakRef, napi::bindgen_prelude::*};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_tasks::{within_compiler_context, within_compiler_context_sync};
 use rustc_hash::FxHashMap;
@@ -49,12 +51,21 @@ use crate::{
 pub struct JsCompilation {
   pub(crate) id: CompilationId,
   pub(crate) inner: NonNull<Compilation>,
+  modules_jsobject: Option<WeakRef>,
+  built_modules_jsobject: Option<WeakRef>,
+  chunks_jsobject: Option<WeakRef>,
 }
 
 impl JsCompilation {
   pub(crate) fn new(id: CompilationId, inner: NonNull<Compilation>) -> Self {
     #[allow(clippy::unwrap_used)]
-    Self { id, inner }
+    Self {
+      id,
+      inner,
+      modules_jsobject: None,
+      built_modules_jsobject: None,
+      chunks_jsobject: None,
+    }
   }
 
   // `inner` points at the `Compilation` inlined in `Compiler`, and `Compiler::rebuild`
@@ -229,26 +240,30 @@ impl JsCompilation {
       .transpose()
   }
 
-  #[napi(getter)]
-  pub fn modules(&self) -> Modules {
-    Modules::new(self.id)
+  #[napi(getter, ts_return_type = "Modules")]
+  pub fn modules<'env>(&mut self, env: &'env Env) -> Result<Object<'env>> {
+    if let Some(reference) = &self.modules_jsobject
+      && let Ok(object) = reference.as_object(env)
+    {
+      return Ok(object);
+    }
+    let mut object = Modules::new(self.id).into_instance(env)?.as_object(env);
+    self.modules_jsobject = Some(WeakRef::new(env.raw(), &mut object)?);
+    Ok(object)
   }
 
-  #[napi(getter, ts_return_type = "Array<Module>")]
-  pub fn built_modules(&self) -> Result<Vec<ModuleObject>> {
-    self.with_module_graph(|compilation| {
-      Ok(
-        compilation
-          .build_module_graph_artifact
-          .built_modules()
-          .filter_map(|module_id| {
-            compilation
-              .module_by_identifier(module_id)
-              .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
-          })
-          .collect::<Vec<_>>(),
-      )
-    })
+  #[napi(getter, ts_return_type = "BuiltModules")]
+  pub fn built_modules<'env>(&mut self, env: &'env Env) -> Result<Object<'env>> {
+    if let Some(reference) = &self.built_modules_jsobject
+      && let Ok(object) = reference.as_object(env)
+    {
+      return Ok(object);
+    }
+    let mut object = BuiltModules::new(self.id)
+      .into_instance(env)?
+      .as_object(env);
+    self.built_modules_jsobject = Some(WeakRef::new(env.raw(), &mut object)?);
+    Ok(object)
   }
 
   #[napi]
@@ -272,8 +287,15 @@ impl JsCompilation {
   }
 
   #[napi(getter, ts_return_type = "Chunks")]
-  pub fn chunks(&self, reference: Reference<JsCompilation>) -> Result<Chunks> {
-    Ok(Chunks::new(reference.downgrade()))
+  pub fn chunks<'env>(&mut self, env: &'env Env) -> Result<Object<'env>> {
+    if let Some(reference) = &self.chunks_jsobject
+      && let Ok(object) = reference.as_object(env)
+    {
+      return Ok(object);
+    }
+    let mut object = Chunks::new(self.id).into_instance(env)?.as_object(env);
+    self.chunks_jsobject = Some(WeakRef::new(env.raw(), &mut object)?);
+    Ok(object)
   }
 
   #[napi]
