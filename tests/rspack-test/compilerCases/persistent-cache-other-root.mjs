@@ -3,30 +3,15 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-// Logs `<root name>/src/<file>` so the check does not depend on how the temp
-// directory resolves, such as /var and /private/var on macOS.
-const COUNT_LOADER = `
-const fs = require("node:fs");
-const path = require("node:path");
-module.exports = function (source) {
-	const projectRoot = path.dirname(path.dirname(path.dirname(this.resourcePath)));
-	fs.appendFileSync(
-		this.getOptions().log,
-		path.relative(projectRoot, this.resourcePath) + "\\n"
-	);
-	return source;
-};
-`;
-
-function writeFixture(projectRoot) {
+function writeFixture(projectRoot, value) {
 	fs.mkdirSync(path.join(projectRoot, "src"), { recursive: true });
 	fs.writeFileSync(
 		path.join(projectRoot, "src", "index.js"),
-		'import value from "./value.js";\nconsole.log(value);\n'
+		'import("./value.js").then(({ default: value }) => console.log(value));\n'
 	);
 	fs.writeFileSync(
 		path.join(projectRoot, "src", "value.js"),
-		'export default "value";\n'
+		`export default ${JSON.stringify(value)};\n`
 	);
 }
 
@@ -34,28 +19,22 @@ function cacheDirectory(projectRoot) {
 	return path.join(projectRoot, "node_modules", ".cache", "rspack");
 }
 
-async function build(projectRoot, { newCache, loader, log }) {
-	fs.writeFileSync(log, "");
-	const infrastructureLogs = [];
+async function build(projectRoot, { newCache, portable }) {
 	const compiler = rspack({
 		context: projectRoot,
 		mode: "development",
-		devtool: false,
+		devtool: "source-map",
 		target: "node",
 		entry: "./src/index.js",
 		experiments: { newCache },
-		cache: { type: "persistent" },
+		cache: { type: "persistent", portable },
 		infrastructureLogging: { level: "none" },
-		module: {
-			rules: [{ test: /\.js$/, use: [{ loader, options: { log } }] }]
-		},
-		output: { path: path.join(projectRoot, "dist"), filename: "main.js" }
+		output: {
+			path: path.join(projectRoot, "dist"),
+			filename: "main.js",
+			devtoolModuleFilenameTemplate: "[absolute-resource-path]"
+		}
 	});
-	compiler.hooks.infrastructureLog.tap("PersistentCacheOtherRoot", (name, type, args) => {
-		infrastructureLogs.push(`${name} ${type} ${args.join(" ")}`);
-	});
-
-	let persistentCacheLog;
 	try {
 		await new Promise((resolve, reject) => {
 			compiler.run((error, stats) => {
@@ -65,63 +44,61 @@ async function build(projectRoot, { newCache, loader, log }) {
 						new Error(stats.toString({ all: false, errors: true, errorDetails: true }))
 					);
 				}
-				persistentCacheLog = stats.toString({
-					all: false,
-					colors: false,
-					logging: false,
-					loggingDebug: /^rspack\.persistentCache$/
-				});
 				resolve();
 			});
 		});
 	} finally {
-		// Closing flushes the cache to disk and the pending native infrastructure logs.
 		await new Promise((resolve, reject) =>
 			compiler.close(error => (error ? reject(error) : resolve()))
 		);
 	}
-
-	const builtModules = fs
-		.readFileSync(log, "utf8")
-		.split("\n")
-		.filter(Boolean)
-		.sort();
+	const dist = path.join(projectRoot, "dist");
+	const files = fs.readdirSync(dist);
 	return {
-		builtModules,
-		persistentCacheLog,
-		infrastructureLog: infrastructureLogs.join("\n")
+		code: files
+			.filter(file => file.endsWith(".js"))
+			.map(file => fs.readFileSync(path.join(dist, file), "utf8"))
+			.join("\n"),
+		sources: files
+			.filter(file => file.endsWith(".map"))
+			.flatMap(file => JSON.parse(fs.readFileSync(path.join(dist, file), "utf8")).sources)
+			.filter(source => path.isAbsolute(source))
+			.sort()
 	};
 }
 
-function createCase({ backend, newCache, assertInvalidated }) {
+function createCase({ newCache, portable }) {
+	const backend = newCache ? "new" : "legacy";
 	return {
-		description: `should not restore a ${backend} persistent cache written under another root`,
+		description: `should build from its own sources when a ${backend} persistent cache (portable: ${portable}) comes from another root`,
 		async run() {
-			const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rspack-cache-other-root-"));
+			const tempRoot = fs.realpathSync(
+				fs.mkdtempSync(path.join(os.tmpdir(), "rspack-cache-other-root-"))
+			);
 			try {
-				const loader = path.join(tempRoot, "count-loader.cjs");
-				fs.writeFileSync(loader, COUNT_LOADER);
-				const options = { newCache, loader, log: path.join(tempRoot, "built.log") };
+				const options = { newCache, portable };
 				const rootA = path.join(tempRoot, "a");
 				const rootB = path.join(tempRoot, "b");
-				writeFixture(rootA);
-				writeFixture(rootB);
-				const modulesIn = rootName =>
+				writeFixture(rootA, "value-from-root-a");
+				writeFixture(rootB, "value-from-root-b");
+
+				const sourcesIn = projectRoot =>
 					[
-						path.join(rootName, "src", "index.js"),
-						path.join(rootName, "src", "value.js")
+						path.join(projectRoot, "src", "index.js"),
+						path.join(projectRoot, "src", "value.js")
 					].sort();
 
-				expect((await build(rootA, options)).builtModules).toEqual(modulesIn("a"));
+				const outputA = await build(rootA, options);
+				expect(outputA.code).toContain("value-from-root-a");
+				expect(outputA.sources).toEqual(sourcesIn(rootA));
 
 				fs.cpSync(cacheDirectory(rootA), cacheDirectory(rootB), { recursive: true });
-				const moved = await build(rootB, options);
-				expect(moved.builtModules).toEqual(modulesIn("b"));
-				assertInvalidated(moved);
-
-				expect((await build(rootB, options)).builtModules).toEqual([]);
+				const outputB = await build(rootB, options);
+				expect(outputB.code).toContain("value-from-root-b");
+				expect(outputB.code).not.toContain("value-from-root-a");
+				expect(outputB.sources).toEqual(sourcesIn(rootB));
 			} finally {
-				fs.rmSync(tempRoot, { recursive: true, force: true });
+				fs.rmSync(tempRoot, { recursive: true, force: true, maxRetries: 3 });
 			}
 		}
 	};
@@ -129,23 +106,7 @@ function createCase({ backend, newCache, assertInvalidated }) {
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 export default [
-	createCase({
-		backend: "legacy",
-		newCache: false,
-		assertInvalidated({ persistentCacheLog }) {
-			expect(persistentCacheLog).toContain(
-				"meta persistent cache recovery failed: persistent cache version does not match"
-			);
-			expect(persistentCacheLog).not.toContain("make persistent cache recovery succeeded");
-		}
-	}),
-	createCase({
-		backend: "new",
-		newCache: true,
-		assertInvalidated({ infrastructureLog }) {
-			expect(infrastructureLog).toContain(
-				"rspack.cache.IdleFileCache log Resetting cache, the cache version doesn't match"
-			);
-		}
-	})
+	createCase({ newCache: false, portable: false }),
+	createCase({ newCache: true, portable: false }),
+	createCase({ newCache: true, portable: true })
 ];
