@@ -5,14 +5,14 @@ use std::{
   hash::{BuildHasherDefault, Hash, Hasher},
   io,
   ops::Deref,
-  path::PathBuf,
+  path::{Path, PathBuf},
   sync::Arc,
 };
 
 use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
 use dashmap::{DashMap, DashSet};
 use futures::future::BoxFuture;
-use rspack_paths::{InternedPath, hash_path};
+use rspack_paths::{AssertUtf8, InternedPath, hash_path};
 use rustc_hash::FxHasher;
 use tokio::sync::OnceCell as OnceLock;
 
@@ -51,7 +51,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     let parent = path.parent().map(|p| self.value(p));
     let data = CachedPath(Arc::new(CachedPathImpl::new(
       hash,
-      path.to_path_buf().into_boxed_path(),
+      InternedPath::from_parts(hash, path.as_std_path()),
       parent,
     )));
     self.paths.insert(data.clone());
@@ -125,12 +125,12 @@ impl PartialEq for CachedPath {
     // Compare through std `Path`, not camino's `Utf8Path`. std `Path`/`Components`
     // equality has a raw-byte `memcmp` fast path (its own comment: "for hashmap
     // lookups"), whereas camino's `Utf8Path` always walks components with no fast
-    // path — that regressed this hottest cache-lookup equality. `as_std_path()`
+    // path — that regressed this hottest cache-lookup equality. `as_path()`
     // also preserves the per-platform semantics that match `hash_path`
     // (byte-wise on Unix; component-wise on Windows, so `pack1/foo` and
     // `pack1\foo` stay the same entry). A plain `as_str()` byte compare would be
     // inconsistent with the component-wise hash on Windows and break dedup there.
-    self.0.path.as_std_path() == other.0.path.as_std_path()
+    self.0.path.as_path() == other.0.path.as_path()
   }
 }
 impl Eq for CachedPath {}
@@ -156,17 +156,17 @@ impl AsRef<CachedPathImpl> for CachedPath {
 }
 
 impl CacheKey for CachedPath {
-  fn tuple(&self) -> (u64, &Utf8Path) {
-    (self.hash, &self.path)
+  fn tuple(&self) -> (u64, &Path) {
+    (self.hash, self.path.as_path())
   }
 }
 
 pub struct CachedPathImpl {
   hash: u64,
-  path: Box<Utf8Path>,
+  path: InternedPath,
   parent: Option<CachedPath>,
   meta: OnceLock<Option<FileMetadata>>,
-  canonicalized: OnceLock<Option<Utf8PathBuf>>,
+  canonicalized: OnceLock<Option<InternedPath>>,
   node_modules: OnceLock<Option<CachedPath>>,
   package_json: OnceLock<Option<Arc<PackageJson>>>,
   /// Memoized `<self.path>/package.json` `InternedPath` for the
@@ -176,16 +176,13 @@ pub struct CachedPathImpl {
 }
 
 impl From<&CachedPathImpl> for InternedPath {
-  /// Reuse the cache-side `FxHash` (already computed in `Cache::value`), so interning the
-  /// dependency into the `ResolveContext` sink is a lookup with no rehashing, and allocates
-  /// nothing at all for a path that has been seen before.
   fn from(cached: &CachedPathImpl) -> Self {
-    Self::from_parts(cached.hash, cached.path.as_std_path())
+    cached.path.clone()
   }
 }
 
 impl CachedPathImpl {
-  fn new(hash: u64, path: Box<Utf8Path>, parent: Option<CachedPath>) -> Self {
+  fn new(hash: u64, path: InternedPath, parent: Option<CachedPath>) -> Self {
     Self {
       hash,
       path,
@@ -203,16 +200,16 @@ impl CachedPathImpl {
   fn package_json_dep_path(&self) -> InternedPath {
     self
       .package_json_dep_path
-      .get_or_init(|| self.path.join("package.json").into())
+      .get_or_init(|| self.path().join("package.json").into())
       .clone()
   }
 
   pub fn path(&self) -> &Utf8Path {
-    &self.path
+    self.path.as_path().assert_utf8()
   }
 
   pub fn to_path_buf(&self) -> Utf8PathBuf {
-    self.path.to_path_buf()
+    self.path().to_path_buf()
   }
 
   pub fn parent(&self) -> Option<&CachedPath> {
@@ -227,7 +224,7 @@ impl CachedPathImpl {
     }
     *self
       .meta
-      .get_or_init(|| async { fs.metadata(self.path.as_std_path()).await.ok() })
+      .get_or_init(|| async { fs.metadata(self.path.as_path()).await.ok() })
       .await
   }
 
@@ -255,7 +252,10 @@ impl CachedPathImpl {
     // Cache hit: avoid the heap-allocated `Box::pin` for the cache-miss state machine
     // by returning before delegating to the boxed recursive helper.
     if let Some(cached) = self.canonicalized.get() {
-      return Ok(cached.clone().unwrap_or_else(|| self.path.to_path_buf()));
+      return Ok(cached.as_ref().map_or_else(
+        || self.to_path_buf(),
+        |path| path.as_path().assert_utf8().to_path_buf(),
+      ));
     }
     self.realpath_uncached(fs).await
   }
@@ -269,34 +269,38 @@ impl CachedPathImpl {
         .canonicalized
         .get_or_try_init(|| async move {
           if fs
-            .symlink_metadata(self.path.as_std_path())
+            .symlink_metadata(self.path.as_path())
             .await
             .is_ok_and(|m| m.is_symlink)
           {
             return fs
-              .canonicalize(self.path.as_std_path())
+              .canonicalize(self.path.as_path())
               .await
-              .map(|path| Some(Utf8PathBuf::from_path_buf(path).expect("path should be UTF-8")));
+              .map(|path| Some(InternedPath::from(path.assert_utf8())));
           }
           if let Some(parent) = self.parent() {
             let mut real_path = parent.realpath(fs).await?;
             // Unnormalized paths (e.g. from alias values or absolute specifiers) can
             // end in `..`, where `file_name()` returns `None` and would silently drop
             // the component; POSIX semantics pop it after the parent is resolved.
-            match self.path.components().next_back() {
+            match self.path().components().next_back() {
               Some(Utf8Component::Normal(segment)) => real_path.push(segment),
               Some(Utf8Component::ParentDir) => {
                 real_path.pop();
               }
               _ => {}
             }
-            return Ok(Some(real_path));
+            return Ok((real_path.as_str() != self.path().as_str()).then(|| real_path.into()));
           }
           Ok(None)
         })
         .await
-        .cloned()
-        .map(|r| r.unwrap_or_else(|| self.path.to_path_buf()))
+        .map(|r| {
+          r.as_ref().map_or_else(
+            || self.to_path_buf(),
+            |path| path.as_path().assert_utf8().to_path_buf(),
+          )
+        })
     })
   }
 
@@ -306,7 +310,7 @@ impl CachedPathImpl {
     cache: &Cache<Fs>,
     ctx: &mut Ctx,
   ) -> Option<CachedPath> {
-    let cached_path = cache.value(&self.path.join(module_name));
+    let cached_path = cache.value(&self.path().join(module_name));
     cached_path
       .is_dir(&cache.fs, ctx)
       .await
@@ -322,7 +326,7 @@ impl CachedPathImpl {
       // Replay ctx tracking from the cold path: module_directory -> is_dir calls
       // ctx.add_missing_dependency when node_modules doesn't exist on disk.
       if nm.is_none() {
-        ctx.add_missing_dependency(self.path.join("node_modules"));
+        ctx.add_missing_dependency(self.path().join("node_modules"));
       }
       return nm.clone();
     }
@@ -338,7 +342,7 @@ impl CachedPathImpl {
   /// # Errors
   ///
   /// * [ResolveError::JSON]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path)))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path())))]
   pub async fn find_package_json<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,
@@ -369,7 +373,7 @@ impl CachedPathImpl {
   /// # Errors
   ///
   /// * [ResolveError::JSON]
-  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path)))]
+  #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = %self.path())))]
   pub async fn package_json<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,
@@ -392,7 +396,7 @@ impl CachedPathImpl {
     let result = self
       .package_json
       .get_or_try_init(|| async {
-        let package_json_path = self.path.join("package.json");
+        let package_json_path = self.path().join("package.json");
         let Ok(package_json_string) = fs.read(package_json_path.as_std_path()).await else {
           return Ok(None);
         };
@@ -408,7 +412,7 @@ impl CachedPathImpl {
         ) {
           Ok(v) => Ok(Some(Arc::new(v))),
           Err(parse_err) => {
-            let package_json_path = self.path.join("package.json");
+            let package_json_path = self.path().join("package.json");
             let package_json_string = match fs.read_to_string(package_json_path.as_std_path()).await
             {
               Ok(c) => c,
@@ -454,7 +458,7 @@ impl CachedPathImpl {
       }
       Err(_) => {
         if ctx.file_dependencies.is_some() {
-          ctx.add_file_dependency(self.path.join("package.json"));
+          ctx.add_file_dependency(self.path().join("package.json"));
         }
       }
     }
@@ -464,7 +468,7 @@ impl CachedPathImpl {
 
 /// Memoized cache key, code adapted from <https://stackoverflow.com/a/50478038>.
 trait CacheKey {
-  fn tuple(&self) -> (u64, &Utf8Path);
+  fn tuple(&self) -> (u64, &Path);
 }
 
 impl Hash for dyn CacheKey + '_ {
@@ -477,15 +481,15 @@ impl PartialEq for dyn CacheKey + '_ {
   fn eq(&self, other: &Self) -> bool {
     // std `Path` equality (memcmp fast path + per-platform semantics matching
     // `hash_path`); see `CachedPath`'s `PartialEq` for the full rationale.
-    self.tuple().1.as_std_path() == other.tuple().1.as_std_path()
+    self.tuple().1 == other.tuple().1
   }
 }
 
 impl Eq for dyn CacheKey + '_ {}
 
 impl CacheKey for (u64, &Utf8Path) {
-  fn tuple(&self) -> (u64, &Utf8Path) {
-    (self.0, self.1)
+  fn tuple(&self) -> (u64, &Path) {
+    (self.0, self.1.as_std_path())
   }
 }
 
