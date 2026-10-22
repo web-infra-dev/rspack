@@ -2,64 +2,39 @@ use std::sync::Arc;
 
 use rspack_core::ConstDependency;
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
-use swc_experimental_ecma_ast::{Lit, ModuleItem, Program, Span, Stmt};
+use rspack_util::swc::AstSubRangeExt;
+use swc_next_ecma_ast::{GetSpan, Program};
 
 pub struct ReactDirectivesParserPlugin;
 
-impl ReactDirectivesParserPlugin {
-  fn process_statements<'a, I>(stmts: I, directives: &mut Vec<(String, Span)>)
-  where
-    I: Iterator<Item = &'a Stmt<'a>>,
-  {
-    for stmt in stmts {
-      let Stmt::Expr(expr_stmt) = stmt else { break };
-      let Some(Lit::Str(str_lit)) = expr_stmt.expr.as_lit() else {
-        break;
-      };
-
-      let value = str_lit.value.to_string_lossy().to_string();
-      if !value.starts_with("use ") {
-        break;
-      }
-
-      let directive = format!("\"{value}\"");
-      directives.push((directive, expr_stmt.span));
-    }
-  }
-}
-
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ReactDirectivesParserPlugin {
-  fn program(&self, parser: &mut JavascriptParser<'p>, ast: &Program) -> Option<bool> {
-    let mut directives = Vec::new();
+  fn program(&self, parser: &mut JavascriptParser<'p>, program: Program) -> Option<bool> {
+    let ast = parser.ast.ast;
+    let directives = program.directives(ast);
+    let values: Vec<_> = ast
+      .nodes(directives)
+      .take_while(|directive| ast.get_utf8(directive.value(ast)).starts_with("use "))
+      .map(|directive| {
+        serde_json::Value::String(format!("\"{}\"", ast.get_utf8(directive.value(ast))))
+      })
+      .collect();
 
-    match ast {
-      Program::Module(module) => {
-        let stmts = module.body.iter().filter_map(|item| {
-          if let ModuleItem::Stmt(stmt) = item {
-            Some(&**stmt)
-          } else {
-            None
-          }
-        });
-        Self::process_statements(stmts, &mut directives);
-      }
-      Program::Script(script) => {
-        Self::process_statements(script.body.iter(), &mut directives);
-      }
-    }
-
-    if directives.is_empty() {
+    if values.is_empty() {
       return None;
     }
 
+    let directive_count = values.len();
     parser.build_info.extras.insert(
       "react_directives".to_string(),
-      serde_json::json!(directives.iter().map(|(d, _)| d).collect::<Vec<_>>()),
+      serde_json::Value::Array(values),
     );
 
-    for (_, span) in directives {
-      parser.add_presentational_dependency(Arc::new(ConstDependency::new(span.into(), "".into())));
+    for directive in ast.nodes(directives).take(directive_count) {
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+        directive.span(ast).into(),
+        "".into(),
+      )));
     }
 
     None

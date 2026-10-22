@@ -25,7 +25,7 @@ Prefer this workflow for official `major`, `minor`, or `patch` releases, includi
 - Treat this workflow as destructive to unstaged local changes.
 - If `git status --short` is not clean and the user did not explicitly ask to discard local unstaged changes in this turn, stop and confirm before cleaning.
 - If staged changes already exist, stop and ask how to handle them. A release PR should start from a fully clean tree.
-- After `./x version ...`, stop and show both versions. Do not commit, push, open the PR, or trigger workflows until the user confirms the versions.
+- After updating and validating the versions, stop and show both versions and any changed CLI peer range. Do not commit, push, open the PR, or trigger workflows until the user confirms the versions.
 
 ## Workflow
 
@@ -61,15 +61,7 @@ git status --short
 
 The release branch should start from the exact current `origin/main`, not from an older local branch tip.
 
-### 3) Reinstall dependencies
-
-```sh
-pnpm install
-```
-
-Run this before the version bump so the local release tooling and workspace dependencies are fresh.
-
-### 4) Create the release branch
+### 3) Create the release branch
 
 Use the current local date in `YYYY-MM-DD` format:
 
@@ -81,6 +73,14 @@ git switch -c "$BRANCH"
 
 Reuse the same `RELEASE_DATE` later in the PR body.
 
+### 4) Reinstall dependencies
+
+```sh
+pnpm install
+```
+
+Run this before the version bump so the local release tooling and workspace dependencies are fresh.
+
 ### 5) Bump the version
 
 Choose the bump version from the user request:
@@ -88,6 +88,12 @@ Choose the bump version from the user request:
 - `major`, `minor`, or `patch`
 - Default to `patch` when the user does not specify one
 - If the user explicitly asks for `alpha`, `beta`, or `rc`, add `--pre <tag>`
+
+Record HEAD before updating versions:
+
+```sh
+RELEASE_BASE="$(git rev-parse HEAD)"
+```
 
 Examples:
 
@@ -98,9 +104,24 @@ Examples:
 ./x version minor --pre beta
 ```
 
-`./x version ...` already updates the published JavaScript package versions, updates the Rust workspace version through the release tooling, runs `cargo codegen`, and runs `pnpm run format:js`.
+`./x version ...` already updates the published JavaScript package versions, updates the CLI core peer range for major and minor bumps (including prereleases), updates the Rust workspace version through the release tooling, runs `cargo codegen`, and runs `pnpm run format:js`.
 
-After the command finishes, read the authoritative versions from:
+The Rust version command uses `--no-git-commit`: Rust, JavaScript, and CLI peer updates remain uncommitted until the user confirms the complete change.
+
+### 6) Validate and confirm the versions
+
+Check that the version command did not create a partial release commit, and that Cargo resolves the updated manifests with the lockfile:
+
+```sh
+test "$(git rev-parse HEAD)" = "$RELEASE_BASE"
+cargo metadata --locked --format-version 1 >/dev/null
+git diff --check
+git diff --stat
+```
+
+If HEAD changed or dependency validation fails, stop and report the failure before requesting version confirmation.
+
+Read the authoritative versions from:
 
 - JavaScript packages: `packages/rspack/package.json`
 - Rust crates: `[workspace.package].version` in the root `Cargo.toml`
@@ -113,9 +134,16 @@ RUST_VERSION="$(pnpm --dir scripts exec node -e 'const fs=require("node:fs"); co
 printf 'JavaScript packages version: %s\nRust crates version: %s\n' "$JS_VERSION" "$RUST_VERSION"
 ```
 
-Show both values to the user and wait for confirmation before continuing.
+For a `major` or `minor` bump (including `--pre alpha`, `--pre beta`, and `--pre rc`), verify that the version script updated `peerDependencies["@rspack/core"]` in `packages/rspack-cli/package.json` before asking for confirmation. A `patch` bump leaves this range unchanged, even with a prerelease tag:
 
-### 6) Commit, push, and open the PR
+- Derive the range from the authoritative `JS_VERSION`: remove any prerelease/build suffix, append `-0`, and keep the existing caret prefix (`^`).
+- For example, both `2.3.0` and `2.3.0-beta.0` require `^2.3.0-0`; `2.3.0-beta.1` uses the same range. This raises the minimum supported core version while allowing prereleases of that version.
+- Keep `devDependencies["@rspack/core"]` as `workspace:*` and leave the `@rspack/dev-server` peer range unchanged.
+- Inspect the diff and verify the CLI core peer range matches the derived value. Include this change in the release commit.
+
+Show both versions and any changed CLI core peer range to the user and wait for confirmation before continuing.
+
+### 7) Commit, push, and open the PR
 
 Once the user confirms the versions, prepare the release metadata:
 
@@ -170,7 +198,7 @@ PR_NUMBER="$(gh pr view --json number --jq '.number')"
 PR_URL="$(gh pr view --json url --jq '.url')"
 ```
 
-### 7) Trigger `ecosystem-ci`
+### 8) Trigger `ecosystem-ci`
 
 The workflow file is [`.github/workflows/ecosystem-ci.yml`](../../../.github/workflows/ecosystem-ci.yml) and the workflow display name is `Ecosystem CI`.
 
@@ -223,7 +251,7 @@ done
 
 Do not report the previous latest run. Only report the first new `workflow_dispatch` run from `DISPATCH_USER` that appears after your dispatch for `PR_NUMBER`.
 
-### 8) Report the result
+### 9) Report the result
 
 End by telling the user:
 
@@ -235,7 +263,8 @@ Include the confirmed JavaScript and Rust version numbers again if that helps th
 ## Common traps
 
 - Do not keep local staged work mixed into the release PR.
-- Do not skip the user confirmation step after `./x version ...`.
+- Keep HEAD unchanged during version generation; commit Rust and JavaScript version changes together only after confirmation.
+- Verify the CLI core peer range generated by `./x version ...` for major and minor bumps, including prereleases.
 - Do not derive the PR title from template packages under `packages/create-rspack/template-*`; use the published version in `packages/rspack/package.json`.
 - Do not forget that the Rust version is authoritative in the root `Cargo.toml`, even though `./x version` updates many files.
 - Do not stop at the workflow dispatch command. Always retrieve the PR URL and the workflow run URL before reporting completion.

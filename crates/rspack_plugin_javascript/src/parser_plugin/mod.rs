@@ -47,7 +47,7 @@ pub(crate) use self::{
     is_create_require_namespace_member, is_create_require_specifier,
   },
   common_js_plugin::CommonJsPlugin,
-  compatibility_plugin::CompatibilityPlugin,
+  compatibility_plugin::{CompatibilityPlugin, NESTED_IDENTIFIER_TAG, NestedRequireData},
   r#const::ConstPlugin,
   drive::JavaScriptParserPluginDrive,
   esm_detection_parser_plugin::ESMDetectionParserPlugin,

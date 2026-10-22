@@ -1,3 +1,5 @@
+use rspack_paths::InternedPath;
+
 use crate::{WatchPattern, paths::PathAccessor};
 
 mod directories;
@@ -14,10 +16,20 @@ pub(crate) trait Analyzer: Default {
   /// # Returns
   /// A vector of [`WatchPattern`]s representing the paths and their watch modes.
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern>;
+
+  fn invalidate_path(&self, _path: &InternedPath) {}
+
+  fn invalidate_all(&self) {}
 }
 
-#[cfg(any(target_os = "macos", target_os = "windows"))]
+#[cfg(all(
+  not(feature = "testing"),
+  any(target_os = "macos", target_os = "windows")
+))]
 pub type RecommendedAnalyzer = root::WatcherRootAnalyzer;
 
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(any(
+  feature = "testing",
+  not(any(target_os = "macos", target_os = "windows"))
+))]
 pub type RecommendedAnalyzer = directories::WatcherDirectoriesAnalyzer;

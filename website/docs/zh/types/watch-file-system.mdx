@@ -6,7 +6,20 @@ type WatchDependencies = Iterable<string> & {
   removed?: Iterable<string>;
 };
 
-type TimeInfoEntries = Map<string, FileSystemInfoEntry | 'ignore'>;
+type FileSystemInfoEntry = {
+  safeTime: number;
+  timestamp?: number;
+  accuracy?: number;
+};
+
+// `{}` marks a path known to exist with no time info; `null` a watched path
+// that is absent on disk.
+type ExistenceOnlyTimeEntry = Record<string, never>;
+
+type TimeInfoEntries = Map<
+  string,
+  FileSystemInfoEntry | ExistenceOnlyTimeEntry | 'ignore' | null
+>;
 
 type WatcherInfo = {
   changes: Set<string>;
@@ -56,6 +69,13 @@ interface WatchFileSystem {
     event: E,
     ...args: WatchFileSystemEvents[E]
   ): boolean;
+
+  getTimes?(): Record<string, number | null>;
+  getTimeInfoEntries?(): TimeInfoEntries;
+  collectTimeInfoEntries?(
+    fileTimestamps: TimeInfoEntries,
+    directoryTimestamps: TimeInfoEntries,
+  ): void;
 }
 ```
 

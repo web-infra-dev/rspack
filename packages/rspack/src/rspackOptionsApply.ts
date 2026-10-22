@@ -48,6 +48,7 @@ import {
   HttpExternalsRspackPlugin,
   HttpUriPlugin,
   InferAsyncModulesPlugin,
+  ImportedByDeferModulesPlugin,
   InlineExportsPlugin,
   JavascriptModulesPlugin,
   JsonModulesPlugin,
@@ -227,6 +228,7 @@ export class RspackOptionsApply {
             options.output.devtoolFallbackModuleFilenameTemplate,
           append: hidden ? false : undefined,
           module: moduleMaps ? true : !cheap,
+          test: evalWrapped ? undefined : /\.((c|m)?js|css)($|\?)/i,
           columns: !cheap,
           noSources: noSources,
           namespace: options.output.devtoolNamespace,
@@ -259,6 +261,9 @@ export class RspackOptionsApply {
     }
 
     new InferAsyncModulesPlugin().apply(compiler);
+    if (options.experiments.deferImport) {
+      new ImportedByDeferModulesPlugin().apply(compiler);
+    }
     new APIPlugin().apply(compiler);
 
     new DataUriPlugin().apply(compiler);

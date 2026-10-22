@@ -1,6 +1,8 @@
 use napi::{Env, JsValue, bindgen_prelude::*};
 use rspack_napi::WeakRef;
 
+use crate::symbols;
+
 #[napi(object)]
 pub struct JsHelpers<'env> {
   #[napi(ts_type = "<T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void")]
@@ -33,7 +35,7 @@ impl JsHelperRefs {
       )?,
     };
     owner.define_properties(&[Property::new()
-      .with_name(env, env.create_symbol(Some("rspack.jsHelpers"))?)?
+      .with_name(env, env.symbol_for(symbols::JS_HELPERS_SYMBOL)?)?
       .with_napi_value(env, helpers)?
       .with_property_attributes(PropertyAttributes::Default)])?;
     Ok(references)
@@ -66,7 +68,7 @@ pub(crate) fn js_owned_ref(
 ) -> napi::Result<WeakRef> {
   let reference = WeakRef::new(env.raw(), &mut value)?;
   owner.define_properties(&[Property::new()
-    .with_name(env, env.create_symbol(Some(name))?)?
+    .with_name(env, env.symbol_for(name)?)?
     .with_value(&value)
     .with_property_attributes(PropertyAttributes::Default)])?;
   Ok(reference)

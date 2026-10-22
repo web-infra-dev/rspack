@@ -992,15 +992,6 @@ impl CompilerOptionsBuilder {
     // apply experiments defaults
     let mut experiments_builder = f!(self.experiments.take(), Experiments::builder);
     let experiments = experiments_builder.build(builder_context, development, production)?;
-    if matches!(&cache, CacheOptions::FileSystem(_)) && !experiments.new_cache.is_enabled() {
-      return Err(
-        BuilderError::Option(
-          "cache.type".into(),
-          "filesystem requires experiments.newCache to be enabled".into(),
-        )
-        .into(),
-      );
-    }
     // apply snapshot defaults
     let snapshot = f!(self.snapshot.take(), || SnapshotOptions {
       immutable_paths: vec![],
@@ -1787,6 +1778,7 @@ impl ModuleOptionsBuilder {
           dynamic_import_prefetch: Some(JavascriptParserOrder::Disable),
           dynamic_import_fetch_priority: None,
           url: Some(JavascriptParserUrl::Enable),
+          dynamic_url: Some(true),
           expr_context_critical: Some(true),
           unknown_context_critical: Some(true),
           wrapped_context_critical: Some(false),

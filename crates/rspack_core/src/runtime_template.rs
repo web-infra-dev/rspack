@@ -7,12 +7,12 @@ use std::{
 use cow_utils::CowUtils;
 use heck::ToSnakeCase;
 use itertools::Itertools;
-use regex::{Captures, Regex};
+use memchr::memmem;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
 use rspack_intern::Atom;
-use rspack_util::{fx_hash::FxIndexSet, json_stringify};
+use rspack_util::{fx_hash::FxIndexSet, json_stringify, placeholder::PlaceholderFinder};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use serde_json::{Value, json};
 
@@ -37,8 +37,8 @@ pub struct RuntimeTemplate {
   dojang: Arc<Dojang>,
 }
 
-static RUNTIME_GLOBALS_PATTERN: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\$\$RUNTIME_GLOBAL_(.*?)\$\$").expect("failed to create regex"));
+static RUNTIME_GLOBALS_PLACEHOLDER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new("$$RUNTIME_GLOBAL_"));
 
 static WEBPACK_RUNTIME_GLOBALS: LazyLock<Arc<RuntimeGlobalsRenderMap>> = LazyLock::new(|| {
   Arc::new(runtime_globals_to_render_map(
@@ -88,13 +88,11 @@ impl RuntimeGlobalsRenderMode {
     matches!(self, Self::Webpack)
   }
 
-  fn render_runtime_variable(self, runtime_variable: &RuntimeVariable) -> String {
+  fn render_runtime_variable(self, runtime_variable: &RuntimeVariable) -> &'static str {
     match self {
-      Self::Webpack => runtime_variable_name(runtime_variable).to_string(),
-      Self::RspackContext | Self::RspackLexical => {
-        rspack_runtime_variable_name(runtime_variable).to_string()
-      }
-      Self::RspackExport => rspack_export_runtime_variable_name(runtime_variable).to_string(),
+      Self::Webpack => runtime_variable_name(runtime_variable),
+      Self::RspackContext | Self::RspackLexical => rspack_runtime_variable_name(runtime_variable),
+      Self::RspackExport => rspack_export_runtime_variable_name(runtime_variable),
     }
   }
 }
@@ -171,11 +169,11 @@ impl RuntimeTemplateRenderMode {
 
 #[derive(Debug)]
 struct RuntimeGlobalsRenderMap {
-  runtime_values: FxHashMap<RuntimeGlobals, String>,
+  runtime_values: FxHashMap<RuntimeGlobals, Arc<str>>,
 }
 
 impl RuntimeGlobalsRenderMap {
-  fn render(&self, runtime_globals: &RuntimeGlobals) -> String {
+  fn render(&self, runtime_globals: &RuntimeGlobals) -> Arc<str> {
     self
       .runtime_values
       .get(runtime_globals)
@@ -183,7 +181,7 @@ impl RuntimeGlobalsRenderMap {
       .clone()
   }
 
-  fn render_template_placeholder(&self, name: &str) -> String {
+  fn render_template_placeholder(&self, name: &str) -> Arc<str> {
     let runtime_globals =
       RuntimeGlobals::from_name(name).expect("runtime global name should be known");
     self.render(&runtime_globals)
@@ -194,10 +192,26 @@ fn replace_runtime_globals<'a>(
   template: &'a str,
   runtime_globals: &RuntimeGlobalsRenderMap,
 ) -> Cow<'a, str> {
-  RUNTIME_GLOBALS_PATTERN.replace_all(template, |caps: &Captures| {
-    let name = caps.get(1).expect("name should be a string").as_str();
-    runtime_globals.render_template_placeholder(name)
-  })
+  let mut matches = RUNTIME_GLOBALS_PLACEHOLDER
+    .find_all(template, |rest| {
+      let end = memmem::find(rest.as_bytes(), b"$$")?;
+      let name = &rest[..end];
+      (!name.contains('\n')).then_some((end + 2, name))
+    })
+    .peekable();
+  if matches.peek().is_none() {
+    return Cow::Borrowed(template);
+  }
+
+  let mut result = String::with_capacity(template.len());
+  let mut end = 0;
+  for (range, name) in matches {
+    result.push_str(&template[end..range.start]);
+    result.push_str(&runtime_globals.render_template_placeholder(name));
+    end = range.end;
+  }
+  result.push_str(&template[end..]);
+  Cow::Owned(result)
 }
 
 impl Debug for RuntimeTemplate {
@@ -395,9 +409,9 @@ fn hmr_runtime_state_prefix(
       .expect("hmr runtime state prefix should have property name")
       .to_string(),
     RuntimeGlobalsRenderMode::RspackExport => "__rspack_hmr_s".to_string(),
-    RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => {
-      runtime_globals.render(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
-    }
+    RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => runtime_globals
+      .render(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+      .to_string(),
   }
 }
 
@@ -472,7 +486,7 @@ fn runtime_globals_to_render_map(render_mode: RuntimeGlobalsRenderMode) -> Runti
       }
     };
 
-    runtime_values.insert(runtime_globals, rendered);
+    runtime_values.insert(runtime_globals, rendered.into());
   }
 
   runtime_values.shrink_to_fit();
@@ -797,7 +811,10 @@ pub fn get_outgoing_async_modules(
           let dep = mg.dependency_by_id(&connection.dependency_id);
           matches!(
             dep.dependency_type(),
-            DependencyType::EsmImport | DependencyType::EsmExportImport | DependencyType::Provided
+            DependencyType::EsmImport
+              | DependencyType::EsmExportImport
+              | DependencyType::EsmExportImportedSpecifier
+              | DependencyType::Provided
           )
         });
         if is_esm {
@@ -858,14 +875,17 @@ impl ModuleCodeTemplate {
 
   pub fn render_runtime_globals(&mut self, runtime_globals: &RuntimeGlobals) -> String {
     self.runtime_requirements.insert(*runtime_globals);
+    self.runtime_globals.render(runtime_globals).to_string()
+  }
+
+  pub fn render_runtime_globals_without_adding(
+    &self,
+    runtime_globals: &RuntimeGlobals,
+  ) -> Arc<str> {
     self.runtime_globals.render(runtime_globals)
   }
 
-  pub fn render_runtime_globals_without_adding(&self, runtime_globals: &RuntimeGlobals) -> String {
-    self.runtime_globals.render(runtime_globals)
-  }
-
-  pub fn render_runtime_scope(&self) -> String {
+  pub fn render_runtime_scope(&self) -> Arc<str> {
     match self.runtime_globals_render_mode {
       RuntimeGlobalsRenderMode::Webpack => {
         WEBPACK_RUNTIME_GLOBALS.render(&RuntimeGlobals::REQUIRE_SCOPE)
@@ -891,7 +911,9 @@ impl ModuleCodeTemplate {
     self.runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     match exports_argument {
       ExportsArgument::Exports => "exports".to_string(),
-      ExportsArgument::RspackExports => self.render_runtime_variable(&RuntimeVariable::Exports),
+      ExportsArgument::RspackExports => self
+        .render_runtime_variable(&RuntimeVariable::Exports)
+        .to_string(),
     }
   }
 
@@ -899,7 +921,9 @@ impl ModuleCodeTemplate {
     self.runtime_requirements.insert(RuntimeGlobals::MODULE);
     match module_argument {
       ModuleArgument::Module => "module".to_string(),
-      ModuleArgument::RspackModule => self.render_runtime_variable(&RuntimeVariable::Module),
+      ModuleArgument::RspackModule => self
+        .render_runtime_variable(&RuntimeVariable::Module)
+        .to_string(),
     }
   }
 
@@ -910,7 +934,7 @@ impl ModuleCodeTemplate {
     "this".to_string()
   }
 
-  pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
+  pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> &'static str {
     self
       .runtime_globals_render_mode
       .render_runtime_variable(runtime_variable)
@@ -1861,7 +1885,9 @@ impl RuntimeCodeTemplate {
       RuntimeGlobalsRenderMode::RspackLexical | RuntimeGlobalsRenderMode::RspackExport => {
         format!("var {runtime_global}")
       }
-      RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => runtime_global,
+      RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => {
+        runtime_global.to_string()
+      }
     }
   }
 
@@ -1871,7 +1897,7 @@ impl RuntimeCodeTemplate {
   }
 
   pub fn render_runtime_globals(&self, runtime_globals: &RuntimeGlobals) -> String {
-    self.runtime_globals.render(runtime_globals)
+    self.runtime_globals.render(runtime_globals).to_string()
   }
 
   pub fn render_hmr_runtime_state_expression(&self, key: &str) -> String {
@@ -1880,7 +1906,10 @@ impl RuntimeCodeTemplate {
   }
 
   pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
-    self.render_mode.render_runtime_variable(runtime_variable)
+    self
+      .render_mode
+      .render_runtime_variable(runtime_variable)
+      .to_string()
   }
 
   pub fn render_runtime_argument(&self) -> String {
@@ -1937,7 +1966,7 @@ impl RuntimeCodeTemplate {
       .extend(RuntimeGlobals::all().iter_names().map(|(name, value)| {
         (
           name.to_string(),
-          Value::String(self.runtime_globals.render(&value)),
+          Value::String(self.runtime_globals.render(&value).to_string()),
         )
       }));
 

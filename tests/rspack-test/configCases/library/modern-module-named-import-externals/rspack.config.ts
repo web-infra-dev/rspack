@@ -50,7 +50,7 @@ export default defineConfig({
 						(function Layout(props) {
 						  const { HomeLayout = external_externals0_HomeLayout } = props;
 						  call({ HomeLayout });
-						})()
+						})();
 
 						// re export
 

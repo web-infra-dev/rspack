@@ -5,15 +5,6 @@ let compilerIndex = 0;
 let contextIdentifiers: string[] | undefined;
 
 export default defineConfig({
-  experiments: {
-    newCache: {
-      codeGeneration: false,
-      devtool: false,
-      loader: false,
-      minimize: false,
-      module: true,
-    },
-  },
   cache: {
     type: 'persistent',
     snapshot: {

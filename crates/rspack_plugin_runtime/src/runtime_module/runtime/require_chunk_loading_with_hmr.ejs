@@ -1,5 +1,5 @@
 <%- fn("requireLoadUpdateChunk") %>(chunkId, updatedModulesList) {
-	var update = require("./" + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId));
+	var update = require("<%- _output_dir %>" + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId));
 	var updatedModules = update.modules;
 	var runtime = update.runtime;
 	for (var moduleId in updatedModules) {

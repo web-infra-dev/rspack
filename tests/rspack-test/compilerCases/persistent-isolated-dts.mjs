@@ -44,7 +44,7 @@ export default [
 
   function configureCompiler(compiler) {
     compiler.outputFileSystem = fs;
-    expect(compiler.options.cache.type).toBe(newCache === false ? "persistent" : "filesystem");
+    expect(compiler.options.cache.type).toBe("persistent");
     if (newCache === false) {
       expect(compiler.options.experiments.newCache).toBe(false);
     } else {

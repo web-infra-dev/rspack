@@ -14,7 +14,7 @@ use rspack_error::Result;
 use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource,
-  runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
+  runtime::{AUTO_PUBLIC_PATH_MATCHER, render_module, render_runtime_modules},
   url_plugin::replace_static_url_placeholders,
 };
 use rspack_util::{
@@ -735,24 +735,18 @@ var {} = {{}};
 
     let final_source = if replace_auto_public_path {
       let mut replace_source = ReplaceSource::new(final_source);
-      let mut replacement = vec![];
-      for (start, matched) in replace_source
-        .source()
-        .into_string_lossy()
-        .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
-      {
-        let start = start as u32;
-        let end = (start as usize + matched.len()) as u32;
+      let replacements: Vec<_> = AUTO_PUBLIC_PATH_MATCHER
+        .find_iter(&replace_source.source().into_string_lossy())
+        .collect();
+      if !replacements.is_empty() {
         let relative = get_undo_path(
           &output_path,
           compilation.options.output.path.to_string(),
           true,
         );
-        replacement.push((start, end, relative));
-      }
-
-      for (start, end, relative) in replacement {
-        replace_source.replace(start, end, relative, None);
+        for range in replacements {
+          replace_source.replace(range.start as u32, range.end as u32, relative.clone(), None);
+        }
       }
 
       // concate module does this by render_module()
@@ -798,13 +792,13 @@ var {} = {{}};
 
         for ident in refs.iter().map(|index| &info.idents[*index as usize]) {
           let name = if ident.shorthand {
-            Cow::Owned(format!("{}: {}", &ident.id.sym, &final_name))
+            Cow::Owned(format!("{}: {}", &ident.name, &final_name))
           } else {
             final_name.clone()
           };
           source.replace(
-            ident.id.span.real_lo(),
-            ident.id.span.real_hi() + 2,
+            ident.span.real_lo(),
+            ident.span.real_hi() + 2,
             name.into_owned(),
             None,
           );
@@ -813,18 +807,22 @@ var {} = {{}};
     }
 
     for ident in &info.idents {
-      if ident.id.ctxt != info.module_ctxt {
+      if ident.scope != info.module_ctxt {
         continue;
       }
 
-      if let Some(internal_name) = info.get_internal_name(&ident.id.sym) {
+      if let Some(internal_name) = info.get_internal_name(&ident.name) {
         let name = if ident.shorthand {
-          format!("{}: {}", &ident.id.sym, &internal_name)
+          format!("{}: {}", &ident.name, &internal_name)
         } else {
           internal_name.to_string()
         };
-        source.replace(ident.id.span.real_lo(), ident.id.span.real_hi(), name, None);
+        source.replace(ident.span.real_lo(), ident.span.real_hi(), name, None);
       }
+    }
+
+    if let Some(pos) = info.trailing_semicolon_position {
+      source.insert_static(pos, ";", None);
     }
 
     Ok(source)

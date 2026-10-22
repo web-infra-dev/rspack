@@ -9,9 +9,9 @@
 - Bundle: main.mjs
 - Bundle: vendor.chunk.mjs
 - Manifest: main.LAST_HASH.hot-update.json.mjs, size: 62
-- Update: common.LAST_HASH.hot-update.mjs, size: 523
-- Update: main.LAST_HASH.hot-update.mjs, size: 288
-- Update: vendor.LAST_HASH.hot-update.mjs, size: 544
+- Update: common.LAST_HASH.hot-update.mjs, size: 482
+- Update: main.LAST_HASH.hot-update.mjs, size: 249
+- Update: vendor.LAST_HASH.hot-update.mjs, size: 503
 
 ## Manifest
 
@@ -35,7 +35,6 @@
 
 #### Changed Content
 ```js
-export const __rspack_esm_id = "common";
 export const __rspack_esm_ids = ["common"];
 export const __webpack_modules__ = {
 "./common/shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
@@ -72,7 +71,6 @@ const commonData = {
 
 #### Changed Content
 ```js
-export const __rspack_esm_id = "main";
 export const __rspack_esm_ids = ["main"];
 export const __webpack_modules__ = {};
 export const __rspack_esm_runtime = function(__webpack_require__) {
@@ -98,7 +96,6 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 
 #### Changed Content
 ```js
-export const __rspack_esm_id = "vendor";
 export const __rspack_esm_ids = ["vendor"];
 export const __webpack_modules__ = {
 "./node_modules/vendor-lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {

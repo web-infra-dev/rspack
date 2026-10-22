@@ -8,8 +8,8 @@
 - Bundle: main.mjs
 - Bundle: style2_module_css.chunk.mjs
 - Manifest: main.LAST_HASH.hot-update.json.mjs, size: 105
-- Update: main.LAST_HASH.hot-update.mjs, size: 815
-- Update: style2_module_css.LAST_HASH.hot-update.mjs, size: 659
+- Update: main.LAST_HASH.hot-update.mjs, size: 776
+- Update: style2_module_css.LAST_HASH.hot-update.mjs, size: 607
 
 ## Manifest
 
@@ -33,7 +33,6 @@
 
 #### Changed Content
 ```js
-export const __rspack_esm_id = "main";
 export const __rspack_esm_ids = ["main"];
 export const __webpack_modules__ = {
 "./style.module.css"(module, __unused_rspack_exports, __webpack_require__) {
@@ -77,7 +76,6 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 
 #### Changed Content
 ```js
-export const __rspack_esm_id = "style2_module_css";
 export const __rspack_esm_ids = ["style2_module_css"];
 export const __webpack_modules__ = {
 "./style2.module.css"(module, __unused_rspack_exports, __webpack_require__) {
