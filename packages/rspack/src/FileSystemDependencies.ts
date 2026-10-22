@@ -1,12 +1,29 @@
 import util from 'node:util';
 import type { FileSystemDependencies as BindingFileSystemDependencies } from '@rspack/binding';
 
+export interface FileSystemDependencies {
+  readonly size: number;
+  has(value: string): boolean;
+  add(value: string): this;
+  addAll(deps: Iterable<string>): void;
+  delete(value: string): boolean;
+  clear(): void;
+  keys(): IterableIterator<string>;
+  values(): IterableIterator<string>;
+  entries(): IterableIterator<[string, string]>;
+  [Symbol.iterator](): IterableIterator<string>;
+  forEach(
+    callback: (value: string, key: string, set: FileSystemDependencies) => void,
+    thisArg?: unknown,
+  ): void;
+}
+
 const wrappers = new WeakMap<
   BindingFileSystemDependencies,
   FileSystemDependencies
 >();
 
-export class FileSystemDependencies implements FileSystemDependencies {
+class FileSystemDependenciesWrapper implements FileSystemDependencies {
   #inner: BindingFileSystemDependencies;
   #pendingAdditions = new Set<string>();
   #pendingDeletions = new Set<string>();
@@ -133,10 +150,10 @@ for (const name of [
 ]) {
   const method = Reflect.get(Set.prototype, name);
   if (typeof method === 'function') {
-    Object.defineProperty(FileSystemDependencies.prototype, name, {
+    Object.defineProperty(FileSystemDependenciesWrapper.prototype, name, {
       configurable: true,
       writable: true,
-      value(this: FileSystemDependencies, other: ReadonlySet<string>) {
+      value(this: FileSystemDependenciesWrapper, other: ReadonlySet<string>) {
         return method.call(new Set(this.values()), other);
       },
     });
@@ -148,7 +165,7 @@ export function createFileSystemDependencies(
 ): FileSystemDependencies {
   const cached = wrappers.get(binding);
   if (cached) return cached;
-  const wrapper = new FileSystemDependencies(binding);
+  const wrapper = new FileSystemDependenciesWrapper(binding);
   wrappers.set(binding, wrapper);
   return wrapper;
 }

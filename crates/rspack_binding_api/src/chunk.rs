@@ -3,65 +3,51 @@ use std::cell::RefCell;
 use napi::{
   Either, Env, JsString,
   bindgen_prelude::{
-    Array, Either3, FromNapiValue, Object, This, ToNapiValue, TypeName, ValidateNapiValue,
+    Array, Either3, FromNapiValue, Object, ToNapiValue, TypeName, ValidateNapiValue,
   },
   sys,
 };
 use napi_derive::napi;
-use rspack_core::{
-  ChunkGroupUkey, Compilation, CompilationId, RuntimeSpec, chunk_graph_chunk::ChunkId,
-};
-use rspack_napi::{MemoizedJsArray, OneShotRef};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rspack_core::{Compilation, CompilationId, chunk_graph_chunk::ChunkId};
+use rspack_napi::OneShotRef;
+use rustc_hash::FxHashMap;
 
 use crate::{
   chunk_group::ChunkGroupWrapper, compilation::entries::EntryOptionsDTO, with_compilation,
 };
 
-#[derive(Default)]
-struct GroupsCacheKey {
-  membership: FxHashSet<ChunkGroupUkey>,
-  // Outer None means absent; inner None means a group without an index.
-  indices: Vec<(ChunkGroupUkey, Option<Option<u32>>)>,
-}
-
 #[napi]
 pub struct Chunk {
   pub(crate) chunk_ukey: rspack_core::ChunkUkey,
   compilation_id: CompilationId,
-  files_jsobject: MemoizedJsArray<FxHashSet<String>>,
-  runtime_jsobject: MemoizedJsArray<RuntimeSpec>,
-  auxiliary_files_jsobject: MemoizedJsArray<FxHashSet<String>>,
-  groups_jsobject: MemoizedJsArray<GroupsCacheKey>,
-}
-
-fn with_chunk<R>(
-  compilation_id: CompilationId,
-  chunk_ukey: rspack_core::ChunkUkey,
-  f: impl FnOnce(&Compilation, &rspack_core::Chunk) -> napi::Result<R>,
-) -> napi::Result<R> {
-  with_compilation(compilation_id, |compilation| {
-    if let Some(value) = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .get(&chunk_ukey)
-    {
-      f(compilation, value)
-    } else {
-      Err(napi::Error::from_reason(format!(
-        "Unable to access chunk with id = {:?} now. The chunk have been removed on the Rust side.",
-        chunk_ukey
-      )))
-    }
-  })
 }
 
 impl Chunk {
+  fn with_compilation<R>(
+    &self,
+    f: impl FnOnce(&Compilation) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    with_compilation(self.compilation_id, f)
+  }
+
   fn with_ref<R>(
     &self,
     f: impl FnOnce(&Compilation, &rspack_core::Chunk) -> napi::Result<R>,
   ) -> napi::Result<R> {
-    with_chunk(self.compilation_id, self.chunk_ukey, f)
+    self.with_compilation(|compilation| {
+      if let Some(chunk) = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .get(&self.chunk_ukey)
+      {
+        f(compilation, chunk)
+      } else {
+        Err(napi::Error::from_reason(format!(
+          "Unable to access chunk with id = {:?} now. The chunk have been removed on the Rust side.",
+          self.chunk_ukey
+        )))
+      }
+    })
   }
 }
 
@@ -140,45 +126,27 @@ impl Chunk {
   }
 
   #[napi(getter, js_name = "_files", ts_return_type = "Array<string>")]
-  pub fn files<'a>(&mut self, env: &'a Env, mut this: This<'a>) -> napi::Result<Array<'a>> {
-    with_chunk(self.compilation_id, self.chunk_ukey, |_, chunk| {
-      // Resolve the compilation and chunk before consulting the cache, so a
-      // retained wrapper cannot bypass native-target revocation.
-      let files = chunk.files();
-      self.files_jsobject.get_or_update(
-        env,
-        &mut this.object,
-        "rspack.chunk.files",
-        |cached| cached == files,
-        |array| {
-          let mut sorted_files = files.iter().collect::<Vec<_>>();
-          sorted_files.sort_unstable();
-          for (i, file) in sorted_files.iter().enumerate() {
-            array.set(i as u32, file.as_str())?;
-          }
-          Ok((files.clone(), files.len() as u32))
-        },
-      )
+  pub fn files<'a>(&self, env: &'a Env) -> napi::Result<Array<'a>> {
+    self.with_ref(|_, chunk| {
+      let mut files = chunk.files().iter().collect::<Vec<_>>();
+      files.sort_unstable();
+      let mut array = env.create_array(files.len() as u32)?;
+      for (i, file) in files.iter().enumerate() {
+        array.set(i as u32, file.as_str())?;
+      }
+      Ok(array)
     })
   }
 
   #[napi(getter, js_name = "_runtime", ts_return_type = "Array<string>")]
-  pub fn runtime<'a>(&mut self, env: &'a Env, mut this: This<'a>) -> napi::Result<Array<'a>> {
-    with_chunk(self.compilation_id, self.chunk_ukey, |_, chunk| {
+  pub fn runtime<'a>(&self, env: &'a Env) -> napi::Result<Array<'a>> {
+    self.with_ref(|_, chunk| {
       let runtime = chunk.runtime();
-      self.runtime_jsobject.get_or_update(
-        env,
-        &mut this.object,
-        "rspack.chunk.runtime",
-        // Compare members rather than RuntimeSpec's derived string key.
-        |cached| cached.len() == runtime.len() && cached.iter().all(|item| runtime.contains(item)),
-        |array| {
-          for (i, runtime) in runtime.iter().enumerate() {
-            array.set(i as u32, runtime.as_str())?;
-          }
-          Ok((runtime.clone(), runtime.len() as u32))
-        },
-      )
+      let mut array = env.create_array(runtime.len() as u32)?;
+      for (i, runtime) in runtime.iter().enumerate() {
+        array.set(i as u32, runtime.as_str())?;
+      }
+      Ok(array)
     })
   }
 
@@ -236,25 +204,14 @@ impl Chunk {
   }
 
   #[napi(getter, js_name = "_auxiliaryFiles", ts_return_type = "Array<string>")]
-  pub fn auxiliary_files<'a>(
-    &mut self,
-    env: &'a Env,
-    mut this: This<'a>,
-  ) -> napi::Result<Array<'a>> {
-    with_chunk(self.compilation_id, self.chunk_ukey, |_, chunk| {
-      let files = chunk.auxiliary_files();
-      self.auxiliary_files_jsobject.get_or_update(
-        env,
-        &mut this.object,
-        "rspack.chunk.auxiliaryFiles",
-        |cached| cached == files,
-        |array| {
-          for (i, file) in files.iter().enumerate() {
-            array.set(i as u32, file.as_str())?;
-          }
-          Ok((files.clone(), files.len() as u32))
-        },
-      )
+  pub fn auxiliary_files<'a>(&self, env: &'a Env) -> napi::Result<Array<'a>> {
+    self.with_ref(|_, chunk| {
+      let auxiliary_files = chunk.auxiliary_files();
+      let mut array = env.create_array(auxiliary_files.len() as u32)?;
+      for (i, file) in auxiliary_files.iter().enumerate() {
+        array.set(i as u32, file.as_str())?;
+      }
+      Ok(array)
     })
   }
 }
@@ -322,55 +279,26 @@ impl Chunk {
   }
 
   #[napi(getter, js_name = "_groupsIterable", ts_return_type = "ChunkGroup[]")]
-  pub fn groups_iterable<'a>(
-    &mut self,
-    env: &'a Env,
-    mut this: This<'a>,
-  ) -> napi::Result<Array<'a>> {
-    with_chunk(
-      self.compilation_id,
-      self.chunk_ukey,
-      |compilation, chunk| {
-        let membership = chunk.groups();
-        let by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
-        self.groups_jsobject.get_or_update(
-          env,
-          &mut this.object,
-          "rspack.chunk.groupsIterable",
-          |cached| {
-            &cached.membership == membership
-              && cached
-                .indices
-                .iter()
-                .all(|(ukey, index)| by_ukey.get(ukey).map(|group| group.index) == *index)
-          },
-          |array| {
-            // Membership alone does not track changes to group ordering or removal
-            // from the graph. Retain their existence/index alongside the membership
-            // snapshot.
-            let indices = membership
-              .iter()
-              .map(|ukey| (*ukey, by_ukey.get(ukey).map(|group| group.index)))
-              .collect();
-            let mut groups = membership
-              .iter()
-              .filter_map(|ukey| by_ukey.get(ukey))
-              .collect::<Vec<_>>();
-            groups.sort_unstable_by_key(|group| group.index);
-            for (i, group) in groups.iter().enumerate() {
-              array.set(i as u32, ChunkGroupWrapper::new(group.ukey, compilation))?;
-            }
-            Ok((
-              GroupsCacheKey {
-                membership: membership.clone(),
-                indices,
-              },
-              groups.len() as u32,
-            ))
-          },
-        )
-      },
-    )
+  pub fn groups_iterable(&self) -> napi::Result<Vec<ChunkGroupWrapper>> {
+    self.with_ref(|compilation, chunk| {
+      let mut groups = chunk
+        .groups()
+        .iter()
+        .filter_map(|group| {
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_group_by_ukey
+            .get(group)
+        })
+        .collect::<Vec<_>>();
+      groups.sort_unstable_by_key(|a| a.index);
+      Ok(
+        groups
+          .iter()
+          .map(|group| ChunkGroupWrapper::new(group.ukey, compilation))
+          .collect::<Vec<_>>(),
+      )
+    })
   }
 
   #[napi(ts_return_type = "EntryOptionsDTO | undefined")]
@@ -471,10 +399,6 @@ impl ToNapiValue for ChunkWrapper {
             let js_chunk = Chunk {
               chunk_ukey: val.chunk_ukey,
               compilation_id: val.compilation_id,
-              files_jsobject: Default::default(),
-              runtime_jsobject: Default::default(),
-              auxiliary_files_jsobject: Default::default(),
-              groups_jsobject: Default::default(),
             };
             let r = entry.insert(OneShotRef::new(env, js_chunk)?);
             ToNapiValue::to_napi_value(env, r)

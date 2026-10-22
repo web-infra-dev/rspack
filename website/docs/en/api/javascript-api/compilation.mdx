@@ -704,19 +704,6 @@ The list of chunk group objects, with the structure as follows:
   </CollapsePanel>
 </Collapse>
 
-`ChunkGroup.chunks`, `ChunkGroup.childrenIterable`, `ChunkGroup.origins`,
-`ChunkGroup.getParents()`, and `ChunkGroup.getFiles()`
-return shared arrays exposed as `ReadonlyArray`. When native members or their
-iteration order change, the next getter or method call updates the same array in
-place. Previously retained references also see the refreshed contents. These arrays
-are not frozen: consumers must not mutate or freeze them. Use `[...array]` for an
-independent array snapshot or a mutable copy. Unchanged `origins` also reuse their
-origin and location objects; treat these records as read-only and copy any records
-you need to edit. Access still validates the compilation
-lifetime, and cached arrays do not keep a compilation alive. The JavaScript
-objects own these arrays; garbage collection reclaims them when they are no
-longer reachable, including cycles between chunk and chunk group objects.
-
 ### entrypoints
 
 **Type**: `ReadonlyMap<string, Entrypoint>`
@@ -794,23 +781,18 @@ List of all chunks, with the structure as follows:
 </Collapse>
 
 `chunk.files`, `chunk.runtime`, `chunk.auxiliaryFiles`, and `chunk.groupsIterable`
-use the generic array-backed `ReadonlySet<T>` facade, similar to
-`FileSystemDependencies`. Reads backed by the same array reuse the same read-only
-view. Iteration,
-`size`, `has`, `keys`, `values`, `entries`, and `forEach` do not construct a native
-JavaScript `Set`. `has` scans the array linearly. Asset renames and deletions
-appear when the property is next read, updating the existing backing array in
-place. Previously obtained views then see the updated contents too.
+return array-backed `ReadonlySet` views. Their values are already unique on the
+Rust side, so wrapping the returned arrays avoids constructing and deduplicating
+another JavaScript `Set`. Each property read returns a new snapshot; previously
+obtained views do not change when native collections change.
 
-The facade is not a native `Set`: `chunk.files instanceof Set` is `false`, and
-`Set.prototype` methods cannot be called directly with it as their receiver.
-The view does not provide `add`, `delete`, or `clear`. Use
-`new Set(chunk.files)` when an independent snapshot, mutable copy, or actual `Set`
-is required.
+Iteration, `size`, `has`, `keys`, `values`, `entries`, and `forEach` operate directly
+on the array. `has` performs a linear scan. The view does not provide `add`,
+`delete`, or `clear`, and `chunk.files instanceof Set` is `false`. Use
+`new Set(chunk.files)` when a mutable copy or native `Set` is required.
 Set composition methods are available when supported by the JavaScript runtime
-and construct a native `Set` on demand. Group membership views preserve the
-existing `ChunkGroup` object identities; those objects still follow the compilation
-lifetime rules, and caching does not extend their validity.
+and construct a native `Set` on demand. ChunkGroup objects in `groupsIterable`
+retain their existing identities and compilation lifetime rules.
 
 ### namedChunks
 

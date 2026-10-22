@@ -161,16 +161,16 @@ export declare class ChunkGraph {
 }
 
 export declare class ChunkGroup {
-  get chunks(): ReadonlyArray<Chunk>
+  get chunks(): Chunk[]
   get index(): number | undefined
   get name(): string | undefined
-  get origins(): ReadonlyArray<Readonly<JsChunkGroupOrigin>>
-  get childrenIterable(): ReadonlyArray<ChunkGroup>
+  get origins(): Array<JsChunkGroupOrigin>
+  get childrenIterable(): ChunkGroup[]
   isInitial(): boolean
-  getParents(): ReadonlyArray<ChunkGroup>
+  getParents(): ChunkGroup[]
   getRuntimeChunk(): Chunk
   getEntrypointChunk(): Chunk
-  getFiles(): ReadonlyArray<string>
+  getFiles(): Array<string>
   getModulePreOrderIndex(module: Module): number | null
   getModulePostOrderIndex(module: Module): number | null
 }

@@ -1,10 +1,8 @@
 import util from 'node:util';
 
-const wrappers = new WeakMap<readonly unknown[], ReadonlySet<unknown>>();
-
 /**
- * A read-only view over a shared array of unique values.
- * The owner may update the array in place while preserving Set uniqueness.
+ * A read-only view over an array whose values are already unique.
+ * Callers must not mutate the backing array.
  */
 export class ReadonlySet<T> implements globalThis.ReadonlySet<T> {
   readonly #values: readonly T[];
@@ -81,13 +79,4 @@ for (const name of [
       },
     });
   }
-}
-
-/** Reuse the same view for the same backing array, without retaining it globally. */
-export function createReadonlySet<T>(values: readonly T[]): ReadonlySet<T> {
-  const cached = wrappers.get(values);
-  if (cached) return cached as ReadonlySet<T>;
-  const wrapper = new ReadonlySet(values);
-  wrappers.set(values, wrapper);
-  return wrapper;
 }
