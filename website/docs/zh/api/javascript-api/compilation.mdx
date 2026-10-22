@@ -776,18 +776,6 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   </CollapsePanel>
 </Collapse>
 
-`chunk.files`、`chunk.runtime`、`chunk.auxiliaryFiles` 和 `chunk.groupsIterable`
-返回基于数组的 `ReadonlySet` 视图。Rust 侧已保证成员唯一，直接包装返回的数组可以
-避免构造 JavaScript `Set` 时再次去重。每次读取属性都会返回新的快照，之前取得的
-视图不会随 Rust 侧集合的变化而更新。
-
-迭代、`size`、`has`、`keys`、`values`、`entries` 和 `forEach` 直接操作底层数组，
-其中 `has` 会线性扫描数组。视图不提供 `add`、`delete` 和 `clear`，
-`chunk.files instanceof Set` 为 `false`。需要可修改的副本或原生 `Set` 时，
-请使用 `new Set(chunk.files)`。当 JavaScript 运行时支持集合组合方法时，包装器也会
-提供这些方法，并在调用时构造原生 `Set`。`groupsIterable` 中的 ChunkGroup 对象
-保留原有身份和编译生命周期规则。
-
 ### namedChunks
 
 **类型：** `ReadonlyMap<string, Readonly<Chunk>>`

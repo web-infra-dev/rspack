@@ -780,20 +780,6 @@ List of all chunks, with the structure as follows:
   </CollapsePanel>
 </Collapse>
 
-`chunk.files`, `chunk.runtime`, `chunk.auxiliaryFiles`, and `chunk.groupsIterable`
-return array-backed `ReadonlySet` views. Their values are already unique on the
-Rust side, so wrapping the returned arrays avoids constructing and deduplicating
-another JavaScript `Set`. Each property read returns a new snapshot; previously
-obtained views do not change when native collections change.
-
-Iteration, `size`, `has`, `keys`, `values`, `entries`, and `forEach` operate directly
-on the array. `has` performs a linear scan. The view does not provide `add`,
-`delete`, or `clear`, and `chunk.files instanceof Set` is `false`. Use
-`new Set(chunk.files)` when a mutable copy or native `Set` is required.
-Set composition methods are available when supported by the JavaScript runtime
-and construct a native `Set` on demand. ChunkGroup objects in `groupsIterable`
-retain their existing identities and compilation lifetime rules.
-
 ### namedChunks
 
 **Type:** `ReadonlyMap<string, Readonly<Chunk>>`
