@@ -6,8 +6,13 @@ export interface ReadonlySetBinding<T> {
   values(): readonly T[];
 }
 
+const wrappers = new WeakMap<
+  ReadonlySetBinding<unknown>,
+  ReadonlySet<unknown>
+>();
+
 /** A read-only facade over a source of unique values. */
-export class ReadonlySetImpl<T> implements ReadonlySet<T> {
+class ReadonlySetImpl<T> implements ReadonlySet<T> {
   readonly #binding: ReadonlySetBinding<T>;
 
   constructor(binding: ReadonlySetBinding<T>) {
@@ -82,4 +87,17 @@ for (const name of [
       },
     });
   }
+}
+
+export function createReadonlySet<T>(
+  binding: ReadonlySetBinding<T>,
+): ReadonlySet<T> {
+  const cached = wrappers.get(binding);
+  if (cached) {
+    // A binding object always has the same element type as its wrapper.
+    return cached as ReadonlySet<T>;
+  }
+  const wrapper = new ReadonlySetImpl(binding);
+  wrappers.set(binding, wrapper);
+  return wrapper;
 }

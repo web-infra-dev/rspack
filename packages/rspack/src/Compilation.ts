@@ -46,7 +46,7 @@ import { Logger, LogType } from './logging/Logger';
 import type { Module } from './Module';
 import ModuleGraph from './ModuleGraph';
 import type { NormalModuleFactory } from './NormalModuleFactory';
-import { ReadonlySetImpl } from './ReadonlySet';
+import { createReadonlySet } from './ReadonlySet';
 import type { ResolverFactory } from './ResolverFactory';
 import type { RspackError } from './RspackError';
 import { RuntimeModule } from './RuntimeModule';
@@ -281,9 +281,6 @@ export class Compilation {
   #shutdown: boolean;
   #errors?: RspackError[];
   #warnings?: RspackError[];
-  #chunks?: ReadonlySet<Chunk>;
-  #modules?: ReadonlySet<Module>;
-  #builtModules?: ReadonlySet<Module>;
   #assetsProxy?: Assets;
 
   hooks: Readonly<{
@@ -590,24 +587,15 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   get modules(): ReadonlySet<Module> {
-    if (!this.#modules) {
-      this.#modules = new ReadonlySetImpl(this.#inner.modules);
-    }
-    return this.#modules;
+    return createReadonlySet(this.#inner.modules);
   }
 
   get builtModules(): ReadonlySet<Module> {
-    if (!this.#builtModules) {
-      this.#builtModules = new ReadonlySetImpl(this.#inner.builtModules);
-    }
-    return this.#builtModules;
+    return createReadonlySet(this.#inner.builtModules);
   }
 
   get chunks(): ReadonlySet<Chunk> {
-    if (!this.#chunks) {
-      this.#chunks = new ReadonlySetImpl(this.#inner.chunks);
-    }
-    return this.#chunks;
+    return createReadonlySet(this.#inner.chunks);
   }
 
   /**

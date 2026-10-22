@@ -24,9 +24,13 @@ export default async function run() {
     ['modules', 'builtModules', 'chunks'].forEach((name) => {
       const collection = inner[name];
       assert.equal(inner[name], collection);
+      const view = compilation[name];
+      assert.equal(compilation[name], view);
+      tracker.track(view, `${name} first view`);
       tracker.track(collection, `${name} first instance`);
     });
     for (const name of ['modules', 'builtModules', 'chunks']) {
+      await tracker.waitForCollection(`${name} first view`);
       await tracker.waitForCollection(`${name} first instance`);
     }
     retainedCollections = ['modules', 'builtModules', 'chunks'].map((name) => {

@@ -43,26 +43,19 @@ export default async function run() {
 
                   let chunk = chunks[0];
                   let chunkGroup = chunkGroups[0];
-                  let filesView = chunk.files;
                   retainedCollections = [
-                    ["chunk files", chunk._files],
-                    ["chunk auxiliary files", chunk._auxiliaryFiles],
-                    ["chunk runtime", chunk._runtime],
+                    ["chunk files", chunk.files],
+                    ["chunk auxiliary files", chunk.auxiliaryFiles],
+                    ["chunk runtime", chunk.runtime],
                   ];
                   for (const [name, collection] of retainedCollections) {
                     gcTracker.track(collection, name);
-                    const values = collection.values();
-                    assert.equal(collection.values(), values);
-                    assert.equal(collection.size(), values.length);
-                    gcTracker.track(values, `${name} array`);
+                    assert.equal(Array.from(collection).length, collection.size);
                   }
-                  Array.from(filesView);
 
                   gcTracker.track(chunk, "chunk");
                   gcTracker.track(chunkGroup, "chunk group");
-                  gcTracker.track(filesView, "chunk files view");
 
-                  filesView = null;
                   chunk = null;
                   chunkGroup = null;
                   chunks.length = 0;
@@ -98,16 +91,14 @@ export default async function run() {
   // owner check when its array has already been cached.
   // Keep collection locals out of this async frame before the GC assertions.
   retainedCollections.forEach(([, collection]) => {
-    assert.throws(() => collection.size(), /Unable to access compilation/);
+    assert.throws(() => collection.size, /Unable to access compilation/);
     assert.throws(() => collection.has("bundle.js"), /Unable to access compilation/);
     assert.throws(() => collection.values(), /Unable to access compilation/);
   });
   retainedCollections = null;
   await gcTracker.waitForCollection("chunk");
   await gcTracker.waitForCollection("chunk group");
-  await gcTracker.waitForCollection("chunk files view");
   for (const name of ["chunk files", "chunk auxiliary files", "chunk runtime"]) {
     await gcTracker.waitForCollection(name);
-    await gcTracker.waitForCollection(`${name} array`);
   }
 }

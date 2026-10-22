@@ -1,34 +1,28 @@
 import util from 'node:util';
 import { Chunk, type ChunkGroup } from '@rspack/binding';
-import { ReadonlySetImpl } from './ReadonlySet';
-
-const filesJsobject = Symbol.for('rspack.Chunk.files');
-const runtimeJsobject = Symbol.for('rspack.Chunk.runtime');
-const auxiliaryFilesJsobject = Symbol.for('rspack.Chunk.auxiliaryFiles');
+import { createReadonlySet } from './ReadonlySet';
 
 Object.defineProperty(Chunk.prototype, 'files', {
   enumerable: true,
   configurable: true,
-  get(this: Chunk & { [filesJsobject]?: ReadonlySet<string> }) {
-    return (this[filesJsobject] ??= new ReadonlySetImpl(this._files));
+  get(this: Chunk) {
+    return createReadonlySet(this._files);
   },
 });
 
 Object.defineProperty(Chunk.prototype, 'runtime', {
   enumerable: true,
   configurable: true,
-  get(this: Chunk & { [runtimeJsobject]?: ReadonlySet<string> }) {
-    return (this[runtimeJsobject] ??= new ReadonlySetImpl(this._runtime));
+  get(this: Chunk) {
+    return createReadonlySet(this._runtime);
   },
 });
 
 Object.defineProperty(Chunk.prototype, 'auxiliaryFiles', {
   enumerable: true,
   configurable: true,
-  get(this: Chunk & { [auxiliaryFilesJsobject]?: ReadonlySet<string> }) {
-    return (this[auxiliaryFilesJsobject] ??= new ReadonlySetImpl(
-      this._auxiliaryFiles,
-    ));
+  get(this: Chunk) {
+    return createReadonlySet(this._auxiliaryFiles);
   },
 });
 
@@ -37,7 +31,7 @@ Object.defineProperty(Chunk.prototype, 'groupsIterable', {
   configurable: true,
   get(this: Chunk) {
     const groups = this._groupsIterable;
-    return new ReadonlySetImpl({
+    return createReadonlySet({
       size: () => groups.length,
       has: (value: ChunkGroup) => groups.includes(value),
       values: () => groups,
