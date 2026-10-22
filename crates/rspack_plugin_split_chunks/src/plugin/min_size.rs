@@ -262,8 +262,8 @@ impl SplitChunksPlugin {
         // A mixed-type candidate can recover when a later placement removes
         // the source type that fails minSizeReduction. Keep the candidate itself.
         if module_group.can_recover(cache_group, module_sizes, chunks_len) {
-          module_group.selectable = false;
-          module_group.placement_changed = true;
+          module_group.set_selectable(false);
+          module_group.mark_placement_changed();
           None
         } else {
           Some(module_group_key.clone())

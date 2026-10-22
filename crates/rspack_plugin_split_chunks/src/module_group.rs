@@ -133,10 +133,10 @@ pub(crate) enum CandidateUpdate {
 #[derive(Debug)]
 pub(crate) struct ModuleGroup {
   pub modules: IdentifierSet,
-  /// Only threshold-invalid candidates are skipped by selection. Cleanup can
-  /// make them selectable again within this priority's existing queue.
-  pub selectable: bool,
-  pub placement_changed: bool,
+  /// Packed `selectable` / `placement_changed` flags. A single byte keeps
+  /// `ModuleGroup` within the padding next to the other small fields, so the
+  /// struct (moved by sorts and `swap_remove`) does not grow.
+  candidate_flags: u8,
   /// The chunks selected for each module. Anonymous groups structurally share their exact chunk
   /// combination instead of allocating one set per module.
   #[debug(skip)]
@@ -195,6 +195,35 @@ impl SizeAccumulator<'_> {
 }
 
 impl ModuleGroup {
+  const SELECTABLE: u8 = 1 << 0;
+  const PLACEMENT_CHANGED: u8 = 1 << 1;
+
+  /// Only threshold-invalid candidates are skipped by selection. Cleanup can
+  /// make them selectable again within this priority's existing queue.
+  #[inline]
+  pub fn selectable(&self) -> bool {
+    self.candidate_flags & Self::SELECTABLE != 0
+  }
+
+  #[inline]
+  pub fn set_selectable(&mut self, selectable: bool) {
+    if selectable {
+      self.candidate_flags |= Self::SELECTABLE;
+    } else {
+      self.candidate_flags &= !Self::SELECTABLE;
+    }
+  }
+
+  #[inline]
+  pub fn placement_changed(&self) -> bool {
+    self.candidate_flags & Self::PLACEMENT_CHANGED != 0
+  }
+
+  #[inline]
+  pub fn mark_placement_changed(&mut self) {
+    self.candidate_flags |= Self::PLACEMENT_CHANGED;
+  }
+
   pub fn new(chunk_name: Option<String>, cache_group_index: u32, cache_group: &CacheGroup) -> Self {
     let module_chunks = if chunk_name.is_some() {
       ModuleGroupChunks::ByModule(Default::default())
@@ -203,8 +232,7 @@ impl ModuleGroup {
     };
     Self {
       modules: Default::default(),
-      selectable: true,
-      placement_changed: false,
+      candidate_flags: Self::SELECTABLE,
       module_chunks,
       cache_group_index,
       cache_group_reuse_existing_chunk: cache_group.reuse_existing_chunk,
@@ -458,7 +486,7 @@ impl ModuleGroup {
       for chunks in sources.values_mut() {
         chunks.retain(|chunk| self.chunks.contains(chunk));
       }
-      self.placement_changed = true;
+      self.mark_placement_changed();
       if self.chunks.len() != before {
         self.chunk_mask = chunk_mask(self.chunks.iter());
       }
@@ -508,7 +536,7 @@ impl ModuleGroup {
         };
         if shrink_chunks {
           self.chunks.retain(|chunk| !chunks.contains(chunk));
-          self.placement_changed = true;
+          self.mark_placement_changed();
           changed = true;
           chunks_changed = true;
         } else {
@@ -538,7 +566,7 @@ impl ModuleGroup {
             && !self.prefer_module_removal(std::iter::once(module), remaining, cache, module_sizes)
           {
             self.chunks.retain(|chunk| !removed.contains(chunk));
-            self.placement_changed = true;
+            self.mark_placement_changed();
             chunks_changed = true;
           } else {
             self.remove_module(module);

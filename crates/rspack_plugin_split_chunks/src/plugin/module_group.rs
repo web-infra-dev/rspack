@@ -879,12 +879,12 @@ impl SplitChunksPlugin {
   ) -> Option<(ModuleGroupKey, ModuleGroup)> {
     let mut best_entry_index = module_group_map
       .iter()
-      .position(|(_, group)| group.selectable)?;
+      .position(|(_, group)| group.selectable())?;
     for entry_index in best_entry_index + 1..module_group_map.len() {
       let [(entry_key, entry), (best_entry_key, best_entry)] = module_group_map
         .get_disjoint_indices_mut([entry_index, best_entry_index])
         .expect("entry indices should be valid and unique");
-      if entry.selectable
+      if entry.selectable()
         && compare_entries((entry_key, entry), (best_entry_key, best_entry)) > 0f64
       {
         best_entry_index = entry_index;
@@ -1341,8 +1341,8 @@ impl SplitChunksPlugin {
           // minSizeReduction. Further native placements may remove that type;
           // keep the remaining candidate in place when another type still fits.
           if other_module_group.can_recover(cache_group, module_sizes, chunks_len) {
-            other_module_group.selectable = false;
-            other_module_group.placement_changed = true;
+            other_module_group.set_selectable(false);
+            other_module_group.mark_placement_changed();
             return None;
           }
           tracing::trace!(
@@ -1352,7 +1352,7 @@ impl SplitChunksPlugin {
           return Some(key.clone());
         }
 
-        other_module_group.selectable = true;
+        other_module_group.set_selectable(true);
         None
       })
       .filter_map(std::convert::identity)

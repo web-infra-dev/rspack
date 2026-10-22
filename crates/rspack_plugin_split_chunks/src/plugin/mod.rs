@@ -546,7 +546,7 @@ impl SplitChunksPlugin {
           }
         }
 
-        if module_group.placement_changed
+        if module_group.placement_changed()
           && !residual::placement_preserves_copies(
             &placed_module_chunks,
             &used_chunks,
