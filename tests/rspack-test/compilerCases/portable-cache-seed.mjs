@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -21,6 +21,47 @@ const expectSeededFrom = (logs, donor) => {
 	expect(fs.realpathSync.native(match[1])).toBe(fs.realpathSync.native(donor));
 };
 const deadPid = () => spawnSync(process.execPath, ["-e", ""]).pid;
+const DAY = 24 * 60 * 60 * 1000;
+const stagingDirs = (root) =>
+	fs
+		.readdirSync(cacheLocation(root))
+		.filter((name) => name.includes(".seeding-"))
+		.sort();
+async function withLiveProcess(run) {
+	const child = spawn(process.execPath, ["-e", "setTimeout(() => {}, 120000)"], {
+		stdio: "ignore"
+	});
+	await new Promise((resolve, reject) => {
+		child.once("spawn", resolve);
+		child.once("error", reject);
+	});
+	try {
+		return await run(child.pid);
+	} finally {
+		child.kill();
+	}
+}
+function plantStaging(root, unit, owner, tag, ageMs = 0) {
+	const dir = path.join(cacheLocation(root), `${unit}.seeding-${owner}-${tag}`);
+	fs.mkdirSync(dir, { recursive: true });
+	fs.writeFileSync(path.join(dir, "pack"), tag);
+	const time = new Date(Date.now() - ageMs);
+	fs.utimesSync(dir, time, time);
+	return path.basename(dir);
+}
+const unreadablePacks =
+	process.platform !== "win32" && process.getuid?.() !== 0;
+function makePackUnreadable(unit) {
+	const pack = Object.keys(contents(unit)).find(
+		(file) =>
+			!file.startsWith(`meta${path.sep}`) &&
+			path.basename(file) !== "_meta" &&
+			!file.startsWith(".")
+	);
+	expect(pack).toBeDefined();
+	fs.chmodSync(path.join(unit, pack), 0);
+	return () => fs.chmodSync(path.join(unit, pack), 0o644);
+}
 const processName = () =>
 	process.platform === "win32"
 		? path.basename(process.execPath)
@@ -98,7 +139,7 @@ async function build(
 		cache = { type: "persistent" },
 		portableCache = true,
 		beforeModules,
-		afterCreate
+		beforeRun
 	} = {}
 ) {
 	const logs = [];
@@ -129,6 +170,7 @@ async function build(
 		},
 		plugins: [
 			(compiler) => {
+				compiler.hooks.beforeRun.tap("SeedBeforeRun", () => beforeRun?.());
 				compiler.hooks.thisCompilation.tap("SeedBeforeModules", () =>
 					beforeModules?.()
 				);
@@ -136,7 +178,6 @@ async function build(
 		]
 	});
 	try {
-		afterCreate?.();
 		const stats = await new Promise((resolve, reject) =>
 			compiler.run((error, stats) => (error ? reject(error) : resolve(stats)))
 		);
@@ -301,28 +342,26 @@ async function checkExplicitSeeding() {
 		fs.mkdirSync(cacheLocation(target), { recursive: true });
 		const staging = (owner) =>
 			path.join(cacheLocation(target), `${unit}.seeding-${owner}-planted`);
-		const interrupted = staging(deadPid());
-		fs.mkdirSync(interrupted);
-		fs.writeFileSync(path.join(interrupted, "pack"), "interrupted");
+		plantStaging(target, unit, deadPid(), "interrupted");
 		fs.mkdirSync(staging(process.pid));
-		const result = await build(target, {
-			portableCache,
-			afterCreate() {
-				expect(fs.existsSync(path.join(cacheLocation(target), unit))).toBe(
-					false
-				);
-			},
-			beforeModules() {
-				expect(units(target)).toEqual(units(main));
-			}
+		const result = await withLiveProcess(async (owner) => {
+			const live = plantStaging(target, unit, owner, "live", 2 * DAY);
+			const result = await build(target, {
+				portableCache,
+				beforeRun() {
+					expect(units(target)).toEqual([]);
+				},
+				beforeModules() {
+					expect(units(target)).toEqual(units(main));
+				}
+			});
+			expect(stagingDirs(target)).toEqual(
+				[path.basename(staging(process.pid)), live].sort()
+			);
+			return result;
 		});
 		expectSeededFrom(result.logs, cacheLocation(main));
 		expect(result.built).toEqual(["index.js"]);
-		expect(
-			fs
-				.readdirSync(cacheLocation(target))
-				.filter((name) => name.includes(".seeding-"))
-		).toEqual([path.basename(staging(process.pid))]);
 		const cold = await build(target, { cache: false });
 		expect(result.output).toEqual(cold.output);
 		expect(contents(cacheLocation(main))).toEqual(donor);
@@ -490,6 +529,88 @@ export default [
 					(await build(target, { cache: false })).output
 				);
 				expect(contents(cacheLocation(main))).toEqual(donor);
+			});
+		}
+	})),
+	{
+		name: "unknown-owner-liveness",
+		description:
+			"keeps recent staging and removes day-old staging when process lookup is unavailable",
+		skip: process.platform === "win32",
+		async run() {
+			await withFixture(async (temp) => {
+				const main = path.join(temp, "main");
+				const target = path.join(temp, "target");
+				const emptyPath = path.join(temp, "empty-path");
+				fixture(main);
+				fixture(target);
+				fs.mkdirSync(emptyPath);
+				await build(main);
+				const [unit] = units(main);
+				await withLiveProcess(async (owner) => {
+					const recent = plantStaging(target, unit, owner, "recent");
+					plantStaging(target, unit, owner, "old", 2 * DAY);
+					const path_ = process.env.PATH;
+					process.env.PATH = emptyPath;
+					let result;
+					try {
+						result = await build(target, {
+							portableCache: { seedFrom: cacheLocation(main) }
+						});
+					} finally {
+						process.env.PATH = path_;
+					}
+					expectSeededFrom(result.logs, cacheLocation(main));
+					expect(stagingDirs(target)).toEqual([recent]);
+				});
+			});
+		}
+	},
+	...[
+		{
+			name: "unreadable-donor-pack",
+			description:
+				"removes the staging copy and builds cold when copying a donor fails",
+			reason: /\(.*(permission denied|EACCES).*\)/i
+		},
+		{
+			name: "version-mismatch-before-copy",
+			description:
+				"rejects a donor on cache version before copying its packs",
+			version: "other",
+			reason: /\(cache version does not match\)/
+		}
+	].map(({ name, description, version, reason }) => ({
+		name,
+		description,
+		skip: !unreadablePacks,
+		async run() {
+			await withFixture(async (temp) => {
+				const main = path.join(temp, "main");
+				const target = path.join(temp, "target");
+				fixture(main);
+				fixture(target);
+				await build(main, { cache: { type: "persistent", version } });
+				const restore = makePackUnreadable(
+					path.join(cacheLocation(main), units(main)[0])
+				);
+				try {
+					const result = await build(target, {
+						portableCache: { seedFrom: cacheLocation(main) }
+					});
+					const outcome = seedLogs(result.logs).join("\n");
+					expect(outcome).toContain(
+						`portable cache not seeded: ${fs.realpathSync.native(cacheLocation(main))} (`
+					);
+					expect(outcome).toMatch(reason);
+					expect(stagingDirs(target)).toEqual([]);
+					expect(result.built).toHaveLength(5);
+					expect(result.output).toEqual(
+						(await build(target, { cache: false })).output
+					);
+				} finally {
+					restore();
+				}
 			});
 		}
 	})),
