@@ -4,7 +4,7 @@ use rspack_cacheable::{
   ContextGuard, Error, Result,
   rkyv::{
     Archive, Place, Serialize, SerializeUnsized,
-    de::{ErasedPtr, Pooling, PoolingState},
+    de::Pooling,
     rancor::Fallible,
     rc::{ArchivedRc, Flavor, RcResolver},
     ser::{Allocator, Positional, Sharing, Writer, sharing::SharingState},
@@ -162,19 +162,10 @@ where
 {
   #[inline]
   fn deserialize_with(field: &ArchivedInternedPath, deserializer: &mut D) -> Result<InternedPath> {
-    let address = ptr::from_ref(&**field).addr();
-    match deserializer.start_pooling(address) {
-      PoolingState::Finished(ptr) => {
-        // SAFETY: this address is registered below with a boxed InternedPath.
-        return Ok(unsafe { &*ptr.data_address().cast::<InternedPath>() }.clone());
-      }
-      PoolingState::Pending => return Err(Error::MessageError("cyclic shared interned path")),
-      PoolingState::Started => {}
-    }
-    let guard = ContextGuard::pooling_guard(deserializer)?;
-    let path = match field.as_slice().split_first() {
+    match field.as_slice().split_first() {
       Some((&NATIVE, bytes)) => Ok(InternedPath::from_bytes(bytes)),
       Some((&UNDER_ROOT, suffix)) => {
+        let guard = ContextGuard::pooling_guard(deserializer)?;
         let Some(root) = guard.project_root() else {
           return Err(Error::MessageError(
             "portable interned path restored without a project root",
@@ -191,22 +182,6 @@ where
         Ok(InternedPath::from_bytes(&bytes))
       }
       _ => Err(Error::MessageError("unknown interned path payload tag")),
-    }?;
-    let mut pooled = Box::new(path.clone());
-    // SAFETY: the pool owns this Box on success and releases it with drop_path.
-    unsafe {
-      deserializer.finish_pooling(
-        address,
-        ErasedPtr::new(ptr::from_mut(&mut *pooled)),
-        drop_path,
-      )?;
     }
-    let _ = Box::into_raw(pooled);
-    Ok(path)
   }
-}
-
-unsafe fn drop_path(ptr: ErasedPtr) {
-  // SAFETY: finish_pooling receives only Box<InternedPath> pointers with this drop function.
-  drop(unsafe { Box::from_raw(ptr.data_address().cast::<InternedPath>()) });
 }
