@@ -284,7 +284,6 @@ pub(crate) fn get_import_meta_eval_value(
   }
 
   if is_true(property, node_option) {
-    parser.build_info.root_sensitive = true;
     return get_relative_path(parser, property);
   }
 
@@ -327,7 +326,6 @@ pub(crate) fn get_import_meta_member_replacement(
   }
 
   if is_true(property, node_option) {
-    parser.build_info.root_sensitive = true;
     let path = get_relative_path(parser, property)?;
     return Some(rspack_util::json_stringify_str(&path));
   }

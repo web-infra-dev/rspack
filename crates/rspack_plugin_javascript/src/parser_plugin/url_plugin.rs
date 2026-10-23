@@ -70,7 +70,6 @@ pub fn get_url_request(
     };
     let arg2 = arg2.as_member_expression(ast)?;
     if is_meta_url(parser, arg2) {
-      parser.build_info.root_sensitive = true;
       return parser
         .evaluate_expression(arg1)
         .as_string()
