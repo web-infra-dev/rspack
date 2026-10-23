@@ -4,7 +4,7 @@ use rspack_cacheable::{
   CacheableContext, Error, enable_cacheable as cacheable, from_bytes, to_bytes,
   to_bytes_with_binding,
 };
-use rspack_paths::{InternedPath, InternedPathList};
+use rspack_paths::{InternedPath, InternedPathList, strip_root_prefix};
 
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]
@@ -316,5 +316,58 @@ fn test_interned_path_windows_native_separators() {
       r"C:\repo\..\file.js"
     ]
     .map(InternedPath::from)
+  );
+}
+
+#[test]
+fn test_strip_root_prefix_accepts_either_windows_separator() {
+  let root = br"C:\work\project";
+  let windows = b"\\/";
+  for (path, suffix) in [
+    (&br"C:/work/project/src/a.js"[..], Some(&b"/src/a.js"[..])),
+    (br"C:\work\project\src\a.js", Some(br"\src\a.js")),
+    (br"C:\work/project\src/a.js", Some(br"\src/a.js")),
+    (br"C:\\work//project", Some(b"")),
+    (br"C:/work/project-two/a.js", None),
+    (br"C:/work/project/../a.js", None),
+    (br"D:/work/project/src/a.js", None),
+  ] {
+    assert_eq!(
+      strip_root_prefix(path, root, windows),
+      suffix,
+      "{}",
+      String::from_utf8_lossy(path)
+    );
+  }
+  assert_eq!(
+    strip_root_prefix(b"C:/work/project/src/a.js", root, b"/"),
+    None
+  );
+}
+
+#[cfg(windows)]
+#[test]
+fn test_interned_path_windows_forward_slash_spelling_relocates() {
+  let module = Module {
+    paths: vec![InternedPath::from("C:/work/project/src/a.js")],
+  };
+  let (bytes, bound) = to_bytes_with_binding(
+    &module,
+    &Context {
+      project_root: PathBuf::from(r"C:\work\project"),
+    },
+  )
+  .unwrap();
+  assert!(!bound);
+  let restored: Module = from_bytes(
+    &bytes,
+    &Context {
+      project_root: PathBuf::from(r"D:\deeper\repo"),
+    },
+  )
+  .unwrap();
+  assert_eq!(
+    restored.paths,
+    [InternedPath::from(r"D:\deeper\repo\src\a.js")]
   );
 }
