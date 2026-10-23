@@ -174,9 +174,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeDirnameOption::False => None,
       };
       if let Some(dirname) = dirname {
-        if std::path::Path::new(&dirname).is_absolute() {
-          parser.build_info.root_sensitive = true;
-        }
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           span.into(),
           rspack_util::json_stringify_str(&dirname).into(),
@@ -211,9 +208,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeFilenameOption::False => None,
       };
       if let Some(filename) = filename {
-        if std::path::Path::new(&filename).is_absolute() {
-          parser.build_info.root_sensitive = true;
-        }
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           span.into(),
           rspack_util::json_stringify_str(&filename).into(),

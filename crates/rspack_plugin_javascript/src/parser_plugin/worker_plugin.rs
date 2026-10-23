@@ -267,6 +267,7 @@ fn handle_worker(
       && is_meta_url(parser, member_expr)
     {
       need_new_url = true;
+      parser.build_info.root_sensitive = true;
       let span = member_expr.span(ast);
       ParsedNewWorkerPath {
         range: (span.real_lo(), span.real_hi()),
@@ -278,7 +279,6 @@ fn handle_worker(
     } else {
       return None;
     };
-    parser.build_info.root_sensitive = true;
     let mut options = ast
       .second(args)
       // new Worker(new URL("worker.js"), options)
