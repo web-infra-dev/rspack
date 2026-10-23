@@ -12,9 +12,7 @@ use std::{
 use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
 use dashmap::{DashMap, DashSet};
 use futures::future::BoxFuture;
-#[cfg(unix)]
-use rspack_paths::AssertUtf8;
-use rspack_paths::{InternedPath, hash_path};
+use rspack_paths::{AssertUtf8, InternedPath, hash_path};
 use rustc_hash::FxHasher;
 use tokio::sync::OnceCell as OnceLock;
 
@@ -23,26 +21,6 @@ use crate::{
   context::ResolveContext as Ctx,
   package_json::{PackageJson, off_to_location},
 };
-
-#[cfg(unix)]
-type CachedPathStorage = InternedPath;
-#[cfg(not(unix))]
-type CachedPathStorage = Box<Utf8Path>;
-
-#[cfg(unix)]
-type RealPathStorage = InternedPath;
-#[cfg(not(unix))]
-type RealPathStorage = Utf8PathBuf;
-
-#[cfg(unix)]
-fn real_path_to_buf(path: &RealPathStorage) -> Utf8PathBuf {
-  path.as_path().assert_utf8().to_path_buf()
-}
-
-#[cfg(not(unix))]
-fn real_path_to_buf(path: &RealPathStorage) -> Utf8PathBuf {
-  path.clone()
-}
 
 #[derive(Default)]
 pub struct Cache<Fs> {
@@ -73,16 +51,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     let parent = path.parent().map(|p| self.value(p));
     let data = CachedPath(Arc::new(CachedPathImpl::new(
       hash,
-      {
-        #[cfg(unix)]
-        {
-          InternedPath::from_parts(hash, path.as_std_path())
-        }
-        #[cfg(not(unix))]
-        {
-          path.to_path_buf().into_boxed_path()
-        }
-      },
+      InternedPath::from_parts(hash, path.as_std_path()),
       parent,
     )));
     self.paths.insert(data.clone());
@@ -156,12 +125,12 @@ impl PartialEq for CachedPath {
     // Compare through std `Path`, not camino's `Utf8Path`. std `Path`/`Components`
     // equality has a raw-byte `memcmp` fast path (its own comment: "for hashmap
     // lookups"), whereas camino's `Utf8Path` always walks components with no fast
-    // path — that regressed this hottest cache-lookup equality. `path_as_std()`
+    // path — that regressed this hottest cache-lookup equality. `as_path()`
     // also preserves the per-platform semantics that match `hash_path`
     // (byte-wise on Unix; component-wise on Windows, so `pack1/foo` and
     // `pack1\foo` stay the same entry). A plain `as_str()` byte compare would be
     // inconsistent with the component-wise hash on Windows and break dedup there.
-    self.0.path_as_std() == other.0.path_as_std()
+    self.0.path.as_path() == other.0.path.as_path()
   }
 }
 impl Eq for CachedPath {}
@@ -188,16 +157,16 @@ impl AsRef<CachedPathImpl> for CachedPath {
 
 impl CacheKey for CachedPath {
   fn tuple(&self) -> (u64, &Path) {
-    (self.hash, self.path_as_std())
+    (self.hash, self.path.as_path())
   }
 }
 
 pub struct CachedPathImpl {
   hash: u64,
-  path: CachedPathStorage,
+  path: InternedPath,
   parent: Option<CachedPath>,
   meta: OnceLock<Option<FileMetadata>>,
-  canonicalized: OnceLock<Option<RealPathStorage>>,
+  canonicalized: OnceLock<Option<InternedPath>>,
   node_modules: OnceLock<Option<CachedPath>>,
   package_json: OnceLock<Option<Arc<PackageJson>>>,
   /// Memoized `<self.path>/package.json` `InternedPath` for the
@@ -208,19 +177,12 @@ pub struct CachedPathImpl {
 
 impl From<&CachedPathImpl> for InternedPath {
   fn from(cached: &CachedPathImpl) -> Self {
-    #[cfg(unix)]
-    {
-      cached.path.clone()
-    }
-    #[cfg(not(unix))]
-    {
-      Self::from_parts(cached.hash, cached.path_as_std())
-    }
+    cached.path.clone()
   }
 }
 
 impl CachedPathImpl {
-  fn new(hash: u64, path: CachedPathStorage, parent: Option<CachedPath>) -> Self {
+  fn new(hash: u64, path: InternedPath, parent: Option<CachedPath>) -> Self {
     Self {
       hash,
       path,
@@ -243,25 +205,7 @@ impl CachedPathImpl {
   }
 
   pub fn path(&self) -> &Utf8Path {
-    #[cfg(unix)]
-    {
-      self.path.as_path().assert_utf8()
-    }
-    #[cfg(not(unix))]
-    {
-      &self.path
-    }
-  }
-
-  fn path_as_std(&self) -> &Path {
-    #[cfg(unix)]
-    {
-      self.path.as_path()
-    }
-    #[cfg(not(unix))]
-    {
-      self.path.as_std_path()
-    }
+    self.path.as_path().assert_utf8()
   }
 
   pub fn to_path_buf(&self) -> Utf8PathBuf {
@@ -280,7 +224,7 @@ impl CachedPathImpl {
     }
     *self
       .meta
-      .get_or_init(|| async { fs.metadata(self.path_as_std()).await.ok() })
+      .get_or_init(|| async { fs.metadata(self.path.as_path()).await.ok() })
       .await
   }
 
@@ -308,11 +252,10 @@ impl CachedPathImpl {
     // Cache hit: avoid the heap-allocated `Box::pin` for the cache-miss state machine
     // by returning before delegating to the boxed recursive helper.
     if let Some(cached) = self.canonicalized.get() {
-      return Ok(
-        cached
-          .as_ref()
-          .map_or_else(|| self.to_path_buf(), real_path_to_buf),
-      );
+      return Ok(cached.as_ref().map_or_else(
+        || self.to_path_buf(),
+        |path| path.as_path().assert_utf8().to_path_buf(),
+      ));
     }
     self.realpath_uncached(fs).await
   }
@@ -326,17 +269,14 @@ impl CachedPathImpl {
         .canonicalized
         .get_or_try_init(|| async move {
           if fs
-            .symlink_metadata(self.path_as_std())
+            .symlink_metadata(self.path.as_path())
             .await
             .is_ok_and(|m| m.is_symlink)
           {
-            return fs.canonicalize(self.path_as_std()).await.map(|path| {
-              Some(
-                Utf8PathBuf::from_path_buf(path)
-                  .expect("path should be UTF-8")
-                  .into(),
-              )
-            });
+            return fs
+              .canonicalize(self.path.as_path())
+              .await
+              .map(|path| Some(InternedPath::from(path.assert_utf8())));
           }
           if let Some(parent) = self.parent() {
             let mut real_path = parent.realpath(fs).await?;
@@ -356,8 +296,10 @@ impl CachedPathImpl {
         })
         .await
         .map(|r| {
-          r.as_ref()
-            .map_or_else(|| self.to_path_buf(), real_path_to_buf)
+          r.as_ref().map_or_else(
+            || self.to_path_buf(),
+            |path| path.as_path().assert_utf8().to_path_buf(),
+          )
         })
     })
   }
