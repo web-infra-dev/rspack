@@ -119,7 +119,7 @@ pub fn save_module_graph(
         Err(err) if err.to_string().contains("unsupported field") => {
           tracing::warn!("to bytes failed {:?}", err);
           // try use alternatives
-          node.module = TempModule::transform_from(node.module);
+          node.module = TempModule::transform_from(node.module, Vec::new());
           node.dependencies = node
             .dependencies
             .into_iter()
@@ -208,7 +208,8 @@ pub async fn recovery_module_graph(
     }
     if missing_target {
       // Rebuild the owner through the normal cutout path to refactorize its missing targets.
-      module = TempModule::transform_from(module.into()).into_owned();
+      let blocks = module.get_block_refs().to_vec();
+      module = TempModule::transform_from(module.into(), blocks).into_owned();
     }
     if mgm
       .issuer()
