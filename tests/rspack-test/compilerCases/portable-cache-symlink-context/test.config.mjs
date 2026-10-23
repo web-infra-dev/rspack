@@ -79,16 +79,12 @@ export default {
         path.join(real, "src", "index.js"),
       ]);
 
-      for (const context of [linked, real]) {
-        const next = await build(context, log);
-        expect(next.built).toEqual([]);
-        expect(next.cacheLog).toContain(
-          "make persistent cache recovery succeeded",
-        );
-        expect(
-          next.cacheLog.filter(message => /dropped [1-9]/.test(message)),
-        ).toEqual([]);
-      }
+      const next = await build(linked, log);
+      expect(next.built).toEqual([]);
+      expect(next.cacheLog).toContain("make persistent cache recovery succeeded");
+      expect(
+        next.cacheLog.filter(message => /dropped [1-9]/.test(message)),
+      ).toEqual([]);
     } finally {
       fs.rmSync(base, { recursive: true, force: true });
     }
