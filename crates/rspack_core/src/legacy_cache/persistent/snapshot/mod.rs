@@ -136,15 +136,16 @@ impl Snapshot {
       .await;
   }
 
-  /// Keep the observation that justified reuse: inputs can change after compilation.
-  pub fn refresh_files(
+  /// Keep the observation made during validation: inputs can change after the build read them.
+  pub fn refresh(
     &self,
     storage: &mut dyn Storage,
+    scope: SnapshotScope,
     snapshots: impl Iterator<Item = (InternedPath, Strategy)>,
   ) {
     for (path, strategy) in snapshots {
       storage.set(
-        SnapshotScope::FILE.name(),
+        scope.name(),
         self.codec.encode(&path).expect("should encode path"),
         self
           .codec
@@ -184,7 +185,7 @@ impl Snapshot {
     let mut modified_path = InternedPathSet::default();
     let mut deleted_path = InternedPathSet::default();
     let mut no_change_path = InternedPathSet::default();
-    let mut refresh_path = InternedPathMap::default();
+    let mut observed_path = InternedPathMap::default();
     let helper = Arc::new(StrategyHelper::new(
       self.fs.clone(),
       self.options.clone(),
@@ -198,6 +199,7 @@ impl Snapshot {
       .into_iter()
       .map(|(key, value)| {
         let helper = helper.clone();
+        let options = self.options.clone();
         let codec = codec.clone();
         async move {
           let path = codec.decode::<InternedPath>(&key)?;
@@ -205,22 +207,35 @@ impl Snapshot {
             Ok(strategy) => helper.validate(&path, &strategy).await,
             Err(_) => ValidateResult::Modified,
           };
-          Ok::<_, rspack_error::Error>((path, validate))
+          // Context modules read their directory after this, so keep what validation saw.
+          let observed = match scope {
+            SnapshotScope::CONTEXT => {
+              let portable = codec.root_hash().is_some();
+              Self::calc_strategy(&options, &helper, &path, scope, portable).await
+            }
+            _ => None,
+          };
+          Ok::<_, rspack_error::Error>((path, validate, observed))
         }
       })
-      .try_fut_consume(|(path, validate)| match validate {
-        ValidateResult::Modified => {
-          modified_path.insert(path);
+      .try_fut_consume(|(path, validate, observed)| {
+        if let Some(strategy) = observed {
+          observed_path.insert(path.clone(), strategy);
         }
-        ValidateResult::Deleted => {
-          deleted_path.insert(path);
-        }
-        ValidateResult::NoChangedRefresh(strategy) => {
-          refresh_path.insert(path.clone(), strategy);
-          no_change_path.insert(path);
-        }
-        ValidateResult::NoChanged => {
-          no_change_path.insert(path);
+        match validate {
+          ValidateResult::Modified => {
+            modified_path.insert(path);
+          }
+          ValidateResult::Deleted => {
+            deleted_path.insert(path);
+          }
+          ValidateResult::NoChangedRefresh(strategy) => {
+            observed_path.insert(path.clone(), strategy);
+            no_change_path.insert(path);
+          }
+          ValidateResult::NoChanged => {
+            no_change_path.insert(path);
+          }
         }
       })
       .await?;
@@ -230,7 +245,7 @@ impl Snapshot {
       modified_path,
       deleted_path,
       no_change_path,
-      refresh_path,
+      observed_path,
     ))
   }
 }
