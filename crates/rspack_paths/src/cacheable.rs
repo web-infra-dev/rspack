@@ -34,7 +34,7 @@ enum PathPayload<'a> {
 
 impl<'a> PathPayload<'a> {
   fn new(path: &'a [u8], root: Option<&Path>) -> Self {
-    match root.and_then(|root| strip_root(path, root)) {
+    match root.and_then(|root| strip_root_prefix(path, encoded_bytes(root), SEPARATORS)) {
       Some(suffix) => Self::UnderRoot(suffix),
       None => Self::Native(path),
     }
@@ -48,44 +48,81 @@ impl<'a> PathPayload<'a> {
   }
 }
 
-/// The root's encoded bytes without a trailing separator, so that a stored suffix concatenates
-/// back onto any root with one copy.
-fn root_prefix(root: &Path) -> &[u8] {
-  let bytes = root.as_os_str().as_encoded_bytes();
-  let end = bytes
-    .iter()
-    .rposition(|&byte| !is_separator(byte))
-    .map_or(0, |last| last + 1);
-  &bytes[..end]
+const SEPARATORS: &[u8] = if cfg!(windows) { b"\\/" } else { b"/" };
+
+fn encoded_bytes(path: &Path) -> &[u8] {
+  path.as_os_str().as_encoded_bytes()
 }
 
-/// The suffix of `path` below `root`, when `root` is a whole-component prefix and the suffix
-/// contains no parent components.
-fn strip_root<'a>(path: &'a [u8], root: &Path) -> Option<&'a [u8]> {
-  let prefix = root_prefix(root);
-  if prefix.is_empty()
-    && (!root.is_absolute() || !path.first().is_some_and(|&byte| is_separator(byte)))
+/// `root` without trailing separators, so that a stored suffix concatenates back onto any root
+/// with one copy.
+fn trim_trailing_separators<'a>(root: &'a [u8], separators: &[u8]) -> &'a [u8] {
+  let end = root
+    .iter()
+    .rposition(|byte| !separators.contains(byte))
+    .map_or(0, |last| last + 1);
+  &root[..end]
+}
+
+fn trim_leading_separators<'a>(bytes: &'a [u8], separators: &[u8]) -> &'a [u8] {
+  let start = bytes
+    .iter()
+    .position(|byte| !separators.contains(byte))
+    .unwrap_or(bytes.len());
+  &bytes[start..]
+}
+
+/// The suffix of `path` below `root`, starting at the separator that follows `root`, when `root`
+/// is a whole-component prefix and the suffix has no `..` component.
+///
+/// Bytes are compared verbatim first. When `separators` holds more than one byte, as on Windows, a
+/// path that fails the verbatim comparison is compared again with any run of separators matching
+/// any other run, so that spellings `Path` treats as equal rebase alike.
+pub fn strip_root_prefix<'a>(path: &'a [u8], root: &[u8], separators: &[u8]) -> Option<&'a [u8]> {
+  let is_separator = |byte: &u8| separators.contains(byte);
+  let prefix = trim_trailing_separators(root, separators);
+  if prefix.is_empty() && (root.is_empty() || !path.first().is_some_and(is_separator)) {
+    return None;
+  }
+  let suffix = match path.strip_prefix(prefix) {
+    Some(suffix) => suffix,
+    None if separators.len() > 1 => {
+      strip_prefix_ignoring_separator_spelling(path, prefix, separators)?
+    }
+    None => return None,
+  };
+  if !suffix.first().is_none_or(is_separator) {
+    return None;
+  }
+  if memchr::memmem::find(suffix, b"..").is_some() && suffix.split(is_separator).any(|c| c == b"..")
   {
     return None;
   }
-  let suffix = path.strip_prefix(prefix)?;
-  if !suffix.first().is_none_or(|&byte| is_separator(byte)) {
-    return None;
-  }
-  if memchr::memmem::find(suffix, b"..").is_some()
-    && suffix.split(|&byte| is_separator(byte)).any(|c| c == b"..")
-  {
-    return None;
-  }
-  if prefix.is_empty() && suffix.iter().all(|&byte| is_separator(byte)) {
+  if prefix.is_empty() && suffix.iter().all(is_separator) {
     Some(&[])
   } else {
     Some(suffix)
   }
 }
 
-fn is_separator(byte: u8) -> bool {
-  std::path::is_separator(byte as char)
+fn strip_prefix_ignoring_separator_spelling<'a>(
+  mut path: &'a [u8],
+  mut prefix: &[u8],
+  separators: &[u8],
+) -> Option<&'a [u8]> {
+  while let Some((byte, rest)) = prefix.split_first() {
+    if separators.contains(byte) {
+      if !path.first().is_some_and(|byte| separators.contains(byte)) {
+        return None;
+      }
+      path = trim_leading_separators(path, separators);
+      prefix = trim_leading_separators(prefix, separators);
+    } else {
+      path = path.strip_prefix(&[*byte])?;
+      prefix = rest;
+    }
+  }
+  Some(path)
 }
 
 impl Archive for PathPayload<'_> {
@@ -172,9 +209,9 @@ where
           ));
         };
         let root = if suffix.is_empty() {
-          root.as_os_str().as_encoded_bytes()
+          encoded_bytes(root)
         } else {
-          root_prefix(root)
+          trim_trailing_separators(encoded_bytes(root), SEPARATORS)
         };
         let mut bytes = SmallVec::<[u8; 512]>::with_capacity(root.len() + suffix.len());
         bytes.extend_from_slice(root);
