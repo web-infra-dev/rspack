@@ -78,9 +78,13 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
       },
 
       function (queried) {
-        return async function (resolveData: binding.JsResolveData) {
-          const ret = await queried.promise(createResolveData(resolveData));
-          return [ret, resolveData];
+        return async function (resolveDataBatch: binding.JsResolveData[]) {
+          return Promise.all(
+            resolveDataBatch.map(async (resolveData) => {
+              const ret = await queried.promise(createResolveData(resolveData));
+              return [ret, resolveData] as const;
+            }),
+          );
         };
       },
     ),

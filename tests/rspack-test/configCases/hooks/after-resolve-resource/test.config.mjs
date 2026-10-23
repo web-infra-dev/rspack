@@ -8,6 +8,8 @@ export default {
 				return ["request.js"];
 			case 2:
 				return ["duplicate.js"];
+			case 3:
+				return ["batch.js"];
 		}
 	}
 };
