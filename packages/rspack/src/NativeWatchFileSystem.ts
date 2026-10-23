@@ -27,7 +27,11 @@ import {
  * https://github.com/webpack/watchpack/blob/main/LICENSE
  */
 type JsWatcherIgnored =
-  string | string[] | RegExp | ((entry: string) => boolean) | undefined;
+  | string
+  | RegExp
+  | (string | RegExp)[]
+  | ((entry: string) => boolean)
+  | undefined;
 
 const toJsWatcherIgnored = (
   ignored: WatchOptions['ignored'],
