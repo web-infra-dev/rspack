@@ -3,6 +3,10 @@ import path from 'node:path';
 import type { Compiler } from '../Compiler';
 import type { CacheNormalized } from './normalization';
 
+type Logger = ReturnType<Compiler['getInfrastructureLogger']>;
+
+const SKIP = 'Skipping portable cache seed discovery:';
+
 function realLocation(location: string): string {
   if (fs.existsSync(location)) return fs.realpathSync.native(location);
   const parent = path.dirname(location);
@@ -11,55 +15,74 @@ function realLocation(location: string): string {
     : path.join(realLocation(parent), path.basename(location));
 }
 
-function worktrees(root: string): string[] {
-  const git = path.join(root, '.git');
-  let common = git;
-  if (fs.statSync(git).isFile()) {
-    const match = /^gitdir:\s*(.+)\s*$/m.exec(fs.readFileSync(git, 'utf8'));
-    if (!match) return [];
-    const gitdir = path.resolve(root, match[1].trim());
-    common = path.resolve(
-      gitdir,
-      fs.readFileSync(path.join(gitdir, 'commondir'), 'utf8').trim(),
-    );
+function readText(file: string): string | undefined {
+  try {
+    return fs.readFileSync(file, 'utf8');
+  } catch {
+    return undefined;
   }
-  common = fs.realpathSync.native(common);
-  const candidates: string[] = [];
+}
+
+function findWorktreeTop(root: string): string | undefined {
+  for (let dir = root; ; dir = path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, '.git'))) return dir;
+    if (path.dirname(dir) === dir) return undefined;
+  }
+}
+
+function findCommonDir(top: string, logger: Logger): string | undefined {
+  const git = path.join(top, '.git');
+  if (fs.statSync(git).isDirectory()) return git;
+  const gitfile = readText(git);
+  if (gitfile === undefined) {
+    logger.debug(`${SKIP} cannot read ${git}.`);
+    return undefined;
+  }
+  const match = /^gitdir:\s*(.+?)\s*$/m.exec(gitfile);
+  if (!match) {
+    logger.debug(`${SKIP} ${git} has no gitdir line.`);
+    return undefined;
+  }
+  const gitdir = path.resolve(top, match[1]);
+  const commondir = readText(path.join(gitdir, 'commondir'));
+  if (commondir === undefined) {
+    logger.debug(
+      `Portable cache seed discovery: ${gitdir} has no commondir, using it as the common directory.`,
+    );
+    return gitdir;
+  }
+  return path.resolve(gitdir, commondir.trim());
+}
+
+function isBare(common: string): boolean {
   let core = false;
-  let bare = false;
-  for (const line of fs
-    .readFileSync(path.join(common, 'config'), 'utf8')
-    .split(/\r?\n/)) {
+  for (const line of (readText(path.join(common, 'config')) ?? '').split(
+    /\r?\n/,
+  )) {
     const section = /^\s*\[([^\]]+)\]/.exec(line);
     if (section) core = section[1].trim().toLowerCase() === 'core';
     else if (
       core &&
       /^\s*bare(?:\s*=\s*"?(true|yes|on|1)"?)?\s*(?:[#;].*)?$/i.test(line)
     )
-      bare = true;
+      return true;
   }
-  if (path.basename(common) === '.git' && !bare)
-    candidates.push(path.dirname(common));
+  return false;
+}
+
+function worktreeTops(common: string): string[] {
+  const tops: string[] = [];
+  if (path.basename(common) === '.git' && !isBare(common))
+    tops.push(path.dirname(common));
   const registry = path.join(common, 'worktrees');
-  if (fs.existsSync(registry)) {
-    for (const entry of fs.readdirSync(registry)) {
-      const admin = path.join(registry, entry);
-      try {
-        if (
-          fs.existsSync(path.join(admin, 'locked')) ||
-          fs.existsSync(path.join(admin, 'prunable'))
-        )
-          continue;
-        const gitfile = fs
-          .readFileSync(path.join(admin, 'gitdir'), 'utf8')
-          .trim();
-        candidates.push(path.dirname(path.resolve(admin, gitfile)));
-      } catch {
-        // Worktrees may be removed while discovery is running.
-      }
-    }
+  if (!fs.existsSync(registry)) return tops;
+  for (const entry of fs.readdirSync(registry)) {
+    const admin = path.join(registry, entry);
+    const gitfile = readText(path.join(admin, 'gitdir'));
+    if (gitfile !== undefined)
+      tops.push(path.dirname(path.resolve(admin, gitfile.trim())));
   }
-  return candidates;
+  return tops;
 }
 
 export function findSeedDonors(
@@ -80,11 +103,11 @@ export function findSeedDonors(
   try {
     const realRoot = realLocation(root);
     const location = realLocation(path.resolve(cache.storage.location!));
-    const relative = path.relative(realRoot, location);
+    const fromRoot = path.relative(realRoot, location);
     if (
-      relative === '..' ||
-      relative.startsWith(`..${path.sep}`) ||
-      path.isAbsolute(relative)
+      fromRoot === '..' ||
+      fromRoot.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(fromRoot)
     ) {
       logger.warn(
         'Skipping portable cache seeding: cache storage.location must be inside the portable root so each worktree owns its cache directory.',
@@ -97,17 +120,21 @@ export function findSeedDonors(
       );
       return donor === location ? undefined : [donor];
     }
+    const top = findWorktreeTop(realRoot);
+    if (!top) {
+      logger.debug(`${SKIP} no .git at or above ${realRoot}.`);
+      return;
+    }
+    const common = findCommonDir(top, logger);
+    if (!common) return;
+    const relative = path.relative(top, location);
     const donors: string[] = [];
-    for (const candidate of worktrees(root)) {
+    for (const candidate of worktreeTops(common)) {
       try {
-        const candidateRoot = fs.realpathSync.native(candidate);
-        if (
-          candidateRoot === realRoot ||
-          !fs.statSync(candidateRoot).isDirectory()
-        )
-          continue;
+        const candidateTop = fs.realpathSync.native(candidate);
+        if (candidateTop === top) continue;
         const candidateLocation = realLocation(
-          path.join(candidateRoot, relative),
+          path.join(candidateTop, relative),
         );
         if (
           candidateLocation !== location &&
@@ -115,11 +142,16 @@ export function findSeedDonors(
         )
           donors.push(candidateLocation);
       } catch {
-        // An unavailable donor must not prevent a cold build.
+        // Worktrees without a cache, or removed during discovery, are not donors.
       }
     }
-    return donors.length ? donors : undefined;
-  } catch {
+    if (!donors.length) {
+      logger.debug(`${SKIP} no other worktree of ${common} has ${relative}.`);
+      return;
+    }
+    return donors;
+  } catch (error) {
+    logger.debug(`${SKIP} ${error instanceof Error ? error.message : error}`);
     return;
   }
 }
