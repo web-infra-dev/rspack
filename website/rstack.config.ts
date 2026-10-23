@@ -18,8 +18,8 @@ const description =
   'Fast Rust-based bundler for the web with a modernized webpack API';
 
 const rsbuildGuidance = {
-  en: 'Most projects should use [Rsbuild](https://rsbuild.rs/), not Rspack directly. Use Rspack directly only when you are migrating an existing webpack setup, or building a framework or tool on top of Rspack.',
-  zh: '大多数项目应使用 [Rsbuild](https://rsbuild.rs/zh/)，而不是直接使用 Rspack。仅在迁移已有的 webpack 项目，或在 Rspack 之上构建框架或工具时，才直接使用 Rspack。',
+  en: 'Use [Rsbuild](https://rsbuild.rs/) for apps. Use Rspack directly only when migrating from webpack or building a tool or framework on top of it.',
+  zh: '构建应用请使用 [Rsbuild](https://rsbuild.rs/zh/)。仅在从 webpack 迁移，或在 Rspack 之上构建工具或框架时，直接使用 Rspack。',
 } as const;
 
 define.doc({
@@ -34,7 +34,7 @@ define.doc({
   icon: 'https://assets.rspack.rs/rspack/favicon-128x128.png',
   lang: 'en',
   llms: {
-    // Keep Rspress's default llms.txt layout, and place Rsbuild guidance directly under the summary.
+    // Default llms.txt layout, with the Rsbuild note under the summary.
     llmsTxt: ({ title, description: siteDescription, lang, sections }) => {
       const guidance = lang === 'zh' ? rsbuildGuidance.zh : rsbuildGuidance.en;
       const summary = title

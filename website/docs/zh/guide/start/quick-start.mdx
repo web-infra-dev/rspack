@@ -8,9 +8,9 @@ import { PackageManagerTabs } from '@theme';
 
 通过本章节来了解如何快速上手并使用 Rspack。
 
-:::tip 大多数项目应使用 Rsbuild
+:::tip 构建应用请使用 Rsbuild
 
-大多数项目应使用 [Rsbuild](https://rsbuild.rs/zh/)，而不是直接使用 Rspack。仅在迁移已有的 webpack 项目，或在 Rspack 之上构建框架或工具时，才直接使用 Rspack。
+构建应用请使用 [Rsbuild](https://rsbuild.rs/zh/)。仅在从 webpack 迁移，或在 Rspack 之上构建工具或框架时，直接使用 Rspack。
 
 :::
 
@@ -76,7 +76,7 @@ Rspack 支持使用 [Node.js](https://nodejs.org/)、[Deno](https://deno.com/) �
 
 ### 使用 Rspack CLI
 
-仅在迁移已有的 webpack 项目，或构建需要底层控制的框架或工具时，使用 Rspack CLI。你需要自行配置 loader、插件等构建能力。
+从 webpack 迁移，或在 Rspack 之上构建工具或框架时，使用 Rspack CLI。请自行配置 loader、插件和其他构建选项。
 
 执行如下命令并按照提示操作：
 
@@ -99,7 +99,7 @@ npx -y create-rsbuild -d my-app -t react
 
 ## 手动安装
 
-仅在迁移已有的 webpack 项目，或在 Rspack 之上构建框架或工具时，才直接安装 Rspack。大多数项目应改用 [Rsbuild](https://rsbuild.rs/zh/)。
+构建应用请使用 [Rsbuild](https://rsbuild.rs/zh/)。仅在从 webpack 迁移，或在 Rspack 之上构建工具或框架时，直接使用 Rspack。
 
 首先创建一个项目目录，并生成一个 npm `package.json` 文件：
 
