@@ -5,6 +5,13 @@ mod cache_value;
 mod db;
 mod etag;
 mod file_cache_strategy;
+// The new implementation is connected to cache consumers in DESIGN.md steps 13 and 14.
+#[allow(
+  dead_code,
+  unused_imports,
+  reason = "the new FileSystemInfo is being implemented in independently validated steps"
+)]
+pub(crate) mod fs_info;
 mod idle_file_cache;
 mod memory_cache;
 pub(crate) mod snapshot;

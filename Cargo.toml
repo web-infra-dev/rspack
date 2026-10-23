@@ -101,6 +101,7 @@ serde               = { version = "1.0.229", default-features = false, features 
 serde_json          = { version = "1.0.151", default-features = false, features = ["std"] }
 sftrace-setup       = { version = "0.1.2", default-features = false }
 sha2                = { version = "0.10.9", default-features = false }
+sharded-slab        = { version = "0.1.7", default-features = false }
 signal-hook         = { version = "0.3.18", default-features = false, features = ["iterator"] }
 simd-json           = { version = "0.17.3", default-features = false, features = ["runtime-detection", "serde_impl"] }
 simd-utf16-len      = { version = "0.2.0", default-features = false }

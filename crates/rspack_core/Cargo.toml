@@ -14,7 +14,7 @@ async-trait                = { workspace = true }
 bitflags                   = { workspace = true }
 concat-string              = { workspace = true }
 cow-utils                  = { workspace = true }
-dashmap                    = { workspace = true, features = ["rayon"] }
+dashmap                    = { workspace = true, features = ["raw-api", "rayon"] }
 derive_more                = { workspace = true, features = ["debug"] }
 dyn-clone                  = { workspace = true }
 either                     = { workspace = true }
@@ -65,6 +65,7 @@ rustc-hash                 = { workspace = true }
 scopeguard                 = { workspace = true }
 serde                      = { workspace = true }
 serde_json                 = { workspace = true }
+sharded-slab                = { workspace = true }
 simd-json                  = { workspace = true }
 simdutf8                   = { workspace = true }
 smallvec                   = { workspace = true }

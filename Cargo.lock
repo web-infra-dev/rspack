@@ -4404,6 +4404,7 @@ dependencies = [
  "scopeguard",
  "serde",
  "serde_json",
+ "sharded-slab",
  "simd-json",
  "simdutf8",
  "smallvec",
@@ -4466,6 +4467,15 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "rspack_fs_info_test"
+version = "0.103.0-beta.1"
+dependencies = [
+ "dashmap",
+ "rspack_paths",
+ "sharded-slab",
 ]
 
 [[package]]

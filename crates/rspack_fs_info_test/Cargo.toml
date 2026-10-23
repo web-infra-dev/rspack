@@ -1,0 +1,15 @@
+[package]
+description       = "Tests for the new FileSystemInfo"
+edition.workspace = true
+license.workspace = true
+name              = "rspack_fs_info_test"
+publish           = false
+version.workspace = true
+
+[dev-dependencies]
+dashmap      = { workspace = true, features = ["raw-api"] }
+rspack_paths = { workspace = true }
+sharded-slab = { workspace = true }
+
+[lints]
+workspace = true
