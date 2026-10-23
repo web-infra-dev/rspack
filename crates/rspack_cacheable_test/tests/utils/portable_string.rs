@@ -598,3 +598,34 @@ fn test_typed_context_regex_literal_markers() {
     }
   }
 }
+
+#[test]
+#[cfg(not(windows))]
+fn test_context_prefixed_identifiers_relocate() {
+  let writer = TestContext(Some(PathBuf::from("/home/user/project")));
+  let reader = TestContext(Some(PathBuf::from("/w/x/proj")));
+  let data = Data {
+    paths: vec![
+      "context/home/user/project/dir|./a".into(),
+      "context/home/user/project/dir|ctx request./dir true ".into(),
+    ],
+  };
+  let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&data, &writer).unwrap();
+  assert!(!bound);
+  let restored: Data = rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
+  assert_eq!(
+    restored.paths,
+    vec![
+      "context/w/x/proj/dir|./a".to_string(),
+      "context/w/x/proj/dir|ctx request./dir true ".to_string(),
+    ]
+  );
+
+  let outside = Data {
+    paths: vec!["context/opt/dir|./a".into(), "contextual|./a".into()],
+  };
+  let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&outside, &writer).unwrap();
+  assert!(bound);
+  let restored: Data = rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
+  assert_eq!(restored, outside);
+}

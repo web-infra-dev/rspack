@@ -65,7 +65,7 @@ pub fn save_module_graph(
     );
   }
 
-  let node_codec = if codec.root_hash().is_some() && !need_update_modules.is_empty() {
+  let node_codec = if codec.is_portable() && !need_update_modules.is_empty() {
     let ranges = mg
       .modules()
       .filter_map(|(identifier, module)| {
