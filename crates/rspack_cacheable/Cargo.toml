@@ -33,6 +33,7 @@ simd-json               = { workspace = true }
 smol_str                = { workspace = true }
 sugar_path              = { workspace = true }
 swc_core                = { workspace = true, features = ["ecma_ast"] }
+url                     = { workspace = true, features = ["std"] }
 ustr                    = { workspace = true }
 xxhash-rust             = { workspace = true, features = ["const_xxh64"] }
 

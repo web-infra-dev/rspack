@@ -4318,6 +4318,7 @@ dependencies = [
  "smol_str",
  "sugar_path",
  "swc_core",
+ "url",
  "ustr-fxhash",
  "xxhash-rust",
 ]
