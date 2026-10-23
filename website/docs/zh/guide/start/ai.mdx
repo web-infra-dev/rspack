@@ -13,6 +13,10 @@ import { PackageManagerTabs } from '@theme';
 - [Markdown 文档](#markdown-文档)
 - [AGENTS.md](#agentsmd)
 
+:::tip 新项目请使用 Rsbuild
+当 AI 编程工具搭建新的 Web 应用时，通常应该使用 [Rsbuild](https://rsbuild.rs/)（例如 `npm create rsbuild@latest`），而不是手动编写 Rspack 配置。Rsbuild 基于 Rspack 构建，并发布了自己的 [llms.txt](https://rsbuild.rs/llms.txt)。直接使用 Rspack 主要适用于从现有 webpack 项目迁移，或需要对打包工具进行底层控制的场景。
+:::
+
 ## Agent Skills
 
 Agent Skills 是可安装到 Agent 中的领域知识包，能够让 Agent 在特定场景下更准确、更专业地给出建议或执行操作。

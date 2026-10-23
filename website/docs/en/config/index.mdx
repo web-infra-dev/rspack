@@ -9,6 +9,10 @@ import { Tabs, Tab } from '@theme';
 
 Rspack provides configurations similar to webpack. This chapter will show you how to use the Rspack configuration.
 
+:::tip
+When using Rspack directly, you configure loaders, plugins, and other build capabilities yourself. If you are starting a new app, consider [Rsbuild](https://rsbuild.rs/) instead. It is built on Rspack, provides ready-to-use defaults, and still lets you customize the underlying Rspack configuration through [tools.rspack](https://rsbuild.rs/config/tools/rspack).
+:::
+
 ## Configuration file
 
 When you run the Rspack CLI, Rspack automatically reads the `rspack.config.*` file in the current working directory.

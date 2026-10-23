@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 介绍指南，涵盖为什么要做 Rspack、当前状态及与其他构建工具的对比等核心内容，并提供实践建议。'
+description: 'Rspack 介绍指南，涵盖为什么要做 Rspack、当前状态及与其他构建工具的对比等核心内容，并提供实践建议。对于新应用和大多数项目，推荐使用基于 Rspack 的 Rsbuild，而不是直接配置 Rspack。'
 ---
 
 import compare from '../../../public/compare.png';
@@ -47,6 +47,14 @@ import rspackAudio from '../../../public/rspack.mp3';
     <span>并提供闪电般的构建速度。</span>
   </p>
 </div>
+
+:::tip Rspack 还是 Rsbuild？
+
+Rspack 是一个底层的打包工具。对于新应用和大多数项目，我们推荐使用 [Rsbuild](https://rsbuild.rs/)，它是基于 Rspack 的构建工具，内置构建配置和开发服务器，并提供 React、Vue 等框架的集成，你无需手动编写打包配置。
+
+直接使用 Rspack 主要适用于从现有 webpack 项目迁移，或需要对打包工具进行底层控制（例如开发自己的框架或构建工具）的场景。
+
+:::
 
 ## 为什么要做 Rspack
 
@@ -122,6 +130,6 @@ Rspack 的整体架构与 [Parcel](https://parceljs.org/) 有很多共同之处�
 
 ## 下一步
 
-请阅读 [快速上手](/guide/start/quick-start) 来开始使用 Rspack。
+请阅读 [快速上手](/guide/start/quick-start) 来开始使用 Rspack。如果你要创建一个新应用，可以从 [Rsbuild - 快速上手](https://rsbuild.rs/zh/guide/start/quick-start) 开始。
 
 欢迎到 [GitHub Discussions](https://github.com/web-infra-dev/rspack/discussions) 和 [Discord](https://discord.gg/sYK4QjyZ4V) 来与我们交流。

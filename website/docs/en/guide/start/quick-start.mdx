@@ -1,5 +1,5 @@
 ---
-description: 'Create a Rspack or Rsbuild project, check environment requirements, or install Rspack manually and run your first build.'
+description: 'Create a new project with Rsbuild (recommended for most projects) or Rspack CLI, check environment requirements, or install Rspack manually and run your first build.'
 ---
 
 import { PackageManagerTabs } from '@theme';
@@ -10,6 +10,14 @@ Get up to speed quickly with a new Rspack based project.
 
 - [Create a new project](#create-a-new-project): Use the CLI to create a brand-new Rspack or Rsbuild project.
 - [Migrating from existing projects](#migrating-from-existing-projects): Migrate from a webpack-based project to Rspack.
+
+:::tip Rspack or Rsbuild?
+
+For new apps and most projects, we recommend [Rsbuild](https://rsbuild.rs/) rather than configuring Rspack directly. Rsbuild is built on Rspack and provides ready-to-use defaults, so you get Rspack's performance without maintaining a low-level bundler configuration.
+
+Use Rspack directly mainly when you are migrating an existing webpack project, or when you need low-level control over the bundler.
+
+:::
 
 ## Ecosystem
 
@@ -94,6 +102,8 @@ npx -y create-rsbuild -d my-app -t react
 ```
 
 ## Manual installation
+
+The following steps set up Rspack directly. If you are starting a new app, [Rsbuild](#using-rsbuild) is usually a better starting point.
 
 Start by creating a project directory and generating an npm `package.json':
 

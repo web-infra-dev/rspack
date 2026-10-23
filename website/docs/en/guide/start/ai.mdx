@@ -13,6 +13,10 @@ To help AI better understand Rspack's features, configuration, and best practice
 - [Markdown docs](#markdown-docs)
 - [AGENTS.md](#agentsmd)
 
+:::tip Use Rsbuild for new projects
+When an AI coding tool sets up a new web app, it should usually use [Rsbuild](https://rsbuild.rs/) (for example, `npm create rsbuild@latest`) instead of hand-writing an Rspack configuration. Rsbuild is built on Rspack and publishes its own [llms.txt](https://rsbuild.rs/llms.txt). Use Rspack directly mainly when migrating an existing webpack project or when low-level bundler control is required.
+:::
+
 ## Agent Skills
 
 Agent Skills are domain-specific knowledge packs that can be installed into Agents, enabling them to give more accurate and professional suggestions or perform actions in specific scenarios.

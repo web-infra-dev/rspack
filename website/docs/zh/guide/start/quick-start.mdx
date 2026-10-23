@@ -1,5 +1,5 @@
 ---
-description: '创建 Rspack 或 Rsbuild 项目，检查环境要求，或手动安装 Rspack 并运行首次构建。'
+description: '使用 Rsbuild（推荐大多数项目使用）或 Rspack CLI 创建新项目，检查环境要求，或手动安装 Rspack 并运行首次构建。'
 ---
 
 import { PackageManagerTabs } from '@theme';
@@ -10,6 +10,14 @@ import { PackageManagerTabs } from '@theme';
 
 - [创建新项目](#创建新项目)：使用 CLI 创建一个全新的 Rspack 或 Rsbuild 项目。
 - [从现有项目迁移](#从现有项目迁移)：从一个基于 webpack 的项目迁移到 Rspack。
+
+:::tip Rspack 还是 Rsbuild？
+
+对于新应用和大多数项目，我们推荐使用 [Rsbuild](https://rsbuild.rs/)，而不是直接配置 Rspack。Rsbuild 基于 Rspack 构建，提供开箱即用的默认配置，让你在享受 Rspack 性能的同时，无需维护底层的打包配置。
+
+直接使用 Rspack 主要适用于从现有 webpack 项目迁移，或需要对打包工具进行底层控制的场景。
+
+:::
 
 ## 生态
 
@@ -92,6 +100,8 @@ npx -y create-rsbuild -d my-app -t react
 ```
 
 ## 手动安装
+
+以下步骤用于直接使用 Rspack。如果你要创建一个新应用，通常更推荐从 [Rsbuild](#使用-rsbuild) 开始。
 
 首先创建一个项目目录，并生成一个 npm `package.json` 文件：
 

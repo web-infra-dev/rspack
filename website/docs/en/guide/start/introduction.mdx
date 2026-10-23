@@ -1,5 +1,5 @@
 ---
-description: 'Rspack Introduction guide covering Why Rspack?, Current status of Rspack, and Comparisons with other tools.'
+description: 'Rspack Introduction guide covering Why Rspack?, Current status of Rspack, and Comparisons with other tools. For new apps and most projects, use Rsbuild (built on Rspack) instead of configuring Rspack directly.'
 ---
 
 import compare from '../../../public/compare.png';
@@ -48,6 +48,14 @@ import rspackAudio from '../../../public/rspack.mp3';
     <span>&nbsp;delivering lightning-fast build speeds.</span>
   </p>
 </div>
+
+:::tip Rspack or Rsbuild?
+
+Rspack is a low-level bundler. For new apps and most projects, we recommend [Rsbuild](https://rsbuild.rs/), a build tool powered by Rspack. It comes with built-in build configuration, a dev server, and integrations for frameworks such as React and Vue, so you don't need to write bundler configuration by hand.
+
+Use Rspack directly mainly when you are migrating an existing webpack project, or when you need low-level control over the bundler, for example when building your own framework or build tool.
+
+:::
 
 ## Why Rspack?
 
@@ -111,6 +119,6 @@ Try Rspack online with the [Rsbuild StackBlitz example](https://stackblitz.com/~
 
 ## Next steps
 
-Please read [Quick start](/guide/start/quick-start) to start using Rspack.
+Please read [Quick start](/guide/start/quick-start) to start using Rspack. If you are creating a new app, start with [Rsbuild - Quick start](https://rsbuild.rs/guide/start/quick-start).
 
 Welcome to the [GitHub Discussions](https://github.com/web-infra-dev/rspack/discussions) and [Discord](https://discord.gg/sYK4QjyZ4V) to communicate with us.
