@@ -1,5 +1,5 @@
 DEBUG LOG from rspack.persistentCache
-<i> persistent cache enabled
+    persistent cache enabled
 <w> meta persistent cache recovery failed: persistent cache version does not match
 <t> read meta from persistent cache: xx ms
 <t> write make to persistent cache: xx ms

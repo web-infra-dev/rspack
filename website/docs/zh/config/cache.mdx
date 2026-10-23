@@ -436,6 +436,8 @@ export default {
 
 日志会包含持久化缓存的关键信息，例如持久化缓存是否启用、构建依赖是否有效、缓存恢复是否成功，以及持久化缓存失效的原因。日志还会包含各缓存阶段的读写耗时（例如构建依赖校验、快照恢复、`occasion` 恢复、暂存以及刷盘）。
 
+缓存启用、构建依赖有效、缓存恢复成功以及快照中的依赖变化情况等消息使用 `log` 级别。将 `stats.logging` 设置为 `'log'` 或 `'verbose'`，或按照上面的示例开启 `stats.loggingDebug`，即可查看这些消息。
+
 如果也想同时打印其他 logger 的日志，可以开启 `stats.logging`：
 
 ```js title="rspack.config.mjs"
