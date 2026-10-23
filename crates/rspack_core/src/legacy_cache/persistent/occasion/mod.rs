@@ -37,7 +37,7 @@ impl BoundEntry {
     }
     let (bytes, binding) = codec.encode_with_binding(value)?;
     let binding = if root_sensitive {
-      RootBinding::Spelling
+      RootBinding::Bound
     } else {
       binding
     };
