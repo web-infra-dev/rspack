@@ -1,7 +1,7 @@
 use std::{path::Path, ptr};
 
 use rspack_cacheable::{
-  ContextGuard, Error, Result,
+  ContextGuard, Error, Result, RootSpelling,
   rkyv::{
     Archive, Place, Serialize, SerializeUnsized,
     de::Pooling,
@@ -23,27 +23,32 @@ type ArchivedInternedPath = ArchivedRc<ArchivedVec<u8>, AsInternedPath>;
 
 const NATIVE: u8 = 0;
 const UNDER_ROOT: u8 = 1;
+const UNDER_REALPATH: u8 = 2;
 
 /// One distinct path as written: a tag byte followed by `OsStr::as_encoded_bytes`.
 enum PathPayload<'a> {
   /// The complete native bytes.
   Native(&'a [u8]),
-  /// The bytes below the portable root, starting at the separator that follows the root.
-  UnderRoot(&'a [u8]),
+  /// The bytes below a spelling of the portable root, starting at the separator that follows it.
+  UnderRoot(RootSpelling, &'a [u8]),
 }
 
 impl<'a> PathPayload<'a> {
-  fn new(path: &'a [u8], root: Option<&Path>) -> Self {
-    match root.and_then(|root| strip_root_prefix(path, encoded_bytes(root), SEPARATORS)) {
-      Some(suffix) => Self::UnderRoot(suffix),
-      None => Self::Native(path),
-    }
+  fn new(path: &'a [u8], guard: &ContextGuard) -> Self {
+    guard
+      .root_spellings()
+      .find_map(|(spelling, root)| {
+        strip_root_prefix(path, encoded_bytes(root), SEPARATORS)
+          .map(|suffix| Self::UnderRoot(spelling, suffix))
+      })
+      .unwrap_or(Self::Native(path))
   }
 
   fn parts(&self) -> (u8, &'a [u8]) {
     match *self {
       Self::Native(bytes) => (NATIVE, bytes),
-      Self::UnderRoot(bytes) => (UNDER_ROOT, bytes),
+      Self::UnderRoot(RootSpelling::Context, bytes) => (UNDER_ROOT, bytes),
+      Self::UnderRoot(RootSpelling::Realpath, bytes) => (UNDER_REALPATH, bytes),
     }
   }
 }
@@ -173,7 +178,7 @@ where
     let pos = match serializer.start_sharing(address) {
       SharingState::Started => {
         let guard = ContextGuard::sharing_guard(serializer)?;
-        let payload = PathPayload::new(field.0.items(), guard.project_root());
+        let payload = PathPayload::new(field.0.items(), guard);
         if matches!(payload, PathPayload::Native(_))
           && guard.project_root().is_some()
           && field.as_ref().is_absolute()
@@ -201,9 +206,14 @@ where
   fn deserialize_with(field: &ArchivedInternedPath, deserializer: &mut D) -> Result<InternedPath> {
     match field.as_slice().split_first() {
       Some((&NATIVE, bytes)) => Ok(InternedPath::from_bytes(bytes)),
-      Some((&UNDER_ROOT, suffix)) => {
+      Some((&tag @ (UNDER_ROOT | UNDER_REALPATH), suffix)) => {
         let guard = ContextGuard::pooling_guard(deserializer)?;
-        let Some(root) = guard.project_root() else {
+        let spelling = if tag == UNDER_ROOT {
+          RootSpelling::Context
+        } else {
+          RootSpelling::Realpath
+        };
+        let Some(root) = guard.root(spelling) else {
           return Err(Error::MessageError(
             "portable interned path restored without a project root",
           ));

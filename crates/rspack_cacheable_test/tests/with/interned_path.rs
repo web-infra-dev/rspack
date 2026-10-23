@@ -371,3 +371,43 @@ fn test_interned_path_windows_forward_slash_spelling_relocates() {
     [InternedPath::from(r"D:\deeper\repo\src\a.js")]
   );
 }
+
+struct AliasedContext {
+  root: PathBuf,
+  canonical_root: PathBuf,
+}
+
+impl CacheableContext for AliasedContext {
+  fn project_root(&self) -> Option<&Path> {
+    Some(&self.root)
+  }
+
+  fn canonical_project_root(&self) -> Option<&Path> {
+    Some(&self.canonical_root)
+  }
+}
+
+#[cfg(unix)]
+#[test]
+fn test_interned_path_under_either_root_spelling_relocates() {
+  let writer = AliasedContext {
+    root: PathBuf::from("/tmp/a/proj"),
+    canonical_root: PathBuf::from("/private/tmp/a/proj"),
+  };
+  let reader = AliasedContext {
+    root: PathBuf::from("/tmp/b/x/proj"),
+    canonical_root: PathBuf::from("/private/tmp/b/x/proj"),
+  };
+  let module = Module {
+    paths: ["/private/tmp/a/proj/src/a.js", "/tmp/a/proj/src/b.js"]
+      .map(InternedPath::from)
+      .to_vec(),
+  };
+  let (bytes, bound) = to_bytes_with_binding(&module, &writer).unwrap();
+  assert!(!bound);
+  let restored: Module = from_bytes(&bytes, &reader).unwrap();
+  assert_eq!(
+    restored.paths,
+    ["/private/tmp/b/x/proj/src/a.js", "/tmp/b/x/proj/src/b.js"].map(InternedPath::from)
+  );
+}
