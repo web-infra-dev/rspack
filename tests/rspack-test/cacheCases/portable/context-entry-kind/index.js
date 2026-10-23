@@ -34,6 +34,15 @@ it("should invalidate context modules when a child changes kind", async () => {
 	}
 	if (COMPILER_INDEX === 3) {
 		expect(load("y")).toBe("./dir/y/index.js");
+		expect(load("z")).toEqual({});
+		// An empty file and an empty directory hash alike without the entry kind.
+		fs.rmSync(path.join(dir, "z"));
+		fs.mkdirSync(path.join(dir, "z"));
+		const stats = await NEXT_START(false);
+		expect(stats.modules.some(module => module.built && module.name.includes("sync"))).toBe(true);
+	}
+	if (COMPILER_INDEX === 4) {
+		expect(() => load("z")).toThrow();
 		const assets = READ_ASSETS();
 		await NEXT_COLD_START();
 		expect(READ_ASSETS()).toEqual(assets);
