@@ -111,8 +111,7 @@ impl Snapshot {
         let codec = codec.clone();
         async move {
           let strategy =
-            Self::calc_strategy(&options, &helper, &path, scope, codec.root_hash().is_some())
-              .await?;
+            Self::calc_strategy(&options, &helper, &path, scope, codec.is_portable()).await?;
           Some((
             codec.encode(&path).expect("should encode success"),
             codec.encode(&strategy).expect("should encode success"),
@@ -201,7 +200,7 @@ impl Snapshot {
           // Context modules read their directory after this, so keep what validation saw.
           let observed = match scope {
             SnapshotScope::CONTEXT => {
-              let portable = codec.root_hash().is_some();
+              let portable = codec.is_portable();
               Self::calc_strategy(&options, &helper, &path, scope, portable).await
             }
             _ => None,

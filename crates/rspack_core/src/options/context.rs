@@ -29,7 +29,7 @@ impl CustomConverter for Context {
   }
 
   fn deserialize(data: Self::Target, guard: &ContextGuard) -> CacheableResult<Self> {
-    Ok(Self::from(data.into_path_string(guard.project_root())))
+    Ok(Self::from(data.into_path_string(guard)))
   }
 }
 

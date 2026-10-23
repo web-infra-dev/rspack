@@ -293,6 +293,35 @@ function createCacheProcessor(
   }
 }
 
+// Loaders can write into the project, such as build counters. The cold build
+// must leave those files as the relocated build left them.
+async function snapshotProject(
+  directory: string,
+): Promise<() => Promise<void>> {
+  const files = new Map<string, { content: Buffer; stat: fs.Stats }>();
+  const walk = async (current: string): Promise<void> => {
+    for (const entry of await fs.readdir(current, { withFileTypes: true })) {
+      if (entry.name === 'node_modules') continue;
+      const filename = path.join(current, entry.name);
+      if (entry.isDirectory()) await walk(filename);
+      if (entry.isFile())
+        files.set(filename, {
+          content: await fs.readFile(filename),
+          stat: await fs.stat(filename),
+        });
+    }
+  };
+  await walk(directory);
+  return async () => {
+    for (const [filename, { content, stat }] of files) {
+      const current = await fs.readFile(filename).catch(() => undefined);
+      if (current?.equals(content)) continue;
+      await fs.outputFile(filename, content);
+      await fs.utimes(filename, stat.atime, stat.mtime);
+    }
+  };
+}
+
 // A relocated build must emit exactly what a cold build at the new location
 // emits, so a cache entry restored with stale root-derived data shows up here.
 async function checkColdBuild(
@@ -311,6 +340,7 @@ async function checkColdBuild(
   if (!cache) {
     throw new Error('Directory relocation requires a persistent cache case');
   }
+  const restoreProject = await snapshotProject(options.context!);
   const compiler = rspack({
     ...options,
     cache: {
@@ -328,6 +358,7 @@ async function checkColdBuild(
   await new Promise<void>((resolve, reject) => {
     compiler.close((error) => (error ? reject(error) : resolve()));
   });
+  await restoreProject();
   const assetNames = (stats: StatsCompilation) =>
     (stats.assets || []).map((asset) => asset.name).sort();
   const names = assetNames(relocatedStats);

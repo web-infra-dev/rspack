@@ -12,6 +12,10 @@ const ESCAPE: &str = "\0escape";
 /// or at the start, so a root that occurs inside a longer path is never rewritten.
 const DELIMITERS: [char; 8] = ['|', '!', '?', '=', ' ', '\t', '\n', '\r'];
 
+/// Identifier prefixes written directly before a path, as in the context element identifier
+/// `context/project/dir|./a`.
+const PATH_PREFIXES: [&str; 1] = ["context"];
+
 #[cfg(not(windows))]
 const ROOT_SEPARATORS: [char; 1] = ['/'];
 #[cfg(windows)]
@@ -84,6 +88,18 @@ fn strip_any_root<'a>(
   })
 }
 
+/// Splits a [`PATH_PREFIXES`] entry off `text` when an absolute path follows it.
+fn split_path_prefix(text: &str) -> (&'static str, &str) {
+  PATH_PREFIXES
+    .iter()
+    .find_map(|prefix| {
+      let path = text.strip_prefix(prefix)?;
+      let token = path.split(DELIMITERS).next().unwrap_or_default();
+      Path::new(token).is_absolute().then_some((*prefix, path))
+    })
+    .unwrap_or(("", text))
+}
+
 fn push_root(out: &mut String, root: &str, separator: &str) {
   for (index, component) in root.split(ROOT_SEPARATORS).enumerate() {
     if index > 0 {
@@ -140,17 +156,19 @@ impl PortableString {
     let mut converted = String::with_capacity(content.len());
     let mut rest = content;
     loop {
-      let path = match strip_any_root(rest, &roots) {
+      let (prefix, body) = split_path_prefix(rest);
+      converted.push_str(prefix);
+      let path = match strip_any_root(body, &roots) {
         Some((marker, suffix)) => {
           converted.push_str(marker);
           suffix
         }
         None => {
-          let token = rest.split(DELIMITERS).next().unwrap_or_default();
+          let token = body.split(DELIMITERS).next().unwrap_or_default();
           if Path::new(token).is_absolute() {
             guard.mark_outside_root();
           }
-          rest
+          body
         }
       };
       let end = path.find(DELIMITERS).unwrap_or(path.len());
