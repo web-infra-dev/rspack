@@ -233,6 +233,8 @@ Portable cache is built on top of persistent cache and makes the cache platform-
 
 In the legacy cache backend, entries that still depend on the writer's project root are rebuilt when the root changes. This includes `import.meta.url`, loader output containing absolute project paths, and references outside the project root. Unchanged builds at the same root can still reuse these entries.
 
+The new cache backend (`experiments.newCache`) does not bind entries to the project root yet, so a relocated project can reuse entries that still contain the old root.
+
 Loaders that derive output from a path without including that path in the output (for example, a hash of `this.resourcePath`) should call `this.cacheable(false)` or use an appropriate `cache.version`.
 
 **Example:**

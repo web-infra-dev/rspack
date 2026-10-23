@@ -222,6 +222,8 @@ export default {
 
 在旧版缓存后端中，仍依赖写入时项目根目录的缓存条目会在根目录变化时重新构建。这包括 `import.meta.url`、包含项目绝对路径的 loader 输出，以及对项目根目录之外路径的引用。在同一根目录下，未发生变化的构建仍可复用这些条目。
 
+新版缓存后端（`experiments.newCache`）尚未将缓存条目绑定到项目根目录，因此项目移动后仍可能复用包含旧根目录的条目。
+
 如果 loader 根据路径生成输出，但没有在输出中包含该路径（例如，对 `this.resourcePath` 进行哈希），应调用 `this.cacheable(false)` 或设置适当的 `cache.version`。
 
 **示例：**
