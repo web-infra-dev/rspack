@@ -139,7 +139,9 @@ function createCacheProcessor(
             }
             movedTemp = await fs.mkdtemp(`${compileTemp}-relocated-`);
             const relocated = path.join(movedTemp, 'nested', 'project');
-            await fs.move(compileTemp, relocated);
+            // Copy rather than move: the cache must not be invalidated by the
+            // original files disappearing, only by its own root binding.
+            await fs.copy(compileTemp, relocated);
             const options = manager.getOptions() as RspackOptions;
             const previousPlugin = updatePlugin;
             updatePlugin = new HotUpdatePlugin(src, relocated);
@@ -162,6 +164,7 @@ function createCacheProcessor(
           await manager.build();
           const jsonStats = await checkRestart(env, context, advanceUpdate);
           checkCache(env, context, !advanceUpdate);
+          if (move) await checkColdBuild(env, context, jsonStats, movedTemp!);
 
           // Every restart needs fresh runners, including every child of a MultiCompiler.
           context.setValue('modules', []);
@@ -269,6 +272,58 @@ function createCacheProcessor(
       }
     }
     return jsonStats;
+  }
+}
+
+// A relocated build must emit exactly what a cold build at the new location
+// emits, so a cache entry restored with stale root-derived data shows up here.
+async function checkColdBuild(
+  env: ITestEnv,
+  context: ITestContext,
+  relocatedStats: StatsCompilation,
+  movedTemp: string,
+) {
+  const options = context.getCompiler().getOptions() as RspackOptions;
+  const relocatedDist = options.output!.path!;
+  const coldDist = path.join(movedTemp, 'cold-dist');
+  const cache =
+    typeof options.cache === 'object' && options.cache.type === 'persistent'
+      ? options.cache
+      : undefined;
+  if (!cache) {
+    throw new Error('Directory relocation requires a persistent cache case');
+  }
+  const compiler = rspack({
+    ...options,
+    cache: {
+      ...cache,
+      storage: {
+        type: 'filesystem',
+        directory: path.join(movedTemp, 'cold-cache'),
+      },
+    },
+    output: { ...options.output, path: coldDist },
+  });
+  const coldStats = await new Promise<Stats>((resolve, reject) => {
+    compiler.run((error, stats) => (error ? reject(error) : resolve(stats!)));
+  });
+  await new Promise<void>((resolve, reject) => {
+    compiler.close((error) => (error ? reject(error) : resolve()));
+  });
+  const assetNames = (stats: StatsCompilation) =>
+    (stats.assets || []).map((asset) => asset.name).sort();
+  const names = assetNames(relocatedStats);
+  env
+    .expect(names, 'relocated build emits the assets of a cold build')
+    .toEqual(assetNames(coldStats.toJson({ all: false, assets: true })));
+  for (const name of names) {
+    const [relocated, cold] = await Promise.all([
+      fs.readFile(path.join(relocatedDist, name)),
+      fs.readFile(path.join(coldDist, name)),
+    ]);
+    env
+      .expect(relocated.toString('latin1'), `${name} equals a cold build`)
+      .toBe(cold.toString('latin1'));
   }
 }
 
