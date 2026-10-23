@@ -1,4 +1,5 @@
 use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
+use url::Host;
 
 /// The WHATWG path segment set that `url::Url::from_file_path` applies to Windows components.
 const PATH_SEGMENT: &AsciiSet = &CONTROLS
@@ -20,7 +21,8 @@ const SPECIAL_PATH_SEGMENT: &AsciiSet = &PATH_SEGMENT.add(b'\\');
 /// Byte patterns under which `root` can appear in serialized cache data.
 ///
 /// Covers the native spelling, the forward-slash spelling of a Windows root, the JSON-escaped
-/// spellings, and the path part of the root's `file://` URL. The input is read as a Windows path
+/// spellings, and the path part of the root's `file://` URL, with a UNC host normalized the way
+/// `url::Url::from_file_path` normalizes it. The input is read as a Windows path
 /// when it starts with a drive letter or `\\`, on every host platform. Trailing separators are
 /// ignored. A pattern that contains another pattern is dropped, since any match of it is also a
 /// match of the shorter one.
@@ -78,7 +80,8 @@ fn file_url_path(slash: &str, windows: bool) -> String {
     (String::new(), slash, SPECIAL_PATH_SEGMENT)
   } else if let Some(unc) = slash.strip_prefix("//") {
     let (host, rest) = unc.split_once('/').unwrap_or((unc, ""));
-    (host.to_string(), rest, PATH_SEGMENT)
+    let host = Host::parse(host).map_or_else(|_| host.to_string(), |host| host.to_string());
+    (host, rest, PATH_SEGMENT)
   } else {
     let (drive, rest) = slash.split_at(2);
     (format!("/{drive}"), rest, PATH_SEGMENT)

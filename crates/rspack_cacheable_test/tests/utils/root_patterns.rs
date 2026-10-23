@@ -57,6 +57,22 @@ fn windows_unc_root() {
 }
 
 #[test]
+fn windows_unc_host_is_normalized_like_url_crate() {
+  assert!(matches(
+    r"\\SERVER\share\my project",
+    "file://server/share/my%20project/src/a.js"
+  ));
+  assert!(matches(
+    r"\\münich\share\my project",
+    "file://xn--mnich-kva/share/my%20project/src/a.js"
+  ));
+  assert!(matches(
+    r"\\SERVER\share\my project",
+    r"\\SERVER\share\my project\src\a.js"
+  ));
+}
+
+#[test]
 fn trailing_separators_are_ignored() {
   assert_eq!(patterns(r"C:\work\project\"), patterns(r"C:\work\project"));
   assert_eq!(patterns("C:/work/project/"), patterns("C:/work/project"));
@@ -108,6 +124,8 @@ fn windows_url_form_matches_url_crate() {
     r"C:\work\project",
     r"C:\work\my project\ü",
     r"\\server\share\project",
+    r"\\SERVER\share\project",
+    r"\\münich\share\project",
   ] {
     let url = url::Url::from_file_path(root).unwrap();
     let expected = url.as_str().trim_start_matches("file://");
