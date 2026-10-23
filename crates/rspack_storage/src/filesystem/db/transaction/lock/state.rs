@@ -24,7 +24,10 @@ impl std::default::Default for StateLock {
     let pid = std::process::id();
     Self {
       pid,
-      process_name: get_process_name(pid).unwrap_or_else(|| "unknown".to_string()),
+      process_name: match lookup_process(pid) {
+        ProcessLookup::Running(name) => name,
+        ProcessLookup::Exited | ProcessLookup::Unknown => "unknown".to_string(),
+      },
     }
   }
 }
@@ -86,10 +89,17 @@ impl StateLock {
 
   /// Checks if the process recorded in this lock is currently running.
   pub fn is_running(&self) -> bool {
-    let Some(actual_name) = get_process_name(self.pid) else {
-      return false;
-    };
-    actual_name == self.process_name
+    self.liveness() == Some(true)
+  }
+
+  /// Checks if the process recorded in this lock is running, or `None` when the
+  /// process table cannot be queried.
+  pub fn liveness(&self) -> Option<bool> {
+    match lookup_process(self.pid) {
+      ProcessLookup::Running(name) => Some(name == self.process_name),
+      ProcessLookup::Exited => Some(false),
+      ProcessLookup::Unknown => None,
+    }
   }
 
   /// Checks if this lock belongs to the current process.
@@ -106,68 +116,88 @@ impl StateLock {
     })
   }
 
-  /// Checks if any process with this PID is running.
-  pub fn is_process_running(pid: u32) -> bool {
-    get_process_name(pid).is_some()
+  /// Checks if any process with this PID is running, or `None` when the process
+  /// table cannot be queried.
+  pub fn process_liveness(pid: u32) -> Option<bool> {
+    match lookup_process(pid) {
+      ProcessLookup::Running(_) => Some(true),
+      ProcessLookup::Exited => Some(false),
+      ProcessLookup::Unknown => None,
+    }
   }
 }
 
-/// Gets the process name for a given PID.
-///
-/// Returns None if the process doesn't exist or we can't determine its name.
+enum ProcessLookup {
+  Running(String),
+  Exited,
+  /// The lookup tool is missing, rejected the query, or printed something unexpected.
+  Unknown,
+}
+
 #[cfg(unix)]
-fn get_process_name(pid: u32) -> Option<String> {
+fn lookup_process(pid: u32) -> ProcessLookup {
   use std::process::Command;
 
-  let output = Command::new("ps")
+  let Ok(output) = Command::new("ps")
     .arg("-p")
     .arg(pid.to_string())
     .arg("-o")
     .arg("comm=")
     .output()
-    .ok()?;
-
+  else {
+    return ProcessLookup::Unknown;
+  };
+  let stdout = String::from_utf8_lossy(&output.stdout);
+  let name = stdout.trim();
   if output.status.success() {
-    let name = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if !name.is_empty() {
-      return Some(name);
-    }
+    return if name.is_empty() || name.contains('\n') {
+      ProcessLookup::Unknown
+    } else {
+      ProcessLookup::Running(name.to_string())
+    };
   }
-
-  None
+  if output.status.code() == Some(1) && name.is_empty() && output.stderr.trim_ascii().is_empty() {
+    ProcessLookup::Exited
+  } else {
+    ProcessLookup::Unknown
+  }
 }
 
 #[cfg(windows)]
-fn get_process_name(pid: u32) -> Option<String> {
+fn lookup_process(pid: u32) -> ProcessLookup {
   use std::process::Command;
 
-  let output = Command::new("tasklist")
+  let Ok(output) = Command::new("tasklist")
     .arg("/FI")
     .arg(format!("PID eq {}", pid))
     .arg("/FO")
     .arg("CSV")
     .arg("/NH")
     .output()
-    .ok()?;
-
-  if output.status.success() {
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    if stdout.contains(&pid.to_string()) {
-      // Parse CSV output: "name","pid","session","mem"
-      // Extract the process name (first field)
-      if let Some(first_quote_end) = stdout.find("\",") {
-        let name = stdout[1..first_quote_end].to_string();
-        return Some(name);
-      }
-    }
+  else {
+    return ProcessLookup::Unknown;
+  };
+  if !output.status.success() {
+    return ProcessLookup::Unknown;
   }
-
-  None
+  let stdout = String::from_utf8_lossy(&output.stdout);
+  if !stdout.contains(&format!("\"{pid}\"")) {
+    return ProcessLookup::Exited;
+  }
+  // Parse CSV output: "name","pid","session","mem"
+  match stdout
+    .trim_start()
+    .strip_prefix('"')
+    .and_then(|rest| rest.split_once("\","))
+  {
+    Some((name, _)) => ProcessLookup::Running(name.to_string()),
+    None => ProcessLookup::Unknown,
+  }
 }
 
 #[cfg(target_family = "wasm")]
-fn get_process_name(pid: u32) -> Option<String> {
-  None
+fn lookup_process(_pid: u32) -> ProcessLookup {
+  ProcessLookup::Unknown
 }
 
 #[cfg(test)]

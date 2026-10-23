@@ -19,7 +19,8 @@ fn is_transient(name: &std::ffi::OsStr) -> bool {
   name == ".temp" || name == "_stale"
 }
 
-/// Removes staging directories left by seeding processes that no longer run.
+/// Removes staging directories whose seeding process has exited. When the process
+/// table cannot be queried, removes only directories older than a day.
 pub fn sweep_seed_staging(location: &Path) {
   let Ok(entries) = fs::read_dir(location) else {
     return;
@@ -41,13 +42,18 @@ pub fn sweep_seed_staging(location: &Path) {
     if !CacheDirectory::is_valid(unit) || pid == std::process::id() {
       continue;
     }
-    let expired = entry
-      .metadata()
-      .and_then(|metadata| metadata.modified())
-      .ok()
-      .and_then(|modified| SystemTime::now().duration_since(modified).ok())
-      .is_some_and(|age| age > STAGING_MAX_AGE);
-    if expired || !StateLock::is_process_running(pid) {
+    let abandoned = StateLock::process_liveness(pid).map_or_else(
+      || {
+        entry
+          .metadata()
+          .and_then(|metadata| metadata.modified())
+          .ok()
+          .and_then(|modified| SystemTime::now().duration_since(modified).ok())
+          .is_some_and(|age| age > STAGING_MAX_AGE)
+      },
+      |running| !running,
+    );
+    if abandoned {
       let _ = fs::remove_dir_all(entry.path());
     }
   }
@@ -126,7 +132,7 @@ fn pending_transaction(unit: &Path) -> Result<Option<&'static str>> {
   match fs::read(temp.join("state.lock")) {
     Ok(bytes) => Ok(
       StateLock::decode(&bytes)
-        .is_none_or(|lock| lock.is_running())
+        .is_none_or(|lock| lock.liveness() != Some(false))
         .then_some("donor has a running transaction"),
     ),
     Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
