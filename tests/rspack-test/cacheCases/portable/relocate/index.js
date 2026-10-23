@@ -12,7 +12,7 @@ it("should rebuild root-sensitive modules after relocation and evict the old ent
 	expect(plain).toBe(42);
 	expect(plainTwo).toBe(43);
 	if (COMPILER_INDEX < 4) {
-		expect(fs.readFileSync(path.join(CURRENT_CONTEXT, "build-counts"), "utf8").trim().split("\n").sort()).toEqual(["plain-two.js", "plain.js"]);
+		expect(fs.readFileSync(path.join(CURRENT_CONTEXT, "build-counts"), "utf8").trim().split("\n").sort()).toEqual(["plain-two.js", "plain.js", "url.mjs"]);
 	}
 	expect(resourceUrl).toBe(pathToFileURL(path.join(CURRENT_CONTEXT, "index.js")).href);
 	expect(assetUrl.href).toMatch(/^https:\/\/test\.cases\/path\/.+\.txt$/);
@@ -25,6 +25,7 @@ it("should rebuild root-sensitive modules after relocation and evict the old ent
 		const entries = stats.logging["rspack.persistentCache"].entries;
 		expect(entries.some(entry => /make persistent cache dropped [1-9]\d* entries bound to another root/.test(entry.message))).toBe(true);
 		expect(stats.modules.find(module => module.name.endsWith("/index.js")).built).toBe(true);
+		expect(stats.modules.find(module => module.name.endsWith("/url.mjs")).built).toBe(false);
 	}
 	if (COMPILER_INDEX === 2) {
 		const stats = await NEXT_START(false);
