@@ -91,16 +91,20 @@ impl CacheSeed {
         let unit = unit.clone();
         spawn_blocking(move || rspack_storage::stage_seed(location.as_std_path(), &donor, &unit))
           .await
-          .to_rspack_result()??
+          .to_rspack_result()?
       };
       let staged = match stage {
-        SeedStage::Staged(staged) => staged,
-        SeedStage::Skipped(reason) => {
+        Ok(SeedStage::Staged(staged)) => staged,
+        Ok(SeedStage::Skipped(reason)) => {
           skipped.push(format!("{} ({reason})", donor.display()));
           continue;
         }
+        Err(error) => {
+          skipped.push(format!("{} ({error})", donor.display()));
+          continue;
+        }
       };
-      if !matches_version(&staged, &unit, &fs, validation).await? {
+      if !matches_version(&staged, &unit, &fs, validation).await {
         skipped.push(format!(
           "{} (cache version does not match)",
           donor.display()
@@ -133,9 +137,10 @@ async fn matches_version(
   unit: &CacheDirectory,
   fs: &Arc<dyn IntermediateFileSystem>,
   validation: &CacheValidation,
-) -> Result<bool> {
-  let directory = Utf8PathBuf::from_path_buf(staged.directory().to_path_buf())
-    .map_err(|path| rspack_error::error!("non UTF-8 seeding path {}", path.display()))?;
+) -> bool {
+  let Ok(directory) = Utf8PathBuf::from_path_buf(staged.directory().to_path_buf()) else {
+    return false;
+  };
   let storage = create_storage(
     StorageOptions::FileSystem {
       directory: directory.clone(),
@@ -145,5 +150,5 @@ async fn matches_version(
     0,
     fs.clone(),
   );
-  Ok(validation.matches_version(&*storage).await)
+  validation.matches_version(&*storage).await
 }
