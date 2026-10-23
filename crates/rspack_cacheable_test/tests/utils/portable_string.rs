@@ -87,7 +87,7 @@ fn test_basic_feature() {
     vec![
       "ignored|/workspace/src/",
       "ignored|/workspace/src/a.js",
-      "home/workspace/src/",
+      "home/home/user/project/src/",
       "/workspace/src/",
       "/workspace/a.js",
       "/workspace/src/a.js",
@@ -167,7 +167,7 @@ fn test_windows() {
     vec![
       "ignored|D:\\other\\src\\",
       "ignored|D:\\other\\src\\a.js",
-      "cD:\\other\\src\\",
+      "cC:\\Users\\project\\src\\",
       "D:\\other\\src\\",
       "D:\\other\\a.js",
       "D:\\other\\src\\a.js",
@@ -255,4 +255,51 @@ fn test_literal_markers() {
       assert_eq!(decoded, data);
     }
   }
+}
+
+fn path_string(path: PathBuf) -> String {
+  path.to_string_lossy().into_owned()
+}
+
+#[test]
+fn test_root_with_space() {
+  let temp = std::env::temp_dir();
+  let root = temp.join("my project");
+  let relocated = temp.join("other place").join("my project");
+  let identifiers = |root: &Path| Data {
+    paths: vec![
+      format!(
+        "javascript/auto|{}",
+        path_string(root.join("src").join("a.js"))
+      ),
+      path_string(root.join("dir with space").join("b.js")),
+      format!("a-loader!{}?q", path_string(root.join("x.js"))),
+      format!(
+        "{}!{}?from={}",
+        path_string(root.join("loader.js")),
+        path_string(root.join("x.js")),
+        path_string(root.join("y z.js"))
+      ),
+    ],
+  };
+
+  let data = identifiers(&root);
+  let (bytes, bound) =
+    rspack_cacheable::to_bytes_with_binding(&data, &TestContext(Some(root.clone()))).unwrap();
+  assert!(!bound);
+  let decoded: Data =
+    rspack_cacheable::from_bytes(&bytes, &TestContext(Some(relocated.clone()))).unwrap();
+  assert_eq!(decoded, identifiers(&relocated));
+
+  let outside = Data {
+    paths: vec![format!(
+      "javascript/auto|{}",
+      path_string(temp.join("outside dir").join("a.js"))
+    )],
+  };
+  let (bytes, bound) =
+    rspack_cacheable::to_bytes_with_binding(&outside, &TestContext(Some(root))).unwrap();
+  assert!(bound);
+  let decoded: Data = rspack_cacheable::from_bytes(&bytes, &TestContext(Some(relocated))).unwrap();
+  assert_eq!(decoded, outside);
 }
