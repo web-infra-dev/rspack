@@ -502,7 +502,7 @@ Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other t
 - **Type:** `boolean | { seedFrom?: string; seed?: boolean }`
 - **Default:** `false`
 
-With `cache: { type: 'persistent' }`, enables portable paths and seeds an absent legacy cache from another worktree. `true` means `{ seed: true }`. It implies [`cache.portable`](/config/cache#portable); explicitly setting `cache.portable: false` is an error. The default `snapshot.module`, `snapshot.resolve`, and `snapshot.contextModule` strategies become `{ timestamp: true, hash: true }`. Explicit snapshot strategies are preserved.
+With `cache: { type: 'persistent' }`, enables portable paths and seeds an absent legacy cache from another worktree. `true` means `{ seed: true }`. It implies [`cache.portable`](/config/cache#portable); explicitly setting `cache.portable: false` is an error.
 
 ```js
 export default {

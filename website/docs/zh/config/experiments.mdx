@@ -502,7 +502,7 @@ export default {
 - **类型：** `boolean | { seedFrom?: string; seed?: boolean }`
 - **默认值：** `false`
 
-与 `cache: { type: 'persistent' }` 一起使用时，启用可移植路径，并从其他 worktree 初始化尚不存在的旧版缓存。`true` 等同于 `{ seed: true }`。此选项隐式启用 [`cache.portable`](/config/cache#portable)，显式设置 `cache.portable: false` 会报错。`snapshot.module`、`snapshot.resolve` 和 `snapshot.contextModule` 默认采用 `{ timestamp: true, hash: true }`，显式设置的快照策略不受影响。
+与 `cache: { type: 'persistent' }` 一起使用时，启用可移植路径，并从其他 worktree 初始化尚不存在的旧版缓存。`true` 等同于 `{ seed: true }`。此选项隐式启用 [`cache.portable`](/config/cache#portable)，显式设置 `cache.portable: false` 会报错。
 
 ```js
 export default {

@@ -108,14 +108,11 @@ export const applyRspackOptionsDefaults = (
   if (portableCache && options.cache && options.cache.type === 'persistent') {
     if (options.cache.portable === false) {
       throw new Error(
-        `${ERROR_PREFIX} experiments.portableCache requires cache.portable.`,
+        `${ERROR_PREFIX} experiments.portableCache requires cache.portable. Remove cache.portable: false or disable experiments.portableCache.`,
       );
     }
     D(options.cache, 'portable', true);
     D(portableCache, 'seed', true);
-    for (const key of ['module', 'resolve', 'contextModule'] as const) {
-      F(options.snapshot, key, () => ({ timestamp: true, hash: true }));
-    }
   }
   applyCacheDefaults(options.cache!, {
     context: options.context!,

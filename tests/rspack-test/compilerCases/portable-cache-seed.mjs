@@ -297,7 +297,7 @@ export default [
 	{
 		name: "option-defaults",
 		description:
-			"portable cache sets hash fallback defaults and rejects portable false",
+			"portable cache implies cache.portable without changing snapshot defaults",
 		async run() {
 			await withFixture(async (root) => {
 				fixture(root);
@@ -312,22 +312,21 @@ export default [
 					context: root,
 					mode: "development",
 					cache: { type: "persistent" },
-					experiments: { portableCache: true },
-					snapshot: { resolve: { hash: true } }
+					experiments: { portableCache: true }
+				});
+				const plain = rspack({
+					context: root,
+					mode: "development",
+					cache: { type: "persistent" }
 				});
 				try {
-					expect(compiler.options.cache.portable.root).toBe(root);
-					expect(compiler.options.snapshot.module).toEqual({
-						timestamp: true,
-						hash: true
-					});
-					expect(compiler.options.snapshot.contextModule).toEqual({
-						timestamp: true,
-						hash: true
-					});
-					expect(compiler.options.snapshot.resolve).toEqual({ hash: true });
+					expect(fs.realpathSync.native(compiler.options.cache.portable.root)).toBe(
+						fs.realpathSync.native(root)
+					);
+					expect(compiler.options.snapshot).toEqual(plain.options.snapshot);
 				} finally {
 					await new Promise((resolve) => compiler.close(resolve));
+					await new Promise((resolve) => plain.close(resolve));
 				}
 			});
 		}
