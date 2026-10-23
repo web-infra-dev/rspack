@@ -11,8 +11,10 @@ use rspack_cacheable::{
   utils::root_patterns,
 };
 use rspack_error::Result;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::Utf8Path;
 use rustc_hash::FxHasher;
+
+use crate::PortableRoot;
 
 #[derive(Debug, Clone, Copy)]
 pub enum RootBinding {
@@ -29,12 +31,19 @@ struct RootPatterns {
 /// Internal cacheable context for serialization
 #[derive(Debug, Clone)]
 struct Context {
-  portable_project_root: Option<Utf8PathBuf>,
+  portable_root: Option<PortableRoot>,
 }
 
 impl rspack_cacheable::CacheableContext for Context {
   fn project_root(&self) -> Option<&Path> {
-    self.portable_project_root.as_ref().map(|p| p.as_std_path())
+    self.portable_root.as_ref().map(|p| p.root.as_std_path())
+  }
+
+  fn canonical_project_root(&self) -> Option<&Path> {
+    self
+      .portable_root
+      .as_ref()
+      .map(|p| p.canonical_root.as_std_path())
   }
 }
 
@@ -46,7 +55,7 @@ impl rspack_cacheable::CacheableContext for Context {
 /// # Example
 ///
 /// ```ignore
-/// let codec = CacheCodec::new(portable_project_root);
+/// let codec = CacheCodec::new(portable_root);
 ///
 /// // Encode data to bytes
 /// let bytes = codec.encode(&my_data)?;
@@ -61,13 +70,21 @@ pub struct CacheCodec {
 }
 
 impl CacheCodec {
-  pub fn new(portable_project_root: Option<Utf8PathBuf>) -> Self {
-    let root_patterns = portable_project_root.as_ref().map(|root| {
+  pub fn new(portable_root: Option<PortableRoot>) -> Self {
+    let root_patterns = portable_root.as_ref().map(|portable_root| {
+      // A bound entry may embed either spelling, so it is only valid where both match.
       let mut hasher = FxHasher::default();
-      root.as_str().as_bytes().hash(&mut hasher);
+      portable_root.root.as_str().as_bytes().hash(&mut hasher);
+      portable_root.canonical_root.as_str().as_bytes().hash(&mut hasher);
+      let mut patterns: Vec<Vec<u8>> = [&portable_root.root, &portable_root.canonical_root]
+        .into_iter()
+        .flat_map(|root| root_patterns(root.as_str()))
+        .collect();
+      patterns.sort_unstable();
+      patterns.dedup();
       Arc::new(RootPatterns {
         hash: hasher.finish(),
-        finders: root_patterns(root.as_str())
+        finders: patterns
           .iter()
           .map(|pattern| Finder::new(pattern).into_owned())
           .collect(),
@@ -75,9 +92,7 @@ impl CacheCodec {
     });
     Self {
       root_patterns,
-      context: Context {
-        portable_project_root,
-      },
+      context: Context { portable_root },
     }
   }
 
@@ -88,7 +103,7 @@ impl CacheCodec {
   /// restoring the other root's paths. Portable entries use the `BoundEntry`
   /// envelope, so the two encodings must not share a cache either.
   pub fn validation_version(&self, version: &str, context: &Utf8Path) -> String {
-    if self.context.portable_project_root.is_some() {
+    if self.context.portable_root.is_some() {
       format!("{version}|portable")
     } else {
       format!("{version}|{context}")

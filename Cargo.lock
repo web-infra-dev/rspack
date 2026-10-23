@@ -4147,6 +4147,7 @@ dependencies = [
  "atomic_refcell",
  "cow-utils",
  "derive_more",
+ "dunce",
  "futures",
  "heck",
  "napi",

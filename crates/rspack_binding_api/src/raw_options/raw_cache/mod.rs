@@ -6,7 +6,8 @@ use napi::{
 };
 use napi_derive::napi;
 use raw_storage::RawStorageOptions;
-use rspack_core::{CacheOptions, PersistentCacheOptions};
+use rspack_core::{CacheOptions, PersistentCacheOptions, PortableRoot};
+use rspack_paths::Utf8PathBuf;
 
 #[derive(Debug)]
 #[napi(object)]
@@ -34,11 +35,24 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
         .collect(),
       version: value.version.unwrap_or_default(),
       storage,
-      portable_root: value.portable_root.map(Into::into),
+      portable_root: value.portable_root.map(portable_root),
       readonly: value.readonly.unwrap_or_default(),
       max_age: value.max_age.into(),
       max_memory_generations: value.max_memory_generations.into(),
     })
+  }
+}
+
+/// Pairs `root` with its realpath, using the canonicalization the resolver applies to resources.
+fn portable_root(root: String) -> PortableRoot {
+  let root = Utf8PathBuf::from(root);
+  let canonical_root = dunce::canonicalize(&root)
+    .ok()
+    .and_then(|path| Utf8PathBuf::from_path_buf(path).ok())
+    .unwrap_or_else(|| root.clone());
+  PortableRoot {
+    root,
+    canonical_root,
   }
 }
 
