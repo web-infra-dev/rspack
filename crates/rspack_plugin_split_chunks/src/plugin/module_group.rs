@@ -36,7 +36,9 @@ use crate::{
     is_default_module_type_filter,
   },
   min_size::remove_min_size_violating_modules,
-  module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries},
+  module_group::{
+    CandidateUpdate, IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries,
+  },
   options::{
     cache_group::CacheGroup,
     cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx},
@@ -874,23 +876,22 @@ impl SplitChunksPlugin {
   pub(crate) fn find_best_module_group(
     &self,
     module_group_map: &mut ModuleGroupMap,
-  ) -> (ModuleGroupKey, ModuleGroup) {
-    debug_assert!(!module_group_map.is_empty());
-
-    let mut best_entry_index = 0;
-    for entry_index in 1..module_group_map.len() {
+  ) -> Option<(ModuleGroupKey, ModuleGroup)> {
+    let mut best_entry_index = module_group_map
+      .iter()
+      .position(|(_, group)| group.selectable())?;
+    for entry_index in best_entry_index + 1..module_group_map.len() {
       let [(entry_key, entry), (best_entry_key, best_entry)] = module_group_map
         .get_disjoint_indices_mut([entry_index, best_entry_index])
         .expect("entry indices should be valid and unique");
-      let result = compare_entries((entry_key, entry), (best_entry_key, best_entry));
-      if result > 0f64 {
+      if entry.selectable()
+        && compare_entries((entry_key, entry), (best_entry_key, best_entry)) > 0f64
+      {
         best_entry_index = entry_index;
       }
     }
 
-    module_group_map
-      .swap_remove_index(best_entry_index)
-      .expect("This should never happen, please file an issue")
+    module_group_map.swap_remove_index(best_entry_index)
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -1284,47 +1285,16 @@ impl SplitChunksPlugin {
         if !other_module_group.may_have_chunks_in_mask(placed_chunk_mask) {
           return None;
         }
-        let original_module_count = other_module_group.modules.len();
-        match (
+        let cache_group = other_module_group.get_cache_group(&self.cache_groups);
+        match other_module_group.update_candidate(
           placed_module_chunks,
-          other_module_group.shared_module_chunks(),
+          cache_group,
+          module_sizes,
+          duplicated_modules,
         ) {
-          (
-            ModuleChunkMap::Shared {
-              modules,
-              chunks: placed_chunks,
-            },
-            Some(other_chunks),
-          ) => {
-            other_chunks.intersection(placed_chunks).next()?;
-            if other_module_group.modules.is_subset(modules) {
-              return Some(key.clone());
-            }
-            other_module_group.remove_shared_modules(modules);
-          }
-          _ => {
-            duplicated_modules.extend(other_module_group
-            .modules
-            .iter()
-            .filter(|module| {
-              let Some(placed_chunks) = placed_module_chunks.get(module) else {
-                return false;
-              };
-              let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
-                return false;
-              };
-              placed_chunks.intersection(other_chunks).next().is_some()
-            })
-            .copied());
-            if duplicated_modules.len() == original_module_count {
-              return Some(key.clone());
-            }
-            other_module_group.remove_modules(duplicated_modules.iter().copied());
-          }
-        };
-
-        if other_module_group.modules.len() == original_module_count {
-          return None;
+          CandidateUpdate::Unchanged => return None,
+          CandidateUpdate::Discard => return Some(key.clone()),
+          CandidateUpdate::Updated => {}
         }
 
         if other_module_group.modules.is_empty() {
@@ -1336,8 +1306,6 @@ impl SplitChunksPlugin {
 
         tracing::trace!("other_module_group: {other_module_group:#?}");
         tracing::trace!("placed_module_chunks: {placed_module_chunks:#?}");
-
-        let cache_group = other_module_group.get_cache_group(&self.cache_groups);
 
         // Since we removed some modules and chunks from the `other_module_group`. There are chances
         // that the `min_chunks` and `min_size` validation is not satisfied anymore.
@@ -1369,6 +1337,14 @@ impl SplitChunksPlugin {
           &cache_group.min_size_reduction,
           chunks_len,
         ) {
+          // Deleting one source type can temporarily leave another below
+          // minSizeReduction. Further native placements may remove that type;
+          // keep the remaining candidate in place when another type still fits.
+          if other_module_group.can_recover(cache_group, module_sizes, chunks_len) {
+            other_module_group.set_selectable(false);
+            other_module_group.mark_placement_changed();
+            return None;
+          }
           tracing::trace!(
             "{key} is deleted for violating min_size {:#?}",
             cache_group.min_size,
@@ -1376,6 +1352,7 @@ impl SplitChunksPlugin {
           return Some(key.clone());
         }
 
+        other_module_group.set_selectable(true);
         None
       })
       .filter_map(std::convert::identity)
