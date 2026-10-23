@@ -28,8 +28,11 @@ pub fn root_patterns(root: &str) -> Vec<Vec<u8>> {
   let windows = is_windows_root(root);
   let trimmed = root.trim_end_matches(|c| c == '/' || (windows && c == '\\'));
   let root = if trimmed.is_empty() { root } else { trimmed };
-  let slash = if windows {
-    root.replace('\\', "/")
+  let slash: String = if windows {
+    root
+      .chars()
+      .map(|c| if c == '\\' { '/' } else { c })
+      .collect()
   } else {
     root.to_string()
   };
@@ -60,7 +63,14 @@ fn is_windows_root(root: &str) -> bool {
 }
 
 fn json_escape(value: &str) -> String {
-  value.replace('\\', "\\\\").replace('"', "\\\"")
+  let mut escaped = String::with_capacity(value.len());
+  for c in value.chars() {
+    if c == '\\' || c == '"' {
+      escaped.push('\\');
+    }
+    escaped.push(c);
+  }
+  escaped
 }
 
 fn file_url_path(slash: &str, windows: bool) -> String {
