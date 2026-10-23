@@ -3,7 +3,7 @@ use std::{fmt::Write as _, time::Duration};
 use rspack_paths::{InternedPath, InternedPathSet};
 
 use super::{
-  occasion::Occasion,
+  occasion::{Occasion, Recovered},
   snapshot::{Snapshot, SnapshotScope},
   storage::BoxStorage,
   validation::{CacheValidation, CacheValidationResult},
@@ -305,13 +305,25 @@ impl CacheContext {
         .logger()
         .time(read_occasion_timing_label(occasion.name()));
       match occasion.recovery(&*self.storage, self.logger()).await {
-        Ok(cache_item) => {
+        Ok(Recovered { item, dropped }) => {
+          if !dropped.is_empty() {
+            self.logger().info(format!(
+              "{} persistent cache dropped {} entries bound to another root",
+              occasion.name(),
+              dropped.len()
+            ));
+            if !self.readonly {
+              for key in &dropped {
+                self.storage.remove(occasion.scope(), key);
+              }
+            }
+          }
           self.logger().info(format!(
             "{} persistent cache recovery succeeded",
             occasion.name()
           ));
           self.logger().time_end(start);
-          return Some(cache_item);
+          return Some(item);
         }
         Err(err) => {
           self.load_failed = true;

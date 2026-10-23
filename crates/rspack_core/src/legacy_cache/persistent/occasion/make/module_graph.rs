@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rayon::prelude::*;
+use rayon::{iter::Either, prelude::*};
 use rspack_cacheable::{cacheable, utils::OwnedOrRef};
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
@@ -37,6 +37,15 @@ struct Node<'a> {
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
   pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlockRef>>,
   pub lazy_info: Option<OwnedOrRef<'a, LazyDependencies>>,
+}
+
+pub struct RecoveredModuleGraph {
+  pub mg: ModuleGraph,
+  pub factorization_artifact: FactorizationArtifact,
+  pub module_to_lazy_make: ModuleToLazyMake,
+  pub entry_dependencies: FxHashSet<DependencyId>,
+  /// Storage keys of nodes bound to another root.
+  pub dropped: Vec<Vec<u8>>,
 }
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
@@ -143,32 +152,25 @@ pub async fn recovery_module_graph(
   storage: &dyn Storage,
   codec: &CacheCodec,
   logger: &CompilationLogger,
-) -> Result<(
-  ModuleGraph,
-  FactorizationArtifact,
-  ModuleToLazyMake,
-  FxHashSet<DependencyId>,
-)> {
+) -> Result<RecoveredModuleGraph> {
   let mut mg = ModuleGraph::default();
   let mut factorization_artifact = FactorizationArtifact::default();
   let mut module_to_lazy_make = ModuleToLazyMake::default();
-  let dropped = AtomicUsize::new(0);
-  let nodes = storage
+  let (nodes, dropped): (Vec<_>, Vec<_>) = storage
     .load(SCOPE)
     .await?
     .into_par_iter()
-    .filter_map(|(_, v)| match BoundEntry::decode::<Node>(codec, &v) {
-      Ok(Some(node)) => Some(node),
-      Ok(None) => {
-        dropped.fetch_add(1, Ordering::Relaxed);
-        None
-      }
-      Err(err) => {
-        tracing::warn!("module graph persistent cache decode failed: {:?}", err);
-        None
-      }
-    })
-    .collect::<Vec<_>>();
+    .filter_map(
+      |(key, value)| match BoundEntry::decode::<Node>(codec, &value) {
+        Ok(Some(node)) => Some(Either::Left(node)),
+        Ok(None) => Some(Either::Right(key)),
+        Err(err) => {
+          logger.warn(format!("make persistent cache decode failed: {err}"));
+          None
+        }
+      },
+    )
+    .partition_map(|node| node);
   let recovered = nodes
     .iter()
     .map(|node| node.module.as_ref().identifier())
@@ -237,13 +239,6 @@ pub async fn recovery_module_graph(
     mgm.add_incoming_connection(connection.id);
     mg.cache_recovery_connection(connection);
   }
-  let dropped = dropped.load(Ordering::Relaxed);
-  if dropped > 0 {
-    logger.info(format!(
-      "make persistent cache dropped {dropped} entries bound to another root"
-    ));
-  }
-
   // recovery entry
   let mut entry_module: Vec<ModuleIdentifier> = vec![];
   for (_, mgm) in mg.module_graph_modules() {
@@ -262,10 +257,11 @@ pub async fn recovery_module_graph(
   }
 
   tracing::debug!("recovery {} module", mg.modules_len());
-  Ok((
+  Ok(RecoveredModuleGraph {
     mg,
     factorization_artifact,
     module_to_lazy_make,
     entry_dependencies,
-  ))
+    dropped,
+  })
 }
