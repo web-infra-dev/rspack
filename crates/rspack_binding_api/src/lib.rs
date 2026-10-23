@@ -65,7 +65,6 @@ mod compilation;
 mod compiler;
 mod compiler_scoped_tsfn;
 mod context_module_factory;
-mod define_symbols;
 mod dependencies;
 mod dependency;
 mod diagnostic;
@@ -103,6 +102,7 @@ mod shared_properties;
 mod source;
 mod stats;
 mod swc;
+mod symbols;
 mod trace_event;
 mod utils;
 mod virtual_modules;
@@ -742,9 +742,5 @@ fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
 
   rspack_napi::runtime::ensure_runtime(&env)?;
   node_init(exports, env)?;
-  module::export_symbols(exports, env)?;
-  build_info::export_symbols(exports, env)?;
-  error::export_symbols(exports, env)?;
-  module_graph_connection::export_symbols(exports, env)?;
   Ok(())
 }

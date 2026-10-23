@@ -11,7 +11,7 @@ use super::{
   MemberExpressionInfo, PatRef, RootName, ScopeTerminated, TopLevelScope,
   estree::{
     ExportDefaultDeclaration, formal_parameter_patterns, formal_parameter_patterns_with_defaults,
-    formal_parameters_are_simple_identifiers,
+    formal_parameters_are_simple_identifiers, simple_assignment_target_identifier,
   },
   object_and_members_to_name,
 };
@@ -514,6 +514,9 @@ impl JavascriptParser<'_> {
         self.walk_variable_declaration(decl);
       }
       ForStatementLeftData::AssignmentTarget(target) => {
+        // `for (x of …)` / `for (x in …)` assign into the left-hand target;
+        // enter_assignment_target records mutated_bindings for value-binding emit.
+        self.enter_assignment_target(target, |_, _| {});
         self.walk_assignment_target(target);
       }
     }
@@ -672,13 +675,15 @@ impl JavascriptParser<'_> {
   fn walk_update_expression(&mut self, expr: UpdateExpression) {
     let ast = self.ast.ast;
     let argument = expr.argument(ast);
+    let updated_ident =
+      simple_assignment_target_identifier(ast, argument).map(|ident| ast.get_utf8(ident.name(ast)));
+    if let Some(name) = updated_ident {
+      self.mark_mutated_binding(Atom::from(name));
+    }
     if !self.javascript_options.is_create_require_enabled() {
       self.walk_simple_assign_target(argument);
       return;
     }
-    let updated_ident = argument
-      .as_identifier_reference(ast)
-      .map(|ident| ast.get_utf8(ident.name(ast)));
     if let Some(name) = updated_ident {
       self.clear_create_require_tag(name);
     }
@@ -1888,9 +1893,9 @@ impl JavascriptParser<'_> {
       BindingPatternData::BindingIdentifier(identifier) => {
         Some(PatternIdentifier::Binding(identifier))
       }
-      BindingPatternData::SimpleAssignmentTarget(target) => target
-        .as_identifier_reference(ast)
-        .map(PatternIdentifier::Reference),
+      BindingPatternData::SimpleAssignmentTarget(target) => {
+        simple_assignment_target_identifier(ast, target).map(PatternIdentifier::Reference)
+      }
       BindingPatternData::ArrayPattern(array) => {
         for element in ast.nodes(array.elements(ast)).flatten() {
           self.enter_assignment_target_pattern(element, on_ident);
@@ -1924,6 +1929,9 @@ impl JavascriptParser<'_> {
       }
     };
     if let Some(identifier) = identifier {
+      if self.in_assignment_pattern {
+        self.mark_mutated_binding(Atom::from(identifier.name(ast)));
+      }
       let drive = self.plugin_drive();
       if !identifier
         .call_hooks_name(self, |parser, for_name| {
@@ -1942,7 +1950,7 @@ impl JavascriptParser<'_> {
     let right = expr.right(ast);
     let drive = self.plugin_drive();
     if let Some(simple) = left.as_simple_assignment_target(ast)
-      && let Some(ident) = simple.as_identifier_reference(ast)
+      && let Some(ident) = simple_assignment_target_identifier(ast, simple)
     {
       if self.javascript_options.is_create_require_enabled()
         && self
@@ -1959,6 +1967,9 @@ impl JavascriptParser<'_> {
           })
           .unwrap_or_default()
       {
+        // Rename fast-path still assigns the left-hand local; record mutation
+        // before set_variable replaces the binding with a FREE alias.
+        self.mark_mutated_binding(Atom::from(ast.get_utf8(ident.name(ast))));
         if !self
           .call_hooks_name(&rename_identifier, |this, for_name| {
             drive.rename(this, right, for_name)
