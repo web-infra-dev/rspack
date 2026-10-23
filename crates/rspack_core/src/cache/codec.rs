@@ -8,11 +8,11 @@ use memchr::memmem::Finder;
 use rspack_cacheable::{
   __private::rkyv::{Archive, Deserialize, Serialize, bytecheck::CheckBytes},
   Deserializer, Serializer, Validator, from_bytes, to_bytes, to_bytes_with_binding,
+  utils::root_patterns,
 };
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHasher;
-use url::Url;
 
 #[derive(Debug, Clone, Copy)]
 pub enum RootBinding {
@@ -65,23 +65,11 @@ impl CacheCodec {
     let root_patterns = portable_project_root.as_ref().map(|root| {
       let mut hasher = FxHasher::default();
       root.as_str().as_bytes().hash(&mut hasher);
-      let mut patterns = vec![root.as_str().as_bytes().to_vec()];
-      #[cfg(windows)]
-      patterns.push(root.as_str().replace('\\', "\\\\").into_bytes());
-      if let Ok(url) = Url::from_file_path(root.as_std_path()) {
-        patterns.push(
-          url
-            .as_str()
-            .trim_start_matches("file://")
-            .as_bytes()
-            .to_vec(),
-        );
-      }
       Arc::new(RootPatterns {
         hash: hasher.finish(),
-        finders: patterns
+        finders: root_patterns(root.as_str())
           .iter()
-          .map(|p| Finder::new(p).into_owned())
+          .map(|pattern| Finder::new(pattern).into_owned())
           .collect(),
       })
     });
