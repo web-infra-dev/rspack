@@ -85,10 +85,11 @@ impl CacheCodec {
   ///
   /// Without a portable project root, encoded data holds absolute paths under `context`,
   /// so a cache moved or shared to another root must fail validation instead of
-  /// restoring the other root's paths.
+  /// restoring the other root's paths. Portable entries use the `BoundEntry`
+  /// envelope, so the two encodings must not share a cache either.
   pub fn validation_version(&self, version: &str, context: &Utf8Path) -> String {
     if self.context.portable_project_root.is_some() {
-      version.to_string()
+      format!("{version}|portable")
     } else {
       format!("{version}|{context}")
     }

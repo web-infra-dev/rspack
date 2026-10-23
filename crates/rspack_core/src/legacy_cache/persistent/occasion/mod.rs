@@ -19,6 +19,8 @@ use crate::{
   cache::{CacheCodec, RootBinding},
 };
 
+/// Envelope that records which root an entry is bound to. Only written in portable mode;
+/// without a portable root, entries keep the plain encoding.
 #[cacheable]
 struct BoundEntry {
   bound_root: Option<u64>,
@@ -30,26 +32,39 @@ impl BoundEntry {
   where
     T: for<'a> Serialize<Serializer<'a>>,
   {
-    let (bytes, binding) = codec.encode_with_binding(value)?;
-    let bound_root = if root_sensitive || matches!(binding, RootBinding::Bound) {
-      codec.root_hash()
-    } else {
-      None
+    let Some(root_hash) = codec.root_hash() else {
+      return codec.encode(value);
     };
+    let (bytes, binding) = codec.encode_with_binding(value)?;
+    let bound_root = (root_sensitive || matches!(binding, RootBinding::Bound)).then_some(root_hash);
     codec.encode(&Self { bound_root, bytes })
   }
 
+  /// Returns `None` when the entry is bound to a different root.
   fn decode<T>(codec: &CacheCodec, bytes: &[u8]) -> Result<Option<T>>
   where
     T: Archive,
     T::Archived: for<'a> CheckBytes<Validator<'a>> + Deserialize<T, Deserializer>,
   {
+    let Some(root_hash) = codec.root_hash() else {
+      return codec.decode(bytes).map(Some);
+    };
     let entry: Self = codec.decode(bytes)?;
-    if entry.bound_root.is_some() && entry.bound_root != codec.root_hash() {
+    if entry
+      .bound_root
+      .is_some_and(|bound_root| bound_root != root_hash)
+    {
       return Ok(None);
     }
     codec.decode(&entry.bytes).map(Some)
   }
+}
+
+/// A recovered cache item and the storage keys of entries dropped because they are bound to
+/// another root.
+pub struct Recovered<T> {
+  pub item: T,
+  pub dropped: Vec<Vec<u8>>,
 }
 
 /// An `Occasion` represents a distinct phase of the persistent cache lifecycle.
