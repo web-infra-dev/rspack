@@ -63,6 +63,7 @@ async function build(projectRoot, { newCache, portable }) {
 			.filter(file => file.endsWith(".map"))
 			.flatMap(file => JSON.parse(fs.readFileSync(path.join(dist, file), "utf8")).sources)
 			.filter(source => path.isAbsolute(source))
+			.map(source => path.normalize(source))
 			.sort()
 	};
 }
