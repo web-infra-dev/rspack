@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{borrow::Cow, path::Path};
 
 use cow_utils::CowUtils;
 
@@ -8,14 +8,81 @@ use crate::{ContextGuard, Result, cacheable, with::AsConverter};
 // The escape has no trailing NUL, so escaped data cannot form a root marker.
 const ESCAPE: &str = "\0escape";
 
-/// Distinct markers preserve Windows separator forms.
-const ROOT: &str = "\0root/\0";
-#[cfg(windows)]
-const ROOT_NATIVE: &str = "\0root\\\0";
-#[cfg(windows)]
-const ROOT_ESCAPED: &str = "\0root\\\\\0";
+/// Characters that end a path inside an identifier. A root only matches right after one of them
+/// or at the start, so a root that occurs inside a longer path is never rewritten.
+const DELIMITERS: [char; 8] = ['|', '!', '?', '=', ' ', '\t', '\n', '\r'];
 
-/// Replaces exact root prefixes in identifiers while preserving paths outside the root.
+#[cfg(not(windows))]
+const ROOT_SEPARATORS: [char; 1] = ['/'];
+#[cfg(windows)]
+const ROOT_SEPARATORS: [char; 2] = ['/', '\\'];
+
+/// A separator form an identifier can spell the root with, and the marker that stands for the
+/// root in that form. Distinct markers preserve Windows separator forms.
+struct RootForm {
+  separator: &'static str,
+  marker: &'static str,
+}
+
+#[cfg(not(windows))]
+const ROOT_FORMS: [RootForm; 1] = [RootForm {
+  separator: "/",
+  marker: "\0root/\0",
+}];
+#[cfg(windows)]
+const ROOT_FORMS: [RootForm; 3] = [
+  RootForm {
+    separator: "\\\\",
+    marker: "\0root\\\\\0",
+  },
+  RootForm {
+    separator: "\\",
+    marker: "\0root\\\0",
+  },
+  RootForm {
+    separator: "/",
+    marker: "\0root/\0",
+  },
+];
+
+/// Returns the rest of `text` after `root` spelled with `separator`, including the separator that
+/// follows the root.
+fn strip_root<'a>(text: &'a str, root: &str, separator: &str) -> Option<&'a str> {
+  let mut rest = text;
+  for (index, component) in root.split(ROOT_SEPARATORS).enumerate() {
+    if index > 0 {
+      rest = rest.strip_prefix(separator)?;
+    }
+    rest = rest.strip_prefix(component)?;
+  }
+  rest.strip_prefix(separator)
+}
+
+/// Returns the marker for the first root form `text` starts with, and the rest of `text`.
+fn strip_any_root<'a>(text: &'a str, root: &str) -> Option<(&'static str, &'a str)> {
+  ROOT_FORMS
+    .iter()
+    .find_map(|form| strip_root(text, root, form.separator).map(|rest| (form.marker, rest)))
+}
+
+fn push_root(out: &mut String, root: &str, separator: &str) {
+  for (index, component) in root.split(ROOT_SEPARATORS).enumerate() {
+    if index > 0 {
+      out.push_str(separator);
+    }
+    out.push_str(component);
+  }
+  out.push_str(separator);
+}
+
+fn trimmed_root(root: &Path) -> Cow<'_, str> {
+  match root.to_string_lossy() {
+    Cow::Borrowed(root) => Cow::Borrowed(root.trim_end_matches(ROOT_SEPARATORS)),
+    Cow::Owned(root) => Cow::Owned(root.trim_end_matches(ROOT_SEPARATORS).to_owned()),
+  }
+}
+
+/// Replaces whole root prefixes in identifiers while preserving paths outside the root.
 #[cacheable(crate=crate, hashable)]
 pub struct PortableString {
   content: String,
@@ -23,59 +90,66 @@ pub struct PortableString {
 
 impl PortableString {
   pub fn new(content: &str, guard: &ContextGuard) -> Self {
-    let content = content.cow_replace('\0', ESCAPE);
-    let project_root = guard.project_root();
-    let Some(project_root) = project_root else {
+    let Some(root) = guard.project_root() else {
       return Self {
-        content: content.into_owned(),
+        content: content.cow_replace('\0', ESCAPE).into_owned(),
       };
     };
-    for part in content.split(['|', '!', '?', '=', ' ', '\t', '\n', '\r']) {
-      let path = Path::new(part);
-      if path.is_absolute() && !path.starts_with(project_root) {
-        guard.mark_outside_root();
-      }
+    let root = trimmed_root(root);
+    let mut converted = String::with_capacity(content.len());
+    let mut rest = content;
+    loop {
+      let path = match strip_any_root(rest, &root) {
+        Some((marker, suffix)) => {
+          converted.push_str(marker);
+          suffix
+        }
+        None => {
+          let token = rest.split(DELIMITERS).next().unwrap_or_default();
+          if Path::new(token).is_absolute() {
+            guard.mark_outside_root();
+          }
+          rest
+        }
+      };
+      let end = path.find(DELIMITERS).unwrap_or(path.len());
+      converted.push_str(&path[..end].cow_replace('\0', ESCAPE));
+      let Some(delimiter) = path[end..].chars().next() else {
+        break;
+      };
+      converted.push(delimiter);
+      rest = &path[end + delimiter.len_utf8()..];
     }
-    let root = project_root.to_string_lossy();
-    #[cfg(windows)]
-    let content = {
-      let native = format!("{}\\", root.cow_replace('/', "\\").trim_end_matches('\\'));
-      content
-        .cow_replace(native.cow_replace('\\', "\\\\").as_ref(), ROOT_ESCAPED)
-        .cow_replace(&native, ROOT_NATIVE)
-        .into_owned()
-    };
-    #[cfg(windows)]
-    let root = root.cow_replace('\\', "/");
-    Self {
-      content: content
-        .cow_replace(&format!("{}/", root.trim_end_matches('/')), ROOT)
-        .into_owned(),
-    }
+    Self { content: converted }
   }
 
   pub fn into_path_string(self, project_root: Option<&Path>) -> String {
-    let Some(project_root) = project_root else {
-      return self.content.cow_replace(ESCAPE, "\0").into_owned();
-    };
-    let root = project_root.to_string_lossy();
-    #[cfg(windows)]
-    let content = {
-      let native = format!("{}\\", root.cow_replace('/', "\\").trim_end_matches('\\'));
-      self
-        .content
-        .cow_replace(ROOT_ESCAPED, &native.cow_replace('\\', "\\\\"))
-        .cow_replace(ROOT_NATIVE, &native)
-        .into_owned()
-    };
-    #[cfg(not(windows))]
-    let content = self.content;
-    #[cfg(windows)]
-    let root = root.cow_replace('\\', "/");
-    content
-      .cow_replace(ROOT, &format!("{}/", root.trim_end_matches('/')))
-      .cow_replace(ESCAPE, "\0")
-      .into_owned()
+    if !self.content.contains('\0') {
+      return self.content;
+    }
+    let mut restored = String::with_capacity(self.content.len());
+    let mut rest = self.content.as_str();
+    while let Some(index) = rest.find('\0') {
+      restored.push_str(&rest[..index]);
+      rest = &rest[index..];
+      if let Some(after) = rest.strip_prefix(ESCAPE) {
+        restored.push('\0');
+        rest = after;
+        continue;
+      }
+      let Some(form) = ROOT_FORMS.iter().find(|form| rest.starts_with(form.marker)) else {
+        restored.push('\0');
+        rest = &rest[1..];
+        continue;
+      };
+      match project_root {
+        Some(root) => push_root(&mut restored, &trimmed_root(root), form.separator),
+        None => restored.push_str(form.marker),
+      }
+      rest = &rest[form.marker.len()..];
+    }
+    restored.push_str(rest);
+    restored
   }
 }
 
