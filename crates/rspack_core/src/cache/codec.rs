@@ -15,15 +15,23 @@ use rustc_hash::FxHasher;
 
 use crate::PortableRoot;
 
+/// How encoded bytes depend on the portable root.
 #[derive(Debug, Clone, Copy)]
 pub enum RootBinding {
+  /// The bytes are valid under any root.
   Unbound,
-  Bound,
+  /// The bytes reference paths outside the root, so they stay valid wherever the root has the same
+  /// realpath, however `context` spells it.
+  Location,
+  /// The bytes embed the root itself, so they are valid only where both spellings of the root
+  /// match.
+  Spelling,
 }
 
 #[derive(Debug)]
 struct RootPatterns {
-  hash: u64,
+  location_hash: u64,
+  spelling_hash: u64,
   finders: Vec<Finder<'static>>,
 }
 
@@ -71,10 +79,15 @@ pub struct CacheCodec {
 impl CacheCodec {
   pub fn new(portable_root: Option<PortableRoot>) -> Self {
     let root_patterns = portable_root.as_ref().map(|portable_root| {
-      // A bound entry may embed either spelling, so it is only valid where both match.
       let mut hasher = FxHasher::default();
-      portable_root.root.as_str().as_bytes().hash(&mut hasher);
-      portable_root.canonical_root.as_str().as_bytes().hash(&mut hasher);
+      (RootBinding::Location as u8).hash(&mut hasher);
+      portable_root.canonical_root.as_str().hash(&mut hasher);
+      let location_hash = hasher.finish();
+      let mut hasher = FxHasher::default();
+      (RootBinding::Spelling as u8).hash(&mut hasher);
+      portable_root.canonical_root.as_str().hash(&mut hasher);
+      portable_root.root.as_str().hash(&mut hasher);
+      let spelling_hash = hasher.finish();
       let mut patterns: Vec<Vec<u8>> = [&portable_root.root, &portable_root.canonical_root]
         .into_iter()
         .flat_map(|root| root_patterns(root.as_str()))
@@ -82,7 +95,8 @@ impl CacheCodec {
       patterns.sort_unstable();
       patterns.dedup();
       Arc::new(RootPatterns {
-        hash: hasher.finish(),
+        location_hash,
+        spelling_hash,
         finders: patterns
           .iter()
           .map(|pattern| Finder::new(pattern).into_owned())
@@ -95,8 +109,28 @@ impl CacheCodec {
     }
   }
 
-  pub fn root_hash(&self) -> Option<u64> {
-    self.root_patterns.as_ref().map(|patterns| patterns.hash)
+  pub fn is_portable(&self) -> bool {
+    self.root_patterns.is_some()
+  }
+
+  /// Returns the root identity that bytes with `binding` are only valid under.
+  pub fn bound_root(&self, binding: RootBinding) -> Option<u64> {
+    let patterns = self.root_patterns.as_ref()?;
+    match binding {
+      RootBinding::Unbound => None,
+      RootBinding::Location => Some(patterns.location_hash),
+      RootBinding::Spelling => Some(patterns.spelling_hash),
+    }
+  }
+
+  /// Returns whether bytes bound to `bound_root` are valid under this codec's root.
+  pub fn accepts_bound_root(&self, bound_root: Option<u64>) -> bool {
+    let Some(bound_root) = bound_root else {
+      return true;
+    };
+    self.root_patterns.as_ref().is_some_and(|patterns| {
+      bound_root == patterns.location_hash || bound_root == patterns.spelling_hash
+    })
   }
 
   pub fn encode_with_binding<T>(&self, data: &T) -> Result<(Vec<u8>, RootBinding)>
@@ -108,13 +142,14 @@ impl CacheCodec {
     };
     let (bytes, outside) =
       to_bytes_with_binding(data, &self.context).map_err(rspack_error::Error::from_error)?;
-    let binding = if outside
-      || patterns
-        .finders
-        .iter()
-        .any(|finder| finder.find(&bytes).is_some())
+    let binding = if patterns
+      .finders
+      .iter()
+      .any(|finder| finder.find(&bytes).is_some())
     {
-      RootBinding::Bound
+      RootBinding::Spelling
+    } else if outside {
+      RootBinding::Location
     } else {
       RootBinding::Unbound
     };
