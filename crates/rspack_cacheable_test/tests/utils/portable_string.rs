@@ -207,6 +207,10 @@ fn test_literal_markers() {
     "\0escape\0escapeescape\0",
     "\0root/\0\0root/\0",
     "\0root/\0|\0escape|\0root\\\0|\0root\\\\\0",
+    "\0realpath/\0",
+    "\0realpath\\\0",
+    "\0realpath\\\\\0",
+    "\0realpath/\0\0root/\0escape",
     "\0\0root/\0escape\0root/\0\0文本",
   ];
   let data = Data {
@@ -302,4 +306,128 @@ fn test_root_with_space() {
   assert!(bound);
   let decoded: Data = rspack_cacheable::from_bytes(&bytes, &TestContext(Some(relocated))).unwrap();
   assert_eq!(decoded, outside);
+}
+
+/// A root reached through an alias such as a symlink: `context` spells it one way and the
+/// resolver realpaths resources to the other.
+struct AliasedContext {
+  root: PathBuf,
+  canonical_root: PathBuf,
+}
+
+impl AliasedContext {
+  fn new(root: PathBuf, canonical_root: PathBuf) -> Self {
+    Self {
+      root,
+      canonical_root,
+    }
+  }
+}
+
+impl CacheableContext for AliasedContext {
+  fn project_root(&self) -> Option<&Path> {
+    Some(&self.root)
+  }
+
+  fn canonical_project_root(&self) -> Option<&Path> {
+    Some(&self.canonical_root)
+  }
+}
+
+fn aliased_identifiers(context: &AliasedContext) -> Data {
+  let real = |path: &str| path_string(context.canonical_root.join(path));
+  let link = |path: &str| path_string(context.root.join(path));
+  Data {
+    paths: vec![
+      format!("javascript/auto|{}", real("src/a.js")),
+      format!("{}!{}", real("loader.js"), link("src/b.js")),
+      format!("{}?from={}", link("src/c.js"), real("src/d.js")),
+    ],
+  }
+}
+
+#[test]
+fn test_aliased_root_restores_each_spelling() {
+  let temp = std::env::temp_dir();
+  let writer = AliasedContext::new(
+    temp.join("link-a").join("project"),
+    temp.join("real-a").join("project"),
+  );
+  let reader = AliasedContext::new(
+    temp.join("link-b").join("deeper").join("project"),
+    temp.join("real-b").join("project"),
+  );
+
+  let data = aliased_identifiers(&writer);
+  let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&data, &writer).unwrap();
+  assert!(!bound);
+  let decoded: Data = rspack_cacheable::from_bytes(&bytes, &writer).unwrap();
+  assert_eq!(decoded, data);
+  let decoded: Data = rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
+  assert_eq!(decoded, aliased_identifiers(&reader));
+
+  let unaliased = temp.join("plain").join("project");
+  let decoded: Data =
+    rspack_cacheable::from_bytes(&bytes, &TestContext(Some(unaliased.clone()))).unwrap();
+  assert_eq!(
+    decoded,
+    aliased_identifiers(&AliasedContext::new(unaliased.clone(), unaliased))
+  );
+
+  let outside = Data {
+    paths: vec![format!(
+      "javascript/auto|{}",
+      path_string(temp.join("real-a").join("other").join("a.js"))
+    )],
+  };
+  let (_, bound) = rspack_cacheable::to_bytes_with_binding(&outside, &writer).unwrap();
+  assert!(bound);
+}
+
+#[test]
+fn test_unaliased_root_restores_as_realpath() {
+  let temp = std::env::temp_dir();
+  let root = temp.join("plain").join("project");
+  let data = Data {
+    paths: vec![format!(
+      "javascript/auto|{}",
+      path_string(root.join("src").join("a.js"))
+    )],
+  };
+  let bytes = rspack_cacheable::to_bytes(&data, &TestContext(Some(root))).unwrap();
+  let reader = AliasedContext::new(
+    temp.join("link-b").join("project"),
+    temp.join("real-b").join("project"),
+  );
+  let decoded: Data = rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
+  assert_eq!(
+    decoded.paths,
+    vec![format!(
+      "javascript/auto|{}",
+      path_string(reader.canonical_root.join("src").join("a.js"))
+    )]
+  );
+}
+
+#[test]
+fn test_nested_spellings_prefer_the_longest() {
+  let temp = std::env::temp_dir();
+  let writer = AliasedContext::new(temp.join("nest").join("link"), temp.join("nest"));
+  let reader = AliasedContext::new(temp.join("elsewhere").join("link"), temp.join("moved"));
+  let data = Data {
+    paths: vec![
+      path_string(writer.root.join("a.js")),
+      path_string(writer.canonical_root.join("b.js")),
+    ],
+  };
+  let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&data, &writer).unwrap();
+  assert!(!bound);
+  let decoded: Data = rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
+  assert_eq!(
+    decoded.paths,
+    vec![
+      path_string(reader.root.join("a.js")),
+      path_string(reader.canonical_root.join("b.js")),
+    ]
+  );
 }

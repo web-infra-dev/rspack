@@ -160,3 +160,49 @@ fn test_windows_relative_paths_preserve_their_representation() {
   assert_eq!(new_data.path1.to_string_lossy(), "./build.txt");
   assert_eq!(new_data.path2.as_str(), "node_modules/");
 }
+
+struct AliasedContext {
+  root: PathBuf,
+  canonical_root: PathBuf,
+}
+
+impl CacheableContext for AliasedContext {
+  fn project_root(&self) -> Option<&Path> {
+    Some(&self.root)
+  }
+
+  fn canonical_project_root(&self) -> Option<&Path> {
+    Some(&self.canonical_root)
+  }
+}
+
+#[test]
+fn test_aliased_root_restores_each_spelling() {
+  let temp = std::env::temp_dir();
+  let writer = AliasedContext {
+    root: temp.join("link-a").join("project"),
+    canonical_root: temp.join("real-a").join("project"),
+  };
+  let reader = AliasedContext {
+    root: temp.join("link-b").join("deeper").join("project"),
+    canonical_root: temp.join("real-b").join("project"),
+  };
+  let paths = |context: &AliasedContext| PathData {
+    path1: context.canonical_root.join("src").join("main.rs"),
+    path2: Utf8PathBuf::from_path_buf(context.root.clone()).unwrap(),
+  };
+
+  let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&paths(&writer), &writer).unwrap();
+  assert!(!bound);
+  let decoded: PathData = rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
+  assert_eq!(decoded, paths(&reader));
+
+  let outside = PathData {
+    path1: temp.join("real-a").join("other.rs"),
+    path2: Utf8PathBuf::from_path_buf(writer.root.join("lib.rs")).unwrap(),
+  };
+  let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&outside, &writer).unwrap();
+  assert!(bound);
+  let decoded: PathData = rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
+  assert_eq!(decoded.path1, outside.path1);
+}
