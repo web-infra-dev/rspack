@@ -1,15 +1,18 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 
 use itertools::Itertools;
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_fs::IntermediateFileSystem;
-use rspack_paths::Utf8PathBuf;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_storage::{SeedStage, StagedUnit};
 use tokio::task::spawn_blocking;
 
 use super::{
   storage::{CacheDirectory, create_storage},
-  validation::CacheValidation,
+  validation::{CacheValidation, SCOPE},
 };
 use crate::{CompilationLogger, Logger, PersistentCacheOptions, StorageOptions};
 
@@ -85,6 +88,13 @@ impl CacheSeed {
     let mut skipped = Vec::new();
     for donor in ranked {
       logger.debug(format!("portable cache seed trying {}", donor.display()));
+      if records_other_version(&donor, &unit, &fs, validation).await {
+        skipped.push(format!(
+          "{} (cache version does not match)",
+          donor.display()
+        ));
+        continue;
+      }
       let stage = {
         let location = location.clone();
         let donor = donor.clone();
@@ -130,6 +140,20 @@ impl CacheSeed {
       format!("portable cache not seeded: {}", skipped.join("; "))
     }))
   }
+}
+
+async fn records_other_version(
+  donor: &Path,
+  unit: &CacheDirectory,
+  fs: &Arc<dyn IntermediateFileSystem>,
+  validation: &CacheValidation,
+) -> bool {
+  let Some(donor) = Utf8Path::from_path(donor) else {
+    return false;
+  };
+  rspack_storage::read_seed_scope(donor, unit, SCOPE, fs.clone())
+    .await
+    .is_ok_and(|entries| validation.records_other_version(entries))
 }
 
 async fn matches_version(

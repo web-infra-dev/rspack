@@ -3,13 +3,19 @@ use std::{
   fs,
   io::ErrorKind,
   path::{Path, PathBuf},
+  sync::Arc,
   time::{Duration, SystemTime},
 };
 
 use rspack_error::Result;
+use rspack_fs::IntermediateFileSystem;
+use rspack_paths::Utf8Path;
 use tempfile::TempDir;
 
-use super::{CacheDirectory, db::StateLock};
+use super::{
+  CacheDirectory, ScopeFileSystem,
+  db::{StateLock, read_committed_bucket},
+};
 
 const STAGING_MARKER: &str = ".seeding-";
 const STAGING_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
@@ -138,6 +144,20 @@ fn pending_transaction(unit: &Path) -> Result<Option<&'static str>> {
     Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
     Err(error) => Err(error.into()),
   }
+}
+
+/// Reads one scope of a donor unit without recovering or modifying the donor.
+pub async fn read_seed_scope(
+  donor: &Utf8Path,
+  unit: &CacheDirectory,
+  scope: &str,
+  fs: Arc<dyn IntermediateFileSystem>,
+) -> crate::Result<Vec<(Vec<u8>, Vec<u8>)>> {
+  read_committed_bucket(ScopeFileSystem::new(
+    donor.join(unit.as_str()).join(scope),
+    fs,
+  ))
+  .await
 }
 
 #[derive(Debug)]

@@ -37,6 +37,12 @@ pub struct DB {
   readonly: Arc<AtomicBool>,
 }
 
+/// Reads every committed entry of one bucket without recovering transactions or
+/// creating directories.
+pub async fn read_committed_bucket(fs: ScopeFileSystem) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
+  Bucket::open(fs).await?.load_all().await
+}
+
 impl DB {
   /// Creates a new database instance at the specified root directory.
   pub fn new(fs: ScopeFileSystem) -> Self {

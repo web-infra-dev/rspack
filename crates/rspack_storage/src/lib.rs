@@ -12,7 +12,7 @@ pub use self::{
   error::{Error, Result},
   filesystem::{
     CacheDirectory, FileSystemOptions, FileSystemStorage, SeedStage, StagedUnit, rank_seed_donors,
-    stage_seed, sweep_seed_staging,
+    read_seed_scope, stage_seed, sweep_seed_staging,
   },
   memory::MemoryStorage,
 };
