@@ -2,7 +2,7 @@ use std::{borrow::Cow, path::Path};
 
 use cow_utils::CowUtils;
 
-use crate::{ContextGuard, Result, cacheable, with::AsConverter};
+use crate::{ContextGuard, Result, RootSpelling, cacheable, with::AsConverter};
 
 // Escape literal NULs before inserting root markers, including when portability is disabled.
 // The escape has no trailing NUL, so escaped data cannot form a root marker.
@@ -17,31 +17,45 @@ const ROOT_SEPARATORS: [char; 1] = ['/'];
 #[cfg(windows)]
 const ROOT_SEPARATORS: [char; 2] = ['/', '\\'];
 
-/// A separator form an identifier can spell the root with, and the marker that stands for the
+/// A separator form an identifier can spell the root with, and the markers that stand for the
 /// root in that form. Distinct markers preserve Windows separator forms.
 struct RootForm {
   separator: &'static str,
-  marker: &'static str,
+  context: &'static str,
+  realpath: &'static str,
+}
+
+impl RootForm {
+  fn marker(&self, spelling: RootSpelling) -> &'static str {
+    match spelling {
+      RootSpelling::Context => self.context,
+      RootSpelling::Realpath => self.realpath,
+    }
+  }
 }
 
 #[cfg(not(windows))]
 const ROOT_FORMS: [RootForm; 1] = [RootForm {
   separator: "/",
-  marker: "\0root/\0",
+  context: "\0root/\0",
+  realpath: "\0realpath/\0",
 }];
 #[cfg(windows)]
 const ROOT_FORMS: [RootForm; 3] = [
   RootForm {
     separator: "\\\\",
-    marker: "\0root\\\\\0",
+    context: "\0root\\\\\0",
+    realpath: "\0realpath\\\\\0",
   },
   RootForm {
     separator: "\\",
-    marker: "\0root\\\0",
+    context: "\0root\\\0",
+    realpath: "\0realpath\\\0",
   },
   RootForm {
     separator: "/",
-    marker: "\0root/\0",
+    context: "\0root/\0",
+    realpath: "\0realpath/\0",
   },
 ];
 
@@ -59,10 +73,15 @@ fn strip_root<'a>(text: &'a str, root: &str, separator: &str) -> Option<&'a str>
 }
 
 /// Returns the marker for the first root form `text` starts with, and the rest of `text`.
-fn strip_any_root<'a>(text: &'a str, root: &str) -> Option<(&'static str, &'a str)> {
-  ROOT_FORMS
-    .iter()
-    .find_map(|form| strip_root(text, root, form.separator).map(|rest| (form.marker, rest)))
+fn strip_any_root<'a>(
+  text: &'a str,
+  roots: &[(RootSpelling, Cow<'_, str>)],
+) -> Option<(&'static str, &'a str)> {
+  ROOT_FORMS.iter().find_map(|form| {
+    roots.iter().find_map(|(spelling, root)| {
+      strip_root(text, root, form.separator).map(|rest| (form.marker(*spelling), rest))
+    })
+  })
 }
 
 fn push_root(out: &mut String, root: &str, separator: &str) {
@@ -90,16 +109,19 @@ pub struct PortableString {
 
 impl PortableString {
   pub fn new(content: &str, guard: &ContextGuard) -> Self {
-    let Some(root) = guard.project_root() else {
+    let roots = guard
+      .root_spellings()
+      .map(|(spelling, root)| (spelling, trimmed_root(root)))
+      .collect::<Vec<_>>();
+    if roots.is_empty() {
       return Self {
         content: content.cow_replace('\0', ESCAPE).into_owned(),
       };
-    };
-    let root = trimmed_root(root);
+    }
     let mut converted = String::with_capacity(content.len());
     let mut rest = content;
     loop {
-      let path = match strip_any_root(rest, &root) {
+      let path = match strip_any_root(rest, &roots) {
         Some((marker, suffix)) => {
           converted.push_str(marker);
           suffix
@@ -123,7 +145,7 @@ impl PortableString {
     Self { content: converted }
   }
 
-  pub fn into_path_string(self, project_root: Option<&Path>) -> String {
+  pub fn into_path_string(self, guard: &ContextGuard) -> String {
     if !self.content.contains('\0') {
       return self.content;
     }
@@ -137,16 +159,22 @@ impl PortableString {
         rest = after;
         continue;
       }
-      let Some(form) = ROOT_FORMS.iter().find(|form| rest.starts_with(form.marker)) else {
+      let marker = ROOT_FORMS.iter().find_map(|form| {
+        [RootSpelling::Context, RootSpelling::Realpath]
+          .into_iter()
+          .map(|spelling| (form, spelling, form.marker(spelling)))
+          .find(|(_, _, marker)| rest.starts_with(marker))
+      });
+      let Some((form, spelling, marker)) = marker else {
         restored.push('\0');
         rest = &rest[1..];
         continue;
       };
-      match project_root {
+      match guard.root(spelling) {
         Some(root) => push_root(&mut restored, &trimmed_root(root), form.separator),
-        None => restored.push_str(form.marker),
+        None => restored.push_str(marker),
       }
-      rest = &rest[form.marker.len()..];
+      rest = &rest[marker.len()..];
     }
     restored.push_str(rest);
     restored
@@ -165,6 +193,6 @@ where
   }
 
   fn deserialize(self, guard: &ContextGuard) -> Result<T> {
-    Ok(T::from(self.into_path_string(guard.project_root())))
+    Ok(T::from(self.into_path_string(guard)))
   }
 }
