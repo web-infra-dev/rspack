@@ -62,10 +62,10 @@ function worktrees(root: string): string[] {
   return candidates;
 }
 
-export function findCacheSeed(
+export function findSeedDonors(
   cache: Extract<CacheNormalized, { type: 'persistent' }>,
   compiler: Compiler,
-): string | undefined {
+): string[] | undefined {
   const experiment = compiler.options.experiments.portableCache;
   if (
     !experiment ||
@@ -95,10 +95,9 @@ export function findCacheSeed(
       const donor = realLocation(
         path.resolve(compiler.context, experiment.seedFrom),
       );
-      return donor === location ? undefined : donor;
+      return donor === location ? undefined : [donor];
     }
-    let newest = -Infinity;
-    let donor: string | undefined;
+    const donors: string[] = [];
     for (const candidate of worktrees(root)) {
       try {
         const candidateRoot = fs.realpathSync.native(candidate);
@@ -110,19 +109,16 @@ export function findCacheSeed(
         const candidateLocation = realLocation(
           path.join(candidateRoot, relative),
         );
-        if (candidateLocation === location) continue;
-        const modified = fs.statSync(
-          path.join(candidateLocation, '_meta'),
-        ).mtimeMs;
-        if (modified > newest) {
-          newest = modified;
-          donor = candidateLocation;
-        }
+        if (
+          candidateLocation !== location &&
+          fs.statSync(candidateLocation).isDirectory()
+        )
+          donors.push(candidateLocation);
       } catch {
         // An unavailable donor must not prevent a cold build.
       }
     }
-    return donor;
+    return donors.length ? donors : undefined;
   } catch {
     return;
   }

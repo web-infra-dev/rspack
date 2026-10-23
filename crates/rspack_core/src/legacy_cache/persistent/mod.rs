@@ -1,6 +1,7 @@
 pub mod build_dependencies;
 pub mod context;
 pub mod occasion;
+mod seed;
 pub mod snapshot;
 pub mod storage;
 pub mod validation;
@@ -17,6 +18,7 @@ use self::{
   build_dependencies::BuildDeps,
   context::CacheContext,
   occasion::{MakeOccasion, MinimizeOccasion, SourceMapDevToolPluginOccasion},
+  seed::CacheSeed,
   snapshot::Snapshot,
   storage::{CacheDirectory, create_storage},
   validation::CacheValidation,
@@ -34,7 +36,7 @@ const LOGGER_NAME: &str = "rspack.persistentCache";
 pub struct PersistentCache {
   /// Guards `initialize` from running more than once per compiler instance
   initialized: bool,
-  seed_message: Option<String>,
+  seed: Option<CacheSeed>,
 
   ctx: CacheContext,
   validation: CacheValidation,
@@ -60,17 +62,12 @@ impl PersistentCache {
       compiler_path.hash(&mut hasher);
       CacheDirectory::new(hex::encode(hasher.finish().to_ne_bytes()))
     };
-    let logger = CompilationLogger::new(LOGGER_NAME.to_string(), compilation_logging);
-    let (storage, seed_message) = create_storage(
+    let seed = CacheSeed::new(option, &cache_directory, intermediate_filesystem.clone());
+    let storage = create_storage(
       option.storage.clone(),
       cache_directory,
       option.max_age,
       intermediate_filesystem,
-      if option.readonly {
-        None
-      } else {
-        option.seed_from.as_deref()
-      },
     );
     let snapshot = Arc::new(Snapshot::new(
       compiler_options.snapshot.clone(),
@@ -81,8 +78,12 @@ impl PersistentCache {
 
     Self {
       initialized: false,
-      seed_message,
-      ctx: CacheContext::new(storage, option.readonly, logger),
+      seed,
+      ctx: CacheContext::new(
+        storage,
+        option.readonly,
+        CompilationLogger::new(LOGGER_NAME.to_string(), compilation_logging),
+      ),
       validation: CacheValidation::new(
         codec.clone(),
         // Portable entries use the `BoundEntry` envelope, so the two encodings must not share a cache.
@@ -109,6 +110,9 @@ impl PersistentCache {
       return;
     }
     self.initialized = true;
+    if let Some(seed) = self.seed.take() {
+      seed.run(&self.validation, self.ctx.logger()).await;
+    }
     self.ctx.cleanup_stale();
 
     self.ctx.validate(&mut self.validation).await;
@@ -120,9 +124,6 @@ impl Cache for PersistentCache {
   async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
     self.ctx.start_build();
     self.ctx.logger().info("persistent cache enabled");
-    if let Some(message) = self.seed_message.take() {
-      self.ctx.logger().info(message);
-    }
     self.initialize().await;
 
     if compilation.is_rebuild {

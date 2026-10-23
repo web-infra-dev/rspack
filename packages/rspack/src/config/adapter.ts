@@ -1,4 +1,4 @@
-import { findCacheSeed } from './portableCache';
+import { findSeedDonors } from './portableCache';
 import path from 'node:path';
 import {
   type RawAssetGeneratorDataUrlFnCtx,
@@ -189,7 +189,7 @@ function getRawCache(
     },
     portableRoot:
       typeof cache.portable === 'object' ? cache.portable.root : undefined,
-    seedFrom: findCacheSeed(cache, compiler),
+    seedDonors: findSeedDonors(cache, compiler),
     readonly: cache.readonly,
   };
 }
