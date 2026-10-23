@@ -35,6 +35,8 @@ pub struct ConcatenationContext<'a> {
   pub module_graph_cache: &'a ModuleGraphCacheArtifact,
   pub module_static_cache: &'a ModuleStaticCache,
   pub exports_info_artifact: &'a ExportsInfoArtifact,
+  pub circular_modules: &'a crate::CircularModulesInfo,
+  pub imported_by_defer_modules_artifact: &'a crate::ImportedByDeferModulesArtifact,
   pub runtime: Option<&'a RuntimeSpec>,
   pub compiler_context: &'a Context,
   pub escaped_names: FxHashMap<Atom, Atom>,
@@ -551,6 +553,9 @@ impl ConcatenationNameAllocator {
     ) {
       module_info
         .set_interop_default_access_name(Some(self.find_new_name("default", module_identifier)));
+      module_info.set_interop_default_value_name(Some(
+        self.find_new_name("defaultValue", module_identifier),
+      ));
     }
   }
 }
@@ -1097,6 +1102,8 @@ impl<'a> ConcatenationContext<'a> {
       module_graph_cache,
       module_static_cache,
       exports_info_artifact,
+      circular_modules: &compilation.circular_modules,
+      imported_by_defer_modules_artifact: &compilation.imported_by_defer_modules_artifact,
       runtime,
       compiler_context,
       escaped_names,

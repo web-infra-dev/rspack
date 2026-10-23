@@ -227,22 +227,7 @@ impl EsmLibraryPlugin {
       } else {
         modules_map.insert(
           *module_identifier,
-          ModuleInfo::External(ExternalModuleInfo {
-            index: idx,
-            module: *module_identifier,
-            interop_namespace_object_used: false,
-            interop_namespace_object_name: None,
-            interop_namespace_object2_used: false,
-            interop_namespace_object2_name: None,
-            interop_default_access_used: false,
-            interop_default_access_name: None,
-            runtime_requirements: RuntimeGlobals::default(),
-            name: None,
-            deferred: false,
-            deferred_name: None,
-            deferred_namespace_object_name: None,
-            deferred_namespace_object_used: false,
-          }),
+          ModuleInfo::External(ExternalModuleInfo::new(idx, *module_identifier)),
         );
       }
     }
@@ -268,22 +253,10 @@ impl EsmLibraryPlugin {
         if let Some(info) = modules_map.get_mut(dep_module)
           && let ModuleInfo::Concatenated(concate_info) = info
         {
-          *info = ModuleInfo::External(ExternalModuleInfo {
-            index: concate_info.index,
-            module: concate_info.module,
-            interop_namespace_object_used: false,
-            interop_namespace_object_name: None,
-            interop_namespace_object2_used: false,
-            interop_namespace_object2_name: None,
-            interop_default_access_used: false,
-            interop_default_access_name: None,
-            name: None,
-            runtime_requirements: RuntimeGlobals::default(),
-            deferred: false,
-            deferred_name: None,
-            deferred_namespace_object_name: None,
-            deferred_namespace_object_used: false,
-          });
+          *info = ModuleInfo::External(ExternalModuleInfo::new(
+            concate_info.index,
+            concate_info.module,
+          ));
           stack.push(*dep_module);
         }
       }
