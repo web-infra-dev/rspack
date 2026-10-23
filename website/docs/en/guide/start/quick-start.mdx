@@ -8,6 +8,12 @@ import { PackageManagerTabs } from '@theme';
 
 Get up to speed quickly with a new Rspack based project.
 
+:::tip Use Rsbuild for most projects
+
+Most projects should use [Rsbuild](https://rsbuild.rs/), not Rspack directly. Use Rspack directly only when you are migrating an existing webpack setup, or building a framework or tool on top of Rspack.
+
+:::
+
 - [Create a new project](#create-a-new-project): Use the CLI to create a brand-new Rspack or Rsbuild project.
 - [Migrating from existing projects](#migrating-from-existing-projects): Migrate from a webpack-based project to Rspack.
 
@@ -70,7 +76,7 @@ Run the following command and follow the prompts:
 
 ### Using Rspack CLI
 
-Rspack CLI provides a command-line interface for using Rspack directly. You configure loaders, plugins, and other build capabilities yourself, making it suitable for projects that need a custom build workflow based on low-level configuration.
+Use the Rspack CLI when you are migrating an existing webpack setup, or building a framework or tool that needs low-level control. You configure loaders, plugins, and other build capabilities yourself.
 
 Run the following command and follow the prompts:
 
@@ -94,6 +100,8 @@ npx -y create-rsbuild -d my-app -t react
 ```
 
 ## Manual installation
+
+Install Rspack directly only when you are migrating an existing webpack setup, or building a framework or tool. Most projects should use [Rsbuild](https://rsbuild.rs/) instead.
 
 Start by creating a project directory and generating an npm `package.json':
 

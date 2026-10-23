@@ -18,6 +18,8 @@
 
 Rspack 是一个基于 Rust 编写的高性能 Web 打包工具，它提供现代化的 webpack API，能够无缝替换 webpack，并提供闪电般的构建速度。
 
+大多数项目应使用 [Rsbuild](https://rsbuild.rs/zh/)，而不是直接使用 Rspack。仅在迁移已有的 webpack 项目，或在 Rspack 之上构建框架或工具时，才直接使用 Rspack。
+
 ## ✨ 特性
 
 - 🚀 **启动速度极快**: 基于 Rust 实现，构建速度极快，带给你极致的开发体验。

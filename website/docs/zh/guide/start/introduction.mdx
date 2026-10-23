@@ -48,6 +48,12 @@ import rspackAudio from '../../../public/rspack.mp3';
   </p>
 </div>
 
+:::tip 大多数项目应使用 Rsbuild
+
+大多数项目应使用 [Rsbuild](https://rsbuild.rs/zh/)，而不是直接使用 Rspack。仅在迁移已有的 webpack 项目，或在 Rspack 之上构建框架或工具时，才直接使用 Rspack。
+
+:::
+
 ## 为什么要做 Rspack
 
 我们创建 Rspack 的原因，是为了解决在字节跳动维护构建工具时遇到的各种性能问题。在字节跳动内部存在许多巨石应用，它们都具有复杂的构建配置，生产环境的构建需要耗费十几分钟，甚至超过半小时；开发环境的耗时也超过十几分钟。

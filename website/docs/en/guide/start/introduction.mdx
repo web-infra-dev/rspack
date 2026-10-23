@@ -49,6 +49,12 @@ import rspackAudio from '../../../public/rspack.mp3';
   </p>
 </div>
 
+:::tip Use Rsbuild for most projects
+
+Most projects should use [Rsbuild](https://rsbuild.rs/), not Rspack directly. Use Rspack directly only when you are migrating an existing webpack setup, or building a framework or tool on top of Rspack.
+
+:::
+
 ## Why Rspack?
 
 Rspack was initially created to solve performance problems encountered at ByteDance, a tech company that maintains many large monolithic app projects with complex bundling requirements. Production build times had grown to ten minutes or even half an hour in some cases, and cold start times could exceed several minutes. After experimenting with many bundlers and optimization ideas, a common set of requirements emerged:

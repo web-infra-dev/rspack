@@ -9,6 +9,12 @@ import { Tabs, Tab } from '@theme';
 
 Rspack provides configurations similar to webpack. This chapter will show you how to use the Rspack configuration.
 
+:::tip Use Rsbuild for most projects
+
+Most projects should use [Rsbuild](https://rsbuild.rs/), not Rspack directly. Use Rspack directly only when you are migrating an existing webpack setup, or building a framework or tool on top of Rspack.
+
+:::
+
 ## Configuration file
 
 When you run the Rspack CLI, Rspack automatically reads the `rspack.config.*` file in the current working directory.

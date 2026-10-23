@@ -18,6 +18,8 @@ English | [简体中文](./README.zh-CN.md)
 
 Rspack is a fast Rust-based bundler for the web. It modernizes the webpack API to enable seamless replacement of webpack while delivering lightning-fast build speeds.
 
+Most projects should use [Rsbuild](https://rsbuild.rs/), not Rspack directly. Use Rspack directly only when you are migrating an existing webpack setup, or building a framework or tool on top of Rspack.
+
 ## ✨ Features
 
 - 🚀 **Fast Startup**: Based on Rust, the build speed is extremely fast, bringing you the ultimate development experience.

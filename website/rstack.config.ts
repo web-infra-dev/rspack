@@ -17,6 +17,11 @@ const PUBLISH_URL = 'https://rspack.rs';
 const description =
   'Fast Rust-based bundler for the web with a modernized webpack API';
 
+const rsbuildGuidance = {
+  en: 'Most projects should use [Rsbuild](https://rsbuild.rs/), not Rspack directly. Use Rspack directly only when you are migrating an existing webpack setup, or building a framework or tool on top of Rspack.',
+  zh: '大多数项目应使用 [Rsbuild](https://rsbuild.rs/zh/)，而不是直接使用 Rspack。仅在迁移已有的 webpack 项目，或在 Rspack 之上构建框架或工具时，才直接使用 Rspack。',
+} as const;
+
 define.doc({
   siteOrigin: PUBLISH_URL,
   root: path.join(import.meta.dirname, 'docs'),
@@ -28,6 +33,28 @@ define.doc({
   },
   icon: 'https://assets.rspack.rs/rspack/favicon-128x128.png',
   lang: 'en',
+  llms: {
+    // Keep Rspress's default llms.txt layout, and place Rsbuild guidance directly under the summary.
+    llmsTxt: ({ title, description: siteDescription, lang, sections }) => {
+      const guidance = lang === 'zh' ? rsbuildGuidance.zh : rsbuildGuidance.en;
+      const summary = title
+        ? `# ${title}${siteDescription ? `\n\n> ${siteDescription}` : ''}\n\n${guidance}`
+        : guidance;
+      const lines: string[] = [];
+
+      for (const section of sections) {
+        lines.push(`\n## ${section.title}\n`);
+        lines.push(
+          ...section.pages.map(
+            (page) =>
+              `- [${page.title}](${page.link})${page.description ? `: ${page.description}` : ''}`,
+          ),
+        );
+      }
+
+      return lines.length > 0 ? `${summary}\n${lines.join('\n')}` : summary;
+    },
+  },
   globalStyles: path.join(import.meta.dirname, 'theme', 'index.css'),
   markdown: {
     link: {
