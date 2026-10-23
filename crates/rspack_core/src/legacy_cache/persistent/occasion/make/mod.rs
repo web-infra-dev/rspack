@@ -8,7 +8,7 @@ use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
-use super::{super::storage::Storage, Occasion};
+use super::{super::storage::Storage, Occasion, Recovered};
 use crate::{
   CompilationLogger, cache::CacheCodec, compilation::build_module_graph::BuildModuleGraphArtifact,
   utils::FileCounter,
@@ -31,6 +31,10 @@ impl Occasion for MakeOccasion {
 
   fn name(&self) -> &'static str {
     "make"
+  }
+
+  fn scope(&self) -> &'static str {
+    SCOPE
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::reset", skip_all)]
@@ -87,9 +91,14 @@ impl Occasion for MakeOccasion {
     &self,
     storage: &dyn Storage,
     logger: &CompilationLogger,
-  ) -> Result<BuildModuleGraphArtifact> {
-    let (mg, factorization_artifact, module_to_lazy_make, entry_dependencies) =
-      module_graph::recovery_module_graph(storage, &self.codec, logger).await?;
+  ) -> Result<Recovered<BuildModuleGraphArtifact>> {
+    let module_graph::RecoveredModuleGraph {
+      mg,
+      factorization_artifact,
+      module_to_lazy_make,
+      entry_dependencies,
+      dropped,
+    } = module_graph::recovery_module_graph(storage, &self.codec, logger).await?;
 
     // regenerate statistical data
     // recovery make_failed_module
@@ -121,7 +130,7 @@ impl Occasion for MakeOccasion {
       missing_dep.add_dependency_files(dep_id, info.missing_dependencies());
     }
 
-    Ok(BuildModuleGraphArtifact {
+    let item = BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // temporary data set to default
       affected_modules: Default::default(),
@@ -140,6 +149,7 @@ impl Occasion for MakeOccasion {
       context_dependencies: context_dep,
       missing_dependencies: missing_dep,
       build_dependencies: build_dep,
-    })
+    };
+    Ok(Recovered { item, dropped })
   }
 }

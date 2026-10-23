@@ -1,9 +1,6 @@
-use std::sync::{
-  Arc,
-  atomic::{AtomicUsize, Ordering},
-};
+use std::sync::Arc;
 
-use rayon::prelude::*;
+use rayon::{iter::Either, prelude::*};
 use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
@@ -12,7 +9,7 @@ use rspack_error::Result;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
 
-use super::{super::storage::Storage, BoundEntry, Occasion};
+use super::{super::storage::Storage, BoundEntry, Occasion, Recovered};
 use crate::{
   CompilationAsset, CompilationLogger, Logger, RayonConsumer,
   cache::{CacheCodec, CachedSourceMapDevToolPluginEntry},
@@ -184,6 +181,10 @@ impl Occasion for SourceMapDevToolPluginOccasion {
     "source map"
   }
 
+  fn scope(&self) -> &'static str {
+    SCOPE
+  }
+
   #[tracing::instrument(name = "Cache::Occasion::SourceMap::reset", skip_all)]
   fn reset(&self, storage: &mut dyn Storage) {
     storage.reset(SCOPE);
@@ -245,21 +246,22 @@ impl Occasion for SourceMapDevToolPluginOccasion {
     &self,
     storage: &dyn Storage,
     logger: &CompilationLogger,
-  ) -> Result<SourceMapDevToolPluginCache> {
+  ) -> Result<Recovered<SourceMapDevToolPluginCache>> {
     let items = storage.load(SCOPE).await?;
-    let dropped = AtomicUsize::new(0);
-    let entries = items
+    let (entries, dropped): (FxHashMap<_, _>, Vec<_>) = items
       .into_par_iter()
-      .filter_map(|(key, value)| {
-        let key = match self.codec.decode::<CacheKey>(&key) {
+      .filter_map(|(key_bytes, value)| {
+        let key = match self.codec.decode::<CacheKey>(&key_bytes) {
           Ok(key) => key,
           Err(err) => {
-            tracing::warn!("source map persistent cache key decode failed: {:?}", err);
+            logger.warn(format!(
+              "source map persistent cache key decode failed: {err}"
+            ));
             return None;
           }
         };
         match BoundEntry::decode::<Entry>(&self.codec, &value) {
-          Ok(Some(entry)) => Some((
+          Ok(Some(entry)) => Some(Either::Left((
             key,
             Some(CachedSourceMapDevToolPluginEntry::from_parts(
               entry.append,
@@ -267,33 +269,27 @@ impl Occasion for SourceMapDevToolPluginOccasion {
                 .source_map
                 .map(|source_map| (source_map.filename, source_map.source)),
             )),
-          )),
-          Ok(None) => {
-            dropped.fetch_add(1, Ordering::Relaxed);
-            None
-          }
+          ))),
+          Ok(None) => Some(Either::Right(key_bytes)),
           Err(err) => {
-            tracing::warn!("source map persistent cache decode failed: {:?}", err);
+            logger.warn(format!("source map persistent cache decode failed: {err}"));
             None
           }
         }
       })
-      .collect::<FxHashMap<CacheKey, Option<CachedSourceMapDevToolPluginEntry>>>();
+      .partition_map(|entry| entry);
 
-    let dropped = dropped.load(Ordering::Relaxed);
-    if dropped > 0 {
-      logger.info(format!(
-        "source map persistent cache dropped {dropped} entries bound to another root"
-      ));
-    }
     tracing::debug!(
       "recovered {} source map persistent cache entries",
       entries.len()
     );
-    Ok(SourceMapDevToolPluginCache {
-      entries,
-      pending_writes: Vec::new(),
-      pending_removes: Vec::new(),
+    Ok(Recovered {
+      item: SourceMapDevToolPluginCache {
+        entries,
+        pending_writes: Vec::new(),
+        pending_removes: Vec::new(),
+      },
+      dropped,
     })
   }
 }

@@ -83,16 +83,19 @@ pub trait Occasion {
   /// Human-readable occasion name used in persistent cache logging.
   fn name(&self) -> &'static str;
 
+  /// The storage scope this occasion owns.
+  fn scope(&self) -> &'static str;
+
   /// Clear this occasion's scope in storage.
   fn reset(&self, storage: &mut dyn Storage);
 
   /// Persist `cache_item` into storage. Only called when not in readonly mode.
   fn save(&self, storage: &mut dyn Storage, cache_item: &Self::CacheItem);
 
-  /// Load and reconstruct the cache item from storage.
+  /// Load and reconstruct the cache item from storage, skipping entries bound to another root.
   fn recovery<'a>(
     &'a self,
     storage: &'a dyn Storage,
     logger: &'a CompilationLogger,
-  ) -> impl Future<Output = Result<Self::CacheItem>> + Send + 'a;
+  ) -> impl Future<Output = Result<Recovered<Self::CacheItem>>> + Send + 'a;
 }

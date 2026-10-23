@@ -40,8 +40,8 @@ pub async fn compare(
   let occasion2 = MakeOccasion::new(codec.clone());
 
   let logger = CompilationLogger::new("rspack_tools.compare.make", Default::default());
-  let artifact1 = occasion1.recovery(storage1, &logger).await?;
-  let artifact2 = occasion2.recovery(storage2, &logger).await?;
+  let artifact1 = occasion1.recovery(storage1, &logger).await?.item;
+  let artifact2 = occasion2.recovery(storage2, &logger).await?.item;
 
   let comparator = ArtifactComparator::new(&artifact1, &artifact2);
   comparator.compare(&debug_info)?;

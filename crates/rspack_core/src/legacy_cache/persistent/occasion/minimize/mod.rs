@@ -6,7 +6,7 @@ use rspack_error::Result;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
 
-use super::{super::storage::Storage, BoundEntry, Occasion};
+use super::{super::storage::Storage, BoundEntry, Occasion, Recovered};
 use crate::{
   CompilationLogger, Logger, RayonConsumer,
   cache::{CacheCodec, CachedExtractedComments, CachedMinimizeEntry},
@@ -83,6 +83,10 @@ impl Occasion for MinimizeOccasion {
     "minimize"
   }
 
+  fn scope(&self) -> &'static str {
+    SCOPE
+  }
+
   #[tracing::instrument(name = "Cache::Occasion::Minimize::reset", skip_all)]
   fn reset(&self, storage: &mut dyn Storage) {
     storage.reset(SCOPE);
@@ -129,15 +133,15 @@ impl Occasion for MinimizeOccasion {
     &self,
     storage: &dyn Storage,
     logger: &CompilationLogger,
-  ) -> Result<MinimizePersistentCache> {
+  ) -> Result<Recovered<MinimizePersistentCache>> {
     let items = storage.load(SCOPE).await?;
     let mut entries = FxHashMap::default();
     entries.reserve(items.len());
-    let mut dropped = 0;
+    let mut dropped = Vec::new();
 
-    for (key, value) in items {
-      let Some(key) = MinimizeCacheKey::from_bytes(&key) else {
-        tracing::warn!("minimize persistent cache key has invalid length");
+    for (key_bytes, value) in items {
+      let Some(key) = MinimizeCacheKey::from_bytes(&key_bytes) else {
+        logger.warn("minimize persistent cache key has invalid length");
         continue;
       };
       match BoundEntry::decode::<Entry>(&self.codec, &value) {
@@ -153,25 +157,23 @@ impl Occasion for MinimizeOccasion {
             },
           );
         }
-        Ok(None) => dropped += 1,
+        Ok(None) => dropped.push(key_bytes),
         Err(err) => {
-          tracing::warn!("minimize persistent cache decode failed: {:?}", err);
+          logger.warn(format!("minimize persistent cache decode failed: {err}"));
         }
       }
     }
 
-    if dropped > 0 {
-      logger.info(format!(
-        "minimize persistent cache dropped {dropped} entries bound to another root"
-      ));
-    }
     tracing::debug!(
       "recovered {} minimize persistent cache entries",
       entries.len()
     );
-    Ok(MinimizePersistentCache {
-      entries,
-      dirty_keys: Vec::new(),
+    Ok(Recovered {
+      item: MinimizePersistentCache {
+        entries,
+        dirty_keys: Vec::new(),
+      },
+      dropped,
     })
   }
 }
