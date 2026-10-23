@@ -171,6 +171,11 @@ impl CacheValidation {
     self.build_dependencies.add(storage, data, logger).await;
   }
 
+  /// Checks whether `storage` was written by a compatible cache version.
+  pub async fn matches_version(&self, storage: &dyn Storage) -> bool {
+    matches!(self.load_meta(storage).await, Ok(Some(meta)) if meta.version == self.version)
+  }
+
   async fn load_meta(&self, storage: &dyn Storage) -> Result<Option<Meta>, Error> {
     let Some((_, value)) = storage.load(SCOPE).await?.pop() else {
       return Ok(None);

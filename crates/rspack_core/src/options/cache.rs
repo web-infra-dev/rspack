@@ -49,7 +49,7 @@ pub struct PersistentCacheOptions {
   pub build_dependencies: BuildDepsOptions,
   pub version: String,
   pub storage: StorageOptions,
-  pub seed_from: Option<String>,
+  pub seed_donors: Vec<Utf8PathBuf>,
   pub portable_root: Option<PortableRoot>,
   pub readonly: bool,
   /// Filesystem cache max age in seconds.

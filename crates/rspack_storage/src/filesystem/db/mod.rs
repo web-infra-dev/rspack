@@ -13,6 +13,7 @@ use rspack_parallel::TryFutureConsumer;
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::Mutex;
 
+pub use self::transaction::StateLock;
 use self::{bucket::Bucket, transaction::Transaction};
 use super::ScopeFileSystem;
 use crate::{Error, Result};

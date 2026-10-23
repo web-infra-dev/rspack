@@ -3,16 +3,84 @@ use std::{
   fs,
   io::ErrorKind,
   path::{Path, PathBuf},
+  time::{Duration, SystemTime},
 };
 
 use rspack_error::Result;
+use tempfile::TempDir;
 
-use super::CacheDirectory;
+use super::{CacheDirectory, db::StateLock};
+
+const STAGING_MARKER: &str = ".seeding-";
+const STAGING_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+const ATTEMPTS: usize = 3;
+
+fn is_transient(name: &std::ffi::OsStr) -> bool {
+  name == ".temp" || name == "_stale"
+}
+
+/// Removes staging directories left by seeding processes that no longer run.
+pub fn sweep_seed_staging(location: &Path) {
+  let Ok(entries) = fs::read_dir(location) else {
+    return;
+  };
+  for entry in entries.flatten() {
+    let name = entry.file_name();
+    let Some((unit, owner)) = name
+      .to_str()
+      .and_then(|name| name.split_once(STAGING_MARKER))
+    else {
+      continue;
+    };
+    let Some(pid) = owner
+      .split_once('-')
+      .and_then(|(pid, _)| pid.parse::<u32>().ok())
+    else {
+      continue;
+    };
+    if !CacheDirectory::is_valid(unit) || pid == std::process::id() {
+      continue;
+    }
+    let expired = entry
+      .metadata()
+      .and_then(|metadata| metadata.modified())
+      .ok()
+      .and_then(|modified| SystemTime::now().duration_since(modified).ok())
+      .is_some_and(|age| age > STAGING_MAX_AGE);
+    if expired || !StateLock::is_process_running(pid) {
+      let _ = fs::remove_dir_all(entry.path());
+    }
+  }
+}
+
+fn newest_scope_meta(unit: &Path) -> Option<SystemTime> {
+  fs::read_dir(unit)
+    .ok()?
+    .flatten()
+    .filter(|entry| !is_transient(&entry.file_name()))
+    .filter_map(|entry| {
+      fs::metadata(entry.path().join("_meta"))
+        .ok()?
+        .modified()
+        .ok()
+    })
+    .max()
+}
+
+/// Keeps donors that contain the compiler unit, most recently written first.
+pub fn rank_seed_donors(donors: Vec<PathBuf>, unit: &CacheDirectory) -> Vec<PathBuf> {
+  let mut ranked: Vec<_> = donors
+    .into_iter()
+    .filter_map(|donor| Some((newest_scope_meta(&donor.join(unit.as_str()))?, donor)))
+    .collect();
+  ranked.sort_by_key(|(modified, _)| std::cmp::Reverse(*modified));
+  ranked.into_iter().map(|(_, donor)| donor).collect()
+}
 
 fn generations(directory: &Path, stamps: &mut BTreeMap<PathBuf, Vec<u8>>) -> Result<()> {
   for entry in fs::read_dir(directory)? {
     let entry = entry?;
-    if entry.file_name() == ".temp" || entry.file_name() == "_stale" {
+    if is_transient(&entry.file_name()) {
       continue;
     }
     let kind = entry.file_type()?;
@@ -32,7 +100,7 @@ fn copy_directory(source: &Path, target: &Path) -> Result<()> {
   fs::create_dir(target)?;
   for entry in fs::read_dir(source)? {
     let entry = entry?;
-    if entry.file_name() == ".temp" || entry.file_name() == "_stale" {
+    if is_transient(&entry.file_name()) {
       continue;
     }
     let kind = entry.file_type()?;
@@ -40,7 +108,7 @@ fn copy_directory(source: &Path, target: &Path) -> Result<()> {
     if kind.is_dir() {
       copy_directory(&entry.path(), &destination)?;
     } else if kind.is_file() {
-      reflink_copy::reflink_or_copy(entry.path(), destination)?;
+      fs::copy(entry.path(), destination)?;
     } else {
       return Err(rspack_error::error!(
         "cache donor contains a non-regular file"
@@ -50,80 +118,94 @@ fn copy_directory(source: &Path, target: &Path) -> Result<()> {
   Ok(())
 }
 
-#[cfg(target_os = "macos")]
-fn remove_transient(directory: &Path) -> Result<()> {
-  for entry in fs::read_dir(directory)? {
-    let entry = entry?;
-    if entry.file_name() == ".temp" || entry.file_name() == "_stale" {
-      if entry.file_type()?.is_dir() {
-        fs::remove_dir_all(entry.path())?;
-      } else {
-        fs::remove_file(entry.path())?;
-      }
-    } else if entry.file_type()?.is_dir() {
-      remove_transient(&entry.path())?;
-    }
+fn pending_transaction(unit: &Path) -> Result<Option<&'static str>> {
+  let temp = unit.join(".temp");
+  if temp.join("commit.lock").try_exists()? {
+    return Ok(Some("donor has an unfinished commit"));
   }
-  Ok(())
+  match fs::read(temp.join("state.lock")) {
+    Ok(bytes) => Ok(
+      StateLock::decode(&bytes)
+        .is_none_or(|lock| lock.is_running())
+        .then_some("donor has a running transaction"),
+    ),
+    Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
+    Err(error) => Err(error.into()),
+  }
 }
 
-fn clone_directory(source: &Path, target: &Path) -> Result<&'static str> {
-  #[cfg(target_os = "macos")]
-  if reflink_copy::reflink(source, target).is_ok() {
-    remove_transient(target)?;
-    return Ok("directory reflink");
-  }
-  copy_directory(source, target)?;
-  Ok("per-file reflink or copy")
+#[derive(Debug)]
+pub enum SeedStage {
+  Staged(StagedUnit),
+  Skipped(&'static str),
 }
 
-/// Seeds only an absent compiler unit. The donor is never opened as writable storage.
-pub fn seed_cache(location: &Path, donor: &Path, unit: &CacheDirectory) -> Result<&'static str> {
-  let destination = location.join(unit.as_str());
-  if destination.try_exists()? {
-    return Ok("skipped: compiler unit already exists");
+/// A consistent copy of a donor unit. Dropping it removes the copy.
+#[derive(Debug)]
+pub struct StagedUnit {
+  staging: TempDir,
+  unit: CacheDirectory,
+  destination: PathBuf,
+}
+
+impl StagedUnit {
+  /// Storage directory whose compiler unit is the staged copy.
+  pub fn directory(&self) -> &Path {
+    self.staging.path()
   }
-  let source = donor.join(unit.as_str());
-  if !source.is_dir() {
-    return Ok("skipped: donor compiler unit is absent");
-  }
-  fs::create_dir_all(location)?;
-  for _ in 0..3 {
-    // A dead owner's unfinished commit is also unsafe without recovery, which would write to the donor.
-    if source.join(".temp/state.lock").try_exists()?
-      || source.join(".temp/commit.lock").try_exists()?
-    {
-      return Ok("skipped: donor has a pending transaction");
-    }
-    let mut before = BTreeMap::new();
-    before.insert(donor.join("_meta"), fs::read(donor.join("_meta"))?);
-    generations(&source, &mut before)?;
-    let staging = tempfile::Builder::new()
-      .prefix(&format!("{}.seeding-{}-", unit, std::process::id()))
-      .tempdir_in(location)?;
-    let staged_unit = staging.path().join(unit.as_str());
-    let outcome = clone_directory(&source, &staged_unit)?;
-    let mut after = BTreeMap::new();
-    after.insert(donor.join("_meta"), fs::read(donor.join("_meta"))?);
-    generations(&source, &mut after)?;
-    if before != after
-      || source.join(".temp/state.lock").try_exists()?
-      || source.join(".temp/commit.lock").try_exists()?
-    {
-      continue;
-    }
-    match fs::rename(&staged_unit, &destination) {
-      Ok(()) => return Ok(outcome),
+
+  /// Moves the staged unit into place. Returns `false` when another compiler seeded it first.
+  pub fn commit(self) -> Result<bool> {
+    match fs::rename(
+      self.staging.path().join(self.unit.as_str()),
+      &self.destination,
+    ) {
+      Ok(()) => Ok(true),
       Err(error)
         if matches!(
           error.kind(),
           ErrorKind::AlreadyExists | ErrorKind::DirectoryNotEmpty
-        ) =>
+        ) || self.destination.is_dir() =>
       {
-        return Ok("skipped: another compiler seeded the unit");
+        Ok(false)
       }
-      Err(error) => return Err(error.into()),
+      Err(error) => Err(error.into()),
     }
   }
-  Ok("skipped: donor changed during three seeding attempts")
+}
+
+/// Copies an absent compiler unit from a donor without opening the donor as storage.
+pub fn stage_seed(location: &Path, donor: &Path, unit: &CacheDirectory) -> Result<SeedStage> {
+  let destination = location.join(unit.as_str());
+  if destination.try_exists()? {
+    return Ok(SeedStage::Skipped("compiler unit already exists"));
+  }
+  let source = donor.join(unit.as_str());
+  fs::create_dir_all(location)?;
+  for _ in 0..ATTEMPTS {
+    if let Some(reason) = pending_transaction(&source)? {
+      return Ok(SeedStage::Skipped(reason));
+    }
+    let mut before = BTreeMap::new();
+    generations(&source, &mut before)?;
+    let staging = tempfile::Builder::new()
+      .prefix(&format!("{unit}{STAGING_MARKER}{}-", std::process::id()))
+      .tempdir_in(location)?;
+    copy_directory(&source, &staging.path().join(unit.as_str()))?;
+    let mut after = BTreeMap::new();
+    generations(&source, &mut after)?;
+    if let Some(reason) = pending_transaction(&source)? {
+      return Ok(SeedStage::Skipped(reason));
+    }
+    if before == after {
+      return Ok(SeedStage::Staged(StagedUnit {
+        staging,
+        unit: unit.clone(),
+        destination,
+      }));
+    }
+  }
+  Ok(SeedStage::Skipped(
+    "donor changed during every copy attempt",
+  ))
 }

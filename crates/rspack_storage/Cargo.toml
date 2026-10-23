@@ -16,7 +16,6 @@ async-trait       = { workspace = true }
 cow-utils         = { workspace = true }
 futures           = { workspace = true }
 itertools         = { workspace = true }
-reflink-copy      = { workspace = true }
 rspack-allocative = { workspace = true, optional = true }
 rspack_error      = { workspace = true }
 rspack_fs         = { workspace = true }

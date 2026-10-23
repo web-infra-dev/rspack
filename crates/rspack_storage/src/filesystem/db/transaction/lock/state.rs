@@ -96,6 +96,20 @@ impl StateLock {
   pub fn is_current(&self) -> bool {
     self.pid == std::process::id()
   }
+
+  /// Decodes the bytes written by [`StateLock::save`].
+  pub fn decode(bytes: &[u8]) -> Option<Self> {
+    let (pid, process_name) = bytes.split_first_chunk::<4>()?;
+    Some(Self {
+      pid: u32::from_be_bytes(*pid),
+      process_name: String::from_utf8(process_name.to_vec()).ok()?,
+    })
+  }
+
+  /// Checks if any process with this PID is running.
+  pub fn is_process_running(pid: u32) -> bool {
+    get_process_name(pid).is_some()
+  }
 }
 
 /// Gets the process name for a given PID.
