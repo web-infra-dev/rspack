@@ -2,9 +2,9 @@
 #![allow(missing_docs)]
 
 use crate::{
-  BoxSource, CachedSource, ConcatSource, MappingSource, OriginalSource, RawBufferSource,
-  RawStringSource, ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap,
-  SourceMapFields, SourceMapSource, SourceMapSourceOptions, mapping_source::Data,
+  AssetSource, BoxSource, CachedSource, ConcatSource, MappingSource, OriginalSource,
+  RawBufferSource, RawStringSource, ReplaceSource, ReplacementEnforce, Source, SourceExt,
+  SourceMap, SourceMapFields, SourceMapSource, SourceMapSourceOptions, mapping_source::Data,
 };
 
 /// Source map fields stored without an intermediate JSON representation.
@@ -100,6 +100,12 @@ pub struct CacheableReplacement {
   __C: rkyv::validation::ArchiveContext + rkyv::rancor::Fallible
 )))]
 pub enum CacheableSource {
+  /// A final asset's compressed frame and original content identity.
+  Asset {
+    compressed: Vec<u8>,
+    size: usize,
+    content_hash: u64,
+  },
   /// [`RawBufferSource`]
   RawBuffer {
     /// The raw buffer.
@@ -167,6 +173,13 @@ pub enum CacheableSource {
 
 /// Convert a [`Source`] trait object into a serializable [`CacheableSource`].
 pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
+  if let Some(s) = source.as_any().downcast_ref::<AssetSource>() {
+    return CacheableSource::Asset {
+      compressed: s.compressed_buffer().to_vec(),
+      size: s.size(),
+      content_hash: s.content_hash(),
+    };
+  }
   if let Some(s) = source.as_any().downcast_ref::<MappingSource>() {
     return match s.data() {
       Data::Map(data) => CacheableSource::Mapping {
@@ -256,14 +269,23 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
 }
 
 /// Convert a [`CacheableSource`] back into a [`BoxSource`].
-pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
-  match cacheable {
+pub fn from_cacheable(cacheable: CacheableSource) -> crate::Result<BoxSource> {
+  Ok(match cacheable {
+    CacheableSource::Asset {
+      compressed,
+      size,
+      content_hash,
+    } => {
+      let source = AssetSource::from_parts(compressed.into(), size, content_hash);
+      source.validate()?;
+      source.boxed()
+    }
     CacheableSource::Mapping { map } => MappingSource::new((*map).into()).boxed(),
     CacheableSource::EditedMapping {
       inner,
       replacements,
     } => {
-      let inner = from_cacheable(*inner);
+      let inner = from_cacheable(*inner)?;
       inner
         .as_any()
         .downcast_ref::<MappingSource>()
@@ -295,14 +317,17 @@ pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
       .boxed()
     }
     CacheableSource::Concat { children } => {
-      let children: Vec<BoxSource> = children.into_iter().map(from_cacheable).collect();
+      let children = children
+        .into_iter()
+        .map(from_cacheable)
+        .collect::<crate::Result<Vec<BoxSource>>>()?;
       ConcatSource::new(children).boxed()
     }
     CacheableSource::Replace {
       inner,
       replacements,
     } => {
-      let inner = from_cacheable(*inner);
+      let inner = from_cacheable(*inner)?;
       let mut source = ReplaceSource::new(inner);
       for r in replacements {
         let enforce = match r.enforce {
@@ -317,6 +342,6 @@ pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
       }
       source.boxed()
     }
-    CacheableSource::Cached { inner } => CachedSource::new(from_cacheable(*inner)).boxed(),
-  }
+    CacheableSource::Cached { inner } => CachedSource::new(from_cacheable(*inner)?).boxed(),
+  })
 }

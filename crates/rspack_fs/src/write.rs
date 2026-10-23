@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use rspack_paths::Utf8Path;
+use rspack_sources::{AssetSource, Source};
 
 use super::{FileMetadata, Result};
 use crate::file_metadata::FilePermissions;
@@ -25,6 +26,17 @@ pub trait WritableFileSystem: Debug + Send + Sync {
   /// Write a slice as the entire contents of a file.
   /// This function will create a file if it does not exist, and will entirely replace its contents if it does.
   async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()>;
+
+  /// Write a final compressed asset. File systems with streaming output override this.
+  async fn write_asset(&self, file: &Utf8Path, source: &AssetSource) -> Result<()> {
+    self.write(file, &source.buffer()).await
+  }
+
+  /// Compare an existing output with decoded asset bytes.
+  async fn compare_asset(&self, file: &Utf8Path, source: &AssetSource) -> Result<bool> {
+    let existing = self.read_file(file).await?;
+    Ok(source.matches_reader(existing.as_slice())?)
+  }
 
   /// Removes a file from the filesystem.
   async fn remove_file(&self, file: &Utf8Path) -> Result<()>;
