@@ -138,6 +138,14 @@ impl HashHelper {
             continue;
           }
 
+          match self.fs.symlink_metadata(child_path.assert_utf8()).await {
+            Ok(metadata) if metadata.is_symlink => "l",
+            Ok(metadata) if metadata.is_directory => "d",
+            Ok(metadata) if metadata.is_file => "f",
+            Ok(_) => "o",
+            Err(_) => "n",
+          }
+          .hash(&mut hasher);
           if let Some(ContentHash { hash, .. }) = self.dir_hash(&child_path).await {
             hash.hash(&mut hasher);
           }
