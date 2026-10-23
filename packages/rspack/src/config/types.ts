@@ -960,6 +960,9 @@ export type RuleSetRuleUseAndLoader =
 
 /** Rule defines the conditions for matching a module and the behavior of handling those modules. */
 export type RuleSetRule = RuleSetRuleUseAndLoader & {
+  /** Only matching rules with the highest priority apply. Defaults to 0. */
+  priority?: number;
+
   /** Matches all modules that match this resource, and will match against Resource. */
   test?: RuleSetCondition;
 

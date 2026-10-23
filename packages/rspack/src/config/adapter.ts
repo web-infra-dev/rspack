@@ -379,6 +379,7 @@ const getRawModuleRule = (
   }
 
   const rawModuleRule: RawModuleRule = {
+    priority: rule.priority,
     test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
     include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
     exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
