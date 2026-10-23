@@ -3,7 +3,7 @@ use rspack_cacheable::utils::root_patterns;
 fn patterns(root: &str) -> Vec<String> {
   root_patterns(root)
     .into_iter()
-    .map(|pattern| String::from_utf8(pattern).unwrap())
+    .map(|pattern| String::from_utf8(pattern).expect("root patterns are UTF-8"))
     .collect()
 }
 
