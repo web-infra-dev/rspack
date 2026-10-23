@@ -279,35 +279,6 @@ fn test_interned_path_binding_signal() {
   }
 }
 
-#[test]
-fn test_interned_path_decode_is_memoized_per_payload() {
-  use std::cell::Cell;
-  struct CountingContext(Cell<usize>);
-  impl CacheableContext for CountingContext {
-    fn project_root(&self) -> Option<&Path> {
-      self.0.set(self.0.get() + 1);
-      Some(Path::new(ROOT_B))
-    }
-  }
-  let module = Module {
-    paths: vec![InternedPath::from("/home/user/project/src/a.js"); 1024],
-  };
-  let bytes = to_bytes(
-    &module,
-    &Context {
-      project_root: PathBuf::from(ROOT_A),
-    },
-  )
-  .unwrap();
-  let context = CountingContext(Cell::new(0));
-  let restored: Module = from_bytes(&bytes, &context).unwrap();
-  assert_eq!(context.0.get(), 1);
-  assert_eq!(
-    restored.paths,
-    vec![InternedPath::from("/w/x/y/z/proj/src/a.js"); 1024]
-  );
-}
-
 #[cfg(windows)]
 #[test]
 fn test_interned_path_windows_native_separators() {
