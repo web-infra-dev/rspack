@@ -271,9 +271,7 @@ const applyCacheDefaults = (
         } else {
           root = path.resolve(context, root);
         }
-        cache.portable = {
-          root: fs.existsSync(root) ? fs.realpathSync.native(root) : root,
-        };
+        cache.portable = { root };
       }
       break;
   }

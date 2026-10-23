@@ -2191,7 +2191,7 @@ export type PersistentCacheOptions = {
   /**
    * Rebase cached paths under a portable root. Paths outside it remain unchanged.
    * The root defaults to the nearest ancestor of context containing .git, or context.
-   * An explicit root is resolved against context. Existing roots are realpathed.
+   * An explicit root is resolved against context and keeps the spelling of context.
    * @default false
    */
   portable?: boolean | { root?: string };

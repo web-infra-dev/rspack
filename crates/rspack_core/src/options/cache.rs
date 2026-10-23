@@ -30,13 +30,26 @@ pub enum StorageOptions {
   },
 }
 
+/// The root that portable cache entries are rebased against, in both of its spellings.
+///
+/// It is cloned with [`PersistentCacheOptions`], which copies both paths.
+#[derive(Debug, Clone)]
+pub struct PortableRoot {
+  /// The root as `context` spells it. Paths under it are stored relative to it and restored under
+  /// the reader's spelling.
+  pub root: Utf8PathBuf,
+  /// The realpath of `root`. The resolver realpaths resources, so paths under this spelling are
+  /// rebased as well.
+  pub canonical_root: Utf8PathBuf,
+}
+
 /// Options shared by the cache backends.
 #[derive(Debug, Clone)]
 pub struct PersistentCacheOptions {
   pub build_dependencies: BuildDepsOptions,
   pub version: String,
   pub storage: StorageOptions,
-  pub portable_root: Option<Utf8PathBuf>,
+  pub portable_root: Option<PortableRoot>,
   pub readonly: bool,
   /// Filesystem cache max age in seconds.
   pub max_age: u64,

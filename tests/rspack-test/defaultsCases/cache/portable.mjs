@@ -1,7 +1,6 @@
-import fs from "node:fs";
 import path from "node:path";
 
-const root = fs.realpathSync.native(path.resolve(import.meta.dirname, "../../../.."));
+const root = path.resolve(import.meta.dirname, "../../../..");
 
 /** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 export default {
