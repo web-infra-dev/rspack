@@ -100,6 +100,7 @@
 		);
 		throw Error("RuntimeError: factory is undefined(" + <%- MODULE_ID %> + ")");
 	};
+	warnUnexpectedRequire.__rspack_hmr_disposed = true;
 
 	for (var moduleId in hotCurrentUpdate) {
 		if (<%- HAS_OWN_PROPERTY %>(hotCurrentUpdate, moduleId)) {

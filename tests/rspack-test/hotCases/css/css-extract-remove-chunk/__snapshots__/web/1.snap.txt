@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 147
-- Update: main.LAST_HASH.hot-update.js, size: 21591
+- Update: main.LAST_HASH.hot-update.js, size: 21644
 
 ## Manifest
 
@@ -361,6 +361,7 @@ function hotApplyHandler(options) {
 		);
 		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
 	};
+	warnUnexpectedRequire.__rspack_hmr_disposed = true;
 
 	for (var moduleId in hotCurrentUpdate) {
 		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {

@@ -352,6 +352,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         Some(serde_json::json!({
           "_modules": runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
           "_with_on_chunk_load": with_on_chunk_load,
+          "_with_hmr": with_hmr,
         })),
       )?;
 

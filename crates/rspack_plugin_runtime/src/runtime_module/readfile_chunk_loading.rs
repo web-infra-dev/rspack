@@ -314,6 +314,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
             true => format!("{}();", runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)),
             false => String::new(),
           },
+          "_with_hmr": with_hmr,
         })),
       )?;
 
