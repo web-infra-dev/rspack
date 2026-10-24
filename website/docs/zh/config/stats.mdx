@@ -84,7 +84,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.assetsSort
 
-<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"!size"' }]} />
 
 基于指定的字段对产物排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
 
@@ -193,7 +193,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.chunksSort
 
-<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: 'false' }]} />
 
 基于指定的字段对 Chunk 排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
 
@@ -268,7 +268,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.modulesSort
 
-<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"depth"' }]} />
 
 基于指定的字段对模块排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
 
