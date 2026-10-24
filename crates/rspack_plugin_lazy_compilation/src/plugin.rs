@@ -141,7 +141,7 @@ async fn normal_module_factory_module(
     return Ok(());
   };
 
-  let is_imports = matches!(
+  let mut is_imports = matches!(
     dep_type,
     DependencyType::DynamicImport
       | DependencyType::DynamicImportEager
@@ -149,7 +149,6 @@ async fn normal_module_factory_module(
   );
   let is_entries = matches!(dep_type, DependencyType::Entry);
 
-  #[allow(clippy::if_same_then_else)]
   if matches!(
     dep_type,
     DependencyType::ModuleHotAccept
@@ -157,12 +156,26 @@ async fn normal_module_factory_module(
       | DependencyType::ImportMetaHotAccept
       | DependencyType::ImportMetaHotDecline
   ) {
-    // TODO: we cannot access module graph at this stage
-    // if hmr point to a module that is already been dyn imported
-    // eg: import('./foo'); module.hot.accept('./foo')
-    // however we cannot access module graph at this time, so we cannot
-    // detect this case easily
-    return Ok(());
+    let request = module_factory_create_data.dependencies[0]
+      .as_module_dependency()
+      .expect("HMR dependencies must be module dependencies")
+      .request();
+    is_imports = module_factory_create_data
+      .issuer_dependencies
+      .as_deref()
+      .unwrap_or_default()
+      .iter()
+      .any(|dependency| {
+        matches!(
+          dependency.dependency_type(),
+          DependencyType::DynamicImport | DependencyType::DynamicImportEager
+        ) && dependency
+          .as_module_dependency()
+          .is_some_and(|dependency| dependency.request() == request)
+      });
+    if !is_imports {
+      return Ok(());
+    }
   } else if !is_entries && !is_imports {
     return Ok(());
   }
