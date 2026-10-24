@@ -10,7 +10,7 @@
 - Bundle: main.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: main.LAST_HASH.hot-update.js, size: 25524
+- Update: main.LAST_HASH.hot-update.js, size: 25571
 
 ## Manifest
 
@@ -194,6 +194,7 @@ link.href = url;
 		link.onload = onLinkComplete.bind(null, link.onload);
 	} else onLinkComplete(undefined, { type: "load", target: link });
 	if (hmr && hmr.getAttribute("fetchpriority")) link.setAttribute("fetchpriority", hmr.getAttribute("fetchpriority"));
+	if (hmr && hmr.media) link.media = hmr.media;
 	hmr ? document.head.insertBefore(link, hmr) : needAttach && document.head.appendChild(link);
 	return link;
 };
