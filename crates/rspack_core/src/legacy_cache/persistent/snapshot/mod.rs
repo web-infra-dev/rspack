@@ -97,6 +97,31 @@ impl Snapshot {
     scope: SnapshotScope,
     paths: impl Iterator<Item = InternedPath>,
   ) {
+    self.add_paths(storage, scope, paths, None).await;
+  }
+
+  /// Adds context snapshots that no validation observed. The build read these directories after
+  /// `start_time`, so one modified since then may differ from what was read. Like webpack, its
+  /// snapshot is stored as failed and revalidates on the next start.
+  #[tracing::instrument("Cache::Snapshot::add_unobserved_contexts", skip_all)]
+  pub async fn add_unobserved_contexts(
+    &self,
+    storage: &mut dyn Storage,
+    paths: impl Iterator<Item = InternedPath>,
+    start_time: Option<u64>,
+  ) {
+    self
+      .add_paths(storage, SnapshotScope::CONTEXT, paths, start_time)
+      .await;
+  }
+
+  async fn add_paths(
+    &self,
+    storage: &mut dyn Storage,
+    scope: SnapshotScope,
+    paths: impl Iterator<Item = InternedPath>,
+    start_time: Option<u64>,
+  ) {
     let helper = Arc::new(StrategyHelper::new(
       self.fs.clone(),
       self.options.clone(),
@@ -110,8 +135,19 @@ impl Snapshot {
         let options = self.options.clone();
         let codec = codec.clone();
         async move {
-          let strategy =
+          let mut strategy =
             Self::calc_strategy(&options, &helper, &path, scope, codec.is_portable()).await?;
+          if let Some(start_time) = start_time
+            && matches!(
+              strategy,
+              Strategy::DirHash { .. }
+                | Strategy::DirTimestamp { .. }
+                | Strategy::DirTimestampAndHash { .. }
+            )
+            && helper.dir_modified_since(&path, start_time).await
+          {
+            strategy = Strategy::Failed;
+          }
           Some((
             codec.encode(&path).expect("should encode success"),
             codec.encode(&strategy).expect("should encode success"),

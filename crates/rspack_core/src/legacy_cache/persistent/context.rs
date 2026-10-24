@@ -1,6 +1,7 @@
 use std::{fmt::Write as _, time::Duration};
 
 use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
+use rspack_util::time::current_time;
 
 use super::{
   occasion::{Occasion, Recovered},
@@ -40,6 +41,8 @@ pub struct CacheContext {
   storage: BoxStorage,
   refresh_file_snapshots: InternedPathMap<Strategy>,
   observed_context_snapshots: InternedPathMap<Strategy>,
+  /// When the current build started, in milliseconds since the Unix epoch.
+  build_start_time: Option<u64>,
 }
 
 impl CacheContext {
@@ -52,7 +55,12 @@ impl CacheContext {
       storage,
       refresh_file_snapshots: InternedPathMap::default(),
       observed_context_snapshots: InternedPathMap::default(),
+      build_start_time: None,
     }
+  }
+
+  pub fn start_build(&mut self) {
+    self.build_start_time = Some(current_time());
   }
 
   pub fn logger(&self) -> &CompilationLogger {
@@ -307,15 +315,15 @@ impl CacheContext {
       SnapshotScope::FILE,
       std::mem::take(&mut self.refresh_file_snapshots).into_iter(),
     );
-    // Hashing a re-added directory now would hide children created after the build read it.
+    // Hashing a directory now would hide children created after the build read it.
     let mut observed_contexts = std::mem::take(&mut self.observed_context_snapshots);
     let (validated_contexts, new_contexts): (Vec<_>, Vec<_>) =
       context_added.partition(|path| observed_contexts.contains_key(path));
     snapshot
-      .add(
+      .add_unobserved_contexts(
         &mut *self.storage,
-        SnapshotScope::CONTEXT,
         new_contexts.into_iter(),
+        self.build_start_time,
       )
       .await;
     snapshot.refresh(
@@ -428,6 +436,7 @@ impl CacheContext {
   pub fn reset(&mut self) {
     self.refresh_file_snapshots.clear();
     self.observed_context_snapshots.clear();
+    self.build_start_time = None;
     if !self.readonly {
       self.invalid = false;
       self.load_failed = false

@@ -221,6 +221,16 @@ impl StrategyHelper {
     }
   }
 
+  /// Whether the directory, or anything below it that its strategies cover, was modified at or
+  /// after `time`.
+  pub async fn dir_modified_since(&self, path: &InternedPath, time: u64) -> bool {
+    self
+      .hash_helper
+      .dir_timestamp_hash(path)
+      .await
+      .is_some_and(|timestamp| timestamp.newest >= time)
+  }
+
   /// validate path file by target strategy
   pub async fn validate(&self, path: &InternedPath, strategy: &Strategy) -> ValidateResult {
     match strategy {
