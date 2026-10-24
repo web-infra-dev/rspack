@@ -491,7 +491,7 @@ type FilterItemTypes = RegExp | string | ((value: string) => boolean);
 type StatsLoggingDebug = boolean | FilterItemTypes | FilterItemTypes[];
 ```
 
-Whether to display the debug information of the specified [loggers](/api/javascript-api/logger) such as Plugins or Loaders. When `stats.logging` is set to `false`, `stats.loggingDebug` option is ignored.
+Enable debug output for matching [loggers](/api/javascript-api/logger), such as those used by plugins or loaders. Matching loggers bypass the `stats.logging` level filter, so their output is included even when `stats.logging` is `false`.
 
 ```js title="rspack.config.mjs"
 export default {
