@@ -84,7 +84,7 @@ Whether to display the asset information. See [Asset Object](/api/javascript-api
 
 ### stats.assetsSort
 
-<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"!size"' }]} />
 
 Sort the assets by a given field. All of the [sorting fields](/config/stats#sorting-fields) are allowed to be used. Use `!` prefix in the value to reverse the sort order by a given field.
 
@@ -193,7 +193,7 @@ Whether to display chunk parents, children and siblings.
 
 ### stats.chunksSort
 
-<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Sort the chunks by a given field. All of the [sorting fields](/config/stats#sorting-fields) are allowed to be used. Use `!` prefix in the value to reverse the sort order by a given field.
 
@@ -268,7 +268,7 @@ How many items of modules should be displayed (groups will be collapsed to fit t
 
 ### stats.modulesSort
 
-<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"depth"' }]} />
 
 Sort the modules by a given field. All of the [sorting fields](/config/stats#sorting-fields) are allowed to be used. Use `!` prefix in the value to reverse the sort order by a given field.
 
