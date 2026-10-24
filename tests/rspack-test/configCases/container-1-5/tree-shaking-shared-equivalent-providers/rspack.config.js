@@ -9,7 +9,10 @@ module.exports = [
   'equivalent-filename',
   'different-scope-shape',
   'different-filenames',
+  'provider-inferred-first',
+  'provider-explicit-first',
 ].map((name) => {
+  const providers = name.startsWith('provider-');
   const common = {
     import: 'pkg-a',
     shareKey: 'same-key',
@@ -27,23 +30,26 @@ module.exports = [
       treeShaking: { mode: 'runtime-infer', filename: 'alternate-entry.js' },
     }),
   };
+  const shared = (
+    name.includes('explicit-first') ? [explicit, common] : [common, explicit]
+  ).map((options) => ({ 'alias-a': options }));
+  if (providers) {
+    shared.push({ 'alias-a': { ...common, version: '2.0.0' } });
+  }
   return {
     target: 'async-node',
     output: { publicPath: 'PUBLIC_PATH' },
     plugins: [
       new DefinePlugin({
         CASE_NAME: JSON.stringify(name),
-        EXPECTED_ARTIFACTS: name.startsWith('different-') ? 2 : 1,
+        EXPECTED_ARTIFACTS: name.startsWith('different-') || providers ? 2 : 1,
       }),
       new ModuleFederationPlugin({
         name: `equivalent_${name}`,
         library: { type: 'commonjs-module' },
         manifest: { fileName: `${name}.json` },
         treeShakingSharedDir: `independent-${name}`,
-        shared: (name === 'explicit-first'
-          ? [explicit, common]
-          : [common, explicit]
-        ).map((options) => ({ 'alias-a': options })),
+        shared,
       }),
     ],
   };
