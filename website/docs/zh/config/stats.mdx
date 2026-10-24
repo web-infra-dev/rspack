@@ -16,6 +16,24 @@ import Attribution from '@components/Attribution';
 
 :::
 
+通过 JavaScript API 输出统计信息时，下列选项的默认值取决于输出方法。预设、`stats.all` 和显式配置的选项可以覆盖这些默认值。
+
+| 选项                                                                                    | `stats.toString()` | `stats.toJson()` |
+| --------------------------------------------------------------------------------------- | ------------------ | ---------------- |
+| `hash`, `builtAt`, `publicPath`, `outputPath`, `children`                               | `false`            | `true`           |
+| `relatedAssets`, `cachedAssets`                                                         | `false`            | `true`           |
+| `chunkGroupAuxiliary`, `chunkGroupChildren`, `chunkRelations`, `chunkOrigins`, `ids`    | `false`            | `true`           |
+| `dependentModules`, `nestedModules`, `orphanModules`, `runtimeModules`, `cachedModules` | `false`            | `true`           |
+| `moduleAssets`, `depth`, `reasons`                                                      | `false`            | `true`           |
+| `usedExports`, `providedExports`, `optimizationBailout`                                 | `false`            | `true`           |
+| `errorStack`, `loggingTrace`                                                            | `false`            | `true`           |
+| `groupAssetsBy*`, `groupModulesBy*`, `groupReasonsByOrigin`                             | `true`             | `false`          |
+| `assetsSpace`, `modulesSpace`, `reasonsSpace`                                           | `15`               | `Infinity`       |
+| `chunkModulesSpace`, `nestedModulesSpace`                                               | `10`               | `Infinity`       |
+| `chunkGroupMaxAssets`                                                                   | `5`                | `Infinity`       |
+| `logging`                                                                               | `'info'`           | `false`          |
+| `errorDetails`                                                                          | `'auto'`           | `true`           |
+
 - **类型：**
 
 ```ts
@@ -280,9 +298,9 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.reasonsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '1000' }]} />
+<PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
 
-展示的引入来源信息长度（超过的部分将以分组方式折叠）。
+显示多少个原因条目（分组将被折叠以适应该限制）。
 
 ### stats.source
 
@@ -433,15 +451,18 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.errorDetails
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: '"auto"' }]} />
 
 是否展示错误的详情。为 `'auto'` 时，若错误仅有两个及以下则将展示错误详情。
 
 ### stats.errorsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+<PropertyType
+  type="number"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-展示单个错误时的最大行数。
+显示错误信息时使用的最大行数，默认不限制行数。
 
 ### stats.errorStack
 
@@ -463,9 +484,12 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.warningsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+<PropertyType
+  type="number"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-展示的警告最大行数。
+显示警告信息时使用的最大行数，默认不限制行数。
 
 ## 日志选项
 
