@@ -11,4 +11,5 @@ mod as_tuple3;
 mod as_vec;
 mod custom;
 mod inline;
+mod interned_path;
 mod unsupported;
