@@ -11,12 +11,17 @@ use rspack_cacheable::{
   utils::root_patterns,
 };
 use rspack_error::Result;
-use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHasher;
 
+use crate::PortableRoot;
+
+/// How encoded bytes depend on the portable root.
 #[derive(Debug, Clone, Copy)]
 pub enum RootBinding {
+  /// The bytes are valid under any root.
   Unbound,
+  /// The bytes embed the root or reference paths outside it. Outside paths may be derived from
+  /// either spelling of the root, so the bytes are valid only where both spellings match.
   Bound,
 }
 
@@ -29,12 +34,19 @@ struct RootPatterns {
 /// Internal cacheable context for serialization
 #[derive(Debug, Clone)]
 struct Context {
-  portable_project_root: Option<Utf8PathBuf>,
+  portable_root: Option<PortableRoot>,
 }
 
 impl rspack_cacheable::CacheableContext for Context {
   fn project_root(&self) -> Option<&Path> {
-    self.portable_project_root.as_ref().map(|p| p.as_std_path())
+    self.portable_root.as_ref().map(|p| p.root.as_std_path())
+  }
+
+  fn canonical_project_root(&self) -> Option<&Path> {
+    self
+      .portable_root
+      .as_ref()
+      .map(|p| p.canonical_root.as_std_path())
   }
 }
 
@@ -46,7 +58,7 @@ impl rspack_cacheable::CacheableContext for Context {
 /// # Example
 ///
 /// ```ignore
-/// let codec = CacheCodec::new(portable_project_root);
+/// let codec = CacheCodec::new(portable_root);
 ///
 /// // Encode data to bytes
 /// let bytes = codec.encode(&my_data)?;
@@ -61,13 +73,20 @@ pub struct CacheCodec {
 }
 
 impl CacheCodec {
-  pub fn new(portable_project_root: Option<Utf8PathBuf>) -> Self {
-    let root_patterns = portable_project_root.as_ref().map(|root| {
+  pub fn new(portable_root: Option<PortableRoot>) -> Self {
+    let root_patterns = portable_root.as_ref().map(|portable_root| {
       let mut hasher = FxHasher::default();
-      root.as_str().as_bytes().hash(&mut hasher);
+      portable_root.canonical_root.as_str().hash(&mut hasher);
+      portable_root.root.as_str().hash(&mut hasher);
+      let mut patterns: Vec<Vec<u8>> = [&portable_root.root, &portable_root.canonical_root]
+        .into_iter()
+        .flat_map(|root| root_patterns(root.as_str()))
+        .collect();
+      patterns.sort_unstable();
+      patterns.dedup();
       Arc::new(RootPatterns {
         hash: hasher.finish(),
-        finders: root_patterns(root.as_str())
+        finders: patterns
           .iter()
           .map(|pattern| Finder::new(pattern).into_owned())
           .collect(),
@@ -75,14 +94,32 @@ impl CacheCodec {
     });
     Self {
       root_patterns,
-      context: Context {
-        portable_project_root,
-      },
+      context: Context { portable_root },
     }
   }
 
-  pub fn root_hash(&self) -> Option<u64> {
-    self.root_patterns.as_ref().map(|patterns| patterns.hash)
+  pub fn is_portable(&self) -> bool {
+    self.root_patterns.is_some()
+  }
+
+  /// Returns the root identity that bytes with `binding` are only valid under.
+  pub fn bound_root(&self, binding: RootBinding) -> Option<u64> {
+    let patterns = self.root_patterns.as_ref()?;
+    match binding {
+      RootBinding::Unbound => None,
+      RootBinding::Bound => Some(patterns.hash),
+    }
+  }
+
+  /// Returns whether bytes bound to `bound_root` are valid under this codec's root.
+  pub fn accepts_bound_root(&self, bound_root: Option<u64>) -> bool {
+    let Some(bound_root) = bound_root else {
+      return true;
+    };
+    self
+      .root_patterns
+      .as_ref()
+      .is_some_and(|patterns| bound_root == patterns.hash)
   }
 
   pub fn encode_with_binding<T>(&self, data: &T) -> Result<(Vec<u8>, RootBinding)>

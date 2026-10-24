@@ -52,12 +52,7 @@ impl PersistentCache {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     compilation_logging: CompilationLogging,
   ) -> Self {
-    let portable_project_root = if option.portable {
-      Some(compiler_options.context.as_path().to_path_buf())
-    } else {
-      None
-    };
-    let codec = Arc::new(CacheCodec::new(portable_project_root));
+    let codec = Arc::new(CacheCodec::new(option.portable_root.clone()));
     // Each compiler path owns exactly one storage directory.
     let cache_directory = {
       let mut hasher = DefaultHasher::new();
@@ -87,7 +82,7 @@ impl PersistentCache {
       validation: CacheValidation::new(
         codec.clone(),
         // Portable entries use the `BoundEntry` envelope, so the two encodings must not share a cache.
-        if option.portable {
+        if option.portable_root.is_some() {
           format!("{}|{}|portable", rspack_pkg_version!(), option.version)
         } else {
           format!("{}|{}", rspack_pkg_version!(), option.version)

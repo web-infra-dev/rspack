@@ -1,14 +1,15 @@
-use std::path::Path;
+use std::path::{Component, Path};
 
 use sugar_path::SugarPath;
 
-use crate::{ContextGuard, Result, cacheable, with::AsConverter};
+use crate::{ContextGuard, Result, RootSpelling, cacheable, with::AsConverter};
 
 /// A portable path representation that can be serialized and deserialized across different
 /// environments with different project roots.
 ///
-/// When serializing with a `project_root`, absolute paths are converted to relative paths.
-/// When deserializing, relative paths are resolved back to absolute paths.
+/// When serializing with a `project_root`, absolute paths under either spelling of that root are
+/// converted to relative paths. When deserializing, relative paths are resolved back to absolute
+/// paths under the same spelling of the current root.
 ///
 /// # Example
 ///
@@ -23,46 +24,44 @@ use crate::{ContextGuard, Result, cacheable, with::AsConverter};
 #[cacheable(crate=crate, hashable)]
 pub struct PortablePath {
   path: String,
-  /// Whether the path was transformed to relative during serialization
-  transformed: bool,
+  /// The root spelling `path` is relative to, or `None` when `path` is stored verbatim.
+  root: Option<RootSpelling>,
 }
 
 impl PortablePath {
   /// Create a portable path. Passing a root enables portable conversion; otherwise the native
-  /// path representation is preserved.
+  /// path representation is preserved. An absolute path left verbatim marks the entry as
+  /// outside the root.
   pub fn new(path: &Path, guard: &ContextGuard) -> Self {
-    let portable_project_root = guard.project_root();
-    if path.is_absolute()
-      && let Some(portable_project_root) = portable_project_root
-    {
-      let relative = path.relative(portable_project_root);
-      if !path.starts_with(portable_project_root) || relative.starts_with("..") {
+    if path.is_absolute() {
+      for (spelling, root) in guard.root_spellings() {
+        if let Ok(relative) = path.strip_prefix(root)
+          && !relative.components().any(|c| c == Component::ParentDir)
+        {
+          return Self {
+            path: relative.to_slash_lossy().into_owned(),
+            root: Some(spelling),
+          };
+        }
+      }
+      if guard.project_root().is_some() {
         guard.mark_outside_root();
       }
-      return Self {
-        path: relative.to_slash_lossy().into_owned(),
-        transformed: true,
-      };
     }
 
     Self {
-      path: if portable_project_root.is_some() {
-        path.to_slash_lossy().into_owned()
-      } else {
-        path.to_string_lossy().into_owned()
-      },
-      transformed: false,
+      path: path.to_string_lossy().into_owned(),
+      root: None,
     }
   }
 
-  /// Convert back to a path string using the portable project root if the path was transformed.
-  pub fn into_path_string(self, portable_project_root: Option<&Path>) -> String {
-    if self.transformed
-      && let Some(portable_project_root) = portable_project_root
-    {
+  /// Convert back to a path string, joining a relative path onto the current root in the spelling
+  /// it was stored under.
+  pub fn into_path_string(self, guard: &ContextGuard) -> String {
+    if let Some(root) = self.root.and_then(|spelling| guard.root(spelling)) {
       return self
         .path
-        .absolutize_with(portable_project_root)
+        .absolutize_with(root)
         .to_string_lossy()
         .into_owned();
     }
@@ -82,6 +81,6 @@ where
   }
 
   fn deserialize(self, guard: &ContextGuard) -> Result<T> {
-    Ok(T::from(self.into_path_string(guard.project_root())))
+    Ok(T::from(self.into_path_string(guard)))
   }
 }
