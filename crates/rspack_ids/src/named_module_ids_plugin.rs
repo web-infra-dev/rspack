@@ -204,7 +204,6 @@ async fn module_ids(
     .map(|(&module, id)| (id.clone(), module))
     .collect();
   let module_graph = compilation.get_module_graph();
-  let mut existing_module_set_id_mutations_len = 0;
   if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::MODULE_IDS)
@@ -224,9 +223,6 @@ async fn module_ids(
             used_ids.remove(id);
           }
           module_ids.remove(module);
-        }
-        Mutation::ModuleSetId { .. } => {
-          existing_module_set_id_mutations_len += 1;
         }
         _ => {}
       }
@@ -300,8 +296,8 @@ async fn module_ids(
       module_graph.modules_len(),
     ));
     logger.log(format!(
-      "{} modules are updated by set_module_id, with {} unnamed modules",
-      mutations.len() + existing_module_set_id_mutations_len,
+      "{} modules are updated by set_module_id, with {} unnamed modules (named ID allocator only)",
+      mutations.len(),
       unnamed_modules_len,
     ));
   }
