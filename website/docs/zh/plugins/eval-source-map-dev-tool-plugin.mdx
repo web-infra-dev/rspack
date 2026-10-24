@@ -25,11 +25,11 @@ export default {
 
 ### 排除 Vendor maps
 
-以下代码将排除 `vendor.js` 打包文件中的任何模块的 source map：
+`test`、`include` 和 `exclude` 匹配的是模块资源路径，而不是输出文件名。以下示例排除 `node_modules` 中模块的 source map：
 
 ```js
 new rspack.EvalSourceMapDevToolPlugin({
-  exclude: ['vendor.js'],
+  exclude: /[\\/]node_modules[\\/]/,
 });
 ```
 
@@ -39,7 +39,7 @@ new rspack.EvalSourceMapDevToolPlugin({
 
 - **类型：** `string` `RegExp` `[string, RegExp]`
 
-根据模块扩展名，匹配的生成 source map（默认是 `.js`、`.mjs` 和 `.css`）。
+为资源路径与给定值匹配的模块生成 source map。默认情况下，此选项不限制包含哪些模块。
 
 ### include
 
