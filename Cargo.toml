@@ -164,7 +164,7 @@ swc_next_ecma_semantic = { version = "0.3.2", default-features = false }
 
 tracy-client = { version = "=0.18.4", default-features = false, features = ["enable", "sampling", "demangle", "system-tracing"] }
 wasi-common  = { version = "36.0.17", default-features = false }
-wasmtime     = { version = "36.0.17", default-features = false }
+wasmtime     = { version = "37.0.0", default-features = false }
 
 
 # all rspack workspace dependencies
