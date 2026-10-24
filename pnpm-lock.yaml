@@ -182,8 +182,8 @@ catalogs:
       specifier: ^5.0.0
       version: 5.0.0
     core-js:
-      specifier: 3.50.0
-      version: 3.50.0
+      specifier: 3.51.0
+      version: 3.51.0
     cross-env:
       specifier: ^10.1.0
       version: 10.1.0
@@ -475,7 +475,7 @@ importers:
         version: 2.0.6(prettier@3.9.10)
       rstack:
         specifier: 'catalog:'
-        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
+        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.51.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -699,7 +699,7 @@ importers:
     devDependencies:
       rstack:
         specifier: 'catalog:'
-        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
+        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.51.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -754,7 +754,7 @@ importers:
         version: 1.6.5(typescript@6.0.3)
       rstack:
         specifier: 'catalog:'
-        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
+        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.51.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
       tinypool:
         specifier: 'catalog:'
         version: 2.2.0
@@ -832,7 +832,7 @@ importers:
         version: 1.0.1
       rstack:
         specifier: 'catalog:'
-        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
+        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.51.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -896,7 +896,7 @@ importers:
         version: 30.0.0
       rstack:
         specifier: 'catalog:'
-        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
+        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.51.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -947,7 +947,7 @@ importers:
         version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.19.0)
       '@rstest/core':
         specifier: 'catalog:'
-        version: 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(jsdom@30.1.3)
+        version: 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)(jsdom@30.1.3)
       '@rstest/playwright':
         specifier: 'catalog:'
         version: 0.12.3(@rstest/core@0.12.3)(playwright@1.64.1)
@@ -962,7 +962,7 @@ importers:
         version: 10.1.1(@babel/core@7.29.7)(@rspack/core@packages+rspack)
       core-js:
         specifier: 'catalog:'
-        version: 3.50.0
+        version: 3.51.0
       css-loader:
         specifier: 'catalog:'
         version: 7.1.5(@rspack/core@packages+rspack)
@@ -992,7 +992,7 @@ importers:
         version: 17.7.0(@rspack/core@packages+rspack)(@vue/compiler-sfc@3.5.44)(vue@3.5.44)
       rstack:
         specifier: 'catalog:'
-        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
+        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.51.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
       tailwindcss:
         specifier: catalog:tailwindcss3
         version: 3.4.19(yaml@2.9.1)
@@ -1013,7 +1013,7 @@ importers:
         version: link:../../packages/rspack-browser
       '@rstest/core':
         specifier: 'catalog:'
-        version: 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(jsdom@30.1.3)
+        version: 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)(jsdom@30.1.3)
       '@rstest/playwright':
         specifier: 'catalog:'
         version: 0.12.3(@rstest/core@0.12.3)(playwright@1.64.1)
@@ -1022,7 +1022,7 @@ importers:
         version: 1.64.1
       rstack:
         specifier: 'catalog:'
-        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
+        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.51.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -1106,7 +1106,7 @@ importers:
         version: 2.7.0
       core-js:
         specifier: 'catalog:'
-        version: 3.50.0
+        version: 3.51.0
       css-loader:
         specifier: 'catalog:'
         version: 7.1.5(@rspack/core@packages+rspack)
@@ -1193,7 +1193,7 @@ importers:
         version: 5.0.10
       rstack:
         specifier: 'catalog:'
-        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
+        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.51.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
       sass-loader:
         specifier: 'catalog:'
         version: 17.0.1(@rspack/core@packages+rspack)(sass-embedded@1.100.0)(sass@1.100.0)
@@ -1293,7 +1293,7 @@ importers:
         version: 2.0.3(@rsbuild/core@2.2.13)(@rspack/core@2.2.9)
       '@rspress/core':
         specifier: 'catalog:'
-        version: 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+        version: 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.51.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
       '@rspress/plugin-algolia':
         specifier: 'catalog:'
         version: 2.1.0-beta.1(@rspress/core@2.1.0-beta.1)(@types/react@19.3.0)(react-dom@19.3.1)(react@19.3.1)
@@ -1335,7 +1335,7 @@ importers:
         version: 1.0.4(@rspress/core@2.1.0-beta.1)
       rstack:
         specifier: 'catalog:'
-        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
+        version: 0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.51.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3
@@ -4621,8 +4621,8 @@ packages:
   copy-to-clipboard@3.3.3:
     resolution: {integrity: sha512-2KV8NhB5JqC3ky0r9PMCAZKbUHSwtEo4CwCs0KXgruG43gX5PMqDEBbVU4OUzw2MuAWUfsuFmWvEKG5QRfSnJA==}
 
-  core-js@3.50.0:
-    resolution: {integrity: sha512-BRWgOLKkFeCgRudR6zrs8p9XJZcE14grzKMMssoYrk6krtuEZ7MTKPIY5RzOnqsEKIR9kst7wNzphttraT+Yqw==}
+  core-js@3.51.0:
+    resolution: {integrity: sha512-7bDKx/5jm5MxzsXxc93g6Z2+4ZsuT/MddrfRmTDJNAkWsYWHU8EVNEsBiIEWnMAMCHMmRfUEjkuo3jeNBOIHRw==}
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
@@ -9340,30 +9340,30 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.62.2':
     optional: true
 
-  '@rsbuild/core@2.2.11(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)':
+  '@rsbuild/core@2.2.11(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)':
     dependencies:
       '@rspack/core': 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
       '@swc/helpers': 0.5.23
     optionalDependencies:
-      core-js: 3.50.0
+      core-js: 3.51.0
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/core@2.2.12(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)':
+  '@rsbuild/core@2.2.12(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)':
     dependencies:
       '@rspack/core': 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
       '@swc/helpers': 0.5.23
     optionalDependencies:
-      core-js: 3.50.0
+      core-js: 3.51.0
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/core@2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)':
+  '@rsbuild/core@2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)':
     dependencies:
       '@rspack/core': 2.2.9(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
       '@swc/helpers': 0.5.23
     optionalDependencies:
-      core-js: 3.50.0
+      core-js: 3.51.0
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
@@ -9393,14 +9393,14 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@rsbuild/core': 2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)
 
   '@rsbuild/plugin-react@2.1.1(@rsbuild/core@2.2.12)(@rspack/core@2.2.9)':
     dependencies:
       '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.2.9)(react-refresh@0.19.0)
       react-refresh: 0.19.0
     optionalDependencies:
-      '@rsbuild/core': 2.2.12(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.12(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)
     transitivePeerDependencies:
       - '@rspack/core'
 
@@ -9412,20 +9412,20 @@ snapshots:
       reduce-configs: 2.0.1
       sass-embedded: 1.100.0
     optionalDependencies:
-      '@rsbuild/core': 2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)
 
   '@rsbuild/plugin-tailwindcss@2.0.3(@rsbuild/core@2.2.13)(@rspack/core@2.2.9)':
     dependencies:
       '@tailwindcss/webpack': 4.3.3(@rspack/core@2.2.9)
     optionalDependencies:
-      '@rsbuild/core': 2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)
     transitivePeerDependencies:
       - '@rspack/core'
       - webpack
 
-  '@rslib/core@1.0.3(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(typescript@6.0.3)':
+  '@rslib/core@1.0.3(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)(typescript@6.0.3)':
     dependencies:
-      '@rsbuild/core': 2.2.11(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.11(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)
       rsbuild-plugin-dts: 1.0.3(@microsoft/api-extractor@7.59.4)(@rsbuild/core@2.2.11)(typescript@6.0.3)
     optionalDependencies:
       '@microsoft/api-extractor': 7.59.4(@types/node@20.19.43)
@@ -9644,13 +9644,13 @@ snapshots:
     optionalDependencies:
       '@rspack/core': link:packages/rspack
 
-  '@rspress/core@2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)':
+  '@rspress/core@2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.51.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)':
     dependencies:
       '@mdx-js/mdx': 3.1.1(supports-color@8.1.1)
       '@mdx-js/react': 3.1.1(@types/react@19.3.0)(react@19.3.1)
-      '@rsbuild/core': 2.2.12(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.12(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)
       '@rsbuild/plugin-react': 2.1.1(@rsbuild/core@2.2.12)(@rspack/core@2.2.9)
-      '@rspress/shared': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(supports-color@8.1.1)
+      '@rspress/shared': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)(supports-color@8.1.1)
       '@shikijs/rehype': 4.4.2
       '@types/mdast': 4.0.4
       '@types/react': 19.3.0
@@ -9696,7 +9696,7 @@ snapshots:
     dependencies:
       '@docsearch/css': 4.7.1
       '@docsearch/react': 4.7.1(@types/react@19.3.0)(react-dom@19.3.1)(react@19.3.1)
-      '@rspress/core': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.51.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
     transitivePeerDependencies:
@@ -9707,16 +9707,16 @@ snapshots:
 
   '@rspress/plugin-client-redirects@2.1.0-beta.1(@rspress/core@2.1.0-beta.1)':
     dependencies:
-      '@rspress/core': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.51.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
 
   '@rspress/plugin-rss@2.1.0-beta.1(@rspress/core@2.1.0-beta.1)':
     dependencies:
-      '@rspress/core': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.51.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
       feed: 5.2.1
 
-  '@rspress/shared@2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(supports-color@8.1.1)':
+  '@rspress/shared@2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)(supports-color@8.1.1)':
     dependencies:
-      '@rsbuild/core': 2.2.12(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.12(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)
       '@shikijs/rehype': 4.4.2
       '@types/react': 19.3.0
       mdast-util-mdx-jsx: 3.2.0(supports-color@8.1.1)
@@ -9769,15 +9769,15 @@ snapshots:
 
   '@rstackjs/doc-ui@1.14.11(@rspress/core@2.1.0-beta.1)':
     optionalDependencies:
-      '@rspress/core': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.51.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
 
   '@rstackjs/load-config@1.0.2(jiti@2.7.0)':
     optionalDependencies:
       jiti: 2.7.0
 
-  '@rstest/core@0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(jsdom@30.1.3)':
+  '@rstest/core@0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)(jsdom@30.1.3)':
     dependencies:
-      '@rsbuild/core': 2.2.11(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.11(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)
       '@types/chai': 5.2.3
       cjs-module-lexer: 2.2.1
     optionalDependencies:
@@ -9788,7 +9788,7 @@ snapshots:
 
   '@rstest/playwright@0.12.3(@rstest/core@0.12.3)(playwright@1.64.1)':
     dependencies:
-      '@rstest/core': 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(jsdom@30.1.3)
+      '@rstest/core': 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)(jsdom@30.1.3)
       playwright: 1.64.1
 
   '@rushstack/node-core-library@5.25.1(@types/node@20.19.43)':
@@ -10849,7 +10849,7 @@ snapshots:
     dependencies:
       toggle-selection: 1.0.6
 
-  core-js@3.50.0: {}
+  core-js@3.51.0: {}
 
   core-util-is@1.0.3: {}
 
@@ -13696,18 +13696,18 @@ snapshots:
   rsbuild-plugin-dts@1.0.3(@microsoft/api-extractor@7.59.4)(@rsbuild/core@2.2.11)(typescript@6.0.3):
     dependencies:
       '@ast-grep/napi': 0.45.3
-      '@rsbuild/core': 2.2.11(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.11(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)
     optionalDependencies:
       '@microsoft/api-extractor': 7.59.4(@types/node@20.19.43)
       typescript: 6.0.3
 
   rsbuild-plugin-google-analytics@1.0.6(@rsbuild/core@2.2.13):
     optionalDependencies:
-      '@rsbuild/core': 2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)
 
   rsbuild-plugin-open-graph@1.1.3(@rsbuild/core@2.2.13):
     optionalDependencies:
-      '@rsbuild/core': 2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)
+      '@rsbuild/core': 2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)
 
   rspack-merge@1.0.1: {}
 
@@ -13722,19 +13722,19 @@ snapshots:
 
   rspress-plugin-font-open-sans@1.0.4(@rspress/core@2.1.0-beta.1):
     dependencies:
-      '@rspress/core': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.51.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
 
-  rstack@0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3):
+  rstack@0.8.4(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.1)(core-js@3.51.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3):
     dependencies:
-      '@rsbuild/core': 2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)
-      '@rslib/core': 1.0.3(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(typescript@6.0.3)
+      '@rsbuild/core': 2.2.13(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)
+      '@rslib/core': 1.0.3(@microsoft/api-extractor@7.59.4)(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)(typescript@6.0.3)
       '@rslint/core': 0.9.5(jiti@2.7.0)
-      '@rstest/core': 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.50.0)(jsdom@30.1.3)
+      '@rstest/core': 0.12.3(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)(jsdom@30.1.3)
       '@swc-next/parser': 0.2.4
       prettier: 3.9.10
       tinypool: 2.2.0
     optionalDependencies:
-      '@rspress/core': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
+      '@rspress/core': 2.1.0-beta.1(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.51.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
       '@rstackjs/cli-darwin-arm64': 0.8.4
       '@rstackjs/cli-darwin-x64': 0.8.4
       '@rstackjs/cli-linux-arm64-gnu': 0.8.4
