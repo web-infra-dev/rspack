@@ -50,6 +50,7 @@ export class ModuleFederationPlugin {
     compiler.options.resolve.alias = {
       '@module-federation/runtime-tools': paths.runtimeTools,
       '@module-federation/runtime': paths.runtime,
+      '@module-federation/webpack-bundler-runtime': paths.bundlerRuntime,
       ...compiler.options.resolve.alias,
     };
 
@@ -64,7 +65,6 @@ export class ModuleFederationPlugin {
     const runtimeVirtualPlugin = runtimeVirtualPath
       ? new rspack.experiments.VirtualModulesPlugin({
           [runtimeVirtualPath]: getDefaultEntryRuntimeSource(
-            paths,
             this._options,
             compiler,
           ),
@@ -77,12 +77,7 @@ export class ModuleFederationPlugin {
       }
       runtimeVirtualPlugin.writeModule(
         runtimeVirtualPath,
-        getDefaultEntryRuntimeSource(
-          paths,
-          this._options,
-          compiler,
-          buildAssets,
-        ),
+        getDefaultEntryRuntimeSource(this._options, compiler, buildAssets),
       );
     };
     if (treeShakingEntries.length > 0) {
@@ -109,7 +104,7 @@ export class ModuleFederationPlugin {
         runtimePluginApplied = true;
         const entryRuntime = runtimeVirtualPath
           ? getDefaultEntryRuntimeRequest(runtimeVirtualPath)
-          : getDefaultEntryRuntime(paths, this._options, compiler);
+          : getDefaultEntryRuntime(this._options, compiler);
         new ModuleFederationRuntimePlugin({
           entryRuntime,
           experiments: runtimeExperiments,
@@ -126,7 +121,7 @@ export class ModuleFederationPlugin {
         runtimePluginApplied = true;
         const entryRuntime = runtimeVirtualPath
           ? getDefaultEntryRuntimeRequest(runtimeVirtualPath)
-          : getDefaultEntryRuntime(paths, this._options, compiler);
+          : getDefaultEntryRuntime(this._options, compiler);
         // Pass only the entry runtime to the Rust-side plugin
         new ModuleFederationRuntimePlugin({
           entryRuntime,
@@ -336,7 +331,6 @@ function getDefaultEntryRuntimeRequest(resource: string) {
 }
 
 function getDefaultEntryRuntimeSource(
-  paths: RuntimePaths,
   options: ModuleFederationPluginOptions,
   compiler: Compiler,
   treeShakingShareFallbacks?: ShareFallback,
@@ -388,9 +382,8 @@ function getDefaultEntryRuntimeSource(
       : compilerRuntimeGlobals.require,
   );
   const content = [
-    `import __module_federation_bundler_runtime__ from ${JSON.stringify(
-      paths.bundlerRuntime,
-    )}`,
+    // Keep the package request so externalizers can resolve this runtime.
+    'import __module_federation_bundler_runtime__ from "@module-federation/webpack-bundler-runtime"',
     ...runtimePluginImports,
     shouldInitializePublicPath
       ? getPublicPathRuntimeSource(compiler)
@@ -433,17 +426,11 @@ function getPublicPathRuntimeSource(compiler: Compiler) {
 }
 
 function getDefaultEntryRuntime(
-  paths: RuntimePaths,
   options: ModuleFederationPluginOptions,
   compiler: Compiler,
   treeShakingShareFallbacks?: ShareFallback,
 ) {
   return `${MF_RUNTIME_LOADER}!=!data:text/javascript,${encodeURIComponent(
-    getDefaultEntryRuntimeSource(
-      paths,
-      options,
-      compiler,
-      treeShakingShareFallbacks,
-    ),
+    getDefaultEntryRuntimeSource(options, compiler, treeShakingShareFallbacks),
   )}`;
 }

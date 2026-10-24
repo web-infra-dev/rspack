@@ -12,7 +12,7 @@ use rspack_core::{
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{identifier::make_paths_relative, source_map::SourceMapKind};
 
 use super::{
   provide_for_shared_dependency::ProvideForSharedDependency,
@@ -153,6 +153,19 @@ impl Module for ProvideSharedModule {
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     Some(self.lib_ident.as_str().into())
+  }
+
+  fn identifier_for_id(&self, context: &str) -> Option<Cow<'_, str>> {
+    Some(
+      format!(
+        "provide shared module ({}) {}@{} = {}",
+        self.share_scope.key(),
+        self.name,
+        self.version,
+        make_paths_relative(context, &self.request),
+      )
+      .into(),
+    )
   }
 
   async fn build(
