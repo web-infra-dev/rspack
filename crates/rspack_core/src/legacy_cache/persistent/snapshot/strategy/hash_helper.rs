@@ -22,6 +22,8 @@ pub struct ContentHash {
 pub struct TimestampHash {
   pub hash: u64,
   pub is_directory: bool,
+  /// The latest modified time of the entry and everything the hash covers below it.
+  pub newest: u64,
 }
 
 /// A helper for computing content hashes of files and directories.
@@ -125,11 +127,12 @@ impl HashHelper {
         let mut hasher = FxHasher::default();
         children.sort();
         for item in children {
-          let child_path = InternedPath::from(path.join(item));
+          let child_path = InternedPath::from(path.join(&item));
           let child_path_str = child_path.to_string_lossy();
           if self.snapshot_options.is_immutable_path(&child_path_str) {
             continue;
           }
+          item.hash(&mut hasher);
           if self.snapshot_options.is_managed_path(&child_path_str) {
             if let Some(version) = self.package_helper.package_version(&child_path).await {
               version.hash(&mut hasher);
@@ -137,6 +140,14 @@ impl HashHelper {
             continue;
           }
 
+          match self.fs.symlink_metadata(child_path.assert_utf8()).await {
+            Ok(metadata) if metadata.is_symlink => "l",
+            Ok(metadata) if metadata.is_directory => "d",
+            Ok(metadata) if metadata.is_file => "f",
+            Ok(_) => "o",
+            Err(_) => "n",
+          }
+          .hash(&mut hasher);
           if let Some(ContentHash { hash, .. }) = self.dir_hash(&child_path).await {
             hash.hash(&mut hasher);
           }
@@ -179,6 +190,7 @@ impl HashHelper {
       children.sort();
 
       let mut hasher = FxHasher::default();
+      let mut newest = Self::modified_time_from_metadata(&metadata);
       for item in children {
         let child_path = InternedPath::from(path.join(&item));
         let child_path_str = child_path.to_string_lossy();
@@ -196,6 +208,7 @@ impl HashHelper {
         }
 
         if let Some(child_hash) = self.dir_timestamp_hash(&child_path).await {
+          newest = newest.max(child_hash.newest);
           if child_hash.is_directory {
             "d".hash(&mut hasher);
           } else {
@@ -210,11 +223,14 @@ impl HashHelper {
       Some(TimestampHash {
         hash: hasher.finish(),
         is_directory: true,
+        newest,
       })
     } else {
+      let modified_time = Self::modified_time_from_metadata(&metadata);
       Some(TimestampHash {
-        hash: Self::modified_time_from_metadata(&metadata),
+        hash: modified_time,
         is_directory: false,
+        newest: modified_time,
       })
     };
 

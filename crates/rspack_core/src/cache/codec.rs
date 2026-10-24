@@ -7,11 +7,12 @@ use std::{
 use memchr::memmem::Finder;
 use rspack_cacheable::{
   __private::rkyv::{Archive, Deserialize, Serialize, bytecheck::CheckBytes},
-  Deserializer, Serializer, Validator, from_bytes, to_bytes, to_bytes_with_binding,
+  ContextIdentifierLayout, Deserializer, Serializer, Validator, from_bytes, to_bytes,
+  to_bytes_with_binding,
   utils::root_patterns,
 };
 use rspack_error::Result;
-use rustc_hash::FxHasher;
+use rustc_hash::{FxHashMap, FxHasher};
 
 use crate::PortableRoot;
 
@@ -35,6 +36,7 @@ struct RootPatterns {
 #[derive(Debug, Clone)]
 struct Context {
   portable_root: Option<PortableRoot>,
+  context_identifier_layouts: Option<Arc<FxHashMap<String, ContextIdentifierLayout>>>,
 }
 
 impl rspack_cacheable::CacheableContext for Context {
@@ -47,6 +49,10 @@ impl rspack_cacheable::CacheableContext for Context {
       .portable_root
       .as_ref()
       .map(|p| p.canonical_root.as_std_path())
+  }
+
+  fn context_identifier_layout(&self, value: &str) -> Option<&ContextIdentifierLayout> {
+    self.context_identifier_layouts.as_ref()?.get(value)
   }
 }
 
@@ -94,8 +100,20 @@ impl CacheCodec {
     });
     Self {
       root_patterns,
-      context: Context { portable_root },
+      context: Context {
+        portable_root,
+        context_identifier_layouts: None,
+      },
     }
+  }
+
+  pub(crate) fn with_context_identifier_layouts(
+    &self,
+    layouts: FxHashMap<String, ContextIdentifierLayout>,
+  ) -> Self {
+    let mut codec = self.clone();
+    codec.context.context_identifier_layouts = Some(Arc::new(layouts));
+    codec
   }
 
   pub fn is_portable(&self) -> bool {

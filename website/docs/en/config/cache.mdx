@@ -233,6 +233,8 @@ Only paths under the root are rebased when the cache is restored elsewhere. Path
 
 In the legacy cache backend, entries that still depend on the writer's project root are rebuilt when the root changes. This includes `import.meta.url`, loader output containing absolute project paths, and references outside the project root. Unchanged builds at the same root can still reuse these entries.
 
+The legacy backend rebases entry contexts and module identities under the root, allowing unchanged modules to be reused after relocation even with fresh file timestamps. Portable context dependencies are validated by the names, types (file, directory, or symbolic link), and contents of their entries. Files validated by a content-hash fallback have their timestamp snapshots refreshed for later builds.
+
 The new cache backend (`experiments.newCache`) does not bind entries to the project root yet, so a relocated project can reuse entries that still contain the old root.
 
 Loaders that derive output from a path without including that path in the output (for example, a hash of `this.resourcePath`) should call `this.cacheable(false)` or use an appropriate `cache.version`.

@@ -1,10 +1,10 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rayon::{iter::Either, prelude::*};
-use rspack_cacheable::{cacheable, utils::OwnedOrRef};
+use rspack_cacheable::{ContextIdentifierLayout, cacheable, utils::OwnedOrRef};
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{
   super::BoundEntry,
@@ -12,8 +12,8 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BoxDependency, CompilationLogger,
-  DependenciesBlock, Dependency, DependencyId, DependencyParents, DependencyRef,
-  FactorizationArtifact, FactorizeInfo, Logger, ModuleGraph, ModuleGraphConnection,
+  ContextElementDependency, DependenciesBlock, Dependency, DependencyId, DependencyParents,
+  DependencyRef, FactorizationArtifact, FactorizeInfo, Logger, ModuleGraph, ModuleGraphConnection,
   ModuleGraphModule, ModuleIdentifier, ModuleRef, RayonConsumer,
   cache::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
@@ -48,6 +48,53 @@ pub struct RecoveredModuleGraph {
   pub dropped: Vec<Vec<u8>>,
 }
 
+/// Layouts of the identifiers that embed a context directory or a context regex.
+fn context_identifier_layouts(mg: &ModuleGraph) -> FxHashMap<String, ContextIdentifierLayout> {
+  let module_regex = |identifier: &ModuleIdentifier| {
+    mg.module_by_identifier(identifier)?
+      .as_context_module()?
+      .identifier_regex_range()
+  };
+  let mut layouts: FxHashMap<String, ContextIdentifierLayout> = FxHashMap::default();
+  for (identifier, _) in mg.modules() {
+    if let Some(range) = module_regex(identifier) {
+      layouts.entry(identifier.to_string()).or_default().regexes = vec![range];
+    }
+  }
+  for (_, dependency) in mg.dependencies() {
+    if let Some(dependency) = dependency.as_context_dependency()
+      && let Some(range) = dependency.resource_identifier_regex_range()
+    {
+      layouts
+        .entry(crate::ContextDependency::resource_identifier(dependency).to_string())
+        .or_default()
+        .regexes = vec![range];
+    }
+    if let Some(dependency) = dependency.downcast_ref::<ContextElementDependency>()
+      && let Some(offset) = dependency.resource_identifier_context_offset()
+    {
+      layouts
+        .entry(dependency.resource_identifier.to_string())
+        .or_default()
+        .paths = vec![offset];
+    }
+  }
+  for (identifier, block) in mg.blocks() {
+    let paths = block.context_element_offsets();
+    if paths.is_empty() {
+      continue;
+    }
+    layouts.insert(
+      identifier.as_str().to_string(),
+      ContextIdentifierLayout {
+        regexes: module_regex(block.parent()).into_iter().collect(),
+        paths,
+      },
+    );
+  }
+  layouts
+}
+
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
 pub fn save_module_graph(
   mg: &ModuleGraph,
@@ -59,8 +106,18 @@ pub fn save_module_graph(
   codec: &CacheCodec,
 ) {
   for identifier in removed_modules {
-    storage.remove(SCOPE, identifier.as_bytes());
+    storage.remove(
+      SCOPE,
+      &codec.encode(identifier).expect("should encode identifier"),
+    );
   }
+
+  let node_codec = if codec.is_portable() && !need_update_modules.is_empty() {
+    Some(codec.with_context_identifier_layouts(context_identifier_layouts(mg)))
+  } else {
+    None
+  };
+  let node_codec = node_codec.as_ref().unwrap_or(codec);
 
   // save module_graph
   let saved_count = AtomicUsize::new(0);
@@ -113,9 +170,10 @@ pub fn save_module_graph(
         blocks,
         lazy_info,
       };
+      let key = codec.encode(identifier).expect("should encode identifier");
       let root_sensitive = module.build_info().root_sensitive;
-      match BoundEntry::encode(codec, &node, root_sensitive) {
-        Ok(bytes) => (identifier.as_bytes().to_vec(), bytes),
+      match BoundEntry::encode(node_codec, &node, root_sensitive) {
+        Ok(bytes) => (key, bytes),
         Err(err) if err.to_string().contains("unsupported field") => {
           tracing::warn!("to bytes failed {:?}", err);
           // try use alternatives
@@ -128,8 +186,8 @@ pub fn save_module_graph(
             })
             .collect();
           node.blocks = vec![];
-          if let Ok(bytes) = BoundEntry::encode(codec, &node, root_sensitive) {
-            (identifier.as_bytes().to_vec(), bytes)
+          if let Ok(bytes) = BoundEntry::encode(node_codec, &node, root_sensitive) {
+            (key, bytes)
           } else {
             panic!("alternatives serialize failed")
           }

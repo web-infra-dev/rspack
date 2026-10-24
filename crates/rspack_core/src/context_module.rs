@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt::Write, hash::Hash, sync::Arc};
+use std::{borrow::Cow, fmt::Write, hash::Hash, ops::Range, sync::Arc};
 
 use concat_string::concat_string;
 use cow_utils::CowUtils;
@@ -8,7 +8,8 @@ use indoc::formatdoc;
 use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsOption, AsPreset, AsVec, Skip},
+  utils::{PortablePath, PortableString},
+  with::{As, AsCacheable, AsOption, AsPreset, AsVec, Skip},
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -174,10 +175,12 @@ pub struct ContextOptions {
   pub exclude: Option<RspackRegex>,
   pub category: DependencyCategory,
   /// The context request passed to the resolver.
+  #[cacheable(with=As<PortableString>)]
   pub request: String,
   /// The base directory used to resolve relative context requests. For glob patterns, this is the
   /// parser-derived request context (the importer directory or the explicit `base`) and remains
   /// the matching coordinate even when context module factory hooks relocate the scan request.
+  #[cacheable(with=As<PortablePath>)]
   pub context: String,
   /// The compiler `options.context`. Root-relative glob patterns are resolved from this directory.
   /// This value is stable for the lifetime of a compilation and must not be changed by context
@@ -286,6 +289,15 @@ pub struct ContextModule {
 }
 
 impl ContextModule {
+  pub(crate) fn identifier_regex_range(&self) -> Option<Range<usize>> {
+    let (identifier, range) = create_identifier(&self.options, None);
+    if identifier == self.identifier {
+      range
+    } else {
+      None
+    }
+  }
+
   pub(crate) fn new_with_strict(
     resolve_dependencies: ResolveContextModuleDependencies,
     options: ContextModuleOptions,
@@ -298,7 +310,7 @@ impl ContextModule {
 
     Self {
       dependencies_block: Default::default(),
-      identifier: create_identifier(&options, None),
+      identifier: create_identifier(&options, None).0,
       options,
       factory_meta: Default::default(),
       build_info: build_info.into(),
@@ -1358,6 +1370,7 @@ impl Module for ContextModule {
       },
     );
     create_identifier(&self.options, Some(identifier.as_str()))
+      .0
       .to_string()
       .into()
   }
@@ -1625,7 +1638,11 @@ impl Identifiable for ContextModule {
   }
 }
 
-fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> Identifier {
+fn create_identifier(
+  options: &ContextModuleOptions,
+  resource: Option<&str>,
+) -> (Identifier, Option<Range<usize>>) {
+  let mut regex_range = None;
   let mut id = resource
     .unwrap_or(if options.resource.as_str().is_empty() {
       "false"
@@ -1652,7 +1669,14 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   }
   if let Some(pattern) = options.context_options.pattern.to_pretty_string(false) {
     id += "|";
+    let start = id.len();
     id += &pattern;
+    if matches!(
+      options.context_options.pattern,
+      ContextModulePattern::RegExp(_)
+    ) {
+      regex_range = Some(start..id.len());
+    }
   }
   if let Some(include) = &options.context_options.include {
     id += "|include: ";
@@ -1721,7 +1745,7 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += "|layer: ";
     id += layer;
   }
-  id.into()
+  (id.into(), regex_range)
 }
 
 fn append_context_identifier(id: &mut String, options: &ContextOptions, prefix: &str) {

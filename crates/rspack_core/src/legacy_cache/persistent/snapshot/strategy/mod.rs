@@ -90,6 +90,8 @@ pub enum ValidateResult {
   Modified,
   /// The target file has no changed
   NoChanged,
+  /// The content is unchanged but the stored file timestamp needs refreshing.
+  NoChangedRefresh(Strategy),
 }
 
 pub struct StrategyHelper {
@@ -219,6 +221,16 @@ impl StrategyHelper {
     }
   }
 
+  /// Whether the directory, or anything below it that its strategies cover, was modified at or
+  /// after `time`.
+  pub async fn dir_modified_since(&self, path: &InternedPath, time: u64) -> bool {
+    self
+      .hash_helper
+      .dir_timestamp_hash(path)
+      .await
+      .is_some_and(|timestamp| timestamp.newest >= time)
+  }
+
   /// validate path file by target strategy
   pub async fn validate(&self, path: &InternedPath, strategy: &Strategy) -> ValidateResult {
     match strategy {
@@ -260,12 +272,18 @@ impl StrategyHelper {
         if &modified_time == mtime {
           return ValidateResult::NoChanged;
         }
-        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.file_hash(path).await
+        let Some(ContentHash {
+          hash: cur_hash,
+          mtime: cur_mtime,
+        }) = self.hash_helper.file_hash(path).await
         else {
           return ValidateResult::Deleted;
         };
         if &cur_hash == hash {
-          ValidateResult::NoChanged
+          ValidateResult::NoChangedRefresh(Strategy::FileTimestampAndHash {
+            mtime: cur_mtime,
+            hash: cur_hash,
+          })
         } else {
           ValidateResult::Modified
         }

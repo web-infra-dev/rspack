@@ -1,10 +1,11 @@
 use std::{fmt::Write as _, time::Duration};
 
-use rspack_paths::{InternedPath, InternedPathSet};
+use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
+use rspack_util::time::current_time;
 
 use super::{
   occasion::{Occasion, Recovered},
-  snapshot::{Snapshot, SnapshotScope},
+  snapshot::{Snapshot, SnapshotScope, Strategy},
   storage::BoxStorage,
   validation::{CacheValidation, CacheValidationResult},
 };
@@ -38,6 +39,10 @@ pub struct CacheContext {
 
   logger: CompilationLogger,
   storage: BoxStorage,
+  refresh_file_snapshots: InternedPathMap<Strategy>,
+  observed_context_snapshots: InternedPathMap<Strategy>,
+  /// When the current build started, in milliseconds since the Unix epoch.
+  build_start_time: Option<u64>,
 }
 
 impl CacheContext {
@@ -48,7 +53,14 @@ impl CacheContext {
       readonly,
       logger,
       storage,
+      refresh_file_snapshots: InternedPathMap::default(),
+      observed_context_snapshots: InternedPathMap::default(),
+      build_start_time: None,
     }
+  }
+
+  pub fn start_build(&mut self) {
+    self.build_start_time = Some(current_time());
   }
 
   pub fn logger(&self) -> &CompilationLogger {
@@ -196,25 +208,25 @@ impl CacheContext {
     &mut self,
     snapshot: &Snapshot,
   ) -> Option<(bool, InternedPathSet, InternedPathSet)> {
+    self.refresh_file_snapshots.clear();
+    self.observed_context_snapshots.clear();
     if !self.load_failed {
       let start = self.logger().time("read snapshot from persistent cache");
       let mut is_hot_start = false;
       let mut modified_paths = InternedPathSet::default();
       let mut removed_paths = InternedPathSet::default();
-      let data = vec![
-        snapshot
-          .calc_modified_paths(&*self.storage, SnapshotScope::FILE)
-          .await,
-        snapshot
-          .calc_modified_paths(&*self.storage, SnapshotScope::CONTEXT)
-          .await,
-        snapshot
-          .calc_modified_paths(&*self.storage, SnapshotScope::MISSING)
-          .await,
-      ];
-      for item in data {
-        match item {
-          Ok((a, b, c, _)) => {
+      for scope in [
+        SnapshotScope::FILE,
+        SnapshotScope::CONTEXT,
+        SnapshotScope::MISSING,
+      ] {
+        match snapshot.calc_modified_paths(&*self.storage, scope).await {
+          Ok((a, b, c, _, observed)) => {
+            match scope {
+              SnapshotScope::FILE => self.refresh_file_snapshots = observed,
+              SnapshotScope::CONTEXT => self.observed_context_snapshots = observed,
+              SnapshotScope::MISSING | SnapshotScope::BUILD => {}
+            }
             is_hot_start = is_hot_start || a;
             modified_paths.extend(b);
             removed_paths.extend(c);
@@ -246,6 +258,8 @@ impl CacheContext {
       self.logger().time_end(start);
     }
 
+    self.refresh_file_snapshots.clear();
+    self.observed_context_snapshots.clear();
     // load_failed: reset snapshot scopes so they are fully rewritten this build.
     if !self.readonly {
       snapshot.reset(&mut *self.storage);
@@ -259,15 +273,15 @@ impl CacheContext {
     &mut self,
     snapshot: &Snapshot,
     file_deps: (
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath> + Send,
       impl Iterator<Item = InternedPath>,
     ),
     context_deps: (
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath> + Send,
       impl Iterator<Item = InternedPath>,
     ),
     missing_deps: (
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath> + Send,
       impl Iterator<Item = InternedPath>,
     ),
   ) {
@@ -279,15 +293,47 @@ impl CacheContext {
     let (file_added, file_removed) = file_deps;
     let (context_added, context_removed) = context_deps;
     let (missing_added, missing_removed) = missing_deps;
-    snapshot.remove(&mut *self.storage, SnapshotScope::FILE, file_removed);
+    snapshot.remove(
+      &mut *self.storage,
+      SnapshotScope::FILE,
+      file_removed.inspect(|path| {
+        self.refresh_file_snapshots.remove(path);
+      }),
+    );
     snapshot.remove(&mut *self.storage, SnapshotScope::CONTEXT, context_removed);
     snapshot.remove(&mut *self.storage, SnapshotScope::MISSING, missing_removed);
     snapshot
-      .add(&mut *self.storage, SnapshotScope::FILE, file_added)
+      .add(
+        &mut *self.storage,
+        SnapshotScope::FILE,
+        // Plugin dependencies can overlap reused modules; registration does not prove a rebuild.
+        file_added.filter(|path| !self.refresh_file_snapshots.contains_key(path)),
+      )
       .await;
+    snapshot.refresh(
+      &mut *self.storage,
+      SnapshotScope::FILE,
+      std::mem::take(&mut self.refresh_file_snapshots).into_iter(),
+    );
+    // Hashing a directory now would hide children created after the build read it.
+    let mut observed_contexts = std::mem::take(&mut self.observed_context_snapshots);
+    let (validated_contexts, new_contexts): (Vec<_>, Vec<_>) =
+      context_added.partition(|path| observed_contexts.contains_key(path));
     snapshot
-      .add(&mut *self.storage, SnapshotScope::CONTEXT, context_added)
+      .add_unobserved_contexts(
+        &mut *self.storage,
+        new_contexts.into_iter(),
+        self.build_start_time,
+      )
       .await;
+    snapshot.refresh(
+      &mut *self.storage,
+      SnapshotScope::CONTEXT,
+      validated_contexts.into_iter().filter_map(|path| {
+        let strategy = observed_contexts.remove(&path)?;
+        Some((path, strategy))
+      }),
+    );
     snapshot
       .add(&mut *self.storage, SnapshotScope::MISSING, missing_added)
       .await;
@@ -388,6 +434,9 @@ impl CacheContext {
   /// loads are skipped on the next build as well.  Transient errors
   /// (`load_failed` without `invalid`) are cleared so the next build retries.
   pub fn reset(&mut self) {
+    self.refresh_file_snapshots.clear();
+    self.observed_context_snapshots.clear();
+    self.build_start_time = None;
     if !self.readonly {
       self.invalid = false;
       self.load_failed = false
