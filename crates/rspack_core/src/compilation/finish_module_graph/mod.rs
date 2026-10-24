@@ -24,16 +24,35 @@ pub async fn finish_build_module_graph_pass(compilation: &mut Compilation) -> Re
   let make_artifact = compilation.build_module_graph_artifact.steal();
   let exports_info_artifact = compilation.exports_info_artifact.steal();
   let (make_artifact, exports_info_artifact) =
-    finish_build_module_graph(compilation, make_artifact, exports_info_artifact).await?;
+    match finish_build_module_graph(compilation, make_artifact, exports_info_artifact).await {
+      Ok(result) => result,
+      Err(error) => {
+        compilation.build_module_graph_artifact = error.artifact.into();
+        compilation.exports_info_artifact = error.exports_info_artifact.into();
+        if let Some(module_executor) = &mut compilation.module_executor {
+          let mut module_executor = std::mem::take(module_executor);
+          let abort_result = module_executor.abort_rebuild_module_graph().await;
+          compilation.module_executor = Some(module_executor);
+          if let Err(abort_error) = abort_result {
+            tracing::error!(
+              ?abort_error,
+              "failed to recover the module executor after finish module graph failure"
+            );
+          }
+        }
+        return Err(error.error);
+      }
+    };
   compilation.build_module_graph_artifact = make_artifact.into();
   compilation.exports_info_artifact = exports_info_artifact.into();
   // sync assets to module graph from module_executor
   if let Some(module_executor) = &mut compilation.module_executor {
     let mut module_executor = std::mem::take(module_executor);
-    module_executor
-      .after_build_module_graph(compilation)
-      .await?;
+    let close_result = module_executor
+      .after_build_module_graph(compilation, true)
+      .await;
     compilation.module_executor = Some(module_executor);
+    close_result?;
   }
   // make finished, make artifact should be readonly thereafter.
   Ok(())
