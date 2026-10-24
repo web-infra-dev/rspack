@@ -16,6 +16,24 @@ Generate packaging information that can be used to analyze module dependencies a
 
 :::
 
+When using the JavaScript API, the following defaults depend on the output method. Presets, `stats.all`, and explicit options can override these defaults.
+
+| Options                                                                                 | `stats.toString()` | `stats.toJson()` |
+| --------------------------------------------------------------------------------------- | ------------------ | ---------------- |
+| `hash`, `builtAt`, `publicPath`, `outputPath`, `children`                               | `false`            | `true`           |
+| `relatedAssets`, `cachedAssets`                                                         | `false`            | `true`           |
+| `chunkGroupAuxiliary`, `chunkGroupChildren`, `chunkRelations`, `chunkOrigins`, `ids`    | `false`            | `true`           |
+| `dependentModules`, `nestedModules`, `orphanModules`, `runtimeModules`, `cachedModules` | `false`            | `true`           |
+| `moduleAssets`, `depth`, `reasons`                                                      | `false`            | `true`           |
+| `usedExports`, `providedExports`, `optimizationBailout`                                 | `false`            | `true`           |
+| `errorStack`, `loggingTrace`                                                            | `false`            | `true`           |
+| `groupAssetsBy*`, `groupModulesBy*`, `groupReasonsByOrigin`                             | `true`             | `false`          |
+| `assetsSpace`, `modulesSpace`, `reasonsSpace`                                           | `15`               | `Infinity`       |
+| `chunkModulesSpace`, `nestedModulesSpace`                                               | `10`               | `Infinity`       |
+| `chunkGroupMaxAssets`                                                                   | `5`                | `Infinity`       |
+| `logging`                                                                               | `'info'`           | `false`          |
+| `errorDetails`                                                                          | `'auto'`           | `true`           |
+
 - **Type:**
 
 ```ts
@@ -280,9 +298,9 @@ Whether to display information about the reasons of why modules are included.
 
 ### stats.reasonsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '1000' }]} />
+<PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
 
-How many characters should the reasons be displayed (groups will be collapsed to fit this space).
+How many reason items should be displayed (groups will be collapsed to fit this space).
 
 ### stats.source
 
@@ -433,15 +451,18 @@ Whether to display the errors count.
 
 ### stats.errorDetails
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: '"auto"' }]} />
 
 Whether to display the details to the errors. It defaults to `'auto'` which will show error details when there're only 2 or less errors.
 
 ### stats.errorsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+<PropertyType
+  type="number"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-How many lines should an error be displayed.
+Maximum number of lines used to display errors. By default, there is no limit.
 
 ### stats.errorStack
 
@@ -463,9 +484,12 @@ Whether to display the warnings count.
 
 ### stats.warningsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+<PropertyType
+  type="number"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-How many lines should a warning be displayed.
+Maximum number of lines used to display warnings. By default, there is no limit.
 
 ## Logging options
 
