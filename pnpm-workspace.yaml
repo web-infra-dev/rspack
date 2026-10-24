@@ -21,7 +21,7 @@ cleanupUnusedCatalogs: true
 
 catalog:
   '@actions/core': '3.0.1'
-  '@ast-grep/napi': '^0.45.3'
+  '@ast-grep/napi': '^0.51.0'
   '@babel/core': '^7.29.7'
   '@babel/preset-react': '^7.29.7'
   '@discoveryjs/json-ext': '^1.1.0'
