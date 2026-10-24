@@ -134,6 +134,41 @@ jobs:
           rustup target add wasm32-unknown-unknown
           cargo check -p rspack_resolver --all-features --target wasm32-unknown-unknown --locked
 
+  windows_alias_probe:
+    name: Windows alias probe (${{ matrix.variant }})
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/verify/resolver-windows-alias-20261024' }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [reference, current, path-only, both-owned]
+    env:
+      RUST_MIN_STACK: 8388608
+      CARGO_PROFILE_DEV_DEBUG: 0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 8
+      - uses: ./.github/actions/rustup
+        with:
+          key: resolver-windows-alias-${{ matrix.variant }}
+      - name: Build and run isolated probe processes
+        shell: bash
+        run: |
+          python .github/scripts/resolver_windows_alias_probe.py \
+            --variant '${{ matrix.variant }}' \
+            --project "$RUNNER_TEMP/resolver-windows-alias-probe"
+      - name: Upload probe evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: resolver-windows-alias-${{ matrix.variant }}
+          path: |
+            ${{ runner.temp }}/resolver-windows-alias-probe/results.json
+            ${{ runner.temp }}/resolver-windows-alias-probe/cache.rs
+            ${{ runner.temp }}/resolver-windows-alias-probe/src/main.rs
+
   resolver_required_check:
     # this job is used as the required status check for branch protection;
     # it succeeds directly when resolver files are unchanged.
