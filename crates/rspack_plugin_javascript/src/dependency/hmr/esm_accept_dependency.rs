@@ -1,7 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, ImportPhase, RuntimeCondition, TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, ImportPhase, ModuleGraph, RuntimeCondition, TemplateContext,
+  TemplateReplaceSource,
 };
 
 use crate::dependency::import_emitted_runtime;
@@ -69,6 +70,8 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     } = code_generatable_context;
 
     let mut content = String::default();
+    let mut async_imports = vec![];
+    let mut async_compat = String::new();
     let module_graph = compilation.get_module_graph();
     let module_identifier = module.identifier();
     dep.dependency_ids.iter().for_each(|id| {
@@ -113,21 +116,46 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
         phase,
         true,
       );
+      let is_async = target_module.is_some_and(|target_module| {
+        ModuleGraph::is_async(
+          &compilation.async_modules_artifact,
+          &target_module.identifier(),
+        )
+      });
+      let import_content = if is_async {
+        async_imports.push(import_var);
+        if condition == "true" {
+          async_compat.push_str(&stmts.1);
+        } else if !stmts.1.is_empty() {
+          async_compat.push_str(&format!("if ({condition}) {{\n{}\n}}\n", stmts.1));
+        }
+        stmts.0
+      } else {
+        format!("{}{}", stmts.0, stmts.1)
+      };
       if condition == "true" {
-        content.push_str(stmts.0.as_str());
-        content.push_str(stmts.1.as_str());
+        content.push_str(&import_content);
       } else {
         content.push_str(format!("if ({condition}) {{\n").as_str());
-        content.push_str(stmts.0.as_str());
-        content.push_str(stmts.1.as_str());
+        content.push_str(&import_content);
         content.push_str("\n}\n");
       }
     });
 
+    let opt_async = if async_imports.is_empty() {
+      ""
+    } else {
+      let imports = async_imports.join(", ");
+      content.push_str(&format!(
+        "var __rspack_async_deps = __rspack_load_async_deps([{imports}]);\n([{imports}] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps);\n{async_compat}"
+      ));
+      "async "
+    };
+
     if dep.has_callback {
       source.insert(
         dep.range.start,
-        format!("function(__rspack_hmr_outdated) {{\n{content}("),
+        format!("{opt_async}function(__rspack_hmr_outdated) {{\n{content}return ("),
         None,
       );
       source.insert_static(
@@ -138,7 +166,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     } else {
       source.insert(
         dep.range.start,
-        format!(", function(){{\n{content}\n}}"),
+        format!(", {opt_async}function(){{\n{content}\n}}"),
         None,
       );
     }

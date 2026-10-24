@@ -137,7 +137,6 @@ var asyncModule = (module, body, hasAwait, useModuleExports) => {
 	hasAwait && ((queue = []).d = -1);
 	var depQueues = new Set();
 	var exports = module.exports;
-	var currentDeps;
 	var outerResolve;
 	var reject;
 	var promise = new Promise((resolve, rej) => {
@@ -153,7 +152,8 @@ var asyncModule = (module, body, hasAwait, useModuleExports) => {
 		asyncModule.exports = exports;
 	}
 	var handle = (deps) => {
-		currentDeps = wrapDeps(deps);
+		var currentDeps = wrapDeps(deps);
+		var currentDepQueues = new Set();
 		var fn;
 		var getResult = () => {
 			return currentDeps.map((d) => {
@@ -165,7 +165,7 @@ var asyncModule = (module, body, hasAwait, useModuleExports) => {
 		var promise = new Promise((resolve) => {
 			fn = () => (resolve(getResult));
 			fn.r = 0;
-			var fnQueue = (q) => (q !== queue && !depQueues.has(q) && (depQueues.add(q), q && !q.d && (fn.r++, q.push(fn))));
+			var fnQueue = (q) => (q !== queue && !currentDepQueues.has(q) && (currentDepQueues.add(q), depQueues.add(q), q && !q.d && (fn.r++, q.push(fn))));
 			currentDeps.map((dep) => (dep[rspackDefer] || dep[rspackQueues](fnQueue)));
 		});
 		return fn.r ? promise : getResult();
