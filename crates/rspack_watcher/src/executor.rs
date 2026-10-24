@@ -66,6 +66,7 @@ enum ExecAggregateEvent {
 
 enum ExecEvent {
   Execute(EventBatch),
+  Aggregate(FilesData),
   Close,
 }
 
@@ -145,28 +146,28 @@ impl Executor {
 
       let future = async move {
         while let Some(events) = rx.lock().await.recv().await {
+          // Enqueue raw delivery before allowing an aggregate snapshot to consume it.
           {
-            let mut files_data = files_data.lock().expect("aggregated sets poisoned");
+            let mut files = files_data.lock().expect("aggregated sets poisoned");
             for event in &events {
               let path = event.path.to_string_lossy().to_string();
               match event.kind {
                 FsEventKind::Change | FsEventKind::Create => {
-                  files_data.deleted.remove(&path);
-                  files_data.changed.insert(path);
+                  files.deleted.remove(&path);
+                  files.changed.insert(path);
                 }
                 FsEventKind::Remove => {
-                  files_data.changed.remove(&path);
-                  files_data.deleted.insert(path);
+                  files.changed.remove(&path);
+                  files.deleted.insert(path);
                 }
               }
             }
+            let _ = exec_tx.send(ExecEvent::Execute(events));
           }
 
           if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
             let _ = exec_aggregate_tx.send(ExecAggregateEvent::Execute);
           }
-
-          let _ = exec_tx.send(ExecEvent::Execute(events));
         }
 
         let _ = exec_aggregate_tx.send(ExecAggregateEvent::Close);
@@ -204,7 +205,7 @@ impl Executor {
     event_handler: Box<dyn EventHandler + Send>,
   ) {
     self.execute_aggregate_handle = Some(create_execute_aggregate_task(
-      event_aggregate_handler,
+      self.exec_tx.clone(),
       Arc::clone(&self.exec_aggregate_rx),
       Arc::clone(&self.files_data),
       self.aggregate_timeout as u64,
@@ -212,6 +213,7 @@ impl Executor {
     ));
 
     self.execute_handle = Some(create_execute_task(
+      event_aggregate_handler,
       event_handler,
       Arc::clone(&self.exec_rx),
     ));
@@ -219,6 +221,7 @@ impl Executor {
 }
 
 fn create_execute_task(
+  event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
   event_handler: Box<dyn EventHandler + Send>,
   exec_rx: ThreadSafetyReceiver<ExecEvent>,
 ) -> tokio::task::JoinHandle<()> {
@@ -243,6 +246,9 @@ fn create_execute_task(
             }
           }
         }
+        ExecEvent::Aggregate(files) => {
+          event_aggregate_handler.on_event_handle(files.changed, files.deleted);
+        }
         ExecEvent::Close => {
           break;
         }
@@ -253,7 +259,7 @@ fn create_execute_task(
 }
 
 fn create_execute_aggregate_task(
-  event_handler: Box<dyn EventAggregateHandler + Send>,
+  exec_tx: UnboundedSender<ExecEvent>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
   files: Aggregated,
   aggregate_timeout: u64,
@@ -276,20 +282,20 @@ fn create_execute_aggregate_task(
         // Wait for the aggregate timeout before executing the handler
         tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
 
-        // Get the files to process
-        let files = {
+        // Snapshot and enqueue under the same lock used to enqueue raw events.
+        // The single delivery consumer observes every contributing raw event first.
+        {
           let mut files = files.lock().expect("aggregated sets poisoned");
           if files.is_empty() {
             running.store(false, Ordering::Relaxed);
             continue;
           }
-          std::mem::take(&mut *files)
-        };
-
-        // A path is in one set only: `Trigger` reports each event by the
-        // path's state on disk, and a later event replaces an earlier one.
-        event_handler.on_event_handle(files.changed, files.deleted);
-        running.store(false, Ordering::Relaxed);
+          let batch = std::mem::take(&mut *files);
+          let _ = exec_tx.send(ExecEvent::Aggregate(batch));
+          // Publish timer completion before releasing the snapshot lock, so
+          // a later edit cannot see running=true after missing this snapshot.
+          running.store(false, Ordering::Relaxed);
+        }
       }
     }
   };
