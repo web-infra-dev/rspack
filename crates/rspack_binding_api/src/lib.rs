@@ -106,6 +106,8 @@ mod swc;
 mod trace_event;
 mod utils;
 mod virtual_modules;
+#[cfg(windows)]
+mod windows;
 
 use std::{
   cell::RefCell,
@@ -735,6 +737,9 @@ fn node_init(mut _exports: Object, env: Env) -> Result<()> {
 
 #[napi(module_exports)]
 fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
+  #[cfg(windows)]
+  windows::pin_module()?;
+
   #[cfg(target_family = "wasm")]
   {
     panic::install_panic_handler();

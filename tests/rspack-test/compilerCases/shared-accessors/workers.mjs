@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { Worker } from 'node:worker_threads';
 
 export default async function run() {
+  const bindings = new Set();
   // Each concurrent worker must use its own accessor cache and release it on exit.
   await Promise.all(
     Array.from(
@@ -13,7 +14,8 @@ export default async function run() {
           });
           let received = false;
           worker.on('message', (message) => {
-            received = message === 'ok';
+            received = message.status === 'ok';
+            for (const binding of message.bindings) bindings.add(binding);
           });
           worker.on('error', reject);
           worker.on('exit', (code) => {
@@ -28,4 +30,11 @@ export default async function run() {
         }),
     ),
   );
+  if (process.platform === 'win32') {
+    assert(bindings.size > 0, 'workers loaded the native binding');
+    const loaded = process.report.getReport().sharedObjects;
+    for (const binding of bindings) {
+      assert(loaded.includes(binding), 'native binding remains loaded after worker exit');
+    }
+  }
 }

@@ -9,7 +9,13 @@ permissions:
   actions: read
 
 jobs:
+  build:
+    uses: ./.github/workflows/reusable-build-build.yml
+    with:
+      target: x86_64-pc-windows-msvc
+      runner: '"windows-latest"'
   diagnose:
+    needs: build
     runs-on: windows-latest
     timeout-minutes: 20
     env:
@@ -17,19 +23,50 @@ jobs:
       PUPPETEER_SKIP_DOWNLOAD: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: 8de69903003a8f660745b7500ae5621d2522a6fe
-      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      - uses: ./.github/actions/artifact/download
         with:
           name: bindings-x86_64-pc-windows-msvc
-          run-id: 40049744365
-          github-token: ${{ github.token }}
           path: crates/node_binding/
       - uses: ./.github/actions/pnpm/setup
         with:
           node-version: 22
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build:js
+      - name: Download unfixed binding for regression check
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+        with:
+          name: bindings-x86_64-pc-windows-msvc
+          run-id: 40049744365
+          github-token: ${{ github.token }}
+          path: baseline-binding/
+      - name: Verify regression fails with unfixed binding
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { copyFileSync } from 'node:fs';
+          import { spawnSync } from 'node:child_process';
+          const target = 'crates/node_binding/rspack.win32-x64-msvc.node';
+          copyFileSync(target, target + '.patched');
+          try {
+            copyFileSync('baseline-binding/rspack.win32-x64-msvc.node', target);
+            let assertionObserved = false;
+            for (let attempt = 0; attempt < 5 && !assertionObserved; attempt++) {
+              const result = spawnSync(process.execPath, ['--expose-gc', '--input-type=module', '--eval',
+                "const { default: run } = await import('./tests/rspack-test/compilerCases/shared-accessors/workers.mjs'); await run();"],
+                { encoding: 'utf8', timeout: 30000 });
+              console.log(JSON.stringify({ status: result.status, stderr: result.stderr }));
+              assert.ifError(result.error);
+              assertionObserved = result.status === 1 && result.stderr.includes('native binding remains loaded after worker exit');
+              assert(assertionObserved || result.status === 3221225477, 'unfixed binding must fail the retention assertion or crash');
+            }
+            assert(assertionObserved, 'observed the deterministic retention assertion');
+          } finally {
+            copyFileSync(target + '.patched', target);
+          }
+          JS
+      - name: Run worker lifetime regression
+        run: pnpm --dir tests/rspack-test run test -t 'compilerCases/shared-accessors'
       - name: Compare worker-only loading with parent retention
         shell: bash
         run: |
@@ -62,8 +99,8 @@ jobs:
             }
           }
           writeFileSync('worker-shutdown-results.json', JSON.stringify(results, null, 2));
-          if (results.some(row => row.error || row.signal || ![0, 3221225477].includes(row.status))) {
-            throw new Error('Diagnostic failed for a reason other than the target access violation');
+          if (results.some(row => row.error || row.signal || row.status !== 0)) {
+            throw new Error('Worker shutdown failed');
           }
           JS
           node worker-shutdown-probe.mjs
@@ -102,8 +139,8 @@ jobs:
             await Promise.all(['baseline', 'retain', 'baseline', 'retain'].map(mode => trial(round, mode)));
           }
           writeFileSync('worker-shutdown-stress-results.json', JSON.stringify(results, null, 2));
-          if (results.some(row => row.error || row.signal || ![0, 3221225477].includes(row.status))) {
-            throw new Error('Stress diagnostic failed for a reason other than the target access violation');
+          if (results.some(row => row.error || row.signal || row.status !== 0)) {
+            throw new Error('Worker shutdown failed under load');
           }
           JS
           node worker-shutdown-stress.mjs
