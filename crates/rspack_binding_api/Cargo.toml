@@ -138,6 +138,9 @@ sftrace-setup  = { workspace = true, optional = true }
 [build-dependencies]
 rspack_binding_build = { workspace = true }
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = ["Win32_System_LibraryLoader"] }
+
 [lints]
 workspace = true
 

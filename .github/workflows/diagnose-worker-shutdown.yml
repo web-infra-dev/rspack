@@ -1,0 +1,151 @@
+name: Diagnose Windows worker shutdown
+
+on:
+  push:
+    branches: [fix/windows-worker-shutdown]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable-build-build.yml
+    with:
+      target: x86_64-pc-windows-msvc
+      runner: '"windows-latest"'
+  diagnose:
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
+      PUPPETEER_SKIP_DOWNLOAD: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-x86_64-pc-windows-msvc
+          path: crates/node_binding/
+      - uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build:js
+      - name: Download unfixed binding for regression check
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+        with:
+          name: bindings-x86_64-pc-windows-msvc
+          run-id: 40049744365
+          github-token: ${{ github.token }}
+          path: baseline-binding/
+      - name: Verify regression fails with unfixed binding
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { copyFileSync } from 'node:fs';
+          import { spawnSync } from 'node:child_process';
+          const target = 'crates/node_binding/rspack.win32-x64-msvc.node';
+          copyFileSync(target, target + '.patched');
+          try {
+            copyFileSync('baseline-binding/rspack.win32-x64-msvc.node', target);
+            let assertionObserved = false;
+            for (let attempt = 0; attempt < 5 && !assertionObserved; attempt++) {
+              const result = spawnSync(process.execPath, ['--expose-gc', '--input-type=module', '--eval',
+                "const { default: run } = await import('./tests/rspack-test/compilerCases/shared-accessors/workers.mjs'); await run();"],
+                { encoding: 'utf8', timeout: 30000 });
+              console.log(JSON.stringify({ status: result.status, stderr: result.stderr }));
+              assert.ifError(result.error);
+              assertionObserved = result.status === 1 && result.stderr.includes('native binding remains loaded after worker exit');
+              assert(assertionObserved || result.status === 3221225477, 'unfixed binding must fail the retention assertion or crash');
+            }
+            assert(assertionObserved, 'observed the deterministic retention assertion');
+          } finally {
+            copyFileSync(target + '.patched', target);
+          }
+          JS
+      - name: Run worker lifetime regression
+        run: pnpm --dir tests/rspack-test run test -t 'compilerCases/shared-accessors'
+      - name: Compare worker-only loading with parent retention
+        shell: bash
+        run: |
+          cat > worker-shutdown-probe.mjs <<'JS'
+          import { spawnSync } from 'node:child_process';
+          import { writeFileSync } from 'node:fs';
+          const source = `
+            if (process.argv[1] === 'retain') {
+              await import('./packages/rspack/dist/index.js');
+              if (!process.report.getReport().sharedObjects.some(p => p.includes('rspack') && p.endsWith('.node'))) {
+                throw new Error('Parent did not load the Rspack native binding');
+              }
+            }
+            const { default: run } = await import('./tests/rspack-test/compilerCases/shared-accessors/workers.mjs');
+            await run();
+            console.log('workers exited');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log(JSON.stringify(process.report.getReport().sharedObjects.filter(p => p.endsWith('.node'))));
+          `;
+          const results = [];
+          for (let round = 0; round < 100; round++) {
+            for (const mode of round % 2 ? ['retain', 'baseline'] : ['baseline', 'retain']) {
+              const result = spawnSync(process.execPath,
+                ['--expose-gc', '--input-type=module', '--eval', source, mode],
+                { encoding: 'utf8', timeout: 30000 });
+              const row = { round, mode, status: result.status, signal: result.signal,
+                error: result.error?.message, stdout: result.stdout, stderr: result.stderr };
+              results.push(row);
+              console.log(JSON.stringify(row));
+            }
+          }
+          writeFileSync('worker-shutdown-results.json', JSON.stringify(results, null, 2));
+          if (results.some(row => row.error || row.signal || row.status !== 0)) {
+            throw new Error('Worker shutdown failed');
+          }
+          JS
+          node worker-shutdown-probe.mjs
+      - name: Exercise worker exit under concurrent load
+        shell: bash
+        run: |
+          cat > worker-shutdown-stress.mjs <<'JS'
+          import { spawn } from 'node:child_process';
+          import { writeFileSync } from 'node:fs';
+          const source = `
+            if (process.argv[1] === 'retain') await import('./packages/rspack/dist/index.js');
+            const { default: run } = await import('./tests/rspack-test/compilerCases/shared-accessors/workers.mjs');
+            await run();
+            console.log('workers exited');
+          `;
+          const results = [];
+          async function trial(round, mode) {
+            const row = await new Promise(resolve => {
+              const child = spawn(process.execPath,
+                ['--expose-gc', '--input-type=module', '--eval', source, mode],
+                { stdio: ['ignore', 'pipe', 'pipe'] });
+              let stdout = '', stderr = '', error;
+              const timeout = setTimeout(() => { error = 'timeout'; child.kill(); }, 30000);
+              child.stdout.on('data', chunk => { stdout += chunk; });
+              child.stderr.on('data', chunk => { stderr += chunk; });
+              child.on('error', value => { error = value.message; });
+              child.on('close', (status, signal) => {
+                clearTimeout(timeout);
+                resolve({ round, mode, status, signal, stdout, stderr, error });
+              });
+            });
+            results.push(row);
+            console.log(JSON.stringify(row));
+          }
+          for (let round = 0; round < 50; round++) {
+            await Promise.all(['baseline', 'retain', 'baseline', 'retain'].map(mode => trial(round, mode)));
+          }
+          writeFileSync('worker-shutdown-stress-results.json', JSON.stringify(results, null, 2));
+          if (results.some(row => row.error || row.signal || row.status !== 0)) {
+            throw new Error('Worker shutdown failed under load');
+          }
+          JS
+          node worker-shutdown-stress.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: worker-shutdown-diagnosis
+          path: worker-shutdown*-results.json
