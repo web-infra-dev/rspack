@@ -1,7 +1,6 @@
 use std::{
   fmt::Write,
   hash::{Hash, Hasher},
-  ops::Range,
   path::Path,
   sync::Arc,
 };
@@ -9,7 +8,8 @@ use std::{
 use memchr::memmem::Finder;
 use rspack_cacheable::{
   __private::rkyv::{Archive, Deserialize, Serialize, bytecheck::CheckBytes},
-  Deserializer, Serializer, Validator, from_bytes, to_bytes, to_bytes_with_binding,
+  ContextIdentifierLayout, Deserializer, Serializer, Validator, from_bytes, to_bytes,
+  to_bytes_with_binding,
   utils::root_patterns,
 };
 use rspack_error::Result;
@@ -38,7 +38,7 @@ struct RootPatterns {
 #[derive(Debug, Clone)]
 struct Context {
   portable_root: Option<PortableRoot>,
-  context_identifier_regex_ranges: Option<Arc<FxHashMap<String, Range<usize>>>>,
+  context_identifier_layouts: Option<Arc<FxHashMap<String, ContextIdentifierLayout>>>,
 }
 
 impl rspack_cacheable::CacheableContext for Context {
@@ -53,12 +53,8 @@ impl rspack_cacheable::CacheableContext for Context {
       .map(|p| p.canonical_root.as_std_path())
   }
 
-  fn context_identifier_regex_range(&self, value: &str) -> Option<Range<usize>> {
-    self
-      .context_identifier_regex_ranges
-      .as_ref()?
-      .get(value)
-      .cloned()
+  fn context_identifier_layout(&self, value: &str) -> Option<&ContextIdentifierLayout> {
+    self.context_identifier_layouts.as_ref()?.get(value)
   }
 }
 
@@ -108,7 +104,7 @@ impl CacheCodec {
       root_patterns,
       context: Context {
         portable_root,
-        context_identifier_regex_ranges: None,
+        context_identifier_layouts: None,
       },
     }
   }
@@ -146,12 +142,12 @@ impl CacheCodec {
     rendered
   }
 
-  pub(crate) fn with_context_identifier_regex_ranges(
+  pub(crate) fn with_context_identifier_layouts(
     &self,
-    ranges: FxHashMap<String, Range<usize>>,
+    layouts: FxHashMap<String, ContextIdentifierLayout>,
   ) -> Self {
     let mut codec = self.clone();
-    codec.context.context_identifier_regex_ranges = Some(Arc::new(ranges));
+    codec.context.context_identifier_layouts = Some(Arc::new(layouts));
     codec
   }
 

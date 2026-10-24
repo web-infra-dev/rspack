@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use cow_utils::CowUtils;
+#[cfg(not(windows))]
+use rspack_cacheable::ContextIdentifierLayout;
 use rspack_cacheable::{
   CacheableContext, cacheable,
   utils::PortableString,
@@ -437,7 +439,15 @@ fn test_nested_spellings_prefer_the_longest() {
 struct StructuredIdentifierContext {
   root: PathBuf,
   identifier: String,
-  non_path: std::ops::Range<usize>,
+  layout: ContextIdentifierLayout,
+}
+
+#[cfg(not(windows))]
+fn regex_layout(regex: std::ops::Range<usize>) -> ContextIdentifierLayout {
+  ContextIdentifierLayout {
+    regexes: vec![regex],
+    paths: Vec::new(),
+  }
 }
 
 #[cfg(not(windows))]
@@ -446,8 +456,8 @@ impl CacheableContext for StructuredIdentifierContext {
     Some(&self.root)
   }
 
-  fn context_identifier_regex_range(&self, value: &str) -> Option<std::ops::Range<usize>> {
-    (value == self.identifier).then(|| self.non_path.clone())
+  fn context_identifier_layout(&self, value: &str) -> Option<&ContextIdentifierLayout> {
+    (value == self.identifier).then_some(&self.layout)
   }
 }
 
@@ -479,7 +489,7 @@ fn test_typed_context_regex_does_not_hide_outside_paths() {
     let context = StructuredIdentifierContext {
       root: "/project".into(),
       identifier: identifier.clone(),
-      non_path: start..start + pattern.len(),
+      layout: regex_layout(start..start + pattern.len()),
     };
     let data = rspack_collections::Identifier::from(identifier.as_str());
     let (bytes, actual_bound) = rspack_cacheable::to_bytes_with_binding(&data, &context).unwrap();
@@ -512,11 +522,11 @@ fn test_typed_context_regex_does_not_hide_outside_paths() {
 #[cfg(not(windows))]
 fn test_invalid_context_regex_span_stays_bound() {
   let identifier = "/project/文本|sync|/outside/file.js";
-  for non_path in [0..0, 9..10, 0..identifier.len() + 1] {
+  for regex in [0..0, 9..10, 0..identifier.len() + 1] {
     let context = StructuredIdentifierContext {
       root: "/project".into(),
       identifier: identifier.into(),
-      non_path,
+      layout: regex_layout(regex),
     };
     let data = rspack_collections::Identifier::from(identifier);
     let (_, bound) = rspack_cacheable::to_bytes_with_binding(&data, &context).unwrap();
@@ -533,7 +543,7 @@ fn test_typed_context_regex_content_is_not_rewritten() {
   let context = StructuredIdentifierContext {
     root: "/project".into(),
     identifier: identifier.clone(),
-    non_path: prefix.len()..identifier.len(),
+    layout: regex_layout(prefix.len()..identifier.len()),
   };
   let data = rspack_collections::Identifier::from(identifier);
   let bytes = rspack_cacheable::to_bytes(&data, &context).unwrap();
@@ -566,7 +576,7 @@ fn test_typed_context_regex_literal_markers() {
       let context = StructuredIdentifierContext {
         root: "/project".into(),
         identifier: identifier.clone(),
-        non_path: prefix.len()..prefix.len() + pattern.len(),
+        layout: regex_layout(prefix.len()..prefix.len() + pattern.len()),
       };
       let data = rspack_collections::Identifier::from(identifier.as_str());
       let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&data, &context).unwrap();
@@ -601,31 +611,96 @@ fn test_typed_context_regex_literal_markers() {
 
 #[test]
 #[cfg(not(windows))]
-fn test_context_prefixed_identifiers_relocate() {
-  let writer = TestContext(Some(PathBuf::from("/home/user/project")));
-  let reader = TestContext(Some(PathBuf::from("/w/x/proj")));
-  let data = Data {
-    paths: vec![
-      "context/home/user/project/dir|./a".into(),
-      "context/home/user/project/dir|ctx request./dir true ".into(),
-    ],
-  };
-  let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&data, &writer).unwrap();
-  assert!(!bound);
-  let restored: Data = rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
-  assert_eq!(
-    restored.paths,
-    vec![
-      "context/w/x/proj/dir|./a".to_string(),
-      "context/w/x/proj/dir|ctx request./dir true ".to_string(),
-    ]
+fn test_typed_context_paths_relocate() {
+  let regex = r"/^\.\/.*$/";
+  let element = "context/home/user/project/dir|./a.js";
+  let lazy = format!(
+    "/home/user/project/dir|lazy|{regex}|dep=context/home/user/project/dir|./a.js|modifier=./a.js"
   );
-
-  let outside = Data {
-    paths: vec!["context/opt/dir|./a".into(), "contextual|./a".into()],
+  let lazy_once = format!(
+    "/home/user/project/dir|lazy-once|{regex}|dep=context/home/user/project/dir|./a.js\
+     context/home/user/project/dir|./b.js|loc=1:0-10"
+  );
+  let outside = "context/opt/dir|./a.js";
+  let path_after = |identifier: &str, marker: &str| identifier.find(marker).unwrap() + marker.len();
+  let regex_in = |identifier: &str| {
+    let start = identifier.find(regex).unwrap();
+    let range = start..start + regex.len();
+    vec![range]
   };
-  let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&outside, &writer).unwrap();
-  assert!(bound);
-  let restored: Data = rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
-  assert_eq!(restored, outside);
+  for (identifier, regexes, paths, bound) in [
+    (element.to_string(), vec![], vec![7], false),
+    (
+      lazy.clone(),
+      regex_in(&lazy),
+      vec![path_after(&lazy, "|dep=context")],
+      false,
+    ),
+    (
+      lazy_once.clone(),
+      regex_in(&lazy_once),
+      vec![
+        path_after(&lazy_once, "|dep=context"),
+        path_after(&lazy_once, "jscontext"),
+      ],
+      false,
+    ),
+    (
+      lazy.clone(),
+      vec![],
+      vec![path_after(&lazy, "|dep=context")],
+      true,
+    ),
+    (outside.to_string(), vec![], vec![7], true),
+  ] {
+    let writer = StructuredIdentifierContext {
+      root: "/home/user/project".into(),
+      identifier: identifier.clone(),
+      layout: ContextIdentifierLayout { regexes, paths },
+    };
+    let data = rspack_collections::Identifier::from(identifier.as_str());
+    let (bytes, actual_bound) = rspack_cacheable::to_bytes_with_binding(&data, &writer).unwrap();
+    assert_eq!(actual_bound, bound, "{identifier}");
+    let moved: rspack_collections::Identifier =
+      rspack_cacheable::from_bytes(&bytes, &TestContext(Some("/w/x/proj".into()))).unwrap();
+    assert_eq!(
+      moved.as_str(),
+      identifier.cow_replace("/home/user/project/", "/w/x/proj/"),
+      "{identifier}"
+    );
+  }
+
+  let untyped = rspack_collections::Identifier::from(element);
+  let bytes =
+    rspack_cacheable::to_bytes(&untyped, &TestContext(Some("/home/user/project".into()))).unwrap();
+  let moved: rspack_collections::Identifier =
+    rspack_cacheable::from_bytes(&bytes, &TestContext(Some("/w/x/proj".into()))).unwrap();
+  assert_eq!(moved, untyped, "only a typed layout rebases a context path");
+}
+
+#[test]
+#[cfg(not(windows))]
+fn test_context_shaped_requests_stay_verbatim() {
+  for (writer, reader, request) in [
+    ("/tmp/A", "/tmp/B", "context/tmp/A/pkg"),
+    ("/home/user/project", "/w/x/proj", "context/lib"),
+    ("/lib", "/w/lib", "context/lib/index.js"),
+  ] {
+    let writer = TestContext(Some(writer.into()));
+    let reader = TestContext(Some(reader.into()));
+    let data = Data {
+      paths: vec![request.into()],
+    };
+    let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&data, &writer).unwrap();
+    assert!(!bound, "{request}");
+    let restored: Data = rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
+    assert_eq!(restored, data);
+
+    let identifier = rspack_collections::Identifier::from(request);
+    let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&identifier, &writer).unwrap();
+    assert!(!bound, "{request}");
+    let restored: rspack_collections::Identifier =
+      rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
+    assert_eq!(restored, identifier);
+  }
 }

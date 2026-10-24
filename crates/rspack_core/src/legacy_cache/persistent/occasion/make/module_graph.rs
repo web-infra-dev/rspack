@@ -1,10 +1,10 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rayon::{iter::Either, prelude::*};
-use rspack_cacheable::{cacheable, utils::OwnedOrRef};
+use rspack_cacheable::{ContextIdentifierLayout, cacheable, utils::OwnedOrRef};
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{
   super::BoundEntry,
@@ -12,8 +12,8 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BoxDependency, CompilationLogger,
-  DependenciesBlock, Dependency, DependencyId, DependencyParents, DependencyRef,
-  FactorizationArtifact, FactorizeInfo, Logger, ModuleGraph, ModuleGraphConnection,
+  ContextElementDependency, DependenciesBlock, Dependency, DependencyId, DependencyParents,
+  DependencyRef, FactorizationArtifact, FactorizeInfo, Logger, ModuleGraph, ModuleGraphConnection,
   ModuleGraphModule, ModuleIdentifier, ModuleRef, RayonConsumer,
   cache::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
@@ -48,6 +48,53 @@ pub struct RecoveredModuleGraph {
   pub dropped: Vec<Vec<u8>>,
 }
 
+/// Layouts of the identifiers that embed a context directory or a context regex.
+fn context_identifier_layouts(mg: &ModuleGraph) -> FxHashMap<String, ContextIdentifierLayout> {
+  let module_regex = |identifier: &ModuleIdentifier| {
+    mg.module_by_identifier(identifier)?
+      .as_context_module()?
+      .identifier_regex_range()
+  };
+  let mut layouts: FxHashMap<String, ContextIdentifierLayout> = FxHashMap::default();
+  for (identifier, _) in mg.modules() {
+    if let Some(range) = module_regex(identifier) {
+      layouts.entry(identifier.to_string()).or_default().regexes = vec![range];
+    }
+  }
+  for (_, dependency) in mg.dependencies() {
+    if let Some(dependency) = dependency.as_context_dependency()
+      && let Some(range) = dependency.resource_identifier_regex_range()
+    {
+      layouts
+        .entry(crate::ContextDependency::resource_identifier(dependency).to_string())
+        .or_default()
+        .regexes = vec![range];
+    }
+    if let Some(dependency) = dependency.downcast_ref::<ContextElementDependency>()
+      && let Some(offset) = dependency.resource_identifier_context_offset()
+    {
+      layouts
+        .entry(dependency.resource_identifier.to_string())
+        .or_default()
+        .paths = vec![offset];
+    }
+  }
+  for (identifier, block) in mg.blocks() {
+    let paths = block.context_element_offsets();
+    if paths.is_empty() {
+      continue;
+    }
+    layouts.insert(
+      identifier.as_str().to_string(),
+      ContextIdentifierLayout {
+        regexes: module_regex(block.parent()).into_iter().collect(),
+        paths,
+      },
+    );
+  }
+  layouts
+}
+
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
 pub fn save_module_graph(
   mg: &ModuleGraph,
@@ -66,22 +113,7 @@ pub fn save_module_graph(
   }
 
   let node_codec = if codec.is_portable() && !need_update_modules.is_empty() {
-    let ranges = mg
-      .modules()
-      .filter_map(|(identifier, module)| {
-        let range = module.as_context_module()?.identifier_regex_range()?;
-        Some((identifier.to_string(), range))
-      })
-      .chain(mg.dependencies().filter_map(|(_, dependency)| {
-        let dependency = dependency.as_context_dependency()?;
-        let range = dependency.resource_identifier_regex_range()?;
-        Some((
-          crate::ContextDependency::resource_identifier(dependency).to_string(),
-          range,
-        ))
-      }))
-      .collect();
-    Some(codec.with_context_identifier_regex_ranges(ranges))
+    Some(codec.with_context_identifier_layouts(context_identifier_layouts(mg)))
   } else {
     None
   };
