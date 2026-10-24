@@ -21,6 +21,17 @@ use crate::{
 /// - finish module graph
 pub struct BuildModuleGraphPhasePass;
 
+async fn abort_module_executor(compilation: &mut Compilation) -> Result<()> {
+  if let Some(module_executor) = &mut compilation.module_executor {
+    let mut module_executor = std::mem::take(module_executor);
+    let result = module_executor.abort_rebuild_module_graph().await;
+    compilation.module_executor = Some(module_executor);
+    result
+  } else {
+    Ok(())
+  }
+}
+
 #[async_trait]
 impl PassExt for BuildModuleGraphPhasePass {
   fn name(&self) -> &'static str {
@@ -41,10 +52,26 @@ impl PassExt for BuildModuleGraphPhasePass {
     // align with webpack, make hook include build_module_graph phase in webpack
     let start = logger.time("make hook");
     make_hook_pass(compilation, plugin_driver.clone()).await?;
-    build_module_graph_pass(compilation).await?;
+    if let Err(error) = build_module_graph_pass(compilation).await {
+      if let Err(abort_error) = abort_module_executor(compilation).await {
+        tracing::error!(
+          ?abort_error,
+          "failed to abort module executor after make failure"
+        );
+      }
+      return Err(error);
+    }
     logger.time_end(start);
 
-    finish_make_pass(compilation, plugin_driver).await?;
+    if let Err(error) = finish_make_pass(compilation, plugin_driver).await {
+      if let Err(abort_error) = abort_module_executor(compilation).await {
+        tracing::error!(
+          ?abort_error,
+          "failed to abort module executor after finish make failure"
+        );
+      }
+      return Err(error);
+    }
     finish_module_graph_pass(compilation).await?;
 
     use crate::incremental::IncrementalPasses;
