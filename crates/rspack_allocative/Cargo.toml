@@ -18,7 +18,7 @@ test = false
 arc-swap                 = { workspace = true }
 atomic_refcell           = { workspace = true, optional = true }
 camino                   = { workspace = true, optional = true }
-ctor                     = "0.1.26"
+ctor                     = "0.13.1"
 dashmap                  = { workspace = true, optional = true }
 either                   = { workspace = true, optional = true }
 fixedbitset              = { workspace = true }
