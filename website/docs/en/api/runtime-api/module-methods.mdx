@@ -87,9 +87,9 @@ This feature relies on `Promise` internally. If you use `import()` with legacy b
 
 ### Dynamic expressions in import()
 
-It is not possible to use a fully dynamic import statement, such as `import(foo)`. Because `foo` could potentially be any path to any file in your system or project.
+Rspack can compile a fully dynamic import such as `import(foo)`, but cannot determine which modules to include from an arbitrary variable. By default, it emits a critical dependency warning and creates an empty context module. Calling the import at runtime rejects the promise with a `MODULE_NOT_FOUND` error.
 
-The `import()` must contain at least some information about where the module is located. Bundling can be limited to a specific directory or set of files so that when you are using a dynamic expression, every module that could potentially be requested on an `import()` call is included.
+Include a static directory and filename pattern in the import expression so that Rspack can determine which modules to bundle. Every module that matches the pattern is included and can be loaded at runtime.
 
 For example, `import(`./locale/$\{language}.json`)` will cause every `.json` file in the `./locale` directory to be bundled into the new chunk. At run time, when the variable `language` has been computed, any file like `english.json` or `german.json` will be available for consumption.
 
