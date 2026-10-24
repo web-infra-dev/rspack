@@ -123,6 +123,39 @@ impl EsmLibraryPlugin {
     })
   }
 
+  fn get_runtime_chunks(chunk_ukey: ChunkUkey, compilation: &Compilation) -> Vec<ChunkUkey> {
+    let artifact = &compilation.build_chunk_graph_artifact;
+    let mut stack = get_chunk(compilation, chunk_ukey)
+      .groups()
+      .iter()
+      .copied()
+      .collect::<Vec<_>>();
+    let mut visited = FxHashSet::default();
+    let mut runtimes = FxHashSet::default();
+
+    // A shared async group can have several parents, and an initial chunk can
+    // belong to several entrypoints. Every consuming runtime needs its factories.
+    while let Some(group_ukey) = stack.pop() {
+      if !visited.insert(group_ukey) {
+        continue;
+      }
+      let group = artifact.chunk_group_by_ukey.expect_get(&group_ukey);
+      if group.kind.is_entrypoint() {
+        runtimes.insert(group.get_runtime_chunk(&artifact.chunk_group_by_ukey));
+      } else {
+        stack.extend(group.parents_iterable().copied());
+      }
+    }
+
+    let mut runtimes = runtimes.into_iter().collect::<Vec<_>>();
+    runtimes.sort_unstable_by(|a, b| {
+      get_chunk(compilation, *a)
+        .expect_id()
+        .cmp(get_chunk(compilation, *b).expect_id())
+    });
+    runtimes
+  }
+
   pub(crate) fn get_entry_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
     Self::get_entrypoint(chunk_ukey, compilation)
       .map_or(chunk_ukey, ChunkGroup::get_entrypoint_chunk)
@@ -189,6 +222,7 @@ impl EsmLibraryPlugin {
 
     // modules that are not scope hoisted, store in runtime
     let mut decl_source = ConcatSource::default();
+    let mut import_source = ConcatSource::default();
 
     if !chunk_link.decl_modules.is_empty() {
       let hooks = JsPlugin::get_compilation_hooks(compilation.id());
@@ -254,11 +288,41 @@ impl EsmLibraryPlugin {
       if !decl_inner.source().is_empty() {
         let register_modules =
           runtime_mode_renderer.render_module_registration_ident(runtime_template);
-        decl_source.add(RawStringSource::from(format!(
-          "{register_modules}.add({{\n"
-        )));
-        decl_source.add(decl_inner);
-        decl_source.add(RawStringSource::from_static("});\n"));
+        let additional_runtimes = if chunk.runtime().len() > 1 {
+          Self::get_runtime_chunks(*chunk_ukey, compilation)
+            .into_iter()
+            .filter(|runtime| *runtime != runtime_chunk_ukey)
+            .collect::<Vec<_>>()
+        } else {
+          Vec::new()
+        };
+        if additional_runtimes.is_empty() {
+          decl_source.add(RawStringSource::from(format!(
+            "{register_modules}.add({{\n"
+          )));
+          decl_source.add(decl_inner);
+          decl_source.add(RawStringSource::from_static("});\n"));
+        } else {
+          let mut name_allocator = chunk_link.name_allocator.clone();
+          let factories = name_allocator.find_new_name("__rspack_shared_modules__", &[]);
+          decl_source.add(RawStringSource::from(format!("var {factories} = {{\n")));
+          decl_source.add(decl_inner);
+          decl_source.add(RawStringSource::from(format!(
+            "}};\n{register_modules}.add({factories});\n"
+          )));
+          for runtime in additional_runtimes {
+            let local = name_allocator.find_new_name("__rspack_register_modules__", &[]);
+            let (imported, register) = runtime_mode_renderer
+              .render_module_registration_import(runtime_template, local.as_str());
+            import_source.add(RawStringSource::from(format!(
+              "import {{ {imported} as {local} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
+              get_chunk(compilation, runtime).expect_id().as_str()
+            )));
+            decl_source.add(RawStringSource::from(format!(
+              "{register}.add({factories});\n"
+            )));
+          }
+        }
       }
     }
 
@@ -270,7 +334,6 @@ impl EsmLibraryPlugin {
 
     // render cross module links
     let mut runtime_source = ConcatSource::default();
-    let mut import_source = ConcatSource::default();
     let mut render_source = ConcatSource::default();
     let mut export_specifiers: FxIndexSet<Cow<str>> = Default::default();
     let mut export_default = None;
