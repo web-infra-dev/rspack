@@ -67,8 +67,48 @@ jobs:
           }
           JS
           node worker-shutdown-probe.mjs
+      - name: Exercise worker exit under concurrent load
+        shell: bash
+        run: |
+          cat > worker-shutdown-stress.mjs <<'JS'
+          import { spawn } from 'node:child_process';
+          import { writeFileSync } from 'node:fs';
+          const source = `
+            if (process.argv[1] === 'retain') await import('./packages/rspack/dist/index.js');
+            const { default: run } = await import('./tests/rspack-test/compilerCases/shared-accessors/workers.mjs');
+            await run();
+            console.log('workers exited');
+          `;
+          const results = [];
+          async function trial(round, mode) {
+            const row = await new Promise(resolve => {
+              const child = spawn(process.execPath,
+                ['--expose-gc', '--input-type=module', '--eval', source, mode],
+                { stdio: ['ignore', 'pipe', 'pipe'] });
+              let stdout = '', stderr = '', error;
+              const timeout = setTimeout(() => { error = 'timeout'; child.kill(); }, 30000);
+              child.stdout.on('data', chunk => { stdout += chunk; });
+              child.stderr.on('data', chunk => { stderr += chunk; });
+              child.on('error', value => { error = value.message; });
+              child.on('close', (status, signal) => {
+                clearTimeout(timeout);
+                resolve({ round, mode, status, signal, stdout, stderr, error });
+              });
+            });
+            results.push(row);
+            console.log(JSON.stringify(row));
+          }
+          for (let round = 0; round < 50; round++) {
+            await Promise.all(['baseline', 'retain', 'baseline', 'retain'].map(mode => trial(round, mode)));
+          }
+          writeFileSync('worker-shutdown-stress-results.json', JSON.stringify(results, null, 2));
+          if (results.some(row => row.error || row.signal || ![0, 3221225477].includes(row.status))) {
+            throw new Error('Stress diagnostic failed for a reason other than the target access violation');
+          }
+          JS
+          node worker-shutdown-stress.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: worker-shutdown-diagnosis
-          path: worker-shutdown-results.json
+          path: worker-shutdown*-results.json
