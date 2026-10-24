@@ -294,15 +294,17 @@ function createCacheProcessor(
 }
 
 // Loaders can write into the project, such as build counters. The cold build
-// must leave those files as the relocated build left them.
+// must leave the project as the relocated build left it.
 async function snapshotProject(
   directory: string,
 ): Promise<() => Promise<void>> {
+  const entries = new Set<string>();
   const files = new Map<string, { content: Buffer; stat: fs.Stats }>();
   const walk = async (current: string): Promise<void> => {
     for (const entry of await fs.readdir(current, { withFileTypes: true })) {
       if (entry.name === 'node_modules') continue;
       const filename = path.join(current, entry.name);
+      entries.add(filename);
       if (entry.isDirectory()) await walk(filename);
       if (entry.isFile())
         files.set(filename, {
@@ -311,8 +313,17 @@ async function snapshotProject(
         });
     }
   };
+  const removeCreated = async (current: string): Promise<void> => {
+    for (const entry of await fs.readdir(current, { withFileTypes: true })) {
+      if (entry.name === 'node_modules') continue;
+      const filename = path.join(current, entry.name);
+      if (!entries.has(filename)) await fs.remove(filename);
+      else if (entry.isDirectory()) await removeCreated(filename);
+    }
+  };
   await walk(directory);
   return async () => {
+    await removeCreated(directory);
     for (const [filename, { content, stat }] of files) {
       const current = await fs.readFile(filename).catch(() => undefined);
       if (current?.equals(content)) continue;
