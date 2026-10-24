@@ -30,14 +30,6 @@ export function normalizeShareScope(
   return shareScope;
 }
 
-export function validateShareScope(
-  shareScope: ShareScope,
-  enhanced: boolean,
-  pluginName: string,
-): void {
-  normalizeShareScope(shareScope, enhanced, pluginName);
-}
-
 export type SharePluginOptions = {
   /**
    * Share scope(s) used for modules that do not specify their own `shareScope`.

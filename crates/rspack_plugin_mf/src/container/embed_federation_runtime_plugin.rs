@@ -88,7 +88,10 @@ async fn additional_chunk_runtime_requirements_tree(
     // Add STARTUP (sync) so the runtime wrapper can always hook __rspack_require.x,
     // and STARTUP_ENTRYPOINT (async) when async startup is enabled.
     runtime_requirements.insert(RuntimeGlobals::STARTUP);
-    if self.experiments.async_startup {
+    if self
+      .experiments
+      .needs_async_startup(compilation, chunk_ukey)
+    {
       runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
@@ -129,9 +132,16 @@ async fn runtime_requirement_in_tree(
       .copied()
       .collect::<Vec<DependencyId>>();
 
+    // Resolve the startup mode here, where the chunk graph is available; the
+    // runtime module's `runtime_requirements` runs before it is attached to a
+    // chunk.
     let emro = EmbedFederationRuntimeModuleOptions {
       collected_dependency_ids: collected_ids_snapshot,
-      experiments: self.experiments.clone(),
+      experiments: ModuleFederationRuntimeExperimentsOptions {
+        async_startup: self
+          .experiments
+          .needs_async_startup(compilation, chunk_ukey),
+      },
     };
 
     // Inject EmbedFederationRuntimeModule
@@ -225,7 +235,10 @@ async fn render_startup(
 
   // Entry chunks delegating to runtime need explicit startup calls (sync only)
   if !has_runtime && has_entry_modules {
-    if self.experiments.async_startup {
+    if self
+      .experiments
+      .needs_async_startup(compilation, chunk_ukey)
+    {
       return Ok(());
     }
     let mut startup_with_call = ConcatSource::default();
