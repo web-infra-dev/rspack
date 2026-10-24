@@ -512,7 +512,7 @@ impl ESMImportSpecifierDependencyTemplate {
       runtime_template.export_from_import(
         compilation,
         init_fragments,
-        module.identifier(),
+        *module,
         *runtime,
         true,
         &dep.request,
