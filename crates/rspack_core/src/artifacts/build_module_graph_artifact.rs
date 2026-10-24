@@ -27,6 +27,8 @@ pub struct BuildModuleGraphArtifact {
   ///
   /// This field is empty on the initial compilation.
   pub issuer_update_modules: IdentifierSet,
+  /// A later cache restore must not erase work already done in this compilation.
+  pub(crate) built_modules_for_stats: Option<IdentifierSet>,
 
   // data
   /// Module graph data
@@ -60,6 +62,7 @@ impl BuildModuleGraphArtifact {
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
+      built_modules_for_stats: None,
       module_graph: Default::default(),
       factorization_artifact: Default::default(),
       side_effects_state_artifact: Default::default(),
@@ -276,6 +279,7 @@ impl ArtifactExt for BuildModuleGraphArtifact {
     if incremental.mutations_readable(Self::PASS) {
       std::mem::swap(new, old);
       new.get_module_graph_mut().reset();
+      new.built_modules_for_stats = None;
       new.side_effects_state_artifact = Default::default();
     }
   }

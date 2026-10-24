@@ -272,6 +272,9 @@ impl Compiler {
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
+    self
+      .new_cache
+      .begin_compilation(self.options.stats.cache_info);
     if self.new_cache.has_file_cache()
       && let Some(restored) = self.get_cache("meta").get::<Meta>("state", None)
     {
@@ -404,7 +407,7 @@ impl Compiler {
       self.last_records = Some(Arc::new(CompilationRecords::record(&self.compilation)));
     }
 
-    if matches!(
+    if !matches!(
       self
         .plugin_driver
         .compiler_hooks
@@ -413,12 +416,14 @@ impl Compiler {
         .await?,
       Some(false)
     ) {
-      return Ok(());
+      let start = logger.time("emitAssets");
+      self.emit_assets().await?;
+      logger.time_end(start);
     }
 
-    let start = logger.time("emitAssets");
-    self.emit_assets().await?;
-    logger.time_end(start);
+    if let Some(counter) = &self.new_cache.file_reads {
+      logger.cache_end(counter);
+    }
 
     Ok(())
   }

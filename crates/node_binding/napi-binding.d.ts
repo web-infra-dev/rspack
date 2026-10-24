@@ -1405,6 +1405,26 @@ export interface JsStatsAssetsByChunkName {
   files: Array<string>
 }
 
+export interface JsStatsCacheCounter {
+  logger: string
+  label: string
+  hit: number
+  total: number
+}
+
+export interface JsStatsCacheInfo {
+  mode: 'disabled' | 'memory' | 'persistent'
+  moduleBuilds: JsStatsModuleBuilds | null
+  counters: Array<JsStatsCacheCounter>
+  persistentSessionInitialization: JsStatsCacheValidation | null
+  persistent: JsStatsCacheValidation | null
+}
+
+export interface JsStatsCacheValidation {
+  status: 'cold' | 'valid' | 'invalidated' | 'error' | 'unknown'
+  reason: 'version' | 'buildDependencies' | 'recovery' | null
+}
+
 export interface JsStatsChildGroupChildAssets {
   preload?: Array<string>
   prefetch?: Array<string>
@@ -1457,6 +1477,7 @@ export interface JsStatsChunkGroupChildren {
 
 export interface JsStatsCompilation {
   assets?: Array<JsStatsAsset>
+  cacheInfo?: JsStatsCacheInfo
   assetsByChunkName?: Array<JsStatsAssetsByChunkName>
   chunks?: Array<JsStatsChunk>
   entrypoints?: Array<JsStatsChunkGroup>
@@ -1495,6 +1516,11 @@ export interface JsStatsModule {
   issuerPath?: Array<JsStatsModuleIssuer>
   usedExports?: string | Array<string>
   modules?: Array<JsStatsModule>
+}
+
+export interface JsStatsModuleBuilds {
+  reused: number
+  total: number
 }
 
 export interface JsStatsModuleCommonAttributes {
@@ -1566,6 +1592,7 @@ export interface JsStatsOptimizationBailout {
 
 export interface JsStatsOptions {
   assets: boolean
+  cacheInfo: boolean
   cachedModules: boolean
   chunks: boolean
   chunkGroupAuxiliary: boolean
@@ -3199,6 +3226,7 @@ export interface RawStatsBuildInfo {
 
 export interface RawStatsOptions {
   colors: boolean
+  cacheInfo: boolean
 }
 
 export interface RawStorageOptions {

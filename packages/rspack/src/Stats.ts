@@ -17,6 +17,7 @@ export type {
   StatsAsset,
   StatsChunk,
   StatsCompilation,
+  StatsCacheInfo,
   StatsError,
   StatsModule,
 } from './stats/statsFactoryUtils';

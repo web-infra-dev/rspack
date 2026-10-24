@@ -252,6 +252,8 @@ export type KnownStatsChunkOrigin = {
 
 export type StatsChunkOrigin = KnownStatsChunkOrigin & Record<string, any>;
 
+export type StatsCacheInfo = binding.JsStatsCacheInfo;
+
 export type KnownStatsCompilation = {
   /**
    * webpack version.
@@ -262,6 +264,7 @@ export type KnownStatsCompilation = {
   rspackVersion?: string;
   name?: string;
   hash?: string;
+  cacheInfo?: StatsCacheInfo;
   env?: any;
   time?: number;
   builtAt?: number;

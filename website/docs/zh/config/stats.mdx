@@ -74,6 +74,22 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 按照[预设值](/config/stats#预设stats-presets)进行输出，这在[扩展信息输出行为](/config/stats#扩展信息输出行为)时很有用。
 
+### stats.cacheInfo
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+在创建编译器前设置 `stats: { cacheInfo: true }` 即可统计模块构建次数。编译后通过 `stats.toJson({ all: false, cacheInfo: true }).cacheInfo` 读取报告。仅使用 `stats.all` 或 `verbose` 预设不会开启计数。
+
+- `moduleBuilds` 报告 `{ reused, total }`，统计 `finishModules` 结束后主模块图中的不同模块，包括外部模块和不可缓存的模块。运行时模块和独立的模块执行图不在统计范围内。`reused` 是本次从未执行构建步骤的模块数，结果可以来自内存或磁盘。在仅有两个模块的项目中修改一个依赖后，结果可能为 `{ reused: 1, total: 2 }`。增量重建、模块图随后发生变化或未启用持久化模块缓存时，返回 `null`。
+- `mode` 为 `disabled`、`memory` 或 `persistent`。在持久化模式下，`persistent` 报告本次编译的缓存恢复错误，以及旧版缓存首次验证的结果。文件系统后端通过 `persistentSessionInitialization` 报告打开共享缓存时的验证结果，后续编译仍可能看到会话最初的 `cold` 状态。不适用的字段为 `null`。
+- `counters` 列出每个缓存事件的 `{ logger, label, hit, total }`，保留重复标签。各日志记录器的计数单位不同，例如解析器统计请求次数，代码生成统计模块与运行时的组合数。
+
+在编译前启用 `stats.cacheInfo` 后，新版缓存查询缓存数据库时会在 `rspack.Compiler` 下报告 `filesystem cache reads`。`total` 是条目查询次数，`hit` 是 etag 匹配且解码成功的条目数。内存命中、待写入的条目和启动验证不会查询这些条目。即使读取命中，模块仍可能需要重新构建。
+
+验证状态 `cold` 表示没有已有的缓存元数据，`valid` 表示元数据匹配，`invalidated` 表示 `version` 或 `buildDependencies` 发生了变化，`error` 表示验证或恢复（`recovery`）失败，`unknown` 表示没有可用结果。仅当 Rspack 确定原因时，`reason` 才有值，否则为 `null`。
+
+新版缓存在空闲时或编译器关闭时写入待处理的条目。启用 `infrastructureLogging.debug: /^rspack\.cache\.IdleFileCache$/` 即可在每批写入成功后看到 `Stored cache (N items)`；计数包含已提交的元数据键。如需查看旧版缓存的原始诊断日志，请使用 `stats.loggingDebug: /^rspack\.persistentCache$/`。
+
 ## 产物选项
 
 ### stats.assets

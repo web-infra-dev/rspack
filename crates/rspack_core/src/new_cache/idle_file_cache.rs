@@ -17,7 +17,7 @@ use super::{
   CacheKey, CacheValue, Etag, FileCacheStrategy,
   cache_value::{CacheValueData, ErasedCacheValue},
 };
-use crate::{InfrastructureLogger, Logger};
+use crate::{CacheCount, InfrastructureLogger, Logger};
 
 const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE: Duration = Duration::from_secs(5);
@@ -148,7 +148,7 @@ impl BackgroundJob {
 /// Runs filesystem cache operations in one persistent background job.
 #[derive(Debug)]
 pub struct IdleFileCache {
-  strategy: Arc<FileCacheStrategy>,
+  pub(super) strategy: Arc<FileCacheStrategy>,
   logger: Arc<InfrastructureLogger>,
   command_sender: mpsc::UnboundedSender<Command>,
   idle_epoch: Arc<AtomicU64>,
@@ -220,12 +220,14 @@ impl IdleFileCache {
 
   pub fn restore<T: CacheValueData>(
     &self,
-    key: CacheKey,
-    etag: Option<Etag>,
+    key: &CacheKey,
+    etag: Option<&Etag>,
+    counter: Option<&CacheCount>,
+    on_error: impl FnOnce(),
   ) -> Option<CacheValue<T>> {
     let restored = self
       .strategy
-      .restore(&key, etag.as_ref(), CacheValue::<T>::decoder());
+      .restore(key, etag, CacheValue::<T>::decoder(), counter, on_error);
     restored.and_then(ErasedCacheValue::downcast)
   }
 

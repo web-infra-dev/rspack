@@ -8,7 +8,7 @@ use super::{
   storage::BoxStorage,
   validation::{CacheValidation, CacheValidationResult},
 };
-use crate::{CompilationLogger, LogType, Logger};
+use crate::{CompilationLogger, LogType, Logger, PersistentCacheState};
 
 const PATH_LOG_LIMIT: usize = 3;
 
@@ -70,10 +70,13 @@ impl CacheContext {
   /// compiler cache is reset so a scope that is not used by the invalidating
   /// build cannot survive and be reused later.
   #[tracing::instrument("Cache::Context::validate", skip_all)]
-  pub async fn validate(&mut self, validation: &mut CacheValidation) {
+  pub async fn validate(&mut self, validation: &mut CacheValidation) -> PersistentCacheState {
     let report = validation.validate(&*self.storage).await;
-    match report.result {
-      CacheValidationResult::Valid { tracked_files } => {
+    let invalid = match report.result {
+      CacheValidationResult::Valid {
+        tracked_files,
+        has_meta,
+      } => {
         self.logger().info(format!(
           "build dependencies are valid ({tracked_files} tracked)"
         ));
@@ -88,13 +91,18 @@ impl CacheContext {
           .logger()
           .info("meta persistent cache recovery succeeded");
         self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
+        return if has_meta {
+          PersistentCacheState::Valid
+        } else {
+          PersistentCacheState::Cold
+        };
       }
       CacheValidationResult::InvalidVersion { message } => {
         self
           .logger()
           .warn(format!("meta persistent cache recovery failed: {message}"));
         self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
-        self.invalidate();
+        PersistentCacheState::InvalidVersion
       }
       CacheValidationResult::InvalidBuildDependencies {
         modified_files,
@@ -110,14 +118,14 @@ impl CacheContext {
             .build_dependencies_duration
             .expect("build dependencies should have been validated"),
         );
-        self.invalidate();
+        PersistentCacheState::InvalidBuildDependencies
       }
       CacheValidationResult::VersionError(error) => {
         self
           .logger()
           .warn(format!("meta persistent cache recovery failed: {error}"));
         self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
-        self.invalidate();
+        PersistentCacheState::ValidationError
       }
       CacheValidationResult::BuildDependenciesError(error) => {
         self
@@ -129,9 +137,11 @@ impl CacheContext {
             .build_dependencies_duration
             .expect("build dependencies should have been validated"),
         );
-        self.invalidate();
+        PersistentCacheState::ValidationError
       }
-    }
+    };
+    self.invalidate();
+    invalid
   }
 
   fn log_duration(&self, label: &'static str, duration: Duration) {
@@ -195,6 +205,7 @@ impl CacheContext {
   pub async fn load_snapshot(
     &mut self,
     snapshot: &Snapshot,
+    state: &mut PersistentCacheState,
   ) -> Option<(bool, InternedPathSet, InternedPathSet)> {
     if !self.load_failed {
       let start = self.logger().time("read snapshot from persistent cache");
@@ -221,6 +232,7 @@ impl CacheContext {
           }
           Err(err) => {
             self.load_failed = true;
+            *state = PersistentCacheState::RecoveryError;
             self
               .logger()
               .warn(format!("snapshot scope load failed: {err}"));
@@ -299,7 +311,11 @@ impl CacheContext {
   /// Returns `None` and resets the occasion's scope when the cache is
   /// invalid or recovery fails.
   #[tracing::instrument("Cache::Context::load_occasion", skip_all)]
-  pub async fn load_occasion<O: Occasion>(&mut self, occasion: &O) -> Option<O::CacheItem> {
+  pub async fn load_occasion<O: Occasion>(
+    &mut self,
+    occasion: &O,
+    state: &mut PersistentCacheState,
+  ) -> Option<O::CacheItem> {
     if !self.load_failed {
       let start = self
         .logger()
@@ -315,6 +331,7 @@ impl CacheContext {
         }
         Err(err) => {
           self.load_failed = true;
+          *state = PersistentCacheState::RecoveryError;
           self.logger().warn(format!(
             "{} persistent cache recovery failed: {err}",
             occasion.name()

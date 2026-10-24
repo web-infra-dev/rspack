@@ -1,4 +1,11 @@
-use std::{ops::Deref, sync::Arc, time::Duration};
+use std::{
+  ops::Deref,
+  sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  },
+  time::Duration,
+};
 
 use rspack_paths::InternedPathSet;
 
@@ -6,6 +13,7 @@ use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
   cache_value::CacheValueData,
 };
+use crate::{CacheCount, PersistentCacheState};
 
 /// Storage shared by all compiler-scoped cache views.
 #[derive(Debug)]
@@ -21,21 +29,42 @@ struct CacheStorage {
 /// including misses, are recorded in memory for subsequent reads.
 #[derive(Debug)]
 pub struct Cache {
-  storage: Option<CacheStorage>,
+  storage: Option<Arc<CacheStorage>>,
+  read_failed: AtomicBool,
+  pub(crate) file_reads: Option<CacheCount>,
 }
 
 impl Cache {
+  fn file_cache(&self) -> Option<&IdleFileCache> {
+    self.storage.as_ref()?.idle_file_cache.as_ref()
+  }
+
+  pub(crate) fn initial_validation(&self) -> PersistentCacheState {
+    self
+      .file_cache()
+      .map(|cache| cache.strategy.initial_validation())
+      .unwrap_or_default()
+  }
+
   /// Creates storage from the configured memory and filesystem caches.
   pub fn new(memory_cache: Option<MemoryCache>, idle_file_cache: Option<IdleFileCache>) -> Self {
     let storage = if memory_cache.is_some() || idle_file_cache.is_some() {
-      Some(CacheStorage {
+      Some(Arc::new(CacheStorage {
         memory_cache,
         idle_file_cache,
-      })
+      }))
     } else {
       None
     };
-    Self { storage }
+    Self {
+      storage,
+      read_failed: Default::default(),
+      file_reads: None,
+    }
+  }
+
+  pub(crate) fn read_failed(&self) -> bool {
+    self.read_failed.load(Ordering::Relaxed)
   }
 
   pub fn new_disabled() -> Self {
@@ -61,7 +90,10 @@ impl Cache {
       return None;
     };
 
-    match file_cache.restore::<T>(key.clone(), etag.clone()) {
+    let value = file_cache.restore::<T>(&key, etag.as_ref(), self.file_reads.as_ref(), || {
+      self.read_failed.store(true, Ordering::Relaxed);
+    });
+    match value {
       Some(value) => {
         if let Some(memory_cache) = &storage.memory_cache {
           memory_cache.store(key, etag, value.clone());
@@ -99,10 +131,7 @@ impl Cache {
   }
 
   pub fn has_file_cache(&self) -> bool {
-    self
-      .storage
-      .as_ref()
-      .is_some_and(|storage| storage.idle_file_cache.is_some())
+    self.file_cache().is_some()
   }
 
   pub fn begin_idle(&self, build_time: Duration) {
@@ -159,6 +188,17 @@ impl CompilerCache {
     Self {
       cache,
       compiler_path,
+    }
+  }
+
+  pub(crate) fn begin_compilation(&mut self, track_reads: bool) {
+    if self.has_file_cache() {
+      // Child compilers share entries. Attribute each database read to its caller.
+      self.cache = Arc::new(Cache {
+        storage: self.cache.storage.clone(),
+        read_failed: Default::default(),
+        file_reads: track_reads.then(|| CacheCount::new("filesystem cache reads")),
+      });
     }
   }
 

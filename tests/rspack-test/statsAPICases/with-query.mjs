@@ -52,6 +52,13 @@ export default {
 			      main.js,
 			    ],
 			  },
+			  cacheInfo: Object {
+			    counters: Array [],
+			    mode: disabled,
+			    moduleBuilds: null,
+			    persistent: null,
+			    persistentSessionInitialization: null,
+			  },
 			  children: Array [],
 			  chunks: Array [
 			    Object {

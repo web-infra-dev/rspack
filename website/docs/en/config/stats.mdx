@@ -74,6 +74,22 @@ Enabling `stats.all` will lead to a large amount of data transmission between Ru
 
 Sets the [preset](/config/stats#stats-presets) for the type of information that gets displayed. It is useful for [extending stats behaviours](/config/stats#extending-stats-behaviours).
 
+### stats.cacheInfo
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Set `stats: { cacheInfo: true }` before creating the compiler to measure module builds. Read `stats.toJson({ all: false, cacheInfo: true }).cacheInfo` after compiling. Using `stats.all` or the `verbose` preset alone leaves module counts unavailable.
+
+- `moduleBuilds` reports `{ reused, total }` for distinct modules in the main graph after `finishModules`, including externals and modules ineligible for caching. Runtime modules and separate module-execution graphs fall outside this count. `reused` counts modules whose build step never ran, whether restored from memory or disk. Editing one dependency in a two-module graph can yield `{ reused: 1, total: 2 }`. Incremental rebuilds, late graph changes, and builds without persistent module caching return `null`.
+- `mode` is `disabled`, `memory`, or `persistent`. In persistent mode, `persistent` reports recovery errors from this compilation and the legacy cache’s first validation result. The filesystem backend also reports `persistentSessionInitialization` when it opens a shared cache. Later compilations can still report the session’s initial `cold` result. A field that does not apply is `null`.
+- `counters` lists `{ logger, label, hit, total }` for each cache event, including repeated labels. Each logger defines its unit, such as resolver requests or module-runtime pairs for code generation.
+
+With `stats.cacheInfo` enabled before compilation, the new cache reports `filesystem cache reads` under `rspack.Compiler` when it queries the cache database. `total` counts entry lookups, and `hit` counts entries decoded with a matching etag. Memory hits, pending writes, and startup validation do not query these entries. A module can still require rebuilding after a successful read.
+
+Validation reports `cold` for missing metadata, `valid` for matching metadata, `invalidated` for a changed `version` or `buildDependencies`, `error` for failed validation or `recovery`, and `unknown` when no result is available. `reason` is `null` unless Rspack identifies the cause.
+
+The new cache flushes pending writes during idle time or compiler shutdown. Enable `infrastructureLogging.debug: /^rspack\.cache\.IdleFileCache$/` to see `Stored cache (N items)` after a successful batch. The count includes committed metadata keys. The legacy cache uses `stats.loggingDebug: /^rspack\.persistentCache$/` for raw diagnostics.
+
 ## Asset options
 
 ### stats.assets

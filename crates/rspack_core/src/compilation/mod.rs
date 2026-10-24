@@ -206,6 +206,18 @@ impl Default for CompilationId {
 
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 
+#[derive(Debug, Clone, Copy, Default)]
+pub enum PersistentCacheState {
+  #[default]
+  Unknown,
+  Cold,
+  Valid,
+  InvalidVersion,
+  InvalidBuildDependencies,
+  ValidationError,
+  RecoveryError,
+}
+
 /// Use macro to prevent cargo shear from failing and reporting errors
 /// due to the inability to parse the async closure syntax
 /// https://github.com/Boshen/cargo-shear/issues/143
@@ -235,6 +247,9 @@ pub struct Compilation {
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
+  pub persistent_cache_state: PersistentCacheState,
+  pub(crate) cache_session_initial_validation: PersistentCacheState,
+  pub(crate) module_build_cache_stats: Option<(u32, u32)>,
   cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub resolver_cache: Option<crate::ResolverCache>,
@@ -358,6 +373,14 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
+    let mut build_module_graph_artifact = BuildModuleGraphArtifact::new();
+    if options.stats.cache_info
+      && !is_rebuild
+      && matches!(options.cache, CacheOptions::Persistent(_))
+      && (!options.experiments.new_cache.is_enabled() || options.experiments.new_cache.module)
+    {
+      build_module_graph_artifact.built_modules_for_stats = Some(Default::default());
+    }
     // Rebuilds own their invalidation path, so skip module restoration while
     // still publishing rebuilt modules for subsequent compilations.
     let module_build_cache = options
@@ -401,6 +424,9 @@ impl Compilation {
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       logging,
+      persistent_cache_state: PersistentCacheState::Unknown,
+      cache_session_initial_validation: cache.initial_validation(),
+      module_build_cache_stats: None,
       cache,
       module_build_cache,
       resolver_cache,
@@ -459,7 +485,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
+      build_module_graph_artifact: StealCell::new(build_module_graph_artifact),
       modified_files,
       removed_files,
       input_filesystem,
@@ -473,6 +499,14 @@ impl Compilation {
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {
     self.cache.facade(name)
+  }
+
+  pub(crate) fn persistent_cache_state(&self) -> PersistentCacheState {
+    if self.cache.read_failed() {
+      PersistentCacheState::RecoveryError
+    } else {
+      self.persistent_cache_state
+    }
   }
 
   pub fn id(&self) -> CompilationId {
@@ -714,6 +748,7 @@ impl Compilation {
   where
     D: Into<DependencyRef>,
   {
+    self.module_build_cache_stats = None;
     for (entry, options) in args {
       self.add_entry(entry.into(), options).await?;
     }
@@ -1096,6 +1131,7 @@ impl Compilation {
     exports_info_artifact: &mut ExportsInfoArtifact,
     f: impl Fn(Vec<&crate::ModuleRef>) -> T,
   ) -> Result<T> {
+    self.module_build_cache_stats = None;
     let artifact = self.build_module_graph_artifact.steal();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25

@@ -24,7 +24,7 @@ use self::{
 use super::Cache;
 use crate::{
   Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger,
-  PersistentCacheOptions, cache::CacheCodec,
+  PersistentCacheOptions, PersistentCacheState, cache::CacheCodec,
 };
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
@@ -99,23 +99,18 @@ impl PersistentCache {
       source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion::new(codec),
     }
   }
-
-  async fn initialize(&mut self) {
-    if self.initialized {
-      return;
-    }
-    self.initialized = true;
-    self.ctx.cleanup_stale();
-
-    self.ctx.validate(&mut self.validation).await;
-  }
 }
 
 #[async_trait::async_trait]
 impl Cache for PersistentCache {
   async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
     self.ctx.logger().info("persistent cache enabled");
-    self.initialize().await;
+    let state = &mut compilation.persistent_cache_state;
+    if !self.initialized {
+      self.initialized = true;
+      self.ctx.cleanup_stale();
+      *state = self.ctx.validate(&mut self.validation).await;
+    }
 
     if compilation.is_rebuild {
       return false;
@@ -123,7 +118,7 @@ impl Cache for PersistentCache {
     // rebuild will pass modified_files and removed_files from js side,
     // so only calculate them when build.
     if let Some((is_hot_start, modified_paths, removed_paths)) =
-      self.ctx.load_snapshot(&self.snapshot).await
+      self.ctx.load_snapshot(&self.snapshot, state).await
     {
       compilation.modified_files.extend(modified_paths);
       compilation.removed_files.extend(removed_paths);
@@ -176,15 +171,17 @@ impl Cache for PersistentCache {
       return;
     }
 
-    if let Some(cache_item) = self.ctx.load_occasion(&self.make_occasion).await {
-      *compilation.build_module_graph_artifact = cache_item;
-      for (module, _) in compilation
-        .build_module_graph_artifact
-        .get_module_graph()
-        .modules()
-      {
+    let state = &mut compilation.persistent_cache_state;
+    let artifact = &mut *compilation.build_module_graph_artifact;
+    if let Some(mut cache_item) = self.ctx.load_occasion(&self.make_occasion, state).await {
+      cache_item.built_modules_for_stats = artifact.built_modules_for_stats.take();
+      *artifact = cache_item;
+      for (module, _) in artifact.get_module_graph().modules() {
         compilation.exports_info_artifact.new_exports_info(*module);
       }
+    }
+    if matches!(state, PersistentCacheState::Unknown) {
+      artifact.built_modules_for_stats = None;
     }
   }
 
@@ -200,9 +197,10 @@ impl Cache for PersistentCache {
       return;
     }
 
+    let state = &mut compilation.persistent_cache_state;
     let cache_item = self
       .ctx
-      .load_occasion(&self.minimize_occasion)
+      .load_occasion(&self.minimize_occasion, state)
       .await
       .unwrap_or_default();
     compilation.minimize_persistent_cache = Some(cache_item);
@@ -210,7 +208,7 @@ impl Cache for PersistentCache {
     if compilation.use_source_map_dev_tool_plugin_cache {
       let cache_item = self
         .ctx
-        .load_occasion(&self.source_map_dev_tool_plugin_occasion)
+        .load_occasion(&self.source_map_dev_tool_plugin_occasion, state)
         .await
         .unwrap_or_default();
       compilation.source_map_dev_tool_plugin_cache = Some(cache_item);

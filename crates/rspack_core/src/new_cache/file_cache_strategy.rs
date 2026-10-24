@@ -16,7 +16,7 @@ use super::{
   snapshot::FileSystemInfo,
   validator::{CacheValidator, CacheValidatorResult},
 };
-use crate::{InfrastructureLogger, Logger, cache::CacheCodec};
+use crate::{CacheCount, InfrastructureLogger, Logger, PersistentCacheState, cache::CacheCodec};
 
 const VALIDATOR_KEY: &str = "validator";
 
@@ -63,6 +63,7 @@ pub struct FileCacheStrategy {
   codec: Arc<CacheCodec>,
   // Unset: initializing; Some: available; None: unavailable.
   state: OnceLock<RwLock<Option<State>>>,
+  initial_validation: OnceLock<PersistentCacheState>,
   unavailable: Notify,
   readonly: bool,
   logger: Arc<InfrastructureLogger>,
@@ -87,6 +88,7 @@ impl FileCacheStrategy {
       ),
       codec,
       state: OnceLock::new(),
+      initial_validation: OnceLock::new(),
       unavailable: Notify::new(),
       readonly,
       logger,
@@ -94,7 +96,15 @@ impl FileCacheStrategy {
   }
 
   pub async fn db_init(&self, (base_path, path): (Utf8PathBuf, Utf8PathBuf)) {
-    fn set_initialized(strategy: &FileCacheStrategy, database: Database) {
+    fn set_initialized(
+      strategy: &FileCacheStrategy,
+      database: Database,
+      validation: PersistentCacheState,
+    ) {
+      strategy
+        .initial_validation
+        .set(validation)
+        .expect("cache should be validated only once");
       strategy
         .state
         .set(RwLock::new(Some(State {
@@ -115,31 +125,45 @@ impl FileCacheStrategy {
     self.logger.time_end(start);
 
     if database.is_empty() {
-      set_initialized(self, database);
+      set_initialized(self, database, PersistentCacheState::Cold);
       return;
     }
 
     let start = self.logger.time("validate cache database");
-    if let Err(e) = self.db_validate(&mut database).await {
-      self.shutdown_database(database);
-      self.session_unavailable(Some(&e));
-      return;
-    }
+    let validation = match self.db_validate(&mut database).await {
+      Ok(validation) => validation,
+      Err(error) => {
+        self.shutdown_database(database);
+        self.session_unavailable(Some(&error));
+        return;
+      }
+    };
     self.logger.time_end(start);
     // Publish only after validation succeeds, so waiting readers cannot use an invalid DB.
-    set_initialized(self, database);
+    set_initialized(self, database, validation);
   }
 
-  async fn db_validate(&self, database: &mut Database) -> Result<()> {
+  pub(super) fn initial_validation(&self) -> PersistentCacheState {
+    if cfg!(target_family = "wasm") || self.state.get().is_none() {
+      return PersistentCacheState::Unknown;
+    }
+    self
+      .initial_validation
+      .get()
+      .copied()
+      .unwrap_or(PersistentCacheState::ValidationError)
+  }
+
+  async fn db_validate(&self, database: &mut Database) -> Result<PersistentCacheState> {
     let data = database.get(DatabaseFamily::Validator, &CacheKey::new(VALIDATOR_KEY))?;
     let validation = self.validator.validate(data.as_deref()).await?;
-    match validation {
-      CacheValidatorResult::Valid => {}
+    let state = match validation {
+      CacheValidatorResult::Valid => return Ok(PersistentCacheState::Valid),
       CacheValidatorResult::InvalidVersion => {
         self
           .logger
           .log("Resetting cache, the cache version doesn't match");
-        database.reset()?;
+        PersistentCacheState::InvalidVersion
       }
       CacheValidatorResult::InvalidBuildDependencies {
         modified_files,
@@ -150,16 +174,17 @@ impl FileCacheStrategy {
           modified_files.len(),
           removed_files.len()
         ));
-        database.reset()?;
+        PersistentCacheState::InvalidBuildDependencies
       }
       CacheValidatorResult::InvalidError => {
         self
           .logger
           .warn("Resetting cache, unexpected error occurred");
-        database.reset()?;
+        PersistentCacheState::ValidationError
       }
-    }
-    Ok(())
+    };
+    database.reset()?;
+    Ok(state)
   }
 
   fn read_state(&self) -> RwLockReadGuard<'_, Option<State>> {
@@ -271,6 +296,8 @@ impl FileCacheStrategy {
     key: &CacheKey,
     etag: Option<&Etag>,
     decoder: CacheValueDecoder,
+    counter: Option<&CacheCount>,
+    on_error: impl FnOnce(),
   ) -> Option<ErasedCacheValue> {
     let state_guard = self.read_state();
     let state = state_guard.as_ref()?;
@@ -281,25 +308,33 @@ impl FileCacheStrategy {
         .then(|| pending.entry.value().clone());
     }
 
-    let result = state.database.get(DatabaseFamily::Cache, key);
-    let entry = match result {
-      Ok(entry) => entry,
+    let value = match state.database.get(DatabaseFamily::Cache, key) {
+      Ok(Some(entry)) => match decoder(&entry, etag, &self.codec) {
+        Ok(decoded) => decoded,
+        Err(e) => {
+          on_error();
+          self
+            .logger
+            .warn(format!("Failed to decode cache entry for key {key}: {e}"));
+          None
+        }
+      },
+      Ok(None) => None,
       Err(e) => {
+        on_error();
         drop(state_guard);
         self.session_unavailable(Some(&e));
-        return None;
-      }
-    };
-    let entry = entry?;
-    match decoder(&entry, etag, &self.codec) {
-      Ok(decoded) => decoded,
-      Err(e) => {
-        self
-          .logger
-          .warn(format!("Failed to decode cache entry for key {key}: {e}"));
         None
       }
+    };
+    if let Some(counter) = counter {
+      if value.is_some() {
+        counter.hit();
+      } else {
+        counter.miss();
+      }
     }
+    value
   }
 
   pub(super) async fn after_all_stored(

@@ -8,7 +8,8 @@ use napi::{
 use napi_derive::napi;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
-  EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
+  CacheOptions, EntrypointsStatsOption, ExtendedStatsOptions, LogType, PersistentCacheState, Stats,
+  StatsChunk, StatsModule, StatsUsedExports,
   rspack_sources::{RawBufferSource, Source, SourceValue},
 };
 use rspack_error::Severity;
@@ -911,6 +912,7 @@ impl<'a> From<rspack_core::StatsAssetsByChunkName<'a>> for JsStatsAssetsByChunkN
 #[napi(object, object_to_js = false)]
 pub struct JsStatsOptions {
   pub assets: bool,
+  pub cache_info: bool,
   pub cached_modules: bool,
   pub chunks: bool,
   pub chunk_group_auxiliary: bool,
@@ -974,9 +976,42 @@ pub struct JsStatsGetAssets<'a> {
   pub assets_by_chunk_name: Vec<JsStatsAssetsByChunkName<'a>>,
 }
 
+#[napi(object, object_from_js = false, use_nullable = true)]
+pub struct JsStatsCacheInfo {
+  #[napi(ts_type = "'disabled' | 'memory' | 'persistent'")]
+  pub mode: &'static str,
+  pub module_builds: Option<JsStatsModuleBuilds>,
+  pub counters: Vec<JsStatsCacheCounter>,
+  pub persistent_session_initialization: Option<JsStatsCacheValidation>,
+  pub persistent: Option<JsStatsCacheValidation>,
+}
+
+#[napi(object, object_from_js = false, use_nullable = true)]
+pub struct JsStatsCacheValidation {
+  #[napi(ts_type = "'cold' | 'valid' | 'invalidated' | 'error' | 'unknown'")]
+  pub status: &'static str,
+  #[napi(ts_type = "'version' | 'buildDependencies' | 'recovery'")]
+  pub reason: Option<&'static str>,
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsStatsCacheCounter {
+  pub logger: String,
+  pub label: &'static str,
+  pub hit: u32,
+  pub total: u32,
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsStatsModuleBuilds {
+  pub reused: u32,
+  pub total: u32,
+}
+
 #[napi(object, object_from_js = false)]
 pub struct JsStatsCompilation<'a> {
   pub assets: Option<Vec<JsStatsAsset<'a>>>,
+  pub cache_info: Option<JsStatsCacheInfo>,
   pub assets_by_chunk_name: Option<Vec<JsStatsAssetsByChunkName<'a>>>,
   #[napi(ts_type = "Array<JsStatsChunk>")]
   pub chunks: Option<napi_value>,
@@ -1022,6 +1057,7 @@ impl JsStats {
   ) -> Result<JsStatsCompilationWrapper<'_>> {
     self.inner.clear_artifact_fallback_flags();
 
+    let cache_info = js_options.cache_info.then(|| self.cache_info());
     let options = ExtendedStatsOptions::from(js_options);
 
     let hash = options.hash.then(|| self.hash()).flatten();
@@ -1069,6 +1105,7 @@ impl JsStats {
 
     Ok(JsStatsCompilationWrapper(JsStatsCompilation {
       assets,
+      cache_info,
       assets_by_chunk_name,
       chunks,
       entrypoints,
@@ -1078,6 +1115,57 @@ impl JsStats {
       named_chunk_groups,
       warnings,
     }))
+  }
+
+  fn cache_info(&self) -> JsStatsCacheInfo {
+    let options = self.inner.options();
+    let mode = match options.cache {
+      CacheOptions::Disabled => "disabled",
+      CacheOptions::Memory { .. } => "memory",
+      CacheOptions::Persistent(_) => "persistent",
+    };
+    let validation = |state| {
+      let (status, reason) = match state {
+        PersistentCacheState::Unknown => ("unknown", None),
+        PersistentCacheState::Cold => ("cold", None),
+        PersistentCacheState::Valid => ("valid", None),
+        PersistentCacheState::InvalidVersion => ("invalidated", Some("version")),
+        PersistentCacheState::InvalidBuildDependencies => {
+          ("invalidated", Some("buildDependencies"))
+        }
+        PersistentCacheState::ValidationError => ("error", None),
+        PersistentCacheState::RecoveryError => ("error", Some("recovery")),
+      };
+      JsStatsCacheValidation { status, reason }
+    };
+    let mut counters = Vec::new();
+    for logging in self.inner.logging().iter() {
+      let (logger, events) = logging.pair();
+      for event in events {
+        if let LogType::Cache { label, hit, total } = event {
+          counters.push(JsStatsCacheCounter {
+            logger: logger.to_string(),
+            label,
+            hit: *hit,
+            total: *total,
+          });
+        }
+      }
+    }
+    counters.sort_by(|a, b| a.logger.cmp(&b.logger));
+
+    JsStatsCacheInfo {
+      mode,
+      persistent: (mode == "persistent").then(|| validation(self.inner.persistent_cache_state())),
+      persistent_session_initialization: (mode == "persistent"
+        && options.experiments.new_cache.is_enabled())
+      .then(|| validation(self.inner.cache_session_initial_validation())),
+      module_builds: self
+        .inner
+        .module_build_cache_stats()
+        .map(|(reused, total)| JsStatsModuleBuilds { reused, total }),
+      counters,
+    }
   }
 
   fn assets(&self) -> JsStatsGetAssets<'_> {

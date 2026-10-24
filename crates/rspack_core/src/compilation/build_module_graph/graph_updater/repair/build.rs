@@ -109,6 +109,9 @@ impl Task<TaskContext> for BuildResultTask {
     } = *self;
     let module = match build_result {
       ModuleBuildResult::Built(mut module) => {
+        if let Some(built) = &mut context.artifact.built_modules_for_stats {
+          built.insert(module.identifier());
+        }
         plugin_driver
           .compilation_hooks
           .succeed_module
