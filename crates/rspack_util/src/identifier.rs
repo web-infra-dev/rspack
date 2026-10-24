@@ -7,7 +7,7 @@ use std::{
 
 use concat_string::concat_string;
 use cow_utils::CowUtils;
-use memchr::memchr2_iter;
+use memchr::{memchr, memchr2_iter};
 use regex::Regex;
 #[cfg(windows)]
 use rspack_paths::dos_device_path_prefix_len;
@@ -247,6 +247,10 @@ pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
 }
 
 pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
+  // Most paths and queries have no `#`; skip the substring searcher for them.
+  if memchr(b'#', s.as_bytes()).is_none() {
+    return Cow::Borrowed(s);
+  }
   s.cow_replace("#", "\u{200b}#")
 }
 
