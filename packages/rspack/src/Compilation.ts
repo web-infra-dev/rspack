@@ -17,6 +17,7 @@ import type {
   JsCompilation,
   JsPathData,
   JsSource,
+  JsSourceFromJs,
 } from '@rspack/binding';
 import binding from '@rspack/binding';
 
@@ -733,7 +734,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     assetInfoUpdateOrFunction?:
       AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined),
   ) {
-    let compatNewSourceOrFunction: JsSource | ((source: JsSource) => JsSource);
+    let compatNewSourceOrFunction:
+      JsSourceFromJs | ((source: JsSource) => JsSourceFromJs);
 
     if (typeof newSourceOrFunction === 'function') {
       compatNewSourceOrFunction = function newSourceFunction(source: JsSource) {
@@ -1124,7 +1126,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     if (!rawSource) {
       return;
     }
-    return SourceAdapter.fromBinding(rawSource);
+    return SourceAdapter.fromBinding(
+      rawSource,
+      this.#inner.getAssetNativeSource(filename),
+    );
   }
 
   /**
