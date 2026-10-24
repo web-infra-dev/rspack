@@ -322,9 +322,10 @@ import.meta.webpackHot
   type: 'self-declined' | 'declined' |
         'unaccepted' | 'accepted' |
         'disposed' | 'accept-errored' |
+        'accept-error-handler-errored' |
         'self-accept-errored' | 'self-accept-error-handler-errored',
-  moduleId: 4, // 有问题的模块。
-  dependencyId: 3, // 对于错误：拥有接受处理程序的模块 ID。
+  moduleId: 4, // 相关模块；对于接受处理函数的错误，为拥有该处理函数的模块。
+  dependencyId: 3, // 对于接受处理函数的错误：被更新的依赖模块的 ID。
   chain: [1, 2, 3, 4], // 对于拒绝/接受/不接受：传播更新的 `chain`。
   parentId: 5, // 对于拒绝：下降的父模块 ID。
   outdatedModules: [1, 2, 3, 4], // 对于接受：已过时且将被处置的模块。
@@ -332,8 +333,8 @@ import.meta.webpackHot
     5: [4]
   },
   error: new Error(...), // 对于错误：抛出错误
-  originalError: new Error(...) // 对于自我接受错误处理器错误：
-                                // 在错误处理器尝试处理该模块之前，该模块引发的错误。
+  originalError: new Error(...) // 对于 accept-error-handler-errored 或 self-accept-error-handler-errored：
+                                // 错误处理函数抛出新错误之前，传入该函数的原始错误。
 }
 ```
 

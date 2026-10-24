@@ -322,9 +322,10 @@ The `info` parameter will be an object containing some of the following values:
   type: 'self-declined' | 'declined' |
         'unaccepted' | 'accepted' |
         'disposed' | 'accept-errored' |
+        'accept-error-handler-errored' |
         'self-accept-errored' | 'self-accept-error-handler-errored',
-  moduleId: 4, // The module in question.
-  dependencyId: 3, // For errors: the module id owning the accept handler.
+  moduleId: 4, // The module in question; for accept handler errors, the module owning the handler.
+  dependencyId: 3, // For accept handler errors: the updated dependency's module ID.
   chain: [1, 2, 3, 4], // For declined/accepted/unaccepted: the chain from where the update was propagated.
   parentId: 5, // For declined: the module id of the declining parent
   outdatedModules: [1, 2, 3, 4], // For accepted: the modules that are outdated and will be disposed
@@ -332,8 +333,8 @@ The `info` parameter will be an object containing some of the following values:
     5: [4]
   },
   error: new Error(...), // For errors: the thrown error
-  originalError: new Error(...) // For self-accept-error-handler-errored:
-                                // the error thrown by the module before the error handler tried to handle it.
+  originalError: new Error(...) // For accept-error-handler-errored or self-accept-error-handler-errored:
+                                // the original error passed to the error handler before it threw another error.
 }
 ```
 
