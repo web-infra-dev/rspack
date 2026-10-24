@@ -57,7 +57,7 @@ regex          = { workspace = true }
 vfs            = { workspace = true } # for testing with in memory file system
 
 [features]
-allocative = ["dep:rspack-allocative", "rspack-allocative/pnp"]
+allocative = ["dep:rspack-allocative", "rspack-allocative/pnp", "rspack_paths/allocative"]
 default    = ["yarn_pnp"]
 ## Enables the [PackageJson::raw_json] API,
 ## which returns the `package.json` with `serde_json::Value`.
