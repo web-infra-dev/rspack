@@ -5,8 +5,18 @@ function load(name) {
 	return require("./dir/" + name);
 }
 
-it("should reuse relocated context modules and invalidate renamed children", async () => {
+function loadLazy(name) {
+	return import("./dir/" + name);
+}
+
+function loadLazyOnce(name) {
+	return import(/* webpackMode: "lazy-once" */ "./dir/" + name);
+}
+
+it("should reuse relocated sync, lazy, and lazy-once context modules and invalidate renamed children", async () => {
 	expect(load(COMPILER_INDEX < 2 ? "a" : "b")).toBe(42);
+	expect((await loadLazy(COMPILER_INDEX < 2 ? "a" : "b")).default).toBe(42);
+	expect((await loadLazyOnce(COMPILER_INDEX < 2 ? "a" : "b")).default).toBe(42);
 	if (COMPILER_INDEX === 0) {
 		const stats = await NEXT_MOVE_DIR_START();
 		expect(stats.modules.filter(module => module.built)).toHaveLength(0);

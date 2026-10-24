@@ -12,10 +12,6 @@ const ESCAPE: &str = "\0escape";
 /// or at the start, so a root that occurs inside a longer path is never rewritten.
 const DELIMITERS: [char; 8] = ['|', '!', '?', '=', ' ', '\t', '\n', '\r'];
 
-/// Identifier prefixes written directly before a path, as in the context element identifier
-/// `context/project/dir|./a`.
-const PATH_PREFIXES: [&str; 1] = ["context"];
-
 #[cfg(not(windows))]
 const ROOT_SEPARATORS: [char; 1] = ['/'];
 #[cfg(windows)]
@@ -88,18 +84,6 @@ fn strip_any_root<'a>(
   })
 }
 
-/// Splits a [`PATH_PREFIXES`] entry off `text` when an absolute path follows it.
-fn split_path_prefix(text: &str) -> (&'static str, &str) {
-  PATH_PREFIXES
-    .iter()
-    .find_map(|prefix| {
-      let path = text.strip_prefix(prefix)?;
-      let token = path.split(DELIMITERS).next().unwrap_or_default();
-      Path::new(token).is_absolute().then_some((*prefix, path))
-    })
-    .unwrap_or(("", text))
-}
-
 fn push_root(out: &mut String, root: &str, separator: &str) {
   for (index, component) in root.split(ROOT_SEPARATORS).enumerate() {
     if index > 0 {
@@ -124,23 +108,51 @@ pub struct PortableString {
 }
 
 impl PortableString {
-  /// Preserves the regex token of a typed context identifier without treating it as a path.
+  /// Converts a typed context identifier by its [`crate::ContextIdentifierLayout`]: regex tokens are
+  /// kept verbatim and each context path is converted on its own. Other identifiers convert as
+  /// [`Self::new`].
   pub fn from_identifier(content: &str, guard: &ContextGuard) -> Self {
-    if guard.project_root().is_some()
-      && let Some(range) = guard.context_identifier_regex_range(content)
-      && range.start < range.end
-      && let (Some(prefix), Some(pattern), Some(suffix)) = (
-        content.get(..range.start),
-        content.get(range.clone()),
-        content.get(range.end..),
+    let Some(layout) = guard
+      .project_root()
+      .and_then(|_| guard.context_identifier_layout(content))
+    else {
+      return Self::new(content, guard);
+    };
+    let mut cuts = layout
+      .paths
+      .iter()
+      .copied()
+      .chain(
+        layout
+          .regexes
+          .iter()
+          .flat_map(|range| [range.start, range.end]),
       )
+      .collect::<Vec<_>>();
+    if layout.regexes.iter().any(|range| range.is_empty())
+      || cuts.iter().any(|cut| !content.is_char_boundary(*cut))
     {
-      let mut converted = Self::new(prefix, guard).content;
-      converted.push_str(&pattern.cow_replace('\0', ESCAPE));
-      converted.push_str(&Self::new(suffix, guard).content);
-      return Self { content: converted };
+      return Self::new(content, guard);
     }
-    Self::new(content, guard)
+    cuts.push(content.len());
+    cuts.sort_unstable();
+    cuts.dedup();
+    let mut converted = String::with_capacity(content.len());
+    let mut start = 0;
+    for end in cuts {
+      let segment = &content[start..end];
+      if layout
+        .regexes
+        .iter()
+        .any(|range| range.start <= start && end <= range.end)
+      {
+        converted.push_str(&segment.cow_replace('\0', ESCAPE));
+      } else {
+        converted.push_str(&Self::new(segment, guard).content);
+      }
+      start = end;
+    }
+    Self { content: converted }
   }
 
   pub fn new(content: &str, guard: &ContextGuard) -> Self {
@@ -156,19 +168,17 @@ impl PortableString {
     let mut converted = String::with_capacity(content.len());
     let mut rest = content;
     loop {
-      let (prefix, body) = split_path_prefix(rest);
-      converted.push_str(prefix);
-      let path = match strip_any_root(body, &roots) {
+      let path = match strip_any_root(rest, &roots) {
         Some((marker, suffix)) => {
           converted.push_str(marker);
           suffix
         }
         None => {
-          let token = body.split(DELIMITERS).next().unwrap_or_default();
+          let token = rest.split(DELIMITERS).next().unwrap_or_default();
           if Path::new(token).is_absolute() {
             guard.mark_outside_root();
           }
-          body
+          rest
         }
       };
       let end = path.find(DELIMITERS).unwrap_or(path.len());
