@@ -10,7 +10,7 @@
 - Bundle: main.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: main.LAST_HASH.hot-update.js, size: 25524
+- Update: main.LAST_HASH.hot-update.js, size: 27115
 
 ## Manifest
 
@@ -611,11 +611,16 @@ function hotApplyHandler(options) {
 			hotCurrentUpdateRemovedChunks = undefined;
 
 			var idx;
-			var queue = outdatedModules.slice();
-			while (queue.length > 0) {
-				var moduleId = queue.pop();
+			var disposedModuleIds = Object.create(null);
+
+			// Modules can require outdated modules again while disposing (e.g.
+			// from dispose handlers). The cache entries are kept until the end
+			// of this phase so those requires resolve to the instance that is
+			// already being disposed instead of running the factory again.
+			var disposeModule = function (moduleId) {
 				var module = __webpack_require__.c[moduleId];
-				if (!module) continue;
+				if (!module) return false;
+				disposedModuleIds[moduleId] = true;
 
 				var data = {};
 
@@ -633,8 +638,6 @@ function hotApplyHandler(options) {
 
 				module.hot.active = false;
 
-				delete __webpack_require__.c[moduleId];
-
 				delete outdatedDependencies[moduleId];
 
 				for (j = 0; j < module.children.length; j++) {
@@ -645,18 +648,61 @@ function hotApplyHandler(options) {
 						child.parents.splice(idx, 1);
 					}
 				}
+
+				return true;
+			};
+
+			var queue = outdatedModules.slice();
+			while (queue.length > 0) {
+				disposeModule(queue.pop());
 			}
+
+			// Dispose instances that were created while disposing above.
+			var recreated;
+			do {
+				recreated = false;
+				for (var k = 0; k < outdatedModules.length; k++) {
+					var recreatedModuleId = outdatedModules[k];
+					if (disposedModuleIds[recreatedModuleId]) continue;
+					if (disposeModule(recreatedModuleId)) {
+						recreated = true;
+					}
+				}
+			} while (recreated);
 
 			var dependency;
 			for (var outdatedModuleId in outdatedDependencies) {
 				if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
-					module = __webpack_require__.c[outdatedModuleId];
+					var module = __webpack_require__.c[outdatedModuleId];
 					if (module) {
 						moduleOutdatedDependencies = outdatedDependencies[outdatedModuleId];
 						for (j = 0; j < moduleOutdatedDependencies.length; j++) {
 							dependency = moduleOutdatedDependencies[j];
 							idx = module.children.indexOf(dependency);
 							if (idx >= 0) module.children.splice(idx, 1);
+						}
+					}
+				}
+			}
+
+			// All dispose handlers have run; remove the outdated modules from
+			// the module cache so that the apply phase can install the new
+			// factories. Removed modules are never re-instantiated, so their
+			// id is dropped from cached parents as well.
+			for (var k = 0; k < outdatedModules.length; k++) {
+				var moduleId = outdatedModules[k];
+				var module = __webpack_require__.c[moduleId];
+				if (!module) continue;
+
+				delete __webpack_require__.c[moduleId];
+
+				if (appliedUpdate[moduleId] === warnUnexpectedRequire) {
+					for (j = 0; j < module.parents.length; j++) {
+						var parent = __webpack_require__.c[module.parents[j]];
+						if (!parent) continue;
+						idx = parent.children.indexOf(moduleId);
+						if (idx >= 0) {
+							parent.children.splice(idx, 1);
 						}
 					}
 				}
