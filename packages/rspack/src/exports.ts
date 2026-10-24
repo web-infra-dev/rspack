@@ -329,6 +329,7 @@ export type {
   ConsumesConfig,
   ConsumesItem,
   ConsumesObject,
+  EnhancedConsumeSharedPluginOptions,
 } from './sharing/ConsumeSharedPlugin';
 export type {
   ProvideSharedPluginOptions,

@@ -31,11 +31,12 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use utils::{
   collect_entry_files, collect_expose_requirements, compose_id_with_separator,
-  ensure_configured_remotes, ensure_shared_entry, filter_assets, is_hot_file,
-  parse_consume_shared_identifier, parse_provide_shared_identifier, record_shared_usage, strip_ext,
+  ensure_configured_remotes, ensure_shared_entry, filter_assets, is_hot_file, record_shared_usage,
+  strip_ext,
 };
 
 use crate::{
+  ConsumeVersion,
   container::{container_entry_module::ContainerEntryModule, remote_module::RemoteModule},
   sharing::{
     consume_shared_module::ConsumeSharedModule, provide_shared_module::ProvideSharedModule,
@@ -403,17 +404,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       let module_type = module.module_type();
-      let identifier = module_identifier.to_string();
 
       if matches!(module_type, ModuleType::Remote) {
         remote_module_ids.push(module_identifier);
       }
 
-      if let Some(provide_shared) = module.as_any().downcast_ref::<ProvideSharedModule>() {
-        if let Some((pkg, ver)) = parse_provide_shared_identifier(&identifier) {
+      if matches!(module_type, ModuleType::ProvideShared) {
+        if let Some(provide_shared) = module
+          .as_ref()
+          .as_any()
+          .downcast_ref::<ProvideSharedModule>()
+        {
+          let pkg = provide_shared.share_key().to_string();
           let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
           if entry.version.is_empty() {
-            entry.version = ver;
+            entry.version = provide_shared.manifest_version().to_string();
           }
           entry.singleton = Some(provide_shared.singleton().unwrap_or(true));
           // overlay user-configured shared version options
@@ -447,9 +452,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       }
 
-      if let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>()
-        && let Some((pkg, required)) = parse_consume_shared_identifier(&identifier)
+      if matches!(module_type, ModuleType::ConsumeShared)
+        && let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>()
       {
+        let pkg = consume_shared.shared_identity().share_key;
+        let required = match consume_shared.required_version() {
+          Some(ConsumeVersion::Version(version)) => Some(version.clone()),
+          Some(ConsumeVersion::False) | None => None,
+        };
         let mut target_ids: IdentifierSet = IdentifierSet::default();
         for connection in module_graph.get_outgoing_connections(&module_identifier) {
           let module_id = *connection.module_identifier();

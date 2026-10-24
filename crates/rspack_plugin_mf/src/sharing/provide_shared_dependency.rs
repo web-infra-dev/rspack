@@ -1,18 +1,57 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency, ResourceIdentifier,
+  DependencyType, ModuleDependency, ModuleLayer, ResourceIdentifier,
 };
 
 use super::provide_shared_plugin::ProvideVersion;
-use crate::{ConsumeVersion, ShareScope};
+use crate::{ConsumeVersion, ShareScope, SharedIdentity, push_identifier_component};
+
+pub(crate) fn push_provider_behavior(
+  identifier: &mut String,
+  eager: bool,
+  singleton: Option<bool>,
+  required_version: Option<&ConsumeVersion>,
+  strict_version: Option<bool>,
+  tree_shaking_mode: Option<&str>,
+) {
+  identifier.push(if eager { '1' } else { '0' });
+  identifier.push(match singleton {
+    None => 'n',
+    Some(false) => '0',
+    Some(true) => '1',
+  });
+  match required_version {
+    None => identifier.push('n'),
+    Some(ConsumeVersion::False) => identifier.push('f'),
+    Some(ConsumeVersion::Version(version)) => {
+      identifier.push('v');
+      push_identifier_component(identifier, version);
+    }
+  }
+  identifier.push(match strict_version {
+    None => 'n',
+    Some(false) => '0',
+    Some(true) => '1',
+  });
+  match tree_shaking_mode {
+    None => identifier.push('n'),
+    Some(mode) => {
+      identifier.push('s');
+      push_identifier_component(identifier, mode);
+    }
+  }
+}
 
 #[cacheable]
 #[derive(Debug)]
 pub struct ProvideSharedDependency {
   id: DependencyId,
   request: String,
+  pub(crate) original_request: String,
+  pub(crate) version_inferred: bool,
   pub share_scope: ShareScope,
+  pub layer: Option<ModuleLayer>,
   pub name: String,
   pub version: ProvideVersion,
   pub eager: bool,
@@ -34,21 +73,32 @@ impl ProvideSharedDependency {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
+    layer: Option<ModuleLayer>,
     tree_shaking_mode: Option<String>,
   ) -> Self {
-    let resource_identifier = format!(
-      "provide module ({}) {} as {} @ {} {}",
-      share_scope.key(),
-      &request,
-      &name,
-      &version,
-      if eager { "eager" } else { Default::default() },
-    )
-    .into();
+    let mut resource_identifier = String::from("provide module ");
+    push_identifier_component(
+      &mut resource_identifier,
+      &SharedIdentity::new(&share_scope, &name, layer.as_deref()).identifier_key(),
+    );
+    push_identifier_component(&mut resource_identifier, &request);
+    push_identifier_component(&mut resource_identifier, &version.to_string());
+    push_provider_behavior(
+      &mut resource_identifier,
+      eager,
+      singleton,
+      required_version.as_ref(),
+      strict_version,
+      tree_shaking_mode.as_deref(),
+    );
+    let resource_identifier = resource_identifier.into();
     Self {
       id: DependencyId::new(),
+      original_request: request.clone(),
+      version_inferred: false,
       request,
       share_scope,
+      layer,
       name,
       version,
       eager,
@@ -58,6 +108,15 @@ impl ProvideSharedDependency {
       tree_shaking_mode,
       resource_identifier,
     }
+  }
+  pub(crate) fn with_request_origin(mut self, request: String, version_inferred: bool) -> Self {
+    let mut resource_identifier = self.resource_identifier.to_string();
+    push_identifier_component(&mut resource_identifier, &request);
+    resource_identifier.push(if version_inferred { '1' } else { '0' });
+    self.resource_identifier = resource_identifier.into();
+    self.original_request = request;
+    self.version_inferred = version_inferred;
+    self
   }
 }
 
@@ -78,6 +137,10 @@ impl Dependency for ProvideSharedDependency {
 
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
   }
 
   fn resource_identifier(&self) -> Option<&str> {
