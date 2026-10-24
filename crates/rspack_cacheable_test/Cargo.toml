@@ -21,5 +21,6 @@ rspack_intern    = { workspace = true, features = ["atom"] }
 rspack_sources   = { workspace = true }
 rustc-hash       = { workspace = true }
 serde_json       = { workspace = true }
+url              = { workspace = true, features = ["std"] }
 ustr             = { workspace = true }
 xxhash-rust      = { workspace = true, features = ["const_xxh64"] }

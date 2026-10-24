@@ -20,6 +20,7 @@ inventory               = { workspace = true }
 json                    = { workspace = true }
 lightningcss            = { workspace = true }
 once_cell               = { workspace = true }
+percent-encoding        = { workspace = true }
 regex                   = { workspace = true }
 rkyv                    = { workspace = true, features = ["triomphe-0_1"] }
 rspack-allocative       = { workspace = true, optional = true }
@@ -32,6 +33,7 @@ simd-json               = { workspace = true }
 smol_str                = { workspace = true }
 sugar_path              = { workspace = true }
 swc_core                = { workspace = true, features = ["ecma_ast"] }
+url                     = { workspace = true, features = ["std"] }
 ustr                    = { workspace = true }
 xxhash-rust             = { workspace = true, features = ["const_xxh64"] }
 

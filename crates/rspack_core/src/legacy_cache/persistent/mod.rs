@@ -86,7 +86,12 @@ impl PersistentCache {
       ),
       validation: CacheValidation::new(
         codec.clone(),
-        format!("{}|{}", rspack_pkg_version!(), option.version),
+        // Portable entries use the `BoundEntry` envelope, so the two encodings must not share a cache.
+        if option.portable {
+          format!("{}|{}|portable", rspack_pkg_version!(), option.version)
+        } else {
+          format!("{}|{}", rspack_pkg_version!(), option.version)
+        },
         BuildDeps::new(
           &option.build_dependencies,
           input_filesystem,
