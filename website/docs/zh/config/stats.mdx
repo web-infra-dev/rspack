@@ -491,7 +491,7 @@ type FilterItemTypes = RegExp | string | ((value: string) => boolean);
 type StatsLoggingDebug = boolean | FilterItemTypes | FilterItemTypes[];
 ```
 
-是否展示插件和 loader 中指定 [Logger](/api/javascript-api/logger) 的调试信息。当 `stats.logging` 为 `false` 时 `stats.loggingDebug` 会被忽略。
+启用匹配的 [Logger](/api/javascript-api/logger)（例如插件或 loader 使用的 Logger）的调试输出。匹配的 Logger 会绕过 `stats.logging` 的日志级别过滤，因此即使 `stats.logging` 为 `false`，仍会包含这些 Logger 的输出。
 
 ```js title="rspack.config.mjs"
 export default {
