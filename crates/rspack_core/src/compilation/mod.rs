@@ -290,7 +290,6 @@ pub struct Compilation {
 
   pub circular_modules: StealCell<CircularModulesInfo>,
   pub code_generated_modules: IdentifierSet,
-  pub build_time_executed_modules: IdentifierSet,
   pub build_chunk_graph_artifact: BuildChunkGraphArtifact,
   pub incremental: Incremental,
 
@@ -441,7 +440,6 @@ impl Compilation {
       minimize_persistent_cache: None,
       use_source_map_dev_tool_plugin_cache: false,
       source_map_dev_tool_plugin_cache: None,
-      build_time_executed_modules: Default::default(),
       incremental,
       build_chunk_graph_artifact: Default::default(),
 

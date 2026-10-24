@@ -50,14 +50,12 @@ pub struct DependencyParents {
 
 #[derive(Debug, Default)]
 pub struct IncomingConnectionsByOriginModule<'a> {
-  non_modules: Vec<&'a ModuleGraphConnection>,
   modules: IdentifierMap<Vec<&'a ModuleGraphConnection>>,
 }
 
 impl<'a> IncomingConnectionsByOriginModule<'a> {
   fn with_capacity(capacity: usize) -> Self {
     Self {
-      non_modules: Vec::new(),
       modules: IdentifierMap::with_capacity_and_hasher(capacity, Default::default()),
     }
   }
@@ -73,8 +71,6 @@ impl<'a> IncomingConnectionsByOriginModule<'a> {
         .entry(origin_module)
         .or_default()
         .push(connection);
-    } else {
-      self.non_modules.push(connection);
     }
   }
 

@@ -24,34 +24,12 @@ use super::{
   seal::SealPass,
   *,
 };
-use crate::{
-  Compilation, SharedPluginDriver, artifacts::IncrementalArtifacts, legacy_cache::Cache,
-};
+use crate::{Compilation, artifacts::IncrementalArtifacts, legacy_cache::Cache};
 
 impl Compilation {
-  pub async fn run_passes(
-    &mut self,
-    plugin_driver: SharedPluginDriver,
-    cache: &mut dyn Cache,
-  ) -> Result<()> {
-    self.run_passes_impl(plugin_driver, None, cache).await
-  }
-
   pub(crate) async fn run_passes_with_incremental_artifacts(
     &mut self,
-    plugin_driver: SharedPluginDriver,
     incremental_artifacts: &mut IncrementalArtifacts,
-    cache: &mut dyn Cache,
-  ) -> Result<()> {
-    self
-      .run_passes_impl(plugin_driver, Some(incremental_artifacts), cache)
-      .await
-  }
-
-  async fn run_passes_impl(
-    &mut self,
-    _plugin_driver: SharedPluginDriver,
-    mut incremental_artifacts: Option<&mut IncrementalArtifacts>,
     cache: &mut dyn Cache,
   ) -> Result<()> {
     let passes: Vec<Box<dyn PassExt>> = vec![
@@ -81,11 +59,7 @@ impl Compilation {
     self.module_static_cache.enable_new_cache();
 
     for pass in &passes {
-      if let Some(incremental_artifacts) = incremental_artifacts.as_deref_mut() {
-        run_with_incremental_artifacts(&**pass, self, incremental_artifacts, cache).await?;
-      } else {
-        pass.run(self, cache).await?;
-      }
+      run_with_incremental_artifacts(&**pass, self, incremental_artifacts, cache).await?;
     }
 
     self.module_static_cache.disable_cache();

@@ -395,7 +395,7 @@ impl JsCompiler {
       let cache = cache.get_or_initialize(
         &compiler_options,
         input_file_system.clone(),
-        infrastructure_log_sink.clone(),
+        infrastructure_log_sink,
       );
 
       let rspack = rspack_core::Compiler::new(
@@ -411,7 +411,6 @@ impl JsCompiler {
         Some(compiler_context.clone()),
         platform,
         cache,
-        infrastructure_log_sink,
       );
 
       Ok(Self {
