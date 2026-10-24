@@ -1,11 +1,12 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-import { type Compilation } from '@rspack/core';
+import { type Chunk, type Compilation } from '@rspack/core';
 
 const TOTAL_BUILDS = 3;
 
 let build = 0;
 let staleCompilation: Compilation | null = null;
 let staleRead: ReturnType<typeof capture> | null = null;
+let staleChunks: ReadonlySet<Chunk> | null = null;
 let midMakeReads: {
   modules: ReturnType<typeof capture>;
   builtModules: ReturnType<typeof capture>;
@@ -23,6 +24,7 @@ function capture(read: () => number) {
 }
 
 export default defineConfig({
+  incremental: { buildChunkGraph: true },
   plugins: [
     definePlugin({
       apply(compiler) {
@@ -42,7 +44,12 @@ export default defineConfig({
           });
         });
 
-        compiler.hooks.make.tap('PLUGIN', () => {
+        compiler.hooks.make.tap('PLUGIN', (compilation) => {
+          if (staleChunks) {
+            // A chunk set saved in done follows the compiler's current build.
+            expect(staleChunks.size).toBe(compilation.chunks.size);
+            expect(staleChunks.has({} as Chunk)).toBe(false);
+          }
           if (!staleCompilation || staleRead) return;
           // Read a Compilation the compiler has already replaced, from a timer, i.e. from
           // the JS thread with no Rust -> JS tap on the stack. That is what a dev server
@@ -78,8 +85,27 @@ export default defineConfig({
         });
 
         compiler.hooks.done.tap('PLUGIN', (stats) => {
+          if (staleChunks) {
+            const current = Array.from(stats.compilation.chunks);
+            const retained = Array.from(staleChunks);
+            expect(staleChunks.size).toBe(current.length);
+            expect(retained.length).toBe(current.length);
+            for (const [index, chunk] of current.entries()) {
+              // IDs can survive incremental rebuilds, but wrappers must belong
+              // to the current compilation even when the cached IDs match.
+              expect(retained[index]).toBe(chunk);
+              expect(staleChunks.has(chunk)).toBe(true);
+              expect(Array.from(retained[index].files)).toEqual(
+                Array.from(chunk.files),
+              );
+            }
+          }
           if (!staleCompilation) {
             staleCompilation = stats.compilation;
+            staleChunks = stats.compilation.chunks;
+            expect(staleChunks.size).toBeGreaterThan(0);
+            // Warm the native array cache before the compilation is replaced.
+            expect(Array.from(staleChunks).length).toBe(staleChunks.size);
           }
         });
       },

@@ -1,11 +1,12 @@
 import util from 'node:util';
 import { Chunk, type ChunkGroup } from '@rspack/binding';
+import { createReadonlySet } from './ReadonlySet';
 
 Object.defineProperty(Chunk.prototype, 'files', {
   enumerable: true,
   configurable: true,
   get(this: Chunk) {
-    return new Set(this._files);
+    return createReadonlySet(this._files);
   },
 });
 
@@ -13,7 +14,7 @@ Object.defineProperty(Chunk.prototype, 'runtime', {
   enumerable: true,
   configurable: true,
   get(this: Chunk) {
-    return new Set(this._runtime);
+    return createReadonlySet(this._runtime);
   },
 });
 
@@ -21,7 +22,7 @@ Object.defineProperty(Chunk.prototype, 'auxiliaryFiles', {
   enumerable: true,
   configurable: true,
   get(this: Chunk) {
-    return new Set(this._auxiliaryFiles);
+    return createReadonlySet(this._auxiliaryFiles);
   },
 });
 
@@ -29,7 +30,12 @@ Object.defineProperty(Chunk.prototype, 'groupsIterable', {
   enumerable: true,
   configurable: true,
   get(this: Chunk) {
-    return new Set(this._groupsIterable);
+    const groups = this._groupsIterable;
+    return createReadonlySet({
+      size: () => groups.length,
+      has: (value: ChunkGroup) => groups.includes(value),
+      values: () => groups,
+    });
   },
 });
 

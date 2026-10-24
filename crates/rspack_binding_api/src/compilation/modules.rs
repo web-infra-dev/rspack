@@ -1,21 +1,27 @@
 use napi::{
-  Env, JsValue,
-  bindgen_prelude::{Array, FromNapiValue, Unknown},
+  Env, JsValue, Property, PropertyAttributes,
+  bindgen_prelude::{Array, FromNapiValue, JsObjectValue, This, Unknown},
 };
-use rspack_core::CompilationId;
+use rspack_core::{CompilationId, ModuleIdentifier};
 
 use super::with_module_graph;
 use crate::module::{ModuleObject, ModuleObjectRef};
+
+const VALUES_SYMBOL: &str = "rspack.Modules.values";
 
 /// Read-only operations on a compilation's module collection.
 #[napi]
 pub struct Modules {
   compilation_id: CompilationId,
+  snapshot: Option<Vec<ModuleIdentifier>>,
 }
 
 impl Modules {
   pub fn new(compilation_id: CompilationId) -> Self {
-    Self { compilation_id }
+    Self {
+      compilation_id,
+      snapshot: None,
+    }
   }
 }
 
@@ -48,18 +54,54 @@ impl Modules {
   }
 
   #[napi(ts_return_type = "ReadonlyArray<Module>")]
-  pub fn values<'env>(&self, env: &'env Env) -> napi::Result<Array<'env>> {
+  pub fn values<'env>(
+    &mut self,
+    env: &'env Env,
+    mut this: This<'env>,
+  ) -> napi::Result<Array<'env>> {
     with_module_graph(self.compilation_id, |compilation| {
       let module_graph = compilation.get_module_graph();
-      let mut array = env.create_array(module_graph.modules_len() as u32)?;
-      for (i, identifier) in module_graph.modules_keys().enumerate() {
+      let identifiers = || module_graph.modules_keys();
+      let symbol = env.symbol_for(VALUES_SYMBOL)?;
+      // Validate the live owner before cache lookup. Compare identifiers in
+      // iteration order, without allocating or converting JS values on a hit.
+      if self
+        .snapshot
+        .as_ref()
+        .is_some_and(|snapshot| identifiers().eq(snapshot.iter()))
+      {
+        return this.get_property(symbol);
+      }
+
+      let snapshot: Vec<_> = identifiers().copied().collect();
+      let mut array: Array = if this.has_own_property_js(symbol)? {
+        this.get_property(symbol)?
+      } else {
+        let array = env.create_array(snapshot.len() as u32)?;
+        // V8 owns the array through the collection object; Rust retains only IDs.
+        this.define_properties(&[Property::new()
+          .with_name(env, symbol)?
+          .with_value(&array)
+          .with_property_attributes(PropertyAttributes::Writable)])?;
+        array
+      };
+      // Reuse the array even when membership changes. Invalidate the snapshot
+      // before writing so a failed conversion cannot validate a partial update.
+      self.snapshot = None;
+      for (index, identifier) in snapshot.iter().enumerate() {
         array.set(
-          i as u32,
+          index as u32,
           compilation
             .module_by_identifier(identifier)
             .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())),
         )?;
       }
+      // Truncate removed entries as well as growing the array. Existing JS
+      // iterators keep this same array and observe its updated contents.
+      array.set_named_property("length", snapshot.len() as u32)?;
+      // Array caches its length in Rust; read it again after changing JS length.
+      let array = this.get_property(symbol)?;
+      self.snapshot = Some(snapshot);
       Ok(array)
     })
   }

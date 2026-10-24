@@ -96,6 +96,12 @@ export declare class AsyncDependenciesBlock {
   get blocks(): AsyncDependenciesBlock[]
 }
 
+export declare class BuiltModules {
+  size(): number
+  has(value: Module): boolean
+  values(): Module[]
+}
+
 export declare class Chunk {
   get name(): string | undefined
   get id(): string | number | undefined
@@ -103,13 +109,13 @@ export declare class Chunk {
   get idNameHints(): Array<string>
   get filenameTemplate(): string | undefined
   get cssFilenameTemplate(): string | undefined
-  get _files(): Array<string>
-  get _runtime(): Array<string>
+  get _files(): ChunkFiles
+  get _runtime(): ChunkRuntime
   get hash(): string | undefined
   get contentHash(): Record<string, string>
   get renderedHash(): string | undefined
   get chunkReason(): string | undefined
-  get _auxiliaryFiles(): Array<string>
+  get _auxiliaryFiles(): ChunkAuxiliaryFiles
   isOnlyInitial(): boolean
   canBeInitial(): boolean
   hasRuntime(): boolean
@@ -118,6 +124,18 @@ export declare class Chunk {
   getAllReferencedChunks(): Chunk[]
   get _groupsIterable(): ChunkGroup[]
   getEntryOptions(): EntryOptionsDTO | undefined
+}
+
+export declare class ChunkAuxiliaryFiles {
+  size(): number
+  has(value: string): boolean
+  values(): string[]
+}
+
+export declare class ChunkFiles {
+  size(): number
+  has(value: string): boolean
+  values(): string[]
 }
 
 export declare class ChunkGraph {
@@ -149,10 +167,16 @@ export declare class ChunkGroup {
   getModulePostOrderIndex(module: Module): number | null
 }
 
+export declare class ChunkRuntime {
+  size(): number
+  has(value: string): boolean
+  values(): string[]
+}
+
 export declare class Chunks {
-  get size(): number
-  _values(): Chunk[]
-  _has(chunk: Chunk): boolean
+  size(): number
+  values(): Chunk[]
+  has(value: Chunk): boolean
 }
 
 export declare class CodeGenerationResult {
@@ -279,7 +303,7 @@ export declare class JsCompilation {
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsSource | null
   get modules(): Modules
-  get builtModules(): Array<Module>
+  get builtModules(): BuiltModules
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   get chunks(): Chunks
   getNamedChunkKeys(): Array<string>

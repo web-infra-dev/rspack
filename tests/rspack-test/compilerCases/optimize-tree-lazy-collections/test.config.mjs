@@ -2,62 +2,81 @@ import assert from 'node:assert/strict';
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 export default {
-  name: 'lazy-modules',
-  description: 'only converts optimizeTree modules when iterated',
+  name: 'lazy-collections',
+  description: 'shares a lazy readonly set facade for modules, built modules and chunks',
   options: () => ({ mode: 'development', entry: './entry.js' }),
   compiler(_context, compiler) {
-    compiler.hooks.thisCompilation.tap('LazyModules', (compilation) => {
+    compiler.hooks.thisCompilation.tap('LazyCollections', (compilation) => {
       const inner = compilation.__internal_getInner();
-      const nativeModules = inner.modules;
-      const getValues = nativeModules.values;
-      let moduleReads = 0;
-      // Keep the instrumented native collection behind the cached facade.
-      Object.defineProperty(inner, 'modules', {
-        configurable: true,
-        get: () => nativeModules,
+      const collections = ['modules', 'builtModules', 'chunks'].map((name) => {
+        const binding = inner[name];
+        assert.equal(inner[name], binding);
+        const getValues = binding.values;
+        const state = { name, binding, reads: 0 };
+        Object.defineProperty(inner, name, {
+          configurable: true,
+          get: () => binding,
+        });
+        Object.defineProperty(binding, 'values', {
+          configurable: true,
+          value() {
+            state.reads++;
+            return getValues.call(binding);
+          },
+        });
+        state.view = compilation[name];
+        state.iterator = state.view[Symbol.iterator]();
+        assert.equal(state.reads, 0);
+        return state;
       });
-      Object.defineProperty(nativeModules, 'values', {
-        configurable: true,
-        value() {
-          moduleReads++;
-          return getValues.call(nativeModules);
-        },
-      });
-
-      // Accessing modules before the graph is built must not enumerate it.
-      const retained = compilation.modules;
-      assert.equal(moduleReads, 0);
+      assert.equal(new Set(collections.map(({ view }) => view.constructor)).size, 1);
       compilation.hooks.optimizeTree.tap('EmptyHook', () => {});
-      compilation.hooks.optimizeTree.tap('LazyModules', (_chunks, modules) => {
+      compilation.hooks.optimizeTree.tap('LazyCollections', (chunks, modules) => {
         try {
-          assert.equal(moduleReads, 0);
-          assert.equal(modules, retained);
-          const size = modules.size;
-          assert(size >= 2);
+          assert.equal(chunks, compilation.chunks);
+          assert.equal(modules, compilation.modules);
           const chunk = compilation.entrypoints.get('main').getEntrypointChunk();
-          const [entry] =
-            compilation.chunkGraph.getChunkEntryModulesIterable(chunk);
+          const [entry] = compilation.chunkGraph.getChunkEntryModulesIterable(chunk);
           assert(entry);
-          assert.equal(modules.has(entry), true);
-          assert.equal(modules.has({}), false);
-          assert.equal(moduleReads, 0);
-
-          const values = [...modules.values()];
-          assert.equal(moduleReads, 1);
-          assert.equal(values.length, size);
-          assert(values.includes(entry));
-          assert(
-            values.some((module) => module.resource?.endsWith('dependency.js')),
-          );
-          assert.deepEqual([...modules], values);
-          assert.equal(moduleReads, 2);
+          for (const state of collections) {
+            const { name, view, iterator } = state;
+            assert.equal(compilation[name], view);
+            assert.equal(state.reads, 0);
+            const size = view.size;
+            assert(size >= (name === 'chunks' ? 1 : 2));
+            assert.equal(view.has(name === 'chunks' ? chunk : entry), true);
+            assert.equal(view.has({}), false);
+            assert.equal(view.has(name === 'chunks' ? entry : chunk), false);
+            assert.equal(state.reads, 0);
+            const values = [...view.values()];
+            assert.equal(state.reads, 1);
+            assert.equal(values.length, size);
+            assert.deepEqual([...iterator], values);
+            assert.equal(state.reads, 2);
+            assert.deepEqual([...view.keys()], values);
+            assert.deepEqual([...view.entries()], values.map((value) => [value, value]));
+            const visited = [];
+            const receiver = {};
+            view.forEach(function (value, key, set) {
+              assert.equal(this, receiver);
+              assert.equal(value, key);
+              assert.equal(set, view);
+              visited.push(value);
+            }, receiver);
+            assert.deepEqual(visited, values);
+            assert.equal(state.reads, 5);
+          }
         } finally {
-          delete inner.modules;
-          delete nativeModules.values;
+          for (const { name, binding } of collections) {
+            delete inner[name];
+            delete binding.values;
+          }
         }
       });
-      compilation.hooks.afterSeal.tap('LazyModules', () => {
-        assert.equal(moduleReads, 2);
+      compilation.hooks.afterSeal.tap('LazyCollections', () => {
+        for (const state of collections) {
+          assert.equal(state.reads, 5);
+        }
       });
     });
   },
