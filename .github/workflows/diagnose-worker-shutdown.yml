@@ -37,7 +37,12 @@ jobs:
           import { spawnSync } from 'node:child_process';
           import { writeFileSync } from 'node:fs';
           const source = `
-            if (process.argv[1] === 'retain') await import('@rspack/core');
+            if (process.argv[1] === 'retain') {
+              await import('./packages/rspack/dist/index.js');
+              if (!process.report.getReport().sharedObjects.some(p => p.includes('rspack') && p.endsWith('.node'))) {
+                throw new Error('Parent did not load the Rspack native binding');
+              }
+            }
             const { default: run } = await import('./tests/rspack-test/compilerCases/shared-accessors/workers.mjs');
             await run();
             console.log('workers exited');
@@ -45,7 +50,7 @@ jobs:
             console.log(JSON.stringify(process.report.getReport().sharedObjects.filter(p => p.endsWith('.node'))));
           `;
           const results = [];
-          for (let round = 0; round < 20; round++) {
+          for (let round = 0; round < 100; round++) {
             for (const mode of round % 2 ? ['retain', 'baseline'] : ['baseline', 'retain']) {
               const result = spawnSync(process.execPath,
                 ['--expose-gc', '--input-type=module', '--eval', source, mode],
@@ -57,6 +62,9 @@ jobs:
             }
           }
           writeFileSync('worker-shutdown-results.json', JSON.stringify(results, null, 2));
+          if (results.some(row => row.error || row.signal || ![0, 3221225477].includes(row.status))) {
+            throw new Error('Diagnostic failed for a reason other than the target access violation');
+          }
           JS
           node worker-shutdown-probe.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
