@@ -1,6 +1,7 @@
 pub mod build_dependencies;
 pub mod context;
 pub mod occasion;
+mod seed;
 pub mod snapshot;
 pub mod storage;
 pub mod validation;
@@ -17,6 +18,7 @@ use self::{
   build_dependencies::BuildDeps,
   context::CacheContext,
   occasion::{MakeOccasion, MinimizeOccasion, SourceMapDevToolPluginOccasion},
+  seed::CacheSeed,
   snapshot::Snapshot,
   storage::{CacheDirectory, create_storage},
   validation::CacheValidation,
@@ -34,6 +36,7 @@ const LOGGER_NAME: &str = "rspack.persistentCache";
 pub struct PersistentCache {
   /// Guards `initialize` from running more than once per compiler instance
   initialized: bool,
+  seed: Option<CacheSeed>,
 
   ctx: CacheContext,
   validation: CacheValidation,
@@ -59,6 +62,7 @@ impl PersistentCache {
       compiler_path.hash(&mut hasher);
       CacheDirectory::new(hex::encode(hasher.finish().to_ne_bytes()))
     };
+    let seed = CacheSeed::new(option, &cache_directory, intermediate_filesystem.clone());
     let storage = create_storage(
       option.storage.clone(),
       cache_directory,
@@ -74,6 +78,7 @@ impl PersistentCache {
 
     Self {
       initialized: false,
+      seed,
       ctx: CacheContext::new(
         storage,
         option.readonly,
@@ -105,6 +110,9 @@ impl PersistentCache {
       return;
     }
     self.initialized = true;
+    if let Some(seed) = self.seed.take() {
+      seed.run(&self.validation, self.ctx.logger()).await;
+    }
     self.ctx.cleanup_stale();
 
     self.ctx.validate(&mut self.validation).await;

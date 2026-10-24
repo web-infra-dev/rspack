@@ -26,6 +26,11 @@ impl Bucket {
   /// Creates a new bucket, loading existing data or initializing empty.
   pub async fn new(fs: ScopeFileSystem) -> Result<Self> {
     fs.ensure_exist().await?;
+    Self::open(fs).await
+  }
+
+  /// Opens a bucket without creating its directory; a missing bucket is empty.
+  pub async fn open(fs: ScopeFileSystem) -> Result<Self> {
     // Load or initialize metadata
     let meta = match Meta::load(&fs).await {
       Ok(meta) => meta,

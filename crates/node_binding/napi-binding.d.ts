@@ -1983,6 +1983,7 @@ export interface RawCacheOptionsPersistent {
   maxAge: number
   maxMemoryGenerations?: number
   storage?: RawStorageOptions
+  seedDonors?: Array<string>
   portableRoot?: string
   readonly?: boolean
 }
