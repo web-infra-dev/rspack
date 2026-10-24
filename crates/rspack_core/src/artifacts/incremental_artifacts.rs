@@ -99,6 +99,11 @@ impl IncrementalArtifacts {
         &mut compilation.named_chunk_ids_artifact,
         &mut previous.named_chunk_ids_artifact,
       );
+      recover_artifact(
+        incremental,
+        &mut compilation.chunk_ids_diff_artifact,
+        &mut previous.chunk_ids_diff_artifact,
+      );
     }
 
     if passes.contains(IncrementalPasses::MODULES_HASHES) {
