@@ -721,7 +721,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         if let Some(singleton) = consumed_singletons.get(&v.name) {
           v.singleton = Some(*singleton);
         }
-        v.usedIn.sort();
+        v.usedIn.sort_unstable();
         v.usedIn.dedup();
         v
       })

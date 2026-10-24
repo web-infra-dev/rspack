@@ -111,7 +111,10 @@ impl RspackHash for ShareScope {
 }
 
 pub use container::{
-  container_plugin::{ContainerPlugin, ContainerPluginOptions, ExposeOptions},
+  container_plugin::{
+    ContainerPlugin, ContainerPluginOptions, EnhancedContainerPluginOptions, EnhancedExposeOptions,
+    ExposeOptions,
+  },
   container_reference_plugin::{
     ContainerReferencePlugin, ContainerReferencePluginOptions, RemoteOptions,
   },
