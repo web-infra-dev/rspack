@@ -1,12 +1,12 @@
-use std::{cmp::Ordering, fmt::Debug};
+use std::{cmp::Ordering, fmt::Debug, hash::Hasher};
 
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
-use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use ustr::Ustr;
 
 use crate::{
@@ -745,6 +745,10 @@ impl Chunk {
       .copied()
       .collect::<IdentifierSet>();
 
+    // Module ids key the rendered module map but aren't part of the codegen hash.
+    // Fold their precomputed hashes together and write once, instead of paying a
+    // hasher write per module.
+    let mut module_ids_hasher = FxHasher::default();
     for module_identifier in compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -758,8 +762,14 @@ impl Chunk {
         .get_hash(&module_identifier, Some(&self.runtime))
       {
         hash.hash(hasher);
+        if let Some(module_id) =
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, module_identifier)
+        {
+          module_ids_hasher.write_u64(module_id.precomputed_hash());
+        }
       }
     }
+    write_u64_hex(module_ids_hasher.finish(), hasher);
 
     for (runtime_module_identifier, _) in compilation
       .build_chunk_graph_artifact

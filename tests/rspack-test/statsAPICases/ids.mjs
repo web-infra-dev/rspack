@@ -58,7 +58,7 @@ export default {
 			      files: Array [
 			        main.js,
 			      ],
-			      hash: c3211d879e4d910b,
+			      hash: 3a772a1466d28a63,
 			      id: 889,
 			      idHints: Array [],
 			      initial: true,
