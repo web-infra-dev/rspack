@@ -44,6 +44,10 @@ pub struct ExecutedRuntimeModule {
 static EXECUTE_MODULE_ID: AtomicU32 = AtomicU32::new(0);
 pub type ExecuteModuleId = u32;
 
+pub(super) fn next_execute_module_id() -> ExecuteModuleId {
+  EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
 fn create_execute_runtime_source(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -169,20 +173,17 @@ pub struct ExecuteTask {
 
 impl ExecuteTask {
   pub fn finish_with_error(self, error: Error) {
-    let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    self
-      .result_sender
-      .send(ExecuteResult {
-        execute_result: ExecuteModuleResult {
-          id,
-          errors: vec![error.into()],
-          ..Default::default()
-        },
-        assets: Default::default(),
-        code_generated_modules: Default::default(),
-        executed_runtime_modules: Default::default(),
-      })
-      .expect("should send result success");
+    let id = next_execute_module_id();
+    let _ = self.result_sender.send(ExecuteResult {
+      execute_result: ExecuteModuleResult {
+        id,
+        errors: vec![error.into()],
+        ..Default::default()
+      },
+      assets: Default::default(),
+      code_generated_modules: Default::default(),
+      executed_runtime_modules: Default::default(),
+    });
   }
 }
 
@@ -209,7 +210,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       ..
     } = context;
 
-    let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let id = next_execute_module_id();
     let mut execute_result = ExecuteModuleResult {
       cacheable: true,
       id,
@@ -223,14 +224,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       mg.module_identifier_by_dependency_id(entry_dep_id).copied()
     else {
       // no entry module, entry dependency factorize failed.
-      result_sender
-        .send(ExecuteResult {
-          execute_result,
-          assets: Default::default(),
-          code_generated_modules: Default::default(),
-          executed_runtime_modules: Default::default(),
-        })
-        .expect("should send result success");
+      let _ = result_sender.send(ExecuteResult {
+        execute_result,
+        assets: Default::default(),
+        code_generated_modules: Default::default(),
+        executed_runtime_modules: Default::default(),
+      });
 
       return Ok(vec![]);
     };
@@ -311,14 +310,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     }
 
     if has_error {
-      result_sender
-        .send(ExecuteResult {
-          execute_result,
-          assets: Default::default(),
-          code_generated_modules: Default::default(),
-          executed_runtime_modules: Default::default(),
-        })
-        .expect("should send result success");
+      let _ = result_sender.send(ExecuteResult {
+        execute_result,
+        assets: Default::default(),
+        code_generated_modules: Default::default(),
+        executed_runtime_modules: Default::default(),
+      });
 
       return Ok(vec![]);
     }
@@ -531,14 +528,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       })
       .collect_vec();
     origin_context.recovery_from_temp_compilation(compilation);
-    result_sender
-      .send(ExecuteResult {
-        execute_result,
-        assets,
-        code_generated_modules,
-        executed_runtime_modules,
-      })
-      .expect("should send result success");
+    let _ = result_sender.send(ExecuteResult {
+      execute_result,
+      assets,
+      code_generated_modules,
+      executed_runtime_modules,
+    });
     Ok(vec![])
   }
 }

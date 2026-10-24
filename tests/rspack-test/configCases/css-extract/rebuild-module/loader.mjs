@@ -6,4 +6,4 @@ export default function (source) {
     return source.replaceAll('blue', 'red');
   }
   return source.replaceAll('blue', 'green');
-}
+};
