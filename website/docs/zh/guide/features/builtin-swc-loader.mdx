@@ -136,6 +136,32 @@ export default {
 `jsc.target` 和 `env.targets` 不能同时配置，使用时根据需求选择其中一个即可。
 :::
 
+### 转译依赖 \{#transpiling-dependencies}
+
+部分依赖发布的 JavaScript 代码使用了目标浏览器不支持的语法。如果 SWC 规则排除了整个 `node_modules`，这些文件就不会被转译。可以调整 `exclude`，让需要语法降级的依赖也经过 SWC 处理。
+
+下面的规则会转译应用代码和 `modern-package`，跳过其他依赖。将 `modern-package` 替换为实际需要转译的包名：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?js$/,
+        exclude: {
+          and: [/node_modules/],
+          not: [/[\\/]node_modules[\\/]modern-package[\\/]/],
+        },
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: { target: 'es2015' },
+        },
+      },
+    ],
+  },
+};
+```
+
 ### Polyfill 注入
 
 当你在项目中使用高版本的 JavaScript 语法和 API 时，为了让编译后的代码能稳定运行在低版本的浏览器中，通常需要完成两部分降级：语法降级和 polyfill 注入。
