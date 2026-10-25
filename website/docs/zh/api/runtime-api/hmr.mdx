@@ -322,9 +322,10 @@ import.meta.webpackHot
   type: 'self-declined' | 'declined' |
         'unaccepted' | 'accepted' |
         'disposed' | 'accept-errored' |
+        'accept-error-handler-errored' |
         'self-accept-errored' | 'self-accept-error-handler-errored',
-  moduleId: 4, // 有问题的模块。
-  dependencyId: 3, // 对于错误：拥有接受处理程序的模块 ID。
+  moduleId: 4, // 相关模块的 ID，具体含义见下方示例。
+  dependencyId: 3, // 当 accept 回调函数报错时，表示被更新的依赖模块的 ID。
   chain: [1, 2, 3, 4], // 对于拒绝/接受/不接受：传播更新的 `chain`。
   parentId: 5, // 对于拒绝：下降的父模块 ID。
   outdatedModules: [1, 2, 3, 4], // 对于接受：已过时且将被处置的模块。
@@ -332,10 +333,14 @@ import.meta.webpackHot
     5: [4]
   },
   error: new Error(...), // 对于错误：抛出错误
-  originalError: new Error(...) // 对于自我接受错误处理器错误：
-                                // 在错误处理器尝试处理该模块之前，该模块引发的错误。
+  originalError: new Error(...) // 对于 accept-error-handler-errored 或 self-accept-error-handler-errored：
+                                // 第一次抛出的错误，错误处理函数收到它后又抛出了新的错误。
 }
 ```
+
+例如，`app.js` 调用 `module.hot.accept('./button.js', callback)` 后，如果 `callback` 在 `button.js` 更新时抛出错误，`moduleId` 是 `app.js` 的 ID，`dependencyId` 是 `button.js` 的 ID。
+
+如果错误处理函数随后又抛出一个新错误，`type` 为 `'accept-error-handler-errored'`，`error` 是这个新错误，`originalError` 则是 `callback` 抛出的错误。
 
 ### addStatusHandler
 

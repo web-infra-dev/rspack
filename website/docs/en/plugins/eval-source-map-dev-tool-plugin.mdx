@@ -25,11 +25,11 @@ export default {
 
 ### Exclude vendor maps
 
-The following code would exclude source maps for any modules in the `vendor.js` bundle:
+The `test`, `include`, and `exclude` options match module resource paths, rather than output bundle filenames. The following example excludes source maps for modules in `node_modules`:
 
 ```js
 new rspack.EvalSourceMapDevToolPlugin({
-  exclude: ['vendor.js'],
+  exclude: /[\\/]node_modules[\\/]/,
 });
 ```
 
@@ -39,7 +39,7 @@ new rspack.EvalSourceMapDevToolPlugin({
 
 - **Type:** `string` `RegExp` `[string, RegExp]`
 
-Include source maps for modules based on their extension (defaults to `.js`, `.mjs`, and `.css`).
+Generate source maps for modules whose resource paths match the given value. By default, this option does not restrict which modules are included.
 
 ### include
 
