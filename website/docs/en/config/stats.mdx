@@ -35,6 +35,8 @@ type Stats = boolean | StatsOptions | StatsPresets;
 - **Default in `@rspack/core`:** `{}`
 - **Default in `@rspack/cli`:** `{ "preset":"errors-warnings", "timings":true, "logging":false }`
 
+The option defaults on this page apply to text output without a preset or `stats.all`; for JSON output, see [`stats.toJson()`](/api/javascript-api/stats#tojson).
+
 ## Stats presets
 
 | Preset              | Description                                                    |
@@ -49,8 +51,6 @@ type Stats = boolean | StatsOptions | StatsPresets;
 | `'summary'`         | Output only the summary information                            |
 
 You can specify exactly which packing information to output, all the following fields are optional.
-
-The defaults below describe the readable text returned by `stats.toString()` when you have not set a preset or `stats.all`. The JSON data returned by `stats.toJson()` uses different defaults: it includes more details, groups fewer items, and does not limit the number of items shown.
 
 ## Preset options
 

@@ -35,6 +35,8 @@ type Stats = boolean | StatsOptions | StatsPresets;
 - **`@rspack/core` 中的默认值：** `{}`
 - **`@rspack/cli` 中的默认值：** `{ "preset":"errors-warnings", "timings":true, "logging":false }`
 
+本页各选项的默认值以未设置预设或 `stats.all` 的文本输出为准；JSON 输出请参阅 [`stats.toJson()`](/api/javascript-api/stats#tojson)。
+
 ## 预设（Stats presets）
 
 | 预设                | 描述                                                       |
@@ -49,8 +51,6 @@ type Stats = boolean | StatsOptions | StatsPresets;
 | `'summary'`         | 只输出摘要                                                 |
 
 可以指定具体哪些打包信息进行输出，以下所有字段都是可选（optional）的。
-
-下方默认值对应 `stats.toString()` 返回的可读文本，前提是你没有设置预设或 `stats.all`。`stats.toJson()` 返回的 JSON 数据使用不同的默认值：包含更多详情、减少分组，并且不限制显示的条目数量。
 
 ## 预设选项
 
