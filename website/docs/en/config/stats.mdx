@@ -453,7 +453,7 @@ Whether to display the errors count.
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: '"auto"' }]} />
 
-Whether to display the details to the errors. It defaults to `'auto'` which will show error details when there're only 2 or less errors.
+Whether to include additional details for errors and warnings. Set to `true` to include all details, or `false` to omit them.
 
 ### stats.errorsSpace
 
@@ -462,7 +462,7 @@ Whether to display the details to the errors. It defaults to `'auto'` which will
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-Maximum number of lines used to display errors. By default, there is no limit.
+Limit the space used by error details while keeping all error messages. By default, there is no limit. This option is ignored when `stats.errorDetails` is `true`.
 
 ### stats.errorStack
 
@@ -489,7 +489,7 @@ Whether to display the warnings count.
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-Maximum number of lines used to display warnings. By default, there is no limit.
+Limit the space used by warning details while keeping all warning messages. By default, there is no limit. This option is ignored when `stats.errorDetails` is `true`.
 
 ## Logging options
 

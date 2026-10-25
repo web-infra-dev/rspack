@@ -453,7 +453,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: '"auto"' }]} />
 
-是否展示错误的详情。为 `'auto'` 时，若错误仅有两个及以下则将展示错误详情。
+是否包含错误和警告的额外详情。设置为 `true` 时包含全部详情，设置为 `false` 时省略详情。
 
 ### stats.errorsSpace
 
@@ -462,7 +462,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-显示错误信息时使用的最大行数，默认不限制行数。
+限制错误详情占用的行数，同时保留所有错误消息。默认不限制行数。当 `stats.errorDetails` 为 `true` 时，此选项会被忽略。
 
 ### stats.errorStack
 
@@ -489,7 +489,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-显示警告信息时使用的最大行数，默认不限制行数。
+限制警告详情占用的行数，同时保留所有警告消息。默认不限制行数。当 `stats.errorDetails` 为 `true` 时，此选项会被忽略。
 
 ## 日志选项
 
