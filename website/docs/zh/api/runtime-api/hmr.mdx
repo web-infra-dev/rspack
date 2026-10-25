@@ -324,8 +324,8 @@ import.meta.webpackHot
         'disposed' | 'accept-errored' |
         'accept-error-handler-errored' |
         'self-accept-errored' | 'self-accept-error-handler-errored',
-  moduleId: 4, // 相关模块；对于接受处理函数的错误，为拥有该处理函数的模块。
-  dependencyId: 3, // 对于接受处理函数的错误：被更新的依赖模块的 ID。
+  moduleId: 4, // 相关模块的 ID，具体含义见下方示例。
+  dependencyId: 3, // 当 accept 回调函数报错时，表示被更新的依赖模块的 ID。
   chain: [1, 2, 3, 4], // 对于拒绝/接受/不接受：传播更新的 `chain`。
   parentId: 5, // 对于拒绝：下降的父模块 ID。
   outdatedModules: [1, 2, 3, 4], // 对于接受：已过时且将被处置的模块。
@@ -334,9 +334,31 @@ import.meta.webpackHot
   },
   error: new Error(...), // 对于错误：抛出错误
   originalError: new Error(...) // 对于 accept-error-handler-errored 或 self-accept-error-handler-errored：
-                                // 错误处理函数抛出新错误之前，传入该函数的原始错误。
+                                // 第一次抛出的错误，错误处理函数收到它后又抛出了新的错误。
 }
 ```
+
+例如，在 `app.js` 中注册一个回调函数，在 `button.js` 更新时执行：
+
+```js title="app.js"
+module.hot.accept(
+  './button.js',
+  () => {
+    throw new Error('Update failed');
+  },
+  (error) => {
+    throw new Error('Error handler failed');
+  },
+);
+```
+
+当 `button.js` 更新时，第一个回调函数抛出错误，随后错误处理函数又抛出一个新错误。此时 `onErrored` 回调函数收到的字段如下：
+
+- `type`：`'accept-error-handler-errored'`。
+- `moduleId`：`app.js` 的 ID，因为它调用了 `module.hot.accept()`。
+- `dependencyId`：`button.js` 的 ID，因为它是被更新的模块。
+- `error`：第二次抛出的错误，即 `'Error handler failed'`。
+- `originalError`：第一次抛出的错误，即 `'Update failed'`。
 
 ### addStatusHandler
 
