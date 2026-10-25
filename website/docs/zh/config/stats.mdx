@@ -50,7 +50,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 可以指定具体哪些打包信息进行输出，以下所有字段都是可选（optional）的。
 
-下方默认值适用于未指定预设或 `stats.all` 的 `stats.toString()`。`stats.toJson()` 在详细信息、分组和输出条目限制方面使用不同的默认值。
+下方默认值对应 `stats.toString()` 返回的可读文本，前提是你没有设置预设或 `stats.all`。`stats.toJson()` 返回的 JSON 数据使用不同的默认值：包含更多详情、减少分组，并且不限制显示的条目数量。
 
 ## 预设选项
 

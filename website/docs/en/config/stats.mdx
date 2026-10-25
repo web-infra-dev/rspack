@@ -50,7 +50,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 You can specify exactly which packing information to output, all the following fields are optional.
 
-The defaults below apply to `stats.toString()` without a preset or `stats.all` override. The defaults for `stats.toJson()` differ for detailed information, grouping, and output limits.
+The defaults below describe the readable text returned by `stats.toString()` when you have not set a preset or `stats.all`. The JSON data returned by `stats.toJson()` uses different defaults: it includes more details, groups fewer items, and does not limit the number of items shown.
 
 ## Preset options
 
