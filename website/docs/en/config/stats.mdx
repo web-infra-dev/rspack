@@ -288,9 +288,9 @@ Whether to display information about the reasons of why modules are included.
 
 ### stats.reasonsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '1000' }]} />
+<PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
 
-How many characters should the reasons be displayed (groups will be collapsed to fit this space).
+Limit how many entries are shown to explain why modules were included in the build. Groups are collapsed to keep the list within this limit.
 
 ### stats.source
 
@@ -441,15 +441,18 @@ Whether to display the errors count.
 
 ### stats.errorDetails
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: '"auto"' }]} />
 
-Whether to display the details to the errors. It defaults to `'auto'` which will show error details when there're only 2 or less errors.
+Whether to display details for errors and warnings.
 
 ### stats.errorsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+<PropertyType
+  type="number"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-How many lines should an error be displayed.
+Limit the number of lines of error details without hiding error messages. There is no limit by default. This limit is ignored when `stats.errorDetails` is `true`.
 
 ### stats.errorStack
 
@@ -471,9 +474,12 @@ Whether to display the warnings count.
 
 ### stats.warningsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+<PropertyType
+  type="number"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-How many lines should a warning be displayed.
+Limit the number of lines of warning details without hiding warning messages. There is no limit by default. This limit is ignored when `stats.errorDetails` is `true`.
 
 ## Logging options
 

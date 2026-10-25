@@ -288,9 +288,9 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.reasonsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '1000' }]} />
+<PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
 
-展示的引入来源信息长度（超过的部分将以分组方式折叠）。
+限制显示多少条模块被打包的原因。超出限制时，会折叠分组以缩短列表。
 
 ### stats.source
 
@@ -441,15 +441,18 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.errorDetails
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: '"auto"' }]} />
 
-是否展示错误的详情。为 `'auto'` 时，若错误仅有两个及以下则将展示错误详情。
+是否显示错误和警告的详细信息。
 
 ### stats.errorsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+<PropertyType
+  type="number"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-展示单个错误时的最大行数。
+限制错误详情的显示行数，默认不限制。所有错误消息仍会显示。`stats.errorDetails` 为 `true` 时忽略此限制。
 
 ### stats.errorStack
 
@@ -471,9 +474,12 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.warningsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+<PropertyType
+  type="number"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-展示的警告最大行数。
+限制警告详情的显示行数，默认不限制。所有警告消息仍会显示。`stats.errorDetails` 为 `true` 时忽略此限制。
 
 ## 日志选项
 
