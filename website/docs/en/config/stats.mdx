@@ -88,6 +88,8 @@ Whether to display the asset information. See [Asset Object](/api/javascript-api
 
 Sort the assets by a given field. All of the [sorting fields](/config/stats#sorting-fields) are allowed to be used. Use `!` prefix in the value to reverse the sort order by a given field.
 
+By default, assets are listed from largest to smallest (`!size`).
+
 ### stats.assetsSpace
 
 <PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
@@ -197,6 +199,8 @@ Whether to display chunk parents, children and siblings.
 
 Sort the chunks by a given field. All of the [sorting fields](/config/stats#sorting-fields) are allowed to be used. Use `!` prefix in the value to reverse the sort order by a given field.
 
+By default (`false`), this option leaves chunks in their existing order.
+
 ### stats.ids
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
@@ -271,6 +275,8 @@ How many items of modules should be displayed (groups will be collapsed to fit t
 <PropertyType type="string" defaultValueList={[{ defaultValue: '"depth"' }]} />
 
 Sort the modules by a given field. All of the [sorting fields](/config/stats#sorting-fields) are allowed to be used. Use `!` prefix in the value to reverse the sort order by a given field.
+
+By default, modules are sorted by `depth`: modules closer to an entry point appear first.
 
 ### stats.reasons
 

@@ -88,6 +88,8 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 基于指定的字段对产物排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
 
+默认按文件体积从大到小排列产物（`!size`）。
+
 ### stats.assetsSpace
 
 <PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
@@ -197,6 +199,8 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 基于指定的字段对 Chunk 排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
 
+默认值为 `false`，表示此选项不改变 Chunk 的现有顺序。
+
 ### stats.ids
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
@@ -271,6 +275,8 @@ type Stats = boolean | StatsOptions | StatsPresets;
 <PropertyType type="string" defaultValueList={[{ defaultValue: '"depth"' }]} />
 
 基于指定的字段对模块排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
+
+默认按 `depth` 排序，即距离入口越近的模块越靠前。
 
 ### stats.reasons
 
