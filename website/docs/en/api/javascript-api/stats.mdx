@@ -88,7 +88,7 @@ if (stats.hasWarnings()) {
 
 ### toJson
 
-Return the compilation information in the form of a [Stats JSON](/api/javascript-api/stats-json) object. The [Stats configuration](/config/stats) can be a string (preset value) or an object for granular control:
+Return compilation information as a [Stats JSON](/api/javascript-api/stats-json) object. Pass a [stats preset or options object](/config/stats) to choose what to include.
 
 **Type:**
 
@@ -96,7 +96,7 @@ Return the compilation information in the form of a [Stats JSON](/api/javascript
 toJson(options?: StatsValue): StatsCompilation;
 ```
 
-When module information is enabled (`modules: true`), the JSON output includes module IDs and why each module was included in the build, with no limit on the number of modules returned. You can change these defaults with a preset, `all`, or individual options.
+When module information is enabled (`modules: true`), the JSON output includes module IDs by default and why each module was included in the build, with no limit on the number of modules returned.
 
 Use the `'minimal'` preset and print the number of errors:
 
@@ -124,8 +124,6 @@ Return the compilation information in the form of a formatted string (similar to
 ```ts
 toString(opts?: StatsValue): string;
 ```
-
-When module information is enabled (`modules: true`), the text output omits module IDs and why each module was included in the build by default. The module list is limited to 15 displayed items, collapsing groups as needed. You can change these defaults with a preset, `all`, or individual options.
 
 Use [Stats configuration](/config/stats) to select what to display, and `colors` to control text colors:
 

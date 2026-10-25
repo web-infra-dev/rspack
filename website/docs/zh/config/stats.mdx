@@ -444,7 +444,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-限制错误详情的显示行数。所有错误消息仍会保留。默认不限制行数。当 `stats.errorDetails` 为 `true` 时，此选项会被忽略。
+限制错误详情的显示行数，默认不限制。所有错误消息仍会显示。`stats.errorDetails` 为 `true` 时忽略此限制。
 
 ### stats.errorStack
 
@@ -471,7 +471,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-限制警告详情的显示行数。所有警告消息仍会保留。默认不限制行数。当 `stats.errorDetails` 为 `true` 时，此选项会被忽略。
+限制警告详情的显示行数，默认不限制。所有警告消息仍会显示。`stats.errorDetails` 为 `true` 时忽略此限制。
 
 ## 日志选项
 

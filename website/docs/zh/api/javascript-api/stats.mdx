@@ -88,7 +88,7 @@ if (stats.hasWarnings()) {
 
 ### toJson
 
-以 [Stats JSON](/api/javascript-api/stats-json) 对象形式返回编译信息。[Stats 配置](/config/stats) 可以是一个字符串（预设值）或是颗粒化控制的对象：
+以 [Stats JSON](/api/javascript-api/stats-json) 对象形式返回编译信息。可以传入[预设名称或配置对象](/config/stats)，选择要包含的信息。
 
 **类型：**
 
@@ -96,7 +96,7 @@ if (stats.hasWarnings()) {
 toJson(options?: StatsValue): StatsCompilation;
 ```
 
-启用模块信息（`modules: true`）时，JSON 输出默认包含模块 ID 和模块被打包的原因，不限制返回的模块数量。可以通过预设、`all` 或具体选项调整这些默认值。
+启用模块信息（`modules: true`）时，JSON 输出默认包含模块 ID 和模块被打包的原因，不限制返回的模块数量。
 
 使用 `'minimal'` 预设并打印错误数量：
 
@@ -124,8 +124,6 @@ console.log(statsJson.hash);
 ```ts
 toString(opts?: StatsValue): string;
 ```
-
-启用模块信息（`modules: true`）时，文本输出默认省略模块 ID 和模块被打包的原因。模块列表最多显示 15 项，必要时会折叠分组。可以通过预设、`all` 或具体选项调整这些默认值。
 
 可以通过 [Stats 配置](/config/stats) 控制输出内容，也可以通过 `colors` 控制文字颜色：
 
