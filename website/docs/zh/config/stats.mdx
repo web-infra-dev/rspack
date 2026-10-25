@@ -491,7 +491,9 @@ type FilterItemTypes = RegExp | string | ((value: string) => boolean);
 type StatsLoggingDebug = boolean | FilterItemTypes | FilterItemTypes[];
 ```
 
-启用匹配的 [Logger](/api/javascript-api/logger)（例如插件或 loader 使用的 Logger）的调试输出。匹配的 Logger 会绕过 `stats.logging` 的日志级别过滤，因此即使 `stats.logging` 为 `false`，仍会包含这些 Logger 的输出。
+通过匹配插件或 loader 使用的[日志名称](/api/javascript-api/logger)，显示它们的调试信息。这些日志不受 `stats.logging` 设置的限制，即使它为 `false` 也会显示。
+
+例如，以下配置会显示名称中包含 `MyPlugin` 或 `rspack` 的日志，包括调试信息：
 
 ```js title="rspack.config.mjs"
 export default {

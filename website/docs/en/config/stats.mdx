@@ -491,7 +491,9 @@ type FilterItemTypes = RegExp | string | ((value: string) => boolean);
 type StatsLoggingDebug = boolean | FilterItemTypes | FilterItemTypes[];
 ```
 
-Enable debug output for matching [loggers](/api/javascript-api/logger), such as those used by plugins or loaders. Matching loggers bypass the `stats.logging` level filter, so their output is included even when `stats.logging` is `false`.
+Show debug messages from plugins or loaders by matching their [logger names](/api/javascript-api/logger). Their messages are shown regardless of the `stats.logging` setting, even when it is `false`.
+
+For example, this configuration shows logs whose names contain `MyPlugin` or `rspack`, including debug messages:
 
 ```js title="rspack.config.mjs"
 export default {
