@@ -9,10 +9,10 @@ import Attribution from '@components/Attribution';
 
 打包信息：该选项可用于生成分析模块的依赖关系图，以及优化编译速度的打包信息。
 
-:::info 输出打包信息的 JSON 文件
+:::info 输出构建信息
 
 - 使用 `@rspack/cli`，`rspack build --json stats.json`。
-- 通过 Rspack 的 JavaScript API，`stats.toJson(options)`、`stats.toString(options)`。
+- 通过 JavaScript API，使用 `stats.toJson(options)` 生成 JSON 对象，或使用 `stats.toString(options)` 生成文本。
 
 :::
 
@@ -34,6 +34,8 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 - **`@rspack/core` 中的默认值：** `{}`
 - **`@rspack/cli` 中的默认值：** `{ "preset":"errors-warnings", "timings":true, "logging":false }`
+
+本页列出的是 `stats.toString()` 输出文本时使用的默认值。设置预设或 `stats.all` 会改变部分选项的默认值。JSON 输出的默认值请参阅 [`stats.toJson()`](/api/javascript-api/stats#tojson)。
 
 ## 预设（Stats presets）
 
@@ -78,7 +80,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.assets
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否输出产物相关信息，参考 [Asset 对象结构](/api/javascript-api/stats-json#asset-对象结构)。
 
@@ -113,7 +115,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.cachedAssets
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示被缓存的资源（若为 `false` 则只展示被生成的产物）。
 
@@ -153,7 +155,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.chunks
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示 Chunk 信息，参考 [Chunk 对象结构](/api/javascript-api/stats-json#chunk-对象结构)。
 
@@ -183,7 +185,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.chunkOrigins
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示 Chunk 的引入来源信息。
 
@@ -211,19 +213,19 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.chunkGroups
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示 ChunkGroup 信息，参考 [ChunkGroup 对象结构](/api/javascript-api/stats-json#entrychunkgroup-对象结构)。
 
 ### stats.chunkGroupAuxiliary
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示 ChunkGroup 的辅助资源。
 
 ### stats.chunkGroupChildren
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示子 ChunkGroup 相关信息（如预取 prefetched、预载 preloaded 的 ChunkGroup 信息）。
 
@@ -248,7 +250,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.modules
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示模块信息，参考 [Module 对象结构](/api/javascript-api/stats-json#module-对象结构)。
 
@@ -260,7 +262,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.moduleAssets
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示模块包含的资源信息。
 
@@ -280,7 +282,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.reasons
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示模块的引入来源信息。
 
@@ -312,7 +314,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.runtimeModules
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示运行时模块。
 
@@ -324,7 +326,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.cachedModules
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示被缓存的模块。
 
@@ -343,7 +345,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.nestedModules
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示嵌套在其他模块中的模块信息（如 ModuleConcatenation 合并前的模块信息）。
 
@@ -451,7 +453,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.errorStack
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示错误的堆栈信息。
 
@@ -515,7 +517,7 @@ export default {
 
 ### stats.loggingTrace
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示堆栈信息。
 
@@ -546,7 +548,7 @@ type StatsColors = boolean | StatsColorOptions;
 
 ### stats.hash
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示本次构建的哈希。
 
@@ -558,7 +560,7 @@ type StatsColors = boolean | StatsColorOptions;
 
 ### stats.builtAt
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示构建的开始时间点。
 
@@ -570,21 +572,21 @@ type StatsColors = boolean | StatsColorOptions;
 
 ### stats.publicPath
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示产物的[加载路径](/config/output#outputpublicpath)。
 
 ### stats.outputPath
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示产物的[输出路径](/config/output#outputpath)。
 
 ### stats.children
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-是否展示 childCompiler 的 stats 信息。
+是否展示子编译器的构建信息。
 
 ### stats.performance
 
