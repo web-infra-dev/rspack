@@ -754,6 +754,22 @@ Use [`compilation.moduleGraph`](#modulegraph) to inspect relationships between m
   </CollapsePanel>
 </Collapse>
 
+### builtModules
+
+**Type:** `ReadonlySet<Module>`
+
+List of built modules that were not be cached, with the structure as follows:
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
 ### moduleGraph
 
 Provides access to module dependencies:
@@ -762,7 +778,7 @@ Provides access to module dependencies:
 - `getOutgoingConnections(module)`: connections from this module to its dependencies; `connection.module` is the target module, or `null`.
 - `getIncomingConnections(module)`: connections from other modules to this module; `connection.originModule` is the importing module, or `null`.
 
-Read the graph in `finishModules`, after modules have been built. For example, log each module and the modules it depends on:
+You can query these relationships in the `finishModules` hook, after modules have been built. For example, log each module and the modules it depends on:
 
 ```js
 compiler.hooks.compilation.tap('InspectModules', (compilation) => {
@@ -779,22 +795,6 @@ compiler.hooks.compilation.tap('InspectModules', (compilation) => {
   });
 });
 ```
-
-### builtModules
-
-**Type:** `ReadonlySet<Module>`
-
-List of built modules that were not be cached, with the structure as follows:
-
-<Collapse>
-  <CollapsePanel
-    className="collapse-code-panel"
-    header="Module.ts"
-    key="Module"
-  >
-    <ModuleType />
-  </CollapsePanel>
-</Collapse>
 
 ### chunks
 

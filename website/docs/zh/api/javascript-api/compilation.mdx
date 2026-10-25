@@ -750,6 +750,22 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   </CollapsePanel>
 </Collapse>
 
+### builtModules
+
+**类型：** `ReadonlySet<Module>`
+
+获取未缓存被构建的模块，其结构如下：
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
 ### moduleGraph
 
 用于查询模块之间的依赖关系：
@@ -758,7 +774,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 - `getOutgoingConnections(module)`：获取该模块对其他模块的引用，`connection.module` 是被引用的模块，可能为 `null`。
 - `getIncomingConnections(module)`：获取其他模块对该模块的引用，`connection.originModule` 是发起引用的模块，可能为 `null`。
 
-可以在模块构建完成后的 `finishModules` 中读取模块图。例如，打印每个模块及其依赖的模块：
+可以在模块构建完成后的 `finishModules` 钩子中查询这些依赖关系。例如，打印每个模块及其依赖的模块：
 
 ```js
 compiler.hooks.compilation.tap('InspectModules', (compilation) => {
@@ -775,22 +791,6 @@ compiler.hooks.compilation.tap('InspectModules', (compilation) => {
   });
 });
 ```
-
-### builtModules
-
-**类型：** `ReadonlySet<Module>`
-
-获取未缓存被构建的模块，其结构如下：
-
-<Collapse>
-  <CollapsePanel
-    className="collapse-code-panel"
-    header="Module.ts"
-    key="Module"
-  >
-    <ModuleType />
-  </CollapsePanel>
-</Collapse>
 
 ### chunks
 
