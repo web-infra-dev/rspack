@@ -9,10 +9,10 @@ import Attribution from '@components/Attribution';
 
 Generate packaging information that can be used to analyze module dependencies and optimize compilation speed.
 
-:::info Output JSON file of stats
+:::info Output build information
 
 - Using `@rspack/cli`, `rspack build --json stats.json`.
-- Using Rspack's JavaScript API, `stats.toJson(options)`, `stats.toString(options)`.
+- Using the JavaScript API, call `stats.toJson(options)` for a JSON object or `stats.toString(options)` for text.
 
 :::
 
@@ -577,7 +577,7 @@ Whether to display the [`output.path`](/config/output#outputpath).
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-Whether to display the [`output.path`](/config/output#outputpath).
+Whether to display build information from child compilers.
 
 ### stats.performance
 

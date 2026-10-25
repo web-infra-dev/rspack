@@ -9,10 +9,10 @@ import Attribution from '@components/Attribution';
 
 打包信息：该选项可用于生成分析模块的依赖关系图，以及优化编译速度的打包信息。
 
-:::info 输出打包信息的 JSON 文件
+:::info 输出构建信息
 
 - 使用 `@rspack/cli`，`rspack build --json stats.json`。
-- 通过 Rspack 的 JavaScript API，`stats.toJson(options)`、`stats.toString(options)`。
+- 通过 JavaScript API，使用 `stats.toJson(options)` 生成 JSON 对象，或使用 `stats.toString(options)` 生成文本。
 
 :::
 
@@ -577,7 +577,7 @@ type StatsColors = boolean | StatsColorOptions;
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-是否展示 childCompiler 的 stats 信息。
+是否展示子编译器的构建信息。
 
 ### stats.performance
 
