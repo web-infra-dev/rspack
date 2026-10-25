@@ -75,18 +75,6 @@ In development mode, Rspack automatically enables the following optimization str
 
 ### none
 
-Setting `mode` to `'none'` skips the defaults that Rspack normally applies for development or production. It does not turn off all optimizations: [optimization.providedExports](/config/optimization#optimizationprovidedexports) and [optimization.removeEmptyChunks](/config/optimization#optimizationremoveemptychunks), for example, are still enabled.
-
-To disable these two optimizations, set them to `false`:
-
-```js title="rspack.config.mjs"
-export default {
-  mode: 'none',
-  optimization: {
-    providedExports: false,
-    removeEmptyChunks: false,
-  },
-};
-```
+Setting `mode` to `'none'` skips the defaults that Rspack normally applies for development or production. It does not turn off all optimizations: [optimization.providedExports](/config/optimization#optimizationprovidedexports) and [optimization.removeEmptyChunks](/config/optimization#optimizationremoveemptychunks), for example, are still enabled. To disable an optimization, set its option to `false`.
 
 <Attribution url="https://webpack.js.org/configuration/mode/" />
