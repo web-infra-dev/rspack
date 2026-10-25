@@ -49,6 +49,20 @@ new Worker(new URL('./worker.js', import.meta.url), {
 
 2. `/* webpackEntryOptions: { filename: "workers/[name].js" } */` 魔法注释目前仍不支持。
 
+## 运行时 publicPath \{#runtime-public-path}
+
+Worker 有独立的 Rspack 运行时。在主线程中设置 `__webpack_public_path__`，不会改变 Worker 内部动态导入的加载路径。
+
+如需在运行时修改该路径，应在 Worker 内部加载其他 chunk 之前设置 `__webpack_public_path__`：
+
+```js title="worker.js"
+__webpack_public_path__ = 'https://cdn.example.com/worker-assets/';
+
+import('./task.js').then(({ run }) => run());
+```
+
+使用 [`output.publicPath: 'auto'`](/config/output#outputpublicpath) 时，Worker 会根据自身脚本的 URL 确定 publicPath。[`output.workerPublicPath`](/config/output#outputworkerpublicpath) 用于指定创建 Worker 时的脚本路径；Worker 内部资源的加载路径仍由其自身的 publicPath 决定。
+
 ## 内置语法
 
 除 `new Worker()` 以外，Rspack 还默认支持以下内置形式：
