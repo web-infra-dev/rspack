@@ -16,7 +16,7 @@ Generate packaging information that can be used to analyze module dependencies a
 
 :::
 
-When using the JavaScript API, the following defaults depend on the output method. Presets, `stats.all`, and explicit options can override these defaults.
+`stats.toString()` returns readable text, while `stats.toJson()` returns a JSON object for use in tools. The table below compares their default settings. These values apply when you have not set a preset, `stats.all`, or the option itself.
 
 | Options                                                                                 | `stats.toString()` | `stats.toJson()` |
 | --------------------------------------------------------------------------------------- | ------------------ | ---------------- |
@@ -300,7 +300,7 @@ Whether to display information about the reasons of why modules are included.
 
 <PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
 
-How many reason items should be displayed (groups will be collapsed to fit this space).
+Limit how many entries are shown to explain why modules were included in the build. Groups are collapsed to keep the list within this limit.
 
 ### stats.source
 
@@ -462,7 +462,7 @@ Whether to include additional details for errors and warnings. Set to `true` to 
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-Limit the space used by error details while keeping all error messages. By default, there is no limit. This option is ignored when `stats.errorDetails` is `true`.
+Limit the number of lines used to show error details. All error messages are still shown. By default, there is no limit. This option is ignored when `stats.errorDetails` is `true`.
 
 ### stats.errorStack
 
@@ -489,7 +489,7 @@ Whether to display the warnings count.
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-Limit the space used by warning details while keeping all warning messages. By default, there is no limit. This option is ignored when `stats.errorDetails` is `true`.
+Limit the number of lines used to show warning details. All warning messages are still shown. By default, there is no limit. This option is ignored when `stats.errorDetails` is `true`.
 
 ## Logging options
 

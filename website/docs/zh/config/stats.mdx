@@ -16,7 +16,7 @@ import Attribution from '@components/Attribution';
 
 :::
 
-通过 JavaScript API 输出统计信息时，下列选项的默认值取决于输出方法。预设、`stats.all` 和显式配置的选项可以覆盖这些默认值。
+`stats.toString()` 返回可读文本，`stats.toJson()` 返回供工具使用的 JSON 对象。下表对比了两者的默认配置。这些默认值适用于没有设置预设、`stats.all` 或对应选项的情况。
 
 | 选项                                                                                    | `stats.toString()` | `stats.toJson()` |
 | --------------------------------------------------------------------------------------- | ------------------ | ---------------- |
@@ -300,7 +300,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 <PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
 
-显示多少个原因条目（分组将被折叠以适应该限制）。
+限制显示多少条模块被打包的原因。超出限制时，会折叠分组以缩短列表。
 
 ### stats.source
 
@@ -462,7 +462,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-限制错误详情占用的行数，同时保留所有错误消息。默认不限制行数。当 `stats.errorDetails` 为 `true` 时，此选项会被忽略。
+限制错误详情的显示行数。所有错误消息仍会保留。默认不限制行数。当 `stats.errorDetails` 为 `true` 时，此选项会被忽略。
 
 ### stats.errorStack
 
@@ -489,7 +489,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-限制警告详情占用的行数，同时保留所有警告消息。默认不限制行数。当 `stats.errorDetails` 为 `true` 时，此选项会被忽略。
+限制警告详情的显示行数。所有警告消息仍会保留。默认不限制行数。当 `stats.errorDetails` 为 `true` 时，此选项会被忽略。
 
 ## 日志选项
 
