@@ -76,6 +76,18 @@ rspack --mode=production
 
 ### none
 
-当 `mode` 设置为 `'none'` 时，Rspack 不会应用 development 或 production 模式特有的默认配置。部分优化仍默认启用，例如 [optimization.providedExports](/config/optimization#optimizationprovidedexports) 和 [optimization.removeEmptyChunks](/config/optimization#optimizationremoveemptychunks)。如需禁用这些优化，请单独配置对应选项。
+将 `mode` 设置为 `'none'` 后，Rspack 不会应用开发模式或生产模式的默认配置，但仍会启用部分优化。例如，[optimization.providedExports](/config/optimization#optimizationprovidedexports) 和 [optimization.removeEmptyChunks](/config/optimization#optimizationremoveemptychunks) 仍然默认为 `true`。
+
+要禁用这两项优化，需要将它们设置为 `false`：
+
+```js title="rspack.config.mjs"
+export default {
+  mode: 'none',
+  optimization: {
+    providedExports: false,
+    removeEmptyChunks: false,
+  },
+};
+```
 
 <Attribution url="https://webpack.js.org/configuration/mode/" />
