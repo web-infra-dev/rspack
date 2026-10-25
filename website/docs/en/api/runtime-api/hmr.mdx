@@ -338,27 +338,9 @@ The `info` parameter will be an object containing some of the following values:
 }
 ```
 
-For example, `app.js` can register a callback for updates to `button.js`:
+For example, if `app.js` calls `module.hot.accept('./button.js', callback)` and `callback` throws when `button.js` is updated, `moduleId` is the ID of `app.js`, and `dependencyId` is the ID of `button.js`.
 
-```js title="app.js"
-module.hot.accept(
-  './button.js',
-  () => {
-    throw new Error('Update failed');
-  },
-  (error) => {
-    throw new Error('Error handler failed');
-  },
-);
-```
-
-If `button.js` is updated, the first callback throws an error, then the error handler throws another error. The `onErrored` callback receives:
-
-- `type`: `'accept-error-handler-errored'`.
-- `moduleId`: the ID of `app.js`, which called `module.hot.accept()`.
-- `dependencyId`: the ID of `button.js`, which was updated.
-- `error`: the second error, `'Error handler failed'`.
-- `originalError`: the first error, `'Update failed'`.
+If the error handler then throws another error, `type` is `'accept-error-handler-errored'`, `error` is the new error, and `originalError` is the error thrown by `callback`.
 
 ### addStatusHandler
 

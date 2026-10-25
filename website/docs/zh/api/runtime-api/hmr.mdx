@@ -338,27 +338,9 @@ import.meta.webpackHot
 }
 ```
 
-例如，在 `app.js` 中注册一个回调函数，在 `button.js` 更新时执行：
+例如，`app.js` 调用 `module.hot.accept('./button.js', callback)` 后，如果 `callback` 在 `button.js` 更新时抛出错误，`moduleId` 是 `app.js` 的 ID，`dependencyId` 是 `button.js` 的 ID。
 
-```js title="app.js"
-module.hot.accept(
-  './button.js',
-  () => {
-    throw new Error('Update failed');
-  },
-  (error) => {
-    throw new Error('Error handler failed');
-  },
-);
-```
-
-当 `button.js` 更新时，第一个回调函数抛出错误，随后错误处理函数又抛出一个新错误。此时 `onErrored` 回调函数收到的字段如下：
-
-- `type`：`'accept-error-handler-errored'`。
-- `moduleId`：`app.js` 的 ID，因为它调用了 `module.hot.accept()`。
-- `dependencyId`：`button.js` 的 ID，因为它是被更新的模块。
-- `error`：第二次抛出的错误，即 `'Error handler failed'`。
-- `originalError`：第一次抛出的错误，即 `'Update failed'`。
+如果错误处理函数随后又抛出一个新错误，`type` 为 `'accept-error-handler-errored'`，`error` 是这个新错误，`originalError` 则是 `callback` 抛出的错误。
 
 ### addStatusHandler
 
