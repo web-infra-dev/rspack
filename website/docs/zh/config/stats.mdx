@@ -496,8 +496,9 @@ type StatsLoggingDebug = boolean | FilterItemTypes | FilterItemTypes[];
 ```js title="rspack.config.mjs"
 export default {
   stats: {
+    logging: false,
     loggingDebug: [
-      'MyPlugin',
+      /MyPlugin/,
       /rspack/, // 获取 Rspack 内部的日志
     ],
   },

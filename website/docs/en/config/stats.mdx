@@ -496,8 +496,9 @@ Enable debug output for matching [loggers](/api/javascript-api/logger), such as 
 ```js title="rspack.config.mjs"
 export default {
   stats: {
+    logging: false,
     loggingDebug: [
-      'MyPlugin',
+      /MyPlugin/,
       /rspack/, // To get core logging
     ],
   },
