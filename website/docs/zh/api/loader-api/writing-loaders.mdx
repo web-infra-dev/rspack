@@ -260,7 +260,7 @@ export default function myLoader(
 
 ## 向插件传递数据 \{#passing-data-to-plugins}
 
-Loader 可以将数据写入 `this._module.buildInfo`，供插件在模块构建完成后读取。使用以 loader 或插件命名的属性，避免覆盖其他构建信息。数据应可以序列化为 JSON，以便随模块缓存一起保存。
+Loader 可以将数据写入 `this._module.buildInfo`，供插件读取。例如，下面的 loader 记录了源码长度：
 
 ```js title="metadata-loader.cjs"
 module.exports = function (source, map, meta) {
@@ -268,6 +268,8 @@ module.exports = function (source, map, meta) {
   this.callback(null, source, map, meta);
 };
 ```
+
+插件在模块构建完成后的 `finishModules` 钩子中读取这些数据：
 
 ```js title="MetadataPlugin.mjs"
 export default class MetadataPlugin {
@@ -285,6 +287,8 @@ export default class MetadataPlugin {
   }
 }
 ```
+
+使用以 loader 或插件命名的属性，避免覆盖其他构建信息。数据应可以序列化为 JSON，以便随模块缓存一起保存。
 
 ## 处理 Source map
 
