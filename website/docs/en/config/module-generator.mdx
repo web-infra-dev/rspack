@@ -610,6 +610,10 @@ Customize the format of the local class names generated for CSS modules, besides
 
 Starting from Rspack `2.0.7`, the `[hash]` placeholder in `localIdentName` uses different hash inputs depending on whether the template includes `[local]`. When `localIdentName` does not include `[local]`, the local name is included in the hash input so different local names in the same CSS module generate different values. When `localIdentName` includes `[local]`, the local name is not included in the `[hash]` input because `[local]` already keeps the generated class name unique.
 
+For SSR, the server and browser builds must generate the same class names for the same CSS module. Avoid `[id]` in a shared `localIdentName`: module IDs can differ between builds. Use a template such as `[local]-[hash:base64:6]`, as shown below.
+
+Keep the CSS file paths relative to [`context`](/config/context), [`output.uniqueName`](/config/output#outputuniquename), and the `localIdentHash*` options consistent between both builds. These values affect the generated hash. Using `exportsOnly: true` on the server does not change the class names.
+
 ```js title="rspack.config.mjs"
 export default {
   module: {

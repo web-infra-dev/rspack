@@ -609,6 +609,10 @@ export default {
 
 从 Rspack `2.0.7` 开始，`localIdentName` 中的 `[hash]` 占位符会根据模板中是否包含 `[local]` 使用不同的哈希输入。当 `localIdentName` 不包含 `[local]` 时，局部类名会作为哈希输入的一部分，因此同一个 CSS Module 中不同的局部类名会生成不同的值。当 `localIdentName` 包含 `[local]` 时，局部类名不会再作为 `[hash]` 的输入，因为 `[local]` 已经能保证最终生成的类名唯一。
 
+使用 SSR 时，服务端和浏览器构建必须为同一个 CSS 模块生成相同的类名。两端共用的 `localIdentName` 应避免使用 `[id]`，因为模块 ID 可能随构建而变化。可以使用下方示例中的 `[local]-[hash:base64:6]`。
+
+两端还需要保持 CSS 文件相对于 [`context`](/config/context) 的路径、[`output.uniqueName`](/config/output#outputuniquename) 和 `localIdentHash*` 选项一致，这些值都会影响生成的哈希。服务端使用 `exportsOnly: true` 不会改变类名。
+
 ```js title="rspack.config.mjs"
 export default {
   module: {
