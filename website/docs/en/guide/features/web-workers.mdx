@@ -49,19 +49,19 @@ For usage examples, see:
 
 2. The `/* webpackEntryOptions: { filename: "workers/[name].js" } */` magic comment is not supported yet.
 
-## Runtime public path
+### Runtime public path
 
 A Worker has its own Rspack runtime. Assigning `__webpack_public_path__` in the main thread does not change the path used for dynamic imports inside the Worker.
 
-To change that path at runtime, set `__webpack_public_path__` inside the Worker before loading other chunks:
+With [`output.publicPath: 'auto'`](/config/output#outputpublicpath), the Worker determines its public path from its own script URL. [`output.workerPublicPath`](/config/output#outputworkerpublicpath) controls the URL used to load the Worker script.
+
+To change the path used for dynamic imports, set `__webpack_public_path__` inside the Worker before calling `import()`:
 
 ```js title="worker.js"
 __webpack_public_path__ = 'https://cdn.example.com/worker-assets/';
 
 import('./task.js').then(({ run }) => run());
 ```
-
-With [`output.publicPath: 'auto'`](/config/output#outputpublicpath), the Worker determines its public path from its own script URL. [`output.workerPublicPath`](/config/output#outputworkerpublicpath) sets the path used to create the Worker; resources loaded inside it still use the Worker's own public path.
 
 ## Built-in syntax
 
