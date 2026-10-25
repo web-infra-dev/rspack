@@ -1162,6 +1162,11 @@ impl Compilation {
             );
           }
         }
+        // The cutout already mutated the graph before repair failed, so the
+        // mutation log needs the same pruning as a successful rebuild;
+        // otherwise later passes of this compilation walk a log whose
+        // entries reference revoked objects.
+        self.invalidate_incremental_after_failed_rebuild();
         return Err(err.error);
       }
     };
@@ -1172,18 +1177,131 @@ impl Compilation {
     // Close the executor window, mirroring `finish_build_module_graph_pass`:
     // stop the executor loop and merge the artifacts it collected (assets,
     // code-generated modules, ...) back into the compilation.
-    if reopen_executor_window && let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      let close_result = module_executor.after_build_module_graph(self, false).await;
-      self.module_executor = Some(module_executor);
-      close_result?;
-    }
+    let executor_close_result =
+      if reopen_executor_window && let Some(module_executor) = &mut self.module_executor {
+        let mut module_executor = std::mem::take(module_executor);
+        let close_result = module_executor.after_build_module_graph(self, false).await;
+        self.module_executor = Some(module_executor);
+        close_result
+      } else {
+        Ok(())
+      };
+
+    // The module graph was checkpointed at the end of the build-module-graph
+    // pass, before this rebuild ran; fold the rebuild into the incremental
+    // state so later passes and the next compilation stay consistent. This
+    // must also cover an executor-close failure, whose early return would
+    // otherwise skip the reconciliation after a successful graph update.
+    self.reconcile_incremental_after_rebuild();
+    executor_close_result?;
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
       .into_iter()
       .filter_map(|id| module_graph.module_by_identifier(&id))
       .collect::<Vec<_>>()))
+  }
+
+  /// Fold a successful `rebuild_module` graph update into the incremental
+  /// state.
+  ///
+  /// The cutout mutates the graph (revoking the target module and its
+  /// dependencies) after the build-module-graph pass took its checkpoint
+  /// and after the mutation log was written, so three things need
+  /// reconciling:
+  ///
+  /// - The next incremental compilation resets the graph to that checkpoint
+  ///   to drop seal-phase modifications, which would partially revert this
+  ///   rebuild: the connection table is rollback-capable but the dependency
+  ///   table is not, leaving the graph with connections to dependencies
+  ///   that no longer exist. Folding the rebuild into the rollback baseline
+  ///   keeps only later (seal-phase) changes undoable.
+  /// - The mutation log is written at the top of the finish-modules pass,
+  ///   before the `finishModules` hook runs, so it does not cover what the
+  ///   rebuild changes afterwards. Later passes use the log to decide what
+  ///   to reprocess and what to skip (e.g. skipping the chunk graph rebuild
+  ///   when no module was removed), so the rebuild's own additions, updates
+  ///   and removals must be recorded as well.
+  /// - Conversely, the already-recorded mutations may point at modules and
+  ///   dependencies this rebuild revoked, and those recorded ids outlive
+  ///   the removed objects. Later passes walk the mutation log against the
+  ///   live graph, so the revoked entries (and any affected-set caches
+  ///   already derived from them) must be dropped.
+  fn reconcile_incremental_after_rebuild(&mut self) {
+    // Graph rebasing only matters when the next compilation will reset the
+    // graph, which is gated on the build-module-graph incremental pass.
+    // Without an active checkpoint `ModuleGraph::rebase` is a no-op, so a
+    // rebuild before the first checkpoint leaves recording untouched.
+    if self
+      .incremental
+      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+    {
+      self.build_module_graph_artifact.module_graph.rebase();
+    }
+    // The mutation log may be writable even when the build-module-graph
+    // pass itself is disabled (the passes are configured independently),
+    // so this half is gated on writability instead.
+    if let Some(mut mutations) = self.incremental.mutations_write() {
+      // Mirror the extend at the top of `finish_modules_inner`, but for the
+      // rebuild's own changes: the affected sets currently hold everything
+      // the rebuild added, updated or removed on top of the make phase.
+      let artifact = &self.build_module_graph_artifact;
+      mutations.extend(
+        artifact
+          .affected_dependencies
+          .updated()
+          .iter()
+          .map(|&dependency| Mutation::DependencyUpdate { dependency }),
+      );
+      mutations.extend(
+        artifact
+          .affected_modules
+          .removed()
+          .iter()
+          .map(|&module| Mutation::ModuleRemove { module }),
+      );
+      mutations.extend(
+        artifact
+          .affected_modules
+          .updated()
+          .iter()
+          .map(|&module| Mutation::ModuleUpdate { module }),
+      );
+      mutations.extend(
+        artifact
+          .affected_modules
+          .added()
+          .iter()
+          .map(|&module| Mutation::ModuleAdd { module }),
+      );
+      mutations.retain_alive(self.get_module_graph());
+    }
+  }
+
+  /// Reconcile the incremental state after a failed `rebuild_module`.
+  ///
+  /// The cutout already revoked the target module and its dependencies
+  /// before repair failed, so the mutation log may reference revoked
+  /// objects that later passes of this compilation would walk: prune those
+  /// entries like a successful rebuild does.
+  ///
+  /// The graph itself, however, must NOT be folded into the rollback
+  /// baseline: a failed repair can leave it incomplete (e.g. a module
+  /// revoked while its replacement was never inserted), and rebasing would
+  /// permanently commit that state. Instead, disable the
+  /// build-module-graph incremental pass so the next compilation rebuilds
+  /// the module graph from scratch instead of recovering this artifact.
+  fn invalidate_incremental_after_failed_rebuild(&mut self) {
+    if let Some(mut mutations) = self.incremental.mutations_write() {
+      mutations.retain_alive(self.get_module_graph());
+    }
+    if let Some(diagnostic) = self.incremental.disable_passes(
+      IncrementalPasses::BUILD_MODULE_GRAPH,
+      "rebuildModule",
+      "the module graph update failed during the rebuild",
+    ) {
+      self.extend_diagnostics(diagnostic);
+    }
   }
 
   pub fn entry_modules(&self) -> IdentifierSet {

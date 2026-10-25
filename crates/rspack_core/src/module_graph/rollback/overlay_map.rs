@@ -98,6 +98,31 @@ where
     self.overlay = None;
   }
 
+  /// Fold the overlay into the base map and continue recording into a fresh
+  /// overlay, so a later `reset` only discards changes made after this point.
+  ///
+  /// A no-op when no checkpoint is active: enabling recording here would
+  /// diverge from containers whose rebase is a no-op without a checkpoint,
+  /// and split subsequent writes between the overlay and the base map.
+  ///
+  /// Used when a sanctioned post-checkpoint mutation (e.g. `rebuild_module`)
+  /// must become part of the rollback baseline instead of being undone.
+  pub fn rebase(&mut self) {
+    if let Some(overlay) = self.overlay.take() {
+      for (key, value) in overlay {
+        match value {
+          OverlayValue::Value(value) => {
+            self.base.insert(key, value);
+          }
+          OverlayValue::Tombstone => {
+            self.base.remove(&key);
+          }
+        }
+      }
+      self.overlay.get_or_insert_with(HashMap::default);
+    }
+  }
+
   #[allow(dead_code)]
   pub fn contains_key(&self, key: &K) -> bool {
     self.get(key).is_some()
@@ -196,6 +221,50 @@ mod tests {
   use rustc_hash::FxHashMap as HashMap;
 
   use super::OverlayMap;
+
+  #[test]
+  fn rebase_without_checkpoint_is_a_noop() {
+    let mut map: OverlayMap<String, i32> = OverlayMap::default();
+
+    map.rebase();
+
+    // Recording must not be enabled by a rebase without a checkpoint:
+    // otherwise writes would split between the base map and an overlay
+    // that no reset will ever drop.
+    assert!(!map.has_overlay());
+    map.insert("a".to_string(), 1);
+    assert!(!map.has_overlay());
+    assert_eq!(map.get(&"a".to_string()), Some(&1));
+  }
+
+  #[test]
+  fn rebase_folds_overlay_into_base_and_keeps_recording() {
+    let mut map = OverlayMap::new(
+      [("a".to_string(), 1)]
+        .into_iter()
+        .collect::<HashMap<_, _>>(),
+    );
+
+    map.checkpoint();
+    map.insert("b".to_string(), 2);
+    map.remove(&"a".to_string());
+
+    map.rebase();
+
+    map.insert("c".to_string(), 3);
+
+    assert!(map.has_overlay());
+    assert_eq!(map.get(&"a".to_string()), None);
+    assert_eq!(map.get(&"b".to_string()), Some(&2));
+    assert_eq!(map.get(&"c".to_string()), Some(&3));
+
+    map.reset();
+
+    // Only the post-rebase change is discarded.
+    assert_eq!(map.get(&"a".to_string()), None);
+    assert_eq!(map.get(&"b".to_string()), Some(&2));
+    assert_eq!(map.get(&"c".to_string()), None);
+  }
 
   #[test]
   fn checkpoint_inserts_apply_only_to_overlay() {
