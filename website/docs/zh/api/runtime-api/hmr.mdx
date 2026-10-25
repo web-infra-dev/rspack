@@ -12,6 +12,17 @@ Rspack 提供了与 webpack 相同的接口来实现模块热替换。
 
 注意，在 ESM 中请使用 `import.meta.webpackHot` 来代替 `module.hot`。
 
+## 更新如何传播 \{#update-propagation}
+
+模块变化时，Rspack 会检查能否在不刷新页面的情况下应用更新。模块可以通过 `accept()` 接受自身更新，也可以由引用它的模块通过 `accept(dependency, callback)` 接受该依赖的更新。否则，更新会继续向引用它的模块传播。
+
+例如，`app.js` 引用 `view.js`，`view.js` 又引用 `button.js`：
+
+- 如果 `view.js` 接受 `button.js` 的更新，Rspack 会替换 `button.js` 并调用 `view.js` 中的回调，不会替换 `view.js` 或 `app.js`。
+- 如果只有 `app.js` 接受 `view.js` 的更新，Rspack 会替换 `button.js` 和 `view.js`，再调用 `app.js` 中的回调。
+
+如果一个模块被多处引用，每条受影响的引用路径都需要接受更新。默认情况下，如果某个模块拒绝更新，或更新传播到入口模块仍未被接受，本次更新就会中止。此时 dev server 可以回退为刷新整个页面。
+
 ## 示例
 
 通常，你需要检查这个接口是否可访问，然后再使用它。例如，你可以这样使用 `accept` 操作一个更新的模块：
