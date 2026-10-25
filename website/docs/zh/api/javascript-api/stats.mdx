@@ -96,6 +96,13 @@ if (stats.hasWarnings()) {
 toJson(options?: StatsValue): StatsCompilation;
 ```
 
+启用模块信息（`modules: true`）时，两种输出方法使用不同的默认值：
+
+- `toJson()` 包含模块 ID 和模块被打包的原因，不限制返回的模块数量。
+- `toString()` 省略这些详情，模块列表最多显示 15 项，必要时会折叠分组。
+
+可以通过预设、`all` 或具体选项调整这些默认值。
+
 使用 `'minimal'` 预设并打印错误数量：
 
 ```js
@@ -123,7 +130,7 @@ console.log(statsJson.hash);
 toString(opts?: StatsValue): string;
 ```
 
-配置对象与 `stats.toJson(options)` 一致，除了额外增加的一个选项：
+支持与 `stats.toJson(options)` 相同的选项，但使用适合文本输出的默认值，并额外支持 `colors` 选项：
 
 ```js
 stats.toString({

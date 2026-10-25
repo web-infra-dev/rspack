@@ -16,24 +16,6 @@ import Attribution from '@components/Attribution';
 
 :::
 
-`stats.toString()` 返回可读文本，`stats.toJson()` 返回供工具使用的 JSON 对象。下表对比了两者的默认配置。这些默认值适用于没有设置预设、`stats.all` 或对应选项的情况。
-
-| 选项                                                                                    | `stats.toString()` | `stats.toJson()` |
-| --------------------------------------------------------------------------------------- | ------------------ | ---------------- |
-| `hash`, `builtAt`, `publicPath`, `outputPath`, `children`                               | `false`            | `true`           |
-| `relatedAssets`, `cachedAssets`                                                         | `false`            | `true`           |
-| `chunkGroupAuxiliary`, `chunkGroupChildren`, `chunkRelations`, `chunkOrigins`, `ids`    | `false`            | `true`           |
-| `dependentModules`, `nestedModules`, `orphanModules`, `runtimeModules`, `cachedModules` | `false`            | `true`           |
-| `moduleAssets`, `depth`, `reasons`                                                      | `false`            | `true`           |
-| `usedExports`, `providedExports`, `optimizationBailout`                                 | `false`            | `true`           |
-| `errorStack`, `loggingTrace`                                                            | `false`            | `true`           |
-| `groupAssetsBy*`, `groupModulesBy*`, `groupReasonsByOrigin`                             | `true`             | `false`          |
-| `assetsSpace`, `modulesSpace`, `reasonsSpace`                                           | `15`               | `Infinity`       |
-| `chunkModulesSpace`, `nestedModulesSpace`                                               | `10`               | `Infinity`       |
-| `chunkGroupMaxAssets`                                                                   | `5`                | `Infinity`       |
-| `logging`                                                                               | `'info'`           | `false`          |
-| `errorDetails`                                                                          | `'auto'`           | `true`           |
-
 - **类型：**
 
 ```ts

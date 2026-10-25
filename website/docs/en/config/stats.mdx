@@ -16,24 +16,6 @@ Generate packaging information that can be used to analyze module dependencies a
 
 :::
 
-`stats.toString()` returns readable text, while `stats.toJson()` returns a JSON object for use in tools. The table below compares their default settings. These values apply when you have not set a preset, `stats.all`, or the option itself.
-
-| Options                                                                                 | `stats.toString()` | `stats.toJson()` |
-| --------------------------------------------------------------------------------------- | ------------------ | ---------------- |
-| `hash`, `builtAt`, `publicPath`, `outputPath`, `children`                               | `false`            | `true`           |
-| `relatedAssets`, `cachedAssets`                                                         | `false`            | `true`           |
-| `chunkGroupAuxiliary`, `chunkGroupChildren`, `chunkRelations`, `chunkOrigins`, `ids`    | `false`            | `true`           |
-| `dependentModules`, `nestedModules`, `orphanModules`, `runtimeModules`, `cachedModules` | `false`            | `true`           |
-| `moduleAssets`, `depth`, `reasons`                                                      | `false`            | `true`           |
-| `usedExports`, `providedExports`, `optimizationBailout`                                 | `false`            | `true`           |
-| `errorStack`, `loggingTrace`                                                            | `false`            | `true`           |
-| `groupAssetsBy*`, `groupModulesBy*`, `groupReasonsByOrigin`                             | `true`             | `false`          |
-| `assetsSpace`, `modulesSpace`, `reasonsSpace`                                           | `15`               | `Infinity`       |
-| `chunkModulesSpace`, `nestedModulesSpace`                                               | `10`               | `Infinity`       |
-| `chunkGroupMaxAssets`                                                                   | `5`                | `Infinity`       |
-| `logging`                                                                               | `'info'`           | `false`          |
-| `errorDetails`                                                                          | `'auto'`           | `true`           |
-
 - **Type:**
 
 ```ts
