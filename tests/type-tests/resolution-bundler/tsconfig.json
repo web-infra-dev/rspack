@@ -1,6 +1,7 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
+    "rootDir": "..",
     "module": "ES2022",
     "moduleResolution": "bundler",
     "lib": ["ES2022", "DOM"],
