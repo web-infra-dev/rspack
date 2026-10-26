@@ -319,7 +319,29 @@ export default {
 
 ### Rslib \{#rslib}
 
-[Rslib 1.0](https://rslib.rs/blog/v1-0) 正式发布！面向库开发的构建工具达到稳定里程碑，完善了 ESM/CJS 双输出、声明文件生成、WASM 模块支持等核心能力，并已支持 TypeScript 7.1 的声明生成。
+#### Rslib 1.0 正式发布 \{#rslib-v1}
+
+Rslib 1.0 已正式发布，查看 [Rslib 1.0 博客](https://rslib.rs/zh/blog/v1-0) 了解更多。
+
+#### 内联 Wasm 模块 \{#rslib-inline-wasm}
+
+Rslib 现在支持通过 `?inline` 将 Wasm 二进制内联到 JavaScript 产物中，无需额外分发和加载 `.wasm` 文件：
+
+```js
+import { add } from './add.wasm?inline';
+
+console.log(add(1, 2));
+```
+
+> 更多用法参考 [Wasm 指南](https://rslib.rs/zh/guide/advanced/wasm)。
+
+#### 支持 TypeScript 7.1 \{#typescript-7-1}
+
+Rslib 1.0.4 支持使用 TypeScript 7.1 Beta 生成类型，并支持通过 [Content Mappers](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/#content-mappers) 扩展组件文件的类型支持。
+
+你可以安装 TypeScript 7.1 Beta 来体验：
+
+<PackageManagerTabs command="add typescript@7.1.0-beta -D" />
 
 ### Rsdoctor \{#rsdoctor}
 
