@@ -359,7 +359,7 @@ export default class MetadataPlugin {
 }
 ```
 
-使用不容易重名的属性（如示例中的 `metadataPlugin`）存放数据，避免覆盖其他 loader 或插件写入的内容。
+使用不容易重名的字符串属性名（如示例中的 `metadataPlugin`）存放数据，避免覆盖其他 loader 或插件写入的内容。以 Symbol 为键的属性不会写入持久化缓存。
 
 启用持久化缓存时，Rspack 会将这些数据以 JSON 格式保存。请使用 JSON 支持的值，例如字符串、数字、数组和普通对象。函数属性不会被保存，数组中的函数会变成 `null`，因此后续构建从磁盘缓存恢复模块时，插件将无法再调用这些函数。
 
