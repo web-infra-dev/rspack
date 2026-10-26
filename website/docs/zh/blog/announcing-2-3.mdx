@@ -53,7 +53,7 @@ Rspack 2.3 现已推出！本次更新将 JavaScript 解析器迁移至 SWC Next
 
 ## SWC next 解析器 \{#swc-next}
 
-Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-project/swc-next)，SWC Next 的[原生解析器](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse)比 SWC 快 2–4.5 倍，[JavaScript API](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#js-parser) 快 5–8 倍。
+Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-project/swc-next)，SWC Next 的原生解析器比 SWC 快 [2–4.5 倍](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse)。
 
 同时还针对 SWC Next 新的 AST 结构和内存布局优化了 Rspack 自身的依赖解析流程，显著降低了整个 Parse 阶段的开销，在固定 6 核并发下的实测：
 
@@ -66,12 +66,7 @@ Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-p
 
 ### 构建性能优化 \{#build-performance}
 
-以下为本次更新的主要性能提升数据：
-
-| 类型     | 综合提升 | 最高提升 |
-| -------- | -------- | -------- |
-| JS 解析  | 11.45%   | 52.22%   |
-| CSS 处理 | 18.16%   | 30.55%   |
+Rspack 仍在持续优化构建性能，2.3.0 相对于 2.2.0，在[示例项目](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/40302457470)的 HMR 和缓存热构建场景中带来了约 5% 的性能提升。
 
 ### SplitChunks 优化 \{#split-chunks}
 
