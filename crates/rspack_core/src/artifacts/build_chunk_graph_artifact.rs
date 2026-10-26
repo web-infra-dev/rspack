@@ -1,7 +1,7 @@
 use std::mem;
 
 use futures::Future;
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Result;
 use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
@@ -14,6 +14,11 @@ use crate::{
   fast_set,
   incremental::{IncrementalPasses, Mutation},
 };
+
+fn can_reuse_stably_absent_modules(compilation: &Compilation) -> bool {
+  !compilation.options.optimization.side_effects.is_true()
+    && !compilation.options.optimization.used_exports.is_enable()
+}
 
 #[derive(Debug, Default)]
 pub struct BuildChunkGraphArtifact {
@@ -84,11 +89,25 @@ impl BuildChunkGraphArtifact {
       return false;
     }
 
+    let stable_absence_allowed = can_reuse_stably_absent_modules(this_compilation);
+    let rebuilt: IdentifierSet = if stable_absence_allowed {
+      mutations
+        .iter()
+        .filter_map(|mutation| match mutation {
+          Mutation::ModuleUpdate { module } | Mutation::ModuleAdd { module } => Some(*module),
+          _ => None,
+        })
+        .collect()
+    } else {
+      IdentifierSet::default()
+    };
+
     for module in affected_modules {
-      if !self
-        .code_splitter
-        .can_reuse_affected_module(module, this_compilation)
-      {
+      if !self.code_splitter.can_reuse_affected_module(
+        module,
+        this_compilation,
+        stable_absence_allowed && !rebuilt.contains(&module),
+      ) {
         logger.log(format!("module topology change detected: {module}"));
         return false;
       }

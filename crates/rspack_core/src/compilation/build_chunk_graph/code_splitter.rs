@@ -479,6 +479,7 @@ impl CodeSplitter {
     &self,
     module: ModuleIdentifier,
     compilation: &Compilation,
+    stable_absence_allowed: bool,
   ) -> bool {
     let module_block = DependenciesBlockIdentifier::Module(module);
     let current_blocks = compilation
@@ -593,7 +594,25 @@ impl CodeSplitter {
       }
     }
 
-    found_cached_root
+    if !found_cached_root {
+      // With sideEffects in flag/disabled mode and usedExports disabled,
+      // side-effect state is local to the module and usage cannot flip edges.
+      // An unreachable module that was not rebuilt can become reachable only
+      // through an edge change on a module in the affected set, whose full
+      // check compares that edge. Previously chunked modules never qualify.
+      return stable_absence_allowed
+        && !self
+          .block_modules_runtime_map
+          .values()
+          .any(|blocks| blocks.contains_key(&module_block))
+        && compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_number_of_module_chunks(module)
+          == 0;
+    }
+
+    true
   }
 
   pub(crate) fn chunk_group_info(&self, ukey: &CgiUkey) -> &ChunkGroupInfo {
