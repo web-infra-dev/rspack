@@ -595,12 +595,10 @@ impl CodeSplitter {
     }
 
     if !found_cached_root {
-      // No runtime reached this module last time (otherwise `found_cached_root`
-      // would be set). It was not rebuilt, and with side effects not analysed and
-      // usage off, its incoming edge states depend only on itself and its
-      // importers. It can enter a chunk only through a changed edge on a reachable
-      // importer, and an affected importer gets the full check above. Edges with no
-      // origin module (entries, includes) are never checked, so reject those.
+      // This module was in no chunk after the last build. If it wasn't rebuilt,
+      // only a changed importer can add it to a chunk, and changed importers are
+      // checked on their own. Entry and include edges have no importer, so they
+      // block reuse.
       return accept_if_unreached
         && compilation
           .build_chunk_graph_artifact

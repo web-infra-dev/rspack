@@ -15,9 +15,9 @@ use crate::{
   incremental::{IncrementalPasses, Mutation},
 };
 
-// Analysed side effects and export usage can switch an import edge without
-// rebuilding either end, so the stable-absence rule is off for them.
-fn can_reuse_stably_absent_modules(compilation: &Compilation) -> bool {
+// `sideEffects: true` and `usedExports` let an edit elsewhere turn on an import
+// between two unchanged modules.
+fn can_reuse_unreached_modules(compilation: &Compilation) -> bool {
   !compilation.options.optimization.side_effects.is_true()
     && !compilation.options.optimization.used_exports.is_enable()
 }
@@ -91,8 +91,8 @@ impl BuildChunkGraphArtifact {
       return false;
     }
 
-    let stable_absence_allowed = can_reuse_stably_absent_modules(this_compilation);
-    let rebuilt: IdentifierSet = if stable_absence_allowed {
+    let reuse_unreached = can_reuse_unreached_modules(this_compilation);
+    let rebuilt: IdentifierSet = if reuse_unreached {
       mutations
         .iter()
         .filter_map(|mutation| match mutation {
@@ -108,7 +108,7 @@ impl BuildChunkGraphArtifact {
       if !self.code_splitter.can_reuse_affected_module(
         module,
         this_compilation,
-        stable_absence_allowed && !rebuilt.contains(&module),
+        reuse_unreached && !rebuilt.contains(&module),
       ) {
         logger.log(format!("module topology change detected: {module}"));
         return false;
