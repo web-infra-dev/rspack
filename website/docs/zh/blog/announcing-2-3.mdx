@@ -94,16 +94,14 @@ Rspack 2.3 将 JavaScript 解析器迁移至 SWC Next，提升大型项目的构
 
 ### 内存占用优化 \{#memory-improvements}
 
-多项持续优化显著降低了内存占用，尤其是在开启 Source Map 和大型项目场景：
+在一个大型真实项目中，生产构建和本地开发服务所消耗的内存都有明显的下降：
 
-| 优化项                               | 效果                                        | 详情                                                         |
-| ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------ |
-| 避免保留序列化 source map            | 构建后 RSS **降低约 728 MiB（7.7%）**       | [#16072](https://github.com/web-infra-dev/rspack/pull/16072) |
-| 减小 exports info 和 parser 内存占用 | 2 万模块场景下峰值分配显著减少              | [#15821](https://github.com/web-infra-dev/rspack/pull/15821) |
-| 延迟 loader 侧 source map 物化       | 跳过无需传输场景的额外开销                  | [#15944](https://github.com/web-infra-dev/rspack/pull/15944) |
-| 压缩 source map 冗余容量             | 编码后 mapping 字符串调用 `shrink_to_fit()` | [#16014](https://github.com/web-infra-dev/rspack/pull/16014) |
-| 释放 emit 后的 source map 缓存       | 构建完成后即时回收                          | -                                                            |
-| 用 SizeOnlySource 替换已输出内容     | 用最小占位释放 asset source                 | -                                                            |
+| 场景  | 指标         |     2.2.0 |     2.3.0 | 优化      |
+| ----- | ------------ | --------: | --------: | --------- |
+| Build | 峰值 RSS     | 28.30 GiB | 20.53 GiB | **27.4%** |
+| Build | 构建结束 RSS | 25.32 GiB | 16.07 GiB | **36.5%** |
+| Dev   | 启动峰值 RSS | 28.63 GiB | 18.96 GiB | **33.8%** |
+| Dev   | 稳态 RSS     | 28.88 GiB | 18.83 GiB | **34.8%** |
 
 此外，新增了基于 [allocative](https://github.com/nicedoc/allocative) 的内存快照能力，可用于定位构建过程中的内存热点。详见 [#16046](https://github.com/web-infra-dev/rspack/pull/16046)。
 
