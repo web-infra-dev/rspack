@@ -133,9 +133,9 @@ pub(crate) enum CandidateUpdate {
 #[derive(Debug)]
 pub(crate) struct ModuleGroup {
   pub modules: IdentifierSet,
-  /// Packed `selectable` / `placement_changed` flags. A single byte keeps
-  /// `ModuleGroup` within the padding next to the other small fields, so the
-  /// struct (moved by sorts and `swap_remove`) does not grow.
+  /// Packed `selectable` / `placement_changed` / stale size reduction flags. A
+  /// single byte keeps `ModuleGroup` within the padding next to the other small
+  /// fields, so the struct (moved by sorts and `swap_remove`) does not grow.
   candidate_flags: u8,
   /// The chunks selected for each module. Anonymous groups structurally share their exact chunk
   /// combination instead of allocating one set per module.
@@ -160,7 +160,10 @@ pub(crate) struct ModuleGroup {
   has_modules_without_source_types: bool,
   removed: Vec<ModuleIdentifier>,
   sizes: SplitChunkSizes,
-  total_size: f64,
+  /// Anonymous groups: the total size of the remaining modules, which all share `chunks`.
+  /// Named groups: the cached size reduction itself, valid while `SIZE_REDUCTION_STALE` is
+  /// clear. Sharing the slot keeps the struct size unchanged.
+  size_reduction_basis: f64,
 }
 
 // Most consecutive module sizes have the same source type. Keep that running
@@ -197,6 +200,7 @@ impl SizeAccumulator<'_> {
 impl ModuleGroup {
   const SELECTABLE: u8 = 1 << 0;
   const PLACEMENT_CHANGED: u8 = 1 << 1;
+  const SIZE_REDUCTION_STALE: u8 = 1 << 2;
 
   /// Only threshold-invalid candidates are skipped by selection. Cleanup can
   /// make them selectable again within this priority's existing queue.
@@ -224,6 +228,11 @@ impl ModuleGroup {
     self.candidate_flags |= Self::PLACEMENT_CHANGED;
   }
 
+  #[inline]
+  fn mark_size_reduction_stale(&mut self) {
+    self.candidate_flags |= Self::SIZE_REDUCTION_STALE;
+  }
+
   pub fn new(chunk_name: Option<String>, cache_group_index: u32, cache_group: &CacheGroup) -> Self {
     let module_chunks = if chunk_name.is_some() {
       ModuleGroupChunks::ByModule(Default::default())
@@ -244,7 +253,7 @@ impl ModuleGroup {
       pending_initial_sizes: false,
       has_modules_without_source_types: false,
       removed: Default::default(),
-      total_size: 0.0,
+      size_reduction_basis: 0.0,
     }
   }
 
@@ -282,6 +291,7 @@ impl ModuleGroup {
     module: ModuleIdentifier,
     chunks: impl IntoIterator<Item = ChunkUkey>,
   ) {
+    self.mark_size_reduction_stale();
     self.modules.insert(module);
     let ModuleGroupChunks::ByModule(module_chunks) = &mut self.module_chunks else {
       unreachable!("add_module should only be used for named module groups");
@@ -358,6 +368,7 @@ impl ModuleGroup {
           if self.modules.remove(&module) {
             module_chunks.remove(&module);
             self.removed.push(module);
+            self.candidate_flags |= Self::SIZE_REDUCTION_STALE;
           }
         }
       }
@@ -466,6 +477,7 @@ impl ModuleGroup {
         if chunks.len() < minimum {
           self.modules.remove(module);
           self.removed.push(*module);
+          self.candidate_flags |= Self::SIZE_REDUCTION_STALE;
           false
         } else {
           true
@@ -486,6 +498,8 @@ impl ModuleGroup {
       for chunks in sources.values_mut() {
         chunks.retain(|chunk| self.chunks.contains(chunk));
       }
+      // Remaining modules can keep fewer selected chunks without being removed.
+      self.mark_size_reduction_stale();
       self.mark_placement_changed();
       if self.chunks.len() != before {
         self.chunk_mask = chunk_mask(self.chunks.iter());
@@ -619,11 +633,32 @@ impl ModuleGroup {
     &cache_groups[self.cache_group_index as usize]
   }
 
-  pub fn get_total_size(&self) -> f64 {
-    if self.pending_initial_sizes || !self.removed.is_empty() {
-      unreachable!("should update sizes before get total size");
+  pub fn get_size_reduction(&mut self, module_sizes: &ModuleSizes) -> f64 {
+    let ModuleGroupChunks::ByModule(module_chunks) = &self.module_chunks else {
+      if self.pending_initial_sizes || !self.removed.is_empty() {
+        unreachable!("should update sizes before get size reduction");
+      }
+      return self.size_reduction_basis * self.chunks.len().saturating_sub(1) as f64;
+    };
+    if self.candidate_flags & Self::SIZE_REDUCTION_STALE != 0 {
+      self.size_reduction_basis = self
+        .modules
+        .iter()
+        .map(|module| {
+          let chunks = module_chunks
+            .get(module)
+            .expect("should have selected module chunks");
+          let size: f64 = module_sizes
+            .get(module)
+            .expect("should have module size")
+            .values()
+            .sum();
+          size * chunks.len().saturating_sub(1) as f64
+        })
+        .sum();
+      self.candidate_flags &= !Self::SIZE_REDUCTION_STALE;
     }
-    self.total_size
+    self.size_reduction_basis
   }
 
   pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
@@ -634,6 +669,7 @@ impl ModuleGroup {
       sizes: &mut self.sizes,
       cached: None,
     };
+    let mut total_size = self.size_reduction_basis;
     if self.pending_initial_sizes {
       // The comparison snapshot is captured before any module is removed and
       // before the first size comparison. It also supplies the initial size
@@ -644,7 +680,7 @@ impl ModuleGroup {
         for (ty, s) in module_sizes.iter() {
           let size = sizes.get(*ty);
           *size += s;
-          self.total_size += s;
+          total_size += s;
         }
       }
       self.pending_initial_sizes = false;
@@ -656,12 +692,16 @@ impl ModuleGroup {
           let size = sizes.get(*ty);
           *size -= s;
           *size = size.max(0.0);
-          self.total_size -= s;
+          total_size -= s;
         }
       }
     }
 
     sizes.finish();
+    // A named group keeps its own size reduction in the slot instead.
+    if self.uses_shared_module_chunks() {
+      self.size_reduction_basis = total_size;
+    }
     &self.sizes
   }
 }
@@ -669,6 +709,7 @@ impl ModuleGroup {
 pub(crate) fn compare_entries(
   (a_key, a): (&ModuleGroupKey, &mut ModuleGroup),
   (b_key, b): (&ModuleGroupKey, &mut ModuleGroup),
+  module_sizes: &ModuleSizes,
 ) -> f64 {
   // 1. by priority
   // no need to compare priority anymore because we already pick all cache groups with same priority
@@ -685,8 +726,8 @@ pub(crate) fn compare_entries(
   }
 
   // 3. by size reduction
-  let a_size_reduce = a.get_total_size() * (a_chunks_len - 1) as f64;
-  let b_size_reduce = b.get_total_size() * (b_chunks_len - 1) as f64;
+  let a_size_reduce = a.get_size_reduction(module_sizes);
+  let b_size_reduce = b.get_size_reduction(module_sizes);
   let diff_size_reduce = a_size_reduce - b_size_reduce;
   if diff_size_reduce != 0f64 {
     return diff_size_reduce;
