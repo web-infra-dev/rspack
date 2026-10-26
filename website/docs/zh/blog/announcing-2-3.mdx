@@ -36,7 +36,6 @@ Rspack 2.3 现已推出！本次更新将 JavaScript 解析器迁移至 SWC Next
   - [CSS 打包能力](#css-bundling)
   - [依赖解析与按需编译](#resolution-and-lazy-compilation)
   - [Watcher 兼容性改进](#watcher-compatibility)
-  - [内存分析](#memory-diagnostics)
   - [插件与工具集成](#plugin-integration)
   - [其他改进](#other-improvements)
 - [生态](#ecosystem)
@@ -49,9 +48,16 @@ Rspack 2.3 现已推出！本次更新将 JavaScript 解析器迁移至 SWC Next
   - [Agent plugin](#rstack-agent-plugin)
 - [升级指南](#upgrade-guide)
 
-## SWC next 解析器 \{#swc-next}
+## SWC Next 解析器 \{#swc-next}
 
-Rspack 2.3 将 JavaScript 解析器迁移至 SWC Next，提升大型项目的构建效率，无需调整配置。
+Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-project/swc-next)，SWC Next 的[原生解析器](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse)比 SWC 快 2–4.5 倍，[JavaScript API](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#js-parser) 快 5–8 倍。
+
+同时还针对 SWC Next 新的 AST 结构和内存布局优化了 Rspack 自身的依赖解析流程，显著降低了整个 Parse 阶段的开销，在固定 6 核并发下的实测：
+
+| 项目      | Parse 阶段耗时                 | Parse 阶段指令数                |
+| --------- | ------------------------------ | ------------------------------- |
+| three.js  | 23.62 ms → 20.11 ms（−14.9%）  | 205.23 M → 155.07 M（−24.4%）   |
+| React 10k | 207.16 ms → 193.86 ms（−6.4%） | 1597.67 M → 1421.29 M（−11.0%） |
 
 ## 性能 \{#performance}
 
@@ -220,10 +226,6 @@ CSS 的 `@import`、`url()` 和 `image-set()` 也支持 `rspackIgnore` 和 `webp
 [`experiments.nativeWatcher`](https://rspack.rs/zh/config/experiments#experimentsnativewatcher) 提供了更完整的文件时间信息，改善与 `ts-loader`、`webpack-virtual-modules`、`vue-loader` 等工具的兼容性。
 
 原生 watcher 还支持函数形式的 [`watchOptions.ignored`](https://rspack.rs/zh/config/watch#watchoptionsignored)，并改善了新增目录、文件删除和重新创建时的变化检测。
-
-### 定位内存占用来源 \{#memory-diagnostics}
-
-新增内存分析能力，帮助定位构建和 HMR 期间的内存占用来源，排查内存持续增长的问题。使用方法请参考[内存诊断指南](https://rspack.rs/zh/guide/diagnostics/memory)。
 
 ### 插件与工具集成 \{#plugin-integration}
 
