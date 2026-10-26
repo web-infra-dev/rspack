@@ -526,7 +526,7 @@ When using Rspack to bundle TypeScript, we strongly recommend enabling [isolated
 :::
 
 - `'no-tolerant'`: Default behavior, shows errors for type re-exports.
-- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
+- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`collectTypeScriptInfo.typeExports`](/guide/builtin-loaders/swc-loader#collecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
 - `'tolerant-no-check'`: Tolerates type re-exports without checking child modules (may incorrectly tolerate some invalid cases, though IDEs usually provide warnings). Better performance as it skeps child module checks.
 
 ```js title="rspack.config.mjs"

@@ -108,9 +108,9 @@ Rspack can process several files at the same time, but JavaScript loaders must r
 
 When equivalent functionality is available, prefer an Rspack builtin loader. For example:
 
-- use [`builtin:swc-loader`](/guide/features/builtin-swc-loader) for JavaScript and TypeScript
+- use [`builtin:swc-loader`](/guide/builtin-loaders/swc-loader) for JavaScript and TypeScript
   transforms;
-- use [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) for CSS
+- use [`builtin:lightningcss-loader`](/guide/builtin-loaders/lightningcss-loader) for CSS
   transforms.
 
 Builtin loaders run on the Rust side, reducing JavaScript queueing and cross-language data conversion while making better use of Rspack's parallelism.
