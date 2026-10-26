@@ -98,15 +98,18 @@ Rspack 2.3 将 JavaScript 解析器迁移至 SWC Next，提升大型项目的构
 
 ### 内存占用优化 \{#memory-improvements}
 
-#### 降低源码映射的内存开销 \{#source-map-memory}
+多项持续优化显著降低了内存占用，尤其是在开启 Source Map 和大型项目场景：
 
-降低了开启 Source Map 时的内存占用，改善大型项目构建和插件读取源码时的内存表现，无需额外配置。
+| 优化项                               | 效果                                        | 详情                                                         |
+| ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------ |
+| 避免保留序列化 source map            | 构建后 RSS **降低约 728 MiB（7.7%）**       | [#16072](https://github.com/web-infra-dev/rspack/pull/16072) |
+| 减小 exports info 和 parser 内存占用 | 2 万模块场景下峰值分配显著减少              | [#15821](https://github.com/web-infra-dev/rspack/pull/15821) |
+| 延迟 loader 侧 source map 物化       | 跳过无需传输场景的额外开销                  | [#15944](https://github.com/web-infra-dev/rspack/pull/15944) |
+| 压缩 source map 冗余容量             | 编码后 mapping 字符串调用 `shrink_to_fit()` | [#16014](https://github.com/web-infra-dev/rspack/pull/16014) |
+| 释放 emit 后的 source map 缓存       | 构建完成后即时回收                          | -                                                            |
+| 用 SizeOnlySource 替换已输出内容     | 用最小占位释放 asset source                 | -                                                            |
 
-#### 改善大型项目的内存表现 \{#module-memory}
-
-减少大型项目构建时的内存占用，并改善开发服务器反复启动、重建和关闭时的内存释放。
-
-> 内存数据待补充：构建峰值、构建完成后及多轮 HMR 后的内存占用对比。
+此外，新增了基于 [allocative](https://github.com/nicedoc/allocative) 的内存快照能力，可用于定位构建过程中的内存热点。详见 [#16046](https://github.com/web-infra-dev/rspack/pull/16046)。
 
 ### 更小的包体积 \{#smaller-package-size}
 
@@ -261,31 +264,79 @@ CSS 的 `@import`、`url()` 和 `image-set()` 也支持 `rspackIgnore` 和 `webp
 
 ### Rsbuild \{#rsbuild}
 
-> 待补充：Rsbuild 的重要更新与相关发布链接。
+Rsbuild 2.3 已与 Rspack 2.3 同步发布。
 
-### Rstest \{#rstest}
+#### 默认启用 compact-hashed ID \{#rsbuild-compact-hashed}
 
-> 待补充：Rstest 的重要更新与相关发布链接。
+Rsbuild 生产环境现在默认启用 `compact-hashed` 模块和 chunk ID 策略，相比 `deterministic` 可进一步缩小产物体积（约 0.3% JS 体积，约 0.9% gzip）。2.3 修复了 chunk 名称冲突和 hash key 前缀耗尽等边界场景。
 
-### Rslint \{#rslint}
+#### 文件体积报告增强 \{#rsbuild-stats}
 
-> 待补充：Rslint 的重要更新与相关发布链接。
+持续优化统计开销，增强体积报告能力：
+
+- 支持 Brotli 体积统计，可配置 gzip / Brotli 的压缩等级。
+- 压缩统计不再缓存完整压缩结果，减少内存占用。
+- 限制多环境之间的压缩并发，复用资源 Buffer，减少额外读取和复制。
+- 在 emit 阶段计算体积，修正统计时机；只显示总计时，也能正确显示压缩体积差值。
+
+#### TanStack Start 模板 \{#rsbuild-tanstack-start}
+
+`create-rsbuild` 新增 [TanStack Start](https://tanstack.com/start) 模板，同时支持 React 和 Solid 两种变体：
+
+```bash
+npx -y create-rsbuild@latest my-app -t tanstack-start-ts
+```
+
+#### Lynx 框架支持 \{#rsbuild-lynx}
+
+新增 [Lynx](https://lynxjs.org/) 框架选项，支持构建 Lynx 跨平台应用。
+
+```js title="rsbuild.config.ts"
+export default {
+  environments: {
+    lynx: {
+      output: {
+        target: 'lynx',
+      },
+    },
+  },
+};
+```
 
 ### Rslib \{#rslib}
 
-> 待补充：Rslib 的重要更新与相关发布链接。
-
-### Rspress \{#rspress}
-
-> 待补充：Rspress 的重要更新与相关发布链接。
+[Rslib 1.0](https://rslib.rs/blog/v1-0) 正式发布！面向库开发的构建工具达到稳定里程碑，完善了 ESM/CJS 双输出、声明文件生成、WASM 模块支持等核心能力，并已支持 TypeScript 7.1 的声明生成。
 
 ### Rsdoctor \{#rsdoctor}
 
-> 待补充：Rsdoctor 的重要更新与相关发布链接。
+[Rsdoctor 2.0](https://v2.rsdoctor.rs/blog/release/release-note-2_0) 正式发布！新版本将 Agent CLI 作为推荐的 AI 分析方式，支持直接读取构建数据文件进行结构化分析，帮助快速定位性能瓶颈和产物问题。
+
+### Rstest \{#rstest}
+
+[Rstest 0.12](https://rstest.rs/blog/announcing-0-12) 重新设计了 JavaScript API，并新增截图测试能力 —— 通过 `toMatchScreenshot()` 对元素和页面进行视觉断言：
+
+```ts
+import { expect, test } from '@rstest/core';
+
+test('home page', async ({ page }) => {
+  await page.goto('/');
+  await expect(page).toMatchScreenshot('home.png');
+});
+```
+
+独立的 [VS Code 扩展](https://marketplace.visualstudio.com/items?itemName=rstest.rstest-vscode) 也已发布，提供测试发现、运行和调试的内置体验。
+
+### Rspress \{#rspress}
+
+Rspress 持续改进文档体验，v2.1.0-beta 开始迁移导航至 React Router data mode，并内置 sitemap 生成和 LLMs 支持。
+
+### Rslint \{#rslint}
+
+> 暂无重大更新。
 
 ### Agent plugin \{#rstack-agent-plugin}
 
-> 待补充：Rstack Agent Plugin 的重要更新与相关发布链接。
+> 暂无重大更新。
 
 ## 升级指南 \{#upgrade-guide}
 
