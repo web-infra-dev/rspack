@@ -67,3 +67,16 @@ it('does not copy custom-scope exports into an unoptimized default share', () =>
   expect(shares.find(({ shareScope }) => shareScope === undefined)).not.toHaveProperty('usedExports');
   expect(shares.find(({ shareScope }) => shareScope === 'custom').usedExports).toContain('value');
 });
+
+it('retains provider scope and layer in the runtime full-fallback table', () => {
+  const fallbacks = __webpack_require__.federation.sharedFallback;
+  expect(fallbacks['shared-variant'].map(([, version, , identity]) => ({ version, ...identity }))).toEqual([
+    { version: '1.0.0', shareScope: ['scope-a', 'default'], layer: 'layer-a' },
+    { version: '1.0.0', shareScope: ['scope-b', 'default'], layer: 'layer-b' },
+  ]);
+  expect(fallbacks['default-collision'].map(([, , , identity]) => identity)).toEqual([
+    { shareScope: 'default' },
+    { shareScope: 'default', layer: 'layered' },
+    { shareScope: 'custom' },
+  ]);
+});

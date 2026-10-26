@@ -68,7 +68,10 @@ export interface IndependentSharePluginOptions {
 }
 
 // { react: [  [ react/19.0.0/index.js , 19.0.0, react_global_name ]  ] }
-export type ShareFallback = Record<string, [string, string, string][]>;
+export type ShareFallback = Record<
+  string,
+  [string, string, string, { shareScope: ShareScope; layer?: string }?][]
+>;
 
 export type ShareFallbackVariant = {
   entry: string;
