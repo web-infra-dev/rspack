@@ -372,8 +372,9 @@ impl PathManager {
     self.missing.reset();
   }
 
-  /// Record an initial baseline mtime for `path`, but only if no baseline
-  /// already exists. This is the "incremental" form used by
+  /// Record an initial baseline mtime for `path`, but only if no present
+  /// baseline already exists. A reported absence (`None`) counts as no
+  /// baseline because the file is back. This is the "incremental" form used by
   /// `FsWatcher::wait_for_event`: on the first `watch()` call we record
   /// mtimes for all newly-registered files; on subsequent `watch()` calls
   /// we MUST skip files that already have a baseline, otherwise we risk
@@ -408,8 +409,15 @@ impl PathManager {
     self.baselines.get(path).is_some_and(|time| time.is_none())
   }
 
+  /// Record a removal the caller is about to deliver. The scanner relies on
+  /// this marker to mean the build was told about the absence.
   pub fn set_reported_file_removal(&self, path: &InternedPath) {
     self.baselines.insert(path.clone(), None);
+    if (!self.files.all.contains(path) && !self.missing.all.contains(path))
+      || std::fs::symlink_metadata(path).is_ok()
+    {
+      self.baselines.remove_if(path, |_, time| time.is_none());
+    }
   }
 
   /// Drop a removed path's time info and present baseline. A reported absence
