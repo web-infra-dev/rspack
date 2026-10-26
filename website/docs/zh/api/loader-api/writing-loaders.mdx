@@ -363,6 +363,10 @@ export default class MetadataPlugin {
 
 启用持久化缓存时，Rspack 会将这些数据以 JSON 格式保存。请使用 JSON 支持的值，例如字符串、数字、数组和普通对象。函数属性不会被保存，数组中的函数会变成 `null`，因此后续构建从磁盘缓存恢复模块时，插件将无法再调用这些函数。
 
+## 开发本地 loader \{#developing-local-loaders}
+
+开发本地 loader 时，修改 loader 自身或其导入的模块后，需要重启构建进程。Node.js 会在当前进程中缓存已加载的模块，因此即使 watch 模式触发了重新构建，loader 仍可能执行旧代码。这与 Rspack 的构建缓存无关，关闭构建缓存也不会重新加载 loader。
+
 ## 发布 loader
 
 ### 声明 peer dependencies
