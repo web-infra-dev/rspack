@@ -166,9 +166,6 @@ impl<'a> RawSplitChunksOptions<'a> {
 
     let overall_max_initial_size = create_sizes(raw_opts.max_initial_size).merge(&overall_max_size);
 
-    let overall_max_async_requests = raw_opts.max_async_requests.unwrap_or(f64::INFINITY);
-    let overall_max_initial_requests = raw_opts.max_initial_requests.unwrap_or(f64::INFINITY);
-
     let overall_automatic_name_delimiter = raw_opts
       .automatic_name_delimiter
       .unwrap_or(DEFAULT_DELIMITER.to_string());
@@ -277,16 +274,8 @@ impl<'a> RawSplitChunksOptions<'a> {
               .map(Filename::from)
               .or_else(|| overall_filename.clone()),
             reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(false),
-            max_async_requests: v.max_async_requests.unwrap_or(if enforce {
-              f64::INFINITY
-            } else {
-              overall_max_async_requests
-            }),
-            max_initial_requests: v.max_initial_requests.unwrap_or(if enforce {
-              f64::INFINITY
-            } else {
-              overall_max_initial_requests
-            }),
+            max_async_requests: v.max_async_requests.unwrap_or(f64::INFINITY),
+            max_initial_requests: v.max_initial_requests.unwrap_or(f64::INFINITY),
             max_async_size,
             max_initial_size,
             r#type,
