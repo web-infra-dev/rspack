@@ -1,4 +1,9 @@
 import { getResolve, resolveSibling } from './nested/resolver';
+import {
+	getResolveType,
+	resolveConditional,
+	resolveTarget,
+} from './bundler-resolve';
 
 const resolvers = new Map();
 function factory(origin) {
@@ -12,6 +17,13 @@ function factory(origin) {
 }
 globalThis.__rstest_import_meta_resolve__ = factory;
 globalThis.__custom_import_meta_resolve__ = factory;
+
+it('respects importMetaResolve enabled globally or by a module rule', () => {
+	expect(getResolveType()).toBe('function');
+	expect(resolveTarget()).toBe(require.resolve('./target'));
+	expect(resolveConditional(true)).toBe(require.resolve('./target'));
+	expect(resolveConditional(false)).toBe(require.resolve('./nested/resolver'));
+});
 
 it('preserves source origins for calls and resolver values', () => {
 	expect(typeof import.meta.resolve).toBe('function');

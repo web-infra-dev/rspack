@@ -589,8 +589,10 @@ async fn nmf_parser(
       .require_resolve_origin_callee
       .get()
       .is_some_and(|c| c.is_some());
-    let commonjs_magic_comments = parser_options
-      .and_then(|options| options.get_javascript())
+    let javascript_options = parser_options.and_then(|options| options.get_javascript());
+    let import_meta_resolve =
+      javascript_options.is_some_and(|options| options.import_meta_resolve == Some(true));
+    let commonjs_magic_comments = javascript_options
       .and_then(|options| options.commonjs_magic_comments)
       .unwrap_or(false);
 
@@ -606,14 +608,17 @@ async fn nmf_parser(
         update_import_mock_api: self.options.update_import_mock_api,
         update_require_mock_api: self.options.update_require_mock_api,
         inject_require_resolve_origin,
-        import_meta_resolve_factory: self.options.inject_import_meta_resolve_origin.as_ref().map(
-          |options| {
+        import_meta_resolve_factory: self
+          .options
+          .inject_import_meta_resolve_origin
+          .as_ref()
+          .filter(|_| !import_meta_resolve)
+          .map(|options| {
             options
               .function_name
               .clone()
               .unwrap_or_else(|| "__rstest_import_meta_resolve__".into())
-          },
-        ),
+          }),
         commonjs_magic_comments,
       },
     )) as BoxJavascriptParserPlugin);

@@ -80,6 +80,8 @@ pub struct RawRstestPluginOptions {
   /// Replace `import.meta.resolve` with a call to a runtime factory receiving
   /// the absolute source path. The factory must return a stable resolver for
   /// that source module. Defaults to `__rstest_import_meta_resolve__`.
+  /// Modules with `parser.importMetaResolve: true` use Rspack's built-in
+  /// resolution instead.
   #[napi(ts_type = "boolean | { functionName?: string }")]
   pub inject_import_meta_resolve_origin:
     Option<Either<bool, RawRstestImportMetaResolveOriginOptions>>,

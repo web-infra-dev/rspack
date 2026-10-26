@@ -5,6 +5,17 @@ import { rspack } from '@rspack/core';
 export default defineConfig(
   [true, false].map((defaultName) => ({
     target: 'node',
+    module: {
+      parser: { javascript: { importMetaResolve: !defaultName } },
+      rules: [
+        {
+          test: defaultName
+            ? /bundler-resolve\.js$/
+            : /(?:index|resolver)\.js$/,
+          parser: { importMetaResolve: defaultName },
+        },
+      ],
+    },
     optimization: { minimize: false, concatenateModules: true },
     plugins: [
       new rspack.experiments.RstestPlugin({
