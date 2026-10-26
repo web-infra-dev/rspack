@@ -405,6 +405,74 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
+    if !new_modules.is_empty() {
+      // New sibling chunks have no hot-update chunk of their own. Include their
+      // new JavaScript factories with the updated chunk so static imports work
+      // before the browser requests the sibling chunk through the normal loader.
+      let module_graph = compilation.get_module_graph();
+      let mut seen_new_modules = new_modules.iter().copied().collect::<HashSet<_>>();
+      if let Some(current_chunk) = current_chunk {
+        for group_ukey in current_chunk.groups() {
+          let Some(group) = compilation
+            .build_chunk_graph_artifact
+            .chunk_group_by_ukey
+            .get(group_ukey)
+          else {
+            continue;
+          };
+          for chunk_ukey in &group.chunks {
+            let Some(chunk) = compilation
+              .build_chunk_graph_artifact
+              .chunk_by_ukey
+              .get(chunk_ukey)
+            else {
+              continue;
+            };
+            let Some(chunk_id) = chunk.id() else {
+              continue;
+            };
+            if chunk.kind() == ChunkKind::HotUpdate
+              || old_chunks.contains_key(chunk_id)
+              || !new_runtime
+                .iter()
+                .all(|runtime| chunk.runtime().contains(runtime))
+            {
+              continue;
+            }
+            for &module_identifier in compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_chunk_modules_identifier(chunk_ukey)
+            {
+              let Some(module_id) =
+                ChunkGraph::get_module_id(&compilation.module_ids_artifact, module_identifier)
+              else {
+                continue;
+              };
+              if old_all_modules
+                .get(module_id)
+                .is_some_and(|chunks| chunks.contains_key(&chunk_id))
+              {
+                continue;
+              }
+              let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+                continue;
+              };
+              if !module
+                .source_types(module_graph)
+                .contains(&SourceType::JavaScript)
+              {
+                continue;
+              }
+              if seen_new_modules.insert(module_identifier) {
+                new_modules.push(module_identifier);
+              }
+            }
+          }
+        }
+      }
+    }
+
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
       let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
       hot_update_chunk.set_id(chunk_id.clone());

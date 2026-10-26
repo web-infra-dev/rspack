@@ -1,0 +1,14 @@
+# Case issue-16288-new-async-chunk: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: lazy_js.chunk.CURRENT_HASH.js
+- Bundle: main.js
+- Bundle: runtime~main.js
+
+## Manifest
+
+
+## Update
