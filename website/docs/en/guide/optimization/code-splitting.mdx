@@ -227,7 +227,7 @@ In that case, errored script will be removed. Rspack will create its own script 
 
 ## Chunk loading errors after deployment
 
-With code splitting, a page loads some chunks only when they are needed, such as when the user visits another route. A page left open during a deployment continues running the code it already loaded; deploying a new version does not automatically update that page.
+A common scenario is that a user opens a page, a new application version is deployed, and the user keeps the page open without refreshing. The page still runs the old code. If the user then navigates to a route loaded through `import()`, it requests chunks from the old version, which may have been deleted during deployment.
 
 For example, consider an application with a settings page loaded through `import()`:
 
