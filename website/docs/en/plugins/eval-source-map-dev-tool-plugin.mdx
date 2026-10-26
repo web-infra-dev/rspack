@@ -55,9 +55,7 @@ Exclude modules that match the given value from source map generation.
 
 ### append
 
-- **Type:** `string | function`
-
-Appends the given value to the original asset. Usually the `#sourceMappingURL` comment. `[url]` is replaced with a URL to the source map file. `false` disables the appending.
+Rspack currently ignores `append`, including strings, functions, and `false`. For modules with source maps, the plugin always adds a fixed `sourceMappingURL` comment containing the inline source map; this option cannot customize or disable it.
 
 ### module
 

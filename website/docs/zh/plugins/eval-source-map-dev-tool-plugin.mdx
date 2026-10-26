@@ -55,9 +55,7 @@ new rspack.EvalSourceMapDevToolPlugin({
 
 ### append
 
-- **类型：** `string | function`
-
-将给定值附加到原始资源。通常是 `#sourceMappingURL` 注释。`[url]` 会被替换成指向源映射文件的 URL。设置为 `false` 将禁止附加。
+Rspack 目前会忽略 `append`，包括字符串、函数和 `false`。对于生成了 source map 的模块，插件始终添加固定格式的 `sourceMappingURL` 注释，将 source map 内联在其中；无法通过此选项自定义或关闭该注释。
 
 ### module
 
