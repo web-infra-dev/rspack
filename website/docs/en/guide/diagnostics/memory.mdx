@@ -29,9 +29,9 @@ If your project depends on `@rspack/core` directly, replace it with the debug pa
 
 Keep the dependency in its original section (`dependencies` or `devDependencies`), then run `pnpm install`.
 
-### Users of frameworks such as Rsbuild
+### Using Rspack through higher-level tools
 
-If your project uses Rspack indirectly through a framework such as Rsbuild, add a package manager override for `@rspack/core`. For pnpm, add this configuration to `package.json`:
+If your project uses Rspack indirectly through a higher-level tool such as Rsbuild, add a package manager override for `@rspack/core`. For pnpm, add this configuration to `package.json`:
 
 ```json title="package.json"
 {
@@ -46,7 +46,7 @@ If your project uses Rspack indirectly through a framework such as Rsbuild, add 
 }
 ```
 
-Use the same version as the framework's resolved `@rspack/core` dependency (`2.3.0` in this example), then run `pnpm install`. See [Debugging](/contribute/development/debugging) for more about diagnostic package overrides.
+Use the same version as the tool's resolved `@rspack/core` dependency (`2.3.0` in this example), then run `pnpm install`. See [Debugging](/contribute/development/debugging) for more about diagnostic package overrides.
 
 For either approach, you can use a profiling build instead of the debug package. Set `RSPACK_ALLOCATIVE_DIR` when running your project's original build or dev command. Leave it unset to skip snapshot collection. If no suitable package is available, see [Build a local binding](/contribute/development/memory#build-a-local-binding) to build from source.
 
@@ -60,7 +60,7 @@ Run the project's original build command with an absolute output directory:
 RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/build-1 pnpm exec rspack build
 ```
 
-Verify that the build, its configuration, and its plugins all load the intended diagnostic package. For Rspack-integrated frameworks, keep the framework's normal build command and use a compatible diagnostic package override.
+Verify that the build, its configuration, and its plugins all load the intended diagnostic package. For tools that integrate Rspack, keep the tool's normal build command and use a compatible diagnostic package override.
 
 After the initial build completes, the output directory contains:
 
