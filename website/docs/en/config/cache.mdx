@@ -15,6 +15,10 @@ When Cache is enabled, Rspack supports two storage modes: process-local Memory C
 filesystem-backed Persistent Cache. Both store fine-grained computation results and are independent
 from [`incremental`](/config/incremental).
 
+:::tip
+We are developing a faster and more stable cache implementation that will replace the existing one in the future. To try it early, enable [`experiments.newCache`](/config/experiments#experimentsnewcache).
+:::
+
 - **Type:**
 
 ```ts
