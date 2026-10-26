@@ -227,7 +227,7 @@ const lazyComp = () =>
 
 ## 部署后的 chunk 加载错误 \{#chunk-loading-errors-after-deployment}
 
-已经打开的页面会继续使用加载时记录的 chunk 文件名。如果部署新版本时替换了这些文件，页面后续调用 `import()` 时可能请求已删除的 chunk，导致 `ChunkLoadError`。
+已经打开的页面仍然使用旧版本的 chunk 文件名。如果部署新版本时删除了旧 chunk 文件，页面后续触发动态导入（例如切换路由）时，就可能请求已不存在的文件，导致 `ChunkLoadError`。
 
 可以通过以下方式处理：
 

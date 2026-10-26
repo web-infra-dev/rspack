@@ -227,7 +227,7 @@ In that case, errored script will be removed. Rspack will create its own script 
 
 ## Chunk loading errors after deployment
 
-A page that is already open continues to use the chunk filenames from the version it loaded. If a deployment replaces those files, a later `import()` may request a deleted chunk and fail with `ChunkLoadError`.
+A page that is already open still uses chunk filenames from the version it loaded. If a deployment deletes the old chunk files, a later dynamic import, such as navigating to another route, may request a file that no longer exists and fail with `ChunkLoadError`.
 
 To handle this:
 
