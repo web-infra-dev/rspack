@@ -368,7 +368,20 @@ test('home page', async ({ page }) => {
 
 ### Rspress \{#rspress}
 
-Rspress 持续改进文档体验，v2.1.0-beta 开始迁移导航至 React Router data mode，并内置 sitemap 生成和 LLMs 支持。
+Rspress 2.1.0 默认支持 [WebMCP](https://developer.chrome.com/docs/ai/webmcp)，内置站点信息查询、文档搜索和页面导航等工具，让浏览器中的 AI 智能体能够直接与文档站点交互。
+
+想尝试该功能？在支持 WebMCP 的浏览器中，运行以下代码：
+
+```js
+const tools = await document.modelContext.getTools();
+const tool = tools.find(({ name }) => name === 'rspress_get_current_page');
+const page = JSON.parse(await document.modelContext.executeTool(tool, {}));
+console.log(page.markdown);
+```
+
+你也可以通过 `useWebMcp` Hook 注册自定义工具，扩展站点与 AI 智能体的交互能力。
+
+更多内容请参阅 [WebMCP 文档](https://rspress.rs/zh/guide/basic/webmcp)。
 
 ### Rslint \{#rslint}
 
