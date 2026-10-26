@@ -5,6 +5,7 @@
   "testing",
   "debugging",
   "profiling",
+  "memory",
   "tracing",
   "releasing"
 ]
