@@ -239,14 +239,16 @@ This explains why the initial page can work normally while a later navigation fa
 
 ### Preventing failures during deployment
 
-Use filenames containing content hashes for entry files and async chunks, through [`output.filename`](/config/output#outputfilename) and [`output.chunkFilename`](/config/output#outputchunkfilename). This allows files from different versions to coexist without overwriting each other.
+To let old and new pages load the files they need, use [`output.filename`](/config/output#outputfilename) and [`output.chunkFilename`](/config/output#outputchunkfilename) to give entry files and async chunks names containing content hashes. Files whose contents change then get new names, allowing both versions to remain available without overwriting each other.
 
-Keep previous versions' assets available for a transition period instead of deleting them as soon as the new version is deployed. Choose the retention period based on how long users may keep pages open. Content hashes alone do not prevent this error if the old files are removed.
+Those old files must also remain available after deployment, because pages that are still open may request them later. Keep them for a period that reflects how long users may leave pages open. Deleting them immediately defeats the purpose of keeping versioned filenames.
 
 ### Handling failures in the page
 
-Handle a rejected `import()` Promise, or use your router's error handling, to show a message and a refresh button when a chunk fails to load. For a page using an outdated version, refreshing lets it load the new version and its chunk filenames. Make sure the HTML can update on refresh; if a cache keeps serving old HTML, the page may load the old version again.
+If an old chunk is no longer available, prompt the user to refresh so the page can load the new application code and request the new chunks. You can display this message and a refresh button in the `.catch()` callback of `import()`, or through your router's error handling.
 
-A chunk loading error does not always mean that a new version was deployed. Network failures or an incorrect asset URL can also prevent loading. Avoid automatically refreshing on every failure: if the underlying problem persists, this can cause a reload loop.
+For this to work, the browser must be able to fetch updated HTML on refresh. If a cache keeps returning old HTML, the page may load the old code again and continue requesting the same deleted files.
+
+Network failures or an incorrect asset URL can also cause chunk loading errors, and refreshing does not necessarily fix them. Automatically refreshing after every failure can leave the page repeatedly reloading without recovering. Keep the error message and refresh button visible so the user can choose when to try again.
 
 <Attribution url="https://webpack.js.org/guides/code-splitting/" />

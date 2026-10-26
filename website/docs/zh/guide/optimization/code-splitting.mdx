@@ -239,14 +239,16 @@ const lazyComp = () =>
 
 ### 部署时减少加载失败 \{#preventing-failures-during-deployment}
 
-通过 [`output.filename`](/config/output#outputfilename) 和 [`output.chunkFilename`](/config/output#outputchunkfilename)，为入口文件和异步 chunk 设置包含内容哈希的文件名，让不同版本的文件可以共存，避免相互覆盖。
+为了让旧页面和新页面都能加载各自需要的资源，可以通过 [`output.filename`](/config/output#outputfilename) 和 [`output.chunkFilename`](/config/output#outputchunkfilename)，为入口文件和异步 chunk 设置包含内容哈希的文件名。这样，内容发生变化的文件会使用新的名称，新旧文件就能同时保留，不会相互覆盖。
 
-部署后保留旧版本资源一段时间，而不是立即删除。保留多久可以根据用户可能保持页面打开的时间来决定。如果旧文件已被删除，仅使用内容哈希仍无法避免这类错误。
+部署后，这些旧文件还需要保留一段时间，因为尚未刷新的页面可能在之后才请求它们。具体保留多久，可以根据用户通常会保持页面打开多长时间来决定。如果部署时就删除旧文件，即使文件名中包含内容哈希，旧页面也无法继续加载它们。
 
 ### 页面中处理加载失败 \{#handling-failures-in-the-page}
 
-可以捕获 `import()` 返回的 Promise 的错误，或使用路由框架提供的错误处理，在 chunk 加载失败时显示提示和刷新按钮。对于仍在使用旧版本的页面，刷新后可以加载新版本及其对应的 chunk 文件名。需要确保刷新时能够获取更新后的 HTML；如果缓存持续返回旧 HTML，刷新后仍可能加载旧版本。
+如果旧 chunk 已经无法访问，可以提示用户刷新页面，以便加载新版本代码并请求新的 chunk。应用可以在 `import()` 的 `.catch()` 回调中，或通过路由框架提供的错误处理机制，显示这类提示和刷新按钮。
 
-chunk 加载失败并不一定是部署新版本导致的，网络故障或资源 URL 配置错误也可能导致加载失败。避免在每次失败时都自动刷新：如果问题持续存在，页面就可能陷入反复刷新的循环。
+要让刷新生效，还需要确保浏览器能够获取更新后的 HTML。如果缓存仍然返回旧 HTML，页面可能再次加载旧版本代码，继续请求同一批已删除的文件。
+
+网络故障或资源 URL 配置错误也会导致 chunk 加载失败，而刷新页面并不一定能解决这些问题。如果每次失败都自动刷新，页面可能一直刷新却无法恢复。因此，更合适的处理方式是保留错误提示和刷新按钮，让用户自行重试。
 
 <Attribution url="https://webpack.docschina.org/guides/code-splitting/" />
