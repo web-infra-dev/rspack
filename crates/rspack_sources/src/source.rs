@@ -802,6 +802,7 @@ fn optional_string_array_field<'a>(
     .as_array()
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?;
   values
+    .as_slice()
     .iter()
     .map(|value| {
       if value.is_null() {
