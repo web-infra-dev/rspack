@@ -146,7 +146,7 @@ Flag this module as not-update-able. This makes sense when this module has irrev
 
 ### dispose (or addDisposeHandler)
 
-Add a handler which is executed when the current module code is replaced. This should be used to remove any persistent resource you have claimed or created. If you want to transfer state to the updated module, add it to the given `data` parameter. This object will be available at `module.hot.data` after the update.
+Register a handler to clean up resources, such as timers or event listeners, before the module is replaced. Store any state you want to preserve on the `data` argument; the updated module can read it from `import.meta.webpackHot.data` (or `module.hot.data` for CommonJS).
 
 ```js
 module.hot.dispose((data) => {
@@ -157,6 +157,23 @@ module.hot.dispose((data) => {
 import.meta.webpackHot.dispose((data) => {
   // Clean up and pass data to the updated module...
 });
+```
+
+This example clears the old timer and resumes counting from the saved value after an update:
+
+```js
+let count = import.meta.webpackHot?.data?.count ?? 0;
+const timer = setInterval(() => {
+  console.log(++count);
+}, 1000);
+
+if (import.meta.webpackHot) {
+  import.meta.webpackHot.accept();
+  import.meta.webpackHot.dispose((data) => {
+    clearInterval(timer);
+    data.count = count;
+  });
+}
 ```
 
 ### invalidate

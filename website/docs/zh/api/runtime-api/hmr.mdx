@@ -146,7 +146,7 @@ import.meta.webpackHot.decline();
 
 ### dispose（或 addDisposeHandler）
 
-添加一个处理函数，在当前模块代码被替换时执行。此函数应该用于移除你声明或创建的任何持久资源。如果要将状态传入到更新过的模块，请添加给定 `data` 参数。更新后，此对象在更新之后可通过 `module.hot.data` 调用。
+注册一个处理函数，在模块被替换前清理定时器、事件监听等资源。将需要保留的状态写入 `data` 参数，更新后的模块就能通过 `import.meta.webpackHot.data`（CommonJS 中为 `module.hot.data`）读取它。
 
 ```js
 module.hot.dispose((data) => {
@@ -157,6 +157,23 @@ module.hot.dispose((data) => {
 import.meta.webpackHot.dispose((data) => {
   // 清理并将 data 传递到更新后的模块...
 });
+```
+
+下面的示例在更新时清除旧定时器，并从保存的数值继续计数：
+
+```js
+let count = import.meta.webpackHot?.data?.count ?? 0;
+const timer = setInterval(() => {
+  console.log(++count);
+}, 1000);
+
+if (import.meta.webpackHot) {
+  import.meta.webpackHot.accept();
+  import.meta.webpackHot.dispose((data) => {
+    clearInterval(timer);
+    data.count = count;
+  });
+}
 ```
 
 ### invalidate
