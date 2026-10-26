@@ -257,38 +257,6 @@ export default function myLoader(
 }
 ```
 
-## Passing data to plugins
-
-A loader can store data on `this._module.buildInfo` for a plugin to read. For example, this loader records the source length:
-
-```js title="metadata-loader.cjs"
-module.exports = function (source, map, meta) {
-  this._module.buildInfo.metadataPlugin = { sourceLength: source.length };
-  this.callback(null, source, map, meta);
-};
-```
-
-The plugin reads the data in `finishModules`, after modules have been built:
-
-```js title="MetadataPlugin.mjs"
-export default class MetadataPlugin {
-  apply(compiler) {
-    compiler.hooks.compilation.tap('MetadataPlugin', (compilation) => {
-      compilation.hooks.finishModules.tap('MetadataPlugin', (modules) => {
-        for (const module of modules) {
-          const data = module.buildInfo.metadataPlugin;
-          if (data) {
-            console.log(module.identifier(), data.sourceLength);
-          }
-        }
-      });
-    });
-  }
-}
-```
-
-Use a property named after your loader or plugin to avoid overwriting other build information. Store JSON-serializable values so the data can be saved with the module cache.
-
 ## Handling source maps
 
 When developing loaders, properly handling source maps is essential for providing accurate debugging information.
@@ -359,6 +327,38 @@ export default async function myLoader(source, inputSourceMap) {
   }
 }
 ```
+
+## Passing data to plugins
+
+A plugin may need information collected by a loader while processing source code. The loader can store this data on `this._module.buildInfo` for the plugin to read. For example, this loader records the source length:
+
+```js title="metadata-loader.mjs"
+export default function metadataLoader(source, map, meta) {
+  this._module.buildInfo.metadataPlugin = { sourceLength: source.length };
+  this.callback(null, source, map, meta);
+}
+```
+
+The plugin reads the data in `finishModules`, after modules have been built:
+
+```js title="MetadataPlugin.mjs"
+export default class MetadataPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('MetadataPlugin', (compilation) => {
+      compilation.hooks.finishModules.tap('MetadataPlugin', (modules) => {
+        for (const module of modules) {
+          const data = module.buildInfo.metadataPlugin;
+          if (data) {
+            console.log(module.identifier(), data.sourceLength);
+          }
+        }
+      });
+    });
+  }
+}
+```
+
+Use a property named after your loader or plugin to avoid overwriting other build information. Store JSON-serializable values so the data can be saved with the module cache.
 
 ## Publishing loaders
 
