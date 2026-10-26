@@ -20,3 +20,21 @@ if (link.href.indexOf(window.location.origin + '/') !== 0) {
   link.crossOrigin = '<%- _cross_origin %>';
 }
 <% } %>
+<% if (_with_hmr) { %>
+if (hmr) {
+	var attributes = hmr.attributes;
+	for (var i = 0, length = attributes.length; i < length; i++) {
+		var attribute = attributes[i];
+		switch (attribute.name) {
+			case "href": case "integrity": case "disabled": case "nonce":
+			case "onload": case "onerror": case "data-rspack": case "data-rspack-loading":
+				break;
+			default:
+				link.setAttribute(attribute.name, attribute.value);
+		}
+	}
+	// Browsers may hide the nonce attribute while retaining its property.
+	var nonce = <%- weak(SCRIPT_NONCE) %> || hmr.nonce || hmr.getAttribute("nonce");
+	if (nonce != null) link.setAttribute("nonce", nonce);
+}
+<% } %>

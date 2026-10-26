@@ -8,7 +8,7 @@
 - Bundle: lazy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 56
 - Update: lazy.LAST_HASH.hot-update.js, size: 334
-- Update: main.LAST_HASH.hot-update.js, size: 7614
+- Update: main.LAST_HASH.hot-update.js, size: 8463
 
 ## Manifest
 
@@ -118,6 +118,24 @@ link.rel = "stylesheet";
 link.href = url;
 
 
+if (hmr) {
+	var attributes = hmr.attributes;
+	for (var i = 0, length = attributes.length; i < length; i++) {
+		var attribute = attributes[i];
+		switch (attribute.name) {
+			case "href": case "integrity": case "disabled": case "nonce":
+			case "onload": case "onerror": case "data-rspack": case "data-rspack-loading":
+				break;
+			default:
+				link.setAttribute(attribute.name, attribute.value);
+		}
+	}
+	// Browsers may hide the nonce attribute while retaining its property.
+	var nonce = __webpack_require__.nc || hmr.nonce || hmr.getAttribute("nonce");
+	if (nonce != null) link.setAttribute("nonce", nonce);
+}
+
+
 	}
 	var onLinkComplete = (prev, event) => {
 		link.onerror = link.onload = null;
@@ -135,8 +153,6 @@ link.href = url;
 		link.onerror = onLinkComplete.bind(null, link.onerror);
 		link.onload = onLinkComplete.bind(null, link.onload);
 	} else onLinkComplete(undefined, { type: "load", target: link });
-	if (hmr && hmr.getAttribute("fetchpriority")) link.setAttribute("fetchpriority", hmr.getAttribute("fetchpriority"));
-	if (hmr && hmr.media) link.media = hmr.media;
 	hmr ? document.head.insertBefore(link, hmr) : needAttach && document.head.appendChild(link);
 	return link;
 };
@@ -203,15 +219,17 @@ var cssApplyHandler = (options) => {
 	return {
 		dispose: () => { },
 		apply: () => {
-			cssNewTags.forEach((newTag) => {
-				newTag.sheet.disabled = false;
-			});
+			while (cssNewTags.length) {
+				var entry = cssNewTags.pop(), link = entry.link, oldTag = entry.oldTag, sheet = link.sheet;
+				// Read the latest state before removing the old link. Keep downloads enabled until apply.
+				var disabledAttribute = oldTag && oldTag.getAttribute("disabled");
+				var disabled = oldTag && oldTag.sheet ? oldTag.sheet.disabled : disabledAttribute != null;
+				if (disabledAttribute != null) link.setAttribute("disabled", disabledAttribute);
+				sheet.disabled = !!disabled;
+			}
 			while (cssOldTags.length) {
 				var oldTag = cssOldTags.pop();
 				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
-			}
-			while (cssNewTags.length) {
-				cssNewTags.pop();
 			}
 		}
 	};
@@ -278,7 +296,7 @@ __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promise
 						} else {
 							link.sheet.disabled = true;
 							if (oldTag) cssOldTags.push(oldTag);
-							cssNewTags.push(link);
+							cssNewTags.push({ link: link, oldTag: oldTag });
 							resolve();
 						}
 					},

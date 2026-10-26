@@ -4,15 +4,17 @@
 	return {
 		dispose: <%- basicFunction("") %> { },
 		apply: <%- basicFunction("") %> {
-			cssNewTags.forEach(<%- basicFunction("newTag") %> {
-				newTag.sheet.disabled = false;
-			});
+			while (cssNewTags.length) {
+				var entry = cssNewTags.pop(), link = entry.link, oldTag = entry.oldTag, sheet = link.sheet;
+				// Read the latest state before removing the old link. Keep downloads enabled until apply.
+				var disabledAttribute = oldTag && oldTag.getAttribute("disabled");
+				var disabled = oldTag && oldTag.sheet ? oldTag.sheet.disabled : disabledAttribute != null;
+				if (disabledAttribute != null) link.setAttribute("disabled", disabledAttribute);
+				sheet.disabled = !!disabled;
+			}
 			while (cssOldTags.length) {
 				var oldTag = cssOldTags.pop();
 				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
-			}
-			while (cssNewTags.length) {
-				cssNewTags.pop();
 			}
 		}
 	};
@@ -79,7 +81,7 @@
 						} else {
 							link.sheet.disabled = true;
 							if (oldTag) cssOldTags.push(oldTag);
-							cssNewTags.push(link);
+							cssNewTags.push({ link: link, oldTag: oldTag });
 							resolve();
 						}
 					},
