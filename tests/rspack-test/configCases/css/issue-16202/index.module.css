@@ -1,0 +1,21 @@
+@keyframes spin {
+  from {
+    transform: rotate(0turn);
+  }
+
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.control {
+  animation: spin 1s linear infinite;
+}
+
+.important {
+  animation: spin 1s linear infinite !important;
+}
+
+.nameImportant {
+  animation-name: spin !important;
+}

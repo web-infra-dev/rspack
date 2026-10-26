@@ -87,19 +87,29 @@ This feature relies on `Promise` internally. If you use `import()` with legacy b
 
 ### Dynamic expressions in import()
 
-It is not possible to use a fully dynamic import statement, such as `import(foo)`. Because `foo` could potentially be any path to any file in your system or project.
+Rspack needs to know which files to bundle before your application runs. If the path passed to `import()` is a variable whose value is only known at runtime, Rspack cannot determine which files are needed.
 
-The `import()` must contain at least some information about where the module is located. Bundling can be limited to a specific directory or set of files so that when you are using a dynamic expression, every module that could potentially be requested on an `import()` call is included.
-
-For example, `import(`./locale/$\{language}.json`)` will cause every `.json` file in the `./locale` directory to be bundled into the new chunk. At run time, when the variable `language` has been computed, any file like `english.json` or `german.json` will be available for consumption.
+For example, Rspack cannot determine the value of `path` inside this function. By default, the build produces a warning, and calling `loadLocale()` fails with `MODULE_NOT_FOUND`, even if the requested file exists in your project:
 
 ```js
-// imagine we had a method to get language from cookies or other storage
-const language = detectVisitorLanguage();
-import(`./locale/${language}.json`).then((module) => {
-  // do something with the translations
-});
+function loadLocale(path) {
+  return import(path);
+}
+
+loadLocale('./locale/english.json');
 ```
+
+Instead, keep the directory and file extension directly in `import()`, and use a variable only for the part that changes:
+
+```js
+function loadLocale(language) {
+  return import(`./locale/${language}.json`);
+}
+
+loadLocale('english');
+```
+
+Rspack can now find and bundle the `.json` files under `./locale`. When your application runs, `loadLocale('english')` loads `./locale/english.json`, and `loadLocale('german')` loads `./locale/german.json`, provided those files exist when you build the application.
 
 ### Magic comments in import() \{#magic-comments}
 

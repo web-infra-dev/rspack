@@ -7,6 +7,7 @@ use std::{
   },
 };
 
+use fixedbitset::FixedBitSet;
 use futures::{
   FutureExt, StreamExt,
   channel::{mpsc, oneshot},
@@ -36,7 +37,9 @@ use crate::{
     is_default_module_type_filter,
   },
   min_size::remove_min_size_violating_modules,
-  module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries},
+  module_group::{
+    CandidateUpdate, IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries,
+  },
   options::{
     cache_group::CacheGroup,
     cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx},
@@ -874,23 +877,134 @@ impl SplitChunksPlugin {
   pub(crate) fn find_best_module_group(
     &self,
     module_group_map: &mut ModuleGroupMap,
-  ) -> (ModuleGroupKey, ModuleGroup) {
-    debug_assert!(!module_group_map.is_empty());
-
-    let mut best_entry_index = 0;
-    for entry_index in 1..module_group_map.len() {
+  ) -> Option<(ModuleGroupKey, ModuleGroup)> {
+    let mut best_entry_index = module_group_map
+      .iter()
+      .position(|(_, group)| group.selectable())?;
+    for entry_index in best_entry_index + 1..module_group_map.len() {
       let [(entry_key, entry), (best_entry_key, best_entry)] = module_group_map
         .get_disjoint_indices_mut([entry_index, best_entry_index])
         .expect("entry indices should be valid and unique");
-      let result = compare_entries((entry_key, entry), (best_entry_key, best_entry));
-      if result > 0f64 {
+      if entry.selectable()
+        && compare_entries((entry_key, entry), (best_entry_key, best_entry)) > 0f64
+      {
         best_entry_index = entry_index;
       }
     }
 
-    module_group_map
-      .swap_remove_index(best_entry_index)
-      .expect("This should never happen, please file an issue")
+    module_group_map.swap_remove_index(best_entry_index)
+  }
+
+  fn can_prepare_native_cache_groups(&self, cache_groups: &[IndexedCacheGroup<'_>]) -> bool {
+    cache_groups.iter().all(|indexed| {
+      let group = indexed.cache_group;
+      let has_name_batch_getter = self.name_batch_getters.as_deref().is_some_and(|getters| {
+        getters
+          .get(indexed.cache_group_index as usize)
+          .is_some_and(Option::is_some)
+      });
+      !has_name_batch_getter
+        && is_default_module_type_filter(&group.r#type)
+        && is_default_module_layer_filter(&group.layer)
+        && !matches!(group.test, CacheGroupTest::Fn(_))
+        && !group.chunk_filter.is_func()
+        && !matches!(group.name, ChunkNameGetter::Fn(_))
+    })
+  }
+
+  pub(crate) fn prepare_native_cache_group_matches(
+    &self,
+    all_modules: &[ModuleIdentifier],
+    stages: &[&[IndexedCacheGroup<'_>]],
+    compilation: &Compilation,
+  ) -> Vec<Option<Vec<FixedBitSet>>> {
+    let eligible = stages
+      .iter()
+      .map(|groups| {
+        self.can_prepare_native_cache_groups(groups)
+          && groups
+            .iter()
+            .all(|indexed| !matches!(indexed.cache_group.test, CacheGroupTest::Enabled))
+      })
+      .collect::<Vec<_>>();
+    let allocate_matches = |len| {
+      stages
+        .iter()
+        .zip(&eligible)
+        .map(|(groups, &eligible)| {
+          eligible.then(|| {
+            groups
+              .iter()
+              .map(|_| FixedBitSet::with_capacity(len))
+              .collect::<Vec<_>>()
+          })
+        })
+        .collect::<Vec<_>>()
+    };
+    if !eligible.iter().any(|&eligible| eligible) {
+      return allocate_matches(all_modules.len());
+    }
+
+    // Module conditions do not change between priorities. Chunk membership does,
+    // so only the conditions are saved here.
+    let module_graph = compilation.get_module_graph();
+    let modules_per_job = all_modules
+      .len()
+      .div_ceil(rayon::current_num_threads())
+      .max(1);
+    let matched_chunks = all_modules
+      .par_chunks(modules_per_job)
+      .map(|modules| {
+        let mut matches = allocate_matches(modules.len());
+        for (module_index, identifier) in modules.iter().enumerate() {
+          let module = module_graph
+            .module_by_identifier(identifier)
+            .expect("should have module");
+          let mut name_for_condition = None;
+          for (groups, matched) in stages.iter().zip(&mut matches) {
+            if let Some(matched) = matched {
+              for (indexed, modules) in groups.iter().zip(matched) {
+                let name = name_for_condition
+                  .get_or_insert_with(|| module.name_for_condition())
+                  .as_deref();
+                let is_match = match &indexed.cache_group.test {
+                  CacheGroupTest::String(test) => name.is_some_and(|name| name.starts_with(test)),
+                  CacheGroupTest::RegExp(test) => name.is_some_and(|name| test.test(name)),
+                  _ => unreachable!("only native module conditions should be precomputed"),
+                };
+                if is_match {
+                  modules.insert(module_index);
+                }
+              }
+            }
+          }
+        }
+        matches
+      })
+      .collect::<Vec<_>>();
+    let mut matches = allocate_matches(all_modules.len());
+    for (chunk_index, chunk_matches) in matched_chunks.into_iter().enumerate() {
+      let offset = chunk_index * modules_per_job;
+      for (matched, chunk) in matches.iter_mut().zip(chunk_matches) {
+        if let (Some(matched), Some(chunk)) = (matched, chunk) {
+          for (modules, chunk_modules) in matched.iter_mut().zip(chunk) {
+            for index in chunk_modules.ones() {
+              modules.insert(offset + index);
+            }
+          }
+        }
+      }
+    }
+    for stage in &mut matches {
+      if stage.as_ref().is_some_and(|groups| {
+        groups
+          .iter()
+          .any(|modules| modules.count_ones(..) == all_modules.len())
+      }) {
+        *stage = None;
+      }
+    }
+    matches
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -900,6 +1014,7 @@ impl SplitChunksPlugin {
     combinator: &Combinator,
     all_modules: &[ModuleIdentifier],
     cache_groups: Vec<IndexedCacheGroup<'_>>,
+    native_matches: Option<Vec<FixedBitSet>>,
     compilation: &Compilation,
     module_chunks: &[SsoHashSet<ChunkUkey>],
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
@@ -951,15 +1066,7 @@ impl SplitChunksPlugin {
 
     // These filters cannot yield or invoke user callbacks. Run their CPU work
     // on Rayon instead of allocating and joining one Tokio task per module.
-    let use_native_preparation = !has_name_batch_callback
-      && cache_groups.iter().all(|indexed| {
-        let group = indexed.cache_group;
-        is_default_module_type_filter(&group.r#type)
-          && is_default_module_layer_filter(&group.layer)
-          && !matches!(group.test, CacheGroupTest::Fn(_))
-          && !group.chunk_filter.is_func()
-          && !matches!(group.name, ChunkNameGetter::Fn(_))
-      });
+    let use_native_preparation = self.can_prepare_native_cache_groups(&cache_groups);
     let process_module = async |module_index: usize,
                                 module_identifier: ModuleIdentifier,
                                 name_sender: Option<mpsc::UnboundedSender<PendingNameRequest>>|
@@ -994,20 +1101,24 @@ impl SplitChunksPlugin {
           continue;
         }
 
-        let is_match = match &cache_group.test {
-          CacheGroupTest::String(test) => module
-            .name_for_condition()
-            .is_some_and(|name| name.starts_with(test)),
-          CacheGroupTest::RegExp(test) => module
-            .name_for_condition()
-            .is_some_and(|name| test.test(&name)),
-          CacheGroupTest::Fn(test) => test(CacheGroupTestFnCtx {
-            compilation,
-            module,
-          })
-          .await?
-          .unwrap_or_default(),
-          CacheGroupTest::Enabled => true,
+        let is_match = if let Some(matches) = &native_matches {
+          matches[cache_group_position].contains(module_index)
+        } else {
+          match &cache_group.test {
+            CacheGroupTest::String(test) => module
+              .name_for_condition()
+              .is_some_and(|name| name.starts_with(test)),
+            CacheGroupTest::RegExp(test) => module
+              .name_for_condition()
+              .is_some_and(|name| test.test(&name)),
+            CacheGroupTest::Fn(test) => test(CacheGroupTestFnCtx {
+              compilation,
+              module,
+            })
+            .await?
+            .unwrap_or_default(),
+            CacheGroupTest::Enabled => true,
+          }
         };
         if !is_match || belong_to_chunks.len() < cache_group.min_chunks as usize {
           continue;
@@ -1185,7 +1296,21 @@ impl SplitChunksPlugin {
       Ok(())
     };
 
-    if use_native_preparation {
+    if let Some(matches) = &native_matches {
+      let mut candidates = FixedBitSet::with_capacity(all_modules.len());
+      for modules in matches {
+        candidates.union_with(modules);
+      }
+      candidates
+        .ones()
+        .collect::<Vec<_>>()
+        .par_iter()
+        .try_for_each(|&module_index| {
+          process_module(module_index, all_modules[module_index], None)
+            .now_or_never()
+            .expect("native cache-group preparation should not yield")
+        })?;
+    } else if use_native_preparation {
       all_modules
         .par_iter()
         .enumerate()
@@ -1284,47 +1409,16 @@ impl SplitChunksPlugin {
         if !other_module_group.may_have_chunks_in_mask(placed_chunk_mask) {
           return None;
         }
-        let original_module_count = other_module_group.modules.len();
-        match (
+        let cache_group = other_module_group.get_cache_group(&self.cache_groups);
+        match other_module_group.update_candidate(
           placed_module_chunks,
-          other_module_group.shared_module_chunks(),
+          cache_group,
+          module_sizes,
+          duplicated_modules,
         ) {
-          (
-            ModuleChunkMap::Shared {
-              modules,
-              chunks: placed_chunks,
-            },
-            Some(other_chunks),
-          ) => {
-            other_chunks.intersection(placed_chunks).next()?;
-            if other_module_group.modules.is_subset(modules) {
-              return Some(key.clone());
-            }
-            other_module_group.remove_shared_modules(modules);
-          }
-          _ => {
-            duplicated_modules.extend(other_module_group
-            .modules
-            .iter()
-            .filter(|module| {
-              let Some(placed_chunks) = placed_module_chunks.get(module) else {
-                return false;
-              };
-              let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
-                return false;
-              };
-              placed_chunks.intersection(other_chunks).next().is_some()
-            })
-            .copied());
-            if duplicated_modules.len() == original_module_count {
-              return Some(key.clone());
-            }
-            other_module_group.remove_modules(duplicated_modules.iter().copied());
-          }
-        };
-
-        if other_module_group.modules.len() == original_module_count {
-          return None;
+          CandidateUpdate::Unchanged => return None,
+          CandidateUpdate::Discard => return Some(key.clone()),
+          CandidateUpdate::Updated => {}
         }
 
         if other_module_group.modules.is_empty() {
@@ -1336,8 +1430,6 @@ impl SplitChunksPlugin {
 
         tracing::trace!("other_module_group: {other_module_group:#?}");
         tracing::trace!("placed_module_chunks: {placed_module_chunks:#?}");
-
-        let cache_group = other_module_group.get_cache_group(&self.cache_groups);
 
         // Since we removed some modules and chunks from the `other_module_group`. There are chances
         // that the `min_chunks` and `min_size` validation is not satisfied anymore.
@@ -1369,6 +1461,14 @@ impl SplitChunksPlugin {
           &cache_group.min_size_reduction,
           chunks_len,
         ) {
+          // Deleting one source type can temporarily leave another below
+          // minSizeReduction. Further native placements may remove that type;
+          // keep the remaining candidate in place when another type still fits.
+          if other_module_group.can_recover(cache_group, module_sizes, chunks_len) {
+            other_module_group.set_selectable(false);
+            other_module_group.mark_placement_changed();
+            return None;
+          }
           tracing::trace!(
             "{key} is deleted for violating min_size {:#?}",
             cache_group.min_size,
@@ -1376,6 +1476,7 @@ impl SplitChunksPlugin {
           return Some(key.clone());
         }
 
+        other_module_group.set_selectable(true);
         None
       })
       .filter_map(std::convert::identity)
