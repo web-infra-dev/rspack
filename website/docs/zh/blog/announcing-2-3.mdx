@@ -17,7 +17,7 @@ import { PackageManagerTabs } from '@theme';
 
 # Rspack 2.3 发布公告
 
-_2026 年 10 月 21 日_
+_2026 年 10 月 27 日_
 
 <BlogAuthors />
 
@@ -51,13 +51,13 @@ Rspack 2.3 现已推出！本次更新将 JavaScript 解析器迁移至 SWC Next
   - [Agent plugin](#rstack-agent-plugin)
 - [升级指南](#upgrade-guide)
 
-## SWC next 解析器 \{#swc-next}
+## SWC Next 解析器 \{#swc-next}
 
-Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-project/swc-next)，SWC Next 的原生解析器比 SWC 快 [2–4.5 倍](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse)。
+Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-project/swc-next)。根据官方基准，SWC Next 的原生解析器比 SWC 快 [2–4.5 倍](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse)。
 
-同时还针对 SWC Next 新的 AST 结构和内存布局优化了 Rspack 自身的依赖解析流程，显著降低了整个 Parse 阶段的开销，在固定 6 核并发下的实测：
+借助其更紧凑的 AST 和内存布局，Rspack 也调整了解析与遍历流程；在固定 6 个 workers 下，解析阶段耗时与指令数变化如下：
 
-| 项目      | Parse 阶段耗时                 | Parse 阶段指令数                |
+| 项目      | 解析阶段耗时                   | 指令数                          |
 | --------- | ------------------------------ | ------------------------------- |
 | three.js  | 23.62 ms → 20.11 ms（−14.9%）  | 205.23 M → 155.07 M（−24.4%）   |
 | React 10k | 207.16 ms → 193.86 ms（−6.4%） | 1597.67 M → 1421.29 M（−11.0%） |
@@ -66,7 +66,7 @@ Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-p
 
 ### 构建性能优化 \{#build-performance}
 
-Rspack 仍在持续优化构建性能，2.3.0 相对于 2.2.0，在[示例项目](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/40302457470)的 HMR 和缓存热构建场景中带来了约 5% 的性能提升。
+根据 [react-10k benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/40302457470)，Rspack 2.3.0 相比 2.2.0 的 HMR 和缓存热构建耗时降低约 5%。
 
 ### SplitChunks 优化 \{#split-chunks}
 
@@ -85,7 +85,7 @@ Rspack 仍在持续优化构建性能，2.3.0 相对于 2.2.0，在[示例项目
 
 ### 内存占用优化 \{#memory-improvements}
 
-Rspack 2.3.0 也针对大型项目，在不损失构建性能的前提下做了大量的内存优化。在一个真实的大型项目中，峰值内存和稳态内存都有明显的降低：
+Rspack 2.3 在不牺牲构建性能的前提下，进一步优化了大型项目的内存占用。真实项目的峰值与稳态 RSS 对比如下：
 
 | 场景  | 指标         |     2.2.0 |     2.3.0 | 优化      |
 | ----- | ------------ | --------: | --------: | --------- |
@@ -94,7 +94,7 @@ Rspack 2.3.0 也针对大型项目，在不损失构建性能的前提下做了�
 | Dev   | 启动峰值 RSS | 28.63 GiB | 18.96 GiB | **33.8%** |
 | Dev   | 稳态 RSS     | 28.88 GiB | 18.83 GiB | **34.8%** |
 
-此外，为了定位构建过程中的内存热点，我们新增了基于 [allocative](https://github.com/facebook/buck2/tree/main/allocative) 的内存快照能力，如果您的项目内存占用较高，欢迎您参考[内存诊断指南](../guide/diagnostics/memory)并将结果添加到 issue 中，我们会对您的项目内存进行分析和优化。
+此外，Rspack 2.3 新增基于 [allocative](https://github.com/facebook/buck2/tree/main/allocative) 的内存快照能力，可帮助定位构建过程中的内存热点。如果你的项目内存占用较高，欢迎参考[内存诊断指南](../guide/diagnostics/memory)采集并提交结果，我们会协助分析和优化。
 
 ### 更小的包体积 \{#smaller-package-size}
 
