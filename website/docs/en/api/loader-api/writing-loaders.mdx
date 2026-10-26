@@ -360,7 +360,7 @@ export default class MetadataPlugin {
 
 Choose a distinct property name, such as `metadataPlugin` in this example, to avoid overwriting data from other loaders or plugins.
 
-Rspack saves this data with the module cache as JSON. Use values that JSON supports, such as strings, numbers, arrays, and plain objects. Function properties are omitted, and functions in arrays become `null`, so the plugin cannot call them after a later build restores the module from the cache.
+When persistent caching is enabled, Rspack saves this data as JSON. Use values that JSON supports, such as strings, numbers, arrays, and plain objects. Function properties are omitted, and functions in arrays become `null`, so the plugin cannot call them after a later build restores the module from the disk cache.
 
 ## Publishing loaders
 
