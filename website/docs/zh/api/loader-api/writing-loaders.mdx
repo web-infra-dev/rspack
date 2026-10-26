@@ -329,6 +329,40 @@ export default async function myLoader(source, inputSourceMap) {
 }
 ```
 
+## 向插件传递数据 \{#passing-data-to-plugins}
+
+插件有时需要使用 loader 在处理源码时收集的信息。Loader 可以将这些数据写入 `this._module.buildInfo`，供插件读取。例如，下面的 loader 记录了源码长度：
+
+```js title="metadata-loader.mjs"
+export default function metadataLoader(source, map, meta) {
+  this._module.buildInfo.metadataPlugin = { sourceLength: source.length };
+  this.callback(null, source, map, meta);
+}
+```
+
+插件在模块构建完成后的 `finishModules` 钩子中读取这些数据：
+
+```js title="MetadataPlugin.mjs"
+export default class MetadataPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('MetadataPlugin', (compilation) => {
+      compilation.hooks.finishModules.tap('MetadataPlugin', (modules) => {
+        for (const module of modules) {
+          const data = module.buildInfo.metadataPlugin;
+          if (data) {
+            console.log(module.identifier(), data.sourceLength);
+          }
+        }
+      });
+    });
+  }
+}
+```
+
+使用不容易重名的字符串属性名（如示例中的 `metadataPlugin`）存放数据，避免覆盖其他 loader 或插件写入的内容。以 Symbol 为键的属性不会写入持久化缓存。
+
+启用持久化缓存时，Rspack 会将这些数据以 JSON 格式保存。请使用 JSON 支持的值，例如字符串、数字、数组和普通对象。函数属性不会被保存，数组中的函数会变成 `null`，因此后续构建从磁盘缓存恢复模块时，插件将无法再调用这些函数。
+
 ## 发布 loader
 
 ### 声明 peer dependencies
