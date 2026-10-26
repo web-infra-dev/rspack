@@ -1,5 +1,5 @@
 ---
-description: 'Create a Rspack or Rsbuild project, check environment requirements, or install Rspack manually and run your first build.'
+description: 'Use Rsbuild for web applications, Rslib for JavaScript libraries, or Rspack CLI for custom build workflows. Learn about environment requirements and manual installation.'
 ---
 
 import { PackageManagerTabs } from '@theme';
@@ -8,7 +8,7 @@ import { PackageManagerTabs } from '@theme';
 
 Get up to speed quickly with a new Rspack based project.
 
-- [Create a new project](#create-a-new-project): Use the CLI to create a brand-new Rspack or Rsbuild project.
+- [Create a new project](#create-a-new-project): Choose the right tool to create a new project powered by Rspack.
 - [Migrating from existing projects](#migrating-from-existing-projects): Migrate from a webpack-based project to Rspack.
 
 ## Ecosystem
@@ -58,44 +58,57 @@ Currently supported platforms:
 
 ## Create a new project
 
-### Using Rsbuild
+### Web applications
 
-We recommend using [Rsbuild](https://rsbuild.rs/) to create new projects. Rsbuild is a build tool powered by Rspack, with built-in build configuration, a dev server, and integrations for frameworks such as React and Vue to help you get started quickly.
+For web applications, we recommend [Rsbuild](https://rsbuild.rs/). It builds on Rspack with defaults for common build tasks, a dev server, and integrations for frameworks such as React and Vue to help you start developing quickly. You can customize the build through configuration and plugins, or adjust the underlying Rspack configuration.
 
 Run the following command and follow the prompts:
 
 <PackageManagerTabs command="create rsbuild@latest" />
 
+:::tip Non-interactive mode
+
+To skip interactive prompts, specify a directory and template, for example: `npx -y create-rsbuild --dir my-app --template react`.
+
+:::
+
 > See [Rsbuild - Quick start](https://rsbuild.rs/guide/start/quick-start) to learn more.
 
-### Using Rspack CLI
+### JavaScript libraries
 
-Rspack CLI provides a command-line interface for using Rspack directly. You configure loaders, plugins, and other build capabilities yourself, making it suitable for projects that need a custom build workflow based on low-level configuration.
+For JavaScript libraries that other projects consume, such as utility packages and component libraries, we recommend [Rslib](https://rslib.rs/). It builds on Rsbuild with defaults for library development and supports generating ESM and CommonJS output and TypeScript declarations, so you can publish your library to npm or share it across projects.
 
 Run the following command and follow the prompts:
 
+<PackageManagerTabs command="create rslib@latest" />
+
+:::tip Non-interactive mode
+
+To skip interactive prompts, specify a directory and template, for example: `npx -y create-rslib --dir my-lib --template node-js`.
+
+:::
+
+> See [Rslib - Quick start](https://rslib.rs/guide/start/quick-start) to learn more.
+
+### Using Rspack CLI directly
+
+If you want to set up your own build workflow and manage the Rspack configuration directly, you can use Rspack CLI. It provides development, build, and preview commands, while you choose and configure loaders, plugins, and other build capabilities yourself.
+
+#### Using a scaffold
+
+Run the following command and follow the prompts to create a project from a template:
+
 <PackageManagerTabs command="create rspack@latest" />
 
-### Non-interactive mode
+:::tip Non-interactive mode
 
-[create-rspack](https://www.npmjs.com/package/create-rspack) and [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) support a non-interactive mode through command-line options. This mode lets you skip all prompts and create a project directly, which is useful for scripts, CI, and coding agents.
+To skip interactive prompts, specify a directory and template, for example: `npx -y create-rspack --dir my-app --template react`.
 
-For example, the following command creates a React app in the `my-app` directory:
+:::
 
-```bash
-# Rspack CLI
-npx -y create-rspack --dir my-app --template react
+#### Manual installation
 
-# Rsbuild
-npx -y create-rsbuild --dir my-app --template react
-
-# Using abbreviations
-npx -y create-rsbuild -d my-app -t react
-```
-
-## Manual installation
-
-Start by creating a project directory and generating an npm `package.json':
+You can also install Rspack CLI and create a configuration file manually. Start by creating a project directory and generating an npm `package.json` file:
 
 ```bash
 mkdir rspack-demo
@@ -103,7 +116,7 @@ cd rspack-demo
 npm init -y
 ```
 
-Then installing [@rspack/core](https://www.npmjs.com/package/@rspack/core) and [@rspack/cli](https://www.npmjs.com/package/@rspack/cli) as dev dependencies:
+Then install [@rspack/core](https://www.npmjs.com/package/@rspack/core) and [@rspack/cli](https://www.npmjs.com/package/@rspack/cli) as dev dependencies:
 
 <PackageManagerTabs command="add @rspack/core @rspack/cli -D" />
 

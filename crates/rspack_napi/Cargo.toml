@@ -8,12 +8,12 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-allocative = ["dep:rspack_allocative", "rspack_allocative/napi"]
+allocative = ["dep:rspack-allocative", "rspack-allocative/napi"]
 
 [dependencies]
 napi              = { workspace = true, features = ["serde-json", "anyhow", "napi9", "compat-mode"] }
 oneshot           = { workspace = true }
-rspack_allocative = { workspace = true, optional = true }
+rspack-allocative = { workspace = true, optional = true }
 rspack_error      = { workspace = true }
 scopeguard        = { workspace = true }
 serde_json        = { workspace = true }

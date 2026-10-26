@@ -88,11 +88,13 @@ Condition represents the form of matching a given input, and it supports the fol
 - `String`: Given an input, the match is successful when the input string satisfies startsWith. Note: You can think of it as `input.startsWith(condition)`.
 - `RegExp`: Given an input, the match is successful when the input string satisfies the regular expression. Note: You can think of it as `condition.test(input)`.
 - `Condition[]`: A list of conditions. At least one of the Conditions must match.
-- `LogicalConditions`: All Conditions must match.
+- `LogicalConditions`: All specified `and`, `or`, and `not` checks must pass.
   - `{ and: Condition[] }`: All Conditions must match.
   - `{ or: Condition[] }`: At least one of the Conditions must match.
-  - `{ not: Condition }`: All Conditions must NOT match.
+  - `{ not: Condition }`: The condition must not match. If it is an array, none of its conditions may match.
 - `(value: string) => boolean`: If it's called with the input and return a truthy value, the match is succeeds.
+
+When a rule has several conditions, such as `test`, `include`, and `resourceQuery`, all of them must match. `exclude` works in the opposite way: a matching module is skipped, even if it also matches `include`.
 
 ### Nested rule
 

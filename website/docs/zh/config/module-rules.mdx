@@ -88,11 +88,13 @@ Condition 代表了匹配一个给定输入的形式，它支持的类型为：
 - `String`：给定一个输入，当输入的字符串满足 `startsWith` 时，则匹配成功。注：你可以认为是 `input.startsWith(condition)`。
 - `RegExp`：给定一个输入，当输入的字符串满足正则表达式时，则匹配成功。注：你可以认为是 `condition.test(input)`。
 - `Condition[]`：一系列条件，当有一个条件匹配上时，则匹配成功。
-- `LogicalConditions`：所有属性都匹配上时，则匹配成功。
+- `LogicalConditions`：设置的 `and`、`or` 和 `not` 检查需要全部通过。
   - `{ and: Condition[] }`：所有条件都匹配，则匹配成功。
   - `{ or: Condition[] }`：其中一个条件匹配，则匹配成功。
-  - `{ not: Condition }`：所有条件都不匹配时，则匹配成功。
+  - `{ not: Condition }`：条件不匹配时才通过。如果传入数组，则其中所有条件都不能匹配。
 - `(value: string) => boolean`：当输入的字符串经函数调用后返回 true 时，则匹配成功。
+
+一条规则同时设置 `test`、`include`、`resourceQuery` 等条件时，需要全部匹配才会生效。`exclude` 则相反：匹配它的模块会被跳过，即使该模块也匹配 `include`。
 
 ### Nested rule
 

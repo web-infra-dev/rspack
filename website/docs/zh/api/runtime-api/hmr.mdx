@@ -31,9 +31,28 @@ if (import.meta.webpackHot) {
 }
 ```
 
-`module.hot` 和 `import.meta.webpackHot` 支持以下方法。
+## 更新如何传播 \{#update-propagation}
+
+模块变化时，Rspack 会检查能否在不刷新页面的情况下应用更新。模块可以通过 `accept()` 接受自身更新，也可以由引用它的模块通过 `accept(dependency, callback)` 接受该依赖的更新。否则，更新会继续向引用它的模块传播。
+
+例如，三个模块的引用关系如下：
+
+```text
+app.js
+└── view.js
+    └── button.js
+```
+
+当 `button.js` 发生变化时：
+
+- 如果 `view.js` 接受 `button.js` 的更新，Rspack 会替换 `button.js` 并调用 `view.js` 中的回调，不会替换 `view.js` 或 `app.js`。
+- 如果只有 `app.js` 接受 `view.js` 的更新，Rspack 会替换 `button.js` 和 `view.js`，再调用 `app.js` 中的回调。
+
+如果一个模块被多处引用，每条受影响的引用路径都需要接受更新。默认情况下，如果某个模块拒绝更新，或更新传播到入口模块仍未被接受，本次更新就会中止。此时 dev server 可以回退为刷新整个页面。
 
 ## 模块 API
+
+`module.hot` 和 `import.meta.webpackHot` 支持以下方法。
 
 ### accept
 
@@ -322,9 +341,10 @@ import.meta.webpackHot
   type: 'self-declined' | 'declined' |
         'unaccepted' | 'accepted' |
         'disposed' | 'accept-errored' |
+        'accept-error-handler-errored' |
         'self-accept-errored' | 'self-accept-error-handler-errored',
-  moduleId: 4, // 有问题的模块。
-  dependencyId: 3, // 对于错误：拥有接受处理程序的模块 ID。
+  moduleId: 4, // 相关模块的 ID，具体含义见下方示例。
+  dependencyId: 3, // 当 accept 回调函数报错时，表示被更新的依赖模块的 ID。
   chain: [1, 2, 3, 4], // 对于拒绝/接受/不接受：传播更新的 `chain`。
   parentId: 5, // 对于拒绝：下降的父模块 ID。
   outdatedModules: [1, 2, 3, 4], // 对于接受：已过时且将被处置的模块。
@@ -332,10 +352,14 @@ import.meta.webpackHot
     5: [4]
   },
   error: new Error(...), // 对于错误：抛出错误
-  originalError: new Error(...) // 对于自我接受错误处理器错误：
-                                // 在错误处理器尝试处理该模块之前，该模块引发的错误。
+  originalError: new Error(...) // 对于 accept-error-handler-errored 或 self-accept-error-handler-errored：
+                                // 第一次抛出的错误，错误处理函数收到它后又抛出了新的错误。
 }
 ```
+
+例如，`app.js` 调用 `module.hot.accept('./button.js', callback)` 后，如果 `callback` 在 `button.js` 更新时抛出错误，`moduleId` 是 `app.js` 的 ID，`dependencyId` 是 `button.js` 的 ID。
+
+如果错误处理函数随后又抛出一个新错误，`type` 为 `'accept-error-handler-errored'`，`error` 是这个新错误，`originalError` 则是 `callback` 抛出的错误。
 
 ### addStatusHandler
 

@@ -8,9 +8,10 @@ use rspack_util::swc::AstSubRangeExt;
 use swc_next_ecma_ast::{
   Ast, BindingIdentifier, BindingPattern, ExportAllDeclaration as SwcExportAllDeclaration,
   ExportDefaultDeclaration as SwcExportDefaultDeclaration, ExportDefaultDeclarationKind,
-  ExportNamedDeclaration as SwcExportNamedDeclaration, Expr, FormalParameterPattern,
+  ExportNamedDeclaration as SwcExportNamedDeclaration, Expr, ExprData, FormalParameterPattern,
   FormalParameterPatternData, FormalParameters, GetSpan, IdentifierReference, ImportAttribute,
-  JsxMemberExpression, MemberExpression, ModuleExportName, ModuleExportNameData, Span, SubRange,
+  JsxMemberExpression, MemberExpression, ModuleExportName, ModuleExportNameData,
+  SimpleAssignmentTarget, SimpleAssignmentTargetData, Span, SubRange,
 };
 
 /// An identifier visited by pattern hooks, either in a binding or an assignment.
@@ -297,5 +298,121 @@ pub fn module_export_name_to_atom(ast: &Ast<'_>, name: ModuleExportName) -> Atom
       Atom::from(ast.get_utf8(identifier.name(ast)))
     }
     ModuleExportNameData::StringLiteral(string) => wtf8_to_atom(ast.get_wtf8(string.value(ast))),
+  }
+}
+
+/// Unwraps TypeScript assertion wrappers (`as`, `satisfies`, type assertion,
+/// non-null) to the underlying identifier reference, if any.
+///
+/// Assignment and update walkers must use this when recording mutations so
+/// typed targets such as `(x as number) = 1` still mark `x` as mutated.
+pub fn simple_assignment_target_identifier(
+  ast: &Ast<'_>,
+  target: SimpleAssignmentTarget,
+) -> Option<IdentifierReference> {
+  match ast.simple_assignment_target_data(target) {
+    SimpleAssignmentTargetData::IdentifierReference(identifier) => Some(identifier),
+    SimpleAssignmentTargetData::MemberExpression(_) => None,
+    SimpleAssignmentTargetData::TsAsExpression(expression) => {
+      expr_assignment_target_identifier(ast, expression.expression(ast))
+    }
+    SimpleAssignmentTargetData::TsSatisfiesExpression(expression) => {
+      expr_assignment_target_identifier(ast, expression.expression(ast))
+    }
+    SimpleAssignmentTargetData::TsTypeAssertion(expression) => {
+      expr_assignment_target_identifier(ast, expression.expression(ast))
+    }
+    SimpleAssignmentTargetData::TsNonNullExpression(expression) => {
+      expr_assignment_target_identifier(ast, expression.expression(ast))
+    }
+  }
+}
+
+fn expr_assignment_target_identifier(ast: &Ast<'_>, expr: Expr) -> Option<IdentifierReference> {
+  match ast.expr_data(expr) {
+    ExprData::IdentifierReference(identifier) => Some(identifier),
+    ExprData::TsAsExpression(expression) => {
+      expr_assignment_target_identifier(ast, expression.expression(ast))
+    }
+    ExprData::TsSatisfiesExpression(expression) => {
+      expr_assignment_target_identifier(ast, expression.expression(ast))
+    }
+    ExprData::TsTypeAssertion(expression) => {
+      expr_assignment_target_identifier(ast, expression.expression(ast))
+    }
+    ExprData::TsNonNullExpression(expression) => {
+      expr_assignment_target_identifier(ast, expression.expression(ast))
+    }
+    ExprData::ParenthesizedExpression(expression) => {
+      expr_assignment_target_identifier(ast, expression.expression(ast))
+    }
+    _ => None,
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_util::swc::AstSubRangeExt;
+  use swc_next_allocator::Allocator;
+  use swc_next_ecma_ast::{ExprData, Lang, SourceType, StmtData};
+  use swc_next_ecma_parser::{CommentMode, Options, Parser, TokenParserConfig};
+
+  use super::simple_assignment_target_identifier;
+
+  #[test]
+  fn unwraps_typed_assignment_target_identifiers() {
+    let allocator = Allocator::new();
+    let source = "\
+let x = 0;
+(x as number) = 1;
+(x!) = 2;
+(<number>x) = 3;
+(x satisfies number) = 4;
+";
+    let parsed = Parser::init(
+      &allocator,
+      source,
+      Options {
+        source_type: SourceType::Script,
+        lang: Lang::Ts,
+        preserve_parens: false,
+        comments: CommentMode::Flat,
+      },
+      TokenParserConfig,
+    )
+    .parse();
+    assert!(
+      parsed.diagnostics.is_empty(),
+      "parse diagnostics: {:?}",
+      parsed.diagnostics
+    );
+
+    let ast = &parsed.ast;
+    let program = ast.root_program();
+    let mut names = Vec::new();
+    for statement in ast.nodes(program.body(ast)) {
+      let StmtData::ExpressionStatement(expression_statement) = ast.stmt_data(statement) else {
+        continue;
+      };
+      let ExprData::AssignmentExpression(assignment) =
+        ast.expr_data(expression_statement.expression(ast))
+      else {
+        continue;
+      };
+      let Some(simple) = assignment.left(ast).as_simple_assignment_target(ast) else {
+        continue;
+      };
+      // Direct identifier lookup must fail for typed wrappers…
+      assert!(
+        simple.as_identifier_reference(ast).is_none(),
+        "typed target should not be a bare identifier"
+      );
+      // …but unwrapping recovers the binding name.
+      let identifier = simple_assignment_target_identifier(ast, simple)
+        .expect("typed assignment target should unwrap to an identifier");
+      names.push(ast.get_utf8(identifier.name(ast)));
+    }
+
+    assert_eq!(names, ["x", "x", "x", "x"]);
   }
 }

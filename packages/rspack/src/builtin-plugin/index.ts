@@ -48,6 +48,7 @@ export * from './HttpUriPlugin';
 export * from './html-plugin/index';
 export * from './IgnorePlugin';
 export * from './InferAsyncModulesPlugin';
+export * from './ImportedByDeferModulesPlugin';
 export * from './InlineExportsPlugin';
 export * from './JavascriptModulesPlugin';
 export * from './JsLoaderRspackPlugin';

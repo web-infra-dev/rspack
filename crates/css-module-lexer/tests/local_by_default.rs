@@ -468,6 +468,30 @@ fn localize_animation() {
 }
 
 #[test]
+fn localize_animation_before_important() {
+  test(
+    ".foo { animation: spin 1s linear infinite !important; }",
+    ":local(.foo) { animation: :local(spin) 1s linear infinite !important; }",
+  );
+  test(
+    ".foo { animation-name: spin !important; }",
+    ":local(.foo) { animation-name: :local(spin) !important; }",
+  );
+  test(
+    ".foo { animation-name: spin ! important; }",
+    ":local(.foo) { animation-name: :local(spin) ! important; }",
+  );
+  test(
+    ".foo { animation-name: spin ! /* comment */ important; }",
+    ":local(.foo) { animation-name: :local(spin) ! /* comment */ important; }",
+  );
+  test(
+    ".foo { animation-name: important; }",
+    ":local(.foo) { animation-name: :local(important); }",
+  );
+}
+
+#[test]
 fn localize_animation_with_vendor_prefix() {
   test(
     ".foo { -webkit-animation: bar; animation: bar; }",
