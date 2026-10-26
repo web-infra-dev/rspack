@@ -359,7 +359,9 @@ export default class MetadataPlugin {
 }
 ```
 
-使用以 loader 或插件命名的属性，避免覆盖其他构建信息。数据应可以序列化为 JSON，以便随模块缓存一起保存。
+使用不容易重名的属性（如示例中的 `metadataPlugin`）存放数据，避免覆盖其他 loader 或插件写入的内容。
+
+Rspack 会将这些数据以 JSON 格式保存到模块缓存中。请使用 JSON 支持的值，例如字符串、数字、数组和普通对象，不要存放函数。
 
 ## 发布 loader
 

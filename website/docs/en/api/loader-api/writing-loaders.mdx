@@ -358,7 +358,9 @@ export default class MetadataPlugin {
 }
 ```
 
-Use a property named after your loader or plugin to avoid overwriting other build information. Store JSON-serializable values so the data can be saved with the module cache.
+Choose a distinct property name, such as `metadataPlugin` in this example, to avoid overwriting data from other loaders or plugins.
+
+Rspack saves this data with the module cache as JSON. Use values that JSON supports, such as strings, numbers, arrays, and plain objects. Do not store functions.
 
 ## Publishing loaders
 
