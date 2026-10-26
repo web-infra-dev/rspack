@@ -85,62 +85,12 @@ export class RspackConcatSource extends webpackSources.ConcatSource {
   }
 }
 
-function splitsSurrogatePair(text: string, position: number) {
-  if (position <= 0 || position >= text.length) return false;
-  const previous = text.charCodeAt(position - 1);
-  const next = text.charCodeAt(position);
-  return (
-    previous >= 0xd800 && previous <= 0xdbff && next >= 0xdc00 && next <= 0xdfff
-  );
-}
-
 export class RspackReplaceSource extends webpackSources.ReplaceSource {
   [toBindingSource](): JsSourceFromJs | null {
-    const original = this.original();
-    const replacements = this.getReplacements();
-    if (replacements.length === 0) {
-      return SourceAdapter.toBinding(original);
-    }
-
-    const text = original.source();
-    if (typeof text !== 'string') return null;
-
-    const edits: Array<{ start: number; end: number; content: string }> = [];
-    let cursor = 0;
-    let bytes = 0;
-    for (const replacement of replacements) {
-      const start = Math.floor(replacement.start);
-      const end = Math.floor(replacement.end + 1);
-      if (
-        !Number.isSafeInteger(start) ||
-        !Number.isSafeInteger(end) ||
-        start < cursor ||
-        end < start ||
-        end > text.length ||
-        replacement.name ||
-        splitsSurrogatePair(text, start) ||
-        splitsSurrogatePair(text, end)
-      ) {
-        return null;
-      }
-
-      bytes += Buffer.byteLength(text.slice(cursor, start));
-      const byteStart = bytes;
-      bytes += Buffer.byteLength(text.slice(start, end));
-      if (bytes > 0xffffffff) return null;
-      cursor = end;
-      edits.push({
-        start: byteStart,
-        end: bytes,
-        content: replacement.content,
-      });
-    }
-
-    return {
-      kind: 'replace',
-      original: SourceAdapter.toBinding(original),
-      replacements: edits,
-    };
+    const original = nativeSources.get(this.original());
+    if (!original) return null;
+    const replaced = original.applyReplacements(this.getReplacements());
+    return replaced ? { kind: 'native', handle: replaced } : null;
   }
 }
 

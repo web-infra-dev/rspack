@@ -158,6 +158,10 @@ impl Source for CachedSource {
     SourceValue::String(Cow::Owned(string))
   }
 
+  fn is_buffer(&self) -> bool {
+    self.inner.as_ref().as_any().is::<RawBufferSource>()
+  }
+
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
     let chunks = self.get_or_init_chunks();
     chunks.iter().for_each(|chunk| on_chunk(chunk));

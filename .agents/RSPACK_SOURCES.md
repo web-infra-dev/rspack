@@ -102,6 +102,7 @@ pub type BoxSource = Arc<dyn Source>;
 | Method                | Use                                       | Cost expectations                           |
 | --------------------- | ----------------------------------------- | ------------------------------------------- |
 | `source()`            | text/binary value                         | borrowed for leaves; may flatten composites |
+| `is_buffer()`         | distinguish text from binary output       | must agree with `source()`; avoid flattening |
 | `rope(on_chunk)`      | incremental text spans                    | preserve borrowing; text-oriented           |
 | `buffer()`            | exact bytes                               | preferred for binary data                   |
 | `size()`              | output byte length                        | must match buffer/writer length             |

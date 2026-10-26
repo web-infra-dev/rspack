@@ -106,7 +106,6 @@ export type JsSourceFromJs =
 	| { kind: "raw"; content: string | Buffer; map?: string }
 	| { kind: "native"; handle: JsNativeSource }
 	| { kind: "concat"; children: JsSourceFromJs[] }
-	| { kind: "replace"; original: JsSourceFromJs; replacements: JsSourceEdit[] }
 
 export type CompilerId = void;
 /* -- banner.d.ts end -- */
@@ -447,7 +446,7 @@ export declare class JsModuleGraph {
  * JavaScript uses this as an opaque handle when updating an existing asset.
  */
 export declare class JsNativeSource {
-
+  applyReplacements(replacements: Array<JsReplaceSourceEdit>): JsNativeSource | null
 }
 
 export declare class JsResolver {
@@ -1100,6 +1099,13 @@ export interface JsRealContentHashPluginUpdateHashData {
   oldHash: string
 }
 
+export interface JsReplaceSourceEdit {
+  start: number
+  end: number
+  content: string
+  name?: string
+}
+
 export interface JsResolveData {
   request: string
   context: string
@@ -1377,12 +1383,6 @@ export interface JsRuntimeRequirementInTreeArg {
 
 export interface JsRuntimeRequirementInTreeResult {
   allRuntimeRequirements: JsRuntimeGlobals
-}
-
-export interface JsSourceEdit {
-  start: number
-  end: number
-  content: string
 }
 
 export interface JsSourceToJs {

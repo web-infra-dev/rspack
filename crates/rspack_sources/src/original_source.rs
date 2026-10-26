@@ -65,6 +65,10 @@ impl Source for OriginalSource {
     SourceValue::String(Cow::Borrowed(&self.value))
   }
 
+  fn is_buffer(&self) -> bool {
+    false
+  }
+
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
     on_chunk(self.value.as_ref())
   }

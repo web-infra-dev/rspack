@@ -186,6 +186,11 @@ impl Source for ConcatSource {
     SourceValue::String(Cow::Owned(string))
   }
 
+  fn is_buffer(&self) -> bool {
+    let children = self.optimized_children();
+    children.len() == 1 && children[0].is_buffer()
+  }
+
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
     let children = self.optimized_children();
     children.iter().for_each(|child| {
