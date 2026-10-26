@@ -32,7 +32,6 @@ Rspack 2.3 现已推出！本次更新将 JavaScript 解析器迁移至 SWC Next
   - [构建性能优化](#build-performance)
   - [SplitChunks 优化](#split-chunks)
   - [内存占用优化](#memory-improvements)
-  - [更小的包体积](#smaller-package-size)
 - [实验性缓存改进](#cache-improvements)
 - 新特性
   - [按代码内容过滤 loader](#loader-code-filter)
@@ -95,10 +94,6 @@ Rspack 2.3 在不牺牲构建性能的前提下，进一步优化了大型项目
 | Dev   | 稳态 RSS     | 28.88 GiB | 18.83 GiB | **34.8%** |
 
 此外，Rspack 2.3 新增基于 [allocative](https://github.com/facebook/buck2/tree/main/allocative) 的内存快照能力，可帮助定位构建过程中的内存热点。如果你的项目内存占用较高，欢迎参考[内存诊断指南](../guide/diagnostics/memory)采集并提交结果，我们会协助分析和优化。
-
-### 更小的包体积 \{#smaller-package-size}
-
-升级 `browserslist-rs` 并对浏览器数据启用 deflate 压缩，原生二进制体积减少 **2.13 MB（3.08%）**。详见 [#16009](https://github.com/web-infra-dev/rspack/pull/16009)。
 
 ## 实验性缓存改进 \{#cache-improvements}
 
