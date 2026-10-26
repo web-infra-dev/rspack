@@ -595,10 +595,6 @@ impl CodeSplitter {
     }
 
     if !found_cached_root {
-      // This module was in no chunk after the last build. If it wasn't rebuilt,
-      // only a changed importer can add it to a chunk, and changed importers are
-      // checked on their own. Entry and include edges have no importer, so they
-      // block reuse.
       return accept_if_unreached
         && compilation
           .build_chunk_graph_artifact
