@@ -48,7 +48,7 @@ Rspack 2.3 现已推出！本次更新将 JavaScript 解析器迁移至 SWC Next
   - [Agent plugin](#rstack-agent-plugin)
 - [升级指南](#upgrade-guide)
 
-## SWC Next 解析器 \{#swc-next}
+## SWC next 解析器 \{#swc-next}
 
 Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-project/swc-next)，SWC Next 的[原生解析器](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse)比 SWC 快 2–4.5 倍，[JavaScript API](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#js-parser) 快 5–8 倍。
 
@@ -104,9 +104,37 @@ Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-p
 
 ## 实验性缓存改进 \{#cache-improvements}
 
-#### 复用更多构建结果 \{#module-cache}
+Rspack 2.3 推出实验性缓存实现 `newCache`，带来更细粒度的构建结果复用、更小的缓存文件和更低的缓存写入开销。
 
-实验性的 `experiments.newCache` 扩大了缓存覆盖范围，改善重启构建和 HMR 后的缓存复用，适合频繁修改代码或反复启动构建的项目。可以配合[持久化缓存](https://rspack.rs/zh/config/cache)试用：
+### 复用更多构建结果 \{#module-cache}
+
+相比旧实现整体保存和恢复模块图的方式，`newCache` 采用更细粒度的缓存，可以独立复用模块构建、代码生成、source map 和压缩结果，并支持缓存单个 loader 的转换结果。新的存储方式也减少了缓存写入时的临时内存开销。
+
+下面分别是 [React 10k](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/react-10k) 和一个大型真实项目的新旧缓存对比。
+
+React 10k：
+
+| 指标               |    旧缓存 |  newCache |     变化 |
+| ------------------ | --------: | --------: | -------: |
+| 冷构建总耗时       |    2.11 s |    1.80 s |   -14.5% |
+| 热构建总耗时       |  776.9 ms |  837.2 ms |    +7.8% |
+| 冷构建峰值内存     | 926.5 MiB | 781.3 MiB |   -15.7% |
+| 热构建峰值内存     | 840.5 MiB | 840.7 MiB | 基本持平 |
+| 热构建后的磁盘缓存 | 269.0 MiB |  57.2 MiB |   -78.7% |
+
+大型真实项目：
+
+| 指标               |      旧缓存 |    newCache |   变化 |
+| ------------------ | ----------: | ----------: | -----: |
+| 冷构建总耗时       |     84.89 s |     83.47 s |  -1.7% |
+| 热构建总耗时       |     33.18 s |     35.24 s |  +6.2% |
+| 冷构建峰值内存     |   11.55 GiB |    9.69 GiB | -16.1% |
+| 热构建峰值内存     |    7.67 GiB |    8.23 GiB |  +7.3% |
+| 热构建后的磁盘缓存 | 3895.98 MiB | 1092.08 MiB | -72.0% |
+
+newCache 将缓存体积减少约 75%，降低了缓存写入开销。目前热构建略慢主要来自 `make` 阶段缓存策略的变化：旧实现缓存整个模块图，`newCache` 只缓存模块，需要重新构建模块之间的依赖关系。缓存内容减少带来了额外的建图开销，但基于当前依赖重新建图，也让重构建时模块图的正确性更容易保障。在缓存内容保持不变的其他阶段，`newCache` 则有明显的性能提升。
+
+我们会持续优化热构建性能和内存占用，并计划在后续 minor 版本中用 `newCache` 替换旧实现。目前该功能默认关闭，可通过 [`experiments.newCache`](https://rspack.rs/zh/config/experiments#experimentsnewcache) 开启：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -119,9 +147,7 @@ export default {
 };
 ```
 
-模块与 loader 的解析缓存可通过 `experiments.newCache.resolver` 单独开启，当前默认关闭。
-
-#### 缓存单个 loader 的结果 \{#loader-cache}
+### 缓存单个 loader 的结果 \{#loader-cache}
 
 启用 `experiments.newCache` 后，可为 loader 设置 `cache: true`，复用未发生变化的转换结果。缓存已支持 `builtin:swc-loader`，并会在相关依赖变化时失效。
 
