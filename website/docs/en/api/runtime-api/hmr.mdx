@@ -148,6 +148,17 @@ Flag this module as not-update-able. This makes sense when this module has irrev
 
 Register a handler to clean up resources, such as timers or event listeners, before the module is replaced. Store any state you want to preserve on the `data` argument; the updated module can read it from `import.meta.webpackHot.data` (or `module.hot.data` for CommonJS).
 
+```js
+module.hot.dispose((data) => {
+  // Clean up and pass data to the updated module...
+});
+
+// or
+import.meta.webpackHot.dispose((data) => {
+  // Clean up and pass data to the updated module...
+});
+```
+
 This example clears the old timer and resumes counting from the saved value after an update:
 
 ```js
