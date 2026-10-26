@@ -1,5 +1,5 @@
 ---
-description: '回顾 Rspack 2.2.0 之后至 2.3 Beta 的重要更新，包括 SWC Next、实验性缓存、CSS 打包、SplitChunks、内存优化和开发体验改进。'
+description: 'Rspack 2.3 正式发布，带来 SWC Next、实验性缓存、CSS 打包、SplitChunks、内存优化、性能提升和开发体验改进。'
 date: 2026-10-21 14:00:00
 sidebar: false
 authors:
@@ -12,17 +12,13 @@ import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 import { PackageManagerTabs } from '@theme';
 
-# Rspack 2.3 beta 发布公告
+# Rspack 2.3 发布公告
 
 _2026 年 10 月 21 日_
 
 <BlogAuthors />
 
-Rspack 2.3 Beta 现已推出！本次更新将 JavaScript 解析器迁移至 SWC Next，新增按代码内容过滤 loader 的能力，并改进了 chunk 拆分、文件监听和内存管理。
-
-本文汇总了 **Rspack 2.2.0 发布后至 2.3.0-beta.0** 的重要变化，不包含 2.2.0 本身的更新。其中部分改进已随 2.2.x 补丁版本发布，升级过这些版本的项目可能已经受益。
-
-欢迎在项目中试用 `2.3.0-beta.0`，帮助我们在正式版发布前验证兼容性。
+Rspack 2.3 现已推出！本次更新将 JavaScript 解析器迁移至 SWC Next，新增按代码内容过滤 loader 的能力，并改进了 chunk 拆分、文件监听和内存管理。
 
 ---
 
@@ -258,7 +254,7 @@ CSS 的 `@import`、`url()` 和 `image-set()` 也支持 `rspackIgnore` 和 `webp
 - **CLI**：减少默认日志，优化启动体验，`create-rspack` 会显示当前版本。
 - **React Compiler**：修复处理长表达式时的崩溃问题；HTML 压缩也会保留相邻脚本各自的执行边界。
 
-完整改动可查看 [2.2.0 至当前版本的对比](https://github.com/web-infra-dev/rspack/compare/v2.2.0...v2.3.0-beta.0)和 [GitHub release notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.3.0-beta.0)。
+完整改动可查看 [2.2.0 至当前版本的对比](https://github.com/web-infra-dev/rspack/compare/v2.2.0...v2.3.0)和 [GitHub release notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.3.0)。
 
 ## 生态 \{#ecosystem}
 
@@ -340,9 +336,9 @@ Rspress 持续改进文档体验，v2.1.0-beta 开始迁移导航至 React Route
 
 ## 升级指南 \{#upgrade-guide}
 
-直接使用 Rspack CLI 的项目，可以将 `@rspack/core` 和 `@rspack/cli` 一起升级至本次 Beta：
+直接使用 Rspack CLI 的项目，可以将 `@rspack/core` 和 `@rspack/cli` 一起升级至 2.3：
 
-<PackageManagerTabs command="add @rspack/core@2.3.0-beta.0 @rspack/cli@2.3.0-beta.0 -D" />
+<PackageManagerTabs command="add @rspack/core@2.3.0 @rspack/cli@2.3.0 -D" />
 
 [`incremental`](https://rspack.rs/zh/config/incremental) 仅在开发模式下生效。需要加速重启后的构建时，请使用持久化缓存。
 
