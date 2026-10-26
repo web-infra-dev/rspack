@@ -1,8 +1,8 @@
 ---
-description: "如果你通过 HotModuleReplacementPlugin 启用了模块热替换，它的接口将暴露在 module.hot 和 import.meta.webpackHot 对象下。"
+description: '如果你通过 HotModuleReplacementPlugin 启用了模块热替换，它的接口将暴露在 module.hot 和 import.meta.webpackHot 对象下。'
 ---
 
-import Attribution from "@components/Attribution";
+import Attribution from '@components/Attribution';
 
 # 模块热替换
 
@@ -18,14 +18,14 @@ Rspack 提供了与 webpack 相同的接口来实现模块热替换。
 
 ```js
 if (module.hot) {
-  module.hot.accept("./library.js", function () {
+  module.hot.accept('./library.js', function () {
     // 对更新过的 library 模块做些事情...
   });
 }
 
 // or
 if (import.meta.webpackHot) {
-  import.meta.webpackHot.accept("./library.js", function () {
+  import.meta.webpackHot.accept('./library.js', function () {
     // Do something with the updated library module…
   });
 }
@@ -178,15 +178,15 @@ import.meta.webpackHot.dispose((data) => {
 一个模块可以接受一个依赖，但是当依赖的改变无法处理时，可以调用 `invalidate`：
 
 ```js
-import { x, y } from "./dep";
-import { processX, processY } from "anotherDep";
+import { x, y } from './dep';
+import { processX, processY } from 'anotherDep';
 
 const oldY = y;
 
 processX(x);
 export default processY(y);
 
-module.hot.accept("./dep", () => {
+module.hot.accept('./dep', () => {
   if (y !== oldY) {
     // 无法处理，冒泡给父级
     module.hot.invalidate();
@@ -202,7 +202,7 @@ module.hot.accept("./dep", () => {
 模块可以自我接受，但是当更改无法处理时可以使自身失效：
 
 ```js
-const VALUE = "constant";
+const VALUE = 'constant';
 
 export default VALUE;
 
