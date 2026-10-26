@@ -22,8 +22,9 @@ extend-exclude = [
 ]
 
 [default.extend-identifiers]
-JSerFeng = "JSerFeng"
-fi3ework = "fi3ework"
+JSerFeng        = "JSerFeng"
+WriteableStream = "WriteableStream" # Public Rust type spelling in napi-rs.
+fi3ework        = "fi3ework"
 
 [default.extend-words]
 Colum    = "Colum"

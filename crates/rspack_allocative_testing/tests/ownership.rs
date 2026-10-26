@@ -1695,3 +1695,20 @@ fn binding_identities_do_not_traverse_targets_or_charge_native_memory_twice() {
   assert_eq!(output.objects()[0].address, "0x1234");
   assert_eq!(output.objects()[0].path, ["Bindings", "Binding"]);
 }
+
+#[rspack_allocative::root]
+static SNAPSHOT_GLOBAL_ROOT: LazyLock<String> =
+  LazyLock::new(|| String::from("registered snapshot root"));
+
+#[test]
+fn global_root_registration_uses_the_reexported_constructor() {
+  // This test crate deliberately has no direct ctor dependency.
+  let value = &*SNAPSHOT_GLOBAL_ROOT;
+  let mut builder = FlameGraphBuilder::with_shared_ownership();
+  builder.visit_global_roots();
+  let output = builder.finish();
+  assert!(output.objects().iter().any(|object| {
+    object.address == format!("{value:p}") && object.type_name == std::any::type_name::<String>()
+  }));
+  assert!(output.flamegraph().total_size() >= value.len());
+}
