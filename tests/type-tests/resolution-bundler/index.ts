@@ -1,4 +1,3 @@
-import '../sourceMapPlugins.js';
 import rspack, { type RspackOptions } from '@rspack/core';
 import '@rspack/core/module';
 import { defineConfig, definePlugin, type Configuration } from '@rspack/cli';
