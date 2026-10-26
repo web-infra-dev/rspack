@@ -83,6 +83,7 @@ pub struct RstestPluginOptions {
   pub update_import_mock_api: bool,
   pub update_require_mock_api: bool,
   pub inject_require_resolve_origin: Option<RstestRequireResolveOriginOptions>,
+  pub inject_import_meta_resolve_origin: Option<RstestImportMetaResolveOriginOptions>,
 }
 
 pub fn builtin_plugins() -> Vec<BoxPlugin> {
@@ -190,6 +191,13 @@ pub struct RstestDynamicImportOriginOptions {
 pub struct RstestRequireResolveOriginOptions {
   /// Overrides the rewrite callee. When `None`, defaults to
   /// `__rstest_require_resolve__`.
+  pub function_name: Option<String>,
+}
+
+#[derive(Debug, Default)]
+pub struct RstestImportMetaResolveOriginOptions {
+  /// Runtime factory receiving the source path and returning its resolver.
+  /// Defaults to `__rstest_import_meta_resolve__`.
   pub function_name: Option<String>,
 }
 
@@ -598,6 +606,14 @@ async fn nmf_parser(
         update_import_mock_api: self.options.update_import_mock_api,
         update_require_mock_api: self.options.update_require_mock_api,
         inject_require_resolve_origin,
+        import_meta_resolve_factory: self.options.inject_import_meta_resolve_origin.as_ref().map(
+          |options| {
+            options
+              .function_name
+              .clone()
+              .unwrap_or_else(|| "__rstest_import_meta_resolve__".into())
+          },
+        ),
         commonjs_magic_comments,
       },
     )) as BoxJavascriptParserPlugin);
@@ -854,6 +870,7 @@ impl Plugin for RstestPlugin {
       || self.options.inject_import_meta_rstest_origin
       || self.options.inject_dynamic_import_origin.is_some()
       || self.options.inject_require_resolve_origin.is_some()
+      || self.options.inject_import_meta_resolve_origin.is_some()
     {
       ctx
         .normal_module_factory_hooks
