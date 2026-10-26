@@ -542,7 +542,7 @@ compiler.hooks.shouldEmit.tap('MyPlugin', (compilation) => {
 
 在产物输出到结果目录前执行。
 
-此时压缩等资源处理步骤已经完成，在 `emit` 中新增的资源不会经过这些步骤。如果需要在资源处理前创建或修改资源，请使用 [`compilation.hooks.processAssets`](/api/plugin-api/compilation-hooks#processassets) 并选择合适的阶段。例如，在 `PROCESS_ASSETS_STAGE_ADDITIONAL` 阶段新增资源，后续阶段就能继续处理它们。
+执行 `emit` 时，压缩等资源处理步骤已经完成，因此在此处新增的资源不会经过这些步骤。如果需要提前创建或修改资源，请使用 [`compilation.hooks.processAssets`](/api/plugin-api/compilation-hooks#processassets)。新增资源可以放在 `PROCESS_ASSETS_STAGE_ADDITIONAL` 阶段，让后续阶段继续处理。
 
 - **类型：** `AsyncSeriesHook<[Compilation]>`
 - **参数：**
