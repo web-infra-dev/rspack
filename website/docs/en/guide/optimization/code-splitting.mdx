@@ -245,10 +245,10 @@ Those old files must also remain available after deployment, because pages that 
 
 ### Handling failures in the page
 
-If an old chunk is no longer available, prompt the user to refresh so the page can load the new application code and request the new chunks. You can display this message and a refresh button in the `.catch()` callback of `import()`, or through your router's error handling.
+Handle loading failures in the `.catch()` callback of `import()`, or through your router's error handling, using the application's existing error reporting. If the failure is caused by an old chunk being removed after deployment, you can suggest refreshing the page to load the new application version.
 
 For this to work, the browser must be able to fetch updated HTML on refresh. If a cache keeps returning old HTML, the page may load the old code again and continue requesting the same deleted files.
 
-Network failures or an incorrect asset URL can also cause chunk loading errors, and refreshing does not necessarily fix them. Automatically refreshing after every failure can leave the page repeatedly reloading without recovering. Keep the error message and refresh button visible so the user can choose when to try again.
+Network failures or an incorrect asset URL can also cause chunk loading errors, and refreshing does not necessarily fix them. Automatically refreshing after every failure can leave the page repeatedly reloading without recovering.
 
 <Attribution url="https://webpack.js.org/guides/code-splitting/" />
