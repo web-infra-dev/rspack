@@ -225,4 +225,15 @@ const lazyComp = () =>
 
 在这个示例中，发生错误的 script 将被移除。Rspack 会创建自己的 script 并在超时前处理任何发生的异常。
 
+## 部署后的 chunk 加载错误 \{#chunk-loading-errors-after-deployment}
+
+已经打开的页面会继续使用加载时记录的 chunk 文件名。如果部署新版本时替换了这些文件，页面后续调用 `import()` 时可能请求已删除的 chunk，导致 `ChunkLoadError`。
+
+可以通过以下方式处理：
+
+- 部署后保留旧版本资源一段时间，并使用包含内容哈希的文件名，让多个版本的资源可以共存。
+- chunk 加载失败时，提示用户刷新页面以加载最新版本。
+
+避免每次 chunk 加载失败都自动刷新页面。网络故障或资源 URL 配置错误可能在刷新后依然存在，导致页面反复刷新。
+
 <Attribution url="https://webpack.docschina.org/guides/code-splitting/" />

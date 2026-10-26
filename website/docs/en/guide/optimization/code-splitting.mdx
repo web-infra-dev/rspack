@@ -225,4 +225,15 @@ To prevent such problem you can add your own onerror handler, which removes the 
 
 In that case, errored script will be removed. Rspack will create its own script and any error will be processed without any timeouts.
 
+## Chunk loading errors after deployment
+
+A page that is already open continues to use the chunk filenames from the version it loaded. If a deployment replaces those files, a later `import()` may request a deleted chunk and fail with `ChunkLoadError`.
+
+To handle this:
+
+- Keep assets from previous deployments available for a transition period, using filenames with content hashes so versions can coexist.
+- If a chunk fails to load, show a message asking the user to refresh the page to load the latest version.
+
+Avoid unconditionally reloading the page on every chunk loading error. Network failures or an incorrect asset URL can persist after a reload and cause a reload loop.
+
 <Attribution url="https://webpack.js.org/guides/code-splitting/" />
