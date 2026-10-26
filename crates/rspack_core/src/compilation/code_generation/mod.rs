@@ -4,8 +4,8 @@ use async_trait::async_trait;
 
 use super::*;
 use crate::{
-  CacheValue, Etag, ModuleCodeGenerationContext, MultiItemCache, compilation::pass::PassExt,
-  get_runtime_key, logger::Logger,
+  CacheRecord, CacheValue, Etag, ModuleCodeGenerationContext, MultiItemCache,
+  compilation::pass::PassExt, get_runtime_key, logger::Logger,
 };
 
 const CODE_GENERATION_CACHE_NAME: &str = "Compilation/codeGeneration";
@@ -86,10 +86,9 @@ async fn code_generation_pass_impl(compilation: &mut Compilation) -> Result<()> 
 #[instrument("Compilation:code_generation",target=TRACING_BENCH_TARGET, skip_all)]
 pub async fn code_generation(compilation: &mut Compilation, modules: IdentifierSet) -> Result<()> {
   let logger = compilation.get_logger("rspack.Compilation");
-  let codegen_cache_counter = match compilation.options.cache {
-    CacheOptions::Disabled => None,
-    _ => Some(logger.cache("module code generation cache")),
-  };
+  let codegen_cache_counter = (!compilation.options.experiments.new_cache.code_generation
+    && !matches!(compilation.options.cache, CacheOptions::Disabled))
+  .then(|| logger.cache("module code generation cache"));
 
   let module_graph = compilation.get_module_graph();
   let mut no_codegen_dependencies_modules = IdentifierSet::default();
@@ -251,7 +250,15 @@ pub(crate) async fn code_generation_modules(
               .use_cache(&job, generator)
               .await
           };
-          if let Some(counter) = cache_counter {
+          if let Some(cache) = new_cache {
+            // MultiItemCache probes equivalent runtime keys for one job.
+            // Only the job's final outcome contributes to the facade's statistics.
+            cache.record(if from_cache {
+              CacheRecord::Hit
+            } else {
+              CacheRecord::Miss
+            });
+          } else if let Some(counter) = cache_counter {
             if from_cache {
               counter.hit();
             } else {

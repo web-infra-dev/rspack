@@ -6,7 +6,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use crate::{
   BoxModule, BuildModuleGraphArtifact, FileSystemInfo, ModuleGraph, ModuleIdentifier, ModuleRef,
   NeedBuildContext, ValueCacheVersions,
-  new_cache::{CacheFacade, CacheValue},
+  new_cache::{CacheFacade, CacheRecord, CacheValue},
 };
 
 /// Cache for completed module builds, validated by each module's `need_build` implementation.
@@ -47,6 +47,7 @@ impl ModuleBuildCache {
 
     let identifier = module.identifier();
     let Some(result) = self.cache.get::<ModuleRef>(identifier.as_str(), None) else {
+      self.cache.record(CacheRecord::Miss);
       return Ok(None);
     };
     if result
@@ -56,10 +57,12 @@ impl ModuleBuildCache {
       ))
       .await?
     {
+      self.cache.record(CacheRecord::Miss);
       return Ok(None);
     }
 
     result.reset_for_compilation(module.factory_meta());
+    self.cache.record(CacheRecord::Hit);
     Ok(Some(result.as_arc().as_ref().clone()))
   }
 

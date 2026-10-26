@@ -374,13 +374,7 @@ impl Compilation {
     );
     let resolver_cache = (options.experiments.new_cache.resolver
       && !matches!(options.cache, crate::CacheOptions::Disabled))
-    .then(|| {
-      crate::ResolverCache::new(
-        cache.facade("ResolverCache"),
-        file_system_info.clone(),
-        &CompilationLogger::new("rspack.ResolverCache", logging.clone()),
-      )
-    });
+    .then(|| crate::ResolverCache::new(cache.facade("ResolverCache"), file_system_info.clone()));
     Self {
       id: CompilationId::new(),
       compiler_id,

@@ -4,8 +4,9 @@ use rspack_paths::InternedPathSet;
 
 use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
-  cache_value::CacheValueData,
+  cache_value::CacheValueData, statistics::CacheStatistics,
 };
+use crate::InfrastructureLogger;
 
 /// Storage shared by all compiler-scoped cache views.
 #[derive(Debug)]
@@ -22,11 +23,16 @@ struct CacheStorage {
 #[derive(Debug)]
 pub struct Cache {
   storage: Option<CacheStorage>,
+  logger: Arc<InfrastructureLogger>,
 }
 
 impl Cache {
   /// Creates storage from the configured memory and filesystem caches.
-  pub fn new(memory_cache: Option<MemoryCache>, idle_file_cache: Option<IdleFileCache>) -> Self {
+  pub fn new(
+    memory_cache: Option<MemoryCache>,
+    idle_file_cache: Option<IdleFileCache>,
+    logger: Arc<InfrastructureLogger>,
+  ) -> Self {
     let storage = if memory_cache.is_some() || idle_file_cache.is_some() {
       Some(CacheStorage {
         memory_cache,
@@ -35,11 +41,15 @@ impl Cache {
     } else {
       None
     };
-    Self { storage }
+    Self { storage, logger }
   }
 
-  pub fn new_disabled() -> Self {
-    Self::new(None, None)
+  pub fn new_disabled(logger: Arc<InfrastructureLogger>) -> Self {
+    Self::new(None, None, logger)
+  }
+
+  pub(crate) fn logger(&self) -> &InfrastructureLogger {
+    &self.logger
   }
 
   pub fn get<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>) -> Option<CacheValue<T>> {
@@ -144,6 +154,7 @@ impl Cache {
 pub struct CompilerCache {
   cache: Arc<Cache>,
   compiler_path: Arc<str>,
+  statistics: Option<Arc<CacheStatistics>>,
 }
 
 impl Deref for CompilerCache {
@@ -156,14 +167,34 @@ impl Deref for CompilerCache {
 
 impl CompilerCache {
   pub fn new(cache: Arc<Cache>, compiler_path: Arc<str>) -> Self {
+    let statistics = cache.storage.as_ref().map(|_| Arc::default());
     Self {
       cache,
       compiler_path,
+      statistics,
     }
   }
 
   pub fn facade(&self, name: &str) -> CacheFacade {
     let cache_name = [self.compiler_path.as_ref(), name].join("|");
-    CacheFacade::new(Arc::clone(&self.cache), cache_name)
+    CacheFacade::new(
+      Arc::clone(&self.cache),
+      cache_name.into(),
+      self.statistics.clone(),
+    )
+  }
+
+  /// Resets cache statistics before starting a compilation.
+  pub(crate) fn reset(&self) {
+    if let Some(statistics) = &self.statistics {
+      statistics.reset();
+    }
+  }
+
+  pub(crate) fn statistics_report(&self, full_hash: Option<&str>) -> Option<String> {
+    self
+      .statistics
+      .as_ref()?
+      .report(&self.compiler_path, full_hash)
   }
 }

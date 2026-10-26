@@ -13,8 +13,8 @@ use rspack_sources::SourceMap;
 use rspack_util::time::current_time;
 
 use crate::{
-  CacheFacade, CacheValue, Etag, FileSystemInfo, IsolatedDts, ItemCacheFacade, Module, RscMeta,
-  RunnerContext,
+  CacheFacade, CacheRecord, CacheValue, Etag, FileSystemInfo, IsolatedDts, ItemCacheFacade, Module,
+  RscMeta, RunnerContext,
   new_cache::{Snapshot, SnapshotValidationResult},
 };
 
@@ -246,9 +246,11 @@ pub(crate) async fn before_normal_chain(
     build_info.isolated_dts = entry.isolated_dts.clone();
     build_info.rsc = entry.rsc.clone();
     context.__finish_with((content, source_map, None));
+    item_cache.record(CacheRecord::Hit);
     return Ok(LoaderCacheAction::Hit);
   }
 
+  item_cache.record(CacheRecord::Miss);
   Ok(LoaderCacheAction::Miss(Box::new(LoaderCacheMissState {
     cache_key,
     etag,

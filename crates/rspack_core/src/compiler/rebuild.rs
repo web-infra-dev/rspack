@@ -46,6 +46,7 @@ impl Compiler {
       }
     };
     self.store_cache_metadata(result.is_ok());
+    self.report_cache_statistics();
     result
   }
 
@@ -76,6 +77,7 @@ impl Compiler {
 
       let compilation_logging = self.compilation.get_logging().clone();
       compilation_logging.clear();
+      self.new_cache.reset();
 
       let mut next_compilation = Compilation::new(
         self.id,

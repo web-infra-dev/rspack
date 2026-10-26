@@ -10,7 +10,7 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
+  AssetInfo, CacheRecord, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilerCompilation, Etag, Logger, Plugin,
   cache::{CachedExtractedComments, CachedMinimizeEntry},
   diagnostics::MinifyError,
@@ -234,7 +234,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let legacy_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
     Mutex::new(Vec::new());
   let logger = compilation.get_logger(PLUGIN_NAME);
-  let minimize_cache_counter = (new_cache.is_some() || minimize_persistent_cache.is_some())
+  let minimize_cache_counter = (new_cache.is_none() && minimize_persistent_cache.is_some())
     .then(|| logger.cache("minimize persistent cache"));
 
   let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
@@ -300,7 +300,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           None
         };
         if let Some(cached) = cached {
-          if let Some(counter) = &minimize_cache_counter {
+          if let Some(cache) = &new_cache {
+            cache.record(CacheRecord::Hit);
+          } else if let Some(counter) = &minimize_cache_counter {
             counter.hit();
           }
           original.set_source(Some(cached.source.clone()));
@@ -319,7 +321,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           }
           return Ok(());
         }
-        if (new_cache_entry.is_some() || cache_key.is_some()) && let Some(counter) = &minimize_cache_counter {
+        if let Some(cache) = &new_cache {
+          cache.record(CacheRecord::Miss);
+        } else if cache_key.is_some() && let Some(counter) = &minimize_cache_counter {
           counter.miss();
         }
         let input = original_source.source().into_string_lossy().into_owned();

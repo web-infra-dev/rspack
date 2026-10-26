@@ -267,7 +267,17 @@ impl Compiler {
       }
     };
     self.store_cache_metadata(result.is_ok());
+    self.report_cache_statistics();
     result
+  }
+
+  fn report_cache_statistics(&self) {
+    if let Some(report) = self
+      .new_cache
+      .statistics_report(self.compilation.hash.as_ref().map(|hash| hash.encoded()))
+    {
+      self.new_cache.logger().log(report);
+    }
   }
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
@@ -296,6 +306,7 @@ impl Compiler {
     let compilation_logging = self.compilation.get_logging().clone();
     compilation_logging.clear();
     self.incremental_artifacts.reset();
+    self.new_cache.reset();
 
     fast_set(
       &mut self.compilation,
@@ -372,10 +383,6 @@ impl Compiler {
       )
       .await?;
     logger.time_end(start);
-
-    if let Some(cache) = &self.compilation.resolver_cache {
-      cache.log(&self.compilation.get_logger("rspack.ResolverCache"));
-    }
 
     // Consume plugin driver diagnostic
     let plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
