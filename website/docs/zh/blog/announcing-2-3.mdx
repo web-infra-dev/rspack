@@ -85,7 +85,7 @@ Rspack 仍在持续优化构建性能，2.3.0 相对于 2.2.0，在[示例项目
 
 ### 内存占用优化 \{#memory-improvements}
 
-在一个大型真实项目中，生产构建和本地开发服务所消耗的内存都有明显的下降：
+Rspack 2.3.0 也针对大型项目，在不损失构建性能的前提下做了大量的内存优化。在一个真实的大型项目中，峰值内存和稳态内存都有明显的降低：
 
 | 场景  | 指标         |     2.2.0 |     2.3.0 | 优化      |
 | ----- | ------------ | --------: | --------: | --------- |
@@ -94,7 +94,7 @@ Rspack 仍在持续优化构建性能，2.3.0 相对于 2.2.0，在[示例项目
 | Dev   | 启动峰值 RSS | 28.63 GiB | 18.96 GiB | **33.8%** |
 | Dev   | 稳态 RSS     | 28.88 GiB | 18.83 GiB | **34.8%** |
 
-此外，新增了基于 [allocative](https://github.com/nicedoc/allocative) 的内存快照能力，可用于定位构建过程中的内存热点。详见 [#16046](https://github.com/web-infra-dev/rspack/pull/16046)。
+此外，为了定位构建过程中的内存热点，我们新增了基于 [allocative](https://github.com/facebook/buck2/tree/main/allocative) 的内存快照能力，如果您的项目内存占用较高，欢迎您参考[内存诊断指南](../guide/diagnostics/memory)并将结果添加到 issue 中，我们会对您的项目内存进行分析和优化。
 
 ### 更小的包体积 \{#smaller-package-size}
 
