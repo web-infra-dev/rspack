@@ -49,20 +49,6 @@ For usage examples, see:
 
 2. The `/* webpackEntryOptions: { filename: "workers/[name].js" } */` magic comment is not supported yet.
 
-### Runtime public path
-
-A Worker has its own Rspack runtime. Assigning `__webpack_public_path__` in the main thread does not change the path used for dynamic imports inside the Worker.
-
-With [`output.publicPath: 'auto'`](/config/output#outputpublicpath), the Worker determines its public path from its own script URL. [`output.workerPublicPath`](/config/output#outputworkerpublicpath) controls the URL used to load the Worker script.
-
-To change the path used for dynamic imports, set `__webpack_public_path__` inside the Worker before calling `import()`:
-
-```js title="worker.js"
-__webpack_public_path__ = 'https://cdn.example.com/worker-assets/';
-
-import('./task.js').then(({ run }) => run());
-```
-
 ## Built-in syntax
 
 In addition to `new Worker()`, Rspack also supports the following built-in forms by default:
@@ -288,6 +274,22 @@ The remaining examples show some common patterns in the ecosystem that can be su
     new URL('./helper-worker.js', import.meta.url),
   );
   ```
+
+## Runtime public path
+
+A Worker has its own Rspack runtime. Changing the public path in the main thread does not change the path used for dynamic imports inside the Worker.
+
+With [`output.publicPath: 'auto'`](/config/output#outputpublicpath), the Worker determines its public path from its own script URL. [`output.workerPublicPath`](/config/output#outputworkerpublicpath) controls the URL used to load the Worker script.
+
+To change the path used for dynamic imports, set [`import.meta.rspackPublicPath`](/api/runtime-api/module-variables#importmetarspackpublicpath) inside the Worker before calling `import()`:
+
+```js title="worker.js"
+import.meta.rspackPublicPath = 'https://cdn.example.com/worker-assets/';
+
+import('./task.js').then(({ run }) => run());
+```
+
+In CommonJS, use `__webpack_public_path__` instead.
 
 ## worker-loader
 

@@ -49,20 +49,6 @@ new Worker(new URL('./worker.js', import.meta.url), {
 
 2. `/* webpackEntryOptions: { filename: "workers/[name].js" } */` 魔法注释目前仍不支持。
 
-### 运行时 publicPath \{#runtime-public-path}
-
-Worker 有独立的 Rspack 运行时。在主线程中设置 `__webpack_public_path__`，不会改变 Worker 内部动态导入的加载路径。
-
-使用 [`output.publicPath: 'auto'`](/config/output#outputpublicpath) 时，Worker 会根据自身脚本的 URL 确定 publicPath。[`output.workerPublicPath`](/config/output#outputworkerpublicpath) 则控制加载 Worker 脚本时使用的 URL。
-
-如需修改动态导入的加载路径，应在 Worker 内部调用 `import()` 之前设置 `__webpack_public_path__`：
-
-```js title="worker.js"
-__webpack_public_path__ = 'https://cdn.example.com/worker-assets/';
-
-import('./task.js').then(({ run }) => run());
-```
-
 ## 内置语法
 
 除 `new Worker()` 以外，Rspack 还默认支持以下内置形式：
@@ -288,6 +274,22 @@ export default {
     new URL('./helper-worker.js', import.meta.url),
   );
   ```
+
+## 运行时 publicPath \{#runtime-public-path}
+
+Worker 有独立的 Rspack 运行时。在主线程中修改 publicPath，不会改变 Worker 内部动态导入的加载路径。
+
+使用 [`output.publicPath: 'auto'`](/config/output#outputpublicpath) 时，Worker 会根据自身脚本的 URL 确定 publicPath。[`output.workerPublicPath`](/config/output#outputworkerpublicpath) 则控制加载 Worker 脚本时使用的 URL。
+
+如需修改动态导入的加载路径，应在 Worker 内部调用 `import()` 之前设置 [`import.meta.rspackPublicPath`](/api/runtime-api/module-variables#importmetarspackpublicpath)：
+
+```js title="worker.js"
+import.meta.rspackPublicPath = 'https://cdn.example.com/worker-assets/';
+
+import('./task.js').then(({ run }) => run());
+```
+
+在 CommonJS 中，可以使用 `__webpack_public_path__`。
 
 ## worker-loader
 
