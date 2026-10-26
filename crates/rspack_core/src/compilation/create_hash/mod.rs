@@ -386,21 +386,7 @@ pub async fn create_hash(
     .chunk_by_ukey
     .values()
     // Chunk ids are stable across compilations; ukeys depend on creation history.
-    .sorted_unstable_by(|a, b| {
-      match (a.id(), b.id()) {
-        (Some(a), Some(b)) => a.as_str().cmp(b.as_str()),
-        (Some(_), None) => std::cmp::Ordering::Less,
-        (None, Some(_)) => std::cmp::Ordering::Greater,
-        (None, None) => a
-          .hash(&compilation.chunk_hashes_artifact)
-          .map(|hash| hash.encoded())
-          .cmp(
-            &b.hash(&compilation.chunk_hashes_artifact)
-              .map(|hash| hash.encoded()),
-          ),
-      }
-      .then_with(|| a.ukey().cmp(&b.ukey()))
-    })
+    .sorted_unstable_by(|a, b| a.id().cmp(&b.id()).then_with(|| a.ukey().cmp(&b.ukey())))
     .for_each(|chunk| {
       if let Some(hash) = chunk.hash(&compilation.chunk_hashes_artifact) {
         compilation_hasher.update(hash);

@@ -1,6 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import rspack from '@rspack/core';
+import fs from "node:fs";
+import path from "node:path";
+import rspack from "@rspack/core";
 
 function run(compiler) {
   return new Promise((resolve, reject) => {
@@ -10,7 +10,7 @@ function run(compiler) {
       resolve({
         hash: stats.hash,
         chunks: [...stats.compilation.chunks]
-          .map(chunk => [chunk.id, chunk.hash, chunk.contentHash])
+          .map((chunk) => [chunk.id, chunk.hash, chunk.contentHash])
           .sort(([a], [b]) => String(a).localeCompare(String(b))),
       });
     });
@@ -20,15 +20,15 @@ function run(compiler) {
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 export default {
   description:
-    'should give fresh compilers the same full hash after maxSize splitting',
+    "should give three fresh compilers the same full hash after maxSize splitting",
   options(context) {
     const root = context.getDist();
     fs.mkdirSync(root, { recursive: true });
     fs.writeFileSync(
-      path.join(root, 'index.js'),
+      path.join(root, "index.js"),
       Array.from({ length: 3 }, (_, i) =>
         `import(/* webpackChunkName: "leaf${i}" */ './leaf${i}');`,
-      ).join('\n'),
+      ).join("\n"),
     );
     for (let i = 0; i < 3; i++) {
       fs.writeFileSync(
@@ -38,21 +38,21 @@ export default {
       for (let j = 0; j < 2; j++) {
         fs.writeFileSync(
           path.join(root, `module${i}_${j}.js`),
-          `module.exports = "${i}_${j}_${'x'.repeat(90)}";`,
+          `module.exports = "${i}_${j}_${"x".repeat(90)}";`,
         );
       }
     }
     return {
       context: root,
-      mode: 'development',
+      mode: "development",
       devtool: false,
-      entry: './index.js',
-      output: { path: path.join(root, 'dist') },
+      entry: "./index.js",
+      output: { path: path.join(root, "dist") },
       optimization: {
-        moduleIds: 'named',
-        chunkIds: 'named',
+        moduleIds: "named",
+        chunkIds: "named",
         splitChunks: {
-          chunks: 'all',
+          chunks: "all",
           minSize: 0,
           maxSize: 180,
           cacheGroups: { default: false, defaultVendors: false },
@@ -62,16 +62,18 @@ export default {
   },
   async build(_context, compiler) {
     const first = await run(compiler);
-    const fresh = rspack(compiler.options);
-    fresh.outputFileSystem = compiler.outputFileSystem;
-    try {
-      const second = await run(fresh);
-      expect(second.chunks).toEqual(first.chunks);
-      expect(second.hash).toBe(first.hash);
-    } finally {
-      await new Promise((resolve, reject) => {
-        fresh.close(error => (error ? reject(error) : resolve()));
-      });
+    for (let i = 0; i < 3; i++) {
+      const fresh = rspack(compiler.options);
+      fresh.outputFileSystem = compiler.outputFileSystem;
+      try {
+        const next = await run(fresh);
+        expect(next.chunks).toEqual(first.chunks);
+        expect(next.hash).toBe(first.hash);
+      } finally {
+        await new Promise((resolve, reject) => {
+          fresh.close((error) => (error ? reject(error) : resolve()));
+        });
+      }
     }
   },
 };
