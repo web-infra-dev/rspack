@@ -147,13 +147,13 @@ newCache 将缓存体积减少约 75%，降低了缓存写入开销。目前热�
 
 我们会持续优化热构建性能和内存占用，并计划在后续 minor 版本中用 `newCache` 替换旧实现。
 
-### 缓存单个 loader 的结果 \{#loader-cache}
+### loader 缓存 \{#loader-cache}
 
 启用 `experiments.newCache` 后，可为 loader 设置 `cache: true`，复用未发生变化的转换结果。缓存已支持 `builtin:swc-loader`，并会在相关依赖变化时失效。
 
 测试使用 babel-loader 模拟约 10000 个模块，开启 loader 缓存后构建耗时显著降低：
 
-| babel 并行 | 缓存关闭 | 缓存开启 | 提升     |
+| 并行loader | 缓存关闭 | 缓存开启 | 提升     |
 | ---------- | -------- | -------- | -------- |
 | 关闭       | 63.75 s  | 11.16 s  | **5.7x** |
 | 开启       | 28.50 s  | 11.88 s  | **2.4x** |
