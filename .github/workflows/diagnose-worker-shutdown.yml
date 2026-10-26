@@ -14,8 +14,15 @@ jobs:
     with:
       target: x86_64-pc-windows-msvc
       runner: '"windows-latest"'
+  build-baseline:
+    uses: ./.github/workflows/reusable-build-build.yml
+    with:
+      target: x86_64-pc-windows-msvc
+      runner: '"windows-latest"'
+      ref: fd1f2b4ed4525310be5876ce9bb96b59911c7ff5
+      binding_postfix: '-baseline'
   diagnose:
-    needs: build
+    needs: [build, build-baseline]
     runs-on: windows-latest
     timeout-minutes: 20
     env:
@@ -33,11 +40,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build:js
       - name: Download unfixed binding for regression check
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+        uses: ./.github/actions/artifact/download
         with:
-          name: bindings-x86_64-pc-windows-msvc
-          run-id: 40049744365
-          github-token: ${{ github.token }}
+          name: bindings-x86_64-pc-windows-msvc-baseline
           path: baseline-binding/
       - name: Verify regression fails with unfixed binding
         shell: bash
