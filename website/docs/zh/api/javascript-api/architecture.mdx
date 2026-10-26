@@ -122,9 +122,9 @@ Builtin loader 可以在 Rust 侧执行，减少 JavaScript 排队和跨语言�
 如果只需要部分资源，下面的写法效率较低：
 
 ```js title="低效写法"
-compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
+compilation.hooks.processAssets.tap("ExamplePlugin", (assets) => {
   for (const [name, source] of Object.entries(assets)) {
-    if (name.endsWith('.js')) {
+    if (name.endsWith(".js")) {
       consumeJavaScriptAsset(name, source);
     }
   }
@@ -137,9 +137,9 @@ compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
 应该先使用 `Object.keys()` 筛选资源名称，再读取需要的 `Source`：
 
 ```js title="推荐写法"
-compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
+compilation.hooks.processAssets.tap("ExamplePlugin", (assets) => {
   for (const name of Object.keys(assets)) {
-    if (!name.endsWith('.js')) {
+    if (!name.endsWith(".js")) {
       continue;
     }
 
@@ -156,7 +156,7 @@ compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
 对于需要从 Rust 获取的数据，应在一次遍历中读取并保存结果：
 
 ```js
-compilation.hooks.processAssets.tap('ExamplePlugin', () => {
+compilation.hooks.processAssets.tap("ExamplePlugin", () => {
   const moduleInfo = [];
 
   for (const module of compilation.modules) {
