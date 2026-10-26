@@ -228,7 +228,7 @@ pub fn get_module_sizes<T: ParallelIterator<Item = ModuleIdentifier>>(
       let sizes = module
         .source_types(module_graph)
         .iter()
-        .map(|ty| (*ty, module.size(Some(ty), Some(compilation))))
+        .map(|ty| (*ty, module.size(Some(ty))))
         .collect::<FxHashMap<_, _>>();
       (
         module.identifier(),

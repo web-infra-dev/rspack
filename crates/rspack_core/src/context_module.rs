@@ -1362,11 +1362,7 @@ impl Module for ContextModule {
       .into()
   }
 
-  fn size(
-    &self,
-    _source_type: Option<&crate::SourceType>,
-    _compilation: Option<&Compilation>,
-  ) -> f64 {
+  fn size(&self, _source_type: Option<&crate::SourceType>) -> f64 {
     160.0
   }
 

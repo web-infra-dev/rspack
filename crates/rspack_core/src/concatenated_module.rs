@@ -897,7 +897,7 @@ impl Module for ConcatenatedModule {
     ))
   }
 
-  fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, source_type: Option<&SourceType>) -> f64 {
     if let Some(source_type) = source_type {
       // Shared cache: builtin SourceType uses fixed atomic slots, Custom uses map fallback.
       if let Some(size) = self.cached_source_sizes.get(source_type) {
