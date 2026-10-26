@@ -55,7 +55,7 @@ new rspack.EvalSourceMapDevToolPlugin({
 
 ### append
 
-Rspack 目前会忽略 `append`，包括字符串、函数和 `false`。对于生成了 source map 的模块，插件始终添加固定格式的 `sourceMappingURL` 注释，将 source map 内联在其中；无法通过此选项自定义或关闭该注释。
+Rspack 目前会忽略 `append`。生成 source map 时，插件使用固定格式的 `sourceMappingURL` 注释将其内联。传入字符串或函数无法自定义该注释，传入 `false` 也无法关闭它。
 
 ### module
 

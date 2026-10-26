@@ -55,7 +55,7 @@ Exclude modules that match the given value from source map generation.
 
 ### append
 
-Rspack currently ignores `append`, including strings, functions, and `false`. For modules with source maps, the plugin always adds a fixed `sourceMappingURL` comment containing the inline source map; this option cannot customize or disable it.
+Rspack currently ignores `append`. When generating source maps, the plugin uses a fixed `sourceMappingURL` comment containing the inline source map. Strings and functions cannot customize this comment, and `false` cannot disable it.
 
 ### module
 
