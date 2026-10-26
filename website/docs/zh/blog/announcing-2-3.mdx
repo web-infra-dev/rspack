@@ -52,9 +52,9 @@ Rspack 2.3 现已推出！本次更新将 JavaScript 解析器迁移至 SWC Next
 
 ## SWC Next 解析器 \{#swc-next}
 
-Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-project/swc-next)。根据官方基准，SWC Next 的原生解析器比 SWC 快 [2–4.5 倍](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse)。
+Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-project/swc-next)。根据 SWC Next 官方基准，其原生解析器比 SWC 快 [2–4.5 倍](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse)。
 
-借助其更紧凑的 AST 和内存布局，Rspack 也调整了解析与遍历流程；在固定 6 个 workers 下，解析阶段耗时与指令数变化如下：
+借助更紧凑的 AST 和内存布局，Rspack 也同步优化了解析与遍历流程。在固定 6 个 workers 下，解析阶段耗时和指令数变化如下：
 
 | 项目      | 解析阶段耗时                   | 指令数                          |
 | --------- | ------------------------------ | ------------------------------- |
@@ -65,7 +65,7 @@ Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-p
 
 ### 构建性能优化 \{#build-performance}
 
-在[示例项目](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/40302457470)中，Rspack 2.3.0 的 HMR 和缓存热构建耗时相比 2.2.0 降低了约 5%。
+在 [react-10k 示例项目](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/40302457470) 中，Rspack 2.3.0 的 HMR 和缓存热构建耗时较 2.2.0 降低约 5%。
 
 ### SplitChunks 优化 \{#split-chunks}
 
@@ -84,7 +84,7 @@ Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-p
 
 ### 内存占用优化 \{#memory-improvements}
 
-Rspack 2.3 在不牺牲构建性能的前提下，进一步优化了大型项目的内存占用。真实项目的峰值与稳态 RSS 对比如下：
+Rspack 2.3 在不牺牲构建性能的前提下，进一步降低了大型项目的内存占用。真实项目的峰值与稳态 RSS 对比如下：
 
 | 场景  | 指标         |     2.2.0 |     2.3.0 | 优化      |
 | ----- | ------------ | --------: | --------: | --------- |
@@ -93,7 +93,7 @@ Rspack 2.3 在不牺牲构建性能的前提下，进一步优化了大型项目
 | Dev   | 启动峰值 RSS | 28.63 GiB | 18.96 GiB | **33.8%** |
 | Dev   | 稳态 RSS     | 28.88 GiB | 18.83 GiB | **34.8%** |
 
-此外，Rspack 2.3 新增基于 [allocative](https://github.com/facebook/buck2/tree/main/allocative) 的内存快照能力，可帮助定位构建过程中的内存热点。如果你的项目内存占用较高，欢迎参考[内存诊断指南](../guide/diagnostics/memory)采集并提交结果，我们会协助分析和优化。
+此外，Rspack 2.3 还新增了基于 [allocative](https://github.com/facebook/buck2/tree/main/allocative) 的内存快照能力，帮助开发者定位构建过程中的内存热点。若你的项目内存占用较高，可以按照[内存诊断指南](../guide/diagnostics/memory)采集并提交结果，我们会协助分析和优化。
 
 ## 实验性缓存改进 \{#cache-improvements}
 
