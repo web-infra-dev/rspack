@@ -66,31 +66,18 @@ Rspack 2.3 将 JavaScript 解析器迁移至 SWC Next，提升大型项目的构
 
 ### SplitChunks 优化 \{#split-chunks}
 
-#### 发现更多共享模块组合 \{#dedup-depth}
+本轮优化从三个方向减少重复代码和产物体积：
 
-新增的 [`splitChunks.dedupDepth`](https://rspack.rs/zh/plugins/split-chunks-plugin#splitchunksdedupdepth) 可以发现更多可提取的共享模块，减少多页面项目中的重复代码。
+- 新增 [`splitChunks.dedupDepth`](https://rspack.rs/zh/plugins/split-chunks-plugin#splitchunksdedupdepth)，通过两两求交发现更多可提取的共享模块组合。生产模式下默认启用（`depth=1`）。
+- 改进 chunk 拆分算法，有效减少跨 chunk 的重复模块。
+- 支持 [`splitChunks.minRemainingSize`](https://rspack.rs/zh/plugins/split-chunks-plugin#splitchunksminremainingsize)，避免拆分后留下过小的 chunk，对齐 webpack 的产物行为。
 
-生产模式下默认为 `1`，开发模式和 `none` 模式下默认为 `0`。可以根据产物体积与构建耗时调整搜索深度。
+在真实大型项目中，开启 `dedupDepth=1` 后的 Brotli 压缩体积变化如下：
 
-#### 减少重复模块 \{#deduplicate-modules}
-
-改进了 chunk 拆分算法，有效减少跨 chunk 的重复模块，缩小产物体积。详见 [#15885](https://github.com/web-infra-dev/rspack/pull/15885)。
-
-<video
-  src="https://private-user-images.githubusercontent.com/79413249/670307829-0840ec5b-7eea-4d37-9053-cc5cef176103.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1c2VyY29udGVudC5jb20iLCJrZXkiOiJrZXk1IiwiZXhwIjoxNzkyOTk2ODY3LCJuYmYiOjE3OTI5OTY1NjcsInBhdGgiOiIvNzk0MTMyNDkvNjcwMzA3ODI5LTA4NDBlYzViLTdlZWEtNGQzNy05MDUzLWNjNWNlZjE3NjEwMy5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMDI2JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTAyNlQwNjM2MDdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wOWI2NWFlMmZjOTI0ZDNiNDExODgyMWNmOTcyZDRlMzA4MGVlMDdiY2I1YTI2ZWM3N2Q0NTY3YzU4MTdhYmYzJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.II0_FHbQ3_SOBOV1y4ASg8urSnRTRiR9w1sYyRevwd0"
-  controls
-  width="100%"
-/>
-
-> 视频展示优化前后的产物变化：左侧为优化前，右侧为优化后，重复模块显著减少。
-
-#### 避免拆分后留下过小的 chunk \{#min-remaining-size}
-
-支持了 [`splitChunks.minRemainingSize`](https://rspack.rs/zh/plugins/split-chunks-plugin#splitchunksminremainingsize)，避免拆分后留下过小的 chunk，进一步对齐 webpack 的产物行为。
-
-例如，部分异步 CSS 导入现在能够保留预期的 `controls.css` 文件名。该选项在开发模式下默认为 `0`，其他模式下回退到 `minSize`。
-
-> 性能与体积数据待补充：chunk 拆分耗时、重复模块数，以及 JS/CSS 压缩前后的体积对比。
+| 项目                    | 优化前   | 优化后   | 节省    | 降幅     |
+| ----------------------- | -------- | -------- | ------- | -------- |
+| 项目 A（client JS/CSS） | 23.22 MB | 22.67 MB | 550 KB  | **2.4%** |
+| 项目 B（client JS/CSS） | 39.97 MB | 36.00 MB | 3.97 MB | **9.9%** |
 
 ### 内存占用优化 \{#memory-improvements}
 
