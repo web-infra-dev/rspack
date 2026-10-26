@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { toNamespacedPath } from 'node:path';
 import { Worker } from 'node:worker_threads';
 
 export default async function run() {
@@ -32,9 +33,9 @@ export default async function run() {
   );
   if (process.platform === 'win32') {
     assert(bindings.size > 0, 'workers loaded the native binding');
-    const loaded = process.report.getReport().sharedObjects;
+    const loaded = process.report.getReport().sharedObjects.map(toNamespacedPath);
     for (const binding of bindings) {
-      assert(loaded.includes(binding), 'native binding remains loaded after worker exit');
+      assert(loaded.includes(toNamespacedPath(binding)), 'native binding remains loaded after worker exit');
     }
   }
 }

@@ -9,20 +9,7 @@ permissions:
   actions: read
 
 jobs:
-  build:
-    uses: ./.github/workflows/reusable-build-build.yml
-    with:
-      target: x86_64-pc-windows-msvc
-      runner: '"windows-latest"'
-  build-baseline:
-    uses: ./.github/workflows/reusable-build-build.yml
-    with:
-      target: x86_64-pc-windows-msvc
-      runner: '"windows-latest"'
-      ref: fd1f2b4ed4525310be5876ce9bb96b59911c7ff5
-      binding_postfix: '-baseline'
   diagnose:
-    needs: [build, build-baseline]
     runs-on: windows-latest
     timeout-minutes: 20
     env:
@@ -30,8 +17,10 @@ jobs:
       PUPPETEER_SKIP_DOWNLOAD: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: ./.github/actions/artifact/download
+      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
         with:
+          run-id: 40412372270
+          github-token: ${{ github.token }}
           name: bindings-x86_64-pc-windows-msvc
           path: crates/node_binding/
       - uses: ./.github/actions/pnpm/setup
@@ -40,10 +29,40 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build:js
       - name: Download unfixed binding for regression check
-        uses: ./.github/actions/artifact/download
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
         with:
+          run-id: 40412372270
+          github-token: ${{ github.token }}
           name: bindings-x86_64-pc-windows-msvc-baseline
           path: baseline-binding/
+      - name: Probe concurrent Node reports without Rspack
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import { spawnSync } from 'node:child_process';
+          import { writeFileSync } from 'node:fs';
+          const source = `
+            const { Worker } = require('node:worker_threads');
+            const barrier = new SharedArrayBuffer(4);
+            for (let i = 0; i < 2; i++) {
+              new Worker(\`
+                const { workerData } = require('node:worker_threads');
+                const barrier = new Int32Array(workerData);
+                Atomics.add(barrier, 0, 1);
+                while (Atomics.load(barrier, 0) < 2) {}
+                for (let j = 0; j < 5; j++) process.report.getReport();
+              \`, { eval: true, workerData: barrier });
+            }
+          `;
+          const results = [];
+          for (let round = 0; round < 50; round++) {
+            const result = spawnSync(process.execPath, ['--eval', source], { encoding: 'utf8', timeout: 30000 });
+            const row = { round, status: result.status, signal: result.signal, error: result.error?.message, stderr: result.stderr };
+            results.push(row);
+            console.log(JSON.stringify(row));
+          }
+          writeFileSync('worker-shutdown-node-report-results.json', JSON.stringify(results, null, 2));
+          JS
       - name: Run worker lifetime regression
         run: pnpm --dir tests/rspack-test run test -t 'compilerCases/shared-accessors'
       - name: Compare worker-only loading with parent retention
