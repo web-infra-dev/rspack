@@ -121,4 +121,6 @@ tar -czf rspack-memory-build-1.tar.gz -C /absolute/path/profiles build-1
 - 复现项目或复现步骤；对于 HMR，还需要说明修改内容及顺序。
 - 观察到的内存问题、出现时机和构建日志。如果未生成快照，也请说明情况，并附上命令和日志。
 
-[内存分析贡献指南](/contribute/development/memory)介绍了如何检查这些数据。
+:::tip
+如需深入分析 Rspack 的内存使用，请参阅[内存分析贡献指南](/contribute/development/memory)。该指南介绍了如何使用 allocative skill 采集快照、解读内存与条目计数报告，以及分析本地构建和测试的内存使用，并说明了内存采集的工作原理与局限。
+:::
