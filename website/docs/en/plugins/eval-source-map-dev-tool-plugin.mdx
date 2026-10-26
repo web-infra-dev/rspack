@@ -35,6 +35,8 @@ new rspack.EvalSourceMapDevToolPlugin({
 
 ## Options
 
+The `append` option is not currently supported.
+
 ### test
 
 - **Type:** `string` `RegExp` `[string, RegExp]`
@@ -52,10 +54,6 @@ Include source maps for module paths that match the given value.
 - **Type:** `string` `RegExp` `[string, RegExp]`
 
 Exclude modules that match the given value from source map generation.
-
-### append
-
-Rspack currently ignores `append`. When generating source maps, the plugin uses a fixed `sourceMappingURL` comment containing the inline source map. Strings and functions cannot customize this comment, and `false` cannot disable it.
 
 ### module
 

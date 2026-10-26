@@ -35,6 +35,8 @@ new rspack.EvalSourceMapDevToolPlugin({
 
 ## 选项
 
+目前不支持 `append` 选项。
+
 ### test
 
 - **类型：** `string` `RegExp` `[string, RegExp]`
@@ -52,10 +54,6 @@ new rspack.EvalSourceMapDevToolPlugin({
 - **类型：** `string` `RegExp` `[string, RegExp]`
 
 使匹配该值的模块不生成 source map。
-
-### append
-
-Rspack 目前会忽略 `append`。生成 source map 时，插件使用固定格式的 `sourceMappingURL` 注释将其内联。传入字符串或函数无法自定义该注释，传入 `false` 也无法关闭它。
 
 ### module
 
