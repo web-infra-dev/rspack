@@ -227,13 +227,26 @@ In that case, errored script will be removed. Rspack will create its own script 
 
 ## Chunk loading errors after deployment
 
-A page that is already open still uses chunk filenames from the version it loaded. If a deployment deletes the old chunk files, a later dynamic import, such as navigating to another route, may request a file that no longer exists and fail with `ChunkLoadError`.
+With code splitting, a page loads some chunks only when they are needed, such as when the user visits another route. A page left open during a deployment continues running the code it already loaded; deploying a new version does not automatically update that page.
 
-To handle this:
+For example, consider an application with a settings page loaded through `import()`:
 
-- Keep assets from previous deployments available for a transition period, using filenames with content hashes so versions can coexist.
-- If a chunk fails to load, show a message asking the user to refresh the page to load the latest version.
+1. A user opens version 1 of the application. Its code refers to `settings.a1b2.js`, but the user has not visited the settings page, so that chunk has not been loaded.
+2. Version 2 is deployed with a new chunk, `settings.c3d4.js`, and the deployment removes `settings.a1b2.js`.
+3. The user visits the settings page without refreshing. The open page still requests `settings.a1b2.js`. The server returns a 404, and the `import()` Promise rejects with `ChunkLoadError`.
 
-Avoid unconditionally reloading the page on every chunk loading error. Network failures or an incorrect asset URL can persist after a reload and cause a reload loop.
+This explains why the initial page can work normally while a later navigation fails after deployment.
+
+### Preventing failures during deployment
+
+Use filenames containing content hashes for entry files and async chunks, through [`output.filename`](/config/output#outputfilename) and [`output.chunkFilename`](/config/output#outputchunkfilename). This allows files from different versions to coexist without overwriting each other.
+
+Keep previous versions' assets available for a transition period instead of deleting them as soon as the new version is deployed. Choose the retention period based on how long users may keep pages open. Content hashes alone do not prevent this error if the old files are removed.
+
+### Handling failures in the page
+
+Handle a rejected `import()` Promise, or use your router's error handling, to show a message and a refresh button when a chunk fails to load. For a page using an outdated version, refreshing lets it load the new version and its chunk filenames. Make sure the HTML can update on refresh; if a cache keeps serving old HTML, the page may load the old version again.
+
+A chunk loading error does not always mean that a new version was deployed. Network failures or an incorrect asset URL can also prevent loading. Avoid automatically refreshing on every failure: if the underlying problem persists, this can cause a reload loop.
 
 <Attribution url="https://webpack.js.org/guides/code-splitting/" />
