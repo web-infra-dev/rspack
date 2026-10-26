@@ -19,7 +19,7 @@ The most common use case is configuring [loaders](/guide/features/loader) for di
 
 By combining various matching conditions with specific processing logic, `module.rules` provides fine-grained control over how different modules are built.
 
-For example, use the [built-in swc-loader](/guide/features/builtin-swc-loader) to handle files ending with `.ts`:
+For example, use the [built-in swc-loader](/guide/builtin-loaders/swc-loader) to handle files ending with `.ts`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -499,7 +499,7 @@ import url from './data' with { type: 'url' };
 import('./data', { with: { type: 'url' } });
 ```
 
-It should be noted that in order for Rspack to properly match the `with` syntax, when you use [builtin:swc-loader](/guide/features/builtin-swc-loader), you need to manually enable the `keepImportAttributes` configuration to preserve import attributes:
+It should be noted that in order for Rspack to properly match the `with` syntax, when you use [builtin:swc-loader](/guide/builtin-loaders/swc-loader), you need to manually enable the `keepImportAttributes` configuration to preserve import attributes:
 
 ```diff title="rspack.config.mjs"
 export default {

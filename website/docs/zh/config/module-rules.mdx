@@ -19,7 +19,7 @@ import Attribution from '@components/Attribution';
 
 通过组合不同的匹配条件和处理逻辑，`module.rules` 可以精细地控制各类模块的构建行为。
 
-例如，使用 [内置 swc-loader](/guide/features/builtin-swc-loader) 处理以 `.ts` 结尾的文件：
+例如，使用 [内置 swc-loader](/guide/builtin-loaders/swc-loader) 处理以 `.ts` 结尾的文件：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -499,7 +499,7 @@ import url from './data' with { type: 'url' };
 import('./data', { with: { type: 'url' } });
 ```
 
-需要注意的是，为了让 Rspack 能够正常匹配 `with` 语法，当你在使用 [builtin:swc-loader](/guide/features/builtin-swc-loader) 时，需要手动开启 `keepImportAttributes` 配置以保留 `import attributes`：
+需要注意的是，为了让 Rspack 能够正常匹配 `with` 语法，当你在使用 [builtin:swc-loader](/guide/builtin-loaders/swc-loader) 时，需要手动开启 `keepImportAttributes` 配置以保留 `import attributes`：
 
 ```diff title="rspack.config.mjs"
 export default {

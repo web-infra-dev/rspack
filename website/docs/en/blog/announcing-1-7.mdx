@@ -95,7 +95,7 @@ In Rspack 1.7, we have stabilized several experimental features. The following c
   - If you need to disable this behavior, use [optimization.inlineExports](/config/optimization#optimizationinlineexports) to control it.
 - **TypeScript Enum Inlining Optimization**: This optimization is now stable.
   - The original [experiments.inlineEnum](/config/optimization#optimizationinlineexports) option is deprecated.
-  - Use [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) to control whether to collect exported `enum` information.
+  - Use [collectTypeScriptInfo.exportedEnum](/guide/builtin-loaders/swc-loader#collecttypescriptinfoexportedenum) to control whether to collect exported `enum` information.
   - Use [optimization.inlineExports](/config/optimization#optimizationinlineexports) to control whether to inline `enum`.
 - **Type Re-export Check**: This optimization is now stable.
   - The original [experiments.typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) option is deprecated.
@@ -305,7 +305,7 @@ export default {
 };
 ```
 
-- Adjust the position of the [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) option in `builtin:swc-loader`, removing the `rspackExperiments` level:
+- Adjust the position of the [collectTypeScriptInfo](/guide/builtin-loaders/swc-loader#collecttypescriptinfo) option in `builtin:swc-loader`, removing the `rspackExperiments` level:
 
 ```js title="rspack.config.mjs"
 export default {
