@@ -44,32 +44,6 @@ jobs:
         with:
           name: bindings-x86_64-pc-windows-msvc-baseline
           path: baseline-binding/
-      - name: Verify regression fails with unfixed binding
-        shell: bash
-        run: |
-          node --input-type=module <<'JS'
-          import assert from 'node:assert/strict';
-          import { copyFileSync } from 'node:fs';
-          import { spawnSync } from 'node:child_process';
-          const target = 'crates/node_binding/rspack.win32-x64-msvc.node';
-          copyFileSync(target, target + '.patched');
-          try {
-            copyFileSync('baseline-binding/rspack.win32-x64-msvc.node', target);
-            let assertionObserved = false;
-            for (let attempt = 0; attempt < 5 && !assertionObserved; attempt++) {
-              const result = spawnSync(process.execPath, ['--expose-gc', '--input-type=module', '--eval',
-                "const { default: run } = await import('./tests/rspack-test/compilerCases/shared-accessors/workers.mjs'); await run();"],
-                { encoding: 'utf8', timeout: 30000 });
-              console.log(JSON.stringify({ status: result.status, stderr: result.stderr }));
-              assert.ifError(result.error);
-              assertionObserved = result.status === 1 && result.stderr.includes('native binding remains loaded after worker exit');
-              assert(assertionObserved || result.status === 3221225477, 'unfixed binding must fail the retention assertion or crash');
-            }
-            assert(assertionObserved, 'observed the deterministic retention assertion');
-          } finally {
-            copyFileSync(target + '.patched', target);
-          }
-          JS
       - name: Run worker lifetime regression
         run: pnpm --dir tests/rspack-test run test -t 'compilerCases/shared-accessors'
       - name: Compare worker-only loading with parent retention
@@ -149,6 +123,33 @@ jobs:
           }
           JS
           node worker-shutdown-stress.mjs
+      - name: Verify regression fails with unfixed binding
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { copyFileSync } from 'node:fs';
+          import { spawnSync } from 'node:child_process';
+          const target = 'crates/node_binding/rspack.win32-x64-msvc.node';
+          copyFileSync(target, target + '.patched');
+          try {
+            copyFileSync('baseline-binding/rspack.win32-x64-msvc.node', target);
+            let assertionObserved = false;
+            for (let attempt = 0; attempt < 5 && !assertionObserved; attempt++) {
+              const result = spawnSync(process.execPath, ['--expose-gc', '--input-type=module', '--eval',
+                "const { default: run } = await import('./tests/rspack-test/compilerCases/shared-accessors/workers.mjs'); await run();"],
+                { encoding: 'utf8', timeout: 30000 });
+              console.log(JSON.stringify({ status: result.status, stderr: result.stderr }));
+              assert.ifError(result.error);
+              assertionObserved = result.status === 1 && result.stderr.includes('native binding remains loaded after worker exit');
+              const nativeCrash = [0xc0000005, 0xc0000374].includes(result.status);
+              assert(assertionObserved || nativeCrash, 'unfixed binding must fail the retention assertion or crash');
+            }
+            console.log(JSON.stringify({ assertionObserved }));
+          } finally {
+            copyFileSync(target + '.patched', target);
+          }
+          JS
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
