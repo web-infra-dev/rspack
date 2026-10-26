@@ -136,6 +136,32 @@ export default {
 `jsc.target` and `env.targets` cannot be configured at the same time, choose one according to your needs.
 :::
 
+### Transpiling dependencies
+
+Some dependencies publish modern JavaScript that your target browsers cannot run. If your SWC rule excludes all of `node_modules`, those files will not be transpiled. Adjust `exclude` to allow the packages that need syntax lowering.
+
+This rule transpiles your application and `modern-package`, while skipping other dependencies. Replace `modern-package` with the package you need to transpile:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?js$/,
+        exclude: {
+          and: [/node_modules/],
+          not: [/[\\/]node_modules[\\/]modern-package[\\/]/],
+        },
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: { target: 'es2015' },
+        },
+      },
+    ],
+  },
+};
+```
+
 ### Polyfill injection
 
 When using higher versions of JavaScript syntax and APIs in your project, to ensure that the compiled code can run in lower version browsers, you will typically need to perform two parts of the downgrade: syntax downgrading and polyfill injection.

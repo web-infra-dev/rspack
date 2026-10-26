@@ -31,9 +31,28 @@ if (import.meta.webpackHot) {
 }
 ```
 
-The following methods are supported by `module.hot` and `import.meta.webpackHot`.
+## Update propagation
+
+When a module changes, Rspack checks whether the update can be handled without reloading the page. A module can accept its own update with `accept()`, or an importing module can accept updates to that dependency with `accept(dependency, callback)`. Otherwise, the update continues to the modules that import it.
+
+For example, consider this chain of imports:
+
+```text
+app.js
+└── view.js
+    └── button.js
+```
+
+When `button.js` changes:
+
+- If `view.js` accepts updates to `button.js`, Rspack replaces `button.js` and calls the callback in `view.js`. It does not replace `view.js` or `app.js`.
+- If only `app.js` accepts updates to `view.js`, Rspack replaces both `button.js` and `view.js`, then calls the callback in `app.js`.
+
+If there are multiple importers, every affected path must accept the update. By default, an update is aborted if a module declines it or it reaches an entry module without being accepted. The dev server can then fall back to a full page reload.
 
 ## Module API
+
+The following methods are supported by `module.hot` and `import.meta.webpackHot`.
 
 ### accept
 

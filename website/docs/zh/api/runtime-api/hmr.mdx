@@ -31,9 +31,28 @@ if (import.meta.webpackHot) {
 }
 ```
 
-`module.hot` 和 `import.meta.webpackHot` 支持以下方法。
+## 更新如何传播 \{#update-propagation}
+
+模块变化时，Rspack 会检查能否在不刷新页面的情况下应用更新。模块可以通过 `accept()` 接受自身更新，也可以由引用它的模块通过 `accept(dependency, callback)` 接受该依赖的更新。否则，更新会继续向引用它的模块传播。
+
+例如，三个模块的引用关系如下：
+
+```text
+app.js
+└── view.js
+    └── button.js
+```
+
+当 `button.js` 发生变化时：
+
+- 如果 `view.js` 接受 `button.js` 的更新，Rspack 会替换 `button.js` 并调用 `view.js` 中的回调，不会替换 `view.js` 或 `app.js`。
+- 如果只有 `app.js` 接受 `view.js` 的更新，Rspack 会替换 `button.js` 和 `view.js`，再调用 `app.js` 中的回调。
+
+如果一个模块被多处引用，每条受影响的引用路径都需要接受更新。默认情况下，如果某个模块拒绝更新，或更新传播到入口模块仍未被接受，本次更新就会中止。此时 dev server 可以回退为刷新整个页面。
 
 ## 模块 API
+
+`module.hot` 和 `import.meta.webpackHot` 支持以下方法。
 
 ### accept
 
