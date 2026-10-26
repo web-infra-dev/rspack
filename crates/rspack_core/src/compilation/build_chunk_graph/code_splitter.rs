@@ -479,7 +479,7 @@ impl CodeSplitter {
     &self,
     module: ModuleIdentifier,
     compilation: &Compilation,
-    stable_absence_allowed: bool,
+    accept_if_unreached: bool,
   ) -> bool {
     let module_block = DependenciesBlockIdentifier::Module(module);
     let current_blocks = compilation
@@ -595,21 +595,21 @@ impl CodeSplitter {
     }
 
     if !found_cached_root {
-      // With sideEffects in flag/disabled mode and usedExports disabled,
-      // side-effect state is local to the module and usage cannot flip edges.
-      // An unreachable module that was not rebuilt can become reachable only
-      // through an edge change on a module in the affected set, whose full
-      // check compares that edge. Previously chunked modules never qualify.
-      return stable_absence_allowed
-        && !self
-          .block_modules_runtime_map
-          .values()
-          .any(|blocks| blocks.contains_key(&module_block))
+      // No runtime reached this module last time (otherwise `found_cached_root`
+      // would be set). It was not rebuilt, and with side effects not analysed and
+      // usage off, its incoming edge states depend only on itself and its
+      // importers. It can enter a chunk only through a changed edge on a reachable
+      // importer, and an affected importer gets the full check above. Edges with no
+      // origin module (entries, includes) are never checked, so reject those.
+      return accept_if_unreached
         && compilation
           .build_chunk_graph_artifact
           .chunk_graph
           .get_number_of_module_chunks(module)
-          == 0;
+          == 0
+        && module_graph
+          .get_incoming_connections(&module)
+          .all(|connection| connection.original_module_identifier.is_some());
     }
 
     true

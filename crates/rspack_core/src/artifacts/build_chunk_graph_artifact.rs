@@ -15,6 +15,8 @@ use crate::{
   incremental::{IncrementalPasses, Mutation},
 };
 
+// Analysed side effects and export usage can switch an import edge without
+// rebuilding either end, so the stable-absence rule is off for them.
 fn can_reuse_stably_absent_modules(compilation: &Compilation) -> bool {
   !compilation.options.optimization.side_effects.is_true()
     && !compilation.options.optimization.used_exports.is_enable()
