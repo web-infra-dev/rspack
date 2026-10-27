@@ -27,8 +27,6 @@ export default {
 
 详见 [模块热替换 API](/api/runtime-api/hmr)。
 
-对于内置 CSS 支持，热更新会保留样式表 link 的 `media`、`title`、自定义 `data-*` 等属性，以及样式表的启用或禁用状态。替换后的 link 优先使用当前 runtime 的 nonce，未设置时保留原有 nonce。URL 和内部加载标记会重新生成，旧的 `integrity`、`onload` 和 `onerror` 属性不会复制。
-
 ## React Fast Refresh
 
 为了在 React 项目中启用 Fast Refresh 能力，你还需要使用 [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) 插件。

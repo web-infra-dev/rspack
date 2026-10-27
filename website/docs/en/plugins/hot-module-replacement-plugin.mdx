@@ -27,8 +27,6 @@ When you register the `HotModuleReplacementPlugin` plugin, Rspack will inject HM
 
 See [HMR API](/api/runtime-api/hmr) for more details.
 
-For built-in CSS, hot updates preserve stylesheet link attributes such as `media`, `title`, and custom `data-*` attributes, as well as the stylesheet's enabled or disabled state. The replacement uses the current runtime nonce when available, otherwise it preserves the original nonce. The URL and internal loading markers are regenerated; stale `integrity`, `onload`, and `onerror` attributes are not copied.
-
 ## React Fast Refresh
 
 To enable Fast Refresh in React projects, you also need to use the [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) plugin.

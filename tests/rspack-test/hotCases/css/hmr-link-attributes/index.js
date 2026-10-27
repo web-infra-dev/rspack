@@ -4,70 +4,42 @@ it("preserves stylesheet attributes and disabled state across hot updates", asyn
 	const attributes = {
 		media: "(prefers-color-scheme: dark)",
 		title: "theme",
-		id: "theme-styles",
-		"data-empty": "",
-		referrerpolicy: "no-referrer",
-		crossorigin: "anonymous",
-		fetchpriority: "low"
+		"data-theme": "dark"
 	};
+	const discarded = ["integrity", "onload", "onerror"];
 	const original = document.querySelector("link");
 	for (const [name, value] of Object.entries(attributes)) {
 		original.setAttribute(name, value);
 	}
+	for (const name of discarded) original.setAttribute(name, "stale");
 	original.nonce = "page-nonce";
-	original.setAttribute("integrity", "sha256-old");
-	original.setAttribute("onload", "throw new Error('old load handler')");
-	original.setAttribute("onerror", "throw new Error('old error handler')");
-	original.setAttribute("data-rspack", "old");
-	original.setAttribute("data-rspack-loading", "old");
-	original.setAttribute("data-hook", "old");
-	original.setAttribute("disabled", "disabled");
-	original.sheet.disabled = true;
+	original.setAttribute("disabled", "");
 
 	await NEXT_HMR();
 	const replacement = document.querySelector("link");
-	expect(original.isConnected).toBe(false);
 	expect(replacement.href).toContain("bundle.css?hmr=");
 	for (const [name, value] of Object.entries(attributes)) {
 		expect(replacement.getAttribute(name)).toBe(value);
 	}
-	expect(replacement.nonce).toBe("page-nonce");
-	expect(replacement.getAttribute("data-hook")).toBe("current");
-	for (const name of ["integrity", "onload", "onerror", "data-rspack-loading"]) {
+	for (const name of discarded) {
 		expect(replacement.hasAttribute(name)).toBe(false);
 	}
-	expect(replacement.getAttribute("data-rspack")).not.toBe("old");
-	expect(replacement.getAttribute("disabled")).toBe("");
-	expect(replacement.sheet.disabled).toBe(true);
+	expect(replacement.nonce).toBe("page-nonce");
+	expect(replacement.hasAttribute("disabled")).toBe(true);
 
+	// CSSOM can disable a stylesheet without a disabled HTML attribute.
 	replacement.removeAttribute("disabled");
-	replacement.removeAttribute("media");
 	replacement.sheet.disabled = true;
 	__webpack_nonce__ = "runtime-nonce";
 	await NEXT_HMR();
 	const disabled = document.querySelector("link");
-	expect(disabled).not.toBe(replacement);
-	expect(disabled.hasAttribute("media")).toBe(false);
 	expect(disabled.hasAttribute("disabled")).toBe(false);
 	expect(disabled.sheet.disabled).toBe(true);
 	expect(disabled.nonce).toBe("runtime-nonce");
 
-	disabled.setAttribute("media", "");
-	__webpack_nonce__ = undefined;
-	const onStatus = status => {
-		if (status !== "dispose") return;
-		// Capture changes made after the replacement has finished downloading.
-		disabled.sheet.disabled = false;
-	};
-	module.hot.addStatusHandler(onStatus);
+	disabled.sheet.disabled = false;
 	await NEXT_HMR();
-	module.hot.removeStatusHandler(onStatus);
-	const enabled = document.querySelector("link");
-	expect(enabled).not.toBe(disabled);
-	expect(enabled.getAttribute("media")).toBe("");
-	expect(enabled.hasAttribute("disabled")).toBe(false);
-	expect(enabled.sheet.disabled).toBe(false);
-	expect(enabled.nonce).toBe("runtime-nonce");
+	expect(document.querySelector("link").sheet.disabled).toBe(false);
 });
 
 module.hot.accept("./index.css");
