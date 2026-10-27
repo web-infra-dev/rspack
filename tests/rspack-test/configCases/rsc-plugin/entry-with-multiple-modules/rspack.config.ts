@@ -5,7 +5,10 @@ import { experiments } from '@rspack/core';
 const { createPlugins, Layers } = experiments.rsc;
 const { ServerPlugin, ClientPlugin } = createPlugins();
 
-const polyfillEntry = path.join(import.meta.dirname, 'src/framework/polyfill.js');
+const polyfillEntry = path.join(
+  import.meta.dirname,
+  'src/framework/polyfill.js',
+);
 const ssrEntry = path.join(import.meta.dirname, 'src/framework/entry.ssr.js');
 const rscEntry = path.join(import.meta.dirname, 'src/framework/entry.rsc.js');
 
