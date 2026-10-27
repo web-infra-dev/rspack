@@ -15,6 +15,15 @@ An error such as `ChunkLoadError` means an async chunk could not be loaded, but 
 - **Network failure:** For a timeout, connection failure, or server error, check the network connection and whether the server or CDN is available.
 - **Browser extension blocking the request:** Temporarily disable ad blockers or other request-blocking extensions and try again to check whether they caused the failure.
 
+### `ChunkLoadError` with an HTTP 200 response
+
+When JavaScript chunks are loaded through `<script>` tags, as in the default browser setup, an HTTP 200 response does not guarantee that the expected chunk is available. The script must also run and provide that chunk to Rspack.
+
+If the script finishes loading without providing the expected chunk, `ChunkLoadError` has `type: 'missing'`. The `request` property contains the requested script URL. Use it to locate the request in the Network panel, then check:
+
+- **Response content:** Confirm that the server or CDN returned the expected JavaScript file, rather than HTML, an empty response, or a file from another build.
+- **Earlier errors:** Look for syntax or execution errors in the Console that could have prevented the script from providing the chunk to Rspack.
+
 ### `ChunkLoadError` after deployment
 
 A common scenario is that a user opens a page, a new application version is deployed, and the user keeps the page open without refreshing. The page still runs the old code. If the user then navigates to a route loaded through `import()`, it requests chunks from the old version, which may have been deleted during deployment.
