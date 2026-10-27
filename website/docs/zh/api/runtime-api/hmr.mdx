@@ -190,9 +190,9 @@ if (import.meta.webpackHot) {
 
 #### 用例
 
-**按条件接受依赖更新**
+**无法处理依赖更新时**
 
-一个模块可以接受一个依赖，但是当依赖的改变无法处理时，可以调用 `invalidate`：
+在 `accept()` 回调中，如果发现无法处理依赖的更新，可以调用 `invalidate()`，将更新交给引用当前模块的模块处理：
 
 ```js
 import { x, y } from './dep';
@@ -214,9 +214,9 @@ module.hot.accept('./dep', () => {
 });
 ```
 
-**按条件接受自身更新**
+**无法处理自身更新时**
 
-模块可以接受自身更新，并在无法处理更新时调用 `invalidate()`：
+接受自身更新的模块也可以在执行新代码时调用 `invalidate()`，将无法处理的更新交给引用它的模块：
 
 ```js
 const VALUE = 'constant';
@@ -251,13 +251,13 @@ if (require.cache[moduleId]) {
 
 :::tip
 
-应用更新时，[`dispose`](#dispose或-adddisposehandler) 回调可以将状态保存到 `data` 参数中，供更新后的模块通过 `module.hot.data` 读取。如果没有注册回调，该对象为空。
+在 [`dispose`](#dispose或-adddisposehandler) 回调中，把需要保留的数据写入 `data` 对象。更新后的模块可以通过 `module.hot.data` 读取这些数据。没有注册回调时，`module.hot.data` 是一个空对象。
 
 :::
 
 :::warning
 
-避免在模块每次执行时都无条件调用 `invalidate()`，否则可能反复触发更新，导致 HMR 无法完成。
+不要在模块每次执行时都调用 `invalidate()`。否则，一次热更新可能又触发下一次热更新，形成循环。
 
 :::
 

@@ -190,9 +190,9 @@ When called during the `dispose` or `apply` state, HMR will pick it up after get
 
 #### Use cases
 
-**Conditional accepting**
+**When a dependency update cannot be handled**
 
-A module can accept a dependency, but can call `invalidate` when the change of the dependency is not handleable:
+Inside an `accept()` callback, call `invalidate()` if the current module cannot handle the dependency's update. This lets modules that import the current module handle the update:
 
 ```js
 import { x, y } from './dep';
@@ -214,9 +214,9 @@ module.hot.accept('./dep', () => {
 });
 ```
 
-**Conditional self accept**
+**When a module cannot handle its own update**
 
-A module can self-accept itself, but can invalidate itself when the change is not handleable:
+A module that accepts its own updates can also call `invalidate()` while running its new code, so that modules importing it can handle the update:
 
 ```js
 const VALUE = 'constant';
@@ -251,13 +251,13 @@ if (require.cache[moduleId]) {
 
 :::tip
 
-When the update is applied, [`dispose`](#dispose-or-adddisposehandler) handlers can save state in their `data` argument. The updated module reads it from `module.hot.data`, which is an empty object if no handler was registered.
+In a [`dispose`](#dispose-or-adddisposehandler) callback, write any data you want to keep to the `data` object. The updated module can read that data from `module.hot.data`. If no callback is registered, `module.hot.data` is an empty object.
 
 :::
 
 :::warning
 
-Avoid calling `invalidate()` unconditionally every time the module runs. This can repeatedly trigger updates and prevent HMR from completing.
+Do not call `invalidate()` every time the module runs. Doing so can make each hot update trigger another, creating an update loop.
 
 :::
 
