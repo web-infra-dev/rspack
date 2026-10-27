@@ -1,6 +1,6 @@
 export { createBuiltinCase } from './builtin';
 export type { TCacheCaseOptions } from './cache';
-export { createCacheCase } from './cache';
+export { createCacheCase, getCacheStats } from './cache';
 export type { TCompilerCaseConfig } from './compiler';
 export { createCompilerCase } from './compiler';
 export type { TConfigCaseConfig } from './config';

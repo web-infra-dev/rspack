@@ -382,7 +382,9 @@ function enableNewCache(context: ITestContext, temp: string) {
   }
 }
 
-function getCacheStats(stats: Stats | MultiStats): Promise<CacheStats[]> {
+export function getCacheStats(
+  stats: Stats | MultiStats,
+): Promise<CacheStats[]> {
   return Promise.all(
     ('stats' in stats ? stats.stats : [stats]).map(async (stats) => {
       const cacheStats = cacheStatsByCompilation.get(stats.compilation);
