@@ -172,7 +172,7 @@ Large real-world project:
 | Peak memory for warm build  |    7.67 GiB |    8.23 GiB |  +7.3% |
 | Disk cache after warm build | 3895.98 MiB | 1092.08 MiB | -72.0% |
 
-In these tests, `newCache` reduces cache size by around 75% and lowers cache write overhead. Warm builds take longer in both tests, mainly due to a change in the caching strategy for the `make` phase: the previous implementation caches the entire module graph, while `newCache` caches individual modules and rebuilds their dependency relationships. Rebuilding the module graph adds overhead, but makes it easier to ensure build correctness when caching is enabled. In the other stages, the caching strategy remains unchanged, and `newCache` delivers a noticeable performance improvement.
+In these tests, `newCache` reduces cache size by around 75% and lowers cache write overhead. Its finer-grained module caching makes the `make` phase slower because dependency relationships must be rebuilt instead of restoring the entire module graph. Other stages become faster and offset part of this overhead, so total warm build time increases only modestly. This tradeoff avoids restoring complex graph state and makes cache correctness easier to maintain.
 
 We will continue to optimize warm build performance and memory usage and plan to replace the previous implementation with `newCache` in a future minor release.
 
