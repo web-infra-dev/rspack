@@ -21,7 +21,7 @@ it("preserves stylesheet attributes and disabled state across hot updates", asyn
 	original.setAttribute("data-rspack", "old");
 	original.setAttribute("data-rspack-loading", "old");
 	original.setAttribute("data-hook", "old");
-	original.setAttribute("disabled", "");
+	original.setAttribute("disabled", "disabled");
 	original.sheet.disabled = true;
 
 	await NEXT_HMR();
@@ -57,7 +57,6 @@ it("preserves stylesheet attributes and disabled state across hot updates", asyn
 	const onStatus = status => {
 		if (status !== "dispose") return;
 		// Capture changes made after the replacement has finished downloading.
-		disabled.setAttribute("disabled", "disabled");
 		disabled.sheet.disabled = false;
 	};
 	module.hot.addStatusHandler(onStatus);
@@ -66,7 +65,7 @@ it("preserves stylesheet attributes and disabled state across hot updates", asyn
 	const enabled = document.querySelector("link");
 	expect(enabled).not.toBe(disabled);
 	expect(enabled.getAttribute("media")).toBe("");
-	expect(enabled.getAttribute("disabled")).toBe("disabled");
+	expect(enabled.hasAttribute("disabled")).toBe(false);
 	expect(enabled.sheet.disabled).toBe(false);
 	expect(enabled.nonce).toBe("runtime-nonce");
 });

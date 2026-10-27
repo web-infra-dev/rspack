@@ -4,11 +4,10 @@
 	return {
 		apply: <%- basicFunction("") %> {
 			while (cssNewTags.length) {
-				var entry = cssNewTags.pop(), link = entry.link, oldTag = entry.oldTag, sheet = link.sheet;
+				var entry = cssNewTags.pop(), link = entry.link, oldTag = entry.oldTag;
 				// Read the latest state before removing the old link. Keep downloads enabled until apply.
-				var disabledAttribute = oldTag && oldTag.getAttribute("disabled");
-				if (disabledAttribute != null) link.setAttribute("disabled", disabledAttribute);
-				sheet.disabled = !!(oldTag && oldTag.sheet ? oldTag.sheet.disabled : disabledAttribute != null);
+				if (oldTag && oldTag.hasAttribute("disabled")) link.setAttribute("disabled", "");
+				else link.sheet.disabled = !!(oldTag && oldTag.sheet && oldTag.sheet.disabled);
 			}
 			while (cssOldTags.length) {
 				var oldTag = cssOldTags.pop();

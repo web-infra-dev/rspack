@@ -1,8 +1,8 @@
 link = document.createElement("link");
 <% if (_with_hmr) { %>
 // Browsers may hide the nonce attribute while retaining its property.
-var nonce = <%- weak(SCRIPT_NONCE) %> || (hmr ? hmr.nonce || hmr.getAttribute("nonce") : null);
-if (nonce != null) link.setAttribute("nonce", nonce);
+var nonce = <%- weak(SCRIPT_NONCE) %> || (hmr && hmr.nonce);
+if (nonce) link.setAttribute("nonce", nonce);
 <% } else { %>
 if (<%- weak(SCRIPT_NONCE) %>) {
   link.setAttribute("nonce", <%- weak(SCRIPT_NONCE) %>);
