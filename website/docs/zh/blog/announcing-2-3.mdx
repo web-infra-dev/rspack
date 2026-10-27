@@ -321,44 +321,57 @@ CSS 中的 `@import`、`url()` 和 `image-set()` 也支持 `rspackIgnore` 和 `w
 
 ### Rsbuild \{#rsbuild}
 
-Rsbuild 2.3 已与 Rspack 2.3 同步发布。
+Rsbuild 在产物体积、项目创建和开发体验等方面带来了多项更新。
 
 #### 默认启用 compact-hashed ID \{#rsbuild-compact-hashed}
 
-Rsbuild 的生产构建现在默认使用 `compact-hashed` 模块和 chunk ID 策略。相比 `deterministic`，该策略可进一步缩小产物体积，JavaScript 产物和 gzip 压缩后的体积分别减少约 0.3% 和 0.9%。Rsbuild 2.3 还修复了 chunk 名称冲突和 hash key 前缀耗尽等边界场景。
+Rspack 2.2.0 引入了 [`compact-hashed` ID](/zh/blog/announcing-2-2#compact-hashed-ids)，通过生成更短的模块和 chunk ID 减小产物体积，同时保持 ID 稳定。Rsbuild 现在在生产构建中默认启用这一策略。
 
-#### 文件体积报告增强 \{#rsbuild-stats}
+#### 更好的文件体积报告 \{#rsbuild-stats}
 
-Rsbuild 优化了统计开销，并增强了文件体积报告：
+如今，主流浏览器普遍支持压缩传输，服务器或 CDN 通常会在传输前压缩文本资源。报告压缩后的文件体积，可以更接近用户实际下载的数据量，帮助评估页面加载体验。
 
-- 支持统计 Brotli 压缩体积，并可配置 gzip 和 Brotli 的压缩等级。
-- 统计压缩体积时不再缓存完整的压缩结果，减少内存占用。
-- 限制多环境之间的压缩并发，并复用资源 Buffer，减少额外的读取和复制。
-- 在 emit 阶段计算体积，修正统计时机；仅显示总计时，也能正确显示压缩体积的变化。
+Rsbuild 的文件体积报告支持统计 Brotli 压缩体积，并可配置 gzip 或 Brotli 的压缩等级，方便根据部署环境估算传输体积。体积统计的内存和计算开销也有所降低。
 
-#### TanStack Start 模板 \{#rsbuild-tanstack-start}
+[`performance.printFileSize.detail`](https://rsbuild.rs/zh/config/performance/print-file-size#detail) 还支持设置数字，只显示每个环境中体积最大的指定数量的文件，方便在产物较多时关注重点。例如，显示最大的 20 个文件，并统计 Brotli 体积：
 
-`create-rsbuild` 新增 [TanStack Start](https://tanstack.com/start) 模板，同时支持 React 和 Solid 两种变体：
-
-```bash
-npx -y create-rsbuild@latest my-app -t tanstack-start-ts
-```
-
-#### Lynx 框架支持 \{#rsbuild-lynx}
-
-Rsbuild 新增 [Lynx](https://lynxjs.org/) 框架选项，支持构建 Lynx 跨平台应用：
-
-```js title="rsbuild.config.ts"
+```ts title="rsbuild.config.ts"
 export default {
-  environments: {
-    lynx: {
-      output: {
-        target: 'lynx',
-      },
+  performance: {
+    printFileSize: {
+      detail: 20,
+      compressed: { type: 'brotli', level: 5 },
     },
   },
 };
 ```
+
+#### 改进的项目模板 \{#rsbuild-project-templates}
+
+<span id="rsbuild-tanstack-start" />
+
+[TanStack Start](https://tanstack.com/blog/start-adds-rsbuild-support) 已支持使用 Rsbuild 构建。现在，你也可以通过 `create-rsbuild` 创建 TanStack Start 项目，支持 React 和 Solid。例如，创建 React 项目：
+
+```bash
+npx -y create-rsbuild@latest my-app -t tanstack-start-react
+```
+
+<span id="rsbuild-lynx" />
+
+`create-rsbuild` 新增了 [Lynx](https://lynxjs.org/) 选项，会调用 `@lynx-js/create-lynx` 创建基于 Rsbuild 的 ReactLynx 项目，方便快速开始跨平台应用开发。例如，创建 TypeScript 项目：
+
+```bash
+npx -y create-rsbuild@latest my-app -t lynx-ts
+```
+
+#### 其他改进 \{#rsbuild-other}
+
+- **Web Worker**：`output.target: 'web-worker'` 支持配合 [`output.module: true`](https://rsbuild.rs/zh/config/output/module#web-workers) 生成 ES 模块格式的 worker 产物，适用于模块化 Worker 和相关运行时。
+- **Host 校验**：通过 [`server.allowedHosts`](https://rsbuild.rs/zh/config/server/allowed-hosts) 可以限制开发服务器和预览服务器允许访问的主机名。该校验默认关闭，需要显式配置。
+- **预览服务器**：新增 [`onClosePreviewServer`](https://rsbuild.rs/zh/plugins/dev/hooks#onclosepreviewserver) hook，方便插件在预览服务器关闭时清理资源。
+- **插件转换**：[`api.transform`](https://github.com/web-infra-dev/rsbuild/pull/8722) 支持 `codeFilter`，插件可以根据代码内容跳过不必要的转换。
+
+完整改动可查看 [Rsbuild 变更记录](https://github.com/web-infra-dev/rsbuild/compare/v2.2.0...main)。
 
 ### Rslib \{#rslib}
 
