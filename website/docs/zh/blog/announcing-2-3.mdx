@@ -42,7 +42,7 @@ _2026 年 10 月 27 日_
 
 <BlogAuthors />
 
-Rspack 2.3 现已发布！本次更新将 JavaScript 解析器迁移至 SWC Next，支持按代码内容过滤 loader，并优化了缓存、chunk 拆分、文件监听和内存占用。
+Rspack 2.3 现已发布！本次更新将 JavaScript 解析器迁移至 SWC Next，优化了构建性能和产物体积，降低了内存占用，改进了实验性缓存，支持按代码内容过滤 loader，并完善了内置 CSS 和文件监听能力。
 
 ---
 
@@ -97,7 +97,7 @@ Rspack 持续改进开发和构建性能，优化模块处理、缓存和 HMR �
 
 - 新增 [`splitChunks.dedupDepth`](/zh/plugins/split-chunks-plugin#splitchunksdedupdepth)，识别不同页面和入口之间更多可提取的共享模块组合，减少重复打包。该优化在生产模式下默认启用（`dedupDepth: 1`）。
 - 支持 [`splitChunks.minRemainingSize`](/zh/plugins/split-chunks-plugin#splitchunksminremainingsize)，拆分代码时尽量避免留下过小的输出文件，有助于减少不必要的文件请求，同时让产物行为与 webpack 保持一致。
-- 当为共享代码指定名称时，改进后的去重逻辑能减少其他输出文件中残留的重复模块。
+- 当通过 [`splitChunks.name`](/zh/plugins/split-chunks-plugin#splitchunksname) 指定 chunk 名称时，改进后的去重逻辑能减少其他输出文件中残留的重复模块。
 
 以下是两个大型真实项目在启用 `dedupDepth: 1` 前后的构建产物 Brotli 压缩体积对比：
 
@@ -172,7 +172,7 @@ React 10k：
 | 热构建峰值内存     |    7.67 GiB |    8.23 GiB |  +7.3% |
 | 热构建后的磁盘缓存 | 3895.98 MiB | 1092.08 MiB | -72.0% |
 
-在上述测试中，`newCache` 将缓存体积减少了约 75%，也降低了缓存写入开销。两组测试的热构建耗时有所增加，主要是由于 `make` 阶段的缓存策略发生了变化：旧实现缓存整个模块图，而 `newCache` 只缓存模块，需要重新构建模块之间的依赖关系。重新建图带来了额外开销，但基于当前依赖重建模块图，也更容易保证模块图的正确性。在缓存内容保持不变的其他阶段，`newCache` 则有明显的性能提升。
+在上述测试中，`newCache` 将缓存体积减少了约 75%，也降低了缓存写入开销。两组测试的热构建耗时有所增加，主要是由于 `make` 阶段的缓存策略发生了变化：旧实现缓存整个模块图，而 `newCache` 只缓存模块，需要重新构建模块之间的依赖关系。重新构建模块图虽然带来了额外开销，但也更容易保证启用缓存时构建结果的正确性。在其他阶段，缓存策略与之前相同，`newCache` 带来了明显的性能提升。
 
 我们会持续优化热构建性能和内存占用，并计划在后续 minor 版本中用 `newCache` 替换旧实现。
 
@@ -315,11 +315,9 @@ CSS 中的 `@import`、`url()` 和 `image-set()` 也支持 `rspackIgnore` 和 `w
 
 - **WebAssembly**：新增 [`output.wasmStreamingFallback`](/zh/config/output#outputwasmstreamingfallback)，支持关闭非流式加载回退。
 - **模块产物**：改善对 CommonJS、ESM 和延迟导入的支持。
-- **构建与缓存**：改进构建失败后的恢复流程，以及 Windows 上的缓存使用体验。
 - **HTTP 导入**：[`experiments.buildHttp`](/zh/config/experiments#experimentsbuildhttp) 加强了冻结构建中的资源完整性校验。
 - **模块联邦**：修复共享模块和 manifest 相关问题。
 - **CLI**：减少默认日志输出，优化启动体验；`create-rspack` 现在会显示当前版本。
-- **React Compiler**：修复处理长表达式时的崩溃问题；HTML 压缩也会保留相邻脚本各自的执行边界。
 
 完整改动请查看 [2.2.0 至 2.3.0 的版本对比](https://github.com/web-infra-dev/rspack/compare/v2.2.0...v2.3.0)和 [GitHub Release Notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.3.0)。
 

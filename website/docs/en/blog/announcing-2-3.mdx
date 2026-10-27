@@ -42,7 +42,7 @@ _October 27, 2026_
 
 <BlogAuthors />
 
-Rspack 2.3 is now available! This release moves the JavaScript parser to SWC Next, adds support for filtering loaders by code content, and improves caching, chunk splitting, file watching, and memory usage.
+Rspack 2.3 is now available! This release moves the JavaScript parser to SWC Next, improves build performance, reduces output size and memory usage, enhances experimental caching, adds support for filtering loaders by code content, and improves built-in CSS and file watching.
 
 ---
 
@@ -97,7 +97,7 @@ To reduce duplication, Rspack 2.3 introduces several optimizations that produce 
 
 - The new [`splitChunks.dedupDepth`](/plugins/split-chunks-plugin#splitchunksdedupdepth) option identifies more combinations of shared modules across pages and entry points, helping reduce duplicate code. It is enabled by default in production mode (`dedupDepth: 1`).
 - Support for [`splitChunks.minRemainingSize`](/plugins/split-chunks-plugin#splitchunksminremainingsize) helps avoid leaving very small output files when splitting code. This can reduce unnecessary file requests and aligns Rspack's behavior with webpack.
-- When shared code is given a custom name, improved deduplication reduces duplicate modules left in other output files.
+- When a chunk is named with [`splitChunks.name`](/plugins/split-chunks-plugin#splitchunksname), improved deduplication reduces duplicate modules left in other output files.
 
 The following table compares the Brotli-compressed output sizes of two large real-world projects before and after enabling `dedupDepth: 1`:
 
@@ -172,7 +172,7 @@ Large real-world project:
 | Peak memory for warm build  |    7.67 GiB |    8.23 GiB |  +7.3% |
 | Disk cache after warm build | 3895.98 MiB | 1092.08 MiB | -72.0% |
 
-In these tests, `newCache` reduces cache size by around 75% and lowers cache write overhead. Warm builds take longer in both tests, mainly due to a change in the caching strategy for the `make` phase: the previous implementation caches the entire module graph, while `newCache` caches individual modules and rebuilds their dependency relationships. Rebuilding the graph adds overhead, but using the current dependencies also makes it easier to ensure the graph is correct during rebuilds. In other phases where the cached content remains unchanged, `newCache` provides a noticeable performance improvement.
+In these tests, `newCache` reduces cache size by around 75% and lowers cache write overhead. Warm builds take longer in both tests, mainly due to a change in the caching strategy for the `make` phase: the previous implementation caches the entire module graph, while `newCache` caches individual modules and rebuilds their dependency relationships. Rebuilding the module graph adds overhead, but makes it easier to ensure build correctness when caching is enabled. In the other stages, the caching strategy remains unchanged, and `newCache` delivers a noticeable performance improvement.
 
 We will continue to optimize warm build performance and memory usage and plan to replace the previous implementation with `newCache` in a future minor release.
 
@@ -315,11 +315,9 @@ This release adds or improves the following capabilities for plugin and loader a
 
 - **WebAssembly**: Added [`output.wasmStreamingFallback`](/config/output#outputwasmstreamingfallback) to allow disabling fallback to non-streaming loading.
 - **Module output**: Improved support for CommonJS, ESM, and deferred imports.
-- **Builds and caching**: Improved recovery after build failures and the caching experience on Windows.
 - **HTTP imports**: [`experiments.buildHttp`](/config/experiments#experimentsbuildhttp) now performs stronger resource integrity checks in frozen builds.
 - **Module Federation**: Fixed issues involving shared modules and manifests.
 - **CLI**: Reduced default log output and improved startup; `create-rspack` now displays its current version.
-- **React Compiler**: Fixed a crash when processing long expressions. HTML minification also preserves the execution boundaries between adjacent scripts.
 
 See the [version comparison from 2.2.0 to 2.3.0](https://github.com/web-infra-dev/rspack/compare/v2.2.0...v2.3.0) and the [GitHub release notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.3.0) for the full list of changes.
 
