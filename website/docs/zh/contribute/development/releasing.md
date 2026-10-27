@@ -82,9 +82,9 @@ git push origin release/vx.y.z
 
 4. 创建一个 PR，标题为 `chore: release v1.0.0`。
 5. 执行 [Ecosystem CI 工作流](https://github.com/web-infra-dev/rspack/actions/workflows/ecosystem-ci.yml)，确保所有生态项目都能正常工作。
-6. 在 release 分支上执行全量发布工作流：
-   - [Release Full](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml): 发布 npm 包到 registry
-   - [Release Crates](https://github.com/web-infra-dev/rspack/actions/workflows/release-crates.yml): 发布 Rust crates 到 crates.io
+6. 在 release 分支上执行 [Release Full 工作流](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml)，发布内容由以下选项控制，默认均已开启：
+   - `release_npm`: 发布 npm 包到 registry
+   - `release_crates`: 发布 Rust crates 到 crates.io
 7. 发布完成后，合并 PR 到 `main` 分支。
 8. 使用 `create-draft-release-notes` skill 创建 GitHub [release note](https://github.com/web-infra-dev/rspack/releases) 草稿。
 9. 检查 release note 草稿，可选补充 release highlights，然后发布。

@@ -16,8 +16,7 @@ use tokio::sync::OnceCell;
 
 use crate::{
   ChunkUkey, CodeGenerationResultBuilder, Compilation, Module, ModuleCodeGenerationContext,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType,
-  runtime_mode::RuntimeMode,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeTemplate, SourceType, runtime_mode::RuntimeMode,
 };
 
 pub struct RuntimeModuleGenerateContext<'a> {
@@ -202,7 +201,6 @@ pub async fn runtime_module_get_runtime_hash(
   module: &dyn RuntimeModule,
   common: &RuntimeModuleCommon,
   compilation: &Compilation,
-  _runtime: Option<&RuntimeSpec>,
 ) -> Result<RspackHashDigest> {
   let mut hasher = RspackHasher::from(&compilation.options.output);
   module.name().hash(&mut hasher);

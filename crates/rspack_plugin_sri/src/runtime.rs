@@ -160,7 +160,6 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
             },
             chunk_with_source_type,
             &self.hash_funcs,
-            compilation
           ),
         ));
       }
@@ -183,7 +182,6 @@ fn generate_sri_hash_placeholders(
   asset_type: ManifestAssetType,
   chunks: Vec<&ChunkId>,
   hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
-  _compilation: &Compilation,
 ) -> String {
   format!(
     "{{{}}}",

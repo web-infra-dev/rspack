@@ -396,7 +396,7 @@ impl Module for NormalModule {
     Cow::Owned(context.shorten(self.user_request()))
   }
 
-  fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, source_type: Option<&SourceType>) -> f64 {
     if let Some(source_type) = source_type {
       // Fast-path: lock-free builtin slots / tiny fallback map for custom source types.
       if let Some(size) = self.cached_source_sizes.get(source_type) {

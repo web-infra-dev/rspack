@@ -3,6 +3,7 @@ description          = "Compiler driver for Rspack allocative instrumentation"
 edition.workspace    = true
 license.workspace    = true
 name                 = "rspack_allocative_driver"
+publish              = false
 repository.workspace = true
 version.workspace    = true
 

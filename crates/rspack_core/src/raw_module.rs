@@ -101,7 +101,7 @@ impl Module for RawModule {
     Cow::Borrowed(&self.readable_identifier)
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     f64::max(1.0, self.source_str.len() as f64)
   }
 
