@@ -38,3 +38,19 @@ If you use a framework or router, first check whether it already provides a way 
 For this to work, the browser must be able to fetch updated HTML on refresh. If a cache keeps returning old HTML, the page may load the old code again and continue requesting the same deleted files.
 
 Network failures or an incorrect asset URL can also cause chunk loading errors, and refreshing does not necessarily fix them. Automatically refreshing after every failure can leave the page repeatedly reloading without recovering.
+
+## Automatic publicPath cannot be determined
+
+With `output.publicPath: 'auto'`, Rspack reads the current script's URL to determine where to load other assets. If that URL is unavailable, it throws `Automatic publicPath is not supported in this browser`.
+
+In this case, set the asset address explicitly with `output.publicPath`. For example, to load files such as `/assets/main.js` and `/assets/logo.png`, use:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    publicPath: '/assets/',
+  },
+};
+```
+
+Replace `/assets/` with the path used by your application, or a full CDN URL. See [Asset base path](/guide/features/asset-base-path) for more examples.
