@@ -251,7 +251,7 @@ if (require.cache[moduleId]) {
 
 :::tip
 
-In a [`dispose`](#dispose-or-adddisposehandler) callback, write any data you want to keep to the `data` object. The updated module can read that data from `module.hot.data`. If no callback is registered, `module.hot.data` is an empty object.
+In a [`dispose`](#dispose-or-adddisposehandler) callback, write any data you want to keep to the `data` object. The updated module can read that data from `module.hot.data`. On the module's first execution, `module.hot.data` is `undefined`. After an update, it is an empty object if the previous version did not register a dispose callback.
 
 :::
 

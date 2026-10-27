@@ -237,7 +237,7 @@ if (
 }
 ```
 
-**触发自定义热更新**
+**Triggering custom HMR updates**
 
 ```js
 const moduleId = chooseAModule();
@@ -251,7 +251,7 @@ if (require.cache[moduleId]) {
 
 :::tip
 
-在 [`dispose`](#dispose或-adddisposehandler) 回调中，把需要保留的数据写入 `data` 对象。更新后的模块可以通过 `module.hot.data` 读取这些数据。没有注册回调时，`module.hot.data` 是一个空对象。
+在 [`dispose`](#dispose或-adddisposehandler) 回调中，把需要保留的数据写入 `data` 对象。更新后的模块可以通过 `module.hot.data` 读取这些数据。首次执行模块时，`module.hot.data` 为 `undefined`。热更新后，如果旧版本没有注册 dispose 回调，它就是一个空对象。
 
 :::
 
