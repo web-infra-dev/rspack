@@ -692,10 +692,16 @@ impl<'a> SourceMap<'a> {
 
   /// Generate source map to a json string.
   pub fn to_json(&self) -> String {
-    let mut writer = std::io::BufWriter::new(Vec::with_capacity(self.json_size_hint()));
-
-    simd_json::to_writer(&mut writer, self).expect("serialize source map JSON");
-    let buffer = writer.into_inner().expect("flush source map JSON to Vec");
+    let capacity = self.json_size_hint();
+    let mut buffer = Vec::with_capacity(capacity);
+    if capacity < 128 * 1024 {
+      simd_json::to_writer(&mut buffer, self).expect("serialize source map JSON");
+    } else {
+      // Buffer large maps to reduce the overhead of many small writes.
+      let mut writer = std::io::BufWriter::with_capacity(65536, buffer);
+      simd_json::to_writer(&mut writer, self).expect("serialize source map JSON");
+      buffer = writer.into_inner().expect("flush source map JSON to Vec");
+    }
 
     // SAFETY: simd_json always produces valid UTF-8 JSON
     #[allow(unsafe_code)]
