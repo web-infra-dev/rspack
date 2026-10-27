@@ -97,7 +97,7 @@ To reduce duplication, Rspack 2.3 introduces several optimizations that produce 
 
 - The new [`splitChunks.dedupDepth`](/plugins/split-chunks-plugin#splitchunksdedupdepth) option identifies more combinations of shared modules across pages and entry points, helping reduce duplicate code. It is enabled by default in production mode (`dedupDepth: 1`).
 - Support for [`splitChunks.minRemainingSize`](/plugins/split-chunks-plugin#splitchunksminremainingsize) helps avoid leaving very small output files when splitting code. This can reduce unnecessary file requests and aligns Rspack's behavior with webpack.
-- Improved deduplication for named cache groups reduces duplicate modules left in other output files when a shared chunk is named with [`splitChunks.cacheGroups.{cacheGroup}.name`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegroupname).
+- Improved [module deduplication during code splitting](/guide/optimization/code-splitting#modules-already-available-from-parents) helps reuse existing modules more effectively, reducing duplicate code in output files.
 
 The following table compares the Brotli-compressed output sizes of two large real-world projects before and after enabling `dedupDepth: 1`:
 

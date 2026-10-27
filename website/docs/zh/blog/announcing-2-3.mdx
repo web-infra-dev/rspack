@@ -97,7 +97,7 @@ Rspack 持续改进开发和构建性能，优化模块处理、缓存和 HMR �
 
 - 新增 [`splitChunks.dedupDepth`](/zh/plugins/split-chunks-plugin#splitchunksdedupdepth)，识别不同页面和入口之间更多可提取的共享模块组合，减少重复打包。该优化在生产模式下默认启用（`dedupDepth: 1`）。
 - 支持 [`splitChunks.minRemainingSize`](/zh/plugins/split-chunks-plugin#splitchunksminremainingsize)，拆分代码时尽量避免留下过小的输出文件，有助于减少不必要的文件请求，同时让产物行为与 webpack 保持一致。
-- 改进了具名 cache group 的模块去重。当通过 [`splitChunks.cacheGroups.{cacheGroup}.name`](/zh/plugins/split-chunks-plugin#splitchunkscachegroupscachegroupname) 指定共享 chunk 的名称时，可以减少其他输出文件中残留的重复模块。
+- 优化[代码拆分时的模块去重](/zh/guide/optimization/code-splitting#复用父级已经提供的模块)，更充分地复用已有模块，减少输出文件中的重复代码。
 
 以下是两个大型真实项目在启用 `dedupDepth: 1` 前后的构建产物 Brotli 压缩体积对比：
 
