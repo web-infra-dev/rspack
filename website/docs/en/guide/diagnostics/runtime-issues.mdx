@@ -41,9 +41,9 @@ Network failures or an incorrect asset URL can also cause chunk loading errors, 
 
 ## Automatic publicPath cannot be determined
 
-When `output.publicPath` is `'auto'`, Rspack uses the script's URL to determine where to load assets from. The error `Automatic publicPath is not supported in this browser` means that Rspack could not find a usable script URL in the current environment.
+With `output.publicPath: 'auto'`, Rspack reads the current script's URL to determine where to load other assets. If that URL is unavailable, it throws `Automatic publicPath is not supported in this browser`.
 
-Set `output.publicPath` to the URL prefix where your assets are served. For example, if they are served under `/assets/`:
+In this case, set the asset address explicitly with `output.publicPath`. For example, to load files such as `/assets/main.js` and `/assets/logo.png`, use:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -53,4 +53,4 @@ export default {
 };
 ```
 
-Use your application's actual asset path or CDN URL. See [Asset base path](/guide/features/asset-base-path) for more configuration examples.
+Replace `/assets/` with the path used by your application, or a full CDN URL. See [Asset base path](/guide/features/asset-base-path) for more examples.

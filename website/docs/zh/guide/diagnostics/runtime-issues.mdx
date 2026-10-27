@@ -41,9 +41,9 @@ description: '排查使用 Rspack 构建的应用在运行时遇到的问题，�
 
 ## 无法自动确定 publicPath \{#automatic-publicpath-cannot-be-determined}
 
-当 `output.publicPath` 为 `'auto'` 时，Rspack 会根据脚本的 URL 确定资源加载地址。出现 `Automatic publicPath is not supported in this browser` 错误，表示 Rspack 无法在当前环境中获取可用的脚本 URL。
+设置 `output.publicPath: 'auto'` 后，Rspack 会根据当前脚本的地址推导其他资源的加载地址。如果无法获取脚本地址，就会报出 `Automatic publicPath is not supported in this browser` 错误。
 
-将 `output.publicPath` 设置为资源的访问地址前缀即可。例如，资源部署在 `/assets/` 下时：
+此时，可以通过 `output.publicPath` 直接指定资源的加载地址。例如，资源的访问路径是 `/assets/main.js`、`/assets/logo.png` 时：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -53,4 +53,4 @@ export default {
 };
 ```
 
-请根据应用的实际部署位置填写资源路径或 CDN URL。更多配置示例请参阅[资源基础路径](/guide/features/asset-base-path)。
+请将 `/assets/` 替换为应用实际使用的路径，也可以填写完整的 CDN URL。更多示例请参阅[资源基础路径](/guide/features/asset-base-path)。
