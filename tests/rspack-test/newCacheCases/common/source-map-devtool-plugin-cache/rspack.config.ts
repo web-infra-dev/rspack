@@ -1,4 +1,5 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
+import { getCacheStats } from '@rspack/test-tools';
 
 const PLUGIN_NAME = 'rspack.SourceMapDevToolPlugin';
 
@@ -17,45 +18,28 @@ export default defineConfig({
   plugins: [
     definePlugin({
       apply(compiler) {
-        compiler.hooks.done.tap('SourceMapPersistentCacheTest', (stats) => {
-          const s = stats.toJson({
-            all: false,
-            logging: 'verbose',
-          });
+        compiler.hooks.done.tapPromise(
+          'SourceMapPersistentCacheTest',
+          async (stats) => {
+            const [cacheStats] = await getCacheStats(stats);
+            const { hits, misses } = cacheStats[PLUGIN_NAME];
 
-          const logEntries = s.logging?.[PLUGIN_NAME]?.entries ?? [];
-          const cacheLogEntry = logEntries.find(
-            (e) =>
-              e.type === 'cache' &&
-              e.message &&
-              e.message.startsWith('source map persistent cache:'),
-          );
-          expect(cacheLogEntry).toBeTruthy();
+            if (updateIndex === 0) {
+              expect(hits).toBe(0);
+              expect(misses).toBe(2);
+            }
+            if (updateIndex === 1) {
+              expect(hits).toBe(2);
+              expect(misses).toBe(0);
+            }
+            if (updateIndex === 2) {
+              expect(hits).toBe(1);
+              expect(misses).toBe(1);
+            }
 
-          const match = cacheLogEntry?.message.match(
-            /source map persistent cache: [\d.]+% \((\d+)\/(\d+)\)/,
-          );
-          expect(match).toBeTruthy();
-
-          const hits = parseInt(match![1], 10);
-          const total = parseInt(match![2], 10);
-          const misses = total - hits;
-
-          if (updateIndex === 0) {
-            expect(hits).toBe(0);
-            expect(misses).toBe(2);
-          }
-          if (updateIndex === 1) {
-            expect(hits).toBe(2);
-            expect(misses).toBe(0);
-          }
-          if (updateIndex === 2) {
-            expect(hits).toBe(1);
-            expect(misses).toBe(1);
-          }
-
-          updateIndex++;
-        });
+            updateIndex++;
+          },
+        );
       },
     }),
   ],

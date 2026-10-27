@@ -10,7 +10,7 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, CacheRecord, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
+  AssetInfo, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilerCompilation, Etag, Logger, Plugin,
   cache::{CachedExtractedComments, CachedMinimizeEntry},
   diagnostics::MinifyError,
@@ -301,7 +301,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         };
         if let Some(cached) = cached {
           if let Some(cache) = &new_cache {
-            cache.record(CacheRecord::Hit);
+            cache.record_reuse();
           } else if let Some(counter) = &minimize_cache_counter {
             counter.hit();
           }
@@ -321,9 +321,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           }
           return Ok(());
         }
-        if let Some(cache) = &new_cache {
-          cache.record(CacheRecord::Miss);
-        } else if cache_key.is_some() && let Some(counter) = &minimize_cache_counter {
+        if cache_key.is_some() && let Some(counter) = &minimize_cache_counter {
           counter.miss();
         }
         let input = original_source.source().into_string_lossy().into_owned();

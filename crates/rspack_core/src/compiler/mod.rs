@@ -272,24 +272,29 @@ impl Compiler {
   }
 
   fn report_cache_statistics(&self) {
-    if let Some(report) = self
-      .new_cache
-      .statistics_report(self.compilation.hash.as_ref().map(|hash| hash.encoded()))
-    {
-      self.new_cache.logger().log(report);
-    }
+    self.new_cache.report_statistics(
+      self
+        .compilation
+        .hash
+        .as_ref()
+        .map(|hash| hash.encoded())
+        .as_deref(),
+    );
   }
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
-    if self.new_cache.has_file_cache()
-      && let Some(restored) = self.get_cache("meta").get::<Meta>("state", None)
-    {
-      let current = self.compiler_context.dependency_id();
-      if current < restored.max_dependency_id {
-        self
-          .compiler_context
-          .set_dependency_id(restored.max_dependency_id);
+    self.new_cache.statistics().reset();
+    if self.new_cache.has_file_cache() {
+      let meta_cache = self.get_cache("meta");
+      if let Some(restored) = meta_cache.get::<Meta>("state", None) {
+        let current = self.compiler_context.dependency_id();
+        if current < restored.max_dependency_id {
+          self
+            .compiler_context
+            .set_dependency_id(restored.max_dependency_id);
+          meta_cache.record_reuse();
+        }
       }
     }
     // TODO: clear the outdated cache entries in resolver,
@@ -306,7 +311,6 @@ impl Compiler {
     let compilation_logging = self.compilation.get_logging().clone();
     compilation_logging.clear();
     self.incremental_artifacts.reset();
-    self.new_cache.reset();
 
     fast_set(
       &mut self.compilation,

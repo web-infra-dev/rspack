@@ -10,9 +10,9 @@ use futures::future::BoxFuture;
 use itertools::Itertools;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, CacheCount, CacheFacade, CacheRecord, CacheValue, Chunk, ChunkUkey, Compilation,
-  CompilationAsset, CompilationParams, CompilationProcessAssets, CompilerCompilation, Etag,
-  Filename, Logger, ModuleIdentifier, PathData, Plugin,
+  AssetInfo, CacheCount, CacheFacade, CacheValue, Chunk, ChunkUkey, Compilation, CompilationAsset,
+  CompilationParams, CompilationProcessAssets, CompilerCompilation, Etag, Filename, Logger,
+  ModuleIdentifier, PathData, Plugin,
   cache::CachedSourceMapDevToolPluginEntry,
   legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
@@ -463,17 +463,13 @@ impl SourceMapDevToolPlugin {
       if let Some(cached) = cached
         && let Some((source_asset, source_map, asset_append)) = cached.restore(asset)
       {
-        cache.record(CacheRecord::Hit);
+        cache.record_reuse();
         mapped_assets.push(MappedAsset {
           asset: (Arc::from(filename), source_asset),
           asset_append,
           source_map,
         });
         continue;
-      }
-
-      if cacheable {
-        cache.record(CacheRecord::Miss);
       }
 
       if vanilla_assets.is_empty() {

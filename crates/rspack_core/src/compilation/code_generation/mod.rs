@@ -4,8 +4,8 @@ use async_trait::async_trait;
 
 use super::*;
 use crate::{
-  CacheRecord, CacheValue, Etag, ModuleCodeGenerationContext, MultiItemCache,
-  compilation::pass::PassExt, get_runtime_key, logger::Logger,
+  CacheValue, Etag, ModuleCodeGenerationContext, MultiItemCache, compilation::pass::PassExt,
+  get_runtime_key, logger::Logger,
 };
 
 const CODE_GENERATION_CACHE_NAME: &str = "Compilation/codeGeneration";
@@ -251,13 +251,9 @@ pub(crate) async fn code_generation_modules(
               .await
           };
           if let Some(cache) = new_cache {
-            // MultiItemCache probes equivalent runtime keys for one job.
-            // Only the job's final outcome contributes to the facade's statistics.
-            cache.record(if from_cache {
-              CacheRecord::Hit
-            } else {
-              CacheRecord::Miss
-            });
+            if from_cache {
+              cache.record_reuse();
+            }
           } else if let Some(counter) = cache_counter {
             if from_cache {
               counter.hit();

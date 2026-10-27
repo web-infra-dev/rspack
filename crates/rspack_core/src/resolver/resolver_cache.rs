@@ -12,7 +12,7 @@ use tokio::sync::Mutex;
 
 use super::{ResolveDependencies, ResolveInnerError, ResolveResult};
 use crate::new_cache::{
-  CacheFacade, CacheRecord, CacheValue, FileSystemInfo, Snapshot, SnapshotValidationResult,
+  CacheFacade, CacheValue, FileSystemInfo, Snapshot, SnapshotValidationResult,
 };
 
 #[cacheable]
@@ -83,10 +83,9 @@ impl ResolverCache {
         Ok(SnapshotValidationResult::Valid)
       )
     {
-      item.record(CacheRecord::Hit);
+      self.cache.record_reuse();
       return (Ok(cached.result.clone()), cached.dependencies.clone());
     }
-    item.record(CacheRecord::Miss);
 
     let start_time = current_time();
     let (result, dependencies) = generator().await;

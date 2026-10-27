@@ -22,8 +22,9 @@ struct CacheStorage {
 /// including misses, are recorded in memory for subsequent reads.
 #[derive(Debug)]
 pub struct Cache {
-  storage: Option<CacheStorage>,
+  storage: CacheStorage,
   logger: Arc<InfrastructureLogger>,
+  statistics: Arc<CacheStatistics>,
 }
 
 impl Cache {
@@ -33,15 +34,14 @@ impl Cache {
     idle_file_cache: Option<IdleFileCache>,
     logger: Arc<InfrastructureLogger>,
   ) -> Self {
-    let storage = if memory_cache.is_some() || idle_file_cache.is_some() {
-      Some(CacheStorage {
+    Self {
+      storage: CacheStorage {
         memory_cache,
         idle_file_cache,
-      })
-    } else {
-      None
-    };
-    Self { storage, logger }
+      },
+      logger,
+      statistics: Default::default(),
+    }
   }
 
   pub fn new_disabled(logger: Arc<InfrastructureLogger>) -> Self {
@@ -53,9 +53,7 @@ impl Cache {
   }
 
   pub fn get<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>) -> Option<CacheValue<T>> {
-    let Some(storage) = &self.storage else {
-      return None;
-    };
+    let storage = &self.storage;
     if let Some(memory_cache) = &storage.memory_cache {
       match memory_cache.get(&key, etag.as_ref()) {
         MemoryCacheGetResult::Hit(value) => return Some(value),
@@ -88,9 +86,7 @@ impl Cache {
   }
 
   pub fn store<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>, value: CacheValue<T>) {
-    let Some(storage) = &self.storage else {
-      return;
-    };
+    let storage = &self.storage;
     if let Some(memory_cache) = &storage.memory_cache {
       memory_cache.store(key.clone(), etag.clone(), value.clone());
     }
@@ -100,25 +96,17 @@ impl Cache {
   }
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
-    let Some(storage) = &self.storage else {
-      return;
-    };
-    if let Some(file_cache) = &storage.idle_file_cache {
+    if let Some(file_cache) = &self.storage.idle_file_cache {
       file_cache.store_build_dependencies(dependencies);
     }
   }
 
   pub fn has_file_cache(&self) -> bool {
-    self
-      .storage
-      .as_ref()
-      .is_some_and(|storage| storage.idle_file_cache.is_some())
+    self.storage.idle_file_cache.is_some()
   }
 
   pub fn begin_idle(&self, build_time: Duration) {
-    let Some(storage) = &self.storage else {
-      return;
-    };
+    let storage = &self.storage;
     if let Some(memory_cache) = &storage.memory_cache {
       memory_cache.start_next_generation();
     }
@@ -128,24 +116,23 @@ impl Cache {
   }
 
   pub fn end_idle(&self) {
-    let Some(storage) = &self.storage else {
-      return;
-    };
-    if let Some(file_cache) = &storage.idle_file_cache {
+    if let Some(file_cache) = &self.storage.idle_file_cache {
       file_cache.end_idle();
     }
   }
 
   pub async fn shutdown(&self) {
-    let Some(storage) = &self.storage else {
-      return;
-    };
+    let storage = &self.storage;
     if let Some(file_cache) = &storage.idle_file_cache {
       file_cache.shutdown().await;
     }
     if let Some(memory_cache) = &storage.memory_cache {
       memory_cache.clear();
     }
+  }
+
+  pub fn statistics(&self) -> &CacheStatistics {
+    &self.statistics
   }
 }
 
@@ -154,7 +141,6 @@ impl Cache {
 pub struct CompilerCache {
   cache: Arc<Cache>,
   compiler_path: Arc<str>,
-  statistics: Option<Arc<CacheStatistics>>,
 }
 
 impl Deref for CompilerCache {
@@ -167,34 +153,21 @@ impl Deref for CompilerCache {
 
 impl CompilerCache {
   pub fn new(cache: Arc<Cache>, compiler_path: Arc<str>) -> Self {
-    let statistics = cache.storage.as_ref().map(|_| Arc::default());
     Self {
       cache,
       compiler_path,
-      statistics,
     }
   }
 
   pub fn facade(&self, name: &str) -> CacheFacade {
     let cache_name = [self.compiler_path.as_ref(), name].join("|");
-    CacheFacade::new(
-      Arc::clone(&self.cache),
-      cache_name.into(),
-      self.statistics.clone(),
-    )
+    CacheFacade::new(Arc::clone(&self.cache), cache_name.into())
   }
 
-  /// Resets cache statistics before starting a compilation.
-  pub(crate) fn reset(&self) {
-    if let Some(statistics) = &self.statistics {
-      statistics.reset();
-    }
-  }
-
-  pub(crate) fn statistics_report(&self, full_hash: Option<&str>) -> Option<String> {
+  pub fn report_statistics(&self, full_hash: Option<&str>) {
     self
-      .statistics
-      .as_ref()?
-      .report(&self.compiler_path, full_hash)
+      .cache
+      .statistics()
+      .report(&self.compiler_path, full_hash, self.cache.logger());
   }
 }

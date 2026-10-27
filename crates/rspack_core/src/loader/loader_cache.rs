@@ -13,8 +13,8 @@ use rspack_sources::SourceMap;
 use rspack_util::time::current_time;
 
 use crate::{
-  CacheFacade, CacheRecord, CacheValue, Etag, FileSystemInfo, IsolatedDts, ItemCacheFacade, Module,
-  RscMeta, RunnerContext,
+  CacheFacade, CacheValue, Etag, FileSystemInfo, IsolatedDts, ItemCacheFacade, Module, RscMeta,
+  RunnerContext,
   new_cache::{Snapshot, SnapshotValidationResult},
 };
 
@@ -216,7 +216,8 @@ pub(crate) async fn before_normal_chain(
   ) else {
     return Ok(LoaderCacheAction::Disabled);
   };
-  let item_cache = loader_cache_item(&context.context.loader_cache, &cache_key, etag.clone());
+  let loader_cache = &context.context.loader_cache;
+  let item_cache = loader_cache_item(loader_cache, &cache_key, etag.clone());
 
   if let Some(entry) = item_cache.get::<LoaderCacheEntry>()
     && loader_cache_dependency_snapshot_is_valid(
@@ -240,17 +241,16 @@ pub(crate) async fn before_normal_chain(
       .and_then(|source_map| SourceMap::from_json(source_map).ok());
     let mut dependencies = LoaderDependencies::default();
     restore_loader_cache_dependencies(&entry.dependency_snapshot, &mut dependencies);
+    loader_cache.record_reuse();
     context.add_dependencies(&dependencies);
     context.parse_meta = entry.parse_meta.clone();
     let build_info = context.context.module.build_info_mut();
     build_info.isolated_dts = entry.isolated_dts.clone();
     build_info.rsc = entry.rsc.clone();
     context.__finish_with((content, source_map, None));
-    item_cache.record(CacheRecord::Hit);
     return Ok(LoaderCacheAction::Hit);
   }
 
-  item_cache.record(CacheRecord::Miss);
   Ok(LoaderCacheAction::Miss(Box::new(LoaderCacheMissState {
     cache_key,
     etag,

@@ -1,8 +1,22 @@
 [
   {
-    "resolver cache": {
-      "hits": 10,
-      "total": 10
+    "meta": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 1
+    },
+    "ResolverCache|loader": {
+      "hits": 5,
+      "misses": 0,
+      "reused": 5,
+      "stores": 0
+    },
+    "ResolverCache|normal": {
+      "hits": 5,
+      "misses": 0,
+      "reused": 5,
+      "stores": 0
     }
   }
 ]

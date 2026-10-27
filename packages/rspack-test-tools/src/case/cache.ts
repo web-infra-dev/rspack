@@ -7,7 +7,6 @@ import {
   type RspackOptions,
   type Stats,
   type StatsCompilation,
-  type StatsModule,
 } from '@rspack/core';
 import fs from 'fs-extra';
 import { isJavaScript, RSPACK_CONFIG_FILES } from '../helper';
@@ -36,9 +35,12 @@ export type TCacheCaseOptions = {
   newCache?: boolean;
 };
 
-type CacheStats = Record<string, { hits: number; total: number }>;
+type CacheStats = Record<
+  string,
+  { hits: number; misses: number; reused: number; stores: number }
+>;
 
-const builtModulesByCompilation = new WeakMap<Compilation, Set<string>>();
+const cacheStatsByCompilation = new WeakMap<Compilation, Promise<CacheStats>>();
 
 interface CacheState {
   compilerIndex: number;
@@ -96,7 +98,7 @@ function createCacheProcessor(
   let buildIndex = 0;
   let testEnv: ITestEnv;
 
-  const checkCache = (
+  const checkCache = async (
     env: ITestEnv,
     context: ITestContext,
     unchanged = false,
@@ -107,7 +109,7 @@ function createCacheProcessor(
         matchStatsSnapshot(env, src, updatePlugin!.getUpdateIndex(), stats);
       return;
     }
-    const cacheStats = getCacheStats(stats);
+    const cacheStats = await getCacheStats(stats);
     fs.outputJsonSync(
       context.getTemp(`cache-stats/${buildIndex}.json`)!,
       cacheStats,
@@ -123,10 +125,14 @@ function createCacheProcessor(
     if (unchanged && !stats.hasErrors()) {
       const expected = context.getTestConfig().cacheHitRate || {};
       for (const [index, compilerStats] of cacheStats.entries()) {
-        for (const [label, { hits, total }] of Object.entries(compilerStats)) {
-          const hitRate = Number(((hits / total) * 100).toFixed(1));
+        for (const [label, { hits, misses, reused }] of Object.entries(
+          compilerStats,
+        )) {
+          const total = hits + misses;
+          if (total === 0) continue;
+          const reuseRate = Number(((reused / total) * 100).toFixed(1));
           env
-            .expect(hitRate, `compiler ${index}: ${label} hit rate`)
+            .expect(reuseRate, `compiler ${index}: ${label} reuse rate`)
             .toBe(expected[label] ?? 100);
         }
       }
@@ -159,7 +165,7 @@ function createCacheProcessor(
           manager.createCompiler();
           await manager.build();
           const jsonStats = await checkRestart(env, context, advanceUpdate);
-          checkCache(env, context, !advanceUpdate);
+          await checkCache(env, context, !advanceUpdate);
 
           // Every restart needs fresh runners, including every child of a MultiCompiler.
           context.setValue('modules', []);
@@ -181,7 +187,7 @@ function createCacheProcessor(
           buildIndex++;
           await context.getCompiler().build();
           const jsonStats = await checkRestart(env, context, true);
-          checkCache(env, context);
+          await checkCache(env, context);
           const updatedModules = await module.hot.check(options || true);
           if (!updatedModules) throw new Error('No update available');
           return jsonStats;
@@ -204,7 +210,7 @@ function createCacheProcessor(
       await base.check(env, context);
       testEnv = env;
       if (!context.getCompiler().getStats()) return;
-      checkCache(env, context);
+      await checkCache(env, context);
       if (caseOptions.newCache) {
         // Bundle tests run after processor.check(). Queue this after their tests
         // so explicit NEXT_START calls take precedence over the automatic restart.
@@ -339,17 +345,36 @@ function enableNewCache(context: ITestContext, temp: string) {
     config.plugins ??= [];
     config.plugins.push({
       apply(compiler: Compiler) {
+        const pending: ((stats: CacheStats) => void)[] = [];
         compiler.hooks.thisCompilation.tap(
           'NewCacheStatsPlugin',
           (compilation) => {
-            const builtModules = new Set<string>();
-            builtModulesByCompilation.set(compilation, builtModules);
-            compilation.hooks.buildModule.tap(
-              'NewCacheStatsPlugin',
-              (module) => {
-                builtModules.add(module.identifier());
-              },
+            cacheStatsByCompilation.set(
+              compilation,
+              new Promise((resolve) => pending.push(resolve)),
             );
+          },
+        );
+        compiler.hooks.infrastructureLog.tap(
+          'NewCacheStatsPlugin',
+          (name, type, args) => {
+            if (
+              name !== 'rspack.cache' ||
+              type !== 'debug' ||
+              typeof args[0] !== 'string' ||
+              !args[0].startsWith('{')
+            )
+              return;
+            const raw: CacheStats = JSON.parse(args[0]);
+            const prefix = `${compiler.compilerPath}|`;
+            const entries = Object.entries(raw)
+              .filter(([name]) => name.startsWith(prefix))
+              .map(
+                ([name, counters]) =>
+                  [name.slice(prefix.length), counters] as const,
+              )
+              .sort(([a], [b]) => a.localeCompare(b));
+            if (entries.length) pending.shift()?.(Object.fromEntries(entries));
           },
         );
       },
@@ -357,84 +382,33 @@ function enableNewCache(context: ITestContext, temp: string) {
   }
 }
 
-function getCacheStats(stats: Stats | MultiStats): CacheStats[] {
-  return ('stats' in stats ? stats.stats : [stats]).map((stats) => {
-    const newCache = stats.compilation.options.experiments.newCache;
-    const enabledCaches: Record<string, boolean | undefined> = {
-      'module code generation cache': newCache && newCache.codeGeneration,
-      'minimize persistent cache': newCache && newCache.minimize,
-      'source map persistent cache': newCache && newCache.devtool,
-    };
-    const json = stats.toJson({
-      all: false,
-      modules: true,
-      cachedModules: true,
-      nestedModules: true,
-      orphanModules: true,
-      runtimeModules: false,
-      groupModulesByAttributes: false,
-      groupModulesByCacheStatus: false,
-      groupModulesByExtension: false,
-      groupModulesByLayer: false,
-      groupModulesByPath: false,
-      groupModulesByType: false,
-      modulesSpace: Infinity,
-      nestedModulesSpace: Infinity,
-      logging: 'verbose',
-      loggingDebug: true,
-    });
-    const result: CacheStats = {};
-    const add = (label: string, hits: number, total: number) => {
-      if (label in enabledCaches && !enabledCaches[label]) return;
-      if (total)
-        result[label] = {
-          hits,
-          total,
-        };
-    };
-    if (newCache && newCache.module) {
-      // Stats.built includes modules restored while creating a new module graph.
-      // Compare cacheable modules against actual buildModule calls instead.
-      const built = builtModulesByCompilation.get(stats.compilation)!;
-      const seen = new Set<string>();
-      let hits = 0;
-      const visitModules = (modules: StatsModule[]) => {
-        for (const module of modules) {
-          if (module.modules) {
-            visitModules(module.modules);
-          } else if (
-            module.cacheable &&
-            module.nameForCondition &&
-            module.identifier &&
-            !seen.has(module.identifier)
-          ) {
-            seen.add(module.identifier);
-            if (!built.has(module.identifier)) hits++;
-          }
-        }
-      };
-      visitModules(json.modules || []);
-      add('module build cache', hits, seen.size);
-    }
-    const visitLogs = (
-      entries: NonNullable<StatsCompilation['logging']>[string]['entries'],
-    ) => {
-      for (const entry of entries) {
-        if (entry.type === 'cache') {
-          const match = entry.message.match(/^(.*): [\d.]+% \((\d+)\/(\d+)\)$/);
-          if (!match)
-            throw new Error(`Invalid cache statistics: ${entry.message}`);
-          add(match[1], Number(match[2]), Number(match[3]));
-        }
-        if (entry.children) visitLogs(entry.children);
+function getCacheStats(
+  stats: Stats | MultiStats,
+): Promise<CacheStats[]> {
+  return Promise.all(
+    ('stats' in stats ? stats.stats : [stats]).map(async (stats) => {
+      const cacheStats = cacheStatsByCompilation.get(stats.compilation);
+      if (!cacheStats) throw new Error('Missing cache statistics collector');
+      // Native infrastructure logs can arrive after the compilation callback.
+      let timeout: ReturnType<typeof setTimeout>;
+      try {
+        return await Promise.race([
+          cacheStats,
+          new Promise<never>((_, reject) => {
+            timeout = setTimeout(
+              () =>
+                reject(
+                  new Error('Timed out waiting for cache statistics JSON'),
+                ),
+              5000,
+            );
+          }),
+        ]);
+      } finally {
+        clearTimeout(timeout!);
       }
-    };
-    for (const logging of Object.values(json.logging || {}))
-      visitLogs(logging.entries);
-    return Object.fromEntries(
-      Object.entries(result).sort(([a], [b]) => a.localeCompare(b)),
-    );
-  });
+    }),
+  );
 }
 
 function matchStatsSnapshot(
