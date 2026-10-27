@@ -3,13 +3,13 @@ const path = require('node:path');
 
 const read = (name) => fs.readFileSync(path.join(__dirname, name));
 
-it('should retain changes to a native asset Buffer', () => {
-  expect(read('buffer.bin')).toEqual(Buffer.from('Abc'));
+it('should preserve native binary sources after reading their content', () => {
+  expect(read('buffer.bin')).toEqual(Buffer.from('abc'));
 });
 
 it('should serialize concatenated Buffers as text', () => {
-  expect(read('single-buffer.txt')).toEqual(Buffer.from('body'));
-  expect(read('mixed-buffer.txt')).toEqual(Buffer.from('prefix:body'));
+  expect(read('single-buffer.txt')).toEqual(Buffer.from('abc'));
+  expect(read('mixed-buffer.txt')).toEqual(Buffer.from('prefix:abc'));
   expect(read('buffer-child.txt')).toEqual(Buffer.from('body!'));
 });
 

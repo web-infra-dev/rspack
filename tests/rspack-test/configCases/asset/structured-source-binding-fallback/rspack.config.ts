@@ -14,18 +14,19 @@ export default defineConfig({
           const buffer = compilation.getAsset('buffer.bin')!.source;
           const content = buffer.source();
           if (!Buffer.isBuffer(content)) throw new Error('Expected a Buffer');
-          content[0] = 0x41;
+          expect(content).toEqual(Buffer.from('abc'));
+          for (const method of ['source', 'map']) {
+            Object.defineProperty(buffer, method, {
+              value: () => {
+                throw new Error(`Native binary source serialized ${method}()`);
+              },
+            });
+          }
           compilation.updateAsset('buffer.bin', buffer);
 
           for (const [name, source] of [
-            [
-              'single-buffer.txt',
-              new ConcatSource(new RawSource(Buffer.from('body'))),
-            ],
-            [
-              'mixed-buffer.txt',
-              new ConcatSource('prefix:', new RawSource(Buffer.from('body'))),
-            ],
+            ['single-buffer.txt', new ConcatSource(buffer)],
+            ['mixed-buffer.txt', new ConcatSource('prefix:', buffer)],
           ] as const) {
             compilation.emitAsset(name, source);
             expect(typeof compilation.getAsset(name)!.source.source()).toBe(

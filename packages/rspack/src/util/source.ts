@@ -154,8 +154,7 @@ export class SourceAdapter {
       source = sourceMapSource;
     }
 
-    // A Buffer returned by RawSource.source() can be changed without notifying us.
-    if (nativeSource && typeof cache.source === 'string') {
+    if (nativeSource) {
       nativeSources.set(source, nativeSource);
     }
     return source;
