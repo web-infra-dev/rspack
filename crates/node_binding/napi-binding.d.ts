@@ -1843,10 +1843,10 @@ export interface NativeWatcherOptions {
   aggregateTimeout?: number
   /**
    * The ignored paths for the watcher.
-   * It can be a single path, an array of paths, a regular expression, or a
-   * predicate returning `true` for entries to ignore.
+   * It can be a single path, a regular expression, an array mixing paths and
+   * regular expressions, or a predicate returning `true` for entries to ignore.
    */
-  ignored?: string | string[] | RegExp | ((entry: string) => boolean)
+  ignored?: string | RegExp | (string | RegExp)[] | ((entry: string) => boolean)
 }
 
 /**
@@ -3070,6 +3070,10 @@ export interface RawRstestDynamicImportOriginOptions {
   functionName?: string
 }
 
+export interface RawRstestImportMetaResolveOriginOptions {
+  functionName?: string
+}
+
 export interface RawRstestPluginOptions {
   injectModulePathName: boolean
   importMetaPathName: boolean
@@ -3086,6 +3090,14 @@ injectDynamicImportOrigin?: boolean | { functionName?: string }
 updateImportMockAPI?: boolean
 updateRequireMockAPI?: boolean
 injectRequireResolveOrigin?: boolean | { functionName?: string }
+/**
+ * Replace `import.meta.resolve` with a call to a runtime factory receiving
+ * the absolute source path. The factory must return a stable resolver for
+ * that source module. Defaults to `__rstest_import_meta_resolve__`.
+ * Modules with `parser.importMetaResolve: true` use Rspack's built-in
+ * resolution instead.
+ */
+injectImportMetaResolveOrigin?: boolean | { functionName?: string }
 }
 
 export interface RawRstestRequireResolveOriginOptions {

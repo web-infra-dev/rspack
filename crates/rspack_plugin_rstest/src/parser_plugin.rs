@@ -14,7 +14,10 @@ use rspack_plugin_javascript::{
     self,
     eval::{self},
   },
-  visitors::{HookMemberExpression, JavascriptParser, create_traceable_error, expr_name},
+  visitors::{
+    DestructuringAssignmentProperty, HookMemberExpression, JavascriptParser,
+    create_traceable_error, expr_name,
+  },
 };
 use rspack_util::{
   SpanExt, json_stringify_str,
@@ -113,6 +116,7 @@ pub struct RstestParserPluginOptions {
   pub update_require_mock_api: bool,
   /// Whether to rewrite `require.resolve()` calls with origin info.
   pub inject_require_resolve_origin: bool,
+  pub import_meta_resolve_factory: Option<String>,
   /// Whether to respect `/* webpackIgnore: true */` in CommonJS calls.
   pub commonjs_magic_comments: bool,
 }
@@ -130,6 +134,7 @@ impl Default for RstestParserPluginOptions {
       update_import_mock_api: false,
       update_require_mock_api: false,
       inject_require_resolve_origin: false,
+      import_meta_resolve_factory: None,
       commonjs_magic_comments: false,
     }
   }
@@ -220,6 +225,16 @@ impl RstestParserPlugin {
     let resource_path = parser.resource_data.path()?;
     Some(format!(
       "globalThis['@rstest/core/import-meta']?.({})",
+      json_stringify_str(resource_path.as_str())
+    ))
+  }
+
+  fn import_meta_resolve_expression(&self, parser: &JavascriptParser) -> Option<String> {
+    let factory = self.options.import_meta_resolve_factory.as_ref()?;
+    let resource_path = parser.resource_data.path()?;
+    Some(format!(
+      "{}({})",
+      factory,
       json_stringify_str(resource_path.as_str())
     ))
   }
@@ -1010,6 +1025,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     call_expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == expr_name::IMPORT_META_RESOLVE
+      && let Some(expression) = self.import_meta_resolve_expression(parser)
+    {
+      let ast = parser.ast.ast;
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+        call_expr.callee(ast).span(ast).into(),
+        expression.into(),
+      )));
+      parser.walk_arguments(ast.nodes(call_expr.arguments(ast)));
+      return Some(true);
+    }
     if self.options.inject_require_resolve_origin && for_name == "require.resolve" {
       return self.process_require_resolve_origin(parser, call_expr);
     }
@@ -1181,6 +1207,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     for_name: &str,
   ) -> Option<utils::eval::BasicEvaluatedExpression<'p>> {
     let span = expr.span(parser.ast.ast);
+    if for_name == expr_name::IMPORT_META_RESOLVE
+      && self.import_meta_resolve_expression(parser).is_some()
+    {
+      return Some(eval::BasicEvaluatedExpression::with_range(
+        span.real_lo(),
+        span.real_hi(),
+      ));
+    }
     if for_name == IMPORT_META_RSTEST && self.import_meta_rstest_expression(parser).is_some() {
       return Some(eval::BasicEvaluatedExpression::with_range(
         span.real_lo(),
@@ -1207,6 +1241,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'p>> {
+    if for_name == expr_name::IMPORT_META_RESOLVE
+      && self.import_meta_resolve_expression(parser).is_some()
+    {
+      return Some(eval::evaluate_to_identifier(
+        expr_name::IMPORT_META_RESOLVE.into(),
+        expr_name::IMPORT_META_RESOLVE.into(),
+        Some(true),
+        start,
+        end,
+      ));
+    }
     if for_name == IMPORT_META_RSTEST && self.import_meta_rstest_expression(parser).is_some() {
       return Some(eval::BasicEvaluatedExpression::with_range(start, end));
     }
@@ -1247,6 +1292,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     unary_expr: UnaryExpression,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == expr_name::IMPORT_META_RESOLVE
+      && let Some(expression) = self.import_meta_resolve_expression(parser)
+    {
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+        unary_expr.span(parser.ast.ast).into(),
+        format!("typeof {expression}").into(),
+      )));
+      return Some(true);
+    }
     if for_name == IMPORT_META_RSTEST
       && let Some(expression) = self.import_meta_rstest_expression(parser)
     {
@@ -1278,6 +1332,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     member_expr: HookMemberExpression,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == expr_name::IMPORT_META_RESOLVE
+      && let Some(expression) = self.import_meta_resolve_expression(parser)
+    {
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+        member_expr.span(parser.ast.ast).into(),
+        expression.into(),
+      )));
+      return Some(true);
+    }
     if for_name == IMPORT_META_RSTEST
       && let Some(expression) = self.import_meta_rstest_expression(parser)
     {
@@ -1310,6 +1373,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
       }
     }
 
+    None
+  }
+
+  fn import_meta_property_in_destructuring(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    property: &DestructuringAssignmentProperty,
+  ) -> Option<String> {
+    if property.id == "resolve" {
+      return self
+        .import_meta_resolve_expression(parser)
+        .map(|expression| format!("resolve: {expression}"));
+    }
     None
   }
 

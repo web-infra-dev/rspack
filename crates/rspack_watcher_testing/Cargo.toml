@@ -3,7 +3,7 @@ edition.workspace = true
 license.workspace = true
 name              = "rspack_watcher_testing"
 publish           = false
-version           = "0.1.0"
+version           = "0.103.0-rc.0"
 
 [lib]
 doctest = false
