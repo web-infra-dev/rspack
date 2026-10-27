@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 2.3 正式发布，带来 SWC Next、实验性缓存、CSS 打包、SplitChunks、内存优化、性能提升和开发体验改进。'
+description: 'Rspack 2.3 正式发布，带来 SWC Next 解析器、实验性缓存、CSS 打包改进，以及性能和开发体验优化。'
 date: 2026-10-21 14:00:00
 sidebar: false
 authors:
@@ -42,7 +42,7 @@ _2026 年 10 月 27 日_
 
 <BlogAuthors />
 
-Rspack 2.3 现已推出！本次更新将 JavaScript 解析器迁移至 SWC Next，新增按代码内容过滤 loader 的能力，并改进了 chunk 拆分、文件监听和内存管理。
+Rspack 2.3 现已发布！本次更新将 JavaScript 解析器迁移至 SWC Next，支持按代码内容过滤 loader，并优化了缓存、chunk 拆分、文件监听和内存占用。
 
 ---
 
@@ -71,9 +71,9 @@ Rspack 2.3 现已推出！本次更新将 JavaScript 解析器迁移至 SWC Next
 
 ## SWC next 解析器 \{#swc-next}
 
-Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-project/swc-next)。根据 SWC Next 官方基准，其原生解析器比 SWC 快 [2–4.5 倍](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse)。
+Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-project/swc-next)。根据 SWC Next 的官方基准测试，其原生解析器的速度是 SWC 的 [2–4.5 倍](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse)。
 
-借助更紧凑的 AST 和内存布局，Rspack 也同步优化了解析与遍历流程。在固定 6 个 workers 下，解析阶段耗时和指令数变化如下：
+借助更紧凑的 AST 和内存布局，Rspack 也优化了解析和遍历流程。使用 6 个 worker 时，解析阶段的耗时和指令数变化如下：
 
 | 项目      | 解析阶段耗时                   | 指令数                          |
 | --------- | ------------------------------ | ------------------------------- |
@@ -84,17 +84,17 @@ Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-p
 
 ### 构建性能优化 \{#build-performance}
 
-在 [benchmark 项目](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/40302457470) 中，Rspack 2.3.0 的 HMR 和缓存热构建耗时较 2.2.0 降低约 5%。
+在[基准测试项目](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/40302457470)中，Rspack 2.3.0 的 HMR 和缓存热构建耗时较 2.2.0 降低约 5%。
 
 ### SplitChunks 优化 \{#split-chunks}
 
-本轮优化从三个方向减少重复代码和产物体积：
+Rspack 2.3 从以下几个方面优化了 chunk 拆分，减少重复代码和产物体积：
 
-- 新增 [`splitChunks.dedupDepth`](/zh/plugins/split-chunks-plugin#splitchunksdedupdepth)，通过两两求交发现更多可提取的共享模块组合。生产模式下默认启用（`depth=1`）。
-- 改进 chunk 拆分算法，有效减少跨 chunk 的重复模块。
-- 支持 [`splitChunks.minRemainingSize`](/zh/plugins/split-chunks-plugin#splitchunksminremainingsize)，避免拆分后留下过小的 chunk，对齐 webpack 的产物行为。
+- 新增 [`splitChunks.dedupDepth`](/zh/plugins/split-chunks-plugin#splitchunksdedupdepth)，通过比较各模块被哪些 chunk 使用，发现更多可以提取的共享模块组合。该选项在生产模式下默认启用（`depth=1`）。
+- 改进 chunk 拆分算法，减少跨 chunk 的重复模块。
+- 支持 [`splitChunks.minRemainingSize`](/zh/plugins/split-chunks-plugin#splitchunksminremainingsize)，避免拆分后留下过小的 chunk，与 webpack 的产物行为保持一致。
 
-在真实大型项目中，开启 `dedupDepth=1` 后的 Brotli 压缩体积变化如下：
+在两个大型真实项目中，开启 `dedupDepth=1` 前后的 Brotli 压缩体积如下：
 
 | 项目                    | 优化前   | 优化后   | 节省    | 降幅     |
 | ----------------------- | -------- | -------- | ------- | -------- |
@@ -103,22 +103,22 @@ Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-p
 
 ### 内存占用优化 \{#memory-improvements}
 
-Rspack 2.3 在不牺牲构建性能的前提下，进一步降低了大型项目的内存占用。真实项目的峰值与稳态 RSS 对比如下：
+Rspack 2.3 在不牺牲构建性能的前提下，进一步降低了大型项目的内存占用。以下是一个真实项目的 RSS 对比：
 
-| 场景  | 指标         |     2.2.0 |     2.3.0 | 优化      |
+| 场景  | 指标         |     2.2.0 |     2.3.0 | 降低      |
 | ----- | ------------ | --------: | --------: | --------- |
 | Build | 峰值 RSS     | 28.30 GiB | 20.53 GiB | **27.4%** |
 | Build | 构建结束 RSS | 25.32 GiB | 16.07 GiB | **36.5%** |
 | Dev   | 启动峰值 RSS | 28.63 GiB | 18.96 GiB | **33.8%** |
 | Dev   | 稳态 RSS     | 28.88 GiB | 18.83 GiB | **34.8%** |
 
-此外，Rspack 2.3 还新增了基于 [allocative](https://github.com/facebook/buck2/tree/main/allocative) 的内存快照能力，帮助开发者定位构建过程中的内存热点。若你的项目内存占用较高，可以按照[内存诊断指南](../guide/diagnostics/memory)采集并提交结果，我们会协助分析和优化。
+此外，Rspack 2.3 新增了基于 [allocative](https://github.com/facebook/buck2/tree/main/allocative) 的内存快照能力，帮助开发者定位构建过程中的内存热点。如果你的项目内存占用较高，可以按照[内存诊断指南](../guide/diagnostics/memory)采集并提交快照，我们会协助分析和优化。
 
 ## 实验性缓存改进 \{#cache-improvements}
 
-Rspack 2.3 推出实验性缓存实现 `newCache`，带来更细粒度的构建结果复用、更小的缓存文件和更低的缓存写入开销。
+Rspack 2.3 推出了实验性缓存实现 `newCache`。它可以更细粒度地复用构建结果，减少缓存文件体积和写入开销。
 
-目前该功能默认关闭，可通过 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache) 开启：
+该功能目前默认关闭，可以通过 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache) 开启：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -131,9 +131,9 @@ export default {
 };
 ```
 
-相比旧实现整体保存和恢复模块图的方式，`newCache` 采用更细粒度的缓存，可以独立复用模块构建、代码生成、source map 和压缩结果，并支持缓存单个 loader 的转换结果。新的存储方式也减少了缓存写入时的临时内存开销。
+旧缓存会整体保存和恢复模块图；`newCache` 则采用更细粒度的缓存，可以分别复用模块构建、代码生成、source map 和压缩结果，也支持缓存单个 loader 的转换结果。新的存储方式还减少了写入缓存时的临时内存开销。
 
-下面分别是 [React 10k](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/react-10k) 和一个大型真实项目的新旧缓存对比。
+下面是在 [React 10k](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/react-10k) 和一个大型真实项目中，新旧缓存的对比结果。
 
 React 10k：
 
@@ -155,28 +155,28 @@ React 10k：
 | 热构建峰值内存     |    7.67 GiB |    8.23 GiB |  +7.3% |
 | 热构建后的磁盘缓存 | 3895.98 MiB | 1092.08 MiB | -72.0% |
 
-newCache 将缓存体积减少约 75%，降低了缓存写入开销。目前热构建略慢主要来自 `make` 阶段缓存策略的变化：旧实现缓存整个模块图，`newCache` 只缓存模块，需要重新构建模块之间的依赖关系。缓存内容减少带来了额外的建图开销，但基于当前依赖重新建图，也让重构建时模块图的正确性更容易保障。在缓存内容保持不变的其他阶段，`newCache` 则有明显的性能提升。
+在上述测试中，`newCache` 将缓存体积减少了约 75%，也降低了缓存写入开销。两组测试的热构建耗时有所增加，主要是由于 `make` 阶段的缓存策略发生了变化：旧实现缓存整个模块图，而 `newCache` 只缓存模块，需要重新构建模块之间的依赖关系。重新建图带来了额外开销，但基于当前依赖重建模块图，也更容易保证模块图的正确性。在缓存内容保持不变的其他阶段，`newCache` 则有明显的性能提升。
 
 我们会持续优化热构建性能和内存占用，并计划在后续 minor 版本中用 `newCache` 替换旧实现。
 
 ### loader 缓存 \{#loader-cache}
 
-启用 `experiments.newCache` 后，可为 loader 设置 `cache: true`，复用未发生变化的转换结果。缓存已支持 `builtin:swc-loader`，并会在相关依赖变化时失效。
+启用 `experiments.newCache` 后，可以为 loader 设置 `cache: true`，复用未发生变化的转换结果。该缓存已支持 `builtin:swc-loader`，并会在相关依赖发生变化时失效。
 
-测试使用 babel-loader 模拟约 10000 个模块，开启 loader 缓存后构建耗时显著降低：
+在使用 babel-loader 处理约 10000 个模拟模块的测试中，开启 loader 缓存后，构建耗时明显降低：
 
-| 并行loader | 缓存关闭 | 缓存开启 | 提升     |
-| ---------- | -------- | -------- | -------- |
-| 关闭       | 63.75 s  | 11.16 s  | **5.7x** |
-| 开启       | 28.50 s  | 11.88 s  | **2.4x** |
+| 并行 loader | 缓存关闭 | 缓存开启 | 加速比     |
+| ----------- | -------- | -------- | ---------- |
+| 关闭        | 63.75 s  | 11.16 s  | **5.7 倍** |
+| 开启        | 28.50 s  | 11.88 s  | **2.4 倍** |
 
-此外，[`cache.maxMemoryGenerations`](/zh/config/cache#maxmemorygenerations) 可以控制缓存条目在内存中的保留周期，在内存占用与磁盘读取之间做取舍。
+此外，可以通过 [`cache.maxMemoryGenerations`](/zh/config/cache#maxmemorygenerations) 控制未使用的缓存条目在内存中的保留代数，在内存占用和磁盘读取之间做取舍。
 
 ## 新特性 \{#features}
 
 ### 按代码内容过滤 loader \{#loader-code-filter}
 
-新增的 [`module.rules[].use.filter.code`](/zh/config/module-rules#rulesusefiltercode) 支持按代码内容跳过不需要的 loader 转换。例如，只对包含 `customMacro()` 调用的文件执行转换：
+新增的 [`module.rules[].use.filter.code`](/zh/config/module-rules#rulesusefiltercode) 可以根据代码内容跳过不必要的 loader 转换。例如，只对包含 `customMacro()` 调用的文件执行转换：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -198,15 +198,15 @@ export default {
 };
 ```
 
-`code` 支持字符串和正则表达式，匹配当前 loader 收到的代码。pitch 函数不受影响。
+`code` 支持字符串和正则表达式，用于匹配当前 loader 收到的代码。loader 的 pitch 函数不受此选项影响。
 
 ### CSS 打包能力 \{#css-bundling}
 
-本次更新覆盖了更多 CSS 场景，包括 CSS Modules 作用域、组合声明、值引用和嵌套选择器，同时修复了异步样式加载和相对 `publicPath` 的相关问题。
+本次更新改进了对更多 CSS 场景的支持，涵盖 CSS Modules 作用域、组合声明、值引用和嵌套选择器，同时修复了异步样式加载和相对 `publicPath` 相关的问题。
 
 #### 独立构建样式入口 \{#css-entry}
 
-纯 CSS 入口现在可以只生成样式文件，适合独立发布主题或样式库：
+纯 CSS 入口现在可以只生成样式文件，适用于独立发布主题或样式库等场景：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -226,7 +226,7 @@ export default {
 
 #### 支持外部资源 \{#css-externals}
 
-新增 `css-import` 和 `asset-url` 类型的 [external](/zh/config/externals)，允许在 CSS 中将指定的样式或资源引用保留为外部资源，不参与打包。
+新增 `css-import` 和 `asset-url` 两种 [external](/zh/config/externals) 类型，可以将 CSS 中指定的样式或资源引用保留为外部资源，不参与打包。
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -253,7 +253,7 @@ module.exports = {
 
 上述 `@import` 和 `url()` 会原样输出，不会参与打包。
 
-CSS 的 `@import`、`url()` 和 `image-set()` 也支持 `rspackIgnore` 和 `webpackIgnore` 注释，可以按需跳过资源打包：
+CSS 中的 `@import`、`url()` 和 `image-set()` 也支持 `rspackIgnore` 和 `webpackIgnore` 注释，可以按需跳过资源打包：
 
 ```css title="styles.css"
 @import /* rspackIgnore: true */ url('./runtime-theme.css');
@@ -263,42 +263,42 @@ CSS 的 `@import`、`url()` 和 `image-set()` 也支持 `rspackIgnore` 和 `webp
 
 #### 更灵活的资源路径处理 \{#resource-resolution}
 
-新增 [`module.parser.javascript.dynamicUrl`](/zh/config/module-parser#javascriptdynamicurl)。设置为 `false` 时，动态 `new URL()` 路径会在运行时求值，静态 URL 仍然参与打包，适合由服务端或 CDN 提供动态资源的场景。
+新增 [`module.parser.javascript.dynamicUrl`](/zh/config/module-parser#javascriptdynamicurl) 选项。设置为 `false` 时，动态 `new URL()` 路径会在运行时求值，静态 URL 仍会参与打包。这适用于由服务端或 CDN 提供动态资源的场景。
 
-此外，`import.meta.glob` 支持解析 pattern 中的路径别名，tsconfig 解析也改善了相对路径和软链接场景的兼容性。
+此外，`import.meta.glob` 支持解析 pattern 中的路径别名；tsconfig 解析也改进了对相对路径和软链接的支持。
 
 #### 更可靠的懒编译和异步模块 \{#lazy-compilation}
 
-[懒编译](/zh/guide/advanced/lazy-compilation)改善了模块首次加载与后续重建的行为，避免已激活模块重复加载，并修复导入属性和路径解析相关的兼容性问题。
+[懒编译](/zh/guide/advanced/lazy-compilation)优化了模块首次加载和后续重建的行为，避免已激活的模块重复加载，并修复了导入属性和路径解析相关的兼容性问题。
 
-嵌套异步导入、延迟导入和 HMR 的兼容性也得到改善。
+嵌套异步导入、延迟导入和 HMR 的兼容性也得到了改善。
 
 ### Watcher 兼容性改进 \{#watcher-compatibility}
 
-[`experiments.nativeWatcher`](/zh/config/experiments#experimentsnativewatcher) 提供了更完整的文件时间信息，改善与 `ts-loader`、`webpack-virtual-modules`、`vue-loader` 等工具的兼容性。
+[`experiments.nativeWatcher`](/zh/config/experiments#experimentsnativewatcher) 现在提供了更完整的文件时间信息，改善了与 `ts-loader`、`webpack-virtual-modules`、`vue-loader` 等工具的兼容性。
 
-原生 watcher 还支持函数形式的 [`watchOptions.ignored`](/zh/config/watch#watchoptionsignored)，并改善了新增目录、文件删除和重新创建时的变化检测。
+原生 watcher 还支持使用函数配置 [`watchOptions.ignored`](/zh/config/watch#watchoptionsignored)，并改进了对新增目录、文件删除和重新创建的检测。
 
 ### 插件与工具集成 \{#plugin-integration}
 
-面向插件和 loader 作者，新增或完善了以下能力：
+本次更新为插件和 loader 作者新增或完善了以下能力：
 
 - 通过 [`NormalModuleFactory`](/zh/api/plugin-api/normal-module-factory-hooks) 的 `ResolveData.attributes` 读取导入属性。
 - 通过 `JavascriptModulesPlugin.getChunkFilenameTemplate()` 查询 chunk 的文件名模板。
 - 并行 loader 支持读写 `this._module.buildInfo` 的自定义字段。
-- 改善插件 hook 的 webpack 兼容性，并完善 loader、externals 和 stats 的 TypeScript 类型。
+- 改善插件 hook 与 webpack 的兼容性，并完善 loader、externals 和 stats 的 TypeScript 类型。
 
 ### 其他改进 \{#other-improvements}
 
 - **WebAssembly**：新增 [`output.wasmStreamingFallback`](/zh/config/output#outputwasmstreamingfallback)，支持关闭非流式加载回退。
-- **模块产物**：改善 CommonJS、ESM 和延迟导入的兼容性。
-- **构建与缓存**：改善构建失败后的恢复，以及 Windows 上的缓存使用体验。
-- **HTTP 导入**：[`experiments.buildHttp`](/zh/config/experiments#experimentsbuildhttp) 加强冻结构建中的资源完整性校验。
+- **模块产物**：改善对 CommonJS、ESM 和延迟导入的支持。
+- **构建与缓存**：改进构建失败后的恢复流程，以及 Windows 上的缓存使用体验。
+- **HTTP 导入**：[`experiments.buildHttp`](/zh/config/experiments#experimentsbuildhttp) 加强了冻结构建中的资源完整性校验。
 - **模块联邦**：修复共享模块和 manifest 相关问题。
-- **CLI**：减少默认日志，优化启动体验，`create-rspack` 会显示当前版本。
+- **CLI**：减少默认日志输出，优化启动体验；`create-rspack` 现在会显示当前版本。
 - **React Compiler**：修复处理长表达式时的崩溃问题；HTML 压缩也会保留相邻脚本各自的执行边界。
 
-完整改动可查看 [2.2.0 至当前版本的对比](https://github.com/web-infra-dev/rspack/compare/v2.2.0...v2.3.0)和 [GitHub release notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.3.0)。
+完整改动请查看 [2.2.0 至 2.3.0 的版本对比](https://github.com/web-infra-dev/rspack/compare/v2.2.0...v2.3.0)和 [GitHub Release Notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.3.0)。
 
 ## 生态 \{#ecosystem}
 
@@ -308,16 +308,16 @@ Rsbuild 2.3 已与 Rspack 2.3 同步发布。
 
 #### 默认启用 compact-hashed ID \{#rsbuild-compact-hashed}
 
-Rsbuild 生产环境现在默认启用 `compact-hashed` 模块和 chunk ID 策略，相比 `deterministic` 可进一步缩小产物体积（约 0.3% JS 体积，约 0.9% gzip）。2.3 修复了 chunk 名称冲突和 hash key 前缀耗尽等边界场景。
+Rsbuild 的生产构建现在默认使用 `compact-hashed` 模块和 chunk ID 策略。相比 `deterministic`，该策略可进一步缩小产物体积，JavaScript 产物和 gzip 压缩后的体积分别减少约 0.3% 和 0.9%。Rsbuild 2.3 还修复了 chunk 名称冲突和 hash key 前缀耗尽等边界场景。
 
 #### 文件体积报告增强 \{#rsbuild-stats}
 
-持续优化统计开销，增强体积报告能力：
+Rsbuild 优化了统计开销，并增强了文件体积报告：
 
-- 支持 Brotli 体积统计，可配置 gzip / Brotli 的压缩等级。
-- 压缩统计不再缓存完整压缩结果，减少内存占用。
-- 限制多环境之间的压缩并发，复用资源 Buffer，减少额外读取和复制。
-- 在 emit 阶段计算体积，修正统计时机；只显示总计时，也能正确显示压缩体积差值。
+- 支持统计 Brotli 压缩体积，并可配置 gzip 和 Brotli 的压缩等级。
+- 统计压缩体积时不再缓存完整的压缩结果，减少内存占用。
+- 限制多环境之间的压缩并发，并复用资源 Buffer，减少额外的读取和复制。
+- 在 emit 阶段计算体积，修正统计时机；仅显示总计时，也能正确显示压缩体积的变化。
 
 #### TanStack Start 模板 \{#rsbuild-tanstack-start}
 
@@ -329,7 +329,7 @@ npx -y create-rsbuild@latest my-app -t tanstack-start-ts
 
 #### Lynx 框架支持 \{#rsbuild-lynx}
 
-新增 [Lynx](https://lynxjs.org/) 框架选项，支持构建 Lynx 跨平台应用。
+Rsbuild 新增 [Lynx](https://lynxjs.org/) 框架选项，支持构建 Lynx 跨平台应用：
 
 ```js title="rsbuild.config.ts"
 export default {
@@ -347,7 +347,7 @@ export default {
 
 #### Rslib 1.0 正式发布 \{#rslib-v1}
 
-Rslib 1.0 已正式发布，查看 [Rslib 1.0 博客](https://rslib.rs/zh/blog/v1-0) 了解更多。
+Rslib 1.0 已正式发布，详情请查看 [Rslib 1.0 发布博客](https://rslib.rs/zh/blog/v1-0)。
 
 #### 内联 Wasm 模块 \{#rslib-inline-wasm}
 
@@ -359,11 +359,11 @@ import { add } from './add.wasm?inline';
 console.log(add(1, 2));
 ```
 
-> 更多用法参考 [Wasm 指南](https://rslib.rs/zh/guide/advanced/wasm)。
+> 更多用法请参考 [Wasm 指南](https://rslib.rs/zh/guide/advanced/wasm)。
 
 #### 支持 TypeScript 7.1 \{#typescript-7-1}
 
-Rslib 1.0.4 支持使用 TypeScript 7.1 Beta 生成类型，并支持通过 [Content Mappers](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/#content-mappers) 扩展组件文件的类型支持。
+Rslib 1.0.4 支持使用 TypeScript 7.1 Beta 生成类型声明，也支持通过 [Content Mappers](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/#content-mappers) 扩展对组件文件的类型支持。
 
 你可以安装 TypeScript 7.1 Beta 来体验：
 
@@ -376,7 +376,7 @@ Rslib 1.0.4 支持使用 TypeScript 7.1 Beta 生成类型，并支持通过 [Con
 
 ### Rstest \{#rstest}
 
-[Rstest 0.12](https://rstest.rs/blog/announcing-0-12) 重新设计了 JavaScript API，并新增截图测试能力 —— 通过 `toMatchScreenshot()` 对元素和页面进行视觉断言：
+[Rstest 0.12](https://rstest.rs/zh/blog/announcing-0-12) 重新设计了 JavaScript API，并新增截图测试能力。你可以通过 `toMatchScreenshot()` 对元素和页面进行视觉断言：
 
 ```ts
 import { expect, test } from '@rstest/core';
@@ -387,11 +387,11 @@ test('home page', async ({ page }) => {
 });
 ```
 
-独立的 [VS Code 扩展](https://marketplace.visualstudio.com/items?itemName=rstest.rstest-vscode) 也已发布，提供测试发现、运行和调试的内置体验。
+独立的 [VS Code 扩展](https://marketplace.visualstudio.com/items?itemName=rstest.rstest-vscode) 也已发布，支持在编辑器中发现、运行和调试测试。
 
 ### Rspress \{#rspress}
 
-Rspress 2.1.0 默认支持 [WebMCP](https://developer.chrome.com/docs/ai/webmcp)，内置站点信息查询、文档搜索和页面导航等工具，让浏览器中的 Agent 能够直接与文档站点交互。
+Rspress 2.1.0 默认支持 [WebMCP](https://developer.chrome.com/docs/ai/webmcp)，内置站点信息查询、文档搜索和页面导航等工具，让浏览器中的 Agent 可以直接与文档站点交互。
 
 想尝试该功能？在支持 WebMCP 的浏览器中，运行以下代码：
 
@@ -404,14 +404,14 @@ console.log(page.markdown);
 
 你也可以通过 `useWebMcp` Hook 注册自定义工具，扩展站点与 Agent 的交互能力。
 
-更多内容请参阅 [WebMCP 文档](https://rspress.rs/zh/guide/basic/webmcp)。
+更多用法请参阅 [WebMCP 文档](https://rspress.rs/zh/guide/basic/webmcp)。
 
 ## 升级指南 \{#upgrade-guide}
 
-直接使用 Rspack CLI 的项目，可以将 `@rspack/core` 和 `@rspack/cli` 一起升级至 2.3：
+如果项目直接使用 Rspack CLI，可以将 `@rspack/core` 和 `@rspack/cli` 一起升级至 2.3：
 
 <PackageManagerTabs command="add @rspack/core@2.3.0 @rspack/cli@2.3.0 -D" />
 
-[`incremental`](/zh/config/incremental) 仅在开发模式下生效。需要加速重启后的构建时，请使用持久化缓存。
+[`incremental`](/zh/config/incremental) 仅在开发模式下生效。如果需要加速重启后的构建，请使用持久化缓存。
 
 欢迎试用并通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 反馈问题。
