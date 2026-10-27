@@ -91,7 +91,9 @@ Rspack 持续改进开发和构建性能，优化模块处理、缓存和 HMR �
 
 ### SplitChunks 优化 \{#split-chunks}
 
-Rspack 2.3 从以下几个方面优化了 chunk 拆分，减少重复代码和产物体积：
+大型项目通常包含多个页面或入口，它们可能共同依赖大量模块。如果这些模块被重复打包到不同的输出文件中，就会增加产物体积，也可能让用户重复下载相同的代码。
+
+针对这一问题，Rspack 2.3 引入了多项优化，减少重复模块，生成更精简的输出代码：
 
 - 新增 [`splitChunks.dedupDepth`](/zh/plugins/split-chunks-plugin#splitchunksdedupdepth)，通过比较各模块被哪些 chunk 使用，发现更多可以提取的共享模块组合。该选项在生产模式下默认启用（`depth=1`）。
 - 改进 chunk 拆分算法，减少跨 chunk 的重复模块。

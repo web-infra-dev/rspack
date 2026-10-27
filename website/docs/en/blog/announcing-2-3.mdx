@@ -91,7 +91,9 @@ In this [benchmark project](https://github.com/LingyuCoder/rspack-react-10k-benc
 
 ### SplitChunks optimizations \{#split-chunks}
 
-Rspack 2.3 improves chunk splitting in several ways to reduce duplicate code and output size:
+Large projects often have multiple pages or entry points that depend on many of the same modules. If those modules are bundled into multiple output files, they increase output size and may cause users to download the same code more than once.
+
+To reduce duplication, Rspack 2.3 introduces several optimizations that produce smaller output files:
 
 - The new [`splitChunks.dedupDepth`](/plugins/split-chunks-plugin#splitchunksdedupdepth) option compares which chunks use each module to find more combinations of shared modules that can be extracted. It is enabled by default in production mode (`depth=1`).
 - The improved chunk splitting algorithm reduces duplicate modules across chunks.
