@@ -17,18 +17,45 @@ import { Tabs, Tab } from '@theme';
 - **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** `'[hash][ext][query]'`
 
-与 [`output.filename`](#outputfilename) 类似，但适用于[资源模块](/guide/features/asset-module)。
+指定[资源模块](/guide/features/asset-module)输出为独立文件时的文件名，支持与 [`output.filename`](#outputfilename) 相同的占位符。
 
-`[name]`、`[file]`、`[query]`、`[fragment]`、`[base]` 和 `[path]` 在使用数据 URI 替换构建的资源中被设置为空字符串。
+此选项适用于：
 
-Asset module 输出的文件名称。这个值可以被 [rules[].generator.filename](/config/module-rules#rulesgenerator) 覆盖。
+- 类型为 `'asset/resource'` 的模块。
+- 类型为 `'asset'` 且不满足 [rules[].parser.dataUrlCondition](/config/module-parser#assetdataurlcondition) 条件的模块。满足条件的资源会被内联。
 
-:::info Asset module 作为一个单独的文件输出的情况
+例如，将资源文件输出到 `assets` 目录，并保留原始文件名：`logo.png` 会输出为 `assets/logo.png`。
 
-- 模块类型为 `'asset'` 且 asset 满足 [`rules[].parser.dataUrlCondition`](/config/module-parser#assetdataurlcondition) 设定值
-- 模块类型为 `'asset/resource'`
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    assetModuleFilename: 'assets/[name][ext]',
+  },
+};
+```
 
-:::
+对于通过 data URI 导入的资源，`[name]` 和 `[base]` 会被替换为内容哈希，`[file]`、`[query]`、`[fragment]` 和 `[path]` 为空字符串。
+
+可以通过 [rules[].generator.filename](/config/module-rules#rulesgenerator) 为某条规则单独设置文件名。下面的 PNG 规则使用 `images/[name][ext]` 覆盖全局设置，因此 `logo.png` 会输出为 `images/logo.png`：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    assetModuleFilename: 'assets/[name][ext]',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.png$/i,
+        type: 'asset/resource',
+        generator: {
+          filename: 'images/[name][ext]',
+        },
+      },
+    ],
+  },
+};
+```
 
 ## output.asyncChunks
 

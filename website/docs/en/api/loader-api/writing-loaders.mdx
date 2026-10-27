@@ -328,6 +328,40 @@ export default async function myLoader(source, inputSourceMap) {
 }
 ```
 
+## Passing data to plugins
+
+A plugin may need information collected by a loader while processing source code. The loader can store this data on `this._module.buildInfo` for the plugin to read. For example, this loader records the source length:
+
+```js title="metadata-loader.mjs"
+export default function metadataLoader(source, map, meta) {
+  this._module.buildInfo.metadataPlugin = { sourceLength: source.length };
+  this.callback(null, source, map, meta);
+}
+```
+
+The plugin reads the data in `finishModules`, after modules have been built:
+
+```js title="MetadataPlugin.mjs"
+export default class MetadataPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('MetadataPlugin', (compilation) => {
+      compilation.hooks.finishModules.tap('MetadataPlugin', (modules) => {
+        for (const module of modules) {
+          const data = module.buildInfo.metadataPlugin;
+          if (data) {
+            console.log(module.identifier(), data.sourceLength);
+          }
+        }
+      });
+    });
+  }
+}
+```
+
+Choose a distinct string property name, such as `metadataPlugin` in this example, to avoid overwriting data from other loaders or plugins. Properties with Symbol keys are not saved to the persistent cache.
+
+When persistent caching is enabled, Rspack saves this data as JSON. Use values that JSON supports, such as strings, numbers, arrays, and plain objects. Function properties are omitted, and functions in arrays become `null`, so the plugin cannot call them after a later build restores the module from the disk cache.
+
 ## Publishing loaders
 
 ### Declaring peer dependencies

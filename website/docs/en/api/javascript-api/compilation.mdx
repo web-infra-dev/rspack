@@ -740,7 +740,9 @@ The mapping from names to chunk groups.
 
 **Type:** `ReadonlySet<Module>`
 
-List of all modules, with the structure as follows:
+All modules in the current compilation. For each module, use `module.identifier()` to identify it, and `module.originalSource()` to read its source after loaders have run. The source can be `null` for modules without source code.
+
+Use [`compilation.moduleGraph`](#modulegraph) to inspect relationships between modules.
 
 <Collapse>
   <CollapsePanel
@@ -767,6 +769,32 @@ List of built modules that were not be cached, with the structure as follows:
     <ModuleType />
   </CollapsePanel>
 </Collapse>
+
+### moduleGraph
+
+Provides access to module dependencies:
+
+- `getModule(dependency)`: the module referenced by a dependency, or `null`.
+- `getOutgoingConnections(module)`: connections from this module to its dependencies; `connection.module` is the target module, or `null`.
+- `getIncomingConnections(module)`: connections from other modules to this module; `connection.originModule` is the importing module, or `null`.
+
+You can query these relationships in the `finishModules` hook, after modules have been built. For example, log each module and the modules it depends on:
+
+```js
+compiler.hooks.compilation.tap('InspectModules', (compilation) => {
+  compilation.hooks.finishModules.tap('InspectModules', (modules) => {
+    for (const module of modules) {
+      const connections =
+        compilation.moduleGraph.getOutgoingConnections(module);
+      for (const connection of connections) {
+        if (connection.module) {
+          console.log(module.identifier(), connection.module.identifier());
+        }
+      }
+    }
+  });
+});
+```
 
 ### chunks
 
