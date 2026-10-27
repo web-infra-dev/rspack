@@ -6,5 +6,5 @@ it("should reserve base and layer externals before the first lazy activation", a
   await NEXT_HMR();
   const result = await promise;
   expect(typeof result.isFile).toBe("function");
-  expect(result.joinedPath).toBe("a/b");
+  expect(result.joinedPath).toBe(require("path").join("a", "b"));
 });
