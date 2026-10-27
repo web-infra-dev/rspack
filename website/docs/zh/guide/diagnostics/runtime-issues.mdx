@@ -38,3 +38,19 @@ description: '排查使用 Rspack 构建的应用在运行时遇到的问题，�
 要让刷新生效，还需要确保浏览器能够获取更新后的 HTML。如果缓存仍然返回旧 HTML，页面可能再次加载旧版本代码，继续请求同一批已删除的文件。
 
 网络故障或资源 URL 配置错误也会导致 chunk 加载失败，而刷新页面并不一定能解决这些问题。如果每次失败都自动刷新，页面可能一直刷新却无法恢复。
+
+## 无法自动确定 publicPath \{#automatic-publicpath-cannot-be-determined}
+
+当 `output.publicPath` 为 `'auto'` 时，Rspack 会根据脚本的 URL 确定资源加载地址。出现 `Automatic publicPath is not supported in this browser` 错误，表示 Rspack 无法在当前环境中获取可用的脚本 URL。
+
+将 `output.publicPath` 设置为资源的访问地址前缀即可。例如，资源部署在 `/assets/` 下时：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    publicPath: '/assets/',
+  },
+};
+```
+
+请根据应用的实际部署位置填写资源路径或 CDN URL。更多配置示例请参阅[资源基础路径](/guide/features/asset-base-path)。
