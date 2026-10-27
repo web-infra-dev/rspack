@@ -216,22 +216,20 @@ import.meta.webpackHot.accept('./dep.js', () => {
 
 **无法处理自身更新时**
 
-接受自身更新的模块也可以在执行新代码时调用 `invalidate()`，将无法处理的更新交给引用它的模块：
+下面的模块接受自身更新，并在更新时比较新旧导出的字符串。如果字符串发生变化，就调用 `invalidate()`，让引用它的模块也参与更新：
 
 ```js
-const VALUE = 'constant';
+const message = 'Hello';
 
-export default VALUE;
+export default message;
 
-if (
-  import.meta.webpackHot.data &&
-  'value' in import.meta.webpackHot.data &&
-  import.meta.webpackHot.data.value !== VALUE
-) {
+const previousMessage = import.meta.webpackHot.data?.message;
+
+if (previousMessage !== undefined && previousMessage !== message) {
   import.meta.webpackHot.invalidate();
 } else {
   import.meta.webpackHot.dispose((data) => {
-    data.value = VALUE;
+    data.message = message;
   });
   import.meta.webpackHot.accept();
 }

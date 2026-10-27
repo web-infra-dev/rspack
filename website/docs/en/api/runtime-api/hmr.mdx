@@ -216,22 +216,20 @@ import.meta.webpackHot.accept('./dep.js', () => {
 
 **When a module cannot handle its own update**
 
-A module that accepts its own updates can also call `invalidate()` while running its new code, so that modules importing it can handle the update:
+The following module accepts its own updates and compares the new exported string with the previous one. If the string changes, it calls `invalidate()` so that modules importing it can also update:
 
 ```js
-const VALUE = 'constant';
+const message = 'Hello';
 
-export default VALUE;
+export default message;
 
-if (
-  import.meta.webpackHot.data &&
-  'value' in import.meta.webpackHot.data &&
-  import.meta.webpackHot.data.value !== VALUE
-) {
+const previousMessage = import.meta.webpackHot.data?.message;
+
+if (previousMessage !== undefined && previousMessage !== message) {
   import.meta.webpackHot.invalidate();
 } else {
   import.meta.webpackHot.dispose((data) => {
-    data.value = VALUE;
+    data.message = message;
   });
   import.meta.webpackHot.accept();
 }
