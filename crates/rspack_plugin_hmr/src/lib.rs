@@ -451,7 +451,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               };
               if old_all_modules
                 .get(module_id)
-                .is_some_and(|chunks| chunks.contains_key(&chunk_id))
+                .is_some_and(|chunks| chunks.contains_key(chunk_id))
               {
                 continue;
               }
