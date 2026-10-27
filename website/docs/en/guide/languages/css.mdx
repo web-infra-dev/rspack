@@ -141,26 +141,16 @@ export default {
 
 With the default `exportType: 'link'`, you can use a CSS file as an entry to emit a stylesheet without a corresponding JavaScript entry file. For example:
 
-```css title="src/styles.css"
-body {
-  color: #333;
-}
-```
-
 ```js title="rspack.config.mjs"
 export default {
-  mode: 'development',
-  target: 'web',
-  devtool: false,
-  entry: { styles: './src/styles.css' },
-  output: { cssFilename: '[name].css' },
+  entry: './src/styles.css',
   module: {
     rules: [{ test: /\.css$/i, type: 'css' }],
   },
 };
 ```
 
-This configuration emits only `dist/styles.css`. Referenced assets or source maps, if configured, may add output files. See [output.cssFilename](/config/output#outputcssfilename) to customize the stylesheet filename.
+This configuration emits only `dist/main.css`. Referenced assets or source maps, if configured, may add output files. See [output.cssFilename](/config/output#outputcssfilename) to customize the stylesheet filename.
 
 ### CSS export type
 

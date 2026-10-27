@@ -141,26 +141,16 @@ export default {
 
 使用默认的 `exportType: 'link'` 时，你可以将 CSS 文件作为入口，输出样式表，而不生成对应的 JavaScript 入口文件。例如：
 
-```css title="src/styles.css"
-body {
-  color: #333;
-}
-```
-
 ```js title="rspack.config.mjs"
 export default {
-  mode: 'development',
-  target: 'web',
-  devtool: false,
-  entry: { styles: './src/styles.css' },
-  output: { cssFilename: '[name].css' },
+  entry: './src/styles.css',
   module: {
     rules: [{ test: /\.css$/i, type: 'css' }],
   },
 };
 ```
 
-此配置只输出 `dist/styles.css`。如果配置了资源引用或 source map，可能会额外生成其他文件。可以通过 [output.cssFilename](/config/output#outputcssfilename) 自定义样式表文件名。
+此配置只输出 `dist/main.css`。如果配置了资源引用或 source map，可能会额外生成其他文件。可以通过 [output.cssFilename](/config/output#outputcssfilename) 自定义样式表文件名。
 
 ### CSS export type
 
