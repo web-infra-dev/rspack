@@ -23,10 +23,10 @@ if (module.hot) {
   });
 }
 
-// or
+// 或者
 if (import.meta.webpackHot) {
   import.meta.webpackHot.accept('./library.js', function () {
-    // Do something with the updated library module…
+    // 使用更新后的 library 模块…
   });
 }
 ```
@@ -65,7 +65,7 @@ module.hot.accept(
   errorHandler // (err, {moduleId, dependencyId}) => {}
 );
 
-// or
+// 或者
 import.meta.webpackHot.accept(
   dependencies, // 可以是一个字符串或字符串数组
   callback, // 用于在模块更新后触发的函数
@@ -91,12 +91,12 @@ import.meta.webpackHot.accept(
 
 ```js
 module.hot.accept(
-  errorHandler, // 在计算新版本时处理错误的函数
+  errorHandler, // 处理新版本模块执行时的错误
 );
 
-// or
+// 或者
 import.meta.webpackHot.accept(
-  errorHandler, // Function to handle errors when evaluating the new version
+  errorHandler, // 处理新版本模块执行时的错误
 );
 ```
 
@@ -123,9 +123,9 @@ module.hot.decline(
   dependencies, // 可以是一个字符串或字符串数组
 );
 
-// or
+// 或者
 import.meta.webpackHot.decline(
-  dependencies, // Either a string or an array of strings
+  dependencies, // 字符串或字符串数组
 );
 ```
 
@@ -138,7 +138,7 @@ import.meta.webpackHot.decline(
 ```js
 module.hot.decline();
 
-// or
+// 或者
 import.meta.webpackHot.decline();
 ```
 
@@ -153,7 +153,7 @@ module.hot.dispose((data) => {
   // 清理并将 data 传递到更新后的模块...
 });
 
-// or
+// 或者
 import.meta.webpackHot.dispose((data) => {
   // 清理并将 data 传递到更新后的模块...
 });
@@ -190,7 +190,7 @@ if (import.meta.webpackHot) {
 
 #### 用例
 
-**Conditional Accepting**
+**按条件接受依赖更新**
 
 一个模块可以接受一个依赖，但是当依赖的改变无法处理时，可以调用 `invalidate`：
 
@@ -214,9 +214,9 @@ module.hot.accept('./dep', () => {
 });
 ```
 
-**Conditional self accept**
+**按条件接受自身更新**
 
-模块可以自我接受，但是当更改无法处理时可以使自身失效：
+模块可以接受自身更新，并在无法处理更新时调用 `invalidate()`：
 
 ```js
 const VALUE = 'constant';
@@ -237,7 +237,7 @@ if (
 }
 ```
 
-**Triggering custom HMR updates**
+**触发自定义热更新**
 
 ```js
 const moduleId = chooseAModule();
@@ -249,9 +249,17 @@ if (require.cache[moduleId]) {
 }
 ```
 
-T> 当调用 `invalidate` 时，将最终调用 [`dispose`](#dispose或-adddisposehandler) 处理函数并填充 `module.hot.data`。如果未注册 [`dispose`](#dispose或-adddisposehandler) 处理程序，则将空对象提供给 `module.hot.data`.
+:::tip
 
-W> 通过一次次的调用 `invalidate`，不要陷入 `invalidate` 循环。这将导致栈溢出并且 HMR 进入 `fail` 状态。
+应用更新时，[`dispose`](#dispose或-adddisposehandler) 回调可以将状态保存到 `data` 参数中，供更新后的模块通过 `module.hot.data` 读取。如果没有注册回调，该对象为空。
+
+:::
+
+:::warning
+
+避免在模块每次执行时都无条件调用 `invalidate()`，否则可能反复触发更新，导致 HMR 无法完成。
+
+:::
 
 ### removeDisposeHandler
 
@@ -260,7 +268,7 @@ W> 通过一次次的调用 `invalidate`，不要陷入 `invalidate` 循环。�
 ```js
 module.hot.removeDisposeHandler(callback);
 
-// or
+// 或者
 import.meta.webpackHot.removeDisposeHandler(callback);
 ```
 
@@ -296,20 +304,20 @@ import.meta.webpackHot.status();
 module.hot
   .check(autoApply)
   .then((outdatedModules) => {
-    // 超时的模块...
+    // 受本次更新影响的模块...
   })
   .catch((error) => {
     // 捕获错误
   });
 
-// or
+// 或者
 import.meta.webpackHot
   .check(autoApply)
   .then((outdatedModules) => {
-    // outdated modules...
+    // 受本次更新影响的模块...
   })
   .catch((error) => {
-    // catch errors
+    // 捕获错误
   });
 ```
 
@@ -323,20 +331,20 @@ import.meta.webpackHot
 module.hot
   .apply(options)
   .then((outdatedModules) => {
-    // 超时的模块...
+    // 受本次更新影响的模块...
   })
   .catch((error) => {
     // 捕获错误
   });
 
-// or
+// 或者
 import.meta.webpackHot
   .apply(options)
   .then((outdatedModules) => {
-    // outdated modules...
+    // 受本次更新影响的模块...
   })
   .catch((error) => {
-    // catch errors
+    // 捕获错误
   });
 ```
 
@@ -402,7 +410,7 @@ import.meta.webpackHot.addStatusHandler((status) => {
 ```js
 module.hot.removeStatusHandler(callback);
 
-// or
+// 或者
 import.meta.webpackHot.removeStatusHandler(callback);
 ```
 

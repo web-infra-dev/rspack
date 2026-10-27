@@ -190,7 +190,7 @@ When called during the `dispose` or `apply` state, HMR will pick it up after get
 
 #### Use cases
 
-**Conditional Accepting**
+**Conditional accepting**
 
 A module can accept a dependency, but can call `invalidate` when the change of the dependency is not handleable:
 
@@ -249,9 +249,17 @@ if (require.cache[moduleId]) {
 }
 ```
 
-T> When `invalidate` is called, the [`dispose`](#dispose-or-adddisposehandler) handler will be eventually called and fill `module.hot.data`. If [`dispose`](#dispose-or-adddisposehandler) handler is not registered, an empty object will be supplied to `module.hot.data`.
+:::tip
 
-W> Do not get caught in an `invalidate` loop, by calling `invalidate` again and again. This will result in stack overflow and HMR entering the `fail` state.
+When the update is applied, [`dispose`](#dispose-or-adddisposehandler) handlers can save state in their `data` argument. The updated module reads it from `module.hot.data`, which is an empty object if no handler was registered.
+
+:::
+
+:::warning
+
+Avoid calling `invalidate()` unconditionally every time the module runs. This can repeatedly trigger updates and prevent HMR from completing.
+
+:::
 
 ### removeDisposeHandler
 
