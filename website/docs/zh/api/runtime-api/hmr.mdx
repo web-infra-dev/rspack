@@ -237,13 +237,9 @@ if (previousMessage !== undefined && previousMessage !== message) {
 
 :::tip
 
-在 [`dispose`](#dispose或-adddisposehandler) 回调中，把需要保留的数据写入 `data` 对象。更新后的模块可以通过 `import.meta.webpackHot.data`（CommonJS 中为 `module.hot.data`）读取这些数据。首次执行时还没有旧状态，因此这个值是 `undefined`。热更新后，如果旧版本没有保存任何数据，它就是一个空对象。
-
-:::
-
-:::warning
-
-不要在模块每次执行时都调用 `invalidate()`。否则，一次热更新可能又触发下一次热更新，形成循环。
+- 在 [`dispose`](#dispose或-adddisposehandler) 回调中，把需要保留的数据写入 `data` 对象。更新后的模块可以通过 `import.meta.webpackHot.data`（CommonJS 中为 `module.hot.data`）读取这些数据。
+- 首次执行时还没有旧状态，因此这个值是 `undefined`。热更新后，如果旧版本没有保存任何数据，它就是一个空对象。
+- 不要在模块每次执行时都调用 `invalidate()`。否则，一次热更新可能又触发下一次热更新，形成循环。
 
 :::
 

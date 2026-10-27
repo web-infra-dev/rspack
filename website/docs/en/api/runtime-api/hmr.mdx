@@ -237,13 +237,9 @@ if (previousMessage !== undefined && previousMessage !== message) {
 
 :::tip
 
-In a [`dispose`](#dispose-or-adddisposehandler) callback, write any data you want to keep to the `data` object. The updated module can read it from `import.meta.webpackHot.data` (`module.hot.data` in CommonJS). On first execution, no previous state is available, so this value is `undefined`. After an update, it is an empty object if the previous version did not save any data.
-
-:::
-
-:::warning
-
-Do not call `invalidate()` every time the module runs. Doing so can make each hot update trigger another, creating an update loop.
+- In a [`dispose`](#dispose-or-adddisposehandler) callback, write any data you want to keep to the `data` object. The updated module can read it from `import.meta.webpackHot.data` (`module.hot.data` in CommonJS).
+- On first execution, no previous state is available, so this value is `undefined`. After an update, it is an empty object if the previous version did not save any data.
+- Do not call `invalidate()` every time the module runs. Doing so can make each hot update trigger another, creating an update loop.
 
 :::
 
