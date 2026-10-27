@@ -56,7 +56,7 @@ Notable changes include:
 - [Experimental cache improvements](#cache-improvements)
 - New features
   - [Filter loaders by code content](#loader-code-filter)
-  - [CSS bundling](#css-bundling)
+  - [Built-in CSS](#built-in-css)
   - [Resolution and lazy compilation](#resolution-and-lazy-compilation)
   - [Watcher compatibility](#watcher-compatibility)
   - [Plugin and tool integration](#plugin-integration)
@@ -76,8 +76,8 @@ Notable changes include:
 
 Rspack 2.3 moves its JavaScript parser to SWC Next and, with its more compact AST and memory layout, also optimizes Rspack's parsing and traversal. Using 6 workers, parsing time and instruction counts changed as follows:
 
-| Project   | Parsing time                  | Instructions                   |
-| --------- | ----------------------------- | ------------------------------ |
+| Project   | Parsing time                      | Instructions                       |
+| --------- | --------------------------------- | ---------------------------------- |
 | three.js  | 23.62 ms → 20.11 ms (**−14.9%**)  | 205.23 M → 155.07 M (**−24.4%**)   |
 | React 10k | 207.16 ms → 193.86 ms (**−6.4%**) | 1597.67 M → 1421.29 M (**−11.0%**) |
 
@@ -217,13 +217,13 @@ Rspack's core is written in Rust, so calling a JavaScript loader adds cross-lang
 
 In a benchmark with 10,000 modules where only 10% needed transformation, `codeFilter` reduced loader calls by 90% and total build time from 622 ms to 481 ms, a reduction of about 23%.
 
-### CSS bundling
+### Built-in CSS
 
 This release improves support for CSS scenarios including CSS Modules scoping, composition, value references, and nested selectors. It also fixes issues with asynchronous style loading and relative `publicPath` values.
 
 #### CSS-only entry points \{#css-entry}
 
-A CSS-only entry can now emit just a stylesheet, which is useful for publishing themes or style libraries independently:
+When publishing a theme or style library independently, you often only need a CSS file. Rspack now supports emitting only a stylesheet for a CSS-only entry, without an extra JavaScript file. For example:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -243,7 +243,9 @@ This configuration emits `styles.css` without generating an unnecessary `styles.
 
 #### CSS externals
 
-The new `css-import` and `asset-url` [external](/config/externals) types let you keep specified stylesheet or asset references in CSS external to the bundle.
+When stylesheets or images are hosted on a CDN or another external service, you may want the browser to load them directly instead of including them in the bundle.
+
+Rspack adds the `css-import` and `asset-url` [external](/config/externals) types to keep specified CSS references external. For example, configure stylesheets and an image as externals:
 
 ```js title="rspack.config.js"
 module.exports = {

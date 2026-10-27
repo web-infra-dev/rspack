@@ -56,7 +56,7 @@ Rspack 2.3 现已发布！本次更新将 JavaScript 解析器迁移至 SWC Next
 - [实验性缓存改进](#cache-improvements)
 - 新特性
   - [按代码内容过滤 loader](#loader-code-filter)
-  - [CSS 打包能力](#css-bundling)
+  - [内置的 CSS](#built-in-css)
   - [依赖解析与按需编译](#resolution-and-lazy-compilation)
   - [Watcher 兼容性改进](#watcher-compatibility)
   - [插件与工具集成](#plugin-integration)
@@ -76,8 +76,8 @@ Rspack 2.3 现已发布！本次更新将 JavaScript 解析器迁移至 SWC Next
 
 Rspack 在 2.3 中将 JavaScript 解析器迁移至 SWC Next，并借助其更紧凑的 AST 和内存布局同步优化了 Rspack 自身的解析和遍历流程。在使用 6 个 worker 时，解析阶段的耗时和指令数如下：
 
-| 项目      | 解析阶段耗时                   | 指令数                          |
-| --------- | ------------------------------ | ------------------------------- |
+| 项目      | 解析阶段耗时                       | 指令数                              |
+| --------- | ---------------------------------- | ----------------------------------- |
 | three.js  | 23.62 ms → 20.11 ms（**−14.9%**）  | 205.23 M → 155.07 M（**−24.4%**）   |
 | React 10k | 207.16 ms → 193.86 ms（**−6.4%**） | 1597.67 M → 1421.29 M（**−11.0%**） |
 
@@ -217,13 +217,13 @@ Rspack 核心由 Rust 编写，调用 JavaScript loader 时会产生跨语言通
 
 在包含 1 万个模块、仅 10% 的模块需要转换的测试中，`codeFilter` 避免了 90% 没有必要的 loader 调用，完整构建耗时从 622 ms 降至 481 ms，缩短约 23%。
 
-### CSS 打包能力 \{#css-bundling}
+### 内置的 CSS \{#built-in-css}
 
 本次更新改进了对更多 CSS 场景的支持，涵盖 CSS Modules 作用域、组合声明、值引用和嵌套选择器，同时修复了异步样式加载和相对 `publicPath` 相关的问题。
 
 #### 独立构建样式入口 \{#css-entry}
 
-纯 CSS 入口现在可以只生成样式文件，适用于独立发布主题或样式库等场景：
+独立发布主题或样式库时，通常只需要生成 CSS 文件。Rspack 现在支持为纯 CSS 入口只生成样式文件，无需输出多余的 JavaScript 文件。例如：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -243,7 +243,9 @@ export default {
 
 #### 支持外部资源 \{#css-externals}
 
-新增 `css-import` 和 `asset-url` 两种 [external](/zh/config/externals) 类型，可以将 CSS 中指定的样式或资源引用保留为外部资源，不参与打包。
+当样式表或图片由 CDN 等外部服务提供时，通常希望浏览器直接加载这些资源，而不是将它们打包进构建产物。
+
+Rspack 新增 `css-import` 和 `asset-url` 两种 [external](/zh/config/externals) 类型，可以将 CSS 中的指定引用保留为外部资源。例如，将样式表和图片配置为 external：
 
 ```js title="rspack.config.js"
 module.exports = {
