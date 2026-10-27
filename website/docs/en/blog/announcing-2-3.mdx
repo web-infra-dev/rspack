@@ -376,18 +376,37 @@ It also improves Rspack analysis and supports reports for multiple compilers. In
 
 ### Rstest
 
-[Rstest 0.12](https://rstest.rs/blog/announcing-0-12) redesigns its JavaScript API and adds screenshot testing. Use `toMatchScreenshot()` to make visual assertions on elements and pages:
+#### Browser mode API improvements \{#rstest-browser-api}
+
+Recent Browser Mode updates make it easier to test keyboard interactions and React hydration in a real browser:
+
+- [`locator.pressSequentially()`](https://rstest.rs/api/runtime-api/browser-mode/locator#presssequentially) types text one character at a time, firing keyboard events for each character. This is useful for autocomplete inputs and other controls that respond to individual keystrokes.
+- [`render()` in `@rstest/browser-react`](https://rstest.rs/guide/browser-testing/framework-guides) now accepts `hydrate` and `createRootOptions`. You can hydrate existing server-rendered markup in a supplied container and pass React root options through to test hydration behavior.
 
 ```ts
+await page.getByLabel('Search').pressSequentially('rspack', { delay: 50 });
+await expect.element(page.getByRole('listbox')).toBeVisible();
+```
+
+#### Screenshot testing \{#rstest-screenshot-testing}
+
+[Rstest 0.12.4](https://github.com/web-infra-dev/rstest/releases/tag/v0.12.4) adds visual regression testing in Browser Mode with the Playwright provider. The new [`toMatchScreenshot()`](https://rstest.rs/api/runtime-api/browser-mode/assertion#toMatchScreenshot) matcher compares an element or page against a saved screenshot, helping catch visual changes that DOM assertions alone may miss.
+
+```ts title="button.test.ts"
+import { page } from '@rstest/browser';
 import { expect, test } from '@rstest/core';
 
-test('home page', async ({ page }) => {
-  await page.goto('/');
-  await expect(page).toMatchScreenshot('home.png');
+test('button appearance', async () => {
+  document.body.innerHTML = '<button>Submit</button>';
+
+  await expect(
+    page.getByRole('button', { name: 'Submit' }),
+  ).toMatchScreenshot();
+  await expect(page).toMatchScreenshot('full-page', { fullPage: true });
 });
 ```
 
-A standalone [VS Code extension](https://marketplace.visualstudio.com/items?itemName=rstest.rstest-vscode) is also available, with support for discovering, running, and debugging tests in the editor.
+When a comparison fails, Rstest saves the actual screenshot and a diff image for inspection. You can mask dynamic content, configure pixel difference tolerances, and update reference images with `--update`.
 
 ### Rspress
 

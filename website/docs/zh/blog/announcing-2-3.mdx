@@ -375,18 +375,37 @@ Rslib 1.0.4 支持使用 TypeScript 7.1 Beta 生成类型声明，也支持通�
 
 ### Rstest \{#rstest}
 
-[Rstest 0.12](https://rstest.rs/zh/blog/announcing-0-12) 重新设计了 JavaScript API，并新增截图测试能力。你可以通过 `toMatchScreenshot()` 对元素和页面进行视觉断言：
+#### 浏览器模式 API 增强 \{#rstest-browser-api}
+
+浏览器模式近期新增了键盘交互和 React hydration 相关 API，方便在真实浏览器中测试这些行为：
+
+- [`locator.pressSequentially()`](https://rstest.rs/zh/api/runtime-api/browser-mode/locator#presssequentially) 逐字符输入文本，并为每个字符触发键盘事件，适合测试自动补全输入框等需要响应单次按键的控件。
+- [`@rstest/browser-react` 的 `render()`](https://rstest.rs/zh/guide/browser-testing/framework-guides) 新增 `hydrate` 和 `createRootOptions` 选项。你可以对指定容器中已有的服务端渲染内容执行 hydration，并传入 React root 选项来测试 hydration 行为。
 
 ```ts
+await page.getByLabel('Search').pressSequentially('rspack', { delay: 50 });
+await expect.element(page.getByRole('listbox')).toBeVisible();
+```
+
+#### 截图测试 \{#rstest-screenshot-testing}
+
+[Rstest 0.12.4](https://github.com/web-infra-dev/rstest/releases/tag/v0.12.4) 在使用 Playwright provider 的浏览器模式中新增了视觉回归测试。通过 [`toMatchScreenshot()`](https://rstest.rs/zh/api/runtime-api/browser-mode/assertion#toMatchScreenshot)，你可以将元素或页面的截图与保存的基准图进行比较，发现仅靠 DOM 断言可能遗漏的视觉变化。
+
+```ts title="button.test.ts"
+import { page } from '@rstest/browser';
 import { expect, test } from '@rstest/core';
 
-test('home page', async ({ page }) => {
-  await page.goto('/');
-  await expect(page).toMatchScreenshot('home.png');
+test('button appearance', async () => {
+  document.body.innerHTML = '<button>Submit</button>';
+
+  await expect(
+    page.getByRole('button', { name: 'Submit' }),
+  ).toMatchScreenshot();
+  await expect(page).toMatchScreenshot('full-page', { fullPage: true });
 });
 ```
 
-独立的 [VS Code 扩展](https://marketplace.visualstudio.com/items?itemName=rstest.rstest-vscode) 也已发布，支持在编辑器中发现、运行和调试测试。
+比较失败时，Rstest 会保存实际截图和差异图，方便排查问题。你还可以遮罩动态内容、配置像素差异容差，并通过 `--update` 更新基准图。
 
 ### Rspress \{#rspress}
 
