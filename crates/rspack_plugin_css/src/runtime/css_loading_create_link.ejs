@@ -1,7 +1,13 @@
 link = document.createElement("link");
+<% if (_with_hmr) { %>
+// Browsers may hide the nonce attribute while retaining its property.
+var nonce = <%- weak(SCRIPT_NONCE) %> || (hmr ? hmr.nonce || hmr.getAttribute("nonce") : null);
+if (nonce != null) link.setAttribute("nonce", nonce);
+<% } else { %>
 if (<%- weak(SCRIPT_NONCE) %>) {
   link.setAttribute("nonce", <%- weak(SCRIPT_NONCE) %>);
 }
+<% } %>
 <% if (_unique_name != "") { %>
 link.setAttribute("data-rspack", cssLoadingUniqueName + ":" + key);
 <% } %>
@@ -33,8 +39,5 @@ if (hmr) {
 				link.setAttribute(attribute.name, attribute.value);
 		}
 	}
-	// Browsers may hide the nonce attribute while retaining its property.
-	var nonce = <%- weak(SCRIPT_NONCE) %> || hmr.nonce || hmr.getAttribute("nonce");
-	if (nonce != null) link.setAttribute("nonce", nonce);
 }
 <% } %>

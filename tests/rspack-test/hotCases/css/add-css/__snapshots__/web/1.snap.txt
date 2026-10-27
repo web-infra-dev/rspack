@@ -8,7 +8,7 @@
 - Bundle: lazy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 56
 - Update: lazy.LAST_HASH.hot-update.js, size: 334
-- Update: main.LAST_HASH.hot-update.js, size: 8463
+- Update: main.LAST_HASH.hot-update.js, size: 8342
 
 ## Manifest
 
@@ -108,9 +108,11 @@ var cssLoadStylesheet = (chunkId, url, done, hmr, fetchPriority) => {
 	if (!link) {
 		needAttach = true;
 		link = document.createElement("link");
-if (__webpack_require__.nc) {
-  link.setAttribute("nonce", __webpack_require__.nc);
-}
+
+// Browsers may hide the nonce attribute while retaining its property.
+var nonce = __webpack_require__.nc || (hmr ? hmr.nonce || hmr.getAttribute("nonce") : null);
+if (nonce != null) link.setAttribute("nonce", nonce);
+
 
 
 link.setAttribute(loadingAttribute, 1);
@@ -130,9 +132,6 @@ if (hmr) {
 				link.setAttribute(attribute.name, attribute.value);
 		}
 	}
-	// Browsers may hide the nonce attribute while retaining its property.
-	var nonce = __webpack_require__.nc || hmr.nonce || hmr.getAttribute("nonce");
-	if (nonce != null) link.setAttribute("nonce", nonce);
 }
 
 
@@ -217,15 +216,13 @@ var cssOldTags = [];
 var cssNewTags = [];
 var cssApplyHandler = (options) => {
 	return {
-		dispose: () => { },
 		apply: () => {
 			while (cssNewTags.length) {
 				var entry = cssNewTags.pop(), link = entry.link, oldTag = entry.oldTag, sheet = link.sheet;
 				// Read the latest state before removing the old link. Keep downloads enabled until apply.
 				var disabledAttribute = oldTag && oldTag.getAttribute("disabled");
-				var disabled = oldTag && oldTag.sheet ? oldTag.sheet.disabled : disabledAttribute != null;
 				if (disabledAttribute != null) link.setAttribute("disabled", disabledAttribute);
-				sheet.disabled = !!disabled;
+				sheet.disabled = !!(oldTag && oldTag.sheet ? oldTag.sheet.disabled : disabledAttribute != null);
 			}
 			while (cssOldTags.length) {
 				var oldTag = cssOldTags.pop();
