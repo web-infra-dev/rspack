@@ -14,7 +14,7 @@ In ESM, use `import.meta.webpackHot` instead of `module.hot`.
 
 ## Example
 
-First, check if the interface is available, then use it. Here's how to `accept` an updated module:
+To accept updates to a module you have already loaded, first check whether the HMR interface is available:
 
 ```js
 if (module.hot) {
@@ -194,12 +194,12 @@ When called during the `dispose` or `apply` state, HMR will pick it up after get
 
 #### Use cases
 
-**Conditional Accepting**
+**When a dependency update cannot be handled**
 
-A module can accept a dependency, but can call `invalidate` when the change of the dependency is not handleable:
+Inside an `accept()` callback, call `invalidate()` if the current module cannot handle the dependency's update. This lets modules that import the current module handle the update:
 
 ```js
-import { x, y } from './dep';
+import { x, y } from './dep.js';
 import { processX, processY } from 'anotherDep';
 
 const oldY = y;
@@ -207,10 +207,10 @@ const oldY = y;
 processX(x);
 export default processY(y);
 
-module.hot.accept('./dep', () => {
+import.meta.webpackHot.accept('./dep.js', () => {
   if (y !== oldY) {
     // This can't be handled, bubble to parent
-    module.hot.invalidate();
+    import.meta.webpackHot.invalidate();
     return;
   }
   // This can be handled
@@ -218,44 +218,34 @@ module.hot.accept('./dep', () => {
 });
 ```
 
-**Conditional self accept**
+**When a module cannot handle its own update**
 
-A module can self-accept itself, but can invalidate itself when the change is not handleable:
+The following module accepts its own updates and compares the new exported string with the previous one. If the string changes, it calls `invalidate()` so that modules importing it can also update:
 
 ```js
-const VALUE = 'constant';
+const message = 'Hello';
 
-export default VALUE;
+export default message;
 
-if (
-  module.hot.data &&
-  module.hot.data.value &&
-  module.hot.data.value !== VALUE
-) {
-  module.hot.invalidate();
+const previousMessage = import.meta.webpackHot.data?.message;
+
+if (previousMessage !== undefined && previousMessage !== message) {
+  import.meta.webpackHot.invalidate();
 } else {
-  module.hot.dispose((data) => {
-    data.value = VALUE;
+  import.meta.webpackHot.dispose((data) => {
+    data.message = message;
   });
-  module.hot.accept();
+  import.meta.webpackHot.accept();
 }
 ```
 
-**Triggering custom HMR updates**
+:::tip
 
-```js
-const moduleId = chooseAModule();
-const code = __webpack_modules__[moduleId].toString();
-__webpack_modules__[moduleId] = eval(`(${makeChanges(code)})`);
-if (require.cache[moduleId]) {
-  require.cache[moduleId].hot.invalidate();
-  module.hot.apply();
-}
-```
+- In a [`dispose`](#dispose-or-adddisposehandler) callback, write any data you want to keep to the `data` object. The updated module can read it from `import.meta.webpackHot.data` (`module.hot.data` in CommonJS).
+- On first execution, no previous state is available, so this value is `undefined`. After an update, it is an empty object if the previous version did not save any data.
+- Do not call `invalidate()` every time the module runs. Doing so can make each hot update trigger another, creating an update loop.
 
-T> When `invalidate` is called, the [`dispose`](#dispose-or-adddisposehandler) handler will be eventually called and fill `module.hot.data`. If [`dispose`](#dispose-or-adddisposehandler) handler is not registered, an empty object will be supplied to `module.hot.data`.
-
-W> Do not get caught in an `invalidate` loop, by calling `invalidate` again and again. This will result in stack overflow and HMR entering the `fail` state.
+:::
 
 ### removeDisposeHandler
 
