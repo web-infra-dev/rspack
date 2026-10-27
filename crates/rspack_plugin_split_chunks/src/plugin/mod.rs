@@ -604,7 +604,7 @@ impl SplitChunksPlugin {
           compilation,
         );
 
-        self.split_from_original_chunks(&module_group, &used_chunks, new_chunk, compilation);
+        self.split_from_original_chunks(&used_chunks, new_chunk, compilation);
 
         self.remove_all_modules_from_other_module_groups(
           &placed_module_chunks,
