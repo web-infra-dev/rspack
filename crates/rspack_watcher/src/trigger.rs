@@ -265,6 +265,9 @@ impl EventProcessor {
       if may_contain_records {
         self.path_manager.remove_file_times_under(path);
       }
+      if kind == FsEventKind::Remove && is_watched_path {
+        self.path_manager.set_reported_file_removal(path);
+      }
     }
 
     // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
