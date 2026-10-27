@@ -17,12 +17,14 @@ An error such as `ChunkLoadError` means an async chunk could not be loaded, but 
 
 ### `ChunkLoadError` with an HTTP 200 response
 
-When JavaScript chunks are loaded through `<script>` tags, as in the default browser setup, an HTTP 200 response does not guarantee that the expected chunk is available. The script must also run and provide that chunk to Rspack.
+An HTTP 200 response in the Network panel does not always mean that the chunk loaded successfully. The server may have returned HTML or the wrong JavaScript file, or the script may have failed to run.
 
-If the script finishes loading without providing the expected chunk, `ChunkLoadError` has `type: 'missing'`. The `request` property contains the requested script URL. Use it to locate the request in the Network panel, then check:
+Check the response and any script errors:
 
-- **Response content:** Confirm that the server or CDN returned the expected JavaScript file, rather than HTML, an empty response, or a file from another build.
-- **Earlier errors:** Look for syntax or execution errors in the Console that could have prevented the script from providing the chunk to Rspack.
+1. Open the request in the Network panel and check its response. It should contain the chunk from the current application version, rather than HTML, an empty response, or JavaScript from another version.
+2. Look for earlier JavaScript errors in the Console. A syntax or execution error may prevent even the correct file from loading successfully.
+
+With the default browser loader, which uses `<script>` tags, the error's `type` is `'missing'` if the script finishes loading but Rspack still cannot find the expected chunk. The error's `request` property contains the URL you can use to locate the request in the Network panel.
 
 ### `ChunkLoadError` after deployment
 

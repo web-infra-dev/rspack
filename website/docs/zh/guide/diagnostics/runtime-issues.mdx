@@ -17,12 +17,14 @@ description: '排查使用 Rspack 构建的应用在运行时遇到的问题，�
 
 ### 请求返回 200，仍出现 `ChunkLoadError` \{#chunkloaderror-with-an-http-200-response}
 
-在浏览器中默认通过 `<script>` 标签加载 JavaScript chunk 时，请求返回 HTTP 200 并不代表预期的 chunk 已经可用。脚本还需要成功执行，并将对应的 chunk 提供给 Rspack。
+Network 面板中显示 HTTP 200，并不代表 chunk 已经加载成功。服务器可能返回了 HTML 或错误的 JavaScript 文件，脚本也可能在执行时报错。
 
-如果脚本加载完成后，Rspack 仍未收到预期的 chunk，`ChunkLoadError` 的 `type` 为 `'missing'`，`request` 属性则包含请求的脚本 URL。可以用这个 URL 在 Network 面板中找到对应请求，再检查：
+可以按下面的顺序排查：
 
-- **响应内容**：确认服务器或 CDN 返回了预期的 JavaScript 文件，而不是 HTML、空响应或其他构建生成的文件。
-- **更早的报错**：查看 Console 中是否有语法错误或脚本执行错误，导致脚本未能向 Rspack 提供预期的 chunk。
+1. 在 Network 面板中打开对应请求，确认响应内容是当前应用版本的 chunk，而不是 HTML、空内容或其他版本的 JavaScript 文件。
+2. 查看 Console 中是否有更早出现的 JavaScript 错误。即使下载到了正确的文件，语法错误或执行错误也可能导致加载失败。
+
+浏览器默认通过 `<script>` 标签加载 JavaScript chunk。如果脚本加载完成后，Rspack 仍未找到预期的 chunk，错误对象的 `type` 会是 `'missing'`。其中的 `request` 属性记录了请求地址，可以用来定位 Network 面板中的对应请求。
 
 ### 部署后出现 `ChunkLoadError` \{#chunkloaderror-after-deployment}
 
