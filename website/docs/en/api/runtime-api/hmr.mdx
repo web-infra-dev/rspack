@@ -290,7 +290,7 @@ import.meta.webpackHot.status();
 
 ### check
 
-Test all loaded modules for updates and, if updates exist, `apply` them.
+Check for available hot updates and download them. This method can only be called in the `idle` state.
 
 ```js
 module.hot
@@ -313,7 +313,13 @@ import.meta.webpackHot
   });
 ```
 
-The `autoApply` parameter can either be a boolean or `options` to pass to the `apply` method when called.
+The `autoApply` parameter controls what happens after the update has been downloaded:
+
+- Omitted or `false`: enter the `ready` state without applying the update. Call [`apply()`](#apply) to apply it.
+- `true`: apply the update automatically.
+- An options object: apply the update automatically with the specified [`apply()` options](#apply).
+
+The returned Promise resolves to an array of module IDs, or `null` if no update is available. It rejects if downloading or applying the update fails.
 
 ### apply
 
