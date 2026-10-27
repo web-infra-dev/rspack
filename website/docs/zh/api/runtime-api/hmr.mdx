@@ -178,7 +178,11 @@ if (import.meta.webpackHot) {
 
 ### invalidate
 
-调用此方法将使当前模块无效，而当前模块将在应用 HMR 更新时进行部署并重新创建。这个模块的更新像冒泡一样，拒绝自身更新。
+当前模块无法自行处理热更新时，可以调用 `invalidate()`，让引用它的模块处理这次更新。即使当前模块已经调用 `accept()` 接受自身更新，更新也会继续向引用它的模块传播，详见[更新如何传播](#update-propagation)。
+
+更新被接受并开始应用后，Rspack 会执行当前模块的 [`dispose`](#dispose或-adddisposehandler) 回调，清理旧模块的资源。
+
+如果希望拒绝当前模块的更新，请使用 [`decline()`](#declineself)。
 
 在 `idle` 状态下调用时，将创建一个包含此模块的新 HMR 更新。HMR 将进入 `ready` 状态。
 
