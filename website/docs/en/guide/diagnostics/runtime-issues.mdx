@@ -15,6 +15,17 @@ An error such as `ChunkLoadError` means an async chunk could not be loaded, but 
 - **Network failure:** For a timeout, connection failure, or server error, check the network connection and whether the server or CDN is available.
 - **Browser extension blocking the request:** Temporarily disable ad blockers or other request-blocking extensions and try again to check whether they caused the failure.
 
+### `ChunkLoadError` with an HTTP 200 response
+
+An HTTP 200 response in the Network panel does not always mean that the chunk loaded successfully. The server may have returned HTML or the wrong JavaScript file, or the script may have failed to run.
+
+Check the response and any script errors:
+
+1. Open the request in the Network panel and check its response. It should contain the chunk from the current application version, rather than HTML, an empty response, or JavaScript from another version.
+2. Look for earlier JavaScript errors in the Console. A syntax or execution error may prevent even the correct file from loading successfully.
+
+By default, browsers load JavaScript chunks through `<script>` tags. If the browser successfully loads a script but it does not contain the required chunk, for example because the server returned an empty JavaScript file, Rspack still reports `ChunkLoadError` with `type: 'missing'`. The error's `request` property contains the URL you can use to locate the request in the Network panel.
+
 ### `ChunkLoadError` after deployment
 
 A common scenario is that a user opens a page, a new application version is deployed, and the user keeps the page open without refreshing. The page still runs the old code. If the user then navigates to a route loaded through `import()`, it requests chunks from the old version, which may have been deleted during deployment.
@@ -38,3 +49,19 @@ If you use a framework or router, first check whether it already provides a way 
 For this to work, the browser must be able to fetch updated HTML on refresh. If a cache keeps returning old HTML, the page may load the old code again and continue requesting the same deleted files.
 
 Network failures or an incorrect asset URL can also cause chunk loading errors, and refreshing does not necessarily fix them. Automatically refreshing after every failure can leave the page repeatedly reloading without recovering.
+
+## Automatic publicPath cannot be determined
+
+With `output.publicPath: 'auto'`, Rspack reads the current script's URL to determine where to load other assets. If that URL is unavailable, it throws `Automatic publicPath is not supported in this browser`.
+
+In this case, set the asset address explicitly with `output.publicPath`. For example, to load files such as `/assets/main.js` and `/assets/logo.png`, use:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    publicPath: '/assets/',
+  },
+};
+```
+
+Replace `/assets/` with the path used by your application, or a full CDN URL. See [Asset base path](/guide/features/asset-base-path) for more examples.

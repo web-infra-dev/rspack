@@ -15,6 +15,17 @@ description: '排查使用 Rspack 构建的应用在运行时遇到的问题，�
 - **网络异常**：如果请求超时、连接失败或服务器返回错误，检查网络连接以及服务器、CDN 是否正常提供服务。
 - **浏览器扩展拦截**：暂时关闭广告拦截等可能阻止请求的扩展后重试，确认是否由扩展导致。
 
+### 请求返回 200，仍出现 `ChunkLoadError` \{#chunkloaderror-with-an-http-200-response}
+
+Network 面板中显示 HTTP 200，并不代表 chunk 已经加载成功。服务器可能返回了 HTML 或错误的 JavaScript 文件，脚本也可能在执行时报错。
+
+可以按下面的顺序排查：
+
+1. 在 Network 面板中打开对应请求，确认响应内容是当前应用版本的 chunk，而不是 HTML、空内容或其他版本的 JavaScript 文件。
+2. 查看 Console 中是否有更早出现的 JavaScript 错误。即使下载到了正确的文件，语法错误或执行错误也可能导致加载失败。
+
+浏览器默认通过 `<script>` 标签加载 JavaScript chunk。如果浏览器成功加载了脚本，但脚本没有包含所需的 chunk，例如服务器返回了空的 JavaScript 文件，Rspack 仍会报出 `ChunkLoadError`，错误对象的 `type` 为 `'missing'`。其中的 `request` 属性记录了请求地址，可以用来定位 Network 面板中的对应请求。
+
 ### 部署后出现 `ChunkLoadError` \{#chunkloaderror-after-deployment}
 
 一种常见情况是：用户先打开页面，随后应用部署了新版本，但用户没有刷新页面。此时页面仍然运行旧版本的代码。如果用户再切换到通过 `import()` 加载的路由，页面就会请求旧版本的 chunk，而这些文件可能已经在部署时被删除。
@@ -38,3 +49,19 @@ description: '排查使用 Rspack 构建的应用在运行时遇到的问题，�
 要让刷新生效，还需要确保浏览器能够获取更新后的 HTML。如果缓存仍然返回旧 HTML，页面可能再次加载旧版本代码，继续请求同一批已删除的文件。
 
 网络故障或资源 URL 配置错误也会导致 chunk 加载失败，而刷新页面并不一定能解决这些问题。如果每次失败都自动刷新，页面可能一直刷新却无法恢复。
+
+## 无法自动确定 publicPath \{#automatic-publicpath-cannot-be-determined}
+
+设置 `output.publicPath: 'auto'` 后，Rspack 会根据当前脚本的地址推导其他资源的加载地址。如果无法获取脚本地址，就会报出 `Automatic publicPath is not supported in this browser` 错误。
+
+此时，可以通过 `output.publicPath` 直接指定资源的加载地址。例如，资源的访问路径是 `/assets/main.js`、`/assets/logo.png` 时：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    publicPath: '/assets/',
+  },
+};
+```
+
+请将 `/assets/` 替换为应用实际使用的路径，也可以填写完整的 CDN URL。更多示例请参阅[资源基础路径](/guide/features/asset-base-path)。
