@@ -95,11 +95,11 @@ Large projects often have multiple pages or entry points that depend on many of 
 
 To reduce duplication, Rspack 2.3 introduces several optimizations that produce smaller output files:
 
-- The new [`splitChunks.dedupDepth`](/plugins/split-chunks-plugin#splitchunksdedupdepth) option compares which chunks use each module to find more combinations of shared modules that can be extracted. It is enabled by default in production mode (`depth=1`).
-- The improved chunk splitting algorithm reduces duplicate modules across chunks.
-- Support for [`splitChunks.minRemainingSize`](/plugins/split-chunks-plugin#splitchunksminremainingsize) avoids leaving an overly small chunk after splitting, aligning the output with webpack's behavior.
+- The new [`splitChunks.dedupDepth`](/plugins/split-chunks-plugin#splitchunksdedupdepth) option identifies more combinations of shared modules across pages and entry points, helping reduce duplicate code. It is enabled by default in production mode (`dedupDepth: 1`).
+- Support for [`splitChunks.minRemainingSize`](/plugins/split-chunks-plugin#splitchunksminremainingsize) helps avoid leaving very small output files when splitting code. This can reduce unnecessary file requests and aligns Rspack's behavior with webpack.
+- When shared code is given a custom name, improved deduplication reduces duplicate modules left in other output files.
 
-The following table shows Brotli-compressed sizes before and after enabling `dedupDepth=1` in two large real-world projects:
+The following table compares the Brotli-compressed output sizes of two large real-world projects before and after enabling `dedupDepth: 1`:
 
 | Project                   | Before   | After    | Saved   | Reduction |
 | ------------------------- | -------- | -------- | ------- | --------- |

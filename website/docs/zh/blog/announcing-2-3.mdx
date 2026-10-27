@@ -95,11 +95,11 @@ Rspack 持续改进开发和构建性能，优化模块处理、缓存和 HMR �
 
 针对这一问题，Rspack 2.3 引入了多项优化，减少重复模块，生成更精简的输出代码：
 
-- 新增 [`splitChunks.dedupDepth`](/zh/plugins/split-chunks-plugin#splitchunksdedupdepth)，通过比较各模块被哪些 chunk 使用，发现更多可以提取的共享模块组合。该选项在生产模式下默认启用（`depth=1`）。
-- 改进 chunk 拆分算法，减少跨 chunk 的重复模块。
-- 支持 [`splitChunks.minRemainingSize`](/zh/plugins/split-chunks-plugin#splitchunksminremainingsize)，避免拆分后留下过小的 chunk，与 webpack 的产物行为保持一致。
+- 新增 [`splitChunks.dedupDepth`](/zh/plugins/split-chunks-plugin#splitchunksdedupdepth)，识别不同页面和入口之间更多可提取的共享模块组合，减少重复打包。该优化在生产模式下默认启用（`dedupDepth: 1`）。
+- 支持 [`splitChunks.minRemainingSize`](/zh/plugins/split-chunks-plugin#splitchunksminremainingsize)，拆分代码时尽量避免留下过小的输出文件，有助于减少不必要的文件请求，同时让产物行为与 webpack 保持一致。
+- 当为共享代码指定名称时，改进后的去重逻辑能减少其他输出文件中残留的重复模块。
 
-在两个大型真实项目中，开启 `dedupDepth=1` 前后的 Brotli 压缩体积如下：
+以下是两个大型真实项目在启用 `dedupDepth: 1` 前后的构建产物 Brotli 压缩体积对比：
 
 | 项目                    | 优化前   | 优化后   | 节省    | 降幅     |
 | ----------------------- | -------- | -------- | ------- | -------- |
