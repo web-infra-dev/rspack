@@ -475,20 +475,10 @@ export default function () {
         webpackRequire: runtimeRequire,
       }),
     );
-    // Initializes the share scopes of the given consume modules and returns
-    // the promises to wait for before consuming.
-    // - Chunk path (`includeScalar`): version-first scopes are initialized up front and
-    //   awaited, so a remote registered through `I()` (a `module`/`promise`
-    //   external initializes asynchronously) contributes its shares before a
-    //   consume resolves to a local fallback. Chunk loading is asynchronous
-    //   anyway. Loaded-first scalar consumes keep remote loading lazy.
-    // - Initial path: only ordered (array) scopes, which the bundler runtime
-    //   cannot initialize lazily; they enable async startup, which awaits
-    //   `initialConsumesInit`. Scalar scopes are left to the consume handlers:
-    //   initializing them here would start loading eager shares
-    //   asynchronously and make a synchronous eager consume fail, and
-    //   `initializeSharing` always returns a promise, so installation could
-    //   not stay synchronous either.
+    // Chunk loading waits for version-first providers before selecting fallbacks.
+    // `includeScalar` includes scalar scopes here; loaded-first stays lazy.
+    // Startup initializes only ordered scopes and awaits `initialConsumesInit`.
+    // Scalar consume handlers initialize lazily so eager startup stays synchronous.
     const initializeConsumeShareScopes = (moduleIds, includeScalar) => {
       if (!moduleIds?.length) return [];
       const initPromises = [];

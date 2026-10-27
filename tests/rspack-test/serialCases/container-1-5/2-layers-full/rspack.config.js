@@ -5,9 +5,6 @@ const common = {
   entry: {
     main: './index.js',
   },
-  // optimization: {
-  //   runtimeChunk: 'single',
-  // },
 };
 
 const commonMF = {

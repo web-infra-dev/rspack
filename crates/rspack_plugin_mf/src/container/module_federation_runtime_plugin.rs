@@ -38,21 +38,15 @@ pub struct ModuleFederationRuntimeExperimentsOptions {
 }
 
 impl ModuleFederationRuntimeExperimentsOptions {
-  /// Whether the startup of `chunk_ukey` must be asynchronous.
+  /// Whether `chunk_ukey` must wait for share-scope initialization at startup.
   ///
-  /// Ordered (array) share scopes are initialized before their consumes are
-  /// installed, so a runtime whose initial chunks contain such a consume must
-  /// await that initialization. This is derived from the actual initial
-  /// `ConsumeSharedModule`s rather than only from the high-level `shared`
-  /// option, so consumes contributed by a separately installed enhanced
-  /// `ConsumeSharedPlugin` are covered too. Scalar scopes keep synchronous
-  /// startup.
+  /// Inspect initial `ConsumeSharedModule`s so separately installed
+  /// `ConsumeSharedPlugin`s are included. Ordered scopes require async startup;
+  /// scalar scopes keep synchronous startup unless the experiment enables it.
   ///
-  /// The decision is owned by the runtime chunk: the runtime installs the
-  /// initial consumes of every entry it serves in one call, so an entry chunk
-  /// that delegates to a shared runtime (`runtimeChunk: 'single'`) must take
-  /// the same mode as that runtime even when its own initial chunks contain
-  /// no ordered consume.
+  /// A shared runtime installs all its entries' initial consumes together.
+  /// Every entry must use that runtime's startup mode, even if the entry has
+  /// no ordered consumes of its own.
   pub fn needs_async_startup(&self, compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
     if self.async_startup {
       return true;

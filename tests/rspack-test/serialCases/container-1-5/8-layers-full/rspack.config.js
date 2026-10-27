@@ -15,12 +15,10 @@ const common = {
       singleton: false,
       requiredVersion: '0.1.2',
       strictVersion: true,
-      // import: false,
     },
     randomvalue: {
       strictVersion: true,
       request: 'react',
-      // import: false,
       shareKey: 'react',
       singleton: false,
       requiredVersion: '0.1.2',
