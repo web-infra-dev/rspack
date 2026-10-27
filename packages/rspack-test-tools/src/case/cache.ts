@@ -199,6 +199,7 @@ function createCacheProcessor(
     config: async (context) => {
       await base.config(context);
       if (caseOptions.newCache) enableNewCache(context, temp);
+      collectCacheStats(context);
     },
     compiler: base.compiler,
     build: base.build,
@@ -342,6 +343,13 @@ function enableNewCache(context: ITestContext, temp: string) {
               directory: path.join(temp, '.cache', String(index)),
             },
     };
+  }
+}
+
+function collectCacheStats(context: ITestContext) {
+  const options = context.getCompiler().getOptions();
+  for (const config of Array.isArray(options) ? options : [options]) {
+    if (!config.experiments?.newCache) continue;
     config.plugins ??= [];
     config.plugins.push({
       apply(compiler: Compiler) {

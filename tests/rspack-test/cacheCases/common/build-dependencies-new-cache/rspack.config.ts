@@ -1,4 +1,5 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
+import { getCacheStats } from '@rspack/test-tools';
 import path from 'node:path';
 
 const buildDependency = path.join(import.meta.dirname, './configs/index.js');
@@ -16,23 +17,10 @@ export default defineConfig({
   plugins: [
     definePlugin({
       apply(compiler) {
-        compiler.hooks.done.tap('Test Plugin', (stats) => {
-          const logging = stats.toJson({
-            all: false,
-            logging: 'verbose',
-          }).logging;
-          const entries = logging?.['rspack.Compilation']?.entries ?? [];
-          const cacheEntry = entries.find(
-            (entry) =>
-              entry.type === 'cache' &&
-              entry.message?.startsWith('module code generation cache:'),
-          );
-          expect(cacheEntry).toBeTruthy();
-
-          const match = cacheEntry?.message.match(/\((\d+)\/(\d+)\)/);
-          expect(match).toBeTruthy();
-          const hits = Number(match?.[1]);
-          const total = Number(match?.[2]);
+        compiler.hooks.done.tapPromise('Test Plugin', async (stats) => {
+          const [cacheStats] = await getCacheStats(stats);
+          const { hits, misses } = cacheStats['Compilation/codeGeneration'];
+          const total = hits + misses;
           expect(total).toBeGreaterThan(0);
 
           if (compilerIndex === 1 || compilerIndex === 4) {
