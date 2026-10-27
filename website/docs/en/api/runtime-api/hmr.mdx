@@ -290,7 +290,7 @@ import.meta.webpackHot.status();
 
 ### check
 
-Test all loaded modules for updates and, if updates exist, `apply` them.
+Check for hot updates and download any that are available. HMR must be in the `idle` state when you call this method.
 
 ```js
 module.hot
@@ -313,7 +313,13 @@ import.meta.webpackHot
   });
 ```
 
-The `autoApply` parameter can either be a boolean or `options` to pass to the `apply` method when called.
+Use `autoApply` to choose whether to apply the update as soon as it finishes downloading:
+
+- Omitted or `false`: download the update and enter the `ready` state. Call [`apply()`](#apply) when you are ready to apply it.
+- `true`: apply the update immediately after downloading it.
+- An options object: apply the update immediately, using the object as the [`apply()` options](#apply).
+
+The `.then()` callback receives an array of module IDs involved in the update, or `null` if no update is available. Errors while downloading or applying the update can be handled in `.catch()`.
 
 ### apply
 

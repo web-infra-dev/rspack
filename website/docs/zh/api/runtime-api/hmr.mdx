@@ -290,7 +290,7 @@ import.meta.webpackHot.status();
 
 ### check
 
-测试所有加载的模块以进行更新，如果有更新，则 `apply` 它们。
+检查是否有可用的热更新，并下载更新内容。调用时，HMR 必须处于 `idle`（空闲）状态。
 
 ```js
 module.hot
@@ -313,7 +313,13 @@ import.meta.webpackHot
   });
 ```
 
-当被调用时，传递给 `apply` 方法的 `autoApply` 参数可以是布尔值，也可以是 `options`，
+`autoApply` 用于控制下载完成后是否立即应用更新：
+
+- 不传或设为 `false`：只下载更新，随后进入 `ready` 状态。准备好应用更新时，再调用 [`apply()`](#apply)。
+- 设为 `true`：下载完成后立即应用更新。
+- 传入选项对象：下载完成后立即应用更新，并将该对象作为 [`apply()` 的选项](#apply)。
+
+在 `.then()` 回调中可以获取本次更新涉及的模块 ID 数组；如果没有更新，则收到 `null`。下载或应用更新出错时，可以在 `.catch()` 中处理错误。
 
 ### apply
 
