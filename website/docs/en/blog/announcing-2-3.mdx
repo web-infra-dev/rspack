@@ -184,6 +184,30 @@ This is especially useful for expensive loaders such as babel-loader: a cache hi
 
 Enable the top-level `cache` and `experiments.newCache`, then set `cache: true` on a loader. You can configure other cache stages independently through [`experiments.newCache`](/config/experiments#cache-stages).
 
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  experiments: {
+    newCache: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            cache: true,
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
 In a test using babel-loader to process around 10,000 simulated modules, enabling the loader cache substantially reduced build time:
 
 | Parallel loaders | Cache disabled | Cache enabled | Speedup  |
@@ -288,11 +312,9 @@ CSS `@import`, `url()`, and `image-set()` also support `rspackIgnore` and `webpa
 
 The new [`module.parser.javascript.dynamicUrl`](/config/module-parser#javascriptdynamicurl) option controls how dynamic `new URL()` paths are handled. When set to `false`, dynamic paths are evaluated at runtime while static URLs are still bundled. This is useful when dynamic assets are provided by a server or CDN.
 
-In addition, `import.meta.glob` now resolves path aliases in patterns, and tsconfig resolution has improved support for relative paths and symlinks.
-
 #### More reliable lazy compilation and async modules \{#lazy-compilation}
 
-[Lazy compilation](/guide/advanced/lazy-compilation) improves initial module loading and subsequent rebuilds, avoiding repeated loads of already activated modules. It also fixes compatibility issues involving import attributes and path resolution.
+In Rspack 2.3, [lazy compilation](/guide/advanced/lazy-compilation) avoids repeated loads of already activated modules during initial module loading and subsequent rebuilds. This reduces unnecessary work and fixes compatibility issues involving import attributes and path resolution.
 
 Compatibility with nested asynchronous imports, deferred imports, and HMR has also improved.
 
@@ -322,6 +344,8 @@ This release adds or improves the following capabilities for plugin and loader a
 See the [version comparison from 2.2.0 to 2.3.0](https://github.com/web-infra-dev/rspack/compare/v2.2.0...v2.3.0) and the [GitHub release notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.3.0) for the full list of changes.
 
 ## Ecosystem
+
+Alongside Rspack 2.3, the Rstack ecosystem also includes recent updates across Rsbuild, Rslib, Rsdoctor, Rstest, and Rspress.
 
 ### Rsbuild
 

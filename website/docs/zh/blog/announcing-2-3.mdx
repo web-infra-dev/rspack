@@ -184,6 +184,30 @@ Loader 缓存可以单独缓存 loader 的转换结果，无需启用其他构�
 
 启用顶层 `cache` 和 `experiments.newCache` 后，可以为 loader 设置 `cache: true`。其他缓存阶段可以通过 [`experiments.newCache`](/zh/config/experiments#cache-stages) 单独控制。
 
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  experiments: {
+    newCache: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            cache: true,
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
 在使用 babel-loader 处理约 10000 个模拟模块的测试中，开启 loader 缓存后，构建耗时明显降低：
 
 | 并行 loader | 缓存关闭 | 缓存开启 | 加速比     |
@@ -288,11 +312,9 @@ CSS 中的 `@import`、`url()` 和 `image-set()` 也支持 `rspackIgnore` 和 `w
 
 新增 [`module.parser.javascript.dynamicUrl`](/zh/config/module-parser#javascriptdynamicurl) 选项。设置为 `false` 时，动态 `new URL()` 路径会在运行时求值，静态 URL 仍会参与打包。这适用于由服务端或 CDN 提供动态资源的场景。
 
-此外，`import.meta.glob` 支持解析 pattern 中的路径别名；tsconfig 解析也改进了对相对路径和软链接的支持。
-
 #### 更可靠的懒编译和异步模块 \{#lazy-compilation}
 
-[懒编译](/zh/guide/advanced/lazy-compilation)优化了模块首次加载和后续重建的行为，避免已激活的模块重复加载，并修复了导入属性和路径解析相关的兼容性问题。
+Rspack 2.3 改进了[懒编译](/zh/guide/advanced/lazy-compilation)，在模块首次加载和后续重建时避免重复加载已激活的模块，减少不必要的工作，并修复了导入属性和路径解析相关的兼容性问题。
 
 嵌套异步导入、延迟导入和 HMR 的兼容性也得到了改善。
 
@@ -322,6 +344,8 @@ CSS 中的 `@import`、`url()` 和 `image-set()` 也支持 `rspackIgnore` 和 `w
 完整改动请查看 [2.2.0 至 2.3.0 的版本对比](https://github.com/web-infra-dev/rspack/compare/v2.2.0...v2.3.0)和 [GitHub Release Notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.3.0)。
 
 ## 生态 \{#ecosystem}
+
+随着 Rspack 2.3 发布，Rstack 生态中的 Rsbuild、Rslib、Rsdoctor、Rstest 和 Rspress 也带来了近期更新。
 
 ### Rsbuild \{#rsbuild}
 
