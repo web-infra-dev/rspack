@@ -324,16 +324,20 @@ fn apply_replacements(
   for replacement in replacements {
     let start = floor_js_source_index(replacement.start)?;
     let end = floor_js_source_index(replacement.end + 1.0)?;
-    if start < previous_end || end < start || replacement.name.is_some_and(|name| !name.is_empty())
-    {
+    if start < previous_end || end < start {
       return None;
     }
-    edits.push((start, end, replacement.content));
+    edits.push((
+      start,
+      end,
+      replacement.content,
+      replacement.name.filter(|name| !name.is_empty()),
+    ));
     previous_end = end;
   }
 
   let mut endpoints = Vec::with_capacity(edits.len() * 2);
-  for (start, end, _) in &edits {
+  for (start, end, _, _) in &edits {
     endpoints.push(*start);
     endpoints.push(*end);
   }
@@ -424,10 +428,11 @@ fn apply_replacements(
   }
 
   let mut source = ReplaceSource::new(inner);
-  for ((_, _, content), byte_offsets) in edits.into_iter().zip(byte_endpoints.chunks_exact(2)) {
+  for ((_, _, content, name), byte_offsets) in edits.into_iter().zip(byte_endpoints.chunks_exact(2))
+  {
     let start = u32::try_from(byte_offsets[0]).ok()?;
     let end = u32::try_from(byte_offsets[1]).ok()?;
-    source.replace(start, end, content, None);
+    source.replace(start, end, content, name);
   }
   Some(source.boxed())
 }

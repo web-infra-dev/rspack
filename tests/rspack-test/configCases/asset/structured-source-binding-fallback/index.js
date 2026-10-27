@@ -26,8 +26,8 @@ it('should fall back for source subclasses', () => {
 });
 
 it('should serialize only the nested source that needs fallback', () => {
-  expect(read('named-fallback.txt').toString()).toBe('outer:prefix:body:changed');
-  const map = JSON.parse(read('named-map.json'));
+  expect(read('overlap-fallback.txt').toString()).toBe('outer:prefix:body:changed');
+  const map = JSON.parse(read('overlap-map.json'));
   expect(map.sources).toEqual(['original.txt']);
   expect(map.names).toContain('replacement');
 });

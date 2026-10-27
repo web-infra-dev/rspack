@@ -106,20 +106,26 @@ export default defineConfig({
           }
           compilation.emitAsset('buffer-child.txt', binaryConcat);
           compilation.emitAsset(
-            'named-original.txt',
-            new SourceMapSource('body', 'named-original.txt', map),
+            'overlap-original.txt',
+            new SourceMapSource('body', 'overlap-original.txt', map),
           );
-          const named = new ReplaceSource(
-            compilation.getAsset('named-original.txt')!.source,
+          const overlapping = new ReplaceSource(
+            compilation.getAsset('overlap-original.txt')!.source,
           );
-          named.replace(0, 3, 'changed', 'replacement');
+          overlapping.replace(0, 2, 'chan', 'replacement');
+          overlapping.replace(1, 3, 'ged', 'replacement');
           const sibling = compilation.getAsset('original.txt')!.source;
-          const combined = new ConcatSource('prefix:', sibling, ':', named);
-          const namedOuter = new ReplaceSource(combined);
-          namedOuter.insert(0, 'outer:');
-          // Only the named replacement may serialize. Its parents and sibling
+          const combined = new ConcatSource(
+            'prefix:',
+            sibling,
+            ':',
+            overlapping,
+          );
+          const outer = new ReplaceSource(combined);
+          outer.insert(0, 'outer:');
+          // Only the overlapping replacements may serialize. Their parents and sibling
           // must keep their native/structured representation.
-          for (const source of [sibling, combined, namedOuter]) {
+          for (const source of [sibling, combined, outer]) {
             for (const method of ['source', 'map']) {
               Object.defineProperty(source, method, {
                 value: () => {
@@ -130,12 +136,12 @@ export default defineConfig({
               });
             }
           }
-          compilation.emitAsset('named-fallback.txt', namedOuter);
+          compilation.emitAsset('overlap-fallback.txt', outer);
           compilation.emitAsset(
-            'named-map.json',
+            'overlap-map.json',
             new RawSource(
               JSON.stringify(
-                compilation.getAsset('named-fallback.txt')!.source.map(),
+                compilation.getAsset('overlap-fallback.txt')!.source.map(),
               ),
             ),
           );

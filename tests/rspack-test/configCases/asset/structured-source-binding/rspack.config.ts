@@ -39,8 +39,14 @@ export default defineConfig({
               start,
               start + placeholder.length - 1,
               '😀intermediate',
+              'sourceValue',
             );
-            replaced.replace(unicodeStart, unicodeStart + 1, 'X');
+            replaced.replace(
+              unicodeStart,
+              unicodeStart + 1,
+              'X',
+              'unicodePrefix',
+            );
             const layers = [original, replaced];
 
             let fallbackReplaced = new webpackSources.ReplaceSource(
@@ -50,8 +56,14 @@ export default defineConfig({
               start,
               start + placeholder.length - 1,
               '😀intermediate',
+              'sourceValue',
             );
-            fallbackReplaced.replace(unicodeStart, unicodeStart + 1, 'X');
+            fallbackReplaced.replace(
+              unicodeStart,
+              unicodeStart + 1,
+              'X',
+              'unicodePrefix',
+            );
 
             // Each layer uses positions in the previous layer's output, including
             // edits to Unicode text introduced by an inner replacement.
@@ -82,7 +94,12 @@ export default defineConfig({
               if (position < 0)
                 throw new Error(`Missing nested replacement: ${before}`);
               replaced = new ReplaceSource(combined);
-              replaced.replace(position, position + before.length - 1, after);
+              replaced.replace(
+                position,
+                position + before.length - 1,
+                after,
+                'nestedValue',
+              );
               layers.push(replaced);
               fallbackReplaced = new webpackSources.ReplaceSource(
                 fallbackCombined,
@@ -91,6 +108,7 @@ export default defineConfig({
                 position,
                 position + before.length - 1,
                 after,
+                'nestedValue',
               );
             }
             const updated = new ConcatSource(prefix, replaced);
