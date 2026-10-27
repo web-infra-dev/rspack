@@ -8,11 +8,9 @@ import { PackageManagerTabs, Tabs, Tab } from '@theme';
 
 Rspack has built-in support for CSS and provides several features to support CSS bundling.
 
-## Enabling CSS support
+<span id="enabling-css-support"></span>
 
-You can choose from the following options:
-
-### Built-in CSS support
+## Built-in CSS support
 
 Rspack supports the following four [CSS Modules](#css-modules) types which you can configure manually:
 
@@ -141,6 +139,31 @@ export default {
 };
 ```
 
+### CSS entry
+
+With the default `exportType: 'link'`, you can use a CSS file as an entry to emit a stylesheet without a corresponding JavaScript entry file. For example:
+
+```css title="src/styles.css"
+body {
+  color: #333;
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  mode: 'development',
+  target: 'web',
+  devtool: false,
+  entry: { styles: './src/styles.css' },
+  output: { cssFilename: '[name].css' },
+  module: {
+    rules: [{ test: /\.css$/i, type: 'css' }],
+  },
+};
+```
+
+This configuration emits only `dist/styles.css`. Referenced assets or source maps, if configured, may add output files. See [output.cssFilename](/config/output#outputcssfilename) to customize the stylesheet filename.
+
 ### CSS export type
 
 Built-in CSS support uses `exportType: 'link'` by default. This emits CSS as stylesheet output and loads it with the built-in CSS loading runtime. You can set `module.parser.css.exportType` or the parser options for `css/auto`, `css/global`, and `css/module` to change how CSS is exported to JavaScript.
@@ -176,7 +199,50 @@ console.log(cssText);
 
 See [module.parser["css/auto"].exportType](/config/module-parser#cssautoexporttype) for details.
 
-### Using CssExtractRspackPlugin
+### External resources
+
+With built-in CSS support, you can use [externals](/config/externals) to keep CSS imports and assets out of the bundle. Use the `css-import` external type for an `@import` and the `asset-url` type for a `url()` reference:
+
+```css title="style.css"
+@import './theme.css';
+
+.logo {
+  background-image: url('./logo.svg');
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  externals: {
+    './theme.css': 'css-import https://example.com/theme.css',
+    './logo.svg': 'asset-url https://example.com/logo.svg',
+  },
+};
+```
+
+The generated CSS refers to the external URLs instead of bundling the files. The browser loads those resources when it loads the stylesheet.
+
+For the default web target, HTTP(S) and protocol-relative URLs in CSS are external by default. Enabling [`experiments.buildHttp`](/config/experiments#experimentsbuildhttp) can change how HTTP(S) URLs are handled.
+
+### Magic comments
+
+With built-in CSS support, add `/* rspackIgnore: true */` to an `@import` or `url()` reference to leave it unchanged instead of resolving and bundling it. Place the comment after `@import` or immediately before `url()`:
+
+```css
+@import /* rspackIgnore: true */ url('/styles/theme.css');
+
+.logo {
+  background-image: /* rspackIgnore: true */ url('/images/logo.svg');
+}
+```
+
+Rspack does not emit the ignored resources, so they must be available at the URLs used at runtime. `/* webpackIgnore: true */` is also supported for webpack compatibility.
+
+To disable processing for all `@import` rules or `url()` references, see the CSS parser options [`import`](/config/module-parser#cssautoimport) and [`url`](/config/module-parser#cssautourl).
+
+<span id="using-cssextractrspackplugin"></span>
+
+## Using css-loader and CssExtractRspackPlugin
 
 Rspack supports using [css-loader](https://github.com/webpack/css-loader) and [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) to generate standalone CSS files.
 
@@ -211,7 +277,7 @@ export default {
 CssExtractRspackPlugin cannot be used with `type: 'css'`, `type: 'css/auto'`, `type: 'css/global'`, or `type: 'css/module'` as these types are provided by native css support.
 :::
 
-### Using style-loader
+## Using style-loader
 
 Rspack supports using [css-loader](https://github.com/webpack/css-loader) and [style-loader](https://github.com/webpack/style-loader) to inject CSS via `<style>` tags. This method does not generate standalone CSS files but inline the CSS content into JS files.
 
