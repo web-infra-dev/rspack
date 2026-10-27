@@ -21,6 +21,22 @@ type SourceWithBinding = Source & {
   [toBindingSource]?: () => JsSourceFromJs | null;
 };
 
+function getNativeSource(source: Source): JsNativeSource | undefined {
+  const native = nativeSources.get(source);
+  if (
+    native &&
+    source instanceof SourceMapSource &&
+    (source._sourceMapAsObject !== undefined ||
+      source._sourceMapAsBuffer !== undefined ||
+      source._valueAsBuffer !== undefined)
+  ) {
+    // Exposed maps and buffers are mutable, so serialize the JS snapshot again.
+    nativeSources.delete(source);
+    return;
+  }
+  return native;
+}
+
 function replaceSourceMap(source: SourceWithCache, value: string | undefined) {
   if (
     !Object.getOwnPropertyDescriptor(source, '_sourceMapAsString')?.configurable
@@ -75,19 +91,34 @@ function clearSourceCache(
 }
 
 export class RspackConcatSource extends webpackSources.ConcatSource {
-  [toBindingSource](): JsSourceFromJs {
+  [toBindingSource](): JsSourceFromJs | null {
+    if (Object.getPrototypeOf(this) !== RspackConcatSource.prototype) {
+      return null;
+    }
+    const children = this.getChildren().map((child) =>
+      SourceAdapter.toBinding(child),
+    );
+    // JS ConcatSource.source() coerces Buffers to text before serialization.
+    if (
+      children.some(
+        (child) => child.kind === 'raw' && Buffer.isBuffer(child.content),
+      )
+    ) {
+      return null;
+    }
     return {
       kind: 'concat',
-      children: this.getChildren().map((child) =>
-        SourceAdapter.toBinding(child),
-      ),
+      children,
     };
   }
 }
 
 export class RspackReplaceSource extends webpackSources.ReplaceSource {
   [toBindingSource](): JsSourceFromJs | null {
-    const original = nativeSources.get(this.original());
+    if (Object.getPrototypeOf(this) !== RspackReplaceSource.prototype) {
+      return null;
+    }
+    const original = getNativeSource(this.original());
     if (!original) return null;
     const replaced = original.applyReplacements(this.getReplacements());
     return replaced ? { kind: 'native', handle: replaced } : null;
@@ -131,14 +162,15 @@ export class SourceAdapter {
       source = sourceMapSource;
     }
 
-    if (nativeSource) {
+    // A Buffer returned by RawSource.source() can be changed without notifying us.
+    if (nativeSource && typeof cache.source === 'string') {
       nativeSources.set(source, nativeSource);
     }
     return source;
   }
 
   static toBinding(source: Source): JsSourceFromJs {
-    const nativeSource = nativeSources.get(source);
+    const nativeSource = getNativeSource(source);
     if (nativeSource) {
       return { kind: 'native', handle: nativeSource };
     }
