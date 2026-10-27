@@ -85,6 +85,8 @@ Rspack 在 2.3 中将 JavaScript 解析器迁移至 SWC Next，并借助其更�
 
 ### 构建性能优化 \{#build-performance}
 
+Rspack 持续改进开发和构建性能，优化模块处理、缓存和 HMR 等核心流程，减少构建等待时间，让代码变更后的反馈更及时。
+
 在[基准测试项目](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/40302457470)中，Rspack 2.3.0 的 HMR 和缓存热构建耗时较 2.2.0 降低约 5%。
 
 ### SplitChunks 优化 \{#split-chunks}
@@ -239,7 +241,7 @@ export default {
 };
 ```
 
-该配置会输出 `styles.css`，不再生成多余的 `styles.js`。
+该配置只会输出一个文件：`styles.css`。
 
 #### 支持外部资源 \{#css-externals}
 

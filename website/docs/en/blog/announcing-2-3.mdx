@@ -85,6 +85,8 @@ Rspack 2.3 moves its JavaScript parser to SWC Next and, with its more compact AS
 
 ### Build performance
 
+Rspack continues to improve development and build performance by optimizing core processes such as module processing, caching, and HMR. These improvements reduce time spent waiting for builds and provide faster feedback after code changes.
+
 In this [benchmark project](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/40302457470), Rspack 2.3.0 reduces HMR and warm build times with caching by around 5% compared with 2.2.0.
 
 ### SplitChunks optimizations \{#split-chunks}
@@ -239,7 +241,7 @@ export default {
 };
 ```
 
-This configuration emits `styles.css` without generating an unnecessary `styles.js` file.
+This configuration emits only one file: `styles.css`.
 
 #### CSS externals
 
