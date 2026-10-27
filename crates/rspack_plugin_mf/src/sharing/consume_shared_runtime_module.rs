@@ -70,14 +70,13 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     &self,
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    let dependencies = CONSUMES_RUNTIME_REQUIREMENTS.dependencies
-      | CONSUMES_INITIAL_RUNTIME_REQUIREMENTS.dependencies
-      | CONSUMES_LOADING_RUNTIME_REQUIREMENTS.dependencies
-      | runtime_require_scope_requirement(compilation);
-    rspack_core::RuntimeModuleRuntimeRequirements {
-      dependencies,
-      ..Default::default()
-    }
+    let mut requirements = *CONSUMES_RUNTIME_REQUIREMENTS
+      | *CONSUMES_INITIAL_RUNTIME_REQUIREMENTS
+      | *CONSUMES_LOADING_RUNTIME_REQUIREMENTS;
+    requirements
+      .dependencies
+      .insert(runtime_require_scope_requirement(compilation));
+    requirements
   }
 
   fn stage(&self) -> RuntimeModuleStage {

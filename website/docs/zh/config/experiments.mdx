@@ -244,6 +244,69 @@ export default {
 };
 ```
 
+## experiments.newCache
+
+<ApiMeta stability={Stability.Experimental} />
+
+- **类型：** `boolean | NewCache`
+- **默认值：** `false`
+
+启用实验性的缓存实现。设置为 `true` 时使用默认的缓存阶段，也可以传入对象来单独配置各阶段。`true` 等价于 `{}`。设置为 `false` 时继续使用现有的缓存实现。
+
+[`cache`](/config/cache) 控制是否启用缓存以及缓存数据的存储方式。使用 `cache: true` 或 `cache: { type: 'memory' }` 启用内存缓存，使用 `cache: { type: 'persistent' }` 在进程之间复用缓存。设置了 `cache: false` 时，即使启用 `experiments.newCache`，缓存仍然关闭。production 和 none 模式默认关闭 `cache`，因此需要显式开启。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: true,
+  experiments: {
+    newCache: true,
+  },
+};
+```
+
+此选项与 [`incremental`](/config/incremental) 相互独立。切换缓存实现不会改变增量编译各阶段的启用状态。
+
+### 缓存阶段 \{#cache-stages}
+
+```ts
+type NewCache = {
+  codeGeneration?: boolean;
+  module?: boolean;
+  devtool?: boolean;
+  loader?: boolean;
+  minimize?: boolean;
+  resolver?: boolean;
+};
+```
+
+当 `newCache` 为 `true` 或对象时，使用以下默认值。未配置的属性会保留其默认值。
+
+| 选项             | 默认值  | 说明                                                                                                |
+| ---------------- | ------- | --------------------------------------------------------------------------------------------------- |
+| `codeGeneration` | `true`  | 缓存模块代码生成结果。                                                                              |
+| `module`         | `true`  | 缓存模块构建结果，包括 loader 执行和解析的结果。                                                    |
+| `devtool`        | `true`  | 缓存 [SourceMapDevToolPlugin](/plugins/source-map-dev-tool-plugin) 生成的 source map 产物。         |
+| `loader`         | `true`  | 为配置了 `cache: true` 的 loader 启用单独缓存。                                                     |
+| `minimize`       | `true`  | 缓存 [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin) 的 JavaScript 压缩结果。 |
+| `resolver`       | `false` | 缓存模块和 loader 的路径解析结果。                                                                  |
+
+例如，启用持久化缓存和路径解析缓存，其他阶段保留默认值：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  experiments: {
+    newCache: {
+      resolver: true,
+    },
+  },
+};
+```
+
+新的缓存实现目前不支持 [`cache.maxAge`](/config/cache#maxage) 和 [`cache.portable`](/config/cache#portable)。
+
 ## experiments.pureFunctions
 
 <ApiMeta addedVersion="2.0.0" />

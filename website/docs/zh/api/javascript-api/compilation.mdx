@@ -736,7 +736,9 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 **类型：** `ReadonlySet<Module>`
 
-获取所有模块，其结构如下：
+当前编译中的所有模块。可以通过 `module.identifier()` 获取其标识，通过 `module.originalSource()` 读取 loader 处理后的源码。没有源码的模块可能返回 `null`。
+
+模块之间的依赖关系可以通过 [`compilation.moduleGraph`](#modulegraph) 查询。
 
 <Collapse>
   <CollapsePanel
@@ -763,6 +765,32 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
     <ModuleType />
   </CollapsePanel>
 </Collapse>
+
+### moduleGraph
+
+用于查询模块之间的依赖关系：
+
+- `getModule(dependency)`：获取依赖指向的模块，可能返回 `null`。
+- `getOutgoingConnections(module)`：获取该模块对其他模块的引用，`connection.module` 是被引用的模块，可能为 `null`。
+- `getIncomingConnections(module)`：获取其他模块对该模块的引用，`connection.originModule` 是发起引用的模块，可能为 `null`。
+
+可以在模块构建完成后的 `finishModules` 钩子中查询这些依赖关系。例如，打印每个模块及其依赖的模块：
+
+```js
+compiler.hooks.compilation.tap('InspectModules', (compilation) => {
+  compilation.hooks.finishModules.tap('InspectModules', (modules) => {
+    for (const module of modules) {
+      const connections =
+        compilation.moduleGraph.getOutgoingConnections(module);
+      for (const connection of connections) {
+        if (connection.module) {
+          console.log(module.identifier(), connection.module.identifier());
+        }
+      }
+    }
+  });
+});
+```
 
 ### chunks
 

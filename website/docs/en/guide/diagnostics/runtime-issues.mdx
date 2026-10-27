@@ -1,0 +1,40 @@
+---
+description: 'Troubleshoot runtime issues in applications built with Rspack, including chunk loading failures and deployment-related errors.'
+---
+
+# Runtime issues
+
+This page explains how to diagnose and handle runtime issues in applications built with Rspack.
+
+## Chunk loading failures
+
+An error such as `ChunkLoadError` means an async chunk could not be loaded, but does not identify the cause. Open the browser's Network panel and inspect the failed request before choosing a fix:
+
+- **Incorrect URL:** Check whether the requested hostname and path match where the assets are served. If they do not, review [`output.publicPath`](/guide/features/asset-base-path).
+- **Missing file or incorrect response:** For a 404 response, check whether the file exists on the server or CDN. If the response contains HTML instead of the requested JavaScript or CSS, check the server's routing. For old files removed during deployment, see [the deployment example below](#chunkloaderror-after-deployment).
+- **Network failure:** For a timeout, connection failure, or server error, check the network connection and whether the server or CDN is available.
+- **Browser extension blocking the request:** Temporarily disable ad blockers or other request-blocking extensions and try again to check whether they caused the failure.
+
+### `ChunkLoadError` after deployment
+
+A common scenario is that a user opens a page, a new application version is deployed, and the user keeps the page open without refreshing. The page still runs the old code. If the user then navigates to a route loaded through `import()`, it requests chunks from the old version, which may have been deleted during deployment.
+
+For example, consider an application with a settings page loaded through `import()`:
+
+1. A user opens version 1 of the application. Its code refers to `settings.a1b2.js`, but the user has not visited the settings page, so that chunk has not been loaded.
+2. Version 2 is deployed with a new chunk, `settings.c3d4.js`, and the deployment removes `settings.a1b2.js`.
+3. The user visits the settings page without refreshing. The open page still requests `settings.a1b2.js`. The server returns a 404, and the `import()` Promise rejects with `ChunkLoadError`.
+
+#### Preventing failures during deployment
+
+To let old and new pages load the files they need, use [`output.filename`](/config/output#outputfilename) and [`output.chunkFilename`](/config/output#outputchunkfilename) to give entry files and async chunks names containing content hashes. Files whose contents change then get new names, allowing both versions to remain available without overwriting each other.
+
+Those old files must also remain available after deployment, because pages that are still open may request them later. Keep them for a period that reflects how long users may leave pages open. If deployment deletes the old files, pages that still need them cannot load them, even when the filenames contain content hashes.
+
+### Handling failures in the page
+
+If you use a framework or router, first check whether it already provides a way to handle loading failures. For imports you manage directly, handle errors in the `.catch()` callback of `import()` and use the application's existing error reporting. If an old chunk was removed during deployment, you can suggest refreshing the page to load the new application version.
+
+For this to work, the browser must be able to fetch updated HTML on refresh. If a cache keeps returning old HTML, the page may load the old code again and continue requesting the same deleted files.
+
+Network failures or an incorrect asset URL can also cause chunk loading errors, and refreshing does not necessarily fix them. Automatically refreshing after every failure can leave the page repeatedly reloading without recovering.

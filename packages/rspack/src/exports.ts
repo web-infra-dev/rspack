@@ -380,6 +380,7 @@ export type {
   CssExtractRspackLoaderOptions,
   CssExtractRspackPluginOptions,
   EvalDevToolModulePluginOptions,
+  EvalSourceMapDevToolPluginOptions,
   HtmlRspackPluginOptions,
   LightningCssMinimizerRspackPluginOptions,
   RsdoctorPluginData,

@@ -1,0 +1,182 @@
+---
+description: '面向 Rspack 贡献者，介绍如何分析内存快照以及模块和依赖条目计数。'
+---
+
+# 内存分析 \{#memory-analysis}
+
+本指南介绍开发 Rspack 时如何采集和分析内存数据。如需采集快照用于问题反馈，请参阅[内存分析](/guide/diagnostics/memory)。
+
+## 使用 allocative skill \{#use-the-allocative-skill}
+
+Rspack 仓库提供了 [`rspack-allocative` skill](https://github.com/web-infra-dev/rspack/blob/main/.agents/skills/rspack-allocative/SKILL.md)。skill 会准备构建产物、运行项目，并生成内存快照和计数报告。
+
+### 默认基准项目 \{#default-benchmark-projects}
+
+skill 默认使用仓库内置的基准项目，并按需准备项目文件。不指定项目或测试用例时，默认采集 Three.js 10 倍规模的开发构建：
+
+```text
+$rspack-allocative 抓取内存以及模块和依赖条目数
+```
+
+也可以指定预设工作负载，例如使用 `threejs-10x-production-sourcemap` 采集启用 sourcemap 的生产构建。
+
+### 外部项目 \{#external-projects}
+
+采集外部项目时，指定项目目录和构建模式：
+
+```text
+$rspack-allocative --project-dir /path/to/my-app 运行启用 sourcemap 的生产构建，收集内存以及模块和依赖条目数
+```
+
+`--project-dir` 是由 agent 解释的 skill 请求参数——不是 Rspack CLI 参数。相对路径基于 agent 的初始工作目录解析，包含空格的路径需要加引号。也可以用自然语言描述项目目录。项目目录决定工作负载，Rspack checkout 决定使用的本地 binding 和 JavaScript 包。如果项目有多个配置，请在请求中指定配置文件和构建模式。
+
+### Rspack 测试用例 \{#rspack-test-cases}
+
+skill 支持直接使用 Rspack 的测试用例采集数据，指定用例目录即可。例如：
+
+```text
+$rspack-allocative 使用 hotCases/source-map/disable 测试用例抓取内存，保持 sourcemap 关闭并运行全部 HMR 更新，保留每次内存快照以及模块和依赖条目数报告
+```
+
+例如，使用 `hotCases/source-map/disable` 用例，会得到以下内存快照文件：
+
+```text
+0-build.allocative
+1-rebuild.allocative
+2-rebuild.allocative
+3-rebuild.allocative
+```
+
+每份快照还会生成对应的 `.counts.json`、`.metadata.json` 和 `.warnings.txt` 文件。
+
+建议每次使用独立的输出目录，避免覆盖已有数据。skill 会报告选定的项目、构建方式、采集阶段、输出路径和覆盖限制。按照[查看快照](#view-snapshots)中的说明，在 [Speedscope](https://www.speedscope.app/) 中检查结果。
+
+## 查看快照 \{#view-snapshots}
+
+快照从 compiler 和注册的全局根对象出发，沿所有权路径遍历。权重表示字节数，而非执行时间或内存分配事件。
+
+打开 [Speedscope](https://www.speedscope.app/)，将 `.allocative` 文件拖入页面。使用搜索和缩放定位数据结构，选择 **Left Heavy** 查看最大的所有权路径。
+
+较宽的节点表示更多字节。路径描述所有权关系，而非内存分配时的调用栈。folded 格式不包含单位，因此即使查看器显示了其他标签，也应将权重理解为字节。对于这些快照，**Time Order** 不表示时间线。
+
+解读总量前，请阅读对应的 `.metadata.json` 和 `.warnings.txt`。metadata 包含所表示的字节总量、共享所有权计量策略，以及全局字符串 arena 的使用情况。warnings 会指出无法访问的嵌套分配和其他覆盖缺口。
+
+## 读取条目计数 \{#read-entry-counts}
+
+`.counts.json` 文件记录当前 compilation 模块图中的模块和依赖条目，并按类型分组。这些数值表示集合基数——而非整个进程的对象数或分配次数。空模块图会输出明确的模块和依赖零值。
+
+不要用字节权重除以类型大小，也不要统计 `.allocative` 文件的行数来推算对象数量。集合容量可能超过长度，多个引用也可能共享同一块内存。
+
+有计数数据时，skill 会自动生成 `summary.json`、`counts.csv` 和 `counts.folded`。可以在 Speedscope 中打开非空的 `counts.folded`，查看以**条目数**为权重的分布，而非字节。零值会保留在表格和汇总中，但不会生成图表节点。
+
+## 解读结果 \{#interpret-the-results}
+
+比较相同阶段、相同工作负载的快照。例如，反复进行 HMR 更新时，如果模块和依赖条目数保持稳定，而所表示的字节增加，可以进一步查看哪些所有权路径保留了更多数据。仅凭这种现象，还不能确定存在内存泄漏。
+
+限制：
+
+- 快照不测量 RSS、峰值内存或累计分配。
+- JavaScript 和 V8 堆对象、回调捕获、部分外部状态、分配器元数据和容器的私有开销无法完整计入。非阻塞锁和不支持的嵌套类型也可能造成覆盖缺口。
+
+## 进阶 \{#advanced}
+
+### 内存采集的工作原理 \{#how-memory-collection-works}
+
+Rspack 在 [`crates/rspack_allocative`](https://github.com/web-infra-dev/rspack/tree/main/crates/rspack_allocative) 中维护了 [Buck2](https://github.com/facebook/buck2) 的 allocative fork。这个 fork 通过 Rust 的编译期反射和编译器 driver，在大部分场景下自动收集内存数据，减少手动实现 `Allocative` 的需要。
+
+借用引用不代表所有权，裸指针和不支持的值会作为不透明对象处理。共享分配只计入首次遇到的所有者路径。这些策略可以避免重复计入共享数据，但无法访问的状态仍会造成覆盖缺口。
+
+**需要手动实现 `Allocative` 的场景。** 普通结构体和大多数枚举可以自动实现，但以下几种情况需要手动实现适配器或添加属性注解：
+
+- **第三方类型**需要在 `rspack_allocative` 中补充对应的 `Allocative` 实现。
+- **Union** 不被 derive 宏支持，只能手写 `Allocative` 实现。
+- **自定义所有权**，即内存布局与实际所有权不一致的情况，比如 arena 分配的数据、借用缓冲区、共享指针等。需要手写实现来表达正确的遍历逻辑。
+- **不透明或无法遍历的值**，如裸指针、回调捕获、V8 堆对象。用 `#[allocative(skip)]` 标记这些字段，将它们排除在外。
+- **泛型约束不正确**时，用 `#[allocative(bound = "...")]` 自行指定约束。
+- **枚举反射的边界场景。** 编译器 driver 的枚举反射要求 `Self: 'static`，带生命周期参数、const 泛型或非字面量数组类型的枚举会跳过。这些枚举会回退到类型化遍历，需要显式的 `Allocative` 实现。
+
+采集流程如下：
+
+```text
+构建 binding
+  包含 allocative feature、cfg 和编译器 driver
+       ↓
+构建或重建完成
+  完成缓存处理，检查 RSPACK_ALLOCATIVE_DIR
+       ↓
+遍历根对象
+  Compiler → Compilation 及其他拥有的字段
+  注册的全局根对象 + 进程全局 Ustr 字符串 arena
+       ↓
+沿所有权遍历
+  自定义 Allocative::visit 或 reflection 字段
+  对共享数据去重，记录覆盖警告
+       ↓
+输出快照
+  字节权重文件 + 条目计数 + metadata + warnings
+```
+
+采集点位于 [`compiler/mod.rs`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/compiler/mod.rs) 和 [`compiler/rebuild.rs`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/compiler/rebuild.rs)。[`snapshot_allocative`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/utils/mod.rs) 负责遍历根对象并写出文件。这些数据表示采集时刻所覆盖的内存，具体限制见[解读结果](#interpret-the-results)。
+
+### 构建本地 binding \{#build-a-local-binding}
+
+配置好[开发环境](/contribute/development/prerequisites)后，在 Rspack 仓库根目录执行：
+
+```sh
+pnpm install
+pnpm run build:binding:debug
+pnpm run build:js
+```
+
+**debug 构建默认包含 allocative 支持，快照采集仍默认关闭。** `build:binding:debug` 命令使用 `release-debug` Cargo profile。标准 release 构建不包含 allocative 支持。profiling 构建也默认包含该支持：
+
+```sh
+pnpm run build:binding:profiling
+```
+
+要在 development 构建（`build:binding:dev`）或其他 binding 构建配置中包含 allocative 支持，需要在构建时设置 `ALLOCATIVE=1`：
+
+```sh
+ALLOCATIVE=1 pnpm run build:binding:dev
+```
+
+| 环境变量                | 设置时机                          | 用途                                   |
+| ----------------------- | --------------------------------- | -------------------------------------- |
+| `ALLOCATIVE=1`          | 构建默认不包含该支持的 binding 时 | 将 allocative 采集能力编译进 binding。 |
+| `RSPACK_ALLOCATIVE_DIR` | 运行本地构建或测试时              | 开启快照采集并指定输出目录。           |
+
+仅在运行时设置 `ALLOCATIVE=1`，无法为已有的 binding 增加采集能力。debug 和 profiling 构建也只有在设置 `RSPACK_ALLOCATIVE_DIR` 后，才会输出快照。
+
+### 分析本地构建或测试 \{#profile-a-local-build-or-test}
+
+在目标项目的工作目录中运行构建后的 CLI：
+
+```sh
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/local-build-1 \
+  node /path/to/rspack/packages/rspack-cli/bin/rspack.js build \
+  --config ./rspack.config.mjs
+```
+
+使用本地 binding 的测试，也可以通过 `RSPACK_ALLOCATIVE_DIR` 采集快照。每次构建或重建都会自动输出快照，测试框架无需额外接入采集逻辑。构建好 binding 和 JavaScript 包后，可以运行单个 HMR 用例：
+
+```sh
+cd /path/to/rspack/tests/rspack-test
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-test-1 \
+  pnpm test "\"$PWD/HotNode.test.mjs\"" --project base \
+  -t hotCases/source-map/disable --maxWorkers 1
+```
+
+位置参数中保留的双引号用于精确选择 `HotNode.test.mjs` runner，`-t` 用于选择用例。请使用一个 worker 和新的输出目录。使用其他 runner 或多个并发进程时，应为每个进程分配独立目录，避免覆盖文件。仓库测试约定见[测试指南](/contribute/development/testing)。
+
+### 生成计数报告 \{#prepare-count-reports}
+
+对于手动采集的快照，可以使用报告工具，并指定新的输出目录：
+
+```sh
+pnpm --dir /path/to/rspack exec zx \
+  /path/to/rspack/.agents/skills/rspack-allocative/scripts/render-profile.mjs \
+  /absolute/path/profiles/build-1/0-build.allocative \
+  --out-dir /absolute/path/profiles/build-1/report-0
+```
+
+工具会发现匹配的附加文件，生成[读取条目计数](#read-entry-counts)中介绍的汇总和计数报告。使用 skill 时，这一步会自动执行。
