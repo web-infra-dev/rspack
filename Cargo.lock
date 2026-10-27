@@ -5299,7 +5299,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_mf_test"
-version = "0.103.0-beta.1"
+version = "0.103.0-rc.0"
 dependencies = [
  "rspack_collections",
  "rspack_core",
