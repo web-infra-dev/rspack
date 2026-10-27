@@ -446,6 +446,7 @@ export declare class JsModuleGraph {
  * JavaScript uses this as an opaque handle when updating an existing asset.
  */
 export declare class JsNativeSource {
+  static fromSource(source: JsSourceFromJs): JsNativeSource
   applyReplacements(replacements: Array<JsReplaceSourceEdit>): JsNativeSource | null
 }
 

@@ -33,36 +33,85 @@ export default defineConfig({
             if (unicodeStart < 0) throw new Error('Missing Unicode source');
 
             const { ConcatSource, ReplaceSource } = compiler.rspack.sources;
-            const replaced = new ReplaceSource(asset.source);
-            replaced.replace(start, start + placeholder.length - 1, 'updated');
+            const original = asset.source;
+            let replaced = new ReplaceSource(original);
+            replaced.replace(
+              start,
+              start + placeholder.length - 1,
+              '😀intermediate',
+            );
             replaced.replace(unicodeStart, unicodeStart + 1, 'X');
-            const updated = new ConcatSource(prefix, replaced);
+            const layers = [original, replaced];
 
-            const fallbackReplaced = new webpackSources.ReplaceSource(
+            let fallbackReplaced = new webpackSources.ReplaceSource(
               asset.source,
             );
             fallbackReplaced.replace(
               start,
               start + placeholder.length - 1,
-              'updated',
+              '😀intermediate',
             );
             fallbackReplaced.replace(unicodeStart, unicodeStart + 1, 'X');
+
+            // Each layer uses positions in the previous layer's output, including
+            // edits to Unicode text introduced by an inner replacement.
+            for (const [before, after, concat] of [
+              ['intermediate', 'first', false],
+              ['😀first', '😀临时', true],
+              ['😀临时', 'updated', true],
+            ] as const) {
+              const combined = concat
+                ? new ConcatSource(
+                    '/* 😀 nested */\n',
+                    replaced,
+                    '\n/* nested */',
+                  )
+                : replaced;
+              if (concat) layers.push(combined);
+              const fallbackCombined = concat
+                ? new webpackSources.ConcatSource(
+                    '/* 😀 nested */\n',
+                    fallbackReplaced,
+                    '\n/* nested */',
+                  )
+                : fallbackReplaced;
+              const position = fallbackCombined
+                .source()
+                .toString()
+                .indexOf(before);
+              if (position < 0)
+                throw new Error(`Missing nested replacement: ${before}`);
+              replaced = new ReplaceSource(combined);
+              replaced.replace(position, position + before.length - 1, after);
+              layers.push(replaced);
+              fallbackReplaced = new webpackSources.ReplaceSource(
+                fallbackCombined,
+              );
+              fallbackReplaced.replace(
+                position,
+                position + before.length - 1,
+                after,
+              );
+            }
+            const updated = new ConcatSource(prefix, replaced);
             const fallbackUpdated = new webpackSources.ConcatSource(
               prefix,
               fallbackReplaced,
             );
 
-            // Falling back to full source serialization would call map() here.
-            Object.defineProperty(replaced, 'map', {
-              value: () => {
-                throw new Error('ReplaceSource used the fallback path');
-              },
-            });
-            Object.defineProperty(updated, 'map', {
-              value: () => {
-                throw new Error('ConcatSource used the fallback path');
-              },
-            });
+            // Every layer must stay native: neither text nor map serialization
+            // may run on the JS graph, even for an intermediate ReplaceSource.
+            for (const source of [...layers, updated]) {
+              for (const method of ['source', 'map']) {
+                Object.defineProperty(source, method, {
+                  value: () => {
+                    throw new Error(
+                      `Nested source used the fallback ${method}()`,
+                    );
+                  },
+                });
+              }
+            }
             compilation.updateAsset('bundle0.js', updated);
             compilation.emitAsset('fallback.js', fallbackUpdated);
 

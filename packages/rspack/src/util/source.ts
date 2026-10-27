@@ -4,6 +4,7 @@ import type {
   JsSourceFromJs,
   JsSourceWithLazyMap,
 } from '@rspack/binding';
+import binding from '@rspack/binding';
 import * as webpackSources from 'webpack-sources';
 import { RawSource, type Source, SourceMapSource } from 'webpack-sources';
 
@@ -21,8 +22,8 @@ type SourceWithBinding = Source & {
   [toBindingSource]?: () => JsSourceFromJs | null;
 };
 
-function getNativeSource(source: Source): JsNativeSource | undefined {
-  const native = nativeSources.get(source);
+function toStructuredSource(source: Source): JsSourceFromJs | null {
+  let native = nativeSources.get(source);
   if (
     native &&
     source instanceof SourceMapSource &&
@@ -32,9 +33,10 @@ function getNativeSource(source: Source): JsNativeSource | undefined {
   ) {
     // Exposed maps and buffers are mutable, so serialize the JS snapshot again.
     nativeSources.delete(source);
-    return;
+    native = undefined;
   }
-  return native;
+  if (native) return { kind: 'native', handle: native };
+  return (source as SourceWithBinding)[toBindingSource]?.call(source) ?? null;
 }
 
 function replaceSourceMap(source: SourceWithCache, value: string | undefined) {
@@ -118,8 +120,12 @@ export class RspackReplaceSource extends webpackSources.ReplaceSource {
     if (Object.getPrototypeOf(this) !== RspackReplaceSource.prototype) {
       return null;
     }
-    const original = getNativeSource(this.original());
-    if (!original) return null;
+    const inner = toStructuredSource(this.original());
+    if (!inner) return null;
+    const original =
+      inner.kind === 'native'
+        ? inner.handle
+        : binding.JsNativeSource.fromSource(inner);
     const replaced = original.applyReplacements(this.getReplacements());
     return replaced ? { kind: 'native', handle: replaced } : null;
   }
@@ -170,14 +176,7 @@ export class SourceAdapter {
   }
 
   static toBinding(source: Source): JsSourceFromJs {
-    const nativeSource = getNativeSource(source);
-    if (nativeSource) {
-      return { kind: 'native', handle: nativeSource };
-    }
-
-    const structured = (source as SourceWithBinding)[toBindingSource]?.call(
-      source,
-    );
+    const structured = toStructuredSource(source);
     if (structured) return structured;
 
     const content = source.source();

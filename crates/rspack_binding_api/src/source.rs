@@ -269,6 +269,13 @@ fn floor_js_source_index(index: f64) -> Option<u32> {
 
 #[napi]
 impl JsNativeSource {
+  #[napi(factory, ts_args_type = "source: JsSourceFromJs")]
+  pub fn from_source(source: JsSourceFromJs) -> Result<Self> {
+    Ok(Self {
+      inner: source.try_into()?,
+    })
+  }
+
   #[napi]
   pub fn apply_replacements(
     &self,
