@@ -18,7 +18,9 @@ use rspack_util::fx_hash::FxHashSet;
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{
-  backend::Backend, factory::LazyCompilationDependencyFactory, module::LazyCompilationProxyModule,
+  backend::Backend,
+  factory::LazyCompilationDependencyFactory,
+  module::{LazyCompilationProxyModule, has_closure_library},
   utils::calc_value_dependency_key,
 };
 
@@ -68,7 +70,6 @@ pub struct LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck> {
   imports: bool, // enable for imports
   test: Option<LazyCompilationTest<F>>,
   client: String,
-  reserved_externals: Arc<[String]>,
   active_modules: RwLock<IdentifierSet>,
 }
 
@@ -79,7 +80,6 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
     entries: bool,
     imports: bool,
     client: String,
-    reserved_externals: Vec<String>,
   ) -> Self {
     Self::new_inner(
       Mutex::new(backend),
@@ -87,7 +87,6 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
       imports,
       test,
       client,
-      Arc::from(reserved_externals),
       Default::default(),
     )
   }
@@ -219,6 +218,23 @@ async fn normal_module_factory_module(
       .context
       .as_str(),
   });
+  let layer = module.get_layer().cloned();
+  let reserved_externals = if !active
+    && has_closure_library(
+      &module_factory_create_data
+        .build_context
+        .compiler_options
+        .output,
+    ) {
+    self
+      .backend
+      .lock()
+      .await
+      .collect_reserved_externals(layer.clone())
+      .await?
+  } else {
+    Arc::from([])
+  };
 
   *module = LazyCompilationProxyModule::new(
     module_identifier,
@@ -228,7 +244,8 @@ async fn normal_module_factory_module(
     create_data.resource_resolve_data.resource().to_owned(),
     active,
     self.client.clone(),
-    self.reserved_externals.clone(),
+    layer,
+    reserved_externals,
   )
   .boxed();
 

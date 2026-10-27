@@ -873,7 +873,6 @@ impl<'a> BuiltinPlugin<'a> {
             options.entries,
             options.imports,
             options.client,
-            options.reserved_externals,
           )) as Box<dyn Plugin>,
         )
       }

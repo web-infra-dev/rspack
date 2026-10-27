@@ -17,7 +17,15 @@ This capability is commonly used when building libraries, but it is also useful 
 
 ```ts
 type ExternalItem =
-  string | RegExp | Function | { [x: string]: ExternalItemValue };
+  | string
+  | RegExp
+  | Function
+  | { [x: string]: ExternalItemValue }
+  | {
+      byLayer:
+        | Record<string, ExternalItem>
+        | ((layer: string | null) => ExternalItem | undefined);
+    };
 
 type Externals = ExternalItem | ExternalItem[];
 ```
@@ -301,6 +309,38 @@ export default {
 :::warning
 [Default type](#externalstype) will be used if you specify `externals` without a type e.g. `externals: { react: 'react' }` instead of `externals: { react: 'commonjs-module react' }`.
 :::
+
+### externals.byLayer
+
+Use `byLayer` in an externals object to choose externals based on the importing module's [layer](/config/module-rules#ruleslayer). The matching branch is merged over the base object. If no branch matches, `byLayer.default` is used instead. An explicit branch, including an empty object, takes precedence over `default`.
+
+```js title="rspack.config.mjs"
+export default {
+  externalsType: 'commonjs',
+  externals: {
+    fs: 'fs',
+    byLayer: {
+      server: { path: 'path' },
+      default: { crypto: 'crypto' },
+    },
+  },
+  module: {
+    rules: [{ test: /server\.js$/, layer: 'server' }],
+  },
+};
+```
+
+Here, imports from the `server` layer treat `fs` and `path` as externals. Other layers, including modules without a layer, treat `fs` and `crypto` as externals. Set a branch's value to `false` to cancel a base external for that layer.
+
+`byLayer` can also be a synchronous function. It receives the issuer layer (`string` or `null` for modules without a layer) and returns an externals object to merge over the base, or `undefined` to keep only the base:
+
+```js
+externals: {
+  fs: 'commonjs fs',
+  byLayer: (layer) =>
+    layer === 'server' ? { path: 'commonjs path' } : undefined,
+},
+```
 
 ## externalsType
 

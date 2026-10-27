@@ -200,6 +200,18 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
           return Ok(maybe_module.map(|i| i.boxed()));
         }
       }
+      ExternalItem::ByLayer(layers) => {
+        let externals = layers
+          .get(data.issuer_layer.as_deref().unwrap_or("null"))
+          .or_else(|| layers.get("default"));
+        if let Some(value) = externals.and_then(|externals| externals.get(dependency.request())) {
+          return Ok(
+            self
+              .handle_external(value, None, dependency)
+              .map(|i| i.boxed()),
+          );
+        }
+      }
       ExternalItem::RegExp(r) => {
         let request = dependency.request();
         if r.test(request) {
