@@ -2,8 +2,10 @@ import { isAbsolute } from 'node:path';
 import type {
   Configuration,
   ExternalItem,
+  ExternalItemObjectKnown,
   ExternalItemUmdValue,
 } from '../config';
+import { resolveByProperty } from './cleverMerge';
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
 
@@ -49,8 +51,16 @@ const validateExternalUmd = ({
 
   const checkExternalItem = (externalItem: ExternalItem | undefined) => {
     if (typeof externalItem === 'object' && externalItem !== null) {
-      for (const value of Object.values(externalItem)) {
-        checkExternalItemValue(value);
+      const { byLayer } = externalItem as ExternalItemObjectKnown;
+      if (typeof byLayer === 'function') return;
+      if (byLayer && typeof byLayer === 'object') {
+        for (const layer of ['default', ...Object.keys(byLayer)]) {
+          checkExternalItem(resolveByProperty(externalItem, 'byLayer', layer));
+        }
+        return;
+      }
+      for (const [request, value] of Object.entries(externalItem)) {
+        if (request !== 'byLayer') checkExternalItemValue(value);
       }
     }
   };

@@ -30,7 +30,7 @@ static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
 // Library types whose wrappers pass externals as closure arguments baked into the entry chunk.
 const CLOSURE_LIBRARY_TYPES: [&str; 5] = ["umd", "umd2", "amd", "amd-require", "system"];
 
-fn has_closure_library(output: &OutputOptions) -> bool {
+pub(crate) fn has_closure_library(output: &OutputOptions) -> bool {
   if let Some(enabled) = &output.enabled_library_types
     && enabled
       .iter()
@@ -65,7 +65,7 @@ pub(crate) struct LazyCompilationProxyModule {
   resource: String,
   active: bool,
   client: String,
-  // Immutable once collected from config; shared across every proxy module as a
+  // Immutable once collected for a layer; shared across its proxy modules as a
   // slice so each clones the `Arc`, not the whole list.
   #[cacheable(with=AsVec)]
   reserved_externals: Arc<[String]>,
@@ -93,6 +93,7 @@ impl LazyCompilationProxyModule {
     resource: String,
     active: bool,
     client: String,
+    layer: Option<ModuleLayer>,
     reserved_externals: Arc<[String]>,
   ) -> Self {
     let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
@@ -103,6 +104,7 @@ impl LazyCompilationProxyModule {
       phase: original_dependency.get_phase(),
       attributes: original_dependency.get_attributes().cloned(),
       issuer: create_data.issuer.clone(),
+      issuer_layer: create_data.issuer_layer.clone(),
       resolve_options: create_data.resolve_options.clone(),
       file_dependencies: create_data.file_dependencies.clone(),
       context_dependencies: create_data.context_dependencies.clone(),
@@ -120,7 +122,7 @@ impl LazyCompilationProxyModule {
       source_map_kind: SourceMapKind::empty(),
       dependencies_block: Default::default(),
       context: Box::new(create_data.context.clone()),
-      layer: create_data.issuer_layer.clone(),
+      layer,
       dep_options,
       resource,
       active,

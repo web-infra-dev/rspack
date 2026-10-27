@@ -1870,6 +1870,13 @@ export type ExternalItemObjectUnknown = {
   [x: string]: ExternalItemValue;
 };
 
+export type ExternalItemObjectKnown = {
+  /** Specify externals depending on the importing module's layer. */
+  byLayer?:
+    | Record<string, ExternalItem>
+    | ((layer: string | null) => ExternalItem | undefined);
+};
+
 /**
  * Data object passed as argument when a function is set for 'externals'.
  */
@@ -1907,6 +1914,7 @@ export type ExternalItemFunctionData = {
 export type ExternalItem =
   | string
   | RegExp
+  | ExternalItemObjectKnown
   | ExternalItemObjectUnknown
   | ((
       data: ExternalItemFunctionData,

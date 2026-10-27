@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ImportAttributes, ImportPhase, ModuleDependency, Resolve,
+  DependencyType, ImportAttributes, ImportPhase, ModuleDependency, ModuleLayer, Resolve,
 };
 use rspack_error::Diagnostic;
 use rspack_paths::InternedPathSet;
@@ -15,6 +15,7 @@ pub struct DependencyOptions {
   pub phase: ImportPhase,
   pub attributes: Option<ImportAttributes>,
   pub issuer: Option<Box<str>>,
+  pub issuer_layer: Option<ModuleLayer>,
   pub resolve_options: Option<Arc<Resolve>>,
 
   pub file_dependencies: InternedPathSet,

@@ -17,7 +17,15 @@ import { Stability } from '../../../components/ApiMeta';
 
 ```ts
 type ExternalItem =
-  string | RegExp | Function | { [x: string]: ExternalItemValue };
+  | string
+  | RegExp
+  | Function
+  | { [x: string]: ExternalItemValue }
+  | {
+      byLayer:
+        | Record<string, ExternalItem>
+        | ((layer: string | null) => ExternalItem | undefined);
+    };
 
 type Externals = ExternalItem | ExternalItem[];
 ```
@@ -301,6 +309,38 @@ export default {
 :::warning
 如果没有指定类型，将使用[默认类型](#externalstype)，例如 `externals: { react: 'react' }` 而不是 `externals: { react: 'commonjs-module react' }`。
 :::
+
+### externals.byLayer
+
+在 externals 对象中使用 `byLayer`，可以根据导入模块所属的 [layer](/config/module-rules#ruleslayer) 选择外部依赖。匹配分支会与基础配置合并，分支中的值覆盖基础值。没有匹配分支时才使用 `byLayer.default`；显式声明的分支即使是空对象，也不会使用 `default`。
+
+```js title="rspack.config.mjs"
+export default {
+  externalsType: 'commonjs',
+  externals: {
+    fs: 'fs',
+    byLayer: {
+      server: { path: 'path' },
+      default: { crypto: 'crypto' },
+    },
+  },
+  module: {
+    rules: [{ test: /server\.js$/, layer: 'server' }],
+  },
+};
+```
+
+在这个例子中，`server` 层导入的 `fs` 和 `path` 都是外部依赖。其他层（包括没有设置 layer 的模块）导入的 `fs` 和 `crypto` 是外部依赖。在分支中把某个请求设为 `false`，可以取消基础配置对该请求的外部化。
+
+`byLayer` 也可以是同步函数，接收导入模块所属的层（`string`，没有 layer 时为 `null`），返回与基础配置合并的 externals 对象；返回 `undefined` 则只使用基础配置：
+
+```js
+externals: {
+  fs: 'commonjs fs',
+  byLayer: (layer) =>
+    layer === 'server' ? { path: 'commonjs path' } : undefined,
+},
+```
 
 ## externalsType
 
