@@ -2,13 +2,9 @@ const { ModuleFederationPlugin } = require('@rspack/core').container;
 const { ConsumeSharedPlugin, ProvideSharedPlugin } =
   require('@rspack/core').sharing;
 
-// Two entries share one runtime chunk. Only `ordered` has an ordered (array)
-// scope consume (contributed by a separately installed enhanced
-// ConsumeSharedPlugin, invisible to the high-level `shared` option), but the
-// runtime installs the initial consumes of both entries behind that scope's
-// initialization, so the startup plan must be decided per runtime and applied
-// to every entry it serves. The third config keeps separate runtimes as a
-// control: the scalar entry stays synchronous there.
+// Only `ordered` has an ordered consume, added by a separate ConsumeSharedPlugin.
+// Both entries must await initialization when they share a runtime. With separate
+// runtimes, the scalar entry stays synchronous.
 const base = (dir, runtimeChunk) => ({
   entry: {
     ordered: './ordered.js',
