@@ -41,6 +41,8 @@ console.log('bar.js');
 
 :::
 
+如果动态导入的 chunk 加载失败，请参阅 [Chunk 加载失败](/guide/diagnostics/runtime-issues#chunk-loading-failures)中的排查步骤。
+
 ### 复用父级已经提供的模块
 
 如果到达某个异步 chunk 的每条路径都保证已加载它需要的模块，Rspack 可以省略重复副本。这发生在 code splitting 阶段，即使设置 `optimization.splitChunks: false` 也会生效。

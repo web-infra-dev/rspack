@@ -275,6 +275,22 @@ The remaining examples show some common patterns in the ecosystem that can be su
   );
   ```
 
+## Runtime public path
+
+A Worker has its own Rspack runtime. Changing the public path in the main thread does not change the path used for dynamic imports inside the Worker.
+
+With [`output.publicPath: 'auto'`](/config/output#outputpublicpath), the Worker determines its public path from its own script URL. [`output.workerPublicPath`](/config/output#outputworkerpublicpath) controls the URL used to load the Worker script.
+
+To change the path used for dynamic imports, set [`import.meta.rspackPublicPath`](/api/runtime-api/module-variables#importmetarspackpublicpath) inside the Worker before calling `import()`:
+
+```js title="worker.js"
+import.meta.rspackPublicPath = 'https://cdn.example.com/worker-assets/';
+
+import('./task.js').then(({ run }) => run());
+```
+
+In CommonJS, use [`__webpack_public_path__`](/api/runtime-api/module-variables#__webpack_public_path__) instead.
+
 ## worker-loader
 
 :::warning

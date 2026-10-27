@@ -554,6 +554,8 @@ compiler.hooks.shouldEmit.tap('MyPlugin', (compilation) => {
 
 Called right before emitting assets to output dir.
 
+Asset processing, including minification, has already finished when `emit` runs, so assets added here miss those steps. To create or modify assets earlier, use [`compilation.hooks.processAssets`](/api/plugin-api/compilation-hooks#processassets). For new assets, use `PROCESS_ASSETS_STAGE_ADDITIONAL` so later stages can process them.
+
 - **Type:** `AsyncSeriesHook<[Compilation]>`
 - **Arguments:**
   - `Compilation`: current [compilation](/api/javascript-api/compilation) object

@@ -274,25 +274,17 @@ export default {
 
 ### splitChunks.maxAsyncRequests
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.maxAsyncRequests
-
 - **Type:** `number`
-- **Default:** `30` in production and `Infinity` in other modes
+- **Default:** `30`
 
 Maximum number of parallel requests when on-demand loading.
 
-Cache groups inherit this limit unless they set their own `maxAsyncRequests` or enable `enforce`. An explicit cache group limit still applies with `enforce: true`.
-
 ### splitChunks.maxInitialRequests
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.maxInitialRequests
-
 - **Type:** `number`
-- **Default:** `30` in production and `Infinity` in other modes
+- **Default:** `30`
 
 Maximum number of parallel requests at an entry point.
-
-Cache groups inherit this limit unless they set their own `maxInitialRequests` or enable `enforce`. An explicit cache group limit still applies with `enforce: true`.
 
 ### splitChunks.enforceSizeThreshold
 

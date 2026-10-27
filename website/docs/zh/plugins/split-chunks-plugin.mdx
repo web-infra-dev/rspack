@@ -272,25 +272,17 @@ export default {
 
 ### splitChunks.maxAsyncRequests
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.maxAsyncRequests
-
 - **类型：** `number`
-- **默认值：** 生产模式下为 `30`，其他模式下为 `Infinity`
+- **默认值：** `30`
 
 按需加载时的最大并行请求数。
 
-cache group 默认继承此限制，除非自行设置 `maxAsyncRequests` 或启用 `enforce`。即使设置了 `enforce: true`，cache group 显式配置的限制仍然生效。
-
 ### splitChunks.maxInitialRequests
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.maxInitialRequests
-
 - **类型：** `number`
-- **默认值：** 生产模式下为 `30`，其他模式下为 `Infinity`
+- **默认值：** `30`
 
-每个入口点所允许的最大并行请求数。
-
-cache group 默认继承此限制，除非自行设置 `maxInitialRequests` 或启用 `enforce`。即使设置了 `enforce: true`，cache group 显式配置的限制仍然生效。
+每一个入口点所允许的的最大并行请求数。
 
 ### splitChunks.enforceSizeThreshold
 

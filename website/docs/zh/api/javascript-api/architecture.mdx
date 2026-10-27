@@ -106,9 +106,9 @@ Rspack 可以同时处理多个文件，但 JavaScript loader 需要在 JavaScri
 
 如果功能相同，应优先使用 Rspack 的 builtin loader。例如：
 
-- 使用 [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 执行 JavaScript 和
+- 使用 [`builtin:swc-loader`](/guide/builtin-loaders/swc-loader) 执行 JavaScript 和
   TypeScript 转换；
-- 使用 [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) 执行
+- 使用 [`builtin:lightningcss-loader`](/guide/builtin-loaders/lightningcss-loader) 执行
   CSS 转换。
 
 Builtin loader 可以在 Rust 侧执行，减少 JavaScript 排队和跨语言数据转换，并更好地利用 Rspack 的并行能力。

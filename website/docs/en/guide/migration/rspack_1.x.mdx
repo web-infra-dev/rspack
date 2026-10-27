@@ -139,7 +139,7 @@ export default {
 
 ### Removed builtin:swc-loader's rspackExperiments.collectTypeScriptInfo
 
-The `rspackExperiments.collectTypeScriptInfo` option of `builtin:swc-loader` has been removed. Use [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) to control TypeScript information collection:
+The `rspackExperiments.collectTypeScriptInfo` option of `builtin:swc-loader` has been removed. Use [collectTypeScriptInfo](/guide/builtin-loaders/swc-loader#collecttypescriptinfo) to control TypeScript information collection:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -161,7 +161,7 @@ export default {
 
 ### Moved builtin:swc-loader's rspackExperiments.import
 
-The `rspackExperiments.import` option of `builtin:swc-loader` has been moved to the top-level [transformImport](/guide/features/builtin-swc-loader#transformimport) option. `rspackExperiments.import` is still supported as a deprecated alias in Rspack 2.0, but you should migrate to `transformImport` to avoid future breakage:
+The `rspackExperiments.import` option of `builtin:swc-loader` has been moved to the top-level [transformImport](/guide/builtin-loaders/swc-loader#transformimport) option. `rspackExperiments.import` is still supported as a deprecated alias in Rspack 2.0, but you should migrate to `transformImport` to avoid future breakage:
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -590,7 +590,7 @@ export default {
 - `experiments.lazyBarrel`: removed; [barrel file optimization](/guide/advanced/lazy-barrel) is now enabled by default.
 - `experiments.typeReexportsPresence`: removed; use [module.parser.javascript.typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) directly to control the behavior when re-exporting types.
 - `experiments.inlineConst`: removed; use [optimization.inlineExports](/config/optimization#optimizationinlineexports) to control constant inlining optimization.
-- `experiments.inlineEnum`: removed; use [optimization.inlineExports](/config/optimization#optimizationinlineexports) and `builtin:swc-loader`'s [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) to control enum inlining optimization.
+- `experiments.inlineEnum`: removed; use [optimization.inlineExports](/config/optimization#optimizationinlineexports) and `builtin:swc-loader`'s [collectTypeScriptInfo.exportedEnum](/guide/builtin-loaders/swc-loader#collecttypescriptinfoexportedenum) to control enum inlining optimization.
 - `experiments.outputModule`: removed; use [output.module](/config/output#outputmodule) directly to output ESM artifacts.
 - `experiments.parallelLoader`: removed; loader parallelization is now stable and enabled by default, but you still need to configure [module.rules.use.parallel](/config/module-rules#rulesuseparallel) to opt in.
 - `experiments.SubResourceIntegrityPlugin`: moved to the top-level [SubresourceIntegrityPlugin](/plugins/subresource-integrity-plugin).
