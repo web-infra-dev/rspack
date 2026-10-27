@@ -119,6 +119,20 @@ Rspack 2.3 also adds memory snapshots based on [allocative](https://github.com/f
 
 Rspack 2.3 introduces `newCache`, an experimental cache implementation that reuses build results at a finer granularity and reduces cache file size and write overhead.
 
+The previous cache implementation had several limitations:
+
+- Coarse cache granularity: it persisted the complete intermediate results of each compilation stage, such as the entire module graph during `make`. These results had to remain immutable, and the graph's complex state had caused errors or even panics when restoring the cache.
+- Coupling with incremental compilation: incremental compilation targets development mode, while persistent caching also needs to support production builds. This made it difficult to reuse the same mechanism for some stages.
+- Memory and persistent caches used different models, requiring special handling in multiple places.
+- Serializing the persistent cache blocked compilation.
+
+To address these issues, we introduced `newCache` with the following improvements:
+
+- Finer cache granularity: it caches individual computation results, such as modules, without saving and restoring the entire module graph. This reduces correctness risks from complex graph state, and only the cached data needs to remain immutable.
+- Decoupled from incremental compilation: caching works independently, making it easier to support both development and production builds.
+- A unified cache model: memory and persistent caches use the same model, reducing special handling and making it easier to evict unused entries and control memory usage across development rebuilds.
+- Deferred persistence: serialization and disk writes run during idle time or at the end of a build, reducing work that blocks compilation.
+
 The feature is disabled by default. Enable it with [`experiments.newCache`](/config/experiments#experimentsnewcache):
 
 ```js title="rspack.config.mjs"
@@ -131,8 +145,6 @@ export default {
   },
 };
 ```
-
-The previous cache saves and restores the entire module graph. In contrast, `newCache` can independently reuse module build, code generation, source map, and minification results, as well as the output of individual loaders. Its storage format also reduces temporary memory usage when writing the cache.
 
 The following tables compare the two cache implementations in [React 10k](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/react-10k) and a large real-world project.
 
