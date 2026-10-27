@@ -24,7 +24,7 @@ Check the response and any script errors:
 1. Open the request in the Network panel and check its response. It should contain the chunk from the current application version, rather than HTML, an empty response, or JavaScript from another version.
 2. Look for earlier JavaScript errors in the Console. A syntax or execution error may prevent even the correct file from loading successfully.
 
-With the default browser loader, which uses `<script>` tags, the error's `type` is `'missing'` if the script finishes loading but Rspack still cannot find the expected chunk. The error's `request` property contains the URL you can use to locate the request in the Network panel.
+By default, browsers load JavaScript chunks through `<script>` tags. If the browser successfully loads a script but it does not contain the required chunk, for example because the server returned an empty JavaScript file, Rspack still reports `ChunkLoadError` with `type: 'missing'`. The error's `request` property contains the URL you can use to locate the request in the Network panel.
 
 ### `ChunkLoadError` after deployment
 

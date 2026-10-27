@@ -24,7 +24,7 @@ Network 面板中显示 HTTP 200，并不代表 chunk 已经加载成功。服�
 1. 在 Network 面板中打开对应请求，确认响应内容是当前应用版本的 chunk，而不是 HTML、空内容或其他版本的 JavaScript 文件。
 2. 查看 Console 中是否有更早出现的 JavaScript 错误。即使下载到了正确的文件，语法错误或执行错误也可能导致加载失败。
 
-浏览器默认通过 `<script>` 标签加载 JavaScript chunk。如果脚本加载完成后，Rspack 仍未找到预期的 chunk，错误对象的 `type` 会是 `'missing'`。其中的 `request` 属性记录了请求地址，可以用来定位 Network 面板中的对应请求。
+浏览器默认通过 `<script>` 标签加载 JavaScript chunk。如果浏览器成功加载了脚本，但脚本没有包含所需的 chunk，例如服务器返回了空的 JavaScript 文件，Rspack 仍会报出 `ChunkLoadError`，错误对象的 `type` 为 `'missing'`。其中的 `request` 属性记录了请求地址，可以用来定位 Network 面板中的对应请求。
 
 ### 部署后出现 `ChunkLoadError` \{#chunkloaderror-after-deployment}
 
