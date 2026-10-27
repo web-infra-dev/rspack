@@ -1,0 +1,182 @@
+---
+description: 'Analyze Rspack memory snapshots and module and dependency entry counts as a contributor.'
+---
+
+# Memory analysis
+
+This guide explains how to collect and analyze memory data when developing Rspack. To capture snapshots for an issue report, see [Memory analysis](/guide/diagnostics/memory).
+
+## Use the allocative skill
+
+The Rspack repository includes the [`rspack-allocative` skill](https://github.com/web-infra-dev/rspack/blob/main/.agents/skills/rspack-allocative/SKILL.md). The skill prepares build artifacts, runs the workload, and generates memory snapshots and count reports.
+
+### Default benchmark projects
+
+The skill uses the repository's built-in benchmark projects by default and prepares the fixtures as needed. With no project or test case specified, it captures the Three.js 10x development build:
+
+```text
+$rspack-allocative capture memory and module/dependency entry counts
+```
+
+You can also name a preset workload, such as `threejs-10x-production-sourcemap` for a production build with sourcemaps.
+
+### External projects
+
+To capture an external project, specify its directory and build mode:
+
+```text
+$rspack-allocative --project-dir /path/to/my-app production build with sourcemap; collect memory and module/dependency entry counts
+```
+
+`--project-dir` is an argument in the skill request, interpreted by the agent — it is not a Rspack CLI option. Relative paths resolve from the agent's initial working directory; quote paths that contain spaces. You can also describe the project directory in natural language. The project directory selects the workload; the Rspack checkout selects the local binding and JavaScript packages. If a project has several configurations, specify the configuration file and build mode in the request.
+
+### Rspack test cases
+
+The skill also supports collecting data directly from Rspack test cases. Specify the case directory, for example:
+
+```text
+$rspack-allocative capture memory for test case hotCases/source-map/disable; run all HMR updates with sourcemaps disabled; keep every memory snapshot and module/dependency entry count report
+```
+
+For example, using the `hotCases/source-map/disable` case produces these memory snapshot files:
+
+```text
+0-build.allocative
+1-rebuild.allocative
+2-rebuild.allocative
+3-rebuild.allocative
+```
+
+Each snapshot also has matching `.counts.json`, `.metadata.json`, and `.warnings.txt` files.
+
+You can use a separate output directory for each run to avoid overwriting data. The skill reports the selected project, build method, capture phase, output paths, and coverage limits. Inspect the snapshots in [Speedscope](https://www.speedscope.app/) as described in [View snapshots](#view-snapshots).
+
+## View snapshots
+
+A snapshot traces ownership paths from the compiler and registered global roots. Its weights are bytes, not execution time or allocation events.
+
+Open [Speedscope](https://www.speedscope.app/) and drag in a `.allocative` file. Use search and zoom to find a data structure, and select **Left Heavy** to explore the largest ownership paths.
+
+Wider frames represent more bytes. The paths describe ownership, not allocation call stacks. The folded format does not carry a unit, so treat the weights as bytes even if the viewer displays a different label. **Time Order** is not a timeline for these snapshots.
+
+Read the matching `.metadata.json` and `.warnings.txt` before interpreting the total. Metadata includes the represented byte total, shared-ownership policy, and global string arena usage. Warnings identify inaccessible nested allocations and other coverage gaps.
+
+## Read entry counts
+
+The `.counts.json` sidecar records module and dependency entries in the current compilation's module graph, grouped by type. These are collection cardinalities — not a process-wide object count or allocation count. An empty graph produces explicit zero-valued module and dependency populations.
+
+Do not derive counts by dividing byte weights by a type's size or by counting lines in a `.allocative` file. A collection can reserve more storage than its length, and multiple references can share one allocation.
+
+The skill automatically prepares `summary.json`, `counts.csv`, and `counts.folded` when count data is available. Open a nonempty `counts.folded` file in Speedscope to explore **entry counts** rather than bytes. Zero-valued populations remain in the table and summary but produce no chart frames.
+
+## Interpret the results
+
+Compare matching snapshots from the same phase and with the same workload. For example, if module and dependency counts stay stable during repeated HMR updates while represented bytes grow, inspect which ownership paths retain more data. This observation alone does not establish a memory leak.
+
+Limitation:
+
+- Snapshots do not measure RSS, peak memory, or cumulative allocations.
+- JavaScript and V8 heap objects, callback captures, some external state, allocator metadata, and private container overhead are not fully represented. Nonblocking locks and unsupported nested types can also limit coverage.
+
+## Advanced
+
+### How memory collection works
+
+Rspack maintains a fork of [Buck2](https://github.com/facebook/buck2)'s allocative in [`crates/rspack_allocative`](https://github.com/web-infra-dev/rspack/tree/main/crates/rspack_allocative). The fork uses Rust's compile-time reflection and a compiler driver to collect memory data automatically in most cases, reducing the need for manual `Allocative` implementations.
+
+Borrowed references do not imply ownership; raw pointers and unsupported values are treated as opaque. Shared allocations are counted once under the first encountered owner. These policies avoid double-counting shared payloads, but inaccessible state still limits coverage.
+
+**When manual `Allocative` is needed.** Ordinary structs and most enums are instrumented automatically, but some cases require explicit adapters or annotations:
+
+- **Third-party types** require an `Allocative` implementation in `rspack_allocative`.
+- **Unions** aren't supported by the derive macro — implement `Allocative` by hand.
+- **Custom ownership** where memory layout doesn't match actual ownership, such as arena-allocated data, borrowed buffers, or shared pointers. Write a manual implementation to express the right traversal.
+- **Opaque or unsupported values** like raw pointers, callback captures, and V8 heap objects. Mark these fields with `#[allocative(skip)]` to exclude them.
+- **Incorrect generic bounds** from the default derive. Use `#[allocative(bound = "...")]` to supply your own constraints.
+- **Enum reflection edge cases.** The compiler driver's enum reflection needs `Self: 'static` and skips enums with lifetime parameters, const generics, or non-literal array types. These fall back to typed traversal and need explicit adapters.
+
+The capture flow is:
+
+```text
+Binding build
+  Include the allocative feature, cfg, and compiler driver
+       ↓
+Build or rebuild completes
+  Finish cache processing; check RSPACK_ALLOCATIVE_DIR
+       ↓
+Root traversal
+  Compiler → Compilation and other owned fields
+  Registered globals + process-global Ustr string arena
+       ↓
+Ownership traversal
+  Custom Allocative::visit or reflected fields
+  Deduplicate shared payloads; record coverage warnings
+       ↓
+Snapshot output
+  Byte profile + entry counts + metadata + warnings
+```
+
+The capture points are in [`compiler/mod.rs`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/compiler/mod.rs) and [`compiler/rebuild.rs`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/compiler/rebuild.rs). [`snapshot_allocative`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/utils/mod.rs) visits the roots and writes the files. This measures the represented memory at that point, with the limits described in [Interpret the results](#interpret-the-results).
+
+### Build a local binding
+
+After setting up the [development prerequisites](/contribute/development/prerequisites), run these commands from the Rspack repository root:
+
+```sh
+pnpm install
+pnpm run build:binding:debug
+pnpm run build:js
+```
+
+**The debug build includes allocative support by default; snapshot collection is still off by default.** The `build:binding:debug` command uses the `release-debug` Cargo profile. Standard release builds do not include allocative support. The profiling build also includes this support by default:
+
+```sh
+pnpm run build:binding:profiling
+```
+
+To include allocative support in the development build (`build:binding:dev`) or another binding build profile, set `ALLOCATIVE=1` when building:
+
+```sh
+ALLOCATIVE=1 pnpm run build:binding:dev
+```
+
+| Environment variable    | When to set it                                         | Purpose                                                    |
+| ----------------------- | ------------------------------------------------------ | ---------------------------------------------------------- |
+| `ALLOCATIVE=1`          | Building a binding that does not include it by default | Include allocative instrumentation in the binding.         |
+| `RSPACK_ALLOCATIVE_DIR` | Running a local build or test                          | Enable snapshot collection and select an output directory. |
+
+Setting `ALLOCATIVE=1` at runtime alone does not add instrumentation to an existing binding. Debug and profiling builds do not collect snapshots unless `RSPACK_ALLOCATIVE_DIR` is set.
+
+### Profile a local build or test
+
+Run the built CLI from the target project's working directory:
+
+```sh
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/local-build-1 \
+  node /path/to/rspack/packages/rspack-cli/bin/rspack.js build \
+  --config ./rspack.config.mjs
+```
+
+Tests using the local binding can also collect snapshots via `RSPACK_ALLOCATIVE_DIR`. Each build or rebuild produces a snapshot automatically; the test framework does not need a separate capture integration. After building the binding and JavaScript packages, run a focused HMR case:
+
+```sh
+cd /path/to/rspack/tests/rspack-test
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-test-1 \
+  pnpm test "\"$PWD/HotNode.test.mjs\"" --project base \
+  -t hotCases/source-map/disable --maxWorkers 1
+```
+
+The literal double quotes in the positional argument select the exact `HotNode.test.mjs` runner; `-t` selects the fixture. Use one worker and a fresh output directory. For other runners or concurrent processes, give each process its own directory to avoid overwriting snapshots. See [Testing](/contribute/development/testing) for the repository's test conventions.
+
+### Prepare count reports
+
+For manually captured snapshots, run the report helper with a new output directory:
+
+```sh
+pnpm --dir /path/to/rspack exec zx \
+  /path/to/rspack/.agents/skills/rspack-allocative/scripts/render-profile.mjs \
+  /absolute/path/profiles/build-1/0-build.allocative \
+  --out-dir /absolute/path/profiles/build-1/report-0
+```
+
+It discovers matching sidecars and generates the summary and count reports described in [Read entry counts](#read-entry-counts). The skill runs this step automatically.

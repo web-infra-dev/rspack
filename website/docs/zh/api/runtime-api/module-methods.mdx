@@ -87,19 +87,29 @@ if (module.hot) {
 
 ### import() 中的动态表达式
 
-`import()` 无法使用完全动态的导入语句，例如 `import(foo)`。因为 `foo` 可能是系统或项目中任何文件的任何路径。
+Rspack 需要在应用运行之前确定要打包哪些文件。如果传给 `import()` 的路径是一个只有在运行时才能确定值的变量，Rspack 就无法知道需要包含哪些文件。
 
-`import()` 必须至少包含一些关于模块所在位置的信息。可以将打包限制在特定目录或一组文件中，这样当你使用动态表达式时，在 `import()` 调用中可能被请求的每个模块都会被包括进来。
-
-例如，`import(./locale/${language}.json)` 会将 `./locale` 目录中的每个 `.json` 文件都被打包进新的代码块。在运行时，一旦变量 `language` 被计算出来，任何像 `english.json` 或 `german.json` 这样的文件都将可供使用。
+例如，Rspack 无法确定以下函数中 `path` 的值。默认情况下，构建时会出现警告，调用 `loadLocale()` 时则会报 `MODULE_NOT_FOUND` 错误，即使项目中存在对应文件也无法加载：
 
 ```js
-// 想象一下，如果我们有一种方法可以从 Cookie 或其他存储中获取语言
-const language = detectVisitorLanguage();
-import(`./locale/${language}.json`).then((module) => {
-  // 做一些翻译相关的事情
-});
+function loadLocale(path) {
+  return import(path);
+}
+
+loadLocale('./locale/english.json');
 ```
+
+可以把目录和文件扩展名直接写在 `import()` 中，只用变量表示需要变化的部分：
+
+```js
+function loadLocale(language) {
+  return import(`./locale/${language}.json`);
+}
+
+loadLocale('english');
+```
+
+这样，Rspack 就能找到并打包 `./locale` 下的 `.json` 文件。应用运行时，`loadLocale('english')` 会加载 `./locale/english.json`，`loadLocale('german')` 会加载 `./locale/german.json`，前提是这些文件在构建时存在。
 
 ### import() 中的魔法注释 \{#magic-comments}
 
@@ -176,7 +186,7 @@ const url3 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 
 - `'lazy'`（默认值）：为每个可能导入的模块生成一个可延迟加载的 chunk。
 - `'lazy-once'`：将动态导入上下文中的所有可能模块生成到同一个异步 chunk 中。第一次调用 `import()` 时加载该 chunk，后续调用会复用它。此模式适用于 `import('./locales/' + language + '.json')` 这类可能匹配多个模块的动态表达式。
-- `'eager'`：不生成额外的 chunk，而是将所有可能的模块放入当前 chunk，因此不会产生额外的网络请求。`import()` 仍然返回 Promise，且模块要等到调用 `import()` 时才会执行。
+- `'eager'`：不为 `import()` 生成额外的 chunk，而是将动态导入的模块与包含 `import()` 的模块打包在一起。调用时无需额外的网络请求，`rspackChunkName` 和 `webpackChunkName` 注释也不生效。模块在调用 `import()` 时执行；如果执行时抛出异常，返回的 Promise 会被拒绝。
 - `'weak'`：仅在模块已通过其他方式加载时才解析成功，例如模块已包含在另一个加载完成的 chunk 中。此模式不会发起网络请求；如果模块不可用，Promise 会被拒绝。它主要用于由服务端确保所需 chunk 已包含在初始响应中的 SSR 场景。
 
 例如，使用 `lazy-once` 将所有可能的语言模块合并到同一个异步 chunk 中：

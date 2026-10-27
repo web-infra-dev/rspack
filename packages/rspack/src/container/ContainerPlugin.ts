@@ -33,6 +33,18 @@ export type ExposesConfig = {
   name?: string;
 };
 
+function normalizeShareScope(
+  shareScope: ShareScope | undefined,
+  enhanced: boolean,
+): ShareScope {
+  if (!shareScope) return 'default';
+  validateShareScope(shareScope, enhanced, 'ContainerPlugin');
+
+  // Non-enhanced container code generation requires a string scope name.
+  // Validation ensures a single entry; enhanced mode preserves scope arrays.
+  return !enhanced && Array.isArray(shareScope) ? shareScope[0] : shareScope;
+}
+
 export class ContainerPlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.ContainerPlugin;
   _options;
@@ -44,9 +56,8 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
       throw new Error('[ContainerPlugin] name must be a string.');
     }
 
-    const shareScope = options.shareScope || 'default';
     const enhanced = options.enhanced ?? false;
-    validateShareScope(shareScope, enhanced, 'ContainerPlugin');
+    const shareScope = normalizeShareScope(options.shareScope, enhanced);
     this._options = {
       name: options.name,
       shareScope,

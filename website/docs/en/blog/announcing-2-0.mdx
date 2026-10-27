@@ -363,11 +363,11 @@ export default {
 
 ### Simplified swc-loader configuration \{#detect-syntax}
 
-In earlier versions, if you wanted [builtin:swc-loader](/guide/features/builtin-swc-loader) to handle `.js`, `.jsx`, `.ts`, `.tsx`, and similar files in a single rule, you had to explicitly set options such as `syntax`, `jsx`, and `tsx` in `jsc.parser` based on the file type. This ensured that SWC could parse each file with the correct semantics, such as deciding whether `<` should be treated as JSX syntax or a TypeScript generic.
+In earlier versions, if you wanted [builtin:swc-loader](/guide/builtin-loaders/swc-loader) to handle `.js`, `.jsx`, `.ts`, `.tsx`, and similar files in a single rule, you had to explicitly set options such as `syntax`, `jsx`, and `tsx` in `jsc.parser` based on the file type. This ensured that SWC could parse each file with the correct semantics, such as deciding whether `<` should be treated as JSX syntax or a TypeScript generic.
 
 That added extra configuration complexity. To make SWC parse files with different extensions correctly, you often needed multiple `rules`, which made the config longer and harder to maintain.
 
-To solve this, Rspack 2.0 introduces the [detectSyntax](/guide/features/builtin-swc-loader#detectsyntax) option in the built-in `swc-loader`. With `detectSyntax: 'auto'`, the loader automatically infers `parser` options such as `syntax`, `jsx`, and `tsx` from the file extension. A single rule can now cover multiple file types, making the configuration much cleaner.
+To solve this, Rspack 2.0 introduces the [detectSyntax](/guide/builtin-loaders/swc-loader#detectsyntax) option in the built-in `swc-loader`. With `detectSyntax: 'auto'`, the loader automatically infers `parser` options such as `syntax`, `jsx`, and `tsx` from the file extension. A single rule can now cover multiple file types, making the configuration much cleaner.
 
 ```js title="rspack.config.mjs"
 export default {

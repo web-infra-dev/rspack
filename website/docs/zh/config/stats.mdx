@@ -9,10 +9,10 @@ import Attribution from '@components/Attribution';
 
 打包信息：该选项可用于生成分析模块的依赖关系图，以及优化编译速度的打包信息。
 
-:::info 输出打包信息的 JSON 文件
+:::info 输出构建信息
 
 - 使用 `@rspack/cli`，`rspack build --json stats.json`。
-- 通过 Rspack 的 JavaScript API，`stats.toJson(options)`、`stats.toString(options)`。
+- 通过 JavaScript API，使用 `stats.toJson(options)` 生成 JSON 对象，或使用 `stats.toString(options)` 生成文本。
 
 :::
 
@@ -34,6 +34,8 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 - **`@rspack/core` 中的默认值：** `{}`
 - **`@rspack/cli` 中的默认值：** `{ "preset":"errors-warnings", "timings":true, "logging":false }`
+
+本页列出的是 `stats.toString()` 输出文本时使用的默认值。设置预设或 `stats.all` 会改变部分选项的默认值。JSON 输出的默认值请参阅 [`stats.toJson()`](/api/javascript-api/stats#tojson)。
 
 ## 预设（Stats presets）
 
@@ -78,15 +80,17 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.assets
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否输出产物相关信息，参考 [Asset 对象结构](/api/javascript-api/stats-json#asset-对象结构)。
 
 ### stats.assetsSort
 
-<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"!size"' }]} />
 
 基于指定的字段对产物排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
+
+默认按文件体积从大到小排列产物（`!size`）。
 
 ### stats.assetsSpace
 
@@ -111,7 +115,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.cachedAssets
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示被缓存的资源（若为 `false` 则只展示被生成的产物）。
 
@@ -151,7 +155,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.chunks
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示 Chunk 信息，参考 [Chunk 对象结构](/api/javascript-api/stats-json#chunk-对象结构)。
 
@@ -181,7 +185,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.chunkOrigins
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示 Chunk 的引入来源信息。
 
@@ -193,9 +197,11 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.chunksSort
 
-<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: 'false' }]} />
 
 基于指定的字段对 Chunk 排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
+
+默认值为 `false`，表示此选项不改变 Chunk 的现有顺序。
 
 ### stats.ids
 
@@ -207,19 +213,19 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.chunkGroups
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示 ChunkGroup 信息，参考 [ChunkGroup 对象结构](/api/javascript-api/stats-json#entrychunkgroup-对象结构)。
 
 ### stats.chunkGroupAuxiliary
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示 ChunkGroup 的辅助资源。
 
 ### stats.chunkGroupChildren
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示子 ChunkGroup 相关信息（如预取 prefetched、预载 preloaded 的 ChunkGroup 信息）。
 
@@ -244,7 +250,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.modules
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示模块信息，参考 [Module 对象结构](/api/javascript-api/stats-json#module-对象结构)。
 
@@ -256,7 +262,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.moduleAssets
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示模块包含的资源信息。
 
@@ -268,21 +274,23 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.modulesSort
 
-<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"depth"' }]} />
 
 基于指定的字段对模块排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
 
+默认按 `depth` 排序，即距离入口越近的模块越靠前。
+
 ### stats.reasons
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示模块的引入来源信息。
 
 ### stats.reasonsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '1000' }]} />
+<PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
 
-展示的引入来源信息长度（超过的部分将以分组方式折叠）。
+限制显示多少条模块被打包的原因。超出限制时，会折叠分组以缩短列表。
 
 ### stats.source
 
@@ -306,7 +314,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.runtimeModules
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示运行时模块。
 
@@ -318,7 +326,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.cachedModules
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示被缓存的模块。
 
@@ -337,7 +345,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.nestedModules
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示嵌套在其他模块中的模块信息（如 ModuleConcatenation 合并前的模块信息）。
 
@@ -433,19 +441,22 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.errorDetails
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: '"auto"' }]} />
 
-是否展示错误的详情。为 `'auto'` 时，若错误仅有两个及以下则将展示错误详情。
+是否显示错误和警告的详细信息。
 
 ### stats.errorsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+<PropertyType
+  type="number"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-展示单个错误时的最大行数。
+限制错误详情的显示行数，默认不限制。所有错误消息仍会显示。`stats.errorDetails` 为 `true` 时忽略此限制。
 
 ### stats.errorStack
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示错误的堆栈信息。
 
@@ -463,9 +474,12 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 ### stats.warningsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+<PropertyType
+  type="number"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-展示的警告最大行数。
+限制警告详情的显示行数，默认不限制。所有警告消息仍会显示。`stats.errorDetails` 为 `true` 时忽略此限制。
 
 ## 日志选项
 
@@ -491,13 +505,16 @@ type FilterItemTypes = RegExp | string | ((value: string) => boolean);
 type StatsLoggingDebug = boolean | FilterItemTypes | FilterItemTypes[];
 ```
 
-是否展示插件和 loader 中指定 [Logger](/api/javascript-api/logger) 的调试信息。当 `stats.logging` 为 `false` 时 `stats.loggingDebug` 会被忽略。
+通过匹配插件或 loader 使用的[日志名称](/api/javascript-api/logger)，显示它们的调试信息。这些日志不受 `stats.logging` 设置的限制，即使它为 `false` 也会显示。
+
+例如，以下配置会显示名称中包含 `MyPlugin` 或 `rspack` 的日志，包括调试信息：
 
 ```js title="rspack.config.mjs"
 export default {
   stats: {
+    logging: false,
     loggingDebug: [
-      'MyPlugin',
+      /MyPlugin/,
       /rspack/, // 获取 Rspack 内部的日志
     ],
   },
@@ -506,7 +523,7 @@ export default {
 
 ### stats.loggingTrace
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示堆栈信息。
 
@@ -537,7 +554,7 @@ type StatsColors = boolean | StatsColorOptions;
 
 ### stats.hash
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示本次构建的哈希。
 
@@ -549,7 +566,7 @@ type StatsColors = boolean | StatsColorOptions;
 
 ### stats.builtAt
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示构建的开始时间点。
 
@@ -561,21 +578,21 @@ type StatsColors = boolean | StatsColorOptions;
 
 ### stats.publicPath
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示产物的[加载路径](/config/output#outputpublicpath)。
 
 ### stats.outputPath
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 是否展示产物的[输出路径](/config/output#outputpath)。
 
 ### stats.children
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-是否展示 childCompiler 的 stats 信息。
+是否展示子编译器的构建信息。
 
 ### stats.performance
 

@@ -5,6 +5,7 @@ mod max_request;
 pub mod max_size;
 pub mod min_size;
 mod module_group;
+mod residual;
 
 use std::{borrow::Cow, cmp::Ordering, fmt::Debug, sync::Arc};
 
@@ -180,8 +181,18 @@ impl SplitChunksPlugin {
     logger.time_end(start);
 
     let start = logger.time("process cache groups");
+    let stages = priority_cache_groups
+      .iter()
+      .map(|(_, groups)| groups.as_slice())
+      .collect::<Vec<_>>();
+    let native_matches =
+      self.prepare_native_cache_group_matches(&all_modules, &stages, compilation);
     let priority_len = priority_cache_groups.len();
-    for (index, (_, cache_groups)) in priority_cache_groups.into_iter().enumerate() {
+    for (index, ((_, cache_groups), native_matches)) in priority_cache_groups
+      .into_iter()
+      .zip(native_matches)
+      .enumerate()
+    {
       for (module, removed) in removed_module_chunks.drain() {
         let remaining = &mut module_chunks[module_indices[&module]];
         for chunk in removed {
@@ -284,6 +295,7 @@ impl SplitChunksPlugin {
           &combinator,
           &all_modules,
           cache_groups,
+          native_matches,
           compilation,
           available_module_chunks,
           &chunk_index_map,
@@ -296,10 +308,9 @@ impl SplitChunksPlugin {
         .for_each(|(_, module_group)| module_group.prepare_modules_for_sizes_and_compare());
       self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
 
-      while !module_group_map.is_empty() {
-        let (module_group_key, mut module_group) =
-          self.find_best_module_group(&mut module_group_map);
-
+      while let Some((module_group_key, mut module_group)) =
+        self.find_best_module_group(&mut module_group_map)
+      {
         tracing::trace!(
           "ModuleGroup({}) wins, {:?} `ModuleGroup` remains",
           module_group_key,
@@ -544,6 +555,17 @@ impl SplitChunksPlugin {
             }
             continue;
           }
+        }
+
+        if module_group.placement_changed()
+          && !residual::placement_preserves_copies(
+            &placed_module_chunks,
+            &used_chunks,
+            new_chunk,
+            compilation,
+          )
+        {
+          continue;
         }
 
         // Only mutate metadata on an existing destination after the winning group has passed all

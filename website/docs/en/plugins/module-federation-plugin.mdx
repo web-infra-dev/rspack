@@ -85,6 +85,8 @@ Define the output format of remote container entry. The default libraryType is "
 
 Define the namespace for shared dependencies in the current container. By configuring share scopes between different containers, the sharing behavior of modules can be controlled, including determining which modules are shared between different containers. The default share scope is `"default"`.
 
+When exposing or consuming remote modules, a `shareScope` array must contain at least one entry. This also applies to `remotes[name].shareScope`.
+
 ### shareStrategy
 
 - Type: `'version-first' | 'loaded-first'`
@@ -291,7 +293,7 @@ export default {
 
 - Found non-downgraded syntax in the build output?
 
-  If you need to be compatible with legacy browsers, please add [builtin:swc-loader](/guide/features/builtin-swc-loader) for syntax downgrade, and make sure it matches packages under `@module-federation` scope. Here is an example:
+  If you need to be compatible with legacy browsers, please add [builtin:swc-loader](/guide/builtin-loaders/swc-loader) for syntax downgrade, and make sure it matches packages under `@module-federation` scope. Here is an example:
 
   ```js title="rspack.config.mjs"
   export default {

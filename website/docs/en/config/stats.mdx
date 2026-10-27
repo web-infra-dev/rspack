@@ -9,10 +9,10 @@ import Attribution from '@components/Attribution';
 
 Generate packaging information that can be used to analyze module dependencies and optimize compilation speed.
 
-:::info Output JSON file of stats
+:::info Output build information
 
 - Using `@rspack/cli`, `rspack build --json stats.json`.
-- Using Rspack's JavaScript API, `stats.toJson(options)`, `stats.toString(options)`.
+- Using the JavaScript API, call `stats.toJson(options)` for a JSON object or `stats.toString(options)` for text.
 
 :::
 
@@ -34,6 +34,8 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 - **Default in `@rspack/core`:** `{}`
 - **Default in `@rspack/cli`:** `{ "preset":"errors-warnings", "timings":true, "logging":false }`
+
+This page lists the default values used by `stats.toString()` for text output. Setting a preset or `stats.all` changes some of these defaults. For the defaults used by JSON output, see [`stats.toJson()`](/api/javascript-api/stats#tojson).
 
 ## Stats presets
 
@@ -78,15 +80,17 @@ Sets the [preset](/config/stats#stats-presets) for the type of information that 
 
 ### stats.assets
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display the asset information. See [Asset Object](/api/javascript-api/stats-json#asset-object) for more details.
 
 ### stats.assetsSort
 
-<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"!size"' }]} />
 
 Sort the assets by a given field. All of the [sorting fields](/config/stats#sorting-fields) are allowed to be used. Use `!` prefix in the value to reverse the sort order by a given field.
+
+By default, assets are listed from largest to smallest (`!size`).
 
 ### stats.assetsSpace
 
@@ -111,7 +115,7 @@ Exclude the matching assets information. This can be done with a string, a RegEx
 
 ### stats.cachedAssets
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display information about the cached assets. Setting `stats.cachedAssets` to `false` will tell stats to only show the emitted files (not the ones that were built).
 
@@ -151,7 +155,7 @@ Whether to group assets by their asset path.
 
 ### stats.chunks
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display information about the chunk, see [chunk object](/api/javascript-api/stats-json#chunk-object) for more details.
 
@@ -181,7 +185,7 @@ Whether to display chunk modules that are dependencies of other modules of the c
 
 ### stats.chunkOrigins
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display information about the origins of chunks and chunk merging.
 
@@ -193,9 +197,11 @@ Whether to display chunk parents, children and siblings.
 
 ### stats.chunksSort
 
-<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Sort the chunks by a given field. All of the [sorting fields](/config/stats#sorting-fields) are allowed to be used. Use `!` prefix in the value to reverse the sort order by a given field.
+
+By default (`false`), this option leaves chunks in their existing order.
 
 ### stats.ids
 
@@ -207,19 +213,19 @@ Whether to display IDs of modules and chunks.
 
 ### stats.chunkGroups
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display information about the `namedChunkGroups`, see [chunk group object](/api/javascript-api/stats-json#entrychunkgroup-object) for more details.
 
 ### stats.chunkGroupAuxiliary
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display auxiliary assets in chunk groups.
 
 ### stats.chunkGroupChildren
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display children of the chunk groups (e.g. prefetched, preloaded chunks and assets).
 
@@ -244,7 +250,7 @@ When `stats.entrypoints` is set to `'auto'`, Rspack will decide automatically wh
 
 ### stats.modules
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display information about the built modules, see [module object](/api/javascript-api/stats-json#module-object) for more details.
 
@@ -256,7 +262,7 @@ Whether to display dependencies and the origin of warnings/errors.
 
 ### stats.moduleAssets
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to add information about assets inside modules.
 
@@ -268,21 +274,23 @@ How many items of modules should be displayed (groups will be collapsed to fit t
 
 ### stats.modulesSort
 
-<PropertyType type="string" defaultValueList={[{ defaultValue: '"id"' }]} />
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"depth"' }]} />
 
 Sort the modules by a given field. All of the [sorting fields](/config/stats#sorting-fields) are allowed to be used. Use `!` prefix in the value to reverse the sort order by a given field.
 
+By default, modules are sorted by `depth`: modules closer to an entry point appear first.
+
 ### stats.reasons
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display information about the reasons of why modules are included.
 
 ### stats.reasonsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '1000' }]} />
+<PropertyType type="number" defaultValueList={[{ defaultValue: '15' }]} />
 
-How many characters should the reasons be displayed (groups will be collapsed to fit this space).
+Limit how many entries are shown to explain why modules were included in the build. Groups are collapsed to keep the list within this limit.
 
 ### stats.source
 
@@ -306,7 +314,7 @@ Whether to display the orphan modules.
 
 ### stats.runtimeModules
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display information about runtime modules.
 
@@ -318,7 +326,7 @@ Whether to display information about runtime modules.
 
 ### stats.cachedModules
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display information about cached (not built) modules.
 
@@ -337,7 +345,7 @@ Exclude the matching modules information. This can be done with a string, a RegE
 
 ### stats.nestedModules
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display information about modules nested in other modules (like with module concatenation).
 
@@ -433,19 +441,22 @@ Whether to display the errors count.
 
 ### stats.errorDetails
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: '"auto"' }]} />
 
-Whether to display the details to the errors. It defaults to `'auto'` which will show error details when there're only 2 or less errors.
+Whether to display details for errors and warnings.
 
 ### stats.errorsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+<PropertyType
+  type="number"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-How many lines should an error be displayed.
+Limit the number of lines of error details without hiding error messages. There is no limit by default. This limit is ignored when `stats.errorDetails` is `true`.
 
 ### stats.errorStack
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display stack trace of errors.
 
@@ -463,9 +474,12 @@ Whether to display the warnings count.
 
 ### stats.warningsSpace
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '5' }]} />
+<PropertyType
+  type="number"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
 
-How many lines should a warning be displayed.
+Limit the number of lines of warning details without hiding warning messages. There is no limit by default. This limit is ignored when `stats.errorDetails` is `true`.
 
 ## Logging options
 
@@ -491,13 +505,16 @@ type FilterItemTypes = RegExp | string | ((value: string) => boolean);
 type StatsLoggingDebug = boolean | FilterItemTypes | FilterItemTypes[];
 ```
 
-Whether to display the debug information of the specified [loggers](/api/javascript-api/logger) such as Plugins or Loaders. When `stats.logging` is set to `false`, `stats.loggingDebug` option is ignored.
+Show debug messages from plugins or loaders by matching their [logger names](/api/javascript-api/logger). Their messages are shown regardless of the `stats.logging` setting, even when it is `false`.
+
+For example, this configuration shows logs whose names contain `MyPlugin` or `rspack`, including debug messages:
 
 ```js title="rspack.config.mjs"
 export default {
   stats: {
+    logging: false,
     loggingDebug: [
-      'MyPlugin',
+      /MyPlugin/,
       /rspack/, // To get core logging
     ],
   },
@@ -506,7 +523,7 @@ export default {
 
 ### stats.loggingTrace
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display stack traces in the logging output for errors, warnings and traces.
 
@@ -537,7 +554,7 @@ When an object is provided, it customizes the ANSI escape sequences used for eac
 
 ### stats.hash
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display information about the hash of the compilation.
 
@@ -549,7 +566,7 @@ Whether to display the `--env` information.
 
 ### stats.builtAt
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display the build date and the build time information.
 
@@ -561,21 +578,21 @@ Whether to add information about the Rspack version used.
 
 ### stats.publicPath
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display the [`publicPath`](/config/output#outputpublicpath).
 
 ### stats.outputPath
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Whether to display the [`output.path`](/config/output#outputpath).
 
 ### stats.children
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-Whether to display the [`output.path`](/config/output#outputpath).
+Whether to display build information from child compilers.
 
 ### stats.performance
 
