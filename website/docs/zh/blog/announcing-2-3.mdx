@@ -1,6 +1,6 @@
 ---
 description: 'Rspack 2.3 正式发布，带来 SWC Next 解析器、实验性缓存、CSS 打包改进，以及性能和开发体验优化。'
-date: 2026-10-21 14:00:00
+date: 2026-10-27 14:00:00
 sidebar: false
 authors:
   - name: Zhixin Jin
@@ -69,7 +69,8 @@ Rspack 2.3 现已发布！本次更新将 JavaScript 解析器迁移至 SWC Next
   - [Rspress](#rspress)
 - [升级指南](#upgrade-guide)
 
-## SWC next 解析器 \{#swc-next}
+{/* prettier-ignore */}
+## SWC Next 解析器 \{#swc-next}
 
 Rspack 2.3 将 JavaScript 解析器迁移至 [SWC Next](https://github.com/swc-project/swc-next)。根据 SWC Next 的官方基准测试，其原生解析器的速度是 SWC 的 [2–4.5 倍](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse)。
 
@@ -176,7 +177,7 @@ React 10k：
 
 ### 按代码内容过滤 loader \{#loader-code-filter}
 
-新增的 [`module.rules[].use.filter.code`](/zh/config/module-rules#rulesusefiltercode) 可以根据代码内容跳过不必要的 loader 转换。例如，只对包含 `customMacro()` 调用的文件执行转换：
+新增的 [`module.rules[].use.codeFilter`](/zh/config/module-rules#rulesusecodefilter) 可以根据代码内容跳过不必要的 loader 转换。例如，只对包含 `customMacro()` 调用的文件执行转换：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -187,9 +188,7 @@ export default {
         use: [
           {
             loader: './custom-macro-loader.js',
-            filter: {
-              code: /\bcustomMacro\s*\(/,
-            },
+            codeFilter: /\bcustomMacro\s*\(/,
           },
         ],
       },
@@ -198,7 +197,7 @@ export default {
 };
 ```
 
-`code` 支持字符串和正则表达式，用于匹配当前 loader 收到的代码。loader 的 pitch 函数不受此选项影响。
+`codeFilter` 支持字符串和正则表达式，用于匹配当前 loader 收到的代码。loader 的 pitch 函数不受此选项影响。
 
 ### CSS 打包能力 \{#css-bundling}
 
