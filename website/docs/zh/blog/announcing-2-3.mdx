@@ -336,10 +336,7 @@ Rspack 2.3 改进了[懒编译](/zh/guide/advanced/lazy-compilation)，在模块
 ### 其他改进 \{#other-improvements}
 
 - **WebAssembly**：新增 [`output.wasmStreamingFallback`](/zh/config/output#outputwasmstreamingfallback)，支持关闭非流式加载回退。
-- **模块产物**：改善对 CommonJS、ESM 和延迟导入的支持。
 - **HTTP 导入**：[`experiments.buildHttp`](/zh/config/experiments#experimentsbuildhttp) 加强了冻结构建中的资源完整性校验。
-- **模块联邦**：修复共享模块和 manifest 相关问题。
-- **CLI**：减少默认日志输出，优化启动体验；`create-rspack` 现在会显示当前版本。
 
 完整改动请查看 [2.2.0 至 2.3.0 的版本对比](https://github.com/web-infra-dev/rspack/compare/v2.2.0...v2.3.0)和 [GitHub Release Notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.3.0)。
 
