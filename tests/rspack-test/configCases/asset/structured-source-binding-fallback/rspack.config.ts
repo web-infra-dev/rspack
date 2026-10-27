@@ -41,37 +41,36 @@ export default defineConfig({
             names: [],
             mappings: 'AAAA',
           };
-          for (const readMap of ['map', 'sourceAndMap'] as const) {
-            const name = `${readMap}.txt`;
+          for (const method of ['map', 'sourceAndMap', 'buffer'] as const) {
+            const name = `${method}.txt`;
             compilation.emitAsset(name, new SourceMapSource('body', name, map));
             const source = compilation.getAsset(name)!.source;
-            const exposedMap =
-              readMap === 'map' ? source.map() : source.sourceAndMap().map;
-            if (!exposedMap) throw new Error('Expected a source map');
-            exposedMap.sources[0] = 'changed.txt';
+            source[method]();
+            for (const read of ['source', 'map']) {
+              Object.defineProperty(source, read, {
+                value: () => {
+                  throw new Error(
+                    `Reading ${method}() invalidated native source`,
+                  );
+                },
+              });
+            }
             compilation.updateAsset(name, source);
             compilation.emitAsset(
-              `${readMap}-result.json`,
+              `${method}-result.json`,
               new RawSource(
                 JSON.stringify(compilation.getAsset(name)!.source.map()),
               ),
             );
 
-            const replacementOriginal = compilation.getAsset(name)!.source;
-            const replacementMap =
-              readMap === 'map'
-                ? replacementOriginal.map()
-                : replacementOriginal.sourceAndMap().map;
-            if (!replacementMap) throw new Error('Expected a source map');
-            replacementMap.sources[0] = 'replacement.txt';
-            const replacement = new ReplaceSource(replacementOriginal);
+            const replacement = new ReplaceSource(source);
             replacement.insert(0, 'prefix:');
-            compilation.emitAsset(`${readMap}-replace.txt`, replacement);
+            compilation.emitAsset(`${method}-replace.txt`, replacement);
             compilation.emitAsset(
-              `${readMap}-replace-result.json`,
+              `${method}-replace-result.json`,
               new RawSource(
                 JSON.stringify(
-                  compilation.getAsset(`${readMap}-replace.txt`)!.source.map(),
+                  compilation.getAsset(`${method}-replace.txt`)!.source.map(),
                 ),
               ),
             );

@@ -23,18 +23,7 @@ type SourceWithBinding = Source & {
 };
 
 function toSourceGraph(source: Source): JsSourceFromJs {
-  let native = nativeSources.get(source);
-  if (
-    native &&
-    source instanceof SourceMapSource &&
-    (source._sourceMapAsObject !== undefined ||
-      source._sourceMapAsBuffer !== undefined ||
-      source._valueAsBuffer !== undefined)
-  ) {
-    // Exposed maps and buffers are mutable, so serialize the JS snapshot again.
-    nativeSources.delete(source);
-    native = undefined;
-  }
+  const native = nativeSources.get(source);
   if (native) return { kind: 'native', handle: native };
   return (
     (source as SourceWithBinding)[toBindingSource]?.call(source) ??

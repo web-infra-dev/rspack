@@ -13,10 +13,12 @@ it('should serialize concatenated Buffers as text', () => {
   expect(read('buffer-child.txt')).toEqual(Buffer.from('body!'));
 });
 
-it('should retain changes to exposed source maps', () => {
-  for (const method of ['map', 'sourceAndMap']) {
-    expect(JSON.parse(read(`${method}-result.json`)).sources).toEqual(['changed.txt']);
-    expect(JSON.parse(read(`${method}-replace-result.json`)).sources).toEqual(['replacement.txt']);
+it('should preserve native sources after reading their maps or buffers', () => {
+  for (const method of ['map', 'sourceAndMap', 'buffer']) {
+    expect(read(`${method}.txt`).toString()).toBe('body');
+    expect(read(`${method}-replace.txt`).toString()).toBe('prefix:body');
+    expect(JSON.parse(read(`${method}-result.json`)).sources).toEqual(['original.txt']);
+    expect(JSON.parse(read(`${method}-replace-result.json`)).sources).toEqual(['original.txt']);
   }
 });
 
