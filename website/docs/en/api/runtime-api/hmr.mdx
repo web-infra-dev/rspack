@@ -178,11 +178,11 @@ if (import.meta.webpackHot) {
 
 ### invalidate
 
-Mark the current module for a hot update. When the update is applied, Rspack runs the module's [`dispose`](#dispose-or-adddisposehandler) handlers to clean up the old module.
+Call `invalidate()` when the current module cannot handle a hot update and needs the modules that import it to handle the update instead. The update propagates to those modules even if the current module previously called `accept()` to accept its own updates. See [Update propagation](#update-propagation).
 
-The update propagates to modules that import this module, even if it previously called `accept()` to accept its own updates. Those importing modules can handle the update by accepting this module as a dependency. See [Update propagation](#update-propagation).
+When applying an accepted update, Rspack first calls the current module's [`dispose`](#dispose-or-adddisposehandler) handlers to clean up its resources.
 
-Use `invalidate()` when the current module cannot handle an update itself and needs an importing module to handle it. Use [`decline()`](#decline-self) to reject updates to the current module.
+To reject updates to the current module, use [`decline()`](#decline-self).
 
 When called during the `idle` state, a new HMR update will be created containing this module. HMR will enter the `ready` state.
 

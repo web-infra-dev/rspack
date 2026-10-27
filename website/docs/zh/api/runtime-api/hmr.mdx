@@ -178,11 +178,11 @@ if (import.meta.webpackHot) {
 
 ### invalidate
 
-将当前模块标记为需要热更新。应用更新时，Rspack 会执行该模块的 [`dispose`](#dispose或-adddisposehandler) 回调，清理旧模块。
+当前模块无法自行处理热更新时，可以调用 `invalidate()`，让引用它的模块处理这次更新。即使当前模块已经调用 `accept()` 接受自身更新，更新也会继续向引用它的模块传播，详见[更新如何传播](#update-propagation)。
 
-即使当前模块此前已调用 `accept()` 接受自身更新，这次更新仍会传递给引用它的模块。引用方可以通过接受该依赖的更新来处理这次更新，详见[更新如何传播](#update-propagation)。
+更新被接受并开始应用后，Rspack 会执行当前模块的 [`dispose`](#dispose或-adddisposehandler) 回调，清理旧模块的资源。
 
-当前模块无法自行处理更新，需要交给引用方处理时，可以调用 `invalidate()`。如果要拒绝当前模块的更新，则使用 [`decline()`](#declineself)。
+如果希望拒绝当前模块的更新，请使用 [`decline()`](#declineself)。
 
 在 `idle` 状态下调用时，将创建一个包含此模块的新 HMR 更新。HMR 将进入 `ready` 状态。
 
