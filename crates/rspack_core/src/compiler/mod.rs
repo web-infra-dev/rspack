@@ -272,14 +272,9 @@ impl Compiler {
   }
 
   fn report_cache_statistics(&self) {
-    self.new_cache.report_statistics(
-      self
-        .compilation
-        .hash
-        .as_ref()
-        .map(|hash| hash.encoded())
-        .as_deref(),
-    );
+    self
+      .new_cache
+      .report_statistics(self.compilation.hash.as_ref().map(|hash| hash.encoded()));
   }
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
