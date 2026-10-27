@@ -116,13 +116,6 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
 
-  /// Whether [`Source::source`] returns binary data rather than text.
-  ///
-  /// Implementations should avoid materializing composite sources when possible.
-  fn is_buffer(&self) -> bool {
-    self.source().is_buffer()
-  }
-
   /// Return a lightweight "rope" view of the source as borrowed string slices.
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str));
 
@@ -151,11 +144,6 @@ impl Source for BoxSource {
   #[inline]
   fn source(&self) -> SourceValue<'_> {
     self.as_ref().source()
-  }
-
-  #[inline]
-  fn is_buffer(&self) -> bool {
-    self.as_ref().is_buffer()
   }
 
   #[inline]

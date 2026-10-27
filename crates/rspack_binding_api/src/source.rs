@@ -73,6 +73,25 @@ impl FromNapiValue for JsSourceFromJs<'_> {
   }
 }
 
+// Match the built-in sources' return types without materializing their content.
+fn is_buffer_source(source: &dyn Source) -> bool {
+  let source = source.as_any();
+  if source.is::<RawBufferSource>() {
+    return true;
+  }
+  if let Some(source) = source.downcast_ref::<CachedSource>() {
+    // CachedSource only preserves Buffer output for a directly wrapped RawBufferSource.
+    return source.inner().as_ref().as_any().is::<RawBufferSource>();
+  }
+  if let Some(source) = source.downcast_ref::<ConcatSource>() {
+    return matches!(source.children(), [child] if is_buffer_source(child.as_ref()));
+  }
+  if let Some(source) = source.downcast_ref::<ReplaceSource>() {
+    return source.replacements().is_empty() && is_buffer_source(source.inner().as_ref());
+  }
+  false
+}
+
 impl<'jsobject> TryFrom<JsSourceFromJs<'jsobject>> for BoxSource {
   type Error = napi::Error;
 
@@ -84,7 +103,7 @@ impl<'jsobject> TryFrom<JsSourceFromJs<'jsobject>> for BoxSource {
         for child in children {
           let mut source: BoxSource = child.try_into()?;
           // JS ConcatSource.source() coerces Buffer children to text.
-          if source.is_buffer() {
+          if is_buffer_source(source.as_ref()) {
             source =
               RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed();
           }
@@ -315,7 +334,7 @@ fn apply_replacements(
 
   // `rope` presents binary sources as lossy text, so preserve the JavaScript
   // fallback for them before converting positions.
-  if inner.is_buffer() {
+  if is_buffer_source(inner.as_ref()) {
     return None;
   }
 

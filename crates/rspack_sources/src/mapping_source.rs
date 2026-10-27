@@ -531,10 +531,6 @@ impl Source for MappingSource {
     SourceValue::String(Cow::Owned(value))
   }
 
-  fn is_buffer(&self) -> bool {
-    false
-  }
-
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
     for chunk in self.json_chunks_iter() {
       on_chunk(chunk);

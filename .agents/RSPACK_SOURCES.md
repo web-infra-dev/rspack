@@ -99,17 +99,16 @@ Despite its historical name:
 pub type BoxSource = Arc<dyn Source>;
 ```
 
-| Method                | Use                                       | Cost expectations                            |
-| --------------------- | ----------------------------------------- | -------------------------------------------- |
-| `source()`            | text/binary value                         | borrowed for leaves; may flatten composites  |
-| `is_buffer()`         | distinguish text from binary output       | must agree with `source()`; avoid flattening |
-| `rope(on_chunk)`      | incremental text spans                    | preserve borrowing; text-oriented            |
-| `buffer()`            | exact bytes                               | preferred for binary data                    |
-| `size()`              | output byte length                        | must match buffer/writer length              |
-| `map(options)`        | map borrowing from `self`                 | direct borrow or one streamed rebuild        |
-| `map_static(options)` | map that outlives the local source borrow | retains an `Arc` owner                       |
-| `update_hash()`       | structural hash                           | cached by `CachedSource`                     |
-| `to_writer()`         | incremental byte output                   | preferred for emission                       |
+| Method                | Use                                       | Cost expectations                           |
+| --------------------- | ----------------------------------------- | ------------------------------------------- |
+| `source()`            | text/binary value                         | borrowed for leaves; may flatten composites |
+| `rope(on_chunk)`      | incremental text spans                    | preserve borrowing; text-oriented           |
+| `buffer()`            | exact bytes                               | preferred for binary data                   |
+| `size()`              | output byte length                        | must match buffer/writer length             |
+| `map(options)`        | map borrowing from `self`                 | direct borrow or one streamed rebuild       |
+| `map_static(options)` | map that outlives the local source borrow | retains an `Arc` owner                      |
+| `update_hash()`       | structural hash                           | cached by `CachedSource`                    |
+| `to_writer()`         | incremental byte output                   | preferred for emission                      |
 
 For every implementation:
 
