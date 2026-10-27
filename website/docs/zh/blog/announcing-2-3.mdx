@@ -174,7 +174,11 @@ React 10k：
 
 ### loader 缓存 \{#loader-cache}
 
-启用 `experiments.newCache` 后，可以为 loader 设置 `cache: true`，复用未发生变化的转换结果。该缓存已支持 `builtin:swc-loader`，并会在相关依赖发生变化时失效。
+Loader 缓存可以单独缓存 loader 的转换结果，无需启用其他构建阶段的缓存。即使模块需要重新构建，只要 loader 的输入、配置和相关依赖未发生变化，Rspack 仍可以复用缓存，跳过重复转换。
+
+这对 babel-loader 等耗时较长的 loader 尤其有用：缓存命中时，可以跳过转换过程，减少构建耗时。
+
+启用顶层 `cache` 和 `experiments.newCache` 后，可以为 loader 设置 `cache: true`。其他缓存阶段可以通过 [`experiments.newCache`](/zh/config/experiments#cache-stages) 单独控制。
 
 在使用 babel-loader 处理约 10000 个模拟模块的测试中，开启 loader 缓存后，构建耗时明显降低：
 

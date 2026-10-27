@@ -174,7 +174,11 @@ We will continue to optimize warm build performance and memory usage and plan to
 
 ### Loader cache
 
-With `experiments.newCache` enabled, you can set `cache: true` on a loader to reuse its unchanged transformation results. The cache already supports `builtin:swc-loader` and is invalidated when relevant dependencies change.
+The loader cache stores transformation results independently, without requiring caches for other build stages. Even when a module needs to be rebuilt, Rspack can reuse a loader's result and skip the transformation if its input, configuration, and relevant dependencies have not changed.
+
+This is especially useful for expensive loaders such as babel-loader: a cache hit skips the transformation and reduces build time.
+
+Enable the top-level `cache` and `experiments.newCache`, then set `cache: true` on a loader. You can configure other cache stages independently through [`experiments.newCache`](/config/experiments#cache-stages).
 
 In a test using babel-loader to process around 10,000 simulated modules, enabling the loader cache substantially reduced build time:
 
