@@ -195,7 +195,7 @@ if (import.meta.webpackHot) {
 在 `accept()` 回调中，如果发现无法处理依赖的更新，可以调用 `invalidate()`，将更新交给引用当前模块的模块处理：
 
 ```js
-import { x, y } from './dep';
+import { x, y } from './dep.js';
 import { processX, processY } from 'anotherDep';
 
 const oldY = y;
@@ -203,10 +203,10 @@ const oldY = y;
 processX(x);
 export default processY(y);
 
-module.hot.accept('./dep', () => {
+import.meta.webpackHot.accept('./dep.js', () => {
   if (y !== oldY) {
     // 无法处理，冒泡给父级
-    module.hot.invalidate();
+    import.meta.webpackHot.invalidate();
     return;
   }
   // 可以处理
@@ -224,28 +224,16 @@ const VALUE = 'constant';
 export default VALUE;
 
 if (
-  module.hot.data &&
-  module.hot.data.value &&
-  module.hot.data.value !== VALUE
+  import.meta.webpackHot.data &&
+  'value' in import.meta.webpackHot.data &&
+  import.meta.webpackHot.data.value !== VALUE
 ) {
-  module.hot.invalidate();
+  import.meta.webpackHot.invalidate();
 } else {
-  module.hot.dispose((data) => {
+  import.meta.webpackHot.dispose((data) => {
     data.value = VALUE;
   });
-  module.hot.accept();
-}
-```
-
-**Triggering custom HMR updates**
-
-```js
-const moduleId = chooseAModule();
-const code = __webpack_modules__[moduleId].toString();
-__webpack_modules__[moduleId] = eval(`(${makeChanges(code)})`);
-if (require.cache[moduleId]) {
-  require.cache[moduleId].hot.invalidate();
-  module.hot.apply();
+  import.meta.webpackHot.accept();
 }
 ```
 

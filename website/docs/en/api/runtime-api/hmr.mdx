@@ -195,7 +195,7 @@ When called during the `dispose` or `apply` state, HMR will pick it up after get
 Inside an `accept()` callback, call `invalidate()` if the current module cannot handle the dependency's update. This lets modules that import the current module handle the update:
 
 ```js
-import { x, y } from './dep';
+import { x, y } from './dep.js';
 import { processX, processY } from 'anotherDep';
 
 const oldY = y;
@@ -203,10 +203,10 @@ const oldY = y;
 processX(x);
 export default processY(y);
 
-module.hot.accept('./dep', () => {
+import.meta.webpackHot.accept('./dep.js', () => {
   if (y !== oldY) {
     // This can't be handled, bubble to parent
-    module.hot.invalidate();
+    import.meta.webpackHot.invalidate();
     return;
   }
   // This can be handled
@@ -224,28 +224,16 @@ const VALUE = 'constant';
 export default VALUE;
 
 if (
-  module.hot.data &&
-  module.hot.data.value &&
-  module.hot.data.value !== VALUE
+  import.meta.webpackHot.data &&
+  'value' in import.meta.webpackHot.data &&
+  import.meta.webpackHot.data.value !== VALUE
 ) {
-  module.hot.invalidate();
+  import.meta.webpackHot.invalidate();
 } else {
-  module.hot.dispose((data) => {
+  import.meta.webpackHot.dispose((data) => {
     data.value = VALUE;
   });
-  module.hot.accept();
-}
-```
-
-**Triggering custom HMR updates**
-
-```js
-const moduleId = chooseAModule();
-const code = __webpack_modules__[moduleId].toString();
-__webpack_modules__[moduleId] = eval(`(${makeChanges(code)})`);
-if (require.cache[moduleId]) {
-  require.cache[moduleId].hot.invalidate();
-  module.hot.apply();
+  import.meta.webpackHot.accept();
 }
 ```
 
