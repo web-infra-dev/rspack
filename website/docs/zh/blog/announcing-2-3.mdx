@@ -245,7 +245,7 @@ export default {
 
 #### 支持外部资源 \{#css-externals}
 
-当样式表或图片由 CDN 等外部服务提供时，通常希望浏览器直接加载这些资源，而不是将它们打包进构建产物。
+当 CSS 或图片由 CDN 等外部服务提供时，通常希望浏览器直接加载这些资源，而不是将它们打包进构建产物。
 
 Rspack 新增 `css-import` 和 `asset-url` 两种 [external](/zh/config/externals) 类型，可以将 CSS 中的指定引用保留为外部资源。例如，将样式表和图片配置为 external：
 
