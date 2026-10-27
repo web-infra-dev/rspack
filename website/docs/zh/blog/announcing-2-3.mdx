@@ -247,7 +247,7 @@ Rspack 核心由 Rust 编写，调用 JavaScript loader 时会产生跨语言通
 
 在包含 1 万个模块、仅 10% 的模块需要转换的测试中，`codeFilter` 避免了 90% 没有必要的 loader 调用，完整构建耗时从 622 ms 降至 481 ms，缩短约 23%。
 
-### 内置的 CSS \{#built-in-css}
+### 内置 CSS \{#built-in-css}
 
 本次更新改进了对更多 CSS 场景的支持，涵盖 CSS Modules 作用域、组合声明、值引用和嵌套选择器，同时修复了异步样式加载和相对 `publicPath` 相关的问题。
 
@@ -400,7 +400,7 @@ npx -y create-rsbuild@latest my-app -t lynx-ts
 - **预览服务器**：新增 [`onClosePreviewServer`](https://rsbuild.rs/zh/plugins/dev/hooks#onclosepreviewserver) hook，方便插件在预览服务器关闭时清理资源。
 - **插件转换**：[`api.transform`](https://github.com/web-infra-dev/rsbuild/pull/8722) 支持 `codeFilter`，插件可以根据代码内容跳过不必要的转换。
 
-完整改动可查看 [Rsbuild 变更记录](https://github.com/web-infra-dev/rsbuild/compare/v2.2.0...main)。
+完整改动可查看 [Rsbuild 变更记录](https://github.com/web-infra-dev/rsbuild/compare/v2.2.0...v2.3.0)。
 
 ### Rslib \{#rslib}
 
