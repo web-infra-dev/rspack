@@ -13,7 +13,9 @@ use crate::error::RspackResultToNapiResultExt;
 /// Source data transferred from JavaScript.
 ///
 /// Raw content is borrowed for the duration of the binding call. Structured sources
-/// recursively reference native source handles or concatenations.
+/// recursively reference native source handles, concatenations, or replacements.
+/// Fallback callbacks run synchronously during conversion and are never retained
+/// by the native source graph.
 pub enum JsSourceFromJs<'jsobject> {
   Raw {
     content: Either<String, BufferSlice<'jsobject>>,
@@ -24,6 +26,11 @@ pub enum JsSourceFromJs<'jsobject> {
   },
   Concat {
     children: Vec<JsSourceFromJs<'jsobject>>,
+  },
+  Replace {
+    original: Box<JsSourceFromJs<'jsobject>>,
+    replacements: Vec<JsReplaceSourceEdit>,
+    fallback: Function<'jsobject, (), JsSourceFromJs<'jsobject>>,
   },
 }
 
@@ -54,6 +61,11 @@ impl FromNapiValue for JsSourceFromJs<'_> {
       "concat" => Ok(Self::Concat {
         children: object.get_named_property("children")?,
       }),
+      "replace" => Ok(Self::Replace {
+        original: Box::new(object.get_named_property("original")?),
+        replacements: object.get_named_property("replacements")?,
+        fallback: object.get_named_property("fallback")?,
+      }),
       _ => Err(napi::Error::from_reason(format!(
         "Unknown source kind: {kind}"
       ))),
@@ -65,35 +77,51 @@ impl<'jsobject> TryFrom<JsSourceFromJs<'jsobject>> for BoxSource {
   type Error = napi::Error;
 
   fn try_from(value: JsSourceFromJs<'jsobject>) -> Result<Self> {
-    match value {
-      JsSourceFromJs::Native { handle } => Ok(Arc::clone(&handle.inner)),
+    let source: BoxSource = match value {
+      JsSourceFromJs::Native { handle } => Arc::clone(&handle.inner),
       JsSourceFromJs::Concat { children } => {
-        let children = children
-          .into_iter()
-          .map(BoxSource::try_from)
-          .collect::<Result<Vec<_>>>()?;
-        Ok(ConcatSource::new(children).boxed())
+        let mut sources = Vec::with_capacity(children.len());
+        for child in children {
+          let mut source: BoxSource = child.try_into()?;
+          // JS ConcatSource.source() coerces Buffer children to text.
+          if source.is_buffer() {
+            source =
+              RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed();
+          }
+          sources.push(source);
+        }
+        ConcatSource::new(sources).boxed()
+      }
+      JsSourceFromJs::Replace {
+        original,
+        replacements,
+        fallback,
+      } => {
+        let source = (*original).try_into()?;
+        match apply_replacements(source, replacements) {
+          Some(source) => source,
+          None => return fallback.call(())?.try_into(),
+        }
       }
       JsSourceFromJs::Raw { content, map } => match content {
         Either::A(string) => {
           if let Some(json) = map {
             let source_map =
               SourceMap::from_json(json).map_err(|e| napi::Error::from_reason(format!("{e}")))?;
-            Ok(
-              SourceMapSource::new(WithoutOriginalOptions {
-                value: string,
-                name: "inmemory://from js",
-                source_map,
-              })
-              .boxed(),
-            )
+            SourceMapSource::new(WithoutOriginalOptions {
+              value: string,
+              name: "inmemory://from js",
+              source_map,
+            })
+            .boxed()
           } else {
-            Ok(RawStringSource::from(string).boxed())
+            RawStringSource::from(string).boxed()
           }
         }
-        Either::B(buffer) => Ok(RawBufferSource::from(buffer.to_vec()).boxed()),
+        Either::B(buffer) => RawBufferSource::from(buffer.to_vec()).boxed(),
       },
-    }
+    };
+    Ok(source)
   }
 }
 
@@ -275,138 +303,131 @@ impl JsNativeSource {
       inner: source.try_into()?,
     })
   }
+}
 
-  #[napi]
-  pub fn apply_replacements(
-    &self,
-    replacements: Vec<JsReplaceSourceEdit>,
-  ) -> Option<JsNativeSource> {
-    if replacements.is_empty() {
-      return Some(JsNativeSource {
-        inner: Arc::clone(&self.inner),
-      });
-    }
+fn apply_replacements(
+  inner: BoxSource,
+  replacements: Vec<JsReplaceSourceEdit>,
+) -> Option<BoxSource> {
+  if replacements.is_empty() {
+    return Some(inner);
+  }
 
-    // `rope` presents binary sources as lossy text, so preserve the JavaScript
-    // fallback for them before converting positions.
-    if self.inner.is_buffer() {
+  // `rope` presents binary sources as lossy text, so preserve the JavaScript
+  // fallback for them before converting positions.
+  if inner.is_buffer() {
+    return None;
+  }
+
+  let mut edits = Vec::with_capacity(replacements.len());
+  let mut previous_end = 0;
+  for replacement in replacements {
+    let start = floor_js_source_index(replacement.start)?;
+    let end = floor_js_source_index(replacement.end + 1.0)?;
+    if start < previous_end || end < start || replacement.name.is_some_and(|name| !name.is_empty())
+    {
       return None;
     }
+    edits.push((start, end, replacement.content));
+    previous_end = end;
+  }
 
-    let mut edits = Vec::with_capacity(replacements.len());
-    let mut previous_end = 0;
-    for replacement in replacements {
-      let start = floor_js_source_index(replacement.start)?;
-      let end = floor_js_source_index(replacement.end + 1.0)?;
-      if start < previous_end
-        || end < start
-        || replacement.name.is_some_and(|name| !name.is_empty())
-      {
-        return None;
+  let mut endpoints = Vec::with_capacity(edits.len() * 2);
+  for (start, end, _) in &edits {
+    endpoints.push(*start);
+    endpoints.push(*end);
+  }
+  let mut byte_endpoints = vec![0usize; endpoints.len()];
+  let mut endpoint_index = 0;
+  while endpoints.get(endpoint_index) == Some(&0) {
+    endpoint_index += 1;
+  }
+
+  let mut utf16_start = 0u32;
+  let mut byte_start = 0usize;
+  let mut failed = false;
+  if endpoint_index < endpoints.len() {
+    inner.rope(&mut |chunk| {
+      if failed {
+        return;
       }
-      edits.push((start, end, replacement.content));
-      previous_end = end;
-    }
-
-    let mut endpoints = Vec::with_capacity(edits.len() * 2);
-    for (start, end, _) in &edits {
-      endpoints.push(*start);
-      endpoints.push(*end);
-    }
-    let mut byte_endpoints = vec![0usize; endpoints.len()];
-    let mut endpoint_index = 0;
-    while endpoints.get(endpoint_index) == Some(&0) {
-      endpoint_index += 1;
-    }
-
-    let mut utf16_start = 0u32;
-    let mut byte_start = 0usize;
-    let mut failed = false;
-    if endpoint_index < endpoints.len() {
-      self.inner.rope(&mut |chunk| {
-        if failed {
-          return;
-        }
-        if endpoint_index == endpoints.len() {
-          return;
-        }
-        let chunk_utf16_len = match u32::try_from(utf16_len(chunk)) {
-          Ok(len) => len,
-          Err(_) => {
-            failed = true;
-            return;
-          }
-        };
-        let Some(utf16_end) = utf16_start.checked_add(chunk_utf16_len) else {
+      if endpoint_index == endpoints.len() {
+        return;
+      }
+      let chunk_utf16_len = match u32::try_from(utf16_len(chunk)) {
+        Ok(len) => len,
+        Err(_) => {
           failed = true;
           return;
-        };
-        let chunk_is_ascii = chunk_utf16_len as usize == chunk.len();
-
-        if chunk_is_ascii {
-          while let Some(target) = endpoints
-            .get(endpoint_index)
-            .copied()
-            .filter(|target| *target <= utf16_end)
-          {
-            let local_byte = (target - utf16_start) as usize;
-            byte_endpoints[endpoint_index] = byte_start + local_byte;
-            endpoint_index += 1;
-          }
-        } else {
-          let mut chars = chunk.char_indices();
-          let mut next_char = chars.next();
-          let mut local_utf16 = 0u32;
-          let mut local_byte = 0usize;
-          while let Some(target) = endpoints
-            .get(endpoint_index)
-            .copied()
-            .filter(|target| *target <= utf16_end)
-          {
-            let target_local = target - utf16_start;
-            if target_local == chunk_utf16_len {
-              local_byte = chunk.len();
-            } else {
-              while local_utf16 < target_local {
-                let Some((char_byte, ch)) = next_char.take() else {
-                  failed = true;
-                  break;
-                };
-                let next_utf16 = local_utf16 + ch.len_utf16() as u32;
-                if next_utf16 > target_local {
-                  // JavaScript indices can point between a surrogate pair, but Rust
-                  // strings cannot represent that boundary. Fall back in JavaScript.
-                  failed = true;
-                  break;
-                }
-                local_utf16 = next_utf16;
-                local_byte = char_byte + ch.len_utf8();
-                next_char = chars.next();
-              }
-            }
-            if failed {
-              break;
-            }
-            byte_endpoints[endpoint_index] = byte_start + local_byte;
-            endpoint_index += 1;
-          }
         }
-        utf16_start = utf16_end;
-        byte_start += chunk.len();
-      });
-    }
-    if failed || endpoint_index != endpoints.len() {
-      return None;
-    }
+      };
+      let Some(utf16_end) = utf16_start.checked_add(chunk_utf16_len) else {
+        failed = true;
+        return;
+      };
+      let chunk_is_ascii = chunk_utf16_len as usize == chunk.len();
 
-    let mut source = ReplaceSource::new(Arc::clone(&self.inner));
-    for ((_, _, content), byte_offsets) in edits.into_iter().zip(byte_endpoints.chunks_exact(2)) {
-      let start = u32::try_from(byte_offsets[0]).ok()?;
-      let end = u32::try_from(byte_offsets[1]).ok()?;
-      source.replace(start, end, content, None);
-    }
-    Some(JsNativeSource {
-      inner: source.boxed(),
-    })
+      if chunk_is_ascii {
+        while let Some(target) = endpoints
+          .get(endpoint_index)
+          .copied()
+          .filter(|target| *target <= utf16_end)
+        {
+          let local_byte = (target - utf16_start) as usize;
+          byte_endpoints[endpoint_index] = byte_start + local_byte;
+          endpoint_index += 1;
+        }
+      } else {
+        let mut chars = chunk.char_indices();
+        let mut next_char = chars.next();
+        let mut local_utf16 = 0u32;
+        let mut local_byte = 0usize;
+        while let Some(target) = endpoints
+          .get(endpoint_index)
+          .copied()
+          .filter(|target| *target <= utf16_end)
+        {
+          let target_local = target - utf16_start;
+          if target_local == chunk_utf16_len {
+            local_byte = chunk.len();
+          } else {
+            while local_utf16 < target_local {
+              let Some((char_byte, ch)) = next_char.take() else {
+                failed = true;
+                break;
+              };
+              let next_utf16 = local_utf16 + ch.len_utf16() as u32;
+              if next_utf16 > target_local {
+                // JavaScript indices can point between a surrogate pair, but Rust
+                // strings cannot represent that boundary. Fall back in JavaScript.
+                failed = true;
+                break;
+              }
+              local_utf16 = next_utf16;
+              local_byte = char_byte + ch.len_utf8();
+              next_char = chars.next();
+            }
+          }
+          if failed {
+            break;
+          }
+          byte_endpoints[endpoint_index] = byte_start + local_byte;
+          endpoint_index += 1;
+        }
+      }
+      utf16_start = utf16_end;
+      byte_start += chunk.len();
+    });
   }
+  if failed || endpoint_index != endpoints.len() {
+    return None;
+  }
+
+  let mut source = ReplaceSource::new(inner);
+  for ((_, _, content), byte_offsets) in edits.into_iter().zip(byte_endpoints.chunks_exact(2)) {
+    let start = u32::try_from(byte_offsets[0]).ok()?;
+    let end = u32::try_from(byte_offsets[1]).ok()?;
+    source.replace(start, end, content, None);
+  }
+  Some(source.boxed())
 }

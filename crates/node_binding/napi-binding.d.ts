@@ -106,6 +106,7 @@ export type JsSourceFromJs =
 	| { kind: "raw"; content: string | Buffer; map?: string }
 	| { kind: "native"; handle: JsNativeSource }
 	| { kind: "concat"; children: JsSourceFromJs[] }
+	| { kind: "replace"; original: JsSourceFromJs; replacements: JsReplaceSourceEdit[]; fallback: () => JsSourceFromJs }
 
 export type CompilerId = void;
 /* -- banner.d.ts end -- */
@@ -447,7 +448,6 @@ export declare class JsModuleGraph {
  */
 export declare class JsNativeSource {
   static fromSource(source: JsSourceFromJs): JsNativeSource
-  applyReplacements(replacements: Array<JsReplaceSourceEdit>): JsNativeSource | null
 }
 
 export declare class JsResolver {

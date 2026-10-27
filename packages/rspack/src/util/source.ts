@@ -22,7 +22,7 @@ type SourceWithBinding = Source & {
   [toBindingSource]?: () => JsSourceFromJs | null;
 };
 
-function toStructuredSource(source: Source): JsSourceFromJs | null {
+function toSourceGraph(source: Source): JsSourceFromJs {
   let native = nativeSources.get(source);
   if (
     native &&
@@ -36,7 +36,17 @@ function toStructuredSource(source: Source): JsSourceFromJs | null {
     native = undefined;
   }
   if (native) return { kind: 'native', handle: native };
-  return (source as SourceWithBinding)[toBindingSource]?.call(source) ?? null;
+  return (
+    (source as SourceWithBinding)[toBindingSource]?.call(source) ??
+    serializeSource(source)
+  );
+}
+
+function serializeSource(source: Source): JsSourceFromJs {
+  const content = source.source();
+  if (Buffer.isBuffer(content)) return { kind: 'raw', content };
+  const map = source.map?.({ columns: true });
+  return { kind: 'raw', content, map: map ? JSON.stringify(map) : undefined };
 }
 
 function replaceSourceMap(source: SourceWithCache, value: string | undefined) {
@@ -97,20 +107,9 @@ export class RspackConcatSource extends webpackSources.ConcatSource {
     if (Object.getPrototypeOf(this) !== RspackConcatSource.prototype) {
       return null;
     }
-    const children = this.getChildren().map((child) =>
-      SourceAdapter.toBinding(child),
-    );
-    // JS ConcatSource.source() coerces Buffers to text before serialization.
-    if (
-      children.some(
-        (child) => child.kind === 'raw' && Buffer.isBuffer(child.content),
-      )
-    ) {
-      return null;
-    }
     return {
       kind: 'concat',
-      children,
+      children: this.getChildren().map(toSourceGraph),
     };
   }
 }
@@ -120,14 +119,12 @@ export class RspackReplaceSource extends webpackSources.ReplaceSource {
     if (Object.getPrototypeOf(this) !== RspackReplaceSource.prototype) {
       return null;
     }
-    const inner = toStructuredSource(this.original());
-    if (!inner) return null;
-    const original =
-      inner.kind === 'native'
-        ? inner.handle
-        : binding.JsNativeSource.fromSource(inner);
-    const replaced = original.applyReplacements(this.getReplacements());
-    return replaced ? { kind: 'native', handle: replaced } : null;
+    return {
+      kind: 'replace',
+      original: toSourceGraph(this.original()),
+      replacements: this.getReplacements(),
+      fallback: () => serializeSource(this),
+    };
   }
 }
 
@@ -176,24 +173,8 @@ export class SourceAdapter {
   }
 
   static toBinding(source: Source): JsSourceFromJs {
-    const structured = toStructuredSource(source);
-    if (structured) return structured;
-
-    const content = source.source();
-    if (Buffer.isBuffer(content)) {
-      return {
-        kind: 'raw',
-        content,
-      };
-    }
-
-    const map = source.map?.({
-      columns: true,
-    });
-    return {
-      kind: 'raw',
-      content,
-      map: map ? JSON.stringify(map) : undefined,
-    };
+    const graph = toSourceGraph(source);
+    if (graph.kind === 'raw' || graph.kind === 'native') return graph;
+    return { kind: 'native', handle: binding.JsNativeSource.fromSource(graph) };
   }
 }

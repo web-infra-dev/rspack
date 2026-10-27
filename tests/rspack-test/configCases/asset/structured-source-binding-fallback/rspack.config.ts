@@ -88,6 +88,57 @@ export default defineConfig({
             }
           }
           compilation.emitAsset('original.txt', new RawSource('body'));
+          const text = compilation.getAsset('original.txt')!.source;
+          const binaryConcat = new ConcatSource(
+            text,
+            new RawSource(Buffer.from('!')),
+          );
+          for (const source of [text, binaryConcat]) {
+            for (const method of ['source', 'map']) {
+              Object.defineProperty(source, method, {
+                value: () => {
+                  throw new Error(
+                    `Buffer concatenation serialized ${method}()`,
+                  );
+                },
+              });
+            }
+          }
+          compilation.emitAsset('buffer-child.txt', binaryConcat);
+          compilation.emitAsset(
+            'named-original.txt',
+            new SourceMapSource('body', 'named-original.txt', map),
+          );
+          const named = new ReplaceSource(
+            compilation.getAsset('named-original.txt')!.source,
+          );
+          named.replace(0, 3, 'changed', 'replacement');
+          const sibling = compilation.getAsset('original.txt')!.source;
+          const combined = new ConcatSource('prefix:', sibling, ':', named);
+          const namedOuter = new ReplaceSource(combined);
+          namedOuter.insert(0, 'outer:');
+          // Only the named replacement may serialize. Its parents and sibling
+          // must keep their native/structured representation.
+          for (const source of [sibling, combined, namedOuter]) {
+            for (const method of ['source', 'map']) {
+              Object.defineProperty(source, method, {
+                value: () => {
+                  throw new Error(
+                    `Parent or sibling used fallback ${method}()`,
+                  );
+                },
+              });
+            }
+          }
+          compilation.emitAsset('named-fallback.txt', namedOuter);
+          compilation.emitAsset(
+            'named-map.json',
+            new RawSource(
+              JSON.stringify(
+                compilation.getAsset('named-fallback.txt')!.source.map(),
+              ),
+            ),
+          );
           compilation.emitAsset(
             'subclass-concat.txt',
             new CustomConcatSource('body'),

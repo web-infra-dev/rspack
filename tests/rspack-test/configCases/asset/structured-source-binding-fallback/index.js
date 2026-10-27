@@ -10,6 +10,7 @@ it('should retain changes to a native asset Buffer', () => {
 it('should serialize concatenated Buffers as text', () => {
   expect(read('single-buffer.txt')).toEqual(Buffer.from('body'));
   expect(read('mixed-buffer.txt')).toEqual(Buffer.from('prefix:body'));
+  expect(read('buffer-child.txt')).toEqual(Buffer.from('body!'));
 });
 
 it('should retain changes to exposed source maps', () => {
@@ -22,4 +23,11 @@ it('should retain changes to exposed source maps', () => {
 it('should fall back for source subclasses', () => {
   expect(read('subclass-concat.txt').toString()).toBe('prefix:body');
   expect(read('subclass-replace.txt').toString()).toBe('prefix:body');
+});
+
+it('should serialize only the nested source that needs fallback', () => {
+  expect(read('named-fallback.txt').toString()).toBe('outer:prefix:body:changed');
+  const map = JSON.parse(read('named-map.json'));
+  expect(map.sources).toEqual(['original.txt']);
+  expect(map.names).toContain('replacement');
 });
