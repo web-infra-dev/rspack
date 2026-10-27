@@ -23,7 +23,7 @@ use std::{
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::{Aggregated, Executor};
-pub use ignored::{FsWatcherIgnored, IgnoredFn};
+pub use ignored::{FsWatcherIgnored, FsWatcherIgnoredItem, IgnoredFn};
 use paths::PathManager;
 use rspack_error::Result;
 use rspack_paths::InternedPath;

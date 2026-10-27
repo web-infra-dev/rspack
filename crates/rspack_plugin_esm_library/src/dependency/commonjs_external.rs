@@ -113,8 +113,7 @@ pub fn cutout_commonjs_externals(
         continue;
       }
       let Some(external_module) = module_graph
-        .module_identifier_by_dependency_id(&dependency_id)
-        .and_then(|module_id| module_graph.module_by_identifier(module_id))
+        .get_module_by_dependency_id(&dependency_id)
         .and_then(|module| module.as_external_module())
       else {
         continue;
@@ -157,8 +156,7 @@ fn get_direct_external_require(
 
   let module_graph = context.compilation.get_module_graph();
   let external_module = module_graph
-    .module_identifier_by_dependency_id(dependency_id)
-    .and_then(|module_id| module_graph.module_by_identifier(module_id))
+    .get_module_by_dependency_id(dependency_id)
     .and_then(|module| module.as_external_module())?;
 
   Some((
