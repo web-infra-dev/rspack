@@ -8,9 +8,6 @@ import { PackageManagerTabs, Tabs, Tab } from '@theme';
 
 Rspack 内置了对 CSS 的支持，并提供了多种能力来支持 CSS 打包。
 
-<span id="开启-css-支持"></span>
-<span id="内置-css-支持"></span>
-
 ## 内置 CSS 支持 \{#built-in-css-support}
 
 Rspack 支持以下四种 CSS 模块类型，你可以手动进行配置：
@@ -241,9 +238,13 @@ Rspack 不会输出被忽略的资源，因此需要确保它们在运行时可�
 
 如需禁用对所有 `@import` 规则或 `url()` 引用的处理，请参阅 CSS parser 选项 [`import`](/config/module-parser#cssautoimport) 和 [`url`](/config/module-parser#cssautourl)。
 
+## 使用 css-loader \{#using-css-loader}
+
+你可以将 [css-loader](https://github.com/webpack/css-loader) 与 CssExtractRspackPlugin 配合使用，生成独立的 CSS 文件；也可以与 style-loader 配合使用，在运行时注入样式。
+
 <span id="使用-cssextractrspackplugin"></span>
 
-## 使用 css-loader 和 CssExtractRspackPlugin \{#using-css-loader-and-cssextractrspackplugin}
+### 使用 CssExtractRspackPlugin \{#using-cssextractrspackplugin}
 
 Rspack 支持使用 [css-loader](https://github.com/webpack/css-loader) 和 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin)，用于生成独立的 CSS 文件。
 
@@ -280,7 +281,7 @@ CssExtractRspackPlugin 不能与 `type: 'css'`、`type: 'css/auto'`、`type: 'cs
 
 <span id="使用-style-loader"></span>
 
-## 使用 style-loader \{#using-style-loader}
+### 使用 style-loader \{#using-style-loader}
 
 Rspack 支持使用 [css-loader](https://github.com/webpack/css-loader) 和 [style-loader](https://github.com/webpack/style-loader)，将 CSS 通过 `<style>` 标签注入。这种方式不会生成独立的 CSS 文件，而是将 CSS 的内容内联到 JS 文件中。
 

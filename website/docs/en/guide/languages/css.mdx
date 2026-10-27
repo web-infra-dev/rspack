@@ -8,8 +8,6 @@ import { PackageManagerTabs, Tabs, Tab } from '@theme';
 
 Rspack has built-in support for CSS and provides several features to support CSS bundling.
 
-<span id="enabling-css-support"></span>
-
 ## Built-in CSS support
 
 Rspack supports the following four [CSS Modules](#css-modules) types which you can configure manually:
@@ -240,9 +238,11 @@ Rspack does not emit the ignored resources, so they must be available at the URL
 
 To disable processing for all `@import` rules or `url()` references, see the CSS parser options [`import`](/config/module-parser#cssautoimport) and [`url`](/config/module-parser#cssautourl).
 
-<span id="using-cssextractrspackplugin"></span>
+## Using css-loader
 
-## Using css-loader and CssExtractRspackPlugin
+You can use [css-loader](https://github.com/webpack/css-loader) with CssExtractRspackPlugin to generate standalone CSS files, or with style-loader to inject styles at runtime.
+
+### Using CssExtractRspackPlugin
 
 Rspack supports using [css-loader](https://github.com/webpack/css-loader) and [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) to generate standalone CSS files.
 
@@ -277,7 +277,7 @@ export default {
 CssExtractRspackPlugin cannot be used with `type: 'css'`, `type: 'css/auto'`, `type: 'css/global'`, or `type: 'css/module'` as these types are provided by native css support.
 :::
 
-## Using style-loader
+### Using style-loader
 
 Rspack supports using [css-loader](https://github.com/webpack/css-loader) and [style-loader](https://github.com/webpack/style-loader) to inject CSS via `<style>` tags. This method does not generate standalone CSS files but inline the CSS content into JS files.
 
