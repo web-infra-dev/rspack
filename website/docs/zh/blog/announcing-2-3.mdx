@@ -209,7 +209,9 @@ export default {
 };
 ```
 
-`codeFilter` 支持字符串和正则表达式，用于匹配当前 loader 收到的代码。loader 的 pitch 函数不受此选项影响。
+Rspack 核心由 Rust 编写，调用 JavaScript loader 时会产生跨语言通信开销，即使代码不需要转换，也要付出这部分成本。`codeFilter` 在 Rust 侧提前检查代码，只在需要转换时调用 loader，从而减少跨语言通信开销。
+
+在包含 1 万个模块、仅 10% 的模块需要转换的测试中，`codeFilter` 避免了 90% 没有必要的 loader 调用，完整构建耗时从 622 ms 降至 481 ms，缩短约 23%。
 
 ### CSS 打包能力 \{#css-bundling}
 

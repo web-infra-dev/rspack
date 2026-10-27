@@ -209,7 +209,9 @@ export default {
 };
 ```
 
-`codeFilter` accepts a string or regular expression and matches the code received by the current loader. It does not affect the loader's pitch function.
+Rspack's core is written in Rust, so calling a JavaScript loader adds cross-language communication overhead, even when the code needs no transformation. `codeFilter` checks the code in Rust first and only calls the loader when a transformation is needed, reducing this overhead.
+
+In a benchmark with 10,000 modules where only 10% needed transformation, `codeFilter` reduced loader calls by 90% and total build time from 622 ms to 481 ms, a reduction of about 23%.
 
 ### CSS bundling
 
