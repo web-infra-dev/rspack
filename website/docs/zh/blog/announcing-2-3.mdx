@@ -207,18 +207,32 @@ export default {
 
 #### 支持外部资源 \{#css-externals}
 
-新增 `css-import` 和 `asset-url` 类型的 external，允许在 CSS 中将指定的样式或资源引用保留为外部资源，不参与打包。
+新增 `css-import` 和 `asset-url` 类型的 [external](/zh/config/externals)，允许在 CSS 中将指定的样式或资源引用保留为外部资源，不参与打包。
 
 ```js title="rspack.config.js"
 module.exports = {
   externals: {
-    'normalize.css': `${CSS_IMPORT}normalize.css`,
-    'https://cdn.example.com/theme.css': `${CSS_IMPORT}https://cdn.example.com/theme.css`,
+    'normalize.css': 'css-import normalize.css',
+    'https://cdn.example.com/theme.css':
+      'css-import https://cdn.example.com/theme.css',
+    'https://cdn.example.com/logo.png':
+      'asset-url https://cdn.example.com/logo.png',
   },
 };
 ```
 
-上述配置会让 CSS 中的 `@import "normalize.css"` 和 CDN 路径引用直接保留在产物中，由浏览器在运行时自行加载。
+在 CSS 中引用这些外部资源：
+
+```css title="styles.css"
+@import 'normalize.css';
+@import url('https://cdn.example.com/theme.css');
+
+.logo {
+  background-image: url('https://cdn.example.com/logo.png');
+}
+```
+
+上述 `@import` 和 `url()` 会原样输出，不会参与打包。
 
 CSS 的 `@import`、`url()` 和 `image-set()` 也支持 `rspackIgnore` 和 `webpackIgnore` 注释，可以按需跳过资源打包：
 
