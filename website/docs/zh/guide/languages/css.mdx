@@ -232,8 +232,6 @@ Rspack 不会输出被忽略的资源，因此需要确保它们在运行时可�
 
 你可以将 [css-loader](https://github.com/webpack/css-loader) 与 CssExtractRspackPlugin 配合使用，生成独立的 CSS 文件；也可以与 style-loader 配合使用，在运行时注入样式。
 
-<span id="使用-cssextractrspackplugin"></span>
-
 ### 使用 CssExtractRspackPlugin \{#using-cssextractrspackplugin}
 
 Rspack 支持使用 [css-loader](https://github.com/webpack/css-loader) 和 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin)，用于生成独立的 CSS 文件。
@@ -268,8 +266,6 @@ export default {
 :::tip
 CssExtractRspackPlugin 不能与 `type: 'css'`、`type: 'css/auto'`、`type: 'css/global'` 或 `type: 'css/module'` 同时使用，因为 css-loader 会将 css 转换成 javascript 类型。
 :::
-
-<span id="使用-style-loader"></span>
 
 ### 使用 style-loader \{#using-style-loader}
 
