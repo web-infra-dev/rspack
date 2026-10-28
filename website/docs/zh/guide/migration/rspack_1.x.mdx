@@ -139,7 +139,7 @@ export default {
 
 ### 移除 builtin:swc-loader 的 rspackExperiments.collectTypeScriptInfo
 
-`builtin:swc-loader` 的 `rspackExperiments.collectTypeScriptInfo` 已被移除，可使用 [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) 控制 TypeScript 信息收集：
+`builtin:swc-loader` 的 `rspackExperiments.collectTypeScriptInfo` 已被移除，可使用 [collectTypeScriptInfo](/guide/builtin-loaders/swc-loader#collecttypescriptinfo) 控制 TypeScript 信息收集：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -161,7 +161,7 @@ export default {
 
 ### 移动 builtin:swc-loader 的 rspackExperiments.import
 
-`builtin:swc-loader` 的 `rspackExperiments.import` 已移动到顶层 [transformImport](/guide/features/builtin-swc-loader#transformimport) 选项。Rspack 2.0 中仍保留 `rspackExperiments.import` 作为已废弃的兼容别名，但建议尽快迁移到 `transformImport`，避免后续版本移除时产生问题：
+`builtin:swc-loader` 的 `rspackExperiments.import` 已移动到顶层 [transformImport](/guide/builtin-loaders/swc-loader#transformimport) 选项。Rspack 2.0 中仍保留 `rspackExperiments.import` 作为已废弃的兼容别名，但建议尽快迁移到 `transformImport`，避免后续版本移除时产生问题：
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -590,7 +590,7 @@ export default {
 - `experiments.lazyBarrel`：已被移除，[barrel 文件优化](/guide/advanced/lazy-barrel)现在默认启用。
 - `experiments.typeReexportsPresence`：已被移除，可使用 [module.parser.javascript.typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) 直接控制类型重导出时的行为。
 - `experiments.inlineConst`：已被移除，可使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 控制常量内联优化。
-- `experiments.inlineEnum`：已被移除，可使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 和 `builtin:swc-loader` 的 [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 控制枚举内联优化。
+- `experiments.inlineEnum`：已被移除，可使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 和 `builtin:swc-loader` 的 [collectTypeScriptInfo.exportedEnum](/guide/builtin-loaders/swc-loader#collecttypescriptinfoexportedenum) 控制枚举内联优化。
 - `experiments.outputModule`：已被移除，可使用 [output.module](/config/output#outputmodule) 直接输出 ESM 产物。
 - `experiments.parallelLoader`：已被移除，Loader 并行化功能现在已稳定并默认可用，但仍需要通过 [module.rules.use.parallel](/config/module-rules#rulesuseparallel) 显式启用。
 - `experiments.SubResourceIntegrityPlugin`：已移动到顶层的 [SubresourceIntegrityPlugin](/plugins/subresource-integrity-plugin)。

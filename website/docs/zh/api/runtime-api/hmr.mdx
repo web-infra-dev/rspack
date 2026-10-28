@@ -14,7 +14,7 @@ Rspack 提供了与 webpack 相同的接口来实现模块热替换。
 
 ## 示例
 
-通常，你需要检查这个接口是否可访问，然后再使用它。例如，你可以这样使用 `accept` 操作一个更新的模块：
+要接受已加载模块的更新，先检查 HMR 接口是否可用：
 
 ```js
 if (module.hot) {
@@ -23,10 +23,10 @@ if (module.hot) {
   });
 }
 
-// or
+// 或者
 if (import.meta.webpackHot) {
   import.meta.webpackHot.accept('./library.js', function () {
-    // Do something with the updated library module…
+    // 使用更新后的 library 模块…
   });
 }
 ```
@@ -61,15 +61,15 @@ app.js
 ```js
 module.hot.accept(
   dependencies, // 可以是一个字符串或字符串数组
-  callback // 用于在模块更新后触发的函数
-  errorHandler // (err, {moduleId, dependencyId}) => {}
+  callback, // 用于在模块更新后触发的函数
+  errorHandler, // (err, {moduleId, dependencyId}) => {}
 );
 
-// or
+// 或者
 import.meta.webpackHot.accept(
   dependencies, // 可以是一个字符串或字符串数组
   callback, // 用于在模块更新后触发的函数
-  errorHandler // (err, {moduleId, dependencyId}) => {}
+  errorHandler, // (err, {moduleId, dependencyId}) => {}
 );
 ```
 
@@ -91,12 +91,12 @@ import.meta.webpackHot.accept(
 
 ```js
 module.hot.accept(
-  errorHandler, // 在计算新版本时处理错误的函数
+  errorHandler, // 处理新版本模块执行时的错误
 );
 
-// or
+// 或者
 import.meta.webpackHot.accept(
-  errorHandler, // Function to handle errors when evaluating the new version
+  errorHandler, // 处理新版本模块执行时的错误
 );
 ```
 
@@ -123,9 +123,9 @@ module.hot.decline(
   dependencies, // 可以是一个字符串或字符串数组
 );
 
-// or
+// 或者
 import.meta.webpackHot.decline(
-  dependencies, // Either a string or an array of strings
+  dependencies, // 字符串或字符串数组
 );
 ```
 
@@ -138,7 +138,7 @@ import.meta.webpackHot.decline(
 ```js
 module.hot.decline();
 
-// or
+// 或者
 import.meta.webpackHot.decline();
 ```
 
@@ -146,22 +146,43 @@ import.meta.webpackHot.decline();
 
 ### dispose（或 addDisposeHandler）
 
-添加一个处理函数，在当前模块代码被替换时执行。此函数应该用于移除你声明或创建的任何持久资源。如果要将状态传入到更新过的模块，请添加给定 `data` 参数。更新后，此对象在更新之后可通过 `module.hot.data` 调用。
+注册一个处理函数，在模块被替换前清理定时器、事件监听等资源。将需要保留的状态写入 `data` 参数，更新后的模块就能通过 `import.meta.webpackHot.data`（CommonJS 中为 `module.hot.data`）读取它。
 
 ```js
 module.hot.dispose((data) => {
   // 清理并将 data 传递到更新后的模块...
 });
 
-// or
+// 或者
 import.meta.webpackHot.dispose((data) => {
   // 清理并将 data 传递到更新后的模块...
 });
 ```
 
+下面的示例在更新时清除旧定时器，并从保存的数值继续计数：
+
+```js
+let count = import.meta.webpackHot?.data?.count ?? 0;
+const timer = setInterval(() => {
+  console.log(++count);
+}, 1000);
+
+if (import.meta.webpackHot) {
+  import.meta.webpackHot.accept();
+  import.meta.webpackHot.dispose((data) => {
+    clearInterval(timer);
+    data.count = count;
+  });
+}
+```
+
 ### invalidate
 
-调用此方法将使当前模块无效，而当前模块将在应用 HMR 更新时进行部署并重新创建。这个模块的更新像冒泡一样，拒绝自身更新。
+当前模块无法自行处理热更新时，可以调用 `invalidate()`，让引用它的模块处理这次更新。即使当前模块已经调用 `accept()` 接受自身更新，更新也会继续向引用它的模块传播，详见[更新如何传播](#update-propagation)。
+
+更新被接受并开始应用后，Rspack 会执行当前模块的 [`dispose`](#dispose或-adddisposehandler) 回调，清理旧模块的资源。
+
+如果希望拒绝当前模块的更新，请使用 [`decline()`](#declineself)。
 
 在 `idle` 状态下调用时，将创建一个包含此模块的新 HMR 更新。HMR 将进入 `ready` 状态。
 
@@ -173,12 +194,12 @@ import.meta.webpackHot.dispose((data) => {
 
 #### 用例
 
-**Conditional Accepting**
+**无法处理依赖更新时**
 
-一个模块可以接受一个依赖，但是当依赖的改变无法处理时，可以调用 `invalidate`：
+在 `accept()` 回调中，如果发现无法处理依赖的更新，可以调用 `invalidate()`，将更新交给引用当前模块的模块处理：
 
 ```js
-import { x, y } from './dep';
+import { x, y } from './dep.js';
 import { processX, processY } from 'anotherDep';
 
 const oldY = y;
@@ -186,10 +207,10 @@ const oldY = y;
 processX(x);
 export default processY(y);
 
-module.hot.accept('./dep', () => {
+import.meta.webpackHot.accept('./dep.js', () => {
   if (y !== oldY) {
     // 无法处理，冒泡给父级
-    module.hot.invalidate();
+    import.meta.webpackHot.invalidate();
     return;
   }
   // 可以处理
@@ -197,44 +218,34 @@ module.hot.accept('./dep', () => {
 });
 ```
 
-**Conditional self accept**
+**无法处理自身更新时**
 
-模块可以自我接受，但是当更改无法处理时可以使自身失效：
+下面的模块接受自身更新，并在更新时比较新旧导出的字符串。如果字符串发生变化，就调用 `invalidate()`，让引用它的模块也参与更新：
 
 ```js
-const VALUE = 'constant';
+const message = 'Hello';
 
-export default VALUE;
+export default message;
 
-if (
-  module.hot.data &&
-  module.hot.data.value &&
-  module.hot.data.value !== VALUE
-) {
-  module.hot.invalidate();
+const previousMessage = import.meta.webpackHot.data?.message;
+
+if (previousMessage !== undefined && previousMessage !== message) {
+  import.meta.webpackHot.invalidate();
 } else {
-  module.hot.dispose((data) => {
-    data.value = VALUE;
+  import.meta.webpackHot.dispose((data) => {
+    data.message = message;
   });
-  module.hot.accept();
+  import.meta.webpackHot.accept();
 }
 ```
 
-**Triggering custom HMR updates**
+:::tip
 
-```js
-const moduleId = chooseAModule();
-const code = __webpack_modules__[moduleId].toString();
-__webpack_modules__[moduleId] = eval(`(${makeChanges(code)})`);
-if (require.cache[moduleId]) {
-  require.cache[moduleId].hot.invalidate();
-  module.hot.apply();
-}
-```
+- 在 [`dispose`](#dispose或-adddisposehandler) 回调中，把需要保留的数据写入 `data` 对象。更新后的模块可以通过 `import.meta.webpackHot.data`（CommonJS 中为 `module.hot.data`）读取这些数据。
+- 首次执行时还没有旧状态，因此这个值是 `undefined`。热更新后，如果旧版本没有保存任何数据，它就是一个空对象。
+- 不要在模块每次执行时都调用 `invalidate()`。否则，一次热更新可能又触发下一次热更新，形成循环。
 
-T> 当调用 `invalidate` 时，将最终调用 [`dispose`](#dispose或-adddisposehandler) 处理函数并填充 `module.hot.data`。如果未注册 [`dispose`](#dispose或-adddisposehandler) 处理程序，则将空对象提供给 `module.hot.data`.
-
-W> 通过一次次的调用 `invalidate`，不要陷入 `invalidate` 循环。这将导致栈溢出并且 HMR 进入 `fail` 状态。
+:::
 
 ### removeDisposeHandler
 
@@ -243,7 +254,7 @@ W> 通过一次次的调用 `invalidate`，不要陷入 `invalidate` 循环。�
 ```js
 module.hot.removeDisposeHandler(callback);
 
-// or
+// 或者
 import.meta.webpackHot.removeDisposeHandler(callback);
 ```
 
@@ -273,30 +284,36 @@ import.meta.webpackHot.status();
 
 ### check
 
-测试所有加载的模块以进行更新，如果有更新，则 `apply` 它们。
+检查是否有可用的热更新，并下载更新内容。调用时，HMR 必须处于 `idle`（空闲）状态。
 
 ```js
 module.hot
   .check(autoApply)
   .then((outdatedModules) => {
-    // 超时的模块...
+    // 受本次更新影响的模块...
   })
   .catch((error) => {
     // 捕获错误
   });
 
-// or
+// 或者
 import.meta.webpackHot
   .check(autoApply)
   .then((outdatedModules) => {
-    // outdated modules...
+    // 受本次更新影响的模块...
   })
   .catch((error) => {
-    // catch errors
+    // 捕获错误
   });
 ```
 
-当被调用时，传递给 `apply` 方法的 `autoApply` 参数可以是布尔值，也可以是 `options`，
+`autoApply` 用于控制下载完成后是否立即应用更新：
+
+- 不传或设为 `false`：只下载更新，随后进入 `ready` 状态。准备好应用更新时，再调用 [`apply()`](#apply)。
+- 设为 `true`：下载完成后立即应用更新。
+- 传入选项对象：下载完成后立即应用更新，并将该对象作为 [`apply()` 的选项](#apply)。
+
+在 `.then()` 回调中可以获取本次更新涉及的模块 ID 数组；如果没有更新，则收到 `null`。下载或应用更新出错时，可以在 `.catch()` 中处理错误。
 
 ### apply
 
@@ -306,20 +323,20 @@ import.meta.webpackHot
 module.hot
   .apply(options)
   .then((outdatedModules) => {
-    // 超时的模块...
+    // 受本次更新影响的模块...
   })
   .catch((error) => {
     // 捕获错误
   });
 
-// or
+// 或者
 import.meta.webpackHot
   .apply(options)
   .then((outdatedModules) => {
-    // outdated modules...
+    // 受本次更新影响的模块...
   })
   .catch((error) => {
-    // catch errors
+    // 捕获错误
   });
 ```
 
@@ -385,7 +402,7 @@ import.meta.webpackHot.addStatusHandler((status) => {
 ```js
 module.hot.removeStatusHandler(callback);
 
-// or
+// 或者
 import.meta.webpackHot.removeStatusHandler(callback);
 ```
 

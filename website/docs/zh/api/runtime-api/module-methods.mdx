@@ -186,7 +186,7 @@ const url3 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 
 - `'lazy'`（默认值）：为每个可能导入的模块生成一个可延迟加载的 chunk。
 - `'lazy-once'`：将动态导入上下文中的所有可能模块生成到同一个异步 chunk 中。第一次调用 `import()` 时加载该 chunk，后续调用会复用它。此模式适用于 `import('./locales/' + language + '.json')` 这类可能匹配多个模块的动态表达式。
-- `'eager'`：不生成额外的 chunk，而是将所有可能的模块放入当前 chunk，因此不会产生额外的网络请求。`import()` 仍然返回 Promise，且模块要等到调用 `import()` 时才会执行。
+- `'eager'`：不为 `import()` 生成额外的 chunk，而是将动态导入的模块与包含 `import()` 的模块打包在一起。调用时无需额外的网络请求，`rspackChunkName` 和 `webpackChunkName` 注释也不生效。模块在调用 `import()` 时执行；如果执行时抛出异常，返回的 Promise 会被拒绝。
 - `'weak'`：仅在模块已通过其他方式加载时才解析成功，例如模块已包含在另一个加载完成的 chunk 中。此模式不会发起网络请求；如果模块不可用，Promise 会被拒绝。它主要用于由服务端确保所需 chunk 已包含在初始响应中的 SSR 场景。
 
 例如，使用 `lazy-once` 将所有可能的语言模块合并到同一个异步 chunk 中：

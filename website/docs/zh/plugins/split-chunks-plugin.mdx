@@ -272,25 +272,17 @@ export default {
 
 ### splitChunks.maxAsyncRequests
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.maxAsyncRequests
-
 - **类型：** `number`
-- **默认值：** 生产模式下为 `30`，其他模式下为 `Infinity`
+- **默认值：** `30`
 
 按需加载时的最大并行请求数。
 
-cache group 默认继承此限制，除非自行设置 `maxAsyncRequests` 或启用 `enforce`。即使设置了 `enforce: true`，cache group 显式配置的限制仍然生效。
-
 ### splitChunks.maxInitialRequests
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.maxInitialRequests
-
 - **类型：** `number`
-- **默认值：** 生产模式下为 `30`，其他模式下为 `Infinity`
+- **默认值：** `30`
 
-每个入口点所允许的最大并行请求数。
-
-cache group 默认继承此限制，除非自行设置 `maxInitialRequests` 或启用 `enforce`。即使设置了 `enforce: true`，cache group 显式配置的限制仍然生效。
+每一个入口点所允许的的最大并行请求数。
 
 ### splitChunks.enforceSizeThreshold
 
@@ -820,6 +812,6 @@ export default {
 
 有可能。
 
-在 `mini-css-extract-plugin`、Rspack 的[内置 CSS 支持](/guide/languages/css#内置-css-支持)这类抽取式 CSS 场景里，splitChunks 改变 chunk group 后，最终 CSS 顺序也可能随之变化。可以参考 [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12)。如果 CSS 顺序是主要诉求，也建议同时参考 [CssChunkingPlugin](/plugins/css-chunking-plugin)。
+在 `mini-css-extract-plugin`、Rspack 的[内置 CSS 支持](/guide/languages/css#built-in-css-support)这类抽取式 CSS 场景里，splitChunks 改变 chunk group 后，最终 CSS 顺序也可能随之变化。可以参考 [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12)。如果 CSS 顺序是主要诉求，也建议同时参考 [CssChunkingPlugin](/plugins/css-chunking-plugin)。
 
 <Attribution url="https://webpack.docschina.org/configuration/optimization/" />

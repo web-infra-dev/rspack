@@ -19,7 +19,7 @@ import Attribution from '@components/Attribution';
 
 通过组合不同的匹配条件和处理逻辑，`module.rules` 可以精细地控制各类模块的构建行为。
 
-例如，使用 [内置 swc-loader](/guide/features/builtin-swc-loader) 处理以 `.ts` 结尾的文件：
+例如，使用 [内置 swc-loader](/guide/builtin-loaders/swc-loader) 处理以 `.ts` 结尾的文件：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -499,7 +499,7 @@ import url from './data' with { type: 'url' };
 import('./data', { with: { type: 'url' } });
 ```
 
-需要注意的是，为了让 Rspack 能够正常匹配 `with` 语法，当你在使用 [builtin:swc-loader](/guide/features/builtin-swc-loader) 时，需要手动开启 `keepImportAttributes` 配置以保留 `import attributes`：
+需要注意的是，为了让 Rspack 能够正常匹配 `with` 语法，当你在使用 [builtin:swc-loader](/guide/builtin-loaders/swc-loader) 时，需要手动开启 `keepImportAttributes` 配置以保留 `import attributes`：
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -734,7 +734,7 @@ export default {
 - `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
 - `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
 - `'json'`：JSON data 模块，参考 [JSON](/guide/languages/json)。
-- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/languages/css#内置-css-支持)。
+- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/languages/css#built-in-css-support)。
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`：资源模块，参考 [资源模块](/guide/features/asset-module)。
 
 ## rules[].layer
