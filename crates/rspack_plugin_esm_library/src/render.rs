@@ -7,8 +7,8 @@ use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataPreservedAssetImport, Compilation, ConcatenatedModuleInfo, InitFragment,
   ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
-  SourceType, analyze_module_scope, export_name, get_js_chunk_filename_template, get_undo_path,
-  render_init_fragments,
+  SourceType, analyze_program_identifiers, export_name, get_js_chunk_filename_template,
+  get_undo_path, render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -122,39 +122,6 @@ impl EsmLibraryPlugin {
     Self::get_entrypoint(chunk_ukey, compilation).map_or(chunk_ukey, |group| {
       group.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     })
-  }
-
-  fn get_runtime_chunks(chunk_ukey: ChunkUkey, compilation: &Compilation) -> Vec<ChunkUkey> {
-    let artifact = &compilation.build_chunk_graph_artifact;
-    let mut stack = get_chunk(compilation, chunk_ukey)
-      .groups()
-      .iter()
-      .copied()
-      .collect::<Vec<_>>();
-    let mut visited = FxHashSet::default();
-    let mut runtimes = FxHashSet::default();
-
-    // A shared async group can have several parents, and an initial chunk can
-    // belong to several entrypoints. Every consuming runtime needs its factories.
-    while let Some(group_ukey) = stack.pop() {
-      if !visited.insert(group_ukey) {
-        continue;
-      }
-      let group = artifact.chunk_group_by_ukey.expect_get(&group_ukey);
-      if group.kind.is_entrypoint() {
-        runtimes.insert(group.get_runtime_chunk(&artifact.chunk_group_by_ukey));
-      } else {
-        stack.extend(group.parents_iterable().copied());
-      }
-    }
-
-    let mut runtimes = runtimes.into_iter().collect::<Vec<_>>();
-    runtimes.sort_unstable_by(|a, b| {
-      get_chunk(compilation, *a)
-        .expect_id()
-        .cmp(get_chunk(compilation, *b).expect_id())
-    });
-    runtimes
   }
 
   pub(crate) fn get_entry_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
@@ -290,10 +257,22 @@ impl EsmLibraryPlugin {
         let register_modules =
           runtime_mode_renderer.render_module_registration_ident(runtime_template);
         let additional_runtimes = if chunk.runtime().len() > 1 {
-          Self::get_runtime_chunks(*chunk_ukey, compilation)
-            .into_iter()
-            .filter(|runtime| *runtime != runtime_chunk_ukey)
-            .collect::<Vec<_>>()
+          let primary_runtime = get_chunk(compilation, runtime_chunk_ukey).expect_id();
+          let mut runtimes = chunk
+            .runtime()
+            .iter()
+            .map(|runtime| {
+              compilation
+                .build_chunk_graph_artifact
+                .chunk_graph
+                .get_runtime_id(runtime)
+                .expect("runtime ids should be assigned before rendering ESM chunks")
+            })
+            .filter(|runtime| runtime != primary_runtime.as_str())
+            .collect::<Vec<_>>();
+          runtimes.sort_unstable();
+          runtimes.dedup();
+          runtimes
         } else {
           Vec::new()
         };
@@ -308,17 +287,16 @@ impl EsmLibraryPlugin {
           // Wrapped modules are not scope hoisted, so their free identifiers are
           // missing from the chunk allocator. Reserve them before introducing
           // bindings into the factories' enclosing scope.
-          let mut factory_scope = ConcatenatedModuleInfo::default();
-          analyze_module_scope(
+          let factory_scope = analyze_program_identifiers(
             &format!("({{\n{}\n}});", decl_inner.source().into_string_lossy()),
             false,
-            &mut factory_scope,
           )?;
           name_allocator.extend(
             factory_scope
-              .global_scope_ident
-              .iter()
-              .map(|ident| ident.name.clone()),
+              .identifiers
+              .into_iter()
+              .filter(|ident| ident.scope == factory_scope.global_ctxt)
+              .map(|ident| ident.name),
           );
           let factories = name_allocator.find_new_name("__rspack_shared_modules__", &[]);
           decl_source.add(RawStringSource::from(format!("var {factories} = {{\n")));
@@ -331,8 +309,7 @@ impl EsmLibraryPlugin {
             let (imported, register) = runtime_mode_renderer
               .render_module_registration_import(runtime_template, local.as_str());
             import_source.add(RawStringSource::from(format!(
-              "import {{ {imported} as {local} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
-              get_chunk(compilation, runtime).expect_id().as_str()
+              "import {{ {imported} as {local} }} from \"__RSPACK_ESM_CHUNK_{runtime}\";\n"
             )));
             decl_source.add(RawStringSource::from(format!(
               "{register}.add({factories});\n"

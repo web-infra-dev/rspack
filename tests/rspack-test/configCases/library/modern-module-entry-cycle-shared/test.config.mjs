@@ -1,5 +1,5 @@
 export default {
-  findBundle(index) {
-    return [`other${index}.mjs`];
+  findBundle() {
+    return ['other.mjs'];
   },
 };
