@@ -18,9 +18,8 @@ use rspack_core::{
   ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, JavascriptParserUrl, Logger,
   ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
   NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeModule, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target,
-  is_esm_dep_like,
+  Plugin, REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -451,7 +450,7 @@ async fn after_code_generation(
 #[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EsmLibraryPlugin)]
 async fn additional_module_runtime_requirements(
   &self,
-  compilation: &Compilation,
+  _compilation: &Compilation,
   module_identifier: &ModuleIdentifier,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
@@ -461,16 +460,6 @@ async fn additional_module_runtime_requirements(
   };
 
   runtime_requirements.extend(*info.get_runtime_requirements());
-
-  if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE)
-    && compilation
-      .runtime_template
-      .create_chunk_code_template()
-      .render_mode()
-      == RuntimeGlobalsRenderMode::RspackExport
-  {
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-  }
 
   if info.get_interop_default_access_used() {
     runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);

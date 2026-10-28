@@ -4,32 +4,11 @@ import { rspack, type RspackOptions } from '@rspack/core';
 const configurations: RspackOptions[] = [
   { optimization: { runtimeChunk: false } },
   { optimization: { runtimeChunk: true } },
-  {
-    optimization: {
-      runtimeChunk: { name: (entrypoint) => `runtime-${entrypoint.name}` },
-    },
-  },
-  { optimization: { runtimeChunk: false, splitChunks: false } },
   { optimization: { runtimeChunk: 'single' } },
-  { optimization: { runtimeChunk: false }, output: { asyncChunks: false } },
   { optimization: { runtimeChunk: false, minimize: true } },
-  {
-    optimization: {
-      runtimeChunk: false,
-      splitChunks: {
-        cacheGroups: {
-          shared: {
-            test: /(?:shared\.cjs|marker\.js)$/,
-            name: 'shared',
-            enforce: true,
-          },
-        },
-      },
-    },
-  },
 ];
 
-export default configurations.map(({ optimization, output }, index) =>
+export default configurations.map(({ optimization }, index) =>
   defineConfig({
     mode: 'production',
     target: 'node',
@@ -38,7 +17,6 @@ export default configurations.map(({ optimization, output }, index) =>
       filename: `[name]${index}.mjs`,
       chunkFilename: `[id]${index}.mjs`,
       library: { type: 'modern-module' },
-      ...output,
     },
     optimization: { minimize: false, ...optimization },
     plugins: [
