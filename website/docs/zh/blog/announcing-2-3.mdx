@@ -262,7 +262,7 @@ Rspack 核心由 Rust 编写，调用 JavaScript loader 时会产生跨语言通
 
 #### 独立构建样式入口 \{#css-entry}
 
-独立发布主题或样式库时，通常只需要生成 CSS 文件。Rspack 现在支持为[纯 CSS 入口](/zh/guide/languages/css#css-entry)只生成样式文件，无需输出多余的 JavaScript 文件。例如：
+独立发布主题或样式库时，通常只需要生成 CSS 文件。Rspack 现在支持将[纯 CSS 入口](/zh/guide/languages/css#css-entry)打包输出为独立的 CSS 文件，不会生成额外的 JavaScript 文件。例如：
 
 ```js title="rspack.config.mjs"
 export default {

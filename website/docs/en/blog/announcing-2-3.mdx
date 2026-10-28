@@ -262,7 +262,7 @@ This release improves support for CSS scenarios including CSS Modules scoping, c
 
 #### CSS-only entry points \{#css-entry}
 
-When publishing a theme or style library independently, you often only need a CSS file. Rspack now supports emitting only a stylesheet for a [CSS-only entry](/guide/languages/css#css-entry), without an extra JavaScript file. For example:
+When publishing a theme or style library independently, you often only need CSS output. Rspack can now bundle a [CSS-only entry](/guide/languages/css#css-entry) into a standalone CSS file without emitting an additional JavaScript file. For example:
 
 ```js title="rspack.config.mjs"
 export default {
