@@ -1,5 +1,5 @@
 ---
-description: '在 Rspack 中使用CSS的指南，涵盖环境配置、集成方式、调试要点、开发模式与常见问题处理，帮助快速定位相关信息。'
+description: '在 Rspack 中配置内置 CSS 支持或 CSS loader、CSS Modules、PostCSS、Sass、Less 和 Tailwind CSS。'
 ---
 
 import { PackageManagerTabs, Tabs, Tab } from '@theme';
@@ -8,11 +8,7 @@ import { PackageManagerTabs, Tabs, Tab } from '@theme';
 
 Rspack 内置了对 CSS 的支持，并提供了多种能力来支持 CSS 打包。
 
-## 开启 CSS 支持
-
-你可以从以下方式中进行选择：
-
-### 内置 CSS 支持
+## 内置 CSS 支持 \{#built-in-css-support}
 
 Rspack 支持以下四种 CSS 模块类型，你可以手动进行配置：
 
@@ -176,7 +172,67 @@ console.log(cssText);
 
 更多细节请参考 [module.parser["css/auto"].exportType](/config/module-parser#cssautoexporttype)。
 
-### 使用 CssExtractRspackPlugin
+### CSS 入口 \{#css-entry}
+
+使用默认的 `exportType: 'link'` 时，你可以将 CSS 文件作为入口，输出样式表，而不生成对应的 JavaScript 入口文件。例如：
+
+```js title="rspack.config.mjs"
+export default {
+  entry: './src/styles.css',
+  module: {
+    rules: [{ test: /\.css$/i, type: 'css' }],
+  },
+};
+```
+
+此配置只输出 `dist/main.css`。如果配置了资源引用或 source map，可能会额外生成其他文件。可以通过 [output.cssFilename](/config/output#outputcssfilename) 自定义样式表文件名。
+
+### 外部资源 \{#external-resources}
+
+使用内置 CSS 支持时，你可以通过 [externals](/config/externals) 将 CSS 导入和资源排除在打包产物之外。对于 `@import`，使用 `css-import` external 类型；对于 `url()` 引用，使用 `asset-url` 类型：
+
+```css title="style.css"
+@import './theme.css';
+
+.logo {
+  background-image: url('./logo.svg');
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  externals: {
+    './theme.css': 'css-import https://example.com/theme.css',
+    './logo.svg': 'asset-url https://example.com/logo.svg',
+  },
+};
+```
+
+生成的 CSS 会引用外部 URL，而不会打包这些文件。浏览器加载样式表时会加载这些资源。
+
+对于默认的 web target，CSS 中的 HTTP(S) 和协议相对 URL 默认会被视为 external。启用 [`experiments.buildHttp`](/config/experiments#experimentsbuildhttp) 可能会改变 HTTP(S) URL 的处理方式。
+
+### 魔法注释 \{#magic-comments}
+
+使用内置 CSS 支持时，可以为 `@import` 或 `url()` 引用添加 `/* rspackIgnore: true */`，让 Rspack 保留原始引用，不对其进行解析和打包。将注释放在 `@import` 之后或 `url()` 之前：
+
+```css
+@import /* rspackIgnore: true */ url('/styles/theme.css');
+
+.logo {
+  background-image: /* rspackIgnore: true */ url('/images/logo.svg');
+}
+```
+
+Rspack 不会输出被忽略的资源，因此需要确保它们在运行时可通过相应的 URL 访问。为了兼容 webpack，也支持使用 `/* webpackIgnore: true */`。
+
+如需禁用对所有 `@import` 规则或 `url()` 引用的处理，请参阅 CSS parser 选项 [`import`](/config/module-parser#cssautoimport) 和 [`url`](/config/module-parser#cssautourl)。
+
+## 使用 css-loader \{#using-css-loader}
+
+你可以将 [css-loader](https://github.com/webpack/css-loader) 与 CssExtractRspackPlugin 配合使用，生成独立的 CSS 文件；也可以与 style-loader 配合使用，在运行时注入样式。
+
+### 使用 CssExtractRspackPlugin \{#using-cssextractrspackplugin}
 
 Rspack 支持使用 [css-loader](https://github.com/webpack/css-loader) 和 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin)，用于生成独立的 CSS 文件。
 
@@ -211,7 +267,7 @@ export default {
 CssExtractRspackPlugin 不能与 `type: 'css'`、`type: 'css/auto'`、`type: 'css/global'` 或 `type: 'css/module'` 同时使用，因为 css-loader 会将 css 转换成 javascript 类型。
 :::
 
-### 使用 style-loader
+### 使用 style-loader \{#using-style-loader}
 
 Rspack 支持使用 [css-loader](https://github.com/webpack/css-loader) 和 [style-loader](https://github.com/webpack/style-loader)，将 CSS 通过 `<style>` 标签注入。这种方式不会生成独立的 CSS 文件，而是将 CSS 的内容内联到 JS 文件中。
 
@@ -245,7 +301,7 @@ style-loader 不能与 `type: 'css'`、`type: 'css/auto'`、`type: 'css/global'`
 
 ### 内置支持
 
-在开启 [内置 CSS 支持](#内置-css-支持) 后，Rspack 默认将扩展名为 `*.module.css` 的文件视为 CSS Modules，你可以在 JavaScript 文件中导入它，然后将 CSS 文件中定义的每个类作为模块的导出来访问。
+在开启 [内置 CSS 支持](#built-in-css-support) 后，Rspack 默认将扩展名为 `*.module.css` 的文件视为 CSS Modules，你可以在 JavaScript 文件中导入它，然后将 CSS 文件中定义的每个类作为模块的导出来访问。
 
 ```css title="index.module.css"
 .red {

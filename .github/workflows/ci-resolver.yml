@@ -76,13 +76,24 @@ jobs:
       - name: Setup Node.js and Pnpm
         uses: ./.github/actions/pnpm/setup
 
+      - name: Enable Corepack for Yarn
+        shell: bash
+        run: corepack enable yarn
+
+      - name: Install PnP fixtures
+        shell: bash
+        working-directory: crates/rspack_resolver/fixtures/pnp
+        run: yarn install --immutable
+
+      - name: Install PnP global cache fixtures
+        shell: bash
+        working-directory: crates/rspack_resolver/fixtures/pnp-global-cache-enabled
+        run: yarn install --immutable
+
       - name: Install fixtures
         shell: bash
         working-directory: crates/rspack_resolver/fixtures
-        run: |
-          pushd pnp && yarn install && popd
-          pushd pnp-global-cache-enabled && yarn install && popd
-          pnpm install
+        run: pnpm install
 
       # Compile test without debug info for reducing the CI cache size
       - name: Change profile.test

@@ -1,16 +1,12 @@
-mod raw_snapshot;
 mod raw_storage;
-
-use core::panic;
 
 use napi::{
   Either,
   bindgen_prelude::{FromNapiValue, JsObjectValue, Object, TypeName, ValidateNapiValue},
 };
 use napi_derive::napi;
-use raw_snapshot::RawSnapshotOptions;
 use raw_storage::RawStorageOptions;
-use rspack_core::{CacheOptions, PersistentCacheOptions, SnapshotOptions};
+use rspack_core::{CacheOptions, PersistentCacheOptions};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -19,7 +15,6 @@ pub struct RawCacheOptionsPersistent {
   pub version: Option<String>,
   pub max_age: u32,
   pub max_memory_generations: Option<u32>,
-  pub snapshot: Option<RawSnapshotOptions>,
   pub storage: Option<RawStorageOptions>,
   pub portable: Option<bool>,
   pub readonly: Option<bool>,
@@ -38,7 +33,6 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
         .map(Into::into)
         .collect(),
       version: value.version.unwrap_or_default(),
-      snapshot: value.snapshot.unwrap_or_default().into(),
       storage,
       portable: value.portable.unwrap_or_default(),
       readonly: value.readonly.unwrap_or_default(),
@@ -52,7 +46,6 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
 #[napi(object)]
 pub struct RawCacheOptionsMemory {
   pub max_generations: Option<u32>,
-  pub snapshot: Option<RawSnapshotOptions>,
 }
 
 #[derive(Debug)]
@@ -91,7 +84,11 @@ impl FromNapiValue for InnerCacheOptions {
           let o = RawCacheOptionsMemory::from_napi_value(env, napi_val)?;
           Self::Memory(o)
         }
-        _ => panic!("Unexpected cache type: {t}, expected 'persistent' or 'memory'"),
+        _ => {
+          return Err(napi::Error::from_reason(format!(
+            "Unexpected cache type: {t}, expected 'persistent' or 'memory'"
+          )));
+        }
       };
 
       Ok(v)
@@ -105,10 +102,7 @@ pub fn normalize_raw_cache(options: RawCacheOptions) -> rspack_error::Result<Cac
   Ok(match options {
     Either::A(options) => {
       if options {
-        CacheOptions::Memory {
-          max_generations: 1,
-          snapshot: SnapshotOptions::default(),
-        }
+        CacheOptions::Memory { max_generations: 1 }
       } else {
         CacheOptions::Disabled
       }
@@ -117,7 +111,6 @@ pub fn normalize_raw_cache(options: RawCacheOptions) -> rspack_error::Result<Cac
       InnerCacheOptions::Persistent(options) => CacheOptions::Persistent(options.try_into()?),
       InnerCacheOptions::Memory(options) => CacheOptions::Memory {
         max_generations: options.max_generations.unwrap_or(1),
-        snapshot: options.snapshot.unwrap_or_default().into(),
       },
     },
   })

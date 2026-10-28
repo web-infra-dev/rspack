@@ -137,10 +137,11 @@ impl FixIssuers {
       // analyze child module
       // if child module issuer is current module,
       // add child module to self.need_check_modules
-      for child_dep_id in mgm.outgoing_connections() {
+      for child_connection_id in mgm.outgoing_connections() {
         let child_mid = module_graph
-          .module_identifier_by_dependency_id(child_dep_id)
-          .expect("should module exist");
+          .connection_by_id(child_connection_id)
+          .expect("should connection exist")
+          .module_identifier();
         let Some(child_mgm) = module_graph.module_graph_module_by_identifier(child_mid) else {
           // peresistent cache recovery module graph will lose some module and mgm.
           // TODO replace to .expect() after all modules are cacheable.
@@ -230,9 +231,9 @@ impl FixIssuers {
         let incoming_connections: Vec<_> = mgm.incoming_connections().iter().copied().collect();
         let issuer_identifier = mgm.issuer().identifier().copied();
         let mut parents = Vec::with_capacity(incoming_connections.len());
-        for dep_id in incoming_connections {
+        for connection_id in incoming_connections {
           let conn = module_graph
-            .connection_by_dependency_id(&dep_id)
+            .connection_by_id(&connection_id)
             .expect("should have connection");
           if conn.original_module_identifier == issuer_identifier {
             // current issuer is a incoming connection, skip it.
@@ -292,9 +293,9 @@ impl FixIssuers {
             let child_module_parents = child_mgm
               .incoming_connections()
               .iter()
-              .map(|dep_id| {
+              .map(|connection_id| {
                 let conn = module_graph
-                  .connection_by_dependency_id(dep_id)
+                  .connection_by_id(connection_id)
                   .expect("should have connection");
                 conn.original_module_identifier
               })
@@ -481,9 +482,9 @@ impl FixIssuers {
           let child_module_parents = child_mgm
             .incoming_connections()
             .iter()
-            .filter_map(|dep_id| {
+            .filter_map(|connection_id| {
               let origin_module_identifier = module_graph
-                .connection_by_dependency_id(dep_id)
+                .connection_by_id(connection_id)
                 .expect("should have connection")
                 .original_module_identifier;
               if let Some(mid) = origin_module_identifier

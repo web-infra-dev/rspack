@@ -15,7 +15,7 @@ use regex::Regex;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
-  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
+  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, CodeFilter,
   CssAutoOrModuleParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
   DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
@@ -23,7 +23,7 @@ use rspack_core::{
   JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
   JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
-  JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule, ModuleNoParseRules,
+  JsonGeneratorOptions, JsonParserOptions, LoaderFilter, ModuleNoParseRule, ModuleNoParseRules,
   ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap,
   TypeReexportPresenceMode,
@@ -51,6 +51,16 @@ pub struct RawModuleRuleUse {
   pub options: Option<String>,
   pub cache: bool,
   pub options_cache_key: String,
+  #[napi(ts_type = "string | RegExp")]
+  pub code_filter: Option<Either<String, RspackRegex>>,
+}
+
+fn into_loader_filter(value: Either<String, RspackRegex>) -> Arc<LoaderFilter> {
+  let code = match value {
+    Either::A(value) => CodeFilter::String(value),
+    Either::B(value) => CodeFilter::Regexp(value),
+  };
+  Arc::new(LoaderFilter::new(Some(code)))
 }
 
 #[rspack_napi_macros::tagged_union]
@@ -286,6 +296,7 @@ impl From<RawParserOptions> for ParserOptions {
 #[napi(object)]
 pub struct RawJavascriptParserOptions {
   pub dynamic_import_mode: Option<String>,
+  pub dynamic_url: Option<bool>,
   pub dynamic_import_preload: Option<String>,
   pub dynamic_import_prefetch: Option<String>,
   pub dynamic_import_fetch_priority: Option<String>,
@@ -382,6 +393,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         .dynamic_import_fetch_priority
         .map(|x| DynamicImportFetchPriority::from(x.as_str())),
       url: value.url.map(|v| JavascriptParserUrl::from(v.as_str())),
+      dynamic_url: value.dynamic_url,
       expr_context_critical: value.expr_context_critical,
       unknown_context_critical: value.unknown_context_critical,
       wrapped_context_reg_exp: value.wrapped_context_reg_exp,
@@ -1025,6 +1037,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
             options: rule_use.options,
             cache: rule_use.cache,
             options_cache_key: rule_use.options_cache_key,
+            filter: rule_use.code_filter.map(into_loader_filter),
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -1041,6 +1054,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
                   options: rule_use.options,
                   cache: rule_use.cache,
                   options_cache_key: rule_use.options_cache_key,
+                  filter: rule_use.code_filter.map(into_loader_filter),
                 })
                 .collect::<Vec<_>>()
             })

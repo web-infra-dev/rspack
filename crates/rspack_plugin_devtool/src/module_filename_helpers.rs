@@ -113,27 +113,49 @@ impl ModuleFilenameHelpers {
 
         let short_identifier = module.readable_identifier(context).to_string();
         let identifier = contextify(context, module_identifier);
+        // Readable identifiers may contain display-only prefixes such as `css `.
+        let resource_identifier = match module.as_normal_module() {
+          Some(normal_module) => contextify(context, normal_module.user_request()),
+          None => short_identifier.clone(),
+        };
         let module_id =
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
             .map(|s| s.to_string())
             .unwrap_or_default();
-        let absolute_resource_path = module
-          .identifier()
-          .split('!')
-          .next_back()
-          .unwrap_or("")
-          .to_string();
+        let absolute_resource_path = match module.as_normal_module() {
+          Some(normal_module) => normal_module.resource_resolved_data().path().map_or_else(
+            || {
+              module
+                .identifier()
+                .split('!')
+                .next_back()
+                .unwrap_or("")
+                .to_string()
+            },
+            |p| p.to_string(),
+          ),
+          None => module
+            .identifier()
+            .split('!')
+            .next_back()
+            .unwrap_or("")
+            .to_string(),
+        };
 
         let hash = get_hash(&identifier, output_options);
 
-        let resource = short_identifier
+        let resource = resource_identifier
           .split('!')
           .next_back()
           .unwrap_or("")
           .to_string();
-        let relative_resource_path = Some(resource.clone());
+        let relative_resource_path = resolve_relative_resource_path(
+          &absolute_resource_path,
+          unresolved_source_map_path,
+          options.experiments.runtime_mode,
+        );
 
-        let loaders = get_before(&short_identifier, "!").to_string();
+        let loaders = get_before(&resource_identifier, "!").to_string();
         let all_loaders = get_before(&identifier, "!").to_string();
         let query = get_after(&resource, "?").to_string();
 
@@ -297,6 +319,7 @@ impl ModuleFilenameHelpers {
       unresolved_source_map_path,
       short_identifier: Default::default(),
       identifier: Default::default(),
+      resource_identifier: Default::default(),
     }
   }
 }
@@ -344,6 +367,7 @@ struct ModuleFilenameTemplateStringCtx<'a> {
   // Lazy fields using OnceCell for caching
   short_identifier: OnceCell<Cow<'a, str>>,
   identifier: OnceCell<Cow<'a, str>>,
+  resource_identifier: OnceCell<Cow<'a, str>>,
 }
 
 impl<'a> ModuleFilenameTemplateStringCtx<'a> {
@@ -403,21 +427,22 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
   }
 
   pub fn relative_resource_path(&self) -> Option<Cow<'_, str>> {
-    match &self.source_reference {
-      SourceReference::Module(_) => {
-        let short_identifier = self.short_identifier();
-        let resource = short_identifier.split('!').next_back().unwrap_or("");
-        Some(Cow::Borrowed(resource))
+    let absolute_resource_path = self.absolute_resource_path();
+    let resolved = resolve_relative_resource_path(
+      absolute_resource_path,
+      self.unresolved_source_map_path,
+      self.compilation.options.experiments.runtime_mode,
+    );
+
+    match (resolved, &self.source_reference) {
+      (Some(path), _) => Some(Cow::Owned(path)),
+      (None, SourceReference::Module(_)) => {
+        // Eval devtool modes have no source map file path to resolve against.
+        let resource_identifier = self.resource_identifier();
+        let resource = resource_identifier.split('!').next_back().unwrap_or("");
+        Some(Cow::Owned(resource.to_string()))
       }
-      SourceReference::Source(_) => {
-        let absolute_resource_path = self.absolute_resource_path();
-        resolve_relative_resource_path(
-          absolute_resource_path,
-          self.unresolved_source_map_path,
-          self.compilation.options.experiments.runtime_mode,
-        )
-        .map(Cow::Owned)
-      }
+      (None, SourceReference::Source(_)) => None,
     }
   }
 
@@ -427,13 +452,37 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
   }
 
   pub fn resource(&self) -> &str {
-    let short_identifier = self.short_identifier();
-    short_identifier.split('!').next_back().unwrap_or("")
+    let resource_identifier = self.resource_identifier();
+    resource_identifier.split('!').next_back().unwrap_or("")
   }
 
   pub fn loaders(&self) -> &str {
-    let short_identifier = self.short_identifier();
-    get_before(short_identifier, "!")
+    let resource_identifier = self.resource_identifier();
+    get_before(resource_identifier, "!")
+  }
+
+  /// Returns the request path without readable-identifier decorations such as `css `.
+  pub fn resource_identifier(&self) -> &str {
+    self.resource_identifier.get_or_init(|| {
+      let Compilation { options, .. } = self.compilation;
+      let context = &options.context;
+
+      match &self.source_reference {
+        SourceReference::Module(module_identifier) => {
+          let module_graph = self.compilation.get_module_graph();
+          let module = module_graph
+            .module_by_identifier(module_identifier)
+            .unwrap_or_else(|| {
+              panic!("failed to find a module for the given identifier '{module_identifier}'")
+            });
+          match module.as_normal_module() {
+            Some(normal_module) => Cow::Owned(contextify(context, normal_module.user_request())),
+            None => module.readable_identifier(context),
+          }
+        }
+        SourceReference::Source(source) => Cow::Owned(contextify(context, source)),
+      }
+    })
   }
 
   pub fn all_loaders(&self) -> &str {

@@ -1,0 +1,8 @@
+[
+  {
+    "resolver cache": {
+      "hits": 4,
+      "total": 4
+    }
+  }
+]

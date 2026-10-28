@@ -19,4 +19,5 @@ it("compactExternalModuleDynamicImport should preserve dynamic import of externa
 
 	const initialChunk2 = fs.readFileSync(path.resolve(__dirname, "main2.js"), "utf-8");
 	expect(initialChunk2).not.toContain('__webpack_require__.e');
+	expect(initialChunk2).toContain('import("vue-alias").then(resolve, reject)');
 });

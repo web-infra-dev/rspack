@@ -1,10 +1,12 @@
 import { expect, test } from '@/fixtures';
 
 async function expect_content(page: any, data: string) {
-  await expect(async () => {
-    await page.reload();
-    expect(await page.locator('div').innerText()).toBe(data);
-  }).toPass();
+  await expect
+    .poll(async () => {
+      await page.reload();
+      return await page.locator('div').innerText();
+    })
+    .toBe(data);
 }
 
 test('should compile', async ({ page, fileAction, rspack }) => {

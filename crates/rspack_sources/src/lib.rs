@@ -21,15 +21,15 @@ mod decoder;
 mod encoder;
 mod error;
 mod helpers;
+mod line_index;
 mod linear_map;
-mod object_pool;
+mod mapping_source;
 mod original_source;
 mod raw_source;
 mod replace_source;
 mod source;
 mod source_content_lines;
 mod source_map_source;
-mod with_utf16;
 
 /// Feature for rspack persistent cache serialization/deserialization.
 #[cfg(feature = "rspack_cacheable")]
@@ -38,6 +38,7 @@ pub mod cacheable;
 pub use cached_source::CachedSource;
 pub use concat_source::ConcatSource;
 pub use error::{Error, Result};
+pub use mapping_source::MappingSource;
 pub use original_source::OriginalSource;
 pub use raw_source::{RawBufferSource, RawStringSource};
 pub use replace_source::{ReplaceSource, Replacement, ReplacementEnforce};
@@ -55,4 +56,3 @@ pub mod stream_chunks {
 }
 
 pub use helpers::{decode_mappings, encode_mappings, utf8_column_to_utf16_column, utf16_len};
-pub use object_pool::ObjectPool;

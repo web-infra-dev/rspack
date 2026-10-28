@@ -422,6 +422,18 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    self.render_with_require(dep, source, code_generatable_context, None);
+  }
+}
+
+impl CommonJsExportRequireDependencyTemplate {
+  pub fn render_with_require(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+    direct_require: Option<String>,
+  ) {
     let dep = dep
       .as_any()
       .downcast_ref::<CommonJsExportRequireDependency>()
@@ -436,10 +448,6 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     } = code_generatable_context;
 
     let mg = &compilation.get_module_graph();
-
-    let module = mg
-      .module_by_identifier(&module.identifier())
-      .expect("should have mgm");
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
@@ -462,7 +470,9 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       unreachable!()
     };
 
-    let require_expr = if let Some(imported_module) = mg.get_module_by_dependency_id(&dep.id)
+    let require_expr = if let Some(direct_require) = direct_require {
+      direct_require
+    } else if let Some(imported_module) = mg.get_module_by_dependency_id(&dep.id)
       && let ids = dep.get_ids(mg)
       && let Some(used_imported) = compilation
         .exports_info_artifact

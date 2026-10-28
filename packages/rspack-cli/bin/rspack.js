@@ -4,7 +4,9 @@ import nodeModule from 'node:module';
 // enable on-disk code caching of all modules loaded by Node.js
 // requires Nodejs >= 22.8.0
 const { enableCompileCache } = nodeModule;
-if (enableCompileCache) {
+const isCI = Boolean(process.env.CI) && process.env.CI !== 'false';
+// Skip CI, where builds typically run once and cannot reuse the cache.
+if (enableCompileCache && !isCI) {
   try {
     enableCompileCache();
   } catch {
@@ -12,9 +14,8 @@ if (enableCompileCache) {
   }
 }
 
-import { RspackCLI } from '../dist/index.js';
-
 async function runCLI() {
+  const { RspackCLI } = await import('../dist/index.js');
   const cli = new RspackCLI();
   await cli.run(process.argv);
 }

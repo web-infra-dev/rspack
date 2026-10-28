@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{ChunkLoading, Compilation, EntryData, EntryOptions, EntryRuntime};
+use rspack_core::{ChunkLoading, Compilation, EntryData, EntryOptions, EntryRuntime, internal};
 use rspack_napi::napi::bindgen_prelude::*;
 
 use crate::{
@@ -198,8 +198,9 @@ impl EntryDataDTO {
       .dependencies
       .iter()
       .map(|dependency_id| {
-        let dep = module_graph.dependency_by_id(dependency_id);
-        DependencyWrapper::new(dep, self.compilation.id(), Some(self.compilation))
+        let dep = internal::try_dependency_ref_by_id(module_graph, dependency_id)
+          .expect("entry dependency should exist in the module graph");
+        DependencyWrapper::from_graph(dep, self.compilation.id())
       })
       .collect::<Vec<_>>()
   }
@@ -212,8 +213,9 @@ impl EntryDataDTO {
       .include_dependencies
       .iter()
       .map(|dependency_id| {
-        let dep = module_graph.dependency_by_id(dependency_id);
-        DependencyWrapper::new(dep, self.compilation.id(), Some(self.compilation))
+        let dep = internal::try_dependency_ref_by_id(module_graph, dependency_id)
+          .expect("entry dependency should exist in the module graph");
+        DependencyWrapper::from_graph(dep, self.compilation.id())
       })
       .collect::<Vec<_>>()
   }

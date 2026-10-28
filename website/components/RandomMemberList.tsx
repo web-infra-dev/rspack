@@ -214,6 +214,12 @@ const coreTeam: Member[] = [
     x: 'https://x.com/swwind233',
     desc: 'Rspack core team',
   },
+  {
+    id: 'hai-x',
+    avatar: 'https://github.com/hai-x.png',
+    x: 'https://x.com/__haijie',
+    desc: 'Rspack & webpack core team',
+  },
 ];
 
 export const RandomMemberList = ({ list = coreTeam }: { list?: Member[] }) => {
@@ -254,9 +260,9 @@ export const RandomMemberList = ({ list = coreTeam }: { list?: Member[] }) => {
 export const RandomContributorsList = () => {
   const list: Member[] = [
     {
-      id: 'hyf0',
-      avatar: 'https://github.com/hyf0.png',
-      x: 'https://x.com/_hyf0',
+      id: 'hyfdev',
+      avatar: 'https://github.com/hyfdev.png',
+      x: 'https://x.com/hyfdev',
       desc: 'Rspack & Rolldown core team',
     },
     {

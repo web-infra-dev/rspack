@@ -197,8 +197,8 @@ pub fn record_shared_usage(
     }
   }
   if let Some(mgm) = module_graph.module_graph_module_by_identifier(module_identifier) {
-    for dep_id in mgm.incoming_connections() {
-      let Some(connection) = module_graph.connection_by_dependency_id(dep_id) else {
+    for connection_id in mgm.incoming_connections() {
+      let Some(connection) = module_graph.connection_by_id(connection_id) else {
         continue;
       };
       let dependency = module_graph.dependency_by_id(&connection.dependency_id);

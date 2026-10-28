@@ -44,6 +44,11 @@ pub struct ChunkGroup {
   pub(crate) is_over_size_limit: Option<bool>,
 }
 
+/// Chunk groups usually hold a handful of modules, so reserving a small amount of
+/// space up front avoids repeated rehashing for the many small groups while the
+/// extra memory stays bounded for large ones.
+const MODULE_ORDER_INDEX_CAPACITY: usize = 16;
+
 impl Default for ChunkGroup {
   fn default() -> Self {
     Self::new(ChunkGroupKind::Normal {
@@ -61,8 +66,14 @@ impl ChunkGroup {
     Self {
       ukey: ChunkGroupUkey::new(),
       chunks: vec![],
-      module_post_order_indices: Default::default(),
-      module_pre_order_indices: Default::default(),
+      module_post_order_indices: IdentifierMap::with_capacity_and_hasher(
+        MODULE_ORDER_INDEX_CAPACITY,
+        Default::default(),
+      ),
+      module_pre_order_indices: IdentifierMap::with_capacity_and_hasher(
+        MODULE_ORDER_INDEX_CAPACITY,
+        Default::default(),
+      ),
       parents: Default::default(),
       children: Default::default(),
       async_entrypoints: Default::default(),

@@ -1,21 +1,29 @@
 use std::{
   fmt,
+  hash::{Hash, Hasher},
   path::{Path, PathBuf},
   sync::Arc,
 };
 
+use futures::future::BoxFuture;
+use parking_lot::RwLock;
+use rspack_cacheable::cacheable;
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::{AssertUtf8, InternedPathSet};
 use rspack_util::location::byte_line_column_to_offset;
+use rustc_hash::FxHasher;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
   Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
+  ResolverCache,
 };
 
-#[derive(Debug, Default)]
+/// Cloning returns independent dependency collections to each cache caller while sharing paths.
+#[cacheable]
+#[derive(Debug, Default, Clone)]
 pub struct ResolveDependencies {
   /// Files that were found on file system; entries carry the precomputed
   /// `FxHash` from `rspack_resolver`.
@@ -81,6 +89,24 @@ impl ResolveInnerOptions<'_> {
       Self::RspackResolver(options) => options.modules.iter(),
     }
   }
+
+  /// Whether a `resolve.alias` key applies to `request`, using the resolver's
+  /// matching rules: `key$` matches exactly, other keys match `key` or `key/...`.
+  pub fn has_alias_for(&self, request: &str) -> bool {
+    match self {
+      Self::RspackResolver(options) => {
+        options
+          .alias
+          .iter()
+          .any(|(key, _)| match key.strip_suffix('$') {
+            Some(key) => request == key,
+            None => request
+              .strip_prefix(key.as_str())
+              .is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', '\\'])),
+          })
+      }
+    }
+  }
 }
 
 /// Proxy to [rspack_resolver::Resolver]
@@ -90,6 +116,9 @@ impl ResolveInnerOptions<'_> {
 pub struct Resolver {
   inner_fs: Arc<dyn ReadableFileSystem>,
   resolver: rspack_resolver::ResolverGeneric<BoxFS>,
+  options_key: u64,
+  // Shared by all resolvers derived from the same factory, including existing instances.
+  cache: Arc<RwLock<Option<ResolverCache>>>,
 }
 
 impl Resolver {
@@ -98,12 +127,17 @@ impl Resolver {
   }
 
   fn new_rspack_resolver(options: Resolve, fs: Arc<dyn ReadableFileSystem>) -> Self {
+    let mut hasher = FxHasher::default();
+    options.hash(&mut hasher);
+    let options_key = hasher.finish();
     let options = to_rspack_resolver_options(options, false, DependencyCategory::Unknown);
     let boxfs = BoxFS::new(fs.clone());
     let resolver = rspack_resolver::ResolverGeneric::new_with_file_system(boxfs, options);
     Self {
       inner_fs: fs,
       resolver,
+      options_key,
+      cache: Default::default(),
     }
   }
 
@@ -118,6 +152,15 @@ impl Resolver {
     options: Resolve,
     options_with_dependency_type: &ResolveOptionsWithDependencyType,
   ) -> Self {
+    let mut hasher = FxHasher::default();
+    options.hash(&mut hasher);
+    options_with_dependency_type
+      .resolve_to_context
+      .hash(&mut hasher);
+    options_with_dependency_type
+      .dependency_category
+      .hash(&mut hasher);
+    let options_key = hasher.finish();
     let resolver = &self.resolver;
     let options = to_rspack_resolver_options(
       options,
@@ -129,7 +172,13 @@ impl Resolver {
     Self {
       inner_fs: self.inner_fs.clone(),
       resolver,
+      options_key,
+      cache: Arc::clone(&self.cache),
     }
+  }
+
+  pub fn set_resolver_cache(&self, cache: Option<ResolverCache>) {
+    *self.cache.write() = cache;
   }
 
   /// Return the options from the resolver
@@ -157,8 +206,7 @@ impl Resolver {
     }
   }
 
-  /// Resolve a specifier to a given path.
-  pub async fn resolve_with_context(
+  async fn resolve_with_context_impl(
     &self,
     path: &Path,
     request: &str,
@@ -188,6 +236,33 @@ impl Resolver {
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),
     };
     (result, dependencies)
+  }
+
+  /// Resolve a specifier to a given path.
+  pub fn resolve_with_context<'a>(
+    &'a self,
+    path: &'a Path,
+    request: &'a str,
+  ) -> BoxFuture<
+    'a,
+    (
+      Result<ResolveResult, ResolveInnerError>,
+      ResolveDependencies,
+    ),
+  > {
+    Box::pin(async move {
+      let cache = self.cache.read().clone();
+      match cache {
+        Some(cache) => {
+          cache
+            .use_cache(self.options_key, path, request, || {
+              self.resolve_with_context_impl(path, request)
+            })
+            .await
+        }
+        None => self.resolve_with_context_impl(path, request).await,
+      }
+    })
   }
 
   pub fn inner_fs(&self) -> Arc<dyn ReadableFileSystem> {

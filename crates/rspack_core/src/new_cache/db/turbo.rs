@@ -14,7 +14,7 @@ use turbo_persistence::{
 
 use crate::new_cache::{
   CacheKey,
-  db::{Database, DatabaseFamily, DatabaseValue},
+  db::{DatabaseFamily, DatabaseValue},
 };
 
 const STALE_DIRECTORY: &str = "_stale";
@@ -191,6 +191,25 @@ pub struct TurboDatabase {
   readonly: bool,
 }
 
+// The pinned nightly emits duplicate drop symbols when creating a reflection
+// vtable for Inner's unevaluated const argument. Avoid that vtable while keeping
+// the other fields visible; this backend's nested allocations remain unobserved.
+#[cfg(allocative)]
+impl rspack_allocative::Allocative for TurboDatabase {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field_with(
+      rspack_allocative::ident_key!(inner),
+      std::mem::size_of_val(&self.inner),
+      |visitor| visitor.visit_opaque(&self.inner),
+    );
+    visitor.visit_field(rspack_allocative::ident_key!(base_path), &self.base_path);
+    visitor.visit_field(rspack_allocative::ident_key!(path), &self.path);
+    visitor.visit_field(rspack_allocative::ident_key!(readonly), &self.readonly);
+    visitor.exit();
+  }
+}
+
 impl fmt::Debug for TurboDatabase {
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
     formatter
@@ -213,27 +232,36 @@ impl TurboDatabase {
       readonly,
     })
   }
-}
 
-impl Database for TurboDatabase {
-  fn get(&self, family: DatabaseFamily, key: &CacheKey) -> Result<Option<DatabaseValue>> {
+  pub fn get(&self, family: DatabaseFamily, key: &CacheKey) -> Result<Option<DatabaseValue>> {
     Ok(self.inner.get(family.index(), &key)?)
   }
 
-  fn is_empty(&self) -> bool {
+  pub fn is_empty(&self) -> bool {
     self.inner.is_empty()
   }
 
-  fn write_batch(&self, writes: Vec<(DatabaseFamily, CacheKey, Vec<u8>)>) -> Result<()> {
+  pub fn write_batch(
+    &self,
+    writes: impl ParallelIterator<Item = (DatabaseFamily, CacheKey, Vec<u8>)>,
+  ) -> Result<usize> {
     let batch = self.inner.write_batch::<CacheKey>()?;
-    writes
-      .into_par_iter()
-      .try_for_each(|(family, key, value)| batch.put(family.index() as u32, key, value.into()))?;
-    self.inner.commit_write_batch(batch)?;
-    Ok(())
+    let writes_len = writes
+      .try_fold(
+        || 0,
+        |count, (family, key, value)| -> Result<usize> {
+          batch.put(family.index() as u32, key, value.into())?;
+          Ok(count + 1)
+        },
+      )
+      .try_reduce(|| 0, |a, b| Ok(a + b))?;
+    if writes_len > 0 {
+      self.inner.commit_write_batch(batch)?;
+    }
+    Ok(writes_len)
   }
 
-  fn compact(&self) -> Result<()> {
+  pub fn compact(&self) -> Result<()> {
     if self.readonly || self.inner.is_empty() {
       return Ok(());
     }
@@ -241,11 +269,11 @@ impl Database for TurboDatabase {
     Ok(())
   }
 
-  fn has_unrecoverable_write_error(&self) -> bool {
+  pub fn has_unrecoverable_write_error(&self) -> bool {
     self.inner.has_unrecoverable_write_error()
   }
 
-  fn reset(&mut self) -> Result<()> {
+  pub fn reset(&mut self) -> Result<()> {
     let old_database = std::mem::replace(
       &mut self.inner,
       Inner::empty_in_memory_with_config(database_config()),
@@ -261,7 +289,7 @@ impl Database for TurboDatabase {
     Ok(())
   }
 
-  fn cleanup_stale(&self) -> Result<()> {
+  pub fn cleanup_stale(&self) -> Result<()> {
     let stale_directory = stale_directory(&self.base_path);
     match std::fs::remove_dir_all(stale_directory) {
       Ok(()) => Ok(()),
@@ -270,7 +298,7 @@ impl Database for TurboDatabase {
     }
   }
 
-  fn shutdown(self: Box<Self>) -> Result<()> {
+  pub fn shutdown(self) -> Result<()> {
     self.inner.clear_cache();
     self.inner.shutdown()?;
     Ok(())
@@ -328,10 +356,6 @@ fn database_config() -> DbConfig<{ DatabaseFamily::COUNT }> {
       },
       FamilyConfig {
         name: "validator",
-        kind: FamilyKind::SingleValue,
-      },
-      FamilyConfig {
-        name: "meta",
         kind: FamilyKind::SingleValue,
       },
     ],

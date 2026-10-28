@@ -5,6 +5,8 @@ ahabhgk
 Akait
 alexander-akait
 alibaba
+allocative
+ALLOCATIVE
 analysable
 ansi
 antd
@@ -38,6 +40,7 @@ cssextractrspackplugin
 dail
 darwin
 deconflict
+dedup
 demangle
 demangled
 devongovett
@@ -70,6 +73,7 @@ gengkun
 Hana
 HerringtonDarkholme
 htmlrspackplugin
+hyfdev
 idents
 Idents
 iife
@@ -220,6 +224,7 @@ systemjs
 tailwind
 tailwindcss
 Terser
+threejs
 tiktok
 tokio
 Towhk
@@ -234,6 +239,7 @@ ulivz
 unaccessed
 Undelayed
 unplugin
+Ustr
 valorkin
 vant
 verkada

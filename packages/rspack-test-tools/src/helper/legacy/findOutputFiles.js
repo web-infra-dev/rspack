@@ -1,8 +1,7 @@
 // @ts-nocheck
-'use strict';
 
-const fs = require('node:fs');
-const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * @param {{output: {path: string}}} options options

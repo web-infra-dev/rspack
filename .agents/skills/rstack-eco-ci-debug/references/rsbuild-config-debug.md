@@ -1,4 +1,4 @@
-# Rsbuild Config Debug Tool
+# Rsbuild config debug tool
 
 Use this tool only when the failure hypothesis depends on the actual Rsbuild/Rspack configuration used by the downstream case.
 
@@ -34,7 +34,7 @@ Do not run this tool just because the suite is Rsbuild-based. Use it when config
 4. Search the generated configs for the option, plugin, loader, target, mode, or environment that links the PR diff to the failing case.
 5. Compare the active config with the current PR diff and the failure log.
 
-## Decision Rules
+## Decision rules
 
 - If the generated config does not enable the option or path required by the hypothesis, the current PR is likely only a surface pivot.
 - If the generated config enables the relevant option and the failure signature maps to the PR diff, return to Phase 2 and explain the mechanism.

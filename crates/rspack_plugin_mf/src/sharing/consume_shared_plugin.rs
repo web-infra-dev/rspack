@@ -394,7 +394,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         &data.context,
         request,
         matched.clone(),
-        data.options.experiments.runtime_mode,
+        data.build_context.compiler_options.experiments.runtime_mode,
         |d| data.diagnostics.push(d),
       )
       .await;
@@ -403,7 +403,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   for (prefix, options) in &consumes.prefixed {
     if request.starts_with(prefix) {
       let remainder = &request[prefix.len()..];
-      let module = self
+      let mut module = self
         .create_consume_shared_module(
           &data.context,
           request,
@@ -419,10 +419,11 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             eager: options.eager,
             tree_shaking_mode: options.tree_shaking_mode.clone(),
           }),
-          data.options.experiments.runtime_mode,
+          data.build_context.compiler_options.experiments.runtime_mode,
           |d| data.diagnostics.push(d),
         )
         .await;
+      module.set_configured_share_key(options.share_key.clone());
       return Ok(Some(module.boxed()));
     }
   }
@@ -452,7 +453,7 @@ async fn create_module(
         &data.context,
         resource,
         options.clone(),
-        data.options.experiments.runtime_mode,
+        data.build_context.compiler_options.experiments.runtime_mode,
         |d| data.diagnostics.push(d),
       )
       .await;

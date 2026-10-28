@@ -1,14 +1,19 @@
 import path from 'node:path';
 import { stripVTControlCharacters as stripAnsi } from 'node:util';
-import type { RspackOptions } from '@rspack/core';
+import {
+  config as rspackConfig,
+  type RspackOptions,
+  type RspackOptionsNormalized,
+} from '@rspack/core';
 import { diff as jestDiff } from 'jest-diff';
+import { readTestFile } from '../helper/read-test-file';
 import { TestContext } from '../test/context';
 import type { ITestContext, ITestEnv, ITestProcessor } from '../type';
 
 const CURRENT_CWD = process.cwd();
 
 export function createDefaultsCase(name: string, src: string) {
-  const caseConfig = require(src) as TDefaultsCaseConfig;
+  const caseConfig = readTestFile<TDefaultsCaseConfig>(src);
   it(`should generate the correct defaults from ${caseConfig.description}`, async () => {
     await run(name, {
       config: (context: ITestContext) => {
@@ -35,12 +40,12 @@ export function createDefaultsCase(name: string, src: string) {
 export function getRspackDefaultConfig(
   cwd: string,
   config: RspackOptions,
-): RspackOptions {
+): RspackOptionsNormalized {
   process.chdir(cwd);
-  const { applyWebpackOptionsDefaults, getNormalizedWebpackOptions } =
-    require('@rspack/core').config;
-  const normalizedConfig = getNormalizedWebpackOptions(config);
-  applyWebpackOptionsDefaults(normalizedConfig);
+  const { applyRspackOptionsDefaults, getNormalizedRspackOptions } =
+    rspackConfig;
+  const normalizedConfig = getNormalizedRspackOptions(config);
+  applyRspackOptionsDefaults(normalizedConfig);
   // make snapshot stable
   (normalizedConfig as any).output.bundlerInfo.version = '$version$';
   process.chdir(CURRENT_CWD);
@@ -52,13 +57,13 @@ export type TDefaultsCaseConfig = {
   cwd?: string;
   diff: (
     diff: Assertion<RspackTestDiff>,
-    defaults: Assertion<RspackOptions>,
+    defaults: Assertion<RspackOptionsNormalized>,
   ) => Promise<void>;
   description: string;
 };
 
-const srcDir = path.resolve(__dirname, '../../tests/fixtures');
-const distDir = path.resolve(__dirname, '../../tests/js/defaults');
+const srcDir = path.resolve(import.meta.dirname, '../../tests/fixtures');
+const distDir = path.resolve(import.meta.dirname, '../../tests/js/defaults');
 
 function options(
   context: ITestContext,
@@ -88,7 +93,7 @@ async function check(
     cwd?: string;
     diff: (
       diff: Assertion<RspackTestDiff>,
-      defaults: Assertion<RspackOptions>,
+      defaults: Assertion<RspackOptionsNormalized>,
     ) => Promise<void>;
   },
 ) {

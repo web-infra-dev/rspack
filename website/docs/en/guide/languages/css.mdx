@@ -1,5 +1,5 @@
 ---
-description: 'Use CSS with Rspack, covering setup, configuration, integration details, and framework-specific development patterns.'
+description: 'Configure built-in CSS support or CSS loaders, CSS Modules, PostCSS, Sass, Less, and Tailwind CSS in Rspack.'
 ---
 
 import { PackageManagerTabs, Tabs, Tab } from '@theme';
@@ -8,11 +8,7 @@ import { PackageManagerTabs, Tabs, Tab } from '@theme';
 
 Rspack has built-in support for CSS and provides several features to support CSS bundling.
 
-## Enabling CSS support
-
-You can choose from the following options:
-
-### Built-in CSS support
+## Built-in CSS support
 
 Rspack supports the following four [CSS Modules](#css-modules) types which you can configure manually:
 
@@ -175,6 +171,66 @@ console.log(cssText);
 ```
 
 See [module.parser["css/auto"].exportType](/config/module-parser#cssautoexporttype) for details.
+
+### CSS entry
+
+With the default `exportType: 'link'`, you can use a CSS file as an entry to emit a stylesheet without a corresponding JavaScript entry file. For example:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: './src/styles.css',
+  module: {
+    rules: [{ test: /\.css$/i, type: 'css' }],
+  },
+};
+```
+
+This configuration emits only `dist/main.css`. Referenced assets or source maps, if configured, may add output files. See [output.cssFilename](/config/output#outputcssfilename) to customize the stylesheet filename.
+
+### External resources
+
+With built-in CSS support, you can use [externals](/config/externals) to keep CSS imports and assets out of the bundle. Use the `css-import` external type for an `@import` and the `asset-url` type for a `url()` reference:
+
+```css title="style.css"
+@import './theme.css';
+
+.logo {
+  background-image: url('./logo.svg');
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  externals: {
+    './theme.css': 'css-import https://example.com/theme.css',
+    './logo.svg': 'asset-url https://example.com/logo.svg',
+  },
+};
+```
+
+The generated CSS refers to the external URLs instead of bundling the files. The browser loads those resources when it loads the stylesheet.
+
+For the default web target, HTTP(S) and protocol-relative URLs in CSS are external by default. Enabling [`experiments.buildHttp`](/config/experiments#experimentsbuildhttp) can change how HTTP(S) URLs are handled.
+
+### Magic comments
+
+With built-in CSS support, add `/* rspackIgnore: true */` to an `@import` or `url()` reference to leave it unchanged instead of resolving and bundling it. Place the comment after `@import` or immediately before `url()`:
+
+```css
+@import /* rspackIgnore: true */ url('/styles/theme.css');
+
+.logo {
+  background-image: /* rspackIgnore: true */ url('/images/logo.svg');
+}
+```
+
+Rspack does not emit the ignored resources, so they must be available at the URLs used at runtime. `/* webpackIgnore: true */` is also supported for webpack compatibility.
+
+To disable processing for all `@import` rules or `url()` references, see the CSS parser options [`import`](/config/module-parser#cssautoimport) and [`url`](/config/module-parser#cssautourl).
+
+## Using css-loader
+
+You can use [css-loader](https://github.com/webpack/css-loader) with CssExtractRspackPlugin to generate standalone CSS files, or with style-loader to inject styles at runtime.
 
 ### Using CssExtractRspackPlugin
 

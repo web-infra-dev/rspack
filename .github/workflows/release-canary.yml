@@ -120,7 +120,7 @@ jobs:
       - name: Move artifacts
         run: |
           ls -R artifacts
-          node scripts/build-npm.cjs
+          node scripts/build-npm.mjs
 
       - name: Show binding packages
         run: ls -R npm

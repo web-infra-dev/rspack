@@ -159,8 +159,16 @@ TSFN an explicit release boundary:
   `CompilerScopedTsFnManager::scope`. The scope uses thread-local context because `FromNapiValue`
   cannot receive the owning compiler as additional conversion context.
 - Each handle stores an `Arc<AtomicRefCell<Option<ThreadsafeFunction>>>`. Handle clones share the
-  same slot. The manager registers a releaser that replaces the option with `None`, which drops the
-  TSFN and its strong reference to the JavaScript callback for every clone at once.
+  same slot. The manager only weakly references this slot, so the last consumer can release its
+  callback before compiler close. On close, registered releasers replace surviving slots with
+  `None`, dropping the TSFN reference for every handle clone at once.
+- A TSFN's napi-rs argument-conversion closure holds its unregister callback until finalization.
+  N-API finalizes it on the owning JS thread, even if the last Rust handle was dropped on a worker.
+  This removes stale registrations without cross-thread registry access. The unregister callback
+  weakly references the manager; it must not keep the compiler or the TSFN alive. Construction
+  failures also drop the closure and unregister on the creating JS thread.
+- Releasing the manager takes all registrations out before invoking releasers, so finalization
+  never overlaps a registry borrow. Later finalizers tolerate an empty or already-dropped manager.
 - `JsCompiler::close` waits until in-flight build or rebuild work is idle before closing the native
   compiler, because that work may still need its callbacks. The close Promise releases the manager
   in `finally`; manager `Drop` performs the same release as a fallback.

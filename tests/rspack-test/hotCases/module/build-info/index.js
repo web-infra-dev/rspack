@@ -1,4 +1,4 @@
-import a from "./loader.js!./a";
+import a from "./loader.mjs!./a";
 
 it("should create new JsModule when module changed", async () => {
     expect(a).toBe(1);
@@ -6,4 +6,4 @@ it("should create new JsModule when module changed", async () => {
     expect(a).toBe(2);
 });
 
-module.hot.accept('./loader.js!./a');
+module.hot.accept('./loader.mjs!./a');

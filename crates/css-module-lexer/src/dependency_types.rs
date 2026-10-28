@@ -297,6 +297,10 @@ pub enum Dependency<'s> {
   ICSSExportValue {
     prop: &'s str,
     value: &'s str,
+    /// Whether this defines an `@value` symbol rather than a plain `:export`.
+    is_at_value: bool,
+    /// Identifier token ranges relative to `value`, collected while scanning `@value`.
+    identifiers: DependencyListRange<Range>,
   },
   ICSSSymbol {
     name: &'s str,
@@ -318,6 +322,7 @@ pub struct DependencyContext<'s> {
   composes_local_classes: Vec<&'s str>,
   composes_names: Vec<&'s str>,
   value_at_rule_import_items: Vec<ValueAtRuleImportItem<'s>>,
+  value_at_rule_identifiers: Vec<Range>,
 }
 
 impl<'s> DependencyContext<'s> {
@@ -341,6 +346,24 @@ impl<'s> DependencyContext<'s> {
       &mut self.value_at_rule_import_items,
       estimate.value_at_rule_import_items as usize,
     );
+  }
+
+  pub(crate) fn checkpoint(&self) -> [usize; 5] {
+    [
+      self.dependencies.len(),
+      self.import_attributes.len(),
+      self.composes_local_classes.len(),
+      self.composes_names.len(),
+      self.value_at_rule_import_items.len(),
+    ]
+  }
+
+  pub(crate) fn rollback(&mut self, checkpoint: [usize; 5]) {
+    self.dependencies.truncate(checkpoint[0]);
+    self.import_attributes.truncate(checkpoint[1]);
+    self.composes_local_classes.truncate(checkpoint[2]);
+    self.composes_names.truncate(checkpoint[3]);
+    self.value_at_rule_import_items.truncate(checkpoint[4]);
   }
 
   pub fn len(&self) -> usize {
@@ -392,6 +415,44 @@ impl<'s> DependencyContext<'s> {
 
   pub fn value_at_rule_import_items(&self) -> &[ValueAtRuleImportItem<'s>] {
     &self.value_at_rule_import_items
+  }
+
+  pub fn value_at_rule_identifiers(&self, range: DependencyListRange<Range>) -> &[Range] {
+    &self.value_at_rule_identifiers[range.as_usize_range()]
+  }
+
+  pub(crate) fn value_at_rule_identifiers_checkpoint(&self) -> usize {
+    self.value_at_rule_identifiers.len()
+  }
+
+  pub(crate) fn push_value_at_rule_identifier(&mut self, range: Range) {
+    self.value_at_rule_identifiers.push(range);
+  }
+
+  pub(crate) fn truncate_value_at_rule_identifiers(&mut self, checkpoint: usize) {
+    self.value_at_rule_identifiers.truncate(checkpoint);
+  }
+
+  pub(crate) fn finish_value_at_rule_identifiers(
+    &mut self,
+    checkpoint: usize,
+    value_start: Pos,
+  ) -> DependencyListRange<Range> {
+    let ranges = &mut self.value_at_rule_identifiers;
+    // Discard identifiers belonging to the declaration name, then translate
+    // source offsets into offsets within the (possibly trimmed) value.
+    let first =
+      checkpoint + ranges[checkpoint..].partition_point(|range| range.start < value_start);
+    let end = checkpoint + ranges.len() - first;
+    if first != checkpoint {
+      ranges.copy_within(first.., checkpoint);
+    }
+    ranges.truncate(end);
+    for range in &mut ranges[checkpoint..] {
+      range.start -= value_start;
+      range.end -= value_start;
+    }
+    DependencyListRange::from_bounds(checkpoint, end)
   }
 
   pub(crate) fn push_dependency(&mut self, dependency: Dependency<'s>) {
@@ -608,6 +669,7 @@ impl<'s> Warning<'s> {
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum WarningKind<'s> {
   Unexpected { message: &'s str },
+  InvalidSelector { message: &'s str },
   DuplicateUrl { when: &'s str },
   NamespaceNotSupportedInBundledCss,
   NotPrecededAtImport,
@@ -624,6 +686,7 @@ impl Display for Warning<'_> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self.kind {
       WarningKind::Unexpected { message, .. } => write!(f, "{message}"),
+      WarningKind::InvalidSelector { message, .. } => write!(f, "{message}"),
       WarningKind::DuplicateUrl { when, .. } => {
         write!(f, "Duplicate of 'url(...)' in '{when}'")
       }

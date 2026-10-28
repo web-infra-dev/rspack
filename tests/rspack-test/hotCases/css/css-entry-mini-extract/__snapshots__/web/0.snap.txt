@@ -1,0 +1,14 @@
+# Case css-entry-mini-extract: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: css-entry.js
+- Bundle: main.js
+- Bundle: runtime.js
+
+## Manifest
+
+
+## Update

@@ -4,7 +4,6 @@ import { pluginTailwindcss } from '@rsbuild/plugin-tailwindcss';
 import { pluginAlgolia } from '@rspress/plugin-algolia';
 import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
 import { pluginRss } from '@rspress/plugin-rss';
-import { pluginSitemap } from '@rspress/plugin-sitemap';
 import {
   transformerNotationDiff,
   transformerNotationHighlight,
@@ -19,6 +18,7 @@ const description =
   'Fast Rust-based bundler for the web with a modernized webpack API';
 
 define.doc({
+  siteOrigin: PUBLISH_URL,
   root: path.join(import.meta.dirname, 'docs'),
   title: 'Rspack',
   description,
@@ -40,7 +40,6 @@ define.doc({
       },
     },
   },
-  llms: true,
   search: {
     codeBlocks: true,
   },
@@ -51,6 +50,10 @@ define.doc({
   plugins: [
     pluginClientRedirects({
       redirects: [
+        {
+          from: '^(/zh)?/guide/features/builtin-(swc|lightningcss)-loader/?$',
+          to: '$1/guide/builtin-loaders/$2-loader',
+        },
         {
           from: '^(/zh)?/guide/features/rstest/?$',
           to: '$1/guide/integrations/rstest',
@@ -114,9 +117,6 @@ define.doc({
       ],
     }),
     pluginAlgolia(),
-    pluginSitemap({
-      siteUrl: PUBLISH_URL,
-    }),
     pluginFontOpenSans(),
     pluginRss({
       siteUrl: PUBLISH_URL,

@@ -32,7 +32,7 @@ export default {
 
 ```ts
 interface ModuleFederationPluginV1Options {
-  name: string;
+  name?: string;
   filename?: string;
   exposes?: Exposes;
   remotes?: Remotes;
@@ -45,4 +45,4 @@ interface ModuleFederationPluginV1Options {
 }
 ```
 
-The `name` option is required. For details about the shared fields, see [ModuleFederationPlugin options](/plugins/module-federation-plugin#options). Module Federation v1 does not support `implementation`, `runtimePlugins`, or `shareStrategy`.
+The `name` option is required when exposing modules. You can omit it if the plugin only configures remotes or shared dependencies, or has no options enabled. For details about the shared fields, see [ModuleFederationPlugin options](/plugins/module-federation-plugin#options). Module Federation v1 does not support `implementation`, `runtimePlugins`, or `shareStrategy`.

@@ -78,9 +78,9 @@ impl ModuleTracker {
         }
         ModuleIssuer::None => {
           // no origin module, module is a entry module
-          for dep_id in mgm.incoming_connections() {
+          for connection_id in mgm.incoming_connections() {
             let connection = module_graph
-              .connection_by_dependency_id(dep_id)
+              .connection_by_id(connection_id)
               .expect("should have connection");
             if let Some(tasks) = self.entry_finish_tasks.remove(&connection.dependency_id) {
               ready_tasks.extend(tasks);

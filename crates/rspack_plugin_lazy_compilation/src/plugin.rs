@@ -190,8 +190,8 @@ async fn normal_module_factory_module(
   if DEV_SERVER_CLIENT_RE.test(create_data.resource_resolve_data.resource())
     || !self
       .check_test(
-        module_factory_create_data.compiler_id,
-        module_factory_create_data.compilation_id,
+        module_factory_create_data.build_context.compiler_id,
+        module_factory_create_data.build_context.compilation_id,
         module,
       )
       .await
@@ -213,7 +213,11 @@ async fn normal_module_factory_module(
     .await
     .contains(&module_identifier);
   let lib_ident = module.lib_ident(LibIdentOptions {
-    context: module_factory_create_data.options.context.as_str(),
+    context: module_factory_create_data
+      .build_context
+      .compiler_options
+      .context
+      .as_str(),
   });
 
   *module = LazyCompilationProxyModule::new(
@@ -233,7 +237,28 @@ async fn normal_module_factory_module(
 
 #[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]
 async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
-  let active_modules = self.backend.lock().await.current_active_modules().await?;
+  // Set this after artifact recovery, including full rebuilds and cache hits.
+  // Local consumers must see a complete barrel before its first execution.
+  compilation
+    .build_module_graph_artifact
+    .module_to_lazy_make
+    .eager_on_local_reference = true;
+
+  let newly_active_modules = self
+    .backend
+    .lock()
+    .await
+    .take_newly_active_modules()
+    .await?;
+
+  // An activated module never goes back to inactive, so the set must outlive
+  // the module graph: without incremental make every proxy is re-created each
+  // compilation and reads its `active` flag from here.
+  self
+    .active_modules
+    .write()
+    .await
+    .extend(newly_active_modules.iter().copied());
 
   // Dep ids of every entry dependency the current compilation knows about.
   // Used below to detect an entry proxy whose only remaining edge points to
@@ -245,27 +270,33 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
     .copied()
     .collect();
 
-  // Seed from the backend snapshot — not-yet-factorized ids must survive
-  // so the later `active` check in `normal_module_factory_module` sees them.
-  let mut next_active_modules: IdentifierSet = active_modules.iter().copied().collect();
   let mut to_invalidate: IdentifierSet = IdentifierSet::default();
   {
     let module_graph = compilation.build_module_graph_artifact.get_module_graph();
-    for module_id in &active_modules {
+    let entry_target = |dep_id: &DependencyId| {
+      let dep = module_graph.dependency_by_id(dep_id);
+      dep
+        .as_module_dependency()
+        .map(|module_dep| (dep.get_context(), module_dep.request()))
+    };
+    // A dynamic entry whose options changed gets a new dep id for the same
+    // context and request, so the proxy is not stale and must still be
+    // activated.
+    let current_entry_targets: FxHashSet<_> = current_entry_dep_ids
+      .iter()
+      .filter_map(entry_target)
+      .collect();
+    for module_id in &newly_active_modules {
       let Some(active_module) = module_graph.module_by_identifier(module_id) else {
         continue;
       };
-      if active_module
-        .downcast_ref::<LazyCompilationProxyModule>()
-        .is_none()
-      {
+      let Some(proxy) = active_module.downcast_ref::<LazyCompilationProxyModule>() else {
         continue;
-      }
+      };
 
-      // Drop the proxy only when its sole incoming edge is an entry dep
-      // that no longer belongs to any current entry. Any other shape
-      // (multiple incomings, non-entry dep, or still-current entry dep)
-      // keeps the proxy active.
+      // Skip the rebuild when the proxy's sole incoming edge is an entry dep
+      // that no longer belongs to any current entry: rebuilding it would
+      // resolve a removed entry source.
       let mut incoming = module_graph.get_incoming_connections(module_id);
       let only = incoming.next();
       let is_stale = incoming.next().is_none()
@@ -276,14 +307,16 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
               .dependency_type(),
             DependencyType::Entry
           ) && !current_entry_dep_ids.contains(&con.dependency_id)
+            && entry_target(&con.dependency_id)
+              .is_none_or(|target| !current_entry_targets.contains(&target))
         });
 
-      if is_stale {
-        next_active_modules.remove(module_id);
-        continue;
+      // A proxy created after the activation request already carries its lazy
+      // block. Rebuilding it would emit a hot update, which makes the client
+      // re-activate and request another rebuild.
+      if !is_stale && !proxy.is_active() {
+        to_invalidate.insert(*module_id);
       }
-
-      to_invalidate.insert(*module_id);
     }
   }
 
@@ -291,14 +324,12 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
     .build_module_graph_artifact
     .get_module_graph_mut();
   for module_id in &to_invalidate {
-    if let Some(active_module) = module_graph.module_by_identifier_mut(module_id)
-      && let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>()
+    if let Some(active_module) = module_graph.module_by_identifier(module_id)
+      && let Some(active_module) = active_module.downcast_ref::<LazyCompilationProxyModule>()
     {
       active_module.invalid();
     }
   }
-
-  *self.active_modules.write().await = next_active_modules;
 
   Ok(())
 }

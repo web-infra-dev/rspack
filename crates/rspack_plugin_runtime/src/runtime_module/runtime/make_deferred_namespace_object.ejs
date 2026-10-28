@@ -1,5 +1,5 @@
 <%- define(MAKE_DEFERRED_NAMESPACE_OBJECT) %> = <%- basicFunction("moduleId, mode") %> {
-  var cachedModule = <%- _module_cache %>[moduleId];
+  var cachedModule = <%- MODULE_CACHE %>[moduleId];
   if (cachedModule && cachedModule.error === undefined) {
     var exports = cachedModule.exports;
     <% if (_has_async) { %>
@@ -26,7 +26,7 @@
       ns = <%- CREATE_FAKE_NAMESPACE_OBJECT %>(ns, mode);
     }
   };
-  var ns = __rspack_deferred_exports[moduleId] || (__rspack_deferred_exports[moduleId] = { __proto__: null });
+  var ns = <%- DEFERRED_MODULE_EXPORTS %>[moduleId] || (<%- DEFERRED_MODULE_EXPORTS %>[moduleId] = { __proto__: null });
   var handler = {
     __proto__: null,
     get: <%- basicFunction("_, name") %> {

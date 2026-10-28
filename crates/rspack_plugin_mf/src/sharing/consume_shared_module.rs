@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
@@ -6,9 +6,10 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
-  ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
-  impl_source_map_config, module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
+  ExportsType, FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -31,14 +32,27 @@ pub struct ConsumeSharedModule {
   readable_identifier: String,
   context: Context,
   options: ConsumeOptions,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  // Preserve the original configuration key when a prefix share is expanded.
+  configured_share_key: Option<String>,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl ConsumeSharedModule {
   pub fn share_scope(&self) -> &ShareScope {
     &self.options.share_scope
+  }
+
+  pub(crate) fn configured_share_key(&self) -> &str {
+    self
+      .configured_share_key
+      .as_deref()
+      .unwrap_or(&self.options.share_key)
+  }
+
+  pub(crate) fn set_configured_share_key(&mut self, key: String) {
+    self.configured_share_key = Some(key);
   }
 
   pub fn new(context: Context, options: ConsumeOptions, runtime_mode: RuntimeMode) -> Self {
@@ -89,7 +103,8 @@ impl ConsumeSharedModule {
       readable_identifier: identifier,
       context,
       options,
-      factory_meta: None,
+      configured_share_key: None,
+      factory_meta: Default::default(),
       build_info: Default::default(),
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
@@ -118,7 +133,7 @@ impl DependenciesBlock for ConsumeSharedModule {
 impl Module for ConsumeSharedModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     42.0
   }
 
@@ -148,17 +163,41 @@ impl Module for ConsumeSharedModule {
 
   fn get_exports_type(
     &self,
-    _module_graph: &ModuleGraph,
-    _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
-    _exports_info_artifact: &rspack_core::ExportsInfoArtifact,
-    _strict: bool,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    exports_info_artifact: &rspack_core::ExportsInfoArtifact,
+    strict: bool,
   ) -> ExportsType {
-    ExportsType::Dynamic
+    if self.options.import.is_none() {
+      return ExportsType::Dynamic;
+    }
+
+    let fallback_dependency = if self.options.eager {
+      self.get_dependency_ids().next()
+    } else {
+      self
+        .get_blocks()
+        .first()
+        .and_then(|block_id| module_graph.block_by_id(block_id))
+        .and_then(|block| block.get_dependency_ids().next())
+    };
+    let Some(fallback_module) =
+      fallback_dependency.and_then(|dep_id| module_graph.get_module_by_dependency_id(dep_id))
+    else {
+      return ExportsType::Dynamic;
+    };
+
+    fallback_module.get_exports_type(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      strict,
+    )
   }
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
   ) -> Result<BoxModule> {
     let mut blocks = vec![];

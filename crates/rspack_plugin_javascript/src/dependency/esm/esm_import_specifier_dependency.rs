@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsOption, AsPreset, AsVec},
@@ -19,7 +21,6 @@ use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::json_stringify_str;
 
 use super::{
-  create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
 use crate::{
@@ -47,7 +48,7 @@ pub struct ESMImportSpecifierDependency {
   ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
-  used_by_exports: Option<UsedByExports>,
+  used_by_exports: Option<Arc<UsedByExports>>,
   #[cacheable(with=AsOption<AsCacheable>)]
   branch_guard: Option<DependencyBranchGuard>,
   #[cacheable(with=AsOption<AsCacheable>)]
@@ -79,10 +80,9 @@ impl ESMImportSpecifierDependency {
     referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
+    resource_identifier: ResourceIdentifier,
     loc: Option<DependencyLocation>,
   ) -> Self {
-    let resource_identifier =
-      create_resource_identifier_for_esm_dependency(&request, phase, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       request,
@@ -161,12 +161,12 @@ impl ESMImportSpecifierDependency {
       .unwrap_or(ExportPresenceMode::Error)
   }
 
-  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<Arc<UsedByExports>>) {
     self.used_by_exports = used_by_exports;
   }
 
   pub fn used_by_exports(&self) -> Option<&UsedByExports> {
-    self.used_by_exports.as_ref()
+    self.used_by_exports.as_deref()
   }
 
   pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
@@ -691,7 +691,6 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       source.replace(dep.range.start, dep.range.end, export_expr, None);
     }
 
-    let module_graph = code_generatable_context.compilation.get_module_graph();
     if let Some(referenced_properties) = &dep.referenced_properties_in_destructuring {
       let mut prefixed_ids = ids.to_vec();
 
@@ -700,17 +699,14 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       };
 
       if ids.first().is_some_and(|id| id == "default") {
-        let self_module = module_graph
-          .get_parent_module(&dep.id)
-          .and_then(|id| module_graph.module_by_identifier(id))
-          .expect("should have parent module");
         let exports_type = module.get_exports_type(
           module_graph,
-          &code_generatable_context
-            .compilation
-            .module_graph_cache_artifact,
-          &code_generatable_context.compilation.exports_info_artifact,
-          self_module.build_meta().strict_esm_module(),
+          &compilation.module_graph_cache_artifact,
+          &compilation.exports_info_artifact,
+          code_generatable_context
+            .module
+            .build_meta()
+            .strict_esm_module(),
         );
         if matches!(
           exports_type,
@@ -721,19 +717,15 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         }
       }
 
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_exports_info_data(&module.identifier());
       referenced_properties.traverse_on_enter(&mut |stack| {
         let prop = stack.last().expect("should have last");
         let mut concated_ids = prefixed_ids.clone();
         concated_ids.extend(stack.iter().map(|p| p.id.clone()));
-        let Some(new_name) = code_generatable_context
-          .compilation
-          .exports_info_artifact
-          .get_exports_info_data(&module.identifier())
-          .get_used_name(
-            &code_generatable_context.compilation.exports_info_artifact,
-            code_generatable_context.runtime,
-            &concated_ids,
-          )
+        let Some(new_name) = exports_info
+          .get_used_name(&compilation.exports_info_artifact, runtime, &concated_ids)
           .and_then(|used| match used {
             UsedName::Normal(names) => names.last().cloned(),
             UsedName::Inlined(inlined) => {
@@ -749,7 +741,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         }
 
         let comment = to_normal_comment(prop.id.as_str());
-        let key = format!("{comment}{new_name}");
+        let key = format!("{comment}{}", json_stringify_str(new_name.as_str()));
         let content = if prop.shorthand {
           format!("{key}: {}", prop.id)
         } else {
@@ -780,7 +772,7 @@ fn connection_active_for_esm_import_specifier(
     return false;
   }
 
-  if let Some(used_by_exports) = dependency.used_by_exports.as_ref() {
+  if let Some(used_by_exports) = dependency.used_by_exports.as_deref() {
     if has_impure_deferred_pure_checks(module_graph, exports_info_artifact, used_by_exports) {
       return true;
     }
@@ -790,13 +782,13 @@ fn connection_active_for_esm_import_specifier(
     }
   }
 
-  match dependency.used_by_exports.as_ref() {
+  match dependency.used_by_exports.as_deref() {
     Some(_) => connection_active_used_by_exports(
       connection,
       runtime,
       module_graph,
       exports_info_artifact,
-      dependency.used_by_exports.as_ref(),
+      dependency.used_by_exports.as_deref(),
     ),
     None => true,
   }

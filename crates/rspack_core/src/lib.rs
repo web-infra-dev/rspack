@@ -1,4 +1,7 @@
 use std::{fmt, sync::Arc};
+
+#[cfg(allocative)]
+pub use rspack_util::rspack_allocative;
 mod artifacts;
 mod binding;
 mod compilation;
@@ -16,8 +19,8 @@ pub use compilation::{
 };
 pub use exports::*;
 pub use new_cache::{
-  Cache, CacheFacade, CacheValue, Etag, FileSystemInfo, ItemCacheFacade, MultiItemCache, Snapshot,
-  SnapshotValidationResult,
+  Cache, CacheFacade, CacheValue, CompilerCache, Etag, FileSystemInfo, ItemCacheFacade,
+  MultiItemCache, Snapshot, SnapshotValidationResult, create_cache,
 };
 pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
@@ -152,6 +155,8 @@ pub enum SourceType {
   CssImport,
   Runtime,
 }
+
+pub static NO_SOURCE_TYPE_LIST: &[SourceType; 0] = &[];
 
 impl std::fmt::Display for SourceType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -325,6 +330,10 @@ pub struct ChunkByUkey {
 }
 
 impl ChunkByUkey {
+  pub(crate) fn reserve_capacity(&mut self, total: usize) {
+    self.inner.reserve(total.saturating_sub(self.inner.len()));
+  }
+
   pub fn get(&self, ukey: &ChunkUkey) -> Option<&Chunk> {
     self.inner.get(ukey)
   }
@@ -405,6 +414,10 @@ pub struct ChunkGroupByUkey {
 }
 
 impl ChunkGroupByUkey {
+  pub(crate) fn reserve_capacity(&mut self, total: usize) {
+    self.inner.reserve(total.saturating_sub(self.inner.len()));
+  }
+
   pub fn get(&self, ukey: &ChunkGroupUkey) -> Option<&ChunkGroup> {
     self.inner.get(ukey)
   }

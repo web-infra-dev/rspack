@@ -1,5 +1,5 @@
 ---
-description: 'Enabling HMR is straightforward and in most cases no options are necessary'
+description: 'Enable hot module replacement (HMR) in Rspack to update modules during development without reloading the page.'
 ---
 
 # HotModuleReplacementPlugin
@@ -38,3 +38,34 @@ See [React - Fast Refresh](/guide/integrations/react#fast-refresh) for more deta
 To enable Fast Refresh in Preact projects, you also need to use the [@rspack/plugin-preact-refresh](https://www.npmjs.com/package/@rspack/plugin-preact-refresh) plugin.
 
 See [Preact - Fast Refresh](/guide/integrations/preact#preact-refresh) for more details.
+
+## Hot update manifest
+
+During HMR, the runtime reads `hot-update.json` to determine which chunks to update and which chunks or modules to remove. The manifest lists their IDs; the JavaScript updates are stored in separate `*.hot-update.(js|mjs)` files.
+
+This example updates the JavaScript and built-in CSS for the `main` chunk without removing any chunks or modules:
+
+```json
+{
+  "c": ["main"],
+  "r": [],
+  "m": [],
+  "css": { "c": ["main"] }
+}
+```
+
+Each field below is an array of IDs:
+
+| Field       | Meaning and purpose                                                                                 |
+| ----------- | --------------------------------------------------------------------------------------------------- |
+| `c`         | Chunks with JavaScript updates. The runtime loads their update files as needed.                     |
+| `r`         | Chunks to remove from the current runtime.                                                          |
+| `m`         | Modules to remove from the current runtime.                                                         |
+| `css.c`     | Chunks with updated built-in CSS. The runtime reloads their stylesheets.                            |
+| `css.r`     | Chunks whose built-in CSS was removed. The runtime removes their old stylesheets.                   |
+| `miniCss.c` | Same as `css.c`, for CSS extracted by [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin). |
+| `miniCss.r` | Same as `css.r`, for CSS extracted by `CssExtractRspackPlugin`.                                     |
+
+`css` and `miniCss` are optional objects. Their `c` and `r` fields are omitted when empty.
+
+You can customize the manifest filename with [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename). If you set `output.module` to `true`, Rspack generates the manifest as an ES module with the manifest data as its default export.

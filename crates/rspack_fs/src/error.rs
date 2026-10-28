@@ -20,6 +20,7 @@ impl From<rspack_error::Error> for Error {
   fn from(e: rspack_error::Error) -> Self {
     let kind = match e.code.as_deref() {
       Some("ENOENT") => std::io::ErrorKind::NotFound,
+      Some("ENOTDIR") => std::io::ErrorKind::NotADirectory,
       _ => std::io::ErrorKind::Other,
     };
     Error::Io(std::io::Error::new(kind, e.to_string()))

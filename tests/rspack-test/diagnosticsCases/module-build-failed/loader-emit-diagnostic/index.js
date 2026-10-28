@@ -1,13 +1,13 @@
-require("!./basic.js!")
-require("!./basic.js!./lib.js")
+require("!./basic.mjs!")
+require("!./basic.mjs!./lib.js")
 
-require("!./with-file.js!")
-require("!./with-file.js!./lib.js")
+require("!./with-file.mjs!")
+require("!./with-file.mjs!./lib.js")
 
-require("!./with-help.js!")
+require("!./with-help.mjs!")
 
-require("!./with-location.js!")
+require("!./with-location.mjs!")
 
-require("!./with-multiple-line.js!")
+require("!./with-multiple-line.mjs!")
 
-require("!./with-multi-byte-char.js!")
+require("!./with-multi-byte-char.mjs!")

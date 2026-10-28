@@ -19,7 +19,7 @@ The most common use case is configuring [loaders](/guide/features/loader) for di
 
 By combining various matching conditions with specific processing logic, `module.rules` provides fine-grained control over how different modules are built.
 
-For example, use the [built-in swc-loader](/guide/features/builtin-swc-loader) to handle files ending with `.ts`:
+For example, use the [built-in swc-loader](/guide/builtin-loaders/swc-loader) to handle files ending with `.ts`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -88,11 +88,13 @@ Condition represents the form of matching a given input, and it supports the fol
 - `String`: Given an input, the match is successful when the input string satisfies startsWith. Note: You can think of it as `input.startsWith(condition)`.
 - `RegExp`: Given an input, the match is successful when the input string satisfies the regular expression. Note: You can think of it as `condition.test(input)`.
 - `Condition[]`: A list of conditions. At least one of the Conditions must match.
-- `LogicalConditions`: All Conditions must match.
+- `LogicalConditions`: All specified `and`, `or`, and `not` checks must pass.
   - `{ and: Condition[] }`: All Conditions must match.
   - `{ or: Condition[] }`: At least one of the Conditions must match.
-  - `{ not: Condition }`: All Conditions must NOT match.
+  - `{ not: Condition }`: The condition must not match. If it is an array, none of its conditions may match.
 - `(value: string) => boolean`: If it's called with the input and return a truthy value, the match is succeeds.
+
+When a rule has several conditions, such as `test`, `include`, and `resourceQuery`, all of them must match. `exclude` works in the opposite way: a matching module is skipped, even if it also matches `include`.
 
 ### Nested rule
 
@@ -497,7 +499,7 @@ import url from './data' with { type: 'url' };
 import('./data', { with: { type: 'url' } });
 ```
 
-It should be noted that in order for Rspack to properly match the `with` syntax, when you use [builtin:swc-loader](/guide/features/builtin-swc-loader), you need to manually enable the `keepImportAttributes` configuration to preserve import attributes:
+It should be noted that in order for Rspack to properly match the `with` syntax, when you use [builtin:swc-loader](/guide/builtin-loaders/swc-loader), you need to manually enable the `keepImportAttributes` configuration to preserve import attributes:
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -766,15 +768,21 @@ export default {
 type RuleSetUse =
   | RuleSetUseItem
   | RuleSetUseItem[]
-  | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
+  | ((ctx: RawFuncUseCtx) => RuleSetUseItem | RuleSetUseItem[]);
 
-type RuleSetUseItem = string | RuleSetLoaderWithOptions;
+type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
+
+type RuleSetLoaderCodeFilter = string | RegExp;
 
 type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
   parallel?: boolean | { maxWorkers?: number };
+  cache?: boolean;
+  filter?: {
+    code: RuleSetLoaderCodeFilter;
+  };
 };
 ```
 
@@ -801,9 +809,11 @@ export default {
 };
 ```
 
-A function can also be used:
+A function can also be used to select loaders for each module. It can return a loader name, a loader options object, or an array of these:
 
 ```js title="rspack.config.mjs"
+import { basename } from 'node:path';
+
 export default {
   module: {
     rules: [
@@ -821,6 +831,90 @@ export default {
               ],
             },
           },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## rules[].use.codeFilter
+
+- **Type:**
+
+```ts
+type RuleSetLoaderCodeFilter = string | RegExp;
+```
+
+- **Default:** `undefined`
+
+Controls whether a loader runs based on its current input code. When the code does not match the filter, Rspack skips that loader's code transformation and passes the input to the next loader unchanged. Use this to avoid unnecessary transformations for modules that do not contain the relevant syntax.
+
+- `string`: matches if the code contains the given substring.
+- `RegExp`: matches if the code satisfies the regular expression.
+
+Rspack checks the filter immediately before the loader transforms the code. Since loaders run from right to left, the filter checks the output of loaders to its right, if any. The filter does not affect the loader's pitch function.
+
+**String matching**
+
+For a custom loader that removes console logs, run it only when the input code contains `console.log`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './remove-console-loader.js',
+            codeFilter: 'console.log',
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+**Regular expression matching**
+
+Run `remove-console-loader.js` only when the input code contains `console.log` or `console.debug`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './remove-console-loader.js',
+            codeFilter: /\bconsole\.(log|debug)\b/,
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+**Matching another loader's output**
+
+Here, `generate-loader.js` runs first. Rspack then runs `transform-loader.js` only if the generated code contains `generated:marker`, even if that substring was absent from the original source:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: './transform-loader.js',
+            codeFilter: 'generated:marker',
+          },
+          './generate-loader.js',
         ],
       },
     ],
@@ -871,46 +965,18 @@ Controls whether a given loader should run in worker threads for parallel execut
 - When set to `{ maxWorkers }`, you can explicitly define the maximum number of workers to use.
 - When set to `false` or omitted, the loader runs on the main thread.
 
-For example, enabling parallel execution for `less-loader`:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'less-loader',
-            parallel: true,
-            options: {
-              // loader options
-            },
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-When multiple loaders within the same rule have `parallel` enabled, Rspack executes them sequentially inside the same worker until it encounters a non-parallel loader or a Rust-implemented builtin loader. This preserves loader order while maximizing parallel efficiency.
-
-:::tip
-
-- The loader options must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
-- In worker mode, most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` are not supported.
-
-:::
+For usage examples and limitations, see [Parallel loader](/guide/features/loader#parallel-loader).
 
 ## rules[].use.parallel.maxWorkers
 
 - **Type:** `number`
-- **Default:** `undefined`
+- **Default:** `Math.max(os.cpus().length - 1, 1)`
 
 Limits the maximum number of worker threads used by the shared loader worker pool when `parallel` is configured as an object. Use a positive integer.
 
-When `maxWorkers` is omitted, Rspack automatically chooses the worker count. The loader worker pool is shared within the current process, so use a consistent `maxWorkers` value if multiple loaders configure `parallel`.
+By default, Rspack uses the number of logical CPUs reported by `os.cpus()` minus one, with a minimum of one worker.
+
+The loader worker pool is shared within the current process, so use a consistent `maxWorkers` value if multiple loaders configure `parallel`.
 
 ```js title="rspack.config.mjs"
 export default {

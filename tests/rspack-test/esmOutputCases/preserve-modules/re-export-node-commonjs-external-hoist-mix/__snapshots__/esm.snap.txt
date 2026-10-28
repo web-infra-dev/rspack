@@ -61,7 +61,7 @@ it('should preserve node-commonjs externals reexports for hoisted and wrapped mo
 	expect(hoisted.readFileHoisted).toBe(fs.readFile)
 	expect(wrapped.readFileSyncWrapped).toBe(fs.readFileSync)
 	expect(wrapped.readFileWrapped).toBe(fs.readFile)
-})
+});
 
 export {};
 

@@ -5,7 +5,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use rspack_fs::WritableFileSystem;
+use rspack_fs::{FsResultToIoResultExt, WritableFileSystem};
 use rspack_paths::Utf8Path;
 use rspack_util::fx_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -20,10 +20,26 @@ pub struct LockfileEntry {
   pub etag: Option<String>,
 }
 
+impl LockfileEntry {
+  pub fn has_same_content(&self, other: &Self) -> bool {
+    self.resolved == other.resolved
+      && self.integrity == other.integrity
+      && self.content_type == other.content_type
+  }
+}
+
+/// Cloning snapshots the locked metadata before asynchronous resource reads, releasing the lock.
+#[derive(Debug, Serialize, Clone)]
+#[serde(untagged)]
+pub enum LockfileValue {
+  Content(LockfileEntry),
+  Tag(String),
+}
+
 #[derive(Debug, Clone)]
 pub struct Lockfile {
   version: u8,
-  entries: FxHashMap<String, LockfileEntry>,
+  entries: FxHashMap<String, LockfileValue>,
 }
 
 impl Lockfile {
@@ -45,38 +61,53 @@ impl Lockfile {
 
     let mut lockfile = Lockfile::new();
 
-    if let Some(entries) = data.get("entries").and_then(|e| e.as_object()) {
-      for (key, value) in entries {
-        let entry = if value.is_string() {
-          LockfileEntry {
-            resolved: key.clone(),
-            integrity: value.as_str().expect("Expected string").to_string(),
-            content_type: String::new(),
-            valid_until: 0,
-            etag: None,
-          }
-        } else {
-          LockfileEntry {
-            resolved: key.clone(),
-            integrity: value
-              .get("integrity")
-              .and_then(|v| v.as_str())
-              .unwrap_or("")
-              .to_string(),
-            content_type: value
-              .get("content_type")
-              .and_then(|v| v.as_str())
-              .unwrap_or("")
-              .to_string(),
-            valid_until: value
-              .get("valid_until")
-              .and_then(|v| v.as_u64())
-              .unwrap_or(0),
-            etag: value.get("etag").and_then(|v| v.as_str()).map(String::from),
-          }
-        };
-        lockfile.entries.insert(key.clone(), entry);
+    let entries = data
+      .get("entries")
+      .and_then(|e| e.as_object())
+      .ok_or_else(|| "Invalid HTTP lockfile: expected an entries object".to_string())?;
+    for (key, value) in entries {
+      if let Some(tag @ ("ignore" | "no-cache")) = value.as_str() {
+        lockfile
+          .entries
+          .insert(key.clone(), LockfileValue::Tag(tag.to_string()));
+        continue;
       }
+      let entry = if value.is_string() {
+        LockfileEntry {
+          resolved: key.clone(),
+          integrity: value.as_str().expect("Expected string").to_string(),
+          content_type: String::new(),
+          valid_until: 0,
+          etag: None,
+        }
+      } else {
+        LockfileEntry {
+          resolved: value
+            .get("resolved")
+            .and_then(|v| v.as_str())
+            .unwrap_or(key)
+            .to_string(),
+          integrity: value
+            .get("integrity")
+            .and_then(|v| v.as_str())
+            .filter(|integrity| !integrity.is_empty())
+            .ok_or_else(|| format!("Invalid HTTP lockfile entry for {key}: missing integrity"))?
+            .to_string(),
+          content_type: value
+            .get("content_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+          valid_until: value
+            .get("valid_until")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0),
+          etag: value.get("etag").and_then(|v| v.as_str()).map(String::from),
+        }
+      };
+      lockfile
+        .entries
+        .insert(key.clone(), LockfileValue::Content(entry));
     }
 
     Ok(lockfile)
@@ -90,12 +121,8 @@ impl Lockfile {
     serde_json::to_string_pretty(&json)
   }
 
-  pub fn get_entry(&self, resource: &str) -> Option<&LockfileEntry> {
+  pub fn get_entry(&self, resource: &str) -> Option<&LockfileValue> {
     self.entries.get(resource)
-  }
-
-  pub fn entries_mut(&mut self) -> &mut FxHashMap<String, LockfileEntry> {
-    &mut self.entries
   }
 }
 
@@ -130,10 +157,7 @@ impl LockfileAsync for Lockfile {
   ) -> io::Result<Lockfile> {
     let utf8_path = Utf8Path::from_path(path.as_ref())
       .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
-    let content = filesystem
-      .read_file(utf8_path)
-      .await
-      .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{e:?}")))?;
+    let content = filesystem.read_file(utf8_path).await.to_io_result()?;
     let content_str =
       String::from_utf8(content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     Lockfile::parse(&content_str).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
@@ -159,7 +183,7 @@ impl LockfileAsync for Lockfile {
 
 #[derive(Debug)]
 pub struct LockfileCache {
-  lockfile: Arc<Mutex<Lockfile>>,
+  lockfile: Mutex<Lockfile>,
   lockfile_path: Option<PathBuf>,
   filesystem: Arc<dyn WritableFileSystem + Send + Sync>,
 }
@@ -170,13 +194,13 @@ impl LockfileCache {
     filesystem: Arc<dyn WritableFileSystem + Send + Sync>,
   ) -> Self {
     LockfileCache {
-      lockfile: Arc::new(Mutex::new(Lockfile::new())),
+      lockfile: Mutex::new(Lockfile::new()),
       lockfile_path,
       filesystem,
     }
   }
 
-  pub async fn get_lockfile(&self) -> io::Result<Arc<Mutex<Lockfile>>> {
+  pub async fn get_entry(&self, url: &str) -> io::Result<Option<LockfileValue>> {
     let mut lockfile = self.lockfile.lock().await;
 
     if let Some(lockfile_path) = &self.lockfile_path {
@@ -185,19 +209,19 @@ impl LockfileCache {
           *lockfile = lf;
         }
         Err(e) if e.kind() == io::ErrorKind::NotFound => {
-          // File doesn't exist, use the default empty lockfile
+          *lockfile = Lockfile::new();
         }
-        Err(_e) => {
-          // Error reading lockfile
-        }
+        Err(e) => return Err(e),
       }
     }
 
-    Ok(self.lockfile.clone())
+    Ok(lockfile.get_entry(url).cloned())
   }
 
-  pub async fn save_lockfile(&self) -> io::Result<()> {
-    let lockfile = self.lockfile.lock().await;
+  pub async fn store_entry(&self, url: &str, entry: LockfileValue) -> io::Result<()> {
+    // Keep updates and writes under the same lock so concurrent module reads cannot lose entries.
+    let mut lockfile = self.lockfile.lock().await;
+    lockfile.entries.insert(url.to_string(), entry);
 
     if let Some(lockfile_path) = &self.lockfile_path {
       if let Some(parent) = lockfile_path.parent() {

@@ -55,6 +55,7 @@ import type {
   Performance,
   ResolveOptions,
   RuleSetRules,
+  SnapshotOptions,
   WasmLoadingType,
 } from './types';
 
@@ -101,7 +102,7 @@ export const applyRspackOptionsDefaults = (
   D(options, 'bail', false);
 
   F(options, 'cache', () =>
-    development ? { type: 'memory' as const, snapshot: {} } : false,
+    development ? { type: 'memory' as const } : false,
   );
   applyCacheDefaults(options.cache!, {
     context: options.context!,
@@ -113,6 +114,9 @@ export const applyRspackOptionsDefaults = (
   applyIncrementalDefaults(options);
 
   applyExperimentsDefaults(options.experiments, { production });
+  applySnapshotDefaults(options.snapshot, {
+    production,
+  });
 
   applyOptimizationDefaults(options.optimization, {
     production,
@@ -226,19 +230,21 @@ const applyCacheDefaults = (
   },
 ) => {
   if (cache === false) return;
-  F(cache.snapshot, 'immutablePaths', () => []);
-  F(cache.snapshot, 'unmanagedPaths', () => []);
-  F(cache.snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
+  if (cache.type === 'persistent') {
+    F(cache, 'name', () => {
+      const cacheName = name ? `${name}-${mode}` : mode;
+      return compilerIndex !== undefined && compilerIndex > 0
+        ? `${cacheName}-${compilerIndex}`
+        : cacheName;
+    });
+    D(cache, 'version', '');
+    D(cache, 'maxMemoryGenerations', mode === 'development' ? 5 : Infinity);
+    D(cache, 'readonly', false);
+  }
   switch (cache.type) {
     case 'memory':
       break;
     case 'persistent':
-      F(cache, 'name', () => {
-        const cacheName = name ? `${name}-${mode}` : mode;
-        return compilerIndex !== undefined && compilerIndex > 0
-          ? `${cacheName}-${compilerIndex}`
-          : cacheName;
-      });
       D(cache.storage, 'type', 'filesystem');
       F(cache.storage, 'directory', () =>
         path.resolve(context, 'node_modules/.cache/rspack'),
@@ -246,14 +252,32 @@ const applyCacheDefaults = (
       F(cache.storage, 'location', () =>
         path.resolve(cache.storage.directory!, cache.name!),
       );
-      D(cache, 'version', '');
       D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
-      D(cache, 'maxMemoryGenerations', mode === 'development' ? 5 : Infinity);
       F(cache, 'buildDependencies', () => []);
       D(cache, 'portable', false);
-      D(cache, 'readonly', false);
       break;
   }
+};
+
+const applySnapshotDefaults = (
+  snapshot: SnapshotOptions,
+  { production }: { production: boolean },
+) => {
+  F(snapshot, 'immutablePaths', () => []);
+  F(snapshot, 'unmanagedPaths', () => []);
+  F(snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
+  F(snapshot, 'resolveBuildDependencies', () => ({
+    timestamp: true,
+    hash: true,
+  }));
+  F(snapshot, 'buildDependencies', () => ({ timestamp: true, hash: true }));
+  F(snapshot, 'module', () =>
+    production ? { timestamp: true, hash: true } : { timestamp: true },
+  );
+  F(snapshot, 'contextModule', () => ({ timestamp: true }));
+  F(snapshot, 'resolve', () =>
+    production ? { timestamp: true, hash: true } : { timestamp: true },
+  );
 };
 
 export const applyRspackOptionsBaseDefaults = (
@@ -287,6 +311,7 @@ const applyExperimentsDefaults = (
     D(experiments.newCache, 'devtool', true);
     D(experiments.newCache, 'loader', true);
     D(experiments.newCache, 'minimize', true);
+    D(experiments.newCache, 'resolver', false);
   }
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
@@ -295,7 +320,7 @@ const applyExperimentsDefaults = (
   D(experiments, 'buildHttp', undefined);
   if (experiments.buildHttp && typeof experiments.buildHttp === 'object') {
     D(experiments.buildHttp, 'upgrade', false);
-    // D(experiments.buildHttp, "frozen", false);
+    D(experiments.buildHttp, 'frozen', production);
   }
 
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
@@ -343,6 +368,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'dynamicImportPrefetch', false);
   D(parserOptions, 'dynamicImportPreload', false);
   D(parserOptions, 'url', true);
+  D(parserOptions, 'dynamicUrl', true);
   D(parserOptions, 'exprContextCritical', true);
   D(parserOptions, 'unknownContextCritical', true);
   D(parserOptions, 'wrappedContextCritical', false);
@@ -1218,13 +1244,14 @@ const applyOptimizationDefaults = (
   });
   const { splitChunks } = optimization;
   if (splitChunks) {
+    D(splitChunks, 'dedupDepth', production ? 1 : 0);
     A(splitChunks, 'defaultSizeTypes', () => ['javascript', 'css', 'unknown']);
     D(splitChunks, 'hidePathInfo', production);
     D(splitChunks, 'chunks', 'async');
     D(splitChunks, 'usedExports', optimization.usedExports === true);
     D(splitChunks, 'minChunks', 1);
     F(splitChunks, 'minSize', () => (production ? 20000 : 10000));
-    // F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
+    F(splitChunks, 'minRemainingSize', () => (development ? 0 : undefined));
     F(splitChunks, 'enforceSizeThreshold', () => (production ? 50000 : 30000));
     F(splitChunks, 'maxAsyncRequests', () =>
       production ? 30 : Number.POSITIVE_INFINITY,

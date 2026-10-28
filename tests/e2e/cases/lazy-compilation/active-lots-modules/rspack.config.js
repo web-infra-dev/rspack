@@ -1,4 +1,4 @@
-const { rspack } = require('@rspack/core');
+import { rspack } from '@rspack/core';
 
 /*
 Construct a project with lots of virtual files with very long file names
@@ -24,8 +24,8 @@ lotsLongFileNameVirtualFiles['src/virtual_index.js'] = `
 `;
 
 /** @type { import('@rspack/core').RspackOptions } */
-module.exports = {
-  context: __dirname,
+export default {
+  context: import.meta.dirname,
   entry: './src/virtual_index.js',
   mode: 'development',
   lazyCompilation: true,

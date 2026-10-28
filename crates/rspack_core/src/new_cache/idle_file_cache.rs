@@ -7,7 +7,6 @@ use std::{
   time::Duration,
 };
 
-use rspack_error::Result;
 use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use tokio::{
   sync::mpsc,
@@ -15,7 +14,7 @@ use tokio::{
 };
 
 use super::{
-  CacheKey, CacheValue, Etag, FileCacheStrategy, Meta,
+  CacheKey, CacheValue, Etag, FileCacheStrategy,
   cache_value::{CacheValueData, ErasedCacheValue},
 };
 use crate::{InfrastructureLogger, Logger};
@@ -234,14 +233,6 @@ impl IdleFileCache {
     self.strategy.store_build_dependencies(dependencies);
   }
 
-  pub fn store_meta(&self, meta: Meta) {
-    self.strategy.store_meta(meta);
-  }
-
-  pub fn restore_meta(&self) -> Result<Option<Meta>> {
-    self.strategy.restore_meta()
-  }
-
   pub fn begin_idle(&self, build_time: Duration) {
     self.send(Command::BeginIdle {
       epoch: self.idle_epoch.load(Ordering::Acquire),
@@ -255,6 +246,7 @@ impl IdleFileCache {
   }
 
   pub async fn shutdown(&self) {
+    self.idle_epoch.fetch_add(1, Ordering::Release);
     self.send(Command::Shutdown);
     self.command_sender.closed().await;
   }

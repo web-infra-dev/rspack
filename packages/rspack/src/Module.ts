@@ -4,12 +4,17 @@ import type { ResourceData } from './Resolver';
 import { SourceAdapter } from './util/source';
 // patch buildInfo
 import './BuildInfo';
+import { MODULE_IDENTIFIER_SYMBOL } from './util/symbols';
 
 export type ResourceDataWithData = ResourceData & {
   data?: Record<string, any>;
 };
 export type ContextInfo = binding.ContextInfo;
-export type ResolveData = binding.JsResolveData;
+export type ResolveData = binding.JsResolveData & {
+  fileDependencies: string[];
+  contextDependencies: string[];
+  missingDependencies: string[];
+};
 
 export class ContextModuleFactoryBeforeResolveData {
   #inner: binding.JsContextModuleFactoryBeforeResolveData;
@@ -83,7 +88,7 @@ export type ContextModuleFactoryBeforeResolveResult =
 export class ContextModuleFactoryAfterResolveData {
   #inner: binding.JsContextModuleFactoryAfterResolveData;
 
-  declare resource: number;
+  declare resource: string;
   declare context: string;
   declare request: string;
   declare regExp: RegExp | undefined;
@@ -169,7 +174,7 @@ Object.defineProperty(binding.Module.prototype, 'identifier', {
   configurable: true,
   value(this: binding.Module): string {
     // @ts-expect-error
-    return this[binding.MODULE_IDENTIFIER_SYMBOL];
+    return this[MODULE_IDENTIFIER_SYMBOL];
   },
 });
 Object.defineProperty(binding.Module.prototype, 'originalSource', {

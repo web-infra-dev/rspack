@@ -12,11 +12,11 @@
     "napi-binding.d.ts"
   ],
   "scripts": {
-    "build:dev": "node scripts/build.js",
-    "build:debug": "node scripts/build.js --profile release-debug",
-    "build:ci": "node scripts/build.js --profile ci",
-    "build:profiling": "node scripts/build.js --profile profiling",
-    "build:release": "node scripts/build.js --profile release"
+    "build:dev": "node scripts/build.mjs",
+    "build:debug": "node scripts/build.mjs --profile release-debug",
+    "build:ci": "node scripts/build.mjs --profile ci",
+    "build:profiling": "node scripts/build.mjs --profile profiling",
+    "build:release": "node scripts/build.mjs --profile release"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",

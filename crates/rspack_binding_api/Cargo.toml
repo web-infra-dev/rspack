@@ -11,7 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-allocative       = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
+allocative       = ["rspack_loader_swc/allocative", "rspack_core/allocative", "rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
 browser          = []
 debug_tool       = ["rspack_core/debug_tool"]
 perfetto         = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]
@@ -119,6 +119,7 @@ rustc-hash                             = { workspace = true }
 serde                                  = { workspace = true }
 serde_json                             = { workspace = true }
 simd-json                              = { workspace = true }
+slotmap                                = { workspace = true }
 swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "sync", "time", "test-util", "tracing", "parking_lot"] }
 ustr                                   = { workspace = true }
@@ -127,9 +128,8 @@ ustr                                   = { workspace = true }
 ignored = ["parking_lot", "rspack_tracing_perfetto"]
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-# Pin parking_lot version to the same version within the workspace
 # Explicitly adding features `nightly` to turn on wasm atomic support
-parking_lot = { version = "=0.12.5", features = ["nightly"] }
+parking_lot = { workspace = true, features = ["nightly"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 rspack_tracing = { workspace = true }

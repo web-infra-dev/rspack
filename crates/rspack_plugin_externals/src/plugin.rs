@@ -222,6 +222,12 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
           return Ok(maybe_module.map(|i| i.boxed()));
         }
       }
+      ExternalItem::RequestPredicate(predicate) => {
+        if predicate(dependency.request()) {
+          let maybe_module = self.handle_external(&ExternalItemValue::Bool(true), None, dependency);
+          return Ok(maybe_module.map(|i| i.boxed()));
+        }
+      }
       ExternalItem::Fn(f) => {
         let request = dependency.request();
         let result = f(ExternalItemFnCtx {
@@ -248,7 +254,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
               .expect("Expected at least one dependency")
               .category(),
           },
-          resolver_factory: data.resolver_factory.clone(),
+          resolver_factory: data.build_context.resolver_factory.clone(),
         })
         .await?;
         if let Some(r) = result.result {

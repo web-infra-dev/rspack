@@ -53,8 +53,6 @@ use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathSet};
 use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
-#[cfg(allocative)]
-use rspack_util::allocative;
 use rspack_util::{fx_hash::FxIndexMap, itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use smol_str::SmolStr;
@@ -86,7 +84,6 @@ use crate::{
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
-  cache::SnapshotOptions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
     update_module_graph,
@@ -98,14 +95,14 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade},
+  new_cache::{CacheFacade, CompilerCache},
   to_identifier,
 };
 
 define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
 define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoked_modules: &IdentifierSet));
-define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &dyn crate::Module));
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &[Identifier], code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
@@ -193,7 +190,6 @@ pub struct CompilationHooks {
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompilationId(pub u32);
 
 impl CompilationId {
@@ -239,8 +235,9 @@ pub struct Compilation {
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
-  cache: Cache,
+  cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
+  pub resolver_cache: Option<crate::ResolverCache>,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
@@ -352,7 +349,7 @@ impl Compilation {
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
-    cache: Cache,
+    cache: CompilerCache,
     modified_files: InternedPathSet,
     removed_files: InternedPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -361,24 +358,29 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    // Incremental make reuses the previous module graph and owns its own
-    // invalidation path. Keep that fast path unchanged.
-    let module_build_cache = (options.experiments.new_cache.module
-      && !is_rebuild
-      && !matches!(&options.cache, CacheOptions::Disabled))
-    .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules")));
-    let snapshot_options = match &options.cache {
-      CacheOptions::Disabled => SnapshotOptions::default(),
-      CacheOptions::Memory { snapshot, .. } => snapshot.clone(),
-      CacheOptions::Persistent(options) => options.snapshot.clone(),
-    };
+    // Rebuilds own their invalidation path, so skip module restoration while
+    // still publishing rebuilt modules for subsequent compilations.
+    let module_build_cache = options
+      .experiments
+      .new_cache
+      .module
+      .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), !is_rebuild));
     let file_system_info = FileSystemInfo::new(
       input_filesystem.clone(),
       CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
-      snapshot_options,
+      options.snapshot.clone(),
+      options.context.clone(),
       options.output.hash_function,
     );
-
+    let resolver_cache = (options.experiments.new_cache.resolver
+      && !matches!(options.cache, crate::CacheOptions::Disabled))
+    .then(|| {
+      crate::ResolverCache::new(
+        cache.facade("ResolverCache"),
+        file_system_info.clone(),
+        &CompilationLogger::new("rspack.ResolverCache", logging.clone()),
+      )
+    });
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -401,6 +403,7 @@ impl Compilation {
       logging,
       cache,
       module_build_cache,
+      resolver_cache,
       file_system_info,
       plugin_driver,
       buildtime_plugin_driver,
@@ -428,10 +431,7 @@ impl Compilation {
       chunk_render_cache_artifact: StealCell::new(ChunkRenderCacheArtifact::new(
         match &options.cache {
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
-          CacheOptions::Memory {
-            max_generations, ..
-          } => *max_generations,
-          CacheOptions::Persistent(_) => 1,
+          _ => 1,
         },
       )),
       code_generate_cache_artifact: StealCell::new(CodeGenerateCacheArtifact::new(&options)),
@@ -495,18 +495,11 @@ impl Compilation {
   }
 
   // it will return None during make phase since mg is incomplete
-  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
+  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&crate::ModuleRef> {
     if self.build_module_graph_artifact.is_stolen() {
       return None;
     }
-    if let Some(module) = self.get_module_graph().module_by_identifier(identifier) {
-      return Some(module);
-    };
-
-    self
-      .build_module_graph_artifact
-      .get_module_graph()
-      .module_by_identifier(identifier)
+    self.get_module_graph().module_by_identifier(identifier)
   }
   pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
     self.build_module_graph_artifact.get_module_graph_mut()
@@ -632,7 +625,7 @@ impl Compilation {
   pub fn get_import_var(
     &self,
     module: ModuleIdentifier,
-    target_module: Option<&BoxModule>,
+    target_module: Option<&crate::ModuleRef>,
     user_request: &str,
     phase: ImportPhase,
     runtime: Option<&RuntimeSpec>,
@@ -1094,7 +1087,7 @@ impl Compilation {
     &mut self,
     module_identifiers: IdentifierSet,
     exports_info_artifact: &mut ExportsInfoArtifact,
-    f: impl Fn(Vec<&BoxModule>) -> T,
+    f: impl Fn(Vec<&crate::ModuleRef>) -> T,
   ) -> Result<T> {
     let artifact = self.build_module_graph_artifact.steal();
 
@@ -1511,7 +1504,7 @@ impl AssetInfoRelated {
 pub fn assign_depths<'a>(
   assign_map: &mut IdentifierMap<usize>,
   modules: impl Iterator<Item = &'a ModuleIdentifier>,
-  outgoings: &IdentifierMap<Vec<ModuleIdentifier>>,
+  module_graph: &ModuleGraph,
   initial_queue_capacity: usize,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
@@ -1530,9 +1523,14 @@ pub fn assign_depths<'a>(
         vac.insert(depth);
       }
     };
-    if let Some(outgoing_modules) = outgoings.get(&id) {
-      for con in outgoing_modules {
-        q.push_back((*con, depth + 1));
+    // Resolve outgoing connections while walking instead of materializing a
+    // graph-wide map: the walk only ever reads the modules it visits.
+    let Some(module_graph_module) = module_graph.module_graph_module_by_identifier(&id) else {
+      continue;
+    };
+    for connection_id in module_graph_module.outgoing_connections() {
+      if let Some(connection) = module_graph.connection_by_id(connection_id) {
+        q.push_back((*connection.module_identifier(), depth + 1));
       }
     }
   }

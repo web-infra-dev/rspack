@@ -1,11 +1,12 @@
 mod drive;
 
 use std::{
+  borrow::Cow,
   hash::BuildHasherDefault,
   sync::{Arc, LazyLock},
 };
 
-use aho_corasick::{AhoCorasick, AhoCorasickKind, MatchKind};
+use aho_corasick::{AhoCorasick, AhoCorasickKind, Match, MatchKind};
 use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 pub use drive::*;
@@ -13,12 +14,12 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt, SourceValue},
+  rspack_sources::{BoxSource, MappingSource, RawStringSource, Source, SourceExt, SourceValue},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::FxDashMap;
+use rspack_util::{fx_hash::FxDashMap, streaming_matcher::StreamingMatcher};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
@@ -105,10 +106,11 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   // automaton so pathological hash counts don't pay the DFA build cost
   const DFA_PATTERN_BYTES_CAP: usize = 128 * 1024;
   let total_pattern_bytes: usize = hash_to_asset_names.keys().map(|s| s.len()).sum();
+  let hash_patterns = hash_to_asset_names.keys().copied().collect::<Vec<_>>();
   let hash_ac = AhoCorasick::builder()
     .match_kind(MatchKind::LeftmostLongest)
     .kind((total_pattern_bytes <= DFA_PATTERN_BYTES_CAP).then_some(AhoCorasickKind::DFA))
-    .build(hash_to_asset_names.keys().map(|s| s.as_bytes()))
+    .build(&hash_patterns)
     .expect("Invalid patterns");
   logger.time_end(start);
 
@@ -120,7 +122,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       asset.get_source().map(|source| {
         (
           name.as_str(),
-          AssetData::new(source.clone(), asset.get_info(), &hash_ac),
+          AssetData::new(source, asset.get_info(), &hash_ac, &hash_patterns),
         )
       })
     })
@@ -191,8 +193,12 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
     let batch_sources = batch_source_tasks
       .into_par_iter()
       .map(|(hash, name, data)| {
-        let new_source =
-          data.compute_new_source(data.own_hashes.contains(hash), &hash_to_new_hash, &hash_ac);
+        let new_source = data.compute_new_source(
+          data.own_hashes.contains(hash),
+          &hash_to_new_hash,
+          &hash_ac,
+          &hash_patterns,
+        );
         ((hash, name), new_source)
       })
       .collect::<HashMap<_, _>>();
@@ -216,7 +222,18 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
                 .cloned()
                 .collect::<Vec<_>>();
-              asset_contents.dedup();
+              asset_contents.dedup_by(|a, b| {
+                if let Some(mapping) = a.as_any().downcast_ref::<MappingSource>() {
+                  // External maps previously used RawStringSource. Preserve
+                  // type-sensitive equality for all other source kinds.
+                  (b.as_any().is::<MappingSource>() || b.as_any().is::<RawStringSource>())
+                    && mapping.content_eq(b.as_ref())
+                } else if let Some(mapping) = b.as_any().downcast_ref::<MappingSource>() {
+                  a.as_any().is::<RawStringSource>() && mapping.content_eq(a.as_ref())
+                } else {
+                  a == b
+                }
+              });
               let updated_hash = hooks
                 .borrow()
                 .update_hash
@@ -228,7 +245,11 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
               } else {
                 let mut hasher = RspackHasher::from(&compilation.options.output);
                 for asset_content in asset_contents {
-                  hasher.write(&asset_content.buffer());
+                  if let Some(mapping) = asset_content.as_any().downcast_ref::<MappingSource>() {
+                    mapping.update_content_hash(&mut hasher);
+                  } else {
+                    hasher.write(&asset_content.buffer());
+                  }
                 }
                 let new_hash = hasher.digest(&compilation.options.output.hash_digest);
 
@@ -259,7 +280,8 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   let updates: Vec<_> = assets_data
     .into_par_iter()
     .filter_map(|(name, data)| {
-      let new_source = data.compute_new_source(false, &hash_to_new_hash, &hash_ac);
+      let new_source = data.compute_new_source(false, &hash_to_new_hash, &hash_ac, &hash_patterns);
+      drop(data);
       let mut new_name = String::with_capacity(name.len());
       hash_ac.replace_all_with(name, &mut new_name, |_, hash, dst| {
         let replace_to = hash_to_new_hash
@@ -307,41 +329,72 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
 }
 
 #[derive(Debug)]
-struct AssetData {
-  own_hashes: HashSet<String>,
-  referenced_hashes: HashSet<String>,
+struct AssetData<'a> {
+  own_hashes: HashSet<&'a str>,
+  referenced_hashes: HashSet<&'a str>,
   #[debug(skip)]
-  old_source: BoxSource,
+  old_source: &'a BoxSource,
   #[debug(skip)]
-  content: AssetDataContent,
+  content: Option<Cow<'a, str>>,
+  #[debug(skip)]
+  mapping_matches: Vec<Match>,
+  mapping_size: usize,
   #[debug(skip)]
   new_source: OnceCell<BoxSource>,
   #[debug(skip)]
   new_source_without_own: OnceCell<BoxSource>,
 }
 
-#[derive(Debug)]
-enum AssetDataContent {
-  Buffer,
-  String(String),
-}
-
-impl AssetData {
-  pub fn new(source: BoxSource, info: &AssetInfo, hash_ac: &AhoCorasick) -> Self {
+impl<'a> AssetData<'a> {
+  pub fn new(
+    source: &'a BoxSource,
+    info: &AssetInfo,
+    hash_ac: &AhoCorasick,
+    hash_patterns: &[&'a str],
+  ) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
-    let content = if let SourceValue::String(content) = source.source() {
-      for hash in hash_ac.find_iter(content.as_ref()) {
-        let hash = &content[hash.range()];
+    if let Some(mapping) = source.as_any().downcast_ref::<MappingSource>() {
+      let mut mapping_matches = Vec::new();
+      let mut matcher = StreamingMatcher::new(hash_ac, |found| {
+        let hash = hash_patterns[found.pattern().as_usize()];
         if info.content_hash.contains(hash) {
-          own_hashes.insert(hash.to_string());
+          own_hashes.insert(hash);
+        } else {
+          referenced_hashes.insert(hash);
+        }
+        mapping_matches.push(found);
+      });
+      mapping
+        .to_writer(&mut matcher)
+        .expect("scan source map JSON");
+      let mapping_size = matcher.finish();
+      return Self {
+        own_hashes,
+        referenced_hashes,
+        old_source: source,
+        content: None,
+        mapping_matches,
+        mapping_size,
+        new_source: OnceCell::new(),
+        new_source_without_own: OnceCell::new(),
+      };
+    }
+    let content = if let SourceValue::String(content) = source.source() {
+      for found in hash_ac.find_iter(content.as_ref()) {
+        let hash = hash_patterns[found.pattern().as_usize()];
+        if info.content_hash.contains(hash) {
+          own_hashes.insert(hash);
           continue;
         }
-        referenced_hashes.insert(hash.to_string());
+        referenced_hashes.insert(hash);
       }
-      AssetDataContent::String(content.into_owned())
+      // Borrow contiguous sources instead of copying them for the entire pass.
+      // Sources without hash matches will never need replacement, so discard
+      // their materialized content as soon as the scan is complete.
+      (!own_hashes.is_empty() || !referenced_hashes.is_empty()).then_some(content)
     } else {
-      AssetDataContent::Buffer
+      None
     };
 
     Self {
@@ -349,6 +402,8 @@ impl AssetData {
       referenced_hashes,
       old_source: source,
       content,
+      mapping_matches: Vec::new(),
+      mapping_size: 0,
       new_source: OnceCell::new(),
       new_source_without_own: OnceCell::new(),
     }
@@ -359,6 +414,7 @@ impl AssetData {
     without_own: bool,
     hash_to_new_hash: &HashMap<String, String>,
     hash_ac: &AhoCorasick,
+    hash_patterns: &[&str],
   ) -> BoxSource {
     (if without_own {
       &self.new_source_without_own
@@ -366,12 +422,35 @@ impl AssetData {
       &self.new_source
     })
     .get_or_init(|| {
-      if let AssetDataContent::String(content) = &self.content
+      if let Some(mapping) = self.old_source.as_any().downcast_ref::<MappingSource>() {
+        let mut replacements = Vec::new();
+        for found in &self.mapping_matches {
+          let hash = hash_patterns[found.pattern().as_usize()];
+          let replacement = if without_own && self.own_hashes.contains(hash) {
+            ""
+          } else {
+            hash_to_new_hash
+              .get(hash)
+              .expect("RealContentHashPlugin: should have new hash")
+          };
+          if replacement != hash {
+            replacements.push((found.start(), found.end(), replacement.to_owned()));
+          }
+        }
+        return if replacements.is_empty() {
+          Arc::clone(self.old_source)
+        } else {
+          mapping
+            .with_replacements(replacements, self.mapping_size)
+            .boxed()
+        };
+      }
+      if let Some(content) = &self.content
         && (!self.own_hashes.is_empty()
           || self
             .referenced_hashes
             .iter()
-            .any(|hash| matches!(hash_to_new_hash.get(hash.as_str()), Some(h) if h != hash)))
+            .any(|&hash| matches!(hash_to_new_hash.get(hash), Some(h) if h != hash)))
       {
         let mut new_content = String::with_capacity(content.len());
         hash_ac.replace_all_with(content, &mut new_content, |_, hash, dst| {
@@ -395,7 +474,7 @@ impl AssetData {
 
 struct OrderedHashesBuilder<'a> {
   hash_to_asset_names: &'a HashMap<&'a str, Vec<&'a str>>,
-  assets_data: &'a HashMap<&'a str, AssetData>,
+  assets_data: &'a HashMap<&'a str, AssetData<'a>>,
 }
 
 struct OrderedHashes {
@@ -406,7 +485,7 @@ struct OrderedHashes {
 impl<'a> OrderedHashesBuilder<'a> {
   pub fn new(
     hash_to_asset_names: &'a HashMap<&'a str, Vec<&'a str>>,
-    assets_data: &'a HashMap<&'a str, AssetData>,
+    assets_data: &'a HashMap<&'a str, AssetData<'a>>,
   ) -> Self {
     Self {
       hash_to_asset_names,
@@ -454,11 +533,11 @@ impl OrderedHashesBuilder<'_> {
       if let Some(asset_hash) = self.assets_data.get(name) {
         if !asset_hash.own_hashes.contains(hash) {
           for hash in &asset_hash.own_hashes {
-            hashes.insert(hash.as_str());
+            hashes.insert(*hash);
           }
         }
         for hash in &asset_hash.referenced_hashes {
-          hashes.insert(hash.as_str());
+          hashes.insert(*hash);
         }
       }
     }

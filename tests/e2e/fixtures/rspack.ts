@@ -1,5 +1,7 @@
 import path from 'node:path';
-import type { Fixtures, PlaywrightTestArgs } from '@playwright/test';
+import { pathToFileURL } from 'node:url';
+import type { Fixtures } from 'rstack/test';
+import type { PlaywrightFixture } from '@rstest/playwright';
 import {
   type Compiler,
   type Configuration,
@@ -8,24 +10,25 @@ import {
 } from '@rspack/core';
 import { RspackDevServer } from '@rspack/dev-server';
 import type { PathInfoFixtures } from './pathInfo';
-import { createRequire } from 'node:module';
+import { expect } from './base';
 
-const require = createRequire(import.meta.url);
+// Test plugins expose these fields, and dev middleware supplies a synchronous filesystem.
+type FixtureCompiler = Compiler & {
+  __modules: string[];
+  __sharedObj: { time: number; useFullEntry: boolean };
+  outputFileSystem: NonNullable<Compiler['outputFileSystem']> &
+    Pick<typeof import('node:fs'), 'readFileSync' | 'readdirSync'>;
+};
 
 class Rspack {
   private config: RspackConfig;
   projectDir: string;
   outDir: string;
-  compiler: Compiler;
-  devServer: RspackDevServer;
+  compiler!: FixtureCompiler;
+  devServer!: RspackDevServer;
   private onDone: Array<() => void> = [];
-  constructor(
-    projectDir: string,
-    handleRspackConfig: (config: Configuration) => Configuration,
-  ) {
-    const configPath = path.resolve(projectDir, 'rspack.config.js');
-    this.config = handleRspackConfig(require(configPath));
-    delete require.cache[configPath];
+  constructor(projectDir: string, config: Configuration) {
+    this.config = config;
     this.projectDir = projectDir;
     this.outDir = this.config.output!.path!;
   }
@@ -56,7 +59,7 @@ class Rspack {
 
   async start() {
     const compiler = rspack(this.config);
-    this.compiler = compiler;
+    this.compiler = compiler as FixtureCompiler;
     this.compiler.hooks.done.tap('rspack_fixture', () => {
       const onDone = this.onDone;
       this.onDone = [];
@@ -64,19 +67,19 @@ class Rspack {
         item();
       }
     });
-    const DevServerConstructor = RspackDevServer;
     if (compiler.options.lazyCompilation) {
       const middleware = rspack.lazyCompilationMiddleware(compiler);
-      compiler.options.devServer ??= {};
-      const setupMiddlewares = compiler.options.devServer.setupMiddlewares;
-      compiler.options.devServer.setupMiddlewares = (middlewares, server) => {
+      const devServerOptions = compiler.options.devServer || {};
+      compiler.options.devServer = devServerOptions;
+      const setupMiddlewares = devServerOptions.setupMiddlewares;
+      devServerOptions.setupMiddlewares = (middlewares, server) => {
         const old = setupMiddlewares
           ? setupMiddlewares(middlewares, server)
           : middlewares;
         return [middleware, ...old];
       };
     }
-    this.devServer = new DevServerConstructor(
+    this.devServer = new RspackDevServer(
       compiler.options.devServer ?? ({} as any),
       compiler,
     );
@@ -90,58 +93,51 @@ class Rspack {
   }
 }
 
-export type RspackOptions = {
-  rspackConfig: {
-    handleConfig(config: Configuration): Configuration;
-    basePort: number;
-  };
-};
+export type RspackFixtures = { rspack: Rspack };
 
-export type RspackFixtures = Fixtures<
-  RspackOptions & { rspack: Rspack },
-  {},
-  PlaywrightTestArgs & PathInfoFixtures
->;
+export const rspackFixtures: Fixtures<
+  RspackFixtures,
+  PlaywrightFixture & PathInfoFixtures
+> = {
+  rspack: [
+    async ({ page, pathInfo }, use) => {
+      const { tempProjectDir } = pathInfo;
+      const port = 8000 + Number(process.env.RSTEST_WORKER_ID);
+      const configPath = path.join(tempProjectDir, 'rspack.config.js');
+      const { default: config }: { default: Configuration } = await import(
+        /* webpackIgnore: true */ pathToFileURL(configPath).href
+      );
+      // rewrite port
+      if (!config.devServer) {
+        config.devServer = {};
+      }
+      config.devServer.port = port;
 
-export const rspackFixtures = (): RspackFixtures => {
-  return {
-    rspackConfig: [
-      { handleConfig: (c) => c, basePort: 8000 },
-      { option: true },
-    ],
-    rspack: [
-      async ({ page, pathInfo, rspackConfig }, use, { workerIndex }) => {
-        const { tempProjectDir } = pathInfo;
-        const port = rspackConfig.basePort + workerIndex;
-        const rspack = new Rspack(tempProjectDir, (config) => {
-          // rewrite port
-          if (!config.devServer) {
-            config.devServer = {};
-          }
-          config.devServer.port = port;
+      // set default context
+      if (!config.context) {
+        config.context = tempProjectDir;
+      }
 
-          // set default context
-          if (!config.context) {
-            config.context = tempProjectDir;
-          }
+      // set default output path
+      if (!config.output) {
+        config.output = {};
+      }
+      config.output.path = path.resolve(tempProjectDir, 'dist');
 
-          // set default output path
-          if (!config.output) {
-            config.output = {};
-          }
-          config.output.path = path.resolve(tempProjectDir, 'dist');
+      const rspack = new Rspack(tempProjectDir, config);
+      await rspack.start();
 
-          return rspackConfig.handleConfig(config);
-        });
-        await rspack.start();
+      await page.goto(`http://localhost:${port}`);
+      // Initial HTML can render before the client connects. Wait before tests
+      // edit files, otherwise the browser can miss the first HMR notification.
+      await expect
+        .poll(() => rspack.devServer.webSocketServer?.clients.length ?? 0)
+        .toBeGreaterThan(0);
 
-        await page.goto(`http://localhost:${port}`);
+      await use(rspack);
 
-        await use(rspack);
-
-        await rspack.stop();
-      },
-      { auto: true },
-    ],
-  };
+      await rspack.stop();
+    },
+    { auto: true },
+  ],
 };

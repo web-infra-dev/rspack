@@ -1,10 +1,10 @@
 Array [
   Object {
-    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/basic.js!,
-    moduleName: ./basic.js!,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/basic.mjs!,
+    moduleName: ./basic.mjs!,
   },
   Object {
-    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/basic.js!<TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/lib.js,
-    moduleName: ./basic.js!./lib.js,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/basic.mjs!<TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/lib.js,
+    moduleName: ./basic.mjs!./lib.js,
   },
 ]

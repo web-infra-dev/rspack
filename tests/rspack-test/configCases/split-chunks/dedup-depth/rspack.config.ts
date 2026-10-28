@@ -1,0 +1,98 @@
+import assert from 'node:assert/strict';
+import { defineConfig, definePlugin } from '@rspack/cli';
+import { experiments } from '@rspack/core';
+import { createModules } from '../intersections-min-size/modules.ts';
+
+const indices = [0, 1, 2, 3, 4];
+const modules = createModules(5, {
+  a: indices,
+  b: indices,
+  ...Object.fromEntries(
+    indices.map((i) => [`c${i}`, indices.filter((j) => i !== j)]),
+  ),
+});
+const sharedSize = indices.reduce(
+  (size, i) => size + modules[`m${i}.js`].length,
+  0,
+);
+
+// Each module belongs to {a,b} and four of the five c entries. Discovering
+// {a,b} requires intersecting five original sets: round 1 combines at most two,
+// round 2 at most four, and round 3 can finally include all five. Intermediate
+// intersections fail minSize, but their smaller descendants must survive.
+export default [false, true]
+  .flatMap((usedExports) =>
+    [0, 1, 2, 3, 4, 0xffffffff].map((dedupDepth) => ({
+      usedExports,
+      dedupDepth,
+    })),
+  )
+  .map(({ usedExports, dedupDepth }, index) =>
+    defineConfig({
+      mode: 'production',
+      target: 'node',
+      entry: {
+        a: './a',
+        b: './b',
+        ...Object.fromEntries(
+          Array.from({ length: 5 }, (_, i) => [`c${i}`, `./c${i}`]),
+        ),
+      },
+      output: {
+        filename: `[name]-${index}.js`,
+        chunkFilename: `[name]-${index}.js`,
+      },
+      optimization: {
+        minimize: false,
+        concatenateModules: false,
+        splitChunks: {
+          chunks: 'all',
+          usedExports,
+          dedupDepth,
+          minSize: sharedSize,
+          minSizeReduction: 0,
+          maxInitialRequests: Infinity,
+          maxAsyncRequests: Infinity,
+          cacheGroups: {
+            default: false,
+            defaultVendors: false,
+            shared: { test: /[\\/]m[0-4]\.js$/, minChunks: 2 },
+          },
+        },
+      },
+      plugins: [
+        new experiments.VirtualModulesPlugin(modules),
+        definePlugin({
+          apply(compiler) {
+            compiler.hooks.done.tap('AssertDedupDepth', (stats) => {
+              const { modules } = stats.toJson({
+                all: false,
+                modules: true,
+                ids: true,
+                groupModulesByType: false,
+                groupModulesByPath: false,
+              });
+              assert.ok(modules);
+              const shared = modules.filter(
+                (module) =>
+                  module.name !== undefined &&
+                  /^\.\/m[0-4]\.js$/.test(module.name),
+              );
+              assert.equal(shared.length, 5);
+              const sharedChunks = shared.map((module) => {
+                assert.ok(module.chunks);
+                return module.chunks;
+              });
+              const extracted = dedupDepth >= 3;
+              for (const chunks of sharedChunks)
+                assert.equal(chunks.length, extracted ? 5 : 6);
+              const common = sharedChunks[0].filter((chunk) =>
+                sharedChunks.every((chunks) => chunks.includes(chunk)),
+              );
+              assert.equal(common.length, extracted ? 1 : 2);
+            });
+          },
+        }),
+      ],
+    }),
+  );

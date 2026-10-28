@@ -1,5 +1,4 @@
 mod hash_helper;
-mod package_helper;
 
 use std::sync::Arc;
 
@@ -7,11 +6,8 @@ use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, InternedPath};
 
-use self::{
-  hash_helper::{ContentHash, HashHelper, TimestampHash},
-  package_helper::PackageHelper,
-};
-use crate::cache::{SnapshotOptions, SnapshotStrategyOptions};
+use self::hash_helper::{ContentHash, HashHelper, TimestampHash};
+use crate::{Context, SnapshotOptions, SnapshotStrategyOptions, cache::PackageHelper};
 
 /// Snapshot check strategy
 #[cacheable]
@@ -20,7 +16,7 @@ pub enum Strategy {
   /// Check by package version
   ///
   /// This strategy will find the package.json in the parent directory, and
-  /// compares the version field.
+  /// compares the name and version fields.
   PackageVersion(String),
 
   /// Check by file hash
@@ -103,8 +99,12 @@ pub struct StrategyHelper {
 }
 
 impl StrategyHelper {
-  pub fn new(fs: Arc<dyn ReadableFileSystem>, snapshot_options: Arc<SnapshotOptions>) -> Self {
-    let package_helper = Arc::new(PackageHelper::new(fs.clone()));
+  pub fn new(
+    fs: Arc<dyn ReadableFileSystem>,
+    snapshot_options: Arc<SnapshotOptions>,
+    context: Context,
+  ) -> Self {
+    let package_helper = Arc::new(PackageHelper::new(fs.clone(), context));
     Self {
       fs: fs.clone(),
       hash_helper: HashHelper::new(fs, snapshot_options, package_helper.clone()),
@@ -326,155 +326,5 @@ impl StrategyHelper {
       }
       Strategy::Failed => ValidateResult::Modified,
     }
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use std::sync::Arc;
-
-  use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-  use rspack_paths::InternedPath;
-
-  use super::{Strategy, StrategyHelper, ValidateResult};
-
-  #[tokio::test]
-  async fn validate_package_version() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/packages/lib".into()).await.unwrap();
-    fs.write(
-      "/packages/lib/package.json".into(),
-      r#"{"version": "1.0.0"}"#.as_bytes(),
-    )
-    .await
-    .unwrap();
-    fs.write("/packages/lib/file.js".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-
-    let strategy = Strategy::PackageVersion("1.0.0".into());
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    assert!(matches!(
-      helper
-        .validate(&InternedPath::from("/packages/lib/file.js"), &strategy)
-        .await,
-      ValidateResult::NoChanged
-    ));
-
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    fs.write(
-      "/packages/lib/package.json".into(),
-      r#"{"version": "1.2.0"}"#.as_bytes(),
-    )
-    .await
-    .unwrap();
-    assert!(matches!(
-      helper
-        .validate(&InternedPath::from("/packages/lib/file.js"), &strategy)
-        .await,
-      ValidateResult::Modified
-    ));
-
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    fs.remove_file("/packages/lib/package.json".into())
-      .await
-      .unwrap();
-    assert!(matches!(
-      helper
-        .validate(&InternedPath::from("/packages/lib/file.js"), &strategy)
-        .await,
-      ValidateResult::Deleted
-    ));
-  }
-
-  #[tokio::test]
-  async fn validate_file_hash() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/".into()).await.unwrap();
-    fs.write("/file1.js".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    let strategy = helper.file_hash(&InternedPath::from("/file1.js")).await;
-    assert!(matches!(
-      helper
-        .validate(&InternedPath::from("/file1.js"), &strategy)
-        .await,
-      ValidateResult::NoChanged
-    ));
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    fs.write("/file1.js".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-    assert!(matches!(
-      helper
-        .validate(&InternedPath::from("/file1.js"), &strategy)
-        .await,
-      ValidateResult::NoChanged
-    ));
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    fs.write("/file1.js".into(), "abcd".as_bytes())
-      .await
-      .unwrap();
-    assert!(matches!(
-      helper
-        .validate(&InternedPath::from("/file1.js"), &strategy)
-        .await,
-      ValidateResult::Modified
-    ));
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    fs.remove_file("/file1.js".into()).await.unwrap();
-    assert!(matches!(
-      helper
-        .validate(&InternedPath::from("/file1.js"), &strategy)
-        .await,
-      ValidateResult::Deleted
-    ));
-  }
-
-  #[tokio::test]
-  async fn validate_missing() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/".into()).await.unwrap();
-    fs.write("/file1.js".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    let strategy = Strategy::Missing;
-    assert!(matches!(
-      helper
-        .validate(&InternedPath::from("/file1.js"), &strategy)
-        .await,
-      ValidateResult::Modified
-    ));
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    fs.write("/file1.js".into(), "abcd".as_bytes())
-      .await
-      .unwrap();
-    assert!(matches!(
-      helper
-        .validate(&InternedPath::from("/file1.js"), &strategy)
-        .await,
-      ValidateResult::Modified
-    ));
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    fs.remove_file("/file1.js".into()).await.unwrap();
-    assert!(matches!(
-      helper
-        .validate(&InternedPath::from("/file1.js"), &strategy)
-        .await,
-      ValidateResult::NoChanged
-    ));
   }
 }

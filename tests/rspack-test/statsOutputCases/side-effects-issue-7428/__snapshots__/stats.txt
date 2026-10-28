@@ -30,6 +30,8 @@ cacheable modules xx bytes
         esm import specifier ./utils ./components/src/CompAB/CompA.js 5:6-13
         [inactive] esm import ./utils ./components/src/CompAB/CompB.js 1:1-31
         esm import specifier ./utils ./components/src/CompAB/CompB.js 5:3-6
+        [inactive] esm import ./utils ./components/src/CompAB/CompB.js 1:1-31
+        esm import specifier ./utils ./components/src/CompAB/CompB.js 5:3-6
   modules by path ./*.js xx bytes
     ./main.js xx bytes [orphan] [built]
       [no exports used]

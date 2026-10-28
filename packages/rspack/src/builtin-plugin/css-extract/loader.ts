@@ -1,8 +1,14 @@
 import path from 'node:path';
 
-import type { Filename, LoaderContext, LoaderDefinition } from '../..';
+import type {
+  Compilation,
+  Filename,
+  LoaderContext,
+  LoaderDefinition,
+} from '../..';
 import {
   type CssExtractPluginData,
+  type CssExtractPluginContext,
   PLUGIN_NAME,
   pluginSymbol,
   stringifyLocal,
@@ -15,6 +21,13 @@ export const AUTO_PUBLIC_PATH = '__css_extract_public_path_auto__';
 export const ABSOLUTE_PUBLIC_PATH = `${BASE_URI}/css-extract-plugin/`;
 export const SINGLE_DOT_PATH_SEGMENT =
   '__css_extract_single_dot_path_segment__';
+
+// Give css-loader's new URL() an absolute public path and protect relative dot
+// segments until the CSS extraction plugin removes these markers.
+const getPublicPathForExtract = (publicPath: string) =>
+  /^[a-zA-Z][a-zA-Z\d+\-.]*?:/.test(publicPath)
+    ? publicPath
+    : `${ABSOLUTE_PUBLIC_PATH}${publicPath.replace(/\./g, SINGLE_DOT_PATH_SEGMENT)}`;
 
 interface DependencyDescription {
   identifier: string;
@@ -45,12 +58,15 @@ export function hotLoader(
   },
 ): string {
   const localsJsonString = JSON.stringify(JSON.stringify(context.locals));
-  const pluginData = (
-    context.loaderContext as unknown as Record<
-      symbol,
-      CssExtractPluginData | undefined
-    >
-  )[pluginSymbol];
+  let pluginData: CssExtractPluginData | undefined;
+  let compilation: Compilation | undefined = context.loaderContext._compilation;
+  while (compilation) {
+    // Parent loader hooks run after child hooks, so parent options take precedence.
+    pluginData =
+      (compilation as Compilation & CssExtractPluginContext)[pluginSymbol] ??
+      pluginData;
+    compilation = compilation.compiler?.parentCompilation;
+  }
   // with `runtime: false` there is no hmrC.miniCss handler, so the injected
   // timestamp stays as the only change signal for css-only edits
   const changeSignal =
@@ -94,7 +110,7 @@ const loader: LoaderDefinition = function loader(content) {
   }
 };
 
-export const pitch: LoaderDefinition['pitch'] = function (request, _, data) {
+export const pitch: LoaderDefinition['pitch'] = function (request) {
   if (
     this._module &&
     (this._module.type === 'css' ||
@@ -134,14 +150,12 @@ export const pitch: LoaderDefinition['pitch'] = function (request, _, data) {
   let publicPathForExtract: Filename | undefined;
 
   if (typeof publicPath === 'string') {
-    const isAbsolutePublicPath = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/.test(publicPath);
-
-    publicPathForExtract = isAbsolutePublicPath
-      ? publicPath
-      : `${ABSOLUTE_PUBLIC_PATH}${publicPath.replace(
-          /\./g,
-          SINGLE_DOT_PATH_SEGMENT,
-        )}`;
+    publicPathForExtract = getPublicPathForExtract(publicPath);
+  } else if (typeof publicPath === 'function') {
+    // Protect callback results too, without evaluating them before Rspack
+    // provides the path data and asset info.
+    publicPathForExtract = (pathData, assetInfo) =>
+      getPublicPathForExtract(publicPath(pathData, assetInfo));
   } else {
     publicPathForExtract = publicPath;
   }
@@ -273,7 +287,7 @@ export const pitch: LoaderDefinition['pitch'] = function (request, _, data) {
       this.__internal__setParseMeta(PLUGIN_NAME, JSON.stringify(dependencies));
     }
 
-    callback(null, resultSource, undefined, data);
+    callback(null, resultSource);
   };
 
   this.importModule(

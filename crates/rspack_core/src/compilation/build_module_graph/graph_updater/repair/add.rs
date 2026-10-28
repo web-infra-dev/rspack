@@ -1,12 +1,10 @@
+use std::sync::Arc;
+
 use rspack_error::Result;
 
-use super::{
-  TaskContext,
-  build::{BuildResultTask, BuildTask},
-  lazy::process_unlazy_dependencies,
-};
+use super::{TaskContext, build::BuildTask, lazy::process_unlazy_dependencies};
 use crate::{
-  BoxModule, DependencyRef, ModuleIdentifier,
+  BoxModule, BuildContext, DependencyRef, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -14,6 +12,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct AddTask {
+  pub build_context: Arc<BuildContext>,
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: BoxModule,
   pub module_graph_module: Box<ModuleGraphModule>,
@@ -28,8 +27,9 @@ impl Task<TaskContext> for AddTask {
   }
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let Self {
+      build_context,
       original_module_identifier,
-      mut module,
+      module,
       module_graph_module,
       dependencies,
       from_unlazy,
@@ -109,17 +109,6 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let cached_module_state = if let Some(module_build_cache) = &context.module_build_cache {
-      module_build_cache
-        .restore(
-          &module,
-          &context.file_system_info,
-          &context.value_cache_versions,
-        )
-        .await?
-    } else {
-      None
-    };
     context
       .artifact
       .module_graph
@@ -142,31 +131,12 @@ impl Task<TaskContext> for AddTask {
       .affected_modules
       .mark_as_add(&module_identifier);
 
-    if let Some(module_state) = cached_module_state {
-      module
-        .as_normal_module_mut()
-        .expect("module cache entries are only restored for normal modules")
-        .restore_module_state(module_state);
-      return Ok(vec![Box::new(BuildResultTask {
-        module,
-        plugin_driver: context.plugin_driver.clone(),
-        forwarded_ids,
-      })]);
-    }
-
     Ok(vec![Box::new(BuildTask {
-      compiler_id: context.compiler_id,
-      compilation_id: context.compilation_id,
+      build_context,
       module,
-      resolver_factory: context.resolver_factory.clone(),
-      compiler_options: context.compiler_options.clone(),
-      loader_cache: context.cache.facade("loader"),
-      file_system_info: context.file_system_info.clone(),
-      plugin_driver: context.plugin_driver.clone(),
-      runtime_template: context.runtime_template.create_module_code_template(),
-      fs: context.fs.clone(),
       forwarded_ids,
       module_build_cache: context.module_build_cache.clone(),
+      value_cache_versions: context.value_cache_versions.clone(),
     })])
   }
 }

@@ -28,7 +28,7 @@ it('should support dynamic import', async () => {
 	expect(value.default).toBe(42)
 	expect(dynamic1).toBe(42)
 	expect(value2.default).toBe(42)
-})
+});
 
 export {};
 

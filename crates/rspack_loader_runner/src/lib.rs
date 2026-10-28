@@ -1,22 +1,30 @@
 #![feature(string_from_utf8_lossy_owned)]
 
 mod cache;
+mod chain;
+mod code_filter;
 mod content;
 mod context;
+mod filter;
 mod loader;
 mod plugin;
 mod runner;
 mod scheme;
 
+pub use code_filter::CodeFilter;
 pub use content::{
   AdditionalData, Content, DescriptionData, ParseMeta, ParseMetaValue, ResourceData,
 };
 pub use context::{LoaderContext, LoaderDependencies, State};
-pub use loader::{DisplayWithSuffix, Loader, LoaderItem, ResourceParsedData, parse_resource};
+pub use filter::LoaderFilter;
+pub use loader::{
+  DisplayWithSuffix, Loader, LoaderExecutionKind, LoaderItem, ResourceParsedData, parse_resource,
+};
 pub use plugin::LoaderRunnerPlugin;
 pub use rspack_collections::{Identifiable, Identifier};
-pub use runner::{LoaderResult, run_loaders};
+pub use runner::{LoaderFilters, LoaderResult, run_loaders};
 pub use scheme::{Scheme, get_scheme};
 
 pub const BUILTIN_LOADER_PREFIX: &str = "builtin:";
 pub use cache::LoaderRunnerOptions;
+pub use chain::LoaderChain;

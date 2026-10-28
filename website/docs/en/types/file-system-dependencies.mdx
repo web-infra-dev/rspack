@@ -1,0 +1,22 @@
+<>
+
+```ts
+interface FileSystemDependencies {
+  readonly size: number;
+  has(value: string): boolean;
+  add(value: string): this;
+  addAll(deps: Iterable<string>): void;
+  delete(value: string): boolean;
+  clear(): void;
+  keys(): IterableIterator<string>;
+  values(): IterableIterator<string>;
+  entries(): IterableIterator<[string, string]>;
+  [Symbol.iterator](): IterableIterator<string>;
+  forEach(
+    callback: (value: string, key: string, set: FileSystemDependencies) => void,
+    thisArg?: unknown,
+  ): void;
+}
+```
+
+</>

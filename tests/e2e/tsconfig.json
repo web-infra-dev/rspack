@@ -1,12 +1,25 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["custom.d.ts", "./scripts", "./fixtures", "./cases", "./utils"],
+  "include": [
+    "custom.d.ts",
+    "./scripts",
+    "./fixtures",
+    "./cases",
+    "./utils",
+    "rstack.config.ts",
+    "config.ts"
+  ],
   "compilerOptions": {
     "module": "ES2022",
     "moduleResolution": "bundler",
     "paths": {
       "@/*": ["./*"]
     },
-    "checkJs": false
+    "checkJs": false,
+    "composite": false,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "declaration": false,
+    "declarationMap": false
   }
 }

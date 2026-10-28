@@ -11,8 +11,7 @@ it("should rewrite the css url()", function () {
 	expect(a).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, 'a.txt'));
 	const b = /b: url\("(.*)"\);/.exec(css)[1];
 	expect(b).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, 'b.txt'));
-	const c = /c: url\("(.*)"\);/.exec(css)[1];
-	expect(c).toBe("#ccc");
+	expect(css).toContain("c: url(#ccc);");
 	const d = /d: url\("(.*)"\);/.exec(css)[1];
 	expect(d).toBe("https://rspack.rs/tests/~img.png");
 });

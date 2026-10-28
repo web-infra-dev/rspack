@@ -230,6 +230,23 @@ impl ReadableFileSystem for NodeFileSystem {
   }
 
   #[instrument(skip(self), level = "debug")]
+  async fn read_link(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+    let res = self
+      .0
+      .readlink
+      .call_with_promise(path.as_str().to_string())
+      .await
+      .to_fs_result()?;
+    match res {
+      Either::A(target) => Ok(Utf8PathBuf::from(target)),
+      Either::B(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "input file system call readlink failed",
+      )),
+    }
+  }
+
+  #[instrument(skip(self), level = "debug")]
   async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
     let res = self
       .0

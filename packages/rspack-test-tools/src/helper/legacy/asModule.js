@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-const vm = require('node:vm');
+import vm from 'node:vm';
 
 const SYNTHETIC_MODULES_STORE = '__SYNTHETIC_MODULES_STORE';
 

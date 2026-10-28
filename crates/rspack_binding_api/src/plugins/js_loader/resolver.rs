@@ -6,15 +6,28 @@ use rspack_cacheable::{
 };
 use rspack_collections::Identifier;
 use rspack_core::{
-  BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
-  Resolver, Resource, RunnerContext,
+  BoxLoader, Context, Loader, LoaderExecutionKind, ModuleFactoryCreateData, ModuleRuleUseLoader,
+  NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
 };
 use rspack_error::Result;
+use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
 use rspack_util::identifier::split_at_query_mark;
 
-use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner, cache::loader_cache_version};
+use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+
+pub(crate) async fn loader_cache_version(
+  resolver: &Resolver,
+  path: &Utf8Path,
+) -> Result<Option<String>> {
+  // V1 fingerprints only the resolved loader entry file. Files that the
+  // loader imports or requires are intentionally not included yet.
+  let contents = resolver.inner_fs().read(path).await?;
+  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+  hasher.write(&contents);
+  Ok(Some(format!("file:{:016x}", hasher.finish())))
+}
 
 #[cacheable]
 #[derive(Debug)]
@@ -36,6 +49,10 @@ impl Loader<RunnerContext> for JsLoader {
 
   fn cache_version(&self) -> Option<&str> {
     self.2.as_deref()
+  }
+
+  fn execution_kind(&self) -> LoaderExecutionKind {
+    LoaderExecutionKind::JavaScript
   }
 }
 
@@ -68,6 +85,7 @@ pub(crate) async fn resolve_loader(
   context: &Context,
   resolver: &Resolver,
   l: &ModuleRuleUseLoader,
+  data: &mut ModuleFactoryCreateData,
 ) -> Result<Option<BoxLoader>> {
   let context = context.as_path();
   let loader_request = &l.loader;
@@ -78,11 +96,16 @@ pub(crate) async fn resolve_loader(
     return Ok(get_builtin_test_loader(loader_request));
   }
 
-  let Some(resolve_result) = resolver
-    .resolve(context.as_std_path(), prev.as_str())
-    .await
-    .ok()
-  else {
+  let (result, dependencies) = resolver
+    .resolve_with_context(context.as_std_path(), prev.as_str())
+    .await;
+  data
+    .file_dependencies
+    .extend(dependencies.file_dependencies);
+  data
+    .missing_dependencies
+    .extend(dependencies.missing_dependencies);
+  let Ok(resolve_result) = result else {
     return Ok(None);
   };
 

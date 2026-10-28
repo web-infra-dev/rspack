@@ -11,7 +11,13 @@ export function validateShareScope(
   enhanced: boolean,
   pluginName: string,
 ): void {
-  if (Array.isArray(shareScope) && shareScope.length > 1 && !enhanced) {
+  if (!Array.isArray(shareScope)) return;
+  if (shareScope.length === 0) {
+    throw new Error(
+      `[${pluginName}] shareScope array must contain at least one entry`,
+    );
+  }
+  if (shareScope.length > 1 && !enhanced) {
     throw new Error(
       `[${pluginName}] shareScope as an array with multiple entries requires enhanced=true, got: ${JSON.stringify(shareScope)}`,
     );
@@ -19,9 +25,21 @@ export function validateShareScope(
 }
 
 export type SharePluginOptions = {
+  /**
+   * Share scope(s) used for modules that do not specify their own `shareScope`.
+   * @default 'default'
+   */
   shareScope?: ShareScope;
+  /**
+   * Modules to consume from a share scope and provide as local fallbacks.
+   * Set a module's `import` to `false` to consume it without a local fallback.
+   */
   shared: Shared;
-  enhanced: boolean;
+  /**
+   * Whether to generate sharing code for the enhanced Module Federation runtime.
+   * @default false
+   */
+  enhanced?: boolean;
 };
 export type Shared = (SharedItem | SharedObject)[] | SharedObject;
 export type SharedItem = string;

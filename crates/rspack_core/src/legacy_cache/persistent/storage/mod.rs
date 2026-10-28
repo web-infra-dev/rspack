@@ -4,7 +4,7 @@ use rspack_fs::IntermediateFileSystem;
 pub use rspack_storage::{BoxStorage, CacheDirectory, MemoryStorage, Storage};
 use rspack_storage::{FileSystemOptions, FileSystemStorage};
 
-use crate::cache::StorageOptions;
+use crate::StorageOptions;
 
 pub fn create_storage(
   options: StorageOptions,
@@ -13,9 +13,9 @@ pub fn create_storage(
   fs: Arc<dyn IntermediateFileSystem>,
 ) -> BoxStorage {
   match options {
-    StorageOptions::FileSystem { directory } => {
+    StorageOptions::FileSystem { location, .. } => {
       let option = FileSystemOptions {
-        directory,
+        directory: location,
         cache_directory,
         max_pack_size: 500 * 1024,
         expire: max_age,

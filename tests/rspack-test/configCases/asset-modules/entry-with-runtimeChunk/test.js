@@ -11,4 +11,9 @@ it("should work", () => {
 	);
 	expect(Boolean(assetEntry)).toBe(true);
 
+	if (__STATS_I__ % 4 === 0 || __STATS_I__ % 4 === 2) {
+		expect(
+			stats.assets.filter(a => /\.m?js$/.test(a.name)).map(a => a.name)
+		).toEqual(["test.js"]);
+	}
 });

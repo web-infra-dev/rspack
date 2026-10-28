@@ -1,5 +1,5 @@
 ---
-description: 'The stats object that is passed as a second argument of the rspack() callback, is a good source of information about the code compilation process'
+description: 'Inspect build results with Stats and MultiStats, check errors and warnings, and export JSON or formatted text.'
 ---
 
 import Columns from '@components/Columns';
@@ -88,7 +88,7 @@ if (stats.hasWarnings()) {
 
 ### toJson
 
-Return the compilation information in the form of a [Stats JSON](/api/javascript-api/stats-json) object. The [Stats configuration](/config/stats) can be a string (preset value) or an object for granular control:
+Return compilation information as a [Stats JSON](/api/javascript-api/stats-json) object. Pass a [stats preset or options object](/config/stats) to choose what to include.
 
 **Type:**
 
@@ -123,7 +123,7 @@ Return the compilation information in the form of a formatted string (similar to
 toString(opts?: StatsValue): string;
 ```
 
-Options are the same as `stats.toJson(options)` with one addition:
+Use [Stats configuration](/config/stats) to select what to display, and `colors` to control text colors:
 
 ```js
 stats.toString({

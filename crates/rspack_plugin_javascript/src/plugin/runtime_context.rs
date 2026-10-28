@@ -9,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 
-use super::{JsPlugin, RenderBootstrapResult};
+use super::{JsPlugin, RenderBootstrapResult, get_js_entry_modules_with_chunk_group};
 use crate::{
   RenderSource,
   runtime::{
@@ -31,8 +31,7 @@ impl JsPlugin {
       .unwrap_or_default();
 
     let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
-    let need_module_defer =
-      runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
+    let need_module_defer = runtime_requirements.contains(RuntimeGlobals::DEFERRED_MODULE_EXPORTS);
     let callable_require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
     let require_argument = runtime_template.render_runtime_argument();
     let module_factories = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
@@ -119,9 +118,9 @@ var module = ({module_cache}[moduleId] = {{"#,
       sources.push("}".into());
     } else {
       sources.push(module_execution);
-      if need_module_defer {
-        sources.push("delete __rspack_deferred_exports[moduleId];".into());
-      }
+    }
+    if need_module_defer {
+      sources.push("delete __rspack_deferred_exports[moduleId];".into());
     }
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
@@ -164,8 +163,7 @@ var module = ({module_cache}[moduleId] = {{"#,
     let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE)
       || !runtime_requirements.renderable_require_scope().is_empty()
       || has_custom_runtime_module;
-    let need_module_defer =
-      runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
+    let need_module_defer = runtime_requirements.contains(RuntimeGlobals::DEFERRED_MODULE_EXPORTS);
     let module_used = compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -297,6 +295,16 @@ function {}(moduleId) {{
       );
     }
 
+    if uses_runtime_context && need_module_defer {
+      header.push(
+        format!(
+          "// expose the deferred module exports\n{} = __rspack_deferred_exports;\n",
+          runtime_template.render_runtime_globals(&RuntimeGlobals::DEFERRED_MODULE_EXPORTS),
+        )
+        .into(),
+      );
+    }
+
     if intercept_module_execution {
       if !uses_runtime_context {
         header.push(
@@ -328,10 +336,7 @@ function {}(moduleId) {{
       if chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph) {
         let mut buf2: Vec<Cow<str>> = Vec::new();
         buf2.push("// Load entry module and return exports".into());
-        let entries = compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+        let entries = get_js_entry_modules_with_chunk_group(chunk_ukey, compilation);
         let module_graph = compilation.get_module_graph();
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation
@@ -395,11 +400,11 @@ function {}(moduleId) {{
             let top_level_decls = codegen
               .data()
               .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|d| d.inner())
+              .map(|_| ())
               .or_else(|| {
                 module_graph
                   .module_by_identifier(module)
-                  .and_then(|m| m.build_info().top_level_declarations.as_ref())
+                  .and_then(|m| m.build_info().top_level_declarations.as_ref().map(|_| ()))
               });
             top_level_decls.is_none()
           } {
@@ -653,13 +658,9 @@ impl JsPlugin {
       .get_chunk_modules_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph);
     let has_entry_modules =
       chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph);
-    let inlined_modules = if allow_inline_startup && has_entry_modules {
-      Some(
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey),
-      )
+    let js_entry_modules = get_js_entry_modules_with_chunk_group(chunk_ukey, compilation);
+    let inlined_modules = if allow_inline_startup && !js_entry_modules.is_empty() {
+      Some(&js_entry_modules)
     } else {
       None
     };
@@ -890,13 +891,14 @@ impl JsPlugin {
         )
         .await?;
       sources.add(render_source.source);
-    } else if let Some(last_entry_module) = compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
-      .keys()
-      .next_back()
-    {
+    } else if let Some(last_entry_module) = js_entry_modules.keys().next_back().or_else(|| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
+        .keys()
+        .next_back()
+    }) {
       let mut render_source = RenderSource {
         source: RawStringSource::from(startup.join("\n") + "\n").boxed(),
       };

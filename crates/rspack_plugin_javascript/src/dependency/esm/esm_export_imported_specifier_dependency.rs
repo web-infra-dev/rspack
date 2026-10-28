@@ -37,7 +37,6 @@ use rspack_util::json_stringify;
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 
 use super::{
-  create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
 use crate::{Atom, connection_active_inline_value_for_esm_export_imported_specifier};
@@ -82,10 +81,9 @@ impl ESMExportImportedSpecifierDependency {
     export_presence_mode: ExportPresenceMode,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
+    resource_identifier: ResourceIdentifier,
     loc: Option<DependencyLocation>,
   ) -> Self {
-    let resource_identifier =
-      create_resource_identifier_for_esm_dependency(&request, phase, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,
@@ -104,27 +102,36 @@ impl ESMExportImportedSpecifierDependency {
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
-  pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<Atom> {
+  pub fn active_exports<'a>(
+    &self,
+    module_graph: &'a ModuleGraph,
+  ) -> rspack_core::FreezeReadGuard<'a, HashSet<Atom>> {
     let build_info = module_graph
       .get_parent_module(&self.id)
       .and_then(|ident| module_graph.module_by_identifier(ident))
       .expect("should have mgm")
       .build_info();
-    &build_info.esm_named_exports
+    build_info.map(|info| &info.esm_named_exports)
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
   pub fn all_star_exports<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Option<(ModuleIdentifier, &'a Vec<DependencyId>)> {
+  ) -> Option<(
+    ModuleIdentifier,
+    rspack_core::FreezeReadGuard<'a, Vec<DependencyId>>,
+  )> {
     let module = module_graph
       .get_parent_module(&self.id)
       .and_then(|ident| module_graph.module_by_identifier(ident));
 
     if let Some(module) = module {
       let build_info = module.build_info();
-      Some((module.identifier(), &build_info.all_star_exports))
+      Some((
+        module.identifier(),
+        build_info.map(|info| &info.all_star_exports),
+      ))
     } else {
       None
     }
@@ -473,7 +480,7 @@ impl ESMExportImportedSpecifierDependency {
       let (names, dependency_indices) = module_graph_cache.cached_determine_export_assignments(
         DetermineExportAssignmentsKey::All(module_identifier),
         || {
-          determine_export_assignments(module_graph, exports_info_artifact, all_star_exports, None)
+          determine_export_assignments(module_graph, exports_info_artifact, &all_star_exports, None)
         },
       );
 
@@ -768,9 +775,6 @@ impl ESMExportImportedSpecifierDependency {
 
         let use_runtime =
           self.has_repeated_dynamic_reexports(mg, runtime, mg_cache, exports_info_artifact);
-        let module = mg
-          .module_by_identifier(&module.identifier())
-          .expect("should have module graph module");
         let exports_name = module.get_exports_argument();
         let is_async =
           ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier());

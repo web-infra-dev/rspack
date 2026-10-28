@@ -20,7 +20,6 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Error, Severity};
 
-use super::create_resource_identifier_for_esm_dependency;
 use crate::Atom;
 
 // TODO: find a better way to implement this for performance
@@ -32,9 +31,9 @@ pub mod import_emitted_runtime {
   use rspack_collections::{IdentifierDashMap, IdentifierMap};
   use rspack_core::{ModuleIdentifier, RuntimeCondition};
   #[cfg(allocative)]
-  use rspack_util::allocative;
+  use rspack_util::rspack_allocative;
 
-  #[cfg_attr(allocative, allocative::root)]
+  #[cfg_attr(allocative, rspack_allocative::root)]
   static IMPORT_EMITTED_MAP: OnceCell<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
     OnceCell::new();
 
@@ -89,11 +88,10 @@ impl ESMImportSideEffectDependency {
     dependency_type: DependencyType,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
+    resource_identifier: ResourceIdentifier,
     loc: Option<DependencyLocation>,
     star_export: bool,
   ) -> Self {
-    let resource_identifier =
-      create_resource_identifier_for_esm_dependency(&request, phase, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,
@@ -166,8 +164,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
 
   let runtime_condition = if module_dependency.weak() {
     RuntimeCondition::Boolean(false)
-  } else if let Some(connection) = module_graph.connection_by_dependency_id(module_dependency.id())
-  {
+  } else if let Some(connection) = connection {
     filter_runtime(*runtime, |r| {
       connection.is_target_active(
         module_graph,
@@ -578,10 +575,7 @@ impl Dependency for ESMImportSideEffectDependency {
     module_chain: &mut IdentifierSet,
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    if let Some(module) = module_graph
-      .module_identifier_by_dependency_id(&self.id)
-      .and_then(|module_identifier| module_graph.module_by_identifier(module_identifier))
-    {
+    if let Some(module) = module_graph.get_module_by_dependency_id(&self.id) {
       module.get_side_effects_connection_state(
         module_graph,
         module_graph_cache,

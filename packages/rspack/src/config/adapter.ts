@@ -1,3 +1,4 @@
+import path from 'node:path';
 import {
   type RawAssetGeneratorDataUrlFnCtx,
   type RawAssetGeneratorOptions,
@@ -42,7 +43,6 @@ import {
 } from './adapterRuleUse';
 import type {
   CacheNormalized,
-  CacheSnapshotNormalized,
   ExperimentsNormalized,
   ModuleOptionsNormalized,
   OutputNormalized,
@@ -116,6 +116,7 @@ export const getRawOptions = (
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
     cache: getRawCache(cache),
+    snapshot: getRawSnapshot(options.snapshot),
     experiments,
     incremental: mode === 'development' && options.incremental,
     node: getRawNode(options.node),
@@ -125,21 +126,32 @@ export const getRawOptions = (
   };
 };
 
-function getRawSnapshot(snapshot: CacheSnapshotNormalized): RawSnapshotOptions {
+function getRawSnapshot(
+  snapshot: RspackOptionsNormalized['snapshot'],
+): RawSnapshotOptions {
+  const strategy = (
+    value: { hash?: boolean; timestamp?: boolean } | undefined,
+  ) => ({
+    hash: value?.hash ?? false,
+    timestamp: value?.timestamp ?? false,
+  });
   return {
     immutablePaths: snapshot.immutablePaths!,
     unmanagedPaths: snapshot.unmanagedPaths!,
     managedPaths: snapshot.managedPaths!,
+    buildDependencies: strategy(snapshot.buildDependencies),
+    resolveBuildDependencies: strategy(snapshot.resolveBuildDependencies),
+    module: strategy(snapshot.module),
+    contextModule: strategy(snapshot.contextModule),
+    resolve: strategy(snapshot.resolve),
   };
 }
 
 function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
   if (cache === false) return false;
-  const snapshot = getRawSnapshot(cache.snapshot);
   if (cache.type === 'memory') {
     return {
       type: cache.type,
-      snapshot,
     };
   }
   const toRawStorageLimit = (name: string, value: number) => {
@@ -168,10 +180,9 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
     maxMemoryGenerations: toRawMemoryGenerations(cache.maxMemoryGenerations!),
     storage: {
       type: cache.storage.type,
-      // Raw `directory` expects the final cache path; normalized `directory` is only the base.
-      directory: cache.storage.location!,
+      directory: cache.storage.directory!,
+      location: cache.storage.location!,
     },
-    snapshot,
     portable: cache.portable,
     readonly: cache.readonly,
   };
@@ -257,7 +268,8 @@ function getRawTsConfig(
   if (tsConfig === undefined) return tsConfig;
   const { configFile, references } = tsConfig;
   return {
-    configFile,
+    // WASI's cwd can differ from the JavaScript host's working directory.
+    configFile: path.resolve(configFile),
     referencesType:
       references === 'auto' ? 'auto' : references ? 'manual' : 'disabled',
     references: references === 'auto' ? undefined : references,
@@ -640,6 +652,7 @@ function getRawJavascriptParserOptions(
     dynamicImportFetchPriority: parser.dynamicImportFetchPriority,
     importMeta: getRawImportMeta(parser.importMeta),
     url: parser.url?.toString(),
+    dynamicUrl: parser.dynamicUrl,
     exprContextCritical: parser.exprContextCritical,
     unknownContextCritical: parser.unknownContextCritical,
     wrappedContextCritical: parser.wrappedContextCritical,

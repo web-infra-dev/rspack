@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures';
 
 test('@rspack/browser should bundle react app successfully', async ({
   page,

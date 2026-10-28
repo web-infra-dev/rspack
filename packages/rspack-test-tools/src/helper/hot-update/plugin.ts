@@ -114,28 +114,6 @@ export class HotUpdatePlugin {
     this.updateIndex++;
     await this.updateFiles();
   }
-  moveTempDir() {
-    // generate next temp dir path.
-    const nextTempDir =
-      this.tempDir.replace(/(___[0-9]+)?[/\\]*$/, '') +
-      '___' +
-      this.updateIndex;
-
-    // update this.files.
-    for (const key of Object.keys(this.files)) {
-      const nextKey = key.replace(this.tempDir, nextTempDir);
-      this.files[nextKey] = this.files[key];
-      delete this.files[key];
-    }
-
-    // move files.
-    rimrafSync(nextTempDir);
-    fs.renameSync(this.tempDir, nextTempDir);
-    this.tempDir = nextTempDir;
-
-    return this.tempDir;
-  }
-
   apply(compiler: Compiler) {
     const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
     const options = compiler.options;
@@ -145,7 +123,7 @@ export class HotUpdatePlugin {
       test: /\.(js|css|json)/,
       use: [
         {
-          loader: path.resolve(__dirname, './loader.js'),
+          loader: path.resolve(import.meta.dirname, './loader.js'),
         },
       ],
     });

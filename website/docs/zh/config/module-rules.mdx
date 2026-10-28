@@ -19,7 +19,7 @@ import Attribution from '@components/Attribution';
 
 通过组合不同的匹配条件和处理逻辑，`module.rules` 可以精细地控制各类模块的构建行为。
 
-例如，使用 [内置 swc-loader](/guide/features/builtin-swc-loader) 处理以 `.ts` 结尾的文件：
+例如，使用 [内置 swc-loader](/guide/builtin-loaders/swc-loader) 处理以 `.ts` 结尾的文件：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -88,11 +88,13 @@ Condition 代表了匹配一个给定输入的形式，它支持的类型为：
 - `String`：给定一个输入，当输入的字符串满足 `startsWith` 时，则匹配成功。注：你可以认为是 `input.startsWith(condition)`。
 - `RegExp`：给定一个输入，当输入的字符串满足正则表达式时，则匹配成功。注：你可以认为是 `condition.test(input)`。
 - `Condition[]`：一系列条件，当有一个条件匹配上时，则匹配成功。
-- `LogicalConditions`：所有属性都匹配上时，则匹配成功。
+- `LogicalConditions`：设置的 `and`、`or` 和 `not` 检查需要全部通过。
   - `{ and: Condition[] }`：所有条件都匹配，则匹配成功。
   - `{ or: Condition[] }`：其中一个条件匹配，则匹配成功。
-  - `{ not: Condition }`：所有条件都不匹配时，则匹配成功。
+  - `{ not: Condition }`：条件不匹配时才通过。如果传入数组，则其中所有条件都不能匹配。
 - `(value: string) => boolean`：当输入的字符串经函数调用后返回 true 时，则匹配成功。
+
+一条规则同时设置 `test`、`include`、`resourceQuery` 等条件时，需要全部匹配才会生效。`exclude` 则相反：匹配它的模块会被跳过，即使该模块也匹配 `include`。
 
 ### Nested rule
 
@@ -497,7 +499,7 @@ import url from './data' with { type: 'url' };
 import('./data', { with: { type: 'url' } });
 ```
 
-需要注意的是，为了让 Rspack 能够正常匹配 `with` 语法，当你在使用 [builtin:swc-loader](/guide/features/builtin-swc-loader) 时，需要手动开启 `keepImportAttributes` 配置以保留 `import attributes`：
+需要注意的是，为了让 Rspack 能够正常匹配 `with` 语法，当你在使用 [builtin:swc-loader](/guide/builtin-loaders/swc-loader) 时，需要手动开启 `keepImportAttributes` 配置以保留 `import attributes`：
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -732,7 +734,7 @@ export default {
 - `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
 - `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
 - `'json'`：JSON data 模块，参考 [JSON](/guide/languages/json)。
-- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/languages/css#内置-css-支持)。
+- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/languages/css#built-in-css-support)。
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`：资源模块，参考 [资源模块](/guide/features/asset-module)。
 
 ## rules[].layer
@@ -765,15 +767,21 @@ export default {
 type RuleSetUse =
   | RuleSetUseItem
   | RuleSetUseItem[]
-  | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
+  | ((ctx: RawFuncUseCtx) => RuleSetUseItem | RuleSetUseItem[]);
 
-type RuleSetUseItem = string | RuleSetLoaderWithOptions;
+type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
+
+type RuleSetLoaderCodeFilter = string | RegExp;
 
 type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
   parallel?: boolean | { maxWorkers?: number };
+  cache?: boolean;
+  filter?: {
+    code: RuleSetLoaderCodeFilter;
+  };
 };
 ```
 
@@ -799,9 +807,11 @@ export default {
 };
 ```
 
-也可以使用一个函数：
+也可以使用函数为每个模块选择 loader，返回 loader 名称、loader 配置对象或由它们组成的数组：
 
 ```js title="rspack.config.mjs"
+import { basename } from 'node:path';
+
 export default {
   module: {
     rules: [
@@ -819,6 +829,90 @@ export default {
               ],
             },
           },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## rules[].use.codeFilter
+
+- **类型：**
+
+```ts
+type RuleSetLoaderCodeFilter = string | RegExp;
+```
+
+- **默认值：** `undefined`
+
+根据 loader 的当前输入代码决定是否执行该 loader。如果代码不匹配过滤条件，Rspack 会跳过该 loader 的代码转换，并将输入原样传递给下一个 loader。对于仅需处理特定语法的 loader，可以用此选项跳过不包含相关语法的模块，减少不必要的转换。
+
+- `string`：代码包含指定子串时匹配。
+- `RegExp`：代码满足正则表达式时匹配。
+
+Rspack 会在 loader 转换代码前检查过滤条件。由于 loader 按从右到左的顺序执行，如果右侧还有其他 loader，过滤条件匹配的是它们处理后的代码。此选项不影响 loader 的 pitch 函数。
+
+**字符串匹配**
+
+假设自定义 loader `remove-console-loader.js` 用于移除控制台日志，仅当输入代码包含 `console.log` 时才执行它：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './remove-console-loader.js',
+            codeFilter: 'console.log',
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+**正则表达式匹配**
+
+仅当输入代码包含 `console.log` 或 `console.debug` 时，才执行 `remove-console-loader.js`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './remove-console-loader.js',
+            codeFilter: /\bconsole\.(log|debug)\b/,
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+**匹配其他 loader 的输出**
+
+以下配置会先执行 `generate-loader.js`。只有生成的代码包含 `generated:marker` 时，Rspack 才会执行 `transform-loader.js`，即使原始源码中没有这个子串：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: './transform-loader.js',
+            codeFilter: 'generated:marker',
+          },
+          './generate-loader.js',
         ],
       },
     ],
@@ -869,46 +963,18 @@ export default {
 - 设置为 `{ maxWorkers }` 时，可以手动控制最大 worker 的数量。
 - 设置为 `false` 或省略时，该 loader 默认会在主线程中执行。
 
-例如，将 `less-loader` 配置为并行执行：
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'less-loader',
-            parallel: true,
-            options: {
-              // loader options
-            },
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-当同一条 Rule 下有多个 loader 开启了 `parallel` 选项，Rspack 会在同一个 worker 中按顺序依次运行这些 loader，直到遇到未启用 parallel 的 loader 或 Rust 实现的 builtin loader。这样可以在保证 loader 顺序的前提下最大化并行效率。
-
-:::tip
-
-- loader 的选项需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
-- 目前 loader 在 worker 中不支持 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的大多数方法。
-
-:::
+使用示例和限制请参考 [并行 Loader](/guide/features/loader#parallel-loader)。
 
 ## rules[].use.parallel.maxWorkers
 
 - **类型：** `number`
-- **默认值：** `undefined`
+- **默认值：** `Math.max(os.cpus().length - 1, 1)`
 
 当 `parallel` 配置为对象时，限制共享 loader worker pool 使用的最大 worker 线程数。请使用正整数。
 
-如果省略 `maxWorkers`，Rspack 会自动选择 worker 数量。loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
+默认情况下，Rspack 使用 `os.cpus()` 返回的逻辑 CPU 数量减一，最少为一个 worker。
+
+loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
 
 ```js title="rspack.config.mjs"
 export default {

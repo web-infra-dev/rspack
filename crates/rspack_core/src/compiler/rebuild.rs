@@ -21,7 +21,6 @@ impl Compiler {
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
-    let start = self.end_idle();
     let result = match within_compiler_context(
       self.compiler_context.clone(),
       self.rebuild_inner(changed_files, deleted_files),
@@ -46,7 +45,7 @@ impl Compiler {
         failed.and(Err(e))
       }
     };
-    self.begin_idle(start.elapsed());
+    self.store_cache_metadata(result.is_ok());
     result
   }
 
@@ -71,7 +70,10 @@ impl Compiler {
       let mut all_files = modified_files.clone();
       all_files.extend(removed_files.iter().cloned());
 
+      self.resolver_factory.clear_cache();
+      self.loader_resolver_factory.clear_cache();
       self.plugin_driver.clear_cache(self.compilation.id());
+
       let compilation_logging = self.compilation.get_logging().clone();
       compilation_logging.clear();
 
@@ -132,7 +134,7 @@ impl Compiler {
     self.cache.after_compile(&self.compilation).await;
 
     #[cfg(allocative)]
-    crate::utils::snapshot_allocative("rebuild");
+    crate::utils::snapshot_allocative("rebuild", self)?;
 
     Ok(())
   }

@@ -12,10 +12,12 @@ test('should compile', async ({ page, fileAction, rspack }) => {
     ),
   );
 
-  await expect(async () => {
-    await page.reload();
-    expect(await page.locator('#index1').innerText()).toBe('index1 updated');
-  }).toPass();
+  await expect
+    .poll(async () => {
+      await page.reload();
+      return await page.locator('#index1').innerText();
+    })
+    .toBe('index1 updated');
   await expect(page.locator('#index2')).toHaveCount(0);
   await expect(page.locator('#rspack-dev-server-client-overlay')).toHaveCount(
     0,

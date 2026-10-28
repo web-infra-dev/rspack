@@ -1,13 +1,13 @@
 #![allow(clippy::too_many_arguments)]
 
 use rspack_core::{
-  AssetInfo, BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Module,
-  ModuleIdentifier, RuntimeCodeTemplate, RuntimeGlobals, rspack_sources::BoxSource,
+  AssetInfo, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Module, ModuleIdentifier,
+  ModuleRef, RuntimeCodeTemplate, RuntimeGlobals, rspack_sources::BoxSource,
 };
 use rspack_hash::RspackHasher;
 use rspack_hook::define_hook;
 #[cfg(allocative)]
-use rspack_util::allocative;
+use rspack_util::rspack_allocative;
 
 define_hook!(JavascriptModulesRenderChunk: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, source: &mut RenderSource, runtime_template: &RuntimeCodeTemplate));
 define_hook!(JavascriptModulesRenderChunkContent: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey, asset_info: &mut AssetInfo, runtime_template: &RuntimeCodeTemplate) -> RenderSource);
@@ -18,11 +18,11 @@ define_hook!(JavascriptModulesRenderModuleContainer: Series(compilation: &Compil
 define_hook!(JavascriptModulesRenderModulePackage: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, module: &dyn Module, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments, runtime_template: &RuntimeCodeTemplate),tracing=false);
 define_hook!(JavascriptModulesChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHasher));
 define_hook!(JavascriptModulesInlineInRuntimeBailout: SeriesBail(compilation: &Compilation) -> String);
-define_hook!(JavascriptModulesEmbedInRuntimeBailout: SeriesBail(compilation: &Compilation, module: &BoxModule, chunk: &Chunk) -> String);
+define_hook!(JavascriptModulesEmbedInRuntimeBailout: SeriesBail(compilation: &Compilation, module: &ModuleRef, chunk: &Chunk) -> String);
 define_hook!(JavascriptModulesStrictRuntimeBailout: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> String);
 
 #[derive(Debug, Default)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub struct JavascriptModulesPluginHooks {
   #[cfg_attr(allocative, allocative(skip))]
   pub render_chunk: JavascriptModulesRenderChunkHook,
