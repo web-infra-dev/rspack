@@ -46,6 +46,7 @@ import { Logger, LogType } from './logging/Logger';
 import type { Module } from './Module';
 import ModuleGraph from './ModuleGraph';
 import type { NormalModuleFactory } from './NormalModuleFactory';
+import { createReadonlySet } from './ReadonlySet';
 import type { ResolverFactory } from './ResolverFactory';
 import type { RspackError } from './RspackError';
 import { RuntimeModule } from './RuntimeModule';
@@ -60,12 +61,9 @@ import { StatsFactory } from './stats/StatsFactory';
 import { StatsPrinter } from './stats/StatsPrinter';
 import { AsyncTask } from './util/AsyncTask';
 import { createReadonlyMap } from './util/createReadonlyMap';
-import { createModules } from './Modules';
 import type { InputFileSystem } from './util/fs';
 import type Hash from './util/hash';
 import { SourceAdapter } from './util/source';
-// patch Chunks
-import './Chunks';
 // patch ChunkGraph
 import './ChunkGraph';
 // patch CodeGenerationResults
@@ -283,8 +281,6 @@ export class Compilation {
   #shutdown: boolean;
   #errors?: RspackError[];
   #warnings?: RspackError[];
-  #chunks?: ReadonlySet<Chunk>;
-  #modules?: ReadonlySet<Module>;
   #assetsProxy?: Assets;
 
   hooks: Readonly<{
@@ -591,21 +587,15 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   get modules(): ReadonlySet<Module> {
-    if (!this.#modules) {
-      this.#modules = createModules(this.#inner.modules);
-    }
-    return this.#modules;
+    return createReadonlySet(this.#inner.modules);
   }
 
   get builtModules(): ReadonlySet<Module> {
-    return new Set(this.#inner.builtModules);
+    return createReadonlySet(this.#inner.builtModules);
   }
 
   get chunks(): ReadonlySet<Chunk> {
-    if (!this.#chunks) {
-      this.#chunks = this.#inner.chunks;
-    }
-    return this.#chunks;
+    return createReadonlySet(this.#inner.chunks);
   }
 
   /**

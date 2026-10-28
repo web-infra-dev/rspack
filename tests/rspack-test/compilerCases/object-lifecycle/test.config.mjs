@@ -1,6 +1,15 @@
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 export default [
   {
+    name: "compilation-collections",
+    description:
+      "should weakly cache compilation collections and recreate them after GC",
+    async run() {
+      const { default: run } = await import("./compilation-collections.mjs");
+      await run();
+    },
+  },
+  {
     name: "hooks",
     description:
       "should collect hook closures and captured compiler/compilations",
