@@ -50,7 +50,7 @@ impl CacheCounters {
   }
 }
 
-/// Compiler-scoped counters reset between compilations, independently of shared cache storage.
+/// Shared counters reset when the cache leaves idle.
 /// Facades register once and retain their counters for lock-free recording.
 #[derive(Debug, Default)]
 pub struct CacheStatistics {

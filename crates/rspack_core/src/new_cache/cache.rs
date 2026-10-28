@@ -117,6 +117,7 @@ impl Cache {
   }
 
   pub fn end_idle(&self) {
+    self.statistics.reset();
     if let Some(file_cache) = &self.storage.idle_file_cache {
       file_cache.end_idle();
     }

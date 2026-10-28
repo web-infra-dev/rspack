@@ -76,7 +76,6 @@ impl Compiler {
 
       let compilation_logging = self.compilation.get_logging().clone();
       compilation_logging.clear();
-      self.new_cache.statistics().reset();
 
       let mut next_compilation = Compilation::new(
         self.id,

@@ -272,7 +272,6 @@ impl Compiler {
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
-    self.new_cache.statistics().reset();
     if self.new_cache.has_file_cache() {
       let meta_cache = self.get_cache("meta");
       if let Some(restored) = meta_cache.get::<Meta>("state", None) {
