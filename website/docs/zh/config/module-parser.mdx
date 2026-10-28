@@ -1159,11 +1159,32 @@ export default {
 - **类型：** `boolean`
 - **默认值：** `false`
 
-当 `exportType` 为 `'style'` 时，使用运行时公共路径生成输出资源的 URL。此选项不影响其他导出类型。
+基于运行时公共路径解析注入样式中的资源 URL。仅在 `exportType` 为 `'style'` 时生效。
 
-默认情况下，注入的 CSS 使用构建时解析的资源 URL。当 `output.publicPath: 'auto'` 时，这些 URL 仍相对于文档解析。设置 `runtimePublicPath: true` 可改用运行时公共路径，包括赋给 `import.meta.rspackPublicPath` 的值。
+默认情况下，Rspack 在构建时根据 `output.publicPath` 将资源 URL 写入注入的 CSS。当 `output.publicPath: 'auto'` 时，URL 保持相对路径，浏览器会基于页面 URL 而非脚本 URL 解析它。
 
-如果动态设置 `import.meta.rspackPublicPath`，请在导入样式之前执行的独立模块中设置它。显式配置的[资源生成器公共路径](/config/module-generator#assetpublicpath)具有更高优先级。内联 data URL 和外部 URL 保持不变。
+开启后，Rspack 会在注入样式时为每个输出资源的 URL 加上运行时公共路径前缀。该值与 JavaScript chunk 加载时使用的相同，因此会遵循 `output.publicPath: 'auto'` 以及赋给 [`import.meta.rspackPublicPath`](/api/runtime-api/module-variables#importmetarspackpublicpath) 的值。
+
+```css
+/* style.css */
+.logo {
+  background: url('./logo.svg');
+}
+
+/* runtimePublicPath: false 且 output.publicPath: 'auto' 时注入的样式 */
+.logo {
+  background: url('assets/logo.svg');
+}
+
+/* runtimePublicPath: true 且 import.meta.rspackPublicPath = 'https://cdn.example.com/' 时注入的样式 */
+.logo {
+  background: url('https://cdn.example.com/assets/logo.svg');
+}
+```
+
+如需在运行时设置 `import.meta.rspackPublicPath`，请在单独的模块中赋值，并在导入任何样式之前导入该模块。静态导入会先于导入方模块中的代码执行，因此与样式导入写在同一文件中的赋值会太晚生效。
+
+配置了自身 [`generator.publicPath`](/config/module-generator#assetpublicpath) 的资源会保留该值。内联 data URL 和外部 URL 保持不变。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1475,7 +1496,7 @@ export default {
 
 ### css.runtimePublicPath
 
-同 [`module.parser["css/auto"].runtimePublicPath`](#cssautoruntimepublicpath).
+和 [`module.parser["css/auto"].runtimePublicPath`](#cssautoruntimepublicpath) 一样。
 
 ### css.namedExports
 
@@ -1577,7 +1598,7 @@ export default {
 
 ### ["css/global"].runtimePublicPath
 
-同 [`module.parser["css/auto"].runtimePublicPath`](#cssautoruntimepublicpath).
+和 [`module.parser["css/auto"].runtimePublicPath`](#cssautoruntimepublicpath) 一样。
 
 ### ["css/global"].namedExports
 
@@ -1775,7 +1796,7 @@ export default {
 
 ### ["css/module"].runtimePublicPath
 
-同 [`module.parser["css/auto"].runtimePublicPath`](#cssautoruntimepublicpath).
+和 [`module.parser["css/auto"].runtimePublicPath`](#cssautoruntimepublicpath) 一样。
 
 ### ["css/module"].namedExports
 

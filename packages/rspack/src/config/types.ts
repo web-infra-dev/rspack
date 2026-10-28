@@ -1091,8 +1091,10 @@ export type CssParserOptions = {
    */
   exportType?: CssParserExportType;
   /**
-   * Use the runtime public path for emitted asset URLs with exportType: "style".
-   * Explicit asset generator publicPath values take precedence.
+   * Resolve asset URLs in injected styles against the runtime public path
+   * (`import.meta.rspackPublicPath`) instead of the build-time `output.publicPath`.
+   * Only applies when `exportType` is "style". Assets with their own
+   * `generator.publicPath` keep that value.
    * @default false
    */
   runtimePublicPath?: boolean;
@@ -1133,8 +1135,10 @@ export type CssModuleParserOptions = {
    */
   exportType?: CssParserExportType;
   /**
-   * Use the runtime public path for emitted asset URLs with exportType: "style".
-   * Explicit asset generator publicPath values take precedence.
+   * Resolve asset URLs in injected styles against the runtime public path
+   * (`import.meta.rspackPublicPath`) instead of the build-time `output.publicPath`.
+   * Only applies when `exportType` is "style". Assets with their own
+   * `generator.publicPath` keep that value.
    * @default false
    */
   runtimePublicPath?: boolean;

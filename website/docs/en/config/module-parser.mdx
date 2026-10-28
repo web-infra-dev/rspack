@@ -1160,11 +1160,32 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Use the runtime public path for emitted asset URLs when `exportType` is `'style'`. This option has no effect on other export types.
+Resolve asset URLs in injected styles against the runtime public path. Only applies when `exportType` is `'style'`.
 
-By default, injected CSS uses asset URLs resolved at build time. With `output.publicPath: 'auto'`, these URLs remain relative to the document. Set `runtimePublicPath: true` to use the runtime public path instead, including values assigned to `import.meta.rspackPublicPath`.
+By default, Rspack writes each asset URL into the injected CSS at build time, using `output.publicPath`. With `output.publicPath: 'auto'` the URL stays relative, so the browser resolves it against the page URL instead of the script URL.
 
-If you set `import.meta.rspackPublicPath` dynamically, set it in a separate module that runs before importing the styles. Explicit [asset generator public paths](/config/module-generator#assetpublicpath) take precedence. Inline data URLs and external URLs are unchanged.
+When enabled, Rspack prefixes each emitted asset URL with the runtime public path when the style is injected. This is the same value JavaScript chunks load from, so it follows `output.publicPath: 'auto'` and any value assigned to [`import.meta.rspackPublicPath`](/api/runtime-api/module-variables#importmetarspackpublicpath).
+
+```css
+/* style.css */
+.logo {
+  background: url('./logo.svg');
+}
+
+/* Injected with runtimePublicPath: false and output.publicPath: 'auto' */
+.logo {
+  background: url('assets/logo.svg');
+}
+
+/* Injected with runtimePublicPath: true and import.meta.rspackPublicPath = 'https://cdn.example.com/' */
+.logo {
+  background: url('https://cdn.example.com/assets/logo.svg');
+}
+```
+
+To set `import.meta.rspackPublicPath` at runtime, assign it in its own module and import that module before any styles. Static imports run before the code in the importing module, so an assignment next to the style import runs too late.
+
+Assets with their own [`generator.publicPath`](/config/module-generator#assetpublicpath) keep that value. Inline data URLs and external URLs are unchanged.
 
 ```js title="rspack.config.mjs"
 export default {
