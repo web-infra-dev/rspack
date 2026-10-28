@@ -133,23 +133,23 @@ Rspack 2.3 also adds memory snapshots based on [allocative](https://github.com/f
 
 ## Experimental cache improvements \{#cache-improvements}
 
-Rspack 2.3 introduces `newCache`, an experimental cache implementation that reuses build results at a finer granularity and reduces cache file size and write overhead.
+Rspack 2.3 introduces a new experimental cache that reuses build results at a finer granularity and reduces storage requirements and write overhead.
 
-The previous cache implementation had several limitations:
+The old cache had several limitations:
 
 - Coarse cache granularity: it persisted the complete intermediate results of each compilation stage, such as the entire module graph during `make`. These results had to remain immutable, and the graph's complex state had caused errors or even panics when restoring the cache.
 - Coupling with incremental compilation: incremental compilation targets development mode, while persistent caching also needs to support production builds. This made it difficult to reuse the same mechanism for some stages.
 - Memory and persistent caches used different models, requiring special handling in multiple places.
 - Serializing the persistent cache blocked compilation.
 
-To address these issues, we introduced `newCache` with the following improvements:
+The new cache addresses these issues with the following improvements:
 
 - Finer cache granularity: it caches individual computation results, such as modules, without saving and restoring the entire module graph. This reduces correctness risks from complex graph state, and only the cached data needs to remain immutable.
 - Decoupled from incremental compilation: caching works independently, making it easier to support both development and production builds.
 - A unified cache model: memory and persistent caches use the same model, reducing special handling and making it easier to evict unused entries and control memory usage across development rebuilds.
 - Deferred persistence: serialization and disk writes run during idle time or at the end of a build, reducing work that blocks compilation.
 
-The feature is disabled by default. Enable it with [`experiments.newCache`](/config/experiments#experimentsnewcache):
+The new cache is disabled by default. Enable it with [`experiments.newCache`](/config/experiments#experimentsnewcache):
 
 ```js title="rspack.config.mjs"
 export default {
@@ -166,27 +166,27 @@ The following tables compare the two cache implementations in [React 10k](https:
 
 React 10k:
 
-| Metric                      | Old cache |  newCache |         Change |
-| --------------------------- | --------: | --------: | -------------: |
-| Total cold build time       |    2.11 s |    1.80 s |         -14.5% |
-| Total warm build time       |  776.9 ms |  837.2 ms |          +7.8% |
-| Peak memory for cold build  | 926.5 MiB | 781.3 MiB |         -15.7% |
-| Peak memory for warm build  | 840.5 MiB | 840.7 MiB | About the same |
-| Disk cache after warm build | 269.0 MiB |  57.2 MiB |         -78.7% |
+| Metric                         | Old cache | New cache |         Change |
+| ------------------------------ | --------: | --------: | -------------: |
+| Total cold build time          |    2.11 s |    1.80 s |         -14.5% |
+| Total warm build time          |  776.9 ms |  837.2 ms |          +7.8% |
+| Peak memory for cold build     | 926.5 MiB | 781.3 MiB |         -15.7% |
+| Peak memory for warm build     | 840.5 MiB | 840.7 MiB | About the same |
+| Storage usage after warm build | 269.0 MiB |  57.2 MiB |         -78.7% |
 
 Large real-world project:
 
-| Metric                      |   Old cache |    newCache | Change |
-| --------------------------- | ----------: | ----------: | -----: |
-| Total cold build time       |     84.89 s |     83.47 s |  -1.7% |
-| Total warm build time       |     33.18 s |     35.24 s |  +6.2% |
-| Peak memory for cold build  |   11.55 GiB |    9.69 GiB | -16.1% |
-| Peak memory for warm build  |    7.67 GiB |    8.23 GiB |  +7.3% |
-| Disk cache after warm build | 3895.98 MiB | 1092.08 MiB | -72.0% |
+| Metric                         |   Old cache |   New cache | Change |
+| ------------------------------ | ----------: | ----------: | -----: |
+| Total cold build time          |     84.89 s |     83.47 s |  -1.7% |
+| Total warm build time          |     33.18 s |     35.24 s |  +6.2% |
+| Peak memory for cold build     |   11.55 GiB |    9.69 GiB | -16.1% |
+| Peak memory for warm build     |    7.67 GiB |    8.23 GiB |  +7.3% |
+| Storage usage after warm build | 3895.98 MiB | 1092.08 MiB | -72.0% |
 
-In these tests, `newCache` reduces cache size by around 75% and lowers cache write overhead. Its finer-grained module caching makes the `make` phase slower because dependency relationships must be rebuilt instead of restoring the entire module graph. Other stages become faster and offset part of this overhead, so total warm build time increases only modestly. This tradeoff avoids restoring complex graph state and makes cache correctness easier to maintain.
+In these tests, the new cache reduces storage requirements by around 75% and lowers cache write overhead. Its finer-grained module caching makes the `make` phase slower because dependency relationships must be rebuilt instead of restoring the entire module graph. Other stages become faster and offset part of this overhead, so total warm build time increases only modestly. This tradeoff avoids restoring complex graph state and makes cache correctness easier to maintain.
 
-We will continue to optimize warm build performance and memory usage and plan to replace the previous implementation with `newCache` in a future minor release.
+We will continue to optimize warm build performance and memory usage and plan to replace the old cache with the new cache in a future minor release.
 
 ### Loader cache
 
